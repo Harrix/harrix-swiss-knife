@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+import harrix_pylib as h
 from PySide6.QtCore import QSize, Qt, QTimer
 from PySide6.QtGui import (
     QFont,
@@ -65,6 +66,7 @@ from harrix_swiss_knife.actions.text_result_dialog import (
     REWRITE_DIALOG_CODE,
     add_copy_button,
     add_ok_button,
+    add_open_folder_button,
     append_result_action_buttons,
 )
 from harrix_swiss_knife.apps.common import message_box
@@ -1185,6 +1187,7 @@ class ActionDialogService:
         text: str,
         title: str = "Result",
         *,
+        open_folder_path: Path | str | None = None,
         rerun_button: bool = False,
         rerun_button_label: str = RERUN_BUTTON_LABEL,
         rerun_button_emoji: str = RERUN_BUTTON_EMOJI,
@@ -1193,6 +1196,7 @@ class ActionDialogService:
     ) -> str | tuple[str | None, int] | None:
         """Show read-only multi-line text dialog and return text if accepted."""
         has_action_buttons = rerun_button or rewrite_button or remove_paragraphs_button
+        folder_to_open = Path(open_folder_path) if open_folder_path is not None else None
 
         def _build(dialog: QDialog, layout: QVBoxLayout) -> None:
             text_edit = QPlainTextEdit()
@@ -1214,6 +1218,13 @@ class ActionDialogService:
                 self._show_toast("Copied to Clipboard")
 
             add_copy_button(button_layout, click_copy_button)
+
+            if folder_to_open is not None:
+
+                def click_open_folder() -> None:
+                    h.file.open_file_or_folder(folder_to_open)
+
+                add_open_folder_button(button_layout, click_open_folder)
 
             append_result_action_buttons(
                 dialog,

@@ -5,8 +5,6 @@ from __future__ import annotations
 import shutil
 from typing import Any
 
-import harrix_pylib as h
-
 from harrix_swiss_knife.actions.base import ActionBase
 from harrix_swiss_knife.actions.images.optimize import OnOptimize
 
@@ -42,7 +40,6 @@ class OnOptimizeDialogReplace(OnOptimize):
         result = self.run_optimize_images(
             self.folder_path,
             output_folder,
-            open_output=False,
         )
 
         for item in self.folder_path.iterdir():
@@ -54,6 +51,7 @@ class OnOptimizeDialogReplace(OnOptimize):
                 shutil.copy2(item, self.folder_path / item.name)
 
         shutil.rmtree(output_folder)
+        self.result_folder = self.folder_path
 
         return result
 
@@ -62,7 +60,6 @@ class OnOptimizeDialogReplace(OnOptimize):
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
         if self.folder_path is None:
             return
-        h.file.open_file_or_folder(self.folder_path)
         self.show_toast("Optimize completed")
         self.add_line(result)
         self.show_result()

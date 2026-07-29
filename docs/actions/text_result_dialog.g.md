@@ -13,6 +13,7 @@ lang: en
 
 - [🔧 Function `add_copy_button`](#-function-add_copy_button)
 - [🔧 Function `add_ok_button`](#-function-add_ok_button)
+- [🔧 Function `add_open_folder_button`](#-function-add_open_folder_button)
 - [🔧 Function `append_result_action_buttons`](#-function-append_result_action_buttons)
 - [🔧 Function `collapse_text_to_single_line`](#-function-collapse_text_to_single_line)
 - [🔧 Function `resolve_text_result_dialog_action`](#-function-resolve_text_result_dialog_action)
@@ -57,6 +58,27 @@ def add_ok_button(dialog: QDialog, button_layout: QHBoxLayout) -> QPushButton:
     ok_button.clicked.connect(dialog.accept)
     button_layout.addWidget(ok_button)
     return ok_button
+```
+
+</details>
+
+## 🔧 Function `add_open_folder_button`
+
+```python
+def add_open_folder_button(button_layout: QHBoxLayout, click_handler: Callable[[], None]) -> QPushButton
+```
+
+Add an open-folder button with an emoji icon.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def add_open_folder_button(button_layout: QHBoxLayout, click_handler: Callable[[], None]) -> QPushButton:
+    open_folder_button = make_emoji_push_button(OPEN_FOLDER_BUTTON_LABEL, OPEN_FOLDER_BUTTON_EMOJI)
+    open_folder_button.clicked.connect(click_handler)
+    button_layout.addWidget(open_folder_button)
+    return open_folder_button
 ```
 
 </details>

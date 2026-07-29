@@ -47,13 +47,13 @@ class OnOptimize(ActionBase):
         compare_png_avif: bool = True,
         convert_png_to_avif: bool = False,
         clear_output: bool = True,
-        open_output: bool = True,
     ) -> str:
-        """Optimize images in a folder and optionally open the output directory."""
+        """Optimize images in a folder and store the output path for the result dialog."""
         project_root = h.dev.get_project_root()
+        output_path = Path(output_folder)
         result = _optimize_images_in_folder(
             Path(images_folder),
-            Path(output_folder),
+            output_path,
             project_root,
             quality=quality,
             max_size=max_size,
@@ -61,8 +61,7 @@ class OnOptimize(ActionBase):
             convert_png_to_avif=convert_png_to_avif,
             clear_output=clear_output,
         )
-        if open_output:
-            h.file.open_file_or_folder(output_folder)
+        self.result_folder = output_path
         return result
 
     @ActionBase.handle_exceptions("optimization thread completion")

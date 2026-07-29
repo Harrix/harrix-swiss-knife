@@ -28,6 +28,8 @@ REMOVE_PARAGRAPHS_BUTTON_LABEL = "To single line"
 REMOVE_PARAGRAPHS_BUTTON_EMOJI = "↪️"
 COPY_BUTTON_LABEL = "Copy to Clipboard"
 COPY_BUTTON_EMOJI = "📋"
+OPEN_FOLDER_BUTTON_LABEL = "Open folder"
+OPEN_FOLDER_BUTTON_EMOJI = "📂"
 OK_BUTTON_LABEL = "OK"
 OK_BUTTON_EMOJI = "✅"
 CANCEL_BUTTON_EMOJI = "❌"
@@ -47,6 +49,14 @@ def add_ok_button(dialog: QDialog, button_layout: QHBoxLayout) -> QPushButton:
     ok_button.clicked.connect(dialog.accept)
     button_layout.addWidget(ok_button)
     return ok_button
+
+
+def add_open_folder_button(button_layout: QHBoxLayout, click_handler: Callable[[], None]) -> QPushButton:
+    """Add an open-folder button with an emoji icon."""
+    open_folder_button = make_emoji_push_button(OPEN_FOLDER_BUTTON_LABEL, OPEN_FOLDER_BUTTON_EMOJI)
+    open_folder_button.clicked.connect(click_handler)
+    button_layout.addWidget(open_folder_button)
+    return open_folder_button
 
 
 def append_result_action_buttons(

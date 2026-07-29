@@ -106,6 +106,7 @@ class ActionBase(ABC):
 
         """
         self.result_lines.clear()
+        self.result_folder = None
         self.file = new_action_output_file_path(self._action_output_dir, type(self).__name__)
         self._run_started = perf_counter()
         if self._output_bus is not None:
@@ -127,6 +128,7 @@ class ActionBase(ABC):
 
         """
         self.result_lines = []
+        self.result_folder: Path | None = None
         self._output_bus: ActionOutputBus | None = kwargs.get("output_bus")
         self._action_output_dir = get_action_output_dir()
         self._action_output_dir.mkdir(parents=True, exist_ok=True)
@@ -498,7 +500,7 @@ class ActionBase(ABC):
         elapsed = self.elapsed_mm_ss()
         if elapsed is not None:
             title = f"Result — {elapsed}"
-        result = self.dialogs.show_text_multiline(text, title)
+        result = self.dialogs.show_text_multiline(text, title, open_folder_path=self.result_folder)
         if isinstance(result, tuple):
             return result[0]
         return result
@@ -737,6 +739,7 @@ The result returned by the execute method.
 ```python
 def __call__(self, *args: Any, **kwargs: Any) -> Any:
         self.result_lines.clear()
+        self.result_folder = None
         self.file = new_action_output_file_path(self._action_output_dir, type(self).__name__)
         self._run_started = perf_counter()
         if self._output_bus is not None:
@@ -770,6 +773,7 @@ Args:
 ```python
 def __init__(self, **kwargs: Any) -> None:
         self.result_lines = []
+        self.result_folder: Path | None = None
         self._output_bus: ActionOutputBus | None = kwargs.get("output_bus")
         self._action_output_dir = get_action_output_dir()
         self._action_output_dir.mkdir(parents=True, exist_ok=True)
@@ -1558,7 +1562,7 @@ def show_result(self) -> str | None:
         elapsed = self.elapsed_mm_ss()
         if elapsed is not None:
             title = f"Result — {elapsed}"
-        result = self.dialogs.show_text_multiline(text, title)
+        result = self.dialogs.show_text_multiline(text, title, open_folder_path=self.result_folder)
         if isinstance(result, tuple):
             return result[0]
         return result

@@ -29,9 +29,10 @@ Build HSK Android APK (`assembleDebug` or `assembleRelease`).
 Tray: asks Debug vs Release, then runs Gradle. CLI: pass `debug` or
 `release`. Requires Windows, JDK 17, and Android SDK (`ANDROID_HOME` /
 `android/local.properties`). Use `install/setup-android-sdk.bat` once
-to install the toolchain. After a successful build, opens the APK folder
-and runs `adb install -r` when a USB device is connected. If the phone is
-still waiting for USB debugging authorization, waits for confirmation.
+to install the toolchain. After a successful build, the result dialog
+can open the APK folder, and the action runs `adb install -r` when a USB
+device is connected. If the phone is still waiting for USB debugging
+authorization, waits for confirmation.
 
 <details>
 <summary>Code:</summary>
@@ -374,8 +375,7 @@ class OnAndroidBuild(ActionBase):
             return
 
         self.add_line(f"✅ APK: {apk_path}")
-        h.file.open_file_or_folder(apk_path.parent)
-        self.add_line(f"📂 Opened: {apk_path.parent}")
+        self.result_folder = apk_path.parent
         self._install_apk_via_adb(apk_path)
 
     @staticmethod

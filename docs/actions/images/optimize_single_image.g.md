@@ -57,7 +57,6 @@ class OnOptimizeSingleImage(OnOptimize):
             result = self.run_optimize_images(
                 temp_path,
                 output_folder,
-                open_output=False,
             )
             self.add_line(result)
 
@@ -68,7 +67,7 @@ class OnOptimizeSingleImage(OnOptimize):
                     shutil.copy2(output_file, target_path)
                     if target_path != filename and filename.exists():
                         filename.unlink()
-                    h.file.open_file_or_folder(target_dir)
+                    self.result_folder = target_dir
                     break
 
         self.show_result()
@@ -109,7 +108,6 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
             result = self.run_optimize_images(
                 temp_path,
                 output_folder,
-                open_output=False,
             )
             self.add_line(result)
 
@@ -120,7 +118,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
                     shutil.copy2(output_file, target_path)
                     if target_path != filename and filename.exists():
                         filename.unlink()
-                    h.file.open_file_or_folder(target_dir)
+                    self.result_folder = target_dir
                     break
 
         self.show_result()
