@@ -63,13 +63,13 @@ _Figure 1: Screenshot_
   - 🔗 Create desktop shortcut
   - ⬇️ Download ffmpeg, avifenc, avifdec
   - ⌨️ Install CLI (hsk on PATH) ꟲᴸᴵ
-  - 📦 Install or update extension for VS Code (and ect.) ꟲᴸᴵ
   - ⚙️ Open `config.json`
   - 📌 Sync Quick Access folders to Total Commander
   - ⬆️ Update Harrix Swiss Knife from GitHub…
   - 📥 Update Node.js
   - 📥 Update uv
   - 📦 Update/Install global NPM packages
+  - 📦 Update/install extension for VS Code (and etc.) ꟲᴸᴵ
   - 📋 View recent action logs
 - **Images**
   - 📸 Open photos in image viewer
