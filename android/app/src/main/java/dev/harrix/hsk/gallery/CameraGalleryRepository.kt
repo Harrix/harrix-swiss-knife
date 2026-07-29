@@ -1,7 +1,6 @@
 package dev.harrix.hsk.gallery
 
 import android.content.ContentUris
-import android.content.ContentValues
 import android.content.Context
 import android.content.IntentSender
 import android.net.Uri
@@ -52,19 +51,12 @@ class CameraGalleryRepository(
     fun canTrashWithoutPrompt(): Boolean =
         Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && MediaStore.canManageMedia(context)
 
-    @RequiresApi(Build.VERSION_CODES.R)
-    fun trashWithoutPrompt(uri: Uri): Boolean {
-        val values =
-            ContentValues().apply {
-                put(MediaStore.MediaColumns.IS_TRASHED, 1)
-            }
-        return try {
-            context.contentResolver.update(uri, values, null, null) > 0
-        } catch (_: SecurityException) {
-            false
-        }
-    }
-
+    /**
+     * Always use [createTrashRequest] on Android 11+.
+     *
+     * With [MediaStore.canManageMedia] granted, the system skips the confirmation dialog.
+     * Direct `IS_TRASHED` updates are only allowed for OEM gallery apps and fail otherwise.
+     */
     @RequiresApi(Build.VERSION_CODES.R)
     fun createTrashRequest(uri: Uri): IntentSender =
         MediaStore

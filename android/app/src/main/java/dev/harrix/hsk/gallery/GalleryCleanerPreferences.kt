@@ -22,6 +22,6 @@ class GalleryCleanerPreferences(
     companion object {
         private const val PREFS_NAME = "gallery_cleaner"
         private const val KEY_SHOW_INTRO = "show_intro"
-        private const val KEY_SHOW_MANAGE_MEDIA = "show_manage_media"
+        private const val KEY_SHOW_MANAGE_MEDIA = "show_manage_media_v2"
     }
 }

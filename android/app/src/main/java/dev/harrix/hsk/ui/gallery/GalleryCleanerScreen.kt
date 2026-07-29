@@ -306,30 +306,17 @@ fun GalleryCleanerScreen(
                         resetKey = cardResetKey,
                         onSwipeLeft = {
                             statusMessage = null
-                            when {
-                                repository.canTrashWithoutPrompt() &&
-                                    Build.VERSION.SDK_INT >= Build.VERSION_CODES.R -> {
-                                    val trashed = repository.trashWithoutPrompt(photo.uri)
-                                    if (trashed) {
-                                        advanceAfterReview(photo)
-                                    } else {
-                                        statusMessage =
-                                            context.getString(R.string.gallery_cleaner_delete_failed)
-                                        cardResetKey += 1
-                                    }
-                                }
-                                Build.VERSION.SDK_INT >= Build.VERSION_CODES.R -> {
-                                    requestSystemTrash(photo)
-                                }
-                                else -> {
-                                    val deleted = repository.deletePermanently(photo.uri)
-                                    if (deleted) {
-                                        advanceAfterReview(photo)
-                                    } else {
-                                        statusMessage =
-                                            context.getString(R.string.gallery_cleaner_delete_failed)
-                                        cardResetKey += 1
-                                    }
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                                // With MANAGE_MEDIA granted, createTrashRequest runs without a dialog.
+                                requestSystemTrash(photo)
+                            } else {
+                                val deleted = repository.deletePermanently(photo.uri)
+                                if (deleted) {
+                                    advanceAfterReview(photo)
+                                } else {
+                                    statusMessage =
+                                        context.getString(R.string.gallery_cleaner_delete_failed)
+                                    cardResetKey += 1
                                 }
                             }
                         },
