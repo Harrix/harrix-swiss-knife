@@ -44,7 +44,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -94,6 +93,7 @@ import kotlinx.coroutines.launch
 
 private val TrashHintColor = Color(0xFFE53935)
 private val KeepHintColor = Color(0xFF43A047)
+private val KeepButtonColor = Color(0xFF9E9E9E)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -275,6 +275,29 @@ fun GalleryCleanerScreen(
                     ),
             )
         },
+        bottomBar = {
+            if (hasPermission && currentPhoto != null) {
+                val photo = currentPhoto!!
+                ReviewActionBar(
+                    onDelete = {
+                        statusMessage = null
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                            requestSystemTrash(photo)
+                        } else {
+                            val deleted = repository.deletePermanently(photo.uri)
+                            if (deleted) {
+                                advanceAfterReview(photo)
+                            } else {
+                                statusMessage =
+                                    context.getString(R.string.gallery_cleaner_delete_failed)
+                                cardResetKey += 1
+                            }
+                        }
+                    },
+                    onKeep = { advanceAfterReview(photo) },
+                )
+            }
+        },
     ) { innerPadding ->
         Box(
             modifier =
@@ -311,43 +334,27 @@ fun GalleryCleanerScreen(
                 }
                 else -> {
                     val photo = currentPhoto!!
-
-                    fun trashCurrent() {
-                        statusMessage = null
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                            // With MANAGE_MEDIA granted, createTrashRequest runs without a dialog.
-                            requestSystemTrash(photo)
-                        } else {
-                            val deleted = repository.deletePermanently(photo.uri)
-                            if (deleted) {
-                                advanceAfterReview(photo)
+                    SwipeablePhotoCard(
+                        photo = photo,
+                        resetKey = cardResetKey,
+                        onSwipeLeft = {
+                            statusMessage = null
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                                requestSystemTrash(photo)
                             } else {
-                                statusMessage =
-                                    context.getString(R.string.gallery_cleaner_delete_failed)
-                                cardResetKey += 1
+                                val deleted = repository.deletePermanently(photo.uri)
+                                if (deleted) {
+                                    advanceAfterReview(photo)
+                                } else {
+                                    statusMessage =
+                                        context.getString(R.string.gallery_cleaner_delete_failed)
+                                    cardResetKey += 1
+                                }
                             }
-                        }
-                    }
-
-                    fun keepCurrent() {
-                        advanceAfterReview(photo)
-                    }
-
-                    Column(
+                        },
+                        onSwipeRight = { advanceAfterReview(photo) },
                         modifier = Modifier.fillMaxSize(),
-                    ) {
-                        SwipeablePhotoCard(
-                            photo = photo,
-                            resetKey = cardResetKey,
-                            onSwipeLeft = { trashCurrent() },
-                            onSwipeRight = { keepCurrent() },
-                            modifier = Modifier.weight(1f),
-                        )
-                        ReviewActionBar(
-                            onDelete = { trashCurrent() },
-                            onKeep = { keepCurrent() },
-                        )
-                    }
+                    )
                 }
             }
 
@@ -359,8 +366,7 @@ fun GalleryCleanerScreen(
                     modifier =
                         Modifier
                             .align(Alignment.BottomCenter)
-                            .padding(bottom = 96.dp)
-                            .padding(horizontal = 24.dp),
+                            .padding(24.dp),
                 )
             }
         }
@@ -377,7 +383,7 @@ private fun ReviewActionBar(
         modifier =
             modifier
                 .fillMaxWidth()
-                .background(AppBackground)
+                .background(ContentSurface)
                 .windowInsetsPadding(WindowInsets.navigationBars)
                 .padding(horizontal = 16.dp, vertical = 12.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -399,12 +405,13 @@ private fun ReviewActionBar(
             Spacer(modifier = Modifier.width(8.dp))
             Text(stringResource(R.string.gallery_cleaner_action_delete))
         }
-        OutlinedButton(
+        Button(
             onClick = onKeep,
             modifier = Modifier.weight(1f),
             colors =
-                ButtonDefaults.outlinedButtonColors(
-                    contentColor = KeepHintColor,
+                ButtonDefaults.buttonColors(
+                    containerColor = KeepButtonColor,
+                    contentColor = Color.White,
                 ),
         ) {
             Icon(
@@ -585,7 +592,7 @@ private fun SwipeablePhotoCard(
                         IntOffset(displayOffset.x.roundToInt(), displayOffset.y.roundToInt())
                     }
                     .clip(RoundedCornerShape(12.dp))
-                    .background(Color(0xFFF3F3F5))
+                    .background(ContentSurface)
                     .pointerInput(resetKey, photo.id) {
                         detectDragGestures(
                             onDragEnd = {
