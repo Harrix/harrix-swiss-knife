@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 import subprocess
 import sys
+import time
 from pathlib import Path
 from typing import Any, ClassVar
 
@@ -25,7 +26,8 @@ class OnAndroidBuild(ActionBase):
     `release`. Requires Windows, JDK 17, and Android SDK (`ANDROID_HOME` /
     `android/local.properties`). Use `install/setup-android-sdk.bat` once
     to install the toolchain. After a successful build, opens the APK folder
-    and runs `adb install -r` when a USB device is connected.
+    and runs `adb install -r` when a USB device is connected. If the phone is
+    still waiting for USB debugging authorization, waits for confirmation.
 
     """
 
@@ -37,6 +39,9 @@ class OnAndroidBuild(ActionBase):
     VARIANT_DEBUG: ClassVar[str] = "Debug"
     VARIANT_RELEASE: ClassVar[str] = "Release (unsigned)"
     CLI_VARIANTS: ClassVar[tuple[str, ...]] = ("debug", "release")
+
+    _ADB_AUTH_POLL_INTERVAL_SEC: ClassVar[float] = 2.0
+    _ADB_AUTH_TIMEOUT_SEC: ClassVar[float] = 120.0
 
     _VARIANT_CONFIG: ClassVar[dict[str, tuple[str, str]]] = {
         "debug": ("assembleDebug", "app/build/outputs/apk/debug/HarrixSwissKnife-debug.apk"),
@@ -157,9 +162,8 @@ class OnAndroidBuild(ActionBase):
             self.add_line("🔵 adb not found - APK not installed (install platform-tools / setup-android-sdk).")
             return
 
-        devices = self._list_adb_devices(adb)
+        devices = self._wait_for_adb_device(adb)
         if not devices:
-            self.add_line("🔵 No adb device - APK not installed.")
             return
 
         serial = devices[0]
@@ -190,8 +194,8 @@ class OnAndroidBuild(ActionBase):
 
         self.add_line(f"✅ Installed on {serial}")
 
-    def _list_adb_devices(self, adb: Path) -> list[str]:
-        """Return serials of adb devices in ``device`` state."""
+    def _list_adb_device_states(self, adb: Path) -> tuple[list[str], list[str]]:
+        """Return ``(authorized, unauthorized)`` serials from ``adb devices``."""
         process = subprocess.run(
             [str(adb), "devices"],
             capture_output=True,
@@ -204,18 +208,24 @@ class OnAndroidBuild(ActionBase):
             output = "\n".join(part for part in (process.stdout.strip(), process.stderr.strip()) if part)
             if output:
                 self.add_line(output)
-            return []
+            return [], []
 
-        serials: list[str] = []
+        authorized: list[str] = []
+        unauthorized: list[str] = []
         min_device_columns = 2
         for raw_line in (process.stdout or "").splitlines():
             stripped = raw_line.strip()
             if not stripped or stripped.startswith("List of devices"):
                 continue
             parts = stripped.split()
-            if len(parts) >= min_device_columns and parts[1] == "device":
-                serials.append(parts[0])
-        return serials
+            if len(parts) < min_device_columns:
+                continue
+            serial, state = parts[0], parts[1]
+            if state == "device":
+                authorized.append(serial)
+            elif state == "unauthorized":
+                unauthorized.append(serial)
+        return authorized, unauthorized
 
     def _resolve_adb(self) -> Path | None:
         """Resolve ``adb.exe`` from Android SDK or PATH."""
@@ -367,6 +377,38 @@ class OnAndroidBuild(ActionBase):
         if (root / "bin" / "java.exe").is_file():
             return str(root)
         return None
+
+    def _wait_for_adb_device(self, adb: Path) -> list[str]:
+        """Return authorized adb serials, waiting if the phone needs USB auth."""
+        authorized, unauthorized = self._list_adb_device_states(adb)
+        if authorized:
+            return authorized
+
+        if not unauthorized:
+            self.add_line("🔵 No adb device - APK not installed.")
+            return []
+
+        serials = ", ".join(unauthorized)
+        timeout = int(self._ADB_AUTH_TIMEOUT_SEC)
+        self.add_line(
+            f"🔵 adb device unauthorized ({serials}). "
+            f"Confirm the USB debugging fingerprint on the phone "
+            f"(waiting up to {timeout}s)…"
+        )
+
+        deadline = time.monotonic() + self._ADB_AUTH_TIMEOUT_SEC
+        while time.monotonic() < deadline:
+            time.sleep(self._ADB_AUTH_POLL_INTERVAL_SEC)
+            authorized, unauthorized = self._list_adb_device_states(adb)
+            if authorized:
+                self.add_line(f"✅ USB debugging authorized: {', '.join(authorized)}")
+                return authorized
+            if not unauthorized:
+                self.add_line("🔵 adb device disconnected while waiting - APK not installed.")
+                return []
+
+        self.add_line(f"❌ Timed out waiting for USB debugging authorization ({timeout}s). APK not installed.")
+        return []
 
     @staticmethod
     def _windows_env_value(name: str) -> str | None:
