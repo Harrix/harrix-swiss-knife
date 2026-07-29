@@ -13,7 +13,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -34,6 +34,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Done
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -53,7 +54,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -62,6 +62,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -86,6 +87,7 @@ import dev.harrix.hsk.gallery.GalleryPermissions
 import dev.harrix.hsk.ui.theme.AppBackground
 import dev.harrix.hsk.ui.theme.ContentSurface
 import kotlin.math.abs
+import kotlin.math.hypot
 import kotlin.math.roundToInt
 import kotlin.random.Random
 import kotlinx.coroutines.launch
@@ -507,17 +509,26 @@ private fun SwipeablePhotoCard(
     val density = LocalDensity.current
     val scope = rememberCoroutineScope()
     val offsetX = remember(resetKey) { Animatable(0f) }
-    var dragOffset by remember(resetKey) { mutableFloatStateOf(0f) }
+    val offsetY = remember(resetKey) { Animatable(0f) }
+    var dragOffset by remember(resetKey) { mutableStateOf(Offset.Zero) }
     val dismissThreshold = with(density) { 96.dp.toPx() }
     val exitDistance = with(density) { 480.dp.toPx() }
 
     LaunchedEffect(resetKey) {
         offsetX.snapTo(0f)
-        dragOffset = 0f
+        offsetY.snapTo(0f)
+        dragOffset = Offset.Zero
     }
 
-    val displayOffset = if (dragOffset != 0f) dragOffset else offsetX.value
-    val progress = (displayOffset / dismissThreshold).coerceIn(-1.5f, 1.5f)
+    val displayOffset =
+        if (dragOffset != Offset.Zero) {
+            dragOffset
+        } else {
+            Offset(offsetX.value, offsetY.value)
+        }
+    val horizontalProgress = (displayOffset.x / dismissThreshold).coerceIn(-1.5f, 1.5f)
+    val upwardProgress = (-displayOffset.y / dismissThreshold).coerceIn(0f, 1.5f)
+    val travel = hypot(displayOffset.x.toDouble(), displayOffset.y.toDouble()).toFloat()
 
     Box(
         modifier =
@@ -526,22 +537,31 @@ private fun SwipeablePhotoCard(
                 .padding(16.dp),
         contentAlignment = Alignment.Center,
     ) {
-        if (progress < -0.15f) {
+        if (horizontalProgress < -0.15f && abs(displayOffset.x) >= abs(displayOffset.y)) {
             SwipeHint(
                 icon = Icons.Filled.Delete,
                 label = stringResource(R.string.gallery_cleaner_swipe_left_hint),
                 color = TrashHintColor,
-                alpha = (-progress).coerceIn(0f, 1f),
+                alpha = (-horizontalProgress).coerceIn(0f, 1f),
                 modifier = Modifier.align(Alignment.CenterEnd).padding(end = 24.dp),
             )
         }
-        if (progress > 0.15f) {
+        if (horizontalProgress > 0.15f && abs(displayOffset.x) >= abs(displayOffset.y)) {
             SwipeHint(
                 icon = Icons.Filled.Done,
                 label = stringResource(R.string.gallery_cleaner_swipe_right_hint),
                 color = KeepHintColor,
-                alpha = progress.coerceIn(0f, 1f),
+                alpha = horizontalProgress.coerceIn(0f, 1f),
                 modifier = Modifier.align(Alignment.CenterStart).padding(start = 24.dp),
+            )
+        }
+        if (upwardProgress > 0.15f && abs(displayOffset.y) > abs(displayOffset.x)) {
+            SwipeHint(
+                icon = Icons.Filled.KeyboardArrowUp,
+                label = stringResource(R.string.gallery_cleaner_swipe_up_hint),
+                color = KeepHintColor,
+                alpha = upwardProgress.coerceIn(0f, 1f),
+                modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 24.dp),
             )
         }
 
@@ -558,43 +578,54 @@ private fun SwipeablePhotoCard(
                 Modifier
                     .fillMaxSize()
                     .graphicsLayer {
-                        rotationZ = displayOffset / 40f
-                        alpha = 1f - (abs(displayOffset) / (exitDistance * 1.2f)).coerceIn(0f, 0.35f)
+                        rotationZ = displayOffset.x / 40f
+                        alpha = 1f - (travel / (exitDistance * 1.2f)).coerceIn(0f, 0.35f)
                     }
-                    .offset { IntOffset(displayOffset.roundToInt(), 0) }
+                    .offset {
+                        IntOffset(displayOffset.x.roundToInt(), displayOffset.y.roundToInt())
+                    }
                     .clip(RoundedCornerShape(12.dp))
                     .background(Color(0xFFF3F3F5))
                     .pointerInput(resetKey, photo.id) {
-                        detectHorizontalDragGestures(
+                        detectDragGestures(
                             onDragEnd = {
                                 val current = dragOffset
-                                dragOffset = 0f
+                                dragOffset = Offset.Zero
                                 scope.launch {
-                                    offsetX.snapTo(current)
+                                    offsetX.snapTo(current.x)
+                                    offsetY.snapTo(current.y)
+                                    val predominatelyVertical = abs(current.y) > abs(current.x)
                                     when {
-                                        current <= -dismissThreshold -> {
+                                        predominatelyVertical && current.y <= -dismissThreshold -> {
+                                            offsetY.animateTo(-exitDistance, tween(180))
+                                            onSwipeRight()
+                                        }
+                                        !predominatelyVertical && current.x <= -dismissThreshold -> {
                                             offsetX.animateTo(-exitDistance, tween(180))
                                             onSwipeLeft()
                                         }
-                                        current >= dismissThreshold -> {
+                                        !predominatelyVertical && current.x >= dismissThreshold -> {
                                             offsetX.animateTo(exitDistance, tween(180))
                                             onSwipeRight()
                                         }
                                         else -> {
                                             offsetX.animateTo(0f, tween(180))
+                                            offsetY.animateTo(0f, tween(180))
                                         }
                                     }
                                 }
                             },
                             onDragCancel = {
                                 val current = dragOffset
-                                dragOffset = 0f
+                                dragOffset = Offset.Zero
                                 scope.launch {
-                                    offsetX.snapTo(current)
+                                    offsetX.snapTo(current.x)
+                                    offsetY.snapTo(current.y)
                                     offsetX.animateTo(0f, tween(180))
+                                    offsetY.animateTo(0f, tween(180))
                                 }
                             },
-                            onHorizontalDrag = { change, dragAmount ->
+                            onDrag = { change, dragAmount ->
                                 change.consume()
                                 dragOffset += dragAmount
                             },
