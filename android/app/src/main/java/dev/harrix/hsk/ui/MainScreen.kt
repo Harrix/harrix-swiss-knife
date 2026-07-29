@@ -19,6 +19,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.filled.CleaningServices
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
@@ -39,7 +40,11 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -48,6 +53,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import dev.harrix.hsk.R
+import dev.harrix.hsk.ui.gallery.GalleryCleanerScreen
 import dev.harrix.hsk.ui.theme.AppBackground
 import dev.harrix.hsk.ui.theme.ContentSurface
 import dev.harrix.hsk.ui.theme.DrawerSelectedContainer
@@ -63,16 +69,30 @@ private val DrawerItemHeight = 40.dp
 private val DrawerItemCornerRadius = 8.dp
 private val DrawerItemVerticalGap = 2.dp
 
+private enum class AppDestination {
+    Home,
+    GalleryCleaner,
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(modifier: Modifier = Modifier) {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     val appName = stringResource(R.string.app_name)
+    var destination by remember { mutableStateOf(AppDestination.Home) }
     val drawerItemColors =
         NavigationDrawerItemDefaults.colors(
             selectedContainerColor = DrawerSelectedContainer,
         )
+
+    if (destination == AppDestination.GalleryCleaner) {
+        GalleryCleanerScreen(
+            onClose = { destination = AppDestination.Home },
+            modifier = modifier.fillMaxSize(),
+        )
+        return
+    }
 
     ModalNavigationDrawer(
         drawerState = drawerState,
@@ -86,8 +106,20 @@ fun MainScreen(modifier: Modifier = Modifier) {
                 )
                 HorizontalDivider(modifier = Modifier.padding(bottom = 8.dp))
                 CompactNavigationDrawerItem(
+                    label = stringResource(R.string.nav_drawer_gallery_cleaner),
+                    selected = false,
+                    onClick = {
+                        scope.launch {
+                            drawerState.close()
+                            destination = AppDestination.GalleryCleaner
+                        }
+                    },
+                    icon = Icons.Filled.CleaningServices,
+                    colors = drawerItemColors,
+                )
+                CompactNavigationDrawerItem(
                     label = stringResource(R.string.nav_drawer_home),
-                    selected = true,
+                    selected = destination == AppDestination.Home,
                     onClick = { scope.launch { drawerState.close() } },
                     icon = Icons.AutoMirrored.Filled.List,
                     colors = drawerItemColors,
