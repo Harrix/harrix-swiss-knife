@@ -1161,12 +1161,20 @@ class ActionDialogService:
             text_edit.setReadOnly(True)
             text_edit.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
             text_edit.setMinimumHeight(self._default_size.height() - 120)
+            text_edit.moveCursor(QTextCursor.MoveOperation.End)
 
             font = QFont("JetBrains Mono")
             font.setPointSize(9)
             text_edit.setFont(font)
 
             layout.addWidget(text_edit)
+
+            def _scroll_to_end() -> None:
+                scrollbar = text_edit.verticalScrollBar()
+                scrollbar.setValue(scrollbar.maximum())
+
+            # After showEvent resize and geometry enforce (both use singleShot(0)).
+            QTimer.singleShot(0, lambda: QTimer.singleShot(0, _scroll_to_end))
 
             button_layout = QHBoxLayout()
 
@@ -2759,12 +2767,20 @@ def show_text_multiline(
             text_edit.setReadOnly(True)
             text_edit.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
             text_edit.setMinimumHeight(self._default_size.height() - 120)
+            text_edit.moveCursor(QTextCursor.MoveOperation.End)
 
             font = QFont("JetBrains Mono")
             font.setPointSize(9)
             text_edit.setFont(font)
 
             layout.addWidget(text_edit)
+
+            def _scroll_to_end() -> None:
+                scrollbar = text_edit.verticalScrollBar()
+                scrollbar.setValue(scrollbar.maximum())
+
+            # After showEvent resize and geometry enforce (both use singleShot(0)).
+            QTimer.singleShot(0, lambda: QTimer.singleShot(0, _scroll_to_end))
 
             button_layout = QHBoxLayout()
 
