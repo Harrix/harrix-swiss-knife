@@ -253,12 +253,12 @@ cd android
 
 Outputs:
 
-| Variant | Command           | APK path                                                                      |
-| ------- | ----------------- | ----------------------------------------------------------------------------- |
-| Debug   | `assembleDebug`   | `android\app\build\outputs\apk\debug\HarrixSwissKnife-debug.apk`              |
-| Release | `assembleRelease` | `android\app\build\outputs\apk\release\HarrixSwissKnife-release-unsigned.apk` |
+| Variant | Command           | APK path                                                             |
+| ------- | ----------------- | -------------------------------------------------------------------- |
+| Debug   | `assembleDebug`   | `android\app\build\outputs\apk\debug\HarrixSwissKnife-debug.apk`     |
+| Release | `assembleRelease` | `android\app\build\outputs\apk\release\HarrixSwissKnife-release.apk` |
 
-Release is currently **unsigned** (no `signingConfig` yet). For personal sideload on a phone, prefer the **debug** APK.
+Release is signed with the **debug** keystore so it can be sideloaded like debug. Use a dedicated release keystore before publishing to Play Store.
 
 Via Harrix Swiss Knife (tray **Dev** → **Build Android APK…**, or CLI):
 

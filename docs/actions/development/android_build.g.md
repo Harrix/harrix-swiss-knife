@@ -46,7 +46,7 @@ class OnAndroidBuild(ActionBase):
     cli_hint = "dev android-build <debug|release>"
 
     VARIANT_DEBUG: ClassVar[str] = "Debug"
-    VARIANT_RELEASE: ClassVar[str] = "Release (unsigned)"
+    VARIANT_RELEASE: ClassVar[str] = "Release"
     CLI_VARIANTS: ClassVar[tuple[str, ...]] = ("debug", "release")
 
     _ADB_AUTH_POLL_INTERVAL_SEC: ClassVar[float] = 2.0
@@ -56,7 +56,7 @@ class OnAndroidBuild(ActionBase):
         "debug": ("assembleDebug", "app/build/outputs/apk/debug/HarrixSwissKnife-debug.apk"),
         "release": (
             "assembleRelease",
-            "app/build/outputs/apk/release/HarrixSwissKnife-release-unsigned.apk",
+            "app/build/outputs/apk/release/HarrixSwissKnife-release.apk",
         ),
     }
 

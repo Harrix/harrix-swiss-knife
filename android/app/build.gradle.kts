@@ -23,6 +23,9 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
             )
+            // Debug keystore so release APKs can be sideloaded (same as debug installs).
+            // Replace with a dedicated release keystore before Play Store publishing.
+            signingConfig = signingConfigs.getByName("debug")
         }
     }
 
