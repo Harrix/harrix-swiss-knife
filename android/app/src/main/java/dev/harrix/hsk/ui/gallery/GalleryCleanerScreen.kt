@@ -76,6 +76,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
@@ -91,6 +92,7 @@ import dev.harrix.hsk.gallery.CameraGalleryRepository
 import dev.harrix.hsk.gallery.CameraPhoto
 import dev.harrix.hsk.gallery.GalleryCleanerPreferences
 import dev.harrix.hsk.gallery.GalleryPermissions
+import dev.harrix.hsk.ui.performLightActionHaptic
 import dev.harrix.hsk.ui.theme.AppBackground
 import dev.harrix.hsk.ui.theme.AppGreen
 import dev.harrix.hsk.ui.theme.AppRed
@@ -139,6 +141,7 @@ fun GalleryCleanerScreen(
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
+    val view = LocalView.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val repository = remember { CameraGalleryRepository(context.applicationContext) }
     val preferences = remember { GalleryCleanerPreferences(context.applicationContext) }
@@ -189,6 +192,7 @@ fun GalleryCleanerScreen(
         photo: CameraPhoto,
         deleted: Boolean = false,
     ) {
+        view.performLightActionHaptic()
         if (deleted) {
             sessionDeletedCount += 1
             sessionFreedBytes += photo.sizeBytes

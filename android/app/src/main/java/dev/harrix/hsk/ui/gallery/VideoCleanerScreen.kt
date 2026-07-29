@@ -76,6 +76,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -93,6 +94,7 @@ import dev.harrix.hsk.gallery.CameraGalleryRepository
 import dev.harrix.hsk.gallery.CameraVideo
 import dev.harrix.hsk.gallery.GalleryCleanerPreferences
 import dev.harrix.hsk.gallery.GalleryPermissions
+import dev.harrix.hsk.ui.performLightActionHaptic
 import dev.harrix.hsk.ui.theme.AppBackground
 import dev.harrix.hsk.ui.theme.AppRed
 import dev.harrix.hsk.ui.theme.ContentSurface
@@ -120,6 +122,7 @@ fun VideoCleanerScreen(
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
+    val view = LocalView.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val repository = remember { CameraGalleryRepository(context.applicationContext) }
     val preferences = remember { GalleryCleanerPreferences(context.applicationContext) }
@@ -177,6 +180,7 @@ fun VideoCleanerScreen(
             val ids = pendingTrashIds
             pendingTrashIds = emptySet()
             if (result.resultCode == Activity.RESULT_OK && ids.isNotEmpty()) {
+                view.performLightActionHaptic()
                 videos = videos.filterNot { it.id in ids }
                 selectedIds = selectedIds - ids
                 statusMessage = null
@@ -199,6 +203,7 @@ fun VideoCleanerScreen(
         } else {
             val deletedCount = repository.deletePermanently(uris)
             if (deletedCount > 0) {
+                view.performLightActionHaptic()
                 reloadVideos()
             } else {
                 statusMessage = context.getString(R.string.video_cleaner_delete_failed)
