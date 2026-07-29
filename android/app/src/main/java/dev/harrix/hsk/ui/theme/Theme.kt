@@ -10,10 +10,22 @@ import androidx.compose.ui.graphics.Color
 val AppBackground = Color(0xFFE5E6EA)
 val ContentSurface = Color(0xFFFFFFFF)
 val DrawerSelectedContainer = Color(0xFFCDCED0)
+val AppGreen = Color(0xFF4CAF50)
+val AppRed = Color(0xFFCC584C)
 
-private val DarkColorScheme = darkColorScheme()
+private val DarkColorScheme =
+    darkColorScheme(
+        primary = AppGreen,
+        onPrimary = Color.White,
+        error = AppRed,
+        onError = Color.White,
+    )
 private val LightColorScheme =
     lightColorScheme(
+        primary = AppGreen,
+        onPrimary = Color.White,
+        error = AppRed,
+        onError = Color.White,
         background = AppBackground,
         surface = ContentSurface,
         surfaceContainer = AppBackground,

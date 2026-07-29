@@ -33,6 +33,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Done
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.AlertDialog
@@ -60,6 +61,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -75,6 +77,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
@@ -89,17 +92,18 @@ import dev.harrix.hsk.gallery.CameraPhoto
 import dev.harrix.hsk.gallery.GalleryCleanerPreferences
 import dev.harrix.hsk.gallery.GalleryPermissions
 import dev.harrix.hsk.ui.theme.AppBackground
-import dev.harrix.hsk.ui.theme.ContentSurface
+import dev.harrix.hsk.ui.theme.AppGreen
+import dev.harrix.hsk.ui.theme.AppRed
+import java.text.DateFormat
 import java.text.DateFormatSymbols
 import java.util.Calendar
+import java.util.Date
 import kotlin.math.abs
 import kotlin.math.hypot
 import kotlin.math.roundToInt
 import kotlin.random.Random
 import kotlinx.coroutines.launch
 
-private val TrashHintColor = Color(0xFFE53935)
-private val KeepHintColor = Color(0xFF43A047)
 private const val EarliestFilterYear = 2008
 
 /** Calendar month in local timezone; [month] is 1–12. */
@@ -161,6 +165,8 @@ fun GalleryCleanerScreen(
     var menuExpanded by remember { mutableStateOf(false) }
     var showDateRangePicker by remember { mutableStateOf(false) }
     var dateRangeFilter by remember { mutableStateOf<PhotoDateRange?>(null) }
+    var sessionDeletedCount by remember { mutableIntStateOf(0) }
+    var sessionFreedBytes by remember { mutableLongStateOf(0L) }
 
     fun refreshManageMediaAccess() {
         canManageMedia = repository.canTrashWithoutPrompt()
@@ -179,7 +185,14 @@ fun GalleryCleanerScreen(
             from[Random.nextInt(from.size)]
         }
 
-    fun advanceAfterReview(photo: CameraPhoto) {
+    fun advanceAfterReview(
+        photo: CameraPhoto,
+        deleted: Boolean = false,
+    ) {
+        if (deleted) {
+            sessionDeletedCount += 1
+            sessionFreedBytes += photo.sizeBytes
+        }
         val updated = remainingPhotos.filterNot { it.id == photo.id }
         remainingPhotos = updated
         remainingCount = updated.size
@@ -222,7 +235,7 @@ fun GalleryCleanerScreen(
             val photo = pendingTrashPhoto
             pendingTrashPhoto = null
             if (result.resultCode == Activity.RESULT_OK && photo != null) {
-                advanceAfterReview(photo)
+                advanceAfterReview(photo, deleted = true)
             } else {
                 cardResetKey += 1
                 statusMessage = null
@@ -233,6 +246,21 @@ fun GalleryCleanerScreen(
         pendingTrashPhoto = photo
         val sender: IntentSender = repository.createTrashRequest(photo.uri)
         trashLauncher.launch(IntentSenderRequest.Builder(sender).build())
+    }
+
+    fun deletePhoto(photo: CameraPhoto) {
+        statusMessage = null
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            requestSystemTrash(photo)
+        } else {
+            val deleted = repository.deletePermanently(photo.uri)
+            if (deleted) {
+                advanceAfterReview(photo, deleted = true)
+            } else {
+                statusMessage = context.getString(R.string.gallery_cleaner_delete_failed)
+                cardResetKey += 1
+            }
+        }
     }
 
     DisposableEffect(lifecycleOwner) {
@@ -305,7 +333,23 @@ fun GalleryCleanerScreen(
         containerColor = AppBackground,
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.gallery_cleaner_title)) },
+                title = {
+                    Column {
+                        Text(stringResource(R.string.gallery_cleaner_title))
+                        Text(
+                            text =
+                                stringResource(
+                                    R.string.gallery_cleaner_session_stats,
+                                    sessionDeletedCount,
+                                    CameraGalleryRepository.formatFileSize(sessionFreedBytes),
+                                ),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                },
                 navigationIcon = {
                     IconButton(onClick = onClose) {
                         Icon(
@@ -315,7 +359,7 @@ fun GalleryCleanerScreen(
                     }
                 },
                 actions = {
-                    if (hasPermission && currentPhoto != null) {
+                    if (hasPermission && remainingCount > 0) {
                         Text(
                             text = stringResource(R.string.gallery_cleaner_remaining, remainingCount),
                             style = MaterialTheme.typography.labelLarge,
@@ -374,21 +418,7 @@ fun GalleryCleanerScreen(
             if (hasPermission && currentPhoto != null) {
                 val photo = currentPhoto!!
                 ReviewActionBar(
-                    onDelete = {
-                        statusMessage = null
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                            requestSystemTrash(photo)
-                        } else {
-                            val deleted = repository.deletePermanently(photo.uri)
-                            if (deleted) {
-                                advanceAfterReview(photo)
-                            } else {
-                                statusMessage =
-                                    context.getString(R.string.gallery_cleaner_delete_failed)
-                                cardResetKey += 1
-                            }
-                        }
-                    },
+                    onDelete = { deletePhoto(photo) },
                     onKeep = { advanceAfterReview(photo) },
                 )
             }
@@ -399,7 +429,7 @@ fun GalleryCleanerScreen(
                 Modifier
                     .padding(innerPadding)
                     .fillMaxSize()
-                    .background(ContentSurface),
+                    .background(AppBackground),
             contentAlignment = Alignment.Center,
         ) {
             when {
@@ -439,22 +469,8 @@ fun GalleryCleanerScreen(
                     SwipeablePhotoCard(
                         photo = photo,
                         resetKey = cardResetKey,
-                        onSwipeLeft = {
-                            statusMessage = null
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                                requestSystemTrash(photo)
-                            } else {
-                                val deleted = repository.deletePermanently(photo.uri)
-                                if (deleted) {
-                                    advanceAfterReview(photo)
-                                } else {
-                                    statusMessage =
-                                        context.getString(R.string.gallery_cleaner_delete_failed)
-                                    cardResetKey += 1
-                                }
-                            }
-                        },
-                        onSwipeRight = { advanceAfterReview(photo) },
+                        onDelete = { deletePhoto(photo) },
+                        onKeep = { advanceAfterReview(photo) },
                         modifier = Modifier.fillMaxSize(),
                     )
                 }
@@ -463,7 +479,7 @@ fun GalleryCleanerScreen(
             statusMessage?.let { message ->
                 Text(
                     text = message,
-                    color = TrashHintColor,
+                    color = AppRed,
                     style = MaterialTheme.typography.bodyMedium,
                     modifier =
                         Modifier
@@ -637,7 +653,7 @@ private fun ReviewActionBar(
         modifier =
             modifier
                 .fillMaxWidth()
-                .background(ContentSurface)
+                .background(AppBackground)
                 .windowInsetsPadding(WindowInsets.navigationBars)
                 .padding(horizontal = 16.dp, vertical = 12.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -647,7 +663,7 @@ private fun ReviewActionBar(
             modifier = Modifier.weight(1f),
             colors =
                 ButtonDefaults.buttonColors(
-                    containerColor = TrashHintColor,
+                    containerColor = AppRed,
                     contentColor = Color.White,
                 ),
         ) {
@@ -664,7 +680,7 @@ private fun ReviewActionBar(
             modifier = Modifier.weight(1f),
             colors =
                 ButtonDefaults.buttonColors(
-                    containerColor = KeepHintColor,
+                    containerColor = AppGreen,
                     contentColor = Color.White,
                 ),
         ) {
@@ -763,8 +779,8 @@ private fun PermissionRequestContent(
 private fun SwipeablePhotoCard(
     photo: CameraPhoto,
     resetKey: Int,
-    onSwipeLeft: () -> Unit,
-    onSwipeRight: () -> Unit,
+    onDelete: () -> Unit,
+    onKeep: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val density = LocalDensity.current
@@ -774,6 +790,19 @@ private fun SwipeablePhotoCard(
     var dragOffset by remember(resetKey) { mutableStateOf(Offset.Zero) }
     val dismissThreshold = with(density) { 96.dp.toPx() }
     val exitDistance = with(density) { 480.dp.toPx() }
+    val dateLabel =
+        remember(photo.dateTakenEpochMs) {
+            DateFormat
+                .getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT)
+                .format(Date(photo.dateTakenEpochMs))
+        }
+    val sizeLabel =
+        remember(photo.sizeBytes) {
+            CameraGalleryRepository.formatFileSize(photo.sizeBytes)
+        }
+    val nameLabel =
+        photo.displayName?.takeIf { it.isNotBlank() }
+            ?: stringResource(R.string.gallery_cleaner_untitled)
 
     LaunchedEffect(resetKey) {
         offsetX.snapTo(0f)
@@ -789,106 +818,155 @@ private fun SwipeablePhotoCard(
         }
     val horizontalProgress = (displayOffset.x / dismissThreshold).coerceIn(-1.5f, 1.5f)
     val upwardProgress = (-displayOffset.y / dismissThreshold).coerceIn(0f, 1.5f)
+    val downwardProgress = (displayOffset.y / dismissThreshold).coerceIn(0f, 1.5f)
     val travel = hypot(displayOffset.x.toDouble(), displayOffset.y.toDouble()).toFloat()
 
-    Box(
-        modifier = modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center,
-    ) {
-        if (horizontalProgress < -0.15f && abs(displayOffset.x) >= abs(displayOffset.y)) {
-            SwipeHint(
-                icon = Icons.Filled.Delete,
-                label = stringResource(R.string.gallery_cleaner_swipe_left_hint),
-                color = TrashHintColor,
-                alpha = (-horizontalProgress).coerceIn(0f, 1f),
-                modifier = Modifier.align(Alignment.CenterEnd).padding(end = 24.dp),
-            )
-        }
-        if (horizontalProgress > 0.15f && abs(displayOffset.x) >= abs(displayOffset.y)) {
-            SwipeHint(
-                icon = Icons.Filled.Done,
-                label = stringResource(R.string.gallery_cleaner_swipe_right_hint),
-                color = KeepHintColor,
-                alpha = horizontalProgress.coerceIn(0f, 1f),
-                modifier = Modifier.align(Alignment.CenterStart).padding(start = 24.dp),
-            )
-        }
-        if (upwardProgress > 0.15f && abs(displayOffset.y) > abs(displayOffset.x)) {
-            SwipeHint(
-                icon = Icons.Filled.KeyboardArrowUp,
-                label = stringResource(R.string.gallery_cleaner_swipe_up_hint),
-                color = KeepHintColor,
-                alpha = upwardProgress.coerceIn(0f, 1f),
-                modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 24.dp),
+    Column(modifier = modifier.fillMaxSize()) {
+        Box(
+            modifier =
+                Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
+            contentAlignment = Alignment.Center,
+        ) {
+            if (horizontalProgress < -0.15f && abs(displayOffset.x) >= abs(displayOffset.y)) {
+                SwipeHint(
+                    icon = Icons.Filled.Delete,
+                    label = stringResource(R.string.gallery_cleaner_swipe_left_hint),
+                    color = AppRed,
+                    alpha = (-horizontalProgress).coerceIn(0f, 1f),
+                    modifier = Modifier.align(Alignment.CenterEnd).padding(end = 24.dp),
+                )
+            }
+            if (horizontalProgress > 0.15f && abs(displayOffset.x) >= abs(displayOffset.y)) {
+                SwipeHint(
+                    icon = Icons.Filled.Done,
+                    label = stringResource(R.string.gallery_cleaner_swipe_right_hint),
+                    color = AppGreen,
+                    alpha = horizontalProgress.coerceIn(0f, 1f),
+                    modifier = Modifier.align(Alignment.CenterStart).padding(start = 24.dp),
+                )
+            }
+            if (upwardProgress > 0.15f && abs(displayOffset.y) > abs(displayOffset.x)) {
+                SwipeHint(
+                    icon = Icons.Filled.KeyboardArrowUp,
+                    label = stringResource(R.string.gallery_cleaner_swipe_up_hint),
+                    color = AppGreen,
+                    alpha = upwardProgress.coerceIn(0f, 1f),
+                    modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 24.dp),
+                )
+            }
+            if (downwardProgress > 0.15f && abs(displayOffset.y) > abs(displayOffset.x)) {
+                SwipeHint(
+                    icon = Icons.Filled.KeyboardArrowDown,
+                    label = stringResource(R.string.gallery_cleaner_swipe_down_hint),
+                    color = AppRed,
+                    alpha = downwardProgress.coerceIn(0f, 1f),
+                    modifier = Modifier.align(Alignment.TopCenter).padding(top = 24.dp),
+                )
+            }
+
+            AsyncImage(
+                model =
+                    ImageRequest
+                        .Builder(LocalContext.current)
+                        .data(photo.uri)
+                        .crossfade(true)
+                        .build(),
+                contentDescription = photo.displayName,
+                contentScale = ContentScale.Fit,
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .graphicsLayer {
+                            rotationZ = displayOffset.x / 40f
+                            alpha = 1f - (travel / (exitDistance * 1.2f)).coerceIn(0f, 0.35f)
+                        }
+                        .offset {
+                            IntOffset(displayOffset.x.roundToInt(), displayOffset.y.roundToInt())
+                        }
+                        .background(AppBackground)
+                        .pointerInput(resetKey, photo.id) {
+                            detectDragGestures(
+                                onDragEnd = {
+                                    val current = dragOffset
+                                    dragOffset = Offset.Zero
+                                    scope.launch {
+                                        offsetX.snapTo(current.x)
+                                        offsetY.snapTo(current.y)
+                                        val predominatelyVertical = abs(current.y) > abs(current.x)
+                                        when {
+                                            predominatelyVertical &&
+                                                current.y <= -dismissThreshold -> {
+                                                offsetY.animateTo(-exitDistance, tween(180))
+                                                onKeep()
+                                            }
+                                            predominatelyVertical &&
+                                                current.y >= dismissThreshold -> {
+                                                offsetY.animateTo(exitDistance, tween(180))
+                                                onDelete()
+                                            }
+                                            !predominatelyVertical &&
+                                                current.x <= -dismissThreshold -> {
+                                                offsetX.animateTo(-exitDistance, tween(180))
+                                                onDelete()
+                                            }
+                                            !predominatelyVertical &&
+                                                current.x >= dismissThreshold -> {
+                                                offsetX.animateTo(exitDistance, tween(180))
+                                                onKeep()
+                                            }
+                                            else -> {
+                                                offsetX.animateTo(0f, tween(180))
+                                                offsetY.animateTo(0f, tween(180))
+                                            }
+                                        }
+                                    }
+                                },
+                                onDragCancel = {
+                                    val current = dragOffset
+                                    dragOffset = Offset.Zero
+                                    scope.launch {
+                                        offsetX.snapTo(current.x)
+                                        offsetY.snapTo(current.y)
+                                        offsetX.animateTo(0f, tween(180))
+                                        offsetY.animateTo(0f, tween(180))
+                                    }
+                                },
+                                onDrag = { change, dragAmount ->
+                                    change.consume()
+                                    dragOffset += dragAmount
+                                },
+                            )
+                        },
             )
         }
 
-        AsyncImage(
-            model =
-                ImageRequest
-                    .Builder(LocalContext.current)
-                    .data(photo.uri)
-                    .crossfade(true)
-                    .build(),
-            contentDescription = photo.displayName,
-            contentScale = ContentScale.Fit,
+        Column(
             modifier =
                 Modifier
-                    .fillMaxSize()
-                    .graphicsLayer {
-                        rotationZ = displayOffset.x / 40f
-                        alpha = 1f - (travel / (exitDistance * 1.2f)).coerceIn(0f, 0.35f)
-                    }
-                    .offset {
-                        IntOffset(displayOffset.x.roundToInt(), displayOffset.y.roundToInt())
-                    }
-                    .background(ContentSurface)
-                    .pointerInput(resetKey, photo.id) {
-                        detectDragGestures(
-                            onDragEnd = {
-                                val current = dragOffset
-                                dragOffset = Offset.Zero
-                                scope.launch {
-                                    offsetX.snapTo(current.x)
-                                    offsetY.snapTo(current.y)
-                                    val predominatelyVertical = abs(current.y) > abs(current.x)
-                                    when {
-                                        predominatelyVertical && current.y <= -dismissThreshold -> {
-                                            offsetY.animateTo(-exitDistance, tween(180))
-                                            onSwipeRight()
-                                        }
-                                        !predominatelyVertical && current.x <= -dismissThreshold -> {
-                                            offsetX.animateTo(-exitDistance, tween(180))
-                                            onSwipeLeft()
-                                        }
-                                        !predominatelyVertical && current.x >= dismissThreshold -> {
-                                            offsetX.animateTo(exitDistance, tween(180))
-                                            onSwipeRight()
-                                        }
-                                        else -> {
-                                            offsetX.animateTo(0f, tween(180))
-                                            offsetY.animateTo(0f, tween(180))
-                                        }
-                                    }
-                                }
-                            },
-                            onDragCancel = {
-                                val current = dragOffset
-                                dragOffset = Offset.Zero
-                                scope.launch {
-                                    offsetX.snapTo(current.x)
-                                    offsetY.snapTo(current.y)
-                                    offsetX.animateTo(0f, tween(180))
-                                    offsetY.animateTo(0f, tween(180))
-                                }
-                            },
-                            onDrag = { change, dragAmount ->
-                                change.consume()
-                                dragOffset += dragAmount
-                            },
-                        )
-                    },
-        )
+                    .fillMaxWidth()
+                    .background(AppBackground)
+                    .padding(horizontal = 16.dp, vertical = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            Text(
+                text = nameLabel,
+                style = MaterialTheme.typography.titleSmall,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                text = dateLabel,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                text = sizeLabel,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 }
 

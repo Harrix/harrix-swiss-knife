@@ -27,6 +27,8 @@ class CameraGalleryRepository(
                 MediaStore.Images.Media._ID,
                 MediaStore.Images.Media.DISPLAY_NAME,
                 MediaStore.Images.Media.DATE_ADDED,
+                MediaStore.Images.Media.DATE_TAKEN,
+                MediaStore.Images.Media.SIZE,
             )
 
         val (selection, selectionArgs) = cameraFolderSelection()
@@ -38,16 +40,29 @@ class CameraGalleryRepository(
             ?.use { cursor ->
                 val idColumn = cursor.getColumnIndexOrThrow(MediaStore.Images.Media._ID)
                 val nameColumn = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DISPLAY_NAME)
-                val dateColumn = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATE_ADDED)
+                val dateAddedColumn =
+                    cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATE_ADDED)
+                val dateTakenColumn =
+                    cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATE_TAKEN)
+                val sizeColumn = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.SIZE)
                 while (cursor.moveToNext()) {
                     val id = cursor.getLong(idColumn)
                     val uri = ContentUris.withAppendedId(collection, id)
+                    val dateAddedEpochSec = cursor.getLong(dateAddedColumn)
+                    val dateTakenRaw = cursor.getLong(dateTakenColumn)
                     photos +=
                         CameraPhoto(
                             id = id,
                             uri = uri,
                             displayName = cursor.getString(nameColumn),
-                            dateAddedEpochSec = cursor.getLong(dateColumn),
+                            dateAddedEpochSec = dateAddedEpochSec,
+                            dateTakenEpochMs =
+                                if (dateTakenRaw > 0L) {
+                                    dateTakenRaw
+                                } else {
+                                    dateAddedEpochSec * 1000L
+                                },
+                            sizeBytes = cursor.getLong(sizeColumn).coerceAtLeast(0L),
                         )
                 }
             }

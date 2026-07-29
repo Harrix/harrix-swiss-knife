@@ -94,12 +94,13 @@ import dev.harrix.hsk.gallery.CameraVideo
 import dev.harrix.hsk.gallery.GalleryCleanerPreferences
 import dev.harrix.hsk.gallery.GalleryPermissions
 import dev.harrix.hsk.ui.theme.AppBackground
+import dev.harrix.hsk.ui.theme.AppRed
 import dev.harrix.hsk.ui.theme.ContentSurface
 import java.util.Date
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-private val TrashButtonColor = Color(0xFFE53935)
+private val TrashButtonColor = AppRed
 private val SelectedBorderColor = Color(0xFF2F6BFF)
 private const val GalleryColumns = 3
 

@@ -7,4 +7,7 @@ data class CameraPhoto(
     val uri: Uri,
     val displayName: String?,
     val dateAddedEpochSec: Long,
+    /** Capture time in epoch milliseconds; falls back to [dateAddedEpochSec] when unknown. */
+    val dateTakenEpochMs: Long,
+    val sizeBytes: Long,
 )

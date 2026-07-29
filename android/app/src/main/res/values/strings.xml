@@ -15,7 +15,7 @@
     <string name="gallery_cleaner_title">Gallery Cleaner</string>
     <string name="gallery_cleaner_close">Exit Gallery Cleaner</string>
     <string name="gallery_cleaner_intro_title">How it works</string>
-    <string name="gallery_cleaner_intro_message">Only photos from the Camera folder are shown.\n\nSwipe left — move the photo to the system trash.\nSwipe right or up — keep / skip the photo.\n\nOn Android 12+, enable Media management for this app (Special app access → Media management apps) to trash without confirming each photo.\nOn Android 10 and older, left swipe deletes the photo permanently.</string>
+    <string name="gallery_cleaner_intro_message">Only photos from the Camera folder are shown.\n\nSwipe left or down — move the photo to the system trash.\nSwipe right or up — keep the photo.\n\nOn Android 12+, enable Media management for this app (Special app access → Media management apps) to trash without confirming each photo.\nOn Android 10 and older, delete removes the photo permanently.</string>
     <string name="gallery_cleaner_intro_dont_show">Don\'t show again</string>
     <string name="gallery_cleaner_intro_ok">Got it</string>
     <string name="gallery_cleaner_manage_media_title">Allow trash without prompts</string>
@@ -37,12 +37,15 @@
     <string name="gallery_cleaner_date_range_to">To</string>
     <string name="gallery_cleaner_date_range_apply">Apply</string>
     <string name="gallery_cleaner_date_range_cancel">Cancel</string>
-    <string name="gallery_cleaner_swipe_left_hint">Trash</string>
+    <string name="gallery_cleaner_swipe_left_hint">Delete</string>
     <string name="gallery_cleaner_swipe_right_hint">Keep</string>
-    <string name="gallery_cleaner_swipe_up_hint">Skip</string>
+    <string name="gallery_cleaner_swipe_up_hint">Keep</string>
+    <string name="gallery_cleaner_swipe_down_hint">Delete</string>
     <string name="gallery_cleaner_action_delete">Delete</string>
     <string name="gallery_cleaner_action_keep">Keep</string>
     <string name="gallery_cleaner_remaining">%1$d remaining</string>
+    <string name="gallery_cleaner_session_stats">Deleted: %1$d · Freed: %2$s</string>
+    <string name="gallery_cleaner_untitled">Untitled photo</string>
     <string name="gallery_cleaner_delete_failed">Could not delete photo</string>
     <string name="video_cleaner_title">Video Cleaner</string>
     <string name="video_cleaner_close">Exit Video Cleaner</string>
