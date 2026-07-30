@@ -73,10 +73,8 @@ import dev.harrix.hsk.ui.gallery.GalleryCleanerScreen
 import dev.harrix.hsk.ui.gallery.VideoCleanerScreen
 import dev.harrix.hsk.ui.settings.SettingsScreen
 import dev.harrix.hsk.ui.settings.SettingsSection
-import dev.harrix.hsk.ui.theme.AppBackground
-import dev.harrix.hsk.ui.theme.ContentSurface
-import dev.harrix.hsk.ui.theme.DrawerSelectedContainer
 import dev.harrix.hsk.ui.theme.HskAndroidTheme
+import dev.harrix.hsk.ui.theme.ThemeMode
 import kotlinx.coroutines.launch
 
 private const val BottomBarItemCount = 5
@@ -84,12 +82,10 @@ private const val HomeGridColumns = 2
 private val BottomBarHeight = 52.dp
 private val BottomButtonSize = 40.dp
 private val BottomIconSize = 20.dp
-private val BottomIconTint = Color(0xFF5C5F66)
 private val DrawerItemHeight = 40.dp
 private val DrawerItemCornerRadius = 8.dp
 private val DrawerItemVerticalGap = 2.dp
 private val UtilityCardCornerRadius = 8.dp
-private val UtilityCardBorder = Color(0xFFC0C0C0)
 private val UtilityCardMinHeight = 104.dp
 private val UtilityCardIconSize = 40.dp
 
@@ -108,9 +104,14 @@ private data class UtilityCardItem(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainScreen(modifier: Modifier = Modifier) {
+fun MainScreen(
+    themeMode: ThemeMode,
+    onThemeModeChange: (ThemeMode) -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
+    val colorScheme = MaterialTheme.colorScheme
     val appName = stringResource(R.string.app_name)
     var destination by remember { mutableStateOf(AppDestination.Home) }
     var settingsSection by remember { mutableStateOf<SettingsSection?>(null) }
@@ -119,7 +120,7 @@ fun MainScreen(modifier: Modifier = Modifier) {
     var homeMenuExpanded by remember { mutableStateOf(false) }
     val drawerItemColors =
         NavigationDrawerItemDefaults.colors(
-            selectedContainerColor = DrawerSelectedContainer,
+            selectedContainerColor = colorScheme.secondaryContainer,
         )
     val utilities =
         listOf(
@@ -213,7 +214,7 @@ fun MainScreen(modifier: Modifier = Modifier) {
                     },
                 ) {
                     Scaffold(
-                        containerColor = AppBackground,
+                        containerColor = colorScheme.background,
                         contentWindowInsets = WindowInsets(0, 0, 0, 0),
                         topBar = {
                             TopAppBar(
@@ -255,8 +256,8 @@ fun MainScreen(modifier: Modifier = Modifier) {
                                 },
                                 colors =
                                 TopAppBarDefaults.topAppBarColors(
-                                    containerColor = AppBackground,
-                                    scrolledContainerColor = AppBackground,
+                                    containerColor = colorScheme.background,
+                                    scrolledContainerColor = colorScheme.background,
                                 ),
                             )
                         },
@@ -267,7 +268,7 @@ fun MainScreen(modifier: Modifier = Modifier) {
                             Modifier
                                 .padding(innerPadding)
                                 .fillMaxSize(),
-                            color = ContentSurface,
+                            color = colorScheme.surface,
                             shadowElevation = 0.dp,
                             tonalElevation = 0.dp,
                         ) {
@@ -286,6 +287,8 @@ fun MainScreen(modifier: Modifier = Modifier) {
         settingsSection?.let { section ->
             SettingsScreen(
                 section = section,
+                themeMode = themeMode,
+                onThemeModeChange = onThemeModeChange,
                 onClose = {
                     settingsSection = null
                     settingsShootDayEpochMs = null
@@ -346,13 +349,14 @@ private fun UtilityCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val colorScheme = MaterialTheme.colorScheme
     Row(
         modifier =
         modifier
             .fillMaxWidth()
             .height(UtilityCardMinHeight)
-            .border(1.dp, UtilityCardBorder, RoundedCornerShape(UtilityCardCornerRadius))
-            .background(ContentSurface, RoundedCornerShape(UtilityCardCornerRadius))
+            .border(1.dp, colorScheme.outline, RoundedCornerShape(UtilityCardCornerRadius))
+            .background(colorScheme.surface, RoundedCornerShape(UtilityCardCornerRadius))
             .clickable(onClick = onClick)
             .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalAlignment = Alignment.Top,
@@ -360,7 +364,7 @@ private fun UtilityCard(
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = Color(0xFF3C4043),
+            tint = colorScheme.onSurfaceVariant,
             modifier = Modifier.size(UtilityCardIconSize),
         )
         Spacer(modifier = Modifier.width(12.dp))
@@ -373,14 +377,14 @@ private fun UtilityCard(
                     fontSize = 14.sp,
                     lineHeight = 18.sp,
                 ),
-                color = Color(0xFF202124),
+                color = colorScheme.onSurface,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
             Spacer(modifier = Modifier.height(4.dp))
             AutoFitDescription(
                 text = description,
-                color = Color(0xFF5F6368),
+                color = colorScheme.onSurfaceVariant,
                 maxLines = 3,
                 minFontSize = 9.sp,
                 maxFontSize = 11.sp,
@@ -482,15 +486,16 @@ private fun CompactNavigationDrawerItem(
 @Composable
 private fun BottomActionBar(modifier: Modifier = Modifier) {
     val contentDescription = stringResource(R.string.bottom_nav_item)
+    val colorScheme = MaterialTheme.colorScheme
 
     Column(
         modifier =
         modifier
             .fillMaxWidth()
-            .background(AppBackground)
+            .background(colorScheme.background)
             .windowInsetsPadding(WindowInsets.navigationBars),
     ) {
-        HorizontalDivider(color = Color(0xFFD0D2D7), thickness = 1.dp)
+        HorizontalDivider(color = colorScheme.outlineVariant, thickness = 1.dp)
         Row(
             modifier =
             Modifier
@@ -508,7 +513,7 @@ private fun BottomActionBar(modifier: Modifier = Modifier) {
                     Icon(
                         imageVector = Icons.Filled.Menu,
                         contentDescription = contentDescription,
-                        tint = BottomIconTint,
+                        tint = colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(BottomIconSize),
                     )
                 }
@@ -521,6 +526,9 @@ private fun BottomActionBar(modifier: Modifier = Modifier) {
 @Composable
 private fun MainScreenPreview() {
     HskAndroidTheme(darkTheme = false) {
-        MainScreen()
+        MainScreen(
+            themeMode = ThemeMode.Light,
+            onThemeModeChange = {},
+        )
     }
 }

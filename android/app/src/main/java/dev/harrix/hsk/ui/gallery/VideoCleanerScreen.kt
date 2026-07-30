@@ -96,9 +96,7 @@ import dev.harrix.hsk.gallery.CameraVideo
 import dev.harrix.hsk.gallery.GalleryCleanerPreferences
 import dev.harrix.hsk.gallery.GalleryPermissions
 import dev.harrix.hsk.ui.performLightActionHaptic
-import dev.harrix.hsk.ui.theme.AppBackground
 import dev.harrix.hsk.ui.theme.AppRed
-import dev.harrix.hsk.ui.theme.ContentSurface
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.util.Date
@@ -269,7 +267,7 @@ fun VideoCleanerScreen(
 
     Scaffold(
         modifier = modifier,
-        containerColor = AppBackground,
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.video_cleaner_title)) },
@@ -317,8 +315,8 @@ fun VideoCleanerScreen(
                 },
                 colors =
                 TopAppBarDefaults.topAppBarColors(
-                    containerColor = AppBackground,
-                    scrolledContainerColor = AppBackground,
+                    containerColor = MaterialTheme.colorScheme.background,
+                    scrolledContainerColor = MaterialTheme.colorScheme.background,
                 ),
             )
         },
@@ -345,7 +343,7 @@ fun VideoCleanerScreen(
             Modifier
                 .padding(innerPadding)
                 .fillMaxSize()
-                .background(ContentSurface),
+                .background(MaterialTheme.colorScheme.surface),
         ) {
             when {
                 !hasPermission -> {
@@ -470,7 +468,7 @@ private fun VideoCleanerBottomBar(
         modifier =
         modifier
             .fillMaxWidth()
-            .background(AppBackground)
+            .background(MaterialTheme.colorScheme.background)
             .windowInsetsPadding(WindowInsets.navigationBars)
             .padding(horizontal = 16.dp, vertical = 12.dp),
     ) {
@@ -478,7 +476,7 @@ private fun VideoCleanerBottomBar(
             Text(
                 text = selectedSizeLabel,
                 style = MaterialTheme.typography.bodySmall,
-                color = Color(0xFF5F6368),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(bottom = 8.dp),
             )
         }

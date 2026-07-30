@@ -27,6 +27,9 @@ import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -50,7 +53,7 @@ import dev.harrix.hsk.R
 import dev.harrix.hsk.gallery.GalleryCleanerPreferences
 import dev.harrix.hsk.gallery.GalleryDateFilter
 import dev.harrix.hsk.gallery.GalleryPermissions
-import dev.harrix.hsk.ui.theme.AppBackground
+import dev.harrix.hsk.ui.theme.ThemeMode
 import java.text.DateFormat
 import java.text.DateFormatSymbols
 import java.util.Calendar
@@ -68,6 +71,8 @@ private const val EarliestFilterYear = 2008
 @Composable
 fun SettingsScreen(
     section: SettingsSection,
+    themeMode: ThemeMode,
+    onThemeModeChange: (ThemeMode) -> Unit,
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
     onOpenAllSettings: (() -> Unit)? = null,
@@ -79,10 +84,11 @@ fun SettingsScreen(
             SettingsSection.GalleryCleaner -> R.string.settings_gallery_cleaner_title
             SettingsSection.VideoCleaner -> R.string.settings_video_cleaner_title
         }
+    val background = MaterialTheme.colorScheme.background
 
     Scaffold(
         modifier = modifier,
-        containerColor = AppBackground,
+        containerColor = background,
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(titleRes)) },
@@ -96,8 +102,8 @@ fun SettingsScreen(
                 },
                 colors =
                 TopAppBarDefaults.topAppBarColors(
-                    containerColor = AppBackground,
-                    scrolledContainerColor = AppBackground,
+                    containerColor = background,
+                    scrolledContainerColor = background,
                 ),
             )
         },
@@ -113,6 +119,11 @@ fun SettingsScreen(
         ) {
             when (section) {
                 SettingsSection.All -> {
+                    AppearanceSettingsSection(
+                        themeMode = themeMode,
+                        onThemeModeChange = onThemeModeChange,
+                    )
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
                     GalleryCleanerSettingsSection(
                         showSectionTitle = true,
                         currentShootDayEpochMs = currentShootDayEpochMs,
@@ -141,6 +152,50 @@ fun SettingsScreen(
                     modifier = Modifier.align(Alignment.Start),
                 ) {
                     Text(stringResource(R.string.settings_open_all))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AppearanceSettingsSection(
+    themeMode: ThemeMode,
+    onThemeModeChange: (ThemeMode) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val options =
+        listOf(
+            ThemeMode.System to R.string.settings_theme_system,
+            ThemeMode.Light to R.string.settings_theme_light,
+            ThemeMode.Dark to R.string.settings_theme_dark,
+        )
+
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Text(
+            text = stringResource(R.string.settings_appearance_title),
+            style = MaterialTheme.typography.titleMedium,
+        )
+        Text(
+            text = stringResource(R.string.settings_theme_title),
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+            options.forEachIndexed { index, (mode, labelRes) ->
+                SegmentedButton(
+                    selected = themeMode == mode,
+                    onClick = { onThemeModeChange(mode) },
+                    shape =
+                    SegmentedButtonDefaults.itemShape(
+                        index = index,
+                        count = options.size,
+                    ),
+                ) {
+                    Text(stringResource(labelRes))
                 }
             }
         }

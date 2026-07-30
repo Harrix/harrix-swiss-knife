@@ -91,7 +91,6 @@ import dev.harrix.hsk.gallery.GalleryCleanerPreferences
 import dev.harrix.hsk.gallery.GalleryDateFilter
 import dev.harrix.hsk.gallery.GalleryPermissions
 import dev.harrix.hsk.ui.performLightActionHaptic
-import dev.harrix.hsk.ui.theme.AppBackground
 import dev.harrix.hsk.ui.theme.AppGreen
 import dev.harrix.hsk.ui.theme.AppRed
 import kotlinx.coroutines.launch
@@ -368,7 +367,7 @@ fun GalleryCleanerScreen(
 
     Scaffold(
         modifier = modifier,
-        containerColor = AppBackground,
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             Column {
                 TopAppBar(
@@ -509,8 +508,8 @@ fun GalleryCleanerScreen(
                     },
                     colors =
                     TopAppBarDefaults.topAppBarColors(
-                        containerColor = AppBackground,
-                        scrolledContainerColor = AppBackground,
+                        containerColor = MaterialTheme.colorScheme.background,
+                        scrolledContainerColor = MaterialTheme.colorScheme.background,
                     ),
                 )
                 if (dateFilter.enabled) {
@@ -567,7 +566,7 @@ fun GalleryCleanerScreen(
             Modifier
                 .padding(innerPadding)
                 .fillMaxSize()
-                .background(AppBackground),
+                .background(MaterialTheme.colorScheme.background),
             contentAlignment = Alignment.Center,
         ) {
             when {
@@ -662,7 +661,7 @@ private fun ReviewActionBar(
         modifier =
         modifier
             .fillMaxWidth()
-            .background(AppBackground)
+            .background(MaterialTheme.colorScheme.background)
             .windowInsetsPadding(WindowInsets.navigationBars)
             .padding(horizontal = 16.dp, vertical = 12.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -894,7 +893,7 @@ private fun SwipeablePhotoCard(
                     .offset {
                         IntOffset(displayOffset.x.roundToInt(), displayOffset.y.roundToInt())
                     }
-                    .background(AppBackground)
+                    .background(MaterialTheme.colorScheme.background)
                     .pointerInput(resetKey, photo.id) {
                         detectDragGestures(
                             onDragEnd = {
@@ -959,7 +958,7 @@ private fun SwipeablePhotoCard(
             modifier =
             Modifier
                 .fillMaxWidth()
-                .background(AppBackground)
+                .background(MaterialTheme.colorScheme.background)
                 .padding(horizontal = 16.dp, vertical = 10.dp),
             verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
