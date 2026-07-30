@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import sys
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from harrix_swiss_knife.actions.base import ActionBase
 from harrix_swiss_knife.actions.common.android_gradle import (
@@ -12,6 +12,9 @@ from harrix_swiss_knife.actions.common.android_gradle import (
     resolve_java_home,
     run_gradle,
 )
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 class OnAndroidCheck(ActionBase):
@@ -30,7 +33,7 @@ class OnAndroidCheck(ActionBase):
 
     @ActionBase.handle_exceptions("Android check")
     def execute(self, *_args: Any, noninteractive: bool = False, **_kwargs: Any) -> None:
-        """Run Spotless check, Detekt, and Android Lint."""
+        """Run qualityCheck (sync for CLI, background thread for tray)."""
         if sys.platform != "win32":
             self.add_line("❌ This action is only available on Windows.")
             if not noninteractive:
@@ -64,6 +67,33 @@ class OnAndroidCheck(ActionBase):
                 self.show_result()
             return
 
+        if noninteractive:
+            self._run_quality_check(android_dir, java_home)
+            return
+
+        self._android_dir_for_thread = android_dir
+        self._java_home = java_home
+        self.start_thread(self.in_thread, self.thread_after, self.title)
+
+    @ActionBase.handle_exceptions("Android check thread")
+    def in_thread(self) -> str | None:
+        """Run qualityCheck in a worker thread for the tray UI."""
+        android_dir = getattr(self, "_android_dir_for_thread", None)
+        java_home = getattr(self, "_java_home", None)
+        if android_dir is None or not java_home:
+            return None
+        self._run_quality_check(android_dir, java_home)
+        return None
+
+    @ActionBase.handle_exceptions("Android check thread completion")
+    def thread_after(self, result: Any) -> None:  # noqa: ARG002
+        """Show toast and result dialog after a tray check."""
+        failed = any(isinstance(line, str) and line.strip().startswith("❌") for line in self.result_lines)
+        self.show_toast(f"{self.title} {'failed' if failed else 'completed'}")
+        self.show_result()
+
+    def _run_quality_check(self, android_dir: Path, java_home: str) -> None:
+        """Invoke ``qualityCheck`` and append output lines."""
         self.add_line(f"🔵 Starting qualityCheck in {android_dir}")
         self.add_line(f"$ JAVA_HOME={java_home}")
         gradlew = android_dir / "gradlew.bat"
@@ -78,6 +108,3 @@ class OnAndroidCheck(ActionBase):
             self.add_line(f"❌ qualityCheck failed (exit code {process.returncode}).")
         else:
             self.add_line("✅ qualityCheck completed (spotlessCheck, detekt, lintDebug).")
-
-        if not noninteractive:
-            self.show_result()

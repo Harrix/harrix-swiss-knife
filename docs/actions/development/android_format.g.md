@@ -13,6 +13,8 @@ lang: en
 
 - [🏛️ Class `OnAndroidFormat`](#%EF%B8%8F-class-onandroidformat)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
+  - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread)
+  - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after)
 
 </details>
 
@@ -41,7 +43,7 @@ class OnAndroidFormat(ActionBase):
 
     @ActionBase.handle_exceptions("Android format")
     def execute(self, *_args: Any, noninteractive: bool = False, **_kwargs: Any) -> None:
-        """Apply Spotless formatting to the Android project."""
+        """Apply Spotless formatting (sync for CLI, background thread for tray)."""
         if sys.platform != "win32":
             self.add_line("❌ This action is only available on Windows.")
             if not noninteractive:
@@ -75,6 +77,33 @@ class OnAndroidFormat(ActionBase):
                 self.show_result()
             return
 
+        if noninteractive:
+            self._run_spotless(android_dir, java_home)
+            return
+
+        self._android_dir_for_thread = android_dir
+        self._java_home = java_home
+        self.start_thread(self.in_thread, self.thread_after, self.title)
+
+    @ActionBase.handle_exceptions("Android format thread")
+    def in_thread(self) -> str | None:
+        """Run Spotless in a worker thread for the tray UI."""
+        android_dir = getattr(self, "_android_dir_for_thread", None)
+        java_home = getattr(self, "_java_home", None)
+        if android_dir is None or not java_home:
+            return None
+        self._run_spotless(android_dir, java_home)
+        return None
+
+    @ActionBase.handle_exceptions("Android format thread completion")
+    def thread_after(self, result: Any) -> None:  # noqa: ARG002
+        """Show toast and result dialog after a tray format."""
+        failed = any(isinstance(line, str) and line.strip().startswith("❌") for line in self.result_lines)
+        self.show_toast(f"{self.title} {'failed' if failed else 'completed'}")
+        self.show_result()
+
+    def _run_spotless(self, android_dir: Path, java_home: str) -> None:
+        """Invoke ``spotlessApply`` and append output lines."""
         self.add_line(f"🔵 Starting spotlessApply in {android_dir}")
         self.add_line(f"$ JAVA_HOME={java_home}")
         gradlew = android_dir / "gradlew.bat"
@@ -89,9 +118,6 @@ class OnAndroidFormat(ActionBase):
             self.add_line(f"❌ spotlessApply failed (exit code {process.returncode}).")
         else:
             self.add_line("✅ spotlessApply completed.")
-
-        if not noninteractive:
-            self.show_result()
 ```
 
 </details>
@@ -102,7 +128,7 @@ class OnAndroidFormat(ActionBase):
 def execute(self, *_args: Any, **_kwargs: Any) -> None
 ```
 
-Apply Spotless formatting to the Android project.
+Apply Spotless formatting (sync for CLI, background thread for tray).
 
 <details>
 <summary>Code:</summary>
@@ -142,23 +168,56 @@ def execute(self, *_args: Any, noninteractive: bool = False, **_kwargs: Any) -> 
                 self.show_result()
             return
 
-        self.add_line(f"🔵 Starting spotlessApply in {android_dir}")
-        self.add_line(f"$ JAVA_HOME={java_home}")
-        gradlew = android_dir / "gradlew.bat"
-        self.add_line(f'$ "{gradlew}" spotlessApply --no-daemon')
+        if noninteractive:
+            self._run_spotless(android_dir, java_home)
+            return
 
-        process = run_gradle(android_dir, java_home, "spotlessApply")
-        output = "\n".join(part for part in (process.stdout.strip(), process.stderr.strip()) if part)
-        if output:
-            self.add_line(output)
+        self._android_dir_for_thread = android_dir
+        self._java_home = java_home
+        self.start_thread(self.in_thread, self.thread_after, self.title)
+```
 
-        if process.returncode != 0:
-            self.add_line(f"❌ spotlessApply failed (exit code {process.returncode}).")
-        else:
-            self.add_line("✅ spotlessApply completed.")
+</details>
 
-        if not noninteractive:
-            self.show_result()
+### ⚙️ Method `in_thread`
+
+```python
+def in_thread(self) -> str | None
+```
+
+Run Spotless in a worker thread for the tray UI.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def in_thread(self) -> str | None:
+        android_dir = getattr(self, "_android_dir_for_thread", None)
+        java_home = getattr(self, "_java_home", None)
+        if android_dir is None or not java_home:
+            return None
+        self._run_spotless(android_dir, java_home)
+        return None
+```
+
+</details>
+
+### ⚙️ Method `thread_after`
+
+```python
+def thread_after(self, result: Any) -> None
+```
+
+Show toast and result dialog after a tray format.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def thread_after(self, result: Any) -> None:  # noqa: ARG002
+        failed = any(isinstance(line, str) and line.strip().startswith("❌") for line in self.result_lines)
+        self.show_toast(f"{self.title} {'failed' if failed else 'completed'}")
+        self.show_result()
 ```
 
 </details>
