@@ -397,17 +397,6 @@ fun GalleryCleanerScreen(
                         }
                     },
                     actions = {
-                        if (lastTrashedPhoto != null) {
-                            TextButton(onClick = { undoLastDelete() }) {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.Undo,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(18.dp),
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(stringResource(R.string.gallery_cleaner_undo_delete))
-                            }
-                        }
                         if (hasPermission && remainingCount > 0) {
                             Text(
                                 text =
@@ -512,42 +501,62 @@ fun GalleryCleanerScreen(
                         scrolledContainerColor = MaterialTheme.colorScheme.background,
                     ),
                 )
-                if (dateFilter.enabled) {
-                    val dateFormat =
-                        remember {
-                            DateFormat.getDateInstance(DateFormat.SHORT)
-                        }
-                    val startLabel =
-                        dateFormat.format(Date(dateFilter.startEpochSecInclusive * 1000L))
-                    val endLabel =
-                        dateFormat.format(Date(dateFilter.endEpochSecInclusive * 1000L))
-                    val sameDay =
-                        dateFilter.fromYear() == dateFilter.toYear() &&
-                            dateFilter.fromMonth() == dateFilter.toMonth() &&
-                            dateFilter.fromDay() == dateFilter.toDay()
-                    Text(
-                        text =
-                        if (sameDay) {
-                            stringResource(
-                                R.string.gallery_cleaner_date_filter_active_day,
-                                startLabel,
-                            )
-                        } else {
-                            stringResource(
-                                R.string.gallery_cleaner_date_filter_active,
-                                startLabel,
-                                endLabel,
-                            )
-                        },
+                if (dateFilter.enabled || lastTrashedPhoto != null) {
+                    Row(
                         modifier =
                         Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 4.dp),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                    )
+                            .padding(start = 16.dp, end = 4.dp, top = 0.dp, bottom = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        if (dateFilter.enabled) {
+                            val dateFormat =
+                                remember {
+                                    DateFormat.getDateInstance(DateFormat.SHORT)
+                                }
+                            val startLabel =
+                                dateFormat.format(Date(dateFilter.startEpochSecInclusive * 1000L))
+                            val endLabel =
+                                dateFormat.format(Date(dateFilter.endEpochSecInclusive * 1000L))
+                            val sameDay =
+                                dateFilter.fromYear() == dateFilter.toYear() &&
+                                    dateFilter.fromMonth() == dateFilter.toMonth() &&
+                                    dateFilter.fromDay() == dateFilter.toDay()
+                            Text(
+                                text =
+                                if (sameDay) {
+                                    stringResource(
+                                        R.string.gallery_cleaner_date_filter_active_day,
+                                        startLabel,
+                                    )
+                                } else {
+                                    stringResource(
+                                        R.string.gallery_cleaner_date_filter_active,
+                                        startLabel,
+                                        endLabel,
+                                    )
+                                },
+                                modifier = Modifier.weight(1f),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        } else {
+                            Spacer(modifier = Modifier.weight(1f))
+                        }
+                        if (lastTrashedPhoto != null) {
+                            TextButton(onClick = { undoLastDelete() }) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.Undo,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp),
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(stringResource(R.string.gallery_cleaner_undo_delete))
+                            }
+                        }
+                    }
                 }
             }
         },
