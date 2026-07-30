@@ -529,21 +529,26 @@ function extractNoteTitleFromMarkdown(text) {
   return stripHtmlComments(title);
 }
 
-/** Caches note tree labels by file path and mtime. */
+/** Caches note tree labels by file path and mtime. Content is read off the tree UI thread. */
 class NoteTitleCache {
   constructor() {
-    /** @type {Map<string, { mtimeMs: number, label: string }>} */
+    /** @type {Map<string, { mtimeMs: number, label: string, resolved: boolean }>} */
     this._entries = new Map();
+    /** @type {Set<string>} */
+    this._inflight = new Set();
   }
 
   clear() {
     this._entries.clear();
+    this._inflight.clear();
   }
 
   /**
+   * Fast path for the tree: cached content title when fresh, otherwise file stem.
+   * Never opens the note file.
    * @param {string} filePath
    */
-  getLabel(filePath) {
+  getLabelFast(filePath) {
     const key = normalizeFsPath(filePath);
     const stem = noteStemFromPath(filePath);
     let mtimeMs = 0;
@@ -552,10 +557,46 @@ class NoteTitleCache {
     } catch {
       return stem;
     }
-
     const cached = this._entries.get(key);
-    if (cached && cached.mtimeMs === mtimeMs) {
+    if (cached && cached.mtimeMs === mtimeMs && cached.resolved) {
       return cached.label;
+    }
+    return stem;
+  }
+
+  /**
+   * @param {string} filePath
+   */
+  needsResolve(filePath) {
+    const key = normalizeFsPath(filePath);
+    if (this._inflight.has(key)) {
+      return false;
+    }
+    let mtimeMs = 0;
+    try {
+      mtimeMs = fs.statSync(filePath).mtimeMs;
+    } catch {
+      return false;
+    }
+    const cached = this._entries.get(key);
+    return !(cached && cached.mtimeMs === mtimeMs && cached.resolved);
+  }
+
+  /**
+   * Reads a note prefix and stores the label. Call from a background turn.
+   * @param {string} filePath
+   * @returns {{ label: string, changed: boolean }}
+   */
+  resolveFromDisk(filePath) {
+    const key = normalizeFsPath(filePath);
+    const stem = noteStemFromPath(filePath);
+    const before = this.getLabelFast(filePath);
+    let mtimeMs = 0;
+    try {
+      mtimeMs = fs.statSync(filePath).mtimeMs;
+    } catch {
+      this._entries.set(key, { mtimeMs: 0, label: stem, resolved: true });
+      return { label: stem, changed: before !== stem };
     }
 
     let label = stem;
@@ -573,8 +614,22 @@ class NoteTitleCache {
       // keep stem
     }
 
-    this._entries.set(key, { mtimeMs, label });
-    return label;
+    this._entries.set(key, { mtimeMs, label, resolved: true });
+    return { label, changed: label !== before };
+  }
+
+  /**
+   * @param {string} filePath
+   */
+  markInflight(filePath) {
+    this._inflight.add(normalizeFsPath(filePath));
+  }
+
+  /**
+   * @param {string} filePath
+   */
+  clearInflight(filePath) {
+    this._inflight.delete(normalizeFsPath(filePath));
   }
 }
 
@@ -587,7 +642,7 @@ function getNoteDisplayLabel(filePath) {
   if (!getShowNoteTitleFromContent()) {
     return noteStemFromPath(filePath);
   }
-  return noteTitleCache.getLabel(filePath);
+  return noteTitleCache.getLabelFast(filePath);
 }
 
 /** Merged-folder template only: exactly `_<parentFolderName>.g.md` (case-insensitive). Other `*.g.md` stay visible. */
@@ -1789,15 +1844,15 @@ function isInsideGitWorkTreeFs(folderPath) {
   }
 }
 
-// Check whether a folder contains at least one .md file (recursively)
+// Fast stand-in for a full recursive markdown scan (same idea as the Android notes browser):
+// interesting if this folder already has a `.md` file or any non-skipped subdirectory.
 function hasMarkdownRecursive(dir) {
   for (const entry of safeReaddir(dir)) {
-    if (entry.isFile() && isMd(entry.name)) return true;
-    if (entry.isDirectory()) {
-      if (SKIP_MARKDOWN_SCAN_DIR_NAMES.has(entry.name.toLowerCase())) {
-        continue;
-      }
-      if (hasMarkdownRecursive(path.join(dir, entry.name))) return true;
+    if (entry.isFile() && isMd(entry.name)) {
+      return true;
+    }
+    if (entry.isDirectory() && !SKIP_MARKDOWN_SCAN_DIR_NAMES.has(entry.name.toLowerCase())) {
+      return true;
     }
   }
   return false;
@@ -1830,6 +1885,14 @@ class NotesProvider {
     this._templateTargets = new Map();
     /** @type {Map<string, boolean>} normalized folder path -> inside git work tree */
     this._gitWorkTreeCache = new Map();
+    /** @type {Set<string>} note paths waiting for background title resolve */
+    this._titleResolveQueued = new Set();
+    /** @type {Set<string>} parent dirs to refresh after title updates */
+    this._titleResolveParents = new Set();
+    /** @type {ReturnType<typeof setTimeout> | null} */
+    this._titleResolveTimer = null;
+    /** True when a resolved title differs from the label already shown */
+    this._titleResolveDirty = false;
   }
 
   /** First workspace folder path (fallback for commands with no selection). */
@@ -1879,7 +1942,85 @@ class NotesProvider {
   refresh() {
     this._gitWorkTreeCache.clear();
     noteTitleCache.clear();
+    this._titleResolveQueued.clear();
+    this._titleResolveParents.clear();
+    this._titleResolveDirty = false;
+    if (this._titleResolveTimer != null) {
+      clearTimeout(this._titleResolveTimer);
+      this._titleResolveTimer = null;
+    }
     this._emitter.fire();
+  }
+
+  /**
+   * Queue content-title reads after the tree has already painted file-name labels.
+   * @param {string[]} filePaths
+   * @param {string | undefined} parentDir
+   */
+  scheduleNoteTitleResolve(filePaths, parentDir) {
+    if (!getShowNoteTitleFromContent() || !Array.isArray(filePaths) || filePaths.length === 0) {
+      return;
+    }
+    for (const filePath of filePaths) {
+      if (noteTitleCache.needsResolve(filePath)) {
+        this._titleResolveQueued.add(normalizeFsPath(filePath));
+      }
+    }
+    if (typeof parentDir === 'string' && parentDir) {
+      this._titleResolveParents.add(normalizeFsPath(parentDir));
+    }
+    this._kickTitleResolve();
+  }
+
+  _kickTitleResolve() {
+    if (this._titleResolveTimer != null || this._titleResolveQueued.size === 0) {
+      return;
+    }
+    this._titleResolveTimer = setTimeout(() => {
+      this._titleResolveTimer = null;
+      this._runTitleResolveBatch();
+    }, 0);
+  }
+
+  _runTitleResolveBatch() {
+    const batch = [...this._titleResolveQueued].slice(0, 12);
+    for (const filePath of batch) {
+      this._titleResolveQueued.delete(filePath);
+    }
+    for (const filePath of batch) {
+      noteTitleCache.markInflight(filePath);
+      try {
+        const { changed } = noteTitleCache.resolveFromDisk(filePath);
+        if (changed) {
+          this._titleResolveDirty = true;
+        }
+      } finally {
+        noteTitleCache.clearInflight(filePath);
+      }
+    }
+    if (this._titleResolveQueued.size > 0) {
+      this._kickTitleResolve();
+      return;
+    }
+    if (!this._titleResolveDirty) {
+      this._titleResolveParents.clear();
+      return;
+    }
+    this._titleResolveDirty = false;
+    const parents = [...this._titleResolveParents];
+    this._titleResolveParents.clear();
+    if (parents.length === 0) {
+      this._emitter.fire();
+      return;
+    }
+    for (const parentDir of parents) {
+      if (this.isWorkspaceRootPath(parentDir)) {
+        const entry = this.findRootForPath(parentDir);
+        this._emitter.fire(this.createWorkspaceRootFolderItem(parentDir, entry?.name));
+      } else {
+        this._emitter.fire(this.createFolderItem(parentDir, path.basename(parentDir), 1));
+      }
+    }
   }
 
   /**
@@ -2111,7 +2252,7 @@ class NotesProvider {
 
     const entries = safeReaddir(dir);
 
-    // Folders that contain at least one .md file (recursively)
+    // Folders that look like notes trees (have .md here or any non-skipped child folder)
     const folders = entries
       .filter((e) => e.isDirectory())
       .filter(
@@ -2158,7 +2299,12 @@ class NotesProvider {
       items.push(this.createFileItem(filePath));
     }
 
-    return items.sort((a, b) => this.sortTreeItems(a, b));
+    const sorted = items.sort((a, b) => this.sortTreeItems(a, b));
+    const notePaths = sorted
+      .filter((item) => item.isNoteItem && item.resourceUri?.fsPath)
+      .map((item) => item.resourceUri.fsPath);
+    this.scheduleNoteTitleResolve(notePaths, dir);
+    return sorted;
   }
 
   /**
