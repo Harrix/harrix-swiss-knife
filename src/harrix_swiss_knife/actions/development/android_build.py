@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import os
 import subprocess
 import sys
 import time
@@ -12,11 +11,11 @@ from typing import Any, ClassVar
 import harrix_pylib as h
 
 from harrix_swiss_knife.actions.base import ActionBase
-
-if sys.platform == "win32":
-    import winreg
-else:  # pragma: no cover - Windows-only action
-    winreg = None  # type: ignore[assignment]
+from harrix_swiss_knife.actions.development.android_gradle import (
+    gradle_env,
+    resolve_android_home,
+    resolve_java_home,
+)
 
 
 class OnAndroidBuild(ActionBase):
@@ -76,7 +75,7 @@ class OnAndroidBuild(ActionBase):
             self.show_result()
             return
 
-        java_home = self._resolve_java_home()
+        java_home = resolve_java_home()
         if java_home is None:
             self.add_line(
                 "❌ JAVA_HOME is not set and no JDK 17 was found. "
@@ -132,7 +131,7 @@ class OnAndroidBuild(ActionBase):
             return None
 
         local_props = android_dir / "local.properties"
-        android_home = self._resolve_android_home()
+        android_home = resolve_android_home()
         if not local_props.is_file() and not android_home:
             self.add_line(
                 "❌ Android SDK not configured. Run `install\\setup-android-sdk.bat` "
@@ -141,20 +140,6 @@ class OnAndroidBuild(ActionBase):
             return None
 
         return android_dir
-
-    def _gradle_env(self, java_home: str) -> dict[str, str]:
-        """Build process env for Gradle, including JDK and Android SDK paths."""
-        env = os.environ.copy()
-        env["JAVA_HOME"] = java_home
-        java_bin = str(Path(java_home) / "bin")
-        path_parts = [java_bin, *[p for p in env.get("PATH", "").split(os.pathsep) if p]]
-        env["PATH"] = os.pathsep.join(path_parts)
-
-        android_home = self._resolve_android_home()
-        if android_home:
-            env["ANDROID_HOME"] = android_home
-            env["ANDROID_SDK_ROOT"] = android_home
-        return env
 
     def _install_apk_via_adb(self, apk_path: Path) -> None:
         """Install the APK on the first connected adb device, if any."""
@@ -230,7 +215,7 @@ class OnAndroidBuild(ActionBase):
 
     def _resolve_adb(self) -> Path | None:
         """Resolve ``adb.exe`` from Android SDK or PATH."""
-        android_home = self._resolve_android_home()
+        android_home = resolve_android_home()
         if android_home:
             candidate = Path(android_home) / "platform-tools" / "adb.exe"
             if candidate.is_file():
@@ -241,49 +226,6 @@ class OnAndroidBuild(ActionBase):
             path = Path(line.strip().strip('"'))
             if path.is_file():
                 return path
-        return None
-
-    def _resolve_android_home(self) -> str | None:
-        """Resolve Android SDK root from env or the default user Sdk folder."""
-        for value in (
-            os.environ.get("ANDROID_HOME"),
-            os.environ.get("ANDROID_SDK_ROOT"),
-            self._windows_env_value("ANDROID_HOME"),
-            self._windows_env_value("ANDROID_SDK_ROOT"),
-        ):
-            if value and Path(value).is_dir():
-                return value
-
-        default_sdk = Path(os.environ.get("LOCALAPPDATA", "")) / "Android" / "Sdk"
-        if default_sdk.is_dir():
-            return str(default_sdk)
-        return None
-
-    def _resolve_java_home(self) -> str | None:
-        """Resolve JDK home from process/user/machine env or known install paths."""
-        candidates: list[str] = [
-            value
-            for value in (
-                os.environ.get("JAVA_HOME"),
-                self._windows_env_value("JAVA_HOME"),
-            )
-            if value
-        ]
-
-        local_java = Path(os.environ.get("LOCALAPPDATA", "")) / "Java"
-        if local_java.is_dir():
-            candidates.extend(str(path) for path in sorted(local_java.glob("jdk-17*"), reverse=True))
-
-        microsoft = Path(r"C:\Program Files\Microsoft")
-        if microsoft.is_dir():
-            candidates.extend(str(path) for path in sorted(microsoft.glob("jdk-17*"), reverse=True))
-
-        candidates.append(r"C:\Program Files\Android\Android Studio\jbr")
-
-        for candidate in candidates:
-            java_home = self._valid_java_home(candidate)
-            if java_home is not None:
-                return java_home
         return None
 
     def _resolve_variant(
@@ -334,7 +276,7 @@ class OnAndroidBuild(ActionBase):
         """Invoke Gradle with a resolved JDK and report the APK path or failure."""
         gradlew = android_dir / "gradlew.bat"
         apk_path = android_dir / apk_relative
-        env = self._gradle_env(java_home)
+        env = gradle_env(java_home)
 
         self.add_line(f"$ JAVA_HOME={java_home}")
         self.add_line(f"$ cd {android_dir}")
@@ -370,14 +312,6 @@ class OnAndroidBuild(ActionBase):
         self.result_folder = apk_path.parent
         self._install_apk_via_adb(apk_path)
 
-    @staticmethod
-    def _valid_java_home(path: str) -> str | None:
-        """Return path if it looks like a usable JDK/JBR home."""
-        root = Path(path.strip().strip('"'))
-        if (root / "bin" / "java.exe").is_file():
-            return str(root)
-        return None
-
     def _wait_for_adb_device(self, adb: Path) -> list[str]:
         """Return authorized adb serials, waiting if the phone needs USB auth."""
         authorized, unauthorized = self._list_adb_device_states(adb)
@@ -409,24 +343,3 @@ class OnAndroidBuild(ActionBase):
 
         self.add_line(f"❌ Timed out waiting for USB debugging authorization ({timeout}s). APK not installed.")
         return []
-
-    @staticmethod
-    def _windows_env_value(name: str) -> str | None:
-        """Read a persistent Windows environment variable (User, then Machine)."""
-        if winreg is None:
-            return None
-        for root, subkey in (
-            (winreg.HKEY_CURRENT_USER, r"Environment"),
-            (
-                winreg.HKEY_LOCAL_MACHINE,
-                r"SYSTEM\CurrentControlSet\Control\Session Manager\Environment",
-            ),
-        ):
-            try:
-                with winreg.OpenKey(root, subkey) as key:
-                    value, _ = winreg.QueryValueEx(key, name)
-            except OSError:
-                continue
-            if isinstance(value, str) and value.strip():
-                return value.strip()
-        return None

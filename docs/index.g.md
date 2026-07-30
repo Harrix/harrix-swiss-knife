@@ -59,9 +59,11 @@ _Figure 1: Screenshot_
 - **Dev**
   - ℹ️ About
   - 📱 Build Android APK… ꟲᴸᴵ
+  - 🔬 Check Android code ꟲᴸᴵ
   - 🧹 Clear temp folder
   - 🔗 Create desktop shortcut
   - ⬇️ Download ffmpeg, avifenc, avifdec
+  - ✨ Format Android code ꟲᴸᴵ
   - ⌨️ Install CLI (hsk on PATH) ꟲᴸᴵ
   - ⚙️ Open `config.json`
   - 📌 Sync Quick Access folders to Total Commander
@@ -311,6 +313,10 @@ Folder arguments are optional (default: current directory) for commands that tak
 - `hsk md add-from-template --template "Movie"`
 - `hsk md add-from-template --template "Book"`
 - `hsk md add-from-template --template "Travel"`
+- `hsk android format` — Spotless (ktlint) format for `android/`
+- `hsk android check` — Spotless check + Detekt + Android Lint (`qualityCheck`)
+- `hsk dev android-build debug` — build debug APK (Windows; JDK 17 + Android SDK)
+- `hsk dev android-build release` — build release APK (debug-signed for sideload)
 - `hsk dev install-cli` (global `hsk` on PATH via `uv tool install -e`)
 - `hsk dev install-harrix-notes-explorer-hsk vscode` (Windows only; syncs public repo when `path_harrix_notes_explorer` is set; reload the editor window after install)
 - `hsk dev install-harrix-notes-explorer-hsk insiders`

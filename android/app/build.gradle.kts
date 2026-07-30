@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.detekt)
 }
 
 android {
@@ -47,6 +48,18 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
+
+    lint {
+        abortOnError = true
+        warningsAsErrors = false
+    }
+}
+
+detekt {
+    buildUponDefaultConfig = true
+    allRules = false
+    config.setFrom(files("${rootProject.projectDir}/config/detekt/detekt.yml"))
+    parallel = true
 }
 
 base {
@@ -66,4 +79,9 @@ dependencies {
     implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.coil.compose)
     debugImplementation(libs.androidx.compose.ui.tooling)
+    detektPlugins(libs.detekt.compose.rules)
+}
+
+tasks.named("check") {
+    dependsOn("detekt", "lintDebug")
 }

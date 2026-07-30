@@ -13,6 +13,8 @@ from PySide6.QtWidgets import QApplication
 
 from harrix_swiss_knife.actions.development import (
     OnAndroidBuild,
+    OnAndroidCheck,
+    OnAndroidFormat,
     OnInstallCli,
     OnInstallHarrixNotesExplorerExtension,
 )
@@ -37,6 +39,27 @@ from harrix_swiss_knife.paths import get_project_root
 @click.group()
 def cli() -> None:
     """Harrix Swiss Knife CLI."""
+
+
+@cli.group("android")
+def android_group() -> None:
+    """Android project format and quality checks."""
+
+
+@android_group.command("check")
+def android_check() -> None:
+    """Run Spotless check, Detekt, and Android Lint (`qualityCheck`)."""
+    action = OnAndroidCheck()
+    action(noninteractive=True)
+    _exit_if_action_failed(action)
+
+
+@android_group.command("format")
+def android_format() -> None:
+    """Format Android Kotlin/Gradle sources via Spotless (ktlint)."""
+    action = OnAndroidFormat()
+    action(noninteractive=True)
+    _exit_if_action_failed(action)
 
 
 @cli.group("dev")

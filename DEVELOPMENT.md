@@ -263,11 +263,13 @@ Release is signed with the **debug** keystore so it can be sideloaded like debug
 Via Harrix Swiss Knife (tray **Dev** → **Build Android APK…**, or CLI):
 
 ```text
+hsk android format
+hsk android check
 hsk dev android-build debug
 hsk dev android-build release
 ```
 
-The tray action asks Debug vs Release before building. After a successful build it opens the APK folder and, if a phone is connected via USB and visible in `adb devices`, runs `adb install -r` automatically (first device in `device` state). If no device is connected, the APK is still produced.
+`hsk android format` runs Spotless (`spotlessApply`). `hsk android check` runs `qualityCheck` (Spotless check + Detekt + `lintDebug`). The tray action asks Debug vs Release before building. After a successful build it opens the APK folder and, if a phone is connected via USB and visible in `adb devices`, runs `adb install -r` automatically (first device in `device` state). If no device is connected, the APK is still produced.
 
 Manual install (optional):
 
@@ -277,7 +279,8 @@ adb install -r android\app\build\outputs\apk\debug\HarrixSwissKnife-debug.apk
 
 ### Workflow
 
-- Edit Kotlin/Gradle in **Cursor**; build with tray **Build Android APK…** or `hsk dev android-build …`
+- Edit Kotlin/Gradle in **Cursor**; format with `hsk android format`, check with `hsk android check`, build with tray **Build Android APK…** or `hsk dev android-build …`
+- Quality stack: Spotless (ktlint), Detekt + Compose rules, Android Lint (`./gradlew qualityCheck` from `android/`)
 - Android Studio is optional (File → Open → `android/`) for emulator / Layout Inspector — **not** required and **not** opened during APK build
 
 ### Phone setup (Samsung Galaxy S24 Ultra)

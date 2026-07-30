@@ -12,6 +12,9 @@ lang: en
 ## Contents
 
 - [🔧 Function `cli`](#-function-cli)
+- [🔧 Function `android_group`](#-function-android_group)
+- [🔧 Function `android_check`](#-function-android_check)
+- [🔧 Function `android_format`](#-function-android_format)
 - [🔧 Function `dev_group`](#-function-dev_group)
 - [🔧 Function `dev_android_build`](#-function-dev_android_build)
 - [🔧 Function `dev_install_cli`](#-function-dev_install_cli)
@@ -56,6 +59,63 @@ Harrix Swiss Knife CLI.
 
 ```python
 def cli() -> None:
+```
+
+</details>
+
+## 🔧 Function `android_group`
+
+```python
+def android_group() -> None
+```
+
+Android project format and quality checks.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def android_group() -> None:
+```
+
+</details>
+
+## 🔧 Function `android_check`
+
+```python
+def android_check() -> None
+```
+
+Run Spotless check, Detekt, and Android Lint (`qualityCheck`).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def android_check() -> None:
+    action = OnAndroidCheck()
+    action(noninteractive=True)
+    _exit_if_action_failed(action)
+```
+
+</details>
+
+## 🔧 Function `android_format`
+
+```python
+def android_format() -> None
+```
+
+Format Android Kotlin/Gradle sources via Spotless (ktlint).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def android_format() -> None:
+    action = OnAndroidFormat()
+    action(noninteractive=True)
+    _exit_if_action_failed(action)
 ```
 
 </details>
