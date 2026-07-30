@@ -285,9 +285,9 @@ Via Harrix Swiss Knife (tray **Dev** → **Build Android APK**, or CLI):
 ```text
 hsk android format
 hsk android check
-hsk dev android-build
-hsk dev android-build debug
-hsk dev android-build release
+hsk android build
+hsk android build debug
+hsk android build release
 ```
 
 `hsk android format` runs Spotless (`spotlessApply`). `hsk android check` runs `qualityCheck` (Spotless check + Detekt + `lintDebug`). The tray action **Build Android APK** uses `android_build_variant` from `config/config.json` (`debug` or `release`, default `release`) and does not ask each time. CLI may omit the variant (same config key) or pass `debug`/`release` to override. After a successful build it opens the APK folder and, if a phone is connected via USB and visible in `adb devices`, runs `adb install -r` automatically (first device in `device` state). If no device is connected, the APK is still produced.
@@ -300,7 +300,7 @@ adb install -r android\app\build\outputs\apk\debug\HarrixSwissKnife-debug.apk
 
 ### Workflow
 
-- Edit Kotlin/Gradle in **Cursor**; format with `hsk android format`, check with `hsk android check`, build with tray **Build Android APK** or `hsk dev android-build …`
+- Edit Kotlin/Gradle in **Cursor**; format with `hsk android format`, check with `hsk android check`, build with tray **Build Android APK** or `hsk android build …`
 - Quality stack: Spotless (ktlint), Detekt + Compose rules, Android Lint (`./gradlew qualityCheck` from `android/`)
 - Android Studio is optional (File → Open → `android/`) for emulator / Layout Inspector — **not** required and **not** opened during APK build
 
@@ -326,21 +326,24 @@ You need a line like `XXXXXXXX    device` (not `unauthorized` or `offline`). If 
 
 Actions live under `src/harrix_swiss_knife/actions/`. Each menu section is a **subpackage** with one `On*` class per file:
 
-| Section         | Package                | Used in `main.py` as        |
-| --------------- | ---------------------- | --------------------------- |
-| Apps            | `actions/apps/`        | `hsk.app_actions.OnFinance` |
-| Dev             | `actions/development/` | `hsk.dev.OnAboutDialog`     |
-| File operations | `actions/files/`       | `hsk.file.On…`              |
-| Images          | `actions/images/`      | `hsk.images.On…`            |
-| Markdown        | `actions/markdown/`    | `hsk.md.On…`                |
-| Python          | `actions/python/`      | `hsk.py.On…`                |
+| Section         | Package                     | Import example                                              |
+| --------------- | --------------------------- | ----------------------------------------------------------- |
+| Apps            | `actions/apps/`             | `harrix_swiss_knife.actions.apps.OnFinance`                 |
+| Dev             | `actions/development/`      | `harrix_swiss_knife.actions.development.OnAboutDialog`      |
+| File operations | `actions/files/`            | `harrix_swiss_knife.actions.files.On…`                      |
+| Images          | `actions/images/`           | `harrix_swiss_knife.actions.images.On…`                     |
+| Markdown        | `actions/markdown/`         | `harrix_swiss_knife.actions.markdown.On…`                   |
+| Python          | `actions/python/`           | `harrix_swiss_knife.actions.python.On…`                     |
+| Text            | `actions/text/`             | `harrix_swiss_knife.actions.text.OnFixTextWithAI`           |
+| Quick launcher  | `actions/quick_launcher/`   | `harrix_swiss_knife.actions.quick_launcher.OnQuickLauncher` |
+| Common helpers  | `actions/common/`           | Shared bases/helpers (not menu items)                       |
 
 **File name:** drop the `On` prefix and use snake*case — `OnCheckFeaturedImageInFolders` → `check_featured_image_in_folders.py`. For a reserved name like `exit`, use `exit*.py`.
 **Steps:**
 
 1. Create `src/harrix_swiss_knife/actions/<section>/<action_snake_case>.py` with `class On<Action>(ActionBase)` (import only what this action needs; see existing files in the same section).
 2. Export the class from `src/harrix_swiss_knife/actions/<section>/__init__.py` (`from … import On…` and add to `__all__`).
-3. Add the class to `menu_structure` in `src/harrix_swiss_knife/main.py` (`MainMenu.__init__()`, via `add_menu_structure(...)`).
+3. Add the class to `get_menu_structure()` in `src/harrix_swiss_knife/menu_structure.py`.
 4. Emoji icons: <https://emojidb.org/>.
 5. If the action should be available from CLI (`hsk`):
    - Set `cli_available = True` and `cli_hint = "<section> <command-name>"` on the class.

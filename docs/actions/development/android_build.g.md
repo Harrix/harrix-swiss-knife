@@ -31,7 +31,7 @@ Tray uses `android_build_variant` from `config/config.json` (`debug` or
 Requires Windows, JDK 17, and Android SDK (`ANDROID_HOME` /
 `android/local.properties`). Use `install/setup-android-sdk.bat` once
 to install the toolchain. After a successful build, the result dialog
-can open the APK folder, and the action runs `adb instal00l -r` when a USB
+can open the APK folder, and the action runs `adb install -r` when a USB
 device is connected. If the phone is still waiting for USB debugging
 authorization, waits for confirmation.
 
@@ -44,7 +44,7 @@ class OnAndroidBuild(ActionBase):
     icon = "📱"
     title = "Build Android APK"
     cli_available = True
-    cli_hint = "dev android-build [debug|release]"
+    cli_hint = "android build [debug|release]"
 
     CLI_VARIANTS: ClassVar[tuple[str, ...]] = ("debug", "release")
     DEFAULT_VARIANT: ClassVar[str] = "release"
@@ -72,17 +72,32 @@ class OnAndroidBuild(ActionBase):
         """Build the Android APK (sync for CLI, background thread for tray)."""
         if sys.platform != "win32":
             self.add_line("❌ This action is only available on Windows.")
-            self.show_result()
+            if not noninteractive:
+                self.show_result()
             return
 
         resolved = self._resolve_variant(variant=variant)
         if resolved is None:
+            if not noninteractive:
+                self.show_result()
             return
 
         gradle_task, apk_relative = resolved
-        android_dir = self._android_dir()
+        android_dir = resolve_android_dir()
         if android_dir is None:
-            self.show_result()
+            self.add_line("❌ android folder or gradlew.bat not found.")
+            if not noninteractive:
+                self.show_result()
+            return
+
+        local_props = android_dir / "local.properties"
+        if not local_props.is_file() and not resolve_android_home():
+            self.add_line(
+                "❌ Android SDK not configured. Run `install\\setup-android-sdk.bat` "
+                "or set ANDROID_HOME and create android/local.properties."
+            )
+            if not noninteractive:
+                self.show_result()
             return
 
         java_home = resolve_java_home()
@@ -91,7 +106,8 @@ class OnAndroidBuild(ActionBase):
                 "❌ JAVA_HOME is not set and no JDK 17 was found. "
                 "Run `install\\setup-android-sdk.bat` or set JAVA_HOME, then restart the app."
             )
-            self.show_result()
+            if not noninteractive:
+                self.show_result()
             return
 
         self._gradle_task = gradle_task
@@ -99,7 +115,6 @@ class OnAndroidBuild(ActionBase):
         self._java_home = java_home
 
         if noninteractive:
-            self.add_line(f"🔵 Starting {gradle_task} in {android_dir}")
             self._run_gradle_build(android_dir, gradle_task, apk_relative, java_home)
             return
 
@@ -110,7 +125,8 @@ class OnAndroidBuild(ActionBase):
     def in_thread(self) -> str | None:
         """Run Gradle in a worker thread for the tray UI."""
         android_dir = getattr(self, "_android_dir_for_thread", None)
-        if android_dir is None:
+        java_home = getattr(self, "_java_home", None)
+        if android_dir is None or not java_home:
             return None
         self._run_gradle_build(
             android_dir,
@@ -120,7 +136,7 @@ class OnAndroidBuild(ActionBase):
                 "_apk_relative",
                 "app/build/outputs/apk/release/HarrixSwissKnife-release.apk",
             ),
-            getattr(self, "_java_home", ""),
+            java_home,
         )
         return None
 
@@ -130,30 +146,6 @@ class OnAndroidBuild(ActionBase):
         failed = any(isinstance(line, str) and line.strip().startswith("❌") for line in self.result_lines)
         self.show_toast(f"{self.title} {'failed' if failed else 'completed'}")
         self.show_result()
-
-    def _android_dir(self) -> Path | None:
-        """Resolve ``android/`` under the project root, or report errors."""
-        project_root = h.dev.get_project_root()
-        android_dir = project_root / "android"
-        if not android_dir.is_dir():
-            self.add_line(f"❌ android folder not found: {android_dir}")
-            return None
-
-        gradlew = android_dir / "gradlew.bat"
-        if not gradlew.is_file():
-            self.add_line(f"❌ gradlew.bat not found: {gradlew}")
-            return None
-
-        local_props = android_dir / "local.properties"
-        android_home = resolve_android_home()
-        if not local_props.is_file() and not android_home:
-            self.add_line(
-                "❌ Android SDK not configured. Run `install\\setup-android-sdk.bat` "
-                "or set ANDROID_HOME and create android/local.properties."
-            )
-            return None
-
-        return android_dir
 
     def _install_apk_via_adb(self, apk_path: Path) -> None:
         """Install the APK on the first connected adb device, if any."""
@@ -256,7 +248,6 @@ class OnAndroidBuild(ActionBase):
         if config is None:
             supported = ", ".join(self.CLI_VARIANTS)
             self.add_line(f"❌ Unknown Android build variant {key!r} from {source}. Use: {supported}")
-            self.show_result()
             return None
 
         gradle_task, _apk_relative = config
@@ -271,24 +262,14 @@ class OnAndroidBuild(ActionBase):
         java_home: str,
     ) -> None:
         """Invoke Gradle with a resolved JDK and report the APK path or failure."""
-        gradlew = android_dir / "gradlew.bat"
         apk_path = android_dir / apk_relative
-        env = gradle_env(java_home)
+        gradlew = android_dir / "gradlew.bat"
 
+        self.add_line(f"🔵 Starting {gradle_task} in {android_dir}")
         self.add_line(f"$ JAVA_HOME={java_home}")
-        self.add_line(f"$ cd {android_dir}")
         self.add_line(f'$ "{gradlew}" {gradle_task} --no-daemon')
 
-        process = subprocess.run(
-            [str(gradlew), gradle_task, "--no-daemon"],
-            cwd=str(android_dir),
-            env=env,
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-            check=False,
-        )
+        process = run_gradle(android_dir, java_home, gradle_task)
         output = "\n".join(part for part in (process.stdout.strip(), process.stderr.strip()) if part)
         if output:
             self.add_line(output)
@@ -365,17 +346,32 @@ def execute(
     ) -> None:
         if sys.platform != "win32":
             self.add_line("❌ This action is only available on Windows.")
-            self.show_result()
+            if not noninteractive:
+                self.show_result()
             return
 
         resolved = self._resolve_variant(variant=variant)
         if resolved is None:
+            if not noninteractive:
+                self.show_result()
             return
 
         gradle_task, apk_relative = resolved
-        android_dir = self._android_dir()
+        android_dir = resolve_android_dir()
         if android_dir is None:
-            self.show_result()
+            self.add_line("❌ android folder or gradlew.bat not found.")
+            if not noninteractive:
+                self.show_result()
+            return
+
+        local_props = android_dir / "local.properties"
+        if not local_props.is_file() and not resolve_android_home():
+            self.add_line(
+                "❌ Android SDK not configured. Run `install\\setup-android-sdk.bat` "
+                "or set ANDROID_HOME and create android/local.properties."
+            )
+            if not noninteractive:
+                self.show_result()
             return
 
         java_home = resolve_java_home()
@@ -384,7 +380,8 @@ def execute(
                 "❌ JAVA_HOME is not set and no JDK 17 was found. "
                 "Run `install\\setup-android-sdk.bat` or set JAVA_HOME, then restart the app."
             )
-            self.show_result()
+            if not noninteractive:
+                self.show_result()
             return
 
         self._gradle_task = gradle_task
@@ -392,7 +389,6 @@ def execute(
         self._java_home = java_home
 
         if noninteractive:
-            self.add_line(f"🔵 Starting {gradle_task} in {android_dir}")
             self._run_gradle_build(android_dir, gradle_task, apk_relative, java_home)
             return
 
@@ -416,7 +412,8 @@ Run Gradle in a worker thread for the tray UI.
 ```python
 def in_thread(self) -> str | None:
         android_dir = getattr(self, "_android_dir_for_thread", None)
-        if android_dir is None:
+        java_home = getattr(self, "_java_home", None)
+        if android_dir is None or not java_home:
             return None
         self._run_gradle_build(
             android_dir,
@@ -426,7 +423,7 @@ def in_thread(self) -> str | None:
                 "_apk_relative",
                 "app/build/outputs/apk/release/HarrixSwissKnife-release.apk",
             ),
-            getattr(self, "_java_home", ""),
+            java_home,
         )
         return None
 ```

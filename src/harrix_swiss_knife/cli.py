@@ -45,7 +45,21 @@ def cli() -> None:
 
 @cli.group("android")
 def android_group() -> None:
-    """Android project format and quality checks."""
+    """Android project build, format, and quality checks."""
+
+
+@android_group.command("build")
+@click.argument(
+    "variant",
+    required=False,
+    default=None,
+    type=click.Choice(OnAndroidBuild.CLI_VARIANTS, case_sensitive=False),
+)
+def android_build(variant: str | None) -> None:
+    """Build HSK Android APK (`debug`/`release`, or `android_build_variant` from config)."""
+    action = OnAndroidBuild()
+    action(variant=variant, noninteractive=True)
+    _finish_timed_action(action)
 
 
 @android_group.command("check")
@@ -67,20 +81,6 @@ def android_format() -> None:
 @cli.group("dev")
 def dev_group() -> None:
     """Development-related commands."""
-
-
-@dev_group.command("android-build")
-@click.argument(
-    "variant",
-    required=False,
-    default=None,
-    type=click.Choice(OnAndroidBuild.CLI_VARIANTS, case_sensitive=False),
-)
-def dev_android_build(variant: str | None) -> None:
-    """Build HSK Android APK (`debug`/`release`, or `android_build_variant` from config)."""
-    action = OnAndroidBuild()
-    action(variant=variant, noninteractive=True)
-    _finish_timed_action(action)
 
 
 @dev_group.command("install-cli")
@@ -547,7 +547,7 @@ def text_fix_text_with_ai() -> None:
     """Fix text with AI via BotHub (opens a dialog for multi-line input)."""
     _ensure_qt_app()
     action = OnFixTextWithAI()
-    action(cli_sync=True)
+    action(noninteractive=True)
     _exit_if_action_failed(action)
 
 

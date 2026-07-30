@@ -130,7 +130,7 @@ _Figure 1: Screenshot_
   - 📶 Sort sections in …
 - **Text**
   - 🤖 Fix text with AI from clipboard
-  - 🤖 Fix text with AI…
+  - 🤖 Fix text with AI… ꟲᴸᴵ
   - ✍️ Rewrite text with AI…
   - 🎙️ Speech to text with AI…
 - **Python**
@@ -317,11 +317,11 @@ Folder arguments are optional (default: current directory) for commands that tak
 - `hsk md add-from-template --template "Travel"`
 - `hsk android format` — Spotless (ktlint) format for `android/`
 - `hsk android check` — Spotless check + Detekt + Android Lint (`qualityCheck`)
+- `hsk android build` — build APK using `android_build_variant` in `config.json` (default `release`; Windows; JDK 17 + Android SDK)
+- `hsk android build debug` — build debug APK
+- `hsk android build release` — build release APK (debug-signed for sideload)
 - `hsk vscode format` — Biome format for `vscode/harrix-notes-explorer-hsk/`
 - `hsk vscode check` — Biome lint + format check for the VS Code extension
-- `hsk dev android-build` — build APK using `android_build_variant` in `config.json` (default `release`; Windows; JDK 17 + Android SDK)
-- `hsk dev android-build debug` — build debug APK
-- `hsk dev android-build release` — build release APK (debug-signed for sideload)
 - `hsk dev install-cli` (global `hsk` on PATH via `uv tool install -e`)
 - `hsk dev install-harrix-notes-explorer-hsk vscode` (Windows only; syncs public repo when `path_harrix_notes_explorer` is set; reload the editor window after install)
 - `hsk dev install-harrix-notes-explorer-hsk insiders`

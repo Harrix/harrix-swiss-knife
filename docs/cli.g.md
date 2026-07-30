@@ -13,10 +13,10 @@ lang: en
 
 - [🔧 Function `cli`](#-function-cli)
 - [🔧 Function `android_group`](#-function-android_group)
+- [🔧 Function `android_build`](#-function-android_build)
 - [🔧 Function `android_check`](#-function-android_check)
 - [🔧 Function `android_format`](#-function-android_format)
 - [🔧 Function `dev_group`](#-function-dev_group)
-- [🔧 Function `dev_android_build`](#-function-dev_android_build)
 - [🔧 Function `dev_install_cli`](#-function-dev_install_cli)
 - [🔧 Function `dev_install_harrix_notes_explorer_hsk`](#-function-dev_install_harrix_notes_explorer_hsk)
 - [🔧 Function `file_group`](#-function-file_group)
@@ -72,13 +72,33 @@ def cli() -> None:
 def android_group() -> None
 ```
 
-Android project format and quality checks.
+Android project build, format, and quality checks.
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def android_group() -> None:
+```
+
+</details>
+
+## 🔧 Function `android_build`
+
+```python
+def android_build(variant: str | None) -> None
+```
+
+Build HSK Android APK (`debug`/`release`, or `android_build_variant` from config).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def android_build(variant: str | None) -> None:
+    action = OnAndroidBuild()
+    action(variant=variant, noninteractive=True)
+    _finish_timed_action(action)
 ```
 
 </details>
@@ -136,26 +156,6 @@ Development-related commands.
 
 ```python
 def dev_group() -> None:
-```
-
-</details>
-
-## 🔧 Function `dev_android_build`
-
-```python
-def dev_android_build(variant: str | None) -> None
-```
-
-Build HSK Android APK (`debug`/`release`, or `android_build_variant` from config).
-
-<details>
-<summary>Code:</summary>
-
-```python
-def dev_android_build(variant: str | None) -> None:
-    action = OnAndroidBuild()
-    action(variant=variant, noninteractive=True)
-    _finish_timed_action(action)
 ```
 
 </details>
@@ -714,7 +714,7 @@ Fix text with AI via BotHub (opens a dialog for multi-line input).
 def text_fix_text_with_ai() -> None:
     _ensure_qt_app()
     action = OnFixTextWithAI()
-    action(cli_sync=True)
+    action(noninteractive=True)
     _exit_if_action_failed(action)
 ```
 

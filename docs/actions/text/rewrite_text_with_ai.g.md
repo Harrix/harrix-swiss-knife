@@ -39,9 +39,10 @@ class OnRewriteTextWithAI(ActionBase):
     @ActionBase.handle_exceptions("rewriting text with AI")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Collect text, call BotHub, and show rewritten output."""
-        self._run(initial_text=kwargs.get("initial_text"), cli_sync=bool(kwargs.get("cli_sync", False)))
+        noninteractive = bool(kwargs.get("noninteractive", False) or kwargs.get("cli_sync", False))
+        self._run(initial_text=kwargs.get("initial_text"), noninteractive=noninteractive)
 
-    def _run(self, *, initial_text: str | None = None, cli_sync: bool = False) -> None:
+    def _run(self, *, initial_text: str | None = None, noninteractive: bool = False) -> None:
         if initial_text is None:
             input_text = self.dialogs.get_text_textarea(
                 "Rewrite text with AI",
@@ -65,7 +66,7 @@ class OnRewriteTextWithAI(ActionBase):
                 message_box.critical(None, "BotHub API Key", msg)
             return
 
-        if cli_sync:
+        if noninteractive:
             try:
                 result = rewrite_text_sync(input_text, self.config)
             except BotHubApiError as exc:
@@ -81,7 +82,7 @@ class OnRewriteTextWithAI(ActionBase):
                 result,
                 diff_before=None,
                 title="Rewritten text (copied to clipboard)",
-                cli_sync=True,
+                noninteractive=True,
             )
             return
 
@@ -93,7 +94,7 @@ class OnRewriteTextWithAI(ActionBase):
                 response_text,
                 diff_before=input_text,
                 title="Rewritten text diff (Before/After)",
-                cli_sync=False,
+                noninteractive=False,
             )
 
         def on_error(message: str) -> None:
@@ -113,7 +114,7 @@ class OnRewriteTextWithAI(ActionBase):
         *,
         diff_before: str | None,
         title: str,
-        cli_sync: bool,
+        noninteractive: bool,
     ) -> None:
         current = response_text
         use_diff = diff_before is not None
@@ -147,7 +148,10 @@ class OnRewriteTextWithAI(ActionBase):
             updated_text = resolve_text_result_dialog_action(
                 action_code,
                 current,
-                on_rerun=lambda current=current: self._run(initial_text=current, cli_sync=cli_sync),
+                on_rerun=lambda current=current: self._run(
+                    initial_text=current,
+                    noninteractive=noninteractive,
+                ),
             )
             if updated_text is None:
                 return
@@ -169,7 +173,8 @@ Collect text, call BotHub, and show rewritten output.
 
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        self._run(initial_text=kwargs.get("initial_text"), cli_sync=bool(kwargs.get("cli_sync", False)))
+        noninteractive = bool(kwargs.get("noninteractive", False) or kwargs.get("cli_sync", False))
+        self._run(initial_text=kwargs.get("initial_text"), noninteractive=noninteractive)
 ```
 
 </details>

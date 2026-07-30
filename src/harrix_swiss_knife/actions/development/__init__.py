@@ -1,4 +1,4 @@
-"""Actions for Python development and code management."""
+"""Actions for development tooling, Android/VS Code workflows, and app maintenance."""
 
 from harrix_swiss_knife.actions.development.about_dialog import OnAboutDialog
 from harrix_swiss_knife.actions.development.android_build import OnAndroidBuild

@@ -1,4 +1,4 @@
-"""Actions for Python development and Markdown file management."""
+"""Actions for Markdown file management and related workflows."""
 
 from harrix_swiss_knife.actions.markdown.append_yaml_tag import OnAppendYamlTag
 from harrix_swiss_knife.actions.markdown.beautify_md_folder import OnBeautifyMdFolder
