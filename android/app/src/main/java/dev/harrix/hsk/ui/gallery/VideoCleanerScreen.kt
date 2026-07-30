@@ -42,10 +42,10 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -53,6 +53,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -119,6 +120,7 @@ private enum class VideoSort(
 @Composable
 fun VideoCleanerScreen(
     onClose: () -> Unit,
+    onOpenSettings: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -283,8 +285,8 @@ fun VideoCleanerScreen(
                     Box {
                         IconButton(onClick = { sortMenuExpanded = true }) {
                             Icon(
-                                imageVector = Icons.AutoMirrored.Filled.Sort,
-                                contentDescription = stringResource(R.string.video_cleaner_sort),
+                                imageVector = Icons.Filled.MoreVert,
+                                contentDescription = stringResource(R.string.video_cleaner_settings),
                             )
                         }
                         DropdownMenu(
@@ -300,6 +302,16 @@ fun VideoCleanerScreen(
                                     },
                                 )
                             }
+                            HorizontalDivider()
+                            DropdownMenuItem(
+                                text = {
+                                    Text(stringResource(R.string.video_cleaner_settings))
+                                },
+                                onClick = {
+                                    sortMenuExpanded = false
+                                    onOpenSettings()
+                                },
+                            )
                         }
                     }
                 },

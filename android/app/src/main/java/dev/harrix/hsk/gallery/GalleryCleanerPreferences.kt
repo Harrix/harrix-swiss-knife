@@ -19,9 +19,37 @@ class GalleryCleanerPreferences(
         prefs.edit().putBoolean(KEY_SHOW_MANAGE_MEDIA, show).apply()
     }
 
+    fun loadDateFilter(): GalleryDateFilter {
+        val enabled = prefs.getBoolean(KEY_DATE_FILTER_ENABLED, false)
+        val hasRange =
+            prefs.contains(KEY_DATE_FILTER_START_SEC) && prefs.contains(KEY_DATE_FILTER_END_SEC)
+        if (!hasRange) {
+            return GalleryDateFilter(enabled = enabled)
+        }
+        val start = prefs.getLong(KEY_DATE_FILTER_START_SEC, 0L)
+        val end = prefs.getLong(KEY_DATE_FILTER_END_SEC, 0L)
+        return GalleryDateFilter(
+            enabled = enabled,
+            startEpochSecInclusive = start,
+            endEpochSecInclusive = end,
+        )
+    }
+
+    fun saveDateFilter(filter: GalleryDateFilter) {
+        prefs
+            .edit()
+            .putBoolean(KEY_DATE_FILTER_ENABLED, filter.enabled)
+            .putLong(KEY_DATE_FILTER_START_SEC, filter.startEpochSecInclusive)
+            .putLong(KEY_DATE_FILTER_END_SEC, filter.endEpochSecInclusive)
+            .apply()
+    }
+
     companion object {
         private const val PREFS_NAME = "gallery_cleaner"
         private const val KEY_SHOW_INTRO = "show_intro"
         private const val KEY_SHOW_MANAGE_MEDIA = "show_manage_media_v2"
+        private const val KEY_DATE_FILTER_ENABLED = "date_filter_enabled"
+        private const val KEY_DATE_FILTER_START_SEC = "date_filter_start_sec"
+        private const val KEY_DATE_FILTER_END_SEC = "date_filter_end_sec"
     }
 }

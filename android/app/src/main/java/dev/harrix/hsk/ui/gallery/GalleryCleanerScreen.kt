@@ -44,13 +44,9 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.MenuAnchorType
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -91,14 +87,13 @@ import dev.harrix.hsk.R
 import dev.harrix.hsk.gallery.CameraGalleryRepository
 import dev.harrix.hsk.gallery.CameraPhoto
 import dev.harrix.hsk.gallery.GalleryCleanerPreferences
+import dev.harrix.hsk.gallery.GalleryDateFilter
 import dev.harrix.hsk.gallery.GalleryPermissions
 import dev.harrix.hsk.ui.performLightActionHaptic
 import dev.harrix.hsk.ui.theme.AppBackground
 import dev.harrix.hsk.ui.theme.AppGreen
 import dev.harrix.hsk.ui.theme.AppRed
 import java.text.DateFormat
-import java.text.DateFormatSymbols
-import java.util.Calendar
 import java.util.Date
 import kotlin.math.abs
 import kotlin.math.hypot
@@ -106,38 +101,12 @@ import kotlin.math.roundToInt
 import kotlin.random.Random
 import kotlinx.coroutines.launch
 
-private const val EarliestFilterYear = 2008
-
-/** Calendar month in local timezone; [month] is 1–12. */
-private data class YearMonthPoint(
-    val year: Int,
-    val month: Int,
-) {
-    val ordinal: Int get() = year * 12 + month
-}
-
-private data class PhotoDateRange(
-    val from: YearMonthPoint,
-    val to: YearMonthPoint,
-) {
-    fun contains(epochSec: Long): Boolean {
-        val calendar =
-            Calendar.getInstance().apply {
-                timeInMillis = epochSec * 1000L
-            }
-        val point =
-            YearMonthPoint(
-                year = calendar.get(Calendar.YEAR),
-                month = calendar.get(Calendar.MONTH) + 1,
-            )
-        return point.ordinal in from.ordinal..to.ordinal
-    }
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GalleryCleanerScreen(
     onClose: () -> Unit,
+    onOpenSettings: () -> Unit,
+    settingsRevision: Int = 0,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -166,8 +135,7 @@ fun GalleryCleanerScreen(
     var pendingTrashPhoto by remember { mutableStateOf<CameraPhoto?>(null) }
     var cardResetKey by remember { mutableIntStateOf(0) }
     var menuExpanded by remember { mutableStateOf(false) }
-    var showDateRangePicker by remember { mutableStateOf(false) }
-    var dateRangeFilter by remember { mutableStateOf<PhotoDateRange?>(null) }
+    var dateFilter by remember { mutableStateOf(preferences.loadDateFilter()) }
     var sessionDeletedCount by remember { mutableIntStateOf(0) }
     var sessionFreedBytes by remember { mutableLongStateOf(0L) }
 
@@ -205,14 +173,13 @@ fun GalleryCleanerScreen(
         statusMessage = null
     }
 
-    fun applyDateFilter(photos: List<CameraPhoto>): List<CameraPhoto> {
-        val range = dateRangeFilter ?: return photos
-        return photos.filter { photo -> range.contains(photo.dateAddedEpochSec) }
-    }
+    fun applyDateFilter(photos: List<CameraPhoto>): List<CameraPhoto> =
+        photos.filter { photo -> dateFilter.contains(photo.dateAddedEpochSec) }
 
     fun reloadPhotos() {
         isLoading = true
         statusMessage = null
+        dateFilter = preferences.loadDateFilter()
         val photos = applyDateFilter(repository.loadCameraPhotos())
         remainingPhotos = photos
         remainingCount = photos.size
@@ -278,7 +245,7 @@ fun GalleryCleanerScreen(
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    LaunchedEffect(hasPermission, showIntro) {
+    LaunchedEffect(hasPermission, showIntro, settingsRevision) {
         if (hasPermission && !showIntro) {
             reloadPhotos()
         }
@@ -314,20 +281,6 @@ fun GalleryCleanerScreen(
             onSkip = {
                 preferences.setShowManageMediaPrompt(false)
                 showManageMediaPrompt = false
-            },
-        )
-    }
-
-    if (showDateRangePicker) {
-        GalleryDateRangeDialog(
-            initialRange = dateRangeFilter,
-            onDismiss = { showDateRangePicker = false },
-            onApply = { range ->
-                dateRangeFilter = range
-                showDateRangePicker = false
-                if (hasPermission && !showIntro) {
-                    reloadPhotos()
-                }
             },
         )
     }
@@ -383,31 +336,13 @@ fun GalleryCleanerScreen(
                         ) {
                             DropdownMenuItem(
                                 text = {
-                                    Text(stringResource(R.string.gallery_cleaner_date_range))
+                                    Text(stringResource(R.string.gallery_cleaner_settings))
                                 },
                                 onClick = {
                                     menuExpanded = false
-                                    showDateRangePicker = true
+                                    onOpenSettings()
                                 },
                             )
-                            if (dateRangeFilter != null) {
-                                DropdownMenuItem(
-                                    text = {
-                                        Text(
-                                            stringResource(
-                                                R.string.gallery_cleaner_clear_date_range,
-                                            ),
-                                        )
-                                    },
-                                    onClick = {
-                                        menuExpanded = false
-                                        dateRangeFilter = null
-                                        if (hasPermission && !showIntro) {
-                                            reloadPhotos()
-                                        }
-                                    },
-                                )
-                            }
                         }
                     }
                 },
@@ -458,7 +393,7 @@ fun GalleryCleanerScreen(
                     Text(
                         text =
                             stringResource(
-                                if (dateRangeFilter != null) {
+                                if (dateFilter.enabled) {
                                     R.string.gallery_cleaner_empty_filtered
                                 } else {
                                     R.string.gallery_cleaner_empty
@@ -489,158 +424,6 @@ fun GalleryCleanerScreen(
                         Modifier
                             .align(Alignment.BottomCenter)
                             .padding(24.dp),
-                )
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun GalleryDateRangeDialog(
-    initialRange: PhotoDateRange?,
-    onDismiss: () -> Unit,
-    onApply: (PhotoDateRange) -> Unit,
-) {
-    val now = remember { Calendar.getInstance() }
-    val currentYear = now.get(Calendar.YEAR)
-    val currentMonth = now.get(Calendar.MONTH) + 1
-    val years = remember(currentYear) { (EarliestFilterYear..currentYear).toList().reversed() }
-    val monthLabels =
-        remember {
-            DateFormatSymbols.getInstance().months.take(12)
-        }
-
-    var fromYear by remember {
-        mutableIntStateOf(initialRange?.from?.year ?: currentYear)
-    }
-    var fromMonth by remember {
-        mutableIntStateOf(initialRange?.from?.month ?: 1)
-    }
-    var toYear by remember {
-        mutableIntStateOf(initialRange?.to?.year ?: currentYear)
-    }
-    var toMonth by remember {
-        mutableIntStateOf(initialRange?.to?.month ?: currentMonth)
-    }
-
-    val from = YearMonthPoint(fromYear, fromMonth)
-    val to = YearMonthPoint(toYear, toMonth)
-    val rangeValid = from.ordinal <= to.ordinal
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.gallery_cleaner_date_range_title)) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                YearMonthRow(
-                    label = stringResource(R.string.gallery_cleaner_date_range_from),
-                    year = fromYear,
-                    month = fromMonth,
-                    years = years,
-                    monthLabels = monthLabels,
-                    onYearChange = { fromYear = it },
-                    onMonthChange = { fromMonth = it },
-                )
-                YearMonthRow(
-                    label = stringResource(R.string.gallery_cleaner_date_range_to),
-                    year = toYear,
-                    month = toMonth,
-                    years = years,
-                    monthLabels = monthLabels,
-                    onYearChange = { toYear = it },
-                    onMonthChange = { toMonth = it },
-                )
-            }
-        },
-        confirmButton = {
-            TextButton(
-                onClick = { onApply(PhotoDateRange(from = from, to = to)) },
-                enabled = rangeValid,
-            ) {
-                Text(stringResource(R.string.gallery_cleaner_date_range_apply))
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.gallery_cleaner_date_range_cancel))
-            }
-        },
-    )
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun YearMonthRow(
-    label: String,
-    year: Int,
-    month: Int,
-    years: List<Int>,
-    monthLabels: List<String>,
-    onYearChange: (Int) -> Unit,
-    onMonthChange: (Int) -> Unit,
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelLarge,
-        )
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            SimpleDropdownField(
-                value = year.toString(),
-                options = years.map { it.toString() },
-                onOptionSelected = { index -> onYearChange(years[index]) },
-                modifier = Modifier.weight(1f),
-            )
-            SimpleDropdownField(
-                value = monthLabels[month - 1],
-                options = monthLabels,
-                onOptionSelected = { index -> onMonthChange(index + 1) },
-                modifier = Modifier.weight(1.2f),
-            )
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun SimpleDropdownField(
-    value: String,
-    options: List<String>,
-    onOptionSelected: (Int) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    var expanded by remember { mutableStateOf(false) }
-    ExposedDropdownMenuBox(
-        expanded = expanded,
-        onExpandedChange = { expanded = it },
-        modifier = modifier,
-    ) {
-        OutlinedTextField(
-            value = value,
-            onValueChange = {},
-            readOnly = true,
-            singleLine = true,
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            modifier =
-                Modifier
-                    .menuAnchor(MenuAnchorType.PrimaryNotEditable)
-                    .fillMaxWidth(),
-        )
-        ExposedDropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false },
-        ) {
-            options.forEachIndexed { index, option ->
-                DropdownMenuItem(
-                    text = { Text(option) },
-                    onClick = {
-                        onOptionSelected(index)
-                        expanded = false
-                    },
                 )
             }
         }
