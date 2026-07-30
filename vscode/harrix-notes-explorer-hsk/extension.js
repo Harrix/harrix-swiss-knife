@@ -1,7 +1,7 @@
 const vscode = require('vscode');
 const path = require('node:path');
 const fs = require('node:fs');
-const { execFile, execFileSync } = require('node:child_process');
+const { execFile } = require('node:child_process');
 const util = require('node:util');
 
 const execFileAsync = util.promisify(execFile);
@@ -1540,11 +1540,57 @@ async function openHarrixNote(uri, mode) {
   }
 }
 
+/** Directories skipped while scanning for .md (nested repos / tool caches). */
+const SKIP_MARKDOWN_SCAN_DIR_NAMES = new Set([
+  '.git',
+  '.hg',
+  '.svn',
+  '.ruff_cache',
+  '.venv',
+  'venv',
+  'node_modules',
+  '__pycache__',
+]);
+
+/**
+ * True if `dir` has a `.git` file or directory (work tree or linked worktree).
+ * @param {string} dir
+ */
+function pathHasGitMeta(dir) {
+  try {
+    const st = fs.statSync(path.join(dir, '.git'));
+    return st.isDirectory() || st.isFile();
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Walk parents for a `.git` meta entry (no `git` subprocess — fast under large folders).
+ * @param {string} folderPath
+ */
+function isInsideGitWorkTreeFs(folderPath) {
+  let cur = path.resolve(folderPath);
+  for (;;) {
+    if (pathHasGitMeta(cur)) {
+      return true;
+    }
+    const parent = path.dirname(cur);
+    if (parent === cur) {
+      return false;
+    }
+    cur = parent;
+  }
+}
+
 // Check whether a folder contains at least one .md file (recursively)
 function hasMarkdownRecursive(dir) {
   for (const entry of safeReaddir(dir)) {
     if (entry.isFile() && isMd(entry.name)) return true;
     if (entry.isDirectory()) {
+      if (SKIP_MARKDOWN_SCAN_DIR_NAMES.has(entry.name.toLowerCase())) {
+        continue;
+      }
       if (hasMarkdownRecursive(path.join(dir, entry.name))) return true;
     }
   }
@@ -1639,17 +1685,7 @@ class NotesProvider {
     if (this._gitWorkTreeCache.has(key)) {
       return /** @type {boolean} */ (this._gitWorkTreeCache.get(key));
     }
-    let inside = false;
-    try {
-      const out = execFileSync('git', ['rev-parse', '--is-inside-work-tree'], {
-        ...GIT_EXEC_OPTS_BASE,
-        cwd: folderPath,
-        encoding: 'utf8',
-      });
-      inside = String(out || '').trim() === 'true';
-    } catch {
-      inside = false;
-    }
+    const inside = isInsideGitWorkTreeFs(folderPath);
     this._gitWorkTreeCache.set(key, inside);
     return inside;
   }
@@ -1834,6 +1870,19 @@ class NotesProvider {
   }
 
   getChildren(element) {
+    try {
+      return this._getChildrenUnguarded(element);
+    } catch (err) {
+      const dir = element?.dirPath || '(root)';
+      console.error(`[Harrix Notes HSK] getChildren failed for ${dir}:`, err);
+      return [];
+    }
+  }
+
+  /**
+   * @param {vscode.TreeItem | undefined} element
+   */
+  _getChildrenUnguarded(element) {
     if (element?.isNoteItem && element.noteDirPath && this.isNoteAssetsVisible(element.noteDirPath)) {
       const noteMdPath = element.resourceUri?.fsPath;
       return this.getNoteAssetChildren(element.noteDirPath, noteMdPath);
@@ -1879,7 +1928,10 @@ class NotesProvider {
       const subFolders = sub
         .filter((e) => e.isDirectory())
         .filter(
-          (e) => hasMarkdownRecursive(path.join(folderPath, e.name)) || harrixCli.isSpecialNotesFolderName(e.name),
+          (e) =>
+            (!SKIP_MARKDOWN_SCAN_DIR_NAMES.has(e.name.toLowerCase()) &&
+              hasMarkdownRecursive(path.join(folderPath, e.name))) ||
+            harrixCli.isSpecialNotesFolderName(e.name),
         );
 
       const sameNameMdPath = path.join(folderPath, `${folder.name}.md`);
