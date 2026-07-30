@@ -194,59 +194,56 @@ fun MainScreen(
             AppDestination.Home,
             AppDestination.MarkdownNotes,
             -> {
-                ModalNavigationDrawer(
-                    drawerState = drawerState,
-                    modifier = Modifier.fillMaxSize(),
-                    drawerContent = {
-                        AppNavigationDrawerContent(
-                            appName = appName,
+                Scaffold(
+                    containerColor = colorScheme.background,
+                    contentWindowInsets = WindowInsets(0, 0, 0, 0),
+                    bottomBar = {
+                        BottomActionBar(
+                            items = BottomNavItems,
                             selected = destination,
-                            colors = drawerItemColors,
-                            onNavigate = { target ->
-                                scope.launch {
-                                    drawerState.close()
-                                    destination = target
-                                }
-                            },
-                            onAbout = {
-                                scope.launch { drawerState.close() }
-                            },
+                            onSelect = { destination = it },
                         )
                     },
-                ) {
-                    Scaffold(
-                        containerColor = colorScheme.background,
-                        contentWindowInsets = WindowInsets(0, 0, 0, 0),
-                        bottomBar = {
-                            BottomActionBar(
-                                items = BottomNavItems,
-                                selected = destination,
-                                onSelect = { destination = it },
-                            )
-                        },
-                    ) { bottomNavPadding ->
-                        Box(
-                            modifier =
-                            Modifier
-                                .padding(bottomNavPadding)
-                                .fillMaxSize(),
-                        ) {
-                            when (destination) {
-                                AppDestination.MarkdownNotes -> {
-                                    NotesViewerScreen(
-                                        onClose = { destination = AppDestination.Home },
-                                        onOpenDrawer = {
-                                            scope.launch { drawerState.open() }
-                                        },
-                                        onOpenSettings = {
-                                            settingsSection = SettingsSection.MarkdownNotes
-                                        },
-                                        settingsRevision = settingsRevision,
-                                        modifier = Modifier.fillMaxSize(),
-                                    )
-                                }
+                ) { bottomNavPadding ->
+                    Box(
+                        modifier =
+                        Modifier
+                            .padding(bottomNavPadding)
+                            .fillMaxSize(),
+                    ) {
+                        when (destination) {
+                            AppDestination.MarkdownNotes -> {
+                                NotesViewerScreen(
+                                    onClose = { destination = AppDestination.Home },
+                                    onOpenSettings = {
+                                        settingsSection = SettingsSection.MarkdownNotes
+                                    },
+                                    settingsRevision = settingsRevision,
+                                    modifier = Modifier.fillMaxSize(),
+                                )
+                            }
 
-                                else -> {
+                            else -> {
+                                ModalNavigationDrawer(
+                                    drawerState = drawerState,
+                                    modifier = Modifier.fillMaxSize(),
+                                    drawerContent = {
+                                        AppNavigationDrawerContent(
+                                            appName = appName,
+                                            selected = destination,
+                                            colors = drawerItemColors,
+                                            onNavigate = { target ->
+                                                scope.launch {
+                                                    drawerState.close()
+                                                    destination = target
+                                                }
+                                            },
+                                            onAbout = {
+                                                scope.launch { drawerState.close() }
+                                            },
+                                        )
+                                    },
+                                ) {
                                     Scaffold(
                                         containerColor = colorScheme.background,
                                         contentWindowInsets = WindowInsets(0, 0, 0, 0),

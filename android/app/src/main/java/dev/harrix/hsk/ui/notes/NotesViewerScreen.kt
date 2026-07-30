@@ -41,12 +41,14 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -54,6 +56,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -90,7 +93,6 @@ import kotlin.math.roundToInt
 @Composable
 fun NotesViewerScreen(
     onClose: () -> Unit,
-    onOpenDrawer: () -> Unit,
     onOpenSettings: () -> Unit,
     modifier: Modifier = Modifier,
     settingsRevision: Int = 0,
@@ -99,6 +101,7 @@ fun NotesViewerScreen(
     val scope = rememberCoroutineScope()
     val preferences = remember { NotesViewerPreferences(context.applicationContext) }
     val repository = remember { NotesTreeRepository(context.applicationContext) }
+    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     var notesTreeUri by remember { mutableStateOf(preferences.loadNotesTreeUri()) }
     var menuExpanded by remember { mutableStateOf(false) }
     var folderPath by remember { mutableStateOf<List<NotesPathSegment>>(emptyList()) }
@@ -116,9 +119,138 @@ fun NotesViewerScreen(
     var saveFeedback by remember { mutableStateOf<String?>(null) }
     var autosaveJob by remember { mutableStateOf<Job?>(null) }
     var folderListRequestId by remember { mutableIntStateOf(0) }
+    var treeRoot by remember { mutableStateOf<NotesPathSegment?>(null) }
+    var treeChildrenByFolderId by remember {
+        mutableStateOf<Map<String, List<NotesEntry>>>(emptyMap())
+    }
+    var treeExpandedFolderIds by remember { mutableStateOf<Set<String>>(emptySet()) }
+    var treeLoadingRoot by remember { mutableStateOf(false) }
 
     fun reloadPath() {
         notesTreeUri = preferences.loadNotesTreeUri()
+    }
+
+    fun clearTreeState() {
+        treeRoot = null
+        treeChildrenByFolderId = emptyMap()
+        treeExpandedFolderIds = emptySet()
+        treeLoadingRoot = false
+    }
+
+    fun putTreeChildren(
+        dirDocumentId: String,
+        children: List<NotesEntry>,
+    ) {
+        treeChildrenByFolderId = treeChildrenByFolderId + (dirDocumentId to children)
+    }
+
+    fun loadTreeFolder(
+        treeUri: Uri,
+        dir: NotesPathSegment,
+        onLoaded: ((List<NotesEntry>) -> Unit)? = null,
+    ) {
+        val cached = repository.peekListing(treeUri, dir.documentId)
+        if (cached != null) {
+            val withTitles = repository.withCachedContentTitles(cached)
+            putTreeChildren(dir.documentId, withTitles)
+            onLoaded?.invoke(withTitles)
+            scope.launch {
+                val updates = repository.resolveMissingContentTitles(
+                    withTitles.filterIsInstance<NotesEntry.Note>(),
+                )
+                if (updates.isNotEmpty()) {
+                    putTreeChildren(
+                        dir.documentId,
+                        repository.withUpdatedNoteLabels(
+                            treeChildrenByFolderId[dir.documentId].orEmpty(),
+                            updates,
+                        ),
+                    )
+                }
+            }
+            return
+        }
+        scope.launch {
+            val listed =
+                runCatching {
+                    repository.listChildren(treeUri, dir.documentId, dir.name)
+                }.getOrNull()
+            if (listed == null) {
+                onLoaded?.invoke(emptyList())
+                return@launch
+            }
+            val withTitles = repository.withCachedContentTitles(listed)
+            putTreeChildren(dir.documentId, withTitles)
+            onLoaded?.invoke(withTitles)
+            val updates =
+                repository.resolveMissingContentTitles(
+                    withTitles.filterIsInstance<NotesEntry.Note>(),
+                )
+            if (updates.isNotEmpty()) {
+                putTreeChildren(
+                    dir.documentId,
+                    repository.withUpdatedNoteLabels(
+                        treeChildrenByFolderId[dir.documentId].orEmpty(),
+                        updates,
+                    ),
+                )
+            }
+        }
+    }
+
+    fun ensureTreeRootLoaded() {
+        val tree = notesTreeUri ?: run {
+            clearTreeState()
+            return
+        }
+        val treeUri = Uri.parse(tree)
+        val root = repository.rootSegment(treeUri)
+        treeRoot = root
+        if (treeChildrenByFolderId.containsKey(root.documentId)) {
+            return
+        }
+        treeLoadingRoot = true
+        loadTreeFolder(treeUri, root) {
+            treeLoadingRoot = false
+        }
+    }
+
+    fun expandPathToNote(tab: OpenNoteTab) {
+        val tree = notesTreeUri ?: return
+        val treeUri = Uri.parse(tree)
+        val root = treeRoot ?: repository.rootSegment(treeUri).also { treeRoot = it }
+        treeExpandedFolderIds = tab.folderPath.map { it.documentId }.toSet()
+        val segmentsToLoad =
+            if (tab.folderPath.isEmpty()) {
+                listOf(root)
+            } else {
+                tab.folderPath
+            }
+        segmentsToLoad.forEach { segment ->
+            loadTreeFolder(treeUri, segment)
+        }
+        // Also ensure root is loaded when path starts deeper.
+        if (tab.folderPath.isNotEmpty()) {
+            loadTreeFolder(treeUri, root)
+        }
+    }
+
+    fun toggleTreeFolder(folder: NotesEntry.Folder) {
+        val tree = notesTreeUri ?: return
+        val treeUri = Uri.parse(tree)
+        if (folder.documentId in treeExpandedFolderIds) {
+            treeExpandedFolderIds = treeExpandedFolderIds - folder.documentId
+            return
+        }
+        treeExpandedFolderIds = treeExpandedFolderIds + folder.documentId
+        loadTreeFolder(
+            treeUri,
+            NotesPathSegment(
+                documentId = folder.documentId,
+                name = folder.name,
+                uri = folder.uri,
+            ),
+        )
     }
 
     fun resetEditorState() {
@@ -244,6 +376,13 @@ fun NotesViewerScreen(
                 return@launch
             }
             entries = repository.withUpdatedNoteLabels(entries, updates)
+            putTreeChildren(
+                dirDocumentId,
+                repository.withUpdatedNoteLabels(
+                    treeChildrenByFolderId[dirDocumentId] ?: entries,
+                    updates,
+                ),
+            )
             repository.patchListingNoteLabels(treeUri, dirDocumentId, updates)
             openTabs =
                 openTabs.map { tab ->
@@ -275,6 +414,7 @@ fun NotesViewerScreen(
                 val withTitles = repository.withCachedContentTitles(cached)
                 folderPath = path
                 entries = withTitles
+                putTreeChildren(current.documentId, withTitles)
                 isLoading = false
                 prefetchChildFolders(treeUri, withTitles)
                 enrichNoteTitles(treeUri, current.documentId, withTitles, requestId)
@@ -290,6 +430,7 @@ fun NotesViewerScreen(
                 if (requestId == folderListRequestId && shallow != null) {
                     folderPath = path
                     entries = repository.withCachedContentTitles(shallow)
+                    putTreeChildren(current.documentId, entries)
                     isLoading = false
                     enrichNoteTitles(treeUri, current.documentId, entries, requestId)
                 }
@@ -306,6 +447,7 @@ fun NotesViewerScreen(
                         val withTitles = repository.withCachedContentTitles(listed)
                         folderPath = path
                         entries = withTitles
+                        putTreeChildren(current.documentId, withTitles)
                         prefetchChildFolders(treeUri, withTitles)
                         enrichNoteTitles(treeUri, current.documentId, withTitles, requestId)
                     }.onFailure { error ->
@@ -453,10 +595,12 @@ fun NotesViewerScreen(
     }
 
     LaunchedEffect(notesTreeUri) {
+        clearTreeState()
         repository.prepareForTree(notesTreeUri)
         val root = ensureRootPath()
         if (root != null) {
             openFolderList(root)
+            ensureTreeRootLoaded()
         } else {
             folderPath = emptyList()
             entries = emptyList()
@@ -468,6 +612,22 @@ fun NotesViewerScreen(
     }
 
     val selectedTab = openTabs.firstOrNull { it.documentId == selectedTabDocumentId }
+
+    LaunchedEffect(selectedTabDocumentId, selectedTab?.folderPath) {
+        val tab = selectedTab
+        if (tab == null) {
+            treeExpandedFolderIds = emptySet()
+            ensureTreeRootLoaded()
+        } else {
+            expandPathToNote(tab)
+        }
+    }
+
+    LaunchedEffect(drawerState.isOpen) {
+        if (drawerState.isOpen) {
+            ensureTreeRootLoaded()
+        }
+    }
 
     LaunchedEffect(selectedTabDocumentId, selectedTab?.uri) {
         val tab = selectedTab
@@ -511,134 +671,185 @@ fun NotesViewerScreen(
     }
 
     BackHandler {
-        navigateBack()
+        if (drawerState.isOpen) {
+            scope.launch { drawerState.close() }
+        } else {
+            navigateBack()
+        }
     }
 
-    Scaffold(
-        modifier = modifier,
-        containerColor = MaterialTheme.colorScheme.background,
-        contentWindowInsets = WindowInsets(0, 0, 0, 0),
-    ) { innerPadding ->
-        Column(
-            modifier =
-            Modifier
-                .padding(innerPadding)
-                .fillMaxSize(),
-        ) {
-            NotesTopChrome(
-                onClose = onClose,
-                onOpenDrawer = onOpenDrawer,
-                openTabs = openTabs,
-                selectedTabDocumentId = selectedTabDocumentId,
-                onSelectTab = { selectTab(it) },
-                onCloseTab = { closeTab(it) },
-                showEditActions = selectedTab != null && !noteLoading && noteContent != null,
-                isEditing = isEditing,
-                isSaving = isSaving,
-                onSave = { persistCurrentDraft() },
-                onEdit = {
-                    isEditing = true
-                    draftText = noteContent.orEmpty()
-                    lastSavedText = noteContent
-                    saveFeedback = null
-                },
-                menuExpanded = menuExpanded,
-                onMenuExpandedChange = { menuExpanded = it },
-                onOpenSettings = onOpenSettings,
+    val treeRows =
+        remember(treeRoot, treeChildrenByFolderId, treeExpandedFolderIds) {
+            val root = treeRoot ?: return@remember emptyList()
+            buildVisibleNotesTreeRows(
+                root = root,
+                childrenByFolderId = treeChildrenByFolderId,
+                expandedFolderIds = treeExpandedFolderIds,
             )
-            if (notesTreeUri.isNullOrBlank()) {
-                Box(
-                    modifier = Modifier.weight(1f).fillMaxWidth(),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    NotesPathWelcomeContent(
-                        onChooseFolder = { folderPicker.launch(null) },
-                        modifier = Modifier.padding(24.dp),
-                    )
-                }
-            } else {
-                NotesNavigationRow(
-                    onBack = { navigateBack() },
-                    segments =
-                    if (selectedTab != null) {
-                        selectedTab.folderPath +
+        }
+    val drawerTitle =
+        treeRoot?.name
+            ?: notesTreeUri?.let { notesFolderDisplayName(context, it) }
+            ?: stringResource(R.string.markdown_notes_title)
+
+    ModalNavigationDrawer(
+        drawerState = drawerState,
+        modifier = modifier,
+        gesturesEnabled = !notesTreeUri.isNullOrBlank(),
+        drawerContent = {
+            NotesTreeDrawerContent(
+                rootLabel = drawerTitle,
+                rows = treeRows,
+                expandedFolderIds = treeExpandedFolderIds,
+                selectedNoteDocumentId = selectedTabDocumentId,
+                isLoadingRoot = treeLoadingRoot,
+                onToggleFolder = { toggleTreeFolder(it) },
+                onOpenFolder = { folder, parentPath ->
+                    scope.launch { drawerState.close() }
+                    openFolderList(
+                        parentPath +
                             NotesPathSegment(
-                                documentId = selectedTab.documentId,
-                                name = selectedTab.title,
-                                uri = selectedTab.uri,
-                            )
-                    } else {
-                        folderPath
-                    },
-                    lastIsNote = selectedTab != null,
-                    onSegmentClick = { index ->
-                        val path =
-                            if (selectedTab != null) {
-                                selectedTab.folderPath
-                            } else {
-                                folderPath
-                            }
-                        val targetIndex = index.coerceAtMost(path.lastIndex)
-                        if (targetIndex >= 0) {
-                            openFolderList(path.take(targetIndex + 1))
-                        }
-                    },
-                )
-                if (isEditing && (isSaving || saveFeedback != null)) {
-                    Text(
-                        text =
-                        if (isSaving) {
-                            stringResource(R.string.markdown_notes_save)
-                        } else {
-                            saveFeedback.orEmpty()
-                        },
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 2.dp),
+                                documentId = folder.documentId,
+                                name = folder.name,
+                                uri = folder.uri,
+                            ),
                     )
-                }
-                HorizontalDivider()
-                Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
-                    when {
-                        selectedTab != null -> {
-                            NotesPlainTextPane(
-                                isLoading = noteLoading,
-                                content = noteContent,
-                                draftText = draftText,
-                                isEditing = isEditing,
-                                errorMessage = statusMessage,
-                                onDraftChange = { value ->
-                                    draftText = value
-                                    scheduleAutosave()
-                                },
-                            )
-                        }
+                },
+                onOpenNote = { note, parentPath ->
+                    scope.launch { drawerState.close() }
+                    openNote(note, parentPath)
+                },
+            )
+        },
+    ) {
+        Scaffold(
+            modifier = Modifier.fillMaxSize(),
+            containerColor = MaterialTheme.colorScheme.background,
+            contentWindowInsets = WindowInsets(0, 0, 0, 0),
+        ) { innerPadding ->
+            Column(
+                modifier =
+                Modifier
+                    .padding(innerPadding)
+                    .fillMaxSize(),
+            ) {
+                NotesTopChrome(
+                    onClose = onClose,
+                    onOpenDrawer = {
+                        scope.launch { drawerState.open() }
+                    },
+                    openTabs = openTabs,
+                    selectedTabDocumentId = selectedTabDocumentId,
+                    onSelectTab = { selectTab(it) },
+                    onCloseTab = { closeTab(it) },
+                    showEditActions = selectedTab != null && !noteLoading && noteContent != null,
+                    isEditing = isEditing,
+                    isSaving = isSaving,
+                    onSave = { persistCurrentDraft() },
+                    onEdit = {
+                        isEditing = true
+                        draftText = noteContent.orEmpty()
+                        lastSavedText = noteContent
+                        saveFeedback = null
+                    },
+                    menuExpanded = menuExpanded,
+                    onMenuExpandedChange = { menuExpanded = it },
+                    onOpenSettings = onOpenSettings,
+                )
+                if (notesTreeUri.isNullOrBlank()) {
+                    Box(
+                        modifier = Modifier.weight(1f).fillMaxWidth(),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        NotesPathWelcomeContent(
+                            onChooseFolder = { folderPicker.launch(null) },
+                            modifier = Modifier.padding(24.dp),
+                        )
+                    }
+                } else {
+                    NotesNavigationRow(
+                        onBack = { navigateBack() },
+                        segments =
+                        if (selectedTab != null) {
+                            selectedTab.folderPath +
+                                NotesPathSegment(
+                                    documentId = selectedTab.documentId,
+                                    name = selectedTab.title,
+                                    uri = selectedTab.uri,
+                                )
+                        } else {
+                            folderPath
+                        },
+                        lastIsNote = selectedTab != null,
+                        onSegmentClick = { index ->
+                            val path =
+                                if (selectedTab != null) {
+                                    selectedTab.folderPath
+                                } else {
+                                    folderPath
+                                }
+                            val targetIndex = index.coerceAtMost(path.lastIndex)
+                            if (targetIndex >= 0) {
+                                openFolderList(path.take(targetIndex + 1))
+                            }
+                        },
+                    )
+                    if (isEditing && (isSaving || saveFeedback != null)) {
+                        Text(
+                            text =
+                            if (isSaving) {
+                                stringResource(R.string.markdown_notes_save)
+                            } else {
+                                saveFeedback.orEmpty()
+                            },
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 2.dp),
+                        )
+                    }
+                    HorizontalDivider()
+                    Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+                        when {
+                            selectedTab != null -> {
+                                NotesPlainTextPane(
+                                    isLoading = noteLoading,
+                                    content = noteContent,
+                                    draftText = draftText,
+                                    isEditing = isEditing,
+                                    errorMessage = statusMessage,
+                                    onDraftChange = { value ->
+                                        draftText = value
+                                        scheduleAutosave()
+                                    },
+                                )
+                            }
 
-                        isLoading -> {
-                            CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-                        }
+                            isLoading -> {
+                                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                            }
 
-                        else -> {
-                            NotesFolderList(
-                                entries = entries,
-                                statusMessage = statusMessage,
-                                onOpenFolder = { folder ->
-                                    openFolderList(
-                                        folderPath +
-                                            NotesPathSegment(
-                                                documentId = folder.documentId,
-                                                name = folder.name,
-                                                uri = folder.uri,
-                                            ),
-                                    )
-                                },
-                                onOpenNote = { note ->
-                                    openNote(note, folderPath)
-                                },
-                                onShowMergedNote = { folder ->
-                                    openMergedNote(folder, folderPath)
-                                },
-                            )
+                            else -> {
+                                NotesFolderList(
+                                    entries = entries,
+                                    statusMessage = statusMessage,
+                                    onOpenFolder = { folder ->
+                                        openFolderList(
+                                            folderPath +
+                                                NotesPathSegment(
+                                                    documentId = folder.documentId,
+                                                    name = folder.name,
+                                                    uri = folder.uri,
+                                                ),
+                                        )
+                                    },
+                                    onOpenNote = { note ->
+                                        openNote(note, folderPath)
+                                    },
+                                    onShowMergedNote = { folder ->
+                                        openMergedNote(folder, folderPath)
+                                    },
+                                )
+                            }
                         }
                     }
                 }
