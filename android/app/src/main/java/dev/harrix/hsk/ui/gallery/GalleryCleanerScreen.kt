@@ -437,6 +437,48 @@ fun GalleryCleanerScreen(
                             expanded = menuExpanded,
                             onDismissRequest = { menuExpanded = false },
                         ) {
+                            if (dateFilter.enabled) {
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            stringResource(
+                                                R.string.gallery_cleaner_clear_date_filter,
+                                            ),
+                                        )
+                                    },
+                                    onClick = {
+                                        menuExpanded = false
+                                        val cleared = dateFilter.withEnabled(false)
+                                        preferences.saveDateFilter(cleared)
+                                        dateFilter = cleared
+                                        if (hasPermission && !showIntro) {
+                                            reloadPhotos()
+                                        }
+                                    },
+                                )
+                            }
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        stringResource(
+                                            if (unreviewedOnlyMode) {
+                                                R.string.gallery_cleaner_disable_unreviewed_only
+                                            } else {
+                                                R.string.gallery_cleaner_enable_unreviewed_only
+                                            },
+                                        ),
+                                    )
+                                },
+                                onClick = {
+                                    menuExpanded = false
+                                    val enabled = !unreviewedOnlyMode
+                                    preferences.setUnreviewedOnlyModeEnabled(enabled)
+                                    unreviewedOnlyMode = enabled
+                                    if (hasPermission && !showIntro) {
+                                        reloadPhotos()
+                                    }
+                                },
+                            )
                             DropdownMenuItem(
                                 text = {
                                     Text(stringResource(R.string.gallery_cleaner_settings))
