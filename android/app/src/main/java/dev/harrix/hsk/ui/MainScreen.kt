@@ -30,9 +30,9 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.VideoLibrary
+import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -150,6 +150,7 @@ fun MainScreen(modifier: Modifier = Modifier) {
                     modifier = Modifier.fillMaxSize(),
                 )
             }
+
             AppDestination.VideoCleaner -> {
                 VideoCleanerScreen(
                     onClose = { destination = AppDestination.Home },
@@ -157,6 +158,7 @@ fun MainScreen(modifier: Modifier = Modifier) {
                     modifier = Modifier.fillMaxSize(),
                 )
             }
+
             AppDestination.Home -> {
                 ModalNavigationDrawer(
                     drawerState = drawerState,
@@ -232,7 +234,7 @@ fun MainScreen(modifier: Modifier = Modifier) {
                                             Icon(
                                                 imageVector = Icons.Filled.MoreVert,
                                                 contentDescription =
-                                                    stringResource(R.string.nav_settings),
+                                                stringResource(R.string.nav_settings),
                                             )
                                         }
                                         DropdownMenu(
@@ -252,19 +254,19 @@ fun MainScreen(modifier: Modifier = Modifier) {
                                     }
                                 },
                                 colors =
-                                    TopAppBarDefaults.topAppBarColors(
-                                        containerColor = AppBackground,
-                                        scrolledContainerColor = AppBackground,
-                                    ),
+                                TopAppBarDefaults.topAppBarColors(
+                                    containerColor = AppBackground,
+                                    scrolledContainerColor = AppBackground,
+                                ),
                             )
                         },
                         bottomBar = { BottomActionBar() },
                     ) { innerPadding ->
                         Surface(
                             modifier =
-                                Modifier
-                                    .padding(innerPadding)
-                                    .fillMaxSize(),
+                            Modifier
+                                .padding(innerPadding)
+                                .fillMaxSize(),
                             color = ContentSurface,
                             shadowElevation = 0.dp,
                             tonalElevation = 0.dp,
@@ -290,11 +292,11 @@ fun MainScreen(modifier: Modifier = Modifier) {
                     settingsRevision += 1
                 },
                 onOpenAllSettings =
-                    if (section == SettingsSection.All) {
-                        null
-                    } else {
-                        { settingsSection = SettingsSection.All }
-                    },
+                if (section == SettingsSection.All) {
+                    null
+                } else {
+                    { settingsSection = SettingsSection.All }
+                },
                 currentShootDayEpochMs = settingsShootDayEpochMs,
                 modifier = Modifier.fillMaxSize(),
             )
@@ -319,9 +321,9 @@ private fun HomeUtilitiesGrid(
             Text(
                 text = stringResource(R.string.home_utilities_title),
                 style =
-                    MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = FontWeight.Bold,
-                    ),
+                MaterialTheme.typography.titleMedium.copy(
+                    fontWeight = FontWeight.Bold,
+                ),
                 modifier = Modifier.padding(bottom = 4.dp),
             )
         }
@@ -346,13 +348,13 @@ private fun UtilityCard(
 ) {
     Row(
         modifier =
-            modifier
-                .fillMaxWidth()
-                .height(UtilityCardMinHeight)
-                .border(1.dp, UtilityCardBorder, RoundedCornerShape(UtilityCardCornerRadius))
-                .background(ContentSurface, RoundedCornerShape(UtilityCardCornerRadius))
-                .clickable(onClick = onClick)
-                .padding(horizontal = 12.dp, vertical = 10.dp),
+        modifier
+            .fillMaxWidth()
+            .height(UtilityCardMinHeight)
+            .border(1.dp, UtilityCardBorder, RoundedCornerShape(UtilityCardCornerRadius))
+            .background(ContentSurface, RoundedCornerShape(UtilityCardCornerRadius))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalAlignment = Alignment.Top,
     ) {
         Icon(
@@ -366,11 +368,11 @@ private fun UtilityCard(
             Text(
                 text = title,
                 style =
-                    MaterialTheme.typography.titleSmall.copy(
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp,
-                        lineHeight = 18.sp,
-                    ),
+                MaterialTheme.typography.titleSmall.copy(
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 14.sp,
+                    lineHeight = 18.sp,
+                ),
                 color = Color(0xFF202124),
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
@@ -414,11 +416,11 @@ private fun AutoFitDescription(
         overflow = TextOverflow.Clip,
         softWrap = true,
         modifier =
-            modifier.drawWithContent {
-                if (readyToDraw) {
-                    drawContent()
-                }
-            },
+        modifier.drawWithContent {
+            if (readyToDraw) {
+                drawContent()
+            }
+        },
         onTextLayout = { result ->
             if (result.hasVisualOverflow && textStyle.fontSize > minFontSize) {
                 val nextSize = (textStyle.fontSize.value - 0.5f).coerceAtLeast(minFontSize.value).sp
@@ -447,18 +449,18 @@ private fun CompactNavigationDrawerItem(
         selected = selected,
         onClick = onClick,
         modifier =
-            modifier
-                .padding(horizontal = 12.dp, vertical = DrawerItemVerticalGap)
-                .fillMaxWidth()
-                .height(DrawerItemHeight),
+        modifier
+            .padding(horizontal = 12.dp, vertical = DrawerItemVerticalGap)
+            .fillMaxWidth()
+            .height(DrawerItemHeight),
         shape = RoundedCornerShape(DrawerItemCornerRadius),
         color = colors.containerColor(selected).value,
     ) {
         Row(
             modifier =
-                Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 16.dp),
+            Modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
@@ -483,18 +485,18 @@ private fun BottomActionBar(modifier: Modifier = Modifier) {
 
     Column(
         modifier =
-            modifier
-                .fillMaxWidth()
-                .background(AppBackground)
-                .windowInsetsPadding(WindowInsets.navigationBars),
+        modifier
+            .fillMaxWidth()
+            .background(AppBackground)
+            .windowInsetsPadding(WindowInsets.navigationBars),
     ) {
         HorizontalDivider(color = Color(0xFFD0D2D7), thickness = 1.dp)
         Row(
             modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .height(BottomBarHeight)
-                    .padding(horizontal = 8.dp),
+            Modifier
+                .fillMaxWidth()
+                .height(BottomBarHeight)
+                .padding(horizontal = 8.dp),
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically,
         ) {

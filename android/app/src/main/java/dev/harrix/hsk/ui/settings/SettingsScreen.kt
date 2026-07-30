@@ -69,9 +69,9 @@ private const val EarliestFilterYear = 2008
 fun SettingsScreen(
     section: SettingsSection,
     onClose: () -> Unit,
+    modifier: Modifier = Modifier,
     onOpenAllSettings: (() -> Unit)? = null,
     currentShootDayEpochMs: Long? = null,
-    modifier: Modifier = Modifier,
 ) {
     val titleRes =
         when (section) {
@@ -95,20 +95,20 @@ fun SettingsScreen(
                     }
                 },
                 colors =
-                    TopAppBarDefaults.topAppBarColors(
-                        containerColor = AppBackground,
-                        scrolledContainerColor = AppBackground,
-                    ),
+                TopAppBarDefaults.topAppBarColors(
+                    containerColor = AppBackground,
+                    scrolledContainerColor = AppBackground,
+                ),
             )
         },
     ) { innerPadding ->
         Column(
             modifier =
-                Modifier
-                    .padding(innerPadding)
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
+            Modifier
+                .padding(innerPadding)
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             when (section) {
@@ -120,12 +120,14 @@ fun SettingsScreen(
                     HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
                     VideoCleanerSettingsSection(showSectionTitle = true)
                 }
+
                 SettingsSection.GalleryCleaner -> {
                     GalleryCleanerSettingsSection(
                         showSectionTitle = false,
                         currentShootDayEpochMs = currentShootDayEpochMs,
                     )
                 }
+
                 SettingsSection.VideoCleaner -> {
                     VideoCleanerSettingsSection(showSectionTitle = false)
                 }
@@ -197,6 +199,7 @@ private fun MediaPermissionSettingsBlock(
                 } else {
                     R.string.settings_photos_access_denied
                 }
+
             MediaPermissionKind.Videos ->
                 if (hasMediaPermission) {
                     R.string.settings_videos_access_granted
@@ -208,7 +211,9 @@ private fun MediaPermissionSettingsBlock(
         when {
             !GalleryPermissions.isManageMediaAvailable() ->
                 R.string.settings_manage_media_unavailable
+
             canManageMedia -> R.string.settings_manage_media_granted
+
             else -> R.string.settings_manage_media_denied
         }
 
@@ -258,8 +263,8 @@ private fun MediaPermissionSettingsBlock(
 @Composable
 private fun GalleryCleanerSettingsSection(
     showSectionTitle: Boolean,
-    currentShootDayEpochMs: Long? = null,
     modifier: Modifier = Modifier,
+    currentShootDayEpochMs: Long? = null,
 ) {
     val context = LocalContext.current
     val preferences = remember { GalleryCleanerPreferences(context.applicationContext) }
@@ -294,10 +299,6 @@ private fun GalleryCleanerSettingsSection(
             )
         }
 
-        MediaPermissionSettingsBlock(kind = MediaPermissionKind.Photos)
-
-        HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
@@ -311,9 +312,9 @@ private fun GalleryCleanerSettingsSection(
             )
             Column(
                 modifier =
-                    Modifier
-                        .weight(1f)
-                        .padding(start = 4.dp),
+                Modifier
+                    .weight(1f)
+                    .padding(start = 4.dp),
             ) {
                 Text(
                     text = stringResource(R.string.settings_gallery_unreviewed_only),
@@ -366,9 +367,9 @@ private fun GalleryCleanerSettingsSection(
                 text = stringResource(R.string.settings_gallery_date_filter_enabled),
                 style = MaterialTheme.typography.bodyLarge,
                 modifier =
-                    Modifier
-                        .weight(1f)
-                        .padding(start = 4.dp),
+                Modifier
+                    .weight(1f)
+                    .padding(start = 4.dp),
             )
         }
 
@@ -398,6 +399,10 @@ private fun GalleryCleanerSettingsSection(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         GalleryDatePresets(onPreset = { persist(it) })
+
+        HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+
+        MediaPermissionSettingsBlock(kind = MediaPermissionKind.Photos)
     }
 }
 
@@ -436,36 +441,38 @@ private fun GalleryDateFilterEditors(
         )
     }
 
-    YearMonthRow(
-        label = stringResource(R.string.gallery_cleaner_date_range_from),
-        year = fromYear,
-        month = fromMonth,
-        years = years,
-        monthLabels = monthLabels,
-        onYearChange = {
-            fromYear = it
-            applyYearMonth()
-        },
-        onMonthChange = {
-            fromMonth = it
-            applyYearMonth()
-        },
-    )
-    YearMonthRow(
-        label = stringResource(R.string.gallery_cleaner_date_range_to),
-        year = toYear,
-        month = toMonth,
-        years = years,
-        monthLabels = monthLabels,
-        onYearChange = {
-            toYear = it
-            applyYearMonth()
-        },
-        onMonthChange = {
-            toMonth = it
-            applyYearMonth()
-        },
-    )
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        YearMonthRow(
+            label = stringResource(R.string.gallery_cleaner_date_range_from),
+            year = fromYear,
+            month = fromMonth,
+            years = years,
+            monthLabels = monthLabels,
+            onYearChange = {
+                fromYear = it
+                applyYearMonth()
+            },
+            onMonthChange = {
+                fromMonth = it
+                applyYearMonth()
+            },
+        )
+        YearMonthRow(
+            label = stringResource(R.string.gallery_cleaner_date_range_to),
+            year = toYear,
+            month = toMonth,
+            years = years,
+            monthLabels = monthLabels,
+            onYearChange = {
+                toYear = it
+                applyYearMonth()
+            },
+            onMonthChange = {
+                toMonth = it
+                applyYearMonth()
+            },
+        )
+    }
 }
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -520,13 +527,13 @@ private fun YearMonthRow(
             SimpleDropdownField(
                 value = year.toString(),
                 options = years.map { it.toString() },
-                onOptionSelected = { index -> onYearChange(years[index]) },
+                onOptionSelect = { index -> onYearChange(years[index]) },
                 modifier = Modifier.weight(1f),
             )
             SimpleDropdownField(
                 value = monthLabels[month - 1],
                 options = monthLabels,
-                onOptionSelected = { index -> onMonthChange(index + 1) },
+                onOptionSelect = { index -> onMonthChange(index + 1) },
                 modifier = Modifier.weight(1.2f),
             )
         }
@@ -538,7 +545,7 @@ private fun YearMonthRow(
 private fun SimpleDropdownField(
     value: String,
     options: List<String>,
-    onOptionSelected: (Int) -> Unit,
+    onOptionSelect: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var expanded by remember { mutableStateOf(false) }
@@ -554,9 +561,9 @@ private fun SimpleDropdownField(
             singleLine = true,
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
             modifier =
-                Modifier
-                    .menuAnchor(MenuAnchorType.PrimaryNotEditable)
-                    .fillMaxWidth(),
+            Modifier
+                .menuAnchor(MenuAnchorType.PrimaryNotEditable)
+                .fillMaxWidth(),
         )
         ExposedDropdownMenu(
             expanded = expanded,
@@ -566,7 +573,7 @@ private fun SimpleDropdownField(
                 DropdownMenuItem(
                     text = { Text(option) },
                     onClick = {
-                        onOptionSelected(index)
+                        onOptionSelect(index)
                         expanded = false
                     },
                 )

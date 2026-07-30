@@ -99,9 +99,9 @@ import dev.harrix.hsk.ui.performLightActionHaptic
 import dev.harrix.hsk.ui.theme.AppBackground
 import dev.harrix.hsk.ui.theme.AppRed
 import dev.harrix.hsk.ui.theme.ContentSurface
-import java.util.Date
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.util.Date
 
 private val TrashButtonColor = AppRed
 private val SelectedBorderColor = Color(0xFF2F6BFF)
@@ -150,9 +150,9 @@ fun VideoCleanerScreen(
     fun refreshManageMediaAccess() {
         showManageMediaPrompt =
             Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
-                hasPermission &&
-                !repository.canTrashWithoutPrompt() &&
-                preferences.shouldShowManageMediaPrompt()
+            hasPermission &&
+            !repository.canTrashWithoutPrompt() &&
+            preferences.shouldShowManageMediaPrompt()
     }
 
     fun reloadVideos() {
@@ -316,10 +316,10 @@ fun VideoCleanerScreen(
                     }
                 },
                 colors =
-                    TopAppBarDefaults.topAppBarColors(
-                        containerColor = AppBackground,
-                        scrolledContainerColor = AppBackground,
-                    ),
+                TopAppBarDefaults.topAppBarColors(
+                    containerColor = AppBackground,
+                    scrolledContainerColor = AppBackground,
+                ),
             )
         },
         bottomBar = {
@@ -327,14 +327,14 @@ fun VideoCleanerScreen(
                 VideoCleanerBottomBar(
                     selectedCount = selectedIds.size,
                     selectedSizeLabel =
-                        if (selectedIds.isEmpty()) {
-                            null
-                        } else {
-                            stringResource(
-                                R.string.video_cleaner_selected_size,
-                                CameraGalleryRepository.formatFileSize(selectedBytes),
-                            )
-                        },
+                    if (selectedIds.isEmpty()) {
+                        null
+                    } else {
+                        stringResource(
+                            R.string.video_cleaner_selected_size,
+                            CameraGalleryRepository.formatFileSize(selectedBytes),
+                        )
+                    },
                     onDelete = { trashSelected() },
                 )
             }
@@ -342,10 +342,10 @@ fun VideoCleanerScreen(
     ) { innerPadding ->
         Column(
             modifier =
-                Modifier
-                    .padding(innerPadding)
-                    .fillMaxSize()
-                    .background(ContentSurface),
+            Modifier
+                .padding(innerPadding)
+                .fillMaxSize()
+                .background(ContentSurface),
         ) {
             when {
                 !hasPermission -> {
@@ -376,6 +376,7 @@ fun VideoCleanerScreen(
                         }
                     }
                 }
+
                 isLoading -> {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -385,6 +386,7 @@ fun VideoCleanerScreen(
                         }
                     }
                 }
+
                 sortedVideos.isEmpty() -> {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Text(
@@ -394,12 +396,13 @@ fun VideoCleanerScreen(
                         )
                     }
                 }
+
                 else -> {
                     Row(
                         modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 8.dp),
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 8.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
@@ -465,11 +468,11 @@ private fun VideoCleanerBottomBar(
 ) {
     Column(
         modifier =
-            modifier
-                .fillMaxWidth()
-                .background(AppBackground)
-                .windowInsetsPadding(WindowInsets.navigationBars)
-                .padding(horizontal = 16.dp, vertical = 12.dp),
+        modifier
+            .fillMaxWidth()
+            .background(AppBackground)
+            .windowInsetsPadding(WindowInsets.navigationBars)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
     ) {
         if (selectedSizeLabel != null) {
             Text(
@@ -484,12 +487,12 @@ private fun VideoCleanerBottomBar(
             enabled = selectedCount > 0,
             modifier = Modifier.fillMaxWidth(),
             colors =
-                ButtonDefaults.buttonColors(
-                    containerColor = TrashButtonColor,
-                    contentColor = Color.White,
-                    disabledContainerColor = Color(0xFFBDBDBD),
-                    disabledContentColor = Color.White,
-                ),
+            ButtonDefaults.buttonColors(
+                containerColor = TrashButtonColor,
+                contentColor = Color.White,
+                disabledContainerColor = Color(0xFFBDBDBD),
+                disabledContentColor = Color.White,
+            ),
         ) {
             Icon(
                 imageVector = Icons.Filled.Delete,
@@ -525,20 +528,20 @@ private fun VideoGalleryItem(
 
     Box(
         modifier =
-            modifier
-                .aspectRatio(1f)
-                .clip(RoundedCornerShape(10.dp))
-                .then(
-                    if (selected) {
-                        Modifier.border(3.dp, SelectedBorderColor, RoundedCornerShape(10.dp))
-                    } else {
-                        Modifier
-                    },
-                )
-                .combinedClickable(
-                    onClick = onToggle,
-                    onLongClick = onLongPress,
-                ),
+        modifier
+            .aspectRatio(1f)
+            .clip(RoundedCornerShape(10.dp))
+            .then(
+                if (selected) {
+                    Modifier.border(3.dp, SelectedBorderColor, RoundedCornerShape(10.dp))
+                } else {
+                    Modifier
+                },
+            )
+            .combinedClickable(
+                onClick = onToggle,
+                onLongClick = onLongPress,
+            ),
     ) {
         VideoThumbnail(
             uri = video.uri,
@@ -546,15 +549,15 @@ private fun VideoGalleryItem(
         )
         Box(
             modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .align(Alignment.BottomCenter)
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.75f)),
-                        ),
-                    )
-                    .padding(horizontal = 6.dp, vertical = 6.dp),
+            Modifier
+                .fillMaxWidth()
+                .align(Alignment.BottomCenter)
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.75f)),
+                    ),
+                )
+                .padding(horizontal = 6.dp, vertical = 6.dp),
         ) {
             Column {
                 Text(
@@ -580,11 +583,11 @@ private fun VideoGalleryItem(
                 contentDescription = null,
                 tint = SelectedBorderColor,
                 modifier =
-                    Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(6.dp)
-                        .size(22.dp)
-                        .background(Color.White, CircleShape),
+                Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(6.dp)
+                    .size(22.dp)
+                    .background(Color.White, CircleShape),
             )
         }
     }
@@ -636,17 +639,17 @@ private fun VideoPlaybackDialog(
     Dialog(
         onDismissRequest = onDismiss,
         properties =
-            DialogProperties(
-                usePlatformDefaultWidth = false,
-                dismissOnBackPress = true,
-                dismissOnClickOutside = true,
-            ),
+        DialogProperties(
+            usePlatformDefaultWidth = false,
+            dismissOnBackPress = true,
+            dismissOnClickOutside = true,
+        ),
     ) {
         Box(
             modifier =
-                Modifier
-                    .fillMaxSize()
-                    .background(Color.Black),
+            Modifier
+                .fillMaxSize()
+                .background(Color.Black),
         ) {
             AndroidView(
                 factory = { context ->
@@ -659,10 +662,10 @@ private fun VideoPlaybackDialog(
                     }
                 },
                 modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .align(Alignment.Center)
-                        .aspectRatio(9f / 16f),
+                Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.Center)
+                    .aspectRatio(9f / 16f),
                 onRelease = { view ->
                     view.stopPlayback()
                 },
@@ -670,9 +673,9 @@ private fun VideoPlaybackDialog(
             IconButton(
                 onClick = onDismiss,
                 modifier =
-                    Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(12.dp),
+                Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(12.dp),
             ) {
                 Icon(
                     imageVector = Icons.Filled.Close,

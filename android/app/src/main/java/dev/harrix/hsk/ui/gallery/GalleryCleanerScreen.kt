@@ -94,21 +94,21 @@ import dev.harrix.hsk.ui.performLightActionHaptic
 import dev.harrix.hsk.ui.theme.AppBackground
 import dev.harrix.hsk.ui.theme.AppGreen
 import dev.harrix.hsk.ui.theme.AppRed
+import kotlinx.coroutines.launch
 import java.text.DateFormat
 import java.util.Date
 import kotlin.math.abs
 import kotlin.math.hypot
 import kotlin.math.roundToInt
 import kotlin.random.Random
-import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GalleryCleanerScreen(
     onClose: () -> Unit,
     onOpenSettings: (shootDayEpochMs: Long?) -> Unit,
-    settingsRevision: Int = 0,
     modifier: Modifier = Modifier,
+    settingsRevision: Int = 0,
 ) {
     val context = LocalContext.current
     val view = LocalView.current
@@ -149,18 +149,17 @@ fun GalleryCleanerScreen(
         canManageMedia = repository.canTrashWithoutPrompt()
         showManageMediaPrompt =
             Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
-                hasPermission &&
-                !showIntro &&
-                !canManageMedia &&
-                preferences.shouldShowManageMediaPrompt()
+            hasPermission &&
+            !showIntro &&
+            !canManageMedia &&
+            preferences.shouldShowManageMediaPrompt()
     }
 
-    fun pickNext(from: List<CameraPhoto>): CameraPhoto? =
-        if (from.isEmpty()) {
-            null
-        } else {
-            from[Random.nextInt(from.size)]
-        }
+    fun pickNext(from: List<CameraPhoto>): CameraPhoto? = if (from.isEmpty()) {
+        null
+    } else {
+        from[Random.nextInt(from.size)]
+    }
 
     fun advanceAfterReview(
         photo: CameraPhoto,
@@ -271,12 +270,18 @@ fun GalleryCleanerScreen(
         }
 
     fun requestSystemTrash(photo: CameraPhoto) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+            return
+        }
         pendingTrashPhoto = photo
         val sender: IntentSender = repository.createTrashRequest(photo.uri)
         trashLauncher.launch(IntentSenderRequest.Builder(sender).build())
     }
 
     fun requestSystemRestore(photo: CameraPhoto) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+            return
+        }
         pendingRestorePhoto = photo
         val sender: IntentSender = repository.createRestoreRequest(photo.uri)
         restoreLauncher.launch(IntentSenderRequest.Builder(sender).build())
@@ -366,11 +371,11 @@ fun GalleryCleanerScreen(
                         Text(stringResource(R.string.gallery_cleaner_title))
                         Text(
                             text =
-                                stringResource(
-                                    R.string.gallery_cleaner_session_stats,
-                                    sessionDeletedCount,
-                                    CameraGalleryRepository.formatFileSize(sessionFreedBytes),
-                                ),
+                            stringResource(
+                                R.string.gallery_cleaner_session_stats,
+                                sessionDeletedCount,
+                                CameraGalleryRepository.formatFileSize(sessionFreedBytes),
+                            ),
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1,
@@ -383,15 +388,15 @@ fun GalleryCleanerScreen(
                                 }
                             Text(
                                 text =
-                                    stringResource(
-                                        R.string.gallery_cleaner_date_filter_active,
-                                        dateFormat.format(
-                                            Date(dateFilter.startEpochSecInclusive * 1000L),
-                                        ),
-                                        dateFormat.format(
-                                            Date(dateFilter.endEpochSecInclusive * 1000L),
-                                        ),
+                                stringResource(
+                                    R.string.gallery_cleaner_date_filter_active,
+                                    dateFormat.format(
+                                        Date(dateFilter.startEpochSecInclusive * 1000L),
                                     ),
+                                    dateFormat.format(
+                                        Date(dateFilter.endEpochSecInclusive * 1000L),
+                                    ),
+                                ),
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 maxLines = 1,
@@ -423,14 +428,14 @@ fun GalleryCleanerScreen(
                     if (hasPermission && remainingCount > 0) {
                         Text(
                             text =
-                                stringResource(
-                                    if (unreviewedOnlyMode) {
-                                        R.string.gallery_cleaner_remaining_unreviewed
-                                    } else {
-                                        R.string.gallery_cleaner_remaining
-                                    },
-                                    remainingCount,
-                                ),
+                            stringResource(
+                                if (unreviewedOnlyMode) {
+                                    R.string.gallery_cleaner_remaining_unreviewed
+                                } else {
+                                    R.string.gallery_cleaner_remaining
+                                },
+                                remainingCount,
+                            ),
                             style = MaterialTheme.typography.labelLarge,
                             modifier = Modifier.padding(end = 4.dp),
                         )
@@ -519,10 +524,10 @@ fun GalleryCleanerScreen(
                     }
                 },
                 colors =
-                    TopAppBarDefaults.topAppBarColors(
-                        containerColor = AppBackground,
-                        scrolledContainerColor = AppBackground,
-                    ),
+                TopAppBarDefaults.topAppBarColors(
+                    containerColor = AppBackground,
+                    scrolledContainerColor = AppBackground,
+                ),
             )
         },
         bottomBar = {
@@ -537,16 +542,17 @@ fun GalleryCleanerScreen(
     ) { innerPadding ->
         Box(
             modifier =
-                Modifier
-                    .padding(innerPadding)
-                    .fillMaxSize()
-                    .background(AppBackground),
+            Modifier
+                .padding(innerPadding)
+                .fillMaxSize()
+                .background(AppBackground),
             contentAlignment = Alignment.Center,
         ) {
             when {
                 showIntro -> {
                     // Dialog is shown above; keep blank content underneath.
                 }
+
                 !hasPermission -> {
                     PermissionRequestContent(
                         onGrantClick = {
@@ -554,6 +560,7 @@ fun GalleryCleanerScreen(
                         },
                     )
                 }
+
                 isLoading -> {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         CircularProgressIndicator()
@@ -561,20 +568,22 @@ fun GalleryCleanerScreen(
                         Text(stringResource(R.string.gallery_cleaner_loading))
                     }
                 }
+
                 currentPhoto == null -> {
                     Text(
                         text =
-                            stringResource(
-                                when {
-                                    dateFilter.enabled -> R.string.gallery_cleaner_empty_filtered
-                                    unreviewedOnlyMode -> R.string.gallery_cleaner_empty_unreviewed
-                                    else -> R.string.gallery_cleaner_empty
-                                },
-                            ),
+                        stringResource(
+                            when {
+                                dateFilter.enabled -> R.string.gallery_cleaner_empty_filtered
+                                unreviewedOnlyMode -> R.string.gallery_cleaner_empty_unreviewed
+                                else -> R.string.gallery_cleaner_empty
+                            },
+                        ),
                         style = MaterialTheme.typography.bodyLarge,
                         modifier = Modifier.padding(24.dp),
                     )
                 }
+
                 else -> {
                     val photo = currentPhoto!!
                     SwipeablePhotoCard(
@@ -593,9 +602,9 @@ fun GalleryCleanerScreen(
                     color = AppRed,
                     style = MaterialTheme.typography.bodyMedium,
                     modifier =
-                        Modifier
-                            .align(Alignment.BottomCenter)
-                            .padding(24.dp),
+                    Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(24.dp),
                 )
             }
         }
@@ -610,21 +619,21 @@ private fun ReviewActionBar(
 ) {
     Row(
         modifier =
-            modifier
-                .fillMaxWidth()
-                .background(AppBackground)
-                .windowInsetsPadding(WindowInsets.navigationBars)
-                .padding(horizontal = 16.dp, vertical = 12.dp),
+        modifier
+            .fillMaxWidth()
+            .background(AppBackground)
+            .windowInsetsPadding(WindowInsets.navigationBars)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Button(
             onClick = onDelete,
             modifier = Modifier.weight(1f),
             colors =
-                ButtonDefaults.buttonColors(
-                    containerColor = AppRed,
-                    contentColor = Color.White,
-                ),
+            ButtonDefaults.buttonColors(
+                containerColor = AppRed,
+                contentColor = Color.White,
+            ),
         ) {
             Icon(
                 imageVector = Icons.Filled.Delete,
@@ -638,10 +647,10 @@ private fun ReviewActionBar(
             onClick = onKeep,
             modifier = Modifier.weight(1f),
             colors =
-                ButtonDefaults.buttonColors(
-                    containerColor = AppGreen,
-                    contentColor = Color.White,
-                ),
+            ButtonDefaults.buttonColors(
+                containerColor = AppGreen,
+                contentColor = Color.White,
+            ),
         ) {
             Icon(
                 imageVector = Icons.Filled.Done,
@@ -783,9 +792,9 @@ private fun SwipeablePhotoCard(
     Column(modifier = modifier.fillMaxSize()) {
         Box(
             modifier =
-                Modifier
-                    .weight(1f)
-                    .fillMaxWidth(),
+            Modifier
+                .weight(1f)
+                .fillMaxWidth(),
             contentAlignment = Alignment.Center,
         ) {
             if (horizontalProgress < -0.15f && abs(displayOffset.x) >= abs(displayOffset.y)) {
@@ -827,86 +836,90 @@ private fun SwipeablePhotoCard(
 
             AsyncImage(
                 model =
-                    ImageRequest
-                        .Builder(LocalContext.current)
-                        .data(photo.uri)
-                        .crossfade(true)
-                        .build(),
+                ImageRequest
+                    .Builder(LocalContext.current)
+                    .data(photo.uri)
+                    .crossfade(true)
+                    .build(),
                 contentDescription = photo.displayName,
                 contentScale = ContentScale.Fit,
                 modifier =
-                    Modifier
-                        .fillMaxSize()
-                        .graphicsLayer {
-                            rotationZ = displayOffset.x / 40f
-                            alpha = 1f - (travel / (exitDistance * 1.2f)).coerceIn(0f, 0.35f)
-                        }
-                        .offset {
-                            IntOffset(displayOffset.x.roundToInt(), displayOffset.y.roundToInt())
-                        }
-                        .background(AppBackground)
-                        .pointerInput(resetKey, photo.id) {
-                            detectDragGestures(
-                                onDragEnd = {
-                                    val current = dragOffset
-                                    dragOffset = Offset.Zero
-                                    scope.launch {
-                                        offsetX.snapTo(current.x)
-                                        offsetY.snapTo(current.y)
-                                        val predominatelyVertical = abs(current.y) > abs(current.x)
-                                        when {
-                                            predominatelyVertical &&
-                                                current.y <= -dismissThreshold -> {
-                                                offsetY.animateTo(-exitDistance, tween(180))
-                                                onKeep()
-                                            }
-                                            predominatelyVertical &&
-                                                current.y >= dismissThreshold -> {
-                                                offsetY.animateTo(exitDistance, tween(180))
-                                                onDelete()
-                                            }
-                                            !predominatelyVertical &&
-                                                current.x <= -dismissThreshold -> {
-                                                offsetX.animateTo(-exitDistance, tween(180))
-                                                onDelete()
-                                            }
-                                            !predominatelyVertical &&
-                                                current.x >= dismissThreshold -> {
-                                                offsetX.animateTo(exitDistance, tween(180))
-                                                onKeep()
-                                            }
-                                            else -> {
-                                                offsetX.animateTo(0f, tween(180))
-                                                offsetY.animateTo(0f, tween(180))
-                                            }
+                Modifier
+                    .fillMaxSize()
+                    .graphicsLayer {
+                        rotationZ = displayOffset.x / 40f
+                        alpha = 1f - (travel / (exitDistance * 1.2f)).coerceIn(0f, 0.35f)
+                    }
+                    .offset {
+                        IntOffset(displayOffset.x.roundToInt(), displayOffset.y.roundToInt())
+                    }
+                    .background(AppBackground)
+                    .pointerInput(resetKey, photo.id) {
+                        detectDragGestures(
+                            onDragEnd = {
+                                val current = dragOffset
+                                dragOffset = Offset.Zero
+                                scope.launch {
+                                    offsetX.snapTo(current.x)
+                                    offsetY.snapTo(current.y)
+                                    val predominatelyVertical = abs(current.y) > abs(current.x)
+                                    when {
+                                        predominatelyVertical &&
+                                            current.y <= -dismissThreshold -> {
+                                            offsetY.animateTo(-exitDistance, tween(180))
+                                            onKeep()
+                                        }
+
+                                        predominatelyVertical &&
+                                            current.y >= dismissThreshold -> {
+                                            offsetY.animateTo(exitDistance, tween(180))
+                                            onDelete()
+                                        }
+
+                                        !predominatelyVertical &&
+                                            current.x <= -dismissThreshold -> {
+                                            offsetX.animateTo(-exitDistance, tween(180))
+                                            onDelete()
+                                        }
+
+                                        !predominatelyVertical &&
+                                            current.x >= dismissThreshold -> {
+                                            offsetX.animateTo(exitDistance, tween(180))
+                                            onKeep()
+                                        }
+
+                                        else -> {
+                                            offsetX.animateTo(0f, tween(180))
+                                            offsetY.animateTo(0f, tween(180))
                                         }
                                     }
-                                },
-                                onDragCancel = {
-                                    val current = dragOffset
-                                    dragOffset = Offset.Zero
-                                    scope.launch {
-                                        offsetX.snapTo(current.x)
-                                        offsetY.snapTo(current.y)
-                                        offsetX.animateTo(0f, tween(180))
-                                        offsetY.animateTo(0f, tween(180))
-                                    }
-                                },
-                                onDrag = { change, dragAmount ->
-                                    change.consume()
-                                    dragOffset += dragAmount
-                                },
-                            )
-                        },
+                                }
+                            },
+                            onDragCancel = {
+                                val current = dragOffset
+                                dragOffset = Offset.Zero
+                                scope.launch {
+                                    offsetX.snapTo(current.x)
+                                    offsetY.snapTo(current.y)
+                                    offsetX.animateTo(0f, tween(180))
+                                    offsetY.animateTo(0f, tween(180))
+                                }
+                            },
+                            onDrag = { change, dragAmount ->
+                                change.consume()
+                                dragOffset += dragAmount
+                            },
+                        )
+                    },
             )
         }
 
         Column(
             modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .background(AppBackground)
-                    .padding(horizontal = 16.dp, vertical = 10.dp),
+            Modifier
+                .fillMaxWidth()
+                .background(AppBackground)
+                .padding(horizontal = 16.dp, vertical = 10.dp),
             verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
             Text(

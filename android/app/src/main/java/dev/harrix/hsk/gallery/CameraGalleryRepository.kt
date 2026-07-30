@@ -57,11 +57,11 @@ class CameraGalleryRepository(
                             displayName = cursor.getString(nameColumn),
                             dateAddedEpochSec = dateAddedEpochSec,
                             dateTakenEpochMs =
-                                if (dateTakenRaw > 0L) {
-                                    dateTakenRaw
-                                } else {
-                                    dateAddedEpochSec * 1000L
-                                },
+                            if (dateTakenRaw > 0L) {
+                                dateTakenRaw
+                            } else {
+                                dateAddedEpochSec * 1000L
+                            },
                             sizeBytes = cursor.getLong(sizeColumn).coerceAtLeast(0L),
                         )
                 }
@@ -112,8 +112,7 @@ class CameraGalleryRepository(
         return videos
     }
 
-    fun canTrashWithoutPrompt(): Boolean =
-        Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && MediaStore.canManageMedia(context)
+    fun canTrashWithoutPrompt(): Boolean = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && MediaStore.canManageMedia(context)
 
     /**
      * Always use [createTrashRequest] / [createRestoreRequest] on Android 11+.
@@ -122,19 +121,17 @@ class CameraGalleryRepository(
      * Direct `IS_TRASHED` updates are only allowed for OEM gallery apps and fail otherwise.
      */
     @RequiresApi(Build.VERSION_CODES.R)
-    fun createTrashRequest(uris: Collection<Uri>): IntentSender =
-        MediaStore
-            .createTrashRequest(context.contentResolver, uris, true)
-            .intentSender
+    fun createTrashRequest(uris: Collection<Uri>): IntentSender = MediaStore
+        .createTrashRequest(context.contentResolver, uris, true)
+        .intentSender
 
     @RequiresApi(Build.VERSION_CODES.R)
     fun createTrashRequest(uri: Uri): IntentSender = createTrashRequest(listOf(uri))
 
     @RequiresApi(Build.VERSION_CODES.R)
-    fun createRestoreRequest(uris: Collection<Uri>): IntentSender =
-        MediaStore
-            .createTrashRequest(context.contentResolver, uris, false)
-            .intentSender
+    fun createRestoreRequest(uris: Collection<Uri>): IntentSender = MediaStore
+        .createTrashRequest(context.contentResolver, uris, false)
+        .intentSender
 
     @RequiresApi(Build.VERSION_CODES.R)
     fun createRestoreRequest(uri: Uri): IntentSender = createRestoreRequest(listOf(uri))
@@ -149,12 +146,11 @@ class CameraGalleryRepository(
         return deleted
     }
 
-    fun deletePermanently(uri: Uri): Boolean =
-        try {
-            context.contentResolver.delete(uri, null, null) > 0
-        } catch (_: SecurityException) {
-            false
-        }
+    fun deletePermanently(uri: Uri): Boolean = try {
+        context.contentResolver.delete(uri, null, null) > 0
+    } catch (_: SecurityException) {
+        false
+    }
 
     private fun cameraFolderSelection(): Pair<String, Array<String>> {
         val notTrashed =

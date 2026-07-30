@@ -44,19 +44,17 @@ class GalleryCleanerPreferences(
             .apply()
     }
 
-    fun isUnreviewedOnlyModeEnabled(): Boolean =
-        prefs.getBoolean(KEY_UNREVIEWED_ONLY_MODE, false)
+    fun isUnreviewedOnlyModeEnabled(): Boolean = prefs.getBoolean(KEY_UNREVIEWED_ONLY_MODE, false)
 
     fun setUnreviewedOnlyModeEnabled(enabled: Boolean) {
         prefs.edit().putBoolean(KEY_UNREVIEWED_ONLY_MODE, enabled).apply()
     }
 
-    fun getReviewedPhotoIds(): Set<Long> =
-        prefs
-            .getStringSet(KEY_REVIEWED_PHOTO_IDS, emptySet())
-            .orEmpty()
-            .mapNotNull { it.toLongOrNull() }
-            .toSet()
+    fun getReviewedPhotoIds(): Set<Long> = prefs
+        .getStringSet(KEY_REVIEWED_PHOTO_IDS, emptySet())
+        .orEmpty()
+        .mapNotNull { it.toLongOrNull() }
+        .toSet()
 
     fun markPhotoReviewed(photoId: Long) {
         val updated = HashSet(prefs.getStringSet(KEY_REVIEWED_PHOTO_IDS, emptySet()).orEmpty())
