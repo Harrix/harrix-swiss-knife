@@ -290,7 +290,7 @@ class PhotoEditSaver(
             imageHeight: Int,
         ): NormalizedCropRect {
             val diag = hypot(imageWidth.toFloat(), imageHeight.toFloat())
-            if (diag <= 0f) {
+            if (diag <= 0f || imageHeight <= 0) {
                 return NormalizedCropRect.Full
             }
             val width = (imageWidth / diag).coerceIn(0f, 1f)
@@ -298,22 +298,26 @@ class PhotoEditSaver(
             val left = ((1f - width) / 2f).coerceIn(0f, 1f)
             val top = ((1f - height) / 2f).coerceIn(0f, 1f)
             return clampCropRect(
+                rect =
                 NormalizedCropRect(
                     left = left,
                     top = top,
                     right = (left + width).coerceIn(0f, 1f),
                     bottom = (top + height).coerceIn(0f, 1f),
                 ),
+                imageAspect = imageWidth.toFloat() / imageHeight.toFloat(),
             )
         }
 
         /**
-         * Free crop clamp — any aspect ratio, edges stay inside `0..1`.
+         * Clamp crop to `0..1`, keeping [imageAspect] (`width / height` of the source file).
          */
         fun clampCropRect(
             rect: NormalizedCropRect,
+            imageAspect: Float,
             minNormalizedSide: Float = 0.06f,
         ): NormalizedCropRect {
+            val aspect = imageAspect.coerceAtLeast(1e-6f)
             var left = rect.left
             var top = rect.top
             var right = rect.right
@@ -328,23 +332,23 @@ class PhotoEditSaver(
                 top = bottom
                 bottom = tmp
             }
-            left = left.coerceIn(0f, 1f)
-            top = top.coerceIn(0f, 1f)
-            right = right.coerceIn(0f, 1f)
-            bottom = bottom.coerceIn(0f, 1f)
-            if (right - left < minNormalizedSide) {
-                val mid = ((left + right) / 2f).coerceIn(minNormalizedSide / 2f, 1f - minNormalizedSide / 2f)
-                left = (mid - minNormalizedSide / 2f).coerceAtLeast(0f)
-                right = (left + minNormalizedSide).coerceAtMost(1f)
-                left = (right - minNormalizedSide).coerceAtLeast(0f)
+            var width = (right - left).coerceAtLeast(minNormalizedSide)
+            var height = width / aspect
+            if (height < minNormalizedSide) {
+                height = minNormalizedSide
+                width = height * aspect
             }
-            if (bottom - top < minNormalizedSide) {
-                val mid = ((top + bottom) / 2f).coerceIn(minNormalizedSide / 2f, 1f - minNormalizedSide / 2f)
-                top = (mid - minNormalizedSide / 2f).coerceAtLeast(0f)
-                bottom = (top + minNormalizedSide).coerceAtMost(1f)
-                top = (bottom - minNormalizedSide).coerceAtLeast(0f)
+            if (width > 1f) {
+                width = 1f
+                height = width / aspect
             }
-            return NormalizedCropRect(left, top, right, bottom)
+            if (height > 1f) {
+                height = 1f
+                width = height * aspect
+            }
+            left = left.coerceIn(0f, 1f - width)
+            top = top.coerceIn(0f, 1f - height)
+            return NormalizedCropRect(left, top, left + width, top + height)
         }
     }
 

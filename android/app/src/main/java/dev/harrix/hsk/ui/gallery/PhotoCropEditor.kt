@@ -62,6 +62,8 @@ import dev.harrix.hsk.gallery.NormalizedCropRect
 import dev.harrix.hsk.gallery.PhotoEditSaver
 import dev.harrix.hsk.ui.theme.AppGreen
 import kotlin.math.abs
+import kotlin.math.max
+import kotlin.math.min
 import kotlin.math.roundToInt
 import coil.size.Size as CoilSize
 
@@ -238,7 +240,7 @@ fun PhotoCropEditor(
                     modifier =
                     Modifier
                         .fillMaxSize()
-                        .pointerInput(workspace, handleHitSlopPx, isSaving) {
+                        .pointerInput(workspace, handleHitSlopPx, isSaving, imageWidth, imageHeight) {
                             if (isSaving) {
                                 return@pointerInput
                             }
@@ -297,16 +299,22 @@ fun PhotoCropEditor(
                                                 )
                                         } else {
                                             val drag = change.position - change.previousPosition
-                                            if (drag != Offset.Zero) {
+                                            if (drag != Offset.Zero && imageHeight > 0) {
+                                                val imageAspect =
+                                                    imageWidth.toFloat() / imageHeight.toFloat()
                                                 val next =
-                                                    applyFreeCropDrag(
+                                                    applyAspectCropDrag(
                                                         cropRect = cropRectState.value,
                                                         mode = activeMode,
                                                         dragX = drag.x / workspace.width,
                                                         dragY = drag.y / workspace.height,
+                                                        imageAspect = imageAspect,
                                                     )
                                                 onCropRectChangeState.value(
-                                                    PhotoEditSaver.clampCropRect(next),
+                                                    PhotoEditSaver.clampCropRect(
+                                                        rect = next,
+                                                        imageAspect = imageAspect,
+                                                    ),
                                                 )
                                                 change.consume()
                                             }
@@ -441,12 +449,16 @@ private fun hitTestCropHandle(
     return CropDragMode.Move
 }
 
-/** Free crop drag — any aspect ratio. */
-private fun applyFreeCropDrag(
+/**
+ * Resize keeps the crop aspect equal to the source file (`width / height`).
+ * Workspace is square, so normalized aspect matches pixel aspect.
+ */
+private fun applyAspectCropDrag(
     cropRect: NormalizedCropRect,
     mode: CropDragMode,
     dragX: Float,
     dragY: Float,
+    imageAspect: Float,
 ): NormalizedCropRect {
     if (mode == CropDragMode.Move) {
         val width = cropRect.width
@@ -456,32 +468,43 @@ private fun applyFreeCropDrag(
         return NormalizedCropRect(left, top, left + width, top + height)
     }
 
-    var left = cropRect.left
-    var top = cropRect.top
-    var right = cropRect.right
-    var bottom = cropRect.bottom
-    when (mode) {
-        CropDragMode.ResizeTopLeft -> {
-            left += dragX
-            top += dragY
+    val aspect = imageAspect.coerceAtLeast(1e-6f)
+    val (anchorX, anchorY) =
+        when (mode) {
+            CropDragMode.ResizeTopLeft -> cropRect.right to cropRect.bottom
+            CropDragMode.ResizeTopRight -> cropRect.left to cropRect.bottom
+            CropDragMode.ResizeBottomLeft -> cropRect.right to cropRect.top
+            CropDragMode.ResizeBottomRight -> cropRect.left to cropRect.top
+            CropDragMode.Move -> return cropRect
         }
-
-        CropDragMode.ResizeTopRight -> {
-            right += dragX
-            top += dragY
+    val (rawX, rawY) =
+        when (mode) {
+            CropDragMode.ResizeTopLeft -> (cropRect.left + dragX) to (cropRect.top + dragY)
+            CropDragMode.ResizeTopRight -> (cropRect.right + dragX) to (cropRect.top + dragY)
+            CropDragMode.ResizeBottomLeft -> (cropRect.left + dragX) to (cropRect.bottom + dragY)
+            CropDragMode.ResizeBottomRight -> (cropRect.right + dragX) to (cropRect.bottom + dragY)
+            CropDragMode.Move -> return cropRect
         }
-
-        CropDragMode.ResizeBottomLeft -> {
-            left += dragX
-            bottom += dragY
-        }
-
-        CropDragMode.ResizeBottomRight -> {
-            right += dragX
-            bottom += dragY
-        }
-
-        CropDragMode.Move -> Unit
+    val clampedX = rawX.coerceIn(0f, 1f)
+    val clampedY = rawY.coerceIn(0f, 1f)
+    var width = abs(clampedX - anchorX)
+    var height = abs(clampedY - anchorY)
+    if (width / max(height, 1e-6f) > aspect) {
+        height = width / aspect
+    } else {
+        width = height * aspect
     }
-    return NormalizedCropRect(left, top, right, bottom)
+    width = min(width, if (clampedX >= anchorX) 1f - anchorX else anchorX)
+    height = width / aspect
+    height = min(height, if (clampedY >= anchorY) 1f - anchorY else anchorY)
+    width = height * aspect
+
+    val left = if (clampedX >= anchorX) anchorX else anchorX - width
+    val top = if (clampedY >= anchorY) anchorY else anchorY - height
+    return NormalizedCropRect(
+        left = left.coerceIn(0f, 1f),
+        top = top.coerceIn(0f, 1f),
+        right = (left + width).coerceIn(0f, 1f),
+        bottom = (top + height).coerceIn(0f, 1f),
+    )
 }
