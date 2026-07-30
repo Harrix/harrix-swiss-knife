@@ -40,7 +40,7 @@ def optimize_image_file(
     if ext not in SUPPORTED_IMAGE_EXTENSIONS:
         return None
 
-    if _is_already_optimized(image_filename, ext):
+    if _is_already_optimized(image_filename, ext, max_size=max_size):
         return None
 
     with TemporaryDirectory() as temp_folder:
@@ -233,8 +233,24 @@ def _determine_new_extension(
     return new_ext
 
 
-def _is_already_optimized(image_filename: Path, ext: str) -> bool:
-    """Return `True` if the image is already in the pipeline's output form."""
+def _image_exceeds_max_size(image_filename: Path, max_size: int) -> bool:
+    """Return `True` when either image side is larger than `max_size`."""
+    try:
+        with Image.open(image_filename) as img:
+            return max(img.size) > max_size
+    except (OSError, ValueError):
+        return False
+
+
+def _is_already_optimized(image_filename: Path, ext: str, *, max_size: int | None = None) -> bool:
+    """Return `True` if the image is already in the pipeline's output form.
+
+    When `max_size` is set, already-optimized AVIF/palette PNG files that exceed
+    the limit are treated as not optimized so they can be resized.
+
+    """
+    if max_size is not None and _image_exceeds_max_size(image_filename, max_size):
+        return False
     if ext == ".avif":
         return True
     if ext == ".png":

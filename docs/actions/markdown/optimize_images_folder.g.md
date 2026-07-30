@@ -33,14 +33,59 @@ class OnOptimizeImagesFolder(ActionBase):
 
     icon = "🖼️"
     title = "Optimize images in MD in …"
+    cli_available = True
+    cli_hint = "md optimize-images-folder [FOLDER] [--max-size N]"
+
+    CONFIG_KEY: ClassVar[str] = "optimize_images_folder_max_size"
+    DEFAULT_MAX_SIZE: ClassVar[int] = 1024
 
     @ActionBase.handle_exceptions("optimizing images with size comparison")
-    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+    def execute(
+        self,
+        *_args: Any,
+        folder_path: Path | None = None,
+        max_size: int | None = None,
+        noninteractive: bool = False,
+        **_kwargs: Any,
+    ) -> None:
         """Optimize images in Markdown files with PNG/AVIF size comparison."""
-        self.folder_path = self.dialogs.get_existing_directory(
-            "Select folder with Markdown files", self.config["path_articles"]
-        )
+        if noninteractive and folder_path is None:
+            self.handle_error(
+                ValueError("folder_path is required when noninteractive is True"),
+                "optimizing images with size comparison",
+            )
+            return
+
+        if folder_path is not None:
+            self.folder_path = Path(folder_path).resolve()
+        else:
+            self.folder_path = self.dialogs.get_existing_directory(
+                "Select folder with Markdown files", self.config["path_articles"]
+            )
         if not self.folder_path:
+            return
+
+        if noninteractive:
+            self.max_size = max_size
+        else:
+            choice = self.get_max_image_size_option(
+                "Optimize images — size limit",
+                default_enabled=True,
+                default_max_size=self._load_max_size_from_config(),
+            )
+            if choice is None:
+                return
+            enabled, value = choice
+            self._save_config_value(self.CONFIG_KEY, value)
+            self.max_size = value if enabled else None
+
+        if self.max_size is not None:
+            self.add_line(f"🔵 Max image size: {self.max_size}px")
+        else:
+            self.add_line("🔵 Max image size: not limited")
+
+        if noninteractive:
+            self.in_thread()
             return
 
         self.start_thread(self.in_thread, self.thread_after_show_result, self.title)
@@ -55,9 +100,23 @@ class OnOptimizeImagesFolder(ActionBase):
             if md_file.name.endswith(".g.md"):
                 continue
             results.append(
-                optimize_images_in_md_file(md_file, is_convert_png_to_avif=False, is_compare_png_avif_sizes=True)
+                optimize_images_in_md_file(
+                    md_file,
+                    is_convert_png_to_avif=False,
+                    is_compare_png_avif_sizes=True,
+                    max_size=self.max_size,
+                )
             )
         self.add_line("\n".join(results))
+
+    def _load_max_size_from_config(self) -> int:
+        """Return stored max size from config, or the default."""
+        raw = self.config.get(self.CONFIG_KEY, self.DEFAULT_MAX_SIZE)
+        try:
+            value = int(raw)
+        except (TypeError, ValueError):
+            return self.DEFAULT_MAX_SIZE
+        return value if value > 0 else self.DEFAULT_MAX_SIZE
 ```
 
 </details>
@@ -65,7 +124,7 @@ class OnOptimizeImagesFolder(ActionBase):
 ### ⚙️ Method `execute`
 
 ```python
-def execute(self, *args: Any, **kwargs: Any) -> None
+def execute(self, *_args: Any, **_kwargs: Any) -> None
 ```
 
 Optimize images in Markdown files with PNG/AVIF size comparison.
@@ -74,11 +133,51 @@ Optimize images in Markdown files with PNG/AVIF size comparison.
 <summary>Code:</summary>
 
 ```python
-def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        self.folder_path = self.dialogs.get_existing_directory(
-            "Select folder with Markdown files", self.config["path_articles"]
-        )
+def execute(
+        self,
+        *_args: Any,
+        folder_path: Path | None = None,
+        max_size: int | None = None,
+        noninteractive: bool = False,
+        **_kwargs: Any,
+    ) -> None:
+        if noninteractive and folder_path is None:
+            self.handle_error(
+                ValueError("folder_path is required when noninteractive is True"),
+                "optimizing images with size comparison",
+            )
+            return
+
+        if folder_path is not None:
+            self.folder_path = Path(folder_path).resolve()
+        else:
+            self.folder_path = self.dialogs.get_existing_directory(
+                "Select folder with Markdown files", self.config["path_articles"]
+            )
         if not self.folder_path:
+            return
+
+        if noninteractive:
+            self.max_size = max_size
+        else:
+            choice = self.get_max_image_size_option(
+                "Optimize images — size limit",
+                default_enabled=True,
+                default_max_size=self._load_max_size_from_config(),
+            )
+            if choice is None:
+                return
+            enabled, value = choice
+            self._save_config_value(self.CONFIG_KEY, value)
+            self.max_size = value if enabled else None
+
+        if self.max_size is not None:
+            self.add_line(f"🔵 Max image size: {self.max_size}px")
+        else:
+            self.add_line("🔵 Max image size: not limited")
+
+        if noninteractive:
+            self.in_thread()
             return
 
         self.start_thread(self.in_thread, self.thread_after_show_result, self.title)
@@ -106,7 +205,12 @@ def in_thread(self) -> str | None:
             if md_file.name.endswith(".g.md"):
                 continue
             results.append(
-                optimize_images_in_md_file(md_file, is_convert_png_to_avif=False, is_compare_png_avif_sizes=True)
+                optimize_images_in_md_file(
+                    md_file,
+                    is_convert_png_to_avif=False,
+                    is_compare_png_avif_sizes=True,
+                    max_size=self.max_size,
+                )
             )
         self.add_line("\n".join(results))
 ```

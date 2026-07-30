@@ -37,6 +37,7 @@ from PySide6.QtWidgets import (
     QPushButton,
     QScrollArea,
     QSizePolicy,
+    QSpinBox,
     QTextBrowser,
     QVBoxLayout,
     QWidget,
@@ -735,6 +736,62 @@ class ActionDialogService:
             return IconChoiceSelection(title=choice_title, action=action)
 
         return None
+
+    def get_max_image_size_option(
+        self,
+        title: str = "Image size limit",
+        *,
+        checkbox_label: str = "Limit max image size (px)",
+        default_enabled: bool = True,
+        default_max_size: int = 1024,
+    ) -> tuple[bool, int] | None:
+        """Ask whether to limit max image width/height.
+
+        Returns:
+
+        - `tuple[bool, int] | None`: `(enabled, max_size)` on accept, or `None` if cancelled.
+          When `enabled` is `False`, `max_size` is the spinbox value (for persistence) but
+          callers should treat the limit as unset.
+
+        """
+        checkbox: QCheckBox | None = None
+        spin_box: QSpinBox | None = None
+
+        def _build(dialog: QDialog, layout: QVBoxLayout) -> None:
+            nonlocal checkbox, spin_box
+
+            row = QHBoxLayout()
+            cb = QCheckBox(checkbox_label)
+            cb.setChecked(default_enabled)
+            row.addWidget(cb)
+
+            spin = QSpinBox()
+            spin.setMinimum(1)
+            spin.setMaximum(100_000)
+            spin.setValue(max(1, default_max_size))
+            spin.setEnabled(default_enabled)
+            row.addWidget(spin)
+            row.addStretch()
+            layout.addLayout(row)
+
+            def toggle_spin(checked: bool) -> None:  # noqa: FBT001
+                spin.setEnabled(checked)
+
+            cb.toggled.connect(toggle_spin)
+
+            buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+            self._apply_emoji_dialog_buttons(buttons)
+            buttons.accepted.connect(dialog.accept)
+            buttons.rejected.connect(dialog.reject)
+            layout.addWidget(buttons)
+
+            checkbox = cb
+            spin_box = spin
+
+        result, _dialog = self._exec_compact_dialog(title, _build)
+        if result != QDialog.DialogCode.Accepted or checkbox is None or spin_box is None:
+            return None
+        return checkbox.isChecked(), spin_box.value()
 
     def get_open_filename(self, title: str, default_path: str, filter_: str) -> Path | None:
         """Return selected filename, or `None` if cancelled."""

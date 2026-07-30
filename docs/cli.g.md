@@ -33,6 +33,7 @@ lang: en
 - [🔧 Function `markdown_new_dream_note`](#-function-markdown_new_dream_note)
 - [🔧 Function `markdown_new_note`](#-function-markdown_new_note)
 - [🔧 Function `markdown_new_note_with_images`](#-function-markdown_new_note_with_images)
+- [🔧 Function `markdown_optimize_images_folder`](#-function-markdown_optimize_images_folder)
 - [🔧 Function `python_group`](#-function-python_group)
 - [🔧 Function `python_check`](#-function-python_check)
 - [🔧 Function `python_check_all`](#-function-python_check_all)
@@ -541,6 +542,26 @@ def markdown_new_note_with_images(folder: Path | None, name: str | None) -> None
             raise click.UsageError(_USAGE_FOLDER_WITH_NAME)
         action.execute_new_note_with_images()
     _exit_if_action_failed(action)
+```
+
+</details>
+
+## 🔧 Function `markdown_optimize_images_folder`
+
+```python
+def markdown_optimize_images_folder(folder: Path, max_size: int | None) -> None
+```
+
+Optimize images referenced by Markdown files under FOLDER (PNG/AVIF size comparison).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def markdown_optimize_images_folder(folder: Path, max_size: int | None) -> None:
+    action = OnOptimizeImagesFolder()
+    action(folder_path=folder, max_size=max_size, noninteractive=True)
+    _finish_timed_action(action)
 ```
 
 </details>

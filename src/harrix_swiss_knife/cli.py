@@ -26,6 +26,7 @@ from harrix_swiss_knife.actions.markdown import (
     OnBeautifyMdFolderAndRegenerateGMd,
     OnCheckMdFolder,
     OnNewMarkdown,
+    OnOptimizeImagesFolder,
 )
 from harrix_swiss_knife.actions.python import (
     OnCheckPythonProject,
@@ -444,6 +445,26 @@ def markdown_new_note_with_images(folder: Path | None, name: str | None) -> None
             raise click.UsageError(_USAGE_FOLDER_WITH_NAME)
         action.execute_new_note_with_images()
     _exit_if_action_failed(action)
+
+
+@markdown_group.command("optimize-images-folder")
+@click.argument(
+    "folder",
+    required=False,
+    default=".",
+    type=click.Path(exists=True, file_okay=False, path_type=Path),
+)
+@click.option(
+    "--max-size",
+    type=click.IntRange(1),
+    default=None,
+    help="Max width or height in pixels; images larger on either side are resized. Omit for no limit.",
+)
+def markdown_optimize_images_folder(folder: Path, max_size: int | None) -> None:
+    """Optimize images referenced by Markdown files under FOLDER (PNG/AVIF size comparison)."""
+    action = OnOptimizeImagesFolder()
+    action(folder_path=folder, max_size=max_size, noninteractive=True)
+    _finish_timed_action(action)
 
 
 @cli.group("py")

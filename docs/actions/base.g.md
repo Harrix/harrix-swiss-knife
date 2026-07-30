@@ -27,6 +27,7 @@ lang: en
   - [⚙️ Method `get_choice_from_list_with_descriptions`](#%EF%B8%8F-method-get_choice_from_list_with_descriptions)
   - [⚙️ Method `get_existing_directory`](#%EF%B8%8F-method-get_existing_directory)
   - [⚙️ Method `get_folder_with_choice_option`](#%EF%B8%8F-method-get_folder_with_choice_option)
+  - [⚙️ Method `get_max_image_size_option`](#%EF%B8%8F-method-get_max_image_size_option)
   - [⚙️ Method `get_open_filename`](#%EF%B8%8F-method-get_open_filename)
   - [⚙️ Method `get_open_filenames`](#%EF%B8%8F-method-get_open_filenames)
   - [⚙️ Method `get_open_filenames_with_resize`](#%EF%B8%8F-method-get_open_filenames_with_resize)
@@ -313,6 +314,22 @@ class ActionBase(ABC):
     def get_folder_with_choice_option(self, folders_list: list[str], default_path: str) -> Path | None:
         """Dialog wrapper. Prefer `self.dialogs.get_folder_with_choice_option()`."""
         return self.dialogs.get_folder_with_choice_option(folders_list, default_path)
+
+    def get_max_image_size_option(
+        self,
+        title: str = "Image size limit",
+        *,
+        checkbox_label: str = "Limit max image size (px)",
+        default_enabled: bool = True,
+        default_max_size: int = 1024,
+    ) -> tuple[bool, int] | None:
+        """Dialog wrapper. Prefer `self.dialogs.get_max_image_size_option()`."""
+        return self.dialogs.get_max_image_size_option(
+            strip_md_inline_code_markers(title),
+            checkbox_label=checkbox_label,
+            default_enabled=default_enabled,
+            default_max_size=default_max_size,
+        )
 
     def get_open_filename(self, title: str, default_path: str, filter_: str) -> Path | None:
         """Dialog wrapper. Prefer `self.dialogs.get_open_filename()`."""
@@ -696,7 +713,7 @@ class ActionBase(ABC):
 
             self.add_line(f"❌ Path does not exist: {normalized_path}")
 
-    def _save_config_value(self, key: str, value: str) -> None:
+    def _save_config_value(self, key: str, value: object) -> None:
         """Save a single top-level config value to config file."""
         config_path = Path(self.config_path)
         with Path.open(config_path, encoding="utf8") as f:
@@ -1131,6 +1148,36 @@ Dialog wrapper. Prefer `self.dialogs.get_folder_with_choice_option()`.
 ```python
 def get_folder_with_choice_option(self, folders_list: list[str], default_path: str) -> Path | None:
         return self.dialogs.get_folder_with_choice_option(folders_list, default_path)
+```
+
+</details>
+
+### ⚙️ Method `get_max_image_size_option`
+
+```python
+def get_max_image_size_option(self, title: str = "Image size limit") -> tuple[bool, int] | None
+```
+
+Dialog wrapper. Prefer `self.dialogs.get_max_image_size_option()`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_max_image_size_option(
+        self,
+        title: str = "Image size limit",
+        *,
+        checkbox_label: str = "Limit max image size (px)",
+        default_enabled: bool = True,
+        default_max_size: int = 1024,
+    ) -> tuple[bool, int] | None:
+        return self.dialogs.get_max_image_size_option(
+            strip_md_inline_code_markers(title),
+            checkbox_label=checkbox_label,
+            default_enabled=default_enabled,
+            default_max_size=default_max_size,
+        )
 ```
 
 </details>

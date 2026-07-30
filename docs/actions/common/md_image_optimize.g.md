@@ -51,7 +51,7 @@ def optimize_image_file(
     if ext not in SUPPORTED_IMAGE_EXTENSIONS:
         return None
 
-    if _is_already_optimized(image_filename, ext):
+    if _is_already_optimized(image_filename, ext, max_size=max_size):
         return None
 
     with TemporaryDirectory() as temp_folder:
