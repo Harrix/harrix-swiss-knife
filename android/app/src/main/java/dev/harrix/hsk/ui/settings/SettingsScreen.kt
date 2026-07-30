@@ -15,6 +15,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
@@ -30,8 +31,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -42,12 +43,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import dev.harrix.hsk.R
 import dev.harrix.hsk.gallery.GalleryCleanerPreferences
 import dev.harrix.hsk.gallery.GalleryDateFilter
+import dev.harrix.hsk.gallery.GalleryPermissions
 import dev.harrix.hsk.ui.theme.AppBackground
+import java.text.DateFormat
 import java.text.DateFormatSymbols
 import java.util.Calendar
+import java.util.Date
 
 enum class SettingsSection {
     All,
@@ -138,6 +145,116 @@ fun SettingsScreen(
     }
 }
 
+private enum class MediaPermissionKind {
+    Photos,
+    Videos,
+}
+
+@Composable
+private fun MediaPermissionSettingsBlock(
+    kind: MediaPermissionKind,
+    modifier: Modifier = Modifier,
+) {
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+    var hasMediaPermission by remember {
+        mutableStateOf(
+            when (kind) {
+                MediaPermissionKind.Photos -> GalleryPermissions.hasPhotosPermission(context)
+                MediaPermissionKind.Videos -> GalleryPermissions.hasVideosPermission(context)
+            },
+        )
+    }
+    var canManageMedia by remember {
+        mutableStateOf(GalleryPermissions.canManageMedia(context))
+    }
+
+    fun refreshPermissionStatus() {
+        hasMediaPermission =
+            when (kind) {
+                MediaPermissionKind.Photos -> GalleryPermissions.hasPhotosPermission(context)
+                MediaPermissionKind.Videos -> GalleryPermissions.hasVideosPermission(context)
+            }
+        canManageMedia = GalleryPermissions.canManageMedia(context)
+    }
+
+    DisposableEffect(lifecycleOwner) {
+        val observer =
+            LifecycleEventObserver { _, event ->
+                if (event == Lifecycle.Event.ON_RESUME) {
+                    refreshPermissionStatus()
+                }
+            }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
+    val mediaStatusRes =
+        when (kind) {
+            MediaPermissionKind.Photos ->
+                if (hasMediaPermission) {
+                    R.string.settings_photos_access_granted
+                } else {
+                    R.string.settings_photos_access_denied
+                }
+            MediaPermissionKind.Videos ->
+                if (hasMediaPermission) {
+                    R.string.settings_videos_access_granted
+                } else {
+                    R.string.settings_videos_access_denied
+                }
+        }
+    val manageMediaStatusRes =
+        when {
+            !GalleryPermissions.isManageMediaAvailable() ->
+                R.string.settings_manage_media_unavailable
+            canManageMedia -> R.string.settings_manage_media_granted
+            else -> R.string.settings_manage_media_denied
+        }
+
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(
+            text = stringResource(R.string.settings_permissions_title),
+            style = MaterialTheme.typography.titleSmall,
+        )
+        Text(
+            text = stringResource(mediaStatusRes),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        OutlinedButton(
+            onClick = {
+                context.startActivity(GalleryPermissions.appDetailsSettingsIntent(context))
+            },
+        ) {
+            Text(stringResource(R.string.settings_open_app_permissions))
+        }
+        Text(
+            text = stringResource(manageMediaStatusRes),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Text(
+            text = stringResource(R.string.settings_manage_media_hint),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        OutlinedButton(
+            onClick = {
+                GalleryPermissions.manageMediaSettingsIntent(context)?.let { intent ->
+                    context.startActivity(intent)
+                }
+            },
+            enabled = GalleryPermissions.isManageMediaAvailable(),
+        ) {
+            Text(stringResource(R.string.settings_open_manage_media))
+        }
+    }
+}
+
 @Composable
 private fun GalleryCleanerSettingsSection(
     showSectionTitle: Boolean,
@@ -155,9 +272,9 @@ private fun GalleryCleanerSettingsSection(
     val shootDayLabel =
         remember(currentShootDayEpochMs) {
             currentShootDayEpochMs?.let { epochMs ->
-                java.text.DateFormat
-                    .getDateInstance(java.text.DateFormat.MEDIUM)
-                    .format(java.util.Date(epochMs))
+                DateFormat
+                    .getDateInstance(DateFormat.MEDIUM)
+                    .format(Date(epochMs))
             }
         }
 
@@ -176,6 +293,10 @@ private fun GalleryCleanerSettingsSection(
                 style = MaterialTheme.typography.titleMedium,
             )
         }
+
+        MediaPermissionSettingsBlock(kind = MediaPermissionKind.Photos)
+
+        HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
 
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -461,7 +582,7 @@ private fun VideoCleanerSettingsSection(
 ) {
     Column(
         modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         if (showSectionTitle) {
             Text(
@@ -469,10 +590,6 @@ private fun VideoCleanerSettingsSection(
                 style = MaterialTheme.typography.titleMedium,
             )
         }
-        Text(
-            text = stringResource(R.string.settings_video_cleaner_empty),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        MediaPermissionSettingsBlock(kind = MediaPermissionKind.Videos)
     }
 }
