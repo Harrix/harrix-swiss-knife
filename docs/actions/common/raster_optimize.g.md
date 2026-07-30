@@ -114,6 +114,9 @@ def process_png_compare(source: Path, output_folder: Path, project_root: Path) -
 
 Optimize PNG, compare with AVIF from ffmpeg, and keep the smaller file.
 
+Flat graphics (few unique colors and a large solid-color region) are encoded
+as high-quality AVIF (`CRF 18`, `yuv444p`) before the size comparison.
+
 <details>
 <summary>Code:</summary>
 
@@ -131,13 +134,24 @@ def process_png_compare(
     png_bytes = _encode_optimized_png(image)
     output_png = output_folder / f"{source.stem}.png"
     output_avif = output_folder / f"{source.stem}.avif"
+    flat_graphic = _is_flat_graphic(image)
+    avif_quality = flat_graphic or quality
+    pix_fmt = _PIX_FMT_FLAT_GRAPHIC if flat_graphic else _PIX_FMT_DEFAULT
+    avif_label = "high-quality AVIF" if flat_graphic else "AVIF"
 
     with tempfile.TemporaryDirectory(prefix="png_compare_") as temp_dir:
         temp_path = Path(temp_dir)
         temp_png = temp_path / "input.png"
         image.save(temp_png, format="PNG")
         temp_avif = temp_path / "output.avif"
-        _convert_to_avif(temp_png, temp_avif, project_root, quality=quality, max_size=None)
+        _convert_to_avif(
+            temp_png,
+            temp_avif,
+            project_root,
+            quality=avif_quality,
+            max_size=None,
+            pix_fmt=pix_fmt,
+        )
         avif_size = temp_avif.stat().st_size
         avif_bytes = temp_avif.read_bytes()
 
@@ -146,13 +160,13 @@ def process_png_compare(
         output_png.write_bytes(png_bytes)
         return (
             f"✅ File {source.name} kept as PNG (smaller size): "
-            f"PNG {(png_size / 1024):.2f} KB, AVIF {(avif_size / 1024):.2f} KB."
+            f"PNG {(png_size / 1024):.2f} KB, {avif_label} {(avif_size / 1024):.2f} KB."
         )
 
     output_avif.write_bytes(avif_bytes)
     return (
-        f"✅ File {source.name} converted to AVIF (smaller size): "
-        f"PNG {(png_size / 1024):.2f} KB, AVIF {(avif_size / 1024):.2f} KB."
+        f"✅ File {source.name} converted to {avif_label} (smaller size): "
+        f"PNG {(png_size / 1024):.2f} KB, {avif_label} {(avif_size / 1024):.2f} KB."
     )
 ```
 

@@ -83,6 +83,45 @@ def test_process_png_compare_prefers_smaller_png(mock_convert: object, tmp_path:
     assert "kept as PNG" in message
 
 
+def test_is_flat_graphic_detects_solid_background_diagram() -> None:
+    image = Image.new("RGB", (200, 120), (255, 255, 255))
+    for x in range(40, 160):
+        image.putpixel((x, 60), (0, 0, 0))
+        image.putpixel((x, 61), (30, 90, 200))
+    assert raster_optimize._is_flat_graphic(image) is True
+
+
+def test_is_flat_graphic_rejects_noisy_many_color_image() -> None:
+    image = Image.new("RGB", (64, 64))
+    for y in range(64):
+        for x in range(64):
+            image.putpixel((x, y), (x * 3 % 256, y * 5 % 256, (x + y) * 7 % 256))
+    assert raster_optimize._is_flat_graphic(image) is False
+
+
+@patch("harrix_swiss_knife.actions.common.raster_optimize._convert_to_avif")
+def test_process_png_compare_uses_hq_avif_for_flat_graphic(mock_convert: object, tmp_path: Path) -> None:
+    source = tmp_path / "diagram.png"
+    output_folder = tmp_path / "output"
+    Image.new("RGB", (80, 60), (255, 255, 255)).save(source, format="PNG")
+
+    convert_kwargs: dict[str, object] = {}
+
+    def fake_convert(_source_path: Path, output_path: Path, *_args: object, **kwargs: object) -> None:
+        convert_kwargs.update(kwargs)
+        output_path.write_bytes(b"x" * 100_000)
+
+    mock_convert.side_effect = fake_convert
+
+    message = raster_optimize.process_png_compare(source, output_folder, tmp_path)
+    assert convert_kwargs.get("quality") is True
+    assert convert_kwargs.get("pix_fmt") == raster_optimize._PIX_FMT_FLAT_GRAPHIC
+    assert (output_folder / "diagram.png").exists()
+    assert not (output_folder / "diagram.avif").exists()
+    assert "kept as PNG" in message
+    assert "high-quality AVIF" in message
+
+
 @pytest.mark.slow
 def test_process_jpg_webp_to_avif_with_ffmpeg(tmp_path: Path) -> None:
     project_root = Path(__file__).resolve().parents[1]
