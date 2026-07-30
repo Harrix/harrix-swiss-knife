@@ -154,3 +154,18 @@ audio.hne-md-audio {
   width: 100%;
   max-width: 32rem;
 }
+
+p.hne-md-media-actions {
+  margin: 0.35em 0 0.85em 0;
+  font-size: 0.9em;
+}
+
+a.hne-md-open-external {
+  color: var(--vscode-textLink-foreground, #3794ff);
+  text-decoration: none;
+}
+
+a.hne-md-open-external:hover {
+  color: var(--vscode-textLink-activeForeground, #3794ff);
+  text-decoration: underline;
+}

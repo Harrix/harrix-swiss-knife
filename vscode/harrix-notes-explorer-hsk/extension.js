@@ -877,6 +877,9 @@ const DEFAULT_NOTE_DROP_IMAGE_EXTENSIONS = [
 const PREVIEW_VIDEO_EXTENSIONS = new Set(['.mp4', '.webm', '.mov', '.m4v', '.ogv', '.mkv']);
 const PREVIEW_AUDIO_EXTENSIONS = new Set(['.mp3', '.wav', '.ogg', '.oga', '.m4a', '.flac', '.aac', '.opus']);
 
+/** @type {string} `publisher.name` — set in activate for vscode:// UriHandler links */
+let previewMediaExtensionId = 'local.harrix-notes-explorer-hsk';
+
 /**
  * @param {string} src
  * @returns {string}
@@ -893,6 +896,88 @@ function mediaExtFromSrc(src) {
  */
 function escapeHtmlAttr(value) {
   return String(value).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+}
+
+/**
+ * Resolve markdown media src to an absolute local filesystem path, or null if remote/unknown.
+ * @param {string} dataSrc original markdown path (`data-src`) or src
+ * @param {{ currentDocument?: vscode.Uri }} [env]
+ * @returns {string | null}
+ */
+function resolveLocalMediaFsPath(dataSrc, env) {
+  let raw = String(dataSrc || '').trim();
+  if (!raw || /^(https?:|data:)/i.test(raw)) {
+    return null;
+  }
+  raw = raw.replace(/^<|>$/g, '');
+  try {
+    raw = decodeURIComponent(raw);
+  } catch {
+    // keep raw
+  }
+  if (/^(https?:|data:)/i.test(raw)) {
+    return null;
+  }
+  if (raw.startsWith('file:')) {
+    try {
+      return vscode.Uri.parse(raw).fsPath;
+    } catch {
+      return null;
+    }
+  }
+  if (path.isAbsolute(raw)) {
+    return path.normalize(raw);
+  }
+  const doc = env?.currentDocument;
+  if (doc?.scheme !== 'file') {
+    return null;
+  }
+  return path.resolve(path.dirname(doc.fsPath), raw);
+}
+
+/**
+ * Link that opens a local media file in the OS default player via UriHandler.
+ * @param {string} absFsPath
+ * @returns {string}
+ */
+function renderOpenInSystemPlayerLink(absFsPath) {
+  const href = `vscode://${previewMediaExtensionId}/open-media?fsPath=${encodeURIComponent(absFsPath)}`;
+  return (
+    `<p class="hne-md-media-actions">` +
+    `<a class="hne-md-open-external" href="${escapeHtmlAttr(href)}">Open in system player</a>` +
+    `</p>\n`
+  );
+}
+
+/**
+ * @param {vscode.ExtensionContext} context
+ */
+function registerOpenMediaUriHandler(context) {
+  previewMediaExtensionId = context.extension.id;
+  context.subscriptions.push(
+    vscode.window.registerUriHandler({
+      handleUri(uri) {
+        if (uri.path !== '/open-media') {
+          return;
+        }
+        const params = new URLSearchParams(uri.query);
+        const fsPath = params.get('fsPath');
+        if (!fsPath) {
+          vscode.window.showErrorMessage('Open in system player: missing file path.');
+          return;
+        }
+        if (!pathExists(fsPath) || !isFilePath(fsPath)) {
+          vscode.window.showErrorMessage(`Open in system player: file not found:\n${fsPath}`);
+          return;
+        }
+        void vscode.env.openExternal(vscode.Uri.file(fsPath)).then((ok) => {
+          if (!ok) {
+            vscode.window.showErrorMessage(`Could not open file in system player:\n${fsPath}`);
+          }
+        });
+      },
+    }),
+  );
 }
 
 function getNoteDropSettings() {
@@ -2619,11 +2704,14 @@ function registerPreviewCopyMarkdownPlugin() {
         const title = token.attrGet('title');
         const titleAttr = title ? ` title="${escapeHtmlAttr(title)}"` : '';
 
+        const localFsPath = resolveLocalMediaFsPath(dataSrc || src, env);
+        const openLink = localFsPath ? renderOpenInSystemPlayerLink(localFsPath) : '';
+
         if (PREVIEW_VIDEO_EXTENSIONS.has(ext)) {
-          return `<video class="hne-md-video" controls playsinline src="${escapeHtmlAttr(src)}"${titleAttr}></video>\n`;
+          return `<video class="hne-md-video" controls playsinline src="${escapeHtmlAttr(src)}"${titleAttr}></video>\n${openLink}`;
         }
         if (PREVIEW_AUDIO_EXTENSIONS.has(ext)) {
-          return `<audio class="hne-md-audio" controls src="${escapeHtmlAttr(src)}"${titleAttr}></audio>\n`;
+          return `<audio class="hne-md-audio" controls src="${escapeHtmlAttr(src)}"${titleAttr}></audio>\n${openLink}`;
         }
         return defaultImageRender(tokens, idx, options, env, self);
       };
@@ -2673,6 +2761,7 @@ function getWorkspaceRootEntries() {
 }
 
 function activate(context) {
+  registerOpenMediaUriHandler(context);
   registerPreviewCopyConfigRefresh(context);
   registerMarkdownRelativeLinkDropProvider(context);
 
