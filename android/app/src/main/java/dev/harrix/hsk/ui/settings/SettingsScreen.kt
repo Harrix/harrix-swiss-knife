@@ -132,8 +132,6 @@ fun SettingsScreen(
                         showSectionTitle = true,
                         currentShootDayEpochMs = currentShootDayEpochMs,
                     )
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-                    VideoCleanerSettingsSection(showSectionTitle = true)
                 }
 
                 SettingsSection.GalleryCleaner -> {
@@ -144,9 +142,12 @@ fun SettingsScreen(
                 }
 
                 SettingsSection.VideoCleaner -> {
-                    VideoCleanerSettingsSection(showSectionTitle = false)
+                    // Video Cleaner currently has no utility-specific settings.
                 }
             }
+
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+            PermissionsSettingsSection()
 
             if (onOpenAllSettings != null && section != SettingsSection.All) {
                 Spacer(modifier = Modifier.height(16.dp))
@@ -253,36 +254,23 @@ private fun AppearanceSettingsSection(
     }
 }
 
-private enum class MediaPermissionKind {
-    Photos,
-    Videos,
-}
-
 @Composable
-private fun MediaPermissionSettingsBlock(
-    kind: MediaPermissionKind,
-    modifier: Modifier = Modifier,
-) {
+private fun PermissionsSettingsSection(modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
-    var hasMediaPermission by remember {
-        mutableStateOf(
-            when (kind) {
-                MediaPermissionKind.Photos -> GalleryPermissions.hasPhotosPermission(context)
-                MediaPermissionKind.Videos -> GalleryPermissions.hasVideosPermission(context)
-            },
-        )
+    var hasPhotosPermission by remember {
+        mutableStateOf(GalleryPermissions.hasPhotosPermission(context))
+    }
+    var hasVideosPermission by remember {
+        mutableStateOf(GalleryPermissions.hasVideosPermission(context))
     }
     var canManageMedia by remember {
         mutableStateOf(GalleryPermissions.canManageMedia(context))
     }
 
     fun refreshPermissionStatus() {
-        hasMediaPermission =
-            when (kind) {
-                MediaPermissionKind.Photos -> GalleryPermissions.hasPhotosPermission(context)
-                MediaPermissionKind.Videos -> GalleryPermissions.hasVideosPermission(context)
-            }
+        hasPhotosPermission = GalleryPermissions.hasPhotosPermission(context)
+        hasVideosPermission = GalleryPermissions.hasVideosPermission(context)
         canManageMedia = GalleryPermissions.canManageMedia(context)
     }
 
@@ -297,21 +285,17 @@ private fun MediaPermissionSettingsBlock(
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    val mediaStatusRes =
-        when (kind) {
-            MediaPermissionKind.Photos ->
-                if (hasMediaPermission) {
-                    R.string.settings_photos_access_granted
-                } else {
-                    R.string.settings_photos_access_denied
-                }
-
-            MediaPermissionKind.Videos ->
-                if (hasMediaPermission) {
-                    R.string.settings_videos_access_granted
-                } else {
-                    R.string.settings_videos_access_denied
-                }
+    val photosStatusRes =
+        if (hasPhotosPermission) {
+            R.string.settings_photos_access_granted
+        } else {
+            R.string.settings_photos_access_denied
+        }
+    val videosStatusRes =
+        if (hasVideosPermission) {
+            R.string.settings_videos_access_granted
+        } else {
+            R.string.settings_videos_access_denied
         }
     val manageMediaStatusRes =
         when {
@@ -323,16 +307,17 @@ private fun MediaPermissionSettingsBlock(
             else -> R.string.settings_manage_media_denied
         }
 
-    Column(
-        modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+    CollapsibleSettingsSection(
+        title = stringResource(R.string.settings_permissions_title),
+        modifier = modifier,
     ) {
         Text(
-            text = stringResource(R.string.settings_permissions_title),
-            style = MaterialTheme.typography.titleSmall,
+            text = stringResource(photosStatusRes),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Text(
-            text = stringResource(mediaStatusRes),
+            text = stringResource(videosStatusRes),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -491,10 +476,6 @@ private fun GalleryCleanerSettingsSection(
             shootDayLabel = shootDayLabel,
             onPreset = { persist(it) },
         )
-
-        HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-
-        MediaPermissionSettingsBlock(kind = MediaPermissionKind.Photos)
     }
 
     if (showSectionTitle) {
@@ -760,29 +741,5 @@ private fun SimpleDropdownField(
                 )
             }
         }
-    }
-}
-
-@Composable
-private fun VideoCleanerSettingsSection(
-    showSectionTitle: Boolean,
-    modifier: Modifier = Modifier,
-) {
-    val body: @Composable () -> Unit = {
-        MediaPermissionSettingsBlock(kind = MediaPermissionKind.Videos)
-    }
-
-    if (showSectionTitle) {
-        CollapsibleSettingsSection(
-            title = stringResource(R.string.settings_video_cleaner_title),
-            modifier = modifier,
-            content = body,
-        )
-    } else {
-        Column(
-            modifier = modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            content = { body() },
-        )
     }
 }
