@@ -305,6 +305,28 @@ fun GalleryCleanerScreen(
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
+                        if (dateFilter.enabled) {
+                            val dateFormat =
+                                remember {
+                                    DateFormat.getDateInstance(DateFormat.MEDIUM)
+                                }
+                            Text(
+                                text =
+                                    stringResource(
+                                        R.string.gallery_cleaner_date_filter_active,
+                                        dateFormat.format(
+                                            Date(dateFilter.startEpochSecInclusive * 1000L),
+                                        ),
+                                        dateFormat.format(
+                                            Date(dateFilter.endEpochSecInclusive * 1000L),
+                                        ),
+                                    ),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
                     }
                 },
                 navigationIcon = {

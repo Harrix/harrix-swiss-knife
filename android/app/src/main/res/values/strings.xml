@@ -54,6 +54,7 @@
     <string name="gallery_cleaner_action_keep">Keep</string>
     <string name="gallery_cleaner_remaining">%1$d remaining</string>
     <string name="gallery_cleaner_session_stats">Deleted: %1$d · Freed: %2$s</string>
+    <string name="gallery_cleaner_date_filter_active">Filter: %1$s – %2$s</string>
     <string name="gallery_cleaner_untitled">Untitled photo</string>
     <string name="gallery_cleaner_delete_failed">Could not delete photo</string>
     <string name="video_cleaner_title">Video Cleaner</string>
