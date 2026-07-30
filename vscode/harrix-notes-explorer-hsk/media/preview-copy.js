@@ -492,7 +492,7 @@
       processAllCodeBlocks();
     });
 
-    // Open system player without navigating the preview (avoids white flash on http helper).
+    // Keep markdown preview intact: silent image ping, else open helper in a new tab.
     document.addEventListener(
       'click',
       (e) => {
@@ -507,30 +507,14 @@
         e.preventDefault();
         e.stopImmediatePropagation();
 
-        const httpUrl = a.getAttribute('data-hne-http') || '';
-        const href = a.getAttribute('href') || '';
-        const openFallback = () => {
-          if (href) {
-            window.location.href = href;
-          } else if (httpUrl) {
-            window.location.href = httpUrl;
-          }
-        };
-
+        const httpUrl = a.getAttribute('href') || '';
         if (!httpUrl) {
-          openFallback();
           return;
         }
 
         let settled = false;
         let timer = 0;
-        const markOk = () => {
-          settled = true;
-          if (timer) {
-            window.clearTimeout(timer);
-          }
-        };
-        const markFail = () => {
+        const openOutsidePreview = () => {
           if (settled) {
             return;
           }
@@ -538,17 +522,30 @@
           if (timer) {
             window.clearTimeout(timer);
           }
-          openFallback();
+          // Never assign location.href — that replaces the preview with a white page.
+          const link = document.createElement('a');
+          link.href = httpUrl;
+          link.target = '_blank';
+          link.rel = 'noopener noreferrer';
+          document.body.appendChild(link);
+          link.click();
+          link.remove();
+        };
+        const markOk = () => {
+          settled = true;
+          if (timer) {
+            window.clearTimeout(timer);
+          }
         };
 
         try {
           const img = new Image();
           img.onload = markOk;
-          img.onerror = markFail;
+          img.onerror = openOutsidePreview;
           img.src = `${httpUrl}${httpUrl.includes('?') ? '&' : '?'}_=${Date.now()}`;
-          timer = window.setTimeout(markFail, 800);
+          timer = window.setTimeout(openOutsidePreview, 800);
         } catch {
-          markFail();
+          openOutsidePreview();
         }
       },
       true,
