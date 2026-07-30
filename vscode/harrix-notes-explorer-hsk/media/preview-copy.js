@@ -491,6 +491,68 @@
     window.addEventListener('vscode.markdown.updateContent', () => {
       processAllCodeBlocks();
     });
+
+    // Open system player without navigating the preview (avoids white flash on http helper).
+    document.addEventListener(
+      'click',
+      (e) => {
+        const target = e.target;
+        if (!(target instanceof Element)) {
+          return;
+        }
+        const a = target.closest('a.hne-md-open-external');
+        if (!a) {
+          return;
+        }
+        e.preventDefault();
+        e.stopImmediatePropagation();
+
+        const httpUrl = a.getAttribute('data-hne-http') || '';
+        const href = a.getAttribute('href') || '';
+        const openFallback = () => {
+          if (href) {
+            window.location.href = href;
+          } else if (httpUrl) {
+            window.location.href = httpUrl;
+          }
+        };
+
+        if (!httpUrl) {
+          openFallback();
+          return;
+        }
+
+        let settled = false;
+        let timer = 0;
+        const markOk = () => {
+          settled = true;
+          if (timer) {
+            window.clearTimeout(timer);
+          }
+        };
+        const markFail = () => {
+          if (settled) {
+            return;
+          }
+          settled = true;
+          if (timer) {
+            window.clearTimeout(timer);
+          }
+          openFallback();
+        };
+
+        try {
+          const img = new Image();
+          img.onload = markOk;
+          img.onerror = markFail;
+          img.src = `${httpUrl}${httpUrl.includes('?') ? '&' : '?'}_=${Date.now()}`;
+          timer = window.setTimeout(markFail, 800);
+        } catch {
+          markFail();
+        }
+      },
+      true,
+    );
   }
 
   initOnce();

@@ -881,6 +881,12 @@ const PREVIEW_AUDIO_EXTENSIONS = new Set(['.mp3', '.wav', '.ogg', '.oga', '.m4a'
 
 const OPEN_MEDIA_EXTERNALLY_COMMAND = 'harrixNotesExplorerHsk.openMediaExternally';
 
+/** Transparent 1×1 GIF — preview script can ping the helper without navigating. */
+const OPEN_MEDIA_PING_GIF = Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64');
+
+/** @type {string} `publisher.name` — authority for UriHandler links */
+let previewMediaExtensionId = 'local.harrix-notes-explorer-hsk';
+
 /** @type {import('node:http').Server | null} */
 let openMediaHttpServer = null;
 /** @type {number} */
@@ -980,25 +986,26 @@ function resolveLocalMediaFsPath(dataSrc, webviewSrc, env) {
 }
 
 /**
- * Link under local media. Uses http://127.0.0.1 + opaque token (not the file path)
- * so Unicode paths are not corrupted in the URL.
+ * Link under local media. Opaque token avoids Unicode path corruption in URLs.
+ * `href` uses the editor UriHandler (no HTML page). `data-hne-http` lets the
+ * preview script ping localhost without navigating (avoids white flash).
  * @param {string} absFsPath
  * @returns {string}
  */
 function renderOpenInSystemPlayerLink(absFsPath) {
-  if (!openMediaHttpPort) {
-    return '';
-  }
   const token = crypto.randomBytes(16).toString('hex');
   openMediaPathByToken.set(token, absFsPath);
   while (openMediaPathByToken.size > 200) {
     const oldest = openMediaPathByToken.keys().next().value;
     openMediaPathByToken.delete(oldest);
   }
-  const href = `http://127.0.0.1:${openMediaHttpPort}/open-media?t=${token}`;
+  const scheme = vscode.env.uriScheme || 'vscode';
+  const href = `${scheme}://${previewMediaExtensionId}/open-media?t=${token}`;
+  const httpUrl = openMediaHttpPort ? `http://127.0.0.1:${openMediaHttpPort}/open-media?t=${token}` : '';
+  const httpAttr = httpUrl ? ` data-hne-http="${escapeHtmlAttr(httpUrl)}"` : '';
   return (
     `<p class="hne-md-media-actions">` +
-    `<a class="hne-md-open-external" href="${escapeHtmlAttr(href)}">Open in system player</a>` +
+    `<a class="hne-md-open-external" href="${escapeHtmlAttr(href)}"${httpAttr}>Open in system player</a>` +
     `</p>\n`
   );
 }
@@ -1059,12 +1066,13 @@ function startOpenMediaHttpServer() {
         const token = url.searchParams.get('t') || '';
         const fsPath = openMediaPathByToken.get(token) || '';
         void openMediaInSystemPlayer(fsPath);
-        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-        res.end(
-          '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Opening…</title></head>' +
-            '<body><p>Opening in system player…</p>' +
-            '<script>window.close();</script></body></html>',
-        );
+        // GIF so preview can trigger open via <img> without replacing the page.
+        res.writeHead(200, {
+          'Content-Type': 'image/gif',
+          'Cache-Control': 'no-store',
+          'Content-Length': String(OPEN_MEDIA_PING_GIF.length),
+        });
+        res.end(OPEN_MEDIA_PING_GIF);
       } catch {
         res.writeHead(500);
         res.end();
@@ -1090,12 +1098,43 @@ function stopOpenMediaHttpServer() {
 }
 
 /**
+ * @param {string} token
+ * @returns {string}
+ */
+function resolveOpenMediaToken(token) {
+  if (!token) {
+    return '';
+  }
+  return openMediaPathByToken.get(token) || '';
+}
+
+/**
+ * @param {vscode.ExtensionContext} context
+ */
+function registerOpenMediaUriHandler(context) {
+  context.subscriptions.push(
+    vscode.window.registerUriHandler({
+      handleUri(uri) {
+        const pathName = String(uri.path || '').replace(/\/+$/, '') || '/';
+        if (pathName !== '/open-media' && pathName !== 'open-media') {
+          return;
+        }
+        const token = new URLSearchParams(uri.query).get('t') || '';
+        void openMediaInSystemPlayer(resolveOpenMediaToken(token));
+      },
+    }),
+  );
+}
+
+/**
  * @param {vscode.ExtensionContext} context
  */
 function registerOpenMediaExternallyCommand(context) {
   context.subscriptions.push(
-    vscode.commands.registerCommand(OPEN_MEDIA_EXTERNALLY_COMMAND, async (fsPath) => {
-      await openMediaInSystemPlayer(fsPath);
+    vscode.commands.registerCommand(OPEN_MEDIA_EXTERNALLY_COMMAND, async (arg) => {
+      const raw = typeof arg === 'string' ? arg : '';
+      const fromToken = resolveOpenMediaToken(raw);
+      await openMediaInSystemPlayer(fromToken || raw);
     }),
   );
   context.subscriptions.push({ dispose: () => stopOpenMediaHttpServer() });
@@ -2882,6 +2921,8 @@ function getWorkspaceRootEntries() {
 }
 
 async function activate(context) {
+  previewMediaExtensionId = context.extension.id || previewMediaExtensionId;
+  registerOpenMediaUriHandler(context);
   registerOpenMediaExternallyCommand(context);
   try {
     await startOpenMediaHttpServer();
