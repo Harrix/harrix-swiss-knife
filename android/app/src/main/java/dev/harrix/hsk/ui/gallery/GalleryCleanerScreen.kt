@@ -413,7 +413,15 @@ fun GalleryCleanerScreen(
                     }
                     if (hasPermission && remainingCount > 0) {
                         Text(
-                            text = stringResource(R.string.gallery_cleaner_remaining, remainingCount),
+                            text =
+                                stringResource(
+                                    if (unreviewedOnlyMode) {
+                                        R.string.gallery_cleaner_remaining_unreviewed
+                                    } else {
+                                        R.string.gallery_cleaner_remaining
+                                    },
+                                    remainingCount,
+                                ),
                             style = MaterialTheme.typography.labelLarge,
                             modifier = Modifier.padding(end = 4.dp),
                         )
