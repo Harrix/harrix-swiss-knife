@@ -2,6 +2,7 @@ const vscode = require('vscode');
 const path = require('node:path');
 const fs = require('node:fs');
 const http = require('node:http');
+const crypto = require('node:crypto');
 const { execFile } = require('node:child_process');
 const util = require('node:util');
 
@@ -884,6 +885,8 @@ const OPEN_MEDIA_EXTERNALLY_COMMAND = 'harrixNotesExplorerHsk.openMediaExternall
 let openMediaHttpServer = null;
 /** @type {number} */
 let openMediaHttpPort = 0;
+/** @type {Map<string, string>} token -> absolute fs path (avoids Unicode paths in URLs) */
+const openMediaPathByToken = new Map();
 
 /**
  * @param {string} src
@@ -904,46 +907,81 @@ function escapeHtmlAttr(value) {
 }
 
 /**
- * Resolve markdown media src to an absolute local filesystem path, or null if remote/unknown.
- * @param {string} dataSrc original markdown path (`data-src`) or src
- * @param {{ currentDocument?: vscode.Uri }} [env]
+ * Try to recover an absolute path from a Markdown preview webview resource URI.
+ * @param {string} src
  * @returns {string | null}
  */
-function resolveLocalMediaFsPath(dataSrc, env) {
-  let raw = String(dataSrc || '').trim();
-  if (!raw || /^(https?:|data:)/i.test(raw)) {
+function fsPathFromWebviewMediaSrc(src) {
+  const raw = String(src || '').trim();
+  if (!raw || /^(https?:\/\/127\.0\.0\.1|https?:\/\/localhost|data:)/i.test(raw)) {
     return null;
   }
-  raw = raw.replace(/^<|>$/g, '');
   try {
-    raw = decodeURIComponent(raw);
-  } catch {
-    // keep raw
-  }
-  if (/^(https?:|data:)/i.test(raw)) {
-    return null;
-  }
-  if (raw.startsWith('file:')) {
-    try {
-      return vscode.Uri.parse(raw).fsPath;
-    } catch {
-      return null;
+    const uri = vscode.Uri.parse(raw);
+    if (uri.scheme === 'file' && uri.fsPath) {
+      return uri.fsPath;
     }
+    // vscode-file://vscode-app/d:/... or similar
+    if (uri.fsPath && (/^[a-zA-Z]:[\\/]/.test(uri.fsPath) || path.isAbsolute(uri.fsPath))) {
+      return path.normalize(uri.fsPath);
+    }
+  } catch {
+    // continue
   }
-  if (path.isAbsolute(raw)) {
-    return path.normalize(raw);
+  try {
+    const u = new URL(raw);
+    let p = decodeURIComponent(u.pathname || '');
+    if (process.platform === 'win32' && /^\/[a-zA-Z]:/.test(p)) {
+      p = p.slice(1);
+    }
+    if (/^[a-zA-Z]:[\\/]/.test(p) || path.isAbsolute(p)) {
+      return path.normalize(p);
+    }
+  } catch {
+    // ignore
   }
-  const doc = env?.currentDocument;
-  if (doc?.scheme !== 'file') {
-    return null;
-  }
-  return path.resolve(path.dirname(doc.fsPath), raw);
+  return null;
 }
 
 /**
- * Link under local media. Uses http://127.0.0.1 so the Markdown preview webview
- * treats it as an external http link (opens via the helper server → system player).
- * `vscode://` / UriHandler fail here: preview tries to open them as files (EntryNotFound).
+ * Resolve markdown media src to an absolute local filesystem path, or null if remote/unknown.
+ * @param {string} dataSrc original markdown path (`data-src`) or src
+ * @param {string} webviewSrc converted preview `src`
+ * @param {{ currentDocument?: vscode.Uri }} [env]
+ * @returns {string | null}
+ */
+function resolveLocalMediaFsPath(dataSrc, webviewSrc, env) {
+  let raw = String(dataSrc || '').trim();
+  if (raw && !/^(https?:|data:)/i.test(raw)) {
+    raw = raw.replace(/^<|>$/g, '');
+    try {
+      raw = decodeURIComponent(raw);
+    } catch {
+      // keep raw
+    }
+    if (!/^(https?:|data:)/i.test(raw)) {
+      if (raw.startsWith('file:')) {
+        try {
+          return vscode.Uri.parse(raw).fsPath;
+        } catch {
+          // fall through
+        }
+      } else if (path.isAbsolute(raw) || /^[a-zA-Z]:[\\/]/.test(raw)) {
+        return path.normalize(raw);
+      } else {
+        const doc = env?.currentDocument;
+        if (doc?.scheme === 'file') {
+          return path.resolve(path.dirname(doc.fsPath), raw);
+        }
+      }
+    }
+  }
+  return fsPathFromWebviewMediaSrc(webviewSrc || dataSrc);
+}
+
+/**
+ * Link under local media. Uses http://127.0.0.1 + opaque token (not the file path)
+ * so Unicode paths are not corrupted in the URL.
  * @param {string} absFsPath
  * @returns {string}
  */
@@ -951,7 +989,13 @@ function renderOpenInSystemPlayerLink(absFsPath) {
   if (!openMediaHttpPort) {
     return '';
   }
-  const href = `http://127.0.0.1:${openMediaHttpPort}/open-media?fsPath=${encodeURIComponent(absFsPath)}`;
+  const token = crypto.randomBytes(16).toString('hex');
+  openMediaPathByToken.set(token, absFsPath);
+  while (openMediaPathByToken.size > 200) {
+    const oldest = openMediaPathByToken.keys().next().value;
+    openMediaPathByToken.delete(oldest);
+  }
+  const href = `http://127.0.0.1:${openMediaHttpPort}/open-media?t=${token}`;
   return (
     `<p class="hne-md-media-actions">` +
     `<a class="hne-md-open-external" href="${escapeHtmlAttr(href)}">Open in system player</a>` +
@@ -971,9 +1015,26 @@ async function openMediaInSystemPlayer(fsPath) {
     vscode.window.showErrorMessage(`Open in system player: file not found:\n${fsPath}`);
     return;
   }
-  const ok = await vscode.env.openExternal(vscode.Uri.file(fsPath));
-  if (!ok) {
-    vscode.window.showErrorMessage(`Could not open file in system player:\n${fsPath}`);
+  try {
+    if (process.platform === 'win32') {
+      await new Promise((resolve, reject) => {
+        execFile('cmd', ['/c', 'start', '', fsPath], { windowsHide: true }, (err) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve(undefined);
+          }
+        });
+      });
+      return;
+    }
+    const ok = await vscode.env.openExternal(vscode.Uri.file(fsPath));
+    if (!ok) {
+      vscode.window.showErrorMessage(`Could not open file in system player:\n${fsPath}`);
+    }
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    vscode.window.showErrorMessage(`Could not open file in system player:\n${fsPath}\n${msg}`);
   }
 }
 
@@ -995,7 +1056,8 @@ function startOpenMediaHttpServer() {
           res.end();
           return;
         }
-        const fsPath = url.searchParams.get('fsPath') || '';
+        const token = url.searchParams.get('t') || '';
+        const fsPath = openMediaPathByToken.get(token) || '';
         void openMediaInSystemPlayer(fsPath);
         res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
         res.end(
@@ -1024,6 +1086,7 @@ function stopOpenMediaHttpServer() {
     openMediaHttpServer = null;
     openMediaHttpPort = 0;
   }
+  openMediaPathByToken.clear();
 }
 
 /**
@@ -2762,7 +2825,7 @@ function registerPreviewCopyMarkdownPlugin() {
         const title = token.attrGet('title');
         const titleAttr = title ? ` title="${escapeHtmlAttr(title)}"` : '';
 
-        const localFsPath = resolveLocalMediaFsPath(dataSrc || src, env);
+        const localFsPath = resolveLocalMediaFsPath(dataSrc, src, env);
         const openLink = localFsPath ? renderOpenInSystemPlayerLink(localFsPath) : '';
 
         if (PREVIEW_VIDEO_EXTENSIONS.has(ext)) {
