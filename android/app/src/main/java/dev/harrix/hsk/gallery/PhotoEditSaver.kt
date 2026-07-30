@@ -3,6 +3,8 @@ package dev.harrix.hsk.gallery
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Canvas
+import android.graphics.Color
 import android.graphics.ImageDecoder
 import android.graphics.Matrix
 import android.net.Uri
@@ -10,12 +12,13 @@ import android.os.Build
 import androidx.exifinterface.media.ExifInterface
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
-import kotlin.math.max
+import kotlin.math.ceil
+import kotlin.math.hypot
 import kotlin.math.min
 import kotlin.math.roundToInt
 
 /**
- * Normalized crop rectangle in rotated-image space, each edge in `0f..1f`.
+ * Normalized crop rectangle in the rotation workspace (square), each edge in `0f..1f`.
  */
 data class NormalizedCropRect(
     val left: Float,
@@ -58,21 +61,21 @@ class PhotoEditSaver(
     ): SaveResult {
         val oriented =
             decodeOrientedBitmap(uri) ?: return SaveResult.Failed
-        val rotated =
-            rotateBitmap(oriented, rotationDegrees)
-        if (rotated !== oriented) {
+        val workspace =
+            renderRotatedOnSquare(oriented, rotationDegrees) ?: run {
+                oriented.recycle()
+                return SaveResult.Failed
+            }
+        if (workspace !== oriented) {
             oriented.recycle()
         }
         val cropped =
-            cropBitmap(rotated, crop) ?: run {
-                if (rotated !== oriented) {
-                    // already recycled oriented if different; rotated still live
-                }
-                rotated.recycle()
+            cropBitmap(workspace, crop) ?: run {
+                workspace.recycle()
                 return SaveResult.Failed
             }
-        if (cropped !== rotated) {
-            rotated.recycle()
+        if (cropped !== workspace) {
+            workspace.recycle()
         }
 
         val encoded =
@@ -150,16 +153,29 @@ class PhotoEditSaver(
         return transformed
     }
 
-    private fun rotateBitmap(
+    /**
+     * Draws [bitmap] centered on a black square large enough for any rotation, then rotates it.
+     */
+    private fun renderRotatedOnSquare(
         bitmap: Bitmap,
         degrees: Float,
-    ): Bitmap {
-        val normalized = normalizeRotationDegrees(degrees)
-        if (kotlin.math.abs(normalized) < 0.01f) {
-            return bitmap
-        }
-        val matrix = Matrix().apply { postRotate(normalized) }
-        return Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
+    ): Bitmap? {
+        val diag =
+            ceil(hypot(bitmap.width.toDouble(), bitmap.height.toDouble()))
+                .toInt()
+                .coerceAtLeast(1)
+        val square =
+            try {
+                Bitmap.createBitmap(diag, diag, Bitmap.Config.ARGB_8888)
+            } catch (_: OutOfMemoryError) {
+                return null
+            }
+        val canvas = Canvas(square)
+        canvas.drawColor(Color.BLACK)
+        canvas.translate(diag / 2f, diag / 2f)
+        canvas.rotate(degrees)
+        canvas.drawBitmap(bitmap, -bitmap.width / 2f, -bitmap.height / 2f, null)
+        return square
     }
 
     private fun cropBitmap(
@@ -229,107 +245,105 @@ class PhotoEditSaver(
         private const val JPEG_QUALITY = 95
 
         /**
-         * Normalize degrees into `(-180, 180]`.
+         * Square workspace that fits in the viewport and can hold the image at any rotation.
          */
-        fun normalizeRotationDegrees(degrees: Float): Float {
-            var value = degrees % 360f
-            if (value > 180f) {
-                value -= 360f
-            } else if (value <= -180f) {
-                value += 360f
-            }
-            return value
-        }
-
-        /**
-         * Axis-aligned bounding box of the image after [rotationDegrees], fitted with ContentScale.Fit.
-         */
-        fun fittedImageRect(
+        fun rotationWorkspaceRect(
             viewportWidth: Float,
             viewportHeight: Float,
             imageWidth: Int,
             imageHeight: Int,
-            rotationDegrees: Float,
         ): FittedRect {
-            val rad = Math.toRadians(rotationDegrees.toDouble())
-            val cosA = kotlin.math.abs(kotlin.math.cos(rad)).toFloat()
-            val sinA = kotlin.math.abs(kotlin.math.sin(rad)).toFloat()
-            val iw = imageWidth.toFloat()
-            val ih = imageHeight.toFloat()
-            val contentW = iw * cosA + ih * sinA
-            val contentH = iw * sinA + ih * cosA
+            val diag = hypot(imageWidth.toFloat(), imageHeight.toFloat())
             val hasInvalidSize =
-                contentW <= 0f ||
-                    contentH <= 0f ||
-                    viewportWidth <= 0f ||
-                    viewportHeight <= 0f
+                diag <= 0f || viewportWidth <= 0f || viewportHeight <= 0f
             if (hasInvalidSize) {
                 return FittedRect(0f, 0f, 0f, 0f)
             }
-            val scale = min(viewportWidth / contentW, viewportHeight / contentH)
-            val drawW = contentW * scale
-            val drawH = contentH * scale
-            val left = (viewportWidth - drawW) / 2f
-            val top = (viewportHeight - drawH) / 2f
-            return FittedRect(left, top, drawW, drawH)
+            val scale = min(viewportWidth / diag, viewportHeight / diag)
+            val box = diag * scale
+            val left = (viewportWidth - box) / 2f
+            val top = (viewportHeight - box) / 2f
+            return FittedRect(left, top, box, box)
         }
 
         /**
-         * Unrotated draw size so that after [rotationDegrees] the AABB matches [fitted].
+         * Draw size of the unrotated image inside [workspace].
          */
-        fun preRotationDrawSize(
+        fun imageDrawSizeInWorkspace(
             imageWidth: Int,
             imageHeight: Int,
-            rotationDegrees: Float,
-            fitted: FittedRect,
+            workspace: FittedRect,
         ): Pair<Float, Float> {
-            val invalidImage = imageWidth <= 0 || imageHeight <= 0
-            val invalidFitted = fitted.width <= 0f || fitted.height <= 0f
-            if (invalidImage || invalidFitted) {
+            val diag = hypot(imageWidth.toFloat(), imageHeight.toFloat())
+            if (diag <= 0f || workspace.width <= 0f) {
                 return 0f to 0f
             }
-            val rad = Math.toRadians(rotationDegrees.toDouble())
-            val cosA = kotlin.math.abs(kotlin.math.cos(rad)).toFloat()
-            val sinA = kotlin.math.abs(kotlin.math.sin(rad)).toFloat()
-            val iw = imageWidth.toFloat()
-            val ih = imageHeight.toFloat()
-            val boundW = iw * cosA + ih * sinA
-            if (boundW <= 0f) {
-                return 0f to 0f
-            }
-            val scale = fitted.width / boundW
-            return iw * scale to ih * scale
+            val scale = workspace.width / diag
+            return imageWidth * scale to imageHeight * scale
         }
 
+        /**
+         * Crop covering only the image pixels inside the square workspace (no black bars).
+         */
+        fun imageContentCrop(
+            imageWidth: Int,
+            imageHeight: Int,
+        ): NormalizedCropRect {
+            val diag = hypot(imageWidth.toFloat(), imageHeight.toFloat())
+            if (diag <= 0f) {
+                return NormalizedCropRect.Full
+            }
+            val width = (imageWidth / diag).coerceIn(0f, 1f)
+            val height = (imageHeight / diag).coerceIn(0f, 1f)
+            val left = ((1f - width) / 2f).coerceIn(0f, 1f)
+            val top = ((1f - height) / 2f).coerceIn(0f, 1f)
+            return clampCropRect(
+                NormalizedCropRect(
+                    left = left,
+                    top = top,
+                    right = (left + width).coerceIn(0f, 1f),
+                    bottom = (top + height).coerceIn(0f, 1f),
+                ),
+            )
+        }
+
+        /**
+         * Free crop clamp — any aspect ratio, edges stay inside `0..1`.
+         */
         fun clampCropRect(
             rect: NormalizedCropRect,
-            minNormalizedSide: Float = 0.08f,
+            minNormalizedSide: Float = 0.06f,
         ): NormalizedCropRect {
             var left = rect.left
             var top = rect.top
             var right = rect.right
             var bottom = rect.bottom
-            var width = right - left
-            var height = bottom - top
-            val aspect = width / height
-            width = max(width, minNormalizedSide)
-            height = width / aspect
-            if (height < minNormalizedSide) {
-                height = minNormalizedSide
-                width = height * aspect
+            if (right < left) {
+                val tmp = left
+                left = right
+                right = tmp
             }
-            if (width > 1f) {
-                width = 1f
-                height = width / aspect
+            if (bottom < top) {
+                val tmp = top
+                top = bottom
+                bottom = tmp
             }
-            if (height > 1f) {
-                height = 1f
-                width = height * aspect
+            left = left.coerceIn(0f, 1f)
+            top = top.coerceIn(0f, 1f)
+            right = right.coerceIn(0f, 1f)
+            bottom = bottom.coerceIn(0f, 1f)
+            if (right - left < minNormalizedSide) {
+                val mid = ((left + right) / 2f).coerceIn(minNormalizedSide / 2f, 1f - minNormalizedSide / 2f)
+                left = (mid - minNormalizedSide / 2f).coerceAtLeast(0f)
+                right = (left + minNormalizedSide).coerceAtMost(1f)
+                left = (right - minNormalizedSide).coerceAtLeast(0f)
             }
-            left = left.coerceIn(0f, 1f - width)
-            top = top.coerceIn(0f, 1f - height)
-            right = left + width
-            bottom = top + height
+            if (bottom - top < minNormalizedSide) {
+                val mid = ((top + bottom) / 2f).coerceIn(minNormalizedSide / 2f, 1f - minNormalizedSide / 2f)
+                top = (mid - minNormalizedSide / 2f).coerceAtLeast(0f)
+                bottom = (top + minNormalizedSide).coerceAtMost(1f)
+                top = (bottom - minNormalizedSide).coerceAtLeast(0f)
+            }
             return NormalizedCropRect(left, top, right, bottom)
         }
     }

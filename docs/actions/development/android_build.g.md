@@ -31,7 +31,7 @@ Tray uses `android_build_variant` from `config/config.json` (`debug` or
 Requires Windows, JDK 17, and Android SDK (`ANDROID_HOME` /
 `android/local.properties`). Use `install/setup-android-sdk.bat` once
 to install the toolchain. After a successful build, the result dialog
-can open the APK folder, and the action runs `adb install -r` when a USB
+can open the APK folder, and the action runs `adb instal00l -r` when a USB
 device is connected. If the phone is still waiting for USB debugging
 authorization, waits for confirmation.
 
