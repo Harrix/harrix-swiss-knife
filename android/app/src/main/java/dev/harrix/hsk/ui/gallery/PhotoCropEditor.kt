@@ -201,24 +201,40 @@ fun PhotoCropEditor(
                         size = Size(cropPx.width, cropPx.height),
                         style = Stroke(width = 2.dp.toPx()),
                     )
+                    val guideColor = Color.White.copy(alpha = 0.7f)
+                    val guideStroke = 1.dp.toPx()
                     val thirdW = cropPx.width / 3f
                     val thirdH = cropPx.height / 3f
                     for (i in 1..2) {
                         val x = cropPx.left + thirdW * i
                         drawLine(
-                            color = Color.White.copy(alpha = 0.7f),
+                            color = guideColor,
                             start = Offset(x, cropPx.top),
                             end = Offset(x, cropPx.bottom),
-                            strokeWidth = 1.dp.toPx(),
+                            strokeWidth = guideStroke,
                         )
                         val y = cropPx.top + thirdH * i
                         drawLine(
-                            color = Color.White.copy(alpha = 0.7f),
+                            color = guideColor,
                             start = Offset(cropPx.left, y),
                             end = Offset(cropPx.right, y),
-                            strokeWidth = 1.dp.toPx(),
+                            strokeWidth = guideStroke,
                         )
                     }
+                    val midX = cropPx.left + cropPx.width / 2f
+                    val midY = cropPx.top + cropPx.height / 2f
+                    drawLine(
+                        color = guideColor,
+                        start = Offset(midX, cropPx.top),
+                        end = Offset(midX, cropPx.bottom),
+                        strokeWidth = guideStroke,
+                    )
+                    drawLine(
+                        color = guideColor,
+                        start = Offset(cropPx.left, midY),
+                        end = Offset(cropPx.right, midY),
+                        strokeWidth = guideStroke,
+                    )
                     val handle = 14.dp.toPx()
                     val corners =
                         listOf(
