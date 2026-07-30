@@ -370,37 +370,17 @@ fun GalleryCleanerScreen(
         modifier = modifier,
         containerColor = AppBackground,
         topBar = {
-            TopAppBar(
-                title = {
-                    Column {
-                        Text(stringResource(R.string.gallery_cleaner_title))
-                        Text(
-                            text =
-                            stringResource(
-                                R.string.gallery_cleaner_session_stats,
-                                sessionDeletedCount,
-                                CameraGalleryRepository.formatFileSize(sessionFreedBytes),
-                            ),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                        if (dateFilter.enabled) {
-                            val dateFormat =
-                                remember {
-                                    DateFormat.getDateInstance(DateFormat.MEDIUM)
-                                }
+            Column {
+                TopAppBar(
+                    title = {
+                        Column {
+                            Text(stringResource(R.string.gallery_cleaner_title))
                             Text(
                                 text =
                                 stringResource(
-                                    R.string.gallery_cleaner_date_filter_active,
-                                    dateFormat.format(
-                                        Date(dateFilter.startEpochSecInclusive * 1000L),
-                                    ),
-                                    dateFormat.format(
-                                        Date(dateFilter.endEpochSecInclusive * 1000L),
-                                    ),
+                                    R.string.gallery_cleaner_session_stats,
+                                    sessionDeletedCount,
+                                    CameraGalleryRepository.formatFileSize(sessionFreedBytes),
                                 ),
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -408,132 +388,169 @@ fun GalleryCleanerScreen(
                                 overflow = TextOverflow.Ellipsis,
                             )
                         }
-                    }
-                },
-                navigationIcon = {
-                    IconButton(onClick = onClose) {
-                        Icon(
-                            imageVector = Icons.Filled.Close,
-                            contentDescription = stringResource(R.string.gallery_cleaner_close),
-                        )
-                    }
-                },
-                actions = {
-                    if (lastTrashedPhoto != null) {
-                        TextButton(onClick = { undoLastDelete() }) {
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = onClose) {
                             Icon(
-                                imageVector = Icons.AutoMirrored.Filled.Undo,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp),
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(stringResource(R.string.gallery_cleaner_undo_delete))
-                        }
-                    }
-                    if (hasPermission && remainingCount > 0) {
-                        Text(
-                            text =
-                            stringResource(
-                                if (unreviewedOnlyMode) {
-                                    R.string.gallery_cleaner_remaining_unreviewed
-                                } else {
-                                    R.string.gallery_cleaner_remaining
-                                },
-                                remainingCount,
-                            ),
-                            style = MaterialTheme.typography.labelLarge,
-                            modifier = Modifier.padding(end = 4.dp),
-                        )
-                    }
-                    Box {
-                        IconButton(onClick = { menuExpanded = true }) {
-                            Icon(
-                                imageVector = Icons.Filled.MoreVert,
-                                contentDescription = stringResource(R.string.gallery_cleaner_menu),
+                                imageVector = Icons.Filled.Close,
+                                contentDescription = stringResource(R.string.gallery_cleaner_close),
                             )
                         }
-                        DropdownMenu(
-                            expanded = menuExpanded,
-                            onDismissRequest = { menuExpanded = false },
-                        ) {
-                            if (currentPhoto != null) {
-                                DropdownMenuItem(
-                                    text = {
-                                        Text(
-                                            stringResource(
-                                                R.string.gallery_cleaner_filter_shoot_day,
-                                            ),
-                                        )
+                    },
+                    actions = {
+                        if (lastTrashedPhoto != null) {
+                            TextButton(onClick = { undoLastDelete() }) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.Undo,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp),
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(stringResource(R.string.gallery_cleaner_undo_delete))
+                            }
+                        }
+                        if (hasPermission && remainingCount > 0) {
+                            Text(
+                                text =
+                                stringResource(
+                                    if (unreviewedOnlyMode) {
+                                        R.string.gallery_cleaner_remaining_unreviewed
+                                    } else {
+                                        R.string.gallery_cleaner_remaining
                                     },
-                                    onClick = {
-                                        menuExpanded = false
-                                        applyShootDayFilter(currentPhoto!!.dateTakenEpochMs)
-                                        if (hasPermission && !showIntro) {
-                                            reloadPhotos()
-                                        }
-                                    },
+                                    remainingCount,
+                                ),
+                                style = MaterialTheme.typography.labelLarge,
+                                modifier = Modifier.padding(end = 4.dp),
+                            )
+                        }
+                        Box {
+                            IconButton(onClick = { menuExpanded = true }) {
+                                Icon(
+                                    imageVector = Icons.Filled.MoreVert,
+                                    contentDescription = stringResource(R.string.gallery_cleaner_menu),
                                 )
                             }
-                            if (dateFilter.enabled) {
-                                DropdownMenuItem(
-                                    text = {
-                                        Text(
-                                            stringResource(
-                                                R.string.gallery_cleaner_clear_date_filter,
-                                            ),
-                                        )
-                                    },
-                                    onClick = {
-                                        menuExpanded = false
-                                        val cleared = dateFilter.withEnabled(false)
-                                        preferences.saveDateFilter(cleared)
-                                        dateFilter = cleared
-                                        if (hasPermission && !showIntro) {
-                                            reloadPhotos()
-                                        }
-                                    },
-                                )
-                            }
-                            DropdownMenuItem(
-                                text = {
-                                    Text(
-                                        stringResource(
-                                            if (unreviewedOnlyMode) {
-                                                R.string.gallery_cleaner_disable_unreviewed_only
-                                            } else {
-                                                R.string.gallery_cleaner_enable_unreviewed_only
-                                            },
-                                        ),
+                            DropdownMenu(
+                                expanded = menuExpanded,
+                                onDismissRequest = { menuExpanded = false },
+                            ) {
+                                if (currentPhoto != null) {
+                                    DropdownMenuItem(
+                                        text = {
+                                            Text(
+                                                stringResource(
+                                                    R.string.gallery_cleaner_filter_shoot_day,
+                                                ),
+                                            )
+                                        },
+                                        onClick = {
+                                            menuExpanded = false
+                                            applyShootDayFilter(currentPhoto!!.dateTakenEpochMs)
+                                            if (hasPermission && !showIntro) {
+                                                reloadPhotos()
+                                            }
+                                        },
                                     )
-                                },
-                                onClick = {
-                                    menuExpanded = false
-                                    val enabled = !unreviewedOnlyMode
-                                    preferences.setUnreviewedOnlyModeEnabled(enabled)
-                                    unreviewedOnlyMode = enabled
-                                    if (hasPermission && !showIntro) {
-                                        reloadPhotos()
-                                    }
-                                },
-                            )
-                            DropdownMenuItem(
-                                text = {
-                                    Text(stringResource(R.string.gallery_cleaner_settings))
-                                },
-                                onClick = {
-                                    menuExpanded = false
-                                    onOpenSettings(currentPhoto?.dateTakenEpochMs)
-                                },
-                            )
+                                }
+                                if (dateFilter.enabled) {
+                                    DropdownMenuItem(
+                                        text = {
+                                            Text(
+                                                stringResource(
+                                                    R.string.gallery_cleaner_clear_date_filter,
+                                                ),
+                                            )
+                                        },
+                                        onClick = {
+                                            menuExpanded = false
+                                            val cleared = dateFilter.withEnabled(false)
+                                            preferences.saveDateFilter(cleared)
+                                            dateFilter = cleared
+                                            if (hasPermission && !showIntro) {
+                                                reloadPhotos()
+                                            }
+                                        },
+                                    )
+                                }
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            stringResource(
+                                                if (unreviewedOnlyMode) {
+                                                    R.string.gallery_cleaner_disable_unreviewed_only
+                                                } else {
+                                                    R.string.gallery_cleaner_enable_unreviewed_only
+                                                },
+                                            ),
+                                        )
+                                    },
+                                    onClick = {
+                                        menuExpanded = false
+                                        val enabled = !unreviewedOnlyMode
+                                        preferences.setUnreviewedOnlyModeEnabled(enabled)
+                                        unreviewedOnlyMode = enabled
+                                        if (hasPermission && !showIntro) {
+                                            reloadPhotos()
+                                        }
+                                    },
+                                )
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(stringResource(R.string.gallery_cleaner_settings))
+                                    },
+                                    onClick = {
+                                        menuExpanded = false
+                                        onOpenSettings(currentPhoto?.dateTakenEpochMs)
+                                    },
+                                )
+                            }
                         }
-                    }
-                },
-                colors =
-                TopAppBarDefaults.topAppBarColors(
-                    containerColor = AppBackground,
-                    scrolledContainerColor = AppBackground,
-                ),
-            )
+                    },
+                    colors =
+                    TopAppBarDefaults.topAppBarColors(
+                        containerColor = AppBackground,
+                        scrolledContainerColor = AppBackground,
+                    ),
+                )
+                if (dateFilter.enabled) {
+                    val dateFormat =
+                        remember {
+                            DateFormat.getDateInstance(DateFormat.SHORT)
+                        }
+                    val startLabel =
+                        dateFormat.format(Date(dateFilter.startEpochSecInclusive * 1000L))
+                    val endLabel =
+                        dateFormat.format(Date(dateFilter.endEpochSecInclusive * 1000L))
+                    val sameDay =
+                        dateFilter.fromYear() == dateFilter.toYear() &&
+                            dateFilter.fromMonth() == dateFilter.toMonth() &&
+                            dateFilter.fromDay() == dateFilter.toDay()
+                    Text(
+                        text =
+                        if (sameDay) {
+                            stringResource(
+                                R.string.gallery_cleaner_date_filter_active_day,
+                                startLabel,
+                            )
+                        } else {
+                            stringResource(
+                                R.string.gallery_cleaner_date_filter_active,
+                                startLabel,
+                                endLabel,
+                            )
+                        },
+                        modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 4.dp),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
         },
         bottomBar = {
             if (hasPermission && currentPhoto != null) {
