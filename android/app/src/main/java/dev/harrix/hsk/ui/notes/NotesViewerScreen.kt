@@ -3,6 +3,7 @@ package dev.harrix.hsk.ui.notes
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -11,15 +12,20 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.InsertDriveFile
@@ -57,10 +63,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import dev.harrix.hsk.R
 import dev.harrix.hsk.notes.NotesEntry
@@ -75,6 +83,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -999,26 +1008,92 @@ private fun NotesPlainTextPane(
 
         else -> {
             val lines = viewLines.orEmpty()
+            val listState = rememberLazyListState()
             Surface(
                 modifier = Modifier.fillMaxSize(),
                 color = MaterialTheme.colorScheme.surface,
             ) {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
-                ) {
-                    items(
-                        count = lines.size,
-                        key = { index -> index },
-                    ) { index ->
-                        Text(
-                            text = lines[index].ifEmpty { "\u00A0" },
-                            style = MaterialTheme.typography.bodyMedium,
-                        )
+                Box(modifier = Modifier.fillMaxSize()) {
+                    LazyColumn(
+                        state = listState,
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(16.dp),
+                    ) {
+                        items(
+                            count = lines.size,
+                            key = { index -> index },
+                        ) { index ->
+                            Text(
+                                text = lines[index].ifEmpty { "\u00A0" },
+                                style = MaterialTheme.typography.bodyMedium,
+                            )
+                        }
                     }
+                    NotesVerticalScrollbar(
+                        state = listState,
+                        modifier =
+                        Modifier
+                            .align(Alignment.CenterEnd)
+                            .padding(end = 2.dp, top = 8.dp, bottom = 8.dp),
+                    )
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun NotesVerticalScrollbar(
+    state: LazyListState,
+    modifier: Modifier = Modifier,
+) {
+    val layoutInfo = state.layoutInfo
+    val visibleItems = layoutInfo.visibleItemsInfo
+    val totalItems = layoutInfo.totalItemsCount
+    val viewportHeight = layoutInfo.viewportSize.height.toFloat()
+    val canShow =
+        visibleItems.isNotEmpty() &&
+            totalItems > 0 &&
+            viewportHeight > 0f
+
+    if (!canShow) {
+        return
+    }
+
+    val averageItemSize = visibleItems.sumOf { it.size }.toFloat() / visibleItems.size
+    val estimatedContentHeight = averageItemSize * totalItems
+    if (estimatedContentHeight <= viewportHeight + 1f) {
+        return
+    }
+
+    val scrollOffset =
+        visibleItems.first().index * averageItemSize + state.firstVisibleItemScrollOffset
+    val maxScroll = (estimatedContentHeight - viewportHeight).coerceAtLeast(1f)
+    val scrollFraction = (scrollOffset / maxScroll).coerceIn(0f, 1f)
+    val thumbHeightPx =
+        (viewportHeight * (viewportHeight / estimatedContentHeight))
+            .coerceIn(viewportHeight * 0.08f, viewportHeight)
+    val thumbOffsetPx = scrollFraction * (viewportHeight - thumbHeightPx)
+    val density = LocalDensity.current
+
+    Box(
+        modifier =
+        modifier
+            .fillMaxHeight()
+            .width(4.dp),
+    ) {
+        Box(
+            modifier =
+            Modifier
+                .align(Alignment.TopCenter)
+                .offset { IntOffset(0, thumbOffsetPx.roundToInt()) }
+                .width(3.dp)
+                .height(with(density) { thumbHeightPx.toDp() })
+                .background(
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                    shape = RoundedCornerShape(2.dp),
+                ),
+        )
     }
 }
 
