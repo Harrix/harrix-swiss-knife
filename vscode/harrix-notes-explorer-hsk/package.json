@@ -11,6 +11,13 @@
     "onStartupFinished"
   ],
   "main": "./extension.js",
+  "scripts": {
+    "format": "biome check --write .",
+    "check": "biome check ."
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.6"
+  },
   "_harrixCli": {
     "module": "./harrix-cli.js",
     "manifest": "./package.harrix-cli.contributes.json",
@@ -120,8 +127,17 @@
         },
         "harrixNotesExplorerHsk.assetFolderNames": {
           "type": "array",
-          "items": { "type": "string" },
-          "default": ["images", "files", "img", "assets", "attachments", "media"],
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "images",
+            "files",
+            "img",
+            "assets",
+            "attachments",
+            "media"
+          ],
           "markdownDescription": "Folder names (case-insensitive) shown under a note when you use **Show attachments** in the context menu. Contents are listed recursively."
         },
         "harrixNotesExplorerHsk.noteDrop.moveIntoNamedFolder": {
@@ -146,7 +162,9 @@
         },
         "harrixNotesExplorerHsk.noteDrop.imageExtensions": {
           "type": "array",
-          "items": { "type": "string" },
+          "items": {
+            "type": "string"
+          },
           "default": [
             ".jpg",
             ".jpeg",
@@ -801,4 +819,3 @@
     }
   }
 }
-

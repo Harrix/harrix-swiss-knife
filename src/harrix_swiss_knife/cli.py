@@ -17,6 +17,8 @@ from harrix_swiss_knife.actions.development import (
     OnAndroidFormat,
     OnInstallCli,
     OnInstallHarrixNotesExplorerExtension,
+    OnVscodeCheck,
+    OnVscodeFormat,
 )
 from harrix_swiss_knife.actions.files import OnDiscardGitChangesFolder
 from harrix_swiss_knife.actions.markdown import (
@@ -544,6 +546,27 @@ def text_fix_text_with_ai() -> None:
     _ensure_qt_app()
     action = OnFixTextWithAI()
     action(cli_sync=True)
+    _exit_if_action_failed(action)
+
+
+@cli.group("vscode")
+def vscode_group() -> None:
+    """VS Code extension format and quality checks (Biome)."""
+
+
+@vscode_group.command("check")
+def vscode_check() -> None:
+    """Run Biome check for `vscode/harrix-notes-explorer-hsk/`."""
+    action = OnVscodeCheck()
+    action(noninteractive=True)
+    _exit_if_action_failed(action)
+
+
+@vscode_group.command("format")
+def vscode_format() -> None:
+    """Format VS Code extension sources via Biome (`npm run format`)."""
+    action = OnVscodeFormat()
+    action(noninteractive=True)
     _exit_if_action_failed(action)
 
 

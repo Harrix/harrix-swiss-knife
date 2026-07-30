@@ -7,9 +7,9 @@
  */
 
 const vscode = require('vscode');
-const path = require('path');
-const { execFile } = require('child_process');
-const util = require('util');
+const path = require('node:path');
+const { execFile } = require('node:child_process');
+const util = require('node:util');
 
 const execFileAsync = util.promisify(execFile);
 
@@ -18,7 +18,7 @@ const execFileAsync = util.promisify(execFile);
 function getCliExecOptions() {
   return {
     windowsHide: true,
-    maxBuffer: 10 * 1024 * 1024
+    maxBuffer: 10 * 1024 * 1024,
   };
 }
 
@@ -112,7 +112,7 @@ async function runHarrixMarkdownListTemplates() {
       .map((x) => ({
         id: String(x.id || ''),
         title: String(x.title || ''),
-        path_target: x.path_target ? String(x.path_target) : undefined
+        path_target: x.path_target ? String(x.path_target) : undefined,
       }))
       .filter((x) => x.id && x.title);
   } catch {
@@ -199,15 +199,7 @@ function resolveNotesFolderContextValue(opts) {
  * @param {HarrixCliDeps} deps
  */
 function activateHarrixCliIntegration(deps) {
-  const {
-    context,
-    provider,
-    rootPath,
-    uriToFsPath,
-    isDirectoryPath,
-    normalizeFsPath,
-    resolveNotesFolderFsPath
-  } = deps;
+  const { context, provider, rootPath, uriToFsPath, isDirectoryPath, normalizeFsPath, resolveNotesFolderFsPath } = deps;
 
   context.subscriptions.push(
     vscode.commands.registerCommand('harrixNotesExplorerHsk.newDiaryNote', async (treeItemOrUri) => {
@@ -229,7 +221,7 @@ function activateHarrixCliIntegration(deps) {
         const msg = e instanceof Error ? e.message : String(e);
         vscode.window.showErrorMessage(`New Diary Note failed: ${msg}`);
       }
-    })
+    }),
   );
 
   context.subscriptions.push(
@@ -252,7 +244,7 @@ function activateHarrixCliIntegration(deps) {
         const msg = e instanceof Error ? e.message : String(e);
         vscode.window.showErrorMessage(`New Dream Note failed: ${msg}`);
       }
-    })
+    }),
   );
 
   context.subscriptions.push(
@@ -275,7 +267,7 @@ function activateHarrixCliIntegration(deps) {
         const msg = e instanceof Error ? e.message : String(e);
         vscode.window.showErrorMessage(`New Cases Note failed: ${msg}`);
       }
-    })
+    }),
   );
 
   context.subscriptions.push(
@@ -305,8 +297,8 @@ function activateHarrixCliIntegration(deps) {
           templateItems.map((t) => ({ label: t.title, description: t.id })),
           {
             title: 'Add from Template',
-            placeHolder: 'Choose a template'
-          }
+            placeHolder: 'Choose a template',
+          },
         );
         templateId =
           chosenItem && typeof chosenItem.description === 'string' && chosenItem.description.trim()
@@ -325,7 +317,7 @@ function activateHarrixCliIntegration(deps) {
         const msg = e instanceof Error ? e.message : String(e);
         vscode.window.showErrorMessage(`Add from Template failed: ${msg}`);
       }
-    })
+    }),
   );
 
   context.subscriptions.push(
@@ -343,7 +335,7 @@ function activateHarrixCliIntegration(deps) {
         const msg = e instanceof Error ? e.message : String(e);
         vscode.window.showErrorMessage(`Markdown check failed: ${msg}`);
       }
-    })
+    }),
   );
 
   context.subscriptions.push(
@@ -361,7 +353,7 @@ function activateHarrixCliIntegration(deps) {
         const msg = e instanceof Error ? e.message : String(e);
         vscode.window.showErrorMessage(`Beautify Markdown and Regenerate .g.md in Folder failed: ${msg}`);
       }
-    })
+    }),
   );
 
   context.subscriptions.push(
@@ -386,7 +378,7 @@ function activateHarrixCliIntegration(deps) {
       const name = await vscode.window.showInputBox({
         title: 'New Note',
         prompt: 'Enter note name (without extension)',
-        placeHolder: 'My-note'
+        placeHolder: 'My-note',
       });
       if (!name) {
         return;
@@ -404,7 +396,7 @@ function activateHarrixCliIntegration(deps) {
         const msg = e instanceof Error ? e.message : String(e);
         vscode.window.showErrorMessage(`New Note failed: ${msg}`);
       }
-    })
+    }),
   );
 
   void loadTemplateTargetsIntoProvider(provider, normalizeFsPath);
@@ -433,5 +425,5 @@ module.exports = {
   activateHarrixCliIntegration,
   folderListedWithoutMarkdown,
   isSpecialNotesFolderName,
-  resolveNotesFolderContextValue
+  resolveNotesFolderContextValue,
 };

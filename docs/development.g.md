@@ -17,6 +17,7 @@ lang: en
   - [Before you start](#before-you-start)
   - [Steps](#steps)
 - [VS Code extension: Harrix Notes Explorer (HSK)](#vs-code-extension-harrix-notes-explorer-hsk)
+  - [Format and check (Biome)](#format-and-check-biome)
   - [Install (local, copy folder)](#install-local-copy-folder)
   - [Install via tray (Windows)](#install-via-tray-windows)
   - [Troubleshooting (extension missing in VS Code / Insiders)](#troubleshooting-extension-missing-in-vs-code--insiders)
@@ -94,6 +95,25 @@ Local VS Code extension is bundled in this repo:
 - Folder: `vscode/harrix-notes-explorer-hsk/`
 - Entry point: `vscode/harrix-notes-explorer-hsk/extension.js`
 - Manifest: `vscode/harrix-notes-explorer-hsk/package.json`
+
+### Format and check (Biome)
+
+Requires Node.js and npm on PATH. From the repo root:
+
+```text
+hsk vscode format
+hsk vscode check
+```
+
+Equivalent from `vscode/harrix-notes-explorer-hsk/`:
+
+```text
+npm install
+npm run format
+npm run check
+```
+
+`node_modules` is gitignored and is not copied into editor extension folders on install.
 
 ### Install (local, copy folder)
 

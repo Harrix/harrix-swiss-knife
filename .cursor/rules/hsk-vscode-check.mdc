@@ -1,0 +1,17 @@
+---
+globs: vscode/**
+---
+
+# hsk vscode check
+
+After completing VS Code extension (`vscode/`) code changes, before each `hsk vscode check` run `hsk vscode format` first.
+
+Run `hsk vscode format`, then `hsk vscode check`, and fix until it passes.
+Repeat this cycle up to **3 times maximum**. If it still fails after 3 iterations, stop and report the remaining errors.
+
+Do not finish while `hsk vscode check` still fails, unless the failure is environmental (missing Node.js/npm) and cannot be fixed in code.
+
+Equivalent npm from `vscode/harrix-notes-explorer-hsk/`:
+
+- format: `npm run format` (`biome check --write .`)
+- check: `npm run check` (`biome check .`)

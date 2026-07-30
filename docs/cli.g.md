@@ -42,6 +42,9 @@ lang: en
 - [🔧 Function `python_ruff_sort_docs`](#-function-python_ruff_sort_docs)
 - [🔧 Function `text_group`](#-function-text_group)
 - [🔧 Function `text_fix_text_with_ai`](#-function-text_fix_text_with_ai)
+- [🔧 Function `vscode_group`](#-function-vscode_group)
+- [🔧 Function `vscode_check`](#-function-vscode_check)
+- [🔧 Function `vscode_format`](#-function-vscode_format)
 - [🔧 Function `main`](#-function-main)
 
 </details>
@@ -712,6 +715,63 @@ def text_fix_text_with_ai() -> None:
     _ensure_qt_app()
     action = OnFixTextWithAI()
     action(cli_sync=True)
+    _exit_if_action_failed(action)
+```
+
+</details>
+
+## 🔧 Function `vscode_group`
+
+```python
+def vscode_group() -> None
+```
+
+VS Code extension format and quality checks (Biome).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def vscode_group() -> None:
+```
+
+</details>
+
+## 🔧 Function `vscode_check`
+
+```python
+def vscode_check() -> None
+```
+
+Run Biome check for `vscode/harrix-notes-explorer-hsk/`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def vscode_check() -> None:
+    action = OnVscodeCheck()
+    action(noninteractive=True)
+    _exit_if_action_failed(action)
+```
+
+</details>
+
+## 🔧 Function `vscode_format`
+
+```python
+def vscode_format() -> None
+```
+
+Format VS Code extension sources via Biome (`npm run format`).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def vscode_format() -> None:
+    action = OnVscodeFormat()
+    action(noninteractive=True)
     _exit_if_action_failed(action)
 ```
 

@@ -1,8 +1,8 @@
 const vscode = require('vscode');
-const path = require('path');
-const fs = require('fs');
-const { execFile, execFileSync } = require('child_process');
-const util = require('util');
+const path = require('node:path');
+const fs = require('node:fs');
+const { execFile, execFileSync } = require('node:child_process');
+const util = require('node:util');
 
 const execFileAsync = util.promisify(execFile);
 
@@ -32,10 +32,10 @@ class FolderExpansionMemory {
     this._key = 'harrixNotesExplorerHsk.folderExpansion.v1';
     const stored = context.workspaceState.get(this._key);
     this.expanded = new Set(
-      Array.isArray(stored?.expanded) ? stored.expanded.map(x => normalizeFsPath(String(x))) : []
+      Array.isArray(stored?.expanded) ? stored.expanded.map((x) => normalizeFsPath(String(x))) : [],
     );
     this.collapsed = new Set(
-      Array.isArray(stored?.collapsed) ? stored.collapsed.map(x => normalizeFsPath(String(x))) : []
+      Array.isArray(stored?.collapsed) ? stored.collapsed.map((x) => normalizeFsPath(String(x))) : [],
     );
     /** @type {ReturnType<typeof setTimeout> | null} */
     this._saveTimer = null;
@@ -106,7 +106,7 @@ class FolderExpansionMemory {
     }
     return this._context.workspaceState.update(this._key, {
       expanded: Array.from(this.expanded),
-      collapsed: Array.from(this.collapsed)
+      collapsed: Array.from(this.collapsed),
     });
   }
 }
@@ -124,7 +124,7 @@ async function gitExecInRepo(gitRoot, args) {
     return {
       ok: true,
       stdout: (r.stdout || '').toString(),
-      stderr: (r.stderr || '').toString()
+      stderr: (r.stderr || '').toString(),
     };
   } catch (err) {
     const stdout = err.stdout ? err.stdout.toString() : '';
@@ -134,7 +134,7 @@ async function gitExecInRepo(gitRoot, args) {
       stdout,
       stderr,
       code: typeof err.code === 'number' ? err.code : undefined,
-      message: (err.message || '').trim() || 'git command failed'
+      message: (err.message || '').trim() || 'git command failed',
     };
   }
 }
@@ -148,11 +148,10 @@ async function resolveGitFolderPathspec(folderPath) {
   const resolved = path.resolve(folderPath);
   let gitRootRaw;
   try {
-    const { stdout } = await execFileAsync(
-      'git',
-      ['rev-parse', '--show-toplevel'],
-      { ...GIT_EXEC_OPTS_BASE, cwd: resolved }
-    );
+    const { stdout } = await execFileAsync('git', ['rev-parse', '--show-toplevel'], {
+      ...GIT_EXEC_OPTS_BASE,
+      cwd: resolved,
+    });
     gitRootRaw = (stdout || '').toString().trim();
   } catch (err) {
     const stderr = err.stderr ? err.stderr.toString().trim() : '';
@@ -164,7 +163,7 @@ async function resolveGitFolderPathspec(folderPath) {
     throw new Error('Could not determine Git repository root.');
   }
   const gitRoot = path.resolve(gitRootRaw);
-  let rel = path.relative(gitRoot, resolved);
+  const rel = path.relative(gitRoot, resolved);
   if (rel.startsWith('..') || path.isAbsolute(rel)) {
     throw new Error('Folder is outside the Git repository.');
   }
@@ -187,7 +186,7 @@ async function resolveGitNotePathspec(filePath) {
     return { gitRoot, pathspec, cleanRecursive: true };
   }
   const { gitRoot } = await resolveGitFolderPathspec(path.dirname(resolved));
-  let rel = path.relative(gitRoot, resolved);
+  const rel = path.relative(gitRoot, resolved);
   if (rel.startsWith('..') || path.isAbsolute(rel)) {
     throw new Error('Note is outside the Git repository.');
   }
@@ -223,15 +222,19 @@ async function gitPathspecHasTrackedFiles(gitRoot, pathspec) {
 
 /** @param {string} stOut */
 function gitStatusLines(stOut) {
-  return stOut ? stOut.split(/\r?\n/).map((l) => l.trimEnd()).filter(Boolean) : [];
+  return stOut
+    ? stOut
+        .split(/\r?\n/)
+        .map((l) => l.trimEnd())
+        .filter(Boolean)
+    : [];
 }
 
 /**
  * @param {{ gitRoot: string, pathspec: string, targetLabel: string, cleanRecursive: boolean, confirmTitle: string, successMessage: string, notTrackedMessage: string, logChannel: vscode.OutputChannel, onSuccess?: () => void }} opts
  */
 async function runGitDiscardWorkflow(opts) {
-  const { gitRoot, pathspec, targetLabel, cleanRecursive, confirmTitle, successMessage, logChannel, onSuccess } =
-    opts;
+  const { gitRoot, pathspec, targetLabel, cleanRecursive, confirmTitle, successMessage, logChannel, onSuccess } = opts;
   const cleanDryArgs = cleanRecursive ? ['clean', '-nd', '--', pathspec] : ['clean', '-nf', '--', pathspec];
   const cleanArgs = cleanRecursive ? ['clean', '-fd', '--', pathspec] : ['clean', '-f', '--', pathspec];
   const restoreSpec = gitRestorePathspec(pathspec);
@@ -279,7 +282,9 @@ async function runGitDiscardWorkflow(opts) {
     // We never run `git clean` in this case to avoid deleting user files in a non-tracked area.
     logChannel.appendLine('Nothing to discard: this path is not tracked by Git.');
     logChannel.show(true);
-    vscode.window.showInformationMessage(String(opts.notTrackedMessage || 'This path is not tracked by Git. Nothing to discard.'));
+    vscode.window.showInformationMessage(
+      String(opts.notTrackedMessage || 'This path is not tracked by Git. Nothing to discard.'),
+    );
     return;
   }
 
@@ -318,7 +323,7 @@ async function runGitDiscardWorkflow(opts) {
     confirmLines.push(
       cleanRecursive
         ? '• Untracked files and empty dirs inside this path: permanently deleted.'
-        : '• Untracked copy of this file: permanently deleted.'
+        : '• Untracked copy of this file: permanently deleted.',
     );
   }
   confirmLines.push('• Ignored files: not touched.', '', targetLabel);
@@ -326,7 +331,7 @@ async function runGitDiscardWorkflow(opts) {
   const confirm = await vscode.window.showWarningMessage(
     confirmLines.join('\n'),
     { modal: true, detail: 'Requires Git 2.23+ (git restore).' },
-    'Discard'
+    'Discard',
   );
   if (confirm !== 'Discard') {
     logChannel.appendLine('');
@@ -344,7 +349,7 @@ async function runGitDiscardWorkflow(opts) {
       '--staged',
       '--worktree',
       '--',
-      restoreSpec
+      restoreSpec,
     ]);
     if (!restore.ok) {
       const errText = (restore.stderr || restore.message || '').trim();
@@ -401,12 +406,19 @@ async function withFolderBusy(provider, folderPath, fn) {
 // --- Helper functions ---
 
 function safeReaddir(dir) {
-  try { return fs.readdirSync(dir, { withFileTypes: true }); }
-  catch (e) { return []; }
+  try {
+    return fs.readdirSync(dir, { withFileTypes: true });
+  } catch (_e) {
+    return [];
+  }
 }
 
-function isMd(name) { return name.toLowerCase().endsWith('.md'); }
-function isGMd(name) { return name.toLowerCase().endsWith('.g.md'); }
+function isMd(name) {
+  return name.toLowerCase().endsWith('.md');
+}
+function isGMd(name) {
+  return name.toLowerCase().endsWith('.g.md');
+}
 
 const NOTE_TITLE_READ_BYTES = 16 * 1024;
 
@@ -436,10 +448,7 @@ function noteStemFromPath(filePath) {
  */
 function unquoteYamlScalar(value) {
   let v = String(value ?? '').trim();
-  if (
-    (v.startsWith('"') && v.endsWith('"')) ||
-    (v.startsWith("'") && v.endsWith("'"))
-  ) {
+  if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) {
     v = v.slice(1, -1);
   }
   return v.trim();
@@ -449,7 +458,9 @@ function unquoteYamlScalar(value) {
  * @param {string} text
  */
 function stripHtmlComments(text) {
-  return String(text ?? '').replace(/<!--[\s\S]*?-->/g, '').trim();
+  return String(text ?? '')
+    .replace(/<!--[\s\S]*?-->/g, '')
+    .trim();
 }
 
 /**
@@ -592,9 +603,7 @@ function getAssetFolderNames() {
   if (!Array.isArray(raw) || raw.length === 0) {
     return new Set(DEFAULT_ASSET_FOLDER_NAMES.map((x) => x.toLowerCase()));
   }
-  return new Set(
-    raw.map((x) => String(x).trim().toLowerCase()).filter(Boolean)
-  );
+  return new Set(raw.map((x) => String(x).trim().toLowerCase()).filter(Boolean));
 }
 
 function isAssetFolderName(name) {
@@ -620,14 +629,11 @@ function isCollapsedFolderNote(filePath) {
     return false;
   }
   const sub = safeReaddir(noteDir);
-  const subVisibleMd = sub.filter(
-    (e) => e.isFile() && isMd(e.name) && !isMergedTemplateGmd(e.name, folderName)
-  );
+  const subVisibleMd = sub.filter((e) => e.isFile() && isMd(e.name) && !isMergedTemplateGmd(e.name, folderName));
   const subFolders = sub.filter(
     (e) =>
       e.isDirectory() &&
-      (hasMarkdownRecursive(path.join(noteDir, e.name)) ||
-        harrixCli.isSpecialNotesFolderName(e.name))
+      (hasMarkdownRecursive(path.join(noteDir, e.name)) || harrixCli.isSpecialNotesFolderName(e.name)),
   );
   return subVisibleMd.length === 1 && subFolders.length === 0;
 }
@@ -735,7 +741,8 @@ function toMarkdownRelativePath(fromDir, toFile) {
 
 /** @param {string} mdPath */
 function escapeMarkdownLinkPath(mdPath) {
-  if (mdPath.startsWith('<') || /\s|[\u007F\u0000-\u001f]/.test(mdPath) || /[\(\)]/.test(mdPath)) {
+  // biome-ignore lint/suspicious/noControlCharactersInRegex: sanitize paths that contain ASCII control chars
+  if (mdPath.startsWith('<') || /\s|[\u007F\u0000-\u001f]/.test(mdPath) || /[()]/.test(mdPath)) {
     return `<${mdPath.replace(/[<>]/g, '')}>`;
   }
   return mdPath;
@@ -804,17 +811,12 @@ function createMarkdownRelativeLinkDropProvider() {
       if (vscode.DocumentDropOrPasteEditKind) {
         edit.kind =
           imageCount > 0
-            ? vscode.DocumentDropOrPasteEditKind.Empty.append(
-                'markdown',
-                'link',
-                'image',
-                'attachment'
-              )
+            ? vscode.DocumentDropOrPasteEditKind.Empty.append('markdown', 'link', 'image', 'attachment')
             : vscode.DocumentDropOrPasteEditKind.Empty.append('markdown', 'link', 'uri');
       }
 
       return edit;
-    }
+    },
   };
 }
 
@@ -831,20 +833,15 @@ function registerMarkdownRelativeLinkDropProvider(context) {
   try {
     const kinds = vscode.DocumentDropOrPasteEditKind
       ? [
-          vscode.DocumentDropOrPasteEditKind.Empty.append(
-            'markdown',
-            'link',
-            'image',
-            'attachment'
-          ),
-          vscode.DocumentDropOrPasteEditKind.Empty.append('markdown', 'link', 'uri')
+          vscode.DocumentDropOrPasteEditKind.Empty.append('markdown', 'link', 'image', 'attachment'),
+          vscode.DocumentDropOrPasteEditKind.Empty.append('markdown', 'link', 'uri'),
         ]
       : undefined;
     context.subscriptions.push(
       vscode.languages.registerDocumentDropEditProvider(selector, provider, {
         dropMimeTypes,
-        providedDropEditKinds: kinds
-      })
+        providedDropEditKinds: kinds,
+      }),
     );
   } catch {
     context.subscriptions.push(vscode.languages.registerDocumentDropEditProvider(selector, provider));
@@ -874,20 +871,11 @@ const DEFAULT_NOTE_DROP_IMAGE_EXTENSIONS = [
   '.m4a',
   '.flac',
   '.aac',
-  '.opus'
+  '.opus',
 ];
 
 const PREVIEW_VIDEO_EXTENSIONS = new Set(['.mp4', '.webm', '.mov', '.m4v', '.ogv', '.mkv']);
-const PREVIEW_AUDIO_EXTENSIONS = new Set([
-  '.mp3',
-  '.wav',
-  '.ogg',
-  '.oga',
-  '.m4a',
-  '.flac',
-  '.aac',
-  '.opus'
-]);
+const PREVIEW_AUDIO_EXTENSIONS = new Set(['.mp3', '.wav', '.ogg', '.oga', '.m4a', '.flac', '.aac', '.opus']);
 
 /**
  * @param {string} src
@@ -925,16 +913,14 @@ function getNoteDropSettings() {
       imageExtensions.add(ext);
     }
   }
-  const imagesFolder =
-    String(config.get('noteDrop.imagesFolderName', 'img') || 'img').trim() || 'img';
-  const filesFolder =
-    String(config.get('noteDrop.filesFolderName', 'files') || 'files').trim() || 'files';
+  const imagesFolder = String(config.get('noteDrop.imagesFolderName', 'img') || 'img').trim() || 'img';
+  const filesFolder = String(config.get('noteDrop.filesFolderName', 'files') || 'files').trim() || 'files';
   return {
     moveIntoNamedFolder: config.get('noteDrop.moveIntoNamedFolder', true) !== false,
     copyAllToNoteRoot: config.get('noteDrop.copyAllToNoteRoot', false) === true,
     imagesFolderName: sanitizeEntryName(imagesFolder) || 'img',
     filesFolderName: sanitizeEntryName(filesFolder) || 'files',
-    imageExtensions
+    imageExtensions,
   };
 }
 
@@ -969,7 +955,7 @@ async function ensureNoteInNamedFolder(noteMdPath, moveEnabled) {
   }
   fs.mkdirSync(targetDir, { recursive: true });
   await vscode.workspace.fs.rename(vscode.Uri.file(noteMdPath), vscode.Uri.file(targetMd), {
-    overwrite: false
+    overwrite: false,
   });
   return targetMd;
 }
@@ -1000,16 +986,13 @@ async function renameNamedFolderNote(mdPath, newStem) {
   }
 
   await vscode.workspace.fs.rename(vscode.Uri.file(noteDir), vscode.Uri.file(targetFolder), {
-    overwrite: false
+    overwrite: false,
   });
 
   const mdAfterFolderRename = path.join(targetFolder, `${oldStem}.md`);
-  if (
-    normalizeFsPath(mdAfterFolderRename) !== normalizeFsPath(targetMd) &&
-    pathExists(mdAfterFolderRename)
-  ) {
+  if (normalizeFsPath(mdAfterFolderRename) !== normalizeFsPath(targetMd) && pathExists(mdAfterFolderRename)) {
     await vscode.workspace.fs.rename(vscode.Uri.file(mdAfterFolderRename), vscode.Uri.file(targetMd), {
-      overwrite: false
+      overwrite: false,
     });
   }
 
@@ -1076,9 +1059,7 @@ class NoteAssetsVisibility {
     this._context = context;
     this._key = 'harrixNotesExplorerHsk.noteAssetsVisible.v1';
     const stored = context.workspaceState.get(this._key);
-    this.visible = new Set(
-      Array.isArray(stored) ? stored.map((x) => normalizeFsPath(String(x))) : []
-    );
+    this.visible = new Set(Array.isArray(stored) ? stored.map((x) => normalizeFsPath(String(x))) : []);
   }
 
   /** @param {string} noteDir */
@@ -1115,15 +1096,28 @@ function uriToFsPath(uri) {
 }
 
 function pathExists(fsPath) {
-  try { fs.accessSync(fsPath); return true; } catch { return false; }
+  try {
+    fs.accessSync(fsPath);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function isDirectoryPath(fsPath) {
-  try { return fs.statSync(fsPath).isDirectory(); } catch { return false; }
+  try {
+    return fs.statSync(fsPath).isDirectory();
+  } catch {
+    return false;
+  }
 }
 
 function isFilePath(fsPath) {
-  try { return fs.statSync(fsPath).isFile(); } catch { return false; }
+  try {
+    return fs.statSync(fsPath).isFile();
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -1206,7 +1200,7 @@ function folderUriFromTreeArg(treeItemOrUri) {
 function openFolderInIntegratedTerminal(folderUri) {
   const terminal = vscode.window.createTerminal({
     cwd: folderUri,
-    name: path.basename(folderUri.fsPath) || undefined
+    name: path.basename(folderUri.fsPath) || undefined,
   });
   terminal.show();
 }
@@ -1215,7 +1209,11 @@ function openFolderInIntegratedTerminal(folderUri) {
  * @param {string} raw
  */
 function sanitizeEntryName(raw) {
-  const name = String(raw ?? '').trim().replace(/[<>:"/\\|?*\u0000-\u001f]/g, '_').trim();
+  const name = String(raw ?? '')
+    .trim()
+    // biome-ignore lint/suspicious/noControlCharactersInRegex: strip Windows-illegal and control chars from names
+    .replace(/[<>:"/\\|?*\u0000-\u001f]/g, '_')
+    .trim();
   if (!name || name === '.' || name === '..') {
     return '';
   }
@@ -1334,9 +1332,7 @@ async function closeNonTextTabsInColumn(viewColumn) {
   if (!vscode.window.tabGroups?.close) {
     return;
   }
-  const group = vscode.window.tabGroups.all.find(
-    (g) => (g.viewColumn ?? vscode.ViewColumn.One) === viewColumn
-  );
+  const group = vscode.window.tabGroups.all.find((g) => (g.viewColumn ?? vscode.ViewColumn.One) === viewColumn);
   if (!group) {
     return;
   }
@@ -1377,7 +1373,7 @@ async function focusSourceEditorInLeftColumn(uri) {
     await vscode.window.showTextDocument(uri, {
       viewColumn: leftColumn,
       preview: false,
-      preserveFocus: false
+      preserveFocus: false,
     });
   } catch {
     // ignore
@@ -1397,7 +1393,7 @@ async function openHarrixNoteSplit(uri, layout) {
       await vscode.window.showTextDocument(uri, {
         viewColumn,
         preview: false,
-        preserveFocus: false
+        preserveFocus: false,
       });
     } catch {
       await vscode.commands.executeCommand('vscode.open', uri);
@@ -1490,7 +1486,7 @@ async function openHarrixNote(uri, mode) {
       await vscode.window.showTextDocument(uri, {
         viewColumn,
         preview: false,
-        preserveFocus: false
+        preserveFocus: false,
       });
     } catch {
       await vscode.commands.executeCommand('vscode.open', uri);
@@ -1534,7 +1530,7 @@ async function openHarrixNote(uri, mode) {
   if (usePreview) {
     try {
       await vscode.commands.executeCommand('markdown.showPreview', uri, vscode.ViewColumn.One, {
-        locked: true
+        locked: true,
       });
     } catch {
       await openSource(vscode.ViewColumn.One);
@@ -1648,7 +1644,7 @@ class NotesProvider {
       const out = execFileSync('git', ['rev-parse', '--is-inside-work-tree'], {
         ...GIT_EXEC_OPTS_BASE,
         cwd: folderPath,
-        encoding: 'utf8'
+        encoding: 'utf8',
       });
       inside = String(out || '').trim() === 'true';
     } catch {
@@ -1692,7 +1688,7 @@ class NotesProvider {
 
   /** @param {string} noteDir */
   isNoteAssetsVisible(noteDir) {
-    return this._assetsVisibility != null && this._assetsVisibility.isVisible(noteDir);
+    return this._assetsVisibility?.isVisible(noteDir);
   }
 
   /**
@@ -1707,7 +1703,9 @@ class NotesProvider {
     this._emitter.fire();
   }
 
-  getTreeItem(el) { return el; }
+  getTreeItem(el) {
+    return el;
+  }
 
   /**
    * @param {vscode.TreeItem} a
@@ -1722,7 +1720,7 @@ class NotesProvider {
     };
     return labelToString(a.label).localeCompare(labelToString(b.label), undefined, {
       numeric: true,
-      sensitivity: 'base'
+      sensitivity: 'base',
     });
   }
 
@@ -1812,7 +1810,7 @@ class NotesProvider {
           parentPath,
           path.basename(parentPath),
           element.noteDirPath,
-          element.parentNoteMdPath
+          element.parentNoteMdPath,
         );
       }
     }
@@ -1828,8 +1826,7 @@ class NotesProvider {
       if (normalizeFsPath(parentDir) === normalizeFsPath(element.dirPath)) {
         return undefined;
       }
-      const depth =
-        typeof element.folderDepth === 'number' ? Math.max(1, element.folderDepth - 1) : 1;
+      const depth = typeof element.folderDepth === 'number' ? Math.max(1, element.folderDepth - 1) : 1;
       return this.createFolderItem(parentDir, path.basename(parentDir), depth);
     }
 
@@ -1842,11 +1839,7 @@ class NotesProvider {
       return this.getNoteAssetChildren(element.noteDirPath, noteMdPath);
     }
     if (element?.isAssetFolder && element.dirPath) {
-      return this.getAssetFolderChildren(
-        element.dirPath,
-        element.noteDirPath,
-        element.parentNoteMdPath
-      );
+      return this.getAssetFolderChildren(element.dirPath, element.noteDirPath, element.parentNoteMdPath);
     }
 
     if (!element) {
@@ -1865,20 +1858,16 @@ class NotesProvider {
 
     // Folders that contain at least one .md file (recursively)
     const folders = entries
-      .filter(e => e.isDirectory())
-      .filter(e =>
-        hasMarkdownRecursive(path.join(dir, e.name)) ||
-        harrixCli.folderListedWithoutMarkdown(
-          e.name,
-          this.getTemplatesForFolder(path.join(dir, e.name)).length
-        )
+      .filter((e) => e.isDirectory())
+      .filter(
+        (e) =>
+          hasMarkdownRecursive(path.join(dir, e.name)) ||
+          harrixCli.folderListedWithoutMarkdown(e.name, this.getTemplatesForFolder(path.join(dir, e.name)).length),
       );
 
     const hereName = path.basename(dir);
     // .md in this folder; hide only merged template `_<folder>.g.md`, not other *.g.md
-    const mdFiles = entries.filter(
-      e => e.isFile() && isMd(e.name) && !isMergedTemplateGmd(e.name, hereName)
-    );
+    const mdFiles = entries.filter((e) => e.isFile() && isMd(e.name) && !isMergedTemplateGmd(e.name, hereName));
 
     const items = [];
 
@@ -1886,17 +1875,14 @@ class NotesProvider {
     for (const folder of folders) {
       const folderPath = path.join(dir, folder.name);
       const sub = safeReaddir(folderPath);
-      const subVisibleMd = sub.filter(
-        e => e.isFile() && isMd(e.name) && !isMergedTemplateGmd(e.name, folder.name)
-      );
+      const subVisibleMd = sub.filter((e) => e.isFile() && isMd(e.name) && !isMergedTemplateGmd(e.name, folder.name));
       const subFolders = sub
-        .filter(e => e.isDirectory())
-        .filter(e =>
-          hasMarkdownRecursive(path.join(folderPath, e.name)) ||
-          harrixCli.isSpecialNotesFolderName(e.name)
+        .filter((e) => e.isDirectory())
+        .filter(
+          (e) => hasMarkdownRecursive(path.join(folderPath, e.name)) || harrixCli.isSpecialNotesFolderName(e.name),
         );
 
-      const sameNameMdPath = path.join(folderPath, folder.name + '.md');
+      const sameNameMdPath = path.join(folderPath, `${folder.name}.md`);
       const hasSameNameMd = fs.existsSync(sameNameMdPath);
 
       // Rule: folder + exactly one .md with the same name + no "visible" subfolders
@@ -1932,8 +1918,7 @@ class NotesProvider {
     item.label = label;
     item.folderDepth = 0;
     item.isWorkspaceRoot = true;
-    const expanded =
-      this._expansion == null ? true : this._expansion.isWorkspaceRootExpanded(folderPath);
+    const expanded = this._expansion == null ? true : this._expansion.isWorkspaceRootExpanded(folderPath);
     item.collapsibleState = expanded
       ? vscode.TreeItemCollapsibleState.Expanded
       : vscode.TreeItemCollapsibleState.Collapsed;
@@ -1944,9 +1929,7 @@ class NotesProvider {
     const depth =
       typeof folderDepth === 'number' && Number.isFinite(folderDepth) ? Math.max(1, Math.floor(folderDepth)) : 1;
     const expanded = this._expansion != null ? this._expansion.isExpanded(folderPath) : false;
-    const collapsible = expanded
-      ? vscode.TreeItemCollapsibleState.Expanded
-      : vscode.TreeItemCollapsibleState.Collapsed;
+    const collapsible = expanded ? vscode.TreeItemCollapsibleState.Expanded : vscode.TreeItemCollapsibleState.Collapsed;
     const item = new vscode.TreeItem(name, collapsible);
     item.resourceUri = vscode.Uri.file(folderPath);
     item.dirPath = folderPath;
@@ -1957,7 +1940,7 @@ class NotesProvider {
       name,
       folderPath,
       hasMerged: hasMergedNoteFs(folderPath, name),
-      templateItems: item.templateItems
+      templateItems: item.templateItems,
     });
     if (this.isFolderInsideGitWorkTree(folderPath)) {
       const base = item.contextValue;
@@ -1979,9 +1962,7 @@ class NotesProvider {
     const assetsVisible = this.isNoteAssetsVisible(noteDir);
     const item = new vscode.TreeItem(
       displayName,
-      assetsVisible
-        ? vscode.TreeItemCollapsibleState.Expanded
-        : vscode.TreeItemCollapsibleState.None
+      assetsVisible ? vscode.TreeItemCollapsibleState.Expanded : vscode.TreeItemCollapsibleState.None,
     );
     item.id = `note:${normalizeFsPath(filePath)}`;
     item.resourceUri = vscode.Uri.file(filePath);
@@ -1993,16 +1974,13 @@ class NotesProvider {
     item.command = {
       command: 'harrixNotesExplorerHsk.openNote',
       title: 'Open',
-      arguments: [vscode.Uri.file(filePath)]
+      arguments: [vscode.Uri.file(filePath)],
     };
     const tooltipLines = [filePath];
     if (displayName !== stem && getShowNoteFileNameBesideTitle()) {
       tooltipLines.push(`File: ${stem}`);
     }
-    tooltipLines.push(
-      '',
-      'Drop files to copy into this note (featured-image → root, images → img, others → files).'
-    );
+    tooltipLines.push('', 'Drop files to copy into this note (featured-image → root, images → img, others → files).');
     item.tooltip = tooltipLines.join('\n');
 
     item.iconPath = new vscode.ThemeIcon('markdown');
@@ -2040,13 +2018,11 @@ class NotesProvider {
     item.command = {
       command: 'vscode.open',
       title: 'Open',
-      arguments: [item.resourceUri]
+      arguments: [item.resourceUri],
     };
     const ext = path.extname(displayName).toLowerCase();
     const imageExts = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.avif', '.svg', '.bmp', '.ico']);
-    item.iconPath = imageExts.has(ext)
-      ? vscode.Uri.file(filePath)
-      : new vscode.ThemeIcon('file');
+    item.iconPath = imageExts.has(ext) ? vscode.Uri.file(filePath) : new vscode.ThemeIcon('file');
     item.contextValue = 'noteAssetFile';
     return item;
   }
@@ -2163,10 +2139,7 @@ async function syncNotesTreeToActiveEditor(view, provider, state) {
   }
 
   const selected = view.selection?.[0];
-  if (
-    selected?.resourceUri?.fsPath &&
-    normalizeFsPath(selected.resourceUri.fsPath) === normalizeFsPath(filePath)
-  ) {
+  if (selected?.resourceUri?.fsPath && normalizeFsPath(selected.resourceUri.fsPath) === normalizeFsPath(filePath)) {
     return;
   }
 
@@ -2247,7 +2220,7 @@ async function dropFilesOntoNote(provider, noteMdPath, sources) {
   provider.refresh();
   vscode.window.setStatusBarMessage(
     copied === 1 ? 'Copied 1 file into note' : `Copied ${copied} files into note`,
-    2500
+    2500,
   );
 }
 
@@ -2421,10 +2394,7 @@ async function transferEntriesIntoDir(provider, targetDir, srcPaths, operation) 
   if (transferred > 0) {
     provider.refresh();
     const verb = operation === 'cut' ? 'Moved' : 'Copied';
-    vscode.window.setStatusBarMessage(
-      transferred === 1 ? `${verb} 1 item` : `${verb} ${transferred} items`,
-      2500
-    );
+    vscode.window.setStatusBarMessage(transferred === 1 ? `${verb} 1 item` : `${verb} ${transferred} items`, 2500);
   }
   return transferred;
 }
@@ -2535,7 +2505,7 @@ function createNoteAssetsDragAndDrop(provider) {
       if (target?.isAssetFolder && typeof target.dirPath === 'string' && isDirectoryPath(target.dirPath)) {
         await dropFilesIntoDirectory(provider, target.dirPath, sources);
       }
-    }
+    },
   };
 }
 
@@ -2554,7 +2524,7 @@ function getPreviewCopyConfig() {
     copiedColor: normalizePreviewCopyColor(config.get('previewCopy.copiedColor', '#388a34'), '#388a34'),
     collapseFrontmatter: config.get('previewFrontmatter.collapse', true) !== false,
     frontmatterSummary: normalizePreviewFrontmatterSummary(config.get('previewFrontmatter.summary', '📋 YAML')),
-    colorizeHex: config.get('previewColorize.enabled', true) !== false
+    colorizeHex: config.get('previewColorize.enabled', true) !== false,
   };
 }
 
@@ -2580,18 +2550,14 @@ function normalizePreviewCopyColor(value, fallback) {
  * @param {string} json
  */
 function escapePreviewCopyConfigAttr(json) {
-  return json
-    .replace(/&/g, '&amp;')
-    .replace(/"/g, '&quot;')
-    .replace(/</g, '&lt;');
+  return json.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
 }
 
 function registerPreviewCopyMarkdownPlugin() {
   return {
     extendMarkdownIt(/** @type {import('markdown-it')} */ md) {
       const defaultImageRender =
-        md.renderer.rules.image ||
-        ((tokens, idx, options, env, self) => self.renderToken(tokens, idx, options));
+        md.renderer.rules.image || ((tokens, idx, options, _env, self) => self.renderToken(tokens, idx, options));
 
       md.renderer.rules.image = (tokens, idx, options, env, self) => {
         const token = tokens[idx];
@@ -2611,19 +2577,14 @@ function registerPreviewCopyMarkdownPlugin() {
       };
 
       const render = md.render.bind(md);
-      md.render = function (src, env) {
+      md.render = (src, env) => {
         const cfg = getPreviewCopyConfig();
         const json = escapePreviewCopyConfigAttr(JSON.stringify(cfg));
-        const configHtml =
-          '<' +
-          'div id="hne-preview-copy-config" style="display:none" data-config="' +
-          json +
-          '"></' +
-          'div>';
+        const configHtml = `<div id="hne-preview-copy-config" style="display:none" data-config="${json}"></div>`;
         return configHtml + render(src, env);
       };
       return md;
-    }
+    },
   };
 }
 
@@ -2641,7 +2602,7 @@ function registerPreviewCopyConfigRefresh(context) {
         return;
       }
       void vscode.commands.executeCommand('markdown.preview.refresh');
-    })
+    }),
   );
 }
 
@@ -2655,7 +2616,7 @@ function getWorkspaceRootEntries() {
   }
   return folders.map((folder) => ({
     path: folder.uri.fsPath,
-    name: folder.name
+    name: folder.name,
   }));
 }
 
@@ -2673,7 +2634,7 @@ function activate(context) {
   context.subscriptions.push({
     dispose: () => {
       void expansionMemory.flush();
-    }
+    },
   });
 
   const assetsVisibility = new NoteAssetsVisibility(context);
@@ -2682,14 +2643,14 @@ function activate(context) {
   const view = vscode.window.createTreeView('harrixNotesExplorerHsk', {
     treeDataProvider: provider,
     showCollapseAll: true,
-    dragAndDropController: createNoteAssetsDragAndDrop(provider)
+    dragAndDropController: createNoteAssetsDragAndDrop(provider),
   });
   context.subscriptions.push(view);
 
   context.subscriptions.push(
     vscode.workspace.onDidChangeWorkspaceFolders(() => {
       provider.setRootEntries(getWorkspaceRootEntries());
-    })
+    }),
   );
 
   /** @type {{ generation: number }} */
@@ -2711,25 +2672,25 @@ function activate(context) {
         clearTimeout(autoRevealTimer);
         autoRevealTimer = null;
       }
-    }
+    },
   });
 
   context.subscriptions.push(
     vscode.window.onDidChangeActiveTextEditor(() => {
       queueAutoReveal();
-    })
+    }),
   );
   context.subscriptions.push(
     vscode.window.tabGroups.onDidChangeTabs(() => {
       queueAutoReveal();
-    })
+    }),
   );
   context.subscriptions.push(
     view.onDidChangeVisibility((e) => {
       if (e.visible) {
         queueAutoReveal();
       }
-    })
+    }),
   );
   queueAutoReveal();
 
@@ -2737,24 +2698,24 @@ function activate(context) {
   context.subscriptions.push({ dispose: () => treeClipboard.clear() });
 
   context.subscriptions.push(
-    view.onDidExpandElement(e => {
+    view.onDidExpandElement((e) => {
       const el = /** @type {vscode.TreeItem & { dirPath?: string }} */ (e.element);
       if (el && typeof el.dirPath === 'string') {
         expansionMemory.recordExpand(el.dirPath);
       }
-    })
+    }),
   );
   context.subscriptions.push(
-    view.onDidCollapseElement(e => {
+    view.onDidCollapseElement((e) => {
       const el = /** @type {vscode.TreeItem & { dirPath?: string }} */ (e.element);
       if (el && typeof el.dirPath === 'string') {
         expansionMemory.recordCollapse(el.dirPath);
       }
-    })
+    }),
   );
 
   context.subscriptions.push(
-    vscode.workspace.onDidChangeConfiguration(e => {
+    vscode.workspace.onDidChangeConfiguration((e) => {
       if (
         e.affectsConfiguration('harrixNotesExplorerHsk.rememberFolderExpansion') ||
         e.affectsConfiguration('harrixNotesExplorerHsk.showNoteTitleFromContent') ||
@@ -2765,38 +2726,38 @@ function activate(context) {
       if (e.affectsConfiguration('harrixNotesExplorerHsk.autoReveal')) {
         queueAutoReveal();
       }
-    })
+    }),
   );
 
   const logChannel = vscode.window.createOutputChannel('Harrix Notes Explorer (HSK)');
   context.subscriptions.push(logChannel);
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('harrixNotesExplorerHsk.openNote', async treeItemOrUri => {
+    vscode.commands.registerCommand('harrixNotesExplorerHsk.openNote', async (treeItemOrUri) => {
       const uri = noteUriFromTreeArg(treeItemOrUri);
       if (!uri) {
         return;
       }
       await openHarrixNote(uri, 'primary');
-    })
+    }),
   );
   context.subscriptions.push(
-    vscode.commands.registerCommand('harrixNotesExplorerHsk.openNoteInEditor', async treeItemOrUri => {
+    vscode.commands.registerCommand('harrixNotesExplorerHsk.openNoteInEditor', async (treeItemOrUri) => {
       const uri = noteUriFromTreeArg(treeItemOrUri);
       if (!uri) {
         return;
       }
       await openHarrixNote(uri, 'editor');
-    })
+    }),
   );
   context.subscriptions.push(
-    vscode.commands.registerCommand('harrixNotesExplorerHsk.openNoteInPreview', async treeItemOrUri => {
+    vscode.commands.registerCommand('harrixNotesExplorerHsk.openNoteInPreview', async (treeItemOrUri) => {
       const uri = noteUriFromTreeArg(treeItemOrUri);
       if (!uri) {
         return;
       }
       await openHarrixNote(uri, 'preview');
-    })
+    }),
   );
   context.subscriptions.push(
     vscode.commands.registerCommand('harrixNotesExplorerHsk.showNoteAssets', async (treeItemOrUri) => {
@@ -2808,7 +2769,7 @@ function activate(context) {
       const noteDir = path.dirname(uri.fsPath);
       if (!noteDirHasAttachments(noteDir)) {
         void vscode.window.showInformationMessage(
-          'No attachments in this note folder (no featured image and no asset folders such as images or files).'
+          'No attachments in this note folder (no featured image and no asset folders such as images or files).',
         );
         return;
       }
@@ -2816,7 +2777,7 @@ function activate(context) {
       provider.setNoteAssetsVisible(noteDir, true);
       await refreshDone;
       await revealNoteWithAttachments(view, provider, uri.fsPath);
-    })
+    }),
   );
   context.subscriptions.push(
     vscode.commands.registerCommand('harrixNotesExplorerHsk.hideNoteAssets', (treeItemOrUri) => {
@@ -2826,7 +2787,7 @@ function activate(context) {
         return;
       }
       provider.setNoteAssetsVisible(path.dirname(uri.fsPath), false);
-    })
+    }),
   );
   context.subscriptions.push(
     vscode.commands.registerCommand('harrixNotesExplorerHsk.openMarkdownPreviewTabInEditor', async () => {
@@ -2835,11 +2796,11 @@ function activate(context) {
       } catch {
         // Built-in Markdown extension unavailable or no active preview resource.
       }
-    })
+    }),
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('harrixNotesExplorerHsk.refresh', () => provider.refresh())
+    vscode.commands.registerCommand('harrixNotesExplorerHsk.refresh', () => provider.refresh()),
   );
 
   context.subscriptions.push(
@@ -2851,7 +2812,7 @@ function activate(context) {
       const folderName = path.basename(fsPath);
       const gPath = mergedNotePath(fsPath, folderName);
       if (!pathExists(gPath)) {
-        vscode.window.showWarningMessage('No merged note for this folder (_' + folderName + '.g.md).');
+        vscode.window.showWarningMessage(`No merged note for this folder (_${folderName}.g.md).`);
         return;
       }
       const gUri = vscode.Uri.file(gPath);
@@ -2861,7 +2822,7 @@ function activate(context) {
       } catch {
         await vscode.commands.executeCommand('vscode.open', gUri);
       }
-    })
+    }),
   );
 
   harrixCli.activateHarrixCliIntegration({
@@ -2872,7 +2833,7 @@ function activate(context) {
     isDirectoryPath,
     isFilePath,
     normalizeFsPath,
-    resolveNotesFolderFsPath
+    resolveNotesFolderFsPath,
   });
 
   context.subscriptions.push(
@@ -2896,7 +2857,7 @@ function activate(context) {
             successMessage: 'Git discard completed for folder.',
             notTrackedMessage: 'This folder is not tracked by Git. Nothing to discard.',
             logChannel,
-            onSuccess: () => provider.refresh()
+            onSuccess: () => provider.refresh(),
           });
         });
       } catch (e) {
@@ -2907,7 +2868,7 @@ function activate(context) {
         logChannel.show(true);
         vscode.window.showErrorMessage(`Discard Git changes failed: ${msg}`);
       }
-    })
+    }),
   );
 
   context.subscriptions.push(
@@ -2934,7 +2895,7 @@ function activate(context) {
             successMessage: 'Git discard completed for note.',
             notTrackedMessage: 'This note is not tracked by Git. Nothing to discard.',
             logChannel,
-            onSuccess: () => provider.refresh()
+            onSuccess: () => provider.refresh(),
           });
         });
       } catch (e) {
@@ -2945,7 +2906,7 @@ function activate(context) {
         logChannel.show(true);
         vscode.window.showErrorMessage(`Discard Git changes failed: ${msg}`);
       }
-    })
+    }),
   );
 
   context.subscriptions.push(
@@ -2957,7 +2918,7 @@ function activate(context) {
       }
 
       await vscode.commands.executeCommand('revealFileInOS', targetUri);
-    })
+    }),
   );
 
   context.subscriptions.push(
@@ -2969,7 +2930,7 @@ function activate(context) {
       }
       await vscode.env.clipboard.writeText(fsPath);
       vscode.window.setStatusBarMessage('Copied path to clipboard', 1500);
-    })
+    }),
   );
 
   context.subscriptions.push(
@@ -2980,7 +2941,7 @@ function activate(context) {
         return;
       }
       openFolderInIntegratedTerminal(folderUri);
-    })
+    }),
   );
 
   context.subscriptions.push(
@@ -2991,7 +2952,7 @@ function activate(context) {
         return;
       }
       await vscode.commands.executeCommand('filesExplorer.findInFolder', folderUri);
-    })
+    }),
   );
 
   context.subscriptions.push(
@@ -3004,9 +2965,9 @@ function activate(context) {
       treeClipboard.set('cut', paths);
       vscode.window.setStatusBarMessage(
         paths.length === 1 ? 'Cut 1 item to clipboard' : `Cut ${paths.length} items to clipboard`,
-        1500
+        1500,
       );
-    })
+    }),
   );
 
   context.subscriptions.push(
@@ -3019,9 +2980,9 @@ function activate(context) {
       treeClipboard.set('copy', paths);
       vscode.window.setStatusBarMessage(
         paths.length === 1 ? 'Copied 1 item to clipboard' : `Copied ${paths.length} items to clipboard`,
-        1500
+        1500,
       );
-    })
+    }),
   );
 
   context.subscriptions.push(
@@ -3031,7 +2992,7 @@ function activate(context) {
       }
       const targetDir = getMoveTargetDir(
         provider,
-        /** @type {vscode.TreeItem & Record<string, unknown>} */ (treeItemOrUri)
+        /** @type {vscode.TreeItem & Record<string, unknown>} */ (treeItemOrUri),
       );
       if (!targetDir) {
         vscode.window.showErrorMessage('Select a folder or note to paste into.');
@@ -3043,7 +3004,7 @@ function activate(context) {
       if (operation === 'cut' && transferred > 0) {
         treeClipboard.clear();
       }
-    })
+    }),
   );
 
   context.subscriptions.push(
@@ -3057,7 +3018,7 @@ function activate(context) {
       const name = await vscode.window.showInputBox({
         title: 'Add Folder',
         prompt: 'Folder name inside the note directory',
-        placeHolder: 'img'
+        placeHolder: 'img',
       });
       if (!name) {
         return;
@@ -3083,7 +3044,7 @@ function activate(context) {
         const msg = e instanceof Error ? e.message : String(e);
         vscode.window.showErrorMessage(`Add Folder failed: ${msg}`);
       }
-    })
+    }),
   );
 
   context.subscriptions.push(
@@ -3097,7 +3058,7 @@ function activate(context) {
       const name = await vscode.window.showInputBox({
         title: 'Add File',
         prompt: 'File name inside the note directory (with extension if needed)',
-        placeHolder: 'readme.txt'
+        placeHolder: 'readme.txt',
       });
       if (!name) {
         return;
@@ -3123,7 +3084,7 @@ function activate(context) {
         const msg = e instanceof Error ? e.message : String(e);
         vscode.window.showErrorMessage(`Add File failed: ${msg}`);
       }
-    })
+    }),
   );
 
   context.subscriptions.push(
@@ -3139,20 +3100,18 @@ function activate(context) {
       const parentDir = path.dirname(fsPath);
       const oldBaseName = path.basename(fsPath);
 
-      const fileExt = isFile
-        ? (isGMd(oldBaseName) ? '.g.md' : '.md')
-        : '';
+      const fileExt = isFile ? (isGMd(oldBaseName) ? '.g.md' : '.md') : '';
 
       const defaultValue = isFile
-        ? (isGMd(oldBaseName)
+        ? isGMd(oldBaseName)
           ? oldBaseName.replace(/\.g\.md$/i, '')
-          : oldBaseName.replace(/\.md$/i, ''))
+          : oldBaseName.replace(/\.md$/i, '')
         : oldBaseName;
 
       const newName = await vscode.window.showInputBox({
         title: 'Rename',
         prompt: isDir ? 'Enter new folder name' : 'Enter new note name (without extension)',
-        value: defaultValue
+        value: defaultValue,
       });
       if (!newName) return;
 
@@ -3193,9 +3152,7 @@ function activate(context) {
         return;
       }
 
-      const newBaseName = isFile
-        ? (safeNew.toLowerCase().endsWith('.md') ? safeNew : `${safeNew}${fileExt}`)
-        : safeNew;
+      const newBaseName = isFile ? (safeNew.toLowerCase().endsWith('.md') ? safeNew : `${safeNew}${fileExt}`) : safeNew;
 
       const newPath = path.join(parentDir, newBaseName);
 
@@ -3216,7 +3173,7 @@ function activate(context) {
         const msg = e instanceof Error ? e.message : String(e);
         vscode.window.showErrorMessage(`Rename failed: ${msg}`);
       }
-    })
+    }),
   );
 
   context.subscriptions.push(
@@ -3232,13 +3189,13 @@ function activate(context) {
       const choice = await vscode.window.showWarningMessage(
         `Delete ${isDir ? 'folder' : 'note'} "${path.basename(fsPath)}"?`,
         { modal: true },
-        'Delete'
+        'Delete',
       );
       if (choice !== 'Delete') return;
 
       await vscode.workspace.fs.delete(vscode.Uri.file(fsPath), { recursive: isDir, useTrash: true });
       provider.refresh();
-    })
+    }),
   );
 
   // Auto-refresh when .md files change
@@ -3251,8 +3208,6 @@ function activate(context) {
   return registerPreviewCopyMarkdownPlugin();
 }
 
-function deactivate() { }
+function deactivate() {}
 
 module.exports = { activate, deactivate };
-
-

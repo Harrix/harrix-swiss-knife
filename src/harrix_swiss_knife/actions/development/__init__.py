@@ -21,6 +21,8 @@ from harrix_swiss_knife.actions.development.sync_quick_access_to_total_commander
 from harrix_swiss_knife.actions.development.update_harrix_swiss_knife import OnUpdateHarrixSwissKnife
 from harrix_swiss_knife.actions.development.uv_update import OnUvUpdate
 from harrix_swiss_knife.actions.development.view_recent_action_logs import OnViewRecentActionLogs
+from harrix_swiss_knife.actions.development.vscode_check import OnVscodeCheck
+from harrix_swiss_knife.actions.development.vscode_format import OnVscodeFormat
 
 __all__ = [
     "OnAboutDialog",
@@ -40,4 +42,6 @@ __all__ = [
     "OnUpdateHarrixSwissKnife",
     "OnUvUpdate",
     "OnViewRecentActionLogs",
+    "OnVscodeCheck",
+    "OnVscodeFormat",
 ]

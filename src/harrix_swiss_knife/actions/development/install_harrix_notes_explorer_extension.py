@@ -203,7 +203,7 @@ class OnInstallHarrixNotesExplorerExtension(ActionBase):
             raise FileNotFoundError(msg)
 
         build_dir = Path(tempfile.mkdtemp(prefix="harrix-notes-explorer-public-"))
-        ignore = shutil.ignore_patterns("__pycache__", "*.pyc")
+        ignore = shutil.ignore_patterns("__pycache__", "*.pyc", "node_modules", ".biome")
         shutil.copytree(source_dir, build_dir, ignore=ignore, dirs_exist_ok=True)
 
         manifest_path = build_dir / "package.harrix-cli.contributes.json"
@@ -345,7 +345,7 @@ class OnInstallHarrixNotesExplorerExtension(ActionBase):
         except (OSError, json.JSONDecodeError, TypeError):
             pass
 
-        ignore = shutil.ignore_patterns("__pycache__", "*.pyc")
+        ignore = shutil.ignore_patterns("__pycache__", "*.pyc", "node_modules", ".biome")
         for label, ext_root in dest_pairs:
             dest = ext_root / "harrix-notes-explorer-hsk"
             try:
@@ -390,7 +390,7 @@ class OnInstallHarrixNotesExplorerExtension(ActionBase):
             self.add_line("❌ No valid editor selection to install public extension.")
             return
 
-        ignore = shutil.ignore_patterns("__pycache__", "*.pyc")
+        ignore = shutil.ignore_patterns("__pycache__", "*.pyc", "node_modules", ".biome")
         for label, ext_root in dest_pairs:
             dest = ext_root / self._PUBLIC_EXT_FOLDER
             try:

@@ -1,4 +1,4 @@
-(function () {
+(() => {
   const BUTTON_BASE_CLASS = 'hne-copy-btn';
   const WRAPPER_CLASS = 'hne-code-wrapper';
   const HEX_COLOR_CLASS = 'hne-hex-color';
@@ -16,7 +16,7 @@
     copiedColor: '#388a34',
     collapseFrontmatter: true,
     frontmatterSummary: '📋 YAML',
-    colorizeHex: true
+    colorizeHex: true,
   };
 
   const CLIPBOARD_ICON =
@@ -49,7 +49,7 @@
         copiedColor: parsed.copiedColor || DEFAULT_CONFIG.copiedColor,
         collapseFrontmatter: parsed.collapseFrontmatter !== false,
         frontmatterSummary: normalizeFrontmatterSummary(parsed.frontmatterSummary),
-        colorizeHex: parsed.colorizeHex !== false
+        colorizeHex: parsed.colorizeHex !== false,
       };
     } catch {
       return { ...DEFAULT_CONFIG };
@@ -84,22 +84,19 @@
   }
 
   function buttonSelector(position) {
-    return 'button[data-hne-copy="' + position + '"]';
+    return `button[data-hne-copy="${position}"]`;
   }
 
   function removeAllCopyButtons(preElement) {
-    preElement.querySelectorAll('button.' + BUTTON_BASE_CLASS).forEach((btn) => btn.remove());
-    preElement.classList.remove(
-      WRAPPER_CLASS,
-      'hne-single-line',
-      'hne-show-bottom-copy',
-      'hne-show-top-copy'
-    );
+    preElement.querySelectorAll(`button.${BUTTON_BASE_CLASS}`).forEach((btn) => {
+      btn.remove();
+    });
+    preElement.classList.remove(WRAPPER_CLASS, 'hne-single-line', 'hne-show-bottom-copy', 'hne-show-top-copy');
     delete preElement.dataset.hneBottomCopyHoverBound;
   }
 
   function removeLegacyButtons(preElement) {
-    preElement.querySelectorAll('button.' + BUTTON_BASE_CLASS).forEach((btn) => {
+    preElement.querySelectorAll(`button.${BUTTON_BASE_CLASS}`).forEach((btn) => {
       const position = btn.getAttribute('data-hne-copy');
       if (position !== 'top' && position !== 'bottom') {
         btn.remove();
@@ -108,7 +105,7 @@
   }
 
   function setButtonsCopied(preElement, copied) {
-    preElement.querySelectorAll('button.' + BUTTON_BASE_CLASS).forEach((btn) => {
+    preElement.querySelectorAll(`button.${BUTTON_BASE_CLASS}`).forEach((btn) => {
       if (copied) {
         btn.innerHTML = CHECK_ICON;
         btn.setAttribute('title', 'Copied!');
@@ -128,7 +125,7 @@
 
     const button = document.createElement('button');
     button.type = 'button';
-    button.className = BUTTON_BASE_CLASS + ' ' + BUTTON_BASE_CLASS + '-' + position;
+    button.className = `${BUTTON_BASE_CLASS} ${BUTTON_BASE_CLASS}-${position}`;
     button.setAttribute('data-hne-copy', position);
     button.innerHTML = CLIPBOARD_ICON;
     button.setAttribute('title', 'Copy');
@@ -145,11 +142,11 @@
           setButtonsCopied(preElement, false);
         }, 2000);
       } catch {
-        preElement.querySelectorAll('button.' + BUTTON_BASE_CLASS).forEach((btn) => {
+        preElement.querySelectorAll(`button.${BUTTON_BASE_CLASS}`).forEach((btn) => {
           btn.setAttribute('title', 'Failed to copy');
         });
         setTimeout(() => {
-          preElement.querySelectorAll('button.' + BUTTON_BASE_CLASS).forEach((btn) => {
+          preElement.querySelectorAll(`button.${BUTTON_BASE_CLASS}`).forEach((btn) => {
             btn.setAttribute('title', 'Copy');
           });
         }, 2000);
@@ -212,8 +209,7 @@
 
     const singleLine = isSingleLineCode(code);
     const needsHover =
-      (activeConfig.showBottom && !singleLine) ||
-      (activeConfig.showTop && !activeConfig.topAlwaysVisible);
+      (activeConfig.showBottom && !singleLine) || (activeConfig.showTop && !activeConfig.topAlwaysVisible);
 
     if (activeConfig.showTop) {
       attachCopyButton(preElement, code, 'top');
@@ -274,11 +270,13 @@
 
   function syncFrontmatterSummaries() {
     const label = getFrontmatterSummaryLabel();
-    document.querySelectorAll('details.hne-frontmatter-details > summary.hne-frontmatter-summary').forEach((summary) => {
-      if (summary.textContent !== label) {
-        summary.textContent = label;
-      }
-    });
+    document
+      .querySelectorAll('details.hne-frontmatter-details > summary.hne-frontmatter-summary')
+      .forEach((summary) => {
+        if (summary.textContent !== label) {
+          summary.textContent = label;
+        }
+      });
   }
 
   function processFrontmatter() {
@@ -334,7 +332,7 @@
    */
   function wrapHexInTextNode(textNode) {
     const text = textNode.nodeValue;
-    if (!text || !text.includes('#')) {
+    if (!text?.includes('#')) {
       return;
     }
     HEX_COLOR_RE.lastIndex = 0;
@@ -345,8 +343,8 @@
 
     const frag = document.createDocumentFragment();
     let lastIndex = 0;
-    let match;
-    while ((match = HEX_COLOR_RE.exec(text)) !== null) {
+    let match = HEX_COLOR_RE.exec(text);
+    while (match !== null) {
       if (match.index > lastIndex) {
         frag.appendChild(document.createTextNode(text.slice(lastIndex, match.index)));
       }
@@ -359,6 +357,7 @@
       span.setAttribute('title', match[0]);
       frag.appendChild(span);
       lastIndex = match.index + match[0].length;
+      match = HEX_COLOR_RE.exec(text);
     }
     if (lastIndex < text.length) {
       frag.appendChild(document.createTextNode(text.slice(lastIndex)));
@@ -375,7 +374,7 @@
       return;
     }
     if (!activeConfig.colorizeHex) {
-      codeEl.querySelectorAll('span.' + HEX_COLOR_CLASS).forEach((span) => {
+      codeEl.querySelectorAll(`span.${HEX_COLOR_CLASS}`).forEach((span) => {
         const text = document.createTextNode(span.textContent || '');
         span.parentNode?.replaceChild(text, span);
       });
@@ -389,11 +388,11 @@
     const walker = document.createTreeWalker(codeEl, NodeFilter.SHOW_TEXT, {
       acceptNode(node) {
         const parent = node.parentElement;
-        if (parent && parent.closest('.' + HEX_COLOR_CLASS)) {
+        if (parent?.closest(`.${HEX_COLOR_CLASS}`)) {
           return NodeFilter.FILTER_REJECT;
         }
         return NodeFilter.FILTER_ACCEPT;
-      }
+      },
     });
     /** @type {Text[]} */
     const nodes = [];
@@ -438,7 +437,7 @@
       if (domObserver && document.body) {
         domObserver.observe(document.body, {
           childList: true,
-          subtree: true
+          subtree: true,
         });
       }
     }
@@ -456,9 +455,7 @@
         node.classList.contains(HEX_COLOR_CLASS) ||
         node.classList.contains('hne-frontmatter-details') ||
         node.classList.contains('hne-frontmatter-summary') ||
-        node.closest(
-          '.hne-frontmatter-details, .' + BUTTON_BASE_CLASS + ', .' + HEX_COLOR_CLASS
-        ) !== null);
+        node.closest(`.hne-frontmatter-details, .${BUTTON_BASE_CLASS}, .${HEX_COLOR_CLASS}`) !== null);
 
     domObserver = new MutationObserver((mutations) => {
       if (isProcessingDom) {
@@ -488,7 +485,7 @@
 
     domObserver.observe(document.body, {
       childList: true,
-      subtree: true
+      subtree: true,
     });
 
     window.addEventListener('vscode.markdown.updateContent', () => {

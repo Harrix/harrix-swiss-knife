@@ -17,8 +17,13 @@ pre.hne-code-wrapper {
   border: 1px solid var(--hne-copy-border, #7f7f7f);
   border-radius: 4px;
   cursor: pointer;
-  transition: opacity 0.15s ease-in-out, visibility 0.15s ease-in-out, background-color 0.15s ease-in-out,
-    border-color 0.15s ease-in-out, color 0.15s ease-in-out, transform 0.1s ease-in-out;
+  transition:
+    opacity 0.15s ease-in-out,
+    visibility 0.15s ease-in-out,
+    background-color 0.15s ease-in-out,
+    border-color 0.15s ease-in-out,
+    color 0.15s ease-in-out,
+    transform 0.1s ease-in-out;
   z-index: 10;
   user-select: none;
 }
@@ -61,10 +66,6 @@ pre.hne-code-wrapper.hne-single-line .hne-copy-btn-top {
   transform: translateY(-50%);
 }
 
-pre.hne-code-wrapper.hne-single-line .hne-copy-btn-top:active {
-  transform: translateY(-50%) scale(0.96);
-}
-
 .hne-copy-btn svg {
   width: 16px;
   height: 16px;
@@ -88,6 +89,10 @@ pre.hne-code-wrapper.hne-single-line .hne-copy-btn-top:active {
   transform: scale(0.96);
 }
 
+pre.hne-code-wrapper.hne-single-line .hne-copy-btn-top:active {
+  transform: translateY(-50%) scale(0.96);
+}
+
 pre.hne-code-wrapper.hne-show-bottom-copy .hne-copy-btn-bottom:active {
   transform: scale(0.96);
 }
@@ -99,7 +104,7 @@ pre.hne-code-wrapper.hne-show-bottom-copy .hne-copy-btn-bottom:active {
 }
 
 body.hne-preview-copy-disabled .hne-copy-btn {
-  display: none !important;
+  display: none;
 }
 
 details.hne-frontmatter-details {

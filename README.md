@@ -54,10 +54,12 @@ _Figure 1: Screenshot_
   - ℹ️ About
   - 📱 Build Android APK… ꟲᴸᴵ
   - 🔬 Check Android code ꟲᴸᴵ
+  - 🔬 Check VS Code extension ꟲᴸᴵ
   - 🧹 Clear temp folder
   - 🔗 Create desktop shortcut
   - ⬇️ Download ffmpeg, avifenc, avifdec
   - ✨ Format Android code ꟲᴸᴵ
+  - ✨ Format VS Code extension ꟲᴸᴵ
   - ⌨️ Install CLI (hsk on PATH) ꟲᴸᴵ
   - ⚙️ Open `config.json`
   - 📌 Sync Quick Access folders to Total Commander
@@ -309,6 +311,8 @@ Folder arguments are optional (default: current directory) for commands that tak
 - `hsk md add-from-template --template "Travel"`
 - `hsk android format` — Spotless (ktlint) format for `android/`
 - `hsk android check` — Spotless check + Detekt + Android Lint (`qualityCheck`)
+- `hsk vscode format` — Biome format for `vscode/harrix-notes-explorer-hsk/`
+- `hsk vscode check` — Biome lint + format check for the VS Code extension
 - `hsk dev android-build debug` — build debug APK (Windows; JDK 17 + Android SDK)
 - `hsk dev android-build release` — build release APK (debug-signed for sideload)
 - `hsk dev install-cli` (global `hsk` on PATH via `uv tool install -e`)
