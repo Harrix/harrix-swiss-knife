@@ -26,8 +26,9 @@ class OnAndroidBuild(ActionBase)
 
 Build HSK Android APK (`assembleDebug` or `assembleRelease`).
 
-Tray: asks Debug vs Release, then runs Gradle. CLI: pass `debug` or
-`release`. Requires Windows, JDK 17, and Android SDK (`ANDROID_HOME` /
+Tray uses `android_build_variant` from `config/config.json` (`debug` or
+`release`, default `release`). CLI may pass `debug`/`release` to override.
+Requires Windows, JDK 17, and Android SDK (`ANDROID_HOME` /
 `android/local.properties`). Use `install/setup-android-sdk.bat` once
 to install the toolchain. After a successful build, the result dialog
 can open the APK folder, and the action runs `adb install -r` when a USB
@@ -41,13 +42,13 @@ authorization, waits for confirmation.
 class OnAndroidBuild(ActionBase):
 
     icon = "📱"
-    title = "Build Android APK…"
+    title = "Build Android APK"
     cli_available = True
-    cli_hint = "dev android-build <debug|release>"
+    cli_hint = "dev android-build [debug|release]"
 
-    VARIANT_DEBUG: ClassVar[str] = "Debug"
-    VARIANT_RELEASE: ClassVar[str] = "Release"
     CLI_VARIANTS: ClassVar[tuple[str, ...]] = ("debug", "release")
+    DEFAULT_VARIANT: ClassVar[str] = "release"
+    CONFIG_KEY: ClassVar[str] = "android_build_variant"
 
     _ADB_AUTH_POLL_INTERVAL_SEC: ClassVar[float] = 2.0
     _ADB_AUTH_TIMEOUT_SEC: ClassVar[float] = 120.0
@@ -74,7 +75,7 @@ class OnAndroidBuild(ActionBase):
             self.show_result()
             return
 
-        resolved = self._resolve_variant(variant=variant, noninteractive=noninteractive)
+        resolved = self._resolve_variant(variant=variant)
         if resolved is None:
             return
 
@@ -113,8 +114,12 @@ class OnAndroidBuild(ActionBase):
             return None
         self._run_gradle_build(
             android_dir,
-            getattr(self, "_gradle_task", "assembleDebug"),
-            getattr(self, "_apk_relative", "app/build/outputs/apk/debug/HarrixSwissKnife-debug.apk"),
+            getattr(self, "_gradle_task", "assembleRelease"),
+            getattr(
+                self,
+                "_apk_relative",
+                "app/build/outputs/apk/release/HarrixSwissKnife-release.apk",
+            ),
             getattr(self, "_java_home", ""),
         )
         return None
@@ -237,42 +242,25 @@ class OnAndroidBuild(ActionBase):
                 return path
         return None
 
-    def _resolve_variant(
-        self,
-        *,
-        variant: str | None,
-        noninteractive: bool,
-    ) -> tuple[str, str] | None:
-        """Map CLI/tray choice to Gradle task and APK path, or cancel."""
-        key: str | None = None
+    def _resolve_variant(self, *, variant: str | None) -> tuple[str, str] | None:
+        """Map CLI override or ``android_build_variant`` config to Gradle task and APK path."""
         if variant is not None:
             key = str(variant).strip().lower()
-        elif noninteractive:
-            self.add_line("❌ variant is required when noninteractive is True (debug|release).")
-            return None
+            source = "CLI"
         else:
-            choice = self.get_choice_from_list(
-                self.title,
-                "Choose APK build variant:",
-                [self.VARIANT_DEBUG, self.VARIANT_RELEASE],
-            )
-            if choice is None:
-                return None
-            if choice == self.VARIANT_DEBUG:
-                key = "debug"
-            elif choice == self.VARIANT_RELEASE:
-                key = "release"
-            else:
-                self.add_line(f"❌ Unknown choice: {choice}")
-                self.show_result()
-                return None
+            raw = self.config.get(self.CONFIG_KEY, self.DEFAULT_VARIANT)
+            key = str(raw or self.DEFAULT_VARIANT).strip().lower()
+            source = f"config.json `{self.CONFIG_KEY}`"
 
-        config = self._VARIANT_CONFIG.get(key or "")
+        config = self._VARIANT_CONFIG.get(key)
         if config is None:
             supported = ", ".join(self.CLI_VARIANTS)
-            self.add_line(f"❌ Unknown variant: {variant!r}. Use: {supported}")
+            self.add_line(f"❌ Unknown Android build variant {key!r} from {source}. Use: {supported}")
             self.show_result()
             return None
+
+        gradle_task, _apk_relative = config
+        self.add_line(f"🔵 Build variant: {key} ({gradle_task}) — {source}")
         return config
 
     def _run_gradle_build(
@@ -380,7 +368,7 @@ def execute(
             self.show_result()
             return
 
-        resolved = self._resolve_variant(variant=variant, noninteractive=noninteractive)
+        resolved = self._resolve_variant(variant=variant)
         if resolved is None:
             return
 
@@ -432,8 +420,12 @@ def in_thread(self) -> str | None:
             return None
         self._run_gradle_build(
             android_dir,
-            getattr(self, "_gradle_task", "assembleDebug"),
-            getattr(self, "_apk_relative", "app/build/outputs/apk/debug/HarrixSwissKnife-debug.apk"),
+            getattr(self, "_gradle_task", "assembleRelease"),
+            getattr(
+                self,
+                "_apk_relative",
+                "app/build/outputs/apk/release/HarrixSwissKnife-release.apk",
+            ),
             getattr(self, "_java_home", ""),
         )
         return None

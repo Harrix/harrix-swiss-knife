@@ -72,10 +72,12 @@ def dev_group() -> None:
 @dev_group.command("android-build")
 @click.argument(
     "variant",
+    required=False,
+    default=None,
     type=click.Choice(OnAndroidBuild.CLI_VARIANTS, case_sensitive=False),
 )
-def dev_android_build(variant: str) -> None:
-    """Build HSK Android APK (`debug` or `release`; release is unsigned)."""
+def dev_android_build(variant: str | None) -> None:
+    """Build HSK Android APK (`debug`/`release`, or `android_build_variant` from config)."""
     action = OnAndroidBuild()
     action(variant=variant, noninteractive=True)
     _finish_timed_action(action)

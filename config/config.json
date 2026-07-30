@@ -49,6 +49,7 @@
     "initial_count": 1000,
     "load_more_count": 500
   },
+  "android_build_variant": "release",
   "food_log_translate_names_limit": 250,
   "github_user": "Harrix",
   "harrix_notes_explorer_publisher": "harrix",

@@ -143,16 +143,16 @@ def dev_group() -> None:
 ## 🔧 Function `dev_android_build`
 
 ```python
-def dev_android_build(variant: str) -> None
+def dev_android_build(variant: str | None) -> None
 ```
 
-Build HSK Android APK (`debug` or `release`; release is unsigned).
+Build HSK Android APK (`debug`/`release`, or `android_build_variant` from config).
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def dev_android_build(variant: str) -> None:
+def dev_android_build(variant: str | None) -> None:
     action = OnAndroidBuild()
     action(variant=variant, noninteractive=True)
     _finish_timed_action(action)

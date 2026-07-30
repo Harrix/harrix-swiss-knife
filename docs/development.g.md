@@ -285,11 +285,12 @@ Via Harrix Swiss Knife (tray **Dev** → **Build Android APK…**, or CLI):
 ```text
 hsk android format
 hsk android check
+hsk dev android-build
 hsk dev android-build debug
 hsk dev android-build release
 ```
 
-`hsk android format` runs Spotless (`spotlessApply`). `hsk android check` runs `qualityCheck` (Spotless check + Detekt + `lintDebug`). The tray action asks Debug vs Release before building. After a successful build it opens the APK folder and, if a phone is connected via USB and visible in `adb devices`, runs `adb install -r` automatically (first device in `device` state). If no device is connected, the APK is still produced.
+`hsk android format` runs Spotless (`spotlessApply`). `hsk android check` runs `qualityCheck` (Spotless check + Detekt + `lintDebug`). The tray action **Build Android APK** uses `android_build_variant` from `config/config.json` (`debug` or `release`, default `release`) and does not ask each time. CLI may omit the variant (same config key) or pass `debug`/`release` to override. After a successful build it opens the APK folder and, if a phone is connected via USB and visible in `adb devices`, runs `adb install -r` automatically (first device in `device` state). If no device is connected, the APK is still produced.
 
 Manual install (optional):
 
