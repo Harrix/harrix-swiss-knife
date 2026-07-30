@@ -16,6 +16,11 @@
     <string name="settings_gallery_preset_week">Week</string>
     <string name="settings_gallery_preset_1_month">1 month</string>
     <string name="settings_gallery_preset_1_year">1 year</string>
+    <string name="settings_gallery_unreviewed_only">Show only photos not reviewed yet</string>
+    <string name="settings_gallery_unreviewed_only_hint">In this mode Keep and Delete mark a photo as reviewed. Random picks skip reviewed photos until you reset the history.</string>
+    <string name="settings_gallery_clear_reviewed">Reset reviewed history</string>
+    <string name="settings_gallery_clear_reviewed_done">Reviewed history cleared (%1$d)</string>
+    <string name="settings_gallery_reviewed_count">Reviewed photos: %1$d</string>
     <string name="nav_drawer_home">Home</string>
     <string name="nav_drawer_gallery_cleaner">Gallery Cleaner</string>
     <string name="nav_drawer_video_cleaner">Video Cleaner</string>
@@ -41,6 +46,7 @@
     <string name="gallery_cleaner_permission_grant">Grant access</string>
     <string name="gallery_cleaner_empty">No Camera photos left to review</string>
     <string name="gallery_cleaner_empty_filtered">No Camera photos in selected date range</string>
+    <string name="gallery_cleaner_empty_unreviewed">No unreviewed Camera photos left</string>
     <string name="gallery_cleaner_loading">Loading photos…</string>
     <string name="gallery_cleaner_menu">More options</string>
     <string name="gallery_cleaner_settings">Settings</string>

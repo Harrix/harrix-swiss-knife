@@ -139,6 +139,9 @@ fun GalleryCleanerScreen(
     var cardResetKey by remember { mutableIntStateOf(0) }
     var menuExpanded by remember { mutableStateOf(false) }
     var dateFilter by remember { mutableStateOf(preferences.loadDateFilter()) }
+    var unreviewedOnlyMode by remember {
+        mutableStateOf(preferences.isUnreviewedOnlyModeEnabled())
+    }
     var sessionDeletedCount by remember { mutableIntStateOf(0) }
     var sessionFreedBytes by remember { mutableLongStateOf(0L) }
 
@@ -164,6 +167,9 @@ fun GalleryCleanerScreen(
         deleted: Boolean = false,
     ) {
         view.performLightActionHaptic()
+        if (unreviewedOnlyMode) {
+            preferences.markPhotoReviewed(photo.id)
+        }
         if (deleted) {
             sessionDeletedCount += 1
             sessionFreedBytes += photo.sizeBytes
@@ -181,6 +187,9 @@ fun GalleryCleanerScreen(
 
     fun restoreLastTrashedPhoto(photo: CameraPhoto) {
         view.performLightActionHaptic()
+        if (unreviewedOnlyMode) {
+            preferences.unmarkPhotoReviewed(photo.id)
+        }
         sessionDeletedCount = (sessionDeletedCount - 1).coerceAtLeast(0)
         sessionFreedBytes = (sessionFreedBytes - photo.sizeBytes).coerceAtLeast(0L)
         val updated = remainingPhotos + photo
@@ -192,14 +201,21 @@ fun GalleryCleanerScreen(
         statusMessage = null
     }
 
-    fun applyDateFilter(photos: List<CameraPhoto>): List<CameraPhoto> =
-        photos.filter { photo -> dateFilter.contains(photo.dateAddedEpochSec) }
+    fun applyFilters(photos: List<CameraPhoto>): List<CameraPhoto> {
+        val byDate = photos.filter { photo -> dateFilter.contains(photo.dateAddedEpochSec) }
+        if (!unreviewedOnlyMode) {
+            return byDate
+        }
+        val reviewedIds = preferences.getReviewedPhotoIds()
+        return byDate.filterNot { it.id in reviewedIds }
+    }
 
     fun reloadPhotos() {
         isLoading = true
         statusMessage = null
         dateFilter = preferences.loadDateFilter()
-        val photos = applyDateFilter(repository.loadCameraPhotos())
+        unreviewedOnlyMode = preferences.isUnreviewedOnlyModeEnabled()
+        val photos = applyFilters(repository.loadCameraPhotos())
         remainingPhotos = photos
         remainingCount = photos.size
         currentPhoto = pickNext(photos)
@@ -472,10 +488,10 @@ fun GalleryCleanerScreen(
                     Text(
                         text =
                             stringResource(
-                                if (dateFilter.enabled) {
-                                    R.string.gallery_cleaner_empty_filtered
-                                } else {
-                                    R.string.gallery_cleaner_empty
+                                when {
+                                    dateFilter.enabled -> R.string.gallery_cleaner_empty_filtered
+                                    unreviewedOnlyMode -> R.string.gallery_cleaner_empty_unreviewed
+                                    else -> R.string.gallery_cleaner_empty
                                 },
                             ),
                         style = MaterialTheme.typography.bodyLarge,

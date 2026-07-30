@@ -139,6 +139,11 @@ private fun GalleryCleanerSettingsSection(
     val context = LocalContext.current
     val preferences = remember { GalleryCleanerPreferences(context.applicationContext) }
     var filter by remember { mutableStateOf(preferences.loadDateFilter()) }
+    var unreviewedOnlyMode by remember {
+        mutableStateOf(preferences.isUnreviewedOnlyModeEnabled())
+    }
+    var reviewedCount by remember { mutableIntStateOf(preferences.reviewedPhotoCount()) }
+    var clearMessage by remember { mutableStateOf<String?>(null) }
 
     fun persist(next: GalleryDateFilter) {
         filter = next
@@ -155,6 +160,62 @@ private fun GalleryCleanerSettingsSection(
                 style = MaterialTheme.typography.titleMedium,
             )
         }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Checkbox(
+                checked = unreviewedOnlyMode,
+                onCheckedChange = { checked ->
+                    unreviewedOnlyMode = checked
+                    preferences.setUnreviewedOnlyModeEnabled(checked)
+                },
+            )
+            Column(
+                modifier =
+                    Modifier
+                        .weight(1f)
+                        .padding(start = 4.dp),
+            ) {
+                Text(
+                    text = stringResource(R.string.settings_gallery_unreviewed_only),
+                    style = MaterialTheme.typography.bodyLarge,
+                )
+                Text(
+                    text = stringResource(R.string.settings_gallery_unreviewed_only_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+
+        Text(
+            text = stringResource(R.string.settings_gallery_reviewed_count, reviewedCount),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        OutlinedButton(
+            onClick = {
+                val cleared = preferences.reviewedPhotoCount()
+                preferences.clearReviewedPhotos()
+                reviewedCount = 0
+                clearMessage =
+                    context.getString(R.string.settings_gallery_clear_reviewed_done, cleared)
+            },
+            enabled = reviewedCount > 0,
+        ) {
+            Text(stringResource(R.string.settings_gallery_clear_reviewed))
+        }
+        clearMessage?.let { message ->
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+
+        HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
 
         Row(
             modifier = Modifier.fillMaxWidth(),

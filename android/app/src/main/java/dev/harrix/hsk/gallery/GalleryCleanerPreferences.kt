@@ -44,6 +44,40 @@ class GalleryCleanerPreferences(
             .apply()
     }
 
+    fun isUnreviewedOnlyModeEnabled(): Boolean =
+        prefs.getBoolean(KEY_UNREVIEWED_ONLY_MODE, false)
+
+    fun setUnreviewedOnlyModeEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_UNREVIEWED_ONLY_MODE, enabled).apply()
+    }
+
+    fun getReviewedPhotoIds(): Set<Long> =
+        prefs
+            .getStringSet(KEY_REVIEWED_PHOTO_IDS, emptySet())
+            .orEmpty()
+            .mapNotNull { it.toLongOrNull() }
+            .toSet()
+
+    fun markPhotoReviewed(photoId: Long) {
+        val updated = HashSet(prefs.getStringSet(KEY_REVIEWED_PHOTO_IDS, emptySet()).orEmpty())
+        if (updated.add(photoId.toString())) {
+            prefs.edit().putStringSet(KEY_REVIEWED_PHOTO_IDS, updated).apply()
+        }
+    }
+
+    fun unmarkPhotoReviewed(photoId: Long) {
+        val updated = HashSet(prefs.getStringSet(KEY_REVIEWED_PHOTO_IDS, emptySet()).orEmpty())
+        if (updated.remove(photoId.toString())) {
+            prefs.edit().putStringSet(KEY_REVIEWED_PHOTO_IDS, updated).apply()
+        }
+    }
+
+    fun clearReviewedPhotos() {
+        prefs.edit().remove(KEY_REVIEWED_PHOTO_IDS).apply()
+    }
+
+    fun reviewedPhotoCount(): Int = getReviewedPhotoIds().size
+
     companion object {
         private const val PREFS_NAME = "gallery_cleaner"
         private const val KEY_SHOW_INTRO = "show_intro"
@@ -51,5 +85,7 @@ class GalleryCleanerPreferences(
         private const val KEY_DATE_FILTER_ENABLED = "date_filter_enabled"
         private const val KEY_DATE_FILTER_START_SEC = "date_filter_start_sec"
         private const val KEY_DATE_FILTER_END_SEC = "date_filter_end_sec"
+        private const val KEY_UNREVIEWED_ONLY_MODE = "unreviewed_only_mode"
+        private const val KEY_REVIEWED_PHOTO_IDS = "reviewed_photo_ids"
     }
 }
