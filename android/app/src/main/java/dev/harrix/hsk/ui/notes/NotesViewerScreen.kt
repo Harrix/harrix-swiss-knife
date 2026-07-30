@@ -20,7 +20,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.InsertDriveFile
@@ -331,6 +330,11 @@ fun NotesViewerScreen(
                     folderPath = pathForNote,
                 )
         }
+        if (selectedTabDocumentId != note.documentId) {
+            noteLoading = true
+            noteContent = null
+            resetEditorState()
+        }
         selectedTabDocumentId = note.documentId
     }
 
@@ -351,6 +355,11 @@ fun NotesViewerScreen(
                     folderPath = pathForFolder,
                 )
         }
+        if (selectedTabDocumentId != documentId) {
+            noteLoading = true
+            noteContent = null
+            resetEditorState()
+        }
         selectedTabDocumentId = documentId
     }
 
@@ -359,11 +368,15 @@ fun NotesViewerScreen(
         if (closingSelected) {
             persistCurrentDraft {
                 openTabs = openTabs.filterNot { it.documentId == documentId }
-                selectedTabDocumentId = openTabs.lastOrNull()?.documentId
-                if (selectedTabDocumentId == null) {
+                val nextId = openTabs.lastOrNull()?.documentId
+                selectedTabDocumentId = nextId
+                if (nextId == null) {
                     noteContent = null
+                    noteLoading = false
                     resetEditorState()
                 } else {
+                    noteLoading = true
+                    noteContent = null
                     resetEditorState()
                 }
             }
@@ -385,6 +398,7 @@ fun NotesViewerScreen(
             selectedTabDocumentId != null -> {
                 selectedTabDocumentId = null
                 noteContent = null
+                noteLoading = false
                 resetEditorState()
             }
 
@@ -400,6 +414,8 @@ fun NotesViewerScreen(
         }
         persistCurrentDraft {
             selectedTabDocumentId = documentId
+            noteLoading = true
+            noteContent = null
             resetEditorState()
         }
     }
@@ -442,24 +458,33 @@ fun NotesViewerScreen(
         val tab = selectedTab
         if (tab == null) {
             noteContent = null
+            noteLoading = false
             resetEditorState()
             return@LaunchedEffect
         }
         noteLoading = true
         statusMessage = null
         saveFeedback = null
-        val loaded =
+        noteContent = null
+        val result =
             withContext(Dispatchers.IO) {
                 runCatching { repository.readText(tab.uri) }
-                    .onFailure { error ->
-                        statusMessage =
-                            error.message ?: context.getString(R.string.markdown_notes_load_failed)
-                    }.getOrNull()
             }
-        noteContent = loaded
-        draftText = loaded.orEmpty()
-        lastSavedText = loaded
-        isEditing = false
+        result
+            .onSuccess { loaded ->
+                noteContent = loaded
+                draftText = loaded
+                lastSavedText = loaded
+                isEditing = false
+                statusMessage = null
+            }.onFailure { error ->
+                noteContent = null
+                draftText = ""
+                lastSavedText = null
+                isEditing = false
+                statusMessage =
+                    error.message ?: context.getString(R.string.markdown_notes_load_failed)
+            }
         noteLoading = false
     }
 
@@ -923,8 +948,25 @@ private fun NotesPlainTextPane(
     errorMessage: String?,
     onDraftChange: (String) -> Unit,
 ) {
+    var viewLines by remember { mutableStateOf<List<String>?>(null) }
+    var preparingView by remember { mutableStateOf(false) }
+
+    LaunchedEffect(content, isEditing) {
+        if (isEditing || content == null) {
+            viewLines = null
+            preparingView = false
+            return@LaunchedEffect
+        }
+        preparingView = true
+        viewLines =
+            withContext(Dispatchers.IO) {
+                content.lineSequence().toList()
+            }
+        preparingView = false
+    }
+
     when {
-        isLoading -> {
+        isLoading || preparingView -> {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator()
             }
@@ -956,19 +998,25 @@ private fun NotesPlainTextPane(
         }
 
         else -> {
+            val lines = viewLines.orEmpty()
             Surface(
                 modifier = Modifier.fillMaxSize(),
                 color = MaterialTheme.colorScheme.surface,
             ) {
-                Text(
-                    text = content.orEmpty(),
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier =
-                    Modifier
-                        .fillMaxSize()
-                        .verticalScroll(rememberScrollState())
-                        .padding(16.dp),
-                )
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(16.dp),
+                ) {
+                    items(
+                        count = lines.size,
+                        key = { index -> index },
+                    ) { index ->
+                        Text(
+                            text = lines[index].ifEmpty { "\u00A0" },
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                    }
+                }
             }
         }
     }
