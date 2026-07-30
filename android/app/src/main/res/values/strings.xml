@@ -38,8 +38,16 @@
     <string name="settings_gallery_clear_reviewed">Reset reviewed history</string>
     <string name="settings_gallery_clear_reviewed_done">Reviewed history cleared (%1$d)</string>
     <string name="settings_gallery_reviewed_count">Reviewed photos: %1$d</string>
+    <string name="settings_gallery_restore_intro">Show how-it-works screen again</string>
+    <string name="settings_gallery_restore_intro_done">Intro will show when you return to Gallery Cleaner</string>
+    <string name="settings_restore_manage_media_tip">Show media management tip again</string>
+    <string name="settings_restore_manage_media_tip_done">Tip will show again in Gallery/Video Cleaner when needed</string>
     <string name="settings_gallery_filter_shoot_day">Use current photo shoot day</string>
     <string name="settings_gallery_filter_shoot_day_label">Use shoot day: %1$s</string>
+    <string name="settings_gallery_show_intro">Show Gallery Cleaner intro again</string>
+    <string name="settings_gallery_show_intro_done">Intro will appear when you return to Gallery Cleaner</string>
+    <string name="settings_show_manage_media_tip">Show media management tip again</string>
+    <string name="settings_show_manage_media_tip_done">Tip will appear again when trash without prompts is not enabled</string>
     <string name="gallery_cleaner_filter_shoot_day">Filter by this photo\'s shoot day</string>
     <string name="nav_drawer_home">Home</string>
     <string name="nav_drawer_gallery_cleaner">Gallery Cleaner</string>

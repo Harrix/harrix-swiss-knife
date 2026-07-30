@@ -120,6 +120,7 @@ fun VideoCleanerScreen(
     onClose: () -> Unit,
     onOpenSettings: () -> Unit,
     modifier: Modifier = Modifier,
+    settingsRevision: Int = 0,
 ) {
     val context = LocalContext.current
     val view = LocalView.current
@@ -226,6 +227,10 @@ fun VideoCleanerScreen(
         if (hasPermission) {
             reloadVideos()
         }
+    }
+
+    LaunchedEffect(settingsRevision) {
+        refreshManageMediaAccess()
     }
 
     if (showManageMediaPrompt) {

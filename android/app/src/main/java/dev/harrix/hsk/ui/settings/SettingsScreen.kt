@@ -268,6 +268,11 @@ private fun PermissionsSettingsSection(modifier: Modifier = Modifier) {
     var canManageMedia by remember {
         mutableStateOf(GalleryPermissions.canManageMedia(context))
     }
+    val preferences = remember { GalleryCleanerPreferences(context.applicationContext) }
+    var manageMediaTipEnabled by remember {
+        mutableStateOf(preferences.shouldShowManageMediaPrompt())
+    }
+    var manageMediaTipMessage by remember { mutableStateOf<String?>(null) }
 
     fun refreshPermissionStatus() {
         hasPhotosPermission = GalleryPermissions.hasPhotosPermission(context)
@@ -349,6 +354,24 @@ private fun PermissionsSettingsSection(modifier: Modifier = Modifier) {
         ) {
             Text(stringResource(R.string.settings_open_manage_media))
         }
+        OutlinedButton(
+            onClick = {
+                preferences.setShowManageMediaPrompt(true)
+                manageMediaTipEnabled = true
+                manageMediaTipMessage =
+                    context.getString(R.string.settings_show_manage_media_tip_done)
+            },
+            enabled = !manageMediaTipEnabled,
+        ) {
+            Text(stringResource(R.string.settings_show_manage_media_tip))
+        }
+        manageMediaTipMessage?.let { message ->
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 }
 
@@ -366,6 +389,8 @@ private fun GalleryCleanerSettingsSection(
     }
     var reviewedCount by remember { mutableIntStateOf(preferences.reviewedPhotoCount()) }
     var clearMessage by remember { mutableStateOf<String?>(null) }
+    var introEnabled by remember { mutableStateOf(preferences.shouldShowIntro()) }
+    var introMessage by remember { mutableStateOf<String?>(null) }
     val shootDayLabel =
         remember(currentShootDayEpochMs) {
             currentShootDayEpochMs?.let { epochMs ->
@@ -381,6 +406,24 @@ private fun GalleryCleanerSettingsSection(
     }
 
     val body: @Composable () -> Unit = {
+        OutlinedButton(
+            onClick = {
+                preferences.setShowIntro(true)
+                introEnabled = true
+                introMessage = context.getString(R.string.settings_gallery_show_intro_done)
+            },
+            enabled = !introEnabled,
+        ) {
+            Text(stringResource(R.string.settings_gallery_show_intro))
+        }
+        introMessage?.let { message ->
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,

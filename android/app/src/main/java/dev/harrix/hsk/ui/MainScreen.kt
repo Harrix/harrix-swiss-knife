@@ -156,6 +156,7 @@ fun MainScreen(
                 VideoCleanerScreen(
                     onClose = { destination = AppDestination.Home },
                     onOpenSettings = { settingsSection = SettingsSection.VideoCleaner },
+                    settingsRevision = settingsRevision,
                     modifier = Modifier.fillMaxSize(),
                 )
             }

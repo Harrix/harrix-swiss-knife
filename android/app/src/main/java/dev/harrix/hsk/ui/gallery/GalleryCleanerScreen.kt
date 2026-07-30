@@ -125,6 +125,7 @@ fun GalleryCleanerScreen(
     }
     var canManageMedia by remember { mutableStateOf(repository.canTrashWithoutPrompt()) }
     var showIntro by remember { mutableStateOf(preferences.shouldShowIntro()) }
+    var lastIntroPref by remember { mutableStateOf(preferences.shouldShowIntro()) }
     var showManageMediaPrompt by remember { mutableStateOf(false) }
     var dontShowAgain by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
@@ -329,6 +330,15 @@ fun GalleryCleanerScreen(
         dateFilter = preferences.loadDateFilter()
     }
 
+    LaunchedEffect(settingsRevision) {
+        val introPref = preferences.shouldShowIntro()
+        if (introPref && !lastIntroPref) {
+            showIntro = true
+        }
+        lastIntroPref = introPref
+        refreshManageMediaAccess()
+    }
+
     LaunchedEffect(hasPermission, showIntro, settingsRevision) {
         if (hasPermission && !showIntro) {
             reloadPhotos()
@@ -343,6 +353,7 @@ fun GalleryCleanerScreen(
                 if (dontShowAgain) {
                     preferences.setShowIntro(false)
                 }
+                lastIntroPref = preferences.shouldShowIntro()
                 showIntro = false
                 if (hasPermission) {
                     reloadPhotos()
