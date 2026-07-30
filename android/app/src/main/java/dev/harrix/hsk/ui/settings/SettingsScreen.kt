@@ -1,5 +1,6 @@
 package dev.harrix.hsk.ui.settings
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -14,6 +15,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -45,6 +48,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -159,6 +163,57 @@ fun SettingsScreen(
 }
 
 @Composable
+private fun CollapsibleSettingsSection(
+    title: String,
+    modifier: Modifier = Modifier,
+    initiallyExpanded: Boolean = true,
+    content: @Composable () -> Unit,
+) {
+    var expanded by remember { mutableStateOf(initiallyExpanded) }
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Row(
+            modifier =
+            Modifier
+                .fillMaxWidth()
+                .clickable(
+                    role = Role.Button,
+                    onClick = { expanded = !expanded },
+                )
+                .padding(vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.weight(1f),
+            )
+            Icon(
+                imageVector =
+                if (expanded) {
+                    Icons.Filled.ExpandLess
+                } else {
+                    Icons.Filled.ExpandMore
+                },
+                contentDescription =
+                stringResource(
+                    if (expanded) {
+                        R.string.settings_section_collapse
+                    } else {
+                        R.string.settings_section_expand
+                    },
+                ),
+            )
+        }
+        if (expanded) {
+            content()
+        }
+    }
+}
+
+@Composable
 private fun AppearanceSettingsSection(
     themeMode: ThemeMode,
     onThemeModeChange: (ThemeMode) -> Unit,
@@ -171,14 +226,10 @@ private fun AppearanceSettingsSection(
             ThemeMode.Dark to R.string.settings_theme_dark,
         )
 
-    Column(
-        modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+    CollapsibleSettingsSection(
+        title = stringResource(R.string.settings_appearance_title),
+        modifier = modifier,
     ) {
-        Text(
-            text = stringResource(R.string.settings_appearance_title),
-            style = MaterialTheme.typography.titleMedium,
-        )
         Text(
             text = stringResource(R.string.settings_theme_title),
             style = MaterialTheme.typography.labelLarge,
@@ -343,17 +394,7 @@ private fun GalleryCleanerSettingsSection(
         preferences.saveDateFilter(next)
     }
 
-    Column(
-        modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        if (showSectionTitle) {
-            Text(
-                text = stringResource(R.string.settings_gallery_cleaner_title),
-                style = MaterialTheme.typography.titleMedium,
-            )
-        }
-
+    val body: @Composable () -> Unit = {
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
@@ -454,6 +495,20 @@ private fun GalleryCleanerSettingsSection(
         HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
 
         MediaPermissionSettingsBlock(kind = MediaPermissionKind.Photos)
+    }
+
+    if (showSectionTitle) {
+        CollapsibleSettingsSection(
+            title = stringResource(R.string.settings_gallery_cleaner_title),
+            modifier = modifier,
+            content = body,
+        )
+    } else {
+        Column(
+            modifier = modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            content = { body() },
+        )
     }
 }
 
@@ -713,16 +768,21 @@ private fun VideoCleanerSettingsSection(
     showSectionTitle: Boolean,
     modifier: Modifier = Modifier,
 ) {
-    Column(
-        modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        if (showSectionTitle) {
-            Text(
-                text = stringResource(R.string.settings_video_cleaner_title),
-                style = MaterialTheme.typography.titleMedium,
-            )
-        }
+    val body: @Composable () -> Unit = {
         MediaPermissionSettingsBlock(kind = MediaPermissionKind.Videos)
+    }
+
+    if (showSectionTitle) {
+        CollapsibleSettingsSection(
+            title = stringResource(R.string.settings_video_cleaner_title),
+            modifier = modifier,
+            content = body,
+        )
+    } else {
+        Column(
+            modifier = modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            content = { body() },
+        )
     }
 }
