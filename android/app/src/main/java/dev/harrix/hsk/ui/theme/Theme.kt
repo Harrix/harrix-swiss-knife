@@ -28,16 +28,14 @@ enum class ThemeMode {
     Dark,
     ;
 
-    fun resolveDarkTheme(isSystemDark: Boolean): Boolean =
-        when (this) {
-            System -> isSystemDark
-            Light -> false
-            Dark -> true
-        }
+    fun resolveDarkTheme(isSystemDark: Boolean): Boolean = when (this) {
+        System -> isSystemDark
+        Light -> false
+        Dark -> true
+    }
 
     companion object {
-        fun fromStorage(value: String?): ThemeMode =
-            entries.firstOrNull { it.name == value } ?: System
+        fun fromStorage(value: String?): ThemeMode = entries.firstOrNull { it.name == value } ?: System
     }
 }
 

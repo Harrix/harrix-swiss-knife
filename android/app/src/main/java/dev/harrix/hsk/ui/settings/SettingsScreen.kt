@@ -465,11 +465,11 @@ private fun GalleryCleanerSettingsSection(
             text = stringResource(R.string.settings_gallery_date_presets),
             style = MaterialTheme.typography.labelLarge,
             color =
-                if (filter.enabled) {
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                } else {
-                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
-                },
+            if (filter.enabled) {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            } else {
+                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+            },
         )
         GalleryDatePresets(
             filter = filter,
@@ -693,11 +693,11 @@ private fun YearMonthDayRow(
             text = label,
             style = MaterialTheme.typography.labelLarge,
             color =
-                if (enabled) {
-                    MaterialTheme.colorScheme.onSurface
-                } else {
-                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
-                },
+            if (enabled) {
+                MaterialTheme.colorScheme.onSurface
+            } else {
+                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+            },
         )
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -751,9 +751,9 @@ private fun SimpleDropdownField(
             singleLine = true,
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
             modifier =
-                Modifier
-                    .menuAnchor(MenuAnchorType.PrimaryNotEditable, enabled = enabled)
-                    .fillMaxWidth(),
+            Modifier
+                .menuAnchor(MenuAnchorType.PrimaryNotEditable, enabled = enabled)
+                .fillMaxWidth(),
         )
         ExposedDropdownMenu(
             expanded = expanded && enabled,

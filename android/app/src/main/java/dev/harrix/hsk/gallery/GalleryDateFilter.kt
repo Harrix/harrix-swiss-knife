@@ -12,12 +12,10 @@ data class GalleryDateFilter(
     val startEpochSecInclusive: Long = defaultStartEpochSec(),
     val endEpochSecInclusive: Long = defaultEndEpochSec(),
 ) {
-    fun contains(epochSec: Long): Boolean =
-        !enabled || epochSec in startEpochSecInclusive..endEpochSecInclusive
+    fun contains(epochSec: Long): Boolean = !enabled || epochSec in startEpochSecInclusive..endEpochSecInclusive
 
-    fun matchesDateRange(other: GalleryDateFilter): Boolean =
-        startEpochSecInclusive == other.startEpochSecInclusive &&
-            endEpochSecInclusive == other.endEpochSecInclusive
+    fun matchesDateRange(other: GalleryDateFilter): Boolean = startEpochSecInclusive == other.startEpochSecInclusive &&
+        endEpochSecInclusive == other.endEpochSecInclusive
 
     fun withEnabled(value: Boolean): GalleryDateFilter = copy(enabled = value)
 
@@ -134,10 +132,9 @@ data class GalleryDateFilter(
 
         private fun defaultEndEpochSec(): Long = endOfDay(Calendar.getInstance())
 
-        private fun calendarFor(epochSec: Long): Calendar =
-            Calendar.getInstance().apply {
-                timeInMillis = epochSec * 1000L
-            }
+        private fun calendarFor(epochSec: Long): Calendar = Calendar.getInstance().apply {
+            timeInMillis = epochSec * 1000L
+        }
 
         private fun startOfDayEpochSec(
             year: Int,

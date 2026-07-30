@@ -10,8 +10,7 @@ class AppPreferences(
     private val prefs =
         context.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
-    fun loadThemeMode(): ThemeMode =
-        ThemeMode.fromStorage(prefs.getString(KEY_THEME_MODE, ThemeMode.System.name))
+    fun loadThemeMode(): ThemeMode = ThemeMode.fromStorage(prefs.getString(KEY_THEME_MODE, ThemeMode.System.name))
 
     fun saveThemeMode(mode: ThemeMode) {
         prefs.edit().putString(KEY_THEME_MODE, mode.name).apply()
