@@ -378,6 +378,7 @@ private fun GalleryCleanerSettingsSection(
                 onClick = {
                     persist(GalleryDateFilter.forShootDay(currentShootDayEpochMs))
                 },
+                enabled = filter.enabled,
             ) {
                 Text(
                     stringResource(
@@ -390,15 +391,24 @@ private fun GalleryCleanerSettingsSection(
 
         GalleryDateFilterEditors(
             filter = filter,
+            enabled = filter.enabled,
             onFilterChange = { persist(it) },
         )
 
         Text(
             text = stringResource(R.string.settings_gallery_date_presets),
             style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color =
+                if (filter.enabled) {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                } else {
+                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                },
         )
-        GalleryDatePresets(onPreset = { persist(it) })
+        GalleryDatePresets(
+            enabled = filter.enabled,
+            onPreset = { persist(it) },
+        )
 
         HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
 
@@ -410,6 +420,7 @@ private fun GalleryCleanerSettingsSection(
 @Composable
 private fun GalleryDateFilterEditors(
     filter: GalleryDateFilter,
+    enabled: Boolean,
     onFilterChange: (GalleryDateFilter) -> Unit,
 ) {
     val now = remember { Calendar.getInstance() }
@@ -448,6 +459,7 @@ private fun GalleryDateFilterEditors(
             month = fromMonth,
             years = years,
             monthLabels = monthLabels,
+            enabled = enabled,
             onYearChange = {
                 fromYear = it
                 applyYearMonth()
@@ -463,6 +475,7 @@ private fun GalleryDateFilterEditors(
             month = toMonth,
             years = years,
             monthLabels = monthLabels,
+            enabled = enabled,
             onYearChange = {
                 toYear = it
                 applyYearMonth()
@@ -477,7 +490,10 @@ private fun GalleryDateFilterEditors(
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun GalleryDatePresets(onPreset: (GalleryDateFilter) -> Unit) {
+private fun GalleryDatePresets(
+    enabled: Boolean,
+    onPreset: (GalleryDateFilter) -> Unit,
+) {
     val presets =
         listOf(
             R.string.settings_gallery_preset_1_day to
@@ -497,7 +513,10 @@ private fun GalleryDatePresets(onPreset: (GalleryDateFilter) -> Unit) {
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         presets.forEach { (labelRes, factory) ->
-            OutlinedButton(onClick = { onPreset(factory()) }) {
+            OutlinedButton(
+                onClick = { onPreset(factory()) },
+                enabled = enabled,
+            ) {
                 Text(stringResource(labelRes))
             }
         }
@@ -512,6 +531,7 @@ private fun YearMonthRow(
     month: Int,
     years: List<Int>,
     monthLabels: List<String>,
+    enabled: Boolean,
     onYearChange: (Int) -> Unit,
     onMonthChange: (Int) -> Unit,
 ) {
@@ -519,6 +539,12 @@ private fun YearMonthRow(
         Text(
             text = label,
             style = MaterialTheme.typography.labelLarge,
+            color =
+                if (enabled) {
+                    MaterialTheme.colorScheme.onSurface
+                } else {
+                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                },
         )
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -527,12 +553,14 @@ private fun YearMonthRow(
             SimpleDropdownField(
                 value = year.toString(),
                 options = years.map { it.toString() },
+                enabled = enabled,
                 onOptionSelect = { index -> onYearChange(years[index]) },
                 modifier = Modifier.weight(1f),
             )
             SimpleDropdownField(
                 value = monthLabels[month - 1],
                 options = monthLabels,
+                enabled = enabled,
                 onOptionSelect = { index -> onMonthChange(index + 1) },
                 modifier = Modifier.weight(1.2f),
             )
@@ -545,28 +573,30 @@ private fun YearMonthRow(
 private fun SimpleDropdownField(
     value: String,
     options: List<String>,
+    enabled: Boolean,
     onOptionSelect: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var expanded by remember { mutableStateOf(false) }
     ExposedDropdownMenuBox(
-        expanded = expanded,
-        onExpandedChange = { expanded = it },
+        expanded = expanded && enabled,
+        onExpandedChange = { if (enabled) expanded = it },
         modifier = modifier,
     ) {
         OutlinedTextField(
             value = value,
             onValueChange = {},
             readOnly = true,
+            enabled = enabled,
             singleLine = true,
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
             modifier =
-            Modifier
-                .menuAnchor(MenuAnchorType.PrimaryNotEditable)
-                .fillMaxWidth(),
+                Modifier
+                    .menuAnchor(MenuAnchorType.PrimaryNotEditable, enabled = enabled)
+                    .fillMaxWidth(),
         )
         ExposedDropdownMenu(
-            expanded = expanded,
+            expanded = expanded && enabled,
             onDismissRequest = { expanded = false },
         ) {
             options.forEachIndexed { index, option ->
