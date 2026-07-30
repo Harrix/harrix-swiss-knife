@@ -222,10 +222,14 @@ fun GalleryCleanerScreen(
         statusMessage = null
         dateFilter = preferences.loadDateFilter()
         unreviewedOnlyMode = preferences.isUnreviewedOnlyModeEnabled()
+        val preferPhotoId = currentPhoto?.id
         val photos = applyFilters(repository.loadCameraPhotos())
         remainingPhotos = photos
         remainingCount = photos.size
-        currentPhoto = pickNext(photos)
+        currentPhoto =
+            preferPhotoId
+                ?.let { id -> photos.firstOrNull { it.id == id } }
+                ?: pickNext(photos)
         cardResetKey += 1
         isLoading = false
         refreshManageMediaAccess()
