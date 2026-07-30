@@ -592,18 +592,37 @@ fun GalleryCleanerScreen(
                 }
 
                 currentPhoto == null -> {
-                    Text(
-                        text =
-                        stringResource(
-                            when {
-                                dateFilter.enabled -> R.string.gallery_cleaner_empty_filtered
-                                unreviewedOnlyMode -> R.string.gallery_cleaner_empty_unreviewed
-                                else -> R.string.gallery_cleaner_empty
-                            },
-                        ),
-                        style = MaterialTheme.typography.bodyLarge,
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
                         modifier = Modifier.padding(24.dp),
-                    )
+                    ) {
+                        Text(
+                            text =
+                            stringResource(
+                                when {
+                                    dateFilter.enabled -> R.string.gallery_cleaner_empty_filtered
+                                    unreviewedOnlyMode -> R.string.gallery_cleaner_empty_unreviewed
+                                    else -> R.string.gallery_cleaner_empty
+                                },
+                            ),
+                            style = MaterialTheme.typography.bodyLarge,
+                        )
+                        if (dateFilter.enabled) {
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Button(
+                                onClick = {
+                                    val cleared = dateFilter.withEnabled(false)
+                                    preferences.saveDateFilter(cleared)
+                                    dateFilter = cleared
+                                    if (hasPermission && !showIntro) {
+                                        reloadPhotos()
+                                    }
+                                },
+                            ) {
+                                Text(stringResource(R.string.gallery_cleaner_clear_date_filter))
+                            }
+                        }
+                    }
                 }
 
                 else -> {
