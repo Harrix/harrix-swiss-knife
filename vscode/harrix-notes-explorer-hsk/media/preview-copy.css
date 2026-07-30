@@ -148,20 +148,23 @@ video.hne-md-video {
   max-width: 100%;
   height: auto;
   display: block;
+  margin-bottom: 0;
 }
 
 audio.hne-md-audio {
   width: 100%;
   max-width: 32rem;
+  margin-bottom: 0;
 }
 
 p.hne-md-media-actions {
-  margin: 0.35em 0 0.85em 0;
-  font-size: 0.9em;
+  margin: 0.1em 0 0.6em 0;
+  font-size: 0.75em;
+  line-height: 1.25;
 }
 
 a.hne-md-open-external {
-  color: var(--vscode-textLink-foreground, #3794ff);
+  color: var(--vscode-descriptionForeground, var(--vscode-textLink-foreground, #3794ff));
   text-decoration: none;
 }
 
