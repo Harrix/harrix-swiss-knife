@@ -94,6 +94,7 @@ import dev.harrix.hsk.gallery.GalleryCleanerPreferences
 import dev.harrix.hsk.gallery.GalleryDateFilter
 import dev.harrix.hsk.gallery.GalleryPermissions
 import dev.harrix.hsk.gallery.NormalizedCropRect
+import dev.harrix.hsk.gallery.PendingEditUndo
 import dev.harrix.hsk.gallery.PhotoEditSaver
 import dev.harrix.hsk.ui.performLightActionHaptic
 import dev.harrix.hsk.ui.theme.AppGreen
@@ -145,6 +146,9 @@ fun GalleryCleanerScreen(
     var pendingTrashPhoto by remember { mutableStateOf<CameraPhoto?>(null) }
     var pendingRestorePhoto by remember { mutableStateOf<CameraPhoto?>(null) }
     var lastTrashedPhoto by remember { mutableStateOf<CameraPhoto?>(null) }
+
+    /** Pre-edit original for the current photo; cleared on the next keep/delete swipe. */
+    var pendingEditUndo by remember { mutableStateOf<PendingEditUndo?>(null) }
     var cardResetKey by remember { mutableIntStateOf(0) }
     var menuExpanded by remember { mutableStateOf(false) }
     var dateFilter by remember { mutableStateOf(GalleryDateFilter(enabled = false)) }
@@ -159,6 +163,7 @@ fun GalleryCleanerScreen(
     var editImageRevision by remember { mutableIntStateOf(0) }
     var isSavingEdit by remember { mutableStateOf(false) }
     var pendingWritePhoto by remember { mutableStateOf<CameraPhoto?>(null) }
+    var pendingWriteKind by remember { mutableStateOf<PendingWriteKind?>(null) }
 
     fun refreshManageMediaAccess() {
         canManageMedia = repository.canTrashWithoutPrompt()
@@ -176,11 +181,18 @@ fun GalleryCleanerScreen(
         from[Random.nextInt(from.size)]
     }
 
+    fun clearPendingEditUndo() {
+        pendingEditUndo = null
+        photoEditSaver.clearEditBackup()
+    }
+
     fun advanceAfterReview(
         photo: CameraPhoto,
         deleted: Boolean = false,
     ) {
         view.performLightActionHaptic()
+        // Next swipe discards crop/rotate undo for the previous photo, but keeps delete undo.
+        clearPendingEditUndo()
         if (unreviewedOnlyMode) {
             preferences.markPhotoReviewed(photo.id)
         }
@@ -201,6 +213,7 @@ fun GalleryCleanerScreen(
 
     fun restoreLastTrashedPhoto(photo: CameraPhoto) {
         view.performLightActionHaptic()
+        clearPendingEditUndo()
         if (unreviewedOnlyMode) {
             preferences.unmarkPhotoReviewed(photo.id)
         }
@@ -246,6 +259,11 @@ fun GalleryCleanerScreen(
             preferPhotoId
                 ?.let { id -> photos.firstOrNull { it.id == id } }
                 ?: pickNext(photos)
+        // Keep edit undo only if the edited photo is still in the deck.
+        val editUndo = pendingEditUndo
+        if (editUndo != null && photos.none { it.id == editUndo.photoId }) {
+            clearPendingEditUndo()
+        }
         cardResetKey += 1
         isLoading = false
         refreshManageMediaAccess()
@@ -296,13 +314,23 @@ fun GalleryCleanerScreen(
             ActivityResultContracts.StartIntentSenderForResult(),
         ) { result ->
             val photo = pendingWritePhoto
+            val kind = pendingWriteKind
             pendingWritePhoto = null
+            pendingWriteKind = null
             if (result.resultCode == Activity.RESULT_OK && photo != null) {
                 writeLauncherPending?.invoke(photo)
             } else {
                 isSavingEdit = false
-                statusMessage = context.getString(R.string.gallery_cleaner_edit_save_failed)
+                statusMessage =
+                    when (kind) {
+                        PendingWriteKind.RestoreEdit ->
+                            context.getString(R.string.gallery_cleaner_undo_failed)
+
+                        else ->
+                            context.getString(R.string.gallery_cleaner_edit_save_failed)
+                    }
             }
+            writeLauncherPending = null
         }
 
     fun enterEditMode() {
@@ -322,15 +350,34 @@ fun GalleryCleanerScreen(
         editCropRect = NormalizedCropRect.Full
         isSavingEdit = false
         pendingWritePhoto = null
+        pendingWriteKind = null
     }
 
     fun applySavedPhoto(
         photo: CameraPhoto,
         sizeBytes: Long,
+        keepEditUndo: Boolean,
     ) {
+        val existing = pendingEditUndo
         val updated = photo.copy(sizeBytes = sizeBytes)
         remainingPhotos = remainingPhotos.map { if (it.id == photo.id) updated else it }
         currentPhoto = updated
+        if (keepEditUndo) {
+            pendingEditUndo =
+                if (existing != null &&
+                    existing.photoId == photo.id &&
+                    existing.backupFile.isFile
+                ) {
+                    existing
+                } else {
+                    PendingEditUndo(
+                        photoId = photo.id,
+                        uri = photo.uri,
+                        originalSizeBytes = photo.sizeBytes,
+                        backupFile = photoEditSaver.editBackupFile(),
+                    )
+                }
+        }
         editImageRevision += 1
         cardResetKey += 1
         exitEditMode()
@@ -351,16 +398,23 @@ fun GalleryCleanerScreen(
                         mimeType = photo.mimeType,
                         rotationDegrees = editRotationDegrees,
                         crop = editCropRect,
+                        existingUndo = pendingEditUndo,
                     )
                 }
             when (result) {
                 is PhotoEditSaver.SaveResult.Success -> {
-                    applySavedPhoto(photo, result.sizeBytes)
+                    // Do not clear lastTrashedPhoto — delete undo stays available after edit.
+                    applySavedPhoto(
+                        photo = photo,
+                        sizeBytes = result.sizeBytes,
+                        keepEditUndo = result.backupCreated,
+                    )
                 }
 
                 PhotoEditSaver.SaveResult.NeedsWritePermission -> {
                     if (requestWriteIfNeeded && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                         pendingWritePhoto = photo
+                        pendingWriteKind = PendingWriteKind.SaveEdit
                         writeLauncherPending = { grantedPhoto ->
                             performSaveEdit(grantedPhoto, requestWriteIfNeeded = false)
                         }
@@ -375,6 +429,63 @@ fun GalleryCleanerScreen(
                 PhotoEditSaver.SaveResult.Failed -> {
                     isSavingEdit = false
                     statusMessage = context.getString(R.string.gallery_cleaner_edit_save_failed)
+                }
+            }
+        }
+    }
+
+    fun applyRestoredEdit(undo: PendingEditUndo) {
+        view.performLightActionHaptic()
+        val restored =
+            (currentPhoto?.takeIf { it.id == undo.photoId } ?: remainingPhotos.firstOrNull { it.id == undo.photoId })
+                ?.copy(sizeBytes = undo.originalSizeBytes)
+                ?: return
+        remainingPhotos = remainingPhotos.map { if (it.id == restored.id) restored else it }
+        currentPhoto = restored
+        pendingEditUndo = null
+        editImageRevision += 1
+        cardResetKey += 1
+        statusMessage = null
+    }
+
+    fun performUndoEdit(
+        undo: PendingEditUndo,
+        requestWriteIfNeeded: Boolean,
+    ) {
+        statusMessage = null
+        scope.launch {
+            val result =
+                withContext(Dispatchers.IO) {
+                    photoEditSaver.restoreFromUndo(undo)
+                }
+            when (result) {
+                PhotoEditSaver.RestoreResult.Success -> {
+                    applyRestoredEdit(undo)
+                }
+
+                PhotoEditSaver.RestoreResult.NeedsWritePermission -> {
+                    if (requestWriteIfNeeded && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                        val photo =
+                            currentPhoto?.takeIf { it.id == undo.photoId }
+                                ?: remainingPhotos.firstOrNull { it.id == undo.photoId }
+                        if (photo == null) {
+                            statusMessage = context.getString(R.string.gallery_cleaner_undo_failed)
+                            return@launch
+                        }
+                        pendingWritePhoto = photo
+                        pendingWriteKind = PendingWriteKind.RestoreEdit
+                        writeLauncherPending = {
+                            performUndoEdit(undo, requestWriteIfNeeded = false)
+                        }
+                        val sender = repository.createWriteRequest(undo.uri)
+                        writeLauncher.launch(IntentSenderRequest.Builder(sender).build())
+                    } else {
+                        statusMessage = context.getString(R.string.gallery_cleaner_undo_failed)
+                    }
+                }
+
+                PhotoEditSaver.RestoreResult.Failed -> {
+                    statusMessage = context.getString(R.string.gallery_cleaner_undo_failed)
                 }
             }
         }
@@ -413,7 +524,12 @@ fun GalleryCleanerScreen(
         }
     }
 
-    fun undoLastDelete() {
+    fun undoLastAction() {
+        val editUndo = pendingEditUndo
+        if (editUndo != null) {
+            performUndoEdit(editUndo, requestWriteIfNeeded = true)
+            return
+        }
         val photo = lastTrashedPhoto ?: return
         statusMessage = null
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
@@ -429,7 +545,10 @@ fun GalleryCleanerScreen(
                 }
             }
         lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            photoEditSaver.clearEditBackup()
+        }
     }
 
     LaunchedEffect(Unit) {
@@ -627,9 +746,12 @@ fun GalleryCleanerScreen(
                     ),
                 )
                 val canEditPhoto = hasPermission && currentPhoto != null && !showIntro
+                val canUndoEdit = pendingEditUndo != null
+                val canUndoDelete = lastTrashedPhoto != null
+                val canUndo = canUndoEdit || canUndoDelete
                 val showSecondaryBar =
                     canEditPhoto ||
-                        (!isEditing && (dateFilter.enabled || lastTrashedPhoto != null))
+                        (!isEditing && (dateFilter.enabled || canUndo))
                 if (showSecondaryBar) {
                     Row(
                         modifier =
@@ -698,8 +820,8 @@ fun GalleryCleanerScreen(
                                 }
                             }
                         }
-                        if (!isEditing && lastTrashedPhoto != null) {
-                            TextButton(onClick = { undoLastDelete() }) {
+                        if (!isEditing && canUndo) {
+                            TextButton(onClick = { undoLastAction() }) {
                                 Icon(
                                     imageVector = Icons.AutoMirrored.Filled.Undo,
                                     contentDescription = null,
@@ -829,6 +951,11 @@ fun GalleryCleanerScreen(
             }
         }
     }
+}
+
+private enum class PendingWriteKind {
+    SaveEdit,
+    RestoreEdit,
 }
 
 @Composable

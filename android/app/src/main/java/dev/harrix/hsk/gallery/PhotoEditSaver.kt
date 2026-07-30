@@ -12,6 +12,7 @@ import android.os.Build
 import androidx.exifinterface.media.ExifInterface
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
+import java.io.File
 import kotlin.math.ceil
 import kotlin.math.hypot
 import kotlin.math.min
@@ -40,12 +41,26 @@ data class NormalizedCropRect(
     }
 }
 
+/**
+ * Pre-edit original kept until the next keep/delete swipe so crop/rotate can be undone.
+ *
+ * Independent from MediaStore trash undo after a delete swipe.
+ */
+data class PendingEditUndo(
+    val photoId: Long,
+    val uri: Uri,
+    val originalSizeBytes: Long,
+    val backupFile: File,
+)
+
 class PhotoEditSaver(
     private val context: Context,
 ) {
     sealed class SaveResult {
         data class Success(
             val sizeBytes: Long,
+            /** Set when a new pre-edit backup was written for undo. */
+            val backupCreated: Boolean,
         ) : SaveResult()
 
         data object NeedsWritePermission : SaveResult()
@@ -53,11 +68,24 @@ class PhotoEditSaver(
         data object Failed : SaveResult()
     }
 
+    sealed class RestoreResult {
+        data object Success : RestoreResult()
+
+        data object NeedsWritePermission : RestoreResult()
+
+        data object Failed : RestoreResult()
+    }
+
     fun save(
         uri: Uri,
         mimeType: String?,
         rotationDegrees: Float,
         crop: NormalizedCropRect,
+        /**
+         * When non-null and still valid, keeps that pre-edit original across repeated saves
+         * on the same photo until the next swipe.
+         */
+        existingUndo: PendingEditUndo? = null,
     ): SaveResult {
         val oriented =
             decodeOrientedBitmap(uri) ?: return SaveResult.Failed
@@ -85,7 +113,83 @@ class PhotoEditSaver(
             }
         cropped.recycle()
 
-        return writeBytes(uri, encoded)
+        val reuseBackup =
+            existingUndo != null &&
+                existingUndo.uri == uri &&
+                existingUndo.backupFile.isFile
+        var backupCreated = false
+        if (!reuseBackup) {
+            when (backupOriginal(uri)) {
+                BackupResult.NeedsWritePermission -> return SaveResult.NeedsWritePermission
+                BackupResult.Failed -> return SaveResult.Failed
+                BackupResult.Success -> backupCreated = true
+            }
+        }
+
+        return when (val written = writeBytes(uri, encoded)) {
+            is SaveResult.Success -> written.copy(backupCreated = backupCreated || reuseBackup)
+
+            else -> {
+                if (backupCreated && !reuseBackup) {
+                    clearEditBackup()
+                }
+                written
+            }
+        }
+    }
+
+    fun restoreFromUndo(undo: PendingEditUndo): RestoreResult {
+        if (!undo.backupFile.isFile) {
+            return RestoreResult.Failed
+        }
+        val bytes =
+            try {
+                undo.backupFile.readBytes()
+            } catch (_: Exception) {
+                return RestoreResult.Failed
+            }
+        return when (val written = writeBytes(undo.uri, bytes)) {
+            is SaveResult.Success -> {
+                clearEditBackup()
+                RestoreResult.Success
+            }
+
+            SaveResult.NeedsWritePermission -> RestoreResult.NeedsWritePermission
+
+            SaveResult.Failed -> RestoreResult.Failed
+        }
+    }
+
+    fun editBackupFile(): File = File(context.cacheDir, EDIT_UNDO_BACKUP_NAME)
+
+    fun clearEditBackup() {
+        runCatching { editBackupFile().delete() }
+    }
+
+    private sealed class BackupResult {
+        data object Success : BackupResult()
+
+        data object NeedsWritePermission : BackupResult()
+
+        data object Failed : BackupResult()
+    }
+
+    private fun backupOriginal(uri: Uri): BackupResult {
+        val bytes =
+            try {
+                context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+            } catch (_: SecurityException) {
+                return BackupResult.NeedsWritePermission
+            } catch (_: Exception) {
+                return BackupResult.Failed
+            } ?: return BackupResult.Failed
+        return try {
+            val file = editBackupFile()
+            file.writeBytes(bytes)
+            BackupResult.Success
+        } catch (_: Exception) {
+            BackupResult.Failed
+        }
     }
 
     private fun decodeOrientedBitmap(uri: Uri): Bitmap? {
@@ -233,7 +337,7 @@ class PhotoEditSaver(
         context.contentResolver.openOutputStream(uri, "wt")?.use { output ->
             output.write(bytes)
             output.flush()
-            SaveResult.Success(bytes.size.toLong())
+            SaveResult.Success(sizeBytes = bytes.size.toLong(), backupCreated = false)
         } ?: SaveResult.Failed
     } catch (_: SecurityException) {
         SaveResult.NeedsWritePermission
@@ -243,6 +347,7 @@ class PhotoEditSaver(
 
     companion object {
         private const val JPEG_QUALITY = 95
+        private const val EDIT_UNDO_BACKUP_NAME = "gallery_cleaner_edit_undo.bak"
 
         /**
          * Square workspace that fits in the viewport and can hold the image at any rotation.
