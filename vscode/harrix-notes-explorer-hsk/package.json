@@ -227,6 +227,11 @@
         "category": "Harrix Notes HSK"
       },
       {
+        "command": "harrixNotesExplorerHsk.openMediaExternally",
+        "title": "Open Media in System Player",
+        "category": "Harrix Notes HSK"
+      },
+      {
         "command": "harrixNotesExplorerHsk.copyPath",
         "title": "Copy Path",
         "category": "Harrix Notes HSK"
@@ -363,6 +368,10 @@
       "commandPalette": [
         {
           "command": "harrixNotesExplorerHsk.openNote",
+          "when": "false"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.openMediaExternally",
           "when": "false"
         },
         {

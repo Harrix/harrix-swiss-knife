@@ -1,6 +1,7 @@
 const vscode = require('vscode');
 const path = require('node:path');
 const fs = require('node:fs');
+const http = require('node:http');
 const { execFile } = require('node:child_process');
 const util = require('node:util');
 
@@ -877,8 +878,12 @@ const DEFAULT_NOTE_DROP_IMAGE_EXTENSIONS = [
 const PREVIEW_VIDEO_EXTENSIONS = new Set(['.mp4', '.webm', '.mov', '.m4v', '.ogv', '.mkv']);
 const PREVIEW_AUDIO_EXTENSIONS = new Set(['.mp3', '.wav', '.ogg', '.oga', '.m4a', '.flac', '.aac', '.opus']);
 
-/** @type {string} `publisher.name` — set in activate for vscode:// UriHandler links */
-let previewMediaExtensionId = 'local.harrix-notes-explorer-hsk';
+const OPEN_MEDIA_EXTERNALLY_COMMAND = 'harrixNotesExplorerHsk.openMediaExternally';
+
+/** @type {import('node:http').Server | null} */
+let openMediaHttpServer = null;
+/** @type {number} */
+let openMediaHttpPort = 0;
 
 /**
  * @param {string} src
@@ -936,12 +941,17 @@ function resolveLocalMediaFsPath(dataSrc, env) {
 }
 
 /**
- * Link that opens a local media file in the OS default player via UriHandler.
+ * Link under local media. Uses http://127.0.0.1 so the Markdown preview webview
+ * treats it as an external http link (opens via the helper server → system player).
+ * `vscode://` / UriHandler fail here: preview tries to open them as files (EntryNotFound).
  * @param {string} absFsPath
  * @returns {string}
  */
 function renderOpenInSystemPlayerLink(absFsPath) {
-  const href = `vscode://${previewMediaExtensionId}/open-media?fsPath=${encodeURIComponent(absFsPath)}`;
+  if (!openMediaHttpPort) {
+    return '';
+  }
+  const href = `http://127.0.0.1:${openMediaHttpPort}/open-media?fsPath=${encodeURIComponent(absFsPath)}`;
   return (
     `<p class="hne-md-media-actions">` +
     `<a class="hne-md-open-external" href="${escapeHtmlAttr(href)}">Open in system player</a>` +
@@ -950,34 +960,82 @@ function renderOpenInSystemPlayerLink(absFsPath) {
 }
 
 /**
+ * @param {string | undefined} fsPath
+ */
+async function openMediaInSystemPlayer(fsPath) {
+  if (!fsPath || typeof fsPath !== 'string') {
+    vscode.window.showErrorMessage('Open in system player: missing file path.');
+    return;
+  }
+  if (!pathExists(fsPath) || !isFilePath(fsPath)) {
+    vscode.window.showErrorMessage(`Open in system player: file not found:\n${fsPath}`);
+    return;
+  }
+  const ok = await vscode.env.openExternal(vscode.Uri.file(fsPath));
+  if (!ok) {
+    vscode.window.showErrorMessage(`Could not open file in system player:\n${fsPath}`);
+  }
+}
+
+/**
+ * Local-only helper so Markdown preview `http:` links can trigger openExternal.
+ * @returns {Promise<void>}
+ */
+function startOpenMediaHttpServer() {
+  return new Promise((resolve, reject) => {
+    if (openMediaHttpServer) {
+      resolve();
+      return;
+    }
+    const server = http.createServer((req, res) => {
+      try {
+        const url = new URL(req.url || '/', 'http://127.0.0.1');
+        if (url.pathname !== '/open-media') {
+          res.writeHead(404);
+          res.end();
+          return;
+        }
+        const fsPath = url.searchParams.get('fsPath') || '';
+        void openMediaInSystemPlayer(fsPath);
+        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+        res.end(
+          '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Opening…</title></head>' +
+            '<body><p>Opening in system player…</p>' +
+            '<script>window.close();</script></body></html>',
+        );
+      } catch {
+        res.writeHead(500);
+        res.end();
+      }
+    });
+    server.once('error', reject);
+    server.listen(0, '127.0.0.1', () => {
+      const addr = server.address();
+      openMediaHttpPort = typeof addr === 'object' && addr ? addr.port : 0;
+      openMediaHttpServer = server;
+      resolve();
+    });
+  });
+}
+
+function stopOpenMediaHttpServer() {
+  if (openMediaHttpServer) {
+    openMediaHttpServer.close();
+    openMediaHttpServer = null;
+    openMediaHttpPort = 0;
+  }
+}
+
+/**
  * @param {vscode.ExtensionContext} context
  */
-function registerOpenMediaUriHandler(context) {
-  previewMediaExtensionId = context.extension.id;
+function registerOpenMediaExternallyCommand(context) {
   context.subscriptions.push(
-    vscode.window.registerUriHandler({
-      handleUri(uri) {
-        if (uri.path !== '/open-media') {
-          return;
-        }
-        const params = new URLSearchParams(uri.query);
-        const fsPath = params.get('fsPath');
-        if (!fsPath) {
-          vscode.window.showErrorMessage('Open in system player: missing file path.');
-          return;
-        }
-        if (!pathExists(fsPath) || !isFilePath(fsPath)) {
-          vscode.window.showErrorMessage(`Open in system player: file not found:\n${fsPath}`);
-          return;
-        }
-        void vscode.env.openExternal(vscode.Uri.file(fsPath)).then((ok) => {
-          if (!ok) {
-            vscode.window.showErrorMessage(`Could not open file in system player:\n${fsPath}`);
-          }
-        });
-      },
+    vscode.commands.registerCommand(OPEN_MEDIA_EXTERNALLY_COMMAND, async (fsPath) => {
+      await openMediaInSystemPlayer(fsPath);
     }),
   );
+  context.subscriptions.push({ dispose: () => stopOpenMediaHttpServer() });
 }
 
 function getNoteDropSettings() {
@@ -2760,8 +2818,13 @@ function getWorkspaceRootEntries() {
   }));
 }
 
-function activate(context) {
-  registerOpenMediaUriHandler(context);
+async function activate(context) {
+  registerOpenMediaExternallyCommand(context);
+  try {
+    await startOpenMediaHttpServer();
+  } catch (err) {
+    console.error('[Harrix Notes HSK] open-media HTTP server failed:', err);
+  }
   registerPreviewCopyConfigRefresh(context);
   registerMarkdownRelativeLinkDropProvider(context);
 
@@ -3371,6 +3434,8 @@ function activate(context) {
   return registerPreviewCopyMarkdownPlugin();
 }
 
-function deactivate() {}
+function deactivate() {
+  stopOpenMediaHttpServer();
+}
 
 module.exports = { activate, deactivate };
