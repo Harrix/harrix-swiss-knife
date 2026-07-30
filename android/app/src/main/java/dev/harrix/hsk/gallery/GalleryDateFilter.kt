@@ -86,6 +86,19 @@ data class GalleryDateFilter(
             )
         }
 
+        /** Inclusive local calendar day of the given capture timestamp. */
+        fun forShootDay(dateTakenEpochMs: Long): GalleryDateFilter {
+            val day =
+                Calendar.getInstance().apply {
+                    timeInMillis = dateTakenEpochMs
+                }
+            return GalleryDateFilter(
+                enabled = true,
+                startEpochSecInclusive = startOfDay(day),
+                endEpochSecInclusive = endOfDay(day),
+            )
+        }
+
         private fun defaultStartEpochSec(): Long {
             val now = Calendar.getInstance()
             return startOfMonthEpochSec(now.get(Calendar.YEAR), 1)

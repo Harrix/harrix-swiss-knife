@@ -115,6 +115,7 @@ fun MainScreen(modifier: Modifier = Modifier) {
     var destination by remember { mutableStateOf(AppDestination.Home) }
     var settingsSection by remember { mutableStateOf<SettingsSection?>(null) }
     var settingsRevision by remember { mutableIntStateOf(0) }
+    var settingsShootDayEpochMs by remember { mutableStateOf<Long?>(null) }
     var homeMenuExpanded by remember { mutableStateOf(false) }
     val drawerItemColors =
         NavigationDrawerItemDefaults.colors(
@@ -141,7 +142,10 @@ fun MainScreen(modifier: Modifier = Modifier) {
             AppDestination.GalleryCleaner -> {
                 GalleryCleanerScreen(
                     onClose = { destination = AppDestination.Home },
-                    onOpenSettings = { settingsSection = SettingsSection.GalleryCleaner },
+                    onOpenSettings = { shootDayEpochMs ->
+                        settingsShootDayEpochMs = shootDayEpochMs
+                        settingsSection = SettingsSection.GalleryCleaner
+                    },
                     settingsRevision = settingsRevision,
                     modifier = Modifier.fillMaxSize(),
                 )
@@ -282,6 +286,7 @@ fun MainScreen(modifier: Modifier = Modifier) {
                 section = section,
                 onClose = {
                     settingsSection = null
+                    settingsShootDayEpochMs = null
                     settingsRevision += 1
                 },
                 onOpenAllSettings =
@@ -290,6 +295,7 @@ fun MainScreen(modifier: Modifier = Modifier) {
                     } else {
                         { settingsSection = SettingsSection.All }
                     },
+                currentShootDayEpochMs = settingsShootDayEpochMs,
                 modifier = Modifier.fillMaxSize(),
             )
         }

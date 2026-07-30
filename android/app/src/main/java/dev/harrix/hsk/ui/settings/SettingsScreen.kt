@@ -63,6 +63,7 @@ fun SettingsScreen(
     section: SettingsSection,
     onClose: () -> Unit,
     onOpenAllSettings: (() -> Unit)? = null,
+    currentShootDayEpochMs: Long? = null,
     modifier: Modifier = Modifier,
 ) {
     val titleRes =
@@ -105,12 +106,18 @@ fun SettingsScreen(
         ) {
             when (section) {
                 SettingsSection.All -> {
-                    GalleryCleanerSettingsSection(showSectionTitle = true)
+                    GalleryCleanerSettingsSection(
+                        showSectionTitle = true,
+                        currentShootDayEpochMs = currentShootDayEpochMs,
+                    )
                     HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
                     VideoCleanerSettingsSection(showSectionTitle = true)
                 }
                 SettingsSection.GalleryCleaner -> {
-                    GalleryCleanerSettingsSection(showSectionTitle = false)
+                    GalleryCleanerSettingsSection(
+                        showSectionTitle = false,
+                        currentShootDayEpochMs = currentShootDayEpochMs,
+                    )
                 }
                 SettingsSection.VideoCleaner -> {
                     VideoCleanerSettingsSection(showSectionTitle = false)
@@ -134,6 +141,7 @@ fun SettingsScreen(
 @Composable
 private fun GalleryCleanerSettingsSection(
     showSectionTitle: Boolean,
+    currentShootDayEpochMs: Long? = null,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -144,6 +152,14 @@ private fun GalleryCleanerSettingsSection(
     }
     var reviewedCount by remember { mutableIntStateOf(preferences.reviewedPhotoCount()) }
     var clearMessage by remember { mutableStateOf<String?>(null) }
+    val shootDayLabel =
+        remember(currentShootDayEpochMs) {
+            currentShootDayEpochMs?.let { epochMs ->
+                java.text.DateFormat
+                    .getDateInstance(java.text.DateFormat.MEDIUM)
+                    .format(java.util.Date(epochMs))
+            }
+        }
 
     fun persist(next: GalleryDateFilter) {
         filter = next
@@ -233,6 +249,21 @@ private fun GalleryCleanerSettingsSection(
                         .weight(1f)
                         .padding(start = 4.dp),
             )
+        }
+
+        if (currentShootDayEpochMs != null && shootDayLabel != null) {
+            OutlinedButton(
+                onClick = {
+                    persist(GalleryDateFilter.forShootDay(currentShootDayEpochMs))
+                },
+            ) {
+                Text(
+                    stringResource(
+                        R.string.settings_gallery_filter_shoot_day_label,
+                        shootDayLabel,
+                    ),
+                )
+            }
         }
 
         GalleryDateFilterEditors(

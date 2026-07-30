@@ -21,6 +21,9 @@
     <string name="settings_gallery_clear_reviewed">Reset reviewed history</string>
     <string name="settings_gallery_clear_reviewed_done">Reviewed history cleared (%1$d)</string>
     <string name="settings_gallery_reviewed_count">Reviewed photos: %1$d</string>
+    <string name="settings_gallery_filter_shoot_day">Use current photo shoot day</string>
+    <string name="settings_gallery_filter_shoot_day_label">Use shoot day: %1$s</string>
+    <string name="gallery_cleaner_filter_shoot_day">Filter by this photo\'s shoot day</string>
     <string name="nav_drawer_home">Home</string>
     <string name="nav_drawer_gallery_cleaner">Gallery Cleaner</string>
     <string name="nav_drawer_video_cleaner">Video Cleaner</string>

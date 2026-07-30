@@ -106,7 +106,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun GalleryCleanerScreen(
     onClose: () -> Unit,
-    onOpenSettings: () -> Unit,
+    onOpenSettings: (shootDayEpochMs: Long?) -> Unit,
     settingsRevision: Int = 0,
     modifier: Modifier = Modifier,
 ) {
@@ -202,12 +202,21 @@ fun GalleryCleanerScreen(
     }
 
     fun applyFilters(photos: List<CameraPhoto>): List<CameraPhoto> {
-        val byDate = photos.filter { photo -> dateFilter.contains(photo.dateAddedEpochSec) }
+        val byDate =
+            photos.filter { photo ->
+                dateFilter.contains(photo.dateTakenEpochMs / 1000L)
+            }
         if (!unreviewedOnlyMode) {
             return byDate
         }
         val reviewedIds = preferences.getReviewedPhotoIds()
         return byDate.filterNot { it.id in reviewedIds }
+    }
+
+    fun applyShootDayFilter(dateTakenEpochMs: Long) {
+        val next = GalleryDateFilter.forShootDay(dateTakenEpochMs)
+        preferences.saveDateFilter(next)
+        dateFilter = next
     }
 
     fun reloadPhotos() {
@@ -437,6 +446,24 @@ fun GalleryCleanerScreen(
                             expanded = menuExpanded,
                             onDismissRequest = { menuExpanded = false },
                         ) {
+                            if (currentPhoto != null) {
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            stringResource(
+                                                R.string.gallery_cleaner_filter_shoot_day,
+                                            ),
+                                        )
+                                    },
+                                    onClick = {
+                                        menuExpanded = false
+                                        applyShootDayFilter(currentPhoto!!.dateTakenEpochMs)
+                                        if (hasPermission && !showIntro) {
+                                            reloadPhotos()
+                                        }
+                                    },
+                                )
+                            }
                             if (dateFilter.enabled) {
                                 DropdownMenuItem(
                                     text = {
@@ -485,7 +512,7 @@ fun GalleryCleanerScreen(
                                 },
                                 onClick = {
                                     menuExpanded = false
-                                    onOpenSettings()
+                                    onOpenSettings(currentPhoto?.dateTakenEpochMs)
                                 },
                             )
                         }
