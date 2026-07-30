@@ -26,6 +26,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.CleaningServices
+import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
@@ -71,6 +72,7 @@ import androidx.compose.ui.unit.sp
 import dev.harrix.hsk.R
 import dev.harrix.hsk.ui.gallery.GalleryCleanerScreen
 import dev.harrix.hsk.ui.gallery.VideoCleanerScreen
+import dev.harrix.hsk.ui.notes.NotesViewerScreen
 import dev.harrix.hsk.ui.settings.SettingsScreen
 import dev.harrix.hsk.ui.settings.SettingsSection
 import dev.harrix.hsk.ui.theme.HskAndroidTheme
@@ -93,6 +95,7 @@ private enum class AppDestination {
     Home,
     GalleryCleaner,
     VideoCleaner,
+    MarkdownNotes,
 }
 
 private data class UtilityCardItem(
@@ -136,6 +139,12 @@ fun MainScreen(
                 icon = Icons.Filled.VideoLibrary,
                 destination = AppDestination.VideoCleaner,
             ),
+            UtilityCardItem(
+                titleRes = R.string.nav_drawer_markdown_notes,
+                descriptionRes = R.string.markdown_notes_card_description,
+                icon = Icons.Filled.Description,
+                destination = AppDestination.MarkdownNotes,
+            ),
         )
 
     Box(modifier = modifier.fillMaxSize()) {
@@ -156,6 +165,15 @@ fun MainScreen(
                 VideoCleanerScreen(
                     onClose = { destination = AppDestination.Home },
                     onOpenSettings = { settingsSection = SettingsSection.VideoCleaner },
+                    settingsRevision = settingsRevision,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
+
+            AppDestination.MarkdownNotes -> {
+                NotesViewerScreen(
+                    onClose = { destination = AppDestination.Home },
+                    onOpenSettings = { settingsSection = SettingsSection.MarkdownNotes },
                     settingsRevision = settingsRevision,
                     modifier = Modifier.fillMaxSize(),
                 )
@@ -202,6 +220,18 @@ fun MainScreen(
                                     }
                                 },
                                 icon = Icons.Filled.VideoLibrary,
+                                colors = drawerItemColors,
+                            )
+                            CompactNavigationDrawerItem(
+                                label = stringResource(R.string.nav_drawer_markdown_notes),
+                                selected = false,
+                                onClick = {
+                                    scope.launch {
+                                        drawerState.close()
+                                        destination = AppDestination.MarkdownNotes
+                                    }
+                                },
+                                icon = Icons.Filled.Description,
                                 colors = drawerItemColors,
                             )
                             CompactNavigationDrawerItem(

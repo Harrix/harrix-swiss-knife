@@ -58,6 +58,8 @@ import dev.harrix.hsk.R
 import dev.harrix.hsk.gallery.GalleryCleanerPreferences
 import dev.harrix.hsk.gallery.GalleryDateFilter
 import dev.harrix.hsk.gallery.GalleryPermissions
+import dev.harrix.hsk.notes.NotesViewerPreferences
+import dev.harrix.hsk.ui.notes.NotesFolderPathControls
 import dev.harrix.hsk.ui.theme.ThemeMode
 import java.text.DateFormat
 import java.text.DateFormatSymbols
@@ -68,6 +70,7 @@ enum class SettingsSection {
     All,
     GalleryCleaner,
     VideoCleaner,
+    MarkdownNotes,
 }
 
 private const val EarliestFilterYear = 2008
@@ -88,6 +91,7 @@ fun SettingsScreen(
             SettingsSection.All -> R.string.settings_title
             SettingsSection.GalleryCleaner -> R.string.settings_gallery_cleaner_title
             SettingsSection.VideoCleaner -> R.string.settings_video_cleaner_title
+            SettingsSection.MarkdownNotes -> R.string.settings_markdown_notes_title
         }
     val background = MaterialTheme.colorScheme.background
 
@@ -133,6 +137,8 @@ fun SettingsScreen(
                         showSectionTitle = true,
                         currentShootDayEpochMs = currentShootDayEpochMs,
                     )
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                    MarkdownNotesSettingsSection(showSectionTitle = true)
                 }
 
                 SettingsSection.GalleryCleaner -> {
@@ -144,6 +150,10 @@ fun SettingsScreen(
 
                 SettingsSection.VideoCleaner -> {
                     // Video Cleaner currently has no utility-specific settings.
+                }
+
+                SettingsSection.MarkdownNotes -> {
+                    MarkdownNotesSettingsSection(showSectionTitle = false)
                 }
             }
 
@@ -212,6 +222,37 @@ private fun CollapsibleSettingsSection(
         if (expanded) {
             content()
         }
+    }
+}
+
+@Composable
+private fun MarkdownNotesSettingsSection(
+    showSectionTitle: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    val context = LocalContext.current
+    val preferences = remember { NotesViewerPreferences(context.applicationContext) }
+    var treeUri by remember { mutableStateOf(preferences.loadNotesTreeUri()) }
+
+    val body: @Composable () -> Unit = {
+        NotesFolderPathControls(
+            treeUri = treeUri,
+            onTreeUriChange = { treeUri = it },
+        )
+    }
+
+    if (showSectionTitle) {
+        CollapsibleSettingsSection(
+            title = stringResource(R.string.settings_markdown_notes_title),
+            modifier = modifier,
+            content = body,
+        )
+    } else {
+        Column(
+            modifier = modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            content = { body() },
+        )
     }
 }
 
