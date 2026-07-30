@@ -3151,18 +3151,33 @@ function activate(context) {
 
       const parentDir = path.dirname(fsPath);
       const oldBaseName = path.basename(fsPath);
+      const isMarkdownFile = isFile && isMd(oldBaseName);
 
-      const fileExt = isFile ? (isGMd(oldBaseName) ? '.g.md' : '.md') : '';
+      const fileExt = isFile
+        ? isMarkdownFile
+          ? isGMd(oldBaseName)
+            ? '.g.md'
+            : '.md'
+          : path.extname(oldBaseName)
+        : '';
 
       const defaultValue = isFile
-        ? isGMd(oldBaseName)
-          ? oldBaseName.replace(/\.g\.md$/i, '')
-          : oldBaseName.replace(/\.md$/i, '')
+        ? isMarkdownFile
+          ? isGMd(oldBaseName)
+            ? oldBaseName.replace(/\.g\.md$/i, '')
+            : oldBaseName.replace(/\.md$/i, '')
+          : fileExt
+            ? oldBaseName.slice(0, oldBaseName.length - fileExt.length)
+            : oldBaseName
         : oldBaseName;
 
       const newName = await vscode.window.showInputBox({
         title: 'Rename',
-        prompt: isDir ? 'Enter new folder name' : 'Enter new note name (without extension)',
+        prompt: isDir
+          ? 'Enter new folder name'
+          : isMarkdownFile
+            ? 'Enter new note name (without extension)'
+            : 'Enter new file name (without extension)',
         value: defaultValue,
       });
       if (!newName) return;
@@ -3171,7 +3186,7 @@ function activate(context) {
       if (!safeNew) return;
 
       let namedFolderMdPath = null;
-      if (isFile && isNoteInNamedFolder(fsPath)) {
+      if (isMarkdownFile && isNoteInNamedFolder(fsPath)) {
         namedFolderMdPath = fsPath;
       } else if (isDir) {
         const folderName = path.basename(fsPath);
@@ -3204,7 +3219,14 @@ function activate(context) {
         return;
       }
 
-      const newBaseName = isFile ? (safeNew.toLowerCase().endsWith('.md') ? safeNew : `${safeNew}${fileExt}`) : safeNew;
+      let newBaseName = safeNew;
+      if (isFile) {
+        if (isMarkdownFile) {
+          newBaseName = safeNew.toLowerCase().endsWith('.md') ? safeNew : `${safeNew}${fileExt}`;
+        } else {
+          newBaseName = path.extname(safeNew) ? safeNew : `${safeNew}${fileExt}`;
+        }
+      }
 
       const newPath = path.join(parentDir, newBaseName);
 
