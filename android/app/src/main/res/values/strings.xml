@@ -70,6 +70,11 @@
     <string name="markdown_notes_welcome_message">Select the folder with your Markdown notes to start. You can change it later in Settings.</string>
     <string name="markdown_notes_choose_folder">Choose folder</string>
     <string name="markdown_notes_path_unknown">Selected folder</string>
+    <string name="markdown_notes_back">Back</string>
+    <string name="markdown_notes_close_tab">Close tab</string>
+    <string name="markdown_notes_show_merged">Show merged note</string>
+    <string name="markdown_notes_folder_empty">No notes or folders here</string>
+    <string name="markdown_notes_load_failed">Could not load notes</string>
     <string name="gallery_cleaner_title">Gallery Cleaner</string>
     <string name="gallery_cleaner_close">Exit Gallery Cleaner</string>
     <string name="gallery_cleaner_intro_title">How it works</string>

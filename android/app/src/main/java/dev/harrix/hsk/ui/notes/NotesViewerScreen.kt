@@ -3,27 +3,44 @@ package dev.harrix.hsk.ui.notes
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.InsertDriveFile
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -31,17 +48,27 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.harrix.hsk.R
+import dev.harrix.hsk.notes.NotesEntry
+import dev.harrix.hsk.notes.NotesPathSegment
+import dev.harrix.hsk.notes.NotesTreeRepository
 import dev.harrix.hsk.notes.NotesViewerPreferences
+import dev.harrix.hsk.notes.OpenNoteTab
 import dev.harrix.hsk.notes.notesFolderDisplayName
 import dev.harrix.hsk.notes.takeNotesFolderPermission
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -52,12 +79,111 @@ fun NotesViewerScreen(
     settingsRevision: Int = 0,
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     val preferences = remember { NotesViewerPreferences(context.applicationContext) }
+    val repository = remember { NotesTreeRepository(context.applicationContext) }
     var notesTreeUri by remember { mutableStateOf(preferences.loadNotesTreeUri()) }
     var menuExpanded by remember { mutableStateOf(false) }
+    var folderPath by remember { mutableStateOf<List<NotesPathSegment>>(emptyList()) }
+    var entries by remember { mutableStateOf<List<NotesEntry>>(emptyList()) }
+    var isLoading by remember { mutableStateOf(false) }
+    var statusMessage by remember { mutableStateOf<String?>(null) }
+    var openTabs by remember { mutableStateOf<List<OpenNoteTab>>(emptyList()) }
+    var selectedTabDocumentId by remember { mutableStateOf<String?>(null) }
+    var noteContent by remember { mutableStateOf<String?>(null) }
+    var noteLoading by remember { mutableStateOf(false) }
 
     fun reloadPath() {
         notesTreeUri = preferences.loadNotesTreeUri()
+    }
+
+    fun openFolderList(path: List<NotesPathSegment>) {
+        val tree = notesTreeUri ?: return
+        val treeUri = Uri.parse(tree)
+        val current = path.lastOrNull() ?: return
+        isLoading = true
+        statusMessage = null
+        selectedTabDocumentId = null
+        noteContent = null
+        scope.launch {
+            val result =
+                withContext(Dispatchers.IO) {
+                    runCatching { repository.listChildren(treeUri, current.documentId) }
+                }
+            result
+                .onSuccess { listed ->
+                    folderPath = path
+                    entries = listed
+                }.onFailure { error ->
+                    statusMessage =
+                        error.message ?: context.getString(R.string.markdown_notes_load_failed)
+                    entries = emptyList()
+                }
+            isLoading = false
+        }
+    }
+
+    fun ensureRootPath(): List<NotesPathSegment>? {
+        val tree = notesTreeUri ?: return null
+        val treeUri = Uri.parse(tree)
+        return listOf(repository.rootSegment(treeUri))
+    }
+
+    fun openNote(
+        note: NotesEntry.Note,
+        pathForNote: List<NotesPathSegment>,
+    ) {
+        val existing = openTabs.firstOrNull { it.documentId == note.documentId }
+        if (existing == null) {
+            openTabs = openTabs +
+                OpenNoteTab(
+                    documentId = note.documentId,
+                    uri = note.uri,
+                    title = note.displayLabel,
+                    folderPath = pathForNote,
+                )
+        }
+        selectedTabDocumentId = note.documentId
+    }
+
+    fun openMergedNote(
+        folder: NotesEntry.Folder,
+        pathForFolder: List<NotesPathSegment>,
+    ) {
+        val uri = folder.mergedNoteUri ?: return
+        val documentId = folder.mergedNoteDocumentId ?: return
+        val title = "_${folder.name}.g"
+        val existing = openTabs.firstOrNull { it.documentId == documentId }
+        if (existing == null) {
+            openTabs = openTabs +
+                OpenNoteTab(
+                    documentId = documentId,
+                    uri = uri,
+                    title = title,
+                    folderPath = pathForFolder,
+                )
+        }
+        selectedTabDocumentId = documentId
+    }
+
+    fun closeTab(documentId: String) {
+        openTabs = openTabs.filterNot { it.documentId == documentId }
+        if (selectedTabDocumentId == documentId) {
+            selectedTabDocumentId = openTabs.lastOrNull()?.documentId
+        }
+    }
+
+    fun navigateBack() {
+        when {
+            selectedTabDocumentId != null -> {
+                selectedTabDocumentId = null
+                noteContent = null
+            }
+
+            folderPath.size > 1 -> {
+                openFolderList(folderPath.dropLast(1))
+            }
+        }
     }
 
     val folderPicker =
@@ -75,6 +201,42 @@ fun NotesViewerScreen(
     LaunchedEffect(settingsRevision) {
         reloadPath()
     }
+
+    LaunchedEffect(notesTreeUri) {
+        val root = ensureRootPath()
+        if (root != null) {
+            openFolderList(root)
+        } else {
+            folderPath = emptyList()
+            entries = emptyList()
+            openTabs = emptyList()
+            selectedTabDocumentId = null
+            noteContent = null
+        }
+    }
+
+    val selectedTab = openTabs.firstOrNull { it.documentId == selectedTabDocumentId }
+
+    LaunchedEffect(selectedTabDocumentId, selectedTab?.uri) {
+        val tab = selectedTab
+        if (tab == null) {
+            noteContent = null
+            return@LaunchedEffect
+        }
+        noteLoading = true
+        statusMessage = null
+        noteContent =
+            withContext(Dispatchers.IO) {
+                runCatching { repository.readText(tab.uri) }
+                    .onFailure { error ->
+                        statusMessage =
+                            error.message ?: context.getString(R.string.markdown_notes_load_failed)
+                    }.getOrNull()
+            }
+        noteLoading = false
+    }
+
+    val canGoBack = selectedTabDocumentId != null || folderPath.size > 1
 
     Scaffold(
         modifier = modifier,
@@ -122,17 +284,387 @@ fun NotesViewerScreen(
             )
         },
     ) { innerPadding ->
-        Box(
+        Column(
             modifier =
             Modifier
                 .padding(innerPadding)
                 .fillMaxSize(),
-            contentAlignment = Alignment.Center,
         ) {
             if (notesTreeUri.isNullOrBlank()) {
-                NotesPathWelcomeContent(
-                    onChooseFolder = { folderPicker.launch(null) },
-                    modifier = Modifier.padding(24.dp),
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    NotesPathWelcomeContent(
+                        onChooseFolder = { folderPicker.launch(null) },
+                        modifier = Modifier.padding(24.dp),
+                    )
+                }
+            } else {
+                NotesChromeBar(
+                    canGoBack = canGoBack,
+                    onBack = { navigateBack() },
+                    openTabs = openTabs,
+                    selectedTabDocumentId = selectedTabDocumentId,
+                    onSelectTab = { selectedTabDocumentId = it },
+                    onCloseTab = { closeTab(it) },
+                )
+                NotesBreadcrumbs(
+                    segments =
+                    if (selectedTab != null) {
+                        selectedTab.folderPath +
+                            NotesPathSegment(
+                                documentId = selectedTab.documentId,
+                                name = selectedTab.title,
+                                uri = selectedTab.uri,
+                            )
+                    } else {
+                        folderPath
+                    },
+                    lastIsNote = selectedTab != null,
+                    onSegmentClick = { index ->
+                        val path =
+                            if (selectedTab != null) {
+                                selectedTab.folderPath
+                            } else {
+                                folderPath
+                            }
+                        val targetIndex = index.coerceAtMost(path.lastIndex)
+                        if (targetIndex >= 0) {
+                            openFolderList(path.take(targetIndex + 1))
+                        }
+                    },
+                )
+                HorizontalDivider()
+                Box(modifier = Modifier.fillMaxSize()) {
+                    when {
+                        selectedTab != null -> {
+                            NotesPlainTextPane(
+                                isLoading = noteLoading,
+                                content = noteContent,
+                                errorMessage = statusMessage,
+                            )
+                        }
+
+                        isLoading -> {
+                            CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                        }
+
+                        else -> {
+                            NotesFolderList(
+                                entries = entries,
+                                statusMessage = statusMessage,
+                                onOpenFolder = { folder ->
+                                    openFolderList(
+                                        folderPath +
+                                            NotesPathSegment(
+                                                documentId = folder.documentId,
+                                                name = folder.name,
+                                                uri = folder.uri,
+                                            ),
+                                    )
+                                },
+                                onOpenNote = { note ->
+                                    openNote(note, folderPath)
+                                },
+                                onShowMergedNote = { folder ->
+                                    openMergedNote(folder, folderPath)
+                                },
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun NotesChromeBar(
+    canGoBack: Boolean,
+    onBack: () -> Unit,
+    openTabs: List<OpenNoteTab>,
+    selectedTabDocumentId: String?,
+    onSelectTab: (String) -> Unit,
+    onCloseTab: (String) -> Unit,
+) {
+    Row(
+        modifier =
+        Modifier
+            .fillMaxWidth()
+            .padding(start = 4.dp, end = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        IconButton(
+            onClick = onBack,
+            enabled = canGoBack,
+        ) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = stringResource(R.string.markdown_notes_back),
+            )
+        }
+        if (openTabs.isNotEmpty()) {
+            Row(
+                modifier =
+                Modifier
+                    .weight(1f)
+                    .horizontalScroll(rememberScrollState()),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                openTabs.forEach { tab ->
+                    val selected = tab.documentId == selectedTabDocumentId
+                    Surface(
+                        onClick = { onSelectTab(tab.documentId) },
+                        shape = MaterialTheme.shapes.small,
+                        color =
+                        if (selected) {
+                            MaterialTheme.colorScheme.secondaryContainer
+                        } else {
+                            MaterialTheme.colorScheme.surface
+                        },
+                        tonalElevation = if (selected) 2.dp else 0.dp,
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(start = 10.dp, end = 2.dp),
+                        ) {
+                            Text(
+                                text = tab.title,
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight =
+                                if (selected) {
+                                    FontWeight.Bold
+                                } else {
+                                    FontWeight.Normal
+                                },
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.width(88.dp),
+                            )
+                            IconButton(
+                                onClick = { onCloseTab(tab.documentId) },
+                                modifier = Modifier.size(28.dp),
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.Close,
+                                    contentDescription =
+                                    stringResource(R.string.markdown_notes_close_tab),
+                                    modifier = Modifier.size(14.dp),
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        } else {
+            Spacer(modifier = Modifier.weight(1f))
+        }
+    }
+}
+
+@Composable
+private fun NotesBreadcrumbs(
+    segments: List<NotesPathSegment>,
+    lastIsNote: Boolean,
+    onSegmentClick: (Int) -> Unit,
+) {
+    if (segments.isEmpty()) {
+        return
+    }
+    Row(
+        modifier =
+        Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState())
+            .padding(horizontal = 12.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        segments.forEachIndexed { index, segment ->
+            if (index > 0) {
+                Text(
+                    text = " / ",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            val isLast = index == segments.lastIndex
+            val clickable = !(isLast && lastIsNote)
+            Text(
+                text = segment.name,
+                style = MaterialTheme.typography.labelLarge,
+                color =
+                if (clickable) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.onSurface
+                },
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier =
+                if (clickable) {
+                    Modifier.clickable { onSegmentClick(index) }
+                } else {
+                    Modifier
+                },
+            )
+        }
+    }
+}
+
+@Composable
+private fun NotesFolderList(
+    entries: List<NotesEntry>,
+    statusMessage: String?,
+    onOpenFolder: (NotesEntry.Folder) -> Unit,
+    onOpenNote: (NotesEntry.Note) -> Unit,
+    onShowMergedNote: (NotesEntry.Folder) -> Unit,
+) {
+    when {
+        statusMessage != null && entries.isEmpty() -> {
+            Text(
+                text = statusMessage,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.padding(24.dp),
+            )
+        }
+
+        entries.isEmpty() -> {
+            Text(
+                text = stringResource(R.string.markdown_notes_folder_empty),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(24.dp),
+            )
+        }
+
+        else -> {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(vertical = 4.dp),
+            ) {
+                items(entries, key = { it.documentId }) { entry ->
+                    when (entry) {
+                        is NotesEntry.Folder -> {
+                            NotesFolderRow(
+                                folder = entry,
+                                onOpen = { onOpenFolder(entry) },
+                                onShowMergedNote = { onShowMergedNote(entry) },
+                            )
+                        }
+
+                        is NotesEntry.Note -> {
+                            NotesNoteRow(
+                                note = entry,
+                                onOpen = { onOpenNote(entry) },
+                            )
+                        }
+                    }
+                    HorizontalDivider()
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun NotesFolderRow(
+    folder: NotesEntry.Folder,
+    onOpen: () -> Unit,
+    onShowMergedNote: () -> Unit,
+) {
+    Row(
+        modifier =
+        Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onOpen)
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            imageVector = Icons.Filled.Folder,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+        )
+        Spacer(modifier = Modifier.width(12.dp))
+        Text(
+            text = folder.name,
+            style = MaterialTheme.typography.bodyLarge,
+            modifier = Modifier.weight(1f),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        if (folder.hasMergedNote) {
+            TextButton(onClick = onShowMergedNote) {
+                Text(stringResource(R.string.markdown_notes_show_merged))
+            }
+        }
+    }
+}
+
+@Composable
+private fun NotesNoteRow(
+    note: NotesEntry.Note,
+    onOpen: () -> Unit,
+) {
+    Row(
+        modifier =
+        Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onOpen)
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.InsertDriveFile,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(modifier = Modifier.width(12.dp))
+        Text(
+            text = note.displayLabel,
+            style = MaterialTheme.typography.bodyLarge,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+@Composable
+private fun NotesPlainTextPane(
+    isLoading: Boolean,
+    content: String?,
+    errorMessage: String?,
+) {
+    when {
+        isLoading -> {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
+            }
+        }
+
+        errorMessage != null && content == null -> {
+            Text(
+                text = errorMessage,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.padding(24.dp),
+            )
+        }
+
+        else -> {
+            Surface(
+                modifier = Modifier.fillMaxSize(),
+                color = MaterialTheme.colorScheme.surface,
+            ) {
+                Text(
+                    text = content.orEmpty(),
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .padding(16.dp),
                 )
             }
         }
