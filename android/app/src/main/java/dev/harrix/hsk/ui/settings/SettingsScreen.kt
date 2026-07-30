@@ -17,6 +17,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -471,6 +472,7 @@ private fun GalleryCleanerSettingsSection(
                 },
         )
         GalleryDatePresets(
+            filter = filter,
             enabled = filter.enabled,
             shootDayEpochMs = currentShootDayEpochMs,
             shootDayLabel = shootDayLabel,
@@ -596,6 +598,7 @@ private fun GalleryDateFilterEditors(
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun GalleryDatePresets(
+    filter: GalleryDateFilter,
     enabled: Boolean,
     onPreset: (GalleryDateFilter) -> Unit,
     shootDayEpochMs: Long? = null,
@@ -620,25 +623,50 @@ private fun GalleryDatePresets(
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         if (shootDayEpochMs != null && shootDayLabel != null) {
-            OutlinedButton(
-                onClick = { onPreset(GalleryDateFilter.forShootDay(shootDayEpochMs)) },
+            val shootDayFilter = GalleryDateFilter.forShootDay(shootDayEpochMs)
+            DatePresetButton(
+                label =
+                stringResource(
+                    R.string.settings_gallery_filter_shoot_day_label,
+                    shootDayLabel,
+                ),
+                selected = filter.matchesDateRange(shootDayFilter),
                 enabled = enabled,
-            ) {
-                Text(
-                    stringResource(
-                        R.string.settings_gallery_filter_shoot_day_label,
-                        shootDayLabel,
-                    ),
-                )
-            }
+                onClick = { onPreset(shootDayFilter) },
+            )
         }
         presets.forEach { (labelRes, factory) ->
-            OutlinedButton(
-                onClick = { onPreset(factory()) },
+            val presetFilter = factory()
+            DatePresetButton(
+                label = stringResource(labelRes),
+                selected = filter.matchesDateRange(presetFilter),
                 enabled = enabled,
-            ) {
-                Text(stringResource(labelRes))
-            }
+                onClick = { onPreset(presetFilter) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun DatePresetButton(
+    label: String,
+    selected: Boolean,
+    enabled: Boolean,
+    onClick: () -> Unit,
+) {
+    if (selected) {
+        Button(
+            onClick = onClick,
+            enabled = enabled,
+        ) {
+            Text(label)
+        }
+    } else {
+        OutlinedButton(
+            onClick = onClick,
+            enabled = enabled,
+        ) {
+            Text(label)
         }
     }
 }

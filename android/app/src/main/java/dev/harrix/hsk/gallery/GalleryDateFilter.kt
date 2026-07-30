@@ -15,6 +15,10 @@ data class GalleryDateFilter(
     fun contains(epochSec: Long): Boolean =
         !enabled || epochSec in startEpochSecInclusive..endEpochSecInclusive
 
+    fun matchesDateRange(other: GalleryDateFilter): Boolean =
+        startEpochSecInclusive == other.startEpochSecInclusive &&
+            endEpochSecInclusive == other.endEpochSecInclusive
+
     fun withEnabled(value: Boolean): GalleryDateFilter = copy(enabled = value)
 
     fun withDateRange(
