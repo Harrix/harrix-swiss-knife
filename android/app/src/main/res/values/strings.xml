@@ -57,6 +57,8 @@
     <string name="gallery_cleaner_date_filter_active">Filter: %1$s – %2$s</string>
     <string name="gallery_cleaner_untitled">Untitled photo</string>
     <string name="gallery_cleaner_delete_failed">Could not delete photo</string>
+    <string name="gallery_cleaner_undo_delete">Undo</string>
+    <string name="gallery_cleaner_undo_failed">Could not restore photo</string>
     <string name="video_cleaner_title">Video Cleaner</string>
     <string name="video_cleaner_close">Exit Video Cleaner</string>
     <string name="video_cleaner_settings">Settings</string>

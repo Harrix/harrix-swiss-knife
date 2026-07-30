@@ -116,7 +116,7 @@ class CameraGalleryRepository(
         Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && MediaStore.canManageMedia(context)
 
     /**
-     * Always use [createTrashRequest] on Android 11+.
+     * Always use [createTrashRequest] / [createRestoreRequest] on Android 11+.
      *
      * With [MediaStore.canManageMedia] granted, the system skips the confirmation dialog.
      * Direct `IS_TRASHED` updates are only allowed for OEM gallery apps and fail otherwise.
@@ -129,6 +129,15 @@ class CameraGalleryRepository(
 
     @RequiresApi(Build.VERSION_CODES.R)
     fun createTrashRequest(uri: Uri): IntentSender = createTrashRequest(listOf(uri))
+
+    @RequiresApi(Build.VERSION_CODES.R)
+    fun createRestoreRequest(uris: Collection<Uri>): IntentSender =
+        MediaStore
+            .createTrashRequest(context.contentResolver, uris, false)
+            .intentSender
+
+    @RequiresApi(Build.VERSION_CODES.R)
+    fun createRestoreRequest(uri: Uri): IntentSender = createRestoreRequest(listOf(uri))
 
     fun deletePermanently(uris: Collection<Uri>): Int {
         var deleted = 0

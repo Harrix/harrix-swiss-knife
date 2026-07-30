@@ -30,6 +30,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Done
@@ -133,6 +134,8 @@ fun GalleryCleanerScreen(
     var remainingCount by remember { mutableIntStateOf(0) }
     var statusMessage by remember { mutableStateOf<String?>(null) }
     var pendingTrashPhoto by remember { mutableStateOf<CameraPhoto?>(null) }
+    var pendingRestorePhoto by remember { mutableStateOf<CameraPhoto?>(null) }
+    var lastTrashedPhoto by remember { mutableStateOf<CameraPhoto?>(null) }
     var cardResetKey by remember { mutableIntStateOf(0) }
     var menuExpanded by remember { mutableStateOf(false) }
     var dateFilter by remember { mutableStateOf(preferences.loadDateFilter()) }
@@ -164,11 +167,27 @@ fun GalleryCleanerScreen(
         if (deleted) {
             sessionDeletedCount += 1
             sessionFreedBytes += photo.sizeBytes
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                lastTrashedPhoto = photo
+            }
         }
         val updated = remainingPhotos.filterNot { it.id == photo.id }
         remainingPhotos = updated
         remainingCount = updated.size
         currentPhoto = pickNext(updated)
+        cardResetKey += 1
+        statusMessage = null
+    }
+
+    fun restoreLastTrashedPhoto(photo: CameraPhoto) {
+        view.performLightActionHaptic()
+        sessionDeletedCount = (sessionDeletedCount - 1).coerceAtLeast(0)
+        sessionFreedBytes = (sessionFreedBytes - photo.sizeBytes).coerceAtLeast(0L)
+        val updated = remainingPhotos + photo
+        remainingPhotos = updated
+        remainingCount = updated.size
+        currentPhoto = photo
+        lastTrashedPhoto = null
         cardResetKey += 1
         statusMessage = null
     }
@@ -213,10 +232,29 @@ fun GalleryCleanerScreen(
             }
         }
 
+    val restoreLauncher =
+        rememberLauncherForActivityResult(
+            ActivityResultContracts.StartIntentSenderForResult(),
+        ) { result ->
+            val photo = pendingRestorePhoto
+            pendingRestorePhoto = null
+            if (result.resultCode == Activity.RESULT_OK && photo != null) {
+                restoreLastTrashedPhoto(photo)
+            } else {
+                statusMessage = context.getString(R.string.gallery_cleaner_undo_failed)
+            }
+        }
+
     fun requestSystemTrash(photo: CameraPhoto) {
         pendingTrashPhoto = photo
         val sender: IntentSender = repository.createTrashRequest(photo.uri)
         trashLauncher.launch(IntentSenderRequest.Builder(sender).build())
+    }
+
+    fun requestSystemRestore(photo: CameraPhoto) {
+        pendingRestorePhoto = photo
+        val sender: IntentSender = repository.createRestoreRequest(photo.uri)
+        restoreLauncher.launch(IntentSenderRequest.Builder(sender).build())
     }
 
     fun deletePhoto(photo: CameraPhoto) {
@@ -231,6 +269,14 @@ fun GalleryCleanerScreen(
                 statusMessage = context.getString(R.string.gallery_cleaner_delete_failed)
                 cardResetKey += 1
             }
+        }
+    }
+
+    fun undoLastDelete() {
+        val photo = lastTrashedPhoto ?: return
+        statusMessage = null
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            requestSystemRestore(photo)
         }
     }
 
@@ -338,6 +384,17 @@ fun GalleryCleanerScreen(
                     }
                 },
                 actions = {
+                    if (lastTrashedPhoto != null) {
+                        TextButton(onClick = { undoLastDelete() }) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.Undo,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp),
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(stringResource(R.string.gallery_cleaner_undo_delete))
+                        }
+                    }
                     if (hasPermission && remainingCount > 0) {
                         Text(
                             text = stringResource(R.string.gallery_cleaner_remaining, remainingCount),
