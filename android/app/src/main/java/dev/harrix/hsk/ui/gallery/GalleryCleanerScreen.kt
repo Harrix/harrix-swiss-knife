@@ -32,11 +32,13 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Crop
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.RotateRight
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -90,10 +92,14 @@ import dev.harrix.hsk.gallery.CameraPhoto
 import dev.harrix.hsk.gallery.GalleryCleanerPreferences
 import dev.harrix.hsk.gallery.GalleryDateFilter
 import dev.harrix.hsk.gallery.GalleryPermissions
+import dev.harrix.hsk.gallery.NormalizedCropRect
+import dev.harrix.hsk.gallery.PhotoEditSaver
 import dev.harrix.hsk.ui.performLightActionHaptic
 import dev.harrix.hsk.ui.theme.AppGreen
 import dev.harrix.hsk.ui.theme.AppRed
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.text.DateFormat
 import java.util.Date
 import kotlin.math.abs
@@ -114,6 +120,8 @@ fun GalleryCleanerScreen(
     val lifecycleOwner = LocalLifecycleOwner.current
     val repository = remember { CameraGalleryRepository(context.applicationContext) }
     val preferences = remember { GalleryCleanerPreferences(context.applicationContext) }
+    val photoEditSaver = remember { PhotoEditSaver(context.applicationContext) }
+    val scope = rememberCoroutineScope()
 
     var hasPermission by remember {
         mutableStateOf(
@@ -144,6 +152,12 @@ fun GalleryCleanerScreen(
     }
     var sessionDeletedCount by remember { mutableIntStateOf(0) }
     var sessionFreedBytes by remember { mutableLongStateOf(0L) }
+    var isEditing by remember { mutableStateOf(false) }
+    var editRotationQuarterTurns by remember { mutableIntStateOf(0) }
+    var editCropRect by remember { mutableStateOf(NormalizedCropRect.Full) }
+    var editImageRevision by remember { mutableIntStateOf(0) }
+    var isSavingEdit by remember { mutableStateOf(false) }
+    var pendingWritePhoto by remember { mutableStateOf<CameraPhoto?>(null) }
 
     fun refreshManageMediaAccess() {
         canManageMedia = repository.canTrashWithoutPrompt()
@@ -272,6 +286,107 @@ fun GalleryCleanerScreen(
                 statusMessage = context.getString(R.string.gallery_cleaner_undo_failed)
             }
         }
+
+    var writeLauncherPending by remember {
+        mutableStateOf<((CameraPhoto) -> Unit)?>(null)
+    }
+    val writeLauncher =
+        rememberLauncherForActivityResult(
+            ActivityResultContracts.StartIntentSenderForResult(),
+        ) { result ->
+            val photo = pendingWritePhoto
+            pendingWritePhoto = null
+            if (result.resultCode == Activity.RESULT_OK && photo != null) {
+                writeLauncherPending?.invoke(photo)
+            } else {
+                isSavingEdit = false
+                statusMessage = context.getString(R.string.gallery_cleaner_edit_save_failed)
+            }
+        }
+
+    fun enterEditMode(initialRotate: Boolean = false) {
+        if (currentPhoto == null) {
+            return
+        }
+        isEditing = true
+        editRotationQuarterTurns = if (initialRotate) 1 else 0
+        editCropRect = NormalizedCropRect.Full
+        statusMessage = null
+        menuExpanded = false
+    }
+
+    fun exitEditMode() {
+        isEditing = false
+        editRotationQuarterTurns = 0
+        editCropRect = NormalizedCropRect.Full
+        isSavingEdit = false
+        pendingWritePhoto = null
+    }
+
+    fun rotateEditClockwise() {
+        if (!isEditing) {
+            enterEditMode(initialRotate = true)
+            return
+        }
+        editRotationQuarterTurns = PhotoEditSaver.positiveMod(editRotationQuarterTurns + 1, 4)
+        editCropRect = NormalizedCropRect.Full
+    }
+
+    fun applySavedPhoto(
+        photo: CameraPhoto,
+        sizeBytes: Long,
+    ) {
+        val updated = photo.copy(sizeBytes = sizeBytes)
+        remainingPhotos = remainingPhotos.map { if (it.id == photo.id) updated else it }
+        currentPhoto = updated
+        editImageRevision += 1
+        cardResetKey += 1
+        exitEditMode()
+        statusMessage = null
+    }
+
+    fun performSaveEdit(
+        photo: CameraPhoto,
+        requestWriteIfNeeded: Boolean,
+    ) {
+        isSavingEdit = true
+        statusMessage = null
+        scope.launch {
+            val result =
+                withContext(Dispatchers.IO) {
+                    photoEditSaver.save(
+                        uri = photo.uri,
+                        mimeType = photo.mimeType,
+                        rotationQuarterTurns = editRotationQuarterTurns,
+                        crop = editCropRect,
+                    )
+                }
+            when (result) {
+                is PhotoEditSaver.SaveResult.Success -> {
+                    applySavedPhoto(photo, result.sizeBytes)
+                }
+
+                PhotoEditSaver.SaveResult.NeedsWritePermission -> {
+                    if (requestWriteIfNeeded && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                        pendingWritePhoto = photo
+                        writeLauncherPending = { grantedPhoto ->
+                            performSaveEdit(grantedPhoto, requestWriteIfNeeded = false)
+                        }
+                        val sender = repository.createWriteRequest(photo.uri)
+                        writeLauncher.launch(IntentSenderRequest.Builder(sender).build())
+                    } else {
+                        isSavingEdit = false
+                        statusMessage = context.getString(R.string.gallery_cleaner_edit_save_failed)
+                    }
+                }
+
+                PhotoEditSaver.SaveResult.Failed -> {
+                    isSavingEdit = false
+                    statusMessage = context.getString(R.string.gallery_cleaner_edit_save_failed)
+                }
+            }
+        }
+    }
 
     fun requestSystemTrash(photo: CameraPhoto) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
@@ -412,7 +527,7 @@ fun GalleryCleanerScreen(
                         }
                     },
                     actions = {
-                        if (hasPermission && remainingCount > 0) {
+                        if (hasPermission && remainingCount > 0 && !isEditing) {
                             Text(
                                 text =
                                 stringResource(
@@ -427,86 +542,89 @@ fun GalleryCleanerScreen(
                                 modifier = Modifier.padding(end = 4.dp),
                             )
                         }
-                        Box {
-                            IconButton(onClick = { menuExpanded = true }) {
-                                Icon(
-                                    imageVector = Icons.Filled.MoreVert,
-                                    contentDescription = stringResource(R.string.gallery_cleaner_menu),
-                                )
-                            }
-                            DropdownMenu(
-                                expanded = menuExpanded,
-                                onDismissRequest = { menuExpanded = false },
-                            ) {
-                                if (currentPhoto != null) {
-                                    DropdownMenuItem(
-                                        text = {
-                                            Text(
-                                                stringResource(
-                                                    R.string.gallery_cleaner_filter_shoot_day,
-                                                ),
-                                            )
-                                        },
-                                        onClick = {
-                                            menuExpanded = false
-                                            applyShootDayFilter(currentPhoto!!.dateTakenEpochMs)
-                                            if (hasPermission && !showIntro) {
-                                                reloadPhotos()
-                                            }
-                                        },
+                        if (!isEditing) {
+                            Box {
+                                IconButton(onClick = { menuExpanded = true }) {
+                                    Icon(
+                                        imageVector = Icons.Filled.MoreVert,
+                                        contentDescription =
+                                        stringResource(R.string.gallery_cleaner_menu),
                                     )
                                 }
-                                if (dateFilter.enabled) {
-                                    DropdownMenuItem(
-                                        text = {
-                                            Text(
-                                                stringResource(
-                                                    R.string.gallery_cleaner_clear_date_filter,
-                                                ),
-                                            )
-                                        },
-                                        onClick = {
-                                            menuExpanded = false
-                                            val cleared = dateFilter.withEnabled(false)
-                                            preferences.saveDateFilter(cleared)
-                                            dateFilter = cleared
-                                            if (hasPermission && !showIntro) {
-                                                reloadPhotos()
-                                            }
-                                        },
-                                    )
-                                }
-                                DropdownMenuItem(
-                                    text = {
-                                        Text(
-                                            stringResource(
-                                                if (unreviewedOnlyMode) {
-                                                    R.string.gallery_cleaner_disable_unreviewed_only
-                                                } else {
-                                                    R.string.gallery_cleaner_enable_unreviewed_only
-                                                },
-                                            ),
+                                DropdownMenu(
+                                    expanded = menuExpanded,
+                                    onDismissRequest = { menuExpanded = false },
+                                ) {
+                                    if (currentPhoto != null) {
+                                        DropdownMenuItem(
+                                            text = {
+                                                Text(
+                                                    stringResource(
+                                                        R.string.gallery_cleaner_filter_shoot_day,
+                                                    ),
+                                                )
+                                            },
+                                            onClick = {
+                                                menuExpanded = false
+                                                applyShootDayFilter(currentPhoto!!.dateTakenEpochMs)
+                                                if (hasPermission && !showIntro) {
+                                                    reloadPhotos()
+                                                }
+                                            },
                                         )
-                                    },
-                                    onClick = {
-                                        menuExpanded = false
-                                        val enabled = !unreviewedOnlyMode
-                                        preferences.setUnreviewedOnlyModeEnabled(enabled)
-                                        unreviewedOnlyMode = enabled
-                                        if (hasPermission && !showIntro) {
-                                            reloadPhotos()
-                                        }
-                                    },
-                                )
-                                DropdownMenuItem(
-                                    text = {
-                                        Text(stringResource(R.string.gallery_cleaner_settings))
-                                    },
-                                    onClick = {
-                                        menuExpanded = false
-                                        onOpenSettings(currentPhoto?.dateTakenEpochMs)
-                                    },
-                                )
+                                    }
+                                    if (dateFilter.enabled) {
+                                        DropdownMenuItem(
+                                            text = {
+                                                Text(
+                                                    stringResource(
+                                                        R.string.gallery_cleaner_clear_date_filter,
+                                                    ),
+                                                )
+                                            },
+                                            onClick = {
+                                                menuExpanded = false
+                                                val cleared = dateFilter.withEnabled(false)
+                                                preferences.saveDateFilter(cleared)
+                                                dateFilter = cleared
+                                                if (hasPermission && !showIntro) {
+                                                    reloadPhotos()
+                                                }
+                                            },
+                                        )
+                                    }
+                                    DropdownMenuItem(
+                                        text = {
+                                            Text(
+                                                stringResource(
+                                                    if (unreviewedOnlyMode) {
+                                                        R.string.gallery_cleaner_disable_unreviewed_only
+                                                    } else {
+                                                        R.string.gallery_cleaner_enable_unreviewed_only
+                                                    },
+                                                ),
+                                            )
+                                        },
+                                        onClick = {
+                                            menuExpanded = false
+                                            val enabled = !unreviewedOnlyMode
+                                            preferences.setUnreviewedOnlyModeEnabled(enabled)
+                                            unreviewedOnlyMode = enabled
+                                            if (hasPermission && !showIntro) {
+                                                reloadPhotos()
+                                            }
+                                        },
+                                    )
+                                    DropdownMenuItem(
+                                        text = {
+                                            Text(stringResource(R.string.gallery_cleaner_settings))
+                                        },
+                                        onClick = {
+                                            menuExpanded = false
+                                            onOpenSettings(currentPhoto?.dateTakenEpochMs)
+                                        },
+                                    )
+                                }
                             }
                         }
                     },
@@ -516,7 +634,11 @@ fun GalleryCleanerScreen(
                         scrolledContainerColor = MaterialTheme.colorScheme.background,
                     ),
                 )
-                if (dateFilter.enabled || lastTrashedPhoto != null) {
+                val canEditPhoto = hasPermission && currentPhoto != null && !showIntro
+                val showSecondaryBar =
+                    canEditPhoto ||
+                        (!isEditing && (dateFilter.enabled || lastTrashedPhoto != null))
+                if (showSecondaryBar) {
                     Row(
                         modifier =
                         Modifier
@@ -524,7 +646,7 @@ fun GalleryCleanerScreen(
                             .padding(start = 16.dp, end = 4.dp, top = 0.dp, bottom = 4.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        if (dateFilter.enabled) {
+                        if (!isEditing && dateFilter.enabled) {
                             val dateFormat =
                                 remember {
                                     DateFormat.getDateInstance(DateFormat.SHORT)
@@ -560,7 +682,31 @@ fun GalleryCleanerScreen(
                         } else {
                             Spacer(modifier = Modifier.weight(1f))
                         }
-                        if (lastTrashedPhoto != null) {
+                        if (canEditPhoto) {
+                            if (!isEditing) {
+                                IconButton(
+                                    onClick = { enterEditMode(initialRotate = false) },
+                                    enabled = !isSavingEdit,
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Filled.Crop,
+                                        contentDescription =
+                                        stringResource(R.string.gallery_cleaner_action_crop),
+                                    )
+                                }
+                            }
+                            IconButton(
+                                onClick = { rotateEditClockwise() },
+                                enabled = !isSavingEdit,
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.RotateRight,
+                                    contentDescription =
+                                    stringResource(R.string.gallery_cleaner_action_rotate),
+                                )
+                            }
+                        }
+                        if (!isEditing && lastTrashedPhoto != null) {
                             TextButton(onClick = { undoLastDelete() }) {
                                 Icon(
                                     imageVector = Icons.AutoMirrored.Filled.Undo,
@@ -576,7 +722,7 @@ fun GalleryCleanerScreen(
             }
         },
         bottomBar = {
-            if (hasPermission && currentPhoto != null) {
+            if (hasPermission && currentPhoto != null && !isEditing) {
                 val photo = currentPhoto!!
                 ReviewActionBar(
                     onDelete = { deletePhoto(photo) },
@@ -650,13 +796,30 @@ fun GalleryCleanerScreen(
 
                 else -> {
                     val photo = currentPhoto!!
-                    SwipeablePhotoCard(
-                        photo = photo,
-                        resetKey = cardResetKey,
-                        onDelete = { deletePhoto(photo) },
-                        onKeep = { advanceAfterReview(photo) },
-                        modifier = Modifier.fillMaxSize(),
-                    )
+                    if (isEditing) {
+                        PhotoCropEditor(
+                            photo = photo,
+                            rotationQuarterTurns = editRotationQuarterTurns,
+                            cropRect = editCropRect,
+                            onCropRectChange = { editCropRect = it },
+                            imageRevision = editImageRevision,
+                            isSaving = isSavingEdit,
+                            onSave = {
+                                performSaveEdit(photo, requestWriteIfNeeded = true)
+                            },
+                            onDiscard = { exitEditMode() },
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                    } else {
+                        SwipeablePhotoCard(
+                            photo = photo,
+                            resetKey = cardResetKey,
+                            imageRevision = editImageRevision,
+                            onDelete = { deletePhoto(photo) },
+                            onKeep = { advanceAfterReview(photo) },
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                    }
                 }
             }
 
@@ -811,6 +974,7 @@ private fun PermissionRequestContent(
 private fun SwipeablePhotoCard(
     photo: CameraPhoto,
     resetKey: Int,
+    imageRevision: Int,
     onDelete: () -> Unit,
     onKeep: () -> Unit,
     modifier: Modifier = Modifier,
@@ -903,6 +1067,8 @@ private fun SwipeablePhotoCard(
                 ImageRequest
                     .Builder(LocalContext.current)
                     .data(photo.uri)
+                    .memoryCacheKey("${photo.uri}-$imageRevision")
+                    .diskCacheKey("${photo.uri}-$imageRevision")
                     .crossfade(true)
                     .build(),
                 contentDescription = photo.displayName,

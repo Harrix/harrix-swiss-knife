@@ -29,6 +29,7 @@ class CameraGalleryRepository(
                 MediaStore.Images.Media.DATE_ADDED,
                 MediaStore.Images.Media.DATE_TAKEN,
                 MediaStore.Images.Media.SIZE,
+                MediaStore.Images.Media.MIME_TYPE,
             )
 
         val (selection, selectionArgs) = cameraFolderSelection()
@@ -45,6 +46,7 @@ class CameraGalleryRepository(
                 val dateTakenColumn =
                     cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATE_TAKEN)
                 val sizeColumn = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.SIZE)
+                val mimeColumn = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.MIME_TYPE)
                 while (cursor.moveToNext()) {
                     val id = cursor.getLong(idColumn)
                     val uri = ContentUris.withAppendedId(collection, id)
@@ -63,6 +65,7 @@ class CameraGalleryRepository(
                                 dateAddedEpochSec * 1000L
                             },
                             sizeBytes = cursor.getLong(sizeColumn).coerceAtLeast(0L),
+                            mimeType = cursor.getString(mimeColumn),
                         )
                 }
             }
@@ -135,6 +138,14 @@ class CameraGalleryRepository(
 
     @RequiresApi(Build.VERSION_CODES.R)
     fun createRestoreRequest(uri: Uri): IntentSender = createRestoreRequest(listOf(uri))
+
+    @RequiresApi(Build.VERSION_CODES.R)
+    fun createWriteRequest(uris: Collection<Uri>): IntentSender = MediaStore
+        .createWriteRequest(context.contentResolver, uris)
+        .intentSender
+
+    @RequiresApi(Build.VERSION_CODES.R)
+    fun createWriteRequest(uri: Uri): IntentSender = createWriteRequest(listOf(uri))
 
     fun deletePermanently(uris: Collection<Uri>): Int {
         var deleted = 0

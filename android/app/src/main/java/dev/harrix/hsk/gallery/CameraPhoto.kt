@@ -10,4 +10,5 @@ data class CameraPhoto(
     /** Capture time in epoch milliseconds; falls back to [dateAddedEpochSec] when unknown. */
     val dateTakenEpochMs: Long,
     val sizeBytes: Long,
+    val mimeType: String? = null,
 )

@@ -119,6 +119,11 @@
     <string name="gallery_cleaner_delete_failed">Could not delete photo</string>
     <string name="gallery_cleaner_undo_delete">Undo</string>
     <string name="gallery_cleaner_undo_failed">Could not restore photo</string>
+    <string name="gallery_cleaner_action_crop">Crop</string>
+    <string name="gallery_cleaner_action_rotate">Rotate</string>
+    <string name="gallery_cleaner_edit_save">Save</string>
+    <string name="gallery_cleaner_edit_discard">Close without saving</string>
+    <string name="gallery_cleaner_edit_save_failed">Could not save photo</string>
     <string name="video_cleaner_title">Video Cleaner</string>
     <string name="video_cleaner_close">Exit Video Cleaner</string>
     <string name="video_cleaner_settings">Settings</string>
