@@ -373,22 +373,6 @@ private fun GalleryCleanerSettingsSection(
             )
         }
 
-        if (currentShootDayEpochMs != null && shootDayLabel != null) {
-            OutlinedButton(
-                onClick = {
-                    persist(GalleryDateFilter.forShootDay(currentShootDayEpochMs))
-                },
-                enabled = filter.enabled,
-            ) {
-                Text(
-                    stringResource(
-                        R.string.settings_gallery_filter_shoot_day_label,
-                        shootDayLabel,
-                    ),
-                )
-            }
-        }
-
         GalleryDateFilterEditors(
             filter = filter,
             enabled = filter.enabled,
@@ -407,6 +391,8 @@ private fun GalleryCleanerSettingsSection(
         )
         GalleryDatePresets(
             enabled = filter.enabled,
+            shootDayEpochMs = currentShootDayEpochMs,
+            shootDayLabel = shootDayLabel,
             onPreset = { persist(it) },
         )
 
@@ -521,6 +507,8 @@ private fun GalleryDateFilterEditors(
 private fun GalleryDatePresets(
     enabled: Boolean,
     onPreset: (GalleryDateFilter) -> Unit,
+    shootDayEpochMs: Long? = null,
+    shootDayLabel: String? = null,
 ) {
     val presets =
         listOf(
@@ -540,6 +528,19 @@ private fun GalleryDatePresets(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
+        if (shootDayEpochMs != null && shootDayLabel != null) {
+            OutlinedButton(
+                onClick = { onPreset(GalleryDateFilter.forShootDay(shootDayEpochMs)) },
+                enabled = enabled,
+            ) {
+                Text(
+                    stringResource(
+                        R.string.settings_gallery_filter_shoot_day_label,
+                        shootDayLabel,
+                    ),
+                )
+            }
+        }
         presets.forEach { (labelRes, factory) ->
             OutlinedButton(
                 onClick = { onPreset(factory()) },
