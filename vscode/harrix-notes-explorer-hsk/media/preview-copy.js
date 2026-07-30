@@ -491,65 +491,6 @@
     window.addEventListener('vscode.markdown.updateContent', () => {
       processAllCodeBlocks();
     });
-
-    // Keep markdown preview intact: silent image ping, else open helper in a new tab.
-    document.addEventListener(
-      'click',
-      (e) => {
-        const target = e.target;
-        if (!(target instanceof Element)) {
-          return;
-        }
-        const a = target.closest('a.hne-md-open-external');
-        if (!a) {
-          return;
-        }
-        e.preventDefault();
-        e.stopImmediatePropagation();
-
-        const httpUrl = a.getAttribute('href') || '';
-        if (!httpUrl) {
-          return;
-        }
-
-        let settled = false;
-        let timer = 0;
-        const openOutsidePreview = () => {
-          if (settled) {
-            return;
-          }
-          settled = true;
-          if (timer) {
-            window.clearTimeout(timer);
-          }
-          // Never assign location.href — that replaces the preview with a white page.
-          const link = document.createElement('a');
-          link.href = httpUrl;
-          link.target = '_blank';
-          link.rel = 'noopener noreferrer';
-          document.body.appendChild(link);
-          link.click();
-          link.remove();
-        };
-        const markOk = () => {
-          settled = true;
-          if (timer) {
-            window.clearTimeout(timer);
-          }
-        };
-
-        try {
-          const img = new Image();
-          img.onload = markOk;
-          img.onerror = openOutsidePreview;
-          img.src = `${httpUrl}${httpUrl.includes('?') ? '&' : '?'}_=${Date.now()}`;
-          timer = window.setTimeout(openOutsidePreview, 800);
-        } catch {
-          openOutsidePreview();
-        }
-      },
-      true,
-    );
   }
 
   initOnce();

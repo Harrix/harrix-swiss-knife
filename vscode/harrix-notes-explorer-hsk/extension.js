@@ -881,9 +881,6 @@ const PREVIEW_AUDIO_EXTENSIONS = new Set(['.mp3', '.wav', '.ogg', '.oga', '.m4a'
 
 const OPEN_MEDIA_EXTERNALLY_COMMAND = 'harrixNotesExplorerHsk.openMediaExternally';
 
-/** Transparent 1×1 GIF — preview script can ping the helper without navigating. */
-const OPEN_MEDIA_PING_GIF = Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64');
-
 /** @type {import('node:http').Server | null} */
 let openMediaHttpServer = null;
 /** @type {number} */
@@ -984,8 +981,7 @@ function resolveLocalMediaFsPath(dataSrc, webviewSrc, env) {
 
 /**
  * Link under local media. Uses http://127.0.0.1 + opaque token (not the file path)
- * so Unicode paths are not corrupted in the URL. Preview script opens this via a
- * silent image ping or `target=_blank` so the markdown preview is not replaced.
+ * so Unicode paths are not corrupted in the URL.
  * @param {string} absFsPath
  * @returns {string}
  */
@@ -1063,16 +1059,6 @@ function startOpenMediaHttpServer() {
         const token = url.searchParams.get('t') || '';
         const fsPath = openMediaPathByToken.get(token) || '';
         void openMediaInSystemPlayer(fsPath);
-        // Image ping from preview uses `_=…`; return GIF. Browser tab gets a tiny closer page.
-        if (url.searchParams.has('_')) {
-          res.writeHead(200, {
-            'Content-Type': 'image/gif',
-            'Cache-Control': 'no-store',
-            'Content-Length': String(OPEN_MEDIA_PING_GIF.length),
-          });
-          res.end(OPEN_MEDIA_PING_GIF);
-          return;
-        }
         res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
         res.end(
           '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Opening…</title></head>' +
