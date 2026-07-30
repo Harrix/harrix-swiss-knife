@@ -1,6 +1,7 @@
 package dev.harrix.hsk.ui.notes
 
 import android.net.Uri
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -414,6 +415,10 @@ fun NotesViewerScreen(
             folderPath.size > 1 -> {
                 openFolderList(folderPath.dropLast(1))
             }
+
+            else -> {
+                onClose()
+            }
         }
     }
 
@@ -504,7 +509,9 @@ fun NotesViewerScreen(
         }
     }
 
-    val canGoBack = isEditing || selectedTabDocumentId != null || folderPath.size > 1
+    BackHandler {
+        navigateBack()
+    }
 
     Scaffold(
         modifier = modifier,
@@ -597,7 +604,6 @@ fun NotesViewerScreen(
                 }
             } else {
                 NotesChromeBar(
-                    canGoBack = canGoBack,
                     onBack = { navigateBack() },
                     openTabs = openTabs,
                     selectedTabDocumentId = selectedTabDocumentId,
@@ -698,7 +704,6 @@ private const val SaveFeedbackVisibleMs = 1500L
 
 @Composable
 private fun NotesChromeBar(
-    canGoBack: Boolean,
     onBack: () -> Unit,
     openTabs: List<OpenNoteTab>,
     selectedTabDocumentId: String?,
@@ -712,10 +717,7 @@ private fun NotesChromeBar(
             .padding(start = 4.dp, end = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        IconButton(
-            onClick = onBack,
-            enabled = canGoBack,
-        ) {
+        IconButton(onClick = onBack) {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                 contentDescription = stringResource(R.string.markdown_notes_back),
