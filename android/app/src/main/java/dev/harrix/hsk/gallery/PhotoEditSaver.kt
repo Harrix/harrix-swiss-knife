@@ -53,13 +53,13 @@ class PhotoEditSaver(
     fun save(
         uri: Uri,
         mimeType: String?,
-        rotationQuarterTurns: Int,
+        rotationDegrees: Float,
         crop: NormalizedCropRect,
     ): SaveResult {
         val oriented =
             decodeOrientedBitmap(uri) ?: return SaveResult.Failed
         val rotated =
-            rotateBitmap(oriented, positiveMod(rotationQuarterTurns, 4))
+            rotateBitmap(oriented, rotationDegrees)
         if (rotated !== oriented) {
             oriented.recycle()
         }
@@ -152,12 +152,13 @@ class PhotoEditSaver(
 
     private fun rotateBitmap(
         bitmap: Bitmap,
-        quarterTurns: Int,
+        degrees: Float,
     ): Bitmap {
-        if (quarterTurns == 0) {
+        val normalized = normalizeRotationDegrees(degrees)
+        if (kotlin.math.abs(normalized) < 0.01f) {
             return bitmap
         }
-        val matrix = Matrix().apply { postRotate(quarterTurns * 90f) }
+        val matrix = Matrix().apply { postRotate(normalized) }
         return Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
     }
 
@@ -227,24 +228,36 @@ class PhotoEditSaver(
     companion object {
         private const val JPEG_QUALITY = 95
 
-        fun positiveMod(
-            value: Int,
-            mod: Int,
-        ): Int = ((value % mod) + mod) % mod
+        /**
+         * Normalize degrees into `(-180, 180]`.
+         */
+        fun normalizeRotationDegrees(degrees: Float): Float {
+            var value = degrees % 360f
+            if (value > 180f) {
+                value -= 360f
+            } else if (value <= -180f) {
+                value += 360f
+            }
+            return value
+        }
 
         /**
-         * Fitted image rectangle inside [viewportWidth] x [viewportHeight] for ContentScale.Fit.
+         * Axis-aligned bounding box of the image after [rotationDegrees], fitted with ContentScale.Fit.
          */
         fun fittedImageRect(
             viewportWidth: Float,
             viewportHeight: Float,
             imageWidth: Int,
             imageHeight: Int,
-            rotationQuarterTurns: Int,
+            rotationDegrees: Float,
         ): FittedRect {
-            val turns = positiveMod(rotationQuarterTurns, 4)
-            val contentW = if (turns % 2 == 0) imageWidth.toFloat() else imageHeight.toFloat()
-            val contentH = if (turns % 2 == 0) imageHeight.toFloat() else imageWidth.toFloat()
+            val rad = Math.toRadians(rotationDegrees.toDouble())
+            val cosA = kotlin.math.abs(kotlin.math.cos(rad)).toFloat()
+            val sinA = kotlin.math.abs(kotlin.math.sin(rad)).toFloat()
+            val iw = imageWidth.toFloat()
+            val ih = imageHeight.toFloat()
+            val contentW = iw * cosA + ih * sinA
+            val contentH = iw * sinA + ih * cosA
             val hasInvalidSize =
                 contentW <= 0f ||
                     contentH <= 0f ||
@@ -259,6 +272,33 @@ class PhotoEditSaver(
             val left = (viewportWidth - drawW) / 2f
             val top = (viewportHeight - drawH) / 2f
             return FittedRect(left, top, drawW, drawH)
+        }
+
+        /**
+         * Unrotated draw size so that after [rotationDegrees] the AABB matches [fitted].
+         */
+        fun preRotationDrawSize(
+            imageWidth: Int,
+            imageHeight: Int,
+            rotationDegrees: Float,
+            fitted: FittedRect,
+        ): Pair<Float, Float> {
+            val invalidImage = imageWidth <= 0 || imageHeight <= 0
+            val invalidFitted = fitted.width <= 0f || fitted.height <= 0f
+            if (invalidImage || invalidFitted) {
+                return 0f to 0f
+            }
+            val rad = Math.toRadians(rotationDegrees.toDouble())
+            val cosA = kotlin.math.abs(kotlin.math.cos(rad)).toFloat()
+            val sinA = kotlin.math.abs(kotlin.math.sin(rad)).toFloat()
+            val iw = imageWidth.toFloat()
+            val ih = imageHeight.toFloat()
+            val boundW = iw * cosA + ih * sinA
+            if (boundW <= 0f) {
+                return 0f to 0f
+            }
+            val scale = fitted.width / boundW
+            return iw * scale to ih * scale
         }
 
         fun clampCropRect(

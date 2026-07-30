@@ -30,6 +30,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.RotateRight
 import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Crop
@@ -38,7 +39,6 @@ import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.RotateRight
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -59,6 +59,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -153,7 +154,7 @@ fun GalleryCleanerScreen(
     var sessionDeletedCount by remember { mutableIntStateOf(0) }
     var sessionFreedBytes by remember { mutableLongStateOf(0L) }
     var isEditing by remember { mutableStateOf(false) }
-    var editRotationQuarterTurns by remember { mutableIntStateOf(0) }
+    var editRotationDegrees by remember { mutableFloatStateOf(0f) }
     var editCropRect by remember { mutableStateOf(NormalizedCropRect.Full) }
     var editImageRevision by remember { mutableIntStateOf(0) }
     var isSavingEdit by remember { mutableStateOf(false) }
@@ -304,12 +305,12 @@ fun GalleryCleanerScreen(
             }
         }
 
-    fun enterEditMode(initialRotate: Boolean = false) {
+    fun enterEditMode() {
         if (currentPhoto == null) {
             return
         }
         isEditing = true
-        editRotationQuarterTurns = if (initialRotate) 1 else 0
+        editRotationDegrees = 0f
         editCropRect = NormalizedCropRect.Full
         statusMessage = null
         menuExpanded = false
@@ -317,19 +318,10 @@ fun GalleryCleanerScreen(
 
     fun exitEditMode() {
         isEditing = false
-        editRotationQuarterTurns = 0
+        editRotationDegrees = 0f
         editCropRect = NormalizedCropRect.Full
         isSavingEdit = false
         pendingWritePhoto = null
-    }
-
-    fun rotateEditClockwise() {
-        if (!isEditing) {
-            enterEditMode(initialRotate = true)
-            return
-        }
-        editRotationQuarterTurns = PhotoEditSaver.positiveMod(editRotationQuarterTurns + 1, 4)
-        editCropRect = NormalizedCropRect.Full
     }
 
     fun applySavedPhoto(
@@ -357,7 +349,7 @@ fun GalleryCleanerScreen(
                     photoEditSaver.save(
                         uri = photo.uri,
                         mimeType = photo.mimeType,
-                        rotationQuarterTurns = editRotationQuarterTurns,
+                        rotationDegrees = editRotationDegrees,
                         crop = editCropRect,
                     )
                 }
@@ -685,7 +677,7 @@ fun GalleryCleanerScreen(
                         if (canEditPhoto) {
                             if (!isEditing) {
                                 IconButton(
-                                    onClick = { enterEditMode(initialRotate = false) },
+                                    onClick = { enterEditMode() },
                                     enabled = !isSavingEdit,
                                 ) {
                                     Icon(
@@ -694,16 +686,16 @@ fun GalleryCleanerScreen(
                                         stringResource(R.string.gallery_cleaner_action_crop),
                                     )
                                 }
-                            }
-                            IconButton(
-                                onClick = { rotateEditClockwise() },
-                                enabled = !isSavingEdit,
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Filled.RotateRight,
-                                    contentDescription =
-                                    stringResource(R.string.gallery_cleaner_action_rotate),
-                                )
+                                IconButton(
+                                    onClick = { enterEditMode() },
+                                    enabled = !isSavingEdit,
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Filled.RotateRight,
+                                        contentDescription =
+                                        stringResource(R.string.gallery_cleaner_action_rotate),
+                                    )
+                                }
                             }
                         }
                         if (!isEditing && lastTrashedPhoto != null) {
@@ -799,7 +791,8 @@ fun GalleryCleanerScreen(
                     if (isEditing) {
                         PhotoCropEditor(
                             photo = photo,
-                            rotationQuarterTurns = editRotationQuarterTurns,
+                            rotationDegrees = editRotationDegrees,
+                            onRotationDegreesChange = { editRotationDegrees = it },
                             cropRect = editCropRect,
                             onCropRectChange = { editCropRect = it },
                             imageRevision = editImageRevision,

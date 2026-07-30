@@ -2,7 +2,8 @@ package dev.harrix.hsk.ui.gallery
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -45,6 +46,7 @@ import androidx.compose.ui.graphics.PathFillType
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.positionChanged
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -57,9 +59,12 @@ import dev.harrix.hsk.gallery.CameraPhoto
 import dev.harrix.hsk.gallery.NormalizedCropRect
 import dev.harrix.hsk.gallery.PhotoEditSaver
 import dev.harrix.hsk.ui.theme.AppGreen
+import kotlin.math.PI
 import kotlin.math.abs
+import kotlin.math.atan2
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.math.roundToInt
 import coil.size.Size as CoilSize
 
 private enum class CropDragMode {
@@ -73,7 +78,8 @@ private enum class CropDragMode {
 @Composable
 fun PhotoCropEditor(
     photo: CameraPhoto,
-    rotationQuarterTurns: Int,
+    rotationDegrees: Float,
+    onRotationDegreesChange: (Float) -> Unit,
     cropRect: NormalizedCropRect,
     onCropRectChange: (NormalizedCropRect) -> Unit,
     imageRevision: Int,
@@ -89,7 +95,9 @@ fun PhotoCropEditor(
     val handleHitSlopPx = with(density) { 28.dp.toPx() }
     val cropRectState = rememberUpdatedState(cropRect)
     val onCropRectChangeState = rememberUpdatedState(onCropRectChange)
-    val turns = PhotoEditSaver.positiveMod(rotationQuarterTurns, 4)
+    val rotationState = rememberUpdatedState(rotationDegrees)
+    val onRotationDegreesChangeState = rememberUpdatedState(onRotationDegreesChange)
+    var isRotatingHint by remember { mutableStateOf(false) }
 
     Column(modifier = modifier.fillMaxSize()) {
         BoxWithConstraints(
@@ -103,24 +111,30 @@ fun PhotoCropEditor(
             val viewportW = constraints.maxWidth.toFloat()
             val viewportH = constraints.maxHeight.toFloat()
             val fitted =
-                remember(viewportW, viewportH, imageWidth, imageHeight, turns) {
+                remember(viewportW, viewportH, imageWidth, imageHeight, rotationDegrees) {
                     if (imageWidth > 0 && imageHeight > 0) {
                         PhotoEditSaver.fittedImageRect(
                             viewportW,
                             viewportH,
                             imageWidth,
                             imageHeight,
-                            turns,
+                            rotationDegrees,
                         )
                     } else {
                         PhotoEditSaver.FittedRect(0f, 0f, 0f, 0f)
                     }
                 }
+            val preRotateSize =
+                remember(imageWidth, imageHeight, rotationDegrees, fitted) {
+                    PhotoEditSaver.preRotationDrawSize(
+                        imageWidth,
+                        imageHeight,
+                        rotationDegrees,
+                        fitted,
+                    )
+                }
 
-            if (fitted.width > 0f && fitted.height > 0f) {
-                val preRotateW = if (turns % 2 == 0) fitted.width else fitted.height
-                val preRotateH = if (turns % 2 == 0) fitted.height else fitted.width
-
+            if (fitted.width > 0f && fitted.height > 0f && preRotateSize.first > 0f) {
                 Box(
                     modifier =
                     Modifier
@@ -151,11 +165,11 @@ fun PhotoCropEditor(
                         modifier =
                         Modifier
                             .size(
-                                width = with(density) { preRotateW.toDp() },
-                                height = with(density) { preRotateH.toDp() },
+                                width = with(density) { preRotateSize.first.toDp() },
+                                height = with(density) { preRotateSize.second.toDp() },
                             )
                             .graphicsLayer {
-                                rotationZ = turns * 90f
+                                rotationZ = rotationDegrees
                             },
                     )
                 }
@@ -221,36 +235,95 @@ fun PhotoCropEditor(
                     modifier =
                     Modifier
                         .fillMaxSize()
-                        .pointerInput(fitted, handleHitSlopPx, isSaving, turns) {
+                        .pointerInput(fitted, handleHitSlopPx, isSaving) {
                             if (isSaving) {
                                 return@pointerInput
                             }
-                            var mode = CropDragMode.Move
-                            detectDragGestures(
-                                onDragStart = { start ->
-                                    val currentCrop = cropRectState.value
-                                    val currentCropPx =
-                                        Rect(
-                                            left = fitted.left + currentCrop.left * fitted.width,
-                                            top = fitted.top + currentCrop.top * fitted.height,
-                                            right = fitted.left + currentCrop.right * fitted.width,
-                                            bottom = fitted.top + currentCrop.bottom * fitted.height,
-                                        )
-                                    mode = hitTestCropHandle(start, currentCropPx, handleHitSlopPx)
-                                },
-                                onDrag = { change, dragAmount ->
-                                    change.consume()
-                                    val next =
-                                        applyCropDrag(
-                                            cropRect = cropRectState.value,
-                                            mode = mode,
-                                            dragX = dragAmount.x / fitted.width,
-                                            dragY = dragAmount.y / fitted.height,
-                                            imageAspect = fitted.width / fitted.height,
-                                        )
-                                    onCropRectChangeState.value(PhotoEditSaver.clampCropRect(next))
-                                },
-                            )
+                            awaitEachGesture {
+                                awaitFirstDown(requireUnconsumed = false)
+                                var lastAngle: Float? = null
+                                var cropMode: CropDragMode? = null
+                                var rotating = false
+                                isRotatingHint = false
+
+                                while (true) {
+                                    val event = awaitPointerEvent()
+                                    val pressed = event.changes.filter { it.pressed }
+                                    if (pressed.isEmpty()) {
+                                        break
+                                    }
+
+                                    if (pressed.size >= 2) {
+                                        rotating = true
+                                        cropMode = null
+                                        isRotatingHint = true
+                                        val angle =
+                                            angleDegrees(pressed[0].position, pressed[1].position)
+                                        val previous = lastAngle
+                                        if (previous != null) {
+                                            val delta = normalizeAngleDelta(angle - previous)
+                                            val next =
+                                                PhotoEditSaver.normalizeRotationDegrees(
+                                                    rotationState.value + delta,
+                                                )
+                                            onRotationDegreesChangeState.value(next)
+                                        }
+                                        lastAngle = angle
+                                        pressed.forEach { change ->
+                                            if (change.positionChanged()) {
+                                                change.consume()
+                                            }
+                                        }
+                                    } else if (!rotating && pressed.size == 1) {
+                                        lastAngle = null
+                                        val change = pressed[0]
+                                        if (cropMode == null) {
+                                            val currentCrop = cropRectState.value
+                                            val currentCropPx =
+                                                Rect(
+                                                    left =
+                                                    fitted.left +
+                                                        currentCrop.left * fitted.width,
+                                                    top =
+                                                    fitted.top +
+                                                        currentCrop.top * fitted.height,
+                                                    right =
+                                                    fitted.left +
+                                                        currentCrop.right * fitted.width,
+                                                    bottom =
+                                                    fitted.top +
+                                                        currentCrop.bottom * fitted.height,
+                                                )
+                                            cropMode =
+                                                hitTestCropHandle(
+                                                    change.position,
+                                                    currentCropPx,
+                                                    handleHitSlopPx,
+                                                )
+                                        } else {
+                                            val activeMode = cropMode ?: return@awaitEachGesture
+                                            val drag = change.position - change.previousPosition
+                                            if (drag != Offset.Zero) {
+                                                val next =
+                                                    applyCropDrag(
+                                                        cropRect = cropRectState.value,
+                                                        mode = activeMode,
+                                                        dragX = drag.x / fitted.width,
+                                                        dragY = drag.y / fitted.height,
+                                                        imageAspect = fitted.width / fitted.height,
+                                                    )
+                                                onCropRectChangeState.value(
+                                                    PhotoEditSaver.clampCropRect(next),
+                                                )
+                                                change.consume()
+                                            }
+                                        }
+                                    } else {
+                                        lastAngle = null
+                                    }
+                                }
+                                isRotatingHint = false
+                            }
                         },
                 )
             } else {
@@ -273,6 +346,24 @@ fun PhotoCropEditor(
                         }
                     },
                     modifier = Modifier.fillMaxSize(),
+                )
+            }
+
+            if (isRotatingHint || abs(rotationDegrees) >= 0.05f) {
+                Text(
+                    text =
+                    stringResource(
+                        R.string.gallery_cleaner_edit_rotation_degrees,
+                        rotationDegrees.roundToInt(),
+                    ),
+                    color = Color.White,
+                    style = MaterialTheme.typography.labelLarge,
+                    modifier =
+                    Modifier
+                        .align(Alignment.TopCenter)
+                        .padding(top = 16.dp)
+                        .background(Color.Black.copy(alpha = 0.45f))
+                        .padding(horizontal = 10.dp, vertical = 4.dp),
                 )
             }
 
@@ -326,6 +417,22 @@ fun PhotoCropEditor(
             }
         }
     }
+}
+
+private fun angleDegrees(
+    a: Offset,
+    b: Offset,
+): Float = (atan2(b.y - a.y, b.x - a.x) * (180f / PI.toFloat()))
+
+private fun normalizeAngleDelta(delta: Float): Float {
+    var value = delta
+    while (value > 180f) {
+        value -= 360f
+    }
+    while (value < -180f) {
+        value += 360f
+    }
+    return value
 }
 
 private fun applyPainterSize(
