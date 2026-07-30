@@ -136,6 +136,35 @@ fun NotesViewerScreen(
                 noteContent = text
                 saveFeedback = context.getString(R.string.markdown_notes_saved)
                 statusMessage = null
+                val tab = openTabs.firstOrNull { it.documentId == selectedTabDocumentId }
+                if (tab != null) {
+                    val contentTitle = repository.rememberTitleFromContent(tab.documentId, text)
+                    val fileStem =
+                        entries
+                            .filterIsInstance<NotesEntry.Note>()
+                            .firstOrNull { note -> note.documentId == tab.documentId }
+                            ?.let { note -> NotesTreeRepository.noteDisplayLabel(note.name) }
+                    val label = contentTitle ?: fileStem ?: tab.title
+                    openTabs =
+                        openTabs.map { openTab ->
+                            if (openTab.documentId == tab.documentId) {
+                                openTab.copy(title = label)
+                            } else {
+                                openTab
+                            }
+                        }
+                    val labels = mapOf(tab.documentId to label)
+                    entries = repository.withUpdatedNoteLabels(entries, labels)
+                    notesTreeUri?.let { tree ->
+                        folderPath.lastOrNull()?.let { dir ->
+                            repository.patchListingNoteLabels(
+                                Uri.parse(tree),
+                                dir.documentId,
+                                labels,
+                            )
+                        }
+                    }
+                }
             }.onFailure { error ->
                 statusMessage =
                     error.message ?: context.getString(R.string.markdown_notes_save_failed)
@@ -185,6 +214,39 @@ fun NotesViewerScreen(
         }
     }
 
+    fun enrichNoteTitles(
+        treeUri: Uri,
+        dirDocumentId: String,
+        listed: List<NotesEntry>,
+        requestId: Int,
+    ) {
+        val notes = listed.filterIsInstance<NotesEntry.Note>()
+        if (notes.isEmpty()) {
+            return
+        }
+        scope.launch {
+            val updates = repository.resolveMissingContentTitles(notes)
+            if (updates.isEmpty() || requestId != folderListRequestId) {
+                return@launch
+            }
+            if (folderPath.lastOrNull()?.documentId != dirDocumentId) {
+                repository.patchListingNoteLabels(treeUri, dirDocumentId, updates)
+                return@launch
+            }
+            entries = repository.withUpdatedNoteLabels(entries, updates)
+            repository.patchListingNoteLabels(treeUri, dirDocumentId, updates)
+            openTabs =
+                openTabs.map { tab ->
+                    val label = updates[tab.documentId]
+                    if (label != null) {
+                        tab.copy(title = label)
+                    } else {
+                        tab
+                    }
+                }
+        }
+    }
+
     fun openFolderList(path: List<NotesPathSegment>) {
         val tree = notesTreeUri ?: return
         val treeUri = Uri.parse(tree)
@@ -195,17 +257,20 @@ fun NotesViewerScreen(
             noteContent = null
             resetEditorState()
 
+            folderListRequestId += 1
+            val requestId = folderListRequestId
+
             val cached = repository.peekListing(treeUri, current.documentId)
             if (cached != null) {
+                val withTitles = repository.withCachedContentTitles(cached)
                 folderPath = path
-                entries = cached
+                entries = withTitles
                 isLoading = false
-                prefetchChildFolders(treeUri, cached)
+                prefetchChildFolders(treeUri, withTitles)
+                enrichNoteTitles(treeUri, current.documentId, withTitles, requestId)
                 return@persistCurrentDraft
             }
 
-            folderListRequestId += 1
-            val requestId = folderListRequestId
             isLoading = true
             scope.launch {
                 val shallow =
@@ -214,8 +279,9 @@ fun NotesViewerScreen(
                     }.getOrNull()
                 if (requestId == folderListRequestId && shallow != null) {
                     folderPath = path
-                    entries = shallow
+                    entries = repository.withCachedContentTitles(shallow)
                     isLoading = false
+                    enrichNoteTitles(treeUri, current.documentId, entries, requestId)
                 }
 
                 val result =
@@ -227,9 +293,11 @@ fun NotesViewerScreen(
                 }
                 result
                     .onSuccess { listed ->
+                        val withTitles = repository.withCachedContentTitles(listed)
                         folderPath = path
-                        entries = listed
-                        prefetchChildFolders(treeUri, listed)
+                        entries = withTitles
+                        prefetchChildFolders(treeUri, withTitles)
+                        enrichNoteTitles(treeUri, current.documentId, withTitles, requestId)
                     }.onFailure { error ->
                         if (shallow == null) {
                             statusMessage =

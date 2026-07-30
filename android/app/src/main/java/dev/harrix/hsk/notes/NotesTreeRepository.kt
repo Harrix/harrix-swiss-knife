@@ -42,6 +42,8 @@ class NotesTreeRepository(
         if (treeUriString != cachedTreeUriString) {
             rawChildrenCache.clear()
             listingCache.clear()
+            titleByDocumentId.clear()
+            titleLookupDone.clear()
             cachedTreeUriString = treeUriString
         }
     }
@@ -83,7 +85,7 @@ class NotesTreeRepository(
                         documentId = entry.documentId,
                         name = entry.name,
                         uri = entry.uri,
-                        displayLabel = noteDisplayLabel(entry.name),
+                        displayLabel = resolvedDisplayLabel(entry.documentId, entry.name),
                     ),
                 )
             }
@@ -197,14 +199,7 @@ class NotesTreeRepository(
 
             val collapsedNote = sameNameMd.takeIf { canCollapse && !hasVisibleSubfolders }
             if (collapsedNote != null) {
-                items.add(
-                    NotesEntry.Note(
-                        documentId = collapsedNote.documentId,
-                        name = collapsedNote.name,
-                        uri = collapsedNote.uri,
-                        displayLabel = noteDisplayLabel(collapsedNote.name),
-                    ),
-                )
+                items.add(noteEntry(collapsedNote))
             } else {
                 items.add(
                     NotesEntry.Folder(
@@ -220,17 +215,158 @@ class NotesTreeRepository(
         }
 
         for (file in mdFiles) {
-            items.add(
-                NotesEntry.Note(
-                    documentId = file.documentId,
-                    name = file.name,
-                    uri = file.uri,
-                    displayLabel = noteDisplayLabel(file.name),
-                ),
-            )
+            items.add(noteEntry(file))
         }
 
         items.sortedWith(notesLabelComparator)
+    }
+
+    private fun noteEntry(raw: RawEntry): NotesEntry.Note = NotesEntry.Note(
+        documentId = raw.documentId,
+        name = raw.name,
+        uri = raw.uri,
+        displayLabel = resolvedDisplayLabel(raw.documentId, raw.name),
+    )
+
+    private fun resolvedDisplayLabel(
+        documentId: String,
+        fileName: String,
+    ): String = titleByDocumentId[documentId] ?: noteDisplayLabel(fileName)
+
+    /**
+     * Reads note prefixes in the background and returns documentId → content title for labels
+     * that should change in the UI. Filenames stay until a title is found.
+     */
+    suspend fun resolveMissingContentTitles(notes: List<NotesEntry.Note>): Map<String, String> {
+        if (notes.isEmpty()) {
+            return emptyMap()
+        }
+        val updates = LinkedHashMap<String, String>()
+        coroutineScope {
+            notes.chunked(TitleResolveParallelism).forEach { chunk ->
+                chunk
+                    .map { note ->
+                        async(Dispatchers.IO) {
+                            if (!titleLookupDone.add(note.documentId)) {
+                                return@async null
+                            }
+                            val text =
+                                runCatching { readTextPrefix(note.uri, NoteTitleReadBytes) }
+                                    .getOrDefault("")
+                            val title = NoteTitleExtractor.extract(text)
+                            if (title.isNotEmpty()) {
+                                titleByDocumentId[note.documentId] = title
+                                if (title != note.displayLabel) {
+                                    note.documentId to title
+                                } else {
+                                    null
+                                }
+                            } else {
+                                null
+                            }
+                        }
+                    }.awaitAll()
+                    .forEach { pair ->
+                        if (pair != null) {
+                            updates[pair.first] = pair.second
+                        }
+                    }
+            }
+        }
+        return updates
+    }
+
+    fun withUpdatedNoteLabels(
+        entries: List<NotesEntry>,
+        labels: Map<String, String>,
+    ): List<NotesEntry> {
+        if (labels.isEmpty()) {
+            return entries
+        }
+        return entries
+            .map { entry ->
+                if (entry is NotesEntry.Note) {
+                    val label = labels[entry.documentId]
+                    if (label != null) {
+                        entry.copy(displayLabel = label)
+                    } else {
+                        entry
+                    }
+                } else {
+                    entry
+                }
+            }.sortedWith(notesLabelComparator)
+    }
+
+    fun withCachedContentTitles(entries: List<NotesEntry>): List<NotesEntry> {
+        var changed = false
+        val mapped =
+            entries.map { entry ->
+                if (entry is NotesEntry.Note) {
+                    val cached = titleByDocumentId[entry.documentId]
+                    if (cached != null && cached != entry.displayLabel) {
+                        changed = true
+                        entry.copy(displayLabel = cached)
+                    } else {
+                        entry
+                    }
+                } else {
+                    entry
+                }
+            }
+        return if (changed) {
+            mapped.sortedWith(notesLabelComparator)
+        } else {
+            entries
+        }
+    }
+
+    fun patchListingNoteLabels(
+        treeUri: Uri,
+        dirDocumentId: String,
+        labels: Map<String, String>,
+    ) {
+        if (labels.isEmpty()) {
+            return
+        }
+        val key = cacheKey(treeUri, dirDocumentId)
+        val current = listingCache[key] ?: return
+        listingCache[key] = withUpdatedNoteLabels(current, labels)
+    }
+
+    /**
+     * Updates the title cache after a note is saved (no extra disk read).
+     *
+     * @return content title when found, otherwise `null` (caller may fall back to file stem)
+     */
+    fun rememberTitleFromContent(
+        documentId: String,
+        text: String,
+    ): String? {
+        titleLookupDone.add(documentId)
+        val title = NoteTitleExtractor.extract(text)
+        return if (title.isNotEmpty()) {
+            titleByDocumentId[documentId] = title
+            title
+        } else {
+            titleByDocumentId.remove(documentId)
+            null
+        }
+    }
+
+    fun readTextPrefix(
+        uri: Uri,
+        maxBytes: Int,
+    ): String {
+        resolver.openInputStream(uri)?.use { input ->
+            val buffer = ByteArray(maxBytes)
+            val read = input.read(buffer)
+            if (read <= 0) {
+                return ""
+            }
+            return String(buffer, 0, read, Charsets.UTF_8)
+        }
+        return ""
     }
 
     private fun folderLooksListable(
@@ -358,6 +494,8 @@ class NotesTreeRepository(
         fun clearCache() {
             rawChildrenCache.clear()
             listingCache.clear()
+            titleByDocumentId.clear()
+            titleLookupDone.clear()
             cachedTreeUriString = null
         }
 
@@ -365,6 +503,12 @@ class NotesTreeRepository(
             treeUri: Uri,
             dirDocumentId: String,
         ): String = "$treeUri::$dirDocumentId"
+
+        private val titleByDocumentId = ConcurrentHashMap<String, String>()
+        private val titleLookupDone = ConcurrentHashMap.newKeySet<String>()
+
+        private const val NoteTitleReadBytes = 16 * 1024
+        private const val TitleResolveParallelism = 6
 
         fun isSkipScanDirName(name: String): Boolean = SKIP_MARKDOWN_SCAN_DIR_NAMES.contains(name.lowercase(Locale.ROOT))
 
