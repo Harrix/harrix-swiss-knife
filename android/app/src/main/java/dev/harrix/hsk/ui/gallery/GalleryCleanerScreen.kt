@@ -351,6 +351,8 @@ fun GalleryCleanerScreen(
         isSavingEdit = false
         pendingWritePhoto = null
         pendingWriteKind = null
+        writeLauncherPending = null
+        statusMessage = null
     }
 
     fun applySavedPhoto(
