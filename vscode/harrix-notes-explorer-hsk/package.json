@@ -161,7 +161,16 @@
             ".mov",
             ".webm",
             ".mkv",
-            ".m4v"
+            ".m4v",
+            ".ogv",
+            ".mp3",
+            ".wav",
+            ".ogg",
+            ".oga",
+            ".m4a",
+            ".flac",
+            ".aac",
+            ".opus"
           ],
           "markdownDescription": "File extensions (with leading dot) treated as images/media and copied into `noteDrop.imagesFolderName`."
         }

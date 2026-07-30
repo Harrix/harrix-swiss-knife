@@ -137,3 +137,15 @@ span.hne-hex-color {
   box-decoration-break: clone;
   -webkit-box-decoration-break: clone;
 }
+
+/* Video / audio from ![alt](path.mp4) image syntax in Markdown preview */
+video.hne-md-video {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+audio.hne-md-audio {
+  width: 100%;
+  max-width: 32rem;
+}

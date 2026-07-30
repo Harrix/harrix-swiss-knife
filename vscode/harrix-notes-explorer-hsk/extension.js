@@ -865,8 +865,47 @@ const DEFAULT_NOTE_DROP_IMAGE_EXTENSIONS = [
   '.mov',
   '.webm',
   '.mkv',
-  '.m4v'
+  '.m4v',
+  '.ogv',
+  '.mp3',
+  '.wav',
+  '.ogg',
+  '.oga',
+  '.m4a',
+  '.flac',
+  '.aac',
+  '.opus'
 ];
+
+const PREVIEW_VIDEO_EXTENSIONS = new Set(['.mp4', '.webm', '.mov', '.m4v', '.ogv', '.mkv']);
+const PREVIEW_AUDIO_EXTENSIONS = new Set([
+  '.mp3',
+  '.wav',
+  '.ogg',
+  '.oga',
+  '.m4a',
+  '.flac',
+  '.aac',
+  '.opus'
+]);
+
+/**
+ * @param {string} src
+ * @returns {string}
+ */
+function mediaExtFromSrc(src) {
+  const pathOnly = String(src).split('?')[0].split('#')[0];
+  const match = pathOnly.match(/(\.[a-z0-9]+)$/i);
+  return match ? match[1].toLowerCase() : '';
+}
+
+/**
+ * @param {string} value
+ * @returns {string}
+ */
+function escapeHtmlAttr(value) {
+  return String(value).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+}
 
 function getNoteDropSettings() {
   const config = vscode.workspace.getConfiguration('harrixNotesExplorerHsk');
@@ -2550,6 +2589,27 @@ function escapePreviewCopyConfigAttr(json) {
 function registerPreviewCopyMarkdownPlugin() {
   return {
     extendMarkdownIt(/** @type {import('markdown-it')} */ md) {
+      const defaultImageRender =
+        md.renderer.rules.image ||
+        ((tokens, idx, options, env, self) => self.renderToken(tokens, idx, options));
+
+      md.renderer.rules.image = (tokens, idx, options, env, self) => {
+        const token = tokens[idx];
+        const src = token.attrGet('src') || '';
+        const dataSrc = token.attrGet('data-src') || '';
+        const ext = mediaExtFromSrc(dataSrc || src);
+        const title = token.attrGet('title');
+        const titleAttr = title ? ` title="${escapeHtmlAttr(title)}"` : '';
+
+        if (PREVIEW_VIDEO_EXTENSIONS.has(ext)) {
+          return `<video class="hne-md-video" controls playsinline src="${escapeHtmlAttr(src)}"${titleAttr}></video>\n`;
+        }
+        if (PREVIEW_AUDIO_EXTENSIONS.has(ext)) {
+          return `<audio class="hne-md-audio" controls src="${escapeHtmlAttr(src)}"${titleAttr}></audio>\n`;
+        }
+        return defaultImageRender(tokens, idx, options, env, self);
+      };
+
       const render = md.render.bind(md);
       md.render = function (src, env) {
         const cfg = getPreviewCopyConfig();
