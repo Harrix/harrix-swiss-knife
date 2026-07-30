@@ -11,7 +11,7 @@ from typing import Any, ClassVar
 import harrix_pylib as h
 
 from harrix_swiss_knife.actions.base import ActionBase
-from harrix_swiss_knife.actions.development.android_gradle import (
+from harrix_swiss_knife.actions.common.android_gradle import (
     gradle_env,
     resolve_android_home,
     resolve_java_home,

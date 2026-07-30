@@ -280,7 +280,7 @@ Outputs:
 
 Release is signed with the **debug** keystore so it can be sideloaded like debug. Use a dedicated release keystore before publishing to Play Store.
 
-Via Harrix Swiss Knife (tray **Dev** → **Build Android APK…**, or CLI):
+Via Harrix Swiss Knife (tray **Dev** → **Build Android APK**, or CLI):
 
 ```text
 hsk android format
@@ -300,7 +300,7 @@ adb install -r android\app\build\outputs\apk\debug\HarrixSwissKnife-debug.apk
 
 ### Workflow
 
-- Edit Kotlin/Gradle in **Cursor**; format with `hsk android format`, check with `hsk android check`, build with tray **Build Android APK…** or `hsk dev android-build …`
+- Edit Kotlin/Gradle in **Cursor**; format with `hsk android format`, check with `hsk android check`, build with tray **Build Android APK** or `hsk dev android-build …`
 - Quality stack: Spotless (ktlint), Detekt + Compose rules, Android Lint (`./gradlew qualityCheck` from `android/`)
 - Android Studio is optional (File → Open → `android/`) for emulator / Layout Inspector — **not** required and **not** opened during APK build
 

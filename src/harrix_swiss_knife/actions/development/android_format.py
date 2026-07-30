@@ -6,7 +6,7 @@ import sys
 from typing import Any
 
 from harrix_swiss_knife.actions.base import ActionBase
-from harrix_swiss_knife.actions.development.android_gradle import (
+from harrix_swiss_knife.actions.common.android_gradle import (
     resolve_android_dir,
     resolve_android_home,
     resolve_java_home,

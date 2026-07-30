@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from harrix_swiss_knife.actions.base import ActionBase
-from harrix_swiss_knife.actions.development.vscode_extension_path import (
+from harrix_swiss_knife.actions.common.vscode_extension_path import (
     ensure_node_modules,
     resolve_extension_dir,
     resolve_npm,
