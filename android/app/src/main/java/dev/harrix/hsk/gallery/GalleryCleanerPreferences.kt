@@ -44,6 +44,10 @@ class GalleryCleanerPreferences(
             .apply()
     }
 
+    fun clearDateFilter() {
+        saveDateFilter(GalleryDateFilter(enabled = false))
+    }
+
     fun isUnreviewedOnlyModeEnabled(): Boolean = prefs.getBoolean(KEY_UNREVIEWED_ONLY_MODE, false)
 
     fun setUnreviewedOnlyModeEnabled(enabled: Boolean) {

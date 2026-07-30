@@ -138,7 +138,7 @@ fun GalleryCleanerScreen(
     var lastTrashedPhoto by remember { mutableStateOf<CameraPhoto?>(null) }
     var cardResetKey by remember { mutableIntStateOf(0) }
     var menuExpanded by remember { mutableStateOf(false) }
-    var dateFilter by remember { mutableStateOf(preferences.loadDateFilter()) }
+    var dateFilter by remember { mutableStateOf(GalleryDateFilter(enabled = false)) }
     var unreviewedOnlyMode by remember {
         mutableStateOf(preferences.isUnreviewedOnlyModeEnabled())
     }
@@ -319,6 +319,11 @@ fun GalleryCleanerScreen(
             }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
+    LaunchedEffect(Unit) {
+        preferences.clearDateFilter()
+        dateFilter = preferences.loadDateFilter()
     }
 
     LaunchedEffect(hasPermission, showIntro, settingsRevision) {
