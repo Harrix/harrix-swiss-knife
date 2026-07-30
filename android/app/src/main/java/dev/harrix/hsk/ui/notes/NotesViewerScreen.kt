@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
@@ -34,13 +35,14 @@ import androidx.compose.material.icons.automirrored.filled.InsertDriveFile
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -52,8 +54,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -87,10 +87,10 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.math.roundToInt
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NotesViewerScreen(
     onClose: () -> Unit,
+    onOpenDrawer: () -> Unit,
     onOpenSettings: () -> Unit,
     modifier: Modifier = Modifier,
     settingsRevision: Int = 0,
@@ -518,75 +518,6 @@ fun NotesViewerScreen(
         modifier = modifier,
         containerColor = MaterialTheme.colorScheme.background,
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.markdown_notes_title)) },
-                navigationIcon = {
-                    IconButton(onClick = onClose) {
-                        Icon(
-                            imageVector = Icons.Filled.Close,
-                            contentDescription = stringResource(R.string.markdown_notes_close),
-                        )
-                    }
-                },
-                actions = {
-                    if (selectedTab != null && !noteLoading && noteContent != null) {
-                        if (isEditing) {
-                            IconButton(
-                                onClick = { persistCurrentDraft() },
-                                enabled = !isSaving,
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Filled.Save,
-                                    contentDescription = stringResource(R.string.markdown_notes_save),
-                                )
-                            }
-                        } else {
-                            IconButton(
-                                onClick = {
-                                    isEditing = true
-                                    draftText = noteContent.orEmpty()
-                                    lastSavedText = noteContent
-                                    saveFeedback = null
-                                },
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Filled.Edit,
-                                    contentDescription = stringResource(R.string.markdown_notes_edit),
-                                )
-                            }
-                        }
-                    }
-                    Box {
-                        IconButton(onClick = { menuExpanded = true }) {
-                            Icon(
-                                imageVector = Icons.Filled.MoreVert,
-                                contentDescription = stringResource(R.string.markdown_notes_menu),
-                            )
-                        }
-                        DropdownMenu(
-                            expanded = menuExpanded,
-                            onDismissRequest = { menuExpanded = false },
-                        ) {
-                            DropdownMenuItem(
-                                text = {
-                                    Text(stringResource(R.string.markdown_notes_settings))
-                                },
-                                onClick = {
-                                    menuExpanded = false
-                                    onOpenSettings()
-                                },
-                            )
-                        }
-                    }
-                },
-                colors =
-                TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background,
-                    scrolledContainerColor = MaterialTheme.colorScheme.background,
-                ),
-            )
-        },
     ) { innerPadding ->
         Column(
             modifier =
@@ -594,9 +525,30 @@ fun NotesViewerScreen(
                 .padding(innerPadding)
                 .fillMaxSize(),
         ) {
+            NotesTopChrome(
+                onClose = onClose,
+                onOpenDrawer = onOpenDrawer,
+                openTabs = openTabs,
+                selectedTabDocumentId = selectedTabDocumentId,
+                onSelectTab = { selectTab(it) },
+                onCloseTab = { closeTab(it) },
+                showEditActions = selectedTab != null && !noteLoading && noteContent != null,
+                isEditing = isEditing,
+                isSaving = isSaving,
+                onSave = { persistCurrentDraft() },
+                onEdit = {
+                    isEditing = true
+                    draftText = noteContent.orEmpty()
+                    lastSavedText = noteContent
+                    saveFeedback = null
+                },
+                menuExpanded = menuExpanded,
+                onMenuExpandedChange = { menuExpanded = it },
+                onOpenSettings = onOpenSettings,
+            )
             if (notesTreeUri.isNullOrBlank()) {
                 Box(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier.weight(1f).fillMaxWidth(),
                     contentAlignment = Alignment.Center,
                 ) {
                     NotesPathWelcomeContent(
@@ -605,14 +557,8 @@ fun NotesViewerScreen(
                     )
                 }
             } else {
-                NotesChromeBar(
+                NotesNavigationRow(
                     onBack = { navigateBack() },
-                    openTabs = openTabs,
-                    selectedTabDocumentId = selectedTabDocumentId,
-                    onSelectTab = { selectTab(it) },
-                    onCloseTab = { closeTab(it) },
-                )
-                NotesBreadcrumbs(
                     segments =
                     if (selectedTab != null) {
                         selectedTab.folderPath +
@@ -703,26 +649,42 @@ fun NotesViewerScreen(
 
 private const val AutosaveDelayMs = 800L
 private const val SaveFeedbackVisibleMs = 1500L
+private val NotesTabMaxWidth = 140.dp
 
 @Composable
-private fun NotesChromeBar(
-    onBack: () -> Unit,
+private fun NotesTopChrome(
+    onClose: () -> Unit,
+    onOpenDrawer: () -> Unit,
     openTabs: List<OpenNoteTab>,
     selectedTabDocumentId: String?,
     onSelectTab: (String) -> Unit,
     onCloseTab: (String) -> Unit,
+    showEditActions: Boolean,
+    isEditing: Boolean,
+    isSaving: Boolean,
+    onSave: () -> Unit,
+    onEdit: () -> Unit,
+    menuExpanded: Boolean,
+    onMenuExpandedChange: (Boolean) -> Unit,
+    onOpenSettings: () -> Unit,
 ) {
     Row(
         modifier =
         Modifier
             .fillMaxWidth()
-            .padding(start = 4.dp, end = 8.dp),
+            .padding(start = 4.dp, end = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        IconButton(onClick = onBack) {
+        IconButton(onClick = onClose) {
             Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = stringResource(R.string.markdown_notes_back),
+                imageVector = Icons.Filled.Close,
+                contentDescription = stringResource(R.string.markdown_notes_close),
+            )
+        }
+        IconButton(onClick = onOpenDrawer) {
+            Icon(
+                imageVector = Icons.Filled.Menu,
+                contentDescription = stringResource(R.string.nav_open),
             )
         }
         if (openTabs.isNotEmpty()) {
@@ -762,7 +724,7 @@ private fun NotesChromeBar(
                                 },
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.width(88.dp),
+                                modifier = Modifier.widthIn(max = NotesTabMaxWidth),
                             )
                             IconButton(
                                 onClick = { onCloseTab(tab.documentId) },
@@ -782,6 +744,79 @@ private fun NotesChromeBar(
         } else {
             Spacer(modifier = Modifier.weight(1f))
         }
+        if (showEditActions) {
+            if (isEditing) {
+                IconButton(
+                    onClick = onSave,
+                    enabled = !isSaving,
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Save,
+                        contentDescription = stringResource(R.string.markdown_notes_save),
+                    )
+                }
+            } else {
+                IconButton(onClick = onEdit) {
+                    Icon(
+                        imageVector = Icons.Filled.Edit,
+                        contentDescription = stringResource(R.string.markdown_notes_edit),
+                    )
+                }
+            }
+        }
+        Box {
+            IconButton(onClick = { onMenuExpandedChange(true) }) {
+                Icon(
+                    imageVector = Icons.Filled.MoreVert,
+                    contentDescription = stringResource(R.string.markdown_notes_menu),
+                )
+            }
+            DropdownMenu(
+                expanded = menuExpanded,
+                onDismissRequest = { onMenuExpandedChange(false) },
+            ) {
+                DropdownMenuItem(
+                    text = {
+                        Text(stringResource(R.string.markdown_notes_settings))
+                    },
+                    onClick = {
+                        onMenuExpandedChange(false)
+                        onOpenSettings()
+                    },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun NotesNavigationRow(
+    onBack: () -> Unit,
+    segments: List<NotesPathSegment>,
+    lastIsNote: Boolean,
+    onSegmentClick: (Int) -> Unit,
+) {
+    Row(
+        modifier =
+        Modifier
+            .fillMaxWidth()
+            .padding(end = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        IconButton(onClick = onBack) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = stringResource(R.string.markdown_notes_back),
+            )
+        }
+        if (segments.isNotEmpty()) {
+            NotesBreadcrumbs(
+                segments = segments,
+                lastIsNote = lastIsNote,
+                onSegmentClick = onSegmentClick,
+                modifier = Modifier.weight(1f),
+            )
+        }
     }
 }
 
@@ -790,16 +825,16 @@ private fun NotesBreadcrumbs(
     segments: List<NotesPathSegment>,
     lastIsNote: Boolean,
     onSegmentClick: (Int) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     if (segments.isEmpty()) {
         return
     }
     Row(
         modifier =
-        Modifier
-            .fillMaxWidth()
+        modifier
             .horizontalScroll(rememberScrollState())
-            .padding(horizontal = 12.dp, vertical = 6.dp),
+            .padding(vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         segments.forEachIndexed { index, segment ->
@@ -812,24 +847,43 @@ private fun NotesBreadcrumbs(
             }
             val isLast = index == segments.lastIndex
             val clickable = !(isLast && lastIsNote)
-            Text(
-                text = segment.name,
-                style = MaterialTheme.typography.labelLarge,
-                color =
+            val color =
                 if (clickable) {
                     MaterialTheme.colorScheme.primary
                 } else {
                     MaterialTheme.colorScheme.onSurface
-                },
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier =
-                if (clickable) {
-                    Modifier.clickable { onSegmentClick(index) }
-                } else {
+                }
+            if (index == 0) {
+                Icon(
+                    imageVector = Icons.Filled.Home,
+                    contentDescription = stringResource(R.string.nav_drawer_home),
+                    tint = color,
+                    modifier =
                     Modifier
-                },
-            )
+                        .size(18.dp)
+                        .then(
+                            if (clickable) {
+                                Modifier.clickable { onSegmentClick(index) }
+                            } else {
+                                Modifier
+                            },
+                        ),
+                )
+            } else {
+                Text(
+                    text = segment.name,
+                    style = MaterialTheme.typography.labelLarge,
+                    color = color,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier =
+                    if (clickable) {
+                        Modifier.clickable { onSegmentClick(index) }
+                    } else {
+                        Modifier
+                    },
+                )
+            }
         }
     }
 }
