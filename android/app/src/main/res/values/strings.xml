@@ -75,6 +75,10 @@
     <string name="markdown_notes_show_merged">Show merged note</string>
     <string name="markdown_notes_folder_empty">No notes or folders here</string>
     <string name="markdown_notes_load_failed">Could not load notes</string>
+    <string name="markdown_notes_save_failed">Could not save note</string>
+    <string name="markdown_notes_edit">Edit note</string>
+    <string name="markdown_notes_save">Save note</string>
+    <string name="markdown_notes_saved">Saved</string>
     <string name="gallery_cleaner_title">Gallery Cleaner</string>
     <string name="gallery_cleaner_close">Exit Gallery Cleaner</string>
     <string name="gallery_cleaner_intro_title">How it works</string>

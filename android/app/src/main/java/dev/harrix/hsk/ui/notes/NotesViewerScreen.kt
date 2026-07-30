@@ -25,8 +25,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.InsertDriveFile
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
@@ -41,11 +43,14 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -67,6 +72,8 @@ import dev.harrix.hsk.notes.OpenNoteTab
 import dev.harrix.hsk.notes.notesFolderDisplayName
 import dev.harrix.hsk.notes.takeNotesFolderPermission
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -92,34 +99,147 @@ fun NotesViewerScreen(
     var selectedTabDocumentId by remember { mutableStateOf<String?>(null) }
     var noteContent by remember { mutableStateOf<String?>(null) }
     var noteLoading by remember { mutableStateOf(false) }
+    var isEditing by remember { mutableStateOf(false) }
+    var draftText by remember { mutableStateOf("") }
+    var lastSavedText by remember { mutableStateOf<String?>(null) }
+    var isSaving by remember { mutableStateOf(false) }
+    var saveFeedback by remember { mutableStateOf<String?>(null) }
+    var autosaveJob by remember { mutableStateOf<Job?>(null) }
+    var folderListRequestId by remember { mutableIntStateOf(0) }
 
     fun reloadPath() {
         notesTreeUri = preferences.loadNotesTreeUri()
+    }
+
+    fun resetEditorState() {
+        isEditing = false
+        draftText = ""
+        lastSavedText = null
+        saveFeedback = null
+        autosaveJob?.cancel()
+        autosaveJob = null
+    }
+
+    suspend fun saveNoteText(
+        uri: Uri,
+        text: String,
+    ): Boolean {
+        isSaving = true
+        val result =
+            withContext(Dispatchers.IO) {
+                runCatching { repository.writeText(uri, text) }
+            }
+        isSaving = false
+        return result
+            .onSuccess {
+                lastSavedText = text
+                noteContent = text
+                saveFeedback = context.getString(R.string.markdown_notes_saved)
+                statusMessage = null
+            }.onFailure { error ->
+                statusMessage =
+                    error.message ?: context.getString(R.string.markdown_notes_save_failed)
+                saveFeedback = null
+            }.isSuccess
+    }
+
+    fun persistCurrentDraft(after: (() -> Unit)? = null) {
+        val tab = openTabs.firstOrNull { it.documentId == selectedTabDocumentId }
+        if (tab == null || !isEditing) {
+            after?.invoke()
+            return
+        }
+        if (draftText == lastSavedText) {
+            after?.invoke()
+            return
+        }
+        scope.launch {
+            saveNoteText(tab.uri, draftText)
+            after?.invoke()
+        }
+    }
+
+    fun scheduleAutosave() {
+        val tab = openTabs.firstOrNull { it.documentId == selectedTabDocumentId } ?: return
+        if (!isEditing || draftText == lastSavedText) {
+            return
+        }
+        autosaveJob?.cancel()
+        autosaveJob =
+            scope.launch {
+                delay(AutosaveDelayMs)
+                if (isEditing && draftText != lastSavedText) {
+                    saveNoteText(tab.uri, draftText)
+                }
+            }
+    }
+
+    fun prefetchChildFolders(
+        treeUri: Uri,
+        listed: List<NotesEntry>,
+    ) {
+        listed.filterIsInstance<NotesEntry.Folder>().forEach { folder ->
+            scope.launch {
+                repository.prefetchDirectory(treeUri, folder.documentId, folder.name)
+            }
+        }
     }
 
     fun openFolderList(path: List<NotesPathSegment>) {
         val tree = notesTreeUri ?: return
         val treeUri = Uri.parse(tree)
         val current = path.lastOrNull() ?: return
-        isLoading = true
-        statusMessage = null
-        selectedTabDocumentId = null
-        noteContent = null
-        scope.launch {
-            val result =
-                withContext(Dispatchers.IO) {
-                    runCatching { repository.listChildren(treeUri, current.documentId) }
-                }
-            result
-                .onSuccess { listed ->
+        persistCurrentDraft {
+            statusMessage = null
+            selectedTabDocumentId = null
+            noteContent = null
+            resetEditorState()
+
+            val cached = repository.peekListing(treeUri, current.documentId)
+            if (cached != null) {
+                folderPath = path
+                entries = cached
+                isLoading = false
+                prefetchChildFolders(treeUri, cached)
+                return@persistCurrentDraft
+            }
+
+            folderListRequestId += 1
+            val requestId = folderListRequestId
+            isLoading = true
+            scope.launch {
+                val shallow =
+                    runCatching {
+                        repository.listChildrenShallow(treeUri, current.documentId, current.name)
+                    }.getOrNull()
+                if (requestId == folderListRequestId && shallow != null) {
                     folderPath = path
-                    entries = listed
-                }.onFailure { error ->
-                    statusMessage =
-                        error.message ?: context.getString(R.string.markdown_notes_load_failed)
-                    entries = emptyList()
+                    entries = shallow
+                    isLoading = false
                 }
-            isLoading = false
+
+                val result =
+                    runCatching {
+                        repository.listChildren(treeUri, current.documentId, current.name)
+                    }
+                if (requestId != folderListRequestId) {
+                    return@launch
+                }
+                result
+                    .onSuccess { listed ->
+                        folderPath = path
+                        entries = listed
+                        prefetchChildFolders(treeUri, listed)
+                    }.onFailure { error ->
+                        if (shallow == null) {
+                            statusMessage =
+                                error.message
+                                    ?: context.getString(R.string.markdown_notes_load_failed)
+                            entries = emptyList()
+                        }
+                    }
+                isLoading = false
+            }
         }
     }
 
@@ -167,22 +287,52 @@ fun NotesViewerScreen(
     }
 
     fun closeTab(documentId: String) {
-        openTabs = openTabs.filterNot { it.documentId == documentId }
-        if (selectedTabDocumentId == documentId) {
-            selectedTabDocumentId = openTabs.lastOrNull()?.documentId
+        val closingSelected = selectedTabDocumentId == documentId
+        if (closingSelected) {
+            persistCurrentDraft {
+                openTabs = openTabs.filterNot { it.documentId == documentId }
+                selectedTabDocumentId = openTabs.lastOrNull()?.documentId
+                if (selectedTabDocumentId == null) {
+                    noteContent = null
+                    resetEditorState()
+                } else {
+                    resetEditorState()
+                }
+            }
+        } else {
+            openTabs = openTabs.filterNot { it.documentId == documentId }
         }
     }
 
     fun navigateBack() {
         when {
+            isEditing -> {
+                persistCurrentDraft {
+                    isEditing = false
+                    draftText = noteContent.orEmpty()
+                    lastSavedText = noteContent
+                }
+            }
+
             selectedTabDocumentId != null -> {
                 selectedTabDocumentId = null
                 noteContent = null
+                resetEditorState()
             }
 
             folderPath.size > 1 -> {
                 openFolderList(folderPath.dropLast(1))
             }
+        }
+    }
+
+    fun selectTab(documentId: String) {
+        if (documentId == selectedTabDocumentId) {
+            return
+        }
+        persistCurrentDraft {
+            selectedTabDocumentId = documentId
+            resetEditorState()
         }
     }
 
@@ -195,6 +345,7 @@ fun NotesViewerScreen(
             }
             takeNotesFolderPermission(context, uri)
             preferences.saveNotesTreeUri(uri.toString())
+            repository.clearCache()
             reloadPath()
         }
 
@@ -203,6 +354,7 @@ fun NotesViewerScreen(
     }
 
     LaunchedEffect(notesTreeUri) {
+        repository.prepareForTree(notesTreeUri)
         val root = ensureRootPath()
         if (root != null) {
             openFolderList(root)
@@ -212,6 +364,7 @@ fun NotesViewerScreen(
             openTabs = emptyList()
             selectedTabDocumentId = null
             noteContent = null
+            resetEditorState()
         }
     }
 
@@ -221,11 +374,13 @@ fun NotesViewerScreen(
         val tab = selectedTab
         if (tab == null) {
             noteContent = null
+            resetEditorState()
             return@LaunchedEffect
         }
         noteLoading = true
         statusMessage = null
-        noteContent =
+        saveFeedback = null
+        val loaded =
             withContext(Dispatchers.IO) {
                 runCatching { repository.readText(tab.uri) }
                     .onFailure { error ->
@@ -233,10 +388,21 @@ fun NotesViewerScreen(
                             error.message ?: context.getString(R.string.markdown_notes_load_failed)
                     }.getOrNull()
             }
+        noteContent = loaded
+        draftText = loaded.orEmpty()
+        lastSavedText = loaded
+        isEditing = false
         noteLoading = false
     }
 
-    val canGoBack = selectedTabDocumentId != null || folderPath.size > 1
+    LaunchedEffect(saveFeedback) {
+        if (saveFeedback != null) {
+            delay(SaveFeedbackVisibleMs)
+            saveFeedback = null
+        }
+    }
+
+    val canGoBack = isEditing || selectedTabDocumentId != null || folderPath.size > 1
 
     Scaffold(
         modifier = modifier,
@@ -253,6 +419,33 @@ fun NotesViewerScreen(
                     }
                 },
                 actions = {
+                    if (selectedTab != null && !noteLoading && noteContent != null) {
+                        if (isEditing) {
+                            IconButton(
+                                onClick = { persistCurrentDraft() },
+                                enabled = !isSaving,
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.Save,
+                                    contentDescription = stringResource(R.string.markdown_notes_save),
+                                )
+                            }
+                        } else {
+                            IconButton(
+                                onClick = {
+                                    isEditing = true
+                                    draftText = noteContent.orEmpty()
+                                    lastSavedText = noteContent
+                                    saveFeedback = null
+                                },
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.Edit,
+                                    contentDescription = stringResource(R.string.markdown_notes_edit),
+                                )
+                            }
+                        }
+                    }
                     Box {
                         IconButton(onClick = { menuExpanded = true }) {
                             Icon(
@@ -306,7 +499,7 @@ fun NotesViewerScreen(
                     onBack = { navigateBack() },
                     openTabs = openTabs,
                     selectedTabDocumentId = selectedTabDocumentId,
-                    onSelectTab = { selectedTabDocumentId = it },
+                    onSelectTab = { selectTab(it) },
                     onCloseTab = { closeTab(it) },
                 )
                 NotesBreadcrumbs(
@@ -335,6 +528,19 @@ fun NotesViewerScreen(
                         }
                     },
                 )
+                if (isEditing && (isSaving || saveFeedback != null)) {
+                    Text(
+                        text =
+                        if (isSaving) {
+                            stringResource(R.string.markdown_notes_save)
+                        } else {
+                            saveFeedback.orEmpty()
+                        },
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 2.dp),
+                    )
+                }
                 HorizontalDivider()
                 Box(modifier = Modifier.fillMaxSize()) {
                     when {
@@ -342,7 +548,13 @@ fun NotesViewerScreen(
                             NotesPlainTextPane(
                                 isLoading = noteLoading,
                                 content = noteContent,
+                                draftText = draftText,
+                                isEditing = isEditing,
                                 errorMessage = statusMessage,
+                                onDraftChange = { value ->
+                                    draftText = value
+                                    scheduleAutosave()
+                                },
                             )
                         }
 
@@ -378,6 +590,9 @@ fun NotesViewerScreen(
         }
     }
 }
+
+private const val AutosaveDelayMs = 800L
+private const val SaveFeedbackVisibleMs = 1500L
 
 @Composable
 private fun NotesChromeBar(
@@ -635,7 +850,10 @@ private fun NotesNoteRow(
 private fun NotesPlainTextPane(
     isLoading: Boolean,
     content: String?,
+    draftText: String,
+    isEditing: Boolean,
     errorMessage: String?,
+    onDraftChange: (String) -> Unit,
 ) {
     when {
         isLoading -> {
@@ -649,6 +867,23 @@ private fun NotesPlainTextPane(
                 text = errorMessage,
                 color = MaterialTheme.colorScheme.error,
                 modifier = Modifier.padding(24.dp),
+            )
+        }
+
+        isEditing -> {
+            TextField(
+                value = draftText,
+                onValueChange = onDraftChange,
+                modifier = Modifier.fillMaxSize(),
+                textStyle = MaterialTheme.typography.bodyMedium,
+                colors =
+                TextFieldDefaults.colors(
+                    focusedContainerColor = MaterialTheme.colorScheme.surface,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                    disabledContainerColor = MaterialTheme.colorScheme.surface,
+                    focusedIndicatorColor = MaterialTheme.colorScheme.surface,
+                    unfocusedIndicatorColor = MaterialTheme.colorScheme.surface,
+                ),
             )
         }
 
