@@ -5,26 +5,38 @@ import java.util.Calendar
 /**
  * Date filter for Camera photos.
  *
- * [startEpochSecInclusive] / [endEpochSecInclusive] are local-time day bounds when set via
- * presets; year/month editors snap to the first/last second of the selected months.
+ * [startEpochSecInclusive] / [endEpochSecInclusive] are inclusive local-time day bounds.
  */
 data class GalleryDateFilter(
     val enabled: Boolean = false,
     val startEpochSecInclusive: Long = defaultStartEpochSec(),
     val endEpochSecInclusive: Long = defaultEndEpochSec(),
 ) {
-    fun contains(epochSec: Long): Boolean = !enabled || epochSec in startEpochSecInclusive..endEpochSecInclusive
+    fun contains(epochSec: Long): Boolean =
+        !enabled || epochSec in startEpochSecInclusive..endEpochSecInclusive
 
     fun withEnabled(value: Boolean): GalleryDateFilter = copy(enabled = value)
 
-    fun withYearMonthRange(
+    fun withDateRange(
         fromYear: Int,
         fromMonth: Int,
+        fromDay: Int,
         toYear: Int,
         toMonth: Int,
+        toDay: Int,
     ): GalleryDateFilter {
-        val start = startOfMonthEpochSec(fromYear, fromMonth)
-        val end = endOfMonthEpochSec(toYear, toMonth)
+        val start =
+            startOfDayEpochSec(
+                fromYear,
+                fromMonth,
+                fromDay.coerceIn(1, daysInMonth(fromYear, fromMonth)),
+            )
+        val end =
+            endOfDayEpochSec(
+                toYear,
+                toMonth,
+                toDay.coerceIn(1, daysInMonth(toYear, toMonth)),
+            )
         return copy(
             startEpochSecInclusive = minOf(start, end),
             endEpochSecInclusive = maxOf(start, end),
@@ -35,11 +47,24 @@ data class GalleryDateFilter(
 
     fun fromMonth(): Int = calendarFor(startEpochSecInclusive).get(Calendar.MONTH) + 1
 
+    fun fromDay(): Int = calendarFor(startEpochSecInclusive).get(Calendar.DAY_OF_MONTH)
+
     fun toYear(): Int = calendarFor(endEpochSecInclusive).get(Calendar.YEAR)
 
     fun toMonth(): Int = calendarFor(endEpochSecInclusive).get(Calendar.MONTH) + 1
 
+    fun toDay(): Int = calendarFor(endEpochSecInclusive).get(Calendar.DAY_OF_MONTH)
+
     companion object {
+        fun daysInMonth(
+            year: Int,
+            month: Int,
+        ): Int {
+            val cal = Calendar.getInstance()
+            cal.set(year, month - 1, 1)
+            return cal.getActualMaximum(Calendar.DAY_OF_MONTH)
+        }
+
         fun lastDaysIncludingToday(dayCount: Int): GalleryDateFilter {
             require(dayCount >= 1)
             val end = endOfDay(Calendar.getInstance())
@@ -100,34 +125,35 @@ data class GalleryDateFilter(
 
         private fun defaultStartEpochSec(): Long {
             val now = Calendar.getInstance()
-            return startOfMonthEpochSec(now.get(Calendar.YEAR), 1)
+            return startOfDayEpochSec(now.get(Calendar.YEAR), 1, 1)
         }
 
         private fun defaultEndEpochSec(): Long = endOfDay(Calendar.getInstance())
 
-        private fun calendarFor(epochSec: Long): Calendar = Calendar.getInstance().apply {
-            timeInMillis = epochSec * 1000L
-        }
+        private fun calendarFor(epochSec: Long): Calendar =
+            Calendar.getInstance().apply {
+                timeInMillis = epochSec * 1000L
+            }
 
-        private fun startOfMonthEpochSec(
+        private fun startOfDayEpochSec(
             year: Int,
             month: Int,
+            day: Int,
         ): Long {
             val cal = Calendar.getInstance()
-            cal.set(year, month - 1, 1, 0, 0, 0)
+            cal.set(year, month - 1, day, 0, 0, 0)
             cal.set(Calendar.MILLISECOND, 0)
             return cal.timeInMillis / 1000L
         }
 
-        private fun endOfMonthEpochSec(
+        private fun endOfDayEpochSec(
             year: Int,
             month: Int,
+            day: Int,
         ): Long {
             val cal = Calendar.getInstance()
-            cal.set(year, month - 1, 1, 0, 0, 0)
-            cal.set(Calendar.MILLISECOND, 0)
-            cal.add(Calendar.MONTH, 1)
-            cal.add(Calendar.SECOND, -1)
+            cal.set(year, month - 1, day, 23, 59, 59)
+            cal.set(Calendar.MILLISECOND, 999)
             return cal.timeInMillis / 1000L
         }
 

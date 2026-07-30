@@ -434,55 +434,83 @@ private fun GalleryDateFilterEditors(
     var fromMonth by remember(filter.startEpochSecInclusive) {
         mutableIntStateOf(filter.fromMonth())
     }
+    var fromDay by remember(filter.startEpochSecInclusive) {
+        mutableIntStateOf(filter.fromDay())
+    }
     var toYear by remember(filter.endEpochSecInclusive) {
         mutableIntStateOf(filter.toYear())
     }
     var toMonth by remember(filter.endEpochSecInclusive) {
         mutableIntStateOf(filter.toMonth())
     }
+    var toDay by remember(filter.endEpochSecInclusive) {
+        mutableIntStateOf(filter.toDay())
+    }
 
-    fun applyYearMonth() {
+    fun applyDateRange() {
         onFilterChange(
-            filter.withYearMonthRange(
+            filter.withDateRange(
                 fromYear = fromYear,
                 fromMonth = fromMonth,
+                fromDay = fromDay,
                 toYear = toYear,
                 toMonth = toMonth,
+                toDay = toDay,
             ),
         )
     }
 
+    fun clampDay(
+        year: Int,
+        month: Int,
+        day: Int,
+    ): Int = day.coerceIn(1, GalleryDateFilter.daysInMonth(year, month))
+
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        YearMonthRow(
+        YearMonthDayRow(
             label = stringResource(R.string.gallery_cleaner_date_range_from),
             year = fromYear,
             month = fromMonth,
+            day = fromDay,
             years = years,
             monthLabels = monthLabels,
             enabled = enabled,
-            onYearChange = {
-                fromYear = it
-                applyYearMonth()
+            onYearChange = { year ->
+                fromYear = year
+                fromDay = clampDay(year, fromMonth, fromDay)
+                applyDateRange()
             },
-            onMonthChange = {
-                fromMonth = it
-                applyYearMonth()
+            onMonthChange = { month ->
+                fromMonth = month
+                fromDay = clampDay(fromYear, month, fromDay)
+                applyDateRange()
+            },
+            onDayChange = { day ->
+                fromDay = day
+                applyDateRange()
             },
         )
-        YearMonthRow(
+        YearMonthDayRow(
             label = stringResource(R.string.gallery_cleaner_date_range_to),
             year = toYear,
             month = toMonth,
+            day = toDay,
             years = years,
             monthLabels = monthLabels,
             enabled = enabled,
-            onYearChange = {
-                toYear = it
-                applyYearMonth()
+            onYearChange = { year ->
+                toYear = year
+                toDay = clampDay(year, toMonth, toDay)
+                applyDateRange()
             },
-            onMonthChange = {
-                toMonth = it
-                applyYearMonth()
+            onMonthChange = { month ->
+                toMonth = month
+                toDay = clampDay(toYear, month, toDay)
+                applyDateRange()
+            },
+            onDayChange = { day ->
+                toDay = day
+                applyDateRange()
             },
         )
     }
@@ -525,16 +553,21 @@ private fun GalleryDatePresets(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun YearMonthRow(
+private fun YearMonthDayRow(
     label: String,
     year: Int,
     month: Int,
+    day: Int,
     years: List<Int>,
     monthLabels: List<String>,
     enabled: Boolean,
     onYearChange: (Int) -> Unit,
     onMonthChange: (Int) -> Unit,
+    onDayChange: (Int) -> Unit,
 ) {
+    val days = remember(year, month) {
+        (1..GalleryDateFilter.daysInMonth(year, month)).toList()
+    }
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
             text = label,
@@ -555,14 +588,21 @@ private fun YearMonthRow(
                 options = years.map { it.toString() },
                 enabled = enabled,
                 onOptionSelect = { index -> onYearChange(years[index]) },
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.weight(1.1f),
             )
             SimpleDropdownField(
                 value = monthLabels[month - 1],
                 options = monthLabels,
                 enabled = enabled,
                 onOptionSelect = { index -> onMonthChange(index + 1) },
-                modifier = Modifier.weight(1.2f),
+                modifier = Modifier.weight(1.4f),
+            )
+            SimpleDropdownField(
+                value = day.toString(),
+                options = days.map { it.toString() },
+                enabled = enabled,
+                onOptionSelect = { index -> onDayChange(days[index]) },
+                modifier = Modifier.weight(0.9f),
             )
         }
     }
