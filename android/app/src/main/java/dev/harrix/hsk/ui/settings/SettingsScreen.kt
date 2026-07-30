@@ -1,5 +1,6 @@
 package dev.harrix.hsk.ui.settings
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -94,6 +95,8 @@ fun SettingsScreen(
             SettingsSection.MarkdownNotes -> R.string.settings_markdown_notes_title
         }
     val background = MaterialTheme.colorScheme.background
+
+    BackHandler(onBack = onClose)
 
     Scaffold(
         modifier = modifier,
