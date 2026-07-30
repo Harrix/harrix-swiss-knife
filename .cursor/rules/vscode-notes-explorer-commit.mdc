@@ -1,0 +1,29 @@
+---
+description: Remind to also commit vscode changes in harrix-notes-explorer
+globs: vscode/**
+alwaysApply: false
+---
+
+# vscode → harrix-notes-explorer commit
+
+When any changes are made under `vscode/` in this repo (`harrix-swiss-knife`):
+
+1. At the end of the response, explicitly remind that a matching commit is also needed in `D:\GitHub\harrix-notes-explorer`.
+2. Suggest a commit message for **that** repo (not only for `harrix-swiss-knife`), using the same commit-prefix style as usual.
+3. Do not run git commands in `harrix-notes-explorer` unless the user explicitly asks.
+
+## Reminder format
+
+End with both commit suggestions. Labels as plain text above; **only the commit message** in inline backticks. Example:
+
+Commit (harrix-swiss-knife):
+
+`🔧 Modify preview-copy styles in vscode extension`
+
+Also commit in D:\GitHub\harrix-notes-explorer:
+
+Commit (harrix-notes-explorer):
+
+`🔧 Modify preview-copy styles`
+
+If the change only lives under `vscode/` and mirrors into the public extension, still always print the `harrix-notes-explorer` commit line so it is not forgotten.
