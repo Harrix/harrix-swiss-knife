@@ -27,6 +27,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.CleaningServices
 import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
@@ -79,7 +80,6 @@ import dev.harrix.hsk.ui.theme.HskAndroidTheme
 import dev.harrix.hsk.ui.theme.ThemeMode
 import kotlinx.coroutines.launch
 
-private const val BottomBarItemCount = 5
 private const val HomeGridColumns = 2
 private val BottomBarHeight = 52.dp
 private val BottomButtonSize = 40.dp
@@ -104,6 +104,27 @@ private data class UtilityCardItem(
     val icon: ImageVector,
     val destination: AppDestination,
 )
+
+private data class BottomNavItem(
+    val destination: AppDestination,
+    val icon: ImageVector,
+    val labelRes: Int,
+)
+
+/** Bottom bar slots; add entries here to show more destinations. */
+private val BottomNavItems =
+    listOf(
+        BottomNavItem(
+            destination = AppDestination.Home,
+            icon = Icons.Filled.Home,
+            labelRes = R.string.nav_drawer_home,
+        ),
+        BottomNavItem(
+            destination = AppDestination.MarkdownNotes,
+            icon = Icons.Filled.Description,
+            labelRes = R.string.nav_drawer_markdown_notes,
+        ),
+    )
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -170,145 +191,204 @@ fun MainScreen(
                 )
             }
 
-            AppDestination.MarkdownNotes -> {
-                NotesViewerScreen(
-                    onClose = { destination = AppDestination.Home },
-                    onOpenSettings = { settingsSection = SettingsSection.MarkdownNotes },
-                    settingsRevision = settingsRevision,
-                    modifier = Modifier.fillMaxSize(),
-                )
-            }
-
-            AppDestination.Home -> {
-                ModalNavigationDrawer(
-                    drawerState = drawerState,
-                    modifier = Modifier.fillMaxSize(),
-                    drawerContent = {
-                        ModalDrawerSheet {
-                            Text(
-                                text = appName,
-                                style = MaterialTheme.typography.titleLarge,
-                                modifier = Modifier.padding(horizontal = 28.dp, vertical = 24.dp),
-                            )
-                            HorizontalDivider(modifier = Modifier.padding(bottom = 8.dp))
-                            CompactNavigationDrawerItem(
-                                label = stringResource(R.string.nav_drawer_home),
-                                selected = true,
-                                onClick = { scope.launch { drawerState.close() } },
-                                icon = Icons.AutoMirrored.Filled.List,
-                                colors = drawerItemColors,
-                            )
-                            CompactNavigationDrawerItem(
-                                label = stringResource(R.string.nav_drawer_gallery_cleaner),
-                                selected = false,
-                                onClick = {
-                                    scope.launch {
-                                        drawerState.close()
-                                        destination = AppDestination.GalleryCleaner
-                                    }
-                                },
-                                icon = Icons.Filled.CleaningServices,
-                                colors = drawerItemColors,
-                            )
-                            CompactNavigationDrawerItem(
-                                label = stringResource(R.string.nav_drawer_video_cleaner),
-                                selected = false,
-                                onClick = {
-                                    scope.launch {
-                                        drawerState.close()
-                                        destination = AppDestination.VideoCleaner
-                                    }
-                                },
-                                icon = Icons.Filled.VideoLibrary,
-                                colors = drawerItemColors,
-                            )
-                            CompactNavigationDrawerItem(
-                                label = stringResource(R.string.nav_drawer_markdown_notes),
-                                selected = false,
-                                onClick = {
-                                    scope.launch {
-                                        drawerState.close()
-                                        destination = AppDestination.MarkdownNotes
-                                    }
-                                },
-                                icon = Icons.Filled.Description,
-                                colors = drawerItemColors,
-                            )
-                            CompactNavigationDrawerItem(
-                                label = stringResource(R.string.nav_drawer_about),
-                                selected = false,
-                                onClick = { scope.launch { drawerState.close() } },
-                                icon = Icons.Filled.Info,
-                                colors = drawerItemColors,
-                            )
-                        }
+            AppDestination.Home,
+            AppDestination.MarkdownNotes,
+            -> {
+                Scaffold(
+                    containerColor = colorScheme.background,
+                    contentWindowInsets = WindowInsets(0, 0, 0, 0),
+                    bottomBar = {
+                        BottomActionBar(
+                            items = BottomNavItems,
+                            selected = destination,
+                            onSelect = { destination = it },
+                        )
                     },
-                ) {
-                    Scaffold(
-                        containerColor = colorScheme.background,
-                        contentWindowInsets = WindowInsets(0, 0, 0, 0),
-                        topBar = {
-                            TopAppBar(
-                                title = { Text(appName) },
-                                navigationIcon = {
-                                    IconButton(
-                                        onClick = { scope.launch { drawerState.open() } },
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Filled.Menu,
-                                            contentDescription = stringResource(R.string.nav_open),
-                                        )
-                                    }
-                                },
-                                actions = {
-                                    Box {
-                                        IconButton(onClick = { homeMenuExpanded = true }) {
-                                            Icon(
-                                                imageVector = Icons.Filled.MoreVert,
-                                                contentDescription =
-                                                stringResource(R.string.nav_settings),
+                ) { bottomNavPadding ->
+                    Box(
+                        modifier =
+                        Modifier
+                            .padding(bottomNavPadding)
+                            .fillMaxSize(),
+                    ) {
+                        when (destination) {
+                            AppDestination.MarkdownNotes -> {
+                                NotesViewerScreen(
+                                    onClose = { destination = AppDestination.Home },
+                                    onOpenSettings = {
+                                        settingsSection = SettingsSection.MarkdownNotes
+                                    },
+                                    settingsRevision = settingsRevision,
+                                    modifier = Modifier.fillMaxSize(),
+                                )
+                            }
+
+                            else -> {
+                                ModalNavigationDrawer(
+                                    drawerState = drawerState,
+                                    modifier = Modifier.fillMaxSize(),
+                                    drawerContent = {
+                                        ModalDrawerSheet {
+                                            Text(
+                                                text = appName,
+                                                style = MaterialTheme.typography.titleLarge,
+                                                modifier =
+                                                Modifier.padding(
+                                                    horizontal = 28.dp,
+                                                    vertical = 24.dp,
+                                                ),
                                             )
-                                        }
-                                        DropdownMenu(
-                                            expanded = homeMenuExpanded,
-                                            onDismissRequest = { homeMenuExpanded = false },
-                                        ) {
-                                            DropdownMenuItem(
-                                                text = {
-                                                    Text(stringResource(R.string.nav_settings))
-                                                },
+                                            HorizontalDivider(
+                                                modifier = Modifier.padding(bottom = 8.dp),
+                                            )
+                                            CompactNavigationDrawerItem(
+                                                label = stringResource(R.string.nav_drawer_home),
+                                                selected = true,
                                                 onClick = {
-                                                    homeMenuExpanded = false
-                                                    settingsSection = SettingsSection.All
+                                                    scope.launch { drawerState.close() }
+                                                },
+                                                icon = Icons.AutoMirrored.Filled.List,
+                                                colors = drawerItemColors,
+                                            )
+                                            CompactNavigationDrawerItem(
+                                                label =
+                                                stringResource(
+                                                    R.string.nav_drawer_gallery_cleaner,
+                                                ),
+                                                selected = false,
+                                                onClick = {
+                                                    scope.launch {
+                                                        drawerState.close()
+                                                        destination = AppDestination.GalleryCleaner
+                                                    }
+                                                },
+                                                icon = Icons.Filled.CleaningServices,
+                                                colors = drawerItemColors,
+                                            )
+                                            CompactNavigationDrawerItem(
+                                                label =
+                                                stringResource(
+                                                    R.string.nav_drawer_video_cleaner,
+                                                ),
+                                                selected = false,
+                                                onClick = {
+                                                    scope.launch {
+                                                        drawerState.close()
+                                                        destination = AppDestination.VideoCleaner
+                                                    }
+                                                },
+                                                icon = Icons.Filled.VideoLibrary,
+                                                colors = drawerItemColors,
+                                            )
+                                            CompactNavigationDrawerItem(
+                                                label =
+                                                stringResource(
+                                                    R.string.nav_drawer_markdown_notes,
+                                                ),
+                                                selected = false,
+                                                onClick = {
+                                                    scope.launch {
+                                                        drawerState.close()
+                                                        destination = AppDestination.MarkdownNotes
+                                                    }
+                                                },
+                                                icon = Icons.Filled.Description,
+                                                colors = drawerItemColors,
+                                            )
+                                            CompactNavigationDrawerItem(
+                                                label = stringResource(R.string.nav_drawer_about),
+                                                selected = false,
+                                                onClick = {
+                                                    scope.launch { drawerState.close() }
+                                                },
+                                                icon = Icons.Filled.Info,
+                                                colors = drawerItemColors,
+                                            )
+                                        }
+                                    },
+                                ) {
+                                    Scaffold(
+                                        containerColor = colorScheme.background,
+                                        contentWindowInsets = WindowInsets(0, 0, 0, 0),
+                                        topBar = {
+                                            TopAppBar(
+                                                title = { Text(appName) },
+                                                navigationIcon = {
+                                                    IconButton(
+                                                        onClick = {
+                                                            scope.launch { drawerState.open() }
+                                                        },
+                                                    ) {
+                                                        Icon(
+                                                            imageVector = Icons.Filled.Menu,
+                                                            contentDescription =
+                                                            stringResource(R.string.nav_open),
+                                                        )
+                                                    }
+                                                },
+                                                actions = {
+                                                    Box {
+                                                        IconButton(
+                                                            onClick = { homeMenuExpanded = true },
+                                                        ) {
+                                                            Icon(
+                                                                imageVector = Icons.Filled.MoreVert,
+                                                                contentDescription =
+                                                                stringResource(
+                                                                    R.string.nav_settings,
+                                                                ),
+                                                            )
+                                                        }
+                                                        DropdownMenu(
+                                                            expanded = homeMenuExpanded,
+                                                            onDismissRequest = {
+                                                                homeMenuExpanded = false
+                                                            },
+                                                        ) {
+                                                            DropdownMenuItem(
+                                                                text = {
+                                                                    Text(
+                                                                        stringResource(
+                                                                            R.string.nav_settings,
+                                                                        ),
+                                                                    )
+                                                                },
+                                                                onClick = {
+                                                                    homeMenuExpanded = false
+                                                                    settingsSection =
+                                                                        SettingsSection.All
+                                                                },
+                                                            )
+                                                        }
+                                                    }
+                                                },
+                                                colors =
+                                                TopAppBarDefaults.topAppBarColors(
+                                                    containerColor = colorScheme.background,
+                                                    scrolledContainerColor = colorScheme.background,
+                                                ),
+                                            )
+                                        },
+                                    ) { innerPadding ->
+                                        Surface(
+                                            modifier =
+                                            Modifier
+                                                .padding(innerPadding)
+                                                .fillMaxSize(),
+                                            color = colorScheme.surface,
+                                            shadowElevation = 0.dp,
+                                            tonalElevation = 0.dp,
+                                        ) {
+                                            HomeUtilitiesGrid(
+                                                utilities = utilities,
+                                                onUtilityClick = { item ->
+                                                    destination = item.destination
                                                 },
                                             )
                                         }
                                     }
-                                },
-                                colors =
-                                TopAppBarDefaults.topAppBarColors(
-                                    containerColor = colorScheme.background,
-                                    scrolledContainerColor = colorScheme.background,
-                                ),
-                            )
-                        },
-                        bottomBar = { BottomActionBar() },
-                    ) { innerPadding ->
-                        Surface(
-                            modifier =
-                            Modifier
-                                .padding(innerPadding)
-                                .fillMaxSize(),
-                            color = colorScheme.surface,
-                            shadowElevation = 0.dp,
-                            tonalElevation = 0.dp,
-                        ) {
-                            HomeUtilitiesGrid(
-                                utilities = utilities,
-                                onUtilityClick = { item ->
-                                    destination = item.destination
-                                },
-                            )
+                                }
+                            }
                         }
                     }
                 }
@@ -515,8 +595,12 @@ private fun CompactNavigationDrawerItem(
 }
 
 @Composable
-private fun BottomActionBar(modifier: Modifier = Modifier) {
-    val contentDescription = stringResource(R.string.bottom_nav_item)
+private fun BottomActionBar(
+    items: List<BottomNavItem>,
+    selected: AppDestination,
+    onSelect: (AppDestination) -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val colorScheme = MaterialTheme.colorScheme
 
     Column(
@@ -536,15 +620,21 @@ private fun BottomActionBar(modifier: Modifier = Modifier) {
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            repeat(BottomBarItemCount) {
+            items.forEach { item ->
+                val isSelected = item.destination == selected
                 IconButton(
-                    onClick = {},
+                    onClick = { onSelect(item.destination) },
                     modifier = Modifier.size(BottomButtonSize),
                 ) {
                     Icon(
-                        imageVector = Icons.Filled.Menu,
-                        contentDescription = contentDescription,
-                        tint = colorScheme.onSurfaceVariant,
+                        imageVector = item.icon,
+                        contentDescription = stringResource(item.labelRes),
+                        tint =
+                        if (isSelected) {
+                            colorScheme.primary
+                        } else {
+                            colorScheme.onSurfaceVariant
+                        },
                         modifier = Modifier.size(BottomIconSize),
                     )
                 }
