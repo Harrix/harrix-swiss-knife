@@ -2829,10 +2829,18 @@ function registerPreviewCopyMarkdownPlugin() {
         const openLink = localFsPath ? renderOpenInSystemPlayerLink(localFsPath) : '';
 
         if (PREVIEW_VIDEO_EXTENSIONS.has(ext)) {
-          return `<video class="hne-md-video" controls playsinline src="${escapeHtmlAttr(src)}"${titleAttr}></video>\n${openLink}`;
+          return (
+            `<div class="hne-md-media">` +
+            `<video class="hne-md-video" controls playsinline src="${escapeHtmlAttr(src)}"${titleAttr}></video>\n` +
+            `${openLink}</div>`
+          );
         }
         if (PREVIEW_AUDIO_EXTENSIONS.has(ext)) {
-          return `<audio class="hne-md-audio" controls src="${escapeHtmlAttr(src)}"${titleAttr}></audio>\n${openLink}`;
+          return (
+            `<div class="hne-md-media">` +
+            `<audio class="hne-md-audio" controls src="${escapeHtmlAttr(src)}"${titleAttr}></audio>\n` +
+            `${openLink}</div>`
+          );
         }
         return defaultImageRender(tokens, idx, options, env, self);
       };

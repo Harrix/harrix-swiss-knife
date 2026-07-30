@@ -144,23 +144,32 @@ span.hne-hex-color {
 }
 
 /* Video / audio from ![alt](path.mp4) image syntax in Markdown preview */
+div.hne-md-media {
+  display: inline-block;
+  max-width: 100%;
+  vertical-align: top;
+}
+
 video.hne-md-video {
   max-width: 100%;
   height: auto;
   display: block;
-  margin-bottom: 0;
+  margin: 0;
 }
 
 audio.hne-md-audio {
   width: 100%;
   max-width: 32rem;
-  margin-bottom: 0;
+  display: block;
+  margin: 0;
 }
 
 p.hne-md-media-actions {
-  margin: 0.1em 0 0.6em 0;
+  margin: 0.02em 0 0.5em 0;
+  padding: 0;
   font-size: 0.75em;
-  line-height: 1.25;
+  line-height: 1.2;
+  text-align: right;
 }
 
 a.hne-md-open-external {
