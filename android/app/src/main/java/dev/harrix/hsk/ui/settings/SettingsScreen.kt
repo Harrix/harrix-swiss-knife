@@ -59,6 +59,7 @@ import dev.harrix.hsk.R
 import dev.harrix.hsk.gallery.GalleryCleanerPreferences
 import dev.harrix.hsk.gallery.GalleryDateFilter
 import dev.harrix.hsk.gallery.GalleryPermissions
+import dev.harrix.hsk.notes.NotesBrowseLayout
 import dev.harrix.hsk.notes.NotesListDensity
 import dev.harrix.hsk.notes.NotesViewerPreferences
 import dev.harrix.hsk.ui.notes.NotesFolderPathControls
@@ -237,8 +238,14 @@ private fun MarkdownNotesSettingsSection(
     val context = LocalContext.current
     val preferences = remember { NotesViewerPreferences(context.applicationContext) }
     var treeUri by remember { mutableStateOf(preferences.loadNotesTreeUri()) }
+    var browseLayout by remember { mutableStateOf(preferences.loadBrowseLayout()) }
     var listDensity by remember { mutableStateOf(preferences.loadListDensity()) }
 
+    val layoutOptions =
+        listOf(
+            NotesBrowseLayout.List to R.string.settings_markdown_notes_browse_layout_list,
+            NotesBrowseLayout.Icons to R.string.settings_markdown_notes_browse_layout_icons,
+        )
     val densityOptions =
         listOf(
             NotesListDensity.Compact to R.string.settings_markdown_notes_list_density_compact,
@@ -251,6 +258,30 @@ private fun MarkdownNotesSettingsSection(
             treeUri = treeUri,
             onTreeUriChange = { treeUri = it },
         )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = stringResource(R.string.settings_markdown_notes_browse_layout),
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+            layoutOptions.forEachIndexed { index, (layout, labelRes) ->
+                SegmentedButton(
+                    selected = browseLayout == layout,
+                    onClick = {
+                        browseLayout = layout
+                        preferences.saveBrowseLayout(layout)
+                    },
+                    shape =
+                    SegmentedButtonDefaults.itemShape(
+                        index = index,
+                        count = layoutOptions.size,
+                    ),
+                ) {
+                    Text(stringResource(labelRes))
+                }
+            }
+        }
         Spacer(modifier = Modifier.height(8.dp))
         Text(
             text = stringResource(R.string.settings_markdown_notes_list_density),

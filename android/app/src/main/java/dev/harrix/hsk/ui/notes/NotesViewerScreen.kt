@@ -9,6 +9,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -18,6 +19,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -26,6 +28,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
@@ -40,6 +45,7 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Save
+import androidx.compose.material.icons.filled.Subject
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DrawerValue
@@ -72,11 +78,15 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import dev.harrix.hsk.R
+import dev.harrix.hsk.notes.NotesBrowseLayout
 import dev.harrix.hsk.notes.NotesEntry
 import dev.harrix.hsk.notes.NotesListDensity
 import dev.harrix.hsk.notes.NotesPathSegment
@@ -91,6 +101,12 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.math.roundToInt
+
+private val NotesIconsGridMinCellWidth = 96.dp
+private val NotesIconsLabelMinFontSize = 9.sp
+private val NotesIconsLabelMaxFontSize = 13.sp
+private const val NotesIconsLabelMaxLines = 3
+private const val NotesIconsLabelFontStepSp = 0.5f
 
 @Composable
 fun NotesViewerScreen(
@@ -122,6 +138,7 @@ fun NotesViewerScreen(
     var autosaveJob by remember { mutableStateOf<Job?>(null) }
     var folderListRequestId by remember { mutableIntStateOf(0) }
     var listDensity by remember { mutableStateOf(preferences.loadListDensity()) }
+    var browseLayout by remember { mutableStateOf(preferences.loadBrowseLayout()) }
     var treeRoot by remember { mutableStateOf<NotesPathSegment?>(null) }
     var treeChildrenByFolderId by remember {
         mutableStateOf<Map<String, List<NotesEntry>>>(emptyMap())
@@ -132,6 +149,7 @@ fun NotesViewerScreen(
     fun reloadPath() {
         notesTreeUri = preferences.loadNotesTreeUri()
         listDensity = preferences.loadListDensity()
+        browseLayout = preferences.loadBrowseLayout()
     }
 
     fun clearTreeState() {
@@ -837,6 +855,7 @@ fun NotesViewerScreen(
                                     entries = entries,
                                     statusMessage = statusMessage,
                                     density = listDensity,
+                                    layout = browseLayout,
                                     onOpenFolder = { folder ->
                                         openFolderList(
                                             folderPath +
@@ -1109,6 +1128,7 @@ private fun NotesFolderList(
     entries: List<NotesEntry>,
     statusMessage: String?,
     density: NotesListDensity,
+    layout: NotesBrowseLayout,
     onOpenFolder: (NotesEntry.Folder) -> Unit,
     onOpenNote: (NotesEntry.Note) -> Unit,
     onShowMergedNote: (NotesEntry.Folder) -> Unit,
@@ -1129,6 +1149,37 @@ private fun NotesFolderList(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(24.dp),
             )
+        }
+
+        layout == NotesBrowseLayout.Icons -> {
+            LazyVerticalGrid(
+                columns = GridCells.Adaptive(minSize = NotesIconsGridMinCellWidth),
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                items(entries, key = { it.documentId }) { entry ->
+                    when (entry) {
+                        is NotesEntry.Folder -> {
+                            NotesFolderIconCell(
+                                folder = entry,
+                                density = density,
+                                onOpen = { onOpenFolder(entry) },
+                                onShowMergedNote = { onShowMergedNote(entry) },
+                            )
+                        }
+
+                        is NotesEntry.Note -> {
+                            NotesNoteIconCell(
+                                note = entry,
+                                density = density,
+                                onOpen = { onOpenNote(entry) },
+                            )
+                        }
+                    }
+                }
+            }
         }
 
         else -> {
@@ -1236,6 +1287,144 @@ private fun NotesNoteRow(
         )
     }
 }
+
+@Composable
+private fun NotesFolderIconCell(
+    folder: NotesEntry.Folder,
+    density: NotesListDensity,
+    onOpen: () -> Unit,
+    onShowMergedNote: () -> Unit,
+) {
+    Box(modifier = Modifier.fillMaxWidth()) {
+        NotesIconCell(
+            label = folder.name,
+            density = density,
+            icon = {
+                Icon(
+                    imageVector = Icons.Filled.Folder,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(notesGridIconSize(density)),
+                )
+            },
+            onOpen = onOpen,
+        )
+        if (folder.hasMergedNote) {
+            IconButton(
+                onClick = onShowMergedNote,
+                modifier =
+                Modifier
+                    .align(Alignment.TopEnd)
+                    .size(density.mergedButtonHeightDp.dp),
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Subject,
+                    contentDescription = stringResource(R.string.markdown_notes_show_merged),
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size((density.iconSizeDp).dp),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun NotesNoteIconCell(
+    note: NotesEntry.Note,
+    density: NotesListDensity,
+    onOpen: () -> Unit,
+) {
+    NotesIconCell(
+        label = note.displayLabel,
+        density = density,
+        icon = {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.InsertDriveFile,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(notesGridIconSize(density)),
+            )
+        },
+        onOpen = onOpen,
+    )
+}
+
+@Composable
+private fun NotesIconCell(
+    label: String,
+    density: NotesListDensity,
+    icon: @Composable () -> Unit,
+    onOpen: () -> Unit,
+) {
+    val verticalPadding = density.verticalPaddingDp.dp
+    Column(
+        modifier =
+        Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onOpen)
+            .padding(horizontal = 4.dp, vertical = verticalPadding),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        icon()
+        Spacer(modifier = Modifier.height(6.dp))
+        NotesAutoSizeLabel(
+            text = label,
+            modifier =
+            Modifier
+                .fillMaxWidth()
+                .heightIn(min = 36.dp),
+        )
+    }
+}
+
+@Composable
+private fun NotesAutoSizeLabel(
+    text: String,
+    modifier: Modifier = Modifier,
+) {
+    val baseStyle = MaterialTheme.typography.labelMedium
+    val textMeasurer = rememberTextMeasurer()
+    var fontSize by remember(text) { mutableStateOf(NotesIconsLabelMaxFontSize) }
+
+    BoxWithConstraints(modifier = modifier) {
+        val maxWidthPx = constraints.maxWidth
+        LaunchedEffect(text, maxWidthPx, baseStyle) {
+            if (maxWidthPx <= 0) {
+                return@LaunchedEffect
+            }
+            var candidate = NotesIconsLabelMaxFontSize
+            while (candidate > NotesIconsLabelMinFontSize) {
+                val layout =
+                    textMeasurer.measure(
+                        text = text,
+                        style = baseStyle.copy(fontSize = candidate, lineHeight = candidate * 1.2f),
+                        overflow = TextOverflow.Clip,
+                        softWrap = true,
+                        maxLines = NotesIconsLabelMaxLines,
+                        constraints = Constraints(maxWidth = maxWidthPx),
+                    )
+                if (!layout.hasVisualOverflow) {
+                    break
+                }
+                candidate = (candidate.value - NotesIconsLabelFontStepSp).coerceAtLeast(
+                    NotesIconsLabelMinFontSize.value,
+                ).sp
+            }
+            fontSize = candidate
+        }
+        Text(
+            text = text,
+            style = baseStyle.copy(fontSize = fontSize, lineHeight = fontSize * 1.2f),
+            textAlign = TextAlign.Center,
+            maxLines = NotesIconsLabelMaxLines,
+            overflow = TextOverflow.Ellipsis,
+            softWrap = true,
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
+}
+
+private fun notesGridIconSize(density: NotesListDensity) = (density.iconSizeDp * 2).dp
 
 @Composable
 private fun NotesPlainTextPane(

@@ -30,10 +30,17 @@ class NotesViewerPreferences(
         prefs.edit().putString(KEY_LIST_DENSITY, density.name).apply()
     }
 
+    fun loadBrowseLayout(): NotesBrowseLayout = NotesBrowseLayout.fromStorageKey(prefs.getString(KEY_BROWSE_LAYOUT, null))
+
+    fun saveBrowseLayout(layout: NotesBrowseLayout) {
+        prefs.edit().putString(KEY_BROWSE_LAYOUT, layout.name).apply()
+    }
+
     companion object {
         private const val PREFS_NAME = "notes_viewer"
         private const val KEY_NOTES_TREE_URI = "notes_tree_uri"
         private const val KEY_LIST_DENSITY = "list_density"
+        private const val KEY_BROWSE_LAYOUT = "browse_layout"
     }
 }
 

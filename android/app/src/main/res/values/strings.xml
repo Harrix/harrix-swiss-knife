@@ -30,6 +30,9 @@
     <string name="settings_markdown_notes_path">Notes folder</string>
     <string name="settings_markdown_notes_path_none">Not set</string>
     <string name="settings_markdown_notes_path_clear">Clear notes folder</string>
+    <string name="settings_markdown_notes_browse_layout">Folder view</string>
+    <string name="settings_markdown_notes_browse_layout_list">List</string>
+    <string name="settings_markdown_notes_browse_layout_icons">Icons</string>
     <string name="settings_markdown_notes_list_density">List row density</string>
     <string name="settings_markdown_notes_list_density_compact">Compact</string>
     <string name="settings_markdown_notes_list_density_comfortable">Comfortable</string>
