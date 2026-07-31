@@ -9,6 +9,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -1029,7 +1030,6 @@ private const val SaveFeedbackVisibleMs = 1500L
 private val NotesTabMaxWidth = 140.dp
 private val NotesOpenTabsMenuMaxHeight = 360.dp
 private val NotesTabSwipeCloseThreshold = 40.dp
-private val NotesTabReorderStepWidth = 72.dp
 private val NotesMenuReorderStepHeight = 48.dp
 
 private fun <T> List<T>.moved(
@@ -1098,20 +1098,13 @@ private fun NotesTopChrome(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
-                    openTabs.forEachIndexed { index, tab ->
+                    openTabs.forEach { tab ->
                         NotesTabChip(
                             title = tab.title,
                             selected = tab.documentId == selectedTabDocumentId,
                             onSelect = { onSelectTab(tab.documentId) },
                             onClose = { onCloseTab(tab.documentId) },
                             onLongPress = { tabsMenuExpanded = true },
-                            onReorderBySteps = { steps ->
-                                if (steps == 0) {
-                                    return@NotesTabChip
-                                }
-                                val toIndex = (index + steps).coerceIn(0, openTabs.lastIndex)
-                                onReorderTabs(index, toIndex)
-                            },
                         )
                     }
                 }
@@ -1192,12 +1185,9 @@ private fun NotesTabChip(
     onSelect: () -> Unit,
     onClose: () -> Unit,
     onLongPress: () -> Unit,
-    onReorderBySteps: (Int) -> Unit,
 ) {
     val density = LocalDensity.current
     val dismissThresholdPx = with(density) { NotesTabSwipeCloseThreshold.toPx() }
-    val reorderStepPx = with(density) { NotesTabReorderStepWidth.toPx() }
-    var offsetX by remember { mutableFloatStateOf(0f) }
     var offsetY by remember { mutableFloatStateOf(0f) }
 
     Surface(
@@ -1211,31 +1201,22 @@ private fun NotesTabChip(
         tonalElevation = if (selected) 2.dp else 0.dp,
         modifier =
         Modifier
-            .offset { IntOffset(offsetX.roundToInt(), offsetY.roundToInt()) }
+            .offset { IntOffset(0, offsetY.roundToInt()) }
             .combinedClickable(
                 onClick = onSelect,
                 onLongClick = onLongPress,
             ).pointerInput(title) {
-                detectDragGestures(
+                detectVerticalDragGestures(
                     onDragEnd = {
-                        when {
-                            offsetY <= -dismissThresholdPx -> onClose()
-
-                            abs(offsetX) >= reorderStepPx / 2f -> {
-                                onReorderBySteps((offsetX / reorderStepPx).roundToInt())
-                            }
+                        if (offsetY <= -dismissThresholdPx) {
+                            onClose()
                         }
-                        offsetX = 0f
                         offsetY = 0f
                     },
-                    onDragCancel = {
-                        offsetX = 0f
-                        offsetY = 0f
-                    },
-                    onDrag = { change, dragAmount ->
+                    onDragCancel = { offsetY = 0f },
+                    onVerticalDrag = { change, dragAmount ->
                         change.consume()
-                        offsetX += dragAmount.x
-                        offsetY = (offsetY + dragAmount.y).coerceAtMost(0f)
+                        offsetY = (offsetY + dragAmount).coerceAtMost(0f)
                     },
                 )
             },
