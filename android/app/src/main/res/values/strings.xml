@@ -86,6 +86,8 @@
     <string name="markdown_notes_path_unknown">Selected folder</string>
     <string name="markdown_notes_back">Back</string>
     <string name="markdown_notes_close_tab">Close tab</string>
+    <string name="markdown_notes_open_tabs">Open tabs</string>
+    <string name="markdown_notes_reorder_tab">Reorder tab</string>
     <string name="markdown_notes_show_merged">Show merged note</string>
     <string name="markdown_notes_folder_menu">Folder options</string>
     <string name="markdown_notes_folder_empty">No notes or folders here</string>
