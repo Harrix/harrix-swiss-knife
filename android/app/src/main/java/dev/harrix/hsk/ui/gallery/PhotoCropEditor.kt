@@ -123,7 +123,7 @@ fun PhotoCropEditor(
             val workspace =
                 remember(viewportW, viewportH, imageWidth, imageHeight) {
                     if (imageWidth > 0 && imageHeight > 0) {
-                        PhotoEditSaver.rotationWorkspaceRect(
+                        PhotoEditSaver.fittedImageRect(
                             viewportW,
                             viewportH,
                             imageWidth,
