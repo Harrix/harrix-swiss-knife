@@ -863,7 +863,13 @@ fun NotesViewerScreen(
                         )
                     }
                     HorizontalDivider()
-                    Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+                    Box(
+                        modifier =
+                        Modifier
+                            .weight(1f)
+                            .fillMaxWidth()
+                            .background(MaterialTheme.colorScheme.surface),
+                    ) {
                         when {
                             selectedTab != null -> {
                                 NotesPlainTextPane(
