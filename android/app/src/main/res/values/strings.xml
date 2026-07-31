@@ -82,6 +82,7 @@
     <string name="markdown_notes_back">Back</string>
     <string name="markdown_notes_close_tab">Close tab</string>
     <string name="markdown_notes_show_merged">Show merged note</string>
+    <string name="markdown_notes_folder_menu">Folder options</string>
     <string name="markdown_notes_folder_empty">No notes or folders here</string>
     <string name="markdown_notes_load_failed">Could not load notes</string>
     <string name="markdown_notes_save_failed">Could not save note</string>

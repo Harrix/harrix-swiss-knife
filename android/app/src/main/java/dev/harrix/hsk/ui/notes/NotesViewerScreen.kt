@@ -4,8 +4,10 @@ import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -45,7 +47,6 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Save
-import androidx.compose.material.icons.filled.Subject
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DrawerValue
@@ -60,7 +61,6 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.rememberDrawerState
@@ -1003,7 +1003,14 @@ private fun NotesTopChrome(
                 }
             }
         } else {
-            Spacer(modifier = Modifier.weight(1f))
+            Text(
+                text = stringResource(R.string.markdown_notes_title),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
+            )
         }
         if (showEditActions) {
             if (isEditing) {
@@ -1246,6 +1253,7 @@ private fun NotesFolderRow(
     onOpen: () -> Unit,
     onShowMergedNote: () -> Unit,
 ) {
+    var menuExpanded by remember { mutableStateOf(false) }
     val verticalPadding = density.verticalPaddingDp.dp
     val iconSize = density.iconSizeDp.dp
     Row(
@@ -1271,12 +1279,21 @@ private fun NotesFolderRow(
             overflow = TextOverflow.Ellipsis,
         )
         if (folder.hasMergedNote) {
-            TextButton(
-                onClick = onShowMergedNote,
-                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
-                modifier = Modifier.height(density.mergedButtonHeightDp.dp),
-            ) {
-                Text(stringResource(R.string.markdown_notes_show_merged))
+            Box {
+                IconButton(
+                    onClick = { menuExpanded = true },
+                    modifier = Modifier.size(density.mergedButtonHeightDp.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.MoreVert,
+                        contentDescription = stringResource(R.string.markdown_notes_folder_menu),
+                    )
+                }
+                NotesFolderMergedMenu(
+                    expanded = menuExpanded,
+                    onDismiss = { menuExpanded = false },
+                    onShowMergedNote = onShowMergedNote,
+                )
             }
         }
     }
@@ -1314,6 +1331,7 @@ private fun NotesNoteRow(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun NotesFolderIconCell(
     folder: NotesEntry.Folder,
@@ -1321,6 +1339,7 @@ private fun NotesFolderIconCell(
     onOpen: () -> Unit,
     onShowMergedNote: () -> Unit,
 ) {
+    var menuExpanded by remember { mutableStateOf(false) }
     Box(modifier = Modifier.fillMaxWidth()) {
         NotesIconCell(
             label = folder.name,
@@ -1334,23 +1353,18 @@ private fun NotesFolderIconCell(
                 )
             },
             onOpen = onOpen,
+            onLongClick =
+            if (folder.hasMergedNote) {
+                { menuExpanded = true }
+            } else {
+                null
+            },
         )
-        if (folder.hasMergedNote) {
-            IconButton(
-                onClick = onShowMergedNote,
-                modifier =
-                Modifier
-                    .align(Alignment.TopEnd)
-                    .size(density.mergedButtonHeightDp.dp),
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.Subject,
-                    contentDescription = stringResource(R.string.markdown_notes_show_merged),
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size((density.iconSizeDp).dp),
-                )
-            }
-        }
+        NotesFolderMergedMenu(
+            expanded = menuExpanded,
+            onDismiss = { menuExpanded = false },
+            onShowMergedNote = onShowMergedNote,
+        )
     }
 }
 
@@ -1376,19 +1390,49 @@ private fun NotesNoteIconCell(
 }
 
 @Composable
+private fun NotesFolderMergedMenu(
+    expanded: Boolean,
+    onDismiss: () -> Unit,
+    onShowMergedNote: () -> Unit,
+) {
+    DropdownMenu(
+        expanded = expanded,
+        onDismissRequest = onDismiss,
+    ) {
+        DropdownMenuItem(
+            text = { Text(stringResource(R.string.markdown_notes_show_merged)) },
+            onClick = {
+                onDismiss()
+                onShowMergedNote()
+            },
+        )
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
 private fun NotesIconCell(
     label: String,
     density: NotesListDensity,
     icon: @Composable () -> Unit,
     onOpen: () -> Unit,
+    onLongClick: (() -> Unit)? = null,
 ) {
     val verticalPadding = density.verticalPaddingDp.dp
     Column(
         modifier =
         Modifier
             .fillMaxWidth()
-            .clickable(onClick = onOpen)
-            .padding(horizontal = 4.dp, vertical = verticalPadding),
+            .then(
+                if (onLongClick != null) {
+                    Modifier.combinedClickable(
+                        onClick = onOpen,
+                        onLongClick = onLongClick,
+                    )
+                } else {
+                    Modifier.clickable(onClick = onOpen)
+                },
+            ).padding(horizontal = 4.dp, vertical = verticalPadding),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         icon()
