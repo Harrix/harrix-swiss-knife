@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -51,6 +52,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -242,6 +244,9 @@ private fun MarkdownNotesSettingsSection(
     var browseLayout by remember { mutableStateOf(preferences.loadBrowseLayout()) }
     var listDensity by remember { mutableStateOf(preferences.loadListDensity()) }
     var titleSource by remember { mutableStateOf(preferences.loadTitleSource()) }
+    var maxOpenTabsText by remember {
+        mutableStateOf(preferences.loadMaxOpenTabs().toString())
+    }
 
     val layoutOptions =
         listOf(
@@ -313,6 +318,35 @@ private fun MarkdownNotesSettingsSection(
                 }
             }
         }
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = stringResource(R.string.settings_markdown_notes_max_open_tabs),
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        OutlinedTextField(
+            value = maxOpenTabsText,
+            onValueChange = { raw ->
+                val digits = raw.filter { it.isDigit() }.take(2)
+                maxOpenTabsText = digits
+                val parsed = digits.toIntOrNull() ?: return@OutlinedTextField
+                val clamped =
+                    parsed.coerceIn(
+                        NotesViewerPreferences.MIN_OPEN_TABS,
+                        NotesViewerPreferences.MAX_OPEN_TABS,
+                    )
+                preferences.saveMaxOpenTabs(clamped)
+                if (parsed != clamped) {
+                    maxOpenTabsText = clamped.toString()
+                }
+            },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            supportingText = {
+                Text(stringResource(R.string.settings_markdown_notes_max_open_tabs_hint))
+            },
+        )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
             text = stringResource(R.string.settings_markdown_notes_list_density),

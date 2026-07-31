@@ -40,6 +40,8 @@
     <string name="settings_markdown_notes_title_source">Note titles</string>
     <string name="settings_markdown_notes_title_source_content">From content</string>
     <string name="settings_markdown_notes_title_source_file_name">File name</string>
+    <string name="settings_markdown_notes_max_open_tabs">Max open tabs</string>
+    <string name="settings_markdown_notes_max_open_tabs_hint">Oldest tab closes when the limit is exceeded</string>
     <string name="settings_gallery_date_filter_enabled">Filter photos by date</string>
     <string name="settings_gallery_date_presets">Quick ranges</string>
     <string name="settings_gallery_preset_1_day">1 day</string>

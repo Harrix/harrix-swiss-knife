@@ -47,6 +47,12 @@ class NotesViewerPreferences(
         prefs.edit().putString(KEY_TITLE_SOURCE, source.name).apply()
     }
 
+    fun loadMaxOpenTabs(): Int = prefs.getInt(KEY_MAX_OPEN_TABS, DEFAULT_MAX_OPEN_TABS).coerceIn(MIN_OPEN_TABS, MAX_OPEN_TABS)
+
+    fun saveMaxOpenTabs(value: Int) {
+        prefs.edit().putInt(KEY_MAX_OPEN_TABS, value.coerceIn(MIN_OPEN_TABS, MAX_OPEN_TABS)).apply()
+    }
+
     fun loadOpenTabsSession(treeUri: String?): NotesOpenTabsSession {
         if (treeUri.isNullOrBlank()) {
             return NotesOpenTabsSession(treeUri = "", selectedDocumentId = null, tabs = emptyList())
@@ -83,7 +89,12 @@ class NotesViewerPreferences(
         private const val KEY_LIST_DENSITY = "list_density"
         private const val KEY_BROWSE_LAYOUT = "browse_layout"
         private const val KEY_TITLE_SOURCE = "title_source"
+        private const val KEY_MAX_OPEN_TABS = "max_open_tabs"
         private const val KEY_OPEN_TABS_SESSION = "open_tabs_session"
+
+        const val DEFAULT_MAX_OPEN_TABS = 10
+        const val MIN_OPEN_TABS = 1
+        const val MAX_OPEN_TABS = 50
 
         private fun emptySession(treeUri: String) = NotesOpenTabsSession(
             treeUri = treeUri,

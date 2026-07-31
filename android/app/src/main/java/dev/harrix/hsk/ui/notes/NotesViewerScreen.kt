@@ -142,6 +142,7 @@ fun NotesViewerScreen(
     var listDensity by remember { mutableStateOf(preferences.loadListDensity()) }
     var browseLayout by remember { mutableStateOf(preferences.loadBrowseLayout()) }
     var titleSource by remember { mutableStateOf(preferences.loadTitleSource()) }
+    var maxOpenTabs by remember { mutableIntStateOf(preferences.loadMaxOpenTabs()) }
     var treeRoot by remember { mutableStateOf<NotesPathSegment?>(null) }
     var treeChildrenByFolderId by remember {
         mutableStateOf<Map<String, List<NotesEntry>>>(emptyMap())
@@ -154,6 +155,7 @@ fun NotesViewerScreen(
         listDensity = preferences.loadListDensity()
         browseLayout = preferences.loadBrowseLayout()
         titleSource = preferences.loadTitleSource()
+        maxOpenTabs = preferences.loadMaxOpenTabs()
     }
 
     fun clearTreeState() {
@@ -534,20 +536,43 @@ fun NotesViewerScreen(
         return listOf(repository.rootSegment(treeUri))
     }
 
+    fun ensureMaxOpenTabs(
+        preferredSelectedId: String? = selectedTabDocumentId,
+    ) {
+        val limit = maxOpenTabs.coerceAtLeast(NotesViewerPreferences.MIN_OPEN_TABS)
+        if (openTabs.size <= limit) {
+            return
+        }
+        // Drop oldest tabs first (left side of the tab bar) until within the limit.
+        val kept = openTabs.takeLast(limit)
+        openTabs = kept
+        if (preferredSelectedId != null && kept.any { it.documentId == preferredSelectedId }) {
+            selectedTabDocumentId = preferredSelectedId
+        } else {
+            selectedTabDocumentId = kept.lastOrNull()?.documentId
+        }
+    }
+
+    fun appendOpenTab(tab: OpenNoteTab) {
+        openTabs = openTabs + tab
+        ensureMaxOpenTabs(preferredSelectedId = tab.documentId)
+    }
+
     fun openNote(
         note: NotesEntry.Note,
         pathForNote: List<NotesPathSegment>,
     ) {
         val existing = openTabs.firstOrNull { it.documentId == note.documentId }
         if (existing == null) {
-            openTabs = openTabs +
+            appendOpenTab(
                 OpenNoteTab(
                     documentId = note.documentId,
                     uri = note.uri,
                     title = note.displayLabel,
                     fileName = note.name,
                     folderPath = pathForNote,
-                )
+                ),
+            )
         }
         if (selectedTabDocumentId != note.documentId) {
             noteLoading = true
@@ -567,14 +592,15 @@ fun NotesViewerScreen(
         val fileName = "_${folder.name}.g.md"
         val existing = openTabs.firstOrNull { it.documentId == documentId }
         if (existing == null) {
-            openTabs = openTabs +
+            appendOpenTab(
                 OpenNoteTab(
                     documentId = documentId,
                     uri = uri,
                     title = title,
                     fileName = fileName,
                     folderPath = pathForFolder,
-                )
+                ),
+            )
         }
         if (selectedTabDocumentId != documentId) {
             noteLoading = true
@@ -660,9 +686,13 @@ fun NotesViewerScreen(
 
     LaunchedEffect(settingsRevision) {
         val previousTitleSource = titleSource
+        val previousMaxOpenTabs = maxOpenTabs
         reloadPath()
         if (previousTitleSource != titleSource) {
             applyTitleSourceToVisibleLists()
+        }
+        if (previousMaxOpenTabs != maxOpenTabs) {
+            ensureMaxOpenTabs()
         }
     }
 
@@ -677,8 +707,8 @@ fun NotesViewerScreen(
                     session.tabs.map { tab ->
                         tab.copy(title = repository.displayTitleFor(tab, titleSource))
                     }
-                selectedTabDocumentId = session.selectedDocumentId
-                if (session.selectedDocumentId != null) {
+                ensureMaxOpenTabs(preferredSelectedId = session.selectedDocumentId)
+                if (selectedTabDocumentId != null) {
                     noteLoading = true
                     noteContent = null
                     resetEditorState()
