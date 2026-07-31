@@ -59,6 +59,7 @@ import dev.harrix.hsk.R
 import dev.harrix.hsk.gallery.GalleryCleanerPreferences
 import dev.harrix.hsk.gallery.GalleryDateFilter
 import dev.harrix.hsk.gallery.GalleryPermissions
+import dev.harrix.hsk.notes.NotesListDensity
 import dev.harrix.hsk.notes.NotesViewerPreferences
 import dev.harrix.hsk.ui.notes.NotesFolderPathControls
 import dev.harrix.hsk.ui.theme.ThemeMode
@@ -236,12 +237,44 @@ private fun MarkdownNotesSettingsSection(
     val context = LocalContext.current
     val preferences = remember { NotesViewerPreferences(context.applicationContext) }
     var treeUri by remember { mutableStateOf(preferences.loadNotesTreeUri()) }
+    var listDensity by remember { mutableStateOf(preferences.loadListDensity()) }
+
+    val densityOptions =
+        listOf(
+            NotesListDensity.Compact to R.string.settings_markdown_notes_list_density_compact,
+            NotesListDensity.Comfortable to R.string.settings_markdown_notes_list_density_comfortable,
+            NotesListDensity.Spacious to R.string.settings_markdown_notes_list_density_spacious,
+        )
 
     val body: @Composable () -> Unit = {
         NotesFolderPathControls(
             treeUri = treeUri,
             onTreeUriChange = { treeUri = it },
         )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = stringResource(R.string.settings_markdown_notes_list_density),
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+            densityOptions.forEachIndexed { index, (density, labelRes) ->
+                SegmentedButton(
+                    selected = listDensity == density,
+                    onClick = {
+                        listDensity = density
+                        preferences.saveListDensity(density)
+                    },
+                    shape =
+                    SegmentedButtonDefaults.itemShape(
+                        index = index,
+                        count = densityOptions.size,
+                    ),
+                ) {
+                    Text(stringResource(labelRes))
+                }
+            }
+        }
     }
 
     if (showSectionTitle) {

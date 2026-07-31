@@ -78,6 +78,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import dev.harrix.hsk.R
 import dev.harrix.hsk.notes.NotesEntry
+import dev.harrix.hsk.notes.NotesListDensity
 import dev.harrix.hsk.notes.NotesPathSegment
 import dev.harrix.hsk.notes.NotesTreeRepository
 import dev.harrix.hsk.notes.NotesViewerPreferences
@@ -120,6 +121,7 @@ fun NotesViewerScreen(
     var saveFeedback by remember { mutableStateOf<String?>(null) }
     var autosaveJob by remember { mutableStateOf<Job?>(null) }
     var folderListRequestId by remember { mutableIntStateOf(0) }
+    var listDensity by remember { mutableStateOf(preferences.loadListDensity()) }
     var treeRoot by remember { mutableStateOf<NotesPathSegment?>(null) }
     var treeChildrenByFolderId by remember {
         mutableStateOf<Map<String, List<NotesEntry>>>(emptyMap())
@@ -129,6 +131,7 @@ fun NotesViewerScreen(
 
     fun reloadPath() {
         notesTreeUri = preferences.loadNotesTreeUri()
+        listDensity = preferences.loadListDensity()
     }
 
     fun clearTreeState() {
@@ -833,6 +836,7 @@ fun NotesViewerScreen(
                                 NotesFolderList(
                                     entries = entries,
                                     statusMessage = statusMessage,
+                                    density = listDensity,
                                     onOpenFolder = { folder ->
                                         openFolderList(
                                             folderPath +
@@ -1104,6 +1108,7 @@ private fun NotesBreadcrumbs(
 private fun NotesFolderList(
     entries: List<NotesEntry>,
     statusMessage: String?,
+    density: NotesListDensity,
     onOpenFolder: (NotesEntry.Folder) -> Unit,
     onOpenNote: (NotesEntry.Note) -> Unit,
     onShowMergedNote: (NotesEntry.Folder) -> Unit,
@@ -1136,6 +1141,7 @@ private fun NotesFolderList(
                         is NotesEntry.Folder -> {
                             NotesFolderRow(
                                 folder = entry,
+                                density = density,
                                 onOpen = { onOpenFolder(entry) },
                                 onShowMergedNote = { onShowMergedNote(entry) },
                             )
@@ -1144,6 +1150,7 @@ private fun NotesFolderList(
                         is NotesEntry.Note -> {
                             NotesNoteRow(
                                 note = entry,
+                                density = density,
                                 onOpen = { onOpenNote(entry) },
                             )
                         }
@@ -1158,22 +1165,25 @@ private fun NotesFolderList(
 @Composable
 private fun NotesFolderRow(
     folder: NotesEntry.Folder,
+    density: NotesListDensity,
     onOpen: () -> Unit,
     onShowMergedNote: () -> Unit,
 ) {
+    val verticalPadding = density.verticalPaddingDp.dp
+    val iconSize = density.iconSizeDp.dp
     Row(
         modifier =
         Modifier
             .fillMaxWidth()
             .clickable(onClick = onOpen)
-            .padding(horizontal = 12.dp, vertical = 4.dp),
+            .padding(horizontal = 12.dp, vertical = verticalPadding),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
             imageVector = Icons.Filled.Folder,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(20.dp),
+            modifier = Modifier.size(iconSize),
         )
         Spacer(modifier = Modifier.width(10.dp))
         Text(
@@ -1187,7 +1197,7 @@ private fun NotesFolderRow(
             TextButton(
                 onClick = onShowMergedNote,
                 contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
-                modifier = Modifier.height(32.dp),
+                modifier = Modifier.height(density.mergedButtonHeightDp.dp),
             ) {
                 Text(stringResource(R.string.markdown_notes_show_merged))
             }
@@ -1198,21 +1208,24 @@ private fun NotesFolderRow(
 @Composable
 private fun NotesNoteRow(
     note: NotesEntry.Note,
+    density: NotesListDensity,
     onOpen: () -> Unit,
 ) {
+    val verticalPadding = density.verticalPaddingDp.dp
+    val iconSize = density.iconSizeDp.dp
     Row(
         modifier =
         Modifier
             .fillMaxWidth()
             .clickable(onClick = onOpen)
-            .padding(horizontal = 12.dp, vertical = 4.dp),
+            .padding(horizontal = 12.dp, vertical = verticalPadding),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
             imageVector = Icons.AutoMirrored.Filled.InsertDriveFile,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(20.dp),
+            modifier = Modifier.size(iconSize),
         )
         Spacer(modifier = Modifier.width(10.dp))
         Text(

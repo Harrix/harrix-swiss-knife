@@ -24,9 +24,16 @@ class NotesViewerPreferences(
 
     fun hasNotesPath(): Boolean = !loadNotesTreeUri().isNullOrBlank()
 
+    fun loadListDensity(): NotesListDensity = NotesListDensity.fromStorageKey(prefs.getString(KEY_LIST_DENSITY, null))
+
+    fun saveListDensity(density: NotesListDensity) {
+        prefs.edit().putString(KEY_LIST_DENSITY, density.name).apply()
+    }
+
     companion object {
         private const val PREFS_NAME = "notes_viewer"
         private const val KEY_NOTES_TREE_URI = "notes_tree_uri"
+        private const val KEY_LIST_DENSITY = "list_density"
     }
 }
 

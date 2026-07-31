@@ -30,6 +30,10 @@
     <string name="settings_markdown_notes_path">Notes folder</string>
     <string name="settings_markdown_notes_path_none">Not set</string>
     <string name="settings_markdown_notes_path_clear">Clear notes folder</string>
+    <string name="settings_markdown_notes_list_density">List row density</string>
+    <string name="settings_markdown_notes_list_density_compact">Compact</string>
+    <string name="settings_markdown_notes_list_density_comfortable">Comfortable</string>
+    <string name="settings_markdown_notes_list_density_spacious">Spacious</string>
     <string name="settings_gallery_date_filter_enabled">Filter photos by date</string>
     <string name="settings_gallery_date_presets">Quick ranges</string>
     <string name="settings_gallery_preset_1_day">1 day</string>
