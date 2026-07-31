@@ -806,10 +806,11 @@ function escapeMarkdownLinkPath(mdPath) {
 }
 
 /**
- * Drop into a Markdown editor: insert `![](relative/path)` (or a link) to the
- * existing file — path relative to the target `.md`, no copy into `img/`.
+ * Drop into a Markdown editor: copy into note folders when needed, then insert
+ * `![](img/…)` / `[file](files/…)` relative to the target `.md`.
+ * @param {NotesProvider | null | undefined} notesProvider
  */
-function createMarkdownRelativeLinkDropProvider() {
+function createMarkdownRelativeLinkDropProvider(notesProvider) {
   return {
     /**
      * @param {vscode.TextDocument} document
@@ -827,39 +828,37 @@ function createMarkdownRelativeLinkDropProvider() {
         return undefined;
       }
 
-      const docDir = path.dirname(document.uri.fsPath);
-      const imageExts = getNoteDropSettings().imageExtensions;
-      /** @type {string[]} */
-      const parts = [];
-      let imageCount = 0;
-
-      for (const uri of uris) {
-        if (!isFilePath(uri.fsPath)) {
-          continue;
-        }
-        const rel = toMarkdownRelativePath(docDir, uri.fsPath);
-        const mdPath = escapeMarkdownLinkPath(rel);
-        const ext = path.extname(uri.fsPath).toLowerCase();
-        if (imageExts.has(ext)) {
-          imageCount += 1;
-          parts.push(`![](${mdPath})`);
-        } else {
-          const label = path.basename(uri.fsPath, path.extname(uri.fsPath));
-          parts.push(`[${label}](${mdPath})`);
-        }
-      }
-
-      if (parts.length === 0) {
+      const settings = getNoteDropSettings();
+      const noteMdPath = document.uri.fsPath;
+      const noteDir = path.dirname(noteMdPath);
+      const { destPaths, copiedCount } = await materializeDroppedFilesForNote(noteMdPath, uris, settings);
+      if (token.isCancellationRequested || destPaths.length === 0) {
         return undefined;
       }
 
-      const edit = new vscode.DocumentDropEdit(parts.join('\n'));
+      if (copiedCount > 0 && notesProvider) {
+        if (!notesProvider.isNoteAssetsVisible(noteDir)) {
+          notesProvider.setNoteAssetsVisible(noteDir, true);
+        }
+        notesProvider.refresh();
+      }
+
+      const insert = buildDropMarkdownInsert(destPaths, noteDir, settings);
+      let imageCount = 0;
+      for (const destPath of destPaths) {
+        const ext = path.extname(destPath).toLowerCase();
+        if (settings.imageExtensions.has(ext)) {
+          imageCount += 1;
+        }
+      }
+
+      const edit = new vscode.DocumentDropEdit(insert);
       edit.title =
         imageCount > 0
           ? imageCount > 1
             ? 'Insert Relative Markdown Images'
             : 'Insert Relative Markdown Image'
-          : parts.length > 1
+          : destPaths.length > 1
             ? 'Insert Relative Markdown Links'
             : 'Insert Relative Markdown Link';
 
@@ -879,12 +878,13 @@ function createMarkdownRelativeLinkDropProvider() {
 
 /**
  * @param {import('vscode').ExtensionContext} context
+ * @param {NotesProvider | null | undefined} [notesProvider]
  */
-function registerMarkdownRelativeLinkDropProvider(context) {
+function registerMarkdownRelativeLinkDropProvider(context, notesProvider) {
   if (typeof vscode.languages.registerDocumentDropEditProvider !== 'function') {
     return;
   }
-  const provider = createMarkdownRelativeLinkDropProvider();
+  const dropProvider = createMarkdownRelativeLinkDropProvider(notesProvider);
   const selector = { language: 'markdown', scheme: 'file' };
   const dropMimeTypes = ['text/uri-list', 'application/vnd.code.uri-list', 'files'];
   try {
@@ -895,13 +895,13 @@ function registerMarkdownRelativeLinkDropProvider(context) {
         ]
       : undefined;
     context.subscriptions.push(
-      vscode.languages.registerDocumentDropEditProvider(selector, provider, {
+      vscode.languages.registerDocumentDropEditProvider(selector, dropProvider, {
         dropMimeTypes,
         providedDropEditKinds: kinds,
       }),
     );
   } catch {
-    context.subscriptions.push(vscode.languages.registerDocumentDropEditProvider(selector, provider));
+    context.subscriptions.push(vscode.languages.registerDocumentDropEditProvider(selector, dropProvider));
   }
 }
 
@@ -1307,6 +1307,107 @@ async function copyDroppedPathOverwrite(source, destPath) {
   if (isDirectoryPath(srcPath)) {
     await vscode.workspace.fs.copy(source, vscode.Uri.file(destPath), { overwrite: true });
   }
+}
+
+/**
+ * @param {string} filePath
+ * @param {string} dirPath
+ */
+function isPathInsideDir(filePath, dirPath) {
+  const fileNorm = normalizeFsPath(filePath);
+  const dirNorm = normalizeFsPath(dirPath);
+  if (fileNorm === dirNorm) {
+    return true;
+  }
+  const prefix = dirNorm.endsWith(path.sep) ? dirNorm : dirNorm + path.sep;
+  return fileNorm.startsWith(prefix);
+}
+
+/**
+ * Destination directory path for a drop category (does not create folders).
+ * @param {string} noteDir
+ * @param {'root' | 'images' | 'files'} category
+ * @param {ReturnType<typeof getNoteDropSettings>} settings
+ */
+function noteDropDestDirPath(noteDir, category, settings) {
+  if (category === 'root') {
+    return noteDir;
+  }
+  const folderName = category === 'images' ? settings.imagesFolderName : settings.filesFolderName;
+  return path.join(noteDir, folderName);
+}
+
+/**
+ * One Markdown image or link line (no trailing newlines).
+ * @param {string} destPath absolute path of the linked file
+ * @param {string} noteDir absolute note directory (parent of the `.md`)
+ * @param {ReturnType<typeof getNoteDropSettings>} settings
+ */
+function formatDroppedMarkdownSnippet(destPath, noteDir, settings) {
+  const rel = escapeMarkdownLinkPath(toMarkdownRelativePath(noteDir, destPath));
+  const ext = path.extname(destPath).toLowerCase();
+  if (settings.imageExtensions.has(ext)) {
+    return `![](${rel})`;
+  }
+  return `[${path.basename(destPath)}](${rel})`;
+}
+
+/**
+ * Copy dropped files into the note's img/files/root when needed.
+ * @param {string} noteMdPath
+ * @param {vscode.Uri[]} sourceUris
+ * @param {ReturnType<typeof getNoteDropSettings>} settings
+ * @returns {Promise<{ destPaths: string[], copiedCount: number }>}
+ */
+async function materializeDroppedFilesForNote(noteMdPath, sourceUris, settings) {
+  const noteDir = path.dirname(noteMdPath);
+  /** @type {string[]} */
+  const destPaths = [];
+  let copiedCount = 0;
+
+  for (const source of sourceUris) {
+    const srcPath = source.fsPath;
+    if (!isFilePath(srcPath)) {
+      continue;
+    }
+    const baseName = path.basename(srcPath);
+    if (!baseName) {
+      continue;
+    }
+    const category = classifyDroppedFile(baseName, settings);
+    const destDir = noteDropDestDirPath(noteDir, category, settings);
+    if (isPathInsideDir(srcPath, destDir)) {
+      destPaths.push(srcPath);
+      continue;
+    }
+    try {
+      const resolvedDestDir = resolveNoteDropDestDir(noteDir, category, settings);
+      const destPath = path.join(resolvedDestDir, baseName);
+      if (normalizeFsPath(srcPath) !== normalizeFsPath(destPath)) {
+        await copyDroppedPathOverwrite(source, destPath);
+        copiedCount += 1;
+      }
+      destPaths.push(destPath);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      void vscode.window.showErrorMessage(`Could not copy "${baseName}": ${msg}`);
+    }
+  }
+
+  return { destPaths, copiedCount };
+}
+
+/**
+ * @param {string[]} destPaths
+ * @param {string} noteDir
+ * @param {ReturnType<typeof getNoteDropSettings>} settings
+ */
+function buildDropMarkdownInsert(destPaths, noteDir, settings) {
+  if (destPaths.length === 0) {
+    return '';
+  }
+  const snippets = destPaths.map((p) => formatDroppedMarkdownSnippet(p, noteDir, settings));
+  return `${snippets.join('\n\n')}\n\n`;
 }
 
 /**
@@ -2828,7 +2929,7 @@ function createNoteAssetsDragAndDrop(provider) {
       const seenUri = new Set();
       /** @type {string[]} */
       const markdownSnippets = [];
-      const imageExts = getNoteDropSettings().imageExtensions;
+      const settings = getNoteDropSettings();
 
       for (const el of source) {
         // Expose file URIs so Shift+drop into a Markdown editor can insert a relative link
@@ -2849,15 +2950,7 @@ function createNoteAssetsDragAndDrop(provider) {
                 ? path.join(el.noteDirPath, `${path.basename(el.noteDirPath)}.md`)
                 : '';
           if (parentMd && isFilePath(fsPath)) {
-            const baseDir = path.dirname(parentMd);
-            const rel = escapeMarkdownLinkPath(toMarkdownRelativePath(baseDir, fsPath));
-            const ext = path.extname(fsPath).toLowerCase();
-            if (imageExts.has(ext)) {
-              markdownSnippets.push(`![](${rel})`);
-            } else {
-              const label = path.basename(fsPath, path.extname(fsPath));
-              markdownSnippets.push(`[${label}](${rel})`);
-            }
+            markdownSnippets.push(formatDroppedMarkdownSnippet(fsPath, path.dirname(parentMd), settings));
           }
         }
 
@@ -2877,7 +2970,7 @@ function createNoteAssetsDragAndDrop(provider) {
         dataTransfer.set('text/uri-list', new vscode.DataTransferItem(uriLines.join('\r\n')));
       }
       if (markdownSnippets.length > 0) {
-        dataTransfer.set('text/plain', new vscode.DataTransferItem(markdownSnippets.join('\n')));
+        dataTransfer.set('text/plain', new vscode.DataTransferItem(`${markdownSnippets.join('\n\n')}\n\n`));
       }
       if (movePaths.length > 0) {
         dataTransfer.set(HNE_TREE_MOVE_MIME, new vscode.DataTransferItem(movePaths));
@@ -3043,10 +3136,10 @@ async function activate(context) {
     console.error('[Harrix Notes HSK] open-media HTTP server failed:', err);
   }
   registerPreviewCopyConfigRefresh(context);
-  registerMarkdownRelativeLinkDropProvider(context);
 
   const rootEntries = getWorkspaceRootEntries();
   if (rootEntries.length === 0) {
+    registerMarkdownRelativeLinkDropProvider(context);
     return registerPreviewCopyMarkdownPlugin();
   }
   const rootPath = rootEntries[0].path;
@@ -3061,6 +3154,7 @@ async function activate(context) {
   const assetsVisibility = new NoteAssetsVisibility(context);
 
   const provider = new NotesProvider(rootEntries, expansionMemory, assetsVisibility);
+  registerMarkdownRelativeLinkDropProvider(context, provider);
   const view = vscode.window.createTreeView('harrixNotesExplorerHsk', {
     treeDataProvider: provider,
     showCollapseAll: true,
