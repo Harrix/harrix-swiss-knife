@@ -1266,14 +1266,15 @@ private fun NotesFolderRow(
     onShowMergedNote: () -> Unit,
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
-    val verticalPadding = density.verticalPaddingDp.dp
     val iconSize = density.iconSizeDp.dp
+    val menuButtonSize = density.mergedButtonHeightDp.dp
     Row(
         modifier =
         Modifier
             .fillMaxWidth()
+            .height(density.listRowHeightDp.dp)
             .clickable(onClick = onOpen)
-            .padding(horizontal = 12.dp, vertical = verticalPadding),
+            .padding(horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
@@ -1291,10 +1292,10 @@ private fun NotesFolderRow(
             overflow = TextOverflow.Ellipsis,
         )
         if (folder.hasMergedNote) {
-            Box {
+            Box(modifier = Modifier.size(menuButtonSize)) {
                 IconButton(
                     onClick = { menuExpanded = true },
-                    modifier = Modifier.size(density.mergedButtonHeightDp.dp),
+                    modifier = Modifier.fillMaxSize(),
                 ) {
                     Icon(
                         imageVector = Icons.Filled.MoreVert,
@@ -1317,14 +1318,14 @@ private fun NotesNoteRow(
     density: NotesListDensity,
     onOpen: () -> Unit,
 ) {
-    val verticalPadding = density.verticalPaddingDp.dp
     val iconSize = density.iconSizeDp.dp
     Row(
         modifier =
         Modifier
             .fillMaxWidth()
+            .height(density.listRowHeightDp.dp)
             .clickable(onClick = onOpen)
-            .padding(horizontal = 12.dp, vertical = verticalPadding),
+            .padding(horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
@@ -1339,6 +1340,7 @@ private fun NotesNoteRow(
             style = MaterialTheme.typography.bodyMedium,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f),
         )
     }
 }
