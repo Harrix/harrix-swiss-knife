@@ -15,6 +15,7 @@ from harrix_swiss_knife.actions.android import OnAndroidBuild, OnAndroidCheck, O
 from harrix_swiss_knife.actions.development import (
     OnInstallCli,
     OnInstallHarrixNotesExplorerExtension,
+    OnSyncHarrixNotesExplorer,
     OnVscodeCheck,
     OnVscodeFormat,
 )
@@ -117,7 +118,7 @@ def dev_install_cli() -> None:
     help="Also install public harrix-notes-explorer from path_harrix_notes_explorer after HSK.",
 )
 def dev_install_harrix_notes_explorer_hsk(editor: str, *, with_public: bool) -> None:
-    """Install Harrix Notes Explorer (HSK) into EDITOR; sync public repo when configured (Windows only)."""
+    """Install HSK into EDITOR; sync public repo via OnSyncHarrixNotesExplorer first (Windows only)."""
     action = OnInstallHarrixNotesExplorerExtension()
     action(editor=editor, noninteractive=True, with_public=with_public)
     _exit_if_action_failed(action)
@@ -585,7 +586,7 @@ def text_fix_text_with_ai() -> None:
 
 @cli.group("vscode")
 def vscode_group() -> None:
-    """VS Code extension format and quality checks (Biome)."""
+    """VS Code extension format, quality checks, and public-repo sync."""
 
 
 @vscode_group.command("check")
@@ -600,6 +601,14 @@ def vscode_check() -> None:
 def vscode_format() -> None:
     """Format VS Code extension sources via Biome (`npm run format`)."""
     action = OnVscodeFormat()
+    action(noninteractive=True)
+    _exit_if_action_failed(action)
+
+
+@vscode_group.command("sync-notes-explorer")
+def vscode_sync_notes_explorer() -> None:
+    """Sync `vscode/harrix-notes-explorer-hsk` into public `path_harrix_notes_explorer` repo."""
+    action = OnSyncHarrixNotesExplorer()
     action(noninteractive=True)
     _exit_if_action_failed(action)
 

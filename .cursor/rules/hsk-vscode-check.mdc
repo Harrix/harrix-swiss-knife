@@ -15,3 +15,5 @@ Equivalent npm from `vscode/harrix-notes-explorer-hsk/`:
 
 - format: `npm run format` (`biome check --write .`)
 - check: `npm run check` (`biome check .`)
+
+After format/check succeed, always run `hsk vscode sync-notes-explorer` at the very end so the public repo at `path_harrix_notes_explorer` stays updated from `vscode/harrix-notes-explorer-hsk`. Do not finish VS Code extension work without this sync unless it fails for an environmental reason (missing `path_harrix_notes_explorer` in config is a warning skip, not a blocker).
