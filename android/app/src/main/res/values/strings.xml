@@ -65,12 +65,14 @@
     <string name="nav_drawer_video_cleaner">Video Cleaner</string>
     <string name="nav_drawer_markdown_notes">Markdown Notes</string>
     <string name="nav_drawer_about">About</string>
+    <string name="nav_bottom_home">Home</string>
+    <string name="nav_bottom_notes">Notes</string>
+    <string name="nav_bottom_close">Close</string>
     <string name="home_utilities_title">Utilities</string>
     <string name="gallery_cleaner_card_description">Review Camera photos. Swipe or tap to trash or keep.</string>
     <string name="video_cleaner_card_description">List Camera videos by date and trash selected ones.</string>
     <string name="markdown_notes_card_description">Browse Markdown notes from a chosen folder.</string>
     <string name="markdown_notes_title">Markdown Notes</string>
-    <string name="markdown_notes_close">Exit Markdown Notes</string>
     <string name="markdown_notes_menu">More options</string>
     <string name="markdown_notes_settings">Settings</string>
     <string name="markdown_notes_welcome_title">Choose notes folder</string>

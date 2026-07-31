@@ -756,7 +756,6 @@ fun NotesViewerScreen(
                     .fillMaxSize(),
             ) {
                 NotesTopChrome(
-                    onClose = onClose,
                     onOpenDrawer = {
                         scope.launch { drawerState.open() }
                     },
@@ -888,7 +887,6 @@ private val NotesTabMaxWidth = 140.dp
 
 @Composable
 private fun NotesTopChrome(
-    onClose: () -> Unit,
     onOpenDrawer: () -> Unit,
     openTabs: List<OpenNoteTab>,
     selectedTabDocumentId: String?,
@@ -910,12 +908,6 @@ private fun NotesTopChrome(
             .padding(start = 4.dp, end = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        IconButton(onClick = onClose) {
-            Icon(
-                imageVector = Icons.Filled.Close,
-                contentDescription = stringResource(R.string.markdown_notes_close),
-            )
-        }
         IconButton(onClick = onOpenDrawer) {
             Icon(
                 imageVector = Icons.Filled.Menu,

@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -26,6 +27,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.CleaningServices
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Info
@@ -81,9 +83,9 @@ import dev.harrix.hsk.ui.theme.ThemeMode
 import kotlinx.coroutines.launch
 
 private const val HomeGridColumns = 2
-private val BottomBarHeight = 52.dp
-private val BottomButtonSize = 40.dp
-private val BottomIconSize = 20.dp
+private val BottomBarMinHeight = 56.dp
+private val BottomIconSize = 22.dp
+private val BottomLabelFontSize = 10.sp
 private val DrawerItemHeight = 40.dp
 private val DrawerItemCornerRadius = 8.dp
 private val DrawerItemVerticalGap = 2.dp
@@ -117,12 +119,12 @@ private val BottomNavItems =
         BottomNavItem(
             destination = AppDestination.Home,
             icon = Icons.Filled.Home,
-            labelRes = R.string.nav_drawer_home,
+            labelRes = R.string.nav_bottom_home,
         ),
         BottomNavItem(
             destination = AppDestination.MarkdownNotes,
             icon = Icons.Filled.Description,
-            labelRes = R.string.nav_drawer_markdown_notes,
+            labelRes = R.string.nav_bottom_notes,
         ),
     )
 
@@ -202,6 +204,8 @@ fun MainScreen(
                             items = BottomNavItems,
                             selected = destination,
                             onSelect = { destination = it },
+                            showClose = destination == AppDestination.MarkdownNotes,
+                            onClose = { destination = AppDestination.Home },
                         )
                     },
                 ) { bottomNavPadding ->
@@ -597,6 +601,8 @@ private fun BottomActionBar(
     selected: AppDestination,
     onSelect: (AppDestination) -> Unit,
     modifier: Modifier = Modifier,
+    showClose: Boolean = false,
+    onClose: (() -> Unit)? = null,
 ) {
     val colorScheme = MaterialTheme.colorScheme
 
@@ -612,31 +618,71 @@ private fun BottomActionBar(
             modifier =
             Modifier
                 .fillMaxWidth()
-                .height(BottomBarHeight)
-                .padding(horizontal = 8.dp),
+                .heightIn(min = BottomBarMinHeight)
+                .padding(horizontal = 4.dp, vertical = 4.dp),
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically,
         ) {
             items.forEach { item ->
                 val isSelected = item.destination == selected
-                IconButton(
+                BottomBarLabeledButton(
+                    icon = item.icon,
+                    label = stringResource(item.labelRes),
+                    selected = isSelected,
                     onClick = { onSelect(item.destination) },
-                    modifier = Modifier.size(BottomButtonSize),
-                ) {
-                    Icon(
-                        imageVector = item.icon,
-                        contentDescription = stringResource(item.labelRes),
-                        tint =
-                        if (isSelected) {
-                            colorScheme.primary
-                        } else {
-                            colorScheme.onSurfaceVariant
-                        },
-                        modifier = Modifier.size(BottomIconSize),
-                    )
-                }
+                    modifier = Modifier.weight(1f),
+                )
+            }
+            if (showClose && onClose != null) {
+                BottomBarLabeledButton(
+                    icon = Icons.Filled.Close,
+                    label = stringResource(R.string.nav_bottom_close),
+                    selected = false,
+                    onClick = onClose,
+                    modifier = Modifier.weight(1f),
+                )
             }
         }
+    }
+}
+
+@Composable
+private fun BottomBarLabeledButton(
+    icon: ImageVector,
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val colorScheme = MaterialTheme.colorScheme
+    val tint =
+        if (selected) {
+            colorScheme.primary
+        } else {
+            colorScheme.onSurfaceVariant
+        }
+    Column(
+        modifier =
+        modifier
+            .clickable(onClick = onClick)
+            .padding(vertical = 2.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = label,
+            tint = tint,
+            modifier = Modifier.size(BottomIconSize),
+        )
+        Text(
+            text = label,
+            color = tint,
+            style = MaterialTheme.typography.labelSmall,
+            fontSize = BottomLabelFontSize,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
     }
 }
 
