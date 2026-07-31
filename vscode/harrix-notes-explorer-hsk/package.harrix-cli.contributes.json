@@ -1,7 +1,8 @@
 {
   "_comment": "Remove these contributes from package.json when building without hsk. See HARRIX_CLI.md.",
   "configurationPropertyKeys": [
-    "harrixNotesExplorerHsk.cliExecutable"
+    "harrixNotesExplorerHsk.cliExecutable",
+    "harrixNotesExplorerHsk.optimizeImagesFolderMaxSize"
   ],
   "commandIds": [
     "harrixNotesExplorerHsk.createNote",
@@ -10,7 +11,8 @@
     "harrixNotesExplorerHsk.newCasesNote",
     "harrixNotesExplorerHsk.addFromTemplate",
     "harrixNotesExplorerHsk.beautifyRegenerateGMd",
-    "harrixNotesExplorerHsk.checkMarkdownInFolder"
+    "harrixNotesExplorerHsk.checkMarkdownInFolder",
+    "harrixNotesExplorerHsk.optimizeImagesFolder"
   ],
   "viewItemContextValues": [
     "notesFolderDiary",

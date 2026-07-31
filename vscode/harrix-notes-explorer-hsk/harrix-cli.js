@@ -130,6 +130,25 @@ function runHarrixMarkdownCheck(folderPath) {
   runHarrixCliInTerminal(['md', 'check', path.resolve(folderPath)]);
 }
 
+/**
+ * @param {string} folderPath
+ * @param {number} maxSize
+ */
+function runHarrixOptimizeImagesFolder(folderPath, maxSize) {
+  runHarrixCliInTerminal(['md', 'optimize-images-folder', path.resolve(folderPath), '--max-size', String(maxSize)]);
+}
+
+/** @returns {number} */
+function getOptimizeImagesFolderMaxSize() {
+  const config = vscode.workspace.getConfiguration('harrixNotesExplorerHsk');
+  const raw = config.get('optimizeImagesFolderMaxSize', 1024);
+  const value = Number(raw);
+  if (!Number.isFinite(value) || value < 1) {
+    return 1024;
+  }
+  return Math.floor(value);
+}
+
 // --- Tree integration (Diary / Dreams / Cases / template targets) ---
 
 /** Folder named `Diary` (case-insensitive) — shown in tree even without .md; diary CLI menu */
@@ -352,6 +371,25 @@ function activateHarrixCliIntegration(deps) {
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
         vscode.window.showErrorMessage(`Beautify Markdown and Regenerate .g.md in Folder failed: ${msg}`);
+      }
+    }),
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('harrixNotesExplorerHsk.optimizeImagesFolder', async (treeItemOrUri) => {
+      const itemUri = treeItemOrUri?.resourceUri ?? treeItemOrUri;
+      const folderPath = resolveNotesFolderFsPath(itemUri);
+      if (!folderPath) {
+        vscode.window.showErrorMessage('Select a folder or a Note/Note.md note in Harrix Notes (HSK).');
+        return;
+      }
+      try {
+        const maxSize = getOptimizeImagesFolderMaxSize();
+        runHarrixOptimizeImagesFolder(folderPath, maxSize);
+        vscode.window.showInformationMessage(`Optimize images running in Terminal (max ${maxSize}px).`);
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        vscode.window.showErrorMessage(`Optimize images in folder failed: ${msg}`);
       }
     }),
   );

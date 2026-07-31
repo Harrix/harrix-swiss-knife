@@ -64,7 +64,9 @@ These stay in `extension.js` for a public build:
 - `harrixNotesExplorerHsk.addFromTemplate`
 - `harrixNotesExplorerHsk.beautifyRegenerateGMd`
 - `harrixNotesExplorerHsk.checkMarkdownInFolder`
+- `harrixNotesExplorerHsk.optimizeImagesFolder`
 
 ## Settings (CLI only)
 
 - `harrixNotesExplorerHsk.cliExecutable`
+- `harrixNotesExplorerHsk.optimizeImagesFolderMaxSize` (default `1024`)

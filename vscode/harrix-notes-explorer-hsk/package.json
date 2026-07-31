@@ -39,6 +39,12 @@
           "default": "hsk",
           "markdownDescription": "Command or full path to `hsk`. Use an absolute path if the CLI is not on the PATH seen by VS Code (e.g. `.venv\\\\Scripts\\\\hsk.exe`)."
         },
+        "harrixNotesExplorerHsk.optimizeImagesFolderMaxSize": {
+          "type": "number",
+          "default": 1024,
+          "minimum": 1,
+          "markdownDescription": "Max width or height in pixels for **Optimize Images in Folder** (`hsk md optimize-images-folder --max-size`). Images larger on either side are resized."
+        },
         "harrixNotesExplorerHsk.rememberFolderExpansion": {
           "type": "boolean",
           "default": true,
@@ -326,6 +332,11 @@
         "category": "Harrix Notes (HSK)"
       },
       {
+        "command": "harrixNotesExplorerHsk.optimizeImagesFolder",
+        "title": "Optimize Images in Folder ꟲᴸᴵ",
+        "category": "Harrix Notes (HSK)"
+      },
+      {
         "command": "harrixNotesExplorerHsk.discardGitChangesInFolder",
         "title": "Discard Git Changes in Folder…"
       },
@@ -400,6 +411,10 @@
         },
         {
           "command": "harrixNotesExplorerHsk.checkMarkdownInFolder",
+          "when": "false"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.optimizeImagesFolder",
           "when": "false"
         },
         {
@@ -608,6 +623,11 @@
           "group": "2_notesCli@1"
         },
         {
+          "command": "harrixNotesExplorerHsk.optimizeImagesFolder",
+          "when": "view == harrixNotesExplorerHsk && (viewItem == noteNamedFolder || viewItem == noteHasAttachmentsNamedFolder || viewItem == noteWithAssetsNamedFolder || viewItem == gitNoteNamedFolder || viewItem == gitNoteHasAttachmentsNamedFolder || viewItem == gitNoteWithAssetsNamedFolder)",
+          "group": "2_notesCli@1"
+        },
+        {
           "command": "harrixNotesExplorerHsk.discardGitChangesInFolder",
           "when": "view == harrixNotesExplorerHsk && (viewItem == gitNoteNamedFolder || viewItem == gitNoteHasAttachmentsNamedFolder || viewItem == gitNoteWithAssetsNamedFolder)",
           "group": "2_notesCli@2"
@@ -734,6 +754,56 @@
         },
         {
           "command": "harrixNotesExplorerHsk.beautifyRegenerateGMd",
+          "when": "view == harrixNotesExplorerHsk && (viewItem == notesFolderTemplateTargetWithMerged || viewItem == gitNotesFolderTemplateTargetWithMerged)",
+          "group": "2_notesCli@1"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.optimizeImagesFolder",
+          "when": "view == harrixNotesExplorerHsk && (viewItem == notesFolder || viewItem == gitNotesFolder)",
+          "group": "2_notesCli@1"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.optimizeImagesFolder",
+          "when": "view == harrixNotesExplorerHsk && (viewItem == notesFolderWithMerged || viewItem == gitNotesFolderWithMerged)",
+          "group": "2_notesCli@1"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.optimizeImagesFolder",
+          "when": "view == harrixNotesExplorerHsk && (viewItem == notesFolderDiary || viewItem == gitNotesFolderDiary)",
+          "group": "2_notesCli@1"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.optimizeImagesFolder",
+          "when": "view == harrixNotesExplorerHsk && (viewItem == notesFolderWithMergedDiary || viewItem == gitNotesFolderWithMergedDiary)",
+          "group": "2_notesCli@1"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.optimizeImagesFolder",
+          "when": "view == harrixNotesExplorerHsk && (viewItem == notesFolderDreams || viewItem == gitNotesFolderDreams)",
+          "group": "2_notesCli@1"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.optimizeImagesFolder",
+          "when": "view == harrixNotesExplorerHsk && (viewItem == notesFolderWithMergedDreams || viewItem == gitNotesFolderWithMergedDreams)",
+          "group": "2_notesCli@1"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.optimizeImagesFolder",
+          "when": "view == harrixNotesExplorerHsk && (viewItem == notesFolderCases || viewItem == gitNotesFolderCases)",
+          "group": "2_notesCli@1"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.optimizeImagesFolder",
+          "when": "view == harrixNotesExplorerHsk && (viewItem == notesFolderWithMergedCases || viewItem == gitNotesFolderWithMergedCases)",
+          "group": "2_notesCli@1"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.optimizeImagesFolder",
+          "when": "view == harrixNotesExplorerHsk && (viewItem == notesFolderTemplateTarget || viewItem == gitNotesFolderTemplateTarget)",
+          "group": "2_notesCli@1"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.optimizeImagesFolder",
           "when": "view == harrixNotesExplorerHsk && (viewItem == notesFolderTemplateTargetWithMerged || viewItem == gitNotesFolderTemplateTargetWithMerged)",
           "group": "2_notesCli@1"
         },
