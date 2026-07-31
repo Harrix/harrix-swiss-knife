@@ -949,11 +949,17 @@ private fun NotesTopChrome(
             )
         }
         if (openTabs.isNotEmpty()) {
+            val tabsScrollState = rememberScrollState()
+            LaunchedEffect(openTabs.size, selectedTabDocumentId, tabsScrollState.maxValue) {
+                if (selectedTabDocumentId == openTabs.lastOrNull()?.documentId) {
+                    tabsScrollState.animateScrollTo(tabsScrollState.maxValue)
+                }
+            }
             Row(
                 modifier =
                 Modifier
                     .weight(1f)
-                    .horizontalScroll(rememberScrollState()),
+                    .horizontalScroll(tabsScrollState),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
             ) {
