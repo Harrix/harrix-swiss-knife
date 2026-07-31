@@ -4,14 +4,14 @@ from __future__ import annotations
 
 from typing import Any
 
+from harrix_swiss_knife.actions.android.android_build import OnAndroidBuild
+from harrix_swiss_knife.actions.android.android_check import OnAndroidCheck
+from harrix_swiss_knife.actions.android.android_format import OnAndroidFormat
 from harrix_swiss_knife.actions.apps.finance import OnFinance
 from harrix_swiss_knife.actions.apps.fitness import OnFitness
 from harrix_swiss_knife.actions.apps.food import OnFood
 from harrix_swiss_knife.actions.apps.habits import OnHabits
 from harrix_swiss_knife.actions.development.about_dialog import OnAboutDialog
-from harrix_swiss_knife.actions.development.android_build import OnAndroidBuild
-from harrix_swiss_knife.actions.development.android_check import OnAndroidCheck
-from harrix_swiss_knife.actions.development.android_format import OnAndroidFormat
 from harrix_swiss_knife.actions.development.clear_temp_folder import OnClearTempFolder
 from harrix_swiss_knife.actions.development.create_desktop_shortcut import OnCreateDesktopShortcut
 from harrix_swiss_knife.actions.development.download_optimize_dependencies import OnDownloadOptimizeDependencies

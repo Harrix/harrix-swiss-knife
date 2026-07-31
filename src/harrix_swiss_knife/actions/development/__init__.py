@@ -1,9 +1,6 @@
-"""Actions for development tooling, Android/VS Code workflows, and app maintenance."""
+"""Actions for development tooling, VS Code workflows, and app maintenance."""
 
 from harrix_swiss_knife.actions.development.about_dialog import OnAboutDialog
-from harrix_swiss_knife.actions.development.android_build import OnAndroidBuild
-from harrix_swiss_knife.actions.development.android_check import OnAndroidCheck
-from harrix_swiss_knife.actions.development.android_format import OnAndroidFormat
 from harrix_swiss_knife.actions.development.clear_temp_folder import OnClearTempFolder
 from harrix_swiss_knife.actions.development.create_desktop_shortcut import OnCreateDesktopShortcut
 from harrix_swiss_knife.actions.development.download_optimize_dependencies import OnDownloadOptimizeDependencies
@@ -26,9 +23,6 @@ from harrix_swiss_knife.actions.development.vscode_format import OnVscodeFormat
 
 __all__ = [
     "OnAboutDialog",
-    "OnAndroidBuild",
-    "OnAndroidCheck",
-    "OnAndroidFormat",
     "OnClearTempFolder",
     "OnCreateDesktopShortcut",
     "OnDownloadOptimizeDependencies",

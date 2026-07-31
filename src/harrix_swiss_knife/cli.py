@@ -11,10 +11,8 @@ import click
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication
 
+from harrix_swiss_knife.actions.android import OnAndroidBuild, OnAndroidCheck, OnAndroidFormat
 from harrix_swiss_knife.actions.development import (
-    OnAndroidBuild,
-    OnAndroidCheck,
-    OnAndroidFormat,
     OnInstallCli,
     OnInstallHarrixNotesExplorerExtension,
     OnVscodeCheck,
