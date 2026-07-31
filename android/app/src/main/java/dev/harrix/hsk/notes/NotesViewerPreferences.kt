@@ -41,6 +41,12 @@ class NotesViewerPreferences(
         prefs.edit().putString(KEY_BROWSE_LAYOUT, layout.name).apply()
     }
 
+    fun loadTitleSource(): NotesTitleSource = NotesTitleSource.fromStorageKey(prefs.getString(KEY_TITLE_SOURCE, null))
+
+    fun saveTitleSource(source: NotesTitleSource) {
+        prefs.edit().putString(KEY_TITLE_SOURCE, source.name).apply()
+    }
+
     fun loadOpenTabsSession(treeUri: String?): NotesOpenTabsSession {
         if (treeUri.isNullOrBlank()) {
             return NotesOpenTabsSession(treeUri = "", selectedDocumentId = null, tabs = emptyList())
@@ -76,6 +82,7 @@ class NotesViewerPreferences(
         private const val KEY_NOTES_TREE_URI = "notes_tree_uri"
         private const val KEY_LIST_DENSITY = "list_density"
         private const val KEY_BROWSE_LAYOUT = "browse_layout"
+        private const val KEY_TITLE_SOURCE = "title_source"
         private const val KEY_OPEN_TABS_SESSION = "open_tabs_session"
 
         private fun emptySession(treeUri: String) = NotesOpenTabsSession(

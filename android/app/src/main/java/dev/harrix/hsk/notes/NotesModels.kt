@@ -42,6 +42,8 @@ data class OpenNoteTab(
     val documentId: String,
     val uri: Uri,
     val title: String,
+    /** Original document file name (e.g. `Note.md`), used when titles come from file names. */
+    val fileName: String = "",
     /** Path from notes root through parent folders (excludes the note itself). */
     val folderPath: List<NotesPathSegment>,
 )

@@ -321,6 +321,51 @@ class NotesTreeRepository(
         }
     }
 
+    fun withFileNameLabels(entries: List<NotesEntry>): List<NotesEntry> {
+        var changed = false
+        val mapped =
+            entries.map { entry ->
+                if (entry is NotesEntry.Note) {
+                    val label = noteDisplayLabel(entry.name)
+                    if (label != entry.displayLabel) {
+                        changed = true
+                        entry.copy(displayLabel = label)
+                    } else {
+                        entry
+                    }
+                } else {
+                    entry
+                }
+            }
+        return if (changed) {
+            mapped.sortedWith(notesLabelComparator)
+        } else {
+            entries
+        }
+    }
+
+    fun applyTitleSource(
+        entries: List<NotesEntry>,
+        source: NotesTitleSource,
+    ): List<NotesEntry> = when (source) {
+        NotesTitleSource.FileName -> withFileNameLabels(entries)
+        NotesTitleSource.Content -> withCachedContentTitles(withFileNameLabels(entries))
+    }
+
+    fun displayTitleFor(
+        tab: OpenNoteTab,
+        source: NotesTitleSource,
+    ): String {
+        val fileStem =
+            tab.fileName
+                .takeIf { it.isNotBlank() }
+                ?.let { noteDisplayLabel(it) }
+        return when (source) {
+            NotesTitleSource.FileName -> fileStem ?: tab.title
+            NotesTitleSource.Content -> titleByDocumentId[tab.documentId] ?: fileStem ?: tab.title
+        }
+    }
+
     fun patchListingNoteLabels(
         treeUri: Uri,
         dirDocumentId: String,

@@ -61,6 +61,7 @@ import dev.harrix.hsk.gallery.GalleryDateFilter
 import dev.harrix.hsk.gallery.GalleryPermissions
 import dev.harrix.hsk.notes.NotesBrowseLayout
 import dev.harrix.hsk.notes.NotesListDensity
+import dev.harrix.hsk.notes.NotesTitleSource
 import dev.harrix.hsk.notes.NotesViewerPreferences
 import dev.harrix.hsk.ui.notes.NotesFolderPathControls
 import dev.harrix.hsk.ui.theme.ThemeMode
@@ -240,6 +241,7 @@ private fun MarkdownNotesSettingsSection(
     var treeUri by remember { mutableStateOf(preferences.loadNotesTreeUri()) }
     var browseLayout by remember { mutableStateOf(preferences.loadBrowseLayout()) }
     var listDensity by remember { mutableStateOf(preferences.loadListDensity()) }
+    var titleSource by remember { mutableStateOf(preferences.loadTitleSource()) }
 
     val layoutOptions =
         listOf(
@@ -251,6 +253,11 @@ private fun MarkdownNotesSettingsSection(
             NotesListDensity.Compact to R.string.settings_markdown_notes_list_density_compact,
             NotesListDensity.Comfortable to R.string.settings_markdown_notes_list_density_comfortable,
             NotesListDensity.Spacious to R.string.settings_markdown_notes_list_density_spacious,
+        )
+    val titleSourceOptions =
+        listOf(
+            NotesTitleSource.Content to R.string.settings_markdown_notes_title_source_content,
+            NotesTitleSource.FileName to R.string.settings_markdown_notes_title_source_file_name,
         )
 
     val body: @Composable () -> Unit = {
@@ -276,6 +283,30 @@ private fun MarkdownNotesSettingsSection(
                     SegmentedButtonDefaults.itemShape(
                         index = index,
                         count = layoutOptions.size,
+                    ),
+                ) {
+                    Text(stringResource(labelRes))
+                }
+            }
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = stringResource(R.string.settings_markdown_notes_title_source),
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+            titleSourceOptions.forEachIndexed { index, (source, labelRes) ->
+                SegmentedButton(
+                    selected = titleSource == source,
+                    onClick = {
+                        titleSource = source
+                        preferences.saveTitleSource(source)
+                    },
+                    shape =
+                    SegmentedButtonDefaults.itemShape(
+                        index = index,
+                        count = titleSourceOptions.size,
                     ),
                 ) {
                     Text(stringResource(labelRes))

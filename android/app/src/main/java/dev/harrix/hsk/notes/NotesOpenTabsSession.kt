@@ -33,6 +33,7 @@ data class NotesOpenTabsSession(
         private const val KEY_DOCUMENT_ID = "documentId"
         private const val KEY_URI = "uri"
         private const val KEY_TITLE = "title"
+        private const val KEY_FILE_NAME = "fileName"
         private const val KEY_FOLDER_PATH = "folderPath"
         private const val KEY_NAME = "name"
 
@@ -64,6 +65,7 @@ data class NotesOpenTabsSession(
             val documentId = json.optString(KEY_DOCUMENT_ID).takeIf { it.isNotBlank() } ?: return null
             val uriString = json.optString(KEY_URI).takeIf { it.isNotBlank() } ?: return null
             val title = json.optString(KEY_TITLE).ifBlank { documentId }
+            val fileName = json.optString(KEY_FILE_NAME)
             val pathJson = json.optJSONArray(KEY_FOLDER_PATH) ?: JSONArray()
             val folderPath =
                 buildList {
@@ -76,6 +78,7 @@ data class NotesOpenTabsSession(
                 documentId = documentId,
                 uri = Uri.parse(uriString),
                 title = title,
+                fileName = fileName,
                 folderPath = folderPath,
             )
         }
@@ -96,6 +99,7 @@ data class NotesOpenTabsSession(
             json.put(KEY_DOCUMENT_ID, documentId)
             json.put(KEY_URI, uri.toString())
             json.put(KEY_TITLE, title)
+            json.put(KEY_FILE_NAME, fileName)
             val pathJson = JSONArray()
             folderPath.forEach { segment ->
                 pathJson.put(segment.toJson())

@@ -90,6 +90,7 @@ import dev.harrix.hsk.notes.NotesBrowseLayout
 import dev.harrix.hsk.notes.NotesEntry
 import dev.harrix.hsk.notes.NotesListDensity
 import dev.harrix.hsk.notes.NotesPathSegment
+import dev.harrix.hsk.notes.NotesTitleSource
 import dev.harrix.hsk.notes.NotesTreeRepository
 import dev.harrix.hsk.notes.NotesViewerPreferences
 import dev.harrix.hsk.notes.OpenNoteTab
@@ -140,6 +141,7 @@ fun NotesViewerScreen(
     var folderListRequestId by remember { mutableIntStateOf(0) }
     var listDensity by remember { mutableStateOf(preferences.loadListDensity()) }
     var browseLayout by remember { mutableStateOf(preferences.loadBrowseLayout()) }
+    var titleSource by remember { mutableStateOf(preferences.loadTitleSource()) }
     var treeRoot by remember { mutableStateOf<NotesPathSegment?>(null) }
     var treeChildrenByFolderId by remember {
         mutableStateOf<Map<String, List<NotesEntry>>>(emptyMap())
@@ -151,6 +153,7 @@ fun NotesViewerScreen(
         notesTreeUri = preferences.loadNotesTreeUri()
         listDensity = preferences.loadListDensity()
         browseLayout = preferences.loadBrowseLayout()
+        titleSource = preferences.loadTitleSource()
     }
 
     fun clearTreeState() {
@@ -174,21 +177,24 @@ fun NotesViewerScreen(
     ) {
         val cached = repository.peekListing(treeUri, dir.documentId)
         if (cached != null) {
-            val withTitles = repository.withCachedContentTitles(cached)
+            val withTitles = repository.applyTitleSource(cached, titleSource)
             putTreeChildren(dir.documentId, withTitles)
             onLoaded?.invoke(withTitles)
-            scope.launch {
-                val updates = repository.resolveMissingContentTitles(
-                    withTitles.filterIsInstance<NotesEntry.Note>(),
-                )
-                if (updates.isNotEmpty()) {
-                    putTreeChildren(
-                        dir.documentId,
-                        repository.withUpdatedNoteLabels(
-                            treeChildrenByFolderId[dir.documentId].orEmpty(),
-                            updates,
-                        ),
-                    )
+            if (titleSource == NotesTitleSource.Content) {
+                scope.launch {
+                    val updates =
+                        repository.resolveMissingContentTitles(
+                            withTitles.filterIsInstance<NotesEntry.Note>(),
+                        )
+                    if (updates.isNotEmpty()) {
+                        putTreeChildren(
+                            dir.documentId,
+                            repository.withUpdatedNoteLabels(
+                                treeChildrenByFolderId[dir.documentId].orEmpty(),
+                                updates,
+                            ),
+                        )
+                    }
                 }
             }
             return
@@ -202,21 +208,23 @@ fun NotesViewerScreen(
                 onLoaded?.invoke(emptyList())
                 return@launch
             }
-            val withTitles = repository.withCachedContentTitles(listed)
+            val withTitles = repository.applyTitleSource(listed, titleSource)
             putTreeChildren(dir.documentId, withTitles)
             onLoaded?.invoke(withTitles)
-            val updates =
-                repository.resolveMissingContentTitles(
-                    withTitles.filterIsInstance<NotesEntry.Note>(),
-                )
-            if (updates.isNotEmpty()) {
-                putTreeChildren(
-                    dir.documentId,
-                    repository.withUpdatedNoteLabels(
-                        treeChildrenByFolderId[dir.documentId].orEmpty(),
-                        updates,
-                    ),
-                )
+            if (titleSource == NotesTitleSource.Content) {
+                val updates =
+                    repository.resolveMissingContentTitles(
+                        withTitles.filterIsInstance<NotesEntry.Note>(),
+                    )
+                if (updates.isNotEmpty()) {
+                    putTreeChildren(
+                        dir.documentId,
+                        repository.withUpdatedNoteLabels(
+                            treeChildrenByFolderId[dir.documentId].orEmpty(),
+                            updates,
+                        ),
+                    )
+                }
             }
         }
     }
@@ -305,11 +313,18 @@ fun NotesViewerScreen(
                 if (tab != null) {
                     val contentTitle = repository.rememberTitleFromContent(tab.documentId, text)
                     val fileStem =
-                        entries
-                            .filterIsInstance<NotesEntry.Note>()
-                            .firstOrNull { note -> note.documentId == tab.documentId }
-                            ?.let { note -> NotesTreeRepository.noteDisplayLabel(note.name) }
-                    val label = contentTitle ?: fileStem ?: tab.title
+                        tab.fileName
+                            .takeIf { it.isNotBlank() }
+                            ?.let { NotesTreeRepository.noteDisplayLabel(it) }
+                            ?: entries
+                                .filterIsInstance<NotesEntry.Note>()
+                                .firstOrNull { note -> note.documentId == tab.documentId }
+                                ?.let { note -> NotesTreeRepository.noteDisplayLabel(note.name) }
+                    val label =
+                        when (titleSource) {
+                            NotesTitleSource.FileName -> fileStem ?: tab.title
+                            NotesTitleSource.Content -> contentTitle ?: fileStem ?: tab.title
+                        }
                     openTabs =
                         openTabs.map { openTab ->
                             if (openTab.documentId == tab.documentId) {
@@ -318,15 +333,17 @@ fun NotesViewerScreen(
                                 openTab
                             }
                         }
-                    val labels = mapOf(tab.documentId to label)
-                    entries = repository.withUpdatedNoteLabels(entries, labels)
-                    notesTreeUri?.let { tree ->
-                        folderPath.lastOrNull()?.let { dir ->
-                            repository.patchListingNoteLabels(
-                                Uri.parse(tree),
-                                dir.documentId,
-                                labels,
-                            )
+                    if (titleSource == NotesTitleSource.Content || fileStem != null) {
+                        val labels = mapOf(tab.documentId to label)
+                        entries = repository.withUpdatedNoteLabels(entries, labels)
+                        notesTreeUri?.let { tree ->
+                            folderPath.lastOrNull()?.let { dir ->
+                                repository.patchListingNoteLabels(
+                                    Uri.parse(tree),
+                                    dir.documentId,
+                                    labels,
+                                )
+                            }
                         }
                     }
                 }
@@ -385,6 +402,9 @@ fun NotesViewerScreen(
         listed: List<NotesEntry>,
         requestId: Int,
     ) {
+        if (titleSource != NotesTitleSource.Content) {
+            return
+        }
         val notes = listed.filterIsInstance<NotesEntry.Note>()
         if (notes.isEmpty()) {
             return
@@ -419,6 +439,28 @@ fun NotesViewerScreen(
         }
     }
 
+    fun applyTitleSourceToVisibleLists() {
+        val dir = folderPath.lastOrNull()
+        if (dir != null && entries.isNotEmpty()) {
+            val updated = repository.applyTitleSource(entries, titleSource)
+            entries = updated
+            putTreeChildren(dir.documentId, updated)
+            if (titleSource == NotesTitleSource.Content) {
+                notesTreeUri?.let { tree ->
+                    enrichNoteTitles(Uri.parse(tree), dir.documentId, updated, folderListRequestId)
+                }
+            }
+        }
+        treeChildrenByFolderId =
+            treeChildrenByFolderId.mapValues { (_, children) ->
+                repository.applyTitleSource(children, titleSource)
+            }
+        openTabs =
+            openTabs.map { tab ->
+                tab.copy(title = repository.displayTitleFor(tab, titleSource))
+            }
+    }
+
     fun openFolderList(path: List<NotesPathSegment>) {
         val tree = notesTreeUri ?: return
         val treeUri = Uri.parse(tree)
@@ -434,7 +476,7 @@ fun NotesViewerScreen(
 
             val cached = repository.peekListing(treeUri, current.documentId)
             if (cached != null) {
-                val withTitles = repository.withCachedContentTitles(cached)
+                val withTitles = repository.applyTitleSource(cached, titleSource)
                 folderPath = path
                 entries = withTitles
                 putTreeChildren(current.documentId, withTitles)
@@ -452,7 +494,7 @@ fun NotesViewerScreen(
                     }.getOrNull()
                 if (requestId == folderListRequestId && shallow != null) {
                     folderPath = path
-                    entries = repository.withCachedContentTitles(shallow)
+                    entries = repository.applyTitleSource(shallow, titleSource)
                     putTreeChildren(current.documentId, entries)
                     isLoading = false
                     enrichNoteTitles(treeUri, current.documentId, entries, requestId)
@@ -467,7 +509,7 @@ fun NotesViewerScreen(
                 }
                 result
                     .onSuccess { listed ->
-                        val withTitles = repository.withCachedContentTitles(listed)
+                        val withTitles = repository.applyTitleSource(listed, titleSource)
                         folderPath = path
                         entries = withTitles
                         putTreeChildren(current.documentId, withTitles)
@@ -503,6 +545,7 @@ fun NotesViewerScreen(
                     documentId = note.documentId,
                     uri = note.uri,
                     title = note.displayLabel,
+                    fileName = note.name,
                     folderPath = pathForNote,
                 )
         }
@@ -521,6 +564,7 @@ fun NotesViewerScreen(
         val uri = folder.mergedNoteUri ?: return
         val documentId = folder.mergedNoteDocumentId ?: return
         val title = "_${folder.name}.g"
+        val fileName = "_${folder.name}.g.md"
         val existing = openTabs.firstOrNull { it.documentId == documentId }
         if (existing == null) {
             openTabs = openTabs +
@@ -528,6 +572,7 @@ fun NotesViewerScreen(
                     documentId = documentId,
                     uri = uri,
                     title = title,
+                    fileName = fileName,
                     folderPath = pathForFolder,
                 )
         }
@@ -614,7 +659,11 @@ fun NotesViewerScreen(
         }
 
     LaunchedEffect(settingsRevision) {
+        val previousTitleSource = titleSource
         reloadPath()
+        if (previousTitleSource != titleSource) {
+            applyTitleSourceToVisibleLists()
+        }
     }
 
     LaunchedEffect(notesTreeUri) {
@@ -624,7 +673,10 @@ fun NotesViewerScreen(
         if (root != null && notesTreeUri != null) {
             if (sessionRestoredForTree != notesTreeUri) {
                 val session = preferences.loadOpenTabsSession(notesTreeUri)
-                openTabs = session.tabs
+                openTabs =
+                    session.tabs.map { tab ->
+                        tab.copy(title = repository.displayTitleFor(tab, titleSource))
+                    }
                 selectedTabDocumentId = session.selectedDocumentId
                 if (session.selectedDocumentId != null) {
                     noteLoading = true
