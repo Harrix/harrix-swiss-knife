@@ -42,7 +42,7 @@ data class NormalizedCropRect(
 }
 
 /**
- * Pre-edit original kept until the next keep/delete swipe so crop/rotate can be undone.
+ * Pre-edit original kept for session undo of crop/rotate.
  *
  * Independent from MediaStore trash undo after a delete swipe.
  */
@@ -51,7 +51,20 @@ data class PendingEditUndo(
     val uri: Uri,
     val originalSizeBytes: Long,
     val backupFile: File,
+    /** Photo metadata from before the edit, used to put it back in the review deck. */
+    val photoSnapshot: CameraPhoto,
 )
+
+/** One undoable action from the current Gallery Cleaner session (LIFO). */
+sealed class GallerySessionUndo {
+    data class Delete(
+        val photo: CameraPhoto,
+    ) : GallerySessionUndo()
+
+    data class Edit(
+        val undo: PendingEditUndo,
+    ) : GallerySessionUndo()
+}
 
 class PhotoEditSaver(
     private val context: Context,
@@ -77,13 +90,14 @@ class PhotoEditSaver(
     }
 
     fun save(
+        photoId: Long,
         uri: Uri,
         mimeType: String?,
         rotationDegrees: Float,
         crop: NormalizedCropRect,
         /**
          * When non-null and still valid, keeps that pre-edit original across repeated saves
-         * on the same photo until the next swipe.
+         * on the same photo for the session.
          */
         existingUndo: PendingEditUndo? = null,
     ): SaveResult {
@@ -115,11 +129,12 @@ class PhotoEditSaver(
 
         val reuseBackup =
             existingUndo != null &&
+                existingUndo.photoId == photoId &&
                 existingUndo.uri == uri &&
                 existingUndo.backupFile.isFile
         var backupCreated = false
         if (!reuseBackup) {
-            when (backupOriginal(uri)) {
+            when (backupOriginal(uri, photoId)) {
                 BackupResult.NeedsWritePermission -> return SaveResult.NeedsWritePermission
                 BackupResult.Failed -> return SaveResult.Failed
                 BackupResult.Success -> backupCreated = true
@@ -131,7 +146,7 @@ class PhotoEditSaver(
 
             else -> {
                 if (backupCreated && !reuseBackup) {
-                    clearEditBackup()
+                    clearEditBackup(photoId)
                 }
                 written
             }
@@ -150,7 +165,7 @@ class PhotoEditSaver(
             }
         return when (val written = writeBytes(undo.uri, bytes)) {
             is SaveResult.Success -> {
-                clearEditBackup()
+                clearEditBackup(undo.photoId)
                 RestoreResult.Success
             }
 
@@ -160,10 +175,19 @@ class PhotoEditSaver(
         }
     }
 
-    fun editBackupFile(): File = File(context.cacheDir, EDIT_UNDO_BACKUP_NAME)
+    fun editBackupFile(photoId: Long): File = File(context.cacheDir, "$EDIT_UNDO_BACKUP_PREFIX$photoId.bak")
 
-    fun clearEditBackup() {
-        runCatching { editBackupFile().delete() }
+    fun clearEditBackup(photoId: Long) {
+        runCatching { editBackupFile(photoId).delete() }
+    }
+
+    fun clearAllEditBackups() {
+        val dir = context.cacheDir
+        dir.listFiles()?.forEach { file ->
+            if (file.name.startsWith(EDIT_UNDO_BACKUP_PREFIX) && file.name.endsWith(".bak")) {
+                runCatching { file.delete() }
+            }
+        }
     }
 
     private sealed class BackupResult {
@@ -174,7 +198,10 @@ class PhotoEditSaver(
         data object Failed : BackupResult()
     }
 
-    private fun backupOriginal(uri: Uri): BackupResult {
+    private fun backupOriginal(
+        uri: Uri,
+        photoId: Long,
+    ): BackupResult {
         val bytes =
             try {
                 context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
@@ -184,8 +211,7 @@ class PhotoEditSaver(
                 return BackupResult.Failed
             } ?: return BackupResult.Failed
         return try {
-            val file = editBackupFile()
-            file.writeBytes(bytes)
+            editBackupFile(photoId).writeBytes(bytes)
             BackupResult.Success
         } catch (_: Exception) {
             BackupResult.Failed
@@ -347,7 +373,7 @@ class PhotoEditSaver(
 
     companion object {
         private const val JPEG_QUALITY = 95
-        private const val EDIT_UNDO_BACKUP_NAME = "gallery_cleaner_edit_undo.bak"
+        private const val EDIT_UNDO_BACKUP_PREFIX = "gallery_cleaner_edit_undo_"
 
         /**
          * Square workspace that fits in the viewport and can hold the image at any rotation.
