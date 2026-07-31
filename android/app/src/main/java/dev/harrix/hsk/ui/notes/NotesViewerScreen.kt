@@ -128,6 +128,7 @@ fun NotesViewerScreen(
     var statusMessage by remember { mutableStateOf<String?>(null) }
     var openTabs by remember { mutableStateOf<List<OpenNoteTab>>(emptyList()) }
     var selectedTabDocumentId by remember { mutableStateOf<String?>(null) }
+    var sessionRestoredForTree by remember { mutableStateOf<String?>(null) }
     var noteContent by remember { mutableStateOf<String?>(null) }
     var noteLoading by remember { mutableStateOf(false) }
     var isEditing by remember { mutableStateOf(false) }
@@ -620,17 +621,50 @@ fun NotesViewerScreen(
         clearTreeState()
         repository.prepareForTree(notesTreeUri)
         val root = ensureRootPath()
-        if (root != null) {
+        if (root != null && notesTreeUri != null) {
+            if (sessionRestoredForTree != notesTreeUri) {
+                val session = preferences.loadOpenTabsSession(notesTreeUri)
+                openTabs = session.tabs
+                selectedTabDocumentId = session.selectedDocumentId
+                if (session.selectedDocumentId != null) {
+                    noteLoading = true
+                    noteContent = null
+                    resetEditorState()
+                } else {
+                    noteContent = null
+                    noteLoading = false
+                    resetEditorState()
+                }
+                sessionRestoredForTree = notesTreeUri
+            }
             openFolderList(root)
             ensureTreeRootLoaded()
         } else {
+            sessionRestoredForTree = null
             folderPath = emptyList()
             entries = emptyList()
             openTabs = emptyList()
             selectedTabDocumentId = null
             noteContent = null
+            noteLoading = false
             resetEditorState()
+            preferences.clearOpenTabsSession()
         }
+    }
+
+    LaunchedEffect(openTabs, selectedTabDocumentId, notesTreeUri, sessionRestoredForTree) {
+        val tree = notesTreeUri
+        if (tree == null) {
+            return@LaunchedEffect
+        }
+        if (sessionRestoredForTree != tree) {
+            return@LaunchedEffect
+        }
+        preferences.saveOpenTabsSession(
+            treeUri = tree,
+            tabs = openTabs,
+            selectedDocumentId = selectedTabDocumentId,
+        )
     }
 
     val selectedTab = openTabs.firstOrNull { it.documentId == selectedTabDocumentId }

@@ -15,11 +15,16 @@ class NotesViewerPreferences(
     fun loadNotesTreeUri(): String? = prefs.getString(KEY_NOTES_TREE_URI, null)?.takeIf { it.isNotBlank() }
 
     fun saveNotesTreeUri(uri: String) {
+        val previous = loadNotesTreeUri()
         prefs.edit().putString(KEY_NOTES_TREE_URI, uri).apply()
+        if (previous != null && previous != uri) {
+            clearOpenTabsSession()
+        }
     }
 
     fun clearNotesTreeUri() {
         prefs.edit().remove(KEY_NOTES_TREE_URI).apply()
+        clearOpenTabsSession()
     }
 
     fun hasNotesPath(): Boolean = !loadNotesTreeUri().isNullOrBlank()
@@ -36,11 +41,48 @@ class NotesViewerPreferences(
         prefs.edit().putString(KEY_BROWSE_LAYOUT, layout.name).apply()
     }
 
+    fun loadOpenTabsSession(treeUri: String?): NotesOpenTabsSession {
+        if (treeUri.isNullOrBlank()) {
+            return NotesOpenTabsSession(treeUri = "", selectedDocumentId = null, tabs = emptyList())
+        }
+        val raw = prefs.getString(KEY_OPEN_TABS_SESSION, null) ?: return emptySession(treeUri)
+        val session = NotesOpenTabsSession.fromJson(raw) ?: return emptySession(treeUri)
+        if (session.treeUri != treeUri) {
+            return emptySession(treeUri)
+        }
+        return session
+    }
+
+    fun saveOpenTabsSession(
+        treeUri: String,
+        tabs: List<OpenNoteTab>,
+        selectedDocumentId: String?,
+    ) {
+        val session =
+            NotesOpenTabsSession(
+                treeUri = treeUri,
+                selectedDocumentId = selectedDocumentId,
+                tabs = tabs,
+            )
+        prefs.edit().putString(KEY_OPEN_TABS_SESSION, session.toJson()).apply()
+    }
+
+    fun clearOpenTabsSession() {
+        prefs.edit().remove(KEY_OPEN_TABS_SESSION).apply()
+    }
+
     companion object {
         private const val PREFS_NAME = "notes_viewer"
         private const val KEY_NOTES_TREE_URI = "notes_tree_uri"
         private const val KEY_LIST_DENSITY = "list_density"
         private const val KEY_BROWSE_LAYOUT = "browse_layout"
+        private const val KEY_OPEN_TABS_SESSION = "open_tabs_session"
+
+        private fun emptySession(treeUri: String) = NotesOpenTabsSession(
+            treeUri = treeUri,
+            selectedDocumentId = null,
+            tabs = emptyList(),
+        )
     }
 }
 
