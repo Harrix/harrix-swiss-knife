@@ -147,7 +147,7 @@ fun GalleryCleanerScreen(
     var pendingTrashPhoto by remember { mutableStateOf<CameraPhoto?>(null) }
     var pendingRestorePhoto by remember { mutableStateOf<CameraPhoto?>(null) }
 
-    /** Session undo stack: deletes and edits, newest last. */
+    /** Session undo stack: keeps, deletes and edits, newest last. */
     var undoStack by remember { mutableStateOf<List<GallerySessionUndo>>(emptyList()) }
     var cardResetKey by remember { mutableIntStateOf(0) }
     var menuExpanded by remember { mutableStateOf(false) }
@@ -191,6 +191,10 @@ fun GalleryCleanerScreen(
         undoStack = undoStack + GallerySessionUndo.Delete(photo)
     }
 
+    fun pushKeepUndo(photo: CameraPhoto) {
+        undoStack = undoStack + GallerySessionUndo.Keep(photo)
+    }
+
     fun pushEditUndo(undo: PendingEditUndo) {
         if (existingEditUndo(undo.photoId) != null) {
             return
@@ -202,6 +206,17 @@ fun GalleryCleanerScreen(
         val index =
             undoStack.indexOfLast {
                 it is GallerySessionUndo.Delete && it.photo.id == photoId
+            }
+        if (index < 0) {
+            return
+        }
+        undoStack = undoStack.toMutableList().also { it.removeAt(index) }
+    }
+
+    fun removeKeepUndo(photoId: Long) {
+        val index =
+            undoStack.indexOfLast {
+                it is GallerySessionUndo.Keep && it.photo.id == photoId
             }
         if (index < 0) {
             return
@@ -234,6 +249,8 @@ fun GalleryCleanerScreen(
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                 pushDeleteUndo(photo)
             }
+        } else {
+            pushKeepUndo(photo)
         }
         val updated = remainingPhotos.filterNot { it.id == photo.id }
         remainingPhotos = updated
@@ -255,6 +272,24 @@ fun GalleryCleanerScreen(
         remainingCount = updated.size
         currentPhoto = photo
         removeDeleteUndo(photo.id)
+        cardResetKey += 1
+        statusMessage = null
+    }
+
+    fun restoreKeptPhoto(photo: CameraPhoto) {
+        view.performLightActionHaptic()
+        if (unreviewedOnlyMode) {
+            preferences.unmarkPhotoReviewed(photo.id)
+        }
+        remainingPhotos =
+            if (remainingPhotos.any { it.id == photo.id }) {
+                remainingPhotos
+            } else {
+                remainingPhotos + photo
+            }
+        remainingCount = remainingPhotos.size
+        currentPhoto = photo
+        removeKeepUndo(photo.id)
         cardResetKey += 1
         statusMessage = null
     }
@@ -562,6 +597,10 @@ fun GalleryCleanerScreen(
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                     requestSystemRestore(last.photo)
                 }
+            }
+
+            is GallerySessionUndo.Keep -> {
+                restoreKeptPhoto(last.photo)
             }
 
             null -> Unit

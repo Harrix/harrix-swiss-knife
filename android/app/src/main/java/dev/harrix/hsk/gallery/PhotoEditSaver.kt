@@ -61,6 +61,10 @@ sealed class GallerySessionUndo {
         val photo: CameraPhoto,
     ) : GallerySessionUndo()
 
+    data class Keep(
+        val photo: CameraPhoto,
+    ) : GallerySessionUndo()
+
     data class Edit(
         val undo: PendingEditUndo,
     ) : GallerySessionUndo()
