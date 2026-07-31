@@ -37,6 +37,7 @@ def get_menu_structure() -> list[Any]:
                 OnUvUpdate,
                 OnInstallCli,
                 OnInstallHarrixNotesExplorerExtension,
+                OnSyncHarrixNotesExplorer,
                 OnAndroidFormat,
                 OnAndroidCheck,
                 OnAndroidBuild,

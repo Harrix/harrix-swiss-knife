@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -52,7 +51,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -61,11 +59,6 @@ import dev.harrix.hsk.R
 import dev.harrix.hsk.gallery.GalleryCleanerPreferences
 import dev.harrix.hsk.gallery.GalleryDateFilter
 import dev.harrix.hsk.gallery.GalleryPermissions
-import dev.harrix.hsk.notes.NotesBrowseLayout
-import dev.harrix.hsk.notes.NotesListDensity
-import dev.harrix.hsk.notes.NotesTitleSource
-import dev.harrix.hsk.notes.NotesViewerPreferences
-import dev.harrix.hsk.ui.notes.NotesFolderPathControls
 import dev.harrix.hsk.ui.theme.ThemeMode
 import java.text.DateFormat
 import java.text.DateFormatSymbols
@@ -76,7 +69,6 @@ enum class SettingsSection {
     All,
     GalleryCleaner,
     VideoCleaner,
-    MarkdownNotes,
 }
 
 private const val EarliestFilterYear = 2008
@@ -97,7 +89,6 @@ fun SettingsScreen(
             SettingsSection.All -> R.string.settings_title
             SettingsSection.GalleryCleaner -> R.string.settings_gallery_cleaner_title
             SettingsSection.VideoCleaner -> R.string.settings_video_cleaner_title
-            SettingsSection.MarkdownNotes -> R.string.settings_markdown_notes_title
         }
     val background = MaterialTheme.colorScheme.background
 
@@ -145,8 +136,6 @@ fun SettingsScreen(
                         showSectionTitle = true,
                         currentShootDayEpochMs = currentShootDayEpochMs,
                     )
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-                    MarkdownNotesSettingsSection(showSectionTitle = true)
                 }
 
                 SettingsSection.GalleryCleaner -> {
@@ -158,10 +147,6 @@ fun SettingsScreen(
 
                 SettingsSection.VideoCleaner -> {
                     // Video Cleaner currently has no utility-specific settings.
-                }
-
-                SettingsSection.MarkdownNotes -> {
-                    MarkdownNotesSettingsSection(showSectionTitle = false)
                 }
             }
 
@@ -230,161 +215,6 @@ private fun CollapsibleSettingsSection(
         if (expanded) {
             content()
         }
-    }
-}
-
-@Composable
-private fun MarkdownNotesSettingsSection(
-    showSectionTitle: Boolean,
-    modifier: Modifier = Modifier,
-) {
-    val context = LocalContext.current
-    val preferences = remember { NotesViewerPreferences(context.applicationContext) }
-    var treeUri by remember { mutableStateOf(preferences.loadNotesTreeUri()) }
-    var browseLayout by remember { mutableStateOf(preferences.loadBrowseLayout()) }
-    var listDensity by remember { mutableStateOf(preferences.loadListDensity()) }
-    var titleSource by remember { mutableStateOf(preferences.loadTitleSource()) }
-    var maxOpenTabsText by remember {
-        mutableStateOf(preferences.loadMaxOpenTabs().toString())
-    }
-
-    val layoutOptions =
-        listOf(
-            NotesBrowseLayout.List to R.string.settings_markdown_notes_browse_layout_list,
-            NotesBrowseLayout.Icons to R.string.settings_markdown_notes_browse_layout_icons,
-        )
-    val densityOptions =
-        listOf(
-            NotesListDensity.Compact to R.string.settings_markdown_notes_list_density_compact,
-            NotesListDensity.Comfortable to R.string.settings_markdown_notes_list_density_comfortable,
-            NotesListDensity.Spacious to R.string.settings_markdown_notes_list_density_spacious,
-        )
-    val titleSourceOptions =
-        listOf(
-            NotesTitleSource.Content to R.string.settings_markdown_notes_title_source_content,
-            NotesTitleSource.FileName to R.string.settings_markdown_notes_title_source_file_name,
-        )
-
-    val body: @Composable () -> Unit = {
-        NotesFolderPathControls(
-            treeUri = treeUri,
-            onTreeUriChange = { treeUri = it },
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = stringResource(R.string.settings_markdown_notes_browse_layout),
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-            layoutOptions.forEachIndexed { index, (layout, labelRes) ->
-                SegmentedButton(
-                    selected = browseLayout == layout,
-                    onClick = {
-                        browseLayout = layout
-                        preferences.saveBrowseLayout(layout)
-                    },
-                    shape =
-                    SegmentedButtonDefaults.itemShape(
-                        index = index,
-                        count = layoutOptions.size,
-                    ),
-                ) {
-                    Text(stringResource(labelRes))
-                }
-            }
-        }
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = stringResource(R.string.settings_markdown_notes_title_source),
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-            titleSourceOptions.forEachIndexed { index, (source, labelRes) ->
-                SegmentedButton(
-                    selected = titleSource == source,
-                    onClick = {
-                        titleSource = source
-                        preferences.saveTitleSource(source)
-                    },
-                    shape =
-                    SegmentedButtonDefaults.itemShape(
-                        index = index,
-                        count = titleSourceOptions.size,
-                    ),
-                ) {
-                    Text(stringResource(labelRes))
-                }
-            }
-        }
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = stringResource(R.string.settings_markdown_notes_max_open_tabs),
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        OutlinedTextField(
-            value = maxOpenTabsText,
-            onValueChange = { raw ->
-                val digits = raw.filter { it.isDigit() }.take(2)
-                maxOpenTabsText = digits
-                val parsed = digits.toIntOrNull() ?: return@OutlinedTextField
-                val clamped =
-                    parsed.coerceIn(
-                        NotesViewerPreferences.MIN_OPEN_TABS,
-                        NotesViewerPreferences.MAX_OPEN_TABS,
-                    )
-                preferences.saveMaxOpenTabs(clamped)
-                if (parsed != clamped) {
-                    maxOpenTabsText = clamped.toString()
-                }
-            },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            supportingText = {
-                Text(stringResource(R.string.settings_markdown_notes_max_open_tabs_hint))
-            },
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = stringResource(R.string.settings_markdown_notes_list_density),
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-            densityOptions.forEachIndexed { index, (density, labelRes) ->
-                SegmentedButton(
-                    selected = listDensity == density,
-                    onClick = {
-                        listDensity = density
-                        preferences.saveListDensity(density)
-                    },
-                    shape =
-                    SegmentedButtonDefaults.itemShape(
-                        index = index,
-                        count = densityOptions.size,
-                    ),
-                ) {
-                    Text(stringResource(labelRes))
-                }
-            }
-        }
-    }
-
-    if (showSectionTitle) {
-        CollapsibleSettingsSection(
-            title = stringResource(R.string.settings_markdown_notes_title),
-            modifier = modifier,
-            content = body,
-        )
-    } else {
-        Column(
-            modifier = modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            content = { body() },
-        )
     }
 }
 

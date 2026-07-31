@@ -46,6 +46,7 @@ lang: en
 - [🔧 Function `vscode_group`](#-function-vscode_group)
 - [🔧 Function `vscode_check`](#-function-vscode_check)
 - [🔧 Function `vscode_format`](#-function-vscode_format)
+- [🔧 Function `vscode_sync_notes_explorer`](#-function-vscode_sync_notes_explorer)
 - [🔧 Function `main`](#-function-main)
 
 </details>
@@ -191,7 +192,7 @@ def dev_install_cli() -> None:
 def dev_install_harrix_notes_explorer_hsk(editor: str) -> None
 ```
 
-Install Harrix Notes Explorer (HSK) into EDITOR; sync public repo when configured (Windows only).
+Install HSK into EDITOR; sync public repo via OnSyncHarrixNotesExplorer first (Windows only).
 
 <details>
 <summary>Code:</summary>
@@ -751,7 +752,7 @@ def text_fix_text_with_ai() -> None:
 def vscode_group() -> None
 ```
 
-VS Code extension format and quality checks (Biome).
+VS Code extension format, quality checks, and public-repo sync.
 
 <details>
 <summary>Code:</summary>
@@ -796,6 +797,26 @@ Format VS Code extension sources via Biome (`npm run format`).
 ```python
 def vscode_format() -> None:
     action = OnVscodeFormat()
+    action(noninteractive=True)
+    _exit_if_action_failed(action)
+```
+
+</details>
+
+## 🔧 Function `vscode_sync_notes_explorer`
+
+```python
+def vscode_sync_notes_explorer() -> None
+```
+
+Sync `vscode/harrix-notes-explorer-hsk` into public `path_harrix_notes_explorer` repo.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def vscode_sync_notes_explorer() -> None:
+    action = OnSyncHarrixNotesExplorer()
     action(noninteractive=True)
     _exit_if_action_failed(action)
 ```

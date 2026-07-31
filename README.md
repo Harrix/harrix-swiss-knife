@@ -62,6 +62,7 @@ _Figure 1: Screenshot_
   - ✨ Format VS Code extension ꟲᴸᴵ
   - ⌨️ Install CLI (hsk on PATH) ꟲᴸᴵ
   - ⚙️ Open `config.json`
+  - 🔄 Sync Harrix Notes Explorer public repo ꟲᴸᴵ
   - 📌 Sync Quick Access folders to Total Commander
   - ⬆️ Update Harrix Swiss Knife from GitHub…
   - 📥 Update Node.js

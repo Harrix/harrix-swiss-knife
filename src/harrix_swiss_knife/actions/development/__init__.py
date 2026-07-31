@@ -12,6 +12,7 @@ from harrix_swiss_knife.actions.development.install_harrix_notes_explorer_extens
 from harrix_swiss_knife.actions.development.node_update import OnNodeUpdate
 from harrix_swiss_knife.actions.development.npm_manage_packages import OnNpmManagePackages
 from harrix_swiss_knife.actions.development.open_config_json import OnOpenConfigJson
+from harrix_swiss_knife.actions.development.sync_harrix_notes_explorer import OnSyncHarrixNotesExplorer
 from harrix_swiss_knife.actions.development.sync_quick_access_to_total_commander import (
     OnSyncQuickAccessToTotalCommander,
 )
@@ -32,6 +33,7 @@ __all__ = [
     "OnNodeUpdate",
     "OnNpmManagePackages",
     "OnOpenConfigJson",
+    "OnSyncHarrixNotesExplorer",
     "OnSyncQuickAccessToTotalCommander",
     "OnUpdateHarrixSwissKnife",
     "OnUvUpdate",

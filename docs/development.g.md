@@ -176,13 +176,13 @@ Command Palette → **Developer: Install Extension from Location** → select th
 
 Commands that call `hsk` live in [`vscode/harrix-notes-explorer-hsk/harrix-cli.js`](https://github.com/Harrix/harrix-swiss-knife/blob/main/vscode/harrix-notes-explorer-hsk/harrix-cli.js). The **HSK** extension keeps this layer; the **public** extension does not.
 
-The public build runs as part of **Update/Install Harrix Notes Explorer extensions** (tray) or `hsk dev install-harrix-notes-explorer-hsk <editor>` when **`path_harrix_notes_explorer`** is configured:
+The public build is **`OnSyncHarrixNotesExplorer`** / `hsk vscode sync-notes-explorer` (also run automatically by **Update/Install Harrix Notes Explorer extensions** and `hsk dev install-harrix-notes-explorer-hsk <editor>` when **`path_harrix_notes_explorer`** is configured):
 
 - Reads **`path_harrix_notes_explorer`** and **`harrix_notes_explorer_publisher`** from `config/config.json` (defaults: `D:/GitHub/harrix-notes-explorer`, `harrix`).
 - Builds from [`vscode/harrix-notes-explorer-hsk`](https://github.com/Harrix/harrix-swiss-knife/tree/main/vscode/harrix-notes-explorer-hsk): renames `harrixNotesExplorerHsk.*` → `harrixNotesExplorer.*`, strips CLI files and manifest entries (see [`HARRIX_CLI.md`](https://github.com/Harrix/harrix-swiss-knife/blob/main/vscode/harrix-notes-explorer-hsk/HARRIX_CLI.md)).
 - **Deletes everything in the target repo except `.git/`**, then copies the build to the repo root (`package.json` at top level).
 - Refuses to sync into the harrix-swiss-knife project root.
-- CLI: add **`--with-public`** to also install `harrix-notes-explorer` from that repo into the editor profile (e.g. `dev install-harrix-notes-explorer-hsk insiders --with-public`).
+- Install CLI: add **`--with-public`** to also install `harrix-notes-explorer` from that repo into the editor profile (e.g. `dev install-harrix-notes-explorer-hsk insiders --with-public`).
 
 Manual checklist (if not using the action): [`HARRIX_CLI.md`](https://github.com/Harrix/harrix-swiss-knife/blob/main/vscode/harrix-notes-explorer-hsk/HARRIX_CLI.md) and [`package.harrix-cli.contributes.json`](https://github.com/Harrix/harrix-swiss-knife/blob/main/vscode/harrix-notes-explorer-hsk/package.harrix-cli.contributes.json). Git discard, local add file/folder, and merged-note open stay in `extension.js`.
 
@@ -225,11 +225,12 @@ Example user settings:
 
 ## Android app (Harrix Swiss Knife)
 
-Optional Android companion app in this monorepo (same idea as the bundled VS Code extension). Not part of the Windows install zip pipeline (numbered steps `01` to `07`).
+Optional Android companion app in this monorepo (Gallery Cleaner and Video Cleaner). Markdown notes browsing lives in the separate [harrix-notes-android](https://github.com/Harrix/harrix-notes-android) app (**Harrix Notes**). Not part of the Windows install zip pipeline (numbered steps `01` to `07`).
 
 - Folder: `android/`
 - Package / applicationId: `dev.harrix.hsk` (reverse DNS for <https://harrix.dev>)
-- UI: Kotlin + Jetpack Compose (Empty Activity stub)
+- UI: Kotlin + Jetpack Compose
+- Utilities: **Gallery Cleaner**, **Video Cleaner**
 - App name (launcher): **Harrix Swiss Knife**
 - Icon: from `src/harrix_swiss_knife/assets/logo.svg` / `app.ico`
 

@@ -253,7 +253,10 @@
     "D:/Dropbox/Notes/Notes-Lists/Books",
     "D:/Dropbox/Notes/Notes-Lists/Books-of-nonfiction"
   ],
-  "paths_android_projects": ["D:/GitHub/harrix-swiss-knife/android"],
+  "paths_android_projects": [
+    "D:/GitHub/harrix-swiss-knife/android",
+    "D:/GitHub/harrix-notes-android"
+  ],
   "paths_python_libraries": ["D:/GitHub/harrix-pylib", "D:/GitHub/harrix-pyssg"],
   "paths_python_project_creation": ["C:/Users/sergi/OneDrive/Projects/Python", "D:/GitHub"],
   "paths_python_projects": ["D:/GitHub/harrix-swiss-knife", "D:/GitHub/harrix-pylib", "D:/GitHub/harrix-pyssg"],
