@@ -52,13 +52,13 @@ _Figure 1: Screenshot_
 
 - **Dev**
   - ℹ️ About
-  - 📱 Build Android APK ꟲᴸᴵ
-  - 🔬 Check Android code ꟲᴸᴵ
+  - 📱 Build Android APK in … ꟲᴸᴵ
+  - 🔬 Check Android code in … ꟲᴸᴵ
   - 🔬 Check VS Code extension ꟲᴸᴵ
   - 🧹 Clear temp folder
   - 🔗 Create desktop shortcut
   - ⬇️ Download ffmpeg, avifenc, avifdec
-  - ✨ Format Android code ꟲᴸᴵ
+  - ✨ Format Android code in … ꟲᴸᴵ
   - ✨ Format VS Code extension ꟲᴸᴵ
   - ⌨️ Install CLI (hsk on PATH) ꟲᴸᴵ
   - ⚙️ Open `config.json`
@@ -309,11 +309,11 @@ Folder arguments are optional (default: current directory) for commands that tak
 - `hsk md add-from-template --template "Movie"`
 - `hsk md add-from-template --template "Book"`
 - `hsk md add-from-template --template "Travel"`
-- `hsk android format` — Spotless (ktlint) format for `android/`
-- `hsk android check` — Spotless check + Detekt + Android Lint (`qualityCheck`)
-- `hsk android build` — build APK using `android_build_variant` in `config.json` (default `release`; Windows; JDK 17 + Android SDK)
-- `hsk android build debug` — build debug APK
-- `hsk android build release` — build release APK (debug-signed for sideload)
+- `hsk android format [FOLDER]` — Spotless (ktlint) format (tray uses `paths_android_projects`)
+- `hsk android check [FOLDER]` — Spotless check + Detekt + Android Lint (`qualityCheck`)
+- `hsk android build [FOLDER] [debug|release]` — build APK using `android_build_variant` in `config.json` when variant omitted (default `release`; Windows; JDK 17 + Android SDK)
+- `hsk android build debug` — build debug APK in `.`
+- `hsk android build release` — build release APK in `.` (debug-signed for sideload)
 - `hsk vscode format` — Biome format for `vscode/harrix-notes-explorer-hsk/`
 - `hsk vscode check` — Biome lint + format check for the VS Code extension
 - `hsk dev install-cli` (global `hsk` on PATH via `uv tool install -e`)

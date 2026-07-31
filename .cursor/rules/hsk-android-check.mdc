@@ -6,7 +6,16 @@ alwaysApply: true
 
 After completing Android (`android/`) code changes, before each `hsk android check` run `hsk android format` first.
 
-Run `hsk android format`, then `hsk android check`, and fix until it passes.
+From the repo root, pass the Android project folder (must contain `gradlew.bat`):
+
+```text
+hsk android format android
+hsk android check android
+```
+
+Or run the same commands with cwd set to `android/` and omit the folder (defaults to `.`).
+
+Run `hsk android format …`, then `hsk android check …`, and fix until it passes.
 Repeat this cycle up to **3 times maximum**. If it still fails after 3 iterations, stop and report the remaining errors.
 
 Do not finish while `hsk android check` still fails, unless the failure is environmental (missing JDK/SDK) and cannot be fixed in code.

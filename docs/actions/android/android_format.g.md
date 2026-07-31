@@ -24,11 +24,12 @@ lang: en
 class OnAndroidFormat(ActionBase)
 ```
 
-Run Spotless apply on the Android project (`spotlessApply`).
+Run Spotless apply on a selected Android project (`spotlessApply`).
 
-Formats Kotlin and Gradle Kotlin DSL under `android/` with ktlint via
-Spotless. Requires Windows, JDK 17, and Android SDK for Gradle to resolve
-the project (same toolchain as APK builds).
+Formats Kotlin and Gradle Kotlin DSL with ktlint via Spotless. The tray
+dialog lists folders from `paths_android_projects` in `config.json` (or
+browse). CLI passes the project folder. Requires Windows, JDK 17, and
+Android SDK for Gradle to resolve the project.
 
 <details>
 <summary>Code:</summary>
@@ -37,12 +38,18 @@ the project (same toolchain as APK builds).
 class OnAndroidFormat(ActionBase):
 
     icon = "✨"
-    title = "Format Android code"
+    title = "Format Android code in …"
     cli_available = True
     cli_hint = "android format"
 
     @ActionBase.handle_exceptions("Android format")
-    def execute(self, *_args: Any, noninteractive: bool = False, **_kwargs: Any) -> None:
+    def execute(
+        self,
+        *_args: Any,
+        folder_path: Path | None = None,
+        noninteractive: bool = False,
+        **_kwargs: Any,
+    ) -> None:
         """Apply Spotless formatting (sync for CLI, background thread for tray)."""
         if sys.platform != "win32":
             self.add_line("❌ This action is only available on Windows.")
@@ -50,9 +57,24 @@ class OnAndroidFormat(ActionBase):
                 self.show_result()
             return
 
-        android_dir = resolve_android_dir()
-        if android_dir is None:
-            self.add_line("❌ android folder or gradlew.bat not found.")
+        if noninteractive and folder_path is None:
+            self.handle_error(
+                ValueError("folder_path is required when noninteractive is True"),
+                self.title,
+            )
+            return
+
+        if folder_path is not None:
+            android_dir = Path(folder_path).resolve()
+        else:
+            android_dir = self.dialogs.get_folder_with_choice_option(
+                self.config["paths_android_projects"], self.config["path_github"]
+            )
+        if not android_dir:
+            return
+
+        if not is_android_project(android_dir):
+            self.add_line(f"❌ {android_dir} is not an Android project (no gradlew.bat)")
             if not noninteractive:
                 self.show_result()
             return
@@ -61,7 +83,7 @@ class OnAndroidFormat(ActionBase):
         if not local_props.is_file() and not resolve_android_home():
             self.add_line(
                 "❌ Android SDK not configured. Run `install\\setup-android-sdk.bat` "
-                "or set ANDROID_HOME and create android/local.properties."
+                "or set ANDROID_HOME and create local.properties in the project."
             )
             if not noninteractive:
                 self.show_result()
@@ -134,16 +156,37 @@ Apply Spotless formatting (sync for CLI, background thread for tray).
 <summary>Code:</summary>
 
 ```python
-def execute(self, *_args: Any, noninteractive: bool = False, **_kwargs: Any) -> None:
+def execute(
+        self,
+        *_args: Any,
+        folder_path: Path | None = None,
+        noninteractive: bool = False,
+        **_kwargs: Any,
+    ) -> None:
         if sys.platform != "win32":
             self.add_line("❌ This action is only available on Windows.")
             if not noninteractive:
                 self.show_result()
             return
 
-        android_dir = resolve_android_dir()
-        if android_dir is None:
-            self.add_line("❌ android folder or gradlew.bat not found.")
+        if noninteractive and folder_path is None:
+            self.handle_error(
+                ValueError("folder_path is required when noninteractive is True"),
+                self.title,
+            )
+            return
+
+        if folder_path is not None:
+            android_dir = Path(folder_path).resolve()
+        else:
+            android_dir = self.dialogs.get_folder_with_choice_option(
+                self.config["paths_android_projects"], self.config["path_github"]
+            )
+        if not android_dir:
+            return
+
+        if not is_android_project(android_dir):
+            self.add_line(f"❌ {android_dir} is not an Android project (no gradlew.bat)")
             if not noninteractive:
                 self.show_result()
             return
@@ -152,7 +195,7 @@ def execute(self, *_args: Any, noninteractive: bool = False, **_kwargs: Any) -> 
         if not local_props.is_file() and not resolve_android_home():
             self.add_line(
                 "❌ Android SDK not configured. Run `install\\setup-android-sdk.bat` "
-                "or set ANDROID_HOME and create android/local.properties."
+                "or set ANDROID_HOME and create local.properties in the project."
             )
             if not noninteractive:
                 self.show_result()

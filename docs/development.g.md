@@ -280,17 +280,18 @@ Outputs:
 
 Release is signed with the **debug** keystore so it can be sideloaded like debug. Use a dedicated release keystore before publishing to Play Store.
 
-Via Harrix Swiss Knife (tray **Dev** → **Build Android APK**, or CLI):
+Via Harrix Swiss Knife (tray **Dev** → **Build Android APK in …**, or CLI):
 
 ```text
-hsk android format
-hsk android check
-hsk android build
+hsk android format android
+hsk android check android
+hsk android build android
+hsk android build android debug
+hsk android build android release
 hsk android build debug
-hsk android build release
 ```
 
-`hsk android format` runs Spotless (`spotlessApply`). `hsk android check` runs `qualityCheck` (Spotless check + Detekt + `lintDebug`). The tray action **Build Android APK** uses `android_build_variant` from `config/config.json` (`debug` or `release`, default `release`) and does not ask each time. CLI may omit the variant (same config key) or pass `debug`/`release` to override. After a successful build it opens the APK folder and, if a phone is connected via USB and visible in `adb devices`, runs `adb install -r` automatically (first device in `device` state). If no device is connected, the APK is still produced.
+`hsk android format` / `check` / `build` take an Android project folder (directory with `gradlew.bat`). Tray actions show a folder dialog from `paths_android_projects` in `config/config.json`. `hsk android format` runs Spotless (`spotlessApply`). `hsk android check` runs `qualityCheck` (Spotless check + Detekt + `lintDebug`). The tray action **Build Android APK in …** uses `android_build_variant` from `config/config.json` (`debug` or `release`, default `release`) and does not ask each time. CLI may omit the variant (same config key) or pass `debug`/`release` to override; a lone `debug`/`release` argument still means variant with FOLDER defaulting to `.`. After a successful build it opens the APK folder and, if a phone is connected via USB and visible in `adb devices`, runs `adb install -r` automatically (first device in `device` state). If no device is connected, the APK is still produced.
 
 Manual install (optional):
 
@@ -300,7 +301,7 @@ adb install -r android\app\build\outputs\apk\debug\HarrixSwissKnife-debug.apk
 
 ### Workflow
 
-- Edit Kotlin/Gradle in **Cursor**; format with `hsk android format`, check with `hsk android check`, build with tray **Build Android APK** or `hsk android build …`
+- Edit Kotlin/Gradle in **Cursor**; format with `hsk android format android`, check with `hsk android check android`, build with tray **Build Android APK in …** or `hsk android build android …`
 - Quality stack: Spotless (ktlint), Detekt + Compose rules, Android Lint (`./gradlew qualityCheck` from `android/`)
 - Android Studio is optional (File → Open → `android/`) for emulator / Layout Inspector — **not** required and **not** opened during APK build
 

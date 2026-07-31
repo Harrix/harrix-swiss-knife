@@ -87,18 +87,22 @@ def android_group() -> None:
 ## 🔧 Function `android_build`
 
 ```python
-def android_build(variant: str | None) -> None
+def android_build(args: tuple[str, ...]) -> None
 ```
 
-Build HSK Android APK (`debug`/`release`, or `android_build_variant` from config).
+Build Android APK for FOLDER (`debug`/`release`, or `android_build_variant` from config).
+
+Examples: `hsk android build ./android`, `hsk android build ./android debug`,
+`hsk android build debug` (FOLDER defaults to `.`).
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def android_build(variant: str | None) -> None:
+def android_build(args: tuple[str, ...]) -> None:
+    folder, variant = _parse_android_build_cli_args(args)
     action = OnAndroidBuild()
-    action(variant=variant, noninteractive=True)
+    action(folder_path=folder, variant=variant, noninteractive=True)
     _finish_timed_action(action)
 ```
 
@@ -107,18 +111,18 @@ def android_build(variant: str | None) -> None:
 ## 🔧 Function `android_check`
 
 ```python
-def android_check() -> None
+def android_check(folder: Path) -> None
 ```
 
-Run Spotless check, Detekt, and Android Lint (`qualityCheck`).
+Run Spotless check, Detekt, and Android Lint (`qualityCheck`) in FOLDER.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def android_check() -> None:
+def android_check(folder: Path) -> None:
     action = OnAndroidCheck()
-    action(noninteractive=True)
+    action(folder_path=folder, noninteractive=True)
     _exit_if_action_failed(action)
 ```
 
@@ -127,18 +131,18 @@ def android_check() -> None:
 ## 🔧 Function `android_format`
 
 ```python
-def android_format() -> None
+def android_format(folder: Path) -> None
 ```
 
-Format Android Kotlin/Gradle sources via Spotless (ktlint).
+Format Android Kotlin/Gradle sources via Spotless (ktlint) in FOLDER.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def android_format() -> None:
+def android_format(folder: Path) -> None:
     action = OnAndroidFormat()
-    action(noninteractive=True)
+    action(folder_path=folder, noninteractive=True)
     _exit_if_action_failed(action)
 ```
 

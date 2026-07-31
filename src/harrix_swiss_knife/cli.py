@@ -48,32 +48,45 @@ def android_group() -> None:
 
 
 @android_group.command("build")
-@click.argument(
-    "variant",
-    required=False,
-    default=None,
-    type=click.Choice(OnAndroidBuild.CLI_VARIANTS, case_sensitive=False),
-)
-def android_build(variant: str | None) -> None:
-    """Build HSK Android APK (`debug`/`release`, or `android_build_variant` from config)."""
+@click.argument("args", nargs=-1)
+def android_build(args: tuple[str, ...]) -> None:
+    """Build Android APK for FOLDER (`debug`/`release`, or `android_build_variant` from config).
+
+    Examples: `hsk android build ./android`, `hsk android build ./android debug`,
+    `hsk android build debug` (FOLDER defaults to `.`).
+
+    """
+    folder, variant = _parse_android_build_cli_args(args)
     action = OnAndroidBuild()
-    action(variant=variant, noninteractive=True)
+    action(folder_path=folder, variant=variant, noninteractive=True)
     _finish_timed_action(action)
 
 
 @android_group.command("check")
-def android_check() -> None:
-    """Run Spotless check, Detekt, and Android Lint (`qualityCheck`)."""
+@click.argument(
+    "folder",
+    required=False,
+    default=".",
+    type=click.Path(exists=True, file_okay=False, path_type=Path),
+)
+def android_check(folder: Path) -> None:
+    """Run Spotless check, Detekt, and Android Lint (`qualityCheck`) in FOLDER."""
     action = OnAndroidCheck()
-    action(noninteractive=True)
+    action(folder_path=folder, noninteractive=True)
     _exit_if_action_failed(action)
 
 
 @android_group.command("format")
-def android_format() -> None:
-    """Format Android Kotlin/Gradle sources via Spotless (ktlint)."""
+@click.argument(
+    "folder",
+    required=False,
+    default=".",
+    type=click.Path(exists=True, file_okay=False, path_type=Path),
+)
+def android_format(folder: Path) -> None:
+    """Format Android Kotlin/Gradle sources via Spotless (ktlint) in FOLDER."""
     action = OnAndroidFormat()
-    action(noninteractive=True)
+    action(folder_path=folder, noninteractive=True)
     _exit_if_action_failed(action)
 
 
@@ -626,6 +639,34 @@ def _finish_timed_action(action: object) -> None:
     if callable(add_elapsed):
         add_elapsed()
     _exit_if_action_failed(action)
+
+
+def _parse_android_build_cli_args(args: tuple[str, ...]) -> tuple[Path, str | None]:
+    """Parse optional FOLDER and debug/release for ``hsk android build``."""
+    variants = {name.lower() for name in OnAndroidBuild.CLI_VARIANTS}
+    max_args = 2  # optional FOLDER + optional variant
+    if len(args) > max_args:
+        msg = "Expected at most FOLDER and variant (debug|release)."
+        raise click.UsageError(msg)
+
+    folder: Path | None = None
+    variant: str | None = None
+    for arg in args:
+        if arg.lower() in variants and variant is None:
+            variant = arg.lower()
+            continue
+        if folder is None:
+            folder = Path(arg)
+            continue
+        msg = f"Unexpected argument: {arg!r}"
+        raise click.UsageError(msg)
+
+    if folder is None:
+        folder = Path()
+    if not folder.is_dir():
+        msg = f"Folder does not exist: {folder}"
+        raise click.BadParameter(msg, param_hint="FOLDER")
+    return folder.resolve(), variant
 
 
 def _resolve_template_name(templates: dict[object, object], template_arg: str | None) -> str | None:

@@ -11,13 +11,43 @@ lang: en
 
 ## Contents
 
+- [🔧 Function `find_built_apk`](#-function-find_built_apk)
 - [🔧 Function `gradle_env`](#-function-gradle_env)
+- [🔧 Function `is_android_project`](#-function-is_android_project)
 - [🔧 Function `resolve_android_dir`](#-function-resolve_android_dir)
 - [🔧 Function `resolve_android_home`](#-function-resolve_android_home)
 - [🔧 Function `resolve_java_home`](#-function-resolve_java_home)
 - [🔧 Function `run_gradle`](#-function-run_gradle)
 - [🔧 Function `valid_java_home`](#-function-valid_java_home)
 - [🔧 Function `windows_env_value`](#-function-windows_env_value)
+
+</details>
+
+## 🔧 Function `find_built_apk`
+
+```python
+def find_built_apk(android_dir: Path, variant: str) -> Path | None
+```
+
+Return the newest APK under `app/build/outputs/apk/<variant>/`, if any.
+
+Prefers files whose names do not contain `unsigned`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def find_built_apk(android_dir: Path, variant: str) -> Path | None:
+    out_dir = android_dir / "app" / "build" / "outputs" / "apk" / variant
+    if not out_dir.is_dir():
+        return None
+    apks = [path for path in out_dir.glob("*.apk") if path.is_file()]
+    if not apks:
+        return None
+    preferred = [path for path in apks if "unsigned" not in path.name.lower()]
+    candidates = preferred or apks
+    return max(candidates, key=lambda path: path.stat().st_mtime)
+```
 
 </details>
 
@@ -49,13 +79,35 @@ def gradle_env(java_home: str) -> dict[str, str]:
 
 </details>
 
+## 🔧 Function `is_android_project`
+
+```python
+def is_android_project(path: Path) -> bool
+```
+
+Return whether ``path`` looks like an Android Gradle project (``gradlew.bat``).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def is_android_project(path: Path) -> bool:
+    return path.is_dir() and (path / "gradlew.bat").is_file()
+```
+
+</details>
+
 ## 🔧 Function `resolve_android_dir`
 
 ```python
 def resolve_android_dir() -> Path | None
 ```
 
-Return ``android/`` under the project root if the Gradle wrapper exists.
+Return `android/` under the project root if the Gradle wrapper exists.
+
+Deprecated for tray/CLI actions; prefer an explicit folder from
+`paths_android_projects` or a CLI argument. Kept for scripts that still
+target the HSK tree layout.
 
 <details>
 <summary>Code:</summary>
@@ -63,9 +115,7 @@ Return ``android/`` under the project root if the Gradle wrapper exists.
 ```python
 def resolve_android_dir() -> Path | None:
     android_dir = h.dev.get_project_root() / "android"
-    if not android_dir.is_dir():
-        return None
-    if not (android_dir / "gradlew.bat").is_file():
+    if not is_android_project(android_dir):
         return None
     return android_dir
 ```

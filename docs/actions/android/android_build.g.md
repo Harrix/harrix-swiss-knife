@@ -24,16 +24,17 @@ lang: en
 class OnAndroidBuild(ActionBase)
 ```
 
-Build HSK Android APK (`assembleDebug` or `assembleRelease`).
+Build an Android APK (`assembleDebug` or `assembleRelease`).
 
 Tray uses `android_build_variant` from `config/config.json` (`debug` or
-`release`, default `release`). CLI may pass `debug`/`release` to override.
-Requires Windows, JDK 17, and Android SDK (`ANDROID_HOME` /
-`android/local.properties`). Use `install/setup-android-sdk.bat` once
-to install the toolchain. After a successful build, the result dialog
-can open the APK folder, and the action runs `adb install -r` when a USB
-device is connected. If the phone is still waiting for USB debugging
-authorization, waits for confirmation.
+`release`, default `release`). The tray dialog lists folders from
+`paths_android_projects` (or browse). CLI may pass a project folder and
+optional `debug`/`release` to override the variant. Requires Windows,
+JDK 17, and Android SDK (`ANDROID_HOME` / `local.properties`). Use
+`install/setup-android-sdk.bat` once to install the toolchain. After a
+successful build, the result dialog can open the APK folder, and the
+action runs `adb install -r` when a USB device is connected. If the phone
+is still waiting for USB debugging authorization, waits for confirmation.
 
 <details>
 <summary>Code:</summary>
@@ -42,9 +43,9 @@ authorization, waits for confirmation.
 class OnAndroidBuild(ActionBase):
 
     icon = "📱"
-    title = "Build Android APK"
+    title = "Build Android APK in …"
     cli_available = True
-    cli_hint = "android build [debug|release]"
+    cli_hint = "android build [FOLDER] [debug|release]"
 
     CLI_VARIANTS: ClassVar[tuple[str, ...]] = ("debug", "release")
     DEFAULT_VARIANT: ClassVar[str] = "release"
@@ -53,18 +54,16 @@ class OnAndroidBuild(ActionBase):
     _ADB_AUTH_POLL_INTERVAL_SEC: ClassVar[float] = 2.0
     _ADB_AUTH_TIMEOUT_SEC: ClassVar[float] = 120.0
 
-    _VARIANT_CONFIG: ClassVar[dict[str, tuple[str, str]]] = {
-        "debug": ("assembleDebug", "app/build/outputs/apk/debug/HarrixSwissKnife-debug.apk"),
-        "release": (
-            "assembleRelease",
-            "app/build/outputs/apk/release/HarrixSwissKnife-release.apk",
-        ),
+    _VARIANT_TASKS: ClassVar[dict[str, str]] = {
+        "debug": "assembleDebug",
+        "release": "assembleRelease",
     }
 
     @ActionBase.handle_exceptions("Android APK build")
     def execute(
         self,
         *_args: Any,
+        folder_path: Path | None = None,
         variant: str | None = None,
         noninteractive: bool = False,
         **_kwargs: Any,
@@ -76,25 +75,40 @@ class OnAndroidBuild(ActionBase):
                 self.show_result()
             return
 
+        if noninteractive and folder_path is None:
+            self.handle_error(
+                ValueError("folder_path is required when noninteractive is True"),
+                self.title,
+            )
+            return
+
+        if folder_path is not None:
+            android_dir = Path(folder_path).resolve()
+        else:
+            android_dir = self.dialogs.get_folder_with_choice_option(
+                self.config["paths_android_projects"], self.config["path_github"]
+            )
+        if not android_dir:
+            return
+
+        if not is_android_project(android_dir):
+            self.add_line(f"❌ {android_dir} is not an Android project (no gradlew.bat)")
+            if not noninteractive:
+                self.show_result()
+            return
+
         resolved = self._resolve_variant(variant=variant)
         if resolved is None:
             if not noninteractive:
                 self.show_result()
             return
 
-        gradle_task, apk_relative = resolved
-        android_dir = resolve_android_dir()
-        if android_dir is None:
-            self.add_line("❌ android folder or gradlew.bat not found.")
-            if not noninteractive:
-                self.show_result()
-            return
-
+        variant_key, gradle_task = resolved
         local_props = android_dir / "local.properties"
         if not local_props.is_file() and not resolve_android_home():
             self.add_line(
                 "❌ Android SDK not configured. Run `install\\setup-android-sdk.bat` "
-                "or set ANDROID_HOME and create android/local.properties."
+                "or set ANDROID_HOME and create local.properties in the project."
             )
             if not noninteractive:
                 self.show_result()
@@ -110,12 +124,12 @@ class OnAndroidBuild(ActionBase):
                 self.show_result()
             return
 
+        self._variant_key = variant_key
         self._gradle_task = gradle_task
-        self._apk_relative = apk_relative
         self._java_home = java_home
 
         if noninteractive:
-            self._run_gradle_build(android_dir, gradle_task, apk_relative, java_home)
+            self._run_gradle_build(android_dir, variant_key, gradle_task, java_home)
             return
 
         self._android_dir_for_thread = android_dir
@@ -130,12 +144,8 @@ class OnAndroidBuild(ActionBase):
             return None
         self._run_gradle_build(
             android_dir,
+            getattr(self, "_variant_key", self.DEFAULT_VARIANT),
             getattr(self, "_gradle_task", "assembleRelease"),
-            getattr(
-                self,
-                "_apk_relative",
-                "app/build/outputs/apk/release/HarrixSwissKnife-release.apk",
-            ),
             java_home,
         )
         return None
@@ -235,7 +245,7 @@ class OnAndroidBuild(ActionBase):
         return None
 
     def _resolve_variant(self, *, variant: str | None) -> tuple[str, str] | None:
-        """Map CLI override or ``android_build_variant`` config to Gradle task and APK path."""
+        """Map CLI override or ``android_build_variant`` config to variant key and Gradle task."""
         if variant is not None:
             key = str(variant).strip().lower()
             source = "CLI"
@@ -244,25 +254,23 @@ class OnAndroidBuild(ActionBase):
             key = str(raw or self.DEFAULT_VARIANT).strip().lower()
             source = f"config.json `{self.CONFIG_KEY}`"
 
-        config = self._VARIANT_CONFIG.get(key)
-        if config is None:
+        gradle_task = self._VARIANT_TASKS.get(key)
+        if gradle_task is None:
             supported = ", ".join(self.CLI_VARIANTS)
             self.add_line(f"❌ Unknown Android build variant {key!r} from {source}. Use: {supported}")
             return None
 
-        gradle_task, _apk_relative = config
         self.add_line(f"🔵 Build variant: {key} ({gradle_task}) — {source}")
-        return config
+        return key, gradle_task
 
     def _run_gradle_build(
         self,
         android_dir: Path,
+        variant_key: str,
         gradle_task: str,
-        apk_relative: str,
         java_home: str,
     ) -> None:
         """Invoke Gradle with a resolved JDK and report the APK path or failure."""
-        apk_path = android_dir / apk_relative
         gradlew = android_dir / "gradlew.bat"
 
         self.add_line(f"🔵 Starting {gradle_task} in {android_dir}")
@@ -282,8 +290,10 @@ class OnAndroidBuild(ActionBase):
                 self.add_line("Hint: run install\\setup-android-sdk.bat if the SDK is not installed.")
             return
 
-        if not apk_path.is_file():
-            self.add_line(f"❌ {gradle_task} finished but APK is missing: {apk_path}")
+        apk_path = find_built_apk(android_dir, variant_key)
+        if apk_path is None:
+            expected = android_dir / "app" / "build" / "outputs" / "apk" / variant_key
+            self.add_line(f"❌ {gradle_task} finished but no APK found in {expected}")
             return
 
         self.add_line(f"✅ APK: {apk_path}")
@@ -340,6 +350,7 @@ Build the Android APK (sync for CLI, background thread for tray).
 def execute(
         self,
         *_args: Any,
+        folder_path: Path | None = None,
         variant: str | None = None,
         noninteractive: bool = False,
         **_kwargs: Any,
@@ -350,25 +361,40 @@ def execute(
                 self.show_result()
             return
 
+        if noninteractive and folder_path is None:
+            self.handle_error(
+                ValueError("folder_path is required when noninteractive is True"),
+                self.title,
+            )
+            return
+
+        if folder_path is not None:
+            android_dir = Path(folder_path).resolve()
+        else:
+            android_dir = self.dialogs.get_folder_with_choice_option(
+                self.config["paths_android_projects"], self.config["path_github"]
+            )
+        if not android_dir:
+            return
+
+        if not is_android_project(android_dir):
+            self.add_line(f"❌ {android_dir} is not an Android project (no gradlew.bat)")
+            if not noninteractive:
+                self.show_result()
+            return
+
         resolved = self._resolve_variant(variant=variant)
         if resolved is None:
             if not noninteractive:
                 self.show_result()
             return
 
-        gradle_task, apk_relative = resolved
-        android_dir = resolve_android_dir()
-        if android_dir is None:
-            self.add_line("❌ android folder or gradlew.bat not found.")
-            if not noninteractive:
-                self.show_result()
-            return
-
+        variant_key, gradle_task = resolved
         local_props = android_dir / "local.properties"
         if not local_props.is_file() and not resolve_android_home():
             self.add_line(
                 "❌ Android SDK not configured. Run `install\\setup-android-sdk.bat` "
-                "or set ANDROID_HOME and create android/local.properties."
+                "or set ANDROID_HOME and create local.properties in the project."
             )
             if not noninteractive:
                 self.show_result()
@@ -384,12 +410,12 @@ def execute(
                 self.show_result()
             return
 
+        self._variant_key = variant_key
         self._gradle_task = gradle_task
-        self._apk_relative = apk_relative
         self._java_home = java_home
 
         if noninteractive:
-            self._run_gradle_build(android_dir, gradle_task, apk_relative, java_home)
+            self._run_gradle_build(android_dir, variant_key, gradle_task, java_home)
             return
 
         self._android_dir_for_thread = android_dir
@@ -417,12 +443,8 @@ def in_thread(self) -> str | None:
             return None
         self._run_gradle_build(
             android_dir,
+            getattr(self, "_variant_key", self.DEFAULT_VARIANT),
             getattr(self, "_gradle_task", "assembleRelease"),
-            getattr(
-                self,
-                "_apk_relative",
-                "app/build/outputs/apk/release/HarrixSwissKnife-release.apk",
-            ),
             java_home,
         )
         return None
