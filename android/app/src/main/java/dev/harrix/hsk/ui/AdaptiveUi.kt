@@ -74,8 +74,9 @@ fun videoGridColumnCount(): Int {
 }
 
 /**
- * Bottom-bar action: icon above label so Delete / Skip / Keep fit on narrow phones
- * without mid-word wrapping. Grows evenly in a [RowScope].
+ * Bottom-bar action: icon and label on one row. Short labels (Delete / Skip / Keep)
+ * fit on narrow phones; longer text ellipsizes instead of wrapping mid-word.
+ * Grows evenly in a [RowScope].
  */
 @Composable
 fun RowScope.CompactBottomActionButton(
@@ -93,30 +94,30 @@ fun RowScope.CompactBottomActionButton(
         },
 ) {
     val content: @Composable () -> Unit = {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(2.dp),
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center,
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                modifier = Modifier.size(20.dp),
+                modifier = Modifier.size(18.dp),
             )
+            Spacer(modifier = Modifier.width(6.dp))
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelLarge,
                 maxLines = 1,
                 softWrap = false,
                 overflow = TextOverflow.Ellipsis,
-                textAlign = TextAlign.Center,
             )
         }
     }
     val buttonModifier =
         modifier
             .weight(1f)
-            .heightIn(min = 56.dp)
-    val padding = PaddingValues(horizontal = 6.dp, vertical = 8.dp)
+            .heightIn(min = 48.dp)
+    val padding = PaddingValues(horizontal = 8.dp, vertical = 10.dp)
     if (outlined) {
         OutlinedButton(
             onClick = onClick,
