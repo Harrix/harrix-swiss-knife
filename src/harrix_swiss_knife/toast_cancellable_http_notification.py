@@ -5,46 +5,15 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from PySide6.QtCore import QSize, Qt, Signal
-from PySide6.QtGui import QColor, QIcon, QPainter, QPixmap
 from PySide6.QtWidgets import QPushButton, QWidget
 
-from harrix_swiss_knife import toast_countdown_notification
+from harrix_swiss_knife import toast_countdown_notification, toast_notification_base
 
 if TYPE_CHECKING:
     from PySide6.QtGui import QCloseEvent, QKeyEvent, QResizeEvent
 
 _CLOSE_SYMBOL = "\u00d7"
-
 _CANCEL_HINT = "Press Esc to stop the request"
-
-_DEFAULT_CLOSE_BUTTON_SIDE = 24
-_COMPACT_CLOSE_BUTTON_SIDE = 18
-
-_DEFAULT_CLOSE_BUTTON_STYLE = (
-    "QPushButton {"
-    "background-color: transparent;"
-    "border: none;"
-    "padding: 0px;"
-    "margin: 0px;"
-    "}"
-    "QPushButton:hover {"
-    "background-color: rgba(255, 255, 255, 40);"
-    "border-radius: 4px;"
-    "}"
-)
-
-_COMPACT_CLOSE_BUTTON_STYLE = (
-    "QPushButton {"
-    "background-color: transparent;"
-    "border: none;"
-    "padding: 0px;"
-    "margin: 0px;"
-    "}"
-    "QPushButton:hover {"
-    "background-color: rgba(255, 255, 255, 40);"
-    "border-radius: 3px;"
-    "}"
-)
 
 
 class ToastCancellableHttpNotification(toast_countdown_notification.ToastCountdownNotification):
@@ -76,13 +45,14 @@ class ToastCancellableHttpNotification(toast_countdown_notification.ToastCountdo
         self._close_button = QPushButton(self)
         self._close_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self._close_button.setFlat(True)
-        self._close_button.setStyleSheet(_DEFAULT_CLOSE_BUTTON_STYLE)
+        self._close_button.setStyleSheet(toast_notification_base.DEFAULT_ACTION_BUTTON_STYLE)
         self._apply_close_button_icon(compact=False)
         self._close_button.setToolTip("Cancel request")
         self._close_button.clicked.connect(self._on_user_cancel)
 
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self._position_close_button()
+        self._position_collapse_button()
 
     def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
         """Stop timer and emit cancel when closed by the user before completion."""
@@ -107,26 +77,33 @@ class ToastCancellableHttpNotification(toast_countdown_notification.ToastCountdo
         """Show on top and take focus so Escape reaches this toast, not the parent dialog."""
         super().present()
         self.setFocus(Qt.FocusReason.ActiveWindowFocusReason)
+        self._position_close_button()
+        self._position_collapse_button()
 
     def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802
-        """Reposition the close button when the toast is resized."""
+        """Reposition close and collapse buttons when the toast is resized."""
         super().resizeEvent(event)
         self._position_close_button()
 
     def _apply_close_button_icon(self, *, compact: bool) -> None:
-        side = _COMPACT_CLOSE_BUTTON_SIDE if compact else _DEFAULT_CLOSE_BUTTON_SIDE
+        side = (
+            toast_notification_base.COMPACT_ACTION_BUTTON_SIDE
+            if compact
+            else toast_notification_base.DEFAULT_ACTION_BUTTON_SIDE
+        )
         self._close_button.setFixedSize(side, side)
         self._close_button.setIconSize(QSize(side, side))
-        self._close_button.setIcon(_make_close_icon(side))
+        self._close_button.setIcon(toast_notification_base.make_action_icon(side, _CLOSE_SYMBOL))
 
     def _apply_compact_style(self) -> None:
         """Apply compact styling to the label and close button."""
         super()._apply_compact_style()
         if not hasattr(self, "_close_button"):
             return
-        self._close_button.setStyleSheet(_COMPACT_CLOSE_BUTTON_STYLE)
+        self._close_button.setStyleSheet(toast_notification_base.COMPACT_ACTION_BUTTON_STYLE)
         self._apply_close_button_icon(compact=True)
         self._position_close_button()
+        self._position_collapse_button()
         self._refresh_label_text()
 
     def _apply_default_style(self) -> None:
@@ -134,9 +111,10 @@ class ToastCancellableHttpNotification(toast_countdown_notification.ToastCountdo
         super()._apply_default_style()
         if not hasattr(self, "_close_button"):
             return
-        self._close_button.setStyleSheet(_DEFAULT_CLOSE_BUTTON_STYLE)
+        self._close_button.setStyleSheet(toast_notification_base.DEFAULT_ACTION_BUTTON_STYLE)
         self._apply_close_button_icon(compact=False)
         self._position_close_button()
+        self._position_collapse_button()
         self._refresh_label_text()
 
     def _emit_cancel_requested(self) -> None:
@@ -157,7 +135,7 @@ class ToastCancellableHttpNotification(toast_countdown_notification.ToastCountdo
         if not hasattr(self, "_close_button"):
             return
         label_geom = self.label.geometry()
-        side = _COMPACT_CLOSE_BUTTON_SIDE if self._is_pinned else _DEFAULT_CLOSE_BUTTON_SIDE
+        side = self._action_button_side()
         margin = 2 if self._is_pinned else 4
         self._close_button.move(
             label_geom.x() + label_geom.width() - side - margin,
@@ -175,21 +153,12 @@ class ToastCancellableHttpNotification(toast_countdown_notification.ToastCountdo
             )
         self.adjustSize()
         self._position_close_button()
+        self._position_collapse_button()
         if self._is_pinned:
             self._move_to_bottom_right_corner()
 
-
-def _make_close_icon(side: int) -> QIcon:
-    """Render a centered close symbol for the given button side length."""
-    pixmap = QPixmap(side, side)
-    pixmap.fill(Qt.GlobalColor.transparent)
-    painter = QPainter(pixmap)
-    painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-    font = painter.font()
-    font.setPixelSize(max(10, int(side * 0.72)))
-    font.setBold(True)
-    painter.setFont(font)
-    painter.setPen(QColor(255, 255, 255, 200))
-    painter.drawText(pixmap.rect(), Qt.AlignmentFlag.AlignCenter, _CLOSE_SYMBOL)
-    painter.end()
-    return QIcon(pixmap)
+    def _trailing_controls_width(self) -> int:
+        """Reserve space for the cancel button to the right of collapse."""
+        if not hasattr(self, "_close_button"):
+            return 0
+        return self._action_button_side() + toast_notification_base.ACTION_BUTTON_GAP

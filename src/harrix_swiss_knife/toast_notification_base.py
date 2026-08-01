@@ -5,9 +5,49 @@ that can be displayed temporarily on screen with customizable messages.
 
 """
 
-from PySide6.QtCore import QPoint, Qt
-from PySide6.QtGui import QMouseEvent
-from PySide6.QtWidgets import QApplication, QDialog, QLabel, QVBoxLayout, QWidget
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+from PySide6.QtCore import QPoint, QSize, Qt
+from PySide6.QtGui import QColor, QIcon, QMouseEvent, QPainter, QPixmap
+from PySide6.QtWidgets import QApplication, QDialog, QLabel, QPushButton, QVBoxLayout, QWidget
+
+if TYPE_CHECKING:
+    from PySide6.QtGui import QResizeEvent
+
+_COLLAPSE_SYMBOL = "\u2212"
+_EXPAND_SYMBOL = "\u25a1"
+
+DEFAULT_ACTION_BUTTON_SIDE = 24
+COMPACT_ACTION_BUTTON_SIDE = 18
+ACTION_BUTTON_GAP = 2
+
+DEFAULT_ACTION_BUTTON_STYLE = (
+    "QPushButton {"
+    "background-color: transparent;"
+    "border: none;"
+    "padding: 0px;"
+    "margin: 0px;"
+    "}"
+    "QPushButton:hover {"
+    "background-color: rgba(255, 255, 255, 40);"
+    "border-radius: 4px;"
+    "}"
+)
+
+COMPACT_ACTION_BUTTON_STYLE = (
+    "QPushButton {"
+    "background-color: transparent;"
+    "border: none;"
+    "padding: 0px;"
+    "margin: 0px;"
+    "}"
+    "QPushButton:hover {"
+    "background-color: rgba(255, 255, 255, 40);"
+    "border-radius: 3px;"
+    "}"
+)
 
 
 class ToastNotificationBase(QDialog):
@@ -64,6 +104,15 @@ class ToastNotificationBase(QDialog):
         # Set cursor to indicate draggable window
         self.setCursor(Qt.CursorShape.OpenHandCursor)
 
+        self._collapse_button = QPushButton(self)
+        self._collapse_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._collapse_button.setFlat(True)
+        self._collapse_button.setStyleSheet(DEFAULT_ACTION_BUTTON_STYLE)
+        self._apply_collapse_button_icon(compact=False)
+        self._collapse_button.setToolTip("Collapse")
+        self._collapse_button.clicked.connect(self._toggle_pinned)
+        self._position_collapse_button()
+
     def mouseDoubleClickEvent(self, event: QMouseEvent) -> None:  # noqa: N802
         """Toggle pinned (compact, bottom-right) and expanded (large, centered) layout.
 
@@ -78,16 +127,7 @@ class ToastNotificationBase(QDialog):
         if event.button() != Qt.MouseButton.LeftButton:
             return
 
-        if self._is_pinned:
-            self._is_pinned = False
-            self._apply_default_style()
-            self.adjustSize()
-            self._move_to_screen_center()
-        else:
-            self._is_pinned = True
-            self._apply_compact_style()
-            self.adjustSize()
-            self._move_to_bottom_right_corner()
+        self._toggle_pinned()
         event.accept()
 
     def mouseMoveEvent(self, event: QMouseEvent) -> None:  # noqa: N802
@@ -136,6 +176,24 @@ class ToastNotificationBase(QDialog):
         self.show()
         self.raise_()
         self.activateWindow()
+        self._position_collapse_button()
+
+    def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802
+        """Reposition the collapse button when the toast is resized."""
+        super().resizeEvent(event)
+        self._position_collapse_button()
+
+    def _action_button_side(self) -> int:
+        """Return the action-button side length for the current pin state."""
+        return COMPACT_ACTION_BUTTON_SIDE if self._is_pinned else DEFAULT_ACTION_BUTTON_SIDE
+
+    def _apply_collapse_button_icon(self, *, compact: bool) -> None:
+        side = COMPACT_ACTION_BUTTON_SIDE if compact else DEFAULT_ACTION_BUTTON_SIDE
+        symbol = _EXPAND_SYMBOL if self._is_pinned else _COLLAPSE_SYMBOL
+        self._collapse_button.setFixedSize(side, side)
+        self._collapse_button.setIconSize(QSize(side, side))
+        self._collapse_button.setIcon(make_action_icon(side, symbol))
+        self._collapse_button.setToolTip("Expand" if self._is_pinned else "Collapse")
 
     def _apply_compact_style(self) -> None:
         """Apply compact styling with reduced font size for pinned notifications."""
@@ -147,6 +205,10 @@ class ToastNotificationBase(QDialog):
             "font-size: 10pt;"
             "font-weight: bold;",
         )
+        if hasattr(self, "_collapse_button"):
+            self._collapse_button.setStyleSheet(COMPACT_ACTION_BUTTON_STYLE)
+            self._apply_collapse_button_icon(compact=True)
+            self._position_collapse_button()
 
     def _apply_default_style(self) -> None:
         """Apply default styling for expanded, centered notifications."""
@@ -158,6 +220,10 @@ class ToastNotificationBase(QDialog):
             "font-size: 16pt;"
             "font-weight: bold;",
         )
+        if hasattr(self, "_collapse_button"):
+            self._collapse_button.setStyleSheet(DEFAULT_ACTION_BUTTON_STYLE)
+            self._apply_collapse_button_icon(compact=False)
+            self._position_collapse_button()
 
     def _move_to_bottom_right_corner(self, *, margin: int = 20) -> None:
         """Move the notification to the bottom-right of the primary screen."""
@@ -180,3 +246,50 @@ class ToastNotificationBase(QDialog):
             area.x() + (area.width() - self.width()) // 2,
             area.y() + (area.height() - self.height()) // 2,
         )
+
+    def _position_collapse_button(self) -> None:
+        """Place the collapse button near the top-right of the message label."""
+        if not hasattr(self, "_collapse_button"):
+            return
+        label_geom = self.label.geometry()
+        side = self._action_button_side()
+        margin = 2 if self._is_pinned else 4
+        right_offset = self._trailing_controls_width()
+        self._collapse_button.move(
+            label_geom.x() + label_geom.width() - side - margin - right_offset,
+            label_geom.y() + margin,
+        )
+        self._collapse_button.raise_()
+
+    def _toggle_pinned(self) -> None:
+        """Toggle between pinned compact layout and expanded centered layout."""
+        if self._is_pinned:
+            self._is_pinned = False
+            self._apply_default_style()
+            self.adjustSize()
+            self._move_to_screen_center()
+        else:
+            self._is_pinned = True
+            self._apply_compact_style()
+            self.adjustSize()
+            self._move_to_bottom_right_corner()
+
+    def _trailing_controls_width(self) -> int:
+        """Width reserved to the right of the collapse button for subclass controls."""
+        return 0
+
+
+def make_action_icon(side: int, symbol: str) -> QIcon:
+    """Render a centered action symbol for the given button side length."""
+    pixmap = QPixmap(side, side)
+    pixmap.fill(Qt.GlobalColor.transparent)
+    painter = QPainter(pixmap)
+    painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+    font = painter.font()
+    font.setPixelSize(max(10, int(side * 0.72)))
+    font.setBold(True)
+    painter.setFont(font)
+    painter.setPen(QColor(255, 255, 255, 200))
+    painter.drawText(pixmap.rect(), Qt.AlignmentFlag.AlignCenter, symbol)
+    painter.end()
+    return QIcon(pixmap)
