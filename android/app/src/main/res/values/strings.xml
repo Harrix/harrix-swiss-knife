@@ -102,6 +102,8 @@
     <string name="gallery_cleaner_edit_discard">Close without saving</string>
     <string name="gallery_cleaner_edit_save_failed">Could not save photo</string>
     <string name="gallery_cleaner_edit_rotation_degrees">%1$d°</string>
+    <string name="gallery_cleaner_edit_aspect_rotate">Aspect 90°</string>
+    <string name="gallery_cleaner_edit_aspect_free">Free aspect</string>
     <string name="video_cleaner_title">Video Cleaner</string>
     <string name="video_cleaner_close">Exit Video Cleaner</string>
     <string name="video_cleaner_settings">Settings</string>

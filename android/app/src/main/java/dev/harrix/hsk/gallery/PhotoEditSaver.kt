@@ -108,8 +108,8 @@ class PhotoEditSaver(
     ): SaveResult {
         val oriented =
             decodeOrientedBitmap(uri) ?: return SaveResult.Failed
-        val imageAspect = oriented.width.toFloat() / oriented.height.toFloat().coerceAtLeast(1f)
-        val squareCrop = clampCropRect(crop, imageAspect)
+        // Editor already applied the chosen aspect (original / 90° / free).
+        val squareCrop = clampCropRectFree(crop)
         val workspace =
             renderRotatedOnSquare(oriented, rotationDegrees) ?: run {
                 oriented.recycle()
@@ -440,9 +440,43 @@ class PhotoEditSaver(
         }
 
         /**
+         * Clamp crop to `0..1` of the square workspace without forcing aspect ratio.
+         */
+        fun clampCropRectFree(
+            rect: NormalizedCropRect,
+            minNormalizedSide: Float = 0.06f,
+        ): NormalizedCropRect {
+            var left = rect.left
+            var top = rect.top
+            var right = rect.right
+            var bottom = rect.bottom
+            if (right < left) {
+                val tmp = left
+                left = right
+                right = tmp
+            }
+            if (bottom < top) {
+                val tmp = top
+                top = bottom
+                bottom = tmp
+            }
+            var width = (right - left).coerceAtLeast(minNormalizedSide)
+            var height = (bottom - top).coerceAtLeast(minNormalizedSide)
+            if (width > 1f) {
+                width = 1f
+            }
+            if (height > 1f) {
+                height = 1f
+            }
+            left = left.coerceIn(0f, 1f - width)
+            top = top.coerceIn(0f, 1f - height)
+            return NormalizedCropRect(left, top, left + width, top + height)
+        }
+
+        /**
          * Clamp crop to `0..1` of the square workspace, keeping [imageAspect]
-         * (`width / height` of the source file). Position is free: the frame may sit
-         * partly or mostly on black letterbox around the photo.
+         * (`width / height`). Position is free: the frame may sit partly or mostly
+         * on black letterbox around the photo.
          */
         fun clampCropRect(
             rect: NormalizedCropRect,
@@ -481,6 +515,38 @@ class PhotoEditSaver(
             left = left.coerceIn(0f, 1f - width)
             top = top.coerceIn(0f, 1f - height)
             return NormalizedCropRect(left, top, left + width, top + height)
+        }
+
+        /**
+         * Rebuild [rect] with [imageAspect], keeping the center when possible.
+         */
+        fun fitCropToAspect(
+            rect: NormalizedCropRect,
+            imageAspect: Float,
+        ): NormalizedCropRect {
+            val aspect = imageAspect.coerceAtLeast(1e-6f)
+            val centerX = (rect.left + rect.right) / 2f
+            val centerY = (rect.top + rect.bottom) / 2f
+            var width = rect.width.coerceAtLeast(0.06f)
+            var height = width / aspect
+            if (height > rect.height && rect.height > 0f) {
+                height = rect.height
+                width = height * aspect
+            }
+            if (width > 1f) {
+                width = 1f
+                height = width / aspect
+            }
+            if (height > 1f) {
+                height = 1f
+                width = height * aspect
+            }
+            val left = (centerX - width / 2f).coerceIn(0f, 1f - width)
+            val top = (centerY - height / 2f).coerceIn(0f, 1f - height)
+            return clampCropRect(
+                NormalizedCropRect(left, top, left + width, top + height),
+                aspect,
+            )
         }
     }
 

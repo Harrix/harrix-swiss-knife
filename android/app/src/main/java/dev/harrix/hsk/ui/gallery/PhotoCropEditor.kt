@@ -21,10 +21,13 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.CropFree
+import androidx.compose.material.icons.filled.CropRotate
 import androidx.compose.material.icons.filled.Done
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -75,6 +78,13 @@ private enum class CropDragMode {
     ResizeBottomRight,
 }
 
+/** Locked crop aspect relative to the original photo, or free resize. */
+private enum class CropAspectMode {
+    Original,
+    Rotated90,
+    Free,
+}
+
 @Composable
 fun PhotoCropEditor(
     photo: CameraPhoto,
@@ -101,12 +111,36 @@ fun PhotoCropEditor(
     val onRotationDegreesChangeState = rememberUpdatedState(onRotationDegreesChange)
     var isRotatingHint by remember { mutableStateOf(false) }
     var didInitCrop by remember(photo.id, imageRevision) { mutableStateOf(false) }
+    var aspectMode by remember(photo.id, imageRevision) { mutableStateOf(CropAspectMode.Original) }
+    val aspectModeState = rememberUpdatedState(aspectMode)
 
     LaunchedEffect(imageWidth, imageHeight, didInitCrop) {
         if (!didInitCrop && imageWidth > 0 && imageHeight > 0) {
             onCropRectChangeState.value(PhotoEditSaver.imageContentCrop(imageWidth, imageHeight))
             didInitCrop = true
         }
+    }
+
+    val originalAspect =
+        remember(imageWidth, imageHeight) {
+            if (imageWidth > 0 && imageHeight > 0) {
+                imageWidth.toFloat() / imageHeight.toFloat()
+            } else {
+                1f
+            }
+        }
+    fun applyAspectMode(mode: CropAspectMode) {
+        aspectMode = mode
+        if (mode == CropAspectMode.Free || imageWidth <= 0 || imageHeight <= 0) {
+            return
+        }
+        val aspect =
+            when (mode) {
+                CropAspectMode.Original -> originalAspect
+                CropAspectMode.Rotated90 -> 1f / originalAspect.coerceAtLeast(1e-6f)
+                CropAspectMode.Free -> return
+            }
+        onCropRectChange(PhotoEditSaver.fitCropToAspect(cropRect, aspect))
     }
 
     val displayDegrees = ((rotationDegrees % 360f) + 360f) % 360f
@@ -256,7 +290,14 @@ fun PhotoCropEditor(
                         modifier =
                         Modifier
                             .fillMaxSize()
-                            .pointerInput(side, handleHitSlopPx, isSaving, imageWidth, imageHeight) {
+                            .pointerInput(
+                                side,
+                                handleHitSlopPx,
+                                isSaving,
+                                imageWidth,
+                                imageHeight,
+                                aspectMode,
+                            ) {
                                 if (isSaving) {
                                     return@pointerInput
                                 }
@@ -311,22 +352,65 @@ fun PhotoCropEditor(
                                             ) {
                                                 val drag = change.position - change.previousPosition
                                                 if (drag != Offset.Zero) {
-                                                    val imageAspect =
+                                                    val mode = aspectModeState.value
+                                                    val original =
                                                         imageWidth.toFloat() /
                                                             imageHeight.toFloat()
                                                     val next =
-                                                        applyAspectCropDrag(
-                                                            cropRect = cropRectState.value,
-                                                            mode = activeMode,
-                                                            dragX = drag.x / side,
-                                                            dragY = drag.y / side,
-                                                            imageAspect = imageAspect,
-                                                        )
+                                                        when (mode) {
+                                                            CropAspectMode.Free ->
+                                                                applyFreeCropDrag(
+                                                                    cropRect = cropRectState.value,
+                                                                    mode = activeMode,
+                                                                    dragX = drag.x / side,
+                                                                    dragY = drag.y / side,
+                                                                )
+
+                                                            CropAspectMode.Original ->
+                                                                applyAspectCropDrag(
+                                                                    cropRect = cropRectState.value,
+                                                                    mode = activeMode,
+                                                                    dragX = drag.x / side,
+                                                                    dragY = drag.y / side,
+                                                                    imageAspect = original,
+                                                                )
+
+                                                            CropAspectMode.Rotated90 ->
+                                                                applyAspectCropDrag(
+                                                                    cropRect = cropRectState.value,
+                                                                    mode = activeMode,
+                                                                    dragX = drag.x / side,
+                                                                    dragY = drag.y / side,
+                                                                    imageAspect =
+                                                                    1f /
+                                                                        original.coerceAtLeast(
+                                                                            1e-6f,
+                                                                        ),
+                                                                )
+                                                        }
                                                     onCropRectChangeState.value(
-                                                        PhotoEditSaver.clampCropRect(
-                                                            rect = next,
-                                                            imageAspect = imageAspect,
-                                                        ),
+                                                        when (mode) {
+                                                            CropAspectMode.Free ->
+                                                                PhotoEditSaver.clampCropRectFree(
+                                                                    next,
+                                                                )
+
+                                                            CropAspectMode.Original ->
+                                                                PhotoEditSaver.clampCropRect(
+                                                                    rect = next,
+                                                                    imageAspect = original,
+                                                                )
+
+                                                            CropAspectMode.Rotated90 ->
+                                                                PhotoEditSaver.clampCropRect(
+                                                                    rect = next,
+                                                                    imageAspect =
+                                                                    1f /
+                                                                        original.coerceAtLeast(
+                                                                            1e-6f,
+                                                                        ),
+                                                                )
+                                                        },
                                                     )
                                                     change.consume()
                                                 }
@@ -387,45 +471,102 @@ fun PhotoCropEditor(
             }
         }
 
-        Row(
+        Column(
             modifier =
             Modifier
                 .fillMaxWidth()
                 .background(MaterialTheme.colorScheme.background)
                 .windowInsetsPadding(WindowInsets.navigationBars)
                 .padding(horizontal = 16.dp, vertical = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            OutlinedButton(
-                onClick = onDiscard,
-                enabled = !isSaving,
-                modifier = Modifier.weight(1f),
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Icon(
-                    imageVector = Icons.Filled.Close,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp),
+                FilterChip(
+                    selected = aspectMode == CropAspectMode.Rotated90,
+                    onClick = {
+                        if (isSaving || imageWidth <= 0) {
+                            return@FilterChip
+                        }
+                        if (aspectMode == CropAspectMode.Rotated90) {
+                            applyAspectMode(CropAspectMode.Original)
+                        } else {
+                            applyAspectMode(CropAspectMode.Rotated90)
+                        }
+                    },
+                    enabled = !isSaving && imageWidth > 0,
+                    label = { Text(stringResource(R.string.gallery_cleaner_edit_aspect_rotate)) },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Filled.CropRotate,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                        )
+                    },
+                    modifier = Modifier.weight(1f),
                 )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(stringResource(R.string.gallery_cleaner_edit_discard))
+                FilterChip(
+                    selected = aspectMode == CropAspectMode.Free,
+                    onClick = {
+                        if (isSaving || imageWidth <= 0) {
+                            return@FilterChip
+                        }
+                        if (aspectMode == CropAspectMode.Free) {
+                            // Restoring lock always returns to the original photo aspect.
+                            applyAspectMode(CropAspectMode.Original)
+                        } else {
+                            applyAspectMode(CropAspectMode.Free)
+                        }
+                    },
+                    enabled = !isSaving && imageWidth > 0,
+                    label = { Text(stringResource(R.string.gallery_cleaner_edit_aspect_free)) },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Filled.CropFree,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                        )
+                    },
+                    modifier = Modifier.weight(1f),
+                )
             }
-            Button(
-                onClick = onSave,
-                enabled = !isSaving,
-                modifier = Modifier.weight(1f),
-                colors =
-                ButtonDefaults.buttonColors(
-                    containerColor = AppGreen,
-                    contentColor = Color.White,
-                ),
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                Icon(
-                    imageVector = Icons.Filled.Done,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp),
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(stringResource(R.string.gallery_cleaner_edit_save))
+                OutlinedButton(
+                    onClick = onDiscard,
+                    enabled = !isSaving,
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Close,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(stringResource(R.string.gallery_cleaner_edit_discard))
+                }
+                Button(
+                    onClick = onSave,
+                    enabled = !isSaving,
+                    modifier = Modifier.weight(1f),
+                    colors =
+                    ButtonDefaults.buttonColors(
+                        containerColor = AppGreen,
+                        contentColor = Color.White,
+                    ),
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Done,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(stringResource(R.string.gallery_cleaner_edit_save))
+                }
             }
         }
     }
@@ -484,8 +625,52 @@ private fun hitTestCropHandle(
     }
 }
 
+/** Free resize/move on the square workspace (no aspect lock). */
+private fun applyFreeCropDrag(
+    cropRect: NormalizedCropRect,
+    mode: CropDragMode,
+    dragX: Float,
+    dragY: Float,
+): NormalizedCropRect {
+    if (mode == CropDragMode.Move) {
+        val width = cropRect.width
+        val height = cropRect.height
+        val left = (cropRect.left + dragX).coerceIn(0f, (1f - width).coerceAtLeast(0f))
+        val top = (cropRect.top + dragY).coerceIn(0f, (1f - height).coerceAtLeast(0f))
+        return NormalizedCropRect(left, top, left + width, top + height)
+    }
+    var left = cropRect.left
+    var top = cropRect.top
+    var right = cropRect.right
+    var bottom = cropRect.bottom
+    when (mode) {
+        CropDragMode.ResizeTopLeft -> {
+            left = (left + dragX).coerceIn(0f, right - 0.06f)
+            top = (top + dragY).coerceIn(0f, bottom - 0.06f)
+        }
+
+        CropDragMode.ResizeTopRight -> {
+            right = (right + dragX).coerceIn(left + 0.06f, 1f)
+            top = (top + dragY).coerceIn(0f, bottom - 0.06f)
+        }
+
+        CropDragMode.ResizeBottomLeft -> {
+            left = (left + dragX).coerceIn(0f, right - 0.06f)
+            bottom = (bottom + dragY).coerceIn(top + 0.06f, 1f)
+        }
+
+        CropDragMode.ResizeBottomRight -> {
+            right = (right + dragX).coerceIn(left + 0.06f, 1f)
+            bottom = (bottom + dragY).coerceIn(top + 0.06f, 1f)
+        }
+
+        CropDragMode.Move -> Unit
+    }
+    return NormalizedCropRect(left, top, right, bottom)
+}
+
 /**
- * Keeps crop aspect equal to the source file. Workspace is the full square canvas
+ * Keeps crop aspect equal to [imageAspect]. Workspace is the full square canvas
  * (not only the photo): move/resize may place the frame over black letterbox so the
  * saved result can be partly black.
  */
