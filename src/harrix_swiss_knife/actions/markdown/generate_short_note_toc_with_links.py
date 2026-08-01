@@ -1,4 +1,4 @@
-"""Actions for Python development and Markdown file management."""
+"""Generate a condensed version of a document with only its table of contents."""
 
 from __future__ import annotations
 

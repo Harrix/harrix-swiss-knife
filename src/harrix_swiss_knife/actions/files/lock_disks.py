@@ -1,4 +1,4 @@
-"""Actions for file operations and management of directory structures."""
+"""Lock BitLocker-encrypted drives listed in config."""
 
 from __future__ import annotations
 
@@ -24,7 +24,12 @@ class OnLockDisks(ActionBase):
     @ActionBase.handle_exceptions("locking disks")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Lock BitLocker-encrypted drives."""
-        commands = "\n".join([f"manage-bde -lock {drive}: -ForceDismount" for drive in self.config["block_drives"]])
+        drives = self.config.get("block_drives") or []
+        if not drives:
+            self.add_line('❌ config "block_drives" is missing or empty.')
+            self.show_result()
+            return
+        commands = "\n".join([f"manage-bde -lock {drive}: -ForceDismount" for drive in drives])
         result = h.dev.run_powershell_script_as_admin(commands)
         self.add_line(result)
         self.show_result()

@@ -1,4 +1,4 @@
-"""Actions for Python development and code management."""
+"""Run ty, ruff, pytest, Harrix PY and MD checks for all projects from `paths_python_projects`."""
 
 from __future__ import annotations
 

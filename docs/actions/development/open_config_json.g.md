@@ -83,6 +83,7 @@ class OnOpenConfigJson(ActionBase):
                 os.startfile(str(config_file))  # noqa: S606
             except OSError as e:
                 self.add_line(f"❌ Could not open config.json: {e}")
+                self.show_result()
             else:
                 self.add_line(f"Opened with default app: {config_file}")
                 return
@@ -101,6 +102,7 @@ class OnOpenConfigJson(ActionBase):
 
         self.add_line("❌ No editor available (configured editor missing; no cursor, code, code-insiders, or notepad).")
         self.add_line(f"Config path: {config_file}")
+        self.show_result()
 
     def _editor_token_looks_like_path(self, editor: str) -> bool:
         min_windows_drive_len = 2
@@ -180,6 +182,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
                 os.startfile(str(config_file))  # noqa: S606
             except OSError as e:
                 self.add_line(f"❌ Could not open config.json: {e}")
+                self.show_result()
             else:
                 self.add_line(f"Opened with default app: {config_file}")
                 return
@@ -198,6 +201,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 
         self.add_line("❌ No editor available (configured editor missing; no cursor, code, code-insiders, or notepad).")
         self.add_line(f"Config path: {config_file}")
+        self.show_result()
 ```
 
 </details>

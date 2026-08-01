@@ -1,4 +1,4 @@
-"""Actions for Python development and code management."""
+"""Run ty, ruff, pytest, Harrix PY and MD checks for one project folder."""
 
 from __future__ import annotations
 

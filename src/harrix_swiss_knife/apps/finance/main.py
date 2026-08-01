@@ -198,14 +198,14 @@ class MainWindow(
     about_description = "Track accounts, transactions, and exchange rates."
     _NO_CATEGORY_LABEL: str = "No selected category"
 
-    def __init__(self, *, hide_on_close: bool = False) -> None:  # noqa: ARG002
+    def __init__(self, *, hide_on_close: bool = False) -> None:
         """Initialize main window for finance tracking application."""
         super().__init__()
         try_apply_system_backdrop(self, backdrop=SystemBackdrop.MICA)
         self.setupUi(self)
         self._setup_ui()
         self.setWindowIcon(QIcon(":/assets/logo.svg"))
-        self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
+        self._init_hide_on_close(hide_on_close=hide_on_close)
 
         # Initialize core attributes
         self._is_closing = False
@@ -393,6 +393,9 @@ class MainWindow(
         - `event` (`QCloseEvent`): The close event.
 
         """
+        if self._hide_instead_of_close(event):
+            return
+
         self._is_closing = True
 
         # Stop any running worker threads

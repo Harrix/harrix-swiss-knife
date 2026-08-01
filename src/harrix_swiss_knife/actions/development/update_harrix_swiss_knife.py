@@ -1,4 +1,4 @@
-"""Actions for Python development and code management."""
+"""Update Harrix Swiss Knife and related projects."""
 
 from __future__ import annotations
 

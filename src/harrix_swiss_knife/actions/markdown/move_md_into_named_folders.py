@@ -1,4 +1,4 @@
-"""Actions for Python development and Markdown file management."""
+"""Move Markdown notes into same-named subfolders (one note — one folder)."""
 
 from __future__ import annotations
 

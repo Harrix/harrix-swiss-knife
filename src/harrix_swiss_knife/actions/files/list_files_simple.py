@@ -1,4 +1,4 @@
-"""Actions for file operations and management of directory structures."""
+"""Generate a simple list of all files in a directory structure."""
 
 from __future__ import annotations
 

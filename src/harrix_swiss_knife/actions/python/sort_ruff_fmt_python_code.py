@@ -1,4 +1,4 @@
-"""Actions for Python development and code management."""
+"""Format and sort Python code in a selected folder using multiple tools."""
 
 from __future__ import annotations
 

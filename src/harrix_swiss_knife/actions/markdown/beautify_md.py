@@ -1,4 +1,4 @@
-"""Actions for Python development and Markdown file management."""
+"""Apply comprehensive beautification to all Markdown notes."""
 
 from __future__ import annotations
 

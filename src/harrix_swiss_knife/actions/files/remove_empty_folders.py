@@ -1,4 +1,4 @@
-"""Actions for file operations and management of directory structures."""
+"""Remove all empty folders recursively."""
 
 from __future__ import annotations
 

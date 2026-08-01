@@ -1,4 +1,4 @@
-"""Actions for file operations and management of directory structures."""
+"""Rename FB2, Epub, PDF files based on metadata from file content."""
 
 from __future__ import annotations
 

@@ -43,12 +43,12 @@ class OnNpmManagePackages(ActionBase):
     icon = "📦"
     title = "Update/Install global NPM packages"
 
-    @ActionBase.handle_exceptions("NPM package management")
+    @ActionBase.handle_exceptions("npm package management")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Install or update configured NPM packages globally."""
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
-    @ActionBase.handle_exceptions("NPM operations thread")
+    @ActionBase.handle_exceptions("npm operations thread")
     def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         # Update NPM itself first
@@ -57,8 +57,13 @@ class OnNpmManagePackages(ActionBase):
         self.add_line(result)
 
         # Install/update all configured packages
+        packages = self.config.get("npm_packages") or []
+        if not packages:
+            self.add_line('❌ config "npm_packages" is missing or empty.')
+            return "NPM packages management failed"
+
         self.add_line("Installing/updating configured packages...")
-        install_commands = "\n".join([f"npm i -g {package}" for package in self.config["npm_packages"]])
+        install_commands = "\n".join([f"npm i -g {package}" for package in packages])
         result = h.dev.run_command(install_commands)
         self.add_line(result)
 
@@ -69,7 +74,7 @@ class OnNpmManagePackages(ActionBase):
 
         return "NPM packages management completed"
 
-    @ActionBase.handle_exceptions("NPM thread completion")
+    @ActionBase.handle_exceptions("npm thread completion")
     def thread_after(self, result: Any) -> None:
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
         self.show_toast("NPM packages management completed")
@@ -116,8 +121,13 @@ def in_thread(self) -> str | None:
         self.add_line(result)
 
         # Install/update all configured packages
+        packages = self.config.get("npm_packages") or []
+        if not packages:
+            self.add_line('❌ config "npm_packages" is missing or empty.')
+            return "NPM packages management failed"
+
         self.add_line("Installing/updating configured packages...")
-        install_commands = "\n".join([f"npm i -g {package}" for package in self.config["npm_packages"]])
+        install_commands = "\n".join([f"npm i -g {package}" for package in packages])
         result = h.dev.run_command(install_commands)
         self.add_line(result)
 

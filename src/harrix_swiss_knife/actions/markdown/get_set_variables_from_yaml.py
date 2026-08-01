@@ -1,4 +1,4 @@
-"""Actions for Python development and Markdown file management."""
+"""Get a sorted list of all variables from YAML frontmatter in Markdown files."""
 
 from __future__ import annotations
 

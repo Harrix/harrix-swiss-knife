@@ -38,7 +38,7 @@ class OnUpdateNode(ActionBase):
     icon = "📥"
     title = "Update Node.js"
 
-    @ActionBase.handle_exceptions("Node.js update")
+    @ActionBase.handle_exceptions("node.js update")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Update `Node.js` to the latest version via winget."""
         if sys.platform != "win32":
@@ -47,7 +47,7 @@ class OnUpdateNode(ActionBase):
             return
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
-    @ActionBase.handle_exceptions("Node.js update thread")
+    @ActionBase.handle_exceptions("node.js update thread")
     def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         # Avoid interactive agreement prompts (msstore) by pinning the "winget" source
@@ -58,7 +58,7 @@ class OnUpdateNode(ActionBase):
         )
         return h.dev.run_command(cmd)
 
-    @ActionBase.handle_exceptions("Node.js update thread completion")
+    @ActionBase.handle_exceptions("node.js update thread completion")
     def thread_after(self, result: Any) -> None:
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
         self.show_toast("Node.js update completed")

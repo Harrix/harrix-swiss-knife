@@ -1,4 +1,4 @@
-"""Actions for file operations and management of directory structures."""
+"""Generate a tree view excluding hidden folders."""
 
 from __future__ import annotations
 

@@ -1,4 +1,4 @@
-"""Actions for Python development and code management."""
+"""Create a new Jupyter notebook project with uv package manager."""
 
 from __future__ import annotations
 

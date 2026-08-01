@@ -1,4 +1,4 @@
-"""Actions for file operations and management of directory structures."""
+"""Combine selected project files into one text dump for AI prompts."""
 
 from __future__ import annotations
 

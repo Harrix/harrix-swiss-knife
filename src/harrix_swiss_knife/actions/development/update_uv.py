@@ -1,4 +1,4 @@
-"""Actions for Python development and code management."""
+"""Update the uv Python package manager."""
 
 from __future__ import annotations
 

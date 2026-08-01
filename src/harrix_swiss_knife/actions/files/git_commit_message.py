@@ -1,4 +1,4 @@
-"""Actions for file operations and management of directory structures."""
+"""Edit or generate Git commit subject lines with emoji prefixes."""
 
 from __future__ import annotations
 
@@ -119,7 +119,7 @@ from pathlib import Path
 Path(sys.argv[1]).write_text(os.environ["HARRIX_NEW_SUBJECT"] + "\n", encoding="utf-8")
 """
 
-    @ActionBase.handle_exceptions("Git commit message")
+    @ActionBase.handle_exceptions("git commit message")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Git commit subject: add emoji by keyword, rename last commit, or rename by hash."""
         choices = [(icon, title, description) for icon, title, description, _ in self._MODE_CHOICES]

@@ -1,4 +1,4 @@
-"""Actions for Python development and Markdown file management."""
+"""Append a YAML tag to Markdown files in a folder."""
 
 from __future__ import annotations
 

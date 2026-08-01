@@ -1,4 +1,4 @@
-"""Image optimization and management actions."""
+"""Open photos folder in configured image viewer."""
 
 from __future__ import annotations
 

@@ -1,4 +1,4 @@
-"""Actions for Python development and code management."""
+"""Open the application `config.json` in an editor."""
 
 from __future__ import annotations
 
@@ -71,6 +71,7 @@ class OnOpenConfigJson(ActionBase):
                 os.startfile(str(config_file))  # noqa: S606
             except OSError as e:
                 self.add_line(f"❌ Could not open config.json: {e}")
+                self.show_result()
             else:
                 self.add_line(f"Opened with default app: {config_file}")
                 return
@@ -89,6 +90,7 @@ class OnOpenConfigJson(ActionBase):
 
         self.add_line("❌ No editor available (configured editor missing; no cursor, code, code-insiders, or notepad).")
         self.add_line(f"Config path: {config_file}")
+        self.show_result()
 
     def _editor_token_looks_like_path(self, editor: str) -> bool:
         min_windows_drive_len = 2

@@ -1,4 +1,4 @@
-"""Image optimization and management actions."""
+"""Optimize a single image file and replace the original in place."""
 
 from __future__ import annotations
 
@@ -31,7 +31,13 @@ class OnOptimizeSingleImage(OnOptimize):
         if not filename:
             return
 
-        filename = Path(filename)
+        self._source_image = Path(filename)
+        self.start_thread(self.in_thread, self.thread_after, self.title)
+
+    @ActionBase.handle_exceptions("single file optimization thread")
+    def in_thread(self) -> str | None:
+        """Optimize the selected image in a worker thread."""
+        filename = self._source_image
         target_dir = filename.parent
         stem = filename.stem
         project_root = h.dev.get_project_root()
@@ -44,7 +50,6 @@ class OnOptimizeSingleImage(OnOptimize):
                 temp_path,
                 output_folder,
             )
-            self.add_line(result)
 
             for ext in (".avif", ".png", ".svg"):
                 output_file = output_folder / (stem + ext)
@@ -56,4 +61,11 @@ class OnOptimizeSingleImage(OnOptimize):
                     self.result_folder = target_dir
                     break
 
+        return result
+
+    @ActionBase.handle_exceptions("single file optimization thread completion")
+    def thread_after(self, result: Any) -> None:
+        """Show toast and result dialog after a single-image optimize."""
+        self.show_toast("Optimize completed")
+        self.add_line(result)
         self.show_result()

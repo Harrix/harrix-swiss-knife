@@ -1,4 +1,4 @@
-"""Image optimization and management actions."""
+"""Resize and optimize images (asks for max size in pixels)."""
 
 from __future__ import annotations
 

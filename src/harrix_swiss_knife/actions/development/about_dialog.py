@@ -1,4 +1,4 @@
-"""Actions for Python development and code management."""
+"""Show the About dialog for Harrix Swiss Knife."""
 
 from __future__ import annotations
 

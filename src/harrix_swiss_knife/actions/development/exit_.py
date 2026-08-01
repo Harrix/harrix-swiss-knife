@@ -1,4 +1,4 @@
-"""Actions for Python development and code management."""
+"""Exit the Harrix Swiss Knife tray application."""
 
 from __future__ import annotations
 

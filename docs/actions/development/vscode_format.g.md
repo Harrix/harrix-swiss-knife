@@ -40,7 +40,7 @@ class OnVscodeFormat(ActionBase):
     cli_available = True
     cli_hint = "vscode format"
 
-    @ActionBase.handle_exceptions("VS Code format")
+    @ActionBase.handle_exceptions("vs code format")
     def execute(self, *_args: Any, noninteractive: bool = False, **_kwargs: Any) -> None:
         """Apply Biome write fixes (sync for CLI, background thread for tray)."""
         extension_dir = resolve_extension_dir()
@@ -60,19 +60,19 @@ class OnVscodeFormat(ActionBase):
             self._run_biome_format(extension_dir)
             return
 
-        self._extension_dir_for_thread = extension_dir
+        self.folder_path = extension_dir
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
-    @ActionBase.handle_exceptions("VS Code format thread")
+    @ActionBase.handle_exceptions("vs code format thread")
     def in_thread(self) -> str | None:
         """Run Biome format in a worker thread for the tray UI."""
-        extension_dir = getattr(self, "_extension_dir_for_thread", None)
+        extension_dir = getattr(self, "folder_path", None)
         if extension_dir is None:
             return None
         self._run_biome_format(extension_dir)
         return None
 
-    @ActionBase.handle_exceptions("VS Code format thread completion")
+    @ActionBase.handle_exceptions("vs code format thread completion")
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
         """Show toast and result dialog after a tray format."""
         failed = any(isinstance(line, str) and line.strip().startswith("❌") for line in self.result_lines)
@@ -142,7 +142,7 @@ def execute(self, *_args: Any, noninteractive: bool = False, **_kwargs: Any) -> 
             self._run_biome_format(extension_dir)
             return
 
-        self._extension_dir_for_thread = extension_dir
+        self.folder_path = extension_dir
         self.start_thread(self.in_thread, self.thread_after, self.title)
 ```
 
@@ -161,7 +161,7 @@ Run Biome format in a worker thread for the tray UI.
 
 ```python
 def in_thread(self) -> str | None:
-        extension_dir = getattr(self, "_extension_dir_for_thread", None)
+        extension_dir = getattr(self, "folder_path", None)
         if extension_dir is None:
             return None
         self._run_biome_format(extension_dir)

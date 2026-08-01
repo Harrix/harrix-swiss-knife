@@ -1,4 +1,4 @@
-"""Actions for launching applications."""
+"""Launch the Fitness tracker application."""
 
 from __future__ import annotations
 

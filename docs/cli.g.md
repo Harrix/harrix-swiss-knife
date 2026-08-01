@@ -124,7 +124,7 @@ Run Spotless check, Detekt, and Android Lint (`qualityCheck`) in FOLDER.
 def android_check(folder: Path) -> None:
     action = OnAndroidCheck()
     action(folder_path=folder, noninteractive=True)
-    _exit_if_action_failed(action)
+    _finish_timed_action(action)
 ```
 
 </details>
@@ -144,7 +144,7 @@ Format Android Kotlin/Gradle sources via Spotless (ktlint) in FOLDER.
 def android_format(folder: Path) -> None:
     action = OnAndroidFormat()
     action(folder_path=folder, noninteractive=True)
-    _exit_if_action_failed(action)
+    _finish_timed_action(action)
 ```
 
 </details>
@@ -238,7 +238,7 @@ Discard uncommitted changes in all Git repos under FOLDER (same as tray action).
 def file_discard_git_changes(folder: Path, *, status_only: bool) -> None:
     action = OnDiscardGitChanges()
     action(folder_path=folder, noninteractive=True, status_only=status_only)
-    _exit_if_action_failed(action)
+    _finish_timed_action(action)
 ```
 
 </details>
@@ -683,7 +683,7 @@ Ruff sort, ruff format, sort code in PY files without docs step (same as tray ac
 def python_ruff_sort(folder: Path) -> None:
     action = OnSortRuffFmtPythonCode()
     action(folder_path=folder, noninteractive=True)
-    _exit_if_action_failed(action)
+    _finish_timed_action(action)
 ```
 
 </details>
@@ -778,7 +778,7 @@ Run Biome check for `vscode/harrix-notes-explorer-hsk/`.
 def vscode_check() -> None:
     action = OnVscodeCheck()
     action(noninteractive=True)
-    _exit_if_action_failed(action)
+    _finish_timed_action(action)
 ```
 
 </details>
@@ -798,7 +798,7 @@ Format VS Code extension sources via Biome (`npm run format`).
 def vscode_format() -> None:
     action = OnVscodeFormat()
     action(noninteractive=True)
-    _exit_if_action_failed(action)
+    _finish_timed_action(action)
 ```
 
 </details>

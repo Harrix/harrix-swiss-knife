@@ -1,4 +1,4 @@
-"""Actions for Python development and Markdown file management."""
+"""Beautify all Markdown notes and regenerate `.g.md` summaries and combined files."""
 
 from __future__ import annotations
 

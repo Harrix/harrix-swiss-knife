@@ -1,4 +1,4 @@
-"""Actions for Python development and code management."""
+"""Clear the project temporary folder."""
 
 from __future__ import annotations
 

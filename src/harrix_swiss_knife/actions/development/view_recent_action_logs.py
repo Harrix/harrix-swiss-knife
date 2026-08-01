@@ -1,4 +1,4 @@
-"""Actions for Python development and code management."""
+"""Browse recent action output logs."""
 
 from __future__ import annotations
 

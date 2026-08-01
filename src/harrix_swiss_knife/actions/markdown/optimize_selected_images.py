@@ -1,4 +1,4 @@
-"""Actions for Python development and Markdown file management."""
+"""Optimize specific selected images in their corresponding Markdown file."""
 
 from __future__ import annotations
 

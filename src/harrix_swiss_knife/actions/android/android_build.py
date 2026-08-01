@@ -52,7 +52,7 @@ class OnAndroidBuild(ActionBase):
         "release": "assembleRelease",
     }
 
-    @ActionBase.handle_exceptions("Android APK build")
+    @ActionBase.handle_exceptions("android apk build")
     def execute(
         self,
         *_args: Any,
@@ -125,13 +125,13 @@ class OnAndroidBuild(ActionBase):
             self._run_gradle_build(android_dir, variant_key, gradle_task, java_home)
             return
 
-        self._android_dir_for_thread = android_dir
+        self.folder_path = android_dir
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
-    @ActionBase.handle_exceptions("Android APK build thread")
+    @ActionBase.handle_exceptions("android apk build thread")
     def in_thread(self) -> str | None:
         """Run Gradle in a worker thread for the tray UI."""
-        android_dir = getattr(self, "_android_dir_for_thread", None)
+        android_dir = getattr(self, "folder_path", None)
         java_home = getattr(self, "_java_home", None)
         if android_dir is None or not java_home:
             return None
@@ -143,7 +143,7 @@ class OnAndroidBuild(ActionBase):
         )
         return None
 
-    @ActionBase.handle_exceptions("Android APK build thread completion")
+    @ActionBase.handle_exceptions("android apk build thread completion")
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
         """Show toast and result dialog after a tray build."""
         failed = any(isinstance(line, str) and line.strip().startswith("❌") for line in self.result_lines)

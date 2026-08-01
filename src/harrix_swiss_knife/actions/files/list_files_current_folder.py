@@ -1,4 +1,4 @@
-"""Actions for file operations and management of directory structures."""
+"""Generate a simple list of files from the current directory only."""
 
 from __future__ import annotations
 

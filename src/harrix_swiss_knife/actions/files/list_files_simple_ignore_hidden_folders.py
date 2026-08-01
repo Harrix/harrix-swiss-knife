@@ -1,4 +1,4 @@
-"""Actions for file operations and management of directory structures."""
+"""Generate a simple file list excluding hidden folders."""
 
 from __future__ import annotations
 

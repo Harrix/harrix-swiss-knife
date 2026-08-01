@@ -30,7 +30,7 @@ class OnAndroidFormat(ActionBase):
     cli_available = True
     cli_hint = "android format"
 
-    @ActionBase.handle_exceptions("Android format")
+    @ActionBase.handle_exceptions("android format")
     def execute(
         self,
         *_args: Any,
@@ -91,21 +91,21 @@ class OnAndroidFormat(ActionBase):
             self._run_spotless(android_dir, java_home)
             return
 
-        self._android_dir_for_thread = android_dir
+        self.folder_path = android_dir
         self._java_home = java_home
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
-    @ActionBase.handle_exceptions("Android format thread")
+    @ActionBase.handle_exceptions("android format thread")
     def in_thread(self) -> str | None:
         """Run Spotless in a worker thread for the tray UI."""
-        android_dir = getattr(self, "_android_dir_for_thread", None)
+        android_dir = getattr(self, "folder_path", None)
         java_home = getattr(self, "_java_home", None)
         if android_dir is None or not java_home:
             return None
         self._run_spotless(android_dir, java_home)
         return None
 
-    @ActionBase.handle_exceptions("Android format thread completion")
+    @ActionBase.handle_exceptions("android format thread completion")
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
         """Show toast and result dialog after a tray format."""
         failed = any(isinstance(line, str) and line.strip().startswith("❌") for line in self.result_lines)

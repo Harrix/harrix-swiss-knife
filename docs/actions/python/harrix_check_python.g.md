@@ -104,12 +104,12 @@ class OnHarrixCheckPython(ActionBase):
         else:
             self.add_line(f"✅ There are no errors in {self.folder_path}.")
 
-    @ActionBase.handle_exceptions("Python folder checking thread")
+    @ActionBase.handle_exceptions("python folder checking thread")
     def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         self.harrix_check_python_common()
 
-    @ActionBase.handle_exceptions("Python folder checking thread completion")
+    @ActionBase.handle_exceptions("python folder checking thread completion")
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
         self.show_toast(f"{self.title} {self.folder_path} completed")

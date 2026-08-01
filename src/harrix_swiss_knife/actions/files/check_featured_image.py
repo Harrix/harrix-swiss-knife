@@ -1,4 +1,4 @@
-"""Actions for file operations and management of directory structures."""
+"""Check for featured image files in a selected folder."""
 
 from __future__ import annotations
 

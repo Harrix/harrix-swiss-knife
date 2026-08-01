@@ -1,4 +1,4 @@
-"""Actions for Python development and Markdown file management."""
+"""Organize and enhance a single Markdown file by sorting sections and generating image captions."""
 
 from __future__ import annotations
 

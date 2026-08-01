@@ -116,7 +116,7 @@ class MainWindow(
     about_app_name = "Fitness tracker"
     about_description = "Track workouts, exercises, weight, and progress."
 
-    def __init__(self, *, hide_on_close: bool = False) -> None:  # noqa: ARG002, D107
+    def __init__(self, *, hide_on_close: bool = False) -> None:  # noqa: D107
         super().__init__()
         try_apply_system_backdrop(self, backdrop=SystemBackdrop.MICA)
         self.setupUi(self)
@@ -127,7 +127,7 @@ class MainWindow(
         # Set window icon
         self.setWindowIcon(QIcon(":/assets/logo.svg"))
 
-        self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
+        self._init_hide_on_close(hide_on_close=hide_on_close)
 
         # Initialize core attributes
         self._is_closing = False
@@ -281,6 +281,9 @@ class MainWindow(
         - `event` (`QCloseEvent`): The close event.
 
         """
+        if self._hide_instead_of_close(event):
+            return
+
         self._is_closing = True
 
         # Stop animations for all labels
@@ -5906,7 +5909,7 @@ _No docstring provided._
 <summary>Code:</summary>
 
 ```python
-def __init__(self, *, hide_on_close: bool = False) -> None:  # noqa: ARG002, D107
+def __init__(self, *, hide_on_close: bool = False) -> None:  # noqa: D107
         super().__init__()
         try_apply_system_backdrop(self, backdrop=SystemBackdrop.MICA)
         self.setupUi(self)
@@ -5917,7 +5920,7 @@ def __init__(self, *, hide_on_close: bool = False) -> None:  # noqa: ARG002, D10
         # Set window icon
         self.setWindowIcon(QIcon(":/assets/logo.svg"))
 
-        self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
+        self._init_hide_on_close(hide_on_close=hide_on_close)
 
         # Initialize core attributes
         self._is_closing = False
@@ -6108,6 +6111,9 @@ Args:
 
 ```python
 def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
+        if self._hide_instead_of_close(event):
+            return
+
         self._is_closing = True
 
         # Stop animations for all labels

@@ -1,4 +1,4 @@
-"""Actions for Python development and Markdown file management."""
+"""Download remote images and replace URLs with local references in multiple Markdown files."""
 
 from __future__ import annotations
 

@@ -1,4 +1,4 @@
-"""Actions for file operations and management of directory structures."""
+"""Rename DD.MM.YYYY date fragments in filenames to YYYY.MM.DD."""
 
 from __future__ import annotations
 

@@ -43,7 +43,7 @@ class OnAndroidCheck(ActionBase):
     cli_available = True
     cli_hint = "android check"
 
-    @ActionBase.handle_exceptions("Android check")
+    @ActionBase.handle_exceptions("android check")
     def execute(
         self,
         *_args: Any,
@@ -104,21 +104,21 @@ class OnAndroidCheck(ActionBase):
             self._run_quality_check(android_dir, java_home)
             return
 
-        self._android_dir_for_thread = android_dir
+        self.folder_path = android_dir
         self._java_home = java_home
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
-    @ActionBase.handle_exceptions("Android check thread")
+    @ActionBase.handle_exceptions("android check thread")
     def in_thread(self) -> str | None:
         """Run qualityCheck in a worker thread for the tray UI."""
-        android_dir = getattr(self, "_android_dir_for_thread", None)
+        android_dir = getattr(self, "folder_path", None)
         java_home = getattr(self, "_java_home", None)
         if android_dir is None or not java_home:
             return None
         self._run_quality_check(android_dir, java_home)
         return None
 
-    @ActionBase.handle_exceptions("Android check thread completion")
+    @ActionBase.handle_exceptions("android check thread completion")
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
         """Show toast and result dialog after a tray check."""
         failed = any(isinstance(line, str) and line.strip().startswith("❌") for line in self.result_lines)
@@ -216,7 +216,7 @@ def execute(
             self._run_quality_check(android_dir, java_home)
             return
 
-        self._android_dir_for_thread = android_dir
+        self.folder_path = android_dir
         self._java_home = java_home
         self.start_thread(self.in_thread, self.thread_after, self.title)
 ```
@@ -236,7 +236,7 @@ Run qualityCheck in a worker thread for the tray UI.
 
 ```python
 def in_thread(self) -> str | None:
-        android_dir = getattr(self, "_android_dir_for_thread", None)
+        android_dir = getattr(self, "folder_path", None)
         java_home = getattr(self, "_java_home", None)
         if android_dir is None or not java_home:
             return None

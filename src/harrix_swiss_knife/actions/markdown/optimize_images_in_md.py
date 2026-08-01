@@ -1,4 +1,4 @@
-"""Actions for Python development and Markdown file management."""
+"""Optimize images in Markdown files with PNG/AVIF size comparison."""
 
 from __future__ import annotations
 

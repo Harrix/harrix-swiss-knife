@@ -1,4 +1,4 @@
-"""Actions for Python development and Markdown file management."""
+"""Add author and title information to quote files in a folder."""
 
 from __future__ import annotations
 

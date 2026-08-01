@@ -1,4 +1,4 @@
-"""Actions for file operations and management of directory structures."""
+"""Move and flatten files from nested directories."""
 
 from __future__ import annotations
 

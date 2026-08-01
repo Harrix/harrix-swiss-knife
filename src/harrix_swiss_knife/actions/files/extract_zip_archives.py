@@ -1,4 +1,4 @@
-"""Actions for file operations and management of directory structures."""
+"""Extract all ZIP archives from a selected folder."""
 
 from __future__ import annotations
 

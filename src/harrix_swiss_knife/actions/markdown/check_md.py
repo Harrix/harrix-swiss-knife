@@ -1,4 +1,4 @@
-"""Actions for Python development and Markdown file management."""
+"""Check all Markdown files in a folder for errors with Harrix rules."""
 
 from __future__ import annotations
 

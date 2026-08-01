@@ -1,4 +1,4 @@
-"""Image optimization and management actions."""
+"""Run standard image optimization on all images in the temp folder."""
 
 from __future__ import annotations
 

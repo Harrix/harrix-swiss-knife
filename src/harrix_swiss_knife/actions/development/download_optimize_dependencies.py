@@ -1,4 +1,4 @@
-"""Actions for Python development and code management."""
+"""Download image-optimization dependencies."""
 
 from __future__ import annotations
 

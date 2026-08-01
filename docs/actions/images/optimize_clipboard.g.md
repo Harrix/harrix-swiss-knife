@@ -13,6 +13,8 @@ lang: en
 
 - [🏛️ Class `OnOptimizeClipboard`](#%EF%B8%8F-class-onoptimizeclipboard)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
+  - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread)
+  - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after)
 
 </details>
 
@@ -44,7 +46,9 @@ class OnOptimizeClipboard(ActionBase):
         image = ImageGrab.grabclipboard()
 
         if not isinstance(image, Image.Image):
-            self.add_line("❌ No image found in the clipboard")
+            message = "❌ No image found in the clipboard"
+            self.add_line(message)
+            self.show_toast(message)
             return
 
         filename = "image.png"
@@ -58,35 +62,52 @@ class OnOptimizeClipboard(ActionBase):
             filename = image_name.replace(" ", "-") + ".png"
 
         project_root = h.dev.get_project_root()
-        optimized_dir = project_root / "temp/optimized_images"
+        input_dir = project_root / "temp" / "clipboard_optimize"
+        if input_dir.exists():
+            shutil.rmtree(input_dir)
+        input_dir.mkdir(parents=True, exist_ok=True)
 
-        with TemporaryDirectory() as temp_folder:
-            temp_path = Path(temp_folder)
-            temp_filename = temp_path / filename
-            image.save(temp_filename, "PNG")
-            self.add_line(f"Image is saved as {temp_filename}")
+        temp_filename = input_dir / filename
+        image.save(temp_filename, "PNG")
+        self.add_line(f"Image is saved as {temp_filename}")
 
-            result = optimize_images_in_folder(
-                temp_path,
-                optimized_dir,
-                project_root,
-            )
+        self._clipboard_input_dir = input_dir
+        self._clipboard_optimized_dir = project_root / "temp" / "optimized_images"
+        self._clipboard_filename = filename
+        self.start_thread(self.in_thread, self.thread_after, self.title)
 
-            stem = Path(filename).stem
-            output_ext = ".avif" if (optimized_dir / (stem + ".avif")).exists() else ".png"
-            output_file = (optimized_dir / (stem + output_ext)).resolve()
+    @ActionBase.handle_exceptions("clipboard image optimization thread")
+    def in_thread(self) -> str | None:
+        """Optimize the clipboard image in a worker thread."""
+        project_root = h.dev.get_project_root()
+        return optimize_images_in_folder(
+            self._clipboard_input_dir,
+            self._clipboard_optimized_dir,
+            project_root,
+        )
 
-            clipboard = QGuiApplication.clipboard()
-            if clipboard is None:
-                self.add_line("❌ Clipboard is not available")
-                return
+    @ActionBase.handle_exceptions("clipboard image optimization thread completion")
+    def thread_after(self, result: Any) -> None:
+        """Put the optimized image path on the clipboard and show feedback."""
+        stem = Path(self._clipboard_filename).stem
+        optimized_dir = self._clipboard_optimized_dir
+        output_ext = ".avif" if (optimized_dir / (stem + ".avif")).exists() else ".png"
+        output_file = (optimized_dir / (stem + output_ext)).resolve()
 
-            mime_data = QMimeData()
-            mime_data.setUrls([QUrl.fromLocalFile(str(output_file))])
-            clipboard.setMimeData(mime_data)
+        clipboard = QGuiApplication.clipboard()
+        if clipboard is None:
+            message = "❌ Clipboard is not available"
+            self.add_line(message)
+            self.show_toast(message)
+            return
+
+        mime_data = QMimeData()
+        mime_data.setUrls([QUrl.fromLocalFile(str(output_file))])
+        clipboard.setMimeData(mime_data)
 
         self.add_line(result)
         self.add_line("Image is optimized and copied to clipboard.")
+        self.show_toast("Image is optimized and copied to clipboard")
 ```
 
 </details>
@@ -107,7 +128,9 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         image = ImageGrab.grabclipboard()
 
         if not isinstance(image, Image.Image):
-            self.add_line("❌ No image found in the clipboard")
+            message = "❌ No image found in the clipboard"
+            self.add_line(message)
+            self.show_toast(message)
             return
 
         filename = "image.png"
@@ -121,35 +144,78 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
             filename = image_name.replace(" ", "-") + ".png"
 
         project_root = h.dev.get_project_root()
-        optimized_dir = project_root / "temp/optimized_images"
+        input_dir = project_root / "temp" / "clipboard_optimize"
+        if input_dir.exists():
+            shutil.rmtree(input_dir)
+        input_dir.mkdir(parents=True, exist_ok=True)
 
-        with TemporaryDirectory() as temp_folder:
-            temp_path = Path(temp_folder)
-            temp_filename = temp_path / filename
-            image.save(temp_filename, "PNG")
-            self.add_line(f"Image is saved as {temp_filename}")
+        temp_filename = input_dir / filename
+        image.save(temp_filename, "PNG")
+        self.add_line(f"Image is saved as {temp_filename}")
 
-            result = optimize_images_in_folder(
-                temp_path,
-                optimized_dir,
-                project_root,
-            )
+        self._clipboard_input_dir = input_dir
+        self._clipboard_optimized_dir = project_root / "temp" / "optimized_images"
+        self._clipboard_filename = filename
+        self.start_thread(self.in_thread, self.thread_after, self.title)
+```
 
-            stem = Path(filename).stem
-            output_ext = ".avif" if (optimized_dir / (stem + ".avif")).exists() else ".png"
-            output_file = (optimized_dir / (stem + output_ext)).resolve()
+</details>
 
-            clipboard = QGuiApplication.clipboard()
-            if clipboard is None:
-                self.add_line("❌ Clipboard is not available")
-                return
+### ⚙️ Method `in_thread`
 
-            mime_data = QMimeData()
-            mime_data.setUrls([QUrl.fromLocalFile(str(output_file))])
-            clipboard.setMimeData(mime_data)
+```python
+def in_thread(self) -> str | None
+```
+
+Optimize the clipboard image in a worker thread.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def in_thread(self) -> str | None:
+        project_root = h.dev.get_project_root()
+        return optimize_images_in_folder(
+            self._clipboard_input_dir,
+            self._clipboard_optimized_dir,
+            project_root,
+        )
+```
+
+</details>
+
+### ⚙️ Method `thread_after`
+
+```python
+def thread_after(self, result: Any) -> None
+```
+
+Put the optimized image path on the clipboard and show feedback.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def thread_after(self, result: Any) -> None:
+        stem = Path(self._clipboard_filename).stem
+        optimized_dir = self._clipboard_optimized_dir
+        output_ext = ".avif" if (optimized_dir / (stem + ".avif")).exists() else ".png"
+        output_file = (optimized_dir / (stem + output_ext)).resolve()
+
+        clipboard = QGuiApplication.clipboard()
+        if clipboard is None:
+            message = "❌ Clipboard is not available"
+            self.add_line(message)
+            self.show_toast(message)
+            return
+
+        mime_data = QMimeData()
+        mime_data.setUrls([QUrl.fromLocalFile(str(output_file))])
+        clipboard.setMimeData(mime_data)
 
         self.add_line(result)
         self.add_line("Image is optimized and copied to clipboard.")
+        self.show_toast("Image is optimized and copied to clipboard")
 ```
 
 </details>

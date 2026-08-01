@@ -1,4 +1,4 @@
-"""Actions for Python development and code management."""
+"""Publish a new version of a Python library to PyPI."""
 
 from __future__ import annotations
 

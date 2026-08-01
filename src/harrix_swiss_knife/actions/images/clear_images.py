@@ -1,4 +1,4 @@
-"""Image optimization and management actions."""
+"""Clear temporary image directories."""
 
 from __future__ import annotations
 

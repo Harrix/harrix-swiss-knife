@@ -1,4 +1,4 @@
-"""Actions for Python development and Markdown file management."""
+"""Extract and format a list of movies or books from Markdown content."""
 
 from __future__ import annotations
 

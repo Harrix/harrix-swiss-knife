@@ -1,4 +1,4 @@
-"""Actions for file operations and management of directory structures."""
+"""Rename the largest image in each folder to featured_image."""
 
 from __future__ import annotations
 

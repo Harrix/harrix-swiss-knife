@@ -1,4 +1,4 @@
-"""Actions for Python development and code management."""
+"""Install or update the Harrix Notes Explorer VS Code extension."""
 
 from __future__ import annotations
 

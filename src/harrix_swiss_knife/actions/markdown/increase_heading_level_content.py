@@ -1,4 +1,4 @@
-"""Actions for Python development and Markdown file management."""
+"""Increase the heading level of all headings in Markdown content."""
 
 from __future__ import annotations
 

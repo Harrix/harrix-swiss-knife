@@ -1,4 +1,4 @@
-"""Actions for file operations and management of directory structures."""
+"""Rename files recursively based on a mapping dictionary."""
 
 from __future__ import annotations
 

@@ -1,4 +1,4 @@
-"""Image optimization and management actions."""
+"""Optimize an image from the clipboard with custom naming."""
 
 from __future__ import annotations
 

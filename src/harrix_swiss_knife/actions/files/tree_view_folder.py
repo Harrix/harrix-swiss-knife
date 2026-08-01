@@ -1,4 +1,4 @@
-"""Actions for file operations and management of directory structures."""
+"""Generate a text-based tree view of a folder structure."""
 
 from __future__ import annotations
 

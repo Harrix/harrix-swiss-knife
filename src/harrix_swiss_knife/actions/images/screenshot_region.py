@@ -28,4 +28,6 @@ class OnScreenshotRegion(ActionBase):
         if image is None:
             self.add_line("Screenshot cancelled")
             return
-        self.add_line("Screenshot copied to clipboard")
+        message = "Screenshot copied to clipboard"
+        self.add_line(message)
+        self.show_toast(message)

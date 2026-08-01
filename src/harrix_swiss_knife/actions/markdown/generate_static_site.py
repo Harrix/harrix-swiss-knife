@@ -1,4 +1,4 @@
-"""Actions for Python development and Markdown file management."""
+"""Generate a static HTML site from Markdown files using harrix-pyssg."""
 
 from __future__ import annotations
 

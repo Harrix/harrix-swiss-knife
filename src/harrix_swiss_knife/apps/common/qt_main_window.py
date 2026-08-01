@@ -23,7 +23,7 @@ from PySide6.QtWidgets import QApplication, QTableView, QWidget
 from harrix_swiss_knife.apps.common import message_box
 
 if TYPE_CHECKING:
-    from PySide6.QtGui import QAction, QKeyEvent
+    from PySide6.QtGui import QAction, QCloseEvent, QKeyEvent
 
 
 class AppWindowMixin:
@@ -35,6 +35,7 @@ class AppWindowMixin:
     actionAbout: QAction  # noqa: N815
     actionExit: QAction  # noqa: N815
     db_manager: Any
+    _hide_on_close: bool
 
     def on_about(self) -> None:
         """Show the About dialog with app information."""
@@ -169,6 +170,36 @@ class AppWindowMixin:
                 return True
 
         return False
+
+    def _hide_instead_of_close(self, event: QCloseEvent) -> bool:
+        """Hide the window and return `True` when the launcher reuses this instance.
+
+        Args:
+
+        - `event` (`QCloseEvent`): The close event.
+
+        Returns:
+
+        - `bool`: `True` when the window was hidden instead of closed.
+
+        """
+        if not getattr(self, "_hide_on_close", False):
+            return False
+        event.ignore()
+        self.hide()  # type: ignore[attr-defined]
+        return True
+
+    def _init_hide_on_close(self, *, hide_on_close: bool) -> None:
+        """Remember close behavior; delete on close only when the window is not reused.
+
+        Args:
+
+        - `hide_on_close` (`bool`): When `True`, close hides the window for reuse.
+
+        """
+        self._hide_on_close = hide_on_close
+        if not hide_on_close:
+            self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)  # type: ignore[attr-defined]
 
     def _setup_window_size_and_position(self, *, standard_width: int = 1920) -> None:
         """Set window size and position based on screen resolution and characteristics.

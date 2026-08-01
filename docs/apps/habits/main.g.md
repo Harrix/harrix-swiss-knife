@@ -90,9 +90,7 @@ class MainWindow(
         # Set window icon
         self.setWindowIcon(QIcon(":/assets/logo.svg"))
 
-        self._hide_on_close = hide_on_close
-        if not hide_on_close:
-            self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
+        self._init_hide_on_close(hide_on_close=hide_on_close)
 
         # Initialize core attributes
         self._is_closing = False
@@ -166,10 +164,9 @@ class MainWindow(
             refresh_timer = getattr(self, "_habits_refresh_timer", None)
             if refresh_timer is not None:
                 refresh_timer.stop()
-            event.ignore()
-            self.hide()
             self._is_closing = False
-            return
+            if self._hide_instead_of_close(event):
+                return
 
         self._shutdown_window_resources()
         super().closeEvent(event)
@@ -1887,9 +1884,7 @@ def __init__(self, *, hide_on_close: bool = False) -> None:  # noqa: D107  (inhe
         # Set window icon
         self.setWindowIcon(QIcon(":/assets/logo.svg"))
 
-        self._hide_on_close = hide_on_close
-        if not hide_on_close:
-            self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
+        self._init_hide_on_close(hide_on_close=hide_on_close)
 
         # Initialize core attributes
         self._is_closing = False
@@ -1975,10 +1970,9 @@ def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
             refresh_timer = getattr(self, "_habits_refresh_timer", None)
             if refresh_timer is not None:
                 refresh_timer.stop()
-            event.ignore()
-            self.hide()
             self._is_closing = False
-            return
+            if self._hide_instead_of_close(event):
+                return
 
         self._shutdown_window_resources()
         super().closeEvent(event)
