@@ -4,34 +4,34 @@ author-email: anton.b.sergienko@gmail.com
 lang: en
 ---
 
-# 📄 File `check_md_folder.py`
+# 📄 File `check_md.py`
 
 <details>
 <summary>📖 Contents ⬇️</summary>
 
 ## Contents
 
-- [🏛️ Class `OnCheckMdFolder`](#%EF%B8%8F-class-oncheckmdfolder)
-  - [⚙️ Method `check_md_folder_common`](#%EF%B8%8F-method-check_md_folder_common)
+- [🏛️ Class `OnCheckMd`](#%EF%B8%8F-class-oncheckmd)
+  - [⚙️ Method `check_md_common`](#%EF%B8%8F-method-check_md_common)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
   - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread)
   - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after)
 
 </details>
 
-## 🏛️ Class `OnCheckMdFolder`
+## 🏛️ Class `OnCheckMd`
 
 ```python
-class OnCheckMdFolder(ActionBase)
+class OnCheckMd(ActionBase)
 ```
 
-Action to check all Markdown files in a folder for errors with Harrix rules.
+Check all Markdown files in a folder for errors with Harrix rules.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-class OnCheckMdFolder(ActionBase):
+class OnCheckMd(ActionBase):
 
     icon = "🚧"
     title = "Check MD in …"
@@ -40,7 +40,7 @@ class OnCheckMdFolder(ActionBase):
 
     include_g_md: bool = False
 
-    def check_md_folder_common(self) -> None:
+    def check_md_common(self) -> None:
         """Check Markdown files in `folder_path` with `selected_rule_ids` and log results."""
         checker = h.md_check.MdChecker()
         if self.folder_path is None:
@@ -145,7 +145,7 @@ class OnCheckMdFolder(ActionBase):
                     return
                 self.selected_rule_ids = rule_ids
             self.add_line(f"🔵 Starting Markdown check for path: {self.folder_path}")
-            self.check_md_folder_common()
+            self.check_md_common()
             return
 
         # Convert rules dict to list of rule descriptions for display
@@ -179,7 +179,7 @@ class OnCheckMdFolder(ActionBase):
     @ActionBase.handle_exceptions("markdown folder checking thread")
     def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
-        self.check_md_folder_common()
+        self.check_md_common()
 
     @ActionBase.handle_exceptions("markdown folder checking thread completion")
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
@@ -190,10 +190,10 @@ class OnCheckMdFolder(ActionBase):
 
 </details>
 
-### ⚙️ Method `check_md_folder_common`
+### ⚙️ Method `check_md_common`
 
 ```python
-def check_md_folder_common(self) -> None
+def check_md_common(self) -> None
 ```
 
 Check Markdown files in `folder_path` with `selected_rule_ids` and log results.
@@ -202,7 +202,7 @@ Check Markdown files in `folder_path` with `selected_rule_ids` and log results.
 <summary>Code:</summary>
 
 ```python
-def check_md_folder_common(self) -> None:
+def check_md_common(self) -> None:
         checker = h.md_check.MdChecker()
         if self.folder_path is None:
             return
@@ -319,7 +319,7 @@ def execute(
                     return
                 self.selected_rule_ids = rule_ids
             self.add_line(f"🔵 Starting Markdown check for path: {self.folder_path}")
-            self.check_md_folder_common()
+            self.check_md_common()
             return
 
         # Convert rules dict to list of rule descriptions for display
@@ -366,7 +366,7 @@ Execute code in a separate thread. For performing long-running operations.
 
 ```python
 def in_thread(self) -> str | None:
-        self.check_md_folder_common()
+        self.check_md_common()
 ```
 
 </details>

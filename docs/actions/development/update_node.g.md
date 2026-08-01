@@ -4,24 +4,24 @@ author-email: anton.b.sergienko@gmail.com
 lang: en
 ---
 
-# 📄 File `node_update.py`
+# 📄 File `update_node.py`
 
 <details>
 <summary>📖 Contents ⬇️</summary>
 
 ## Contents
 
-- [🏛️ Class `OnNodeUpdate`](#%EF%B8%8F-class-onnodeupdate)
+- [🏛️ Class `OnUpdateNode`](#%EF%B8%8F-class-onupdatenode)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
   - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread)
   - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after)
 
 </details>
 
-## 🏛️ Class `OnNodeUpdate`
+## 🏛️ Class `OnUpdateNode`
 
 ```python
-class OnNodeUpdate(ActionBase)
+class OnUpdateNode(ActionBase)
 ```
 
 Update `Node.js` to the latest version via winget.
@@ -33,7 +33,7 @@ command `winget upgrade OpenJS.NodeJS`. Available only on Windows.
 <summary>Code:</summary>
 
 ```python
-class OnNodeUpdate(ActionBase):
+class OnUpdateNode(ActionBase):
 
     icon = "📥"
     title = "Update Node.js"

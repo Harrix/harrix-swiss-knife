@@ -1,12 +1,12 @@
-"""Tests for discarding uncommitted git changes in folder repos."""
+"""Tests for discarding uncommitted git changes in repos under a folder."""
 
 from __future__ import annotations
 
 import subprocess
 from pathlib import Path
 
-from harrix_swiss_knife.actions.files.discard_git_changes_folder import (
-    OnDiscardGitChangesFolder,
+from harrix_swiss_knife.actions.files.discard_git_changes import (
+    OnDiscardGitChanges,
     find_git_repos,
     git_porcelain,
     is_git_repo,
@@ -72,7 +72,7 @@ def test_discard_restores_tracked_and_removes_untracked(tmp_path: Path) -> None:
     assert git_porcelain(repo_a).strip()
     assert git_porcelain(repo_b).strip()
 
-    action = OnDiscardGitChangesFolder()
+    action = OnDiscardGitChanges()
     action(folder_path=tmp_path, noninteractive=True)
 
     assert (repo_a / "README.md").read_text(encoding="utf-8") == "hello\n"
@@ -93,7 +93,7 @@ def test_status_only_lists_dirty_repos_without_discarding(tmp_path: Path) -> Non
     (repo_a / "README.md").write_text("changed\n", encoding="utf-8")
     (repo_a / "new-file.txt").write_text("untracked\n", encoding="utf-8")
 
-    action = OnDiscardGitChangesFolder()
+    action = OnDiscardGitChanges()
     action(folder_path=tmp_path, noninteractive=True, status_only=True)
 
     assert (repo_a / "README.md").read_text(encoding="utf-8") == "changed\n"

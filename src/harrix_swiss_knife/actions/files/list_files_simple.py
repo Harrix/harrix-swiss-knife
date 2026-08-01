@@ -19,7 +19,7 @@ class OnListFilesSimple(ActionBase):
     """
 
     icon = "📄"
-    title = "List files simple in …"
+    title = "List files in …"
 
     @ActionBase.handle_exceptions("generating file list")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002

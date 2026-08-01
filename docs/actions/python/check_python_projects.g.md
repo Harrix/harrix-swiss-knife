@@ -25,7 +25,7 @@ lang: en
 class OnCheckPythonProjects(PythonProjectChecksMixin)
 ```
 
-Run ty, ruff, pytest, Harrix PY and MD checks for all paths_python_projects.
+Run ty, ruff, pytest, Harrix PY and MD checks for all projects from `paths_python_projects`.
 
 <details>
 <summary>Code:</summary>

@@ -70,17 +70,17 @@ class PythonProjectChecksMixin(ActionBase):
         return project_failures
 
     def _run_harrix_markdown_check(self, project_path: Path) -> bool:
-        checker = OnCheckMdFolder()
+        checker = OnCheckMd()
         checker.folder_path = project_path
         checker.selected_rule_ids = set(h.md_check.MdChecker().all_rules)
         checker.include_g_md = True
-        checker.check_md_folder_common()
+        checker.check_md_common()
         return not any("🔢 Count errors" in line for line in checker.result_lines)
 
     def _run_harrix_python_check(self, project_path: Path) -> bool:
-        checker = OnHarrixCheckPythonFolder()
+        checker = OnHarrixCheckPython()
         checker.folder_path = project_path
-        checker.harrix_check_python_folder_common()
+        checker.harrix_check_python_common()
         return not any("🔢 Count errors" in line for line in checker.result_lines)
 
     def _run_uv_command(self, project_path: Path, tool: str, args: str) -> tuple[bool, str]:

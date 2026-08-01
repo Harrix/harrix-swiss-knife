@@ -20,7 +20,6 @@ from harrix_swiss_knife.actions.development.install_cli import OnInstallCli
 from harrix_swiss_knife.actions.development.install_harrix_notes_explorer_extension import (
     OnInstallHarrixNotesExplorerExtension,
 )
-from harrix_swiss_knife.actions.development.node_update import OnNodeUpdate
 from harrix_swiss_knife.actions.development.npm_manage_packages import OnNpmManagePackages
 from harrix_swiss_knife.actions.development.open_config_json import OnOpenConfigJson
 from harrix_swiss_knife.actions.development.sync_harrix_notes_explorer import OnSyncHarrixNotesExplorer
@@ -28,17 +27,17 @@ from harrix_swiss_knife.actions.development.sync_quick_access_to_total_commander
     OnSyncQuickAccessToTotalCommander,
 )
 from harrix_swiss_knife.actions.development.update_harrix_swiss_knife import OnUpdateHarrixSwissKnife
-from harrix_swiss_knife.actions.development.uv_update import OnUvUpdate
+from harrix_swiss_knife.actions.development.update_node import OnUpdateNode
+from harrix_swiss_knife.actions.development.update_uv import OnUpdateUv
 from harrix_swiss_knife.actions.development.view_recent_action_logs import OnViewRecentActionLogs
 from harrix_swiss_knife.actions.development.vscode_check import OnVscodeCheck
 from harrix_swiss_knife.actions.development.vscode_format import OnVscodeFormat
 from harrix_swiss_knife.actions.files.all_files_to_parent_folder import OnAllFilesToParentFolder
-from harrix_swiss_knife.actions.files.block_disks import OnBlockDisks
 from harrix_swiss_knife.actions.files.check_featured_image import OnCheckFeaturedImage
 from harrix_swiss_knife.actions.files.check_featured_image_in_folders import OnCheckFeaturedImageInFolders
 from harrix_swiss_knife.actions.files.combine_for_ai import OnCombineForAI
 from harrix_swiss_knife.actions.files.convert_path_to_windows import OnConvertPathToWindows
-from harrix_swiss_knife.actions.files.discard_git_changes_folder import OnDiscardGitChangesFolder
+from harrix_swiss_knife.actions.files.discard_git_changes import OnDiscardGitChanges
 from harrix_swiss_knife.actions.files.extract_zip_archives import OnExtractZipArchives
 from harrix_swiss_knife.actions.files.git_commit_message import OnGitCommitMessage
 from harrix_swiss_knife.actions.files.list_files_current_folder import OnListFilesCurrentFolder
@@ -46,6 +45,7 @@ from harrix_swiss_knife.actions.files.list_files_simple import OnListFilesSimple
 from harrix_swiss_knife.actions.files.list_files_simple_ignore_hidden_folders import (
     OnListFilesSimpleIgnoreHiddenFolders,
 )
+from harrix_swiss_knife.actions.files.lock_disks import OnLockDisks
 from harrix_swiss_knife.actions.files.remove_empty_folders import OnRemoveEmptyFolders
 from harrix_swiss_knife.actions.files.rename_date_in_filenames import OnRenameDateInFilenames
 from harrix_swiss_knife.actions.files.rename_fb2_epub_pdf_files import OnRenameFb2EpubPdfFiles
@@ -72,14 +72,12 @@ from harrix_swiss_knife.actions.images.optimize_resize import OnOptimizeResize
 from harrix_swiss_knife.actions.images.optimize_single_image import OnOptimizeSingleImage
 from harrix_swiss_knife.actions.images.screenshot_region import OnScreenshotRegion
 from harrix_swiss_knife.actions.markdown.append_yaml_tag import OnAppendYamlTag
-from harrix_swiss_knife.actions.markdown.beautify_md_folder import OnBeautifyMdFolder
-from harrix_swiss_knife.actions.markdown.beautify_md_folder_and_regenerate_g_md import (
-    OnBeautifyMdFolderAndRegenerateGMd,
-)
-from harrix_swiss_knife.actions.markdown.check_md_folder import OnCheckMdFolder
+from harrix_swiss_knife.actions.markdown.beautify_md import OnBeautifyMd
+from harrix_swiss_knife.actions.markdown.beautify_md_and_regenerate_g_md import OnBeautifyMdAndRegenerateGMd
+from harrix_swiss_knife.actions.markdown.check_md import OnCheckMd
 from harrix_swiss_knife.actions.markdown.decrease_heading_level_content import OnDecreaseHeadingLevelContent
-from harrix_swiss_knife.actions.markdown.download_and_replace_images_folder import OnDownloadAndReplaceImagesFolder
-from harrix_swiss_knife.actions.markdown.fix_md_with_quotes import OnFixMDWithQuotes
+from harrix_swiss_knife.actions.markdown.download_and_replace_images import OnDownloadAndReplaceImages
+from harrix_swiss_knife.actions.markdown.fix_md_with_quotes import OnFixMdWithQuotes
 from harrix_swiss_knife.actions.markdown.generate_short_note_toc_with_links import OnGenerateShortNoteTocWithLinks
 from harrix_swiss_knife.actions.markdown.generate_static_site import OnGenerateStaticSite
 from harrix_swiss_knife.actions.markdown.get_list_movies_books import OnGetListMoviesBooks
@@ -87,18 +85,18 @@ from harrix_swiss_knife.actions.markdown.get_set_variables_from_yaml import OnGe
 from harrix_swiss_knife.actions.markdown.increase_heading_level_content import OnIncreaseHeadingLevelContent
 from harrix_swiss_knife.actions.markdown.move_md_into_named_folders import OnMoveMdIntoNamedFolders
 from harrix_swiss_knife.actions.markdown.new_markdown import OnNewMarkdown
-from harrix_swiss_knife.actions.markdown.optimize_images_folder import OnOptimizeImagesFolder
+from harrix_swiss_knife.actions.markdown.optimize_images_in_md import OnOptimizeImagesInMd
 from harrix_swiss_knife.actions.markdown.optimize_selected_images import OnOptimizeSelectedImages
 from harrix_swiss_knife.actions.markdown.sort_sections import OnSortSections
 from harrix_swiss_knife.actions.python.check_python_project import OnCheckPythonProject
 from harrix_swiss_knife.actions.python.check_python_projects import OnCheckPythonProjects
-from harrix_swiss_knife.actions.python.harrix_check_python_folder import OnHarrixCheckPythonFolder
+from harrix_swiss_knife.actions.python.harrix_check_python import OnHarrixCheckPython
 from harrix_swiss_knife.actions.python.new_uv_library import OnNewUvLibrary
 from harrix_swiss_knife.actions.python.new_uv_notebook import OnNewUvNotebook
 from harrix_swiss_knife.actions.python.new_uv_project import OnNewUvProject
 from harrix_swiss_knife.actions.python.publish_python_library import OnPublishPythonLibrary
-from harrix_swiss_knife.actions.python.sort_ruff_fmt_docs_python_code_folder import OnSortRuffFmtDocsPythonCodeFolder
-from harrix_swiss_knife.actions.python.sort_ruff_fmt_python_code_folder import OnSortRuffFmtPythonCodeFolder
+from harrix_swiss_knife.actions.python.sort_ruff_fmt_docs_python_code import OnSortRuffFmtDocsPythonCode
+from harrix_swiss_knife.actions.python.sort_ruff_fmt_python_code import OnSortRuffFmtPythonCode
 from harrix_swiss_knife.actions.quick_launcher.action import OnQuickLauncher
 from harrix_swiss_knife.actions.text.fix_text_with_ai import OnFixTextWithAI
 from harrix_swiss_knife.actions.text.fix_text_with_ai_from_clipboard import OnFixTextWithAIFromClipboard
@@ -116,14 +114,14 @@ def get_menu_structure() -> list[Any]:
                 OnAboutDialog,
                 OnCreateDesktopShortcut,
                 OnDownloadOptimizeDependencies,
-                OnNodeUpdate,
+                OnUpdateNode,
                 OnNpmManagePackages,
                 OnOpenConfigJson,
                 OnSyncQuickAccessToTotalCommander,
                 OnUpdateHarrixSwissKnife,
                 OnViewRecentActionLogs,
                 OnClearTempFolder,
-                OnUvUpdate,
+                OnUpdateUv,
                 OnInstallCli,
                 OnInstallHarrixNotesExplorerExtension,
                 OnSyncHarrixNotesExplorer,
@@ -169,13 +167,13 @@ def get_menu_structure() -> list[Any]:
             "🪟",
             [
                 OnAllFilesToParentFolder,
-                OnBlockDisks,
+                OnLockDisks,
                 OnCheckFeaturedImage,
                 OnCheckFeaturedImageInFolders,
                 OnExtractZipArchives,
                 OnCombineForAI,
                 OnConvertPathToWindows,
-                OnDiscardGitChangesFolder,
+                OnDiscardGitChanges,
                 OnListFilesSimple,
                 OnListFilesSimpleIgnoreHiddenFolders,
                 OnListFilesCurrentFolder,
@@ -200,16 +198,16 @@ def get_menu_structure() -> list[Any]:
                 OnIncreaseHeadingLevelContent,
                 "-",
                 OnAppendYamlTag,
-                OnBeautifyMdFolder,
-                OnBeautifyMdFolderAndRegenerateGMd,
-                OnCheckMdFolder,
+                OnBeautifyMd,
+                OnBeautifyMdAndRegenerateGMd,
+                OnCheckMd,
                 OnMoveMdIntoNamedFolders,
-                OnDownloadAndReplaceImagesFolder,
-                OnFixMDWithQuotes,
+                OnDownloadAndReplaceImages,
+                OnFixMdWithQuotes,
                 OnGenerateShortNoteTocWithLinks,
                 OnGenerateStaticSite,
                 OnGetSetVariablesFromYaml,
-                OnOptimizeImagesFolder,
+                OnOptimizeImagesInMd,
                 OnOptimizeSelectedImages,
                 OnSortSections,
             ],
@@ -228,15 +226,15 @@ def get_menu_structure() -> list[Any]:
             "Python",
             "py.svg",
             [
-                OnHarrixCheckPythonFolder,
+                OnHarrixCheckPython,
                 OnCheckPythonProject,
                 OnCheckPythonProjects,
                 OnNewUvLibrary,
                 OnNewUvProject,
                 OnNewUvNotebook,
                 OnPublishPythonLibrary,
-                OnSortRuffFmtDocsPythonCodeFolder,
-                OnSortRuffFmtPythonCodeFolder,
+                OnSortRuffFmtDocsPythonCode,
+                OnSortRuffFmtPythonCode,
             ],
         ),
         OnFinance,

@@ -12,7 +12,7 @@ import harrix_pylib as h
 from harrix_swiss_knife.actions.base import ActionBase
 
 
-class OnUvUpdate(ActionBase):
+class OnUpdateUv(ActionBase):
     """Update uv package manager to its latest version.
 
     Tries `uv self update` (standalone uv only), then on Windows `winget upgrade` /

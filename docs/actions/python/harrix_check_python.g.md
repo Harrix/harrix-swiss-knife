@@ -4,25 +4,25 @@ author-email: anton.b.sergienko@gmail.com
 lang: en
 ---
 
-# 📄 File `harrix_check_python_folder.py`
+# 📄 File `harrix_check_python.py`
 
 <details>
 <summary>📖 Contents ⬇️</summary>
 
 ## Contents
 
-- [🏛️ Class `OnHarrixCheckPythonFolder`](#%EF%B8%8F-class-onharrixcheckpythonfolder)
+- [🏛️ Class `OnHarrixCheckPython`](#%EF%B8%8F-class-onharrixcheckpython)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
-  - [⚙️ Method `harrix_check_python_folder_common`](#%EF%B8%8F-method-harrix_check_python_folder_common)
+  - [⚙️ Method `harrix_check_python_common`](#%EF%B8%8F-method-harrix_check_python_common)
   - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread)
   - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after)
 
 </details>
 
-## 🏛️ Class `OnHarrixCheckPythonFolder`
+## 🏛️ Class `OnHarrixCheckPython`
 
 ```python
-class OnHarrixCheckPythonFolder(ActionBase)
+class OnHarrixCheckPython(ActionBase)
 ```
 
 Check Python files with Harrix PY rules and docstring Markdown typography (incl. private).
@@ -31,7 +31,7 @@ Check Python files with Harrix PY rules and docstring Markdown typography (incl.
 <summary>Code:</summary>
 
 ```python
-class OnHarrixCheckPythonFolder(ActionBase):
+class OnHarrixCheckPython(ActionBase):
 
     icon = "🚧"
     title = "Harrix PY check in …"
@@ -74,12 +74,12 @@ class OnHarrixCheckPythonFolder(ActionBase):
 
         if noninteractive:
             self.add_line(f"🔵 Starting Harrix PY check for path: {self.folder_path}")
-            self.harrix_check_python_folder_common()
+            self.harrix_check_python_common()
             return
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
-    def harrix_check_python_folder_common(self) -> None:
+    def harrix_check_python_common(self) -> None:
         """Check all Python files in `folder_path` and log results."""
         checker = h.py_check.PyChecker()
         if self.folder_path is None:
@@ -107,7 +107,7 @@ class OnHarrixCheckPythonFolder(ActionBase):
     @ActionBase.handle_exceptions("Python folder checking thread")
     def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
-        self.harrix_check_python_folder_common()
+        self.harrix_check_python_common()
 
     @ActionBase.handle_exceptions("Python folder checking thread completion")
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
@@ -268,7 +268,7 @@ def execute(
 
         if noninteractive:
             self.add_line(f"🔵 Starting Harrix PY check for path: {self.folder_path}")
-            self.harrix_check_python_folder_common()
+            self.harrix_check_python_common()
             return
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
@@ -276,10 +276,10 @@ def execute(
 
 </details>
 
-### ⚙️ Method `harrix_check_python_folder_common`
+### ⚙️ Method `harrix_check_python_common`
 
 ```python
-def harrix_check_python_folder_common(self) -> None
+def harrix_check_python_common(self) -> None
 ```
 
 Check all Python files in `folder_path` and log results.
@@ -288,7 +288,7 @@ Check all Python files in `folder_path` and log results.
 <summary>Code:</summary>
 
 ```python
-def harrix_check_python_folder_common(self) -> None:
+def harrix_check_python_common(self) -> None:
         checker = h.py_check.PyChecker()
         if self.folder_path is None:
             return
@@ -328,7 +328,7 @@ Execute code in a separate thread. For performing long-running operations.
 
 ```python
 def in_thread(self) -> str | None:
-        self.harrix_check_python_folder_common()
+        self.harrix_check_python_common()
 ```
 
 </details>

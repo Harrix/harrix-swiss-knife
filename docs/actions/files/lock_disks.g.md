@@ -4,22 +4,22 @@ author-email: anton.b.sergienko@gmail.com
 lang: en
 ---
 
-# 📄 File `block_disks.py`
+# 📄 File `lock_disks.py`
 
 <details>
 <summary>📖 Contents ⬇️</summary>
 
 ## Contents
 
-- [🏛️ Class `OnBlockDisks`](#%EF%B8%8F-class-onblockdisks)
+- [🏛️ Class `OnLockDisks`](#%EF%B8%8F-class-onlockdisks)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
 
 </details>
 
-## 🏛️ Class `OnBlockDisks`
+## 🏛️ Class `OnLockDisks`
 
 ```python
-class OnBlockDisks(ActionBase)
+class OnLockDisks(ActionBase)
 ```
 
 Lock BitLocker-encrypted drives.
@@ -32,12 +32,12 @@ secure protection of the drive contents.
 <summary>Code:</summary>
 
 ```python
-class OnBlockDisks(ActionBase):
+class OnLockDisks(ActionBase):
 
     icon = "🔒"
-    title = "Block disks"
+    title = "Lock disks (BitLocker)"
 
-    @ActionBase.handle_exceptions("blocking disks")
+    @ActionBase.handle_exceptions("locking disks")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Lock BitLocker-encrypted drives."""
         commands = "\n".join([f"manage-bde -lock {drive}: -ForceDismount" for drive in self.config["block_drives"]])

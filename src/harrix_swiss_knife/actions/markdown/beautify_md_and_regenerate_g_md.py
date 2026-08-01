@@ -7,11 +7,11 @@ from typing import Any
 
 from harrix_swiss_knife.actions.base import ActionBase
 from harrix_swiss_knife.actions.common.python_project import reject_python_project_for_md_beautify
-from harrix_swiss_knife.actions.markdown.beautify_md_folder import OnBeautifyMdFolder
+from harrix_swiss_knife.actions.markdown.beautify_md import OnBeautifyMd
 
 
-class OnBeautifyMdFolderAndRegenerateGMd(ActionBase):
-    """Apply comprehensive beautification to all Markdown notes.
+class OnBeautifyMdAndRegenerateGMd(ActionBase):
+    """Beautify all Markdown notes and regenerate `.g.md` summaries and combined files.
 
     This action performs multiple enhancement operations on Markdown files across
     all configured note directories, including:
@@ -82,7 +82,7 @@ class OnBeautifyMdFolderAndRegenerateGMd(ActionBase):
         self.add_line(f"🔵 Starting processing for path: {self.folder_path}")
         if self.folder_path is None:
             return
-        OnBeautifyMdFolder.beautify_markdown_common(self, str(self.folder_path), is_include_summaries_and_combine=True)
+        OnBeautifyMd.beautify_markdown_common(self, str(self.folder_path), is_include_summaries_and_combine=True)
 
     @ActionBase.handle_exceptions("beautifying and regenerating thread completion")
     def thread_after(self, result: Any) -> None:  # noqa: ARG002

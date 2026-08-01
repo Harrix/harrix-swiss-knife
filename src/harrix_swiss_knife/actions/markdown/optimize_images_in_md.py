@@ -9,7 +9,7 @@ from harrix_swiss_knife.actions.base import ActionBase
 from harrix_swiss_knife.actions.common.md_image_optimize import optimize_images_in_md_file
 
 
-class OnOptimizeImagesFolder(ActionBase):
+class OnOptimizeImagesInMd(ActionBase):
     """Optimize images in Markdown files with PNG/AVIF size comparison."""
 
     icon = "🖼️"

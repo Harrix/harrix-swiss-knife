@@ -4,23 +4,23 @@ author-email: anton.b.sergienko@gmail.com
 lang: en
 ---
 
-# 📄 File `optimize_images_folder.py`
+# 📄 File `optimize_images_in_md.py`
 
 <details>
 <summary>📖 Contents ⬇️</summary>
 
 ## Contents
 
-- [🏛️ Class `OnOptimizeImagesFolder`](#%EF%B8%8F-class-onoptimizeimagesfolder)
+- [🏛️ Class `OnOptimizeImagesInMd`](#%EF%B8%8F-class-onoptimizeimagesinmd)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
   - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread)
 
 </details>
 
-## 🏛️ Class `OnOptimizeImagesFolder`
+## 🏛️ Class `OnOptimizeImagesInMd`
 
 ```python
-class OnOptimizeImagesFolder(ActionBase)
+class OnOptimizeImagesInMd(ActionBase)
 ```
 
 Optimize images in Markdown files with PNG/AVIF size comparison.
@@ -29,7 +29,7 @@ Optimize images in Markdown files with PNG/AVIF size comparison.
 <summary>Code:</summary>
 
 ```python
-class OnOptimizeImagesFolder(ActionBase):
+class OnOptimizeImagesInMd(ActionBase):
 
     icon = "🖼️"
     title = "Optimize images in MD in …"

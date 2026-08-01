@@ -35,7 +35,7 @@ to view or manage the source image files.
 class OnOpenImages(ActionBase):
 
     icon = "📂"
-    title = "Open the folder images"
+    title = "Open folder `images`"
 
     @ActionBase.handle_exceptions("opening images folder")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002

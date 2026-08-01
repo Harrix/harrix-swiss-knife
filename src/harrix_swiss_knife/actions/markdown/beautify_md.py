@@ -11,7 +11,7 @@ from harrix_swiss_knife.actions.base import ActionBase
 from harrix_swiss_knife.actions.common.python_project import reject_python_project_for_md_beautify
 
 
-class OnBeautifyMdFolder(ActionBase):
+class OnBeautifyMd(ActionBase):
     """Apply comprehensive beautification to all Markdown notes.
 
     This action performs multiple enhancement operations on Markdown files across
@@ -80,7 +80,7 @@ class OnBeautifyMdFolder(ActionBase):
             self.add_line(h.md.delete_g_md_files_recursively(folder_path))
         elif delete_generated_g_md:
             self.add_line("🔵 Delete *.g.md files")
-            self.add_line(OnBeautifyMdFolder._delete_generated_g_md_files(folder_path))
+            self.add_line(OnBeautifyMd._delete_generated_g_md_files(folder_path))
 
         def skip_generated_g_md(path: Path) -> bool:
             return path.name.endswith(".g.md") and not path.name.endswith(".include.g.md")

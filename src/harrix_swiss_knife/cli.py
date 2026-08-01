@@ -19,20 +19,20 @@ from harrix_swiss_knife.actions.development import (
     OnVscodeCheck,
     OnVscodeFormat,
 )
-from harrix_swiss_knife.actions.files import OnDiscardGitChangesFolder
+from harrix_swiss_knife.actions.files import OnDiscardGitChanges
 from harrix_swiss_knife.actions.markdown import (
-    OnBeautifyMdFolder,
-    OnBeautifyMdFolderAndRegenerateGMd,
-    OnCheckMdFolder,
+    OnBeautifyMd,
+    OnBeautifyMdAndRegenerateGMd,
+    OnCheckMd,
     OnNewMarkdown,
-    OnOptimizeImagesFolder,
+    OnOptimizeImagesInMd,
 )
 from harrix_swiss_knife.actions.python import (
     OnCheckPythonProject,
     OnCheckPythonProjects,
-    OnHarrixCheckPythonFolder,
-    OnSortRuffFmtDocsPythonCodeFolder,
-    OnSortRuffFmtPythonCodeFolder,
+    OnHarrixCheckPython,
+    OnSortRuffFmtDocsPythonCode,
+    OnSortRuffFmtPythonCode,
 )
 from harrix_swiss_knife.actions.text import OnFixTextWithAI
 from harrix_swiss_knife.paths import get_project_root
@@ -145,7 +145,7 @@ def file_group() -> None:
 )
 def file_discard_git_changes(folder: Path, *, status_only: bool) -> None:
     """Discard uncommitted changes in all Git repos under FOLDER (same as tray action)."""
-    action = OnDiscardGitChangesFolder()
+    action = OnDiscardGitChanges()
     action(folder_path=folder, noninteractive=True, status_only=status_only)
     _exit_if_action_failed(action)
 
@@ -221,7 +221,7 @@ def markdown_beautify_md(
     format_code_blocks: bool,
 ) -> None:
     """Beautify Markdown under FOLDER (same as tray action Beautify MD in …)."""
-    action = OnBeautifyMdFolder()
+    action = OnBeautifyMd()
     action(
         folder_path=folder,
         noninteractive=True,
@@ -279,7 +279,7 @@ def markdown_beautify_regenerate_g_md(
     format_code_blocks: bool,
 ) -> None:
     """Beautify Markdown under FOLDER and regenerate `g.md` (same as tray action)."""
-    action = OnBeautifyMdFolderAndRegenerateGMd()
+    action = OnBeautifyMdAndRegenerateGMd()
     action(
         folder_path=folder,
         noninteractive=True,
@@ -312,7 +312,7 @@ def markdown_beautify_regenerate_g_md(
 def markdown_check(folder: Path, rules: tuple[str, ...], *, include_g_md: bool) -> None:
     """Check MD files in FOLDER with Harrix rules (same as tray action, all rules by default)."""
     rule_ids = {r.strip() for r in rules if r.strip()} or None
-    action = OnCheckMdFolder()
+    action = OnCheckMd()
     action(folder_path=folder, rule_ids=rule_ids, include_g_md=include_g_md, noninteractive=True)
     _finish_timed_action(action)
 
@@ -474,7 +474,7 @@ def markdown_new_note_with_images(folder: Path | None, name: str | None) -> None
 )
 def markdown_optimize_images_folder(folder: Path, max_size: int | None) -> None:
     """Optimize images referenced by Markdown files under FOLDER (PNG/AVIF size comparison)."""
-    action = OnOptimizeImagesFolder()
+    action = OnOptimizeImagesInMd()
     action(folder_path=folder, max_size=max_size, noninteractive=True)
     _finish_timed_action(action)
 
@@ -529,7 +529,7 @@ def python_check_project(folder: Path) -> None:
 )
 def python_harrix_check(folder: Path) -> None:
     """Harrix PY rules and docstring Markdown check (incl. private; errors point at `.py`)."""
-    action = OnHarrixCheckPythonFolder()
+    action = OnHarrixCheckPython()
     action(folder_path=folder, noninteractive=True)
     _finish_timed_action(action)
 
@@ -543,7 +543,7 @@ def python_harrix_check(folder: Path) -> None:
 )
 def python_ruff_sort(folder: Path) -> None:
     """Ruff sort, ruff format, sort code in PY files without docs step (same as tray action)."""
-    action = OnSortRuffFmtPythonCodeFolder()
+    action = OnSortRuffFmtPythonCode()
     action(folder_path=folder, noninteractive=True)
     _exit_if_action_failed(action)
 
@@ -565,7 +565,7 @@ def python_ruff_sort(folder: Path) -> None:
 )
 def python_ruff_sort_docs(folder: Path, *, apply_prose_fixes: bool) -> None:
     """Ruff sort, ruff format, sort code, generate docs and format Markdown (same as tray action)."""
-    action = OnSortRuffFmtDocsPythonCodeFolder()
+    action = OnSortRuffFmtDocsPythonCode()
     action(folder_path=folder, noninteractive=True, apply_prose_fixes=apply_prose_fixes)
     _finish_timed_action(action)
 

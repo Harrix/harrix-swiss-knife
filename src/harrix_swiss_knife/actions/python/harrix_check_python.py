@@ -10,7 +10,7 @@ import harrix_pylib as h
 from harrix_swiss_knife.actions.base import ActionBase
 
 
-class OnHarrixCheckPythonFolder(ActionBase):
+class OnHarrixCheckPython(ActionBase):
     """Check Python files with Harrix PY rules and docstring Markdown typography (incl. private)."""
 
     icon = "🚧"
@@ -54,12 +54,12 @@ class OnHarrixCheckPythonFolder(ActionBase):
 
         if noninteractive:
             self.add_line(f"🔵 Starting Harrix PY check for path: {self.folder_path}")
-            self.harrix_check_python_folder_common()
+            self.harrix_check_python_common()
             return
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
-    def harrix_check_python_folder_common(self) -> None:
+    def harrix_check_python_common(self) -> None:
         """Check all Python files in `folder_path` and log results."""
         checker = h.py_check.PyChecker()
         if self.folder_path is None:
@@ -87,7 +87,7 @@ class OnHarrixCheckPythonFolder(ActionBase):
     @ActionBase.handle_exceptions("Python folder checking thread")
     def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
-        self.harrix_check_python_folder_common()
+        self.harrix_check_python_common()
 
     @ActionBase.handle_exceptions("Python folder checking thread completion")
     def thread_after(self, result: Any) -> None:  # noqa: ARG002

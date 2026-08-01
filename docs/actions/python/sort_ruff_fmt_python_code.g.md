@@ -4,23 +4,23 @@ author-email: anton.b.sergienko@gmail.com
 lang: en
 ---
 
-# 📄 File `sort_ruff_fmt_python_code_folder.py`
+# 📄 File `sort_ruff_fmt_python_code.py`
 
 <details>
 <summary>📖 Contents ⬇️</summary>
 
 ## Contents
 
-- [🏛️ Class `OnSortRuffFmtPythonCodeFolder`](#%EF%B8%8F-class-onsortrufffmtpythoncodefolder)
+- [🏛️ Class `OnSortRuffFmtPythonCode`](#%EF%B8%8F-class-onsortrufffmtpythoncode)
   - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread)
   - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after)
 
 </details>
 
-## 🏛️ Class `OnSortRuffFmtPythonCodeFolder`
+## 🏛️ Class `OnSortRuffFmtPythonCode`
 
 ```python
-class OnSortRuffFmtPythonCodeFolder(OnSortRuffFmtDocsPythonCodeFolder)
+class OnSortRuffFmtPythonCode(OnSortRuffFmtDocsPythonCode)
 ```
 
 Format and sort Python code in a selected folder using multiple tools.
@@ -37,10 +37,10 @@ Python files in a user-selected directory. The process consists of three steps:
 <summary>Code:</summary>
 
 ```python
-class OnSortRuffFmtPythonCodeFolder(OnSortRuffFmtDocsPythonCodeFolder):
+class OnSortRuffFmtPythonCode(OnSortRuffFmtDocsPythonCode):
 
     icon = "🌟"
-    title = "ruff sort, ruff format, sort PY in …"
+    title = "Ruff sort, ruff format, sort PY in …"
     bold_title = False
     include_docs_generation = False
     cli_available = True

@@ -1,4 +1,4 @@
-"""Tests for Markdown beautify folder helpers."""
+"""Tests for Markdown beautify helpers."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from harrix_swiss_knife.actions.common.python_project import (
     is_python_project,
     reject_python_project_for_md_beautify,
 )
-from harrix_swiss_knife.actions.markdown.beautify_md_folder import OnBeautifyMdFolder
+from harrix_swiss_knife.actions.markdown.beautify_md import OnBeautifyMd
 
 
 def test_is_python_project_detects_pyproject(tmp_path: Path) -> None:
@@ -35,7 +35,7 @@ def test_delete_generated_g_md_keeps_include(tmp_path: Path) -> None:
     include.write_text("include\n", encoding="utf-8")
     note.write_text("# Note\n", encoding="utf-8")
 
-    message = OnBeautifyMdFolder._delete_generated_g_md_files(tmp_path)
+    message = OnBeautifyMd._delete_generated_g_md_files(tmp_path)
 
     assert "deleted" in message.lower()
     assert not dump.exists()
@@ -54,7 +54,7 @@ def test_beautify_common_default_does_not_delete_g_md(tmp_path: Path) -> None:
     action.apply_prose_fixes = False
     action.format_code_blocks = False
 
-    OnBeautifyMdFolder.beautify_markdown_common(
+    OnBeautifyMd.beautify_markdown_common(
         action,
         str(tmp_path),
         is_include_summaries_and_combine=False,

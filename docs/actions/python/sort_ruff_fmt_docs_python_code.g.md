@@ -4,14 +4,14 @@ author-email: anton.b.sergienko@gmail.com
 lang: en
 ---
 
-# 📄 File `sort_ruff_fmt_docs_python_code_folder.py`
+# 📄 File `sort_ruff_fmt_docs_python_code.py`
 
 <details>
 <summary>📖 Contents ⬇️</summary>
 
 ## Contents
 
-- [🏛️ Class `OnSortRuffFmtDocsPythonCodeFolder`](#%EF%B8%8F-class-onsortrufffmtdocspythoncodefolder)
+- [🏛️ Class `OnSortRuffFmtDocsPythonCode`](#%EF%B8%8F-class-onsortrufffmtdocspythoncode)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
   - [⚙️ Method `format_and_sort_python_common`](#%EF%B8%8F-method-format_and_sort_python_common)
@@ -20,10 +20,10 @@ lang: en
 
 </details>
 
-## 🏛️ Class `OnSortRuffFmtDocsPythonCodeFolder`
+## 🏛️ Class `OnSortRuffFmtDocsPythonCode`
 
 ```python
-class OnSortRuffFmtDocsPythonCodeFolder(ActionBase)
+class OnSortRuffFmtDocsPythonCode(ActionBase)
 ```
 
 Format, sort Python code and generate documentation in a selected folder.
@@ -44,10 +44,10 @@ workflow to all Python files in a user-selected directory. The process consists 
 <summary>Code:</summary>
 
 ```python
-class OnSortRuffFmtDocsPythonCodeFolder(ActionBase):
+class OnSortRuffFmtDocsPythonCode(ActionBase):
 
     icon = "🌟"
-    title = "ruff sort, ruff format, sort, make docs PY in …"
+    title = "Ruff sort, ruff format, sort, make docs PY in …"
     bold_title = True
     include_docs_generation: ClassVar[bool] = True
     cli_available = True
@@ -171,7 +171,7 @@ class OnSortRuffFmtDocsPythonCodeFolder(ActionBase):
 
             # Format markdown files
             self.add_line("🔵 Format markdown files")
-            OnBeautifyMdFolder.beautify_markdown_common(self, folder_path, is_include_summaries_and_combine=False)
+            OnBeautifyMd.beautify_markdown_common(self, folder_path, is_include_summaries_and_combine=False)
 
         self.add_line("🔵 Remove empty folders")
         self.add_line(h.file.remove_empty_folders(folder_path))
@@ -348,7 +348,7 @@ def format_and_sort_python_common(self, folder_path: str, *, is_include_docs_gen
 
             # Format markdown files
             self.add_line("🔵 Format markdown files")
-            OnBeautifyMdFolder.beautify_markdown_common(self, folder_path, is_include_summaries_and_combine=False)
+            OnBeautifyMd.beautify_markdown_common(self, folder_path, is_include_summaries_and_combine=False)
 
         self.add_line("🔵 Remove empty folders")
         self.add_line(h.file.remove_empty_folders(folder_path))

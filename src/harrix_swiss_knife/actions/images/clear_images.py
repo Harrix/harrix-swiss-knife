@@ -20,7 +20,7 @@ class OnClearImages(ActionBase):
     """
 
     icon = "🧹"
-    title = "Clear folders images"
+    title = "Clear folders `images` and `optimized_images`"
 
     @ActionBase.handle_exceptions("clearing image folders")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002

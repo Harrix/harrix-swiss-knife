@@ -20,7 +20,7 @@ class OnCheckFeaturedImageInFolders(ActionBase):
     """
 
     icon = "✅"
-    title = "Check featured_image"
+    title = "Check featured_image in all folders"
 
     @ActionBase.handle_exceptions("checking featured image in folders")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002

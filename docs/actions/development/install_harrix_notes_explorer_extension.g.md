@@ -22,11 +22,11 @@ lang: en
 class OnInstallHarrixNotesExplorerExtension(ActionBase)
 ```
 
-Sync public Harrix Notes Explorer repo, install HSK, optionally install public into editors.
+Install the Harrix Notes Explorer extension into selected VS Code-like editors.
 
-On Windows: runs `OnSyncHarrixNotesExplorer` (HSK → `path_harrix_notes_explorer`), copies HSK
-into each selected editor profile, and optionally copies the public `harrix-notes-explorer`
-tree from that repo.
+On Windows: runs `OnSyncHarrixNotesExplorer` (HSK → `path_harrix_notes_explorer`), copies the
+HSK extension into each selected editor profile, and optionally copies the public
+`harrix-notes-explorer` tree from that repo.
 
 <details>
 <summary>Code:</summary>
@@ -35,7 +35,7 @@ tree from that repo.
 class OnInstallHarrixNotesExplorerExtension(ActionBase):
 
     icon = "📦"
-    title = "Update/install extension for VS Code (and etc.)"
+    title = "Update/install Harrix Notes Explorer extension for VS Code…"
     cli_available = True
     cli_hint = "dev install-harrix-notes-explorer-hsk vscode [--with-public]"
 

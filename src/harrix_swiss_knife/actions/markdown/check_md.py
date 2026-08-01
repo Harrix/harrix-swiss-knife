@@ -17,8 +17,8 @@ _RULE_ID_RE = re.compile(r"^H\d+")
 _INCLUDE_G_MD_CHOICE = "Include .g.md files"
 
 
-class OnCheckMdFolder(ActionBase):
-    """Action to check all Markdown files in a folder for errors with Harrix rules."""
+class OnCheckMd(ActionBase):
+    """Check all Markdown files in a folder for errors with Harrix rules."""
 
     icon = "🚧"
     title = "Check MD in …"
@@ -27,7 +27,7 @@ class OnCheckMdFolder(ActionBase):
 
     include_g_md: bool = False
 
-    def check_md_folder_common(self) -> None:
+    def check_md_common(self) -> None:
         """Check Markdown files in `folder_path` with `selected_rule_ids` and log results."""
         checker = h.md_check.MdChecker()
         if self.folder_path is None:
@@ -132,7 +132,7 @@ class OnCheckMdFolder(ActionBase):
                     return
                 self.selected_rule_ids = rule_ids
             self.add_line(f"🔵 Starting Markdown check for path: {self.folder_path}")
-            self.check_md_folder_common()
+            self.check_md_common()
             return
 
         # Convert rules dict to list of rule descriptions for display
@@ -166,7 +166,7 @@ class OnCheckMdFolder(ActionBase):
     @ActionBase.handle_exceptions("markdown folder checking thread")
     def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
-        self.check_md_folder_common()
+        self.check_md_common()
 
     @ActionBase.handle_exceptions("markdown folder checking thread completion")
     def thread_after(self, result: Any) -> None:  # noqa: ARG002

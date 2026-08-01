@@ -4,14 +4,14 @@ author-email: anton.b.sergienko@gmail.com
 lang: en
 ---
 
-# 📄 File `beautify_md_folder.py`
+# 📄 File `beautify_md.py`
 
 <details>
 <summary>📖 Contents ⬇️</summary>
 
 ## Contents
 
-- [🏛️ Class `OnBeautifyMdFolder`](#%EF%B8%8F-class-onbeautifymdfolder)
+- [🏛️ Class `OnBeautifyMd`](#%EF%B8%8F-class-onbeautifymd)
   - [⚙️ Method `beautify_markdown_common`](#%EF%B8%8F-method-beautify_markdown_common)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
   - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread)
@@ -19,10 +19,10 @@ lang: en
 
 </details>
 
-## 🏛️ Class `OnBeautifyMdFolder`
+## 🏛️ Class `OnBeautifyMd`
 
 ```python
-class OnBeautifyMdFolder(ActionBase)
+class OnBeautifyMd(ActionBase)
 ```
 
 Apply comprehensive beautification to all Markdown notes.
@@ -42,7 +42,7 @@ formatted collection of Markdown documents.
 <summary>Code:</summary>
 
 ```python
-class OnBeautifyMdFolder(ActionBase):
+class OnBeautifyMd(ActionBase):
 
     icon = "💎"
     title = "Beautify MD in …"
@@ -97,7 +97,7 @@ class OnBeautifyMdFolder(ActionBase):
             self.add_line(h.md.delete_g_md_files_recursively(folder_path))
         elif delete_generated_g_md:
             self.add_line("🔵 Delete *.g.md files")
-            self.add_line(OnBeautifyMdFolder._delete_generated_g_md_files(folder_path))
+            self.add_line(OnBeautifyMd._delete_generated_g_md_files(folder_path))
 
         def skip_generated_g_md(path: Path) -> bool:
             return path.name.endswith(".g.md") and not path.name.endswith(".include.g.md")
@@ -331,7 +331,7 @@ def beautify_markdown_common(
             self.add_line(h.md.delete_g_md_files_recursively(folder_path))
         elif delete_generated_g_md:
             self.add_line("🔵 Delete *.g.md files")
-            self.add_line(OnBeautifyMdFolder._delete_generated_g_md_files(folder_path))
+            self.add_line(OnBeautifyMd._delete_generated_g_md_files(folder_path))
 
         def skip_generated_g_md(path: Path) -> bool:
             return path.name.endswith(".g.md") and not path.name.endswith(".include.g.md")

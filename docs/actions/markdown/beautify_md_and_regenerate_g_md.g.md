@@ -4,27 +4,27 @@ author-email: anton.b.sergienko@gmail.com
 lang: en
 ---
 
-# 📄 File `beautify_md_folder_and_regenerate_g_md.py`
+# 📄 File `beautify_md_and_regenerate_g_md.py`
 
 <details>
 <summary>📖 Contents ⬇️</summary>
 
 ## Contents
 
-- [🏛️ Class `OnBeautifyMdFolderAndRegenerateGMd`](#%EF%B8%8F-class-onbeautifymdfolderandregenerategmd)
+- [🏛️ Class `OnBeautifyMdAndRegenerateGMd`](#%EF%B8%8F-class-onbeautifymdandregenerategmd)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
   - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread)
   - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after)
 
 </details>
 
-## 🏛️ Class `OnBeautifyMdFolderAndRegenerateGMd`
+## 🏛️ Class `OnBeautifyMdAndRegenerateGMd`
 
 ```python
-class OnBeautifyMdFolderAndRegenerateGMd(ActionBase)
+class OnBeautifyMdAndRegenerateGMd(ActionBase)
 ```
 
-Apply comprehensive beautification to all Markdown notes.
+Beautify all Markdown notes and regenerate `.g.md` summaries and combined files.
 
 This action performs multiple enhancement operations on Markdown files across
 all configured note directories, including:
@@ -43,7 +43,7 @@ formatted collection of Markdown documents.
 <summary>Code:</summary>
 
 ```python
-class OnBeautifyMdFolderAndRegenerateGMd(ActionBase):
+class OnBeautifyMdAndRegenerateGMd(ActionBase):
 
     icon = "💎"
     title = "Beautify MD and regenerate .g.md in …"
@@ -99,7 +99,7 @@ class OnBeautifyMdFolderAndRegenerateGMd(ActionBase):
         self.add_line(f"🔵 Starting processing for path: {self.folder_path}")
         if self.folder_path is None:
             return
-        OnBeautifyMdFolder.beautify_markdown_common(self, str(self.folder_path), is_include_summaries_and_combine=True)
+        OnBeautifyMd.beautify_markdown_common(self, str(self.folder_path), is_include_summaries_and_combine=True)
 
     @ActionBase.handle_exceptions("beautifying and regenerating thread completion")
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
@@ -181,7 +181,7 @@ def in_thread(self) -> str | None:
         self.add_line(f"🔵 Starting processing for path: {self.folder_path}")
         if self.folder_path is None:
             return
-        OnBeautifyMdFolder.beautify_markdown_common(self, str(self.folder_path), is_include_summaries_and_combine=True)
+        OnBeautifyMd.beautify_markdown_common(self, str(self.folder_path), is_include_summaries_and_combine=True)
 ```
 
 </details>

@@ -9,7 +9,7 @@ import harrix_pylib as h
 from harrix_swiss_knife.actions.base import ActionBase
 
 
-class OnBlockDisks(ActionBase):
+class OnLockDisks(ActionBase):
     """Lock BitLocker-encrypted drives.
 
     This action locks all drives specified in the configuration's `block_drives` list
@@ -19,9 +19,9 @@ class OnBlockDisks(ActionBase):
     """
 
     icon = "🔒"
-    title = "Block disks"
+    title = "Lock disks (BitLocker)"
 
-    @ActionBase.handle_exceptions("blocking disks")
+    @ActionBase.handle_exceptions("locking disks")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Lock BitLocker-encrypted drives."""
         commands = "\n".join([f"manage-bde -lock {drive}: -ForceDismount" for drive in self.config["block_drives"]])

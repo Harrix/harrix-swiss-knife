@@ -11,7 +11,7 @@ from harrix_swiss_knife.actions.base import ActionBase
 from harrix_swiss_knife.integrations.http_download import DownloadCancelledError
 
 
-class OnDownloadAndReplaceImagesFolder(ActionBase):
+class OnDownloadAndReplaceImages(ActionBase):
     """Download remote images and replace URLs with local references in multiple Markdown files.
 
     This action processes all Markdown files in a selected folder to find image URLs,

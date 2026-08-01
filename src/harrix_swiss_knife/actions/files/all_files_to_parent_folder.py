@@ -19,7 +19,7 @@ class OnAllFilesToParentFolder(ActionBase):
     """
 
     icon = "🗂️"
-    title = "Moves and flattens files in …"
+    title = "Move and flatten files in …"
 
     @ActionBase.handle_exceptions("moving files to parent folder")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002

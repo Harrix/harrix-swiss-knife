@@ -4,24 +4,24 @@ author-email: anton.b.sergienko@gmail.com
 lang: en
 ---
 
-# 📄 File `download_and_replace_images_folder.py`
+# 📄 File `download_and_replace_images.py`
 
 <details>
 <summary>📖 Contents ⬇️</summary>
 
 ## Contents
 
-- [🏛️ Class `OnDownloadAndReplaceImagesFolder`](#%EF%B8%8F-class-ondownloadandreplaceimagesfolder)
+- [🏛️ Class `OnDownloadAndReplaceImages`](#%EF%B8%8F-class-ondownloadandreplaceimages)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
   - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread)
   - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after)
 
 </details>
 
-## 🏛️ Class `OnDownloadAndReplaceImagesFolder`
+## 🏛️ Class `OnDownloadAndReplaceImages`
 
 ```python
-class OnDownloadAndReplaceImagesFolder(ActionBase)
+class OnDownloadAndReplaceImages(ActionBase)
 ```
 
 Download remote images and replace URLs with local references in multiple Markdown files.
@@ -35,7 +35,7 @@ reducing external dependencies across an entire collection of documents.
 <summary>Code:</summary>
 
 ```python
-class OnDownloadAndReplaceImagesFolder(ActionBase):
+class OnDownloadAndReplaceImages(ActionBase):
 
     icon = "📥"
     title = "Download images in …"

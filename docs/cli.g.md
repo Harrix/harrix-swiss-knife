@@ -236,7 +236,7 @@ Discard uncommitted changes in all Git repos under FOLDER (same as tray action).
 
 ```python
 def file_discard_git_changes(folder: Path, *, status_only: bool) -> None:
-    action = OnDiscardGitChangesFolder()
+    action = OnDiscardGitChanges()
     action(folder_path=folder, noninteractive=True, status_only=status_only)
     _exit_if_action_failed(action)
 ```
@@ -305,7 +305,7 @@ def markdown_beautify_md(
     apply_prose_fixes: bool,
     format_code_blocks: bool,
 ) -> None:
-    action = OnBeautifyMdFolder()
+    action = OnBeautifyMd()
     action(
         folder_path=folder,
         noninteractive=True,
@@ -339,7 +339,7 @@ def markdown_beautify_regenerate_g_md(
     apply_prose_fixes: bool,
     format_code_blocks: bool,
 ) -> None:
-    action = OnBeautifyMdFolderAndRegenerateGMd()
+    action = OnBeautifyMdAndRegenerateGMd()
     action(
         folder_path=folder,
         noninteractive=True,
@@ -367,7 +367,7 @@ Check MD files in FOLDER with Harrix rules (same as tray action, all rules by de
 ```python
 def markdown_check(folder: Path, rules: tuple[str, ...], *, include_g_md: bool) -> None:
     rule_ids = {r.strip() for r in rules if r.strip()} or None
-    action = OnCheckMdFolder()
+    action = OnCheckMd()
     action(folder_path=folder, rule_ids=rule_ids, include_g_md=include_g_md, noninteractive=True)
     _finish_timed_action(action)
 ```
@@ -564,7 +564,7 @@ Optimize images referenced by Markdown files under FOLDER (PNG/AVIF size compari
 
 ```python
 def markdown_optimize_images_folder(folder: Path, max_size: int | None) -> None:
-    action = OnOptimizeImagesFolder()
+    action = OnOptimizeImagesInMd()
     action(folder_path=folder, max_size=max_size, noninteractive=True)
     _finish_timed_action(action)
 ```
@@ -661,7 +661,7 @@ Harrix PY rules and docstring Markdown check (incl. private; errors point at `.p
 
 ```python
 def python_harrix_check(folder: Path) -> None:
-    action = OnHarrixCheckPythonFolder()
+    action = OnHarrixCheckPython()
     action(folder_path=folder, noninteractive=True)
     _finish_timed_action(action)
 ```
@@ -681,7 +681,7 @@ Ruff sort, ruff format, sort code in PY files without docs step (same as tray ac
 
 ```python
 def python_ruff_sort(folder: Path) -> None:
-    action = OnSortRuffFmtPythonCodeFolder()
+    action = OnSortRuffFmtPythonCode()
     action(folder_path=folder, noninteractive=True)
     _exit_if_action_failed(action)
 ```
@@ -701,7 +701,7 @@ Ruff sort, ruff format, sort code, generate docs and format Markdown (same as tr
 
 ```python
 def python_ruff_sort_docs(folder: Path, *, apply_prose_fixes: bool) -> None:
-    action = OnSortRuffFmtDocsPythonCodeFolder()
+    action = OnSortRuffFmtDocsPythonCode()
     action(folder_path=folder, noninteractive=True, apply_prose_fixes=apply_prose_fixes)
     _finish_timed_action(action)
 ```

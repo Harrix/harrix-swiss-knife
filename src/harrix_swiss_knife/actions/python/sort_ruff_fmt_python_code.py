@@ -5,12 +5,12 @@ from __future__ import annotations
 from typing import Any
 
 from harrix_swiss_knife.actions.base import ActionBase
-from harrix_swiss_knife.actions.python.sort_ruff_fmt_docs_python_code_folder import (
-    OnSortRuffFmtDocsPythonCodeFolder,
+from harrix_swiss_knife.actions.python.sort_ruff_fmt_docs_python_code import (
+    OnSortRuffFmtDocsPythonCode,
 )
 
 
-class OnSortRuffFmtPythonCodeFolder(OnSortRuffFmtDocsPythonCodeFolder):
+class OnSortRuffFmtPythonCode(OnSortRuffFmtDocsPythonCode):
     """Format and sort Python code in a selected folder using multiple tools.
 
     This action applies a comprehensive code formatting and organization workflow to all
@@ -24,7 +24,7 @@ class OnSortRuffFmtPythonCodeFolder(OnSortRuffFmtDocsPythonCodeFolder):
     """
 
     icon = "🌟"
-    title = "ruff sort, ruff format, sort PY in …"
+    title = "Ruff sort, ruff format, sort PY in …"
     bold_title = False
     include_docs_generation = False
     cli_available = True

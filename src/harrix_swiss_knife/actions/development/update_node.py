@@ -10,7 +10,7 @@ import harrix_pylib as h
 from harrix_swiss_knife.actions.base import ActionBase
 
 
-class OnNodeUpdate(ActionBase):
+class OnUpdateNode(ActionBase):
     """Update `Node.js` to the latest version via winget.
 
     This action upgrades OpenJS.NodeJS using the Windows Package Manager (winget)

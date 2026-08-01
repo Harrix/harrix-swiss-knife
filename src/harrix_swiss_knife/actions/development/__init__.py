@@ -9,7 +9,6 @@ from harrix_swiss_knife.actions.development.install_cli import OnInstallCli
 from harrix_swiss_knife.actions.development.install_harrix_notes_explorer_extension import (
     OnInstallHarrixNotesExplorerExtension,
 )
-from harrix_swiss_knife.actions.development.node_update import OnNodeUpdate
 from harrix_swiss_knife.actions.development.npm_manage_packages import OnNpmManagePackages
 from harrix_swiss_knife.actions.development.open_config_json import OnOpenConfigJson
 from harrix_swiss_knife.actions.development.sync_harrix_notes_explorer import OnSyncHarrixNotesExplorer
@@ -17,7 +16,8 @@ from harrix_swiss_knife.actions.development.sync_quick_access_to_total_commander
     OnSyncQuickAccessToTotalCommander,
 )
 from harrix_swiss_knife.actions.development.update_harrix_swiss_knife import OnUpdateHarrixSwissKnife
-from harrix_swiss_knife.actions.development.uv_update import OnUvUpdate
+from harrix_swiss_knife.actions.development.update_node import OnUpdateNode
+from harrix_swiss_knife.actions.development.update_uv import OnUpdateUv
 from harrix_swiss_knife.actions.development.view_recent_action_logs import OnViewRecentActionLogs
 from harrix_swiss_knife.actions.development.vscode_check import OnVscodeCheck
 from harrix_swiss_knife.actions.development.vscode_format import OnVscodeFormat
@@ -30,13 +30,13 @@ __all__ = [
     "OnExit",
     "OnInstallCli",
     "OnInstallHarrixNotesExplorerExtension",
-    "OnNodeUpdate",
     "OnNpmManagePackages",
     "OnOpenConfigJson",
     "OnSyncHarrixNotesExplorer",
     "OnSyncQuickAccessToTotalCommander",
     "OnUpdateHarrixSwissKnife",
-    "OnUvUpdate",
+    "OnUpdateNode",
+    "OnUpdateUv",
     "OnViewRecentActionLogs",
     "OnVscodeCheck",
     "OnVscodeFormat",

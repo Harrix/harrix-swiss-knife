@@ -9,7 +9,7 @@ from typing import Any
 from harrix_swiss_knife.actions.base import ActionBase
 
 
-class OnDiscardGitChangesFolder(ActionBase):
+class OnDiscardGitChanges(ActionBase):
     """Discard uncommitted changes in all Git repos inside a selected folder.
 
     Finds Git repositories that are either the selected folder itself or its

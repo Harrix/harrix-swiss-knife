@@ -4,14 +4,14 @@ author-email: anton.b.sergienko@gmail.com
 lang: en
 ---
 
-# 📄 File `discard_git_changes_folder.py`
+# 📄 File `discard_git_changes.py`
 
 <details>
 <summary>📖 Contents ⬇️</summary>
 
 ## Contents
 
-- [🏛️ Class `OnDiscardGitChangesFolder`](#%EF%B8%8F-class-ondiscardgitchangesfolder)
+- [🏛️ Class `OnDiscardGitChanges`](#%EF%B8%8F-class-ondiscardgitchanges)
   - [⚙️ Method `discard_git_changes_common`](#%EF%B8%8F-method-discard_git_changes_common)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
   - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread)
@@ -23,10 +23,10 @@ lang: en
 
 </details>
 
-## 🏛️ Class `OnDiscardGitChangesFolder`
+## 🏛️ Class `OnDiscardGitChanges`
 
 ```python
-class OnDiscardGitChangesFolder(ActionBase)
+class OnDiscardGitChanges(ActionBase)
 ```
 
 Discard uncommitted changes in all Git repos inside a selected folder.
@@ -46,7 +46,7 @@ sibling Git projects (`Notes`, `Notes-Diaries`, …).
 <summary>Code:</summary>
 
 ```python
-class OnDiscardGitChangesFolder(ActionBase):
+class OnDiscardGitChanges(ActionBase):
 
     icon = "↩️"
     title = "Discard uncommitted Git changes in …"

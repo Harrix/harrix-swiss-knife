@@ -22,7 +22,7 @@ lang: en
 class OnSpeechToTextWithAI(ActionBase)
 ```
 
-Convert audio to text via BotHub, then fix the transcript with the same prompt as OnFixTextWithAI.
+Convert audio to text via BotHub, then fix the transcript with the text fixing prompt.
 
 <details>
 <summary>Code:</summary>

@@ -35,7 +35,7 @@ to view or use the processed image files.
 class OnOpenOptimizedImages(ActionBase):
 
     icon = "📂"
-    title = "Open the folder optimized_images"
+    title = "Open folder `optimized_images`"
 
     @ActionBase.handle_exceptions("opening optimized images folder")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002

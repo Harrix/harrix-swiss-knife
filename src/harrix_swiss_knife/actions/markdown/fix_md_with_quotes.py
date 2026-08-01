@@ -9,7 +9,7 @@ import harrix_pylib as h
 from harrix_swiss_knife.actions.base import ActionBase
 
 
-class OnFixMDWithQuotes(ActionBase):
+class OnFixMdWithQuotes(ActionBase):
     """Add author and title information to quote files in a folder.
 
     This action processes quote files in a folder to add author and book information

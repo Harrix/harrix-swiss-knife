@@ -4,24 +4,24 @@ author-email: anton.b.sergienko@gmail.com
 lang: en
 ---
 
-# 📄 File `uv_update.py`
+# 📄 File `update_uv.py`
 
 <details>
 <summary>📖 Contents ⬇️</summary>
 
 ## Contents
 
-- [🏛️ Class `OnUvUpdate`](#%EF%B8%8F-class-onuvupdate)
+- [🏛️ Class `OnUpdateUv`](#%EF%B8%8F-class-onupdateuv)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
   - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread)
   - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after)
 
 </details>
 
-## 🏛️ Class `OnUvUpdate`
+## 🏛️ Class `OnUpdateUv`
 
 ```python
-class OnUvUpdate(ActionBase)
+class OnUpdateUv(ActionBase)
 ```
 
 Update uv package manager to its latest version.
@@ -34,7 +34,7 @@ Tries `uv self update` (standalone uv only), then on Windows `winget upgrade` /
 <summary>Code:</summary>
 
 ```python
-class OnUvUpdate(ActionBase):
+class OnUpdateUv(ActionBase):
 
     icon = "📥"
     title = "Update uv"

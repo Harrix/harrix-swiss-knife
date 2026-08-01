@@ -9,11 +9,11 @@ import harrix_pylib as h
 
 from harrix_swiss_knife.actions.base import ActionBase
 from harrix_swiss_knife.actions.common.python_project import is_python_project
-from harrix_swiss_knife.actions.markdown import OnBeautifyMdFolder
+from harrix_swiss_knife.actions.markdown import OnBeautifyMd
 from harrix_swiss_knife.menu_list_markdown import update_readme_list_of_commands
 
 
-class OnSortRuffFmtDocsPythonCodeFolder(ActionBase):
+class OnSortRuffFmtDocsPythonCode(ActionBase):
     """Format, sort Python code and generate documentation in a selected folder.
 
     This action applies a comprehensive code formatting, organization and documentation
@@ -31,7 +31,7 @@ class OnSortRuffFmtDocsPythonCodeFolder(ActionBase):
     """
 
     icon = "🌟"
-    title = "ruff sort, ruff format, sort, make docs PY in …"
+    title = "Ruff sort, ruff format, sort, make docs PY in …"
     bold_title = True
     include_docs_generation: ClassVar[bool] = True
     cli_available = True
@@ -155,7 +155,7 @@ class OnSortRuffFmtDocsPythonCodeFolder(ActionBase):
 
             # Format markdown files
             self.add_line("🔵 Format markdown files")
-            OnBeautifyMdFolder.beautify_markdown_common(self, folder_path, is_include_summaries_and_combine=False)
+            OnBeautifyMd.beautify_markdown_common(self, folder_path, is_include_summaries_and_combine=False)
 
         self.add_line("🔵 Remove empty folders")
         self.add_line(h.file.remove_empty_folders(folder_path))
