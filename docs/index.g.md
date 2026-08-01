@@ -58,13 +58,10 @@ _Figure 1: Screenshot_
 
 - **Dev**
   - ℹ️ About
-  - 📱 Build Android APK in … ꟲᴸᴵ
-  - 🔬 Check Android code in … ꟲᴸᴵ
   - 🔬 Check VS Code extension ꟲᴸᴵ
   - 🧹 Clear temp folder
   - 🔗 Create desktop shortcut
   - ⬇️ Download ffmpeg, avifenc, avifdec
-  - ✨ Format Android code in … ꟲᴸᴵ
   - ✨ Format VS Code extension ꟲᴸᴵ
   - ⌨️ Install CLI (hsk on PATH) ꟲᴸᴵ
   - ⚙️ Open `config.json`
@@ -76,6 +73,10 @@ _Figure 1: Screenshot_
   - 📦 Update/Install global NPM packages
   - 📦 Update/install extension for VS Code (and etc.) ꟲᴸᴵ
   - 📋 View recent action logs
+- **Android**
+  - 📱 Build Android APK in … ꟲᴸᴵ
+  - 🔬 Check Android code in … ꟲᴸᴵ
+  - ✨ Format Android code in … ꟲᴸᴵ
 - **Images**
   - 📸 Open photos in image viewer
   - 🤖 Recognize text (AI)…

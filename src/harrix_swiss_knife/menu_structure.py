@@ -127,11 +127,17 @@ def get_menu_structure() -> list[Any]:
                 OnInstallCli,
                 OnInstallHarrixNotesExplorerExtension,
                 OnSyncHarrixNotesExplorer,
+                OnVscodeFormat,
+                OnVscodeCheck,
+            ],
+        ),
+        (
+            "Android",
+            "📱",
+            [
                 OnAndroidFormat,
                 OnAndroidCheck,
                 OnAndroidBuild,
-                OnVscodeFormat,
-                OnVscodeCheck,
             ],
         ),
         (
