@@ -1092,25 +1092,23 @@ fun GalleryCleanerScreen(
                             }
                         }
                         if (!isEditing && canEditPhoto) {
-                            TextButton(onClick = { currentPhoto?.let { sharePhoto(it) } }) {
+                            IconButton(onClick = { currentPhoto?.let { sharePhoto(it) } }) {
                                 Icon(
                                     imageVector = Icons.Filled.Share,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(18.dp),
+                                    contentDescription =
+                                    stringResource(R.string.gallery_cleaner_share),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(stringResource(R.string.gallery_cleaner_share))
                             }
                         }
                         if (!isEditing && canUndo) {
-                            TextButton(onClick = { undoLastAction() }) {
+                            IconButton(onClick = { undoLastAction() }) {
                                 Icon(
                                     imageVector = Icons.AutoMirrored.Filled.Undo,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(18.dp),
+                                    contentDescription =
+                                    stringResource(R.string.gallery_cleaner_undo_delete),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(stringResource(R.string.gallery_cleaner_undo_delete))
                             }
                         }
                     }
