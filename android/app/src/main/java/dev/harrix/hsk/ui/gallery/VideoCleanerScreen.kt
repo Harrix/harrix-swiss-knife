@@ -41,7 +41,6 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
@@ -66,7 +65,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -88,7 +86,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -102,13 +99,10 @@ import dev.harrix.hsk.gallery.CameraVideo
 import dev.harrix.hsk.gallery.GalleryCleanerPreferences
 import dev.harrix.hsk.gallery.GalleryPermissions
 import dev.harrix.hsk.ui.performLightActionHaptic
-import dev.harrix.hsk.ui.theme.AppRed
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.util.Date
 
-private val TrashButtonColor = AppRed
-private val SelectedBorderColor = Color(0xFF2F6BFF)
 private const val GalleryColumns = 3
 
 private enum class VideoSort(
@@ -288,7 +282,6 @@ fun VideoCleanerScreen(
 
     Scaffold(
         modifier = modifier,
-        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.video_cleaner_title)) },
@@ -346,11 +339,6 @@ fun VideoCleanerScreen(
                         }
                     }
                 },
-                colors =
-                TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background,
-                    scrolledContainerColor = MaterialTheme.colorScheme.background,
-                ),
             )
         },
         bottomBar = {
@@ -481,7 +469,7 @@ fun VideoCleanerScreen(
             statusMessage?.let { message ->
                 Text(
                     text = message,
-                    color = TrashButtonColor,
+                    color = MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.padding(16.dp),
                 )
@@ -501,7 +489,7 @@ private fun VideoCleanerBottomBar(
         modifier =
         modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.background)
+            .background(MaterialTheme.colorScheme.surfaceContainer)
             .windowInsetsPadding(WindowInsets.navigationBars)
             .padding(horizontal = 16.dp, vertical = 12.dp),
     ) {
@@ -513,16 +501,17 @@ private fun VideoCleanerBottomBar(
                 modifier = Modifier.padding(bottom = 8.dp),
             )
         }
+        val colorScheme = MaterialTheme.colorScheme
         Button(
             onClick = onDelete,
             enabled = selectedCount > 0,
             modifier = Modifier.fillMaxWidth(),
             colors =
             ButtonDefaults.buttonColors(
-                containerColor = TrashButtonColor,
-                contentColor = Color.White,
-                disabledContainerColor = Color(0xFFBDBDBD),
-                disabledContentColor = Color.White,
+                containerColor = colorScheme.error,
+                contentColor = colorScheme.onError,
+                disabledContainerColor = colorScheme.onSurface.copy(alpha = 0.12f),
+                disabledContentColor = colorScheme.onSurface.copy(alpha = 0.38f),
             ),
         ) {
             Icon(
@@ -557,14 +546,16 @@ private fun VideoGalleryItem(
             CameraGalleryRepository.formatFileSize(video.sizeBytes)
         }
 
+    val colorScheme = MaterialTheme.colorScheme
+    val itemShape = MaterialTheme.shapes.medium
     Box(
         modifier =
         modifier
             .aspectRatio(1f)
-            .clip(RoundedCornerShape(10.dp))
+            .clip(itemShape)
             .then(
                 if (selected) {
-                    Modifier.border(3.dp, SelectedBorderColor, RoundedCornerShape(10.dp))
+                    Modifier.border(3.dp, colorScheme.primary, itemShape)
                 } else {
                     Modifier
                 },
@@ -594,7 +585,7 @@ private fun VideoGalleryItem(
                 Text(
                     text = dateLabel,
                     color = Color.White,
-                    fontSize = 11.sp,
+                    style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.SemiBold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -602,7 +593,7 @@ private fun VideoGalleryItem(
                 Text(
                     text = sizeLabel,
                     color = Color.White.copy(alpha = 0.9f),
-                    fontSize = 11.sp,
+                    style = MaterialTheme.typography.labelSmall,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -612,13 +603,13 @@ private fun VideoGalleryItem(
             Icon(
                 imageVector = Icons.Filled.CheckCircle,
                 contentDescription = null,
-                tint = SelectedBorderColor,
+                tint = colorScheme.primary,
                 modifier =
                 Modifier
                     .align(Alignment.TopEnd)
                     .padding(6.dp)
                     .size(22.dp)
-                    .background(Color.White, CircleShape),
+                    .background(colorScheme.onPrimary, CircleShape),
             )
         }
     }
@@ -640,7 +631,7 @@ private fun VideoThumbnail(
     }
 
     Box(
-        modifier = modifier.background(Color(0xFF1A1A1A)),
+        modifier = modifier.background(MaterialTheme.colorScheme.surfaceContainerHighest),
         contentAlignment = Alignment.Center,
     ) {
         val frame = bitmap
@@ -655,7 +646,7 @@ private fun VideoThumbnail(
             Icon(
                 imageVector = Icons.Filled.Videocam,
                 contentDescription = null,
-                tint = Color(0xFF9E9E9E),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(36.dp),
             )
         }

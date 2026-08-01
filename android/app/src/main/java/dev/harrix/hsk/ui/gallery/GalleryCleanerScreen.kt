@@ -69,7 +69,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -117,8 +116,6 @@ import dev.harrix.hsk.gallery.NormalizedCropRect
 import dev.harrix.hsk.gallery.PendingEditUndo
 import dev.harrix.hsk.gallery.PhotoEditSaver
 import dev.harrix.hsk.ui.performLightActionHaptic
-import dev.harrix.hsk.ui.theme.AppGreen
-import dev.harrix.hsk.ui.theme.AppRed
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -847,7 +844,6 @@ fun GalleryCleanerScreen(
 
     Scaffold(
         modifier = modifier,
-        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             Column {
                 TopAppBar(
@@ -1022,11 +1018,6 @@ fun GalleryCleanerScreen(
                             }
                         }
                     },
-                    colors =
-                    TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.background,
-                        scrolledContainerColor = MaterialTheme.colorScheme.background,
-                    ),
                 )
                 val canEditPhoto = hasPermission && currentPhoto != null && !showIntro
                 val canUndo = undoStack.isNotEmpty()
@@ -1237,7 +1228,7 @@ fun GalleryCleanerScreen(
             statusMessage?.let { message ->
                 Text(
                     text = message,
-                    color = AppRed,
+                    color = MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.bodyMedium,
                     modifier =
                     Modifier
@@ -1265,7 +1256,7 @@ private fun ReviewActionBar(
         modifier =
         modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.background)
+            .background(MaterialTheme.colorScheme.surfaceContainer)
             .windowInsetsPadding(WindowInsets.navigationBars)
             .padding(horizontal = 16.dp, vertical = 12.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -1275,8 +1266,8 @@ private fun ReviewActionBar(
             modifier = Modifier.weight(1f),
             colors =
             ButtonDefaults.buttonColors(
-                containerColor = AppRed,
-                contentColor = Color.White,
+                containerColor = MaterialTheme.colorScheme.error,
+                contentColor = MaterialTheme.colorScheme.onError,
             ),
         ) {
             Icon(
@@ -1304,11 +1295,6 @@ private fun ReviewActionBar(
         Button(
             onClick = onKeep,
             modifier = Modifier.weight(1f),
-            colors =
-            ButtonDefaults.buttonColors(
-                containerColor = AppGreen,
-                contentColor = Color.White,
-            ),
         ) {
             Icon(
                 imageVector = Icons.Filled.Done,
@@ -1473,7 +1459,7 @@ private fun SwipeablePhotoCard(
                 SwipeHint(
                     icon = Icons.Filled.Delete,
                     label = stringResource(R.string.gallery_cleaner_swipe_left_hint),
-                    color = AppRed,
+                    color = MaterialTheme.colorScheme.error,
                     alpha = (-horizontalProgress).coerceIn(0f, 1f),
                     modifier = Modifier.align(Alignment.CenterEnd).padding(end = 24.dp),
                 )
@@ -1485,7 +1471,7 @@ private fun SwipeablePhotoCard(
                 SwipeHint(
                     icon = Icons.Filled.Done,
                     label = stringResource(R.string.gallery_cleaner_swipe_right_hint),
-                    color = AppGreen,
+                    color = MaterialTheme.colorScheme.primary,
                     alpha = horizontalProgress.coerceIn(0f, 1f),
                     modifier = Modifier.align(Alignment.CenterStart).padding(start = 24.dp),
                 )
@@ -1497,7 +1483,7 @@ private fun SwipeablePhotoCard(
                 SwipeHint(
                     icon = Icons.Filled.KeyboardArrowUp,
                     label = stringResource(R.string.gallery_cleaner_swipe_up_hint),
-                    color = AppGreen,
+                    color = MaterialTheme.colorScheme.primary,
                     alpha = upwardProgress.coerceIn(0f, 1f),
                     modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 24.dp),
                 )
@@ -1509,7 +1495,7 @@ private fun SwipeablePhotoCard(
                 SwipeHint(
                     icon = Icons.Filled.KeyboardArrowDown,
                     label = stringResource(R.string.gallery_cleaner_swipe_down_hint),
-                    color = AppRed,
+                    color = MaterialTheme.colorScheme.error,
                     alpha = downwardProgress.coerceIn(0f, 1f),
                     modifier = Modifier.align(Alignment.TopCenter).padding(top = 24.dp),
                 )

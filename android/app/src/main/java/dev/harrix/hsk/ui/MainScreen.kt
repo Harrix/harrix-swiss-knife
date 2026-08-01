@@ -1,9 +1,6 @@
 package dev.harrix.hsk.ui
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,7 +17,7 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.CleaningServices
@@ -39,13 +36,13 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
-import androidx.compose.material3.NavigationDrawerItemColors
+import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.NavigationDrawerItemDefaults
+import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -57,17 +54,11 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import dev.harrix.hsk.R
 import dev.harrix.hsk.ui.gallery.GalleryCleanerScreen
 import dev.harrix.hsk.ui.gallery.VideoCleanerScreen
@@ -78,10 +69,6 @@ import dev.harrix.hsk.ui.theme.ThemeMode
 import kotlinx.coroutines.launch
 
 private const val HomeGridColumns = 2
-private val DrawerItemHeight = 40.dp
-private val DrawerItemCornerRadius = 8.dp
-private val DrawerItemVerticalGap = 2.dp
-private val UtilityCardCornerRadius = 8.dp
 private val UtilityCardMinHeight = 104.dp
 private val UtilityCardIconSize = 40.dp
 
@@ -107,7 +94,6 @@ fun MainScreen(
 ) {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
-    val colorScheme = MaterialTheme.colorScheme
     val appName = stringResource(R.string.app_name)
     // Survive Activity recreation (e.g. landscape rotation); plain remember resets to Home.
     var destination by rememberSaveable { mutableStateOf(AppDestination.Home) }
@@ -120,10 +106,6 @@ fun MainScreen(
         scope.launch { drawerState.close() }
     }
 
-    val drawerItemColors =
-        NavigationDrawerItemDefaults.colors(
-            selectedContainerColor = colorScheme.secondaryContainer,
-        )
     val utilities =
         listOf(
             UtilityCardItem(
@@ -171,7 +153,6 @@ fun MainScreen(
                         AppNavigationDrawerContent(
                             appName = appName,
                             selected = destination,
-                            colors = drawerItemColors,
                             onNavigate = { target ->
                                 scope.launch {
                                     drawerState.close()
@@ -185,7 +166,6 @@ fun MainScreen(
                     },
                 ) {
                     Scaffold(
-                        containerColor = colorScheme.background,
                         topBar = {
                             TopAppBar(
                                 title = { Text(appName) },
@@ -244,31 +224,19 @@ fun MainScreen(
                                         }
                                     }
                                 },
-                                colors =
-                                TopAppBarDefaults.topAppBarColors(
-                                    containerColor = colorScheme.background,
-                                    scrolledContainerColor =
-                                    colorScheme.background,
-                                ),
                             )
                         },
                     ) { innerPadding ->
-                        Surface(
+                        HomeUtilitiesGrid(
+                            utilities = utilities,
+                            onUtilityClick = { item ->
+                                destination = item.destination
+                            },
                             modifier =
                             Modifier
                                 .padding(innerPadding)
                                 .fillMaxSize(),
-                            color = colorScheme.surface,
-                            shadowElevation = 0.dp,
-                            tonalElevation = 0.dp,
-                        ) {
-                            HomeUtilitiesGrid(
-                                utilities = utilities,
-                                onUtilityClick = { item ->
-                                    destination = item.destination
-                                },
-                            )
-                        }
+                        )
                     }
                 }
             }
@@ -305,18 +273,16 @@ private fun HomeUtilitiesGrid(
 ) {
     LazyVerticalGrid(
         columns = GridCells.Fixed(HomeGridColumns),
-        modifier = modifier.fillMaxSize(),
+        modifier = modifier,
         contentPadding = PaddingValues(16.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item(span = { GridItemSpan(HomeGridColumns) }) {
             Text(
                 text = stringResource(R.string.home_utilities_title),
-                style =
-                MaterialTheme.typography.titleMedium.copy(
-                    fontWeight = FontWeight.Bold,
-                ),
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.padding(bottom = 4.dp),
             )
         }
@@ -340,101 +306,61 @@ private fun UtilityCard(
     modifier: Modifier = Modifier,
 ) {
     val colorScheme = MaterialTheme.colorScheme
-    Row(
+    OutlinedCard(
+        onClick = onClick,
         modifier =
         modifier
             .fillMaxWidth()
-            .height(UtilityCardMinHeight)
-            .border(1.dp, colorScheme.outline, RoundedCornerShape(UtilityCardCornerRadius))
-            .background(colorScheme.surface, RoundedCornerShape(UtilityCardCornerRadius))
-            .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.Top,
+            .height(UtilityCardMinHeight),
+        shape = MaterialTheme.shapes.medium,
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(UtilityCardIconSize),
-        )
-        Spacer(modifier = Modifier.width(12.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = title,
-                style =
-                MaterialTheme.typography.titleSmall.copy(
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp,
-                    lineHeight = 18.sp,
-                ),
-                color = colorScheme.onSurface,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            AutoFitDescription(
-                text = description,
-                color = colorScheme.onSurfaceVariant,
-                maxLines = 3,
-                minFontSize = 9.sp,
-                maxFontSize = 11.sp,
-            )
+        Row(
+            modifier =
+            Modifier
+                .fillMaxSize()
+                .padding(horizontal = 12.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.Top,
+        ) {
+            Surface(
+                modifier = Modifier.size(UtilityCardIconSize),
+                shape = CircleShape,
+                color = colorScheme.primaryContainer,
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = colorScheme.onPrimaryContainer,
+                        modifier = Modifier.size(22.dp),
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleSmall,
+                    color = colorScheme.onSurface,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = description,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = colorScheme.onSurfaceVariant,
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
         }
     }
-}
-
-@Composable
-private fun AutoFitDescription(
-    text: String,
-    color: Color,
-    maxLines: Int,
-    minFontSize: TextUnit,
-    maxFontSize: TextUnit,
-    modifier: Modifier = Modifier,
-) {
-    var textStyle by remember(text) {
-        mutableStateOf(
-            TextStyle(
-                fontSize = maxFontSize,
-                lineHeight = maxFontSize * 1.3f,
-            ),
-        )
-    }
-    var readyToDraw by remember(text) { mutableStateOf(false) }
-
-    Text(
-        text = text,
-        color = color,
-        style = MaterialTheme.typography.bodySmall.merge(textStyle),
-        maxLines = maxLines,
-        overflow = TextOverflow.Clip,
-        softWrap = true,
-        modifier =
-        modifier.drawWithContent {
-            if (readyToDraw) {
-                drawContent()
-            }
-        },
-        onTextLayout = { result ->
-            if (result.hasVisualOverflow && textStyle.fontSize > minFontSize) {
-                val nextSize = (textStyle.fontSize.value - 0.5f).coerceAtLeast(minFontSize.value).sp
-                textStyle =
-                    textStyle.copy(
-                        fontSize = nextSize,
-                        lineHeight = nextSize * 1.3f,
-                    )
-            } else {
-                readyToDraw = true
-            }
-        },
-    )
 }
 
 @Composable
 private fun AppNavigationDrawerContent(
     appName: String,
     selected: AppDestination,
-    colors: NavigationDrawerItemColors,
     onNavigate: (AppDestination) -> Unit,
     onAbout: () -> Unit,
 ) {
@@ -451,81 +377,58 @@ private fun AppNavigationDrawerContent(
         HorizontalDivider(
             modifier = Modifier.padding(bottom = 8.dp),
         )
-        CompactNavigationDrawerItem(
-            label = stringResource(R.string.nav_drawer_home),
+        NavigationDrawerItem(
+            label = { Text(stringResource(R.string.nav_drawer_home)) },
             selected = selected == AppDestination.Home,
             onClick = { onNavigate(AppDestination.Home) },
-            icon = Icons.AutoMirrored.Filled.List,
-            colors = colors,
+            icon = {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.List,
+                    contentDescription = null,
+                )
+            },
+            modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding),
         )
-        CompactNavigationDrawerItem(
-            label = stringResource(R.string.nav_drawer_gallery_cleaner),
+        NavigationDrawerItem(
+            label = { Text(stringResource(R.string.nav_drawer_gallery_cleaner)) },
             selected = selected == AppDestination.GalleryCleaner,
             onClick = { onNavigate(AppDestination.GalleryCleaner) },
-            icon = Icons.Filled.CleaningServices,
-            colors = colors,
+            icon = {
+                Icon(
+                    imageVector = Icons.Filled.CleaningServices,
+                    contentDescription = null,
+                )
+            },
+            modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding),
         )
-        CompactNavigationDrawerItem(
-            label = stringResource(R.string.nav_drawer_video_cleaner),
+        NavigationDrawerItem(
+            label = { Text(stringResource(R.string.nav_drawer_video_cleaner)) },
             selected = selected == AppDestination.VideoCleaner,
             onClick = { onNavigate(AppDestination.VideoCleaner) },
-            icon = Icons.Filled.VideoLibrary,
-            colors = colors,
+            icon = {
+                Icon(
+                    imageVector = Icons.Filled.VideoLibrary,
+                    contentDescription = null,
+                )
+            },
+            modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding),
         )
-        CompactNavigationDrawerItem(
-            label = stringResource(R.string.nav_drawer_about),
+        NavigationDrawerItem(
+            label = { Text(stringResource(R.string.nav_drawer_about)) },
             selected = false,
             onClick = onAbout,
-            icon = Icons.Filled.Info,
-            colors = colors,
+            icon = {
+                Icon(
+                    imageVector = Icons.Filled.Info,
+                    contentDescription = null,
+                )
+            },
+            modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding),
         )
     }
 }
 
-@Composable
-private fun CompactNavigationDrawerItem(
-    label: String,
-    selected: Boolean,
-    onClick: () -> Unit,
-    icon: ImageVector,
-    colors: NavigationDrawerItemColors,
-    modifier: Modifier = Modifier,
-) {
-    Surface(
-        selected = selected,
-        onClick = onClick,
-        modifier =
-        modifier
-            .padding(horizontal = 12.dp, vertical = DrawerItemVerticalGap)
-            .fillMaxWidth()
-            .height(DrawerItemHeight),
-        shape = RoundedCornerShape(DrawerItemCornerRadius),
-        color = colors.containerColor(selected).value,
-    ) {
-        Row(
-            modifier =
-            Modifier
-                .fillMaxSize()
-                .padding(horizontal = 16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = colors.iconColor(selected).value,
-                modifier = Modifier.size(20.dp),
-            )
-            Spacer(modifier = Modifier.width(12.dp))
-            Text(
-                text = label,
-                color = colors.textColor(selected).value,
-                style = MaterialTheme.typography.labelLarge,
-            )
-        }
-    }
-}
-
-@Preview(showBackground = true, backgroundColor = 0xFFE5E6EA)
+@Preview(showBackground = true)
 @Composable
 private fun MainScreenPreview() {
     HskAndroidTheme(darkTheme = false) {

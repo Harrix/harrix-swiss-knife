@@ -25,7 +25,6 @@ import androidx.compose.material.icons.filled.CropFree
 import androidx.compose.material.icons.filled.CropRotate
 import androidx.compose.material.icons.filled.Done
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
@@ -63,7 +62,6 @@ import dev.harrix.hsk.R
 import dev.harrix.hsk.gallery.CameraPhoto
 import dev.harrix.hsk.gallery.NormalizedCropRect
 import dev.harrix.hsk.gallery.PhotoEditSaver
-import dev.harrix.hsk.ui.theme.AppGreen
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
@@ -562,11 +560,6 @@ fun PhotoCropEditor(
                     onClick = onSave,
                     enabled = !isSaving,
                     modifier = Modifier.weight(1f),
-                    colors =
-                    ButtonDefaults.buttonColors(
-                        containerColor = AppGreen,
-                        contentColor = Color.White,
-                    ),
                 ) {
                     Icon(
                         imageVector = Icons.Filled.Done,

@@ -21,7 +21,6 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.Button
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
@@ -29,6 +28,8 @@ import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedButton
@@ -38,10 +39,10 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -95,13 +96,10 @@ fun SettingsScreen(
             SettingsSection.GalleryCleaner -> R.string.settings_gallery_cleaner_title
             SettingsSection.VideoCleaner -> R.string.settings_video_cleaner_title
         }
-    val background = MaterialTheme.colorScheme.background
-
     BackHandler(onBack = onClose)
 
     Scaffold(
         modifier = modifier,
-        containerColor = background,
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(titleRes)) },
@@ -113,11 +111,6 @@ fun SettingsScreen(
                         )
                     }
                 },
-                colors =
-                TopAppBarDefaults.topAppBarColors(
-                    containerColor = background,
-                    scrolledContainerColor = background,
-                ),
             )
         },
     ) { innerPadding ->
@@ -197,7 +190,8 @@ private fun CollapsibleSettingsSection(
         ) {
             Text(
                 text = title,
-                style = MaterialTheme.typography.titleMedium,
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.weight(1f),
             )
             Icon(
@@ -553,34 +547,15 @@ private fun GalleryCleanerSettingsSection(
 
         HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Checkbox(
-                checked = unreviewedOnlyMode,
-                onCheckedChange = { checked ->
-                    unreviewedOnlyMode = checked
-                    preferences.setUnreviewedOnlyModeEnabled(checked)
-                },
-            )
-            Column(
-                modifier =
-                Modifier
-                    .weight(1f)
-                    .padding(start = 4.dp),
-            ) {
-                Text(
-                    text = stringResource(R.string.settings_gallery_unreviewed_only),
-                    style = MaterialTheme.typography.bodyLarge,
-                )
-                Text(
-                    text = stringResource(R.string.settings_gallery_unreviewed_only_hint),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
+        SettingsSwitchRow(
+            title = stringResource(R.string.settings_gallery_unreviewed_only),
+            description = stringResource(R.string.settings_gallery_unreviewed_only_hint),
+            checked = unreviewedOnlyMode,
+            onCheckedChange = { checked ->
+                unreviewedOnlyMode = checked
+                preferences.setUnreviewedOnlyModeEnabled(checked)
+            },
+        )
 
         Text(
             text = stringResource(R.string.settings_gallery_reviewed_count, reviewedCount),
@@ -609,23 +584,11 @@ private fun GalleryCleanerSettingsSection(
 
         HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Checkbox(
-                checked = filter.enabled,
-                onCheckedChange = { checked -> persist(filter.withEnabled(checked)) },
-            )
-            Text(
-                text = stringResource(R.string.settings_gallery_date_filter_enabled),
-                style = MaterialTheme.typography.bodyLarge,
-                modifier =
-                Modifier
-                    .weight(1f)
-                    .padding(start = 4.dp),
-            )
-        }
+        SettingsSwitchRow(
+            title = stringResource(R.string.settings_gallery_date_filter_enabled),
+            checked = filter.enabled,
+            onCheckedChange = { checked -> persist(filter.withEnabled(checked)) },
+        )
 
         GalleryDateFilterEditors(
             filter = filter,
@@ -696,6 +659,51 @@ private fun GalleryCleanerSettingsSection(
             content = { body() },
         )
     }
+}
+
+@Composable
+private fun SettingsSwitchRow(
+    title: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+    description: String? = null,
+) {
+    ListItem(
+        headlineContent = {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyLarge,
+            )
+        },
+        supportingContent =
+        description?.let {
+            {
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        },
+        trailingContent = {
+            Switch(
+                checked = checked,
+                onCheckedChange = onCheckedChange,
+            )
+        },
+        colors =
+        ListItemDefaults.colors(
+            containerColor = MaterialTheme.colorScheme.surface,
+        ),
+        modifier =
+        modifier
+            .fillMaxWidth()
+            .clickable(
+                role = Role.Switch,
+                onClick = { onCheckedChange(!checked) },
+            ),
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
