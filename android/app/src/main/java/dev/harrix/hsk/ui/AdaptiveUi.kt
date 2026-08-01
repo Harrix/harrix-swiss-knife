@@ -46,11 +46,22 @@ fun isCompactWidth(): Boolean = LocalConfiguration.current.screenWidthDp < Compa
 fun screenWidthDp(): Int = LocalConfiguration.current.screenWidthDp
 
 @Composable
-fun homeGridColumnCount(): Int = if (screenWidthDp() >= ExpandedScreenWidthDp) {
-    3
-} else {
-    2
+fun homeGridColumnCount(): Int {
+    val configuration = LocalConfiguration.current
+    val width = configuration.screenWidthDp
+    val height = configuration.screenHeightDp
+    return when {
+        width >= ExpandedScreenWidthDp -> 3
+
+        // Landscape phones: one column so cards stay readable above the nav bar.
+        height < CompactScreenWidthDp && width >= MediumScreenWidthDp -> 1
+
+        else -> 2
+    }
 }
+
+@Composable
+fun isCompactHeight(): Boolean = LocalConfiguration.current.screenHeightDp < CompactScreenWidthDp
 
 @Composable
 fun videoGridColumnCount(): Int {

@@ -8,12 +8,16 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -54,7 +58,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
@@ -75,9 +78,12 @@ import dev.harrix.hsk.ui.theme.ThemeMode
 import kotlinx.coroutines.launch
 
 private val UtilityCardMinHeight = 104.dp
+private val UtilityCardCompactMinHeight = 88.dp
 private val UtilityCardIconSize = 40.dp
+private val UtilityCardCompactIconSize = 36.dp
 private val TopBarLogoSize = 28.dp
 private val DrawerLogoSize = 40.dp
+private val DrawerMaxWidth = 320.dp
 
 private enum class AppDestination {
     Home,
@@ -177,6 +183,7 @@ fun MainScreen(
                     },
                 ) {
                     Scaffold(
+                        contentWindowInsets = WindowInsets.safeDrawing,
                         topBar = {
                             TopAppBar(
                                 title = {
@@ -184,6 +191,7 @@ fun MainScreen(
                                         appName = appName,
                                         logoSize = TopBarLogoSize,
                                         textStyle = MaterialTheme.typography.titleLarge,
+                                        modifier = Modifier.fillMaxWidth(),
                                     )
                                 },
                                 navigationIcon = {
@@ -221,9 +229,12 @@ fun MainScreen(
                                             DropdownMenuItem(
                                                 text = {
                                                     Text(
+                                                        text =
                                                         stringResource(
                                                             R.string.nav_settings,
                                                         ),
+                                                        maxLines = 1,
+                                                        overflow = TextOverflow.Ellipsis,
                                                     )
                                                 },
                                                 leadingIcon = {
@@ -295,18 +306,22 @@ private fun HomeUtilitiesGrid(
     onUtilityClick: (UtilityCardItem) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val compact = isCompactWidth() || isCompactHeight()
+    val contentPadding = if (compact) 12.dp else 16.dp
+    val spacing = if (compact) 8.dp else 12.dp
     LazyVerticalGrid(
         columns = GridCells.Fixed(homeGridColumnCount()),
-        modifier = modifier,
-        contentPadding = PaddingValues(16.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        modifier = modifier.adaptiveContentWidth(),
+        contentPadding = PaddingValues(contentPadding),
+        horizontalArrangement = Arrangement.spacedBy(spacing),
+        verticalArrangement = Arrangement.spacedBy(spacing),
     ) {
         items(utilities) { utility ->
             UtilityCard(
                 title = stringResource(utility.titleRes),
                 description = stringResource(utility.descriptionRes),
                 icon = utility.icon,
+                compact = compact,
                 onClick = { onUtilityClick(utility) },
             )
         }
@@ -320,25 +335,30 @@ private fun UtilityCard(
     icon: ImageVector,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    compact: Boolean = false,
 ) {
     val colorScheme = MaterialTheme.colorScheme
+    val iconSize = if (compact) UtilityCardCompactIconSize else UtilityCardIconSize
     OutlinedCard(
         onClick = onClick,
         modifier =
         modifier
             .fillMaxWidth()
-            .height(UtilityCardMinHeight),
+            .heightIn(min = if (compact) UtilityCardCompactMinHeight else UtilityCardMinHeight),
         shape = MaterialTheme.shapes.medium,
     ) {
         Row(
             modifier =
             Modifier
-                .fillMaxSize()
-                .padding(horizontal = 12.dp, vertical = 12.dp),
+                .fillMaxWidth()
+                .padding(
+                    horizontal = if (compact) 10.dp else 12.dp,
+                    vertical = if (compact) 10.dp else 12.dp,
+                ),
             verticalAlignment = Alignment.Top,
         ) {
             Surface(
-                modifier = Modifier.size(UtilityCardIconSize),
+                modifier = Modifier.size(iconSize),
                 shape = CircleShape,
                 color = colorScheme.primaryContainer,
             ) {
@@ -347,17 +367,17 @@ private fun UtilityCard(
                         imageVector = icon,
                         contentDescription = null,
                         tint = colorScheme.onPrimaryContainer,
-                        modifier = Modifier.size(22.dp),
+                        modifier = Modifier.size(if (compact) 20.dp else 22.dp),
                     )
                 }
             }
-            Spacer(modifier = Modifier.width(12.dp))
+            Spacer(modifier = Modifier.width(if (compact) 10.dp else 12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = title,
                     style = MaterialTheme.typography.titleSmall,
                     color = colorScheme.onSurface,
-                    maxLines = 2,
+                    maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
                 Spacer(modifier = Modifier.height(4.dp))
@@ -365,7 +385,7 @@ private fun UtilityCard(
                     text = description,
                     style = MaterialTheme.typography.bodySmall,
                     color = colorScheme.onSurfaceVariant,
-                    maxLines = 3,
+                    maxLines = if (compact) 2 else 3,
                     overflow = TextOverflow.Ellipsis,
                 )
             }
@@ -396,6 +416,7 @@ private fun BrandTitle(
             style = textStyle,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f, fill = false),
         )
     }
 }
@@ -407,69 +428,76 @@ private fun AppNavigationDrawerContent(
     onNavigate: (AppDestination) -> Unit,
     onAbout: () -> Unit,
 ) {
-    ModalDrawerSheet {
+    ModalDrawerSheet(
+        modifier = Modifier.widthIn(max = DrawerMaxWidth),
+    ) {
         BrandTitle(
             appName = appName,
             logoSize = DrawerLogoSize,
             textStyle = MaterialTheme.typography.titleLarge,
             modifier =
-            Modifier.padding(
-                horizontal = 28.dp,
-                vertical = 24.dp,
-            ),
+            Modifier
+                .fillMaxWidth()
+                .padding(
+                    horizontal = 28.dp,
+                    vertical = 24.dp,
+                ),
         )
         HorizontalDivider(
             modifier = Modifier.padding(bottom = 8.dp),
         )
-        NavigationDrawerItem(
-            label = { Text(stringResource(R.string.nav_drawer_home)) },
+        DrawerNavItem(
+            label = stringResource(R.string.nav_drawer_home),
             selected = selected == AppDestination.Home,
             onClick = { onNavigate(AppDestination.Home) },
-            icon = {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.List,
-                    contentDescription = null,
-                )
-            },
-            modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding),
+            icon = Icons.AutoMirrored.Filled.List,
         )
-        NavigationDrawerItem(
-            label = { Text(stringResource(R.string.nav_drawer_gallery_cleaner)) },
+        DrawerNavItem(
+            label = stringResource(R.string.nav_drawer_gallery_cleaner),
             selected = selected == AppDestination.GalleryCleaner,
             onClick = { onNavigate(AppDestination.GalleryCleaner) },
-            icon = {
-                Icon(
-                    imageVector = Icons.Filled.CleaningServices,
-                    contentDescription = null,
-                )
-            },
-            modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding),
+            icon = Icons.Filled.CleaningServices,
         )
-        NavigationDrawerItem(
-            label = { Text(stringResource(R.string.nav_drawer_video_cleaner)) },
+        DrawerNavItem(
+            label = stringResource(R.string.nav_drawer_video_cleaner),
             selected = selected == AppDestination.VideoCleaner,
             onClick = { onNavigate(AppDestination.VideoCleaner) },
-            icon = {
-                Icon(
-                    imageVector = Icons.Filled.VideoLibrary,
-                    contentDescription = null,
-                )
-            },
-            modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding),
+            icon = Icons.Filled.VideoLibrary,
         )
-        NavigationDrawerItem(
-            label = { Text(stringResource(R.string.nav_drawer_about)) },
+        DrawerNavItem(
+            label = stringResource(R.string.nav_drawer_about),
             selected = false,
             onClick = onAbout,
-            icon = {
-                Icon(
-                    imageVector = Icons.Filled.Info,
-                    contentDescription = null,
-                )
-            },
-            modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding),
+            icon = Icons.Filled.Info,
         )
     }
+}
+
+@Composable
+private fun DrawerNavItem(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    icon: ImageVector,
+) {
+    NavigationDrawerItem(
+        label = {
+            Text(
+                text = label,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        },
+        selected = selected,
+        onClick = onClick,
+        icon = {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+            )
+        },
+        modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding),
+    )
 }
 
 @Preview(showBackground = true)
