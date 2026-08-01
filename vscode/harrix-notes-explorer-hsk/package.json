@@ -296,6 +296,12 @@
         "category": "Harrix Notes HSK"
       },
       {
+        "command": "harrixNotesExplorerHsk.reloadNoteAssets",
+        "title": "Reload Attachments",
+        "category": "Harrix Notes HSK",
+        "icon": "$(refresh)"
+      },
+      {
         "command": "harrixNotesExplorerHsk.openMarkdownPreviewTabInEditor",
         "title": "Switch Preview to Source",
         "category": "Harrix Notes HSK"
@@ -456,6 +462,10 @@
         },
         {
           "command": "harrixNotesExplorerHsk.hideNoteAssets",
+          "when": "resourceLangId == markdown"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.reloadNoteAssets",
           "when": "resourceLangId == markdown"
         },
         {
@@ -620,6 +630,11 @@
           "command": "harrixNotesExplorerHsk.hideNoteAssets",
           "when": "view == harrixNotesExplorerHsk && (viewItem == noteWithAssets || viewItem == gitNoteWithAssets || viewItem == noteWithAssetsNamedFolder || viewItem == gitNoteWithAssetsNamedFolder)",
           "group": "1_attachments@1"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.reloadNoteAssets",
+          "when": "view == harrixNotesExplorerHsk && (viewItem == noteWithAssets || viewItem == gitNoteWithAssets || viewItem == noteWithAssetsNamedFolder || viewItem == gitNoteWithAssetsNamedFolder)",
+          "group": "1_attachments@2"
         },
         {
           "command": "harrixNotesExplorerHsk.discardGitChangesInNote",

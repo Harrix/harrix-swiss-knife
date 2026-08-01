@@ -2278,6 +2278,18 @@ class NotesProvider {
     this._emitter.fire();
   }
 
+  /**
+   * Rebuild a note row and its attachment subtree (when attachments are shown).
+   * @param {string} noteMdPath
+   */
+  refreshNoteAssets(noteMdPath) {
+    const noteItem = this.createFileItem(noteMdPath);
+    const parent = this.getParent(noteItem);
+    // Refresh parent so the note TreeItem itself is rebuilt; children reload on expand.
+    this._emitter.fire(parent);
+    this._emitter.fire(noteItem);
+  }
+
   getTreeItem(el) {
     return el;
   }
@@ -3801,6 +3813,26 @@ async function activate(context) {
         return;
       }
       provider.setNoteAssetsVisible(path.dirname(uri.fsPath), false);
+    }),
+  );
+  context.subscriptions.push(
+    vscode.commands.registerCommand('harrixNotesExplorerHsk.reloadNoteAssets', async (treeItemOrUri) => {
+      const uri = noteUriFromTreeArg(treeItemOrUri);
+      if (!uri || !isFilePath(uri.fsPath)) {
+        vscode.window.showErrorMessage('Open a markdown note or select one in Harrix Notes (HSK).');
+        return;
+      }
+      const noteDir = path.dirname(uri.fsPath);
+      if (!provider.isNoteAssetsVisible(noteDir)) {
+        void vscode.window.showInformationMessage(
+          'Attachments are not shown for this note. Use Show Attachments first.',
+        );
+        return;
+      }
+      const refreshDone = waitForTreeRefresh(provider);
+      provider.refreshNoteAssets(uri.fsPath);
+      await refreshDone;
+      await revealNoteWithAttachments(view, provider, uri.fsPath, 99);
     }),
   );
   context.subscriptions.push(
