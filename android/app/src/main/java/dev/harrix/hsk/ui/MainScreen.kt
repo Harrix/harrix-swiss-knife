@@ -395,13 +395,10 @@ private fun BrandTitle(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Image(
-            painter = painterResource(R.drawable.ic_launcher_foreground),
+            painter = painterResource(R.drawable.ic_app_logo),
             contentDescription = null,
             contentScale = ContentScale.Fit,
-            modifier =
-            Modifier
-                .size(logoSize)
-                .clip(CircleShape),
+            modifier = Modifier.size(logoSize),
         )
         Spacer(modifier = Modifier.width(12.dp))
         Text(
