@@ -34,7 +34,8 @@ DEFAULT_RECENT_ACTION_OUTPUT_LIST_LIMIT = 50
 _MAX_ACTION_CLASS_STEM_LEN = 80
 
 # Subdirectories under `temp/` that are kept (contents cleared) by `clear_temp_folder`.
-TEMP_RESERVED_DIR_NAMES = frozenset({"images", "optimized_images"})
+# `action_output` must stay: the clear action writes its own log there after emptying.
+TEMP_RESERVED_DIR_NAMES = frozenset({"action_output", "images", "optimized_images"})
 
 
 def clear_directory_contents(directory: Path) -> None:
@@ -50,9 +51,10 @@ def clear_directory_contents(directory: Path) -> None:
 
 
 def clear_temp_folder(temp_dir: Path | None = None) -> list[str]:
-    """Clear project `temp/`: empty `images` and `optimized_images`; remove everything else.
+    """Clear project `temp/`: empty reserved dirs; remove everything else.
 
-    Creates `temp/` and reserved subdirectories when missing. Returns human-readable log lines.
+    Reserved dirs (`action_output`, `images`, `optimized_images`) are emptied in place
+    (or created when missing). Returns human-readable log lines.
 
     """
     root = temp_dir if temp_dir is not None else get_project_root() / "temp"

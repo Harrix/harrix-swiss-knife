@@ -24,8 +24,8 @@ class OnClearTempFolder(ActionBase)
 
 Clear the project `temp/` folder.
 
-Empties `images` and `optimized_images` in place and removes all other
-files and folders under `temp/`.
+Empties `action_output`, `images`, and `optimized_images` in place and
+removes all other files and folders under `temp/`.
 
 <details>
 <summary>Code:</summary>

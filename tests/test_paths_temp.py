@@ -50,9 +50,10 @@ def test_clear_temp_folder_removes_other_entries_and_empties_reserved(tmp_path: 
 
     assert images.is_dir()
     assert optimized.is_dir()
+    assert action_output.is_dir()
     assert list(images.iterdir()) == []
     assert list(optimized.iterdir()) == []
-    assert not action_output.exists()
+    assert list(action_output.iterdir()) == []
     assert not icons.exists()
     assert not (temp / "hsk-speech.wav").exists()
     assert any("images" in line for line in lines)
@@ -69,8 +70,10 @@ def test_clear_temp_folder_creates_reserved_directories_when_missing(tmp_path: P
 
     assert (temp / "images").is_dir()
     assert (temp / "optimized_images").is_dir()
+    assert (temp / "action_output").is_dir()
     assert list((temp / "images").iterdir()) == []
     assert list((temp / "optimized_images").iterdir()) == []
+    assert list((temp / "action_output").iterdir()) == []
     assert not (temp / "scratch.txt").exists()
 
 
@@ -82,4 +85,5 @@ def test_clear_temp_folder_on_empty_creates_reserved_directories(tmp_path: Path)
 
     assert (temp / "images").is_dir()
     assert (temp / "optimized_images").is_dir()
+    assert (temp / "action_output").is_dir()
     assert any("Created folder" in line for line in lines)

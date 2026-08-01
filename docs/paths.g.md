@@ -56,9 +56,10 @@ def clear_directory_contents(directory: Path) -> None:
 def clear_temp_folder(temp_dir: Path | None = None) -> list[str]
 ```
 
-Clear project `temp/`: empty `images` and `optimized_images`; remove everything else.
+Clear project `temp/`: empty reserved dirs; remove everything else.
 
-Creates `temp/` and reserved subdirectories when missing. Returns human-readable log lines.
+Reserved dirs (`action_output`, `images`, `optimized_images`) are emptied in place
+(or created when missing). Returns human-readable log lines.
 
 <details>
 <summary>Code:</summary>

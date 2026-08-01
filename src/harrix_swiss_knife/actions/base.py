@@ -155,10 +155,12 @@ class ActionBase(ABC):
         - `line` (`str`): The text line to add to the output.
 
         """
-        with Path.open(self._write_output_path(), "a", encoding="utf8") as f:
+        output_path = self._write_output_path()
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        with Path.open(output_path, "a", encoding="utf8") as f:
             f.write(line + "\n")
         if self._output_bus is not None:
-            self._output_bus.append_line(self._write_output_path(), line)
+            self._output_bus.append_line(output_path, line)
 
         if getattr(self, "_fake_progress_active", False):
             try:
