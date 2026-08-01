@@ -119,7 +119,7 @@
         "harrixNotesExplorerHsk.previewFrontmatter.collapse": {
           "type": "boolean",
           "default": true,
-          "markdownDescription": "Collapse the YAML **frontmatter** table at the top of the built-in Markdown preview into a `<details>` block (see `previewFrontmatter.summary`) instead of showing the full table at the top of the note."
+          "markdownDescription": "Collapse YAML **frontmatter** at the top of the classic Markdown preview (`markdown.showPreview` / Open Preview) into a `<details>` block (see `previewFrontmatter.summary`). Rendered by this extension so it also works in Cursor. Does not apply to Cursor's inline editor Preview toggle."
         },
         "harrixNotesExplorerHsk.previewFrontmatter.summary": {
           "type": "string",

@@ -280,6 +280,16 @@
   }
 
   function processFrontmatter() {
+    // Prefer extension-rendered frontmatter (works in Cursor). Drop stray native
+    // `table.frontmatter` duplicates that are not inside our details block.
+    if (document.querySelector('details.hne-frontmatter-details, table.hne-frontmatter-table')) {
+      document.querySelectorAll('table.frontmatter:not(.hne-frontmatter-table)').forEach((table) => {
+        if (!table.closest('details.hne-frontmatter-details')) {
+          table.remove();
+        }
+      });
+    }
+
     if (activeConfig.collapseFrontmatter) {
       document.querySelectorAll('table.frontmatter').forEach((table) => {
         wrapFrontmatter(table);
