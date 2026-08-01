@@ -302,6 +302,11 @@
         "icon": "$(refresh)"
       },
       {
+        "command": "harrixNotesExplorerHsk.hideAllNoteAssets",
+        "title": "Hide All Attachments",
+        "category": "Harrix Notes HSK"
+      },
+      {
         "command": "harrixNotesExplorerHsk.openMarkdownPreviewTabInEditor",
         "title": "Switch Preview to Source",
         "category": "Harrix Notes HSK"
@@ -378,6 +383,11 @@
           "command": "harrixNotesExplorerHsk.refresh",
           "when": "view == harrixNotesExplorerHsk",
           "group": "navigation"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.hideAllNoteAssets",
+          "when": "view == harrixNotesExplorerHsk",
+          "group": "1_attachments"
         }
       ],
       "editor/title/context": [
@@ -467,6 +477,10 @@
         {
           "command": "harrixNotesExplorerHsk.reloadNoteAssets",
           "when": "resourceLangId == markdown"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.hideAllNoteAssets",
+          "when": "true"
         },
         {
           "command": "harrixNotesExplorerHsk.addFolderInNote",
@@ -635,6 +649,11 @@
           "command": "harrixNotesExplorerHsk.reloadNoteAssets",
           "when": "view == harrixNotesExplorerHsk && (viewItem == noteWithAssets || viewItem == gitNoteWithAssets || viewItem == noteWithAssetsNamedFolder || viewItem == gitNoteWithAssetsNamedFolder)",
           "group": "1_attachments@2"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.hideAllNoteAssets",
+          "when": "view == harrixNotesExplorerHsk && (viewItem == noteWithAssets || viewItem == gitNoteWithAssets || viewItem == noteWithAssetsNamedFolder || viewItem == gitNoteWithAssetsNamedFolder)",
+          "group": "1_attachments@3"
         },
         {
           "command": "harrixNotesExplorerHsk.discardGitChangesInNote",

@@ -1532,6 +1532,16 @@ class NoteAssetsVisibility {
     }
     void this._context.workspaceState.update(this._key, Array.from(this.visible));
   }
+
+  /** Hide attachments for every note and persist the empty set. */
+  clearAll() {
+    if (this.visible.size === 0) {
+      return false;
+    }
+    this.visible.clear();
+    void this._context.workspaceState.update(this._key, []);
+    return true;
+  }
 }
 
 /** Combined folder note: _<FolderName>.g.md next to sibling .md files */
@@ -2276,6 +2286,18 @@ class NotesProvider {
     }
     this._assetsVisibility.setVisible(noteDir, visible);
     this._emitter.fire();
+  }
+
+  /** Hide attachments under every note. @returns {boolean} whether anything changed */
+  hideAllNoteAssets() {
+    if (this._assetsVisibility == null) {
+      return false;
+    }
+    const changed = this._assetsVisibility.clearAll();
+    if (changed) {
+      this._emitter.fire();
+    }
+    return changed;
   }
 
   /**
@@ -3833,6 +3855,13 @@ async function activate(context) {
       provider.refreshNoteAssets(uri.fsPath);
       await refreshDone;
       await revealNoteWithAttachments(view, provider, uri.fsPath, 99);
+    }),
+  );
+  context.subscriptions.push(
+    vscode.commands.registerCommand('harrixNotesExplorerHsk.hideAllNoteAssets', () => {
+      if (!provider.hideAllNoteAssets()) {
+        void vscode.window.showInformationMessage('No notes have attachments shown.');
+      }
     }),
   );
   context.subscriptions.push(
