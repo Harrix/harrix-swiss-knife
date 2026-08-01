@@ -77,7 +77,6 @@
     <string name="about_license_label">License</string>
     <string name="about_license">MIT License</string>
     <string name="about_github_label">GitHub</string>
-    <string name="home_utilities_title">Utilities</string>
     <string name="gallery_cleaner_card_description">Review Camera photos. Swipe or tap to trash or keep.</string>
     <string name="video_cleaner_card_description">List Camera videos by date and trash selected ones.</string>
     <string name="gallery_cleaner_title">Gallery Cleaner</string>
