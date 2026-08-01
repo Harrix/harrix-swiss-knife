@@ -86,6 +86,23 @@ class GalleryCleanerPreferences(
 
     fun reviewedPhotoCount(): Int = getReviewedPhotoIds().size
 
+    /**
+     * Restores Gallery Cleaner options to defaults. Reviewed-photo history is kept;
+     * use [clearReviewedPhotos] to reset that separately.
+     */
+    fun resetSettingsToDefaults() {
+        prefs
+            .edit()
+            .putBoolean(KEY_SHOW_INTRO, true)
+            .putBoolean(KEY_SHOW_MANAGE_MEDIA, true)
+            .putBoolean(KEY_DATE_FILTER_ENABLED, false)
+            .remove(KEY_DATE_FILTER_START_SEC)
+            .remove(KEY_DATE_FILTER_END_SEC)
+            .putBoolean(KEY_UNREVIEWED_ONLY_MODE, false)
+            .putString(KEY_REVIEW_ORDER, GalleryReviewOrder.Random.storageValue)
+            .apply()
+    }
+
     companion object {
         private const val PREFS_NAME = "gallery_cleaner"
         private const val KEY_SHOW_INTRO = "show_intro"

@@ -43,6 +43,9 @@
     <string name="settings_gallery_clear_reviewed">Reset reviewed history</string>
     <string name="settings_gallery_clear_reviewed_done">Reviewed history cleared (%1$d)</string>
     <string name="settings_gallery_reviewed_count">Reviewed photos: %1$d</string>
+    <string name="settings_gallery_reset">Reset Gallery Cleaner settings</string>
+    <string name="settings_gallery_reset_done">Gallery Cleaner settings restored to defaults</string>
+    <string name="settings_gallery_reset_hint">Resets order, unreviewed-only mode, date filter, and tips. Reviewed history is not cleared.</string>
     <string name="settings_gallery_restore_intro">Show how-it-works screen again</string>
     <string name="settings_gallery_restore_intro_done">Intro will show when you return to Gallery Cleaner</string>
     <string name="settings_restore_manage_media_tip">Show media management tip again</string>
@@ -97,10 +100,12 @@
     <string name="gallery_cleaner_remaining_unreviewed">%1$d unreviewed</string>
     <string name="gallery_cleaner_session_stats">Deleted: %1$d · Freed: %2$s</string>
     <string name="gallery_cleaner_stats">Statistics</string>
-    <string name="gallery_cleaner_stats_title">Session statistics</string>
-    <string name="gallery_cleaner_stats_reviewed">Reviewed: %1$d</string>
-    <string name="gallery_cleaner_stats_deleted">Deleted: %1$d</string>
-    <string name="gallery_cleaner_stats_freed">Space freed: %1$s</string>
+    <string name="gallery_cleaner_stats_title">Statistics</string>
+    <string name="gallery_cleaner_stats_reviewed_session">Reviewed this session: %1$d</string>
+    <string name="gallery_cleaner_stats_reviewed_total">Reviewed (unreviewed-only history): %1$d</string>
+    <string name="gallery_cleaner_stats_remaining">Remaining unreviewed: %1$d</string>
+    <string name="gallery_cleaner_stats_deleted">Deleted this session: %1$d</string>
+    <string name="gallery_cleaner_stats_freed">Space freed this session: %1$s</string>
     <string name="gallery_cleaner_stats_ok">OK</string>
     <string name="gallery_cleaner_date_filter_active">Filter: %1$s – %2$s</string>
     <string name="gallery_cleaner_date_filter_active_day">Filter: %1$s</string>

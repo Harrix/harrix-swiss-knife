@@ -722,14 +722,29 @@ fun GalleryCleanerScreen(
     }
 
     if (showStatsDialog) {
+        val reviewedTotal = preferences.reviewedPhotoCount()
         AlertDialog(
             onDismissRequest = { showStatsDialog = false },
             title = { Text(stringResource(R.string.gallery_cleaner_stats_title)) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (unreviewedOnlyMode) {
+                        Text(
+                            stringResource(
+                                R.string.gallery_cleaner_stats_reviewed_total,
+                                reviewedTotal,
+                            ),
+                        )
+                        Text(
+                            stringResource(
+                                R.string.gallery_cleaner_stats_remaining,
+                                remainingCount,
+                            ),
+                        )
+                    }
                     Text(
                         stringResource(
-                            R.string.gallery_cleaner_stats_reviewed,
+                            R.string.gallery_cleaner_stats_reviewed_session,
                             sessionReviewedCount,
                         ),
                     )

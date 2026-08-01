@@ -395,6 +395,7 @@ private fun GalleryCleanerSettingsSection(
     var reviewOrder by remember { mutableStateOf(preferences.getReviewOrder()) }
     var reviewedCount by remember { mutableIntStateOf(preferences.reviewedPhotoCount()) }
     var clearMessage by remember { mutableStateOf<String?>(null) }
+    var resetMessage by remember { mutableStateOf<String?>(null) }
     var introEnabled by remember { mutableStateOf(preferences.shouldShowIntro()) }
     var introMessage by remember { mutableStateOf<String?>(null) }
     val shootDayLabel =
@@ -572,6 +573,35 @@ private fun GalleryCleanerSettingsSection(
             shootDayLabel = shootDayLabel,
             onPreset = { persist(it) },
         )
+
+        HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+
+        Text(
+            text = stringResource(R.string.settings_gallery_reset_hint),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        OutlinedButton(
+            onClick = {
+                preferences.resetSettingsToDefaults()
+                filter = preferences.loadDateFilter()
+                unreviewedOnlyMode = preferences.isUnreviewedOnlyModeEnabled()
+                reviewOrder = preferences.getReviewOrder()
+                introEnabled = preferences.shouldShowIntro()
+                introMessage = null
+                clearMessage = null
+                resetMessage = context.getString(R.string.settings_gallery_reset_done)
+            },
+        ) {
+            Text(stringResource(R.string.settings_gallery_reset))
+        }
+        resetMessage?.let { message ->
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 
     if (showSectionTitle) {
