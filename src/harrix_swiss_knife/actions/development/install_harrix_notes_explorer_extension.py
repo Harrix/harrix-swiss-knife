@@ -127,24 +127,27 @@ class OnInstallHarrixNotesExplorerExtension(ActionBase):
                 return
             selected_hsk, selected_public = selection
 
-        if selected_hsk:
-            self._install_hsk_for_editors(selected_hsk, hsk_dir)
-        elif noninteractive:
-            self.add_line("❌ No editors selected for HSK install.")
+        self._install_selected_hsk = selected_hsk
+        self._install_selected_public = selected_public
+        self._install_hsk_dir = hsk_dir
+        self._install_public_repo = public_repo
+        self._install_noninteractive = noninteractive
+
+        if noninteractive:
+            self._run_extension_install_work()
             return
 
-        if selected_public:
-            if public_repo is None:
-                self.add_line("❌ Installing public extension requires path_harrix_notes_explorer in config.")
-                if not noninteractive:
-                    self.show_result()
-                return
-            self._install_public_for_editors(selected_public, public_repo)
+        self.start_thread(self.in_thread, self.thread_after, self.title)
 
-        if public_repo is not None:
-            self.add_line("Commit and push changes in the public repo when ready.")
-        if not noninteractive:
-            self.show_result()
+    @ActionBase.handle_exceptions("install Harrix Notes Explorer thread")
+    def in_thread(self) -> None:
+        """Copy extensions into selected editors in a worker thread."""
+        self._run_extension_install_work()
+
+    @ActionBase.handle_exceptions("install Harrix Notes Explorer completion")
+    def thread_after(self, result: Any) -> None:  # noqa: ARG002
+        """Show result dialog after extension install finishes."""
+        self.show_result()
 
     @classmethod
     def _all_supported_win32_editor_labels(cls) -> list[str]:
@@ -524,6 +527,29 @@ class OnInstallHarrixNotesExplorerExtension(ActionBase):
         if not key:
             return None
         return cls._CLI_EDITOR_TOKEN_TO_LABEL.get(key)
+
+    def _run_extension_install_work(self) -> None:
+        """Install HSK/public extensions into the editors selected in `execute`."""
+        selected_hsk = self._install_selected_hsk
+        selected_public = self._install_selected_public
+        hsk_dir = self._install_hsk_dir
+        public_repo = self._install_public_repo
+        noninteractive = self._install_noninteractive
+
+        if selected_hsk:
+            self._install_hsk_for_editors(selected_hsk, hsk_dir)
+        elif noninteractive:
+            self.add_line("❌ No editors selected for HSK install.")
+            return
+
+        if selected_public:
+            if public_repo is None:
+                self.add_line("❌ Installing public extension requires path_harrix_notes_explorer in config.")
+                return
+            self._install_public_for_editors(selected_public, public_repo)
+
+        if public_repo is not None:
+            self.add_line("Commit and push changes in the public repo when ready.")
 
     def _select_editors_interactive(self, *, offer_public: bool) -> tuple[list[str], list[str]] | None:
         """Show editor checkbox dialog; return (HSK labels, public labels) or `None` if canceled."""

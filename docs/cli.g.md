@@ -180,7 +180,7 @@ Install global `hsk` CLI on PATH (`uv tool install -e`).
 ```python
 def dev_install_cli() -> None:
     action = OnInstallCli()
-    action()
+    action(noninteractive=True)
     _exit_if_action_failed(action)
 ```
 

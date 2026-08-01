@@ -75,30 +75,70 @@ class OnPublishPythonLibrary(ActionBase):
     @ActionBase.handle_exceptions("publishing library build thread")
     def in_thread_01(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
-        # Increase version of the library
-        commands = "uv version --bump minor"
-        version_output = h.dev.run_command(commands, cwd=str(self.library_path)).strip()
+        library_path = Path(self.library_path)
+        cwd = str(library_path)
+
+        version_output = self._run_argv(["uv", "version", "--bump", "minor"], cwd=cwd).strip()
         self.new_version = version_output.split(" => ")[1].splitlines()[0]
         self.add_line(f"New version: {self.new_version}")
 
-        # Build and publish
-        commands = f"""
-            cd {self.library_path}
-            uv sync --upgrade --active
-            Remove-Item -Path "{self.library_path}/dist/*" -Recurse -Force -ErrorAction SilentlyContinue
-            uv build
-            uv publish --token {self.token}
-            git add pyproject.toml
-            git add uv.lock
-            git commit -m "🚀 Build version {self.new_version}" """
-        result = h.dev.run_powershell_script(commands)
-        self.add_line(result)
+        self.add_line(self._run_argv(["uv", "sync", "--upgrade", "--active"], cwd=cwd))
+
+        dist_dir = library_path / "dist"
+        if dist_dir.is_dir():
+            shutil.rmtree(dist_dir, ignore_errors=True)
+
+        self.add_line(self._run_argv(["uv", "build"], cwd=cwd))
+
+        publish_env = {**os.environ, "UV_PUBLISH_TOKEN": str(self.token)}
+        self.add_line(self._run_argv(["uv", "publish"], cwd=cwd, env=publish_env))
+
+        self.add_line(self._run_argv(["git", "add", "pyproject.toml", "uv.lock"], cwd=cwd))
+        self.add_line(
+            self._run_argv(
+                ["git", "commit", "-m", f"🚀 Build version {self.new_version}"],
+                cwd=cwd,
+            )
+        )
+        return None
 
     @ActionBase.handle_exceptions("publishing library thread completion")
     def thread_after_01(self, result: Any) -> None:  # noqa: ARG002
         """Execute code in the main thread after in_thread_01(). For handling the results of thread execution."""
         self.show_toast(f"{self.title} completed")
         self.show_result()
+
+    def _run_argv(
+        self,
+        command: list[str],
+        *,
+        cwd: str,
+        env: dict[str, str] | None = None,
+        timeout: float = _DEFAULT_SUBPROCESS_TIMEOUT,
+    ) -> str:
+        """Run a command as an argv list and return combined output."""
+        executable = shutil.which(command[0]) or command[0]
+        argv = [executable, *command[1:]]
+        try:
+            process = subprocess.run(
+                argv,
+                cwd=cwd,
+                env=env,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                check=False,
+                timeout=timeout,
+                shell=False,
+            )
+        except subprocess.TimeoutExpired:
+            return f"Command timed out after {timeout} seconds: {' '.join(command)}"
+
+        output_parts = [(process.stdout or "").strip(), (process.stderr or "").strip()]
+        output = "\n".join(filter(None, output_parts))
+        if process.returncode != 0:
+            self.add_line(f"❌ Command failed ({process.returncode}): {' '.join(command)}")
+        return output
 ```
 
 </details>
@@ -151,24 +191,32 @@ Execute code in a separate thread. For performing long-running operations.
 
 ```python
 def in_thread_01(self) -> str | None:
-        # Increase version of the library
-        commands = "uv version --bump minor"
-        version_output = h.dev.run_command(commands, cwd=str(self.library_path)).strip()
+        library_path = Path(self.library_path)
+        cwd = str(library_path)
+
+        version_output = self._run_argv(["uv", "version", "--bump", "minor"], cwd=cwd).strip()
         self.new_version = version_output.split(" => ")[1].splitlines()[0]
         self.add_line(f"New version: {self.new_version}")
 
-        # Build and publish
-        commands = f"""
-            cd {self.library_path}
-            uv sync --upgrade --active
-            Remove-Item -Path "{self.library_path}/dist/*" -Recurse -Force -ErrorAction SilentlyContinue
-            uv build
-            uv publish --token {self.token}
-            git add pyproject.toml
-            git add uv.lock
-            git commit -m "🚀 Build version {self.new_version}" """
-        result = h.dev.run_powershell_script(commands)
-        self.add_line(result)
+        self.add_line(self._run_argv(["uv", "sync", "--upgrade", "--active"], cwd=cwd))
+
+        dist_dir = library_path / "dist"
+        if dist_dir.is_dir():
+            shutil.rmtree(dist_dir, ignore_errors=True)
+
+        self.add_line(self._run_argv(["uv", "build"], cwd=cwd))
+
+        publish_env = {**os.environ, "UV_PUBLISH_TOKEN": str(self.token)}
+        self.add_line(self._run_argv(["uv", "publish"], cwd=cwd, env=publish_env))
+
+        self.add_line(self._run_argv(["git", "add", "pyproject.toml", "uv.lock"], cwd=cwd))
+        self.add_line(
+            self._run_argv(
+                ["git", "commit", "-m", f"🚀 Build version {self.new_version}"],
+                cwd=cwd,
+            )
+        )
+        return None
 ```
 
 </details>

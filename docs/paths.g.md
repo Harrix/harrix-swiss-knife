@@ -13,6 +13,7 @@ lang: en
 
 - [🔧 Function `clear_directory_contents`](#-function-clear_directory_contents)
 - [🔧 Function `clear_temp_folder`](#-function-clear_temp_folder)
+- [🔧 Function `ensure_local_config`](#-function-ensure_local_config)
 - [🔧 Function `get_action_output_dir`](#-function-get_action_output_dir)
 - [🔧 Function `get_config_path`](#-function-get_config_path)
 - [🔧 Function `get_config_path_str`](#-function-get_config_path_str)
@@ -101,6 +102,41 @@ def clear_temp_folder(temp_dir: Path | None = None) -> list[str]:
 
 </details>
 
+## 🔧 Function `ensure_local_config`
+
+```python
+def ensure_local_config() -> Path
+```
+
+Ensure `config/config.json` exists, copying from the example when missing.
+
+Personal machine paths live in the local `config.json` (gitignored). New clones
+start from `config/config.example.json`.
+
+Returns:
+
+- `Path`: Absolute path to the local config file.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def ensure_local_config() -> Path:
+    config_path = get_project_root() / "config" / "config.json"
+    if config_path.is_file():
+        return config_path
+
+    example_path = get_project_root() / "config" / "config.example.json"
+    if example_path.is_file():
+        shutil.copy2(example_path, config_path)
+        return config_path
+
+    msg = f"Missing config file and example: {config_path} / {example_path}"
+    raise FileNotFoundError(msg)
+```
+
+</details>
+
 ## 🔧 Function `get_action_output_dir`
 
 ```python
@@ -139,14 +175,14 @@ def get_action_output_dir() -> Path:
 def get_config_path() -> Path
 ```
 
-Return absolute path to main config file.
+Return absolute path to main config file (creates from example if needed).
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def get_config_path() -> Path:
-    return get_project_root() / "config" / "config.json"
+    return ensure_local_config()
 ```
 
 </details>

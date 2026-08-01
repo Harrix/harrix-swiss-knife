@@ -38,6 +38,7 @@ lang: en
   - [⚙️ Method `get_yes_no_question`](#%EF%B8%8F-method-get_yes_no_question)
   - [⚙️ Method `handle_error`](#%EF%B8%8F-method-handle_error)
   - [⚙️ Method `handle_exceptions`](#%EF%B8%8F-method-handle_exceptions)
+  - [⚙️ Method `invalidate_config_cache`](#%EF%B8%8F-method-invalidate_config_cache)
   - [⚙️ Method `is_work_cancelled`](#%EF%B8%8F-method-is_work_cancelled)
   - [⚙️ Method `raise_if_work_cancelled`](#%EF%B8%8F-method-raise_if_work_cancelled)
   - [⚙️ Method `resolve_config_value`](#%EF%B8%8F-method-resolve_config_value)
@@ -221,8 +222,14 @@ class ActionBase(ABC):
 
     @property
     def config(self) -> dict:
-        """Get current configuration (reloads every time)."""
-        return _ActionConfig(h.dev.config_load(self.config_path), self)
+        """Get current configuration (cached for this action instance)."""
+        cached = getattr(self, "_cached_config", None)
+        if cached is not None:
+            return cached
+        loaded = load_app_config(self.config_path)
+        wrapped = _ActionConfig(loaded, self)
+        self._cached_config = wrapped
+        return wrapped
 
     def create_emoji_icon(self, emoji: str, size: int = 64) -> QIcon:
         """Create an icon with the given emoji.
@@ -433,6 +440,8 @@ class ActionBase(ABC):
             def wrapper(self: SelfT, *args: P.args, **kwargs: P.kwargs) -> R | None:
                 try:
                     return func(self, *args, **kwargs)
+                except _RERAISE_EXCEPTIONS:
+                    raise
                 except Exception as e:
                     self.handle_error(e, context or func.__name__)
                     return None
@@ -440,6 +449,11 @@ class ActionBase(ABC):
             return wrapper
 
         return decorator
+
+    def invalidate_config_cache(self) -> None:
+        """Drop the cached config so the next access reloads from disk."""
+        if hasattr(self, "_cached_config"):
+            delattr(self, "_cached_config")
 
     def is_work_cancelled(self) -> bool:
         """Return `True` when the current background worker was cancelled."""
@@ -917,14 +931,20 @@ def add_line(self, line: str) -> None:
 def config(self) -> dict
 ```
 
-Get current configuration (reloads every time).
+Get current configuration (cached for this action instance).
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def config(self) -> dict:
-        return _ActionConfig(h.dev.config_load(self.config_path), self)
+        cached = getattr(self, "_cached_config", None)
+        if cached is not None:
+            return cached
+        loaded = load_app_config(self.config_path)
+        wrapped = _ActionConfig(loaded, self)
+        self._cached_config = wrapped
+        return wrapped
 ```
 
 </details>
@@ -1418,6 +1438,8 @@ def handle_exceptions(
             def wrapper(self: SelfT, *args: P.args, **kwargs: P.kwargs) -> R | None:
                 try:
                     return func(self, *args, **kwargs)
+                except _RERAISE_EXCEPTIONS:
+                    raise
                 except Exception as e:
                     self.handle_error(e, context or func.__name__)
                     return None
@@ -1425,6 +1447,25 @@ def handle_exceptions(
             return wrapper
 
         return decorator
+```
+
+</details>
+
+### ⚙️ Method `invalidate_config_cache`
+
+```python
+def invalidate_config_cache(self) -> None
+```
+
+Drop the cached config so the next access reloads from disk.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def invalidate_config_cache(self) -> None:
+        if hasattr(self, "_cached_config"):
+            delattr(self, "_cached_config")
 ```
 
 </details>

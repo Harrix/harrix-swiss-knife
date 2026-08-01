@@ -237,7 +237,7 @@ class OnAndroidBuild(ActionBase):
             if candidate.is_file():
                 return candidate
 
-        which = h.dev.run_command("where adb")
+        which = h.dev.run_command("where adb", is_shell=True)
         for line in (which or "").splitlines():
             path = Path(line.strip().strip('"'))
             if path.is_file():

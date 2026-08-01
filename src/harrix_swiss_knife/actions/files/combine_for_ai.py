@@ -104,7 +104,20 @@ class OnCombineForAI(ActionBase):
         if not selected_files:
             return
 
-        self.add_line(self._safe_collect_text_files_to_markdown(cast("list[str | Path]", selected_files), base_folder))
+        self._combine_selected_files = cast("list[str | Path]", selected_files)
+        self._combine_base_folder = base_folder
+        self.start_thread(self.in_thread, self.thread_after, self.title)
+
+    @ActionBase.handle_exceptions("combining files for AI thread")
+    def in_thread(self) -> None:
+        """Combine selected files into Markdown in a worker thread."""
+        self.add_line(
+            self._safe_collect_text_files_to_markdown(self._combine_selected_files, self._combine_base_folder)
+        )
+
+    @ActionBase.handle_exceptions("combining files for AI completion")
+    def thread_after(self, result: Any) -> None:  # noqa: ARG002
+        """Show result dialog after combine finishes."""
         self.show_result()
 
     def _expand_path_patterns(self, paths: list[str]) -> list[str]:
@@ -299,11 +312,9 @@ class OnCombineForAI(ActionBase):
         if not selected_files:
             return
 
-        # Use the selected folder as base folder
-        self.add_line(
-            self._safe_collect_text_files_to_markdown(cast("list[str | Path]", selected_files), str(selected_folder))
-        )
-        self.show_result()
+        self._combine_selected_files = cast("list[str | Path]", selected_files)
+        self._combine_base_folder = str(selected_folder)
+        self.start_thread(self.in_thread, self.thread_after, self.title)
 
     def _has_glob_wildcards(self, pattern: str) -> bool:
         """Return whether pattern contains glob wildcard tokens."""

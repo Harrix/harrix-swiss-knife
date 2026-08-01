@@ -100,7 +100,7 @@ def dev_group() -> None:
 def dev_install_cli() -> None:
     """Install global `hsk` CLI on PATH (`uv tool install -e`)."""
     action = OnInstallCli()
-    action()
+    action(noninteractive=True)
     _exit_if_action_failed(action)
 
 

@@ -29,7 +29,17 @@ class OnLockDisks(ActionBase):
             self.add_line('❌ config "block_drives" is missing or empty.')
             self.show_result()
             return
-        commands = "\n".join([f"manage-bde -lock {drive}: -ForceDismount" for drive in drives])
+        self._drives = list(drives)
+        self.start_thread(self.in_thread, self.thread_after, self.title)
+
+    @ActionBase.handle_exceptions("locking disks thread")
+    def in_thread(self) -> None:
+        """Run BitLocker lock commands as admin in a worker thread."""
+        commands = "\n".join([f"manage-bde -lock {drive}: -ForceDismount" for drive in self._drives])
         result = h.dev.run_powershell_script_as_admin(commands)
         self.add_line(result)
+
+    @ActionBase.handle_exceptions("locking disks completion")
+    def thread_after(self, result: Any) -> None:  # noqa: ARG002
+        """Show result dialog after disk lock finishes."""
         self.show_result()

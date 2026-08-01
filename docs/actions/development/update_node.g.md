@@ -56,7 +56,7 @@ class OnUpdateNode(ActionBase):
             "winget upgrade -e --id OpenJS.NodeJS.LTS --source winget "
             "--accept-package-agreements --accept-source-agreements --silent --disable-interactivity"
         )
-        return h.dev.run_command(cmd)
+        return h.dev.run_command(cmd, is_shell=True)
 
     @ActionBase.handle_exceptions("node.js update thread completion")
     def thread_after(self, result: Any) -> None:
@@ -109,7 +109,7 @@ def in_thread(self) -> str | None:
             "winget upgrade -e --id OpenJS.NodeJS.LTS --source winget "
             "--accept-package-agreements --accept-source-agreements --silent --disable-interactivity"
         )
-        return h.dev.run_command(cmd)
+        return h.dev.run_command(cmd, is_shell=True)
 ```
 
 </details>

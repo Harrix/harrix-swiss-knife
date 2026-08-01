@@ -81,6 +81,7 @@ class OnHarrixCheckPython(ActionBase):
 
     def harrix_check_python_common(self) -> None:
         """Check all Python files in `folder_path` and log results."""
+        self.last_error_count = 0
         checker = h.py_check.PyChecker()
         if self.folder_path is None:
             return
@@ -98,6 +99,7 @@ class OnHarrixCheckPython(ActionBase):
         if md_doc_errors:
             errors = (errors or []) + md_doc_errors
 
+        self.last_error_count = len(errors) if errors else 0
         if errors:
             self.add_line("\n".join(errors))
             self.add_line(f"🔢 Count errors = {len(errors)}")
@@ -289,6 +291,7 @@ Check all Python files in `folder_path` and log results.
 
 ```python
 def harrix_check_python_common(self) -> None:
+        self.last_error_count = 0
         checker = h.py_check.PyChecker()
         if self.folder_path is None:
             return
@@ -306,6 +309,7 @@ def harrix_check_python_common(self) -> None:
         if md_doc_errors:
             errors = (errors or []) + md_doc_errors
 
+        self.last_error_count = len(errors) if errors else 0
         if errors:
             self.add_line("\n".join(errors))
             self.add_line(f"🔢 Count errors = {len(errors)}")

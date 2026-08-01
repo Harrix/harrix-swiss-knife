@@ -5,9 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-import harrix_pylib as h
-
-from harrix_swiss_knife.paths import get_config_path_str
+from harrix_swiss_knife.config_model import load_app_config
 
 HOTKEYS_KEY = "hotkeys"
 
@@ -69,7 +67,6 @@ def _hotkeys_from_entry(item: dict[str, Any]) -> list[str]:
 
 def _load_main_config() -> dict[str, Any]:
     try:
-        loaded = h.dev.config_load(get_config_path_str())
-    except (FileNotFoundError, OSError, ValueError):
+        return load_app_config()
+    except (FileNotFoundError, OSError, TypeError, ValueError):
         return {}
-    return loaded if isinstance(loaded, dict) else {}

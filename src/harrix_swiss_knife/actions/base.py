@@ -36,6 +36,7 @@ from PySide6.QtWidgets import (
 from harrix_swiss_knife import toast_cancellable_http_notification, toast_countdown_notification, toast_notification
 from harrix_swiss_knife.action_title import strip_md_inline_code_markers
 from harrix_swiss_knife.actions.dialog_service import ActionDialogService
+from harrix_swiss_knife.config_model import load_app_config
 from harrix_swiss_knife.integrations.http_download import DownloadCancelledError
 from harrix_swiss_knife.paths import (
     get_action_output_dir,
@@ -48,6 +49,15 @@ from harrix_swiss_knife.qt_emoji_icon import create_emoji_icon
 logger = logging.getLogger(__name__)
 
 _output_path_local = threading.local()
+
+# Fatal / programming errors that must not be swallowed by `@handle_exceptions`.
+_RERAISE_EXCEPTIONS: tuple[type[BaseException], ...] = (
+    AssertionError,
+    MemoryError,
+    RecursionError,
+    SyntaxError,
+    SystemError,
+)
 
 # NOTE: Avoid importing app modules at runtime from here (ruff TC001/TC003).
 if TYPE_CHECKING:
@@ -217,8 +227,14 @@ class ActionBase(ABC):
 
     @property
     def config(self) -> dict:
-        """Get current configuration (reloads every time)."""
-        return _ActionConfig(h.dev.config_load(self.config_path), self)
+        """Get current configuration (cached for this action instance)."""
+        cached = getattr(self, "_cached_config", None)
+        if cached is not None:
+            return cached
+        loaded = load_app_config(self.config_path)
+        wrapped = _ActionConfig(loaded, self)
+        self._cached_config = wrapped
+        return wrapped
 
     def create_emoji_icon(self, emoji: str, size: int = 64) -> QIcon:
         """Create an icon with the given emoji.
@@ -429,6 +445,8 @@ class ActionBase(ABC):
             def wrapper(self: SelfT, *args: P.args, **kwargs: P.kwargs) -> R | None:
                 try:
                     return func(self, *args, **kwargs)
+                except _RERAISE_EXCEPTIONS:
+                    raise
                 except Exception as e:
                     self.handle_error(e, context or func.__name__)
                     return None
@@ -436,6 +454,11 @@ class ActionBase(ABC):
             return wrapper
 
         return decorator
+
+    def invalidate_config_cache(self) -> None:
+        """Drop the cached config so the next access reloads from disk."""
+        if hasattr(self, "_cached_config"):
+            delattr(self, "_cached_config")
 
     def is_work_cancelled(self) -> bool:
         """Return `True` when the current background worker was cancelled."""

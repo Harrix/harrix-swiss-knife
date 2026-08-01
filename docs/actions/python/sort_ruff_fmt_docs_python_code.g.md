@@ -132,7 +132,7 @@ class OnSortRuffFmtDocsPythonCode(ActionBase):
         # Sort imports and format with Ruff (single tool for both steps).
         self.add_line("🔵 Format and sort imports")
         commands = "uv run --active ruff check --select I --fix . && uv run --active ruff format"
-        self.add_line(h.dev.run_command(commands, cwd=folder_path))
+        self.add_line(h.dev.run_command(commands, cwd=folder_path, is_shell=True))
 
         # Sort Python code elements (skip per-file ruff: pipeline already runs ruff format).
         self.add_line("🔵 Sort Python code elements")
@@ -157,7 +157,7 @@ class OnSortRuffFmtDocsPythonCode(ActionBase):
             self.add_line(f"⚠️ Skip docstring Markdown formatting due to error: {e!s}")
 
         self.add_line("🔵 Format with Ruff after docstring updates")
-        self.add_line(h.dev.run_command("uv run --active ruff format", cwd=folder_path))
+        self.add_line(h.dev.run_command(["uv", "run", "--active", "ruff", "format"], cwd=folder_path))
 
         if Path(folder_path).resolve() == h.dev.get_project_root().resolve():
             self.add_line("🔵 Update README List of commands")
@@ -309,7 +309,7 @@ def format_and_sort_python_common(self, folder_path: str, *, is_include_docs_gen
         # Sort imports and format with Ruff (single tool for both steps).
         self.add_line("🔵 Format and sort imports")
         commands = "uv run --active ruff check --select I --fix . && uv run --active ruff format"
-        self.add_line(h.dev.run_command(commands, cwd=folder_path))
+        self.add_line(h.dev.run_command(commands, cwd=folder_path, is_shell=True))
 
         # Sort Python code elements (skip per-file ruff: pipeline already runs ruff format).
         self.add_line("🔵 Sort Python code elements")
@@ -334,7 +334,7 @@ def format_and_sort_python_common(self, folder_path: str, *, is_include_docs_gen
             self.add_line(f"⚠️ Skip docstring Markdown formatting due to error: {e!s}")
 
         self.add_line("🔵 Format with Ruff after docstring updates")
-        self.add_line(h.dev.run_command("uv run --active ruff format", cwd=folder_path))
+        self.add_line(h.dev.run_command(["uv", "run", "--active", "ruff", "format"], cwd=folder_path))
 
         if Path(folder_path).resolve() == h.dev.get_project_root().resolve():
             self.add_line("🔵 Update README List of commands")

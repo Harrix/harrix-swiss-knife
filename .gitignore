@@ -12,7 +12,11 @@ api-keys/*
 !api-keys/README.md
 !api-keys/pypi-token.example.txt
 !api-keys/bothub-api-key.example.txt
+# Personal machine config (paths, local prefs) — track only the example template
+config/config.json
 config/config-temp.json
+# Android Kotlin daemon sessions
+android/.kotlin/
 install/dependencies/
 install/install-harrix-swiss-knife.zip
 install/install-offline-harrix-swiss-knife.zip

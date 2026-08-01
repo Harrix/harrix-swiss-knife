@@ -13,6 +13,8 @@ lang: en
 
 - [🏛️ Class `OnSyncQuickAccessToTotalCommander`](#%EF%B8%8F-class-onsyncquickaccesstototalcommander)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
+  - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread)
+  - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after)
 
 </details>
 
@@ -58,14 +60,19 @@ class OnSyncQuickAccessToTotalCommander(ActionBase):
             self.show_result()
             return
 
+        self._ini_path = ini_path
+        self.start_thread(self.in_thread, self.thread_after, self.title)
+
+    @ActionBase.handle_exceptions("syncing Quick Access thread")
+    def in_thread(self) -> int:
+        """Read Quick Access pins and merge into Total Commander hotlist."""
         pinned = self._read_pinned_folders()
         if not pinned:
             self.add_line("❌ No pinned folders found in Quick Access.")
-            self.show_result()
-            return
+            return 0
         self.add_line(f"Found {len(pinned)} pinned folder(s) in Quick Access.")
 
-        target_path = self._resolve_dirmenu_file(ini_path)
+        target_path = self._resolve_dirmenu_file(self._ini_path)
         self.add_line(f"Target [DirMenu] file: {target_path}")
 
         raw = target_path.read_bytes()
@@ -77,9 +84,7 @@ class OnSyncQuickAccessToTotalCommander(ActionBase):
         new_lines, added, skipped = self._merge_dirmenu(lines, pinned)
         if not added:
             self.add_line(f"Nothing to add — all {skipped} pinned folder(s) already present.")
-            self.show_toast(f"{self.title}: nothing to add")
-            self.show_result()
-            return
+            return 0
 
         target_path.write_bytes(newline.join(new_lines).encode(encoding, errors="replace"))
 
@@ -90,7 +95,16 @@ class OnSyncQuickAccessToTotalCommander(ActionBase):
             self.add_line(f"Skipped {skipped} folder(s) already present.")
         self.add_line("")
         self.add_line("⚠️ Close Total Commander before running, otherwise it overwrites wincmd.ini on exit.")
-        self.show_toast(f"{self.title}: added {len(added)}")
+        return len(added)
+
+    @ActionBase.handle_exceptions("syncing Quick Access completion")
+    def thread_after(self, result: Any) -> None:
+        """Show toast and result after sync finishes."""
+        added_count = int(result or 0)
+        if added_count:
+            self.show_toast(f"{self.title}: added {added_count}")
+        else:
+            self.show_toast(f"{self.title}: nothing to add")
         self.show_result()
 
     @staticmethod
@@ -245,14 +259,32 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
             self.show_result()
             return
 
+        self._ini_path = ini_path
+        self.start_thread(self.in_thread, self.thread_after, self.title)
+```
+
+</details>
+
+### ⚙️ Method `in_thread`
+
+```python
+def in_thread(self) -> int
+```
+
+Read Quick Access pins and merge into Total Commander hotlist.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def in_thread(self) -> int:
         pinned = self._read_pinned_folders()
         if not pinned:
             self.add_line("❌ No pinned folders found in Quick Access.")
-            self.show_result()
-            return
+            return 0
         self.add_line(f"Found {len(pinned)} pinned folder(s) in Quick Access.")
 
-        target_path = self._resolve_dirmenu_file(ini_path)
+        target_path = self._resolve_dirmenu_file(self._ini_path)
         self.add_line(f"Target [DirMenu] file: {target_path}")
 
         raw = target_path.read_bytes()
@@ -264,9 +296,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         new_lines, added, skipped = self._merge_dirmenu(lines, pinned)
         if not added:
             self.add_line(f"Nothing to add — all {skipped} pinned folder(s) already present.")
-            self.show_toast(f"{self.title}: nothing to add")
-            self.show_result()
-            return
+            return 0
 
         target_path.write_bytes(newline.join(new_lines).encode(encoding, errors="replace"))
 
@@ -277,7 +307,29 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
             self.add_line(f"Skipped {skipped} folder(s) already present.")
         self.add_line("")
         self.add_line("⚠️ Close Total Commander before running, otherwise it overwrites wincmd.ini on exit.")
-        self.show_toast(f"{self.title}: added {len(added)}")
+        return len(added)
+```
+
+</details>
+
+### ⚙️ Method `thread_after`
+
+```python
+def thread_after(self, result: Any) -> None
+```
+
+Show toast and result after sync finishes.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def thread_after(self, result: Any) -> None:
+        added_count = int(result or 0)
+        if added_count:
+            self.show_toast(f"{self.title}: added {added_count}")
+        else:
+            self.show_toast(f"{self.title}: nothing to add")
         self.show_result()
 ```
 

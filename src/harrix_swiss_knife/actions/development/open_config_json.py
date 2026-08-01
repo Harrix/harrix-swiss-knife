@@ -62,7 +62,7 @@ class OnOpenConfigJson(ActionBase):
 
         if resolved is not None:
             commands = f'"{resolved}" "{config_file}"'
-            result = h.dev.run_command(commands)
+            result = h.dev.run_command(commands, is_shell=True)
             self.add_line(result)
             return
 
@@ -76,13 +76,13 @@ class OnOpenConfigJson(ActionBase):
                 self.add_line(f"Opened with default app: {config_file}")
                 return
         elif sys.platform == "darwin":
-            result = h.dev.run_command(f'open "{config_file}"')
+            result = h.dev.run_command(f'open "{config_file}"', is_shell=True)
             if result:
                 self.add_line(result)
             self.add_line(f"Opened with default app: {config_file}")
             return
         else:
-            result = h.dev.run_command(f'xdg-open "{config_file}"')
+            result = h.dev.run_command(f'xdg-open "{config_file}"', is_shell=True)
             if result:
                 self.add_line(result)
             self.add_line(f"Opened with default app: {config_file}")

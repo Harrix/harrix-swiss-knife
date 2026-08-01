@@ -90,6 +90,30 @@ def clear_temp_folder(temp_dir: Path | None = None) -> list[str]:
     return lines
 
 
+def ensure_local_config() -> Path:
+    """Ensure `config/config.json` exists, copying from the example when missing.
+
+    Personal machine paths live in the local `config.json` (gitignored). New clones
+    start from `config/config.example.json`.
+
+    Returns:
+
+    - `Path`: Absolute path to the local config file.
+
+    """
+    config_path = get_project_root() / "config" / "config.json"
+    if config_path.is_file():
+        return config_path
+
+    example_path = get_project_root() / "config" / "config.example.json"
+    if example_path.is_file():
+        shutil.copy2(example_path, config_path)
+        return config_path
+
+    msg = f"Missing config file and example: {config_path} / {example_path}"
+    raise FileNotFoundError(msg)
+
+
 @lru_cache(maxsize=1)
 def get_action_output_dir() -> Path:
     """Return directory for per-run action log files (under project `temp/` when writable).
@@ -113,8 +137,8 @@ def get_action_output_dir() -> Path:
 
 
 def get_config_path() -> Path:
-    """Return absolute path to main config file."""
-    return get_project_root() / "config" / "config.json"
+    """Return absolute path to main config file (creates from example if needed)."""
+    return ensure_local_config()
 
 
 def get_config_path_str() -> str:

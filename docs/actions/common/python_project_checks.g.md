@@ -75,13 +75,13 @@ class PythonProjectChecksMixin(ActionBase):
         checker.selected_rule_ids = set(h.md_check.MdChecker().all_rules)
         checker.include_g_md = True
         checker.check_md_common()
-        return not any("🔢 Count errors" in line for line in checker.result_lines)
+        return getattr(checker, "last_error_count", 0) == 0
 
     def _run_harrix_python_check(self, project_path: Path) -> bool:
         checker = OnHarrixCheckPython()
         checker.folder_path = project_path
         checker.harrix_check_python_common()
-        return not any("🔢 Count errors" in line for line in checker.result_lines)
+        return getattr(checker, "last_error_count", 0) == 0
 
     def _run_uv_command(self, project_path: Path, tool: str, args: str) -> tuple[bool, str]:
         pyproject = project_path / "pyproject.toml"
@@ -106,8 +106,11 @@ class PythonProjectChecksMixin(ActionBase):
                 env=env,
                 check=False,
                 creationflags=creationflags,
+                timeout=_UV_CHECK_TIMEOUT,
             )
-        except Exception as e:
+        except subprocess.TimeoutExpired:
+            return False, f"Command timed out after {_UV_CHECK_TIMEOUT} seconds: {' '.join(command)}"
+        except OSError as e:
             return False, f"Error executing command: {e!s}"
 
         output_parts = [(process.stdout or "").strip(), (process.stderr or "").strip()]

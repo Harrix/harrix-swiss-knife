@@ -182,7 +182,7 @@ Path(sys.argv[1]).write_text(os.environ["HARRIX_NEW_SUBJECT"] + "\n", encoding="
         return subject
 
     def _git_out(self, cmd: str, cwd: Path) -> str:
-        return h.dev.run_command(cmd, cwd=str(cwd))
+        return h.dev.run_command(cmd, cwd=str(cwd), is_shell=True)
 
     @staticmethod
     def _git_subprocess(

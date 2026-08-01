@@ -115,6 +115,7 @@ def run_gradle(
     android_dir: Path,
     java_home: str,
     *tasks: str,
+    timeout: float | None = 1800.0,
 ) -> subprocess.CompletedProcess[str]:
     """Run one or more Gradle tasks via ``gradlew.bat --no-daemon``."""
     gradlew = android_dir / "gradlew.bat"
@@ -127,6 +128,7 @@ def run_gradle(
         encoding="utf-8",
         errors="replace",
         check=False,
+        timeout=timeout,
     )
 
 

@@ -113,6 +113,7 @@ def run_git_commit(repo: Path, message: str, paths_to_add: list[Path]) -> tuple[
         capture_output=True,
         text=True,
         check=False,
+        timeout=120.0,
     )
     add_output = (add_proc.stdout + "\n" + add_proc.stderr).strip()
     if add_proc.returncode != 0:
@@ -124,6 +125,7 @@ def run_git_commit(repo: Path, message: str, paths_to_add: list[Path]) -> tuple[
         capture_output=True,
         text=True,
         check=False,
+        timeout=120.0,
     )
     output = (commit_proc.stdout + "\n" + commit_proc.stderr).strip()
     if commit_proc.returncode != 0:
@@ -154,5 +156,6 @@ def _is_git_repo(path: Path) -> bool:
         capture_output=True,
         text=True,
         check=False,
+        timeout=30.0,
     )
     return proc.returncode == 0 and proc.stdout.strip() == "true"

@@ -66,4 +66,5 @@ def run_npm(extension_dir: Path, *npm_args: str) -> subprocess.CompletedProcess[
         errors="replace",
         check=False,
         shell=False,
+        timeout=600.0,
     )

@@ -53,6 +53,7 @@ class OnCheckMd(ActionBase):
                 _, sep, rest = error.partition(":")
                 all_errors.append(f"{file_path}:{rest}" if sep else error)
 
+        self.last_error_count = len(all_errors)
         if all_errors:
             self.add_line("\n".join(all_errors))
             self.add_line(f"\n🔢 Count errors = {len(all_errors)}")

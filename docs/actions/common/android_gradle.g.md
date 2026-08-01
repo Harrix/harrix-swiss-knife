@@ -209,9 +209,10 @@ def run_gradle(
     android_dir: Path,
     java_home: str,
     *tasks: str,
+    timeout: float | None = 1800.0,
 ) -> subprocess.CompletedProcess[str]:
     gradlew = android_dir / "gradlew.bat"
-    return subprocess.run(
+    return subprocess.run(  # noqa: S603
         [str(gradlew), *tasks, "--no-daemon"],
         cwd=str(android_dir),
         env=gradle_env(java_home),
@@ -220,6 +221,7 @@ def run_gradle(
         encoding="utf-8",
         errors="replace",
         check=False,
+        timeout=timeout,
     )
 ```
 

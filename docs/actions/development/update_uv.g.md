@@ -51,7 +51,7 @@ class OnUpdateUv(ActionBase):
     @ActionBase.handle_exceptions("uv update thread")
     def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
-        result = h.dev.run_command("uv self update")
+        result = h.dev.run_command(["uv", "self", "update"])
         blocks: list[str] = [f"=== uv self update ===\n{result}"]
 
         if not isinstance(result, str) or self._UV_SELF_UPDATE_BLOCKED not in result:
@@ -62,14 +62,14 @@ class OnUpdateUv(ActionBase):
                 "winget upgrade -e --id astral-sh.uv --source winget "
                 "--accept-package-agreements --accept-source-agreements --silent"
             )
-            winget_out = h.dev.run_command(upgrade)
+            winget_out = h.dev.run_command(upgrade, is_shell=True)
             blocks.append(f"\n=== winget upgrade (astral-sh.uv) ===\n{winget_out}")
             if "no installed package" in winget_out.lower():
                 install = (
                     "winget install -e --id astral-sh.uv --source winget "
                     "--accept-package-agreements --accept-source-agreements --silent"
                 )
-                blocks.append(f"\n=== winget install (astral-sh.uv) ===\n{h.dev.run_command(install)}")
+                blocks.append(f"\n=== winget install (astral-sh.uv) ===\n{h.dev.run_command(install, is_shell=True)}")
 
         pip_sections = [
             f"--- {py_exe} ---\n{self._pip_install_upgrade_uv_log(py_exe)}"
@@ -97,14 +97,14 @@ class OnUpdateUv(ActionBase):
         quoted = f'"{py_exe}"'
         pip_cmd = f"{quoted} -m pip install --upgrade uv"
         lines = [pip_cmd]
-        pip_out = h.dev.run_command(pip_cmd)
+        pip_out = h.dev.run_command(pip_cmd, is_shell=True)
         lines.append(pip_out)
         if "No module named pip" in pip_out:
             ensure_cmd = f"{quoted} -m ensurepip --upgrade"
             lines.append(ensure_cmd)
-            lines.append(h.dev.run_command(ensure_cmd))
+            lines.append(h.dev.run_command(ensure_cmd, is_shell=True))
             lines.append(pip_cmd)
-            lines.append(h.dev.run_command(pip_cmd))
+            lines.append(h.dev.run_command(pip_cmd, is_shell=True))
         return "\n".join(lines)
 
     @staticmethod
@@ -159,7 +159,7 @@ Execute code in a separate thread. For performing long-running operations.
 
 ```python
 def in_thread(self) -> str | None:
-        result = h.dev.run_command("uv self update")
+        result = h.dev.run_command(["uv", "self", "update"])
         blocks: list[str] = [f"=== uv self update ===\n{result}"]
 
         if not isinstance(result, str) or self._UV_SELF_UPDATE_BLOCKED not in result:
@@ -170,14 +170,14 @@ def in_thread(self) -> str | None:
                 "winget upgrade -e --id astral-sh.uv --source winget "
                 "--accept-package-agreements --accept-source-agreements --silent"
             )
-            winget_out = h.dev.run_command(upgrade)
+            winget_out = h.dev.run_command(upgrade, is_shell=True)
             blocks.append(f"\n=== winget upgrade (astral-sh.uv) ===\n{winget_out}")
             if "no installed package" in winget_out.lower():
                 install = (
                     "winget install -e --id astral-sh.uv --source winget "
                     "--accept-package-agreements --accept-source-agreements --silent"
                 )
-                blocks.append(f"\n=== winget install (astral-sh.uv) ===\n{h.dev.run_command(install)}")
+                blocks.append(f"\n=== winget install (astral-sh.uv) ===\n{h.dev.run_command(install, is_shell=True)}")
 
         pip_sections = [
             f"--- {py_exe} ---\n{self._pip_install_upgrade_uv_log(py_exe)}"
