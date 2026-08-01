@@ -259,12 +259,12 @@
     if (!details || !(details instanceof HTMLElement)) {
       return;
     }
-    const table = details.querySelector('table.frontmatter');
-    if (!table) {
+    const body = details.querySelector('table.frontmatter, pre.hne-frontmatter-raw');
+    if (!body) {
       details.remove();
       return;
     }
-    details.parentNode.insertBefore(table, details);
+    details.parentNode.insertBefore(body, details);
     details.remove();
   }
 

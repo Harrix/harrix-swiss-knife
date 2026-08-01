@@ -130,6 +130,15 @@ details.hne-frontmatter-details > table.frontmatter {
   margin-top: 4px;
 }
 
+details.hne-frontmatter-details > pre.hne-frontmatter-raw {
+  margin: 4px 0 0 0;
+  padding: 8px 10px;
+  overflow: auto;
+  font-size: 0.9em;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
 /* Hex color highlight in Markdown preview (inline code and fenced blocks) */
 span.hne-hex-color {
   display: inline;

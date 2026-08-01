@@ -3053,23 +3053,14 @@ function escapePreviewCopyConfigAttr(json) {
 }
 
 /**
- * Split leading YAML frontmatter from Markdown source.
- * @param {string} src
- * @returns {{ body: string, rows: Array<[string, string]> } | null}
+ * Parse simple `key: value` rows from raw YAML frontmatter text.
+ * @param {string} fmText
+ * @returns {Array<[string, string]>}
  */
-function extractYamlFrontmatter(src) {
-  if (typeof src !== 'string' || !src.startsWith('---')) {
-    return null;
-  }
-  const match = src.match(/^---[ \t]*\r?\n([\s\S]*?)\r?\n---[ \t]*(?:\r?\n|$)/);
-  if (!match) {
-    return null;
-  }
-  const fmText = match[1];
-  const body = src.slice(match[0].length);
+function parseFrontmatterRows(fmText) {
   /** @type {Array<[string, string]>} */
   const rows = [];
-  for (const line of fmText.split(/\r?\n/)) {
+  for (const line of String(fmText || '').split(/\r?\n/)) {
     if (!line.trim() || line.trimStart().startsWith('#')) {
       continue;
     }
@@ -3083,35 +3074,219 @@ function extractYamlFrontmatter(src) {
     }
     rows.push([kv[1], value]);
   }
-  if (rows.length === 0 && !fmText.trim()) {
-    return null;
-  }
-  return { body, rows };
+  return rows;
 }
 
 /**
- * Build frontmatter HTML (VS Code-compatible `table.frontmatter`, optionally collapsed).
- * Rendered in the markdown-it plugin so Cursor side preview shows YAML even without
- * the built-in VS Code frontmatter table.
+ * @param {string} text
+ * @returns {string} raw YAML body between `---` markers, or `''`
+ */
+function rawYamlFrontmatterFromText(text) {
+  let src = typeof text === 'string' ? text : String(text ?? '');
+  if (src.charCodeAt(0) === 0xfeff) {
+    src = src.slice(1);
+  }
+  const match = src.match(/^---[ \t]*\r?\n([\s\S]*?)\r?\n---[ \t]*(?:\r?\n|$)/);
+  return match ? match[1] : '';
+}
+
+/**
+ * Split leading YAML frontmatter from Markdown source (fallback when engine has no front_matter rule).
+ * @param {string} src
+ * @returns {{ body: string, rows: Array<[string, string]>, raw: string } | null}
+ */
+function extractYamlFrontmatter(src) {
+  let text = typeof src === 'string' ? src : String(src ?? '');
+  if (text.charCodeAt(0) === 0xfeff) {
+    text = text.slice(1);
+  }
+  if (!text.startsWith('---')) {
+    return null;
+  }
+  const match = text.match(/^---[ \t]*\r?\n([\s\S]*?)\r?\n---[ \t]*(?:\r?\n|$)/);
+  if (!match) {
+    return null;
+  }
+  const raw = match[1];
+  const rows = parseFrontmatterRows(raw);
+  if (rows.length === 0 && !raw.trim()) {
+    return null;
+  }
+  return { body: text.slice(match[0].length), rows, raw };
+}
+
+/**
+ * Build frontmatter HTML (table when possible; otherwise a raw YAML `<pre>`).
  * @param {Array<[string, string]>} rows
  * @param {{ collapseFrontmatter?: boolean, frontmatterSummary?: string }} cfg
+ * @param {string} [rawYaml]
  */
-function buildFrontmatterPreviewHtml(rows, cfg) {
-  const tableRows =
-    rows.length > 0
-      ? rows.map(([key, value]) => `<tr><td>${escapeHtmlAttr(key)}</td><td>${escapeHtmlAttr(value)}</td></tr>`).join('')
-      : '';
-  const table = `<table class="frontmatter hne-frontmatter-table"><tbody>${tableRows}</tbody></table>\n`;
+function buildFrontmatterPreviewHtml(rows, cfg, rawYaml = '') {
+  let inner = '';
+  if (rows.length > 0) {
+    const tableRows = rows
+      .map(([key, value]) => `<tr><td>${escapeHtmlAttr(key)}</td><td>${escapeHtmlAttr(value)}</td></tr>`)
+      .join('');
+    inner = `<table class="frontmatter hne-frontmatter-table"><tbody>${tableRows}</tbody></table>\n`;
+  } else if (String(rawYaml || '').trim()) {
+    inner = `<pre class="hne-frontmatter-raw"><code>${escapeHtmlAttr(String(rawYaml).replace(/\n$/, ''))}</code></pre>\n`;
+  } else {
+    return '';
+  }
   if (cfg.collapseFrontmatter === false) {
-    return table;
+    return inner;
   }
   const summary = escapeHtmlAttr(normalizePreviewFrontmatterSummary(cfg.frontmatterSummary || '📋 YAML'));
   return (
     `<details class="hne-frontmatter-details">` +
     `<summary class="hne-frontmatter-summary">${summary}</summary>\n` +
-    `${table}` +
+    `${inner}` +
     `</details>\n`
   );
+}
+
+/**
+ * Raw YAML content from a markdown-it front_matter token (VS Code yamlPreamble / markdown-it-front-matter).
+ * @param {import('markdown-it/lib/token') | undefined} token
+ */
+function frontMatterContentFromToken(token) {
+  if (!token) {
+    return '';
+  }
+  if (typeof token.meta === 'string' && token.meta.trim()) {
+    return token.meta;
+  }
+  if (token.meta && typeof token.meta === 'object') {
+    if (typeof token.meta.content === 'string' && token.meta.content) {
+      return token.meta.content;
+    }
+    // Some hosts put parsed key/value pairs directly on meta (no `.content`).
+    if (!('content' in token.meta)) {
+      try {
+        const entries = Object.entries(token.meta);
+        if (entries.length > 0) {
+          return entries
+            .map(([k, v]) => `${k}: ${v == null ? '' : typeof v === 'string' ? v : JSON.stringify(v)}`)
+            .join('\n');
+        }
+      } catch {
+        // ignore
+      }
+    }
+  }
+  if (typeof token.content === 'string' && token.content) {
+    return token.content;
+  }
+  if (typeof token.info === 'string' && token.info.trim()) {
+    return token.info;
+  }
+  return '';
+}
+
+/**
+ * Resolve document URI from markdown-it render `env` (VS Code / Cursor shapes).
+ * @param {unknown} env
+ * @returns {vscode.Uri | undefined}
+ */
+function uriFromMarkdownRenderEnv(env) {
+  if (!env || typeof env !== 'object') {
+    return undefined;
+  }
+  const record = /** @type {Record<string, unknown>} */ (env);
+  const candidates = [record.currentDocument, record.resource, record.uri, record.document];
+  for (const c of candidates) {
+    if (c instanceof vscode.Uri) {
+      return c;
+    }
+    if (c && typeof c === 'object' && /** @type {{ uri?: unknown }} */ (c).uri instanceof vscode.Uri) {
+      return /** @type {{ uri: vscode.Uri }} */ (c).uri;
+    }
+    if (typeof c === 'string' && c) {
+      try {
+        return c.includes(':') ? vscode.Uri.parse(c) : vscode.Uri.file(c);
+      } catch {
+        // ignore
+      }
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Read YAML frontmatter body from the note file when the front_matter token has no content
+ * (seen in Cursor classic preview).
+ * @param {unknown} env
+ */
+function resolveFrontmatterRawFromEnv(env) {
+  const uri = uriFromMarkdownRenderEnv(env);
+  if (uri?.scheme !== 'file') {
+    return '';
+  }
+  const target = normalizeFsPath(uri.fsPath);
+  for (const doc of vscode.workspace.textDocuments) {
+    if (doc.uri.scheme === 'file' && normalizeFsPath(doc.uri.fsPath) === target) {
+      return rawYamlFrontmatterFromText(doc.getText());
+    }
+  }
+  try {
+    return rawYamlFrontmatterFromText(fs.readFileSync(uri.fsPath, 'utf8'));
+  } catch {
+    return '';
+  }
+}
+
+/**
+ * @param {import('markdown-it/lib/token') | undefined} token
+ * @param {unknown} env
+ */
+function resolveFrontmatterRaw(token, env) {
+  let raw = frontMatterContentFromToken(token);
+  if (!String(raw).trim()) {
+    raw = resolveFrontmatterRawFromEnv(env);
+  }
+  return raw;
+}
+
+/**
+ * markdown-it block rule for `---` YAML frontmatter (used when the host has no built-in rule).
+ * @type {import('markdown-it/lib/parser_block').RuleBlock}
+ */
+function hneFrontMatterBlockRule(state, startLine, endLine, silent) {
+  if (startLine !== 0 || state.tShift[startLine] !== 0) {
+    return false;
+  }
+  const firstLine = state.src.slice(state.bMarks[startLine], state.eMarks[startLine]).replace(/\s+$/, '');
+  if (firstLine !== '---' && firstLine !== '\uFEFF---') {
+    return false;
+  }
+  let nextLine = startLine + 1;
+  let foundEnd = false;
+  for (; nextLine < endLine; nextLine += 1) {
+    if (state.tShift[nextLine] !== 0) {
+      continue;
+    }
+    const line = state.src.slice(state.bMarks[nextLine], state.eMarks[nextLine]).replace(/\s+$/, '');
+    if (line === '---') {
+      foundEnd = true;
+      break;
+    }
+  }
+  if (!foundEnd) {
+    return false;
+  }
+  if (silent) {
+    return true;
+  }
+  const rawContent = state.src.slice(state.bMarks[startLine + 1], state.bMarks[nextLine]).replace(/\n$/, '');
+  const token = state.push('front_matter', '', 0);
+  token.block = true;
+  token.hidden = false;
+  token.markup = '---';
+  token.map = [startLine, nextLine + 1];
+  token.meta = { content: rawContent };
+  token.content = rawContent;
+  state.line = nextLine + 1;
+  return true;
 }
 
 function registerPreviewCopyMarkdownPlugin() {
@@ -3148,20 +3323,97 @@ function registerPreviewCopyMarkdownPlugin() {
         return defaultImageRender(tokens, idx, options, env, self);
       };
 
-      const render = md.render.bind(md);
-      md.render = (src, env) => {
+      // Modern VS Code / Cursor call `renderer.render(tokens)`, not `md.render(src)`.
+      // Override the front_matter token renderer (yamlPreamble) and inject config there.
+      const renderFrontMatterToken = (tokens, idx, _options, env) => {
+        const cfg = getPreviewCopyConfig();
+        const raw = resolveFrontmatterRaw(tokens[idx], env);
+        const rows = parseFrontmatterRows(raw);
+        return buildFrontmatterPreviewHtml(rows, cfg, raw);
+      };
+      md.renderer.rules.front_matter = renderFrontMatterToken;
+
+      // If the host has no front_matter block rule, add one (older / stripped engines).
+      let hasFrontMatterRule = true;
+      try {
+        md.block.ruler.enable(['front_matter'], true);
+      } catch {
+        hasFrontMatterRule = false;
+      }
+      if (!hasFrontMatterRule) {
+        try {
+          md.block.ruler.before('fence', 'front_matter', hneFrontMatterBlockRule, {
+            alt: ['paragraph', 'reference', 'blockquote', 'list'],
+          });
+        } catch {
+          try {
+            md.block.ruler.push('front_matter', hneFrontMatterBlockRule, {
+              alt: ['paragraph', 'reference', 'blockquote', 'list'],
+            });
+          } catch {
+            // ignore
+          }
+        }
+      }
+
+      const originalRendererRender = md.renderer.render.bind(md.renderer);
+      md.renderer.render = (tokens, options, env) => {
+        // Cursor may emit an empty front_matter token — refill from the note file.
+        if (Array.isArray(tokens)) {
+          for (const token of tokens) {
+            if (token?.type !== 'front_matter') {
+              continue;
+            }
+            if (frontMatterContentFromToken(token).trim()) {
+              continue;
+            }
+            const raw = resolveFrontmatterRawFromEnv(env);
+            if (!raw.trim()) {
+              continue;
+            }
+            token.meta = { ...(token.meta && typeof token.meta === 'object' ? token.meta : {}), content: raw };
+            token.content = raw;
+          }
+        }
         const cfg = getPreviewCopyConfig();
         const json = escapePreviewCopyConfigAttr(JSON.stringify(cfg));
         const configHtml = `<div id="hne-preview-copy-config" style="display:none" data-config="${json}"></div>`;
-        // Strip YAML before markdown-it (and VS Code's frontmatter plugin) so we own the UI
-        // and Cursor still shows 📋 YAML when the built-in frontmatter table is missing.
-        const extracted = extractYamlFrontmatter(typeof src === 'string' ? src : String(src ?? ''));
-        if (!extracted) {
-          return configHtml + render(src, env);
-        }
-        const fmHtml = buildFrontmatterPreviewHtml(extracted.rows, cfg);
-        return configHtml + fmHtml + render(extracted.body, env);
+        return configHtml + originalRendererRender(tokens, options, env);
       };
+
+      // Fallback for hosts that still call `md.render(src)` (and may lack front_matter tokens).
+      const render = md.render.bind(md);
+      md.render = (src, env) => {
+        const cfg = getPreviewCopyConfig();
+        const text = typeof src === 'string' ? src : String(src ?? '');
+        const extracted = extractYamlFrontmatter(text);
+        if (!extracted) {
+          return render(src, env);
+        }
+        const withTokens = render(src, env);
+        if (
+          withTokens.includes('hne-frontmatter-table') ||
+          withTokens.includes('hne-frontmatter-details') ||
+          withTokens.includes('hne-frontmatter-raw')
+        ) {
+          return withTokens;
+        }
+        // No front_matter token emitted — strip YAML and inject our block after the config div.
+        const bodyHtml = render(extracted.body, env);
+        const fmHtml = buildFrontmatterPreviewHtml(extracted.rows, cfg, extracted.raw);
+        const configClose = '</div>';
+        const configMark = 'id="hne-preview-copy-config"';
+        const markAt = bodyHtml.indexOf(configMark);
+        if (markAt !== -1) {
+          const closeAt = bodyHtml.indexOf(configClose, markAt);
+          if (closeAt !== -1) {
+            const insertAt = closeAt + configClose.length;
+            return bodyHtml.slice(0, insertAt) + fmHtml + bodyHtml.slice(insertAt);
+          }
+        }
+        return fmHtml + bodyHtml;
+      };
+
       return md;
     },
   };
