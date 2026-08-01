@@ -3052,6 +3052,68 @@ function escapePreviewCopyConfigAttr(json) {
   return json.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
 }
 
+/**
+ * Split leading YAML frontmatter from Markdown source.
+ * @param {string} src
+ * @returns {{ body: string, rows: Array<[string, string]> } | null}
+ */
+function extractYamlFrontmatter(src) {
+  if (typeof src !== 'string' || !src.startsWith('---')) {
+    return null;
+  }
+  const match = src.match(/^---[ \t]*\r?\n([\s\S]*?)\r?\n---[ \t]*(?:\r?\n|$)/);
+  if (!match) {
+    return null;
+  }
+  const fmText = match[1];
+  const body = src.slice(match[0].length);
+  /** @type {Array<[string, string]>} */
+  const rows = [];
+  for (const line of fmText.split(/\r?\n/)) {
+    if (!line.trim() || line.trimStart().startsWith('#')) {
+      continue;
+    }
+    const kv = line.match(/^([A-Za-z0-9_.-]+)\s*:\s*(.*)$/);
+    if (!kv) {
+      continue;
+    }
+    let value = kv[2].trim();
+    if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+      value = value.slice(1, -1);
+    }
+    rows.push([kv[1], value]);
+  }
+  if (rows.length === 0 && !fmText.trim()) {
+    return null;
+  }
+  return { body, rows };
+}
+
+/**
+ * Build frontmatter HTML (VS Code-compatible `table.frontmatter`, optionally collapsed).
+ * Rendered in the markdown-it plugin so Cursor side preview shows YAML even without
+ * the built-in VS Code frontmatter table.
+ * @param {Array<[string, string]>} rows
+ * @param {{ collapseFrontmatter?: boolean, frontmatterSummary?: string }} cfg
+ */
+function buildFrontmatterPreviewHtml(rows, cfg) {
+  const tableRows =
+    rows.length > 0
+      ? rows.map(([key, value]) => `<tr><td>${escapeHtmlAttr(key)}</td><td>${escapeHtmlAttr(value)}</td></tr>`).join('')
+      : '';
+  const table = `<table class="frontmatter hne-frontmatter-table"><tbody>${tableRows}</tbody></table>\n`;
+  if (cfg.collapseFrontmatter === false) {
+    return table;
+  }
+  const summary = escapeHtmlAttr(normalizePreviewFrontmatterSummary(cfg.frontmatterSummary || '📋 YAML'));
+  return (
+    `<details class="hne-frontmatter-details">` +
+    `<summary class="hne-frontmatter-summary">${summary}</summary>\n` +
+    `${table}` +
+    `</details>\n`
+  );
+}
+
 function registerPreviewCopyMarkdownPlugin() {
   return {
     extendMarkdownIt(/** @type {import('markdown-it')} */ md) {
@@ -3091,7 +3153,14 @@ function registerPreviewCopyMarkdownPlugin() {
         const cfg = getPreviewCopyConfig();
         const json = escapePreviewCopyConfigAttr(JSON.stringify(cfg));
         const configHtml = `<div id="hne-preview-copy-config" style="display:none" data-config="${json}"></div>`;
-        return configHtml + render(src, env);
+        // Strip YAML before markdown-it (and VS Code's frontmatter plugin) so we own the UI
+        // and Cursor still shows 📋 YAML when the built-in frontmatter table is missing.
+        const extracted = extractYamlFrontmatter(typeof src === 'string' ? src : String(src ?? ''));
+        if (!extracted) {
+          return configHtml + render(src, env);
+        }
+        const fmHtml = buildFrontmatterPreviewHtml(extracted.rows, cfg);
+        return configHtml + fmHtml + render(extracted.body, env);
       };
       return md;
     },
