@@ -1,5 +1,6 @@
 package dev.harrix.hsk.ui
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -114,6 +115,11 @@ fun MainScreen(
     var settingsRevision by rememberSaveable { mutableIntStateOf(0) }
     var settingsShootDayEpochMs by rememberSaveable { mutableStateOf<Long?>(null) }
     var homeMenuExpanded by remember { mutableStateOf(false) }
+
+    BackHandler(enabled = drawerState.isOpen) {
+        scope.launch { drawerState.close() }
+    }
+
     val drawerItemColors =
         NavigationDrawerItemDefaults.colors(
             selectedContainerColor = colorScheme.secondaryContainer,

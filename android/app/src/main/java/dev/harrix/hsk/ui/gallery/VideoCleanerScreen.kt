@@ -12,6 +12,7 @@ import android.provider.Settings
 import android.text.format.DateFormat
 import android.util.Size
 import android.widget.VideoView
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -151,6 +152,15 @@ fun VideoCleanerScreen(
     var sort by remember { mutableStateOf(VideoSort.DATE_DESC) }
     var sortMenuExpanded by remember { mutableStateOf(false) }
     var playingVideo by remember { mutableStateOf<CameraVideo?>(null) }
+
+    BackHandler {
+        when {
+            playingVideo != null -> playingVideo = null
+            sortMenuExpanded -> sortMenuExpanded = false
+            selectedIds.isNotEmpty() -> selectedIds = emptySet()
+            else -> onClose()
+        }
+    }
 
     fun refreshManageMediaAccess() {
         showManageMediaPrompt =
