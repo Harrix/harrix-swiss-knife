@@ -1107,7 +1107,6 @@ fun GalleryCleanerScreen(
                                     imageVector = Icons.AutoMirrored.Filled.Undo,
                                     contentDescription =
                                     stringResource(R.string.gallery_cleaner_undo_delete),
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             }
                         }
