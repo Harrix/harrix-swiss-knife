@@ -17,12 +17,8 @@ from harrix_swiss_knife.actions.development.create_desktop_shortcut import OnCre
 from harrix_swiss_knife.actions.development.download_optimize_dependencies import OnDownloadOptimizeDependencies
 from harrix_swiss_knife.actions.development.exit_ import OnExit
 from harrix_swiss_knife.actions.development.install_cli import OnInstallCli
-from harrix_swiss_knife.actions.development.install_harrix_notes_explorer_extension import (
-    OnInstallHarrixNotesExplorerExtension,
-)
 from harrix_swiss_knife.actions.development.npm_manage_packages import OnNpmManagePackages
 from harrix_swiss_knife.actions.development.open_config_json import OnOpenConfigJson
-from harrix_swiss_knife.actions.development.sync_harrix_notes_explorer import OnSyncHarrixNotesExplorer
 from harrix_swiss_knife.actions.development.sync_quick_access_to_total_commander import (
     OnSyncQuickAccessToTotalCommander,
 )
@@ -30,8 +26,6 @@ from harrix_swiss_knife.actions.development.update_harrix_swiss_knife import OnU
 from harrix_swiss_knife.actions.development.update_node import OnUpdateNode
 from harrix_swiss_knife.actions.development.update_uv import OnUpdateUv
 from harrix_swiss_knife.actions.development.view_recent_action_logs import OnViewRecentActionLogs
-from harrix_swiss_knife.actions.development.vscode_check import OnVscodeCheck
-from harrix_swiss_knife.actions.development.vscode_format import OnVscodeFormat
 from harrix_swiss_knife.actions.files.all_files_to_parent_folder import OnAllFilesToParentFolder
 from harrix_swiss_knife.actions.files.check_featured_image import OnCheckFeaturedImage
 from harrix_swiss_knife.actions.files.check_featured_image_in_folders import OnCheckFeaturedImageInFolders
@@ -102,6 +96,12 @@ from harrix_swiss_knife.actions.text.fix_text_with_ai import OnFixTextWithAI
 from harrix_swiss_knife.actions.text.fix_text_with_ai_from_clipboard import OnFixTextWithAIFromClipboard
 from harrix_swiss_knife.actions.text.rewrite_text_with_ai import OnRewriteTextWithAI
 from harrix_swiss_knife.actions.text.speech_to_text_with_ai import OnSpeechToTextWithAI
+from harrix_swiss_knife.actions.vscode import (
+    OnInstallHarrixNotesExplorerExtension,
+    OnSyncHarrixNotesExplorer,
+    OnVscodeCheck,
+    OnVscodeFormat,
+)
 
 
 def get_menu_structure() -> list[Any]:
@@ -123,10 +123,6 @@ def get_menu_structure() -> list[Any]:
                 OnClearTempFolder,
                 OnUpdateUv,
                 OnInstallCli,
-                OnInstallHarrixNotesExplorerExtension,
-                OnSyncHarrixNotesExplorer,
-                OnVscodeFormat,
-                OnVscodeCheck,
             ],
         ),
         (
@@ -136,6 +132,16 @@ def get_menu_structure() -> list[Any]:
                 OnAndroidFormat,
                 OnAndroidCheck,
                 OnAndroidBuild,
+            ],
+        ),
+        (
+            "VS Code",
+            "💻",
+            [
+                OnVscodeFormat,
+                OnVscodeCheck,
+                OnSyncHarrixNotesExplorer,
+                OnInstallHarrixNotesExplorerExtension,
             ],
         ),
         (

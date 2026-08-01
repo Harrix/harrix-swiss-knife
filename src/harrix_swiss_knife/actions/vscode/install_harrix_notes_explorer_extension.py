@@ -14,7 +14,7 @@ from typing import Any, ClassVar
 import harrix_pylib as h
 
 from harrix_swiss_knife.actions.base import ActionBase
-from harrix_swiss_knife.actions.development.sync_harrix_notes_explorer import OnSyncHarrixNotesExplorer
+from harrix_swiss_knife.actions.vscode.sync_harrix_notes_explorer import OnSyncHarrixNotesExplorer
 
 
 class OnInstallHarrixNotesExplorerExtension(ActionBase):

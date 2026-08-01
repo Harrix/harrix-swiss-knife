@@ -52,25 +52,26 @@ _Figure 1: Screenshot_
 
 - **Dev**
   - ℹ️ About
-  - 🔬 Check VS Code extension ꟲᴸᴵ
   - 🧹 Clear temp folder
   - 🔗 Create desktop shortcut
   - ⬇️ Download ffmpeg, avifenc, avifdec
-  - ✨ Format VS Code extension ꟲᴸᴵ
   - ⌨️ Install CLI (hsk on PATH) ꟲᴸᴵ
   - ⚙️ Open `config.json`
-  - 🔄 Sync Harrix Notes Explorer public repo ꟲᴸᴵ
   - 📌 Sync Quick Access folders to Total Commander
   - ⬆️ Update Harrix Swiss Knife from GitHub…
   - 📥 Update Node.js
   - 📥 Update uv
   - 📦 Update/Install global NPM packages
-  - 📦 Update/install Harrix Notes Explorer extension for VS Code… ꟲᴸᴵ
   - 📋 View recent action logs
 - **Android**
   - 📱 Build Android APK in … ꟲᴸᴵ
   - 🔬 Check Android code in … ꟲᴸᴵ
   - ✨ Format Android code in … ꟲᴸᴵ
+- **VS Code**
+  - 🔬 Check VS Code extension ꟲᴸᴵ
+  - ✨ Format VS Code extension ꟲᴸᴵ
+  - 🔄 Sync Harrix Notes Explorer public repo ꟲᴸᴵ
+  - 📦 Update/install Harrix Notes Explorer extension for VS Code… ꟲᴸᴵ
 - **Images**
   - 📸 Open photos in image viewer
   - 🤖 Recognize text (AI)…

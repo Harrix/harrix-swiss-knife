@@ -12,13 +12,7 @@ from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication
 
 from harrix_swiss_knife.actions.android import OnAndroidBuild, OnAndroidCheck, OnAndroidFormat
-from harrix_swiss_knife.actions.development import (
-    OnInstallCli,
-    OnInstallHarrixNotesExplorerExtension,
-    OnSyncHarrixNotesExplorer,
-    OnVscodeCheck,
-    OnVscodeFormat,
-)
+from harrix_swiss_knife.actions.development import OnInstallCli
 from harrix_swiss_knife.actions.files import OnDiscardGitChanges
 from harrix_swiss_knife.actions.markdown import (
     OnBeautifyMd,
@@ -35,6 +29,12 @@ from harrix_swiss_knife.actions.python import (
     OnSortRuffFmtPythonCode,
 )
 from harrix_swiss_knife.actions.text import OnFixTextWithAI
+from harrix_swiss_knife.actions.vscode import (
+    OnInstallHarrixNotesExplorerExtension,
+    OnSyncHarrixNotesExplorer,
+    OnVscodeCheck,
+    OnVscodeFormat,
+)
 from harrix_swiss_knife.paths import get_project_root
 
 

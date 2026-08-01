@@ -36,10 +36,6 @@ def get_menu_structure() -> list[Any]:
                 OnClearTempFolder,
                 OnUpdateUv,
                 OnInstallCli,
-                OnInstallHarrixNotesExplorerExtension,
-                OnSyncHarrixNotesExplorer,
-                OnVscodeFormat,
-                OnVscodeCheck,
             ],
         ),
         (
@@ -49,6 +45,16 @@ def get_menu_structure() -> list[Any]:
                 OnAndroidFormat,
                 OnAndroidCheck,
                 OnAndroidBuild,
+            ],
+        ),
+        (
+            "VS Code",
+            "💻",
+            [
+                OnVscodeFormat,
+                OnVscodeCheck,
+                OnSyncHarrixNotesExplorer,
+                OnInstallHarrixNotesExplorerExtension,
             ],
         ),
         (
