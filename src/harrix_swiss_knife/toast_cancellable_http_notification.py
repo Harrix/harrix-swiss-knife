@@ -80,6 +80,11 @@ class ToastCancellableHttpNotification(toast_countdown_notification.ToastCountdo
         self._position_close_button()
         self._position_collapse_button()
 
+    def reposition_action_buttons(self) -> None:
+        """Place close and collapse buttons after a move or resize."""
+        self._position_close_button()
+        super().reposition_action_buttons()
+
     def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802
         """Reposition close and collapse buttons when the toast is resized."""
         super().resizeEvent(event)
@@ -151,11 +156,11 @@ class ToastCancellableHttpNotification(toast_countdown_notification.ToastCountdo
             self.label.setText(
                 f"{self.message}\nSeconds elapsed: {self.elapsed_seconds}\n{_CANCEL_HINT}",
             )
+        previous_size = self.size()
         self.adjustSize()
-        self._position_close_button()
-        self._position_collapse_button()
-        if self._is_pinned:
-            self._move_to_bottom_right_corner()
+        self.reposition_action_buttons()
+        if self.size() != previous_size:
+            self.restack_group(pinned=self.is_pinned)
 
     def _trailing_controls_width(self) -> int:
         """Reserve space for the cancel button to the right of collapse."""

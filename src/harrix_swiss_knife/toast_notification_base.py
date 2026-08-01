@@ -7,10 +7,11 @@ that can be displayed temporarily on screen with customizable messages.
 
 from __future__ import annotations
 
+import itertools
 from typing import TYPE_CHECKING
 
-from PySide6.QtCore import QPoint, QSize, Qt
-from PySide6.QtGui import QColor, QIcon, QMouseEvent, QPainter, QPixmap
+from PySide6.QtCore import QPoint, QRect, QSize, Qt
+from PySide6.QtGui import QCloseEvent, QColor, QIcon, QMouseEvent, QPainter, QPixmap, QShowEvent
 from PySide6.QtWidgets import QApplication, QDialog, QLabel, QPushButton, QVBoxLayout, QWidget
 
 if TYPE_CHECKING:
@@ -22,6 +23,9 @@ _EXPAND_SYMBOL = "\u25a1"
 DEFAULT_ACTION_BUTTON_SIDE = 24
 COMPACT_ACTION_BUTTON_SIDE = 18
 ACTION_BUTTON_GAP = 2
+
+STACK_GAP = 8
+SCREEN_MARGIN = 20
 
 DEFAULT_ACTION_BUTTON_STYLE = (
     "QPushButton {"
@@ -48,6 +52,9 @@ COMPACT_ACTION_BUTTON_STYLE = (
     "border-radius: 3px;"
     "}"
 )
+
+_stack_seq = itertools.count()
+_active_toasts: set[ToastNotificationBase] = set()
 
 
 class ToastNotificationBase(QDialog):
@@ -97,6 +104,7 @@ class ToastNotificationBase(QDialog):
 
         # Pinned state (bottom-right near system tray)
         self._is_pinned = False
+        self.stack_order = next(_stack_seq)
 
         # Enable mouse tracking for drag operations
         self.setMouseTracking(True)
@@ -112,6 +120,18 @@ class ToastNotificationBase(QDialog):
         self._collapse_button.setToolTip("Collapse")
         self._collapse_button.clicked.connect(self._toggle_pinned)
         self._position_collapse_button()
+
+    def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
+        """Unregister from the stack and restack remaining toasts of the same pin group."""
+        was_pinned = self.is_pinned
+        _active_toasts.discard(self)
+        super().closeEvent(event)
+        self.restack_group(pinned=was_pinned)
+
+    @property
+    def is_pinned(self) -> bool:
+        """Whether the toast uses the compact bottom-right layout."""
+        return self._is_pinned
 
     def mouseDoubleClickEvent(self, event: QMouseEvent) -> None:  # noqa: N802
         """Toggle pinned (compact, bottom-right) and expanded (large, centered) layout.
@@ -170,18 +190,57 @@ class ToastNotificationBase(QDialog):
             event.accept()
 
     def present(self) -> None:
-        """Size, position at the center of the primary screen, and show on top."""
+        """Size, position via the toast stack, and show on top."""
         self.adjustSize()
-        self._move_to_screen_center()
         self.show()
         self.raise_()
         self.activateWindow()
+        self._position_collapse_button()
+
+    def reposition_action_buttons(self) -> None:
+        """Place collapse (and subclass) action buttons after a move or resize."""
         self._position_collapse_button()
 
     def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802
         """Reposition the collapse button when the toast is resized."""
         super().resizeEvent(event)
         self._position_collapse_button()
+
+    @classmethod
+    def restack_group(cls, *, pinned: bool) -> None:
+        """Reposition all visible toasts in the given pin group."""
+        toasts = [
+            toast
+            for toast in sorted(_active_toasts, key=lambda item: item.stack_order)
+            if toast.isVisible() and toast.is_pinned == pinned
+        ]
+        if not toasts:
+            return
+
+        screen = QApplication.primaryScreen()
+        if screen is None:
+            return
+
+        area = screen.availableGeometry()
+        for toast in toasts:
+            toast.adjustSize()
+
+        points = compute_toast_stack_positions(
+            [toast.size() for toast in toasts],
+            area=area,
+            pinned=pinned,
+        )
+        for toast, point in zip(toasts, points, strict=True):
+            toast.move(point)
+            toast.reposition_action_buttons()
+
+        toasts[-1].raise_()
+
+    def showEvent(self, event: QShowEvent) -> None:  # noqa: N802
+        """Register in the active stack and restack the pin group."""
+        super().showEvent(event)
+        _active_toasts.add(self)
+        self.restack_group(pinned=self.is_pinned)
 
     def _action_button_side(self) -> int:
         """Return the action-button side length for the current pin state."""
@@ -225,16 +284,13 @@ class ToastNotificationBase(QDialog):
             self._apply_collapse_button_icon(compact=False)
             self._position_collapse_button()
 
-    def _move_to_bottom_right_corner(self, *, margin: int = 20) -> None:
+    def _move_to_bottom_right_corner(self, *, margin: int = SCREEN_MARGIN) -> None:
         """Move the notification to the bottom-right of the primary screen."""
         screen = QApplication.primaryScreen()
         if screen is None:
             return
         area = screen.availableGeometry()
-        self.move(
-            area.x() + area.width() - self.width() - margin,
-            area.y() + area.height() - self.height() - margin,
-        )
+        self.move(_toast_home_point(area, self.size(), pinned=True, margin=margin))
 
     def _move_to_screen_center(self) -> None:
         """Move the notification to the center of the primary screen."""
@@ -242,10 +298,7 @@ class ToastNotificationBase(QDialog):
         if screen is None:
             return
         area = screen.availableGeometry()
-        self.move(
-            area.x() + (area.width() - self.width()) // 2,
-            area.y() + (area.height() - self.height()) // 2,
-        )
+        self.move(_toast_home_point(area, self.size(), pinned=False, margin=SCREEN_MARGIN))
 
     def _position_collapse_button(self) -> None:
         """Place the collapse button near the top-right of the message label."""
@@ -267,16 +320,53 @@ class ToastNotificationBase(QDialog):
             self._is_pinned = False
             self._apply_default_style()
             self.adjustSize()
-            self._move_to_screen_center()
         else:
             self._is_pinned = True
             self._apply_compact_style()
             self.adjustSize()
-            self._move_to_bottom_right_corner()
+        self.restack_group(pinned=False)
+        self.restack_group(pinned=True)
 
     def _trailing_controls_width(self) -> int:
         """Width reserved to the right of the collapse button for subclass controls."""
         return 0
+
+
+def compute_toast_stack_positions(
+    sizes: list[QSize],
+    *,
+    area: QRect,
+    pinned: bool,
+    gap: int = STACK_GAP,
+    margin: int = SCREEN_MARGIN,
+) -> list[QPoint]:
+    """Return top-left points for toasts ordered oldest → newest.
+
+    Newest sits at the home anchor (screen center, or bottom-right when pinned).
+    Older toasts stack upward with `gap` when they fit above the available top
+    margin; otherwise they share the home position (overlap).
+
+    """
+    if not sizes:
+        return []
+
+    points: list[QPoint] = [QPoint() for _ in sizes]
+    newest_index = len(sizes) - 1
+    newest_home = _toast_home_point(area, sizes[newest_index], pinned=pinned, margin=margin)
+    points[newest_index] = newest_home
+    stack_top = newest_home.y()
+
+    for index in range(newest_index - 1, -1, -1):
+        size = sizes[index]
+        home = _toast_home_point(area, size, pinned=pinned, margin=margin)
+        proposed_y = stack_top - gap - size.height()
+        if proposed_y >= area.y() + margin:
+            points[index] = QPoint(home.x(), proposed_y)
+            stack_top = proposed_y
+        else:
+            points[index] = home
+
+    return points
 
 
 def make_action_icon(side: int, symbol: str) -> QIcon:
@@ -293,3 +383,15 @@ def make_action_icon(side: int, symbol: str) -> QIcon:
     painter.drawText(pixmap.rect(), Qt.AlignmentFlag.AlignCenter, symbol)
     painter.end()
     return QIcon(pixmap)
+
+
+def _toast_home_point(area: QRect, size: QSize, *, pinned: bool, margin: int) -> QPoint:
+    if pinned:
+        return QPoint(
+            area.x() + area.width() - size.width() - margin,
+            area.y() + area.height() - size.height() - margin,
+        )
+    return QPoint(
+        area.x() + (area.width() - size.width()) // 2,
+        area.y() + (area.height() - size.height()) // 2,
+    )

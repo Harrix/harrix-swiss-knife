@@ -13,12 +13,18 @@ lang: en
 
 - [🏛️ Class `ToastNotificationBase`](#%EF%B8%8F-class-toastnotificationbase)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
+  - [⚙️ Method `closeEvent`](#%EF%B8%8F-method-closeevent)
+  - [⚙️ Method `is_pinned`](#%EF%B8%8F-method-is_pinned)
   - [⚙️ Method `mouseDoubleClickEvent`](#%EF%B8%8F-method-mousedoubleclickevent)
   - [⚙️ Method `mouseMoveEvent`](#%EF%B8%8F-method-mousemoveevent)
   - [⚙️ Method `mousePressEvent`](#%EF%B8%8F-method-mousepressevent)
   - [⚙️ Method `mouseReleaseEvent`](#%EF%B8%8F-method-mousereleaseevent)
   - [⚙️ Method `present`](#%EF%B8%8F-method-present)
+  - [⚙️ Method `reposition_action_buttons`](#%EF%B8%8F-method-reposition_action_buttons)
   - [⚙️ Method `resizeEvent`](#%EF%B8%8F-method-resizeevent)
+  - [⚙️ Method `restack_group`](#%EF%B8%8F-method-restack_group)
+  - [⚙️ Method `showEvent`](#%EF%B8%8F-method-showevent)
+- [🔧 Function `compute_toast_stack_positions`](#-function-compute_toast_stack_positions)
 - [🔧 Function `make_action_icon`](#-function-make_action_icon)
 
 </details>
@@ -79,6 +85,7 @@ class ToastNotificationBase(QDialog):
 
         # Pinned state (bottom-right near system tray)
         self._is_pinned = False
+        self.stack_order = next(_stack_seq)
 
         # Enable mouse tracking for drag operations
         self.setMouseTracking(True)
@@ -94,6 +101,18 @@ class ToastNotificationBase(QDialog):
         self._collapse_button.setToolTip("Collapse")
         self._collapse_button.clicked.connect(self._toggle_pinned)
         self._position_collapse_button()
+
+    def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
+        """Unregister from the stack and restack remaining toasts of the same pin group."""
+        was_pinned = self.is_pinned
+        _active_toasts.discard(self)
+        super().closeEvent(event)
+        self.restack_group(pinned=was_pinned)
+
+    @property
+    def is_pinned(self) -> bool:
+        """Whether the toast uses the compact bottom-right layout."""
+        return self._is_pinned
 
     def mouseDoubleClickEvent(self, event: QMouseEvent) -> None:  # noqa: N802
         """Toggle pinned (compact, bottom-right) and expanded (large, centered) layout.
@@ -152,18 +171,57 @@ class ToastNotificationBase(QDialog):
             event.accept()
 
     def present(self) -> None:
-        """Size, position at the center of the primary screen, and show on top."""
+        """Size, position via the toast stack, and show on top."""
         self.adjustSize()
-        self._move_to_screen_center()
         self.show()
         self.raise_()
         self.activateWindow()
+        self._position_collapse_button()
+
+    def reposition_action_buttons(self) -> None:
+        """Place collapse (and subclass) action buttons after a move or resize."""
         self._position_collapse_button()
 
     def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802
         """Reposition the collapse button when the toast is resized."""
         super().resizeEvent(event)
         self._position_collapse_button()
+
+    @classmethod
+    def restack_group(cls, *, pinned: bool) -> None:
+        """Reposition all visible toasts in the given pin group."""
+        toasts = [
+            toast
+            for toast in sorted(_active_toasts, key=lambda item: item.stack_order)
+            if toast.isVisible() and toast.is_pinned == pinned
+        ]
+        if not toasts:
+            return
+
+        screen = QApplication.primaryScreen()
+        if screen is None:
+            return
+
+        area = screen.availableGeometry()
+        for toast in toasts:
+            toast.adjustSize()
+
+        points = compute_toast_stack_positions(
+            [toast.size() for toast in toasts],
+            area=area,
+            pinned=pinned,
+        )
+        for toast, point in zip(toasts, points, strict=True):
+            toast.move(point)
+            toast.reposition_action_buttons()
+
+        toasts[-1].raise_()
+
+    def showEvent(self, event: QShowEvent) -> None:  # noqa: N802
+        """Register in the active stack and restack the pin group."""
+        super().showEvent(event)
+        _active_toasts.add(self)
+        self.restack_group(pinned=self.is_pinned)
 
     def _action_button_side(self) -> int:
         """Return the action-button side length for the current pin state."""
@@ -207,16 +265,13 @@ class ToastNotificationBase(QDialog):
             self._apply_collapse_button_icon(compact=False)
             self._position_collapse_button()
 
-    def _move_to_bottom_right_corner(self, *, margin: int = 20) -> None:
+    def _move_to_bottom_right_corner(self, *, margin: int = SCREEN_MARGIN) -> None:
         """Move the notification to the bottom-right of the primary screen."""
         screen = QApplication.primaryScreen()
         if screen is None:
             return
         area = screen.availableGeometry()
-        self.move(
-            area.x() + area.width() - self.width() - margin,
-            area.y() + area.height() - self.height() - margin,
-        )
+        self.move(_toast_home_point(area, self.size(), pinned=True, margin=margin))
 
     def _move_to_screen_center(self) -> None:
         """Move the notification to the center of the primary screen."""
@@ -224,10 +279,7 @@ class ToastNotificationBase(QDialog):
         if screen is None:
             return
         area = screen.availableGeometry()
-        self.move(
-            area.x() + (area.width() - self.width()) // 2,
-            area.y() + (area.height() - self.height()) // 2,
-        )
+        self.move(_toast_home_point(area, self.size(), pinned=False, margin=SCREEN_MARGIN))
 
     def _position_collapse_button(self) -> None:
         """Place the collapse button near the top-right of the message label."""
@@ -249,12 +301,12 @@ class ToastNotificationBase(QDialog):
             self._is_pinned = False
             self._apply_default_style()
             self.adjustSize()
-            self._move_to_screen_center()
         else:
             self._is_pinned = True
             self._apply_compact_style()
             self.adjustSize()
-            self._move_to_bottom_right_corner()
+        self.restack_group(pinned=False)
+        self.restack_group(pinned=True)
 
     def _trailing_controls_width(self) -> int:
         """Width reserved to the right of the collapse button for subclass controls."""
@@ -305,6 +357,7 @@ def __init__(self, message: str, parent: QWidget | None = None) -> None:
 
         # Pinned state (bottom-right near system tray)
         self._is_pinned = False
+        self.stack_order = next(_stack_seq)
 
         # Enable mouse tracking for drag operations
         self.setMouseTracking(True)
@@ -320,6 +373,45 @@ def __init__(self, message: str, parent: QWidget | None = None) -> None:
         self._collapse_button.setToolTip("Collapse")
         self._collapse_button.clicked.connect(self._toggle_pinned)
         self._position_collapse_button()
+```
+
+</details>
+
+### ⚙️ Method `closeEvent`
+
+```python
+def closeEvent(self, event: QCloseEvent) -> None
+```
+
+Unregister from the stack and restack remaining toasts of the same pin group.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
+        was_pinned = self.is_pinned
+        _active_toasts.discard(self)
+        super().closeEvent(event)
+        self.restack_group(pinned=was_pinned)
+```
+
+</details>
+
+### ⚙️ Method `is_pinned`
+
+```python
+def is_pinned(self) -> bool
+```
+
+Whether the toast uses the compact bottom-right layout.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def is_pinned(self) -> bool:
+        return self._is_pinned
 ```
 
 </details>
@@ -434,7 +526,7 @@ def mouseReleaseEvent(self, event: QMouseEvent) -> None:  # noqa: N802
 def present(self) -> None
 ```
 
-Size, position at the center of the primary screen, and show on top.
+Size, position via the toast stack, and show on top.
 
 <details>
 <summary>Code:</summary>
@@ -442,10 +534,27 @@ Size, position at the center of the primary screen, and show on top.
 ```python
 def present(self) -> None:
         self.adjustSize()
-        self._move_to_screen_center()
         self.show()
         self.raise_()
         self.activateWindow()
+        self._position_collapse_button()
+```
+
+</details>
+
+### ⚙️ Method `reposition_action_buttons`
+
+```python
+def reposition_action_buttons(self) -> None
+```
+
+Place collapse (and subclass) action buttons after a move or resize.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def reposition_action_buttons(self) -> None:
         self._position_collapse_button()
 ```
 
@@ -466,6 +575,117 @@ Reposition the collapse button when the toast is resized.
 def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802
         super().resizeEvent(event)
         self._position_collapse_button()
+```
+
+</details>
+
+### ⚙️ Method `restack_group`
+
+```python
+def restack_group(cls) -> None
+```
+
+Reposition all visible toasts in the given pin group.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def restack_group(cls, *, pinned: bool) -> None:
+        toasts = [
+            toast
+            for toast in sorted(_active_toasts, key=lambda item: item.stack_order)
+            if toast.isVisible() and toast.is_pinned == pinned
+        ]
+        if not toasts:
+            return
+
+        screen = QApplication.primaryScreen()
+        if screen is None:
+            return
+
+        area = screen.availableGeometry()
+        for toast in toasts:
+            toast.adjustSize()
+
+        points = compute_toast_stack_positions(
+            [toast.size() for toast in toasts],
+            area=area,
+            pinned=pinned,
+        )
+        for toast, point in zip(toasts, points, strict=True):
+            toast.move(point)
+            toast.reposition_action_buttons()
+
+        toasts[-1].raise_()
+```
+
+</details>
+
+### ⚙️ Method `showEvent`
+
+```python
+def showEvent(self, event: QShowEvent) -> None
+```
+
+Register in the active stack and restack the pin group.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def showEvent(self, event: QShowEvent) -> None:  # noqa: N802
+        super().showEvent(event)
+        _active_toasts.add(self)
+        self.restack_group(pinned=self.is_pinned)
+```
+
+</details>
+
+## 🔧 Function `compute_toast_stack_positions`
+
+```python
+def compute_toast_stack_positions(sizes: list[QSize]) -> list[QPoint]
+```
+
+Return top-left points for toasts ordered oldest → newest.
+
+Newest sits at the home anchor (screen center, or bottom-right when pinned).
+Older toasts stack upward with `gap` when they fit above the available top
+margin; otherwise they share the home position (overlap).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def compute_toast_stack_positions(
+    sizes: list[QSize],
+    *,
+    area: QRect,
+    pinned: bool,
+    gap: int = STACK_GAP,
+    margin: int = SCREEN_MARGIN,
+) -> list[QPoint]:
+    if not sizes:
+        return []
+
+    points: list[QPoint] = [QPoint() for _ in sizes]
+    newest_index = len(sizes) - 1
+    newest_home = _toast_home_point(area, sizes[newest_index], pinned=pinned, margin=margin)
+    points[newest_index] = newest_home
+    stack_top = newest_home.y()
+
+    for index in range(newest_index - 1, -1, -1):
+        size = sizes[index]
+        home = _toast_home_point(area, size, pinned=pinned, margin=margin)
+        proposed_y = stack_top - gap - size.height()
+        if proposed_y >= area.y() + margin:
+            points[index] = QPoint(home.x(), proposed_y)
+            stack_top = proposed_y
+        else:
+            points[index] = home
+
+    return points
 ```
 
 </details>
