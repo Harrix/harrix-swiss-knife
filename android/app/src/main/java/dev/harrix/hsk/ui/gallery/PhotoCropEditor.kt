@@ -132,13 +132,16 @@ fun PhotoCropEditor(
                 }
 
             if (workspace.width > 0f && imageDrawSize.first > 0f) {
+                // All crop math is local to this square (0..side). The photo is smaller and
+                // centered; black letterbox around it is valid crop space (saved as black).
                 Box(
                     modifier =
                     Modifier
                         .size(
                             width = with(density) { workspace.width.toDp() },
                             height = with(density) { workspace.height.toDp() },
-                        ),
+                        )
+                        .background(Color.Black),
                     contentAlignment = Alignment.Center,
                 ) {
                     AsyncImage(
@@ -170,170 +173,171 @@ fun PhotoCropEditor(
                                 clip = false
                             },
                     )
-                }
 
-                val cropPx =
-                    Rect(
-                        left = workspace.left + cropRect.left * workspace.width,
-                        top = workspace.top + cropRect.top * workspace.height,
-                        right = workspace.left + cropRect.right * workspace.width,
-                        bottom = workspace.top + cropRect.bottom * workspace.height,
-                    )
+                    val side = workspace.width
+                    val cropPx =
+                        Rect(
+                            left = cropRect.left * side,
+                            top = cropRect.top * side,
+                            right = cropRect.right * side,
+                            bottom = cropRect.bottom * side,
+                        )
 
-                Canvas(modifier = Modifier.fillMaxSize()) {
-                    val dimPath =
-                        Path().apply {
-                            fillType = PathFillType.EvenOdd
-                            addRect(Rect(0f, 0f, size.width, size.height))
-                            addRect(cropPx)
-                        }
-                    drawPath(dimPath, Color.Black.copy(alpha = 0.55f))
-                    drawRect(
-                        color = Color.White,
-                        topLeft = Offset(cropPx.left, cropPx.top),
-                        size = Size(cropPx.width, cropPx.height),
-                        style = Stroke(width = 2.dp.toPx()),
-                    )
-                    val guideColor = Color.White.copy(alpha = 0.7f)
-                    val guideStroke = 1.dp.toPx()
-                    val thirdW = cropPx.width / 3f
-                    val thirdH = cropPx.height / 3f
-                    for (i in 1..2) {
-                        val x = cropPx.left + thirdW * i
-                        drawLine(
-                            color = guideColor,
-                            start = Offset(x, cropPx.top),
-                            end = Offset(x, cropPx.bottom),
-                            strokeWidth = guideStroke,
+                    Canvas(modifier = Modifier.fillMaxSize()) {
+                        drawRect(
+                            color = Color.White.copy(alpha = 0.35f),
+                            style = Stroke(width = 1.dp.toPx()),
                         )
-                        val y = cropPx.top + thirdH * i
-                        drawLine(
-                            color = guideColor,
-                            start = Offset(cropPx.left, y),
-                            end = Offset(cropPx.right, y),
-                            strokeWidth = guideStroke,
-                        )
-                    }
-                    val midX = cropPx.left + cropPx.width / 2f
-                    val midY = cropPx.top + cropPx.height / 2f
-                    drawLine(
-                        color = guideColor,
-                        start = Offset(midX, cropPx.top),
-                        end = Offset(midX, cropPx.bottom),
-                        strokeWidth = guideStroke,
-                    )
-                    drawLine(
-                        color = guideColor,
-                        start = Offset(cropPx.left, midY),
-                        end = Offset(cropPx.right, midY),
-                        strokeWidth = guideStroke,
-                    )
-                    val handle = handleVisualPx
-                    val corners =
-                        listOf(
-                            Offset(cropPx.left, cropPx.top),
-                            Offset(cropPx.right, cropPx.top),
-                            Offset(cropPx.left, cropPx.bottom),
-                            Offset(cropPx.right, cropPx.bottom),
-                        )
-                    corners.forEach { corner ->
+                        val dimPath =
+                            Path().apply {
+                                fillType = PathFillType.EvenOdd
+                                addRect(Rect(0f, 0f, size.width, size.height))
+                                addRect(cropPx)
+                            }
+                        drawPath(dimPath, Color.Black.copy(alpha = 0.55f))
                         drawRect(
                             color = Color.White,
-                            topLeft = Offset(corner.x - handle / 2f, corner.y - handle / 2f),
-                            size = Size(handle, handle),
+                            topLeft = Offset(cropPx.left, cropPx.top),
+                            size = Size(cropPx.width, cropPx.height),
+                            style = Stroke(width = 2.dp.toPx()),
                         )
+                        val guideColor = Color.White.copy(alpha = 0.7f)
+                        val guideStroke = 1.dp.toPx()
+                        val thirdW = cropPx.width / 3f
+                        val thirdH = cropPx.height / 3f
+                        for (i in 1..2) {
+                            val x = cropPx.left + thirdW * i
+                            drawLine(
+                                color = guideColor,
+                                start = Offset(x, cropPx.top),
+                                end = Offset(x, cropPx.bottom),
+                                strokeWidth = guideStroke,
+                            )
+                            val y = cropPx.top + thirdH * i
+                            drawLine(
+                                color = guideColor,
+                                start = Offset(cropPx.left, y),
+                                end = Offset(cropPx.right, y),
+                                strokeWidth = guideStroke,
+                            )
+                        }
+                        val midX = cropPx.left + cropPx.width / 2f
+                        val midY = cropPx.top + cropPx.height / 2f
+                        drawLine(
+                            color = guideColor,
+                            start = Offset(midX, cropPx.top),
+                            end = Offset(midX, cropPx.bottom),
+                            strokeWidth = guideStroke,
+                        )
+                        drawLine(
+                            color = guideColor,
+                            start = Offset(cropPx.left, midY),
+                            end = Offset(cropPx.right, midY),
+                            strokeWidth = guideStroke,
+                        )
+                        val handle = handleVisualPx
+                        val corners =
+                            listOf(
+                                Offset(cropPx.left, cropPx.top),
+                                Offset(cropPx.right, cropPx.top),
+                                Offset(cropPx.left, cropPx.bottom),
+                                Offset(cropPx.right, cropPx.bottom),
+                            )
+                        corners.forEach { corner ->
+                            drawRect(
+                                color = Color.White,
+                                topLeft = Offset(corner.x - handle / 2f, corner.y - handle / 2f),
+                                size = Size(handle, handle),
+                            )
+                        }
                     }
-                }
 
-                Box(
-                    modifier =
-                    Modifier
-                        .fillMaxSize()
-                        .pointerInput(workspace, handleHitSlopPx, isSaving, imageWidth, imageHeight) {
-                            if (isSaving) {
-                                return@pointerInput
-                            }
-                            awaitEachGesture {
-                                awaitFirstDown(requireUnconsumed = false)
-                                var multiTouch = false
-                                var cropMode: CropDragMode? = null
-                                var gestureActive = true
-                                isRotatingHint = false
+                    Box(
+                        modifier =
+                        Modifier
+                            .fillMaxSize()
+                            .pointerInput(side, handleHitSlopPx, isSaving, imageWidth, imageHeight) {
+                                if (isSaving) {
+                                    return@pointerInput
+                                }
+                                awaitEachGesture {
+                                    awaitFirstDown(requireUnconsumed = false)
+                                    var multiTouch = false
+                                    var cropMode: CropDragMode? = null
+                                    var gestureActive = true
+                                    isRotatingHint = false
 
-                                while (gestureActive) {
-                                    val event = awaitPointerEvent()
-                                    val pressed = event.changes.filter { it.pressed }
-                                    if (pressed.isEmpty()) {
-                                        gestureActive = false
-                                    } else if (pressed.size >= 2) {
-                                        multiTouch = true
-                                        cropMode = null
-                                        isRotatingHint = true
-                                        val rotationDelta = event.calculateRotation()
-                                        if (rotationDelta != 0f) {
-                                            onRotationDegreesChangeState.value(
-                                                rotationState.value + rotationDelta,
-                                            )
-                                        }
-                                        pressed.forEach { change ->
-                                            if (change.positionChanged()) {
-                                                change.consume()
+                                    while (gestureActive) {
+                                        val event = awaitPointerEvent()
+                                        val pressed = event.changes.filter { it.pressed }
+                                        if (pressed.isEmpty()) {
+                                            gestureActive = false
+                                        } else if (pressed.size >= 2) {
+                                            multiTouch = true
+                                            cropMode = null
+                                            isRotatingHint = true
+                                            val rotationDelta = event.calculateRotation()
+                                            if (rotationDelta != 0f) {
+                                                onRotationDegreesChangeState.value(
+                                                    rotationState.value + rotationDelta,
+                                                )
                                             }
-                                        }
-                                    } else if (!multiTouch && pressed.size == 1) {
-                                        val change = pressed[0]
-                                        val activeMode = cropMode
-                                        if (activeMode == null) {
-                                            val currentCrop = cropRectState.value
-                                            val currentCropPx =
-                                                Rect(
-                                                    left =
-                                                    workspace.left +
-                                                        currentCrop.left * workspace.width,
-                                                    top =
-                                                    workspace.top +
-                                                        currentCrop.top * workspace.height,
-                                                    right =
-                                                    workspace.left +
-                                                        currentCrop.right * workspace.width,
-                                                    bottom =
-                                                    workspace.top +
-                                                        currentCrop.bottom * workspace.height,
-                                                )
-                                            cropMode =
-                                                hitTestCropHandle(
-                                                    change.position,
-                                                    currentCropPx,
-                                                    handleHitSlopPx,
-                                                )
-                                        } else {
-                                            val drag = change.position - change.previousPosition
-                                            if (drag != Offset.Zero && imageHeight > 0) {
-                                                val imageAspect =
-                                                    imageWidth.toFloat() / imageHeight.toFloat()
-                                                val next =
-                                                    applyAspectCropDrag(
-                                                        cropRect = cropRectState.value,
-                                                        mode = activeMode,
-                                                        dragX = drag.x / workspace.width,
-                                                        dragY = drag.y / workspace.height,
-                                                        imageAspect = imageAspect,
+                                            pressed.forEach { change ->
+                                                if (change.positionChanged()) {
+                                                    change.consume()
+                                                }
+                                            }
+                                        } else if (!multiTouch && pressed.size == 1) {
+                                            val change = pressed[0]
+                                            val activeMode = cropMode
+                                            if (activeMode == null) {
+                                                val currentCrop = cropRectState.value
+                                                val currentCropPx =
+                                                    Rect(
+                                                        left = currentCrop.left * side,
+                                                        top = currentCrop.top * side,
+                                                        right = currentCrop.right * side,
+                                                        bottom = currentCrop.bottom * side,
                                                     )
-                                                onCropRectChangeState.value(
-                                                    PhotoEditSaver.clampCropRect(
-                                                        rect = next,
-                                                        imageAspect = imageAspect,
-                                                    ),
-                                                )
-                                                change.consume()
+                                                cropMode =
+                                                    hitTestCropHandle(
+                                                        change.position,
+                                                        currentCropPx,
+                                                        handleHitSlopPx,
+                                                    )
+                                            } else if (
+                                                imageHeight > 0 &&
+                                                side > 0f
+                                            ) {
+                                                val drag = change.position - change.previousPosition
+                                                if (drag != Offset.Zero) {
+                                                    val imageAspect =
+                                                        imageWidth.toFloat() /
+                                                            imageHeight.toFloat()
+                                                    val next =
+                                                        applyAspectCropDrag(
+                                                            cropRect = cropRectState.value,
+                                                            mode = activeMode,
+                                                            dragX = drag.x / side,
+                                                            dragY = drag.y / side,
+                                                            imageAspect = imageAspect,
+                                                        )
+                                                    onCropRectChangeState.value(
+                                                        PhotoEditSaver.clampCropRect(
+                                                            rect = next,
+                                                            imageAspect = imageAspect,
+                                                        ),
+                                                    )
+                                                    change.consume()
+                                                }
                                             }
                                         }
                                     }
+                                    isRotatingHint = false
                                 }
-                                isRotatingHint = false
-                            }
-                        },
-                )
+                            },
+                    )
+                }
             } else {
                 AsyncImage(
                     model =
@@ -481,9 +485,9 @@ private fun hitTestCropHandle(
 }
 
 /**
- * Resize keeps the crop aspect equal to the source file (`width / height`).
- * Workspace is square, so normalized aspect matches pixel aspect. Crop may extend
- * into black letterbox areas around the photo.
+ * Keeps crop aspect equal to the source file. Workspace is the full square canvas
+ * (not only the photo): move/resize may place the frame over black letterbox so the
+ * saved result can be partly black.
  */
 private fun applyAspectCropDrag(
     cropRect: NormalizedCropRect,
@@ -492,15 +496,16 @@ private fun applyAspectCropDrag(
     dragY: Float,
     imageAspect: Float,
 ): NormalizedCropRect {
+    val aspect = imageAspect.coerceAtLeast(1e-6f)
     if (mode == CropDragMode.Move) {
+        // Keep size; slide anywhere inside the square (including black letterbox).
         val width = cropRect.width
         val height = cropRect.height
-        val left = (cropRect.left + dragX).coerceIn(0f, 1f - width)
-        val top = (cropRect.top + dragY).coerceIn(0f, 1f - height)
+        val left = (cropRect.left + dragX).coerceIn(0f, (1f - width).coerceAtLeast(0f))
+        val top = (cropRect.top + dragY).coerceIn(0f, (1f - height).coerceAtLeast(0f))
         return NormalizedCropRect(left, top, left + width, top + height)
     }
 
-    val aspect = imageAspect.coerceAtLeast(1e-6f)
     val (anchorX, anchorY) =
         when (mode) {
             CropDragMode.ResizeTopLeft -> cropRect.right to cropRect.bottom
@@ -517,26 +522,35 @@ private fun applyAspectCropDrag(
             CropDragMode.ResizeBottomRight -> (cropRect.right + dragX) to (cropRect.bottom + dragY)
             CropDragMode.Move -> return cropRect
         }
-    val clampedX = rawX.coerceIn(0f, 1f)
-    val clampedY = rawY.coerceIn(0f, 1f)
-    var width = abs(clampedX - anchorX)
-    var height = abs(clampedY - anchorY)
-    if (width / max(height, 1e-6f) > aspect) {
+
+    // Size from the dominant drag axis, then fit aspect; clamp to square from the anchor.
+    val deltaX = abs(rawX - anchorX)
+    val deltaY = abs(rawY - anchorY)
+    var width: Float
+    var height: Float
+    if (deltaX / aspect >= deltaY) {
+        width = deltaX
         height = width / aspect
     } else {
+        height = deltaY
         width = height * aspect
     }
-    width = min(width, if (clampedX >= anchorX) 1f - anchorX else anchorX)
+    val maxWidth = if (rawX >= anchorX) 1f - anchorX else anchorX
+    val maxHeight = if (rawY >= anchorY) 1f - anchorY else anchorY
+    width = min(width, maxWidth)
     height = width / aspect
-    height = min(height, if (clampedY >= anchorY) 1f - anchorY else anchorY)
-    width = height * aspect
+    if (height > maxHeight) {
+        height = maxHeight
+        width = height * aspect
+    }
+    width = max(width, 0.06f)
+    height = width / aspect
+    if (height < 0.06f) {
+        height = 0.06f
+        width = height * aspect
+    }
 
-    val left = if (clampedX >= anchorX) anchorX else anchorX - width
-    val top = if (clampedY >= anchorY) anchorY else anchorY - height
-    return NormalizedCropRect(
-        left = left.coerceIn(0f, 1f),
-        top = top.coerceIn(0f, 1f),
-        right = (left + width).coerceIn(0f, 1f),
-        bottom = (top + height).coerceIn(0f, 1f),
-    )
+    val left = (if (rawX >= anchorX) anchorX else anchorX - width).coerceIn(0f, 1f - width)
+    val top = (if (rawY >= anchorY) anchorY else anchorY - height).coerceIn(0f, 1f - height)
+    return NormalizedCropRect(left, top, left + width, top + height)
 }

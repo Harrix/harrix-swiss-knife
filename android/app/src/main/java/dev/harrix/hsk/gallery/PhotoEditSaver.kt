@@ -441,7 +441,8 @@ class PhotoEditSaver(
 
         /**
          * Clamp crop to `0..1` of the square workspace, keeping [imageAspect]
-         * (`width / height` of the source file). Crop may cover black letterbox areas.
+         * (`width / height` of the source file). Position is free: the frame may sit
+         * partly or mostly on black letterbox around the photo.
          */
         fun clampCropRect(
             rect: NormalizedCropRect,
