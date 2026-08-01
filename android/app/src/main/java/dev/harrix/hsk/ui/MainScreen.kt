@@ -52,6 +52,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -107,10 +108,11 @@ fun MainScreen(
     val scope = rememberCoroutineScope()
     val colorScheme = MaterialTheme.colorScheme
     val appName = stringResource(R.string.app_name)
-    var destination by remember { mutableStateOf(AppDestination.Home) }
-    var settingsSection by remember { mutableStateOf<SettingsSection?>(null) }
-    var settingsRevision by remember { mutableIntStateOf(0) }
-    var settingsShootDayEpochMs by remember { mutableStateOf<Long?>(null) }
+    // Survive Activity recreation (e.g. landscape rotation); plain remember resets to Home.
+    var destination by rememberSaveable { mutableStateOf(AppDestination.Home) }
+    var settingsSection by rememberSaveable { mutableStateOf<SettingsSection?>(null) }
+    var settingsRevision by rememberSaveable { mutableIntStateOf(0) }
+    var settingsShootDayEpochMs by rememberSaveable { mutableStateOf<Long?>(null) }
     var homeMenuExpanded by remember { mutableStateOf(false) }
     val drawerItemColors =
         NavigationDrawerItemDefaults.colors(
