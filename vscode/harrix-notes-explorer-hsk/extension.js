@@ -2539,7 +2539,8 @@ class NotesProvider {
    * @param {string | undefined} parentNoteMdPath
    */
   createAssetFolderItem(folderPath, name, noteDirPath, parentNoteMdPath) {
-    const item = new vscode.TreeItem(name, vscode.TreeItemCollapsibleState.Collapsed);
+    // Expanded so Show attachments / note-with-assets trees open nested folders fully.
+    const item = new vscode.TreeItem(name, vscode.TreeItemCollapsibleState.Expanded);
     item.id = `asset-folder:${normalizeFsPath(folderPath)}`;
     item.resourceUri = vscode.Uri.file(folderPath);
     item.dirPath = folderPath;
@@ -2574,8 +2575,9 @@ function waitForTreeRefresh(provider) {
  * @param {vscode.TreeView<vscode.TreeItem>} view
  * @param {NotesProvider} provider
  * @param {string} filePath
+ * @param {boolean | number} [expandLevels=true] `true` expands one level; a number expands that many levels
  */
-async function revealNoteWithAttachments(view, provider, filePath) {
+async function revealNoteWithAttachments(view, provider, filePath, expandLevels = true) {
   const revealItem = provider.createFileItem(filePath);
   /** @type {vscode.TreeItem[]} */
   const chain = [];
@@ -2592,7 +2594,7 @@ async function revealNoteWithAttachments(view, provider, filePath) {
     }
   }
   try {
-    await view.reveal(revealItem, { expand: true, select: true, focus: false });
+    await view.reveal(revealItem, { expand: expandLevels, select: true, focus: false });
   } catch {
     // ignore
   }
@@ -3291,7 +3293,8 @@ async function activate(context) {
       const refreshDone = waitForTreeRefresh(provider);
       provider.setNoteAssetsVisible(noteDir, true);
       await refreshDone;
-      await revealNoteWithAttachments(view, provider, uri.fsPath);
+      // Deep-expand note + all attachment folders/subfolders under it.
+      await revealNoteWithAttachments(view, provider, uri.fsPath, 99);
     }),
   );
   context.subscriptions.push(
