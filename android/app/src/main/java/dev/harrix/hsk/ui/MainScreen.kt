@@ -179,6 +179,12 @@ fun MainScreen(
                                     showAbout = true
                                 }
                             },
+                            onOpenSettings = {
+                                scope.launch {
+                                    drawerState.close()
+                                    settingsSection = SettingsSection.All
+                                }
+                            },
                         )
                     },
                 ) {
@@ -427,22 +433,31 @@ private fun AppNavigationDrawerContent(
     selected: AppDestination,
     onNavigate: (AppDestination) -> Unit,
     onAbout: () -> Unit,
+    onOpenSettings: () -> Unit,
 ) {
     ModalDrawerSheet(
         modifier = Modifier.widthIn(max = DrawerMaxWidth),
     ) {
-        BrandTitle(
-            appName = appName,
-            logoSize = DrawerLogoSize,
-            textStyle = MaterialTheme.typography.titleLarge,
+        Row(
             modifier =
             Modifier
                 .fillMaxWidth()
-                .padding(
-                    horizontal = 28.dp,
-                    vertical = 24.dp,
-                ),
-        )
+                .padding(start = 20.dp, end = 4.dp, top = 12.dp, bottom = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            BrandTitle(
+                appName = appName,
+                logoSize = DrawerLogoSize,
+                textStyle = MaterialTheme.typography.titleLarge,
+                modifier = Modifier.weight(1f),
+            )
+            IconButton(onClick = onOpenSettings) {
+                Icon(
+                    imageVector = Icons.Filled.Settings,
+                    contentDescription = stringResource(R.string.nav_settings),
+                )
+            }
+        }
         HorizontalDivider(
             modifier = Modifier.padding(bottom = 8.dp),
         )
