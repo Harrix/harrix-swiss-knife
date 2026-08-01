@@ -26,11 +26,12 @@ from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
 from typing import TYPE_CHECKING, Any, NamedTuple
 
-logger = logging.getLogger(__name__)
-
 if TYPE_CHECKING:
     from harrix_swiss_knife.apps.finance.database_manager import DatabaseManager
     from harrix_swiss_knife.apps.finance.services.exchange_rates import PreloadedExchangeRates
+
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True, slots=True)

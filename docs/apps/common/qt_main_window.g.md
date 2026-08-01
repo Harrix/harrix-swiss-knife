@@ -125,7 +125,7 @@ class AppWindowMixin:
             clipboard = QApplication.clipboard()
             if clipboard is not None:
                 clipboard.setText(final_text)
-                print(f"Copied {len(clipboard_text)} rows to clipboard")
+                logger.info("%s", f"Copied {len(clipboard_text)} rows to clipboard")
 
     def _get_version_from_pyproject(self) -> str:
         """Get version from `pyproject.toml`.
@@ -140,8 +140,8 @@ class AppWindowMixin:
             with pyproject_path.open("rb") as f:
                 data = tomllib.load(f)
             return data.get("project", {}).get("version", "Unknown")
-        except Exception as e:
-            print(f"⚠️ Warning: Could not read version from pyproject.toml: {e}")
+        except Exception:
+            logger.exception("⚠️ Warning: Could not read version from pyproject.toml")
             return "Unknown"
 
     def _handle_ctrl_c_for_tables(self, event: QKeyEvent, table_views: list[QTableView]) -> bool:
@@ -248,11 +248,11 @@ class AppWindowMixin:
 
         """
         if not getattr(self, "db_manager", None):
-            print("Database manager is None")
+            logger.info("Database manager is None")
             return False
 
         if not self.db_manager.is_database_open():
-            print("Database connection is not open")
+            logger.warning("Database connection is not open")
             return False
 
         return True

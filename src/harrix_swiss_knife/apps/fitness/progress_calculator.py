@@ -8,12 +8,16 @@ goals, remaining amounts, daily targets, and record achievements.
 from __future__ import annotations
 
 import calendar
+import logging
 import math
 from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from harrix_swiss_knife.apps.fitness.database_manager import DatabaseManager
+
+
+logger = logging.getLogger(__name__)
 
 
 class ExerciseProgressCalculator:
@@ -158,8 +162,8 @@ class ExerciseProgressCalculator:
                     "previous_yearly": yearly_max,
                     "type_name": type_name,
                 }
-        except Exception as e:
-            print(f"Error checking for new records: {e}")
+        except Exception:
+            logger.exception("Error checking for new records")
             # Don't show error to user for first-time records, just return None
 
         return None
@@ -216,8 +220,8 @@ class ExerciseProgressCalculator:
                         # Goal was achieved if remaining_to_max_before > 0 and remaining_to_max_after <= 0
                         goal_achieved = remaining_to_max_before > 0 and remaining_to_max_after <= 0
                         current_progress = current_progress_after
-        except Exception as e:
-            print(f"Error checking for monthly goal achievement: {e}")
+        except Exception:
+            logger.exception("Error checking for monthly goal achievement")
 
         return (goal_achieved, current_progress)
 

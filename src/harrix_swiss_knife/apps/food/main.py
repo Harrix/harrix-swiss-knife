@@ -7,6 +7,7 @@ SQLite database with food items and food log records.
 
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
@@ -82,6 +83,8 @@ from harrix_swiss_knife.integrations.bothub import (
 from harrix_swiss_knife.paths import get_config_path_str
 from harrix_swiss_knife.qt_emoji_icon import CANCEL_BUTTON_EMOJI, OK_BUTTON_EMOJI, make_emoji_push_button
 from harrix_swiss_knife.win11_backdrop import SystemBackdrop, try_apply_system_backdrop
+
+logger = logging.getLogger(__name__)
 
 
 class MainWindow(
@@ -260,7 +263,7 @@ class MainWindow(
             return
 
         if self.db_manager is None:
-            print("❌ Database manager is not initialized")
+            logger.error("❌ Database manager is not initialized")
             return
 
         # Use appropriate database manager method
@@ -321,7 +324,7 @@ class MainWindow(
             return
 
         if self.db_manager is None:
-            print("❌ Database manager is not initialized")
+            logger.error("❌ Database manager is not initialized")
             return
 
         try:
@@ -399,7 +402,7 @@ class MainWindow(
             return
 
         if self.db_manager is None:
-            print("❌ Database manager is not initialized")
+            logger.error("❌ Database manager is not initialized")
             return
 
         try:
@@ -458,7 +461,7 @@ class MainWindow(
             return
 
         if self.db_manager is None:
-            print("❌ Database manager is not initialized")
+            logger.error("❌ Database manager is not initialized")
             return
 
         try:
@@ -574,11 +577,11 @@ class MainWindow(
 
         # Check if database manager is available and connection is open
         if not self._validate_database_connection():
-            print("Database manager not available or connection not open")
+            logger.warning("Database manager not available or connection not open")
             return
 
         if self.db_manager is None:
-            print("❌ Database manager is not initialized")
+            logger.error("❌ Database manager is not initialized")
             return
 
         try:
@@ -652,7 +655,7 @@ class MainWindow(
             # No need for additional logic here
 
         except Exception as e:
-            print(f"Error in food item double clicked: {e}")
+            logger.exception("Error in food item double clicked")
             message_box.warning(self, "Error", f"Error editing food item: {e}")
         finally:
             # Always reset the dialog open flag
@@ -721,8 +724,8 @@ class MainWindow(
             self.spinBox_food_weight.setFocus()
             self.spinBox_food_weight.selectAll()
 
-        except Exception as e:
-            print(f"Error in food log table cell clicked: {e}")
+        except Exception:
+            logger.exception("Error in food log table cell clicked")
 
     def on_food_stats_all_time(self) -> None:
         """Set date range to all available data and update chart."""
@@ -748,8 +751,8 @@ class MainWindow(
 
             self._update_food_calories_chart()
 
-        except Exception as e:
-            print(f"Error setting all time date range: {e}")
+        except Exception:
+            logger.exception("Error setting all time date range")
             # Fallback to last year if any error occurs
             today = QDate.currentDate()
             year_ago = today.addYears(-1)
@@ -928,7 +931,7 @@ class MainWindow(
     def on_translate_with_ai(self) -> None:
         """Translate missing food_log name_en values via BotHub from unique Russian names."""
         if self.db_manager is None:
-            print("❌ Database manager is not initialized")
+            logger.error("❌ Database manager is not initialized")
             return
 
         unique_names_limit = self._food_log_translate_names_limit()
@@ -1009,11 +1012,11 @@ class MainWindow(
     def show_tables(self) -> None:
         """Populate all QTableViews using database manager methods."""
         if not self._validate_database_connection():
-            print("Database connection not available for showing tables")
+            logger.warning("Database connection not available for showing tables")
             return
 
         if self.db_manager is None:
-            print("❌ Database manager is not initialized")
+            logger.error("❌ Database manager is not initialized")
             return
 
         try:
@@ -1022,7 +1025,7 @@ class MainWindow(
             self._connect_table_auto_save_signals()
             self.update_food_calories_today()
         except Exception as e:
-            print(f"Error showing tables: {e}")
+            logger.exception("Error showing tables")
             message_box.warning(self, "Database Error", f"Failed to load tables: {e}")
 
     def update_calories_calculation(self) -> None:
@@ -1047,7 +1050,7 @@ class MainWindow(
     def update_food_calories_today(self) -> None:
         """Update the label showing calories consumed today and drinks weight in liters (comma as decimal separator)."""
         if self.db_manager is None:
-            print("❌ Database manager is not initialized")
+            logger.error("❌ Database manager is not initialized")
             return
 
         if not self._validate_database_connection():
@@ -1060,8 +1063,8 @@ class MainWindow(
             drinks_liters = drinks_weight / 1000 if drinks_weight else 0.0
             drinks_liters_str = f"{drinks_liters:.1f}"
             self.label_food_today.setText(f"{calories:.1f} kcal \n{drinks_liters_str} liters")
-        except Exception as e:
-            print(f"Error getting food calories for today: {e}")
+        except Exception:
+            logger.exception("Error getting food calories for today")
             self.label_food_today.setText("0 kcal\n0,0 liters")
 
     def update_food_data(self) -> None:
@@ -1071,7 +1074,7 @@ class MainWindow(
 
         """
         if not self._validate_database_connection():
-            print("Database connection not available for update_food_data")
+            logger.warning("Database connection not available for update_food_data")
             return
 
         # Update food items list
@@ -1092,7 +1095,7 @@ class MainWindow(
 
         """
         if self.db_manager is None:
-            print("❌ Database manager is not initialized")
+            logger.error("❌ Database manager is not initialized")
             return
 
         try:
@@ -1203,7 +1206,7 @@ class MainWindow(
 
         except Exception as e:
             message_box.warning(self, "Database Error", f"Failed to add food item: {e}")
-            print(f"Error adding food item from log record: {e}")
+            logger.exception("Error adding food item from log record")
 
     def _add_one_day_to_food(self) -> None:
         """Add one day to the current date in food date field."""
@@ -1616,7 +1619,7 @@ class MainWindow(
 
         """
         if self.db_manager is None:
-            print("❌ Database manager is not initialized")
+            logger.error("❌ Database manager is not initialized")
             return
 
         # Get selected rows data
@@ -1873,7 +1876,7 @@ class MainWindow(
 
         """
         if self.db_manager is None:
-            print("❌ Database manager is not initialized")
+            logger.error("❌ Database manager is not initialized")
             return
 
         # Get row IDs from vertical header
@@ -1920,8 +1923,8 @@ class MainWindow(
                     success_count += 1
                 else:
                     failed_count += 1
-            except Exception as e:
-                print(f"Error deleting row {row_id}: {e}")
+            except Exception:
+                logger.exception("Error deleting row %s", row_id)
                 failed_count += 1
 
         # Show result message
@@ -2156,8 +2159,8 @@ class MainWindow(
             # Update the chart with the new date range
             QTimer.singleShot(50, self._update_food_calories_chart)
 
-        except Exception as e:
-            print(f"Error getting earliest food log date: {e}")
+        except Exception:
+            logger.exception("Error getting earliest food log date")
             # Fallback to last month if any error occurs
             today = QDate.currentDate()
             month_ago = today.addMonths(-1)
@@ -2367,8 +2370,8 @@ class MainWindow(
             # Update calories calculation
             self.update_calories_calculation()
 
-        except Exception as e:
-            print(f"Error populating form from food name: {e}")
+        except Exception:
+            logger.exception("Error populating form from food name")
 
     def _process_food_item_selection(self, food_name: str) -> None:
         """Process food item selection and populate form fields.
@@ -2383,11 +2386,11 @@ class MainWindow(
 
         # Check if database manager is available and connection is open
         if not self._validate_database_connection():
-            print("Database manager not available or connection not open")
+            logger.warning("Database manager not available or connection not open")
             return
 
         if self.db_manager is None:
-            print("❌ Database manager is not initialized")
+            logger.error("❌ Database manager is not initialized")
             return
 
         try:
@@ -2461,8 +2464,8 @@ class MainWindow(
             self.spinBox_food_weight.setFocus()
             self.spinBox_food_weight.selectAll()
 
-        except Exception as e:
-            print(f"Error in food item selection: {e}")
+        except Exception:
+            logger.exception("Error in food item selection")
             # In case of error, at least set the name and move focus
             self.lineEdit_food_manual_name.setText(food_name)
             self.spinBox_food_weight.setFocus()
@@ -2478,7 +2481,7 @@ class MainWindow(
 
         """
         if self.db_manager is None:
-            print("❌ Database manager is not initialized")
+            logger.error("❌ Database manager is not initialized")
             return
 
         # Create parser and parse text
@@ -2918,7 +2921,7 @@ class MainWindow(
             return
 
         if self.db_manager is None:
-            print("❌ Database manager is not initialized")
+            logger.error("❌ Database manager is not initialized")
             return
 
         try:
@@ -2995,7 +2998,7 @@ class MainWindow(
             # Show information about the swap
             s_weight = f"weight={weight} -> {new_weight}"
             s_calories_per_100g = f"calories_per_100g={calories_per_100g} -> {new_calories_per_100g}"
-            print(f"🔄 Swapping values: {s_weight}, {s_calories_per_100g}")
+            logger.info("%s", f"🔄 Swapping values: {s_weight}, {s_calories_per_100g}")
 
             # Update the table model
             source_model.item(row, 2).setText(str(new_weight))
@@ -3005,7 +3008,7 @@ class MainWindow(
             if new_weight > 0 and new_calories_per_100g > 0:
                 calculated_calories = (new_weight * new_calories_per_100g) / 100
                 source_model.item(row, 5).setText(f"{calculated_calories:.1f}")
-                print(f"🔄 Updated calculated calories: {calculated_calories:.1f}")
+                logger.info("%s", f"🔄 Updated calculated calories: {calculated_calories:.1f}")
 
             # Get the row ID for database update
             row_id = source_model.verticalHeaderItem(row).text()
@@ -3018,11 +3021,11 @@ class MainWindow(
                     # Refresh the table to show updated calculated calories
                     self.update_food_data()
                 else:
-                    print(f"❌ Failed to update database for row {row_id}")
+                    logger.error("%s", f"❌ Failed to update database for row {row_id}")
                     message_box.warning(self, "Error", "Failed to update database")
 
         except Exception as e:
-            print(f"Error swapping weight and calories: {e}")
+            logger.exception("Error swapping weight and calories")
             message_box.warning(self, "Error", f"Failed to swap weight and calories: {e}")
 
     def _transform_food_log_data(self, rows: list[list], *, append_state: bool = False) -> list[list]:
@@ -3151,17 +3154,17 @@ class MainWindow(
                 self.food_completer_source_model.setStringList(merged_names)
                 self.food_completer_proxy.invalidateFilter()
 
-        except Exception as e:
-            print(f"Error updating autocomplete data: {e}")
+        except Exception:
+            logger.exception("Error updating autocomplete data")
 
     def _update_drinks_chart(self) -> None:
         """Update the drinks chart with data from database."""
         if not self._validate_database_connection():
-            print("Database connection not available for updating drinks chart")
+            logger.warning("Database connection not available for updating drinks chart")
             return
 
         if self.db_manager is None:
-            print("❌ Database manager is not initialized")
+            logger.error("❌ Database manager is not initialized")
             return
 
         try:
@@ -3211,17 +3214,17 @@ class MainWindow(
                 self._create_chart(layout, chart_data, chart_config)
 
         except Exception as e:
-            print(f"Error updating drinks chart: {e}")
+            logger.exception("Error updating drinks chart")
             message_box.warning(self, "Chart Error", f"Failed to create drinks chart: {e}")
 
     def _update_favorite_food_items_list(self) -> None:
         """Refresh favorite food items list view with popular items from database."""
         if not self._validate_database_connection():
-            print("Database manager not available or connection not open")
+            logger.warning("Database manager not available or connection not open")
             return
 
         if self.db_manager is None:
-            print("❌ Database manager is not initialized")
+            logger.error("❌ Database manager is not initialized")
             return
 
         try:
@@ -3252,17 +3255,17 @@ class MainWindow(
             if selection_model:
                 selection_model.blockSignals(False)  # noqa: FBT003
 
-        except Exception as e:
-            print(f"Error updating favorite food items list: {e}")
+        except Exception:
+            logger.exception("Error updating favorite food items list")
 
     def _update_food_calories_chart(self) -> None:
         """Update the food calories chart with data from database."""
         if not self._validate_database_connection():
-            print("Database connection not available for updating food calories chart")
+            logger.warning("Database connection not available for updating food calories chart")
             return
 
         if self.db_manager is None:
-            print("❌ Database manager is not initialized")
+            logger.error("❌ Database manager is not initialized")
             return
 
         try:
@@ -3310,17 +3313,17 @@ class MainWindow(
                 self._create_chart(layout, chart_data, chart_config)
 
         except Exception as e:
-            print(f"Error updating food calories chart: {e}")
+            logger.exception("Error updating food calories chart")
             message_box.warning(self, "Chart Error", f"Failed to create calories chart: {e}")
 
     def _update_food_items_list(self) -> None:
         """Refresh food items list view with data from database."""
         if not self._validate_database_connection():
-            print("Database manager not available or connection not open")
+            logger.warning("Database manager not available or connection not open")
             return
 
         if self.db_manager is None:
-            print("❌ Database manager is not initialized")
+            logger.error("❌ Database manager is not initialized")
             return
 
         try:
@@ -3351,17 +3354,17 @@ class MainWindow(
             if selection_model:
                 selection_model.blockSignals(False)  # noqa: FBT003
 
-        except Exception as e:
-            print(f"Error updating food items list: {e}")
+        except Exception:
+            logger.exception("Error updating food items list")
 
     def _update_food_log_table(self) -> None:
         """Update the food log table based on current display state."""
         if not self._validate_database_connection():
-            print("Database connection not available for updating food log table")
+            logger.warning("Database connection not available for updating food log table")
             return
 
         if self.db_manager is None:
-            print("❌ Database manager is not initialized")
+            logger.error("❌ Database manager is not initialized")
             return
 
         try:
@@ -3369,13 +3372,13 @@ class MainWindow(
             self._connect_table_selection_signals()
             self._connect_table_auto_save_signals()
         except Exception as e:
-            print(f"Error updating food log table: {e}")
+            logger.exception("Error updating food log table")
             message_box.warning(self, "Database Error", f"Failed to update food log table: {e}")
 
     def _update_food_log_table_with_data(self, food_log_rows: list[list]) -> None:
         """Update the food log table with specific data (no pagination)."""
         if not self._validate_database_connection():
-            print("Database connection not available for updating food log table")
+            logger.warning("Database connection not available for updating food log table")
             return
 
         try:
@@ -3396,17 +3399,17 @@ class MainWindow(
             self._connect_table_selection_signals()
             self._connect_table_auto_save_signals()
         except Exception as e:
-            print(f"Error updating food log table: {e}")
+            logger.exception("Error updating food log table")
             message_box.warning(self, "Database Error", f"Failed to update food log table: {e}")
 
     def _update_food_weight_chart(self) -> None:
         """Update the food weight chart with data from database."""
         if not self._validate_database_connection():
-            print("Database connection not available for updating food weight chart")
+            logger.warning("Database connection not available for updating food weight chart")
             return
 
         if self.db_manager is None:
-            print("❌ Database manager is not initialized")
+            logger.error("❌ Database manager is not initialized")
             return
 
         try:
@@ -3456,17 +3459,17 @@ class MainWindow(
                 self._create_chart(layout, chart_data, chart_config)
 
         except Exception as e:
-            print(f"Error updating food weight chart: {e}")
+            logger.exception("Error updating food weight chart")
             message_box.warning(self, "Chart Error", f"Failed to create food weight chart: {e}")
 
     def _update_kcal_per_day_table(self) -> None:
         """Update the calories per day table with data from database."""
         if not self._validate_database_connection():
-            print("Database connection not available for updating kcal per day table")
+            logger.warning("Database connection not available for updating kcal per day table")
             return
 
         if self.db_manager is None:
-            print("❌ Database manager is not initialized")
+            logger.error("❌ Database manager is not initialized")
             return
 
         try:
@@ -3497,7 +3500,7 @@ class MainWindow(
             self._adjust_kcal_per_day_table_columns()
 
         except Exception as e:
-            print(f"Error updating kcal per day table: {e}")
+            logger.exception("Error updating kcal per day table")
             message_box.warning(self, "Database Error", f"Failed to load calories per day data: {e}")
 
 

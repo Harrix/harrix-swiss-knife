@@ -8,6 +8,7 @@ SQLite database with habits and process_habits (daily habit records).
 from __future__ import annotations
 
 import contextlib
+import logging
 import warnings
 from datetime import UTC, datetime, timedelta
 from functools import partial
@@ -56,6 +57,7 @@ from PySide6.QtWidgets import (
 from harrix_swiss_knife import resources_rc  # noqa: F401
 from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.app_entry import run_app_main
+from harrix_swiss_knife.apps.common.apps_config import get_apps_list_limits
 from harrix_swiss_knife.apps.common.chart_colors import generate_pastel_qcolors
 from harrix_swiss_knife.apps.common.db_init import init_tracker_database
 from harrix_swiss_knife.apps.common.qt_main_window import AppWindowMixin
@@ -76,6 +78,8 @@ from harrix_swiss_knife.apps.habits.mixins import (
 )
 from harrix_swiss_knife.paths import get_config_path_str
 from harrix_swiss_knife.win11_backdrop import SystemBackdrop, try_apply_system_backdrop
+
+logger = logging.getLogger(__name__)
 
 
 class MainWindow(
@@ -143,7 +147,9 @@ class MainWindow(
         }
 
         # Process habits table display mode flag
-        self.count_records_to_show = 5000
+        initial_count, load_more_count = get_apps_list_limits(self._app_config)
+        self.count_records_to_show = initial_count
+        self.process_habits_load_more_count = load_more_count
         self.show_all_records = False
         # Habits list view filter flag
         self.show_archived_habits = False
@@ -226,7 +232,7 @@ class MainWindow(
             return
 
         if self.db_manager is None:
-            print("❌ Database manager is not initialized")
+            logger.error("❌ Database manager is not initialized")
             return
 
         success = False
@@ -280,7 +286,7 @@ class MainWindow(
 
         """
         if self.db_manager is None:
-            print("❌ Database manager is not initialized")
+            logger.error("❌ Database manager is not initialized")
             return
 
         min_habit_row_columns = 2
@@ -406,8 +412,8 @@ class MainWindow(
                         # Sort missing dates descending and prepend to sorted_dates
                         missing_dates.sort(reverse=True)
                         sorted_dates = missing_dates + sorted_dates
-            except Exception as e:
-                print(f"Error adding missing dates: {e}")
+            except Exception:
+                logger.exception("Error adding missing dates")
 
         # Assign colors to dates
         date_to_color = {}
@@ -503,7 +509,7 @@ class MainWindow(
             return
 
         if self.db_manager is None:
-            print("❌ Database manager is not initialized")
+            logger.error("❌ Database manager is not initialized")
             return
 
         try:
@@ -698,28 +704,28 @@ class MainWindow(
             self.on_habit_year_changed(current)
 
     @requires_database()
-    @requires_database()
-    @requires_database()
-    @requires_database()
     def on_toggle_show_all_habits_records(self) -> None:
         """Toggle between showing all habits records and limited records."""
-        # This will be handled in load_process_habits_table
-        self.show_tables()
+        self.show_all_records = not self.show_all_records
+        if self.show_all_records:
+            self.pushButton_habits_show_all_records.setText(f"📋 Show Last {self.count_records_to_show}")
+        else:
+            self.pushButton_habits_show_all_records.setText("📋 Show All Records")
+        self.load_process_habits_table()
 
-    @requires_database()
     @requires_database()
     def refresh_habits_and_process_habits(self) -> None:
         """Refresh habits table and process_habits table (ignoring filter for process_habits)."""
         if self._is_closing:
             return
         if not self._validate_database_connection():
-            print("Database connection not available for refresh_habits_and_process_habits")
+            logger.warning("Database connection not available for refresh_habits_and_process_habits")
             return
 
         # Refresh habits table using update_all logic
         try:
             if not self.db_manager.table_exists("habits"):
-                print("⚠️ Table 'habits' does not exist in database")
+                logger.warning("⚠️ Table 'habits' does not exist in database")
                 self._set_habits_table_model(self._create_colored_table_model([], self.table_config["habits"][2]))
             else:
                 habits_data = self.db_manager.get_all_habits()
@@ -741,14 +747,14 @@ class MainWindow(
                         habit_id = row[0] if row[0] is not None else 0
                         transformed_row = [habit_name, is_bool_str, is_archived_str, habit_id, light_blue]
                         habits_transformed_data.append(transformed_row)
-                    except Exception as e:
-                        print(f"Error processing habit row: {e}")
+                    except Exception:
+                        logger.exception("Error processing habit row")
                         continue
                 self._set_habits_table_model(
                     self._create_colored_table_model(habits_transformed_data, self.table_config["habits"][2])
                 )
-        except Exception as habits_error:
-            print(f"Error refreshing habits table: {habits_error}")
+        except Exception:
+            logger.exception("Error refreshing habits table")
 
         # Refresh process_habits table without filter
         self.refresh_process_habits_table()
@@ -758,7 +764,7 @@ class MainWindow(
     def refresh_process_habits_table(self) -> None:
         """Refresh process habits table ignoring any filters."""
         if self.db_manager is None:
-            print("❌ Database manager is not initialized")
+            logger.error("❌ Database manager is not initialized")
             return
 
         # Load table without filter
@@ -782,17 +788,17 @@ class MainWindow(
     def show_tables(self) -> None:
         """Populate habits and process_habits QTableViews using database manager."""
         if not self._validate_database_connection():
-            print("Database connection not available for showing tables")
+            logger.warning("Database connection not available for showing tables")
             return
 
         if self.db_manager is None:
-            print("❌ Database manager is not initialized")
+            logger.error("❌ Database manager is not initialized")
             return
 
         try:
             # Refresh habits table
             if not self.db_manager.table_exists("habits"):
-                print("⚠️ Table 'habits' does not exist in database")
+                logger.warning("⚠️ Table 'habits' does not exist in database")
                 self._set_habits_table_model(self._create_colored_table_model([], self.table_config["habits"][2]))
             else:
                 habits_data = self.db_manager.get_all_habits()
@@ -818,8 +824,8 @@ class MainWindow(
                             light_blue,
                         ]
                         habits_transformed_data.append(transformed_row)
-                    except Exception as e:
-                        print(f"Error processing habit row: {e}")
+                    except Exception:
+                        logger.exception("Error processing habit row")
                         continue
                 self._set_habits_table_model(
                     self._create_colored_table_model(habits_transformed_data, self.table_config["habits"][2])
@@ -832,7 +838,7 @@ class MainWindow(
                 if selected_habit:
                     self.update_habit_calendar_heatmap(selected_habit)
             else:
-                print("⚠️ Table 'process_habits' does not exist in database")
+                logger.warning("⚠️ Table 'process_habits' does not exist in database")
                 self.models["process_habits"] = self._create_colored_table_model(
                     [], self.table_config["process_habits"][2]
                 )
@@ -845,7 +851,7 @@ class MainWindow(
             self._connect_table_auto_save_signals()
 
         except Exception as e:
-            print(f"Error showing tables: {e}")
+            logger.exception("Error showing tables")
             message_box.warning(self, "Database Error", f"Failed to load tables: {e}")
 
     def update_all(
@@ -853,7 +859,7 @@ class MainWindow(
     ) -> None:
         """Refresh habits and process_habits tables and filter list views."""
         if not self._validate_database_connection():
-            print("Database connection not available for update_all")
+            logger.warning("Database connection not available for update_all")
             return
 
         self.show_all_records = False
@@ -882,7 +888,7 @@ class MainWindow(
 
         """
         if self.db_manager is None:
-            print("❌ Database manager is not initialized")
+            logger.error("❌ Database manager is not initialized")
             return
 
         # Get habit name from parameter or from list view selection
@@ -1116,7 +1122,7 @@ class MainWindow(
                 text.set_fontsize(8)
             figure.tight_layout(rect=(0, 0.06, 1, 1))
         except Exception as e:
-            print(f"Error creating calendar heatmap: {e}")
+            logger.exception("Error creating calendar heatmap")
             self._show_habit_heatmap_message(f"Error creating calendar heatmap: {e}")
             return
 
@@ -1125,13 +1131,13 @@ class MainWindow(
     def update_habits_filter_combobox(self) -> None:
         """Refresh habit filter list view in the filter group."""
         if self.db_manager is None:
-            print("❌ Database manager is not initialized")
+            logger.error("❌ Database manager is not initialized")
             return
 
         try:
             # Check if table exists
             if not self.db_manager.table_exists("habits"):
-                print("⚠️ Table 'habits' does not exist, skipping filter list view update")
+                logger.warning("⚠️ Table 'habits' does not exist, skipping filter list view update")
                 if self.habits_filter_list_model:
                     self.habits_filter_list_model.clear()
                 return
@@ -1226,20 +1232,20 @@ class MainWindow(
             if selection_model:
                 selection_model.blockSignals(False)  # noqa: FBT003
 
-        except Exception as e:
-            print(f"Error updating habits filter list view: {e}")
+        except Exception:
+            logger.exception("Error updating habits filter list view")
 
     @requires_database()
     def update_habits_year_combobox(self) -> None:
         """Refresh habit year list view with available years from process_habits table."""
         if self.db_manager is None:
-            print("❌ Database manager is not initialized")
+            logger.error("❌ Database manager is not initialized")
             return
 
         try:
             # Check if table exists
             if not self.db_manager.table_exists("process_habits"):
-                print("⚠️ Table 'process_habits' does not exist, skipping year list view update")
+                logger.warning("⚠️ Table 'process_habits' does not exist, skipping year list view update")
                 if not self.habits_year_list_model:
                     self._init_habits_year_list()
                 if self.habits_year_list_model:
@@ -1294,8 +1300,8 @@ class MainWindow(
             if selection_model:
                 selection_model.blockSignals(False)  # noqa: FBT003
 
-        except Exception as e:
-            print(f"Error updating habits year list view: {e}")
+        except Exception:
+            logger.exception("Error updating habits year list view")
 
     def _after_table_data_changed(
         self,
@@ -1810,13 +1816,13 @@ class MainWindow(
             if proxy_model is not None:
                 proxy_model.setData(menu_proxy_index, "", Qt.ItemDataRole.EditRole)
         elif action == refresh_action:
-            print("🔧 Context menu: Refresh action triggered")
+            logger.debug("🔧 Context menu: Refresh action triggered")
             self.pushButton_habits_refresh.click()
         elif action == export_action:
-            print("🔧 Context menu: Export to CSV action triggered")
+            logger.debug("🔧 Context menu: Export to CSV action triggered")
             self.pushButton_habits_export_csv.click()
         elif action == show_all_action:
-            print("🔧 Context menu: Toggle show all records action triggered")
+            logger.debug("🔧 Context menu: Toggle show all records action triggered")
             self.pushButton_habits_show_all_records.click()
         elif action == toggle_archived_action:
             self._toggle_show_archived_habits()
@@ -1849,13 +1855,13 @@ class MainWindow(
     def _update_habits_list(self) -> None:
         """Update habits table after changes."""
         if not self._validate_database_connection():
-            print("Database connection not available for _update_habits_list")
+            logger.warning("Database connection not available for _update_habits_list")
             return
 
         # Refresh habits table using update_all logic
         try:
             if not self.db_manager.table_exists("habits"):
-                print("⚠️ Table 'habits' does not exist in database")
+                logger.warning("⚠️ Table 'habits' does not exist in database")
                 self._set_habits_table_model(self._create_colored_table_model([], self.table_config["habits"][2]))
             else:
                 habits_data = self.db_manager.get_all_habits()
@@ -1877,14 +1883,14 @@ class MainWindow(
                         habit_id = row[0] if row[0] is not None else 0
                         transformed_row = [habit_name, is_bool_str, is_archived_str, habit_id, light_blue]
                         habits_transformed_data.append(transformed_row)
-                    except Exception as e:
-                        print(f"Error processing habit row: {e}")
+                    except Exception:
+                        logger.exception("Error processing habit row")
                         continue
                 self._set_habits_table_model(
                     self._create_colored_table_model(habits_transformed_data, self.table_config["habits"][2])
                 )
-        except Exception as habits_error:
-            print(f"Error refreshing habits table: {habits_error}")
+        except Exception:
+            logger.exception("Error refreshing habits table")
 
     def _update_layout_for_window_size(self) -> None:
         """Adjust key widgets based on current window height (habits UI has no responsive extras)."""

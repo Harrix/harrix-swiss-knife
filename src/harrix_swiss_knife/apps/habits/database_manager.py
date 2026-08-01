@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from harrix_swiss_knife.apps.common.qt_database_manager_base import QtSqliteDatabaseManagerBase
+
+logger = logging.getLogger(__name__)
 
 
 class DatabaseManager(QtSqliteDatabaseManagerBase):
@@ -74,7 +77,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         result = self.execute_simple_query(query, params)
         if not result:
-            print(f"Failed to add process habit record: habit_id={habit_id}, value={value}, date={date}")
+            logger.error("%s", f"Failed to add process habit record: habit_id={habit_id}, value={value}, date={date}")
         return result
 
     def delete_habit(self, habit_id: int) -> bool:
@@ -123,8 +126,8 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             existing = {str(row[1]) for row in cols if len(row) > 1 and row[1]}
             if "is_archived" not in existing:
                 return self.execute_simple_query("ALTER TABLE habits ADD COLUMN is_archived INTEGER NOT NULL DEFAULT 0")
-        except Exception as e:
-            print(f"Failed to ensure habits schema: {e}")
+        except Exception:
+            logger.exception("Failed to ensure habits schema")
             return False
         else:
             return True

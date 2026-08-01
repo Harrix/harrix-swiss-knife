@@ -7,6 +7,7 @@ to food log records according to specific rules.
 
 from __future__ import annotations
 
+import logging
 import re
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any, NamedTuple
@@ -15,6 +16,9 @@ from harrix_swiss_knife.apps.common.ui_helpers import enumerate_stripped_non_emp
 
 if TYPE_CHECKING:
     from collections.abc import Callable
+
+
+logger = logging.getLogger(__name__)
 
 
 class ParsedFoodItem(NamedTuple):
@@ -96,9 +100,8 @@ class TextParser:
                 )
                 if parsed_item:
                     parsed_items.append(parsed_item)
-            except Exception as e:
-                # Instead of just showing an error, try to handle it gracefully
-                error_msg = f"Error parsing line {line_num}: {line_new}\nError: {e}"
+            except Exception:
+                logger.exception("Error parsing line %s: %s", line_num, line_new)
                 # Try to parse the line as a simple name-only entry
                 try:
                     simple_item = self._parse_name_only([line_new], today, db_manager)
@@ -107,8 +110,8 @@ class TextParser:
                         continue
                 except (ValueError, TypeError, AttributeError):
                     pass
-                except Exception as e2:
-                    print(f"⚠️ Unexpected error in simple parsing: {e2}")
+                except Exception:
+                    logger.exception("⚠️ Unexpected error in simple parsing")
 
                 if correct_unparseable_line is not None:
                     corrected_line = correct_unparseable_line(line_new)
@@ -123,10 +126,8 @@ class TextParser:
                             if corrected_item:
                                 parsed_items.append(corrected_item)
                                 continue
-                        except Exception as e3:
-                            print(f"❌ Failed to parse corrected line: {e3}")
-
-                print(f"❌ {error_msg}")
+                        except Exception:
+                            logger.exception("❌ Failed to parse corrected line")
 
         return parsed_items
 
@@ -247,8 +248,8 @@ class TextParser:
             if food_log_item and food_log_item.calories_per_100g is not None:
                 return float(food_log_item.calories_per_100g)
 
-        except Exception as e:
-            print(f"Error looking up calories for '{name}': {e}")
+        except Exception:
+            logger.exception("%s", f"Error looking up calories for '{name}'")
 
         return None
 
@@ -281,8 +282,8 @@ class TextParser:
             if food_log_item:
                 return food_log_item.weight, food_log_item.calories_per_100g
 
-        except Exception as e:
-            print(f"Error looking up weight and calories for '{name}': {e}")
+        except Exception:
+            logger.exception("Error looking up weight and calories for '%s'", name)
 
         return None, None
 
@@ -348,8 +349,8 @@ class TextParser:
             if food_log_item:
                 return bool(food_log_item.is_drink)
 
-        except Exception as e:
-            print(f"Error looking up drink status for '{name}': {e}")
+        except Exception:
+            logger.exception("Error looking up drink status for '%s'", name)
 
         return False
 

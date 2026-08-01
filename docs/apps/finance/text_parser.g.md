@@ -114,8 +114,8 @@ class TextParser:
                 parsed_item = self._parse_line(line_clean, line_num)
                 if parsed_item:
                     parsed_items.append(parsed_item)
-            except Exception as e:
-                print(f"Error parsing line {line_num}: {line_clean}\nError: {e}")
+            except Exception:
+                logger.exception("Error parsing line %s: %s", line_num, line_clean)
                 continue
 
         return parsed_items
@@ -169,12 +169,12 @@ class TextParser:
 
         expected_columns = 3
         if len(parts) != expected_columns:
-            print(f"Line {line_num}: Expected 3 columns separated by tabs, got {len(parts)}")
+            logger.info("%s", f"Line {line_num}: Expected 3 columns separated by tabs, got {len(parts)}")
             return None
 
         parsed = self.parse_row(parts[0], parts[1], parts[2])
         if parsed is None:
-            print(f"Line {line_num}: Invalid row: {line}")
+            logger.info("%s", f"Line {line_num}: Invalid row: {line}")
         return parsed
 ```
 
@@ -264,8 +264,8 @@ def parse_text(self, text: str) -> list[ParsedPurchaseItem]:
                 parsed_item = self._parse_line(line_clean, line_num)
                 if parsed_item:
                     parsed_items.append(parsed_item)
-            except Exception as e:
-                print(f"Error parsing line {line_num}: {line_clean}\nError: {e}")
+            except Exception:
+                logger.exception("Error parsing line %s: %s", line_num, line_clean)
                 continue
 
         return parsed_items

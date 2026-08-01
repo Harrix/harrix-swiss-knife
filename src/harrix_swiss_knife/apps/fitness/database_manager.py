@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+import logging
 from collections import Counter
 from datetime import UTC, datetime
 from typing import Any
 
 from harrix_swiss_knife.apps.common.qt_database_manager_base import QtSqliteDatabaseManagerBase
+
+logger = logging.getLogger(__name__)
 
 
 class DatabaseManager(QtSqliteDatabaseManagerBase):
@@ -106,9 +109,10 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         result = self.execute_simple_query(query, params)
         if not result:
-            print(
+            logger.error(
+                "%s",
                 f"Failed to add process record: exercise_id={exercise_id}, "
-                f"type_id={type_id}, value={value}, date={date}"
+                f"type_id={type_id}, value={value}, date={date}",
             )
         return result
 
@@ -463,7 +467,11 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         - `list[str]`: List of type names.
 
         """
-        return self.get_items("types", "type", condition=f"_id_exercises = {exercise_id}")
+        rows = self.get_rows(
+            "SELECT type FROM types WHERE _id_exercises = :ex_id",
+            {"ex_id": exercise_id},
+        )
+        return [row[0] for row in rows]
 
     def get_exercise_unit(self, exercise_name: str) -> str:
         """Get the unit of measurement for a given exercise.

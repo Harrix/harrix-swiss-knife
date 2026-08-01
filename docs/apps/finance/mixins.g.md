@@ -210,9 +210,12 @@ class AutoSaveOperations(AutoSaveMixin):
                 fee = float(clean_number_text(fee_text))
             except (ValueError, TypeError) as e:
                 self._show_validation_error(f"Invalid numeric values: {e}")
-                print(
-                    f"❌ Error converting values: amount_from={amount_from_text}, amount_to={amount_to_text}, "
-                    f"rate={rate_text}, fee={fee_text}"
+                logger.exception(
+                    "❌ Error converting values: amount_from=%s, amount_to=%s, rate=%s, fee=%s",
+                    amount_from_text,
+                    amount_to_text,
+                    rate_text,
+                    fee_text,
                 )
                 return
 
@@ -231,11 +234,11 @@ class AutoSaveOperations(AutoSaveMixin):
                 return
 
             # Update database using the full update method
-            print(f"🔄 Attempting to save exchange data for row {row_id}:")
-            print(f"   From: {from_currency_code}, To: {to_currency_code}")
-            print(f"   Amount From: {amount_from}, Amount To: {amount_to}")
-            print(f"   Rate: {rate}, Fee: {fee}, Date: {date}")
-            print(f"   Description: {description}")
+            logger.info("%s", f"🔄 Attempting to save exchange data for row {row_id}:")
+            logger.info("%s", f"   From: {from_currency_code}, To")
+            logger.info("%s", f"   Amount From: {amount_from}, Amount To: {amount_to}")
+            logger.info("%s", f"   Rate: {rate}, Fee: {fee}, Date: {date}")
+            logger.info("%s", f"   Description: {description}")
 
             if not self.db_manager.update_currency_exchange_full(
                 int(row_id),
@@ -249,15 +252,15 @@ class AutoSaveOperations(AutoSaveMixin):
                 description,
             ):
                 self._show_db_error("Failed to save currency exchange record")
-                print(f"❌ Failed to save currency exchange {row_id}")
+                logger.error("%s", f"❌ Failed to save currency exchange {row_id}")
             else:
-                print(f"✅ Successfully updated currency exchange {row_id}")
+                logger.info("%s", f"✅ Successfully updated currency exchange {row_id}")
                 # Refresh the table to show updated Loss and Today's Loss values
                 # This is done through the update_all mechanism
 
         except Exception as e:
             self._show_error("Error", f"Failed to save exchange data: {e}")
-            print(f"❌ Error saving exchange data for row {row_id}: {e}")
+            logger.exception("❌ Error saving exchange data for row %s", row_id)
 
     def _save_rate_data(self, _model: QStandardItemModel, _row: int, _row_id: str) -> None:
         """Save exchange rate data.

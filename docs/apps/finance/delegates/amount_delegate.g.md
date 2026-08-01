@@ -147,8 +147,8 @@ class AmountDelegate(QStyledItemDelegate):
             # Add minus sign back if needed
             if is_negative:
                 formatted = "-" + formatted
-        except Exception as e:
-            print(f"Error while formatting amount: {e}")
+        except Exception:
+            logger.exception("Error while formatting amount")
             return str(value)
         return formatted
 
@@ -456,8 +456,8 @@ def displayText(self, value: object, _locale: QLocale | QLocale.Language) -> str
             # Add minus sign back if needed
             if is_negative:
                 formatted = "-" + formatted
-        except Exception as e:
-            print(f"Error while formatting amount: {e}")
+        except Exception:
+            logger.exception("Error while formatting amount")
             return str(value)
         return formatted
 ```

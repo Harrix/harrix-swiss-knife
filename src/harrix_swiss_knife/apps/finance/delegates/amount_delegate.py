@@ -1,5 +1,6 @@
 """Amount delegate for formatting amounts in transactions table."""
 
+import logging
 import re
 from typing import cast
 
@@ -8,6 +9,8 @@ from PySide6.QtGui import QFont, QPainter
 from PySide6.QtWidgets import QDoubleSpinBox, QStyledItemDelegate, QStyleOptionViewItem, QWidget
 
 from harrix_swiss_knife.apps.common.ui_helpers import apply_white_editor_background
+
+logger = logging.getLogger(__name__)
 
 
 class AmountDelegate(QStyledItemDelegate):
@@ -127,8 +130,8 @@ class AmountDelegate(QStyledItemDelegate):
             # Add minus sign back if needed
             if is_negative:
                 formatted = "-" + formatted
-        except Exception as e:
-            print(f"Error while formatting amount: {e}")
+        except Exception:
+            logger.exception("Error while formatting amount")
             return str(value)
         return formatted
 

@@ -120,11 +120,14 @@ class AutoSaveOperations(AutoSaveMixin):
             return
 
         # Get type ID (can be -1 for no type)
-        tp_id = (
-            self.db_manager.get_id("types", "type", type_name, condition=f"_id_exercises = {ex_id}")
-            if type_name
-            else -1
-        )
+        if type_name:
+            type_rows = self.db_manager.get_rows(
+                "SELECT _id FROM types WHERE type = :name AND _id_exercises = :ex_id",
+                {"name": type_name, "ex_id": ex_id},
+            )
+            tp_id = type_rows[0][0] if type_rows else None
+        else:
+            tp_id = -1
 
         # Validate numeric value
         try:

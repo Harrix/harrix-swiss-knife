@@ -7,6 +7,7 @@ including loading, updating, filtering, and chart creation.
 
 from __future__ import annotations
 
+import logging
 from datetime import datetime
 from typing import Any, cast
 
@@ -23,6 +24,8 @@ from harrix_swiss_knife.apps.finance.delegates import AmountDelegate
 from harrix_swiss_knife.apps.finance.exchange_rate_checker_worker import ExchangeRateCheckerWorker
 from harrix_swiss_knife.apps.finance.exchange_rate_worker import ExchangeRateUpdateWorker
 
+logger = logging.getLogger(__name__)
+
 
 class DbFilenameUnavailableForWorkerThreadError(RuntimeError):
     """Database filename is not available for worker thread."""
@@ -38,11 +41,11 @@ class ExchangeRatesOperations:
     def load_exchange_rates_table(self) -> None:
         """Load exchange rates table data (lazy loading)."""
         if not self._validate_database_connection():
-            print("Database connection not available for loading exchange rates")
+            logger.warning("Database connection not available for loading exchange rates")
             return
 
         if self.db_manager is None:
-            print("❌ Database manager is not initialized")
+            logger.error("❌ Database manager is not initialized")
             return
 
         try:
@@ -50,8 +53,8 @@ class ExchangeRatesOperations:
             self._load_exchange_rates_page(reset=True)
             self.exchange_rates_loaded = True
             QTimer.singleShot(50, self.on_exchange_rates_update)
-        except Exception as e:
-            print(f"❌ Error loading exchange rates table: {e}")
+        except Exception:
+            logger.exception("❌ Error loading exchange rates table")
 
     def on_delete_exchange_rates_by_days(self) -> None:
         """Delete exchange rates for the last N days based on spinBox_exchange_rate_count_days value."""
@@ -279,7 +282,7 @@ class ExchangeRatesOperations:
     def on_update_exchange_rates(self) -> None:
         """Update and fill missing exchange rate records for each currency from yfinance."""
         if self.db_manager is None:
-            print("❌ Database manager is not initialized")
+            logger.error("❌ Database manager is not initialized")
             return
 
         try:
@@ -347,7 +350,7 @@ class ExchangeRatesOperations:
             if hasattr(self, "check_progress_dialog"):
                 self.check_progress_dialog.close()
             message_box.critical(cast("QWidget", self), "Check Error", f"Failed to start exchange rate check: {e}")
-            print(f"❌ Exchange rate check error: {e}")
+            logger.exception("❌ Exchange rate check error")
 
     def _auto_update_exchange_rates_on_startup(self) -> None:
         """Automatically update exchange rates on startup in the background.
@@ -361,7 +364,7 @@ class ExchangeRatesOperations:
 
         """
         if self.db_manager is None:
-            print("❌ Database manager is not initialized")
+            logger.error("❌ Database manager is not initialized")
             self.statusBar().showMessage("Exchange rate check failed: database is not initialized", 10000)
             return
 
@@ -370,7 +373,7 @@ class ExchangeRatesOperations:
 
             # First check if we need to update exchange rates at all
             if not self.db_manager.should_update_exchange_rates():
-                print("✅ [Startup] Exchange rates are up to date. Skipping update.")
+                logger.warning("✅ [Startup] Exchange rates are up to date. Skipping update.")
                 self.statusBar().showMessage("Exchange rates are up to date", 5000)
                 return
 
@@ -381,17 +384,17 @@ class ExchangeRatesOperations:
                 # Exchange rates exist - check from last exchange rate date
                 check_from_first_transaction = False
                 strategy_text = "from last exchange rate date"
-                print("🔄 [Startup] Starting exchange rate update from last exchange rate date...")
+                logger.info("🔄 [Startup] Starting exchange rate update from last exchange rate date...")
             else:
                 # No exchange rates - check from first transaction date
                 check_from_first_transaction = True
                 strategy_text = "from first transaction date"
-                print("🔄 [Startup] No exchange rates found. Starting update from first transaction date...")
+                logger.info("🔄 [Startup] No exchange rates found. Starting update from first transaction date...")
 
                 # Additional check: ensure transactions exist
                 earliest_transaction = self.db_manager.get_earliest_transaction_date()
                 if not earliest_transaction:
-                    print("ℹ️ [Startup] No transactions found. Skipping exchange rate update.")  # noqa: RUF001
+                    logger.warning("ℹ️ [Startup] No transactions found. Skipping exchange rate update.")  # noqa: RUF001
                     self.statusBar().showMessage("No transactions found. Exchange rate update skipped", 5000)
                     return
 
@@ -412,7 +415,7 @@ class ExchangeRatesOperations:
             self.startup_exchange_rate_checker.start()
 
         except Exception as e:
-            print(f"❌ Startup exchange rate check error: {e}")
+            logger.exception("❌ Startup exchange rate check error")
             self.statusBar().showMessage(f"Exchange rate check failed: {e}", 10000)
 
     def _create_exchange_rate_chart(self, currency_id: int, date_from: str, date_to: str) -> None:
@@ -438,8 +441,8 @@ class ExchangeRatesOperations:
                     # Wait a bit for cleanup to complete
                     QTimer.singleShot(100, lambda: self._create_exchange_rate_chart(currency_id, date_from, date_to))
                     return
-            except Exception as e:
-                print(f"Error while checking for previous chart deletion: {e}")
+            except Exception:
+                logger.exception("Error while checking for previous chart deletion")
 
         try:
             # Get currency info
@@ -580,7 +583,7 @@ class ExchangeRatesOperations:
             self._exchange_rates_initialized = True
 
         except Exception as e:
-            print(f"Error creating exchange rate chart: {e}")
+            logger.exception("Error creating exchange rate chart")
             self._show_no_data_label(self.verticalLayout_exchange_rates_content, f"Error creating chart: {e}")
 
     def _fetch_exchange_rates_rows(self, limit: int | None, offset: int) -> list[list[Any]]:
@@ -630,8 +633,8 @@ class ExchangeRatesOperations:
                 rows = self.db_manager.rows_from_query(query_obj)
                 query_obj.clear()
                 return [(row[0], float(row[1])) for row in rows if row[1] is not None]
-        except Exception as e:
-            print(f"Error getting exchange rates data: {e}")
+        except Exception:
+            logger.exception("Error getting exchange rates data")
         return []
 
     def _load_exchange_rates_page(self, *, reset: bool = True) -> None:
@@ -709,8 +712,8 @@ class ExchangeRatesOperations:
             self.dateEdit_filter_exchange_rates_from.setDate(start_date)
             self.dateEdit_filter_exchange_rates_to.setDate(end_date)
 
-        except Exception as e:
-            print(f"Error setting exchange rates date range: {e}")
+        except Exception:
+            logger.exception("Error setting exchange rates date range")
 
     def _setup_exchange_rates_controls(self) -> None:
         """Set up exchange rates chart controls with initial values."""
@@ -778,8 +781,8 @@ class ExchangeRatesOperations:
             # Mark as initialized
             self._exchange_rates_initialized = True
 
-        except Exception as e:
-            print(f"Error setting up exchange rates controls: {e}")
+        except Exception:
+            logger.exception("Error setting up exchange rates controls")
 
     def _setup_exchange_rates_table_delegates(self) -> None:
         """Set up item delegates for the exchange rates table."""
@@ -832,7 +835,7 @@ class ExchangeRatesOperations:
             if hasattr(self, "progress_dialog"):
                 self.progress_dialog.close()
             message_box.critical(cast("QWidget", self), "Update Error", f"Failed to start exchange rate update: {e}")
-            print(f"❌ Exchange rate update error: {e}")
+            logger.exception("❌ Exchange rate update error")
 
     def _start_startup_exchange_rate_update(self, currencies_to_process: list) -> None:
         """Start the exchange rate update process for startup.
@@ -847,9 +850,10 @@ class ExchangeRatesOperations:
             has_exchange_rates = self.db_manager.has_exchange_rates_data() if self.db_manager else False
             strategy = "from last exchange rate date" if has_exchange_rates else "from first transaction date"
 
-            print(
+            logger.info(
+                "%s",
                 f"🔄 [Startup] Starting exchange rate update for "
-                f"{len(currencies_to_process)} currencies ({strategy})..."
+                f"{len(currencies_to_process)} currencies ({strategy})...",
             )
 
             currencies_text = ", ".join(currency_code for _, currency_code, _ in currencies_to_process)
@@ -870,7 +874,7 @@ class ExchangeRatesOperations:
             self.startup_exchange_rate_worker.start()
 
         except Exception as e:
-            print(f"❌ [Startup] Exchange rate update error: {e}")
+            logger.exception("❌ [Startup] Exchange rate update error")
             self.statusBar().showMessage(f"Exchange rate update failed: {e}", 10000)
 
     def _transform_exchange_rates_data(self, rows: list[list[Any]]) -> list[list]:

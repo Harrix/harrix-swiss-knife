@@ -263,7 +263,7 @@ class MainWindow(
     def apply_filter(self) -> None:
         """Apply combo-box/date filters to the transactions table."""
         if self.db_manager is None:
-            print("❌ Database manager is not initialized")
+            logger.error("❌ Database manager is not initialized")
             return
 
         self._load_transactions_page(reset=True)
@@ -360,7 +360,7 @@ class MainWindow(
             raise ValueError(error_message)
 
         if self.db_manager is None:
-            print("❌ Database manager is not initialized")
+            logger.error("❌ Database manager is not initialized")
             return
 
         # Use appropriate database manager method
@@ -949,8 +949,8 @@ class MainWindow(
             # Update the doubleSpinBox
             self.doubleSpinBox_exchange_item_update.setValue(exchange_rate)
 
-        except Exception as e:
-            print(f"Error updating exchange item update rate: {e}")
+        except Exception:
+            logger.exception("Error updating exchange item update rate")
             self.doubleSpinBox_exchange_item_update.setValue(0.0)
 
     def on_export_csv(self) -> None:
@@ -993,7 +993,7 @@ class MainWindow(
     def on_generate_report(self, *, refresh_summary: bool = False) -> None:
         """Generate selected report on a background thread with a countdown toast."""
         if self.db_manager is None:
-            print("❌ Database manager is not initialized")
+            logger.error("❌ Database manager is not initialized")
             return
 
         worker = getattr(self, "_report_build_worker", None)
@@ -1039,7 +1039,7 @@ class MainWindow(
             return
 
         if self.db_manager is None:
-            print("❌ Database manager is not initialized")
+            logger.error("❌ Database manager is not initialized")
             return
 
         try:
@@ -1127,7 +1127,7 @@ class MainWindow(
     def show_tables(self) -> None:
         """Populate all QTableViews using database manager methods (except exchange rates — lazy loaded)."""
         if self.db_manager is None:
-            print("❌ Database manager is not initialized")
+            logger.error("❌ Database manager is not initialized")
             return
 
         try:
@@ -1137,7 +1137,7 @@ class MainWindow(
             # Exchange rates table loaded lazily on first tab access
 
         except Exception as e:
-            print(f"Error showing tables: {e}")
+            logger.exception("Error showing tables")
             message_box.warning(self, "Database Error", f"Failed to load tables: {e}")
 
     @requires_database(is_show_warning=False)
@@ -1167,7 +1167,7 @@ class MainWindow(
     def update_filter_comboboxes(self) -> None:
         """Update filter comboboxes with current data."""
         if self.db_manager is None:
-            print("❌ Database manager is not initialized")
+            logger.error("❌ Database manager is not initialized")
             return
 
         try:
@@ -1187,14 +1187,14 @@ class MainWindow(
             self.comboBox_filter_currency.addItem("")  # All currencies
             self.comboBox_filter_currency.addItems(currencies)
 
-        except Exception as e:
-            print(f"Error updating filter comboboxes: {e}")
+        except Exception:
+            logger.exception("Error updating filter comboboxes")
 
     @requires_database()
     def update_summary_labels(self) -> None:
         """Update Quick Summary / today and yesterday labels using natural per-currency amounts."""
         if self.db_manager is None:
-            print("❌ Database manager is not initialized")
+            logger.error("❌ Database manager is not initialized")
             return
 
         try:
@@ -1283,8 +1283,8 @@ class MainWindow(
             else:
                 self.label_yesterday_expense.setText(f"0.00{currency_symbol}")
 
-        except Exception as e:
-            print(f"Error updating summary labels: {e}")
+        except Exception:
+            logger.exception("Error updating summary labels")
             # Set default values on error
             self.label_total_income.setText("Total Income: 0.00₽")
             self.label_total_expenses.setText("Total Expenses: 0.00₽")
@@ -1750,8 +1750,8 @@ class MainWindow(
                             widget.close()
                             # Force garbage collection
                             gc.collect()
-                        except Exception as e:
-                            print(f"Error while clearing matplotlib canvas: {e}")
+                        except Exception:
+                            logger.exception("Error while clearing matplotlib canvas")
                     widget.deleteLater()
 
     def _close_balance_check_toast(self) -> None:
@@ -2475,8 +2475,8 @@ class MainWindow(
 
             # Apply the filter
             self.apply_filter()
-        except Exception as e:
-            print(f"❌ Error filtering by category from table: {e}")
+        except Exception:
+            logger.exception("❌ Error filtering by category from table")
 
     def _finish_window_initialization(self) -> None:
         """Finish window initialization by showing the window."""
@@ -2537,8 +2537,8 @@ class MainWindow(
 
                 category_names.append(name)
 
-        except Exception as e:
-            print(f"Error getting categories for delegate: {e}")
+        except Exception:
+            logger.exception("Error getting categories for delegate")
             return []
         return category_names
 
@@ -2583,8 +2583,8 @@ class MainWindow(
             for currency in currencies:
                 code: str = currency[1]  # currency code is at index 1
                 currency_codes.append(code)
-        except Exception as e:
-            print(f"Error getting currencies for delegate: {e}")
+        except Exception:
+            logger.exception("Error getting currencies for delegate")
             return []
         return currency_codes
 
@@ -2630,8 +2630,8 @@ class MainWindow(
                 if rows:
                     return rows[0][0]
                 return None
-        except Exception as e:
-            print(f"Error creating category {category_name}: {e}")
+        except Exception:
+            logger.exception("Error creating category %s", category_name)
             return None
         return None
 
@@ -2655,8 +2655,8 @@ class MainWindow(
                     tags.add(tag.strip())
 
             return sorted(tags)
-        except Exception as e:
-            print(f"Error getting tags for delegate: {e}")
+        except Exception:
+            logger.exception("Error getting tags for delegate")
             return []
 
     def _get_transactions_filter_params(self) -> dict[str, Any] | None:
@@ -2717,48 +2717,16 @@ class MainWindow(
         self._populate_chart_categories_list()
 
     def _init_database(self) -> None:
-        """Initialize database connection."""
-        filename: Path = database_manager.DatabaseManager.resolve_db_path_with_fallback(
+        """Open the SQLite file from app config (create from `recover.sql` if missing)."""
+        self.db_manager = init_tracker_database(
+            self,
             Path(self._app_config["sqlite_finance"]),
             "finance",
+            Path(__file__).parent / "recover.sql",
+            database_manager.DatabaseManager,
+            has_required_tables=lambda dm: dm.table_exists("transactions"),
+            missing_table_label="transactions table",
         )
-
-        # Try to open existing database first
-        if filename.exists():
-            try:
-                temp_db_manager: database_manager.DatabaseManager = database_manager.DatabaseManager(str(filename))
-
-                # Check if required tables exist
-                if temp_db_manager.table_exists("transactions"):
-                    print(f"Database opened successfully: {filename}")
-                    self.db_manager = temp_db_manager
-                    return
-                print(f"Database exists but required tables are missing at {filename}")
-                temp_db_manager.close()
-            except Exception as e:
-                print(f"Failed to open existing database: {e}")
-
-        # Database doesn't exist or is missing required tables
-        if not filename.exists():
-            filename_str: str
-            filename_str, _ = QFileDialog.getOpenFileName(
-                self,
-                "Open Database",
-                str(filename.parent),
-                "SQLite Database (*.db)",
-            )
-            if not filename_str:
-                message_box.critical(self, "Error", "No database selected")
-                msg = "No database selected"
-                raise RuntimeError(msg)
-            filename = Path(filename_str)
-
-        try:
-            self.db_manager = database_manager.DatabaseManager(str(filename))
-            print(f"Database opened successfully: {filename}")
-        except (OSError, RuntimeError, ConnectionError) as exc:
-            message_box.critical(self, "Error", f"Failed to open database: {exc}")
-            raise
 
     def _init_filter_controls(self) -> None:
         """Initialize filter controls."""
@@ -2771,7 +2739,7 @@ class MainWindow(
     def _initial_load(self) -> None:
         """Load essential data at startup (excluding exchange rates)."""
         if not self._validate_database_connection():
-            print("Database connection not available for initial load")
+            logger.warning("Database connection not available for initial load")
             return
 
         # Load essential tables only (excluding exchange rates)
@@ -2936,9 +2904,9 @@ class MainWindow(
                         from_currency_id, to_currency_id, amount_from, amount_to, default_currency_id, fee
                     )
 
-            except Exception as e:
+            except Exception:
                 # If there's any error in calculation, set losses to 0
-                print(f"Error calculating losses for exchange {row[0]}: {e}")
+                logger.exception("Error calculating losses for exchange %s", row[0])
                 loss = 0.0
                 today_loss = 0.0
 
@@ -2977,7 +2945,7 @@ class MainWindow(
     def _load_essential_tables(self) -> None:
         """Load essential tables at startup (excluding exchange rates for lazy loading)."""
         if self.db_manager is None:
-            print("❌ Database manager is not initialized")
+            logger.error("❌ Database manager is not initialized")
             return
 
         try:
@@ -2993,8 +2961,8 @@ class MainWindow(
             for table_name, load_method in tables_to_load:
                 try:
                     load_method()
-                except Exception as e:
-                    print(f"❌ Error loading {table_name} table: {e}")
+                except Exception:
+                    logger.exception("❌ Error loading %s table", table_name)
 
             # Connect auto-save signals for loaded tables
             self._connect_table_auto_save_signals()
@@ -3003,7 +2971,7 @@ class MainWindow(
             self._update_accounts_balance_display()
 
         except Exception as e:
-            print(f"Error loading essential tables: {e}")
+            logger.exception("Error loading essential tables")
             message_box.warning(self, "Database Error", f"Failed to load essential tables: {e}")
 
     def _load_more_transactions(self) -> None:
@@ -3087,7 +3055,7 @@ class MainWindow(
             preview = ", ".join(dates[:preview_limit])
             suffix = "" if len(dates) <= preview_limit else f" … (+{len(dates) - preview_limit} more)"
             lines.append(f"{code}: {preview}{suffix}")
-        print("\n".join(lines))
+        logger.info("%s", "\n".join(lines))
 
     def _mark_categories_changed(self) -> None:
         """Mark that category data has changed and needs refresh."""
@@ -3385,7 +3353,7 @@ class MainWindow(
     def _on_balance_check_failed(self, error_message: str) -> None:
         """Handle balance check worker failure."""
         self._close_balance_check_toast()
-        print(f"Error in test balance: {error_message}")
+        logger.error("%s", f"Error in test balance: {error_message}")
         message_box.warning(self, "Error", f"Error: {error_message}")
 
     def _on_check_completed(self, currencies_to_process: list) -> None:
@@ -3406,7 +3374,7 @@ class MainWindow(
                 "No Updates Needed",
                 "All exchange rates are up to date.",
             )
-            print("✅ All exchange rates are up to date.")
+            logger.info("✅ All exchange rates are up to date.")
             return
 
         # Calculate totals
@@ -3452,7 +3420,7 @@ class MainWindow(
             self.check_progress_dialog.close()
 
         message_box.critical(self, "Check Failed", f"Failed to check exchange rates:\n{error_message}")
-        print(f"❌ Check failed: {error_message}")
+        logger.error("%s", f"❌ Check failed: {error_message}")
 
     def _on_check_progress_updated(self, message: str) -> None:
         """Handle progress updates from checker worker.
@@ -3462,7 +3430,7 @@ class MainWindow(
         - `message` (`str`): Progress update message.
 
         """
-        print(message)
+        logger.info("%s", message)
         if hasattr(self, "check_progress_dialog"):
             self.check_progress_dialog.setText(message)
 
@@ -3609,13 +3577,13 @@ class MainWindow(
 
         """
         if startup:
-            print(f"❌ [Startup] Update failed: {error_message}")
+            logger.error("%s", f"❌ [Startup] Update failed: {error_message}")
             self.statusBar().showMessage(f"Exchange rate update failed: {error_message}", 10000)
         else:
             if hasattr(self, "progress_dialog"):
                 self.progress_dialog.close()
             message_box.critical(self, "Update Error", f"Failed to update exchange rates:\n{error_message}")
-            print(f"❌ {error_message}")
+            logger.error("%s", f"❌ {error_message}")
 
     def _on_exchange_update_finished_success(
         self, processed_count: int, total_operations: int, *, startup: bool = False
@@ -3641,10 +3609,11 @@ class MainWindow(
             if processed_count > 0:
                 has_exchange_rates: bool = self.db_manager.has_exchange_rates_data() if self.db_manager else True
                 strategy: str = "from last exchange rate date" if has_exchange_rates else "from first transaction date"
-                print(
+                logger.info(
+                    "%s",
                     "✅ [Startup] Successfully processed "
                     f"{processed_count} out of {total_operations} "
-                    f"exchange rate operations ({strategy})"
+                    f"exchange rate operations ({strategy})",
                 )
                 _reload_if_tab_active()
 
@@ -3665,7 +3634,7 @@ class MainWindow(
                         10000,
                     )
             else:
-                print("ℹ️ [Startup] No exchange rate records were processed")  # noqa: RUF001
+                logger.info("ℹ️ [Startup] No exchange rate records were processed")  # noqa: RUF001
                 self.statusBar().showMessage("No exchange rate records were processed", 5000)
         else:
             if hasattr(self, "progress_dialog"):
@@ -3789,7 +3758,7 @@ class MainWindow(
         - `message` (`str`): Progress update message.
 
         """
-        print(message)
+        logger.info("%s", message)
         if hasattr(self, "progress_dialog"):
             self.progress_dialog.setText(message)
 
@@ -3803,7 +3772,7 @@ class MainWindow(
         - `date_str` (`str`): The date string.
 
         """
-        print(f"✅ Added {currency_code}/USD rate: {rate:.6f} for {date_str}")
+        logger.info("%s", f"✅ Added {currency_code}/USD rate: {rate:.6f} for {date_str}")
 
     def _on_report_build_completed(self, result: ReportBuildResult) -> None:
         """Apply report data to the reports table after background computation."""
@@ -3828,7 +3797,7 @@ class MainWindow(
         """
         # If no currencies need processing, cleanup and exit
         if not currencies_to_process:
-            print("✅ [Startup] All exchange rates are up to date.")
+            logger.info("✅ [Startup] All exchange rates are up to date.")
             self.statusBar().showMessage("Exchange rates are up to date", 5000)
             return
 
@@ -3841,9 +3810,9 @@ class MainWindow(
         has_exchange_rates: bool = self.db_manager.has_exchange_rates_data() if self.db_manager else False
         strategy: str = "from last exchange rate date" if has_exchange_rates else "from first transaction date"
 
-        print(f"🔄 [Startup] Strategy: Update {strategy}")
-        print(f"📊 [Startup] Found {len(currencies_to_process)} currencies to process: {currencies_text}")
-        print(f"📊 [Startup] Missing records: {total_missing}, Updates: {total_updates}")
+        logger.info("%s", f"🔄 [Startup] Strategy: Update {strategy}")
+        logger.info("%s", f"📊 [Startup] Found {len(currencies_to_process)} currencies to process: {currencies_text}")
+        logger.info("%s", f"📊 [Startup] Missing records: {total_missing}, Updates: {total_updates}")
 
         self.statusBar().showMessage(
             f"Downloading exchange rates {strategy}: "
@@ -3861,7 +3830,7 @@ class MainWindow(
         - `error_message` (`str`): The error message.
 
         """
-        print(f"❌ [Startup] Check failed: {error_message}")
+        logger.error("%s", f"❌ [Startup] Check failed: {error_message}")
         self.statusBar().showMessage(f"Exchange rate check failed: {error_message}", 10000)
 
     def _on_startup_check_progress_updated(self, message: str) -> None:
@@ -3872,7 +3841,7 @@ class MainWindow(
         - `message` (`str`): Progress update message.
 
         """
-        print(f"[Startup] {message}")
+        logger.info("%s", f"[Startup] {message}")
         self.statusBar().showMessage(f"Checking exchange rates: {message}")
 
     def _on_startup_currency_started(self, currency_code: str) -> None:
@@ -3883,7 +3852,7 @@ class MainWindow(
         - `currency_code` (`str`): The currency code being processed.
 
         """
-        print(f"[Startup] Processing {currency_code}...")
+        logger.info("%s", f"[Startup] Processing {currency_code}...")
         self.statusBar().showMessage(f"Downloading exchange rates: processing {currency_code}...")
 
     def _on_startup_progress_updated(self, message: str) -> None:
@@ -3894,7 +3863,7 @@ class MainWindow(
         - `message` (`str`): Progress update message.
 
         """
-        print(f"[Startup] {message}")
+        logger.info("%s", f"[Startup] {message}")
         self.statusBar().showMessage(f"Downloading exchange rates: {message}")
 
     def _on_startup_rate_added(self, currency_code: str, rate: float, date_str: str) -> None:
@@ -3907,7 +3876,7 @@ class MainWindow(
         - `date_str` (`str`): The date string.
 
         """
-        print(f"✅ [Startup] Added {currency_code}/USD rate: {rate:.6f} for {date_str}")
+        logger.info("%s", f"✅ [Startup] Added {currency_code}/USD rate: {rate:.6f} for {date_str}")
 
     def _on_startup_update_finished_error(self, error_message: str) -> None:
         """Handle error completion of startup update."""
@@ -3992,8 +3961,8 @@ class MainWindow(
             # Select category in listView_categories
             self._select_category_by_id(category_id)
 
-        except Exception as e:
-            print(f"Error copying transaction data to form: {e}")
+        except Exception:
+            logger.exception("Error copying transaction data to form")
 
     def _on_transactions_scroll(self, value: int) -> None:
         """Trigger loading more transactions when scrolled near the bottom."""
@@ -4254,8 +4223,8 @@ class MainWindow(
                     if index >= 0:
                         self.comboBox_currency.setCurrentIndex(index)
 
-        except Exception as e:
-            print(f"Error populating form from description: {e}")
+        except Exception:
+            logger.exception("Error populating form from description")
         finally:
             # Always restore the original date
             self.dateEdit.setDate(current_date)
@@ -4270,7 +4239,7 @@ class MainWindow(
 
         """
         if self.db_manager is None:
-            print("❌ Database manager is not initialized")
+            logger.error("❌ Database manager is not initialized")
             return
 
         if not parsed_items:
@@ -4472,7 +4441,7 @@ class MainWindow(
             query: str = "SELECT name FROM categories WHERE _id = :category_id"
             rows: list = self.db_manager.get_rows(query, {"category_id": category_id})
             if not rows:
-                print(f"Category with ID {category_id} not found")
+                logger.info("%s", f"Category with ID {category_id} not found")
                 return
 
             category_name: str = rows[0][0]
@@ -4498,8 +4467,8 @@ class MainWindow(
                             self.label_category_now.setText(display_text)
                         break
 
-        except Exception as e:
-            print(f"Error selecting category by ID: {e}")
+        except Exception:
+            logger.exception("Error selecting category by ID")
 
     def _select_category_by_name(self, category_name: str) -> None:
         """Select a category in `listView_categories` by stored name (`UserRole`)."""
@@ -4645,9 +4614,9 @@ class MainWindow(
             if not date_obj.isNull():
                 self.dateEdit.setDate(date_obj)
             else:
-                print(f"❌ Invalid date format: {date_value}")
-        except Exception as e:
-            print(f"❌ Error setting date from table: {e}")
+                logger.error("%s", f"❌ Invalid date format: {date_value}")
+        except Exception:
+            logger.exception("❌ Error setting date from table")
 
     def _set_date_from_table_minus_one_day(self, date_value: str) -> None:
         """Set the date from table row — 1 day to the main dateEdit field.
@@ -4664,9 +4633,9 @@ class MainWindow(
                 new_date: QDate = date_obj.addDays(-1)
                 self.dateEdit.setDate(new_date)
             else:
-                print(f"❌ Invalid date format: {date_value}")
-        except Exception as e:
-            print(f"❌ Error setting date from table - 1 day: {e}")
+                logger.error("%s", f"❌ Invalid date format: {date_value}")
+        except Exception:
+            logger.exception("❌ Error setting date from table - 1 day")
 
     def _set_date_from_table_plus_one_day(self, date_value: str) -> None:
         """Set the date from table row + 1 day to the main dateEdit field.
@@ -4683,9 +4652,9 @@ class MainWindow(
                 new_date: QDate = date_obj.addDays(1)
                 self.dateEdit.setDate(new_date)
             else:
-                print(f"❌ Invalid date format: {date_value}")
-        except Exception as e:
-            print(f"❌ Error setting date from table + 1 day: {e}")
+                logger.error("%s", f"❌ Invalid date format: {date_value}")
+        except Exception:
+            logger.exception("❌ Error setting date from table + 1 day")
 
     @staticmethod
     def _set_descendant_buttons_enabled(root: QWidget | None, *, enabled: bool) -> None:
@@ -5498,7 +5467,7 @@ class MainWindow(
         elif bulk_date_action is not None and action == bulk_date_action:
             self._set_date_for_selected_transactions(ids_for_date_change)
         elif action == delete_action:
-            print("🔧 Context menu: Delete action triggered")
+            logger.debug("🔧 Context menu: Delete action triggered")
             # Perform the deletion
             self.delete_record("transactions")
         elif (
@@ -5580,8 +5549,8 @@ class MainWindow(
             # Update details label
             self.label_balance_account_details.setText(details)
 
-        except Exception as e:
-            print(f"Error updating accounts balance display: {e}")
+        except Exception:
+            logger.exception("Error updating accounts balance display")
             self.label_balance_accounts.setText("Error")
             self.label_balance_account_details.setText("Failed to load balance")
 
@@ -5605,14 +5574,14 @@ class MainWindow(
                 self.description_autocomplete_limit,
             )
 
-        except Exception as e:
-            print(f"Error updating autocomplete data: {e}")
+        except Exception:
+            logger.exception("Error updating autocomplete data")
 
     @requires_database()
     def _update_comboboxes(self) -> None:
         """Update all comboboxes with current data."""
         if self.db_manager is None:
-            print("❌ Database manager is not initialized")
+            logger.error("❌ Database manager is not initialized")
             return
 
         try:
@@ -5682,8 +5651,8 @@ class MainWindow(
 
             self._populate_chart_categories_list()
 
-        except Exception as e:
-            print(f"Error updating comboboxes: {e}")
+        except Exception:
+            logger.exception("Error updating comboboxes")
 
     def _update_date_filter_visibility(self, *, enabled: bool) -> None:
         """Show or hide date filter fields based on checkBox_use_date_filter."""
@@ -6021,7 +5990,7 @@ Apply combo-box/date filters to the transactions table.
 ```python
 def apply_filter(self) -> None:
         if self.db_manager is None:
-            print("❌ Database manager is not initialized")
+            logger.error("❌ Database manager is not initialized")
             return
 
         self._load_transactions_page(reset=True)
@@ -6155,7 +6124,7 @@ def delete_record(self, table_name: str) -> None:
             raise ValueError(error_message)
 
         if self.db_manager is None:
-            print("❌ Database manager is not initialized")
+            logger.error("❌ Database manager is not initialized")
             return
 
         # Use appropriate database manager method
@@ -6940,8 +6909,8 @@ def on_exchange_item_update_changed(self) -> None:
             # Update the doubleSpinBox
             self.doubleSpinBox_exchange_item_update.setValue(exchange_rate)
 
-        except Exception as e:
-            print(f"Error updating exchange item update rate: {e}")
+        except Exception:
+            logger.exception("Error updating exchange item update rate")
             self.doubleSpinBox_exchange_item_update.setValue(0.0)
 ```
 
@@ -7011,7 +6980,7 @@ Generate selected report on a background thread with a countdown toast.
 ```python
 def on_generate_report(self, *, refresh_summary: bool = False) -> None:
         if self.db_manager is None:
-            print("❌ Database manager is not initialized")
+            logger.error("❌ Database manager is not initialized")
             return
 
         worker = getattr(self, "_report_build_worker", None)
@@ -7098,7 +7067,7 @@ def on_set_default_currency(self) -> None:
             return
 
         if self.db_manager is None:
-            print("❌ Database manager is not initialized")
+            logger.error("❌ Database manager is not initialized")
             return
 
         try:
@@ -7308,7 +7277,7 @@ Populate all QTableViews using database manager methods (except exchange rates �
 ```python
 def show_tables(self) -> None:
         if self.db_manager is None:
-            print("❌ Database manager is not initialized")
+            logger.error("❌ Database manager is not initialized")
             return
 
         try:
@@ -7318,7 +7287,7 @@ def show_tables(self) -> None:
             # Exchange rates table loaded lazily on first tab access
 
         except Exception as e:
-            print(f"Error showing tables: {e}")
+            logger.exception("Error showing tables")
             message_box.warning(self, "Database Error", f"Failed to load tables: {e}")
 ```
 
@@ -7374,7 +7343,7 @@ Update filter comboboxes with current data.
 ```python
 def update_filter_comboboxes(self) -> None:
         if self.db_manager is None:
-            print("❌ Database manager is not initialized")
+            logger.error("❌ Database manager is not initialized")
             return
 
         try:
@@ -7394,8 +7363,8 @@ def update_filter_comboboxes(self) -> None:
             self.comboBox_filter_currency.addItem("")  # All currencies
             self.comboBox_filter_currency.addItems(currencies)
 
-        except Exception as e:
-            print(f"Error updating filter comboboxes: {e}")
+        except Exception:
+            logger.exception("Error updating filter comboboxes")
 ```
 
 </details>
@@ -7414,7 +7383,7 @@ Update Quick Summary / today and yesterday labels using natural per-currency amo
 ```python
 def update_summary_labels(self) -> None:
         if self.db_manager is None:
-            print("❌ Database manager is not initialized")
+            logger.error("❌ Database manager is not initialized")
             return
 
         try:
@@ -7503,8 +7472,8 @@ def update_summary_labels(self) -> None:
             else:
                 self.label_yesterday_expense.setText(f"0.00{currency_symbol}")
 
-        except Exception as e:
-            print(f"Error updating summary labels: {e}")
+        except Exception:
+            logger.exception("Error updating summary labels")
             # Set default values on error
             self.label_total_income.setText("Total Income: 0.00₽")
             self.label_total_expenses.setText("Total Expenses: 0.00₽")

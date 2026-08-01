@@ -21,6 +21,7 @@ if TYPE_CHECKING:
     from PySide6.QtCore import QSize
     from PySide6.QtWidgets import QLabel
 
+
 logger = logging.getLogger(__name__)
 
 

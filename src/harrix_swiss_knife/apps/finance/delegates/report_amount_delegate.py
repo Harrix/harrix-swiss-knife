@@ -1,8 +1,12 @@
 """Report amount delegate for formatting amounts in reports without editing."""
 
+import logging
+
 from PySide6.QtCore import QLocale, QModelIndex, QPersistentModelIndex
 from PySide6.QtGui import QFont, QPainter
 from PySide6.QtWidgets import QStyledItemDelegate, QStyleOptionViewItem, QWidget
+
+logger = logging.getLogger(__name__)
 
 
 class ReportAmountDelegate(QStyledItemDelegate):
@@ -93,8 +97,8 @@ class ReportAmountDelegate(QStyledItemDelegate):
             # Add minus sign back if needed
             if is_negative:
                 formatted = "-" + formatted
-        except Exception as e:
-            print(f"Error while formatting amount: {e}")
+        except Exception:
+            logger.exception("Error while formatting amount")
             return str(value)
         return formatted
 

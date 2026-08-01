@@ -63,8 +63,8 @@ class ChartOperationsBase:
                 if close_matplotlib_figures and isinstance(widget, FigureCanvas) and hasattr(widget, "figure"):
                     try:
                         plt.close(widget.figure)
-                    except Exception as e:
-                        print(f"Error closing Matplotlib figure: {e}")
+                    except Exception:
+                        logger.exception("Error closing Matplotlib figure")
 
                 widget.hide()
                 widget.deleteLater()
@@ -117,12 +117,18 @@ class ChartOperationsBase:
         x_values = [item[0] for item in data]
         y_values = [item[1] for item in data]
 
-        # Count non-zero values for label display decision
-        non_zero_count = sum(1 for y in y_values if y != 0)
+        # Count non-zero / non-None values for label display decision
+        non_zero_count = sum(1 for y in y_values if y is not None and y != 0)
 
         # Plot data
         self._plot_data(
-            ax, x_values, y_values, chart_config.get("color", "b"), non_zero_count, chart_config.get("period")
+            ax,
+            x_values,
+            y_values,
+            chart_config.get("color", "b"),
+            non_zero_count,
+            chart_config.get("period"),
+            is_calories_chart=bool(chart_config.get("is_calories_chart", False)),
         )
 
         # Customize plot
@@ -138,17 +144,16 @@ class ChartOperationsBase:
         if x_values and isinstance(x_values[0], datetime):
             self._format_chart_x_axis(ax, x_values, chart_config.get("period", "Days"))
 
-        # Add statistics if requested (exclude zero values from stats)
+        # Add statistics if requested (exclude zero / None values from stats)
         if chart_config.get("show_stats", True) and len(y_values) > 1:
             stats_formatter = chart_config.get("stats_formatter")
             if stats_formatter:
-                # Filter out zero values for statistics
-                non_zero_values = [y for y in y_values if y != 0]
+                non_zero_values = [y for y in y_values if y is not None and y != 0]
                 if non_zero_values:
                     stats_text = stats_formatter(non_zero_values)
                     self._add_stats_box(ax, stats_text)
             else:
-                non_zero_values = [y for y in y_values if y != 0]
+                non_zero_values = [y for y in y_values if y is not None and y != 0]
                 if non_zero_values:
                     stats_text = self._format_default_stats(non_zero_values, chart_config.get("stats_unit", ""))
                     self._add_stats_box(ax, stats_text)
@@ -363,6 +368,8 @@ class ChartOperationsBase:
         color: str,
         non_zero_count: int | None = None,
         period: str | None = None,
+        *,
+        is_calories_chart: bool = False,
     ) -> None:
         """Plot data with automatic marker selection based on data points.
 
@@ -374,8 +381,10 @@ class ChartOperationsBase:
         - `color` (`str`): Plot color.
         - `non_zero_count` (`int | None`): Number of non-zero points for label decision. Defaults to `None`.
         - `period` (`str | None`): Time period for formatting labels. Defaults to `None`.
+        - `is_calories_chart` (`bool`): Reserved for subclasses (e.g. food calorie zones). Defaults to `False`.
 
         """
+        _ = is_calories_chart
         # Convert datetime to numerical date values for type safety and plotting
         x_nums: list[float] = date2num(x_values)  # This satisfies the type checker
 

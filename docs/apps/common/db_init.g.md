@@ -130,20 +130,20 @@ def init_tracker_database(
         try:
             temp_db_manager = db_manager_class(str(filename))
             if has_required_tables(temp_db_manager):
-                print(f"Database opened successfully: {filename}")
+                logger.info("%s", f"Database opened successfully: {filename}")
                 if on_opened is not None:
                     on_opened(temp_db_manager)
                 return temp_db_manager
-            print(f"Database exists but {missing_table_label} missing at {filename}")
+            logger.info("%s", f"Database exists but {missing_table_label} missing at {filename}")
             temp_db_manager.close()
-        except Exception as e:
-            print(f"Failed to open existing database: {e}")
+        except Exception:
+            logger.exception("Failed to open existing database")
 
     if recover_sql_path.exists():
-        print(f"Database not found or missing {missing_table_label} at {filename}")
-        print(f"Attempting to create database from {recover_sql_path}")
+        logger.info("%s", f"Database not found or missing {missing_table_label} at {filename}")
+        logger.info("%s", f"Attempting to create database from {recover_sql_path}")
         if QtSqliteDatabaseManagerBase.create_database_from_sql(str(filename), str(recover_sql_path)):
-            print("Database created successfully from recover.sql")
+            logger.info("Database created successfully from recover.sql")
         else:
             message_box.warning(
                 parent,
@@ -174,7 +174,7 @@ def init_tracker_database(
 
     try:
         db_manager = db_manager_class(str(filename))
-        print(f"Database opened successfully: {filename}")
+        logger.info("%s", f"Database opened successfully: {filename}")
     except (OSError, RuntimeError, ConnectionError) as exc:
         message_box.critical(parent, "Error", f"Failed to open database: {exc}")
         raise

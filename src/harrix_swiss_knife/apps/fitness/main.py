@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import calendar
 import contextlib
+import logging
 from collections import defaultdict
 from datetime import UTC, datetime, timedelta
 from functools import partial
@@ -84,6 +85,8 @@ from harrix_swiss_knife.apps.fitness.mixins import (
 from harrix_swiss_knife.apps.fitness.progress_calculator import ExerciseProgressCalculator
 from harrix_swiss_knife.paths import get_config_path_str
 from harrix_swiss_knife.win11_backdrop import SystemBackdrop, try_apply_system_backdrop
+
+logger = logging.getLogger(__name__)
 
 
 class MainWindow(
@@ -254,7 +257,7 @@ class MainWindow(
     def apply_filter(self) -> None:
         """Apply combo-box/date filters to the process table."""
         if self.db_manager is None:
-            print("❌ Database manager is not initialized")
+            logger.error("❌ Database manager is not initialized")
             return
 
         self._load_process_page(reset=True)
@@ -337,7 +340,7 @@ class MainWindow(
             return
 
         if self.db_manager is None:
-            print("❌ Database manager is not initialized")
+            logger.error("❌ Database manager is not initialized")
             return
 
         # Use appropriate database manager method
@@ -432,7 +435,7 @@ class MainWindow(
             return
 
         if self.db_manager is None:
-            print("❌ Database manager is not initialized")
+            logger.error("❌ Database manager is not initialized")
             return
 
         # Get checkbox value
@@ -458,7 +461,7 @@ class MainWindow(
             return
 
         if self.db_manager is None:
-            print("❌ Database manager is not initialized")
+            logger.error("❌ Database manager is not initialized")
             return
 
         try:
@@ -474,11 +477,14 @@ class MainWindow(
                 message_box.warning(self, "Error", f"Exercise type is required for '{exercise}'. Please select a type.")
                 return
 
-            type_id = (
-                self.db_manager.get_id("types", "type", type_name, condition=f"_id_exercises = {ex_id}")
-                if type_name
-                else -1
-            )
+            if type_name:
+                type_rows = self.db_manager.get_rows(
+                    "SELECT _id FROM types WHERE type = :name AND _id_exercises = :ex_id",
+                    {"name": type_name, "ex_id": ex_id},
+                )
+                type_id = type_rows[0][0] if type_rows else None
+            else:
+                type_id = -1
 
             # Store current date before adding record
             value = str(self.spinBox_count.value())
@@ -531,7 +537,7 @@ class MainWindow(
             return
 
         if self.db_manager is None:
-            print("❌ Database manager is not initialized")
+            logger.error("❌ Database manager is not initialized")
             return
 
         try:
@@ -568,7 +574,7 @@ class MainWindow(
             return
 
         if self.db_manager is None:
-            print("❌ Database manager is not initialized")
+            logger.error("❌ Database manager is not initialized")
             return
 
         try:
@@ -635,7 +641,7 @@ class MainWindow(
         self.current_statistics_mode = "check_steps"
 
         if self.db_manager is None:
-            print("❌ Database manager is not initialized")
+            logger.error("❌ Database manager is not initialized")
             return
 
         try:
@@ -815,7 +821,7 @@ class MainWindow(
             return
 
         if self.db_manager is None:
-            print("❌ Database manager is not initialized")
+            logger.error("❌ Database manager is not initialized")
             return
 
         # Get exercise unit for Y-axis label
@@ -1075,7 +1081,7 @@ class MainWindow(
             return
 
         if self.db_manager is None:
-            print("❌ Database manager is not initialized")
+            logger.error("❌ Database manager is not initialized")
             return
 
         # Get exercise unit for Y-axis label
@@ -1390,7 +1396,7 @@ class MainWindow(
 
         # Check if database manager is available and connection is open
         if not self._validate_database_connection():
-            print("Database manager not available or connection not open")
+            logger.warning("Database manager not available or connection not open")
             self.comboBox_type.setEnabled(False)
             self.label_exercise.setText("Database error")
             self.label_unit.setText("")
@@ -1407,13 +1413,13 @@ class MainWindow(
                 self._load_exercise_avif(exercise, "main")
 
         if self.db_manager is None:
-            print("❌ Database manager is not initialized")
+            logger.error("❌ Database manager is not initialized")
             return
 
         try:
             ex_id = self.db_manager.get_id("exercises", "name", exercise)
             if ex_id is None:
-                print(f"Exercise '{exercise}' not found in database")
+                logger.info("%s", f"Exercise '{exercise}' not found in database")
                 self.comboBox_type.setEnabled(False)
                 self.label_unit.setText("")
                 self.label_last_date_count_today.setText("")
@@ -1493,7 +1499,11 @@ class MainWindow(
                             self.spinBox_count.setValue(value)
                         except (ValueError, TypeError):
                             # If conversion fails, keep default value
-                            print(f"Could not convert last value '{last_value}' to int for exercise '{exercise}'")
+                            logger.exception(
+                                "Could not convert last value '%s' to int for exercise '%s'",
+                                last_value,
+                                exercise,
+                            )
                 elif ex_id == self.id_steps:  # Steps exercise - set to 0 (empty)
                     self.spinBox_count.setValue(0)
 
@@ -1504,12 +1514,12 @@ class MainWindow(
                         first_empty_date = self._get_first_day_without_steps_record(ex_id)
                         self.dateEdit.setDate(first_empty_date)
 
-            except Exception as e:
-                print(f"Error getting last exercise record for '{exercise}': {e}")
+            except Exception:
+                logger.exception("%s", f"Error getting last exercise record for '{exercise}'")
                 # Continue without setting last values
 
-        except Exception as e:
-            print(f"Error in exercise selection changed: {e}")
+        except Exception:
+            logger.exception("Error in exercise selection changed")
             self.comboBox_type.setEnabled(False)
             self.label_unit.setText("Error loading data")
             self.label_last_date_count_today.setText("Error loading data")
@@ -1655,8 +1665,8 @@ class MainWindow(
                     50, lambda: self._update_form_from_process_selection(exercise_name, type_name, value_str)
                 )
 
-        except Exception as e:
-            print(f"Error in process selection changed: {e}")
+        except Exception:
+            logger.exception("Error in process selection changed")
 
     def on_radio_button_changed(self) -> None:
         """Handle radio button selection change in chart type group."""
@@ -1672,7 +1682,7 @@ class MainWindow(
         self.current_statistics_mode = "records"
 
         if self.db_manager is None:
-            print("❌ Database manager is not initialized")
+            logger.error("❌ Database manager is not initialized")
             return
 
         try:
@@ -2058,7 +2068,7 @@ class MainWindow(
         self.current_statistics_mode = "exercise_goal_recommendations"
 
         if self.db_manager is None:
-            print("❌ Database manager is not initialized")
+            logger.error("❌ Database manager is not initialized")
             return
 
         try:
@@ -2179,8 +2189,8 @@ class MainWindow(
                         ]
                     )
 
-                except Exception as e:
-                    print(f"❌ Error processing exercise {exercise_name}: {e}")
+                except Exception:
+                    logger.exception("❌ Error processing exercise %s", exercise_name)
                     # Add error row
                     table_data.append(
                         [
@@ -2282,7 +2292,7 @@ class MainWindow(
         self.current_statistics_mode = "last_exercises"
 
         if self.db_manager is None:
-            print("❌ Database manager is not initialized")
+            logger.error("❌ Database manager is not initialized")
             return
 
         try:
@@ -2622,7 +2632,7 @@ class MainWindow(
         use_max_value = self.checkBox_max_value.isChecked()  # Check if max value mode is enabled
 
         if self.db_manager is None:
-            print("❌ Database manager is not initialized")
+            logger.error("❌ Database manager is not initialized")
             return
 
         # Get calories data using database manager
@@ -2710,7 +2720,7 @@ class MainWindow(
         use_max_value = self.checkBox_max_value.isChecked()  # Check if max value mode is enabled
 
         if self.db_manager is None:
-            print("❌ Database manager is not initialized")
+            logger.error("❌ Database manager is not initialized")
             return
 
         # Get sets data using database manager
@@ -2789,11 +2799,11 @@ class MainWindow(
     def show_tables(self) -> None:
         """Populate all QTableViews using database manager methods."""
         if not self._validate_database_connection():
-            print("Database connection not available for showing tables")
+            logger.warning("Database connection not available for showing tables")
             return
 
         if self.db_manager is None:
-            print("❌ Database manager is not initialized")
+            logger.error("❌ Database manager is not initialized")
             return
 
         try:
@@ -2878,7 +2888,7 @@ class MainWindow(
             self.update_sets_count_today()
 
         except Exception as e:
-            print(f"Error showing tables: {e}")
+            logger.exception("Error showing tables")
             message_box.warning(self, "Database Error", f"Failed to load tables: {e}")
 
     def update_all(
@@ -2891,7 +2901,7 @@ class MainWindow(
     ) -> None:
         """Refresh tables, list view and (optionally) dates."""
         if not self._validate_database_connection():
-            print("Database connection not available for update_all")
+            logger.warning("Database connection not available for update_all")
             return
 
         # Reset show_all_records flag to default (show limited records)
@@ -2945,7 +2955,7 @@ class MainWindow(
     def update_chart_comboboxes(self) -> None:
         """Update exercise and type list views for charts."""
         if self.db_manager is None:
-            print("❌ Database manager is not initialized")
+            logger.error("❌ Database manager is not initialized")
             return
 
         try:
@@ -2988,8 +2998,8 @@ class MainWindow(
             # Update type list view
             self.update_chart_type_listview()
 
-        except Exception as e:
-            print(f"Error updating chart list views: {e}")
+        except Exception:
+            logger.exception("Error updating chart list views")
 
     @requires_database(is_show_warning=False)
     def update_chart_type_listview(
@@ -3010,7 +3020,7 @@ class MainWindow(
             previous = QModelIndex()
 
         if self.db_manager is None:
-            print("❌ Database manager is not initialized")
+            logger.error("❌ Database manager is not initialized")
             return
 
         try:
@@ -3044,8 +3054,8 @@ class MainWindow(
             if type_model.rowCount() > 0:
                 self.listView_chart_type.setCurrentIndex(type_model.index(0, 0))
 
-        except Exception as e:
-            print(f"Error updating chart type list view: {e}")
+        except Exception:
+            logger.exception("Error updating chart type list view")
 
     @requires_database()
     def update_exercise_chart(self) -> None:
@@ -3064,7 +3074,7 @@ class MainWindow(
             return
 
         if self.db_manager is None:
-            print("❌ Database manager is not initialized")
+            logger.error("❌ Database manager is not initialized")
             return
 
         # Get exercise unit for Y-axis label
@@ -3165,7 +3175,7 @@ class MainWindow(
 
         """
         if self.db_manager is None:
-            print("❌ Database manager is not initialized")
+            logger.error("❌ Database manager is not initialized")
             return
 
         try:
@@ -3184,8 +3194,8 @@ class MainWindow(
 
             self.update_filter_type_combobox()
 
-        except Exception as e:
-            print(f"Error updating filter comboboxes: {e}")
+        except Exception:
+            logger.exception("Error updating filter comboboxes")
 
     @requires_database(is_show_warning=False)
     def update_filter_type_combobox(self, _index: int = -1) -> None:
@@ -3201,7 +3211,7 @@ class MainWindow(
 
         """
         if self.db_manager is None:
-            print("❌ Database manager is not initialized")
+            logger.error("❌ Database manager is not initialized")
             return
 
         try:
@@ -3221,13 +3231,13 @@ class MainWindow(
                 if idx >= 0:
                     self.comboBox_filter_type.setCurrentIndex(idx)
 
-        except Exception as e:
-            print(f"Error updating filter type combobox: {e}")
+        except Exception:
+            logger.exception("Error updating filter type combobox")
 
     def update_sets_count_today(self) -> None:
         """Update the label showing count of sets done today."""
         if self.db_manager is None:
-            print("❌ Database manager is not initialized")
+            logger.error("❌ Database manager is not initialized")
             return
 
         if not self._validate_database_connection():
@@ -3237,8 +3247,8 @@ class MainWindow(
         try:
             count = self.db_manager.get_sets_count_today()
             self.label_count_sets_today.setText(str(count))
-        except Exception as e:
-            print(f"Error getting sets count for today: {e}")
+        except Exception:
+            logger.exception("Error getting sets count for today")
             self.label_count_sets_today.setText("0")
 
     @requires_database(is_show_warning=False)
@@ -3251,7 +3261,7 @@ class MainWindow(
 
         """
         if self.db_manager is None:
-            print("❌ Database manager is not initialized")
+            logger.error("❌ Database manager is not initialized")
             return
 
         try:
@@ -3278,14 +3288,14 @@ class MainWindow(
             # Unblock signals
             self.comboBox_records_select_exercise.blockSignals(False)  # noqa: FBT003
 
-        except Exception as e:
-            print(f"Error updating statistics exercise combobox: {e}")
+        except Exception:
+            logger.exception("Error updating statistics exercise combobox")
 
     @requires_database()
     def update_weight_chart(self) -> None:
         """Update the weight chart using database manager."""
         if self.db_manager is None:
-            print("❌ Database manager is not initialized")
+            logger.error("❌ Database manager is not initialized")
             return
 
         date_from = self.dateEdit_weight_from.date().toString("yyyy-MM-dd")
@@ -4232,15 +4242,18 @@ class MainWindow(
 
         try:
             # Get exercise name
-            exercise = self.db_manager.get_items("exercises", "name", condition=f"_id = {ex_id}")
-            if exercise:
-                exercise_name = exercise[0]
+            exercise_rows = self.db_manager.get_rows(
+                "SELECT name FROM exercises WHERE _id = :id",
+                {"id": ex_id},
+            )
+            if exercise_rows:
+                exercise_name = exercise_rows[0][0]
                 months_count = self.spinBox_compare_last.value()
                 return self.progress_calculator.check_monthly_goal_achievement(
                     ex_id, exercise_name, added_value, date_str, months_count
                 )
-        except Exception as e:
-            print(f"Error checking for monthly goal achievement: {e}")
+        except Exception:
+            logger.exception("Error checking for monthly goal achievement")
 
         return (False, 0.0)
 
@@ -4440,9 +4453,10 @@ class MainWindow(
         for row_idx, row in enumerate(data):
             # Validate row structure - should have at least 6 elements
             if len(row) < min_row_length:
-                print(
+                logger.warning(
+                    "%s",
                     f"Warning: Row {row_idx} has insufficient elements "
-                    f"({len(row)}), expected {min_row_length}. Skipping."
+                    f"({len(row)}), expected {min_row_length}. Skipping.",
                 )
                 continue
 
@@ -4573,8 +4587,8 @@ class MainWindow(
 
             # Select all text in the spinbox
             self.spinBox_count.selectAll()
-        except Exception as e:
-            print(f"Error focusing spinBox_count: {e}")
+        except Exception:
+            logger.exception("Error focusing spinBox_count")
 
     def _get_current_selected_exercise(self) -> str | None:
         """Get the currently selected exercise from the list view.
@@ -4761,16 +4775,16 @@ class MainWindow(
         """
         initial_weight = 89.0
         if not self._validate_database_connection():
-            print("Database manager not available or connection not open")
+            logger.warning("Database manager not available or connection not open")
             return initial_weight
         if self.db_manager is None:
-            print("❌ Database manager is not initialized")
+            logger.error("❌ Database manager is not initialized")
             return initial_weight
 
         try:
             last_weight = self.db_manager.get_last_weight()
-        except Exception as e:
-            print(f"Error getting last weight: {e}")
+        except Exception:
+            logger.exception("Error getting last weight")
             return initial_weight
         else:
             return last_weight if last_weight is not None else initial_weight
@@ -5038,7 +5052,7 @@ class MainWindow(
             self._charts_initialized = True
 
             if self.db_manager is None:
-                print("❌ Database manager is not initialized")
+                logger.error("❌ Database manager is not initialized")
                 return
 
             # Set period to Months
@@ -5117,7 +5131,7 @@ class MainWindow(
 
         label_widget = label_widgets.get(label_key)
         if not label_widget:
-            print(f"Unknown label key: {label_key}")
+            logger.info("%s", f"Unknown label key: {label_key}")
             return
 
         self.avif_manager.load_exercise_avif(exercise_name, label_widget, label_key)
@@ -5401,7 +5415,7 @@ class MainWindow(
     def _select_last_executed_exercise(self) -> None:
         """Select the last executed exercise in the chart exercise list view."""
         if self.db_manager is None:
-            print("❌ Database manager is not initialized")
+            logger.error("❌ Database manager is not initialized")
             return
 
         if not self._validate_database_connection():
@@ -5413,8 +5427,8 @@ class MainWindow(
             if last_exercise_name and self._select_exercise_in_chart_list(last_exercise_name):
                 # Update type list view after selecting exercise
                 self.update_chart_type_listview()
-        except Exception as e:
-            print(f"Error selecting last executed exercise: {e}")
+        except Exception:
+            logger.exception("Error selecting last executed exercise")
 
     # Add to MainWindow class (near other small helpers)
     def _set_no_data_info_label(self, text: str | None = None) -> None:
@@ -5528,7 +5542,7 @@ class MainWindow(
             return
 
         if action == export_action:
-            print("🔧 Context menu: Export to CSV action triggered")
+            logger.debug("🔧 Context menu: Export to CSV action triggered")
             self.on_export_csv()
 
     def _show_exercises_context_menu(self, position: QPoint) -> None:
@@ -5551,7 +5565,7 @@ class MainWindow(
             return
 
         if action == export_action:
-            print("🔧 Context menu: Export to CSV action triggered")
+            logger.debug("🔧 Context menu: Export to CSV action triggered")
             self.on_export_csv()
 
     def _show_monthly_goal_congratulations(self, exercise: str, type_name: str, current_value: float) -> None:
@@ -5565,14 +5579,14 @@ class MainWindow(
 
         """
         if self.db_manager is None:
-            print("❌ Database manager is not initialized")
+            logger.error("❌ Database manager is not initialized")
             return
 
         try:
             unit = self.db_manager.get_exercise_unit(exercise)
             achievement_dialog.show_monthly_goal_congratulations(self, exercise, type_name, current_value, unit or None)
-        except Exception as e:
-            print(f"Error showing monthly goal congratulations: {e}")
+        except Exception:
+            logger.exception("Error showing monthly goal congratulations")
 
     def _show_process_context_menu(self, position: QPoint) -> None:
         """Show context menu for process table.
@@ -5596,15 +5610,15 @@ class MainWindow(
             return
 
         if action == export_action:
-            print("🔧 Context menu: Export to CSV action triggered")
+            logger.debug("🔧 Context menu: Export to CSV action triggered")
             self.on_export_csv()
         elif action == delete_action:
             # Check that a row is selected
             if self.tableView_process.currentIndex().isValid():
-                print("🔧 Context menu: Delete action triggered")
+                logger.debug("🔧 Context menu: Delete action triggered")
                 self.pushButton_delete.click()
             else:
-                print("⚠️ Context menu: No row selected for deletion")
+                logger.debug("⚠️ Context menu: No row selected for deletion")
 
     def _show_record_congratulations(self, exercise: str, record_info: dict) -> None:
         """Show congratulations message for new records.
@@ -5616,14 +5630,14 @@ class MainWindow(
 
         """
         if self.db_manager is None:
-            print("❌ Database manager is not initialized")
+            logger.error("❌ Database manager is not initialized")
             return
 
         try:
             unit = self.db_manager.get_exercise_unit(exercise)
             achievement_dialog.show_record_congratulations(self, exercise, record_info, unit or None)
-        except Exception as e:
-            print(f"Error showing record congratulations: {e}")
+        except Exception:
+            logger.exception("Error showing record congratulations")
 
     def _show_statistics_context_menu(self, position: QPoint) -> None:
         """Show context menu for statistics table.
@@ -5645,7 +5659,7 @@ class MainWindow(
             return
 
         if action == export_action:
-            print("🔧 Context menu: Export to CSV action triggered")
+            logger.debug("🔧 Context menu: Export to CSV action triggered")
             self.on_export_csv()
 
     def _show_weight_context_menu(self, position: QPoint) -> None:
@@ -5668,7 +5682,7 @@ class MainWindow(
             return
 
         if action == export_action:
-            print("🔧 Context menu: Export to CSV action triggered")
+            logger.debug("🔧 Context menu: Export to CSV action triggered")
             self.on_export_csv()
 
     def _subtract_one_day_from_main(self) -> None:
@@ -5755,11 +5769,11 @@ class MainWindow(
 
         """
         if not self._validate_database_connection():
-            print("Database manager not available or connection not open")
+            logger.warning("Database manager not available or connection not open")
             return
 
         if self.db_manager is None:
-            print("❌ Database manager is not initialized")
+            logger.error("❌ Database manager is not initialized")
             return
 
         try:
@@ -5805,8 +5819,8 @@ class MainWindow(
             # Update types AVIF after combobox update
             self._update_types_avif()
 
-        except Exception as e:
-            print(f"Error updating comboboxes: {e}")
+        except Exception:
+            logger.exception("Error updating comboboxes")
 
     def _update_exercises_avif(self) -> None:
         """Update AVIF for exercises table selection."""
@@ -5830,7 +5844,7 @@ class MainWindow(
                 value = int(float(value_str))
                 self.spinBox_count.setValue(value)
             except (ValueError, TypeError):
-                print(f"Could not convert value '{value_str}' to int")
+                logger.exception("%s", f"Could not convert value '{value_str}' to int")
 
             # Update comboBox_type selection
             if type_name:
@@ -5844,8 +5858,8 @@ class MainWindow(
                 # No type, select empty option
                 self.comboBox_type.setCurrentIndex(0)
 
-        except Exception as e:
-            print(f"Error updating form from process selection: {e}")
+        except Exception:
+            logger.exception("Error updating form from process selection")
 
     def _update_layout_for_window_size(self) -> None:
         """Adjust key widgets based on current window height."""

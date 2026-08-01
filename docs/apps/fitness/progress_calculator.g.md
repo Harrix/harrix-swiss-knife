@@ -174,8 +174,8 @@ class ExerciseProgressCalculator:
                     "previous_yearly": yearly_max,
                     "type_name": type_name,
                 }
-        except Exception as e:
-            print(f"Error checking for new records: {e}")
+        except Exception:
+            logger.exception("Error checking for new records")
             # Don't show error to user for first-time records, just return None
 
         return None
@@ -232,8 +232,8 @@ class ExerciseProgressCalculator:
                         # Goal was achieved if remaining_to_max_before > 0 and remaining_to_max_after <= 0
                         goal_achieved = remaining_to_max_before > 0 and remaining_to_max_after <= 0
                         current_progress = current_progress_after
-        except Exception as e:
-            print(f"Error checking for monthly goal achievement: {e}")
+        except Exception:
+            logger.exception("Error checking for monthly goal achievement")
 
         return (goal_achieved, current_progress)
 
@@ -592,8 +592,8 @@ def check_for_new_records(
                     "previous_yearly": yearly_max,
                     "type_name": type_name,
                 }
-        except Exception as e:
-            print(f"Error checking for new records: {e}")
+        except Exception:
+            logger.exception("Error checking for new records")
             # Don't show error to user for first-time records, just return None
 
         return None
@@ -662,8 +662,8 @@ def check_monthly_goal_achievement(
                         # Goal was achieved if remaining_to_max_before > 0 and remaining_to_max_after <= 0
                         goal_achieved = remaining_to_max_before > 0 and remaining_to_max_after <= 0
                         current_progress = current_progress_after
-        except Exception as e:
-            print(f"Error checking for monthly goal achievement: {e}")
+        except Exception:
+            logger.exception("Error checking for monthly goal achievement")
 
         return (goal_achieved, current_progress)
 ```

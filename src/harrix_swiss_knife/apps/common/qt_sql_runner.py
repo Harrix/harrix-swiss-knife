@@ -10,6 +10,7 @@ if TYPE_CHECKING:
 
     from PySide6.QtSql import QSqlQuery
 
+
 logger = logging.getLogger(__name__)
 
 

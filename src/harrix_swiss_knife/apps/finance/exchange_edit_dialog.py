@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import logging
+
 from PySide6.QtCore import QDate
 from PySide6.QtWidgets import (
     QComboBox,
@@ -18,6 +20,8 @@ from PySide6.QtWidgets import (
 from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.finance.exchange_validation import validate_exchange_data
 from harrix_swiss_knife.qt_emoji_icon import CANCEL_BUTTON_EMOJI, OK_BUTTON_EMOJI, make_emoji_push_button
+
+logger = logging.getLogger(__name__)
 
 
 class ExchangeEditDialog(QDialog):
@@ -130,8 +134,8 @@ class ExchangeEditDialog(QDialog):
                 date = QDate.fromString(date_str, "yyyy-MM-dd")
                 if not date.isNull():
                     self.date_edit.setDate(date)
-            except Exception as e:
-                print(f"Failed to parse or set date '{date_str}': {e}")
+            except Exception:
+                logger.exception("Failed to parse or set date '%s'", date_str)
 
         # Set description
         self.description_edit.setText(self.exchange_data.get("description", ""))

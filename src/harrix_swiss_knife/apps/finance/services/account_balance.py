@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
@@ -9,6 +10,9 @@ from harrix_swiss_knife.apps.finance.transaction_helpers import convert_currency
 
 if TYPE_CHECKING:
     from harrix_swiss_knife.apps.finance.database_manager import DatabaseManager
+
+
+logger = logging.getLogger(__name__)
 
 
 def format_total_accounts_balance_details(db_manager: DatabaseManager) -> tuple[float, str]:
@@ -72,7 +76,7 @@ def format_total_accounts_balance_details(db_manager: DatabaseManager) -> tuple[
         details_text: str = "\n".join(details_lines)
 
     except Exception as e:
-        print(f"Error calculating total accounts balance: {e}")
+        logger.exception("Error calculating total accounts balance")
         return 0.0, f"Error: {e!s}"
     else:
         return total_balance, details_text
