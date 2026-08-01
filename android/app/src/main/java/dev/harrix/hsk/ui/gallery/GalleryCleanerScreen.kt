@@ -15,7 +15,10 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.calculatePan
+import androidx.compose.foundation.gestures.calculateZoom
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -84,13 +87,16 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.positionChanged
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
@@ -379,17 +385,30 @@ fun GalleryCleanerScreen(
     fun reloadPhotos() {
         isLoading = true
         statusMessage = null
+        val previousOrder = reviewOrder
         dateFilter = preferences.loadDateFilter()
         unreviewedOnlyMode = preferences.isUnreviewedOnlyModeEnabled()
         reviewOrder = preferences.getReviewOrder()
-        val preferPhotoId = currentPhoto?.id
+        val orderChanged = previousOrder != reviewOrder
+        val previousPhotoId = currentPhoto?.id
+        // Date filter + unreviewed-only are applied here.
         val photos = orderPhotos(applyFilters(repository.loadCameraPhotos()))
         remainingPhotos = photos
         remainingCount = photos.size
         currentPhoto =
-            preferPhotoId
-                ?.let { id -> photos.firstOrNull { it.id == id } }
-                ?: pickNext(photos)
+            if (orderChanged) {
+                // Switch to a photo for the new order; keep the previous one in the pool
+                // (skip) so unreviewed-only can show it again later.
+                val others =
+                    previousPhotoId
+                        ?.let { id -> photos.filterNot { it.id == id } }
+                        ?: photos
+                pickNext(others) ?: pickNext(photos)
+            } else {
+                previousPhotoId
+                    ?.let { id -> photos.firstOrNull { it.id == id } }
+                    ?: pickNext(photos)
+            }
         cardResetKey += 1
         isLoading = false
         refreshManageMediaAccess()
@@ -1369,6 +1388,9 @@ private fun PermissionRequestContent(
     }
 }
 
+private const val PhotoMinZoom = 1f
+private const val PhotoMaxZoom = 5f
+
 @Composable
 private fun SwipeablePhotoCard(
     photo: CameraPhoto,
@@ -1383,6 +1405,9 @@ private fun SwipeablePhotoCard(
     val offsetX = remember(resetKey) { Animatable(0f) }
     val offsetY = remember(resetKey) { Animatable(0f) }
     var dragOffset by remember(resetKey) { mutableStateOf(Offset.Zero) }
+    var zoomScale by remember(resetKey) { mutableFloatStateOf(PhotoMinZoom) }
+    var zoomOffset by remember(resetKey) { mutableStateOf(Offset.Zero) }
+    var viewportSize by remember(resetKey) { mutableStateOf(IntSize.Zero) }
     val dismissThreshold = with(density) { 96.dp.toPx() }
     val exitDistance = with(density) { 480.dp.toPx() }
     val dateLabel =
@@ -1398,11 +1423,14 @@ private fun SwipeablePhotoCard(
     val nameLabel =
         photo.displayName?.takeIf { it.isNotBlank() }
             ?: stringResource(R.string.gallery_cleaner_untitled)
+    val isZoomed = zoomScale > 1.01f
 
     LaunchedEffect(resetKey) {
         offsetX.snapTo(0f)
         offsetY.snapTo(0f)
         dragOffset = Offset.Zero
+        zoomScale = PhotoMinZoom
+        zoomOffset = Offset.Zero
     }
 
     val displayOffset =
@@ -1421,10 +1449,14 @@ private fun SwipeablePhotoCard(
             modifier =
             Modifier
                 .weight(1f)
-                .fillMaxWidth(),
+                .fillMaxWidth()
+                .onSizeChanged { viewportSize = it },
             contentAlignment = Alignment.Center,
         ) {
-            if (horizontalProgress < -0.15f && abs(displayOffset.x) >= abs(displayOffset.y)) {
+            if (!isZoomed &&
+                horizontalProgress < -0.15f &&
+                abs(displayOffset.x) >= abs(displayOffset.y)
+            ) {
                 SwipeHint(
                     icon = Icons.Filled.Delete,
                     label = stringResource(R.string.gallery_cleaner_swipe_left_hint),
@@ -1433,7 +1465,10 @@ private fun SwipeablePhotoCard(
                     modifier = Modifier.align(Alignment.CenterEnd).padding(end = 24.dp),
                 )
             }
-            if (horizontalProgress > 0.15f && abs(displayOffset.x) >= abs(displayOffset.y)) {
+            if (!isZoomed &&
+                horizontalProgress > 0.15f &&
+                abs(displayOffset.x) >= abs(displayOffset.y)
+            ) {
                 SwipeHint(
                     icon = Icons.Filled.Done,
                     label = stringResource(R.string.gallery_cleaner_swipe_right_hint),
@@ -1442,7 +1477,10 @@ private fun SwipeablePhotoCard(
                     modifier = Modifier.align(Alignment.CenterStart).padding(start = 24.dp),
                 )
             }
-            if (upwardProgress > 0.15f && abs(displayOffset.y) > abs(displayOffset.x)) {
+            if (!isZoomed &&
+                upwardProgress > 0.15f &&
+                abs(displayOffset.y) > abs(displayOffset.x)
+            ) {
                 SwipeHint(
                     icon = Icons.Filled.KeyboardArrowUp,
                     label = stringResource(R.string.gallery_cleaner_swipe_up_hint),
@@ -1451,7 +1489,10 @@ private fun SwipeablePhotoCard(
                     modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 24.dp),
                 )
             }
-            if (downwardProgress > 0.15f && abs(displayOffset.y) > abs(displayOffset.x)) {
+            if (!isZoomed &&
+                downwardProgress > 0.15f &&
+                abs(displayOffset.y) > abs(displayOffset.x)
+            ) {
                 SwipeHint(
                     icon = Icons.Filled.KeyboardArrowDown,
                     label = stringResource(R.string.gallery_cleaner_swipe_down_hint),
@@ -1476,69 +1517,133 @@ private fun SwipeablePhotoCard(
                 Modifier
                     .fillMaxSize()
                     .graphicsLayer {
-                        rotationZ = displayOffset.x / 40f
-                        alpha = 1f - (travel / (exitDistance * 1.2f)).coerceIn(0f, 0.35f)
+                        scaleX = zoomScale
+                        scaleY = zoomScale
+                        translationX = zoomOffset.x
+                        translationY = zoomOffset.y
+                        rotationZ = if (isZoomed) 0f else displayOffset.x / 40f
+                        alpha =
+                            if (isZoomed) {
+                                1f
+                            } else {
+                                1f - (travel / (exitDistance * 1.2f)).coerceIn(0f, 0.35f)
+                            }
                     }
                     .offset {
-                        IntOffset(displayOffset.x.roundToInt(), displayOffset.y.roundToInt())
+                        if (isZoomed) {
+                            IntOffset.Zero
+                        } else {
+                            IntOffset(displayOffset.x.roundToInt(), displayOffset.y.roundToInt())
+                        }
                     }
                     .background(MaterialTheme.colorScheme.background)
                     .pointerInput(resetKey, photo.id) {
-                        detectDragGestures(
-                            onDragEnd = {
-                                val current = dragOffset
-                                dragOffset = Offset.Zero
-                                scope.launch {
-                                    offsetX.snapTo(current.x)
-                                    offsetY.snapTo(current.y)
-                                    val predominatelyVertical = abs(current.y) > abs(current.x)
-                                    when {
-                                        predominatelyVertical &&
-                                            current.y <= -dismissThreshold -> {
-                                            offsetY.animateTo(-exitDistance, tween(180))
-                                            onKeep()
+                        awaitEachGesture {
+                            awaitFirstDown(requireUnconsumed = false)
+                            var multiTouch = false
+                            var gestureActive = true
+                            while (gestureActive) {
+                                val event = awaitPointerEvent()
+                                val pressed = event.changes.filter { it.pressed }
+                                if (pressed.isEmpty()) {
+                                    gestureActive = false
+                                } else if (pressed.size >= 2) {
+                                    multiTouch = true
+                                    dragOffset = Offset.Zero
+                                    val zoomChange = event.calculateZoom()
+                                    val panChange = event.calculatePan()
+                                    val nextScale =
+                                        (zoomScale * zoomChange).coerceIn(
+                                            PhotoMinZoom,
+                                            PhotoMaxZoom,
+                                        )
+                                    zoomScale = nextScale
+                                    zoomOffset =
+                                        clampZoomOffset(
+                                            offset = zoomOffset + panChange,
+                                            scale = nextScale,
+                                            viewport = viewportSize,
+                                        )
+                                    if (nextScale <= 1.01f) {
+                                        zoomScale = PhotoMinZoom
+                                        zoomOffset = Offset.Zero
+                                    }
+                                    pressed.forEach { change ->
+                                        if (change.positionChanged()) {
+                                            change.consume()
                                         }
-
-                                        predominatelyVertical &&
-                                            current.y >= dismissThreshold -> {
-                                            offsetY.animateTo(exitDistance, tween(180))
-                                            onDelete()
+                                    }
+                                } else if (!multiTouch && pressed.size == 1) {
+                                    val change = pressed[0]
+                                    val drag = change.position - change.previousPosition
+                                    if (drag != Offset.Zero) {
+                                        if (zoomScale > 1.01f) {
+                                            zoomOffset =
+                                                clampZoomOffset(
+                                                    offset = zoomOffset + drag,
+                                                    scale = zoomScale,
+                                                    viewport = viewportSize,
+                                                )
+                                        } else {
+                                            dragOffset += drag
                                         }
-
-                                        !predominatelyVertical &&
-                                            current.x <= -dismissThreshold -> {
-                                            offsetX.animateTo(-exitDistance, tween(180))
-                                            onDelete()
-                                        }
-
-                                        !predominatelyVertical &&
-                                            current.x >= dismissThreshold -> {
-                                            offsetX.animateTo(exitDistance, tween(180))
-                                            onKeep()
-                                        }
-
-                                        else -> {
-                                            offsetX.animateTo(0f, tween(180))
-                                            offsetY.animateTo(0f, tween(180))
+                                        change.consume()
+                                    }
+                                } else if (multiTouch && pressed.size == 1) {
+                                    // After pinch, ignore leftover single-finger until lift.
+                                    pressed.forEach { change ->
+                                        if (change.positionChanged()) {
+                                            change.consume()
                                         }
                                     }
                                 }
-                            },
-                            onDragCancel = {
-                                val current = dragOffset
+                            }
+                            if (multiTouch || zoomScale > 1.01f) {
                                 dragOffset = Offset.Zero
                                 scope.launch {
-                                    offsetX.snapTo(current.x)
-                                    offsetY.snapTo(current.y)
-                                    offsetX.animateTo(0f, tween(180))
-                                    offsetY.animateTo(0f, tween(180))
+                                    offsetX.snapTo(0f)
+                                    offsetY.snapTo(0f)
                                 }
-                            },
-                            onDrag = { change, dragAmount ->
-                                change.consume()
-                                dragOffset += dragAmount
-                            },
-                        )
+                                return@awaitEachGesture
+                            }
+                            val current = dragOffset
+                            dragOffset = Offset.Zero
+                            scope.launch {
+                                offsetX.snapTo(current.x)
+                                offsetY.snapTo(current.y)
+                                val predominatelyVertical = abs(current.y) > abs(current.x)
+                                when {
+                                    predominatelyVertical &&
+                                        current.y <= -dismissThreshold -> {
+                                        offsetY.animateTo(-exitDistance, tween(180))
+                                        onKeep()
+                                    }
+
+                                    predominatelyVertical &&
+                                        current.y >= dismissThreshold -> {
+                                        offsetY.animateTo(exitDistance, tween(180))
+                                        onDelete()
+                                    }
+
+                                    !predominatelyVertical &&
+                                        current.x <= -dismissThreshold -> {
+                                        offsetX.animateTo(-exitDistance, tween(180))
+                                        onDelete()
+                                    }
+
+                                    !predominatelyVertical &&
+                                        current.x >= dismissThreshold -> {
+                                        offsetX.animateTo(exitDistance, tween(180))
+                                        onKeep()
+                                    }
+
+                                    else -> {
+                                        offsetX.animateTo(0f, tween(180))
+                                        offsetY.animateTo(0f, tween(180))
+                                    }
+                                }
+                            }
+                        }
                     },
             )
         }
@@ -1569,6 +1674,22 @@ private fun SwipeablePhotoCard(
             )
         }
     }
+}
+
+private fun clampZoomOffset(
+    offset: Offset,
+    scale: Float,
+    viewport: IntSize,
+): Offset {
+    if (scale <= 1.01f || viewport.width <= 0 || viewport.height <= 0) {
+        return Offset.Zero
+    }
+    val maxX = viewport.width * (scale - 1f) / 2f
+    val maxY = viewport.height * (scale - 1f) / 2f
+    return Offset(
+        x = offset.x.coerceIn(-maxX, maxX),
+        y = offset.y.coerceIn(-maxY, maxY),
+    )
 }
 
 @Composable
