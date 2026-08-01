@@ -212,7 +212,9 @@ def _release_bothub_worker(worker: BothubChatWorker) -> None:
     """Drop the tracking ref and schedule safe Qt deletion after the thread stops."""
     with suppress(ValueError):
         _active_bothub_workers.remove(worker)
-    worker.deleteLater()
+    worker.finished.connect(worker.deleteLater)
+    if not worker.isRunning():
+        worker.deleteLater()
 
 
 def _resolve_toast_parent(parent: QWidget | None) -> QWidget | None:

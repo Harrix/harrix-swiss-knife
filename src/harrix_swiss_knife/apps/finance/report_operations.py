@@ -123,7 +123,7 @@ class ReportOperations:
         headers: list[str],
         rows: list[tuple[str, float, float, dict[int, float]]],
         expense_categories: list[tuple[int, str, str]],
-        ) -> None:
+    ) -> None:
         """Bind monthly summary report data to the reports table."""
         if not expense_categories:
             model: QStandardItemModel = QStandardItemModel()

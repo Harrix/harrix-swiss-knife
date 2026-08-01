@@ -34,9 +34,11 @@ class OnSpeechToTextWithAI(ActionBase):
         """Collect audio, transcribe it to text, fix the transcript, and show the result."""
         dialog = AudioSourceDialog()
         if dialog.exec() != dialog.DialogCode.Accepted:
+            dialog.release_multimedia()
             return
 
         audio_path = dialog.get_audio_path()
+        dialog.release_multimedia()
         if not audio_path:
             return
 

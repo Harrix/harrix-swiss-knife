@@ -1109,9 +1109,11 @@ class TemplateDialog(QDialog):
 
         dialog = AudioSourceDialog(self)
         if dialog.exec() != dialog.DialogCode.Accepted:
+            dialog.release_multimedia()
             return
 
         audio_path = dialog.get_audio_path()
+        dialog.release_multimedia()
         if not audio_path:
             return
 

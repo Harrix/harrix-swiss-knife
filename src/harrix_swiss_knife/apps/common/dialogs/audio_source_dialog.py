@@ -6,6 +6,7 @@ import array
 import uuid
 import wave
 from collections import deque
+from contextlib import suppress
 from pathlib import Path
 from typing import Literal
 
@@ -343,9 +344,7 @@ class AudioSourceDialog(QDialog):
 
     def closeEvent(self, event) -> None:  # noqa: ANN001, N802
         """Stop recording and playback when the dialog is closed."""
-        self._stop_playback()
-        if self._is_recording:
-            self._stop_recording()
+        self.release_multimedia()
         super().closeEvent(event)
 
     def get_audio_path(self) -> str:
@@ -371,10 +370,29 @@ class AudioSourceDialog(QDialog):
 
     def reject(self) -> None:
         """Cancel dialog and stop an active recording."""
-        self._stop_playback()
-        if self._is_recording:
-            self._stop_recording()
+        self.release_multimedia()
         super().reject()
+
+    def release_multimedia(self) -> None:
+        """Stop capture/playback and detach Qt Multimedia backends before destruction.
+
+        On Windows, destroying `QMediaPlayer` / `QAudioSource` while WASAPI is still
+        winding down causes a native access violation inside the Qt event loop.
+
+        """
+        if self._is_recording:
+            if self._audio_source is not None:
+                self._audio_source.stop()
+            self._is_recording = False
+            self._recording_timer.stop()
+            self._recording_time_label.setVisible(False)
+            self._pcm_chunks = []
+            self._update_record_button()
+            self._update_recognize_enabled()
+        self._cleanup_recording_handles()
+        self._stop_playback()
+        # Detach sink before dialog teardown (Qt accepts nullptr; PySide stubs omit Optional).
+        self._player.setAudioOutput(None)  # ty: ignore[invalid-argument-type]
 
     def _ask_recording_choice(self, existing_path: str) -> str | None:
         """Ask how to handle an existing audio file before a new recording."""
@@ -412,10 +430,17 @@ class AudioSourceDialog(QDialog):
         )
 
     def _cleanup_recording_handles(self) -> None:
+        if self._audio_io is not None:
+            with suppress(RuntimeError, TypeError):
+                self._audio_io.readyRead.disconnect(self._on_audio_ready)
+            self._audio_io = None
         if self._audio_source is not None:
-            self._audio_source.deleteLater()
+            source = self._audio_source
             self._audio_source = None
-        self._audio_io = None
+            source.stop()
+            # Unparent before deleteLater so dialog destruction cannot double-free it.
+            source.setParent(None)
+            source.deleteLater()
 
     def _clear_dropped_file(self) -> None:
         self.file_widget.clear_file()
@@ -554,7 +579,6 @@ class AudioSourceDialog(QDialog):
         return temp_dir / f"hsk-speech-{uuid.uuid4().hex}.wav"
 
     def _on_accept(self) -> None:
-        self._stop_playback()
         dropped_path = self.file_widget.get_file_path().strip()
         if dropped_path:
             self._audio_path = dropped_path
@@ -562,6 +586,8 @@ class AudioSourceDialog(QDialog):
             self._audio_path = self._recorded_path
         else:
             return
+        # Release WASAPI / media player before the modal returns and the dialog is GC'd.
+        self.release_multimedia()
         self.accept()
 
     def _on_audio_file_link_clicked(self, url: str) -> None:
@@ -927,6 +953,8 @@ class AudioSourceDialog(QDialog):
     def _stop_playback(self) -> None:
         if self._player.playbackState() != QMediaPlayer.PlaybackState.StoppedState:
             self._player.stop()
+        if self._player.source().isValid():
+            self._player.setSource(QUrl())
         self._level_widget.set_playback_position(None)
         self._update_playback_controls()
 

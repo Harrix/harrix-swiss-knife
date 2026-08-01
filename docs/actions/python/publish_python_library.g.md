@@ -75,7 +75,10 @@ class OnPublishPythonLibrary(ActionBase):
     @ActionBase.handle_exceptions("publishing library build thread")
     def in_thread_01(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
-        library_path = Path(self.library_path)
+        library_path = Path(self.library_path) if self.library_path is not None else None
+        if library_path is None:
+            self.add_line("❌ Library path is not set.")
+            return None
         cwd = str(library_path)
 
         version_output = self._run_argv(["uv", "version", "--bump", "minor"], cwd=cwd).strip()
@@ -191,7 +194,10 @@ Execute code in a separate thread. For performing long-running operations.
 
 ```python
 def in_thread_01(self) -> str | None:
-        library_path = Path(self.library_path)
+        library_path = Path(self.library_path) if self.library_path is not None else None
+        if library_path is None:
+            self.add_line("❌ Library path is not set.")
+            return None
         cwd = str(library_path)
 
         version_output = self._run_argv(["uv", "version", "--bump", "minor"], cwd=cwd).strip()

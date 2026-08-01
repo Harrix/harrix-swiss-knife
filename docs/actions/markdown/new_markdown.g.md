@@ -1092,20 +1092,6 @@ class OnNewMarkdown(BuiltinMarkdownCommandsMixin, ActionBase):
             if staging_dir is not None:
                 self._cleanup_template_staging_dir(staging_dir)
 
-    @ActionBase.handle_exceptions("creating new article")
-
-    @ActionBase.handle_exceptions("creating new diary entry")
-
-    @ActionBase.handle_exceptions("creating new cases entry")
-
-    @ActionBase.handle_exceptions("creating new dream entry")
-
-    @ActionBase.handle_exceptions("creating new memory entry")
-
-    @ActionBase.handle_exceptions("creating new note")
-
-    @ActionBase.handle_exceptions("processing quotes")
-
     def _extract_authors_and_english_names_from_books_folder(self, books_path: str) -> dict[str, str]:
         """Extract authors and their English names from books Markdown files."""
         result: dict[str, str] = {}

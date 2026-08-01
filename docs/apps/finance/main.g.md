@@ -989,8 +989,6 @@ class MainWindow(
         except Exception as e:
             message_box.warning(self, "Export Error", f"Failed to export CSV: {e}")
 
-    @requires_database()
-
     def on_select_only_expense_chart_categories(self) -> None:
         """Check only expense categories in the Charts category list."""
         self._select_only_chart_categories(0)

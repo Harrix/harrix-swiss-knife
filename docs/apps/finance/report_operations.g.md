@@ -30,6 +30,7 @@ Mixin: generate and display finance reports on the Reports tab.
 ```python
 class ReportOperations:
 
+    @requires_database()
     def on_generate_report(self, *, refresh_summary: bool = False) -> None:
         """Generate selected report on a background thread with a countdown toast."""
         if self.db_manager is None:
@@ -45,7 +46,7 @@ class ReportOperations:
         try:
             db_filename = _require_db_filename_for_worker(self.db_manager)
         except DbFilenameUnavailableForWorkerThreadError:
-            message_box.warning(self, "Error", "Database path is not available for report generation.")
+            message_box.warning(cast("QWidget", self), "Error", "Database path is not available for report generation.")
             return
 
         self._report_build_toast = toast_countdown_notification.ToastCountdownNotification("Building report…")
@@ -126,7 +127,7 @@ class ReportOperations:
         headers: list[str],
         rows: list[tuple[str, float, float, dict[int, float]]],
         expense_categories: list[tuple[int, str, str]],
-        ) -> None:
+    ) -> None:
         """Bind monthly summary report data to the reports table."""
         if not expense_categories:
             model: QStandardItemModel = QStandardItemModel()
@@ -233,12 +234,12 @@ class ReportOperations:
         try:
             self._apply_report_build_result(result)
         except Exception as e:
-            message_box.warning(self, "Report Error", f"Failed to display report: {e}")
+            message_box.warning(cast("QWidget", self), "Report Error", f"Failed to display report: {e}")
 
     def _on_report_build_failed(self, error_message: str) -> None:
         """Handle report build worker failure."""
         self._close_report_build_toast()
-        message_box.warning(self, "Report Error", f"Failed to generate report: {error_message}")
+        message_box.warning(cast("QWidget", self), "Report Error", f"Failed to generate report: {error_message}")
 
     def _set_reports_model_and_stretch(self, model: QStandardItemModel) -> None:
         """Set model on reports table and stretch columns."""
@@ -277,7 +278,7 @@ def on_generate_report(self, *, refresh_summary: bool = False) -> None:
         try:
             db_filename = _require_db_filename_for_worker(self.db_manager)
         except DbFilenameUnavailableForWorkerThreadError:
-            message_box.warning(self, "Error", "Database path is not available for report generation.")
+            message_box.warning(cast("QWidget", self), "Error", "Database path is not available for report generation.")
             return
 
         self._report_build_toast = toast_countdown_notification.ToastCountdownNotification("Building report…")

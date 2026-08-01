@@ -110,7 +110,7 @@ def run_npm(extension_dir: Path, *npm_args: str) -> subprocess.CompletedProcess[
         msg = "npm not found on PATH"
         raise FileNotFoundError(msg)
 
-    return subprocess.run(  # noqa: S603
+    return subprocess.run(
         [npm, *npm_args],
         cwd=str(extension_dir),
         env=os.environ.copy(),
