@@ -13,10 +13,12 @@ import androidx.exifinterface.media.ExifInterface
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.File
+import kotlin.math.abs
 import kotlin.math.ceil
 import kotlin.math.hypot
 import kotlin.math.min
 import kotlin.math.roundToInt
+import kotlin.math.sqrt
 
 /**
  * Normalized crop rectangle on the rotated square canvas, each edge in `0f..1f`.
@@ -518,21 +520,23 @@ class PhotoEditSaver(
         }
 
         /**
-         * Rebuild [rect] with [imageAspect], keeping the center when possible.
+         * Rebuild [rect] with [imageAspect], keeping the center and roughly the same
+         * area (so repeated calls do not shrink the frame).
          */
         fun fitCropToAspect(
             rect: NormalizedCropRect,
             imageAspect: Float,
         ): NormalizedCropRect {
             val aspect = imageAspect.coerceAtLeast(1e-6f)
+            val currentAspect = rect.width / rect.height.coerceAtLeast(1e-6f)
+            if (abs(currentAspect - aspect) < 0.001f) {
+                return clampCropRect(rect, aspect)
+            }
             val centerX = (rect.left + rect.right) / 2f
             val centerY = (rect.top + rect.bottom) / 2f
-            var width = rect.width.coerceAtLeast(0.06f)
+            val area = (rect.width * rect.height).coerceAtLeast(0.06f * 0.06f)
+            var width = sqrt(area * aspect)
             var height = width / aspect
-            if (height > rect.height && rect.height > 0f) {
-                height = rect.height
-                width = height * aspect
-            }
             if (width > 1f) {
                 width = 1f
                 height = width / aspect
@@ -547,6 +551,32 @@ class PhotoEditSaver(
                 NormalizedCropRect(left, top, left + width, top + height),
                 aspect,
             )
+        }
+
+        /**
+         * Swap width/height around the center (aspect ↔ 1/aspect) without shrinking.
+         * Scales down only if the swapped rect would not fit in the square.
+         */
+        fun swapCropDimensions(rect: NormalizedCropRect): NormalizedCropRect {
+            val centerX = (rect.left + rect.right) / 2f
+            val centerY = (rect.top + rect.bottom) / 2f
+            var width = rect.height
+            var height = rect.width
+            if (width > 1f) {
+                val scale = 1f / width
+                width = 1f
+                height = (height * scale).coerceAtMost(1f)
+            }
+            if (height > 1f) {
+                val scale = 1f / height
+                height = 1f
+                width = (width * scale).coerceAtMost(1f)
+            }
+            width = width.coerceAtLeast(0.06f)
+            height = height.coerceAtLeast(0.06f)
+            val left = (centerX - width / 2f).coerceIn(0f, 1f - width)
+            val top = (centerY - height / 2f).coerceIn(0f, 1f - height)
+            return NormalizedCropRect(left, top, left + width, top + height)
         }
     }
 

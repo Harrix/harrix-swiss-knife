@@ -130,8 +130,17 @@ fun PhotoCropEditor(
             }
         }
     fun applyAspectMode(mode: CropAspectMode) {
+        val previous = aspectMode
         aspectMode = mode
         if (mode == CropAspectMode.Free || imageWidth <= 0 || imageHeight <= 0) {
+            return
+        }
+        // Original ↔ 90° are reciprocal aspects: swap sides to keep size stable.
+        val swapped =
+            (previous == CropAspectMode.Original && mode == CropAspectMode.Rotated90) ||
+                (previous == CropAspectMode.Rotated90 && mode == CropAspectMode.Original)
+        if (swapped) {
+            onCropRectChange(PhotoEditSaver.swapCropDimensions(cropRect))
             return
         }
         val aspect =
