@@ -29,11 +29,14 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.RotateRight
@@ -64,11 +67,10 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -115,6 +117,9 @@ import dev.harrix.hsk.gallery.GallerySessionUndo
 import dev.harrix.hsk.gallery.NormalizedCropRect
 import dev.harrix.hsk.gallery.PendingEditUndo
 import dev.harrix.hsk.gallery.PhotoEditSaver
+import dev.harrix.hsk.ui.CompactBottomActionButton
+import dev.harrix.hsk.ui.adaptiveBottomBarWidth
+import dev.harrix.hsk.ui.isCompactWidth
 import dev.harrix.hsk.ui.performLightActionHaptic
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -846,10 +851,35 @@ fun GalleryCleanerScreen(
         modifier = modifier,
         topBar = {
             Column {
-                TopAppBar(
-                    title = {
-                        Column {
-                            Text(stringResource(R.string.gallery_cleaner_title))
+                // Custom bar: default TopAppBar clips a two-line title on compact phones.
+                Surface(color = MaterialTheme.colorScheme.surface) {
+                    Row(
+                        modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .windowInsetsPadding(WindowInsets.statusBars)
+                            .heightIn(min = 64.dp)
+                            .padding(end = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        IconButton(onClick = onClose) {
+                            Icon(
+                                imageVector = Icons.Filled.Close,
+                                contentDescription = stringResource(R.string.gallery_cleaner_close),
+                            )
+                        }
+                        Column(
+                            modifier =
+                            Modifier
+                                .weight(1f)
+                                .padding(end = 8.dp),
+                        ) {
+                            Text(
+                                text = stringResource(R.string.gallery_cleaner_title),
+                                style = MaterialTheme.typography.titleLarge,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
                             Text(
                                 text =
                                 stringResource(
@@ -857,35 +887,36 @@ fun GalleryCleanerScreen(
                                     sessionDeletedCount,
                                     CameraGalleryRepository.formatFileSize(sessionFreedBytes),
                                 ),
-                                style = MaterialTheme.typography.labelMedium,
+                                style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                             )
                         }
-                    },
-                    navigationIcon = {
-                        IconButton(onClick = onClose) {
-                            Icon(
-                                imageVector = Icons.Filled.Close,
-                                contentDescription = stringResource(R.string.gallery_cleaner_close),
-                            )
-                        }
-                    },
-                    actions = {
                         if (hasPermission && remainingCount > 0 && !isEditing) {
+                            val compact = isCompactWidth()
                             Text(
                                 text =
-                                stringResource(
-                                    if (unreviewedOnlyMode) {
-                                        R.string.gallery_cleaner_remaining_unreviewed
-                                    } else {
-                                        R.string.gallery_cleaner_remaining
-                                    },
-                                    remainingCount,
-                                ),
-                                style = MaterialTheme.typography.labelLarge,
-                                modifier = Modifier.padding(end = 4.dp),
+                                if (compact) {
+                                    remainingCount.toString()
+                                } else {
+                                    stringResource(
+                                        if (unreviewedOnlyMode) {
+                                            R.string.gallery_cleaner_remaining_unreviewed
+                                        } else {
+                                            R.string.gallery_cleaner_remaining
+                                        },
+                                        remainingCount,
+                                    )
+                                },
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier =
+                                Modifier
+                                    .widthIn(max = if (compact) 64.dp else 140.dp)
+                                    .padding(end = 4.dp),
                             )
                         }
                         if (!isEditing) {
@@ -1017,8 +1048,8 @@ fun GalleryCleanerScreen(
                                 }
                             }
                         }
-                    },
-                )
+                    }
+                }
                 val canEditPhoto = hasPermission && currentPhoto != null && !showIntro
                 val canUndo = undoStack.isNotEmpty()
                 val showSecondaryBar =
@@ -1250,57 +1281,44 @@ private fun ReviewActionBar(
     modifier: Modifier = Modifier,
     onSkip: (() -> Unit)? = null,
 ) {
-    Row(
+    Box(
         modifier =
         modifier
             .fillMaxWidth()
             .background(MaterialTheme.colorScheme.surfaceContainer)
-            .windowInsetsPadding(WindowInsets.navigationBars)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+            .windowInsetsPadding(WindowInsets.navigationBars),
+        contentAlignment = Alignment.Center,
     ) {
-        Button(
-            onClick = onDelete,
-            modifier = Modifier.weight(1f),
-            colors =
-            ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.error,
-                contentColor = MaterialTheme.colorScheme.onError,
-            ),
+        Row(
+            modifier =
+            Modifier
+                .adaptiveBottomBarWidth()
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Icon(
-                imageVector = Icons.Filled.Delete,
-                contentDescription = null,
-                modifier = Modifier.size(18.dp),
+            CompactBottomActionButton(
+                onClick = onDelete,
+                icon = Icons.Filled.Delete,
+                label = stringResource(R.string.gallery_cleaner_action_delete),
+                colors =
+                ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.error,
+                    contentColor = MaterialTheme.colorScheme.onError,
+                ),
             )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(stringResource(R.string.gallery_cleaner_action_delete))
-        }
-        if (onSkip != null) {
-            OutlinedButton(
-                onClick = onSkip,
-                modifier = Modifier.weight(1f),
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.SkipNext,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp),
+            if (onSkip != null) {
+                CompactBottomActionButton(
+                    onClick = onSkip,
+                    icon = Icons.Filled.SkipNext,
+                    label = stringResource(R.string.gallery_cleaner_action_skip),
+                    outlined = true,
                 )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(stringResource(R.string.gallery_cleaner_action_skip))
             }
-        }
-        Button(
-            onClick = onKeep,
-            modifier = Modifier.weight(1f),
-        ) {
-            Icon(
-                imageVector = Icons.Filled.Done,
-                contentDescription = null,
-                modifier = Modifier.size(18.dp),
+            CompactBottomActionButton(
+                onClick = onKeep,
+                icon = Icons.Filled.Done,
+                label = stringResource(R.string.gallery_cleaner_action_keep),
             )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(stringResource(R.string.gallery_cleaner_action_keep))
         }
     }
 }

@@ -10,26 +10,22 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.CropFree
 import androidx.compose.material.icons.filled.CropRotate
 import androidx.compose.material.icons.filled.Done
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -55,6 +51,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
@@ -62,6 +59,8 @@ import dev.harrix.hsk.R
 import dev.harrix.hsk.gallery.CameraPhoto
 import dev.harrix.hsk.gallery.NormalizedCropRect
 import dev.harrix.hsk.gallery.PhotoEditSaver
+import dev.harrix.hsk.ui.CompactBottomActionButton
+import dev.harrix.hsk.ui.adaptiveBottomBarWidth
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
@@ -478,96 +477,102 @@ fun PhotoCropEditor(
             }
         }
 
-        Column(
+        Box(
             modifier =
             Modifier
                 .fillMaxWidth()
                 .background(MaterialTheme.colorScheme.background)
-                .windowInsetsPadding(WindowInsets.navigationBars)
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+                .windowInsetsPadding(WindowInsets.navigationBars),
+            contentAlignment = Alignment.Center,
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            Column(
+                modifier =
+                Modifier
+                    .adaptiveBottomBarWidth()
+                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                FilterChip(
-                    selected = aspectMode == CropAspectMode.Rotated90,
-                    onClick = {
-                        if (isSaving || imageWidth <= 0) {
-                            return@FilterChip
-                        }
-                        if (aspectMode == CropAspectMode.Rotated90) {
-                            applyAspectMode(CropAspectMode.Original)
-                        } else {
-                            applyAspectMode(CropAspectMode.Rotated90)
-                        }
-                    },
-                    enabled = !isSaving && imageWidth > 0,
-                    label = { Text(stringResource(R.string.gallery_cleaner_edit_aspect_rotate)) },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Filled.CropRotate,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp),
-                        )
-                    },
-                    modifier = Modifier.weight(1f),
-                )
-                FilterChip(
-                    selected = aspectMode == CropAspectMode.Free,
-                    onClick = {
-                        if (isSaving || imageWidth <= 0) {
-                            return@FilterChip
-                        }
-                        if (aspectMode == CropAspectMode.Free) {
-                            // Restoring lock always returns to the original photo aspect.
-                            applyAspectMode(CropAspectMode.Original)
-                        } else {
-                            applyAspectMode(CropAspectMode.Free)
-                        }
-                    },
-                    enabled = !isSaving && imageWidth > 0,
-                    label = { Text(stringResource(R.string.gallery_cleaner_edit_aspect_free)) },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Filled.CropFree,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp),
-                        )
-                    },
-                    modifier = Modifier.weight(1f),
-                )
-            }
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                OutlinedButton(
-                    onClick = onDiscard,
-                    enabled = !isSaving,
-                    modifier = Modifier.weight(1f),
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    Icon(
-                        imageVector = Icons.Filled.Close,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp),
+                    FilterChip(
+                        selected = aspectMode == CropAspectMode.Rotated90,
+                        onClick = {
+                            if (isSaving || imageWidth <= 0) {
+                                return@FilterChip
+                            }
+                            if (aspectMode == CropAspectMode.Rotated90) {
+                                applyAspectMode(CropAspectMode.Original)
+                            } else {
+                                applyAspectMode(CropAspectMode.Rotated90)
+                            }
+                        },
+                        enabled = !isSaving && imageWidth > 0,
+                        label = {
+                            Text(
+                                text = stringResource(R.string.gallery_cleaner_edit_aspect_rotate),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Filled.CropRotate,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp),
+                            )
+                        },
+                        modifier = Modifier.weight(1f),
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(stringResource(R.string.gallery_cleaner_edit_discard))
+                    FilterChip(
+                        selected = aspectMode == CropAspectMode.Free,
+                        onClick = {
+                            if (isSaving || imageWidth <= 0) {
+                                return@FilterChip
+                            }
+                            if (aspectMode == CropAspectMode.Free) {
+                                // Restoring lock always returns to the original photo aspect.
+                                applyAspectMode(CropAspectMode.Original)
+                            } else {
+                                applyAspectMode(CropAspectMode.Free)
+                            }
+                        },
+                        enabled = !isSaving && imageWidth > 0,
+                        label = {
+                            Text(
+                                text = stringResource(R.string.gallery_cleaner_edit_aspect_free),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Filled.CropFree,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp),
+                            )
+                        },
+                        modifier = Modifier.weight(1f),
+                    )
                 }
-                Button(
-                    onClick = onSave,
-                    enabled = !isSaving,
-                    modifier = Modifier.weight(1f),
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    Icon(
-                        imageVector = Icons.Filled.Done,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp),
+                    CompactBottomActionButton(
+                        onClick = onDiscard,
+                        icon = Icons.Filled.Close,
+                        label = stringResource(R.string.gallery_cleaner_edit_discard),
+                        enabled = !isSaving,
+                        outlined = true,
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(stringResource(R.string.gallery_cleaner_edit_save))
+                    CompactBottomActionButton(
+                        onClick = onSave,
+                        icon = Icons.Filled.Done,
+                        label = stringResource(R.string.gallery_cleaner_edit_save),
+                        enabled = !isSaving,
+                    )
                 }
             }
         }
