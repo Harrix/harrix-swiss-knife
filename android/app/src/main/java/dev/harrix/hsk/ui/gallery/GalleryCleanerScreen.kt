@@ -42,6 +42,7 @@ import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -53,6 +54,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -259,6 +261,15 @@ fun GalleryCleanerScreen(
         remainingPhotos = updated
         remainingCount = updated.size
         currentPhoto = pickNext(updated)
+        cardResetKey += 1
+        statusMessage = null
+    }
+
+    /** Show another photo without marking this one reviewed — it can appear again later. */
+    fun skipPhoto(photo: CameraPhoto) {
+        view.performLightActionHaptic()
+        val others = remainingPhotos.filterNot { it.id == photo.id }
+        currentPhoto = pickNext(others) ?: photo
         cardResetKey += 1
         statusMessage = null
     }
@@ -944,6 +955,12 @@ fun GalleryCleanerScreen(
                 ReviewActionBar(
                     onDelete = { deletePhoto(photo) },
                     onKeep = { advanceAfterReview(photo) },
+                    onSkip =
+                    if (unreviewedOnlyMode) {
+                        { skipPhoto(photo) }
+                    } else {
+                        null
+                    },
                 )
             }
         },
@@ -1066,6 +1083,7 @@ private fun ReviewActionBar(
     onDelete: () -> Unit,
     onKeep: () -> Unit,
     modifier: Modifier = Modifier,
+    onSkip: (() -> Unit)? = null,
 ) {
     Row(
         modifier =
@@ -1092,6 +1110,20 @@ private fun ReviewActionBar(
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(stringResource(R.string.gallery_cleaner_action_delete))
+        }
+        if (onSkip != null) {
+            OutlinedButton(
+                onClick = onSkip,
+                modifier = Modifier.weight(1f),
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.SkipNext,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp),
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(stringResource(R.string.gallery_cleaner_action_skip))
+            }
         }
         Button(
             onClick = onKeep,

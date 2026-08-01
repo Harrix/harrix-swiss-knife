@@ -34,7 +34,7 @@
     <string name="settings_gallery_preset_1_month">1 month</string>
     <string name="settings_gallery_preset_1_year">1 year</string>
     <string name="settings_gallery_unreviewed_only">Show only photos not reviewed yet</string>
-    <string name="settings_gallery_unreviewed_only_hint">In this mode Keep and Delete mark a photo as reviewed. Random picks skip reviewed photos until you reset the history.</string>
+    <string name="settings_gallery_unreviewed_only_hint">In this mode Keep and Delete mark a photo as reviewed. Skip shows another photo without marking it, so it can appear again. Random picks skip reviewed photos until you reset the history.</string>
     <string name="settings_gallery_clear_reviewed">Reset reviewed history</string>
     <string name="settings_gallery_clear_reviewed_done">Reviewed history cleared (%1$d)</string>
     <string name="settings_gallery_reviewed_count">Reviewed photos: %1$d</string>
@@ -87,6 +87,7 @@
     <string name="gallery_cleaner_swipe_down_hint">Delete</string>
     <string name="gallery_cleaner_action_delete">Delete</string>
     <string name="gallery_cleaner_action_keep">Keep</string>
+    <string name="gallery_cleaner_action_skip">Skip</string>
     <string name="gallery_cleaner_remaining">%1$d remaining</string>
     <string name="gallery_cleaner_remaining_unreviewed">%1$d unreviewed</string>
     <string name="gallery_cleaner_session_stats">Deleted: %1$d · Freed: %2$s</string>
