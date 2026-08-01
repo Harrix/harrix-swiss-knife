@@ -427,15 +427,15 @@
           "when": "false"
         },
         {
-          "command": "harrixNotesExplorerHsk.beautifyRegenerateGMd",
+          "command": "harrixNotesExplorerHsk.cut",
           "when": "false"
         },
         {
-          "command": "harrixNotesExplorerHsk.checkMarkdownInFolder",
+          "command": "harrixNotesExplorerHsk.copy",
           "when": "false"
         },
         {
-          "command": "harrixNotesExplorerHsk.optimizeImagesFolder",
+          "command": "harrixNotesExplorerHsk.paste",
           "when": "false"
         },
         {
@@ -481,6 +481,26 @@
         {
           "command": "harrixNotesExplorerHsk.hideAllNoteAssets",
           "when": "true"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.openInTerminal",
+          "when": "resourceLangId == markdown"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.findInFolder",
+          "when": "resourceLangId == markdown"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.checkMarkdownInFolder",
+          "when": "resourceLangId == markdown"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.beautifyRegenerateGMd",
+          "when": "resourceLangId == markdown"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.optimizeImagesFolder",
+          "when": "resourceLangId == markdown"
         },
         {
           "command": "harrixNotesExplorerHsk.addFolderInNote",

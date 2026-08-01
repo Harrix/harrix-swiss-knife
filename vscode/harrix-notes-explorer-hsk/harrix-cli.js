@@ -214,11 +214,43 @@ function resolveNotesFolderContextValue(opts) {
  */
 
 /**
+ * Folder for folder-level CLI: tree selection (folder / Note/Note.md), else parent of
+ * selected or active markdown (so F1 works without a tree click).
+ * @param {unknown} treeItemOrUri
+ * @param {HarrixCliDeps} deps
+ * @returns {string | undefined}
+ */
+function resolveFolderPathForCliCommand(treeItemOrUri, deps) {
+  const { uriToFsPath, isFilePath, resolveNotesFolderFsPath } = deps;
+  const itemUri = treeItemOrUri?.resourceUri ?? treeItemOrUri;
+  const fromTree = resolveNotesFolderFsPath(itemUri);
+  if (fromTree) {
+    return fromTree;
+  }
+
+  const selectedPath = uriToFsPath(itemUri);
+  if (selectedPath && isFilePath(selectedPath) && selectedPath.toLowerCase().endsWith('.md')) {
+    return path.dirname(selectedPath);
+  }
+
+  const activeUri = vscode.window.activeTextEditor?.document?.uri;
+  if (activeUri?.scheme === 'file' && isFilePath(activeUri.fsPath) && activeUri.fsPath.toLowerCase().endsWith('.md')) {
+    const fromActiveNamed = resolveNotesFolderFsPath(activeUri);
+    if (fromActiveNamed) {
+      return fromActiveNamed;
+    }
+    return path.dirname(activeUri.fsPath);
+  }
+
+  return undefined;
+}
+
+/**
  * Registers CLI commands and loads template folder targets into the tree provider.
  * @param {HarrixCliDeps} deps
  */
 function activateHarrixCliIntegration(deps) {
-  const { context, provider, rootPath, uriToFsPath, isDirectoryPath, normalizeFsPath, resolveNotesFolderFsPath } = deps;
+  const { context, provider, rootPath, uriToFsPath, isDirectoryPath, normalizeFsPath } = deps;
 
   context.subscriptions.push(
     vscode.commands.registerCommand('harrixNotesExplorerHsk.newDiaryNote', async (treeItemOrUri) => {
@@ -341,10 +373,9 @@ function activateHarrixCliIntegration(deps) {
 
   context.subscriptions.push(
     vscode.commands.registerCommand('harrixNotesExplorerHsk.checkMarkdownInFolder', async (treeItemOrUri) => {
-      const itemUri = treeItemOrUri?.resourceUri ?? treeItemOrUri;
-      const folderPath = resolveNotesFolderFsPath(itemUri);
+      const folderPath = resolveFolderPathForCliCommand(treeItemOrUri, deps);
       if (!folderPath) {
-        vscode.window.showErrorMessage('Select a folder or a Note/Note.md note in Harrix Notes (HSK).');
+        vscode.window.showErrorMessage('Open a markdown note or select a folder / Note/Note.md in Harrix Notes (HSK).');
         return;
       }
       try {
@@ -359,10 +390,9 @@ function activateHarrixCliIntegration(deps) {
 
   context.subscriptions.push(
     vscode.commands.registerCommand('harrixNotesExplorerHsk.beautifyRegenerateGMd', async (treeItemOrUri) => {
-      const itemUri = treeItemOrUri?.resourceUri ?? treeItemOrUri;
-      const folderPath = resolveNotesFolderFsPath(itemUri);
+      const folderPath = resolveFolderPathForCliCommand(treeItemOrUri, deps);
       if (!folderPath) {
-        vscode.window.showErrorMessage('Select a folder or a Note/Note.md note in Harrix Notes (HSK).');
+        vscode.window.showErrorMessage('Open a markdown note or select a folder / Note/Note.md in Harrix Notes (HSK).');
         return;
       }
       try {
@@ -377,10 +407,9 @@ function activateHarrixCliIntegration(deps) {
 
   context.subscriptions.push(
     vscode.commands.registerCommand('harrixNotesExplorerHsk.optimizeImagesFolder', async (treeItemOrUri) => {
-      const itemUri = treeItemOrUri?.resourceUri ?? treeItemOrUri;
-      const folderPath = resolveNotesFolderFsPath(itemUri);
+      const folderPath = resolveFolderPathForCliCommand(treeItemOrUri, deps);
       if (!folderPath) {
-        vscode.window.showErrorMessage('Select a folder or a Note/Note.md note in Harrix Notes (HSK).');
+        vscode.window.showErrorMessage('Open a markdown note or select a folder / Note/Note.md in Harrix Notes (HSK).');
         return;
       }
       try {
