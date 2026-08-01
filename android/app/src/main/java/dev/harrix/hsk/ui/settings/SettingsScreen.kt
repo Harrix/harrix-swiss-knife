@@ -31,6 +31,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
@@ -59,6 +60,7 @@ import dev.harrix.hsk.R
 import dev.harrix.hsk.gallery.GalleryCleanerPreferences
 import dev.harrix.hsk.gallery.GalleryDateFilter
 import dev.harrix.hsk.gallery.GalleryPermissions
+import dev.harrix.hsk.gallery.GalleryReviewOrder
 import dev.harrix.hsk.ui.theme.ThemeMode
 import java.text.DateFormat
 import java.text.DateFormatSymbols
@@ -390,6 +392,7 @@ private fun GalleryCleanerSettingsSection(
     var unreviewedOnlyMode by remember {
         mutableStateOf(preferences.isUnreviewedOnlyModeEnabled())
     }
+    var reviewOrder by remember { mutableStateOf(preferences.getReviewOrder()) }
     var reviewedCount by remember { mutableIntStateOf(preferences.reviewedPhotoCount()) }
     var clearMessage by remember { mutableStateOf<String?>(null) }
     var introEnabled by remember { mutableStateOf(preferences.shouldShowIntro()) }
@@ -426,6 +429,51 @@ private fun GalleryCleanerSettingsSection(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
+
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(
+                text = stringResource(R.string.settings_gallery_review_order),
+                style = MaterialTheme.typography.bodyLarge,
+            )
+            Text(
+                text = stringResource(R.string.settings_gallery_review_order_hint),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            val orderOptions =
+                listOf(
+                    GalleryReviewOrder.Random to R.string.settings_gallery_review_order_random,
+                    GalleryReviewOrder.OldestFirst to R.string.settings_gallery_review_order_oldest,
+                    GalleryReviewOrder.NewestFirst to R.string.settings_gallery_review_order_newest,
+                )
+            orderOptions.forEach { (order, labelRes) ->
+                Row(
+                    modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            reviewOrder = order
+                            preferences.setReviewOrder(order)
+                        },
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    RadioButton(
+                        selected = reviewOrder == order,
+                        onClick = {
+                            reviewOrder = order
+                            preferences.setReviewOrder(order)
+                        },
+                    )
+                    Text(
+                        text = stringResource(labelRes),
+                        style = MaterialTheme.typography.bodyLarge,
+                        modifier = Modifier.padding(start = 4.dp),
+                    )
+                }
+            }
+        }
+
+        HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
 
         Row(
             modifier = Modifier.fillMaxWidth(),

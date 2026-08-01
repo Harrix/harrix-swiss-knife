@@ -33,8 +33,13 @@
     <string name="settings_gallery_preset_week">Week</string>
     <string name="settings_gallery_preset_1_month">1 month</string>
     <string name="settings_gallery_preset_1_year">1 year</string>
+    <string name="settings_gallery_review_order">Photo order</string>
+    <string name="settings_gallery_review_order_hint">How the next photo is chosen while reviewing.</string>
+    <string name="settings_gallery_review_order_random">Random</string>
+    <string name="settings_gallery_review_order_oldest">Oldest to newest</string>
+    <string name="settings_gallery_review_order_newest">Newest to oldest</string>
     <string name="settings_gallery_unreviewed_only">Show only photos not reviewed yet</string>
-    <string name="settings_gallery_unreviewed_only_hint">In this mode Keep and Delete mark a photo as reviewed. Skip shows another photo without marking it, so it can appear again. Random picks skip reviewed photos until you reset the history.</string>
+    <string name="settings_gallery_unreviewed_only_hint">In this mode Keep and Delete mark a photo as reviewed. Skip shows another photo without marking it, so it can appear again. Reviewed photos stay hidden until you reset the history.</string>
     <string name="settings_gallery_clear_reviewed">Reset reviewed history</string>
     <string name="settings_gallery_clear_reviewed_done">Reviewed history cleared (%1$d)</string>
     <string name="settings_gallery_reviewed_count">Reviewed photos: %1$d</string>

@@ -54,6 +54,12 @@ class GalleryCleanerPreferences(
         prefs.edit().putBoolean(KEY_UNREVIEWED_ONLY_MODE, enabled).apply()
     }
 
+    fun getReviewOrder(): GalleryReviewOrder = GalleryReviewOrder.fromStorage(prefs.getString(KEY_REVIEW_ORDER, null))
+
+    fun setReviewOrder(order: GalleryReviewOrder) {
+        prefs.edit().putString(KEY_REVIEW_ORDER, order.storageValue).apply()
+    }
+
     fun getReviewedPhotoIds(): Set<Long> = prefs
         .getStringSet(KEY_REVIEWED_PHOTO_IDS, emptySet())
         .orEmpty()
@@ -88,6 +94,7 @@ class GalleryCleanerPreferences(
         private const val KEY_DATE_FILTER_START_SEC = "date_filter_start_sec"
         private const val KEY_DATE_FILTER_END_SEC = "date_filter_end_sec"
         private const val KEY_UNREVIEWED_ONLY_MODE = "unreviewed_only_mode"
+        private const val KEY_REVIEW_ORDER = "review_order"
         private const val KEY_REVIEWED_PHOTO_IDS = "reviewed_photo_ids"
     }
 }

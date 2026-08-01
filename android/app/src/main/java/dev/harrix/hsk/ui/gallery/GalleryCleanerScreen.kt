@@ -98,6 +98,7 @@ import dev.harrix.hsk.gallery.CameraPhoto
 import dev.harrix.hsk.gallery.GalleryCleanerPreferences
 import dev.harrix.hsk.gallery.GalleryDateFilter
 import dev.harrix.hsk.gallery.GalleryPermissions
+import dev.harrix.hsk.gallery.GalleryReviewOrder
 import dev.harrix.hsk.gallery.GallerySessionUndo
 import dev.harrix.hsk.gallery.NormalizedCropRect
 import dev.harrix.hsk.gallery.PendingEditUndo
@@ -160,6 +161,9 @@ fun GalleryCleanerScreen(
     var unreviewedOnlyMode by remember {
         mutableStateOf(preferences.isUnreviewedOnlyModeEnabled())
     }
+    var reviewOrder by remember {
+        mutableStateOf(preferences.getReviewOrder())
+    }
     var sessionDeletedCount by remember { mutableIntStateOf(0) }
     var sessionFreedBytes by remember { mutableLongStateOf(0L) }
     var isEditing by remember { mutableStateOf(false) }
@@ -180,10 +184,24 @@ fun GalleryCleanerScreen(
             preferences.shouldShowManageMediaPrompt()
     }
 
-    fun pickNext(from: List<CameraPhoto>): CameraPhoto? = if (from.isEmpty()) {
-        null
-    } else {
-        from[Random.nextInt(from.size)]
+    fun orderPhotos(photos: List<CameraPhoto>): List<CameraPhoto> = when (reviewOrder) {
+        GalleryReviewOrder.Random -> photos
+        GalleryReviewOrder.OldestFirst -> photos.sortedBy { it.dateTakenEpochMs }
+        GalleryReviewOrder.NewestFirst -> photos.sortedByDescending { it.dateTakenEpochMs }
+    }
+
+    fun pickNext(from: List<CameraPhoto>): CameraPhoto? {
+        if (from.isEmpty()) {
+            return null
+        }
+        val ordered = orderPhotos(from)
+        return when (reviewOrder) {
+            GalleryReviewOrder.Random -> ordered[Random.nextInt(ordered.size)]
+
+            GalleryReviewOrder.OldestFirst,
+            GalleryReviewOrder.NewestFirst,
+            -> ordered.first()
+        }
     }
 
     fun existingEditUndo(photoId: Long): PendingEditUndo? = undoStack
@@ -257,7 +275,7 @@ fun GalleryCleanerScreen(
         } else {
             pushKeepUndo(photo)
         }
-        val updated = remainingPhotos.filterNot { it.id == photo.id }
+        val updated = orderPhotos(remainingPhotos.filterNot { it.id == photo.id })
         remainingPhotos = updated
         remainingCount = updated.size
         currentPhoto = pickNext(updated)
@@ -268,8 +286,27 @@ fun GalleryCleanerScreen(
     /** Show another photo without marking this one reviewed — it can appear again later. */
     fun skipPhoto(photo: CameraPhoto) {
         view.performLightActionHaptic()
-        val others = remainingPhotos.filterNot { it.id == photo.id }
-        currentPhoto = pickNext(others) ?: photo
+        if (remainingPhotos.size <= 1) {
+            cardResetKey += 1
+            return
+        }
+        currentPhoto =
+            when (reviewOrder) {
+                GalleryReviewOrder.Random ->
+                    pickNext(remainingPhotos.filterNot { it.id == photo.id }) ?: photo
+
+                GalleryReviewOrder.OldestFirst,
+                GalleryReviewOrder.NewestFirst,
+                -> {
+                    val ordered = orderPhotos(remainingPhotos)
+                    val index = ordered.indexOfFirst { it.id == photo.id }
+                    if (index < 0) {
+                        ordered.first()
+                    } else {
+                        ordered[(index + 1) % ordered.size]
+                    }
+                }
+            }
         cardResetKey += 1
         statusMessage = null
     }
@@ -281,7 +318,7 @@ fun GalleryCleanerScreen(
         }
         sessionDeletedCount = (sessionDeletedCount - 1).coerceAtLeast(0)
         sessionFreedBytes = (sessionFreedBytes - photo.sizeBytes).coerceAtLeast(0L)
-        val updated = remainingPhotos + photo
+        val updated = orderPhotos(remainingPhotos + photo)
         remainingPhotos = updated
         remainingCount = updated.size
         currentPhoto = photo
@@ -296,11 +333,13 @@ fun GalleryCleanerScreen(
             preferences.unmarkPhotoReviewed(photo.id)
         }
         remainingPhotos =
-            if (remainingPhotos.any { it.id == photo.id }) {
-                remainingPhotos
-            } else {
-                remainingPhotos + photo
-            }
+            orderPhotos(
+                if (remainingPhotos.any { it.id == photo.id }) {
+                    remainingPhotos
+                } else {
+                    remainingPhotos + photo
+                },
+            )
         remainingCount = remainingPhotos.size
         currentPhoto = photo
         removeKeepUndo(photo.id)
@@ -331,8 +370,9 @@ fun GalleryCleanerScreen(
         statusMessage = null
         dateFilter = preferences.loadDateFilter()
         unreviewedOnlyMode = preferences.isUnreviewedOnlyModeEnabled()
+        reviewOrder = preferences.getReviewOrder()
         val preferPhotoId = currentPhoto?.id
-        val photos = applyFilters(repository.loadCameraPhotos())
+        val photos = orderPhotos(applyFilters(repository.loadCameraPhotos()))
         remainingPhotos = photos
         remainingCount = photos.size
         currentPhoto =
