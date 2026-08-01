@@ -34,15 +34,21 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.RotateRight
 import androidx.compose.material.icons.automirrored.filled.Undo
+import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Crop
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Done
+import androidx.compose.material.icons.filled.FilterAltOff
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.SkipNext
+import androidx.compose.material.icons.filled.Today
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -874,6 +880,12 @@ fun GalleryCleanerScreen(
                                                     ),
                                                 )
                                             },
+                                            leadingIcon = {
+                                                Icon(
+                                                    imageVector = Icons.Filled.Today,
+                                                    contentDescription = null,
+                                                )
+                                            },
                                             onClick = {
                                                 menuExpanded = false
                                                 applyShootDayFilter(currentPhoto!!.dateTakenEpochMs)
@@ -890,6 +902,12 @@ fun GalleryCleanerScreen(
                                                     stringResource(
                                                         R.string.gallery_cleaner_clear_date_filter,
                                                     ),
+                                                )
+                                            },
+                                            leadingIcon = {
+                                                Icon(
+                                                    imageVector = Icons.Filled.FilterAltOff,
+                                                    contentDescription = null,
                                                 )
                                             },
                                             onClick = {
@@ -915,6 +933,17 @@ fun GalleryCleanerScreen(
                                                 ),
                                             )
                                         },
+                                        leadingIcon = {
+                                            Icon(
+                                                imageVector =
+                                                if (unreviewedOnlyMode) {
+                                                    Icons.Filled.Visibility
+                                                } else {
+                                                    Icons.Filled.VisibilityOff
+                                                },
+                                                contentDescription = null,
+                                            )
+                                        },
                                         onClick = {
                                             menuExpanded = false
                                             val enabled = !unreviewedOnlyMode
@@ -929,6 +958,12 @@ fun GalleryCleanerScreen(
                                         text = {
                                             Text(stringResource(R.string.gallery_cleaner_stats))
                                         },
+                                        leadingIcon = {
+                                            Icon(
+                                                imageVector = Icons.Filled.BarChart,
+                                                contentDescription = null,
+                                            )
+                                        },
                                         onClick = {
                                             menuExpanded = false
                                             showStatsDialog = true
@@ -937,6 +972,12 @@ fun GalleryCleanerScreen(
                                     DropdownMenuItem(
                                         text = {
                                             Text(stringResource(R.string.gallery_cleaner_settings))
+                                        },
+                                        leadingIcon = {
+                                            Icon(
+                                                imageVector = Icons.Filled.Settings,
+                                                contentDescription = null,
+                                            )
                                         },
                                         onClick = {
                                             menuExpanded = false

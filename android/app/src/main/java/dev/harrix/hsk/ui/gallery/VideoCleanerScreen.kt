@@ -42,10 +42,14 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDownward
+import androidx.compose.material.icons.filled.ArrowUpward
+import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -75,6 +79,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
@@ -107,11 +112,12 @@ private const val GalleryColumns = 3
 
 private enum class VideoSort(
     val labelRes: Int,
+    val icon: ImageVector,
 ) {
-    DATE_DESC(R.string.video_cleaner_sort_date_desc),
-    DATE_ASC(R.string.video_cleaner_sort_date_asc),
-    SIZE_DESC(R.string.video_cleaner_sort_size_desc),
-    SIZE_ASC(R.string.video_cleaner_sort_size_asc),
+    DATE_DESC(R.string.video_cleaner_sort_date_desc, Icons.Filled.CalendarMonth),
+    DATE_ASC(R.string.video_cleaner_sort_date_asc, Icons.Filled.CalendarMonth),
+    SIZE_DESC(R.string.video_cleaner_sort_size_desc, Icons.Filled.ArrowDownward),
+    SIZE_ASC(R.string.video_cleaner_sort_size_asc, Icons.Filled.ArrowUpward),
 }
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
@@ -299,6 +305,12 @@ fun VideoCleanerScreen(
                             VideoSort.entries.forEach { option ->
                                 DropdownMenuItem(
                                     text = { Text(stringResource(option.labelRes)) },
+                                    leadingIcon = {
+                                        Icon(
+                                            imageVector = option.icon,
+                                            contentDescription = null,
+                                        )
+                                    },
                                     onClick = {
                                         sort = option
                                         sortMenuExpanded = false
@@ -309,6 +321,12 @@ fun VideoCleanerScreen(
                             DropdownMenuItem(
                                 text = {
                                     Text(stringResource(R.string.video_cleaner_settings))
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Filled.Settings,
+                                        contentDescription = null,
+                                    )
                                 },
                                 onClick = {
                                     sortMenuExpanded = false

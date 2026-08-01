@@ -27,6 +27,7 @@ import androidx.compose.material.icons.filled.CleaningServices
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.VideoLibrary
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.DropdownMenu
@@ -220,6 +221,12 @@ fun MainScreen(
                                                         stringResource(
                                                             R.string.nav_settings,
                                                         ),
+                                                    )
+                                                },
+                                                leadingIcon = {
+                                                    Icon(
+                                                        imageVector = Icons.Filled.Settings,
+                                                        contentDescription = null,
                                                     )
                                                 },
                                                 onClick = {
