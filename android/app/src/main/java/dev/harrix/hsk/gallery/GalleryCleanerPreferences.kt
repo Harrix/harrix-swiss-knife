@@ -48,7 +48,7 @@ class GalleryCleanerPreferences(
         saveDateFilter(GalleryDateFilter(enabled = false))
     }
 
-    fun isUnreviewedOnlyModeEnabled(): Boolean = prefs.getBoolean(KEY_UNREVIEWED_ONLY_MODE, false)
+    fun isUnreviewedOnlyModeEnabled(): Boolean = prefs.getBoolean(KEY_UNREVIEWED_ONLY_MODE, true)
 
     fun setUnreviewedOnlyModeEnabled(enabled: Boolean) {
         prefs.edit().putBoolean(KEY_UNREVIEWED_ONLY_MODE, enabled).apply()
@@ -130,7 +130,7 @@ class GalleryCleanerPreferences(
             .putBoolean(KEY_DATE_FILTER_ENABLED, false)
             .remove(KEY_DATE_FILTER_START_SEC)
             .remove(KEY_DATE_FILTER_END_SEC)
-            .putBoolean(KEY_UNREVIEWED_ONLY_MODE, false)
+            .putBoolean(KEY_UNREVIEWED_ONLY_MODE, true)
             .putString(KEY_REVIEW_ORDER, GalleryReviewOrder.Random.storageValue)
             .remove(KEY_IMAGES_RELATIVE_PATH)
             .apply()
