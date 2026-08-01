@@ -369,7 +369,7 @@ fun VideoCleanerScreen(
             }
         },
     ) { innerPadding ->
-        Column(
+        Box(
             modifier =
             Modifier
                 .padding(innerPadding)
@@ -433,62 +433,67 @@ fun VideoCleanerScreen(
                 }
 
                 else -> {
-                    Row(
-                        modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 4.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        TextButton(
-                            onClick = {
-                                selectedIds = sortedVideos.map { it.id }.toSet()
-                            },
-                            modifier = Modifier.weight(1f, fill = false),
-                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp),
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        Row(
+                            modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 4.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            Text(
-                                text = stringResource(R.string.video_cleaner_select_all),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                        }
-                        TextButton(
-                            onClick = { selectedIds = emptySet() },
-                            enabled = selectedIds.isNotEmpty(),
-                            modifier = Modifier.weight(1f, fill = false),
-                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp),
-                        ) {
-                            Text(
-                                text = stringResource(R.string.video_cleaner_deselect_all),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                        }
-                    }
-                    LazyVerticalGrid(
-                        columns = GridCells.Fixed(videoGridColumnCount()),
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        verticalArrangement = Arrangement.spacedBy(6.dp),
-                    ) {
-                        items(sortedVideos, key = { it.id }) { video ->
-                            val selected = video.id in selectedIds
-                            VideoGalleryItem(
-                                video = video,
-                                selected = selected,
-                                onToggle = {
-                                    selectedIds =
-                                        if (selected) {
-                                            selectedIds - video.id
-                                        } else {
-                                            selectedIds + video.id
-                                        }
+                            TextButton(
+                                onClick = {
+                                    selectedIds = sortedVideos.map { it.id }.toSet()
                                 },
-                                onLongPress = { playingVideo = video },
-                            )
+                                modifier = Modifier.weight(1f, fill = false),
+                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp),
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.video_cleaner_select_all),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
+                            TextButton(
+                                onClick = { selectedIds = emptySet() },
+                                enabled = selectedIds.isNotEmpty(),
+                                modifier = Modifier.weight(1f, fill = false),
+                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp),
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.video_cleaner_deselect_all),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
+                        }
+                        LazyVerticalGrid(
+                            columns = GridCells.Fixed(videoGridColumnCount()),
+                            modifier =
+                            Modifier
+                                .weight(1f)
+                                .fillMaxWidth(),
+                            contentPadding = PaddingValues(8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp),
+                        ) {
+                            items(sortedVideos, key = { it.id }) { video ->
+                                val selected = video.id in selectedIds
+                                VideoGalleryItem(
+                                    video = video,
+                                    selected = selected,
+                                    onToggle = {
+                                        selectedIds =
+                                            if (selected) {
+                                                selectedIds - video.id
+                                            } else {
+                                                selectedIds + video.id
+                                            }
+                                    },
+                                    onLongPress = { playingVideo = video },
+                                )
+                            }
                         }
                     }
                 }
@@ -499,7 +504,17 @@ fun VideoCleanerScreen(
                     text = message,
                     color = MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.padding(16.dp),
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier =
+                    Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(16.dp)
+                        .background(
+                            MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
+                            shape = MaterialTheme.shapes.small,
+                        )
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
                 )
             }
         }
@@ -707,7 +722,8 @@ private fun VideoPlaybackDialog(
             modifier =
             Modifier
                 .fillMaxSize()
-                .background(Color.Black),
+                .background(Color.Black)
+                .windowInsetsPadding(WindowInsets.safeDrawing),
         ) {
             AndroidView(
                 factory = { context ->
@@ -721,9 +737,8 @@ private fun VideoPlaybackDialog(
                 },
                 modifier =
                 Modifier
-                    .fillMaxWidth()
-                    .align(Alignment.Center)
-                    .aspectRatio(9f / 16f),
+                    .fillMaxSize()
+                    .align(Alignment.Center),
                 onRelease = { view ->
                     view.stopPlayback()
                 },
@@ -733,7 +748,7 @@ private fun VideoPlaybackDialog(
                 modifier =
                 Modifier
                     .align(Alignment.TopEnd)
-                    .padding(12.dp),
+                    .padding(4.dp),
             ) {
                 Icon(
                     imageVector = Icons.Filled.Close,

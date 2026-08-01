@@ -58,6 +58,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
@@ -347,13 +348,12 @@ private fun PermissionsSettingsSection(modifier: Modifier = Modifier) {
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        OutlinedButton(
+        SettingsFullWidthOutlinedButton(
             onClick = {
                 context.startActivity(GalleryPermissions.appDetailsSettingsIntent(context))
             },
-        ) {
-            Text(stringResource(R.string.settings_open_app_permissions))
-        }
+            label = stringResource(R.string.settings_open_app_permissions),
+        )
         Text(
             text = stringResource(manageMediaStatusRes),
             style = MaterialTheme.typography.bodyMedium,
@@ -364,17 +364,16 @@ private fun PermissionsSettingsSection(modifier: Modifier = Modifier) {
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        OutlinedButton(
+        SettingsFullWidthOutlinedButton(
             onClick = {
                 GalleryPermissions.manageMediaSettingsIntent(context)?.let { intent ->
                     context.startActivity(intent)
                 }
             },
             enabled = GalleryPermissions.isManageMediaAvailable(),
-        ) {
-            Text(stringResource(R.string.settings_open_manage_media))
-        }
-        OutlinedButton(
+            label = stringResource(R.string.settings_open_manage_media),
+        )
+        SettingsFullWidthOutlinedButton(
             onClick = {
                 preferences.setShowManageMediaPrompt(true)
                 manageMediaTipEnabled = true
@@ -382,9 +381,8 @@ private fun PermissionsSettingsSection(modifier: Modifier = Modifier) {
                     context.getString(R.string.settings_show_manage_media_tip_done)
             },
             enabled = !manageMediaTipEnabled,
-        ) {
-            Text(stringResource(R.string.settings_show_manage_media_tip))
-        }
+            label = stringResource(R.string.settings_show_manage_media_tip),
+        )
         manageMediaTipMessage?.let { message ->
             Text(
                 text = message,
@@ -447,16 +445,15 @@ private fun GalleryCleanerSettingsSection(
     }
 
     val body: @Composable () -> Unit = {
-        OutlinedButton(
+        SettingsFullWidthOutlinedButton(
             onClick = {
                 preferences.setShowIntro(true)
                 introEnabled = true
                 introMessage = context.getString(R.string.settings_gallery_show_intro_done)
             },
             enabled = !introEnabled,
-        ) {
-            Text(stringResource(R.string.settings_gallery_show_intro))
-        }
+            label = stringResource(R.string.settings_gallery_show_intro),
+        )
         introMessage?.let { message ->
             Text(
                 text = message,
@@ -486,6 +483,8 @@ private fun GalleryCleanerSettingsSection(
                     },
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
             )
             val folderButtonPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp)
             if (isCompactWidth()) {
@@ -626,7 +625,7 @@ private fun GalleryCleanerSettingsSection(
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        OutlinedButton(
+        SettingsFullWidthOutlinedButton(
             onClick = {
                 val cleared = preferences.reviewedPhotoCount()
                 preferences.clearReviewedPhotos()
@@ -635,9 +634,8 @@ private fun GalleryCleanerSettingsSection(
                     context.getString(R.string.settings_gallery_clear_reviewed_done, cleared)
             },
             enabled = reviewedCount > 0,
-        ) {
-            Text(stringResource(R.string.settings_gallery_clear_reviewed))
-        }
+            label = stringResource(R.string.settings_gallery_clear_reviewed),
+        )
         clearMessage?.let { message ->
             Text(
                 text = message,
@@ -685,7 +683,7 @@ private fun GalleryCleanerSettingsSection(
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        OutlinedButton(
+        SettingsFullWidthOutlinedButton(
             onClick = {
                 preferences.resetSettingsToDefaults()
                 filter = preferences.loadDateFilter()
@@ -698,9 +696,8 @@ private fun GalleryCleanerSettingsSection(
                 clearMessage = null
                 resetMessage = context.getString(R.string.settings_gallery_reset_done)
             },
-        ) {
-            Text(stringResource(R.string.settings_gallery_reset))
-        }
+            label = stringResource(R.string.settings_gallery_reset),
+        )
         resetMessage?.let { message ->
             Text(
                 text = message,
@@ -726,6 +723,28 @@ private fun GalleryCleanerSettingsSection(
 }
 
 @Composable
+private fun SettingsFullWidthOutlinedButton(
+    onClick: () -> Unit,
+    label: String,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+) {
+    OutlinedButton(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = modifier.fillMaxWidth(),
+        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp),
+    ) {
+        Text(
+            text = label,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            textAlign = TextAlign.Center,
+        )
+    }
+}
+
+@Composable
 private fun SettingsSwitchRow(
     title: String,
     checked: Boolean,
@@ -738,6 +757,8 @@ private fun SettingsSwitchRow(
             Text(
                 text = title,
                 style = MaterialTheme.typography.bodyLarge,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
             )
         },
         supportingContent =
@@ -747,6 +768,8 @@ private fun SettingsSwitchRow(
                     text = it,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 4,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
         },
@@ -982,31 +1005,60 @@ private fun YearMonthDayRow(
                 MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
             },
         )
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            SimpleDropdownField(
-                value = year.toString(),
-                options = years.map { it.toString() },
-                enabled = enabled,
-                onOptionSelect = { index -> onYearChange(years[index]) },
-                modifier = Modifier.weight(1.1f),
-            )
-            SimpleDropdownField(
-                value = monthLabels[month - 1],
-                options = monthLabels,
-                enabled = enabled,
-                onOptionSelect = { index -> onMonthChange(index + 1) },
-                modifier = Modifier.weight(1.4f),
-            )
-            SimpleDropdownField(
-                value = day.toString(),
-                options = days.map { it.toString() },
-                enabled = enabled,
-                onOptionSelect = { index -> onDayChange(days[index]) },
-                modifier = Modifier.weight(0.9f),
-            )
+        if (isCompactWidth()) {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                SimpleDropdownField(
+                    value = year.toString(),
+                    options = years.map { it.toString() },
+                    enabled = enabled,
+                    onOptionSelect = { index -> onYearChange(years[index]) },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                SimpleDropdownField(
+                    value = monthLabels[month - 1],
+                    options = monthLabels,
+                    enabled = enabled,
+                    onOptionSelect = { index -> onMonthChange(index + 1) },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                SimpleDropdownField(
+                    value = day.toString(),
+                    options = days.map { it.toString() },
+                    enabled = enabled,
+                    onOptionSelect = { index -> onDayChange(days[index]) },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        } else {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                SimpleDropdownField(
+                    value = year.toString(),
+                    options = years.map { it.toString() },
+                    enabled = enabled,
+                    onOptionSelect = { index -> onYearChange(years[index]) },
+                    modifier = Modifier.weight(1.1f),
+                )
+                SimpleDropdownField(
+                    value = monthLabels[month - 1],
+                    options = monthLabels,
+                    enabled = enabled,
+                    onOptionSelect = { index -> onMonthChange(index + 1) },
+                    modifier = Modifier.weight(1.4f),
+                )
+                SimpleDropdownField(
+                    value = day.toString(),
+                    options = days.map { it.toString() },
+                    enabled = enabled,
+                    onOptionSelect = { index -> onDayChange(days[index]) },
+                    modifier = Modifier.weight(0.9f),
+                )
+            }
         }
     }
 }
@@ -1044,7 +1096,13 @@ private fun SimpleDropdownField(
         ) {
             options.forEachIndexed { index, option ->
                 DropdownMenuItem(
-                    text = { Text(option) },
+                    text = {
+                        Text(
+                            text = option,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    },
                     onClick = {
                         onOptionSelect(index)
                         expanded = false

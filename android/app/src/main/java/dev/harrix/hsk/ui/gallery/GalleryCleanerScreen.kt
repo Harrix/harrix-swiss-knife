@@ -23,6 +23,7 @@ import androidx.compose.foundation.gestures.calculateZoom
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -39,6 +40,8 @@ import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.RotateRight
 import androidx.compose.material.icons.automirrored.filled.Undo
@@ -93,6 +96,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChanged
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
@@ -120,6 +124,7 @@ import dev.harrix.hsk.gallery.PendingEditUndo
 import dev.harrix.hsk.gallery.PhotoEditSaver
 import dev.harrix.hsk.ui.CompactBottomActionButton
 import dev.harrix.hsk.ui.adaptiveBottomBarWidth
+import dev.harrix.hsk.ui.isCompactHeight
 import dev.harrix.hsk.ui.isCompactWidth
 import dev.harrix.hsk.ui.performLightActionHaptic
 import kotlinx.coroutines.Dispatchers
@@ -770,7 +775,10 @@ fun GalleryCleanerScreen(
             onDismissRequest = { showStatsDialog = false },
             title = { Text(stringResource(R.string.gallery_cleaner_stats_title)) },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(
+                    modifier = Modifier.dialogScrollable(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
                     if (unreviewedOnlyMode) {
                         Text(
                             stringResource(
@@ -1335,7 +1343,7 @@ private fun GalleryCleanerIntroDialog(
         onDismissRequest = onConfirm,
         title = { Text(stringResource(R.string.gallery_cleaner_intro_title)) },
         text = {
-            Column {
+            Column(modifier = Modifier.dialogScrollable()) {
                 Text(stringResource(R.string.gallery_cleaner_intro_message))
                 Spacer(modifier = Modifier.height(16.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -1345,7 +1353,10 @@ private fun GalleryCleanerIntroDialog(
                     )
                     Text(
                         text = stringResource(R.string.gallery_cleaner_intro_dont_show),
-                        modifier = Modifier.padding(start = 4.dp),
+                        modifier =
+                        Modifier
+                            .weight(1f)
+                            .padding(start = 4.dp),
                     )
                 }
             }
@@ -1366,15 +1377,28 @@ internal fun ManageMediaPromptDialog(
     AlertDialog(
         onDismissRequest = onSkip,
         title = { Text(stringResource(R.string.gallery_cleaner_manage_media_title)) },
-        text = { Text(stringResource(R.string.gallery_cleaner_manage_media_message)) },
+        text = {
+            Text(
+                text = stringResource(R.string.gallery_cleaner_manage_media_message),
+                modifier = Modifier.dialogScrollable(),
+            )
+        },
         confirmButton = {
             TextButton(onClick = onOpenSettings) {
-                Text(stringResource(R.string.gallery_cleaner_manage_media_open))
+                Text(
+                    text = stringResource(R.string.gallery_cleaner_manage_media_open),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
             }
         },
         dismissButton = {
             TextButton(onClick = onSkip) {
-                Text(stringResource(R.string.gallery_cleaner_manage_media_skip))
+                Text(
+                    text = stringResource(R.string.gallery_cleaner_manage_media_skip),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
             }
         },
     )
@@ -1399,10 +1423,25 @@ private fun PermissionRequestContent(
             style = MaterialTheme.typography.bodyMedium,
         )
         Spacer(modifier = Modifier.height(20.dp))
-        Button(onClick = onGrantClick) {
-            Text(stringResource(R.string.gallery_cleaner_permission_grant))
+        Button(
+            onClick = onGrantClick,
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp),
+        ) {
+            Text(
+                text = stringResource(R.string.gallery_cleaner_permission_grant),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
     }
+}
+
+@Composable
+private fun Modifier.dialogScrollable(): Modifier {
+    val maxHeight = (LocalConfiguration.current.screenHeightDp * 0.45f).dp
+    return this
+        .heightIn(max = maxHeight)
+        .verticalScroll(rememberScrollState())
 }
 
 private const val PhotoMinZoom = 1f
@@ -1665,30 +1704,48 @@ private fun SwipeablePhotoCard(
             )
         }
 
+        val compactMeta = isCompactHeight()
         Column(
             modifier =
             Modifier
                 .fillMaxWidth()
                 .background(MaterialTheme.colorScheme.background)
-                .padding(horizontal = 16.dp, vertical = 10.dp),
+                .padding(
+                    horizontal = 16.dp,
+                    vertical = if (compactMeta) 6.dp else 10.dp,
+                ),
             verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
-            Text(
-                text = nameLabel,
-                style = MaterialTheme.typography.titleSmall,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text(
-                text = dateLabel,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Text(
-                text = sizeLabel,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            if (compactMeta) {
+                Text(
+                    text = "$dateLabel · $sizeLabel",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            } else {
+                Text(
+                    text = nameLabel,
+                    style = MaterialTheme.typography.titleSmall,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = dateLabel,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = sizeLabel,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
         }
     }
 }

@@ -10,13 +10,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.CropFree
@@ -61,6 +58,8 @@ import dev.harrix.hsk.gallery.NormalizedCropRect
 import dev.harrix.hsk.gallery.PhotoEditSaver
 import dev.harrix.hsk.ui.CompactBottomActionButton
 import dev.harrix.hsk.ui.adaptiveBottomBarWidth
+import dev.harrix.hsk.ui.isCompactHeight
+import dev.harrix.hsk.ui.isCompactWidth
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
@@ -477,20 +476,23 @@ fun PhotoCropEditor(
             }
         }
 
+        val compactChrome = isCompactWidth() || isCompactHeight()
         Box(
             modifier =
             Modifier
                 .fillMaxWidth()
-                .background(MaterialTheme.colorScheme.background)
-                .windowInsetsPadding(WindowInsets.navigationBars),
+                .background(MaterialTheme.colorScheme.background),
             contentAlignment = Alignment.Center,
         ) {
             Column(
                 modifier =
                 Modifier
                     .adaptiveBottomBarWidth()
-                    .padding(horizontal = 12.dp, vertical = 10.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+                    .padding(
+                        horizontal = if (compactChrome) 8.dp else 12.dp,
+                        vertical = if (compactChrome) 6.dp else 10.dp,
+                    ),
+                verticalArrangement = Arrangement.spacedBy(if (compactChrome) 6.dp else 8.dp),
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -511,17 +513,29 @@ fun PhotoCropEditor(
                         enabled = !isSaving && imageWidth > 0,
                         label = {
                             Text(
-                                text = stringResource(R.string.gallery_cleaner_edit_aspect_rotate),
+                                text =
+                                stringResource(
+                                    if (compactChrome) {
+                                        R.string.gallery_cleaner_edit_aspect_rotate_short
+                                    } else {
+                                        R.string.gallery_cleaner_edit_aspect_rotate
+                                    },
+                                ),
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                             )
                         },
-                        leadingIcon = {
-                            Icon(
-                                imageVector = Icons.Filled.CropRotate,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp),
-                            )
+                        leadingIcon =
+                        if (compactChrome) {
+                            null
+                        } else {
+                            {
+                                Icon(
+                                    imageVector = Icons.Filled.CropRotate,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp),
+                                )
+                            }
                         },
                         modifier = Modifier.weight(1f),
                     )
@@ -541,17 +555,29 @@ fun PhotoCropEditor(
                         enabled = !isSaving && imageWidth > 0,
                         label = {
                             Text(
-                                text = stringResource(R.string.gallery_cleaner_edit_aspect_free),
+                                text =
+                                stringResource(
+                                    if (compactChrome) {
+                                        R.string.gallery_cleaner_edit_aspect_free_short
+                                    } else {
+                                        R.string.gallery_cleaner_edit_aspect_free
+                                    },
+                                ),
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                             )
                         },
-                        leadingIcon = {
-                            Icon(
-                                imageVector = Icons.Filled.CropFree,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp),
-                            )
+                        leadingIcon =
+                        if (compactChrome) {
+                            null
+                        } else {
+                            {
+                                Icon(
+                                    imageVector = Icons.Filled.CropFree,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp),
+                                )
+                            }
                         },
                         modifier = Modifier.weight(1f),
                     )
