@@ -74,7 +74,6 @@ import dev.harrix.hsk.ui.theme.HskAndroidTheme
 import dev.harrix.hsk.ui.theme.ThemeMode
 import kotlinx.coroutines.launch
 
-private const val HomeGridColumns = 2
 private val UtilityCardMinHeight = 104.dp
 private val UtilityCardIconSize = 40.dp
 private val TopBarLogoSize = 28.dp
@@ -297,7 +296,7 @@ private fun HomeUtilitiesGrid(
     modifier: Modifier = Modifier,
 ) {
     LazyVerticalGrid(
-        columns = GridCells.Fixed(HomeGridColumns),
+        columns = GridCells.Fixed(homeGridColumnCount()),
         modifier = modifier,
         contentPadding = PaddingValues(16.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),

@@ -3,11 +3,15 @@ package dev.harrix.hsk.ui
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonColors
 import androidx.compose.material3.ButtonDefaults
@@ -27,10 +31,36 @@ import androidx.compose.ui.unit.dp
 /** Compact phone width where icon+label-in-a-row buttons tend to wrap mid-word. */
 const val CompactScreenWidthDp = 400
 
+private const val MediumScreenWidthDp = 600
+
+private const val ExpandedScreenWidthDp = 840
+
 private val AdaptiveBottomBarMaxWidth = 720.dp
+
+private val AdaptiveContentMaxWidth = 840.dp
 
 @Composable
 fun isCompactWidth(): Boolean = LocalConfiguration.current.screenWidthDp < CompactScreenWidthDp
+
+@Composable
+fun screenWidthDp(): Int = LocalConfiguration.current.screenWidthDp
+
+@Composable
+fun homeGridColumnCount(): Int = if (screenWidthDp() >= ExpandedScreenWidthDp) {
+    3
+} else {
+    2
+}
+
+@Composable
+fun videoGridColumnCount(): Int {
+    val width = screenWidthDp()
+    return when {
+        width >= ExpandedScreenWidthDp -> 5
+        width >= MediumScreenWidthDp -> 4
+        else -> 3
+    }
+}
 
 /**
  * Bottom-bar action: icon above label so Delete / Skip / Keep fit on narrow phones
@@ -102,3 +132,75 @@ fun RowScope.CompactBottomActionButton(
 fun Modifier.adaptiveBottomBarWidth(): Modifier = this
     .fillMaxWidth()
     .widthIn(max = AdaptiveBottomBarMaxWidth)
+
+/** Limits settings / about content width on tablets and centers it. */
+@Composable
+fun Modifier.adaptiveContentWidth(): Modifier = this
+    .fillMaxWidth()
+    .wrapContentWidth(Alignment.CenterHorizontally)
+    .widthIn(max = AdaptiveContentMaxWidth)
+
+/**
+ * Full-width primary action (e.g. Video Cleaner delete): keeps icon+label on one line
+ * on narrow phones via reduced padding and ellipsis.
+ */
+@Composable
+fun CompactWideActionButton(
+    onClick: () -> Unit,
+    icon: ImageVector,
+    label: String,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    colors: ButtonColors = ButtonDefaults.buttonColors(),
+) {
+    val compact = isCompactWidth()
+    Button(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = modifier
+            .fillMaxWidth()
+            .heightIn(min = 56.dp),
+        contentPadding =
+        PaddingValues(
+            horizontal = if (compact) 12.dp else 16.dp,
+            vertical = 10.dp,
+        ),
+        colors = colors,
+    ) {
+        if (compact) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp),
+                )
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelLarge,
+                    maxLines = 1,
+                    softWrap = false,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.Center,
+                )
+            }
+        } else {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp),
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelLarge,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
+    }
+}

@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -55,6 +56,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -65,6 +67,8 @@ import dev.harrix.hsk.gallery.GalleryDateFilter
 import dev.harrix.hsk.gallery.GalleryPermissions
 import dev.harrix.hsk.gallery.GalleryReviewOrder
 import dev.harrix.hsk.gallery.MediaFolderPaths
+import dev.harrix.hsk.ui.adaptiveContentWidth
+import dev.harrix.hsk.ui.isCompactWidth
 import dev.harrix.hsk.ui.theme.ThemeMode
 import java.text.DateFormat
 import java.text.DateFormatSymbols
@@ -102,7 +106,13 @@ fun SettingsScreen(
         modifier = modifier,
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(titleRes)) },
+                title = {
+                    Text(
+                        text = stringResource(titleRes),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = onClose) {
                         Icon(
@@ -120,7 +130,8 @@ fun SettingsScreen(
                 .padding(innerPadding)
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp, vertical = 8.dp),
+                .padding(horizontal = 16.dp, vertical = 8.dp)
+                .adaptiveContentWidth(),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             when (section) {
@@ -250,7 +261,11 @@ private fun AppearanceSettingsSection(
                         count = options.size,
                     ),
                 ) {
-                    Text(stringResource(labelRes))
+                    Text(
+                        text = stringResource(labelRes),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
                 }
             }
         }
@@ -469,26 +484,72 @@ private fun GalleryCleanerSettingsSection(
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                OutlinedButton(
-                    onClick = { folderPicker.launch(null) },
-                    modifier = Modifier.weight(1f),
+            val folderButtonPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp)
+            if (isCompactWidth()) {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    Text(stringResource(R.string.settings_gallery_images_folder_choose))
+                    OutlinedButton(
+                        onClick = { folderPicker.launch(null) },
+                        modifier = Modifier.fillMaxWidth(),
+                        contentPadding = folderButtonPadding,
+                    ) {
+                        Text(
+                            text = stringResource(R.string.settings_gallery_images_folder_choose),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                    OutlinedButton(
+                        onClick = {
+                            preferences.resetImagesFolderToDefault()
+                            imagesRelativePath = null
+                            folderMessage = null
+                        },
+                        enabled = imagesRelativePath != null,
+                        modifier = Modifier.fillMaxWidth(),
+                        contentPadding = folderButtonPadding,
+                    ) {
+                        Text(
+                            text = stringResource(R.string.settings_gallery_images_folder_restore),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
                 }
-                OutlinedButton(
-                    onClick = {
-                        preferences.resetImagesFolderToDefault()
-                        imagesRelativePath = null
-                        folderMessage = null
-                    },
-                    enabled = imagesRelativePath != null,
-                    modifier = Modifier.weight(1f),
+            } else {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    Text(stringResource(R.string.settings_gallery_images_folder_restore))
+                    OutlinedButton(
+                        onClick = { folderPicker.launch(null) },
+                        modifier = Modifier.weight(1f),
+                        contentPadding = folderButtonPadding,
+                    ) {
+                        Text(
+                            text = stringResource(R.string.settings_gallery_images_folder_choose),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                    OutlinedButton(
+                        onClick = {
+                            preferences.resetImagesFolderToDefault()
+                            imagesRelativePath = null
+                            folderMessage = null
+                        },
+                        enabled = imagesRelativePath != null,
+                        modifier = Modifier.weight(1f),
+                        contentPadding = folderButtonPadding,
+                    ) {
+                        Text(
+                            text = stringResource(R.string.settings_gallery_images_folder_restore),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
                 }
             }
             folderMessage?.let { message ->
@@ -865,20 +926,28 @@ private fun DatePresetButton(
     enabled: Boolean,
     onClick: () -> Unit,
 ) {
+    val padding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
+    val content: @Composable () -> Unit = {
+        Text(
+            text = label,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
     if (selected) {
         Button(
             onClick = onClick,
             enabled = enabled,
-        ) {
-            Text(label)
-        }
+            contentPadding = padding,
+            content = { content() },
+        )
     } else {
         OutlinedButton(
             onClick = onClick,
             enabled = enabled,
-        ) {
-            Text(label)
-        }
+            contentPadding = padding,
+            content = { content() },
+        )
     }
 }
 

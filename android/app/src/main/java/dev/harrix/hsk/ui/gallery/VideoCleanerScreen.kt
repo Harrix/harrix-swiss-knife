@@ -98,12 +98,14 @@ import dev.harrix.hsk.gallery.CameraGalleryRepository
 import dev.harrix.hsk.gallery.CameraVideo
 import dev.harrix.hsk.gallery.GalleryCleanerPreferences
 import dev.harrix.hsk.gallery.GalleryPermissions
+import dev.harrix.hsk.ui.CompactWideActionButton
+import dev.harrix.hsk.ui.adaptiveBottomBarWidth
+import dev.harrix.hsk.ui.isCompactWidth
 import dev.harrix.hsk.ui.performLightActionHaptic
+import dev.harrix.hsk.ui.videoGridColumnCount
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.util.Date
-
-private const val GalleryColumns = 3
 
 private enum class VideoSort(
     val labelRes: Int,
@@ -284,7 +286,13 @@ fun VideoCleanerScreen(
         modifier = modifier,
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.video_cleaner_title)) },
+                title = {
+                    Text(
+                        text = stringResource(R.string.video_cleaner_title),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = onClose) {
                         Icon(
@@ -389,8 +397,14 @@ fun VideoCleanerScreen(
                                         GalleryPermissions.requiredVideoPermission(),
                                     )
                                 },
+                                contentPadding =
+                                PaddingValues(horizontal = 16.dp, vertical = 10.dp),
                             ) {
-                                Text(stringResource(R.string.video_cleaner_permission_grant))
+                                Text(
+                                    text = stringResource(R.string.video_cleaner_permission_grant),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
                             }
                         }
                     }
@@ -421,7 +435,7 @@ fun VideoCleanerScreen(
                         modifier =
                         Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 8.dp),
+                            .padding(horizontal = 4.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
@@ -429,18 +443,30 @@ fun VideoCleanerScreen(
                             onClick = {
                                 selectedIds = sortedVideos.map { it.id }.toSet()
                             },
+                            modifier = Modifier.weight(1f, fill = false),
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp),
                         ) {
-                            Text(stringResource(R.string.video_cleaner_select_all))
+                            Text(
+                                text = stringResource(R.string.video_cleaner_select_all),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
                         }
                         TextButton(
                             onClick = { selectedIds = emptySet() },
                             enabled = selectedIds.isNotEmpty(),
+                            modifier = Modifier.weight(1f, fill = false),
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp),
                         ) {
-                            Text(stringResource(R.string.video_cleaner_deselect_all))
+                            Text(
+                                text = stringResource(R.string.video_cleaner_deselect_all),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
                         }
                     }
                     LazyVerticalGrid(
-                        columns = GridCells.Fixed(GalleryColumns),
+                        columns = GridCells.Fixed(videoGridColumnCount()),
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(8.dp),
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -485,6 +511,16 @@ private fun VideoCleanerBottomBar(
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val compact = isCompactWidth()
+    val deleteLabel =
+        stringResource(
+            if (compact) {
+                R.string.video_cleaner_delete_selected_short
+            } else {
+                R.string.video_cleaner_delete_selected
+            },
+            selectedCount,
+        )
     Column(
         modifier =
         modifier
@@ -492,35 +528,33 @@ private fun VideoCleanerBottomBar(
             .background(MaterialTheme.colorScheme.surfaceContainer)
             .windowInsetsPadding(WindowInsets.navigationBars)
             .padding(horizontal = 16.dp, vertical = 12.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        if (selectedSizeLabel != null) {
-            Text(
-                text = selectedSizeLabel,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(bottom = 8.dp),
+        Column(modifier = Modifier.adaptiveBottomBarWidth()) {
+            if (selectedSizeLabel != null) {
+                Text(
+                    text = selectedSizeLabel,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(bottom = 8.dp),
+                )
+            }
+            val colorScheme = MaterialTheme.colorScheme
+            CompactWideActionButton(
+                onClick = onDelete,
+                icon = Icons.Filled.Delete,
+                label = deleteLabel,
+                enabled = selectedCount > 0,
+                colors =
+                ButtonDefaults.buttonColors(
+                    containerColor = colorScheme.error,
+                    contentColor = colorScheme.onError,
+                    disabledContainerColor = colorScheme.onSurface.copy(alpha = 0.12f),
+                    disabledContentColor = colorScheme.onSurface.copy(alpha = 0.38f),
+                ),
             )
-        }
-        val colorScheme = MaterialTheme.colorScheme
-        Button(
-            onClick = onDelete,
-            enabled = selectedCount > 0,
-            modifier = Modifier.fillMaxWidth(),
-            colors =
-            ButtonDefaults.buttonColors(
-                containerColor = colorScheme.error,
-                contentColor = colorScheme.onError,
-                disabledContainerColor = colorScheme.onSurface.copy(alpha = 0.12f),
-                disabledContentColor = colorScheme.onSurface.copy(alpha = 0.38f),
-            ),
-        ) {
-            Icon(
-                imageVector = Icons.Filled.Delete,
-                contentDescription = null,
-                modifier = Modifier.size(18.dp),
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(stringResource(R.string.video_cleaner_delete_selected, selectedCount))
         }
     }
 }
