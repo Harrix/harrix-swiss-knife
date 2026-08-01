@@ -3452,6 +3452,19 @@ async function activate(context) {
   );
 
   context.subscriptions.push(
+    vscode.commands.registerCommand('harrixNotesExplorerHsk.copyFilename', async (treeItemOrUri) => {
+      const fsPath = uriToFsPath(uriFromTreeArgOrActiveEditor(treeItemOrUri));
+      if (!fsPath) {
+        vscode.window.showErrorMessage('Open a file or select an item in Harrix Notes (HSK).');
+        return;
+      }
+      const filename = path.basename(fsPath);
+      await vscode.env.clipboard.writeText(filename);
+      vscode.window.setStatusBarMessage('Copied filename to clipboard', 1500);
+    }),
+  );
+
+  context.subscriptions.push(
     vscode.commands.registerCommand('harrixNotesExplorerHsk.openInTerminal', async (treeItemOrUri) => {
       const folderUri = folderUriFromTreeArg(treeItemOrUri);
       if (!folderUri) {

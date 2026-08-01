@@ -243,6 +243,11 @@
         "category": "Harrix Notes HSK"
       },
       {
+        "command": "harrixNotesExplorerHsk.copyFilename",
+        "title": "Copy Filename",
+        "category": "Harrix Notes HSK"
+      },
+      {
         "command": "harrixNotesExplorerHsk.openInTerminal",
         "title": "Open in Integrated Terminal",
         "category": "Harrix Notes HSK"
@@ -464,6 +469,10 @@
         {
           "command": "harrixNotesExplorerHsk.copyPath",
           "when": "resourceLangId == markdown"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.copyFilename",
+          "when": "resourceLangId == markdown"
         }
       ],
       "view/item/context": [
@@ -550,7 +559,12 @@
         {
           "command": "harrixNotesExplorerHsk.copyPath",
           "when": "view == harrixNotesExplorerHsk && (viewItem == note || viewItem == noteHasAttachments || viewItem == noteWithAssets || viewItem == noteNamedFolder || viewItem == noteHasAttachmentsNamedFolder || viewItem == noteWithAssetsNamedFolder || viewItem == gitNote || viewItem == gitNoteHasAttachments || viewItem == gitNoteWithAssets || viewItem == gitNoteNamedFolder || viewItem == gitNoteHasAttachmentsNamedFolder || viewItem == gitNoteWithAssetsNamedFolder || viewItem == noteAssetFile || viewItem == noteAssetFolder || viewItem == notesFolder || viewItem == notesFolderWithMerged || viewItem == notesFolderDiary || viewItem == notesFolderWithMergedDiary || viewItem == notesFolderDreams || viewItem == notesFolderWithMergedDreams || viewItem == notesFolderCases || viewItem == notesFolderWithMergedCases || viewItem == notesFolderTemplateTarget || viewItem == notesFolderTemplateTargetWithMerged || viewItem == gitNotesFolder || viewItem == gitNotesFolderWithMerged || viewItem == gitNotesFolderDiary || viewItem == gitNotesFolderWithMergedDiary || viewItem == gitNotesFolderDreams || viewItem == gitNotesFolderWithMergedDreams || viewItem == gitNotesFolderCases || viewItem == gitNotesFolderWithMergedCases || viewItem == gitNotesFolderTemplateTarget || viewItem == gitNotesFolderTemplateTargetWithMerged)",
-          "group": "navigation"
+          "group": "navigation@1"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.copyFilename",
+          "when": "view == harrixNotesExplorerHsk && (viewItem == note || viewItem == noteHasAttachments || viewItem == noteWithAssets || viewItem == noteNamedFolder || viewItem == noteHasAttachmentsNamedFolder || viewItem == noteWithAssetsNamedFolder || viewItem == gitNote || viewItem == gitNoteHasAttachments || viewItem == gitNoteWithAssets || viewItem == gitNoteNamedFolder || viewItem == gitNoteHasAttachmentsNamedFolder || viewItem == gitNoteWithAssetsNamedFolder || viewItem == noteAssetFile || viewItem == noteAssetFolder || viewItem == notesFolder || viewItem == notesFolderWithMerged || viewItem == notesFolderDiary || viewItem == notesFolderWithMergedDiary || viewItem == notesFolderDreams || viewItem == notesFolderWithMergedDreams || viewItem == notesFolderCases || viewItem == notesFolderWithMergedCases || viewItem == notesFolderTemplateTarget || viewItem == notesFolderTemplateTargetWithMerged || viewItem == gitNotesFolder || viewItem == gitNotesFolderWithMerged || viewItem == gitNotesFolderDiary || viewItem == gitNotesFolderWithMergedDiary || viewItem == gitNotesFolderDreams || viewItem == gitNotesFolderWithMergedDreams || viewItem == gitNotesFolderCases || viewItem == gitNotesFolderWithMergedCases || viewItem == gitNotesFolderTemplateTarget || viewItem == gitNotesFolderTemplateTargetWithMerged)",
+          "group": "navigation@2"
         },
         {
           "command": "harrixNotesExplorerHsk.openInTerminal",
