@@ -4,22 +4,28 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.calculatePan
 import androidx.compose.foundation.gestures.calculateRotation
+import androidx.compose.foundation.gestures.calculateZoom
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.CropFree
 import androidx.compose.material.icons.filled.CropRotate
 import androidx.compose.material.icons.filled.Done
+import androidx.compose.material.icons.filled.FitScreen
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -27,6 +33,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -61,10 +68,15 @@ import dev.harrix.hsk.ui.adaptiveBottomBarWidth
 import dev.harrix.hsk.ui.isCompactHeight
 import dev.harrix.hsk.ui.isCompactWidth
 import kotlin.math.abs
+import kotlin.math.hypot
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
 import coil.size.Size as CoilSize
+
+private const val CropViewMinZoom = 0.5f
+private const val CropViewMaxZoom = 5f
+private const val CropViewZoomEpsilon = 0.02f
 
 private enum class CropDragMode {
     Move,
@@ -109,6 +121,13 @@ fun PhotoCropEditor(
     var didInitCrop by remember(photo.id, imageRevision) { mutableStateOf(false) }
     var aspectMode by remember(photo.id, imageRevision) { mutableStateOf(CropAspectMode.Original) }
     val aspectModeState = rememberUpdatedState(aspectMode)
+    var viewScale by remember(photo.id, imageRevision) { mutableFloatStateOf(1f) }
+    var viewOffset by remember(photo.id, imageRevision) { mutableStateOf(Offset.Zero) }
+    val viewScaleState = rememberUpdatedState(viewScale)
+    val viewOffsetState = rememberUpdatedState(viewOffset)
+    val isViewTransformed =
+        abs(viewScale - 1f) > CropViewZoomEpsilon ||
+            hypot(viewOffset.x.toDouble(), viewOffset.y.toDouble()) > 1.0
 
     LaunchedEffect(imageWidth, imageHeight, didInitCrop) {
         if (!didInitCrop && imageWidth > 0 && imageHeight > 0) {
@@ -173,6 +192,7 @@ fun PhotoCropEditor(
             if (workspace.width > 0f && imageDrawSize.first > 0f) {
                 // All crop math is local to this square (0..side). The photo is smaller and
                 // centered; black letterbox around it is valid crop space (saved as black).
+                // Pinch zoom/pan scales the whole square (image + crop frame together).
                 Box(
                     modifier =
                     Modifier
@@ -180,6 +200,12 @@ fun PhotoCropEditor(
                             width = with(density) { workspace.width.toDp() },
                             height = with(density) { workspace.height.toDp() },
                         )
+                        .graphicsLayer {
+                            scaleX = viewScale
+                            scaleY = viewScale
+                            translationX = viewOffset.x
+                            translationY = viewOffset.y
+                        }
                         .background(Color.Black),
                     contentAlignment = Alignment.Center,
                 ) {
@@ -302,6 +328,8 @@ fun PhotoCropEditor(
                                 imageWidth,
                                 imageHeight,
                                 aspectMode,
+                                viewportW,
+                                viewportH,
                             ) {
                                 if (isSaving) {
                                     return@pointerInput
@@ -311,6 +339,8 @@ fun PhotoCropEditor(
                                     var multiTouch = false
                                     var cropMode: CropDragMode? = null
                                     var gestureActive = true
+                                    var gestureScale = viewScaleState.value
+                                    var gestureOffset = viewOffsetState.value
                                     isRotatingHint = false
 
                                     while (gestureActive) {
@@ -321,12 +351,29 @@ fun PhotoCropEditor(
                                         } else if (pressed.size >= 2) {
                                             multiTouch = true
                                             cropMode = null
-                                            isRotatingHint = true
                                             val rotationDelta = event.calculateRotation()
+                                            val zoomChange = event.calculateZoom()
+                                            val panChange = event.calculatePan()
                                             if (rotationDelta != 0f) {
+                                                isRotatingHint = true
                                                 onRotationDegreesChangeState.value(
                                                     rotationState.value + rotationDelta,
                                                 )
+                                            }
+                                            if (zoomChange != 1f || panChange != Offset.Zero) {
+                                                gestureScale =
+                                                    (gestureScale * zoomChange)
+                                                        .coerceIn(CropViewMinZoom, CropViewMaxZoom)
+                                                gestureOffset =
+                                                    clampCropViewOffset(
+                                                        offset = gestureOffset + panChange,
+                                                        scale = gestureScale,
+                                                        side = side,
+                                                        viewportW = viewportW,
+                                                        viewportH = viewportH,
+                                                    )
+                                                viewScale = gestureScale
+                                                viewOffset = gestureOffset
                                             }
                                             pressed.forEach { change ->
                                                 if (change.positionChanged()) {
@@ -466,6 +513,51 @@ fun PhotoCropEditor(
                         .background(Color.Black.copy(alpha = 0.45f))
                         .padding(horizontal = 10.dp, vertical = 4.dp),
                 )
+            }
+
+            if (isViewTransformed && !isSaving && workspace.width > 0f) {
+                val compactChrome = isCompactWidth() || isCompactHeight()
+                FilledTonalButton(
+                    onClick = {
+                        val visible =
+                            visibleWorkspaceNormalized(
+                                viewportW = viewportW,
+                                viewportH = viewportH,
+                                side = workspace.width,
+                                scale = viewScale,
+                                offset = viewOffset,
+                            )
+                        onCropRectChange(
+                            PhotoEditSaver.fitCropIntoBounds(
+                                rect = cropRect,
+                                bounds = visible,
+                            ),
+                        )
+                    },
+                    modifier =
+                    Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(12.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.FitScreen,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text =
+                        stringResource(
+                            if (compactChrome) {
+                                R.string.gallery_cleaner_edit_fit_frame_short
+                            } else {
+                                R.string.gallery_cleaner_edit_fit_frame
+                            },
+                        ),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
             }
 
             if (isSaving) {
@@ -614,6 +706,59 @@ private fun applyPainterSize(
     if (validWidth && validHeight) {
         onSize(size.width.toInt(), size.height.toInt())
     }
+}
+
+/**
+ * Clamp pan so a center-scaled square of [side] stays useful inside the viewport.
+ */
+private fun clampCropViewOffset(
+    offset: Offset,
+    scale: Float,
+    side: Float,
+    viewportW: Float,
+    viewportH: Float,
+): Offset {
+    val scaled = side * scale.coerceAtLeast(1e-6f)
+    val maxX = max(0f, (scaled - viewportW) / 2f)
+    val maxY = max(0f, (scaled - viewportH) / 2f)
+    return Offset(
+        x = offset.x.coerceIn(-maxX, maxX),
+        y = offset.y.coerceIn(-maxY, maxY),
+    )
+}
+
+/**
+ * Normalized region of the square workspace currently visible in the viewport.
+ * Matches center-origin [graphicsLayer] scale + translation on a centered square.
+ */
+private fun visibleWorkspaceNormalized(
+    viewportW: Float,
+    viewportH: Float,
+    side: Float,
+    scale: Float,
+    offset: Offset,
+): NormalizedCropRect {
+    val s = scale.coerceAtLeast(1e-6f)
+    val centerX = viewportW / 2f
+    val centerY = viewportH / 2f
+    fun parentToNorm(
+        px: Float,
+        py: Float,
+    ): Pair<Float, Float> {
+        val lx = side / 2f + (px - centerX - offset.x) / s
+        val ly = side / 2f + (py - centerY - offset.y) / s
+        return (lx / side) to (ly / side)
+    }
+    val (nLeft, nTop) = parentToNorm(0f, 0f)
+    val (nRight, nBottom) = parentToNorm(viewportW, viewportH)
+    val left = min(nLeft, nRight).coerceIn(0f, 1f)
+    val top = min(nTop, nBottom).coerceIn(0f, 1f)
+    val right = max(nLeft, nRight).coerceIn(0f, 1f)
+    val bottom = max(nTop, nBottom).coerceIn(0f, 1f)
+    if (right - left < 0.06f || bottom - top < 0.06f) {
+        return NormalizedCropRect.Full
+    }
+    return NormalizedCropRect(left, top, right, bottom)
 }
 
 /**
