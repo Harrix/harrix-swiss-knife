@@ -483,6 +483,58 @@ function titleFromFrontmatterBlock(fmText) {
 }
 
 /**
+ * Whether `value` is a short emoji/symbol suitable as a note tree icon (not a path/URL).
+ * @param {string} value
+ */
+function isNoteTreeEmojiIcon(value) {
+  const v = String(value ?? '').trim();
+  if (!v || [...v].length > 8) {
+    return false;
+  }
+  if (/^https?:\/\//i.test(v) || /[\\/]/.test(v)) {
+    return false;
+  }
+  if (/\.(png|jpe?g|gif|svg|webp|avif|ico)$/i.test(v)) {
+    return false;
+  }
+  return true;
+}
+
+/**
+ * @param {string} fmText
+ */
+function iconFromFrontmatterBlock(fmText) {
+  for (const line of fmText.split(/\r?\n/)) {
+    const m = /^icon\s*:\s*(.*)$/i.exec(line);
+    if (!m) {
+      continue;
+    }
+    const icon = unquoteYamlScalar(m[1]);
+    if (icon && isNoteTreeEmojiIcon(icon)) {
+      return icon;
+    }
+  }
+  return '';
+}
+
+/**
+ * Build a TreeItem icon from an emoji / short symbol (data-URI SVG).
+ * @param {string} emoji
+ * @returns {vscode.Uri | undefined}
+ */
+function noteIconPathFromEmoji(emoji) {
+  const text = String(emoji ?? '').trim();
+  if (!text || !isNoteTreeEmojiIcon(text)) {
+    return undefined;
+  }
+  const escaped = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  const svg =
+    `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">` +
+    `<text x="8" y="12.5" text-anchor="middle" font-size="13">${escaped}</text></svg>`;
+  return vscode.Uri.parse(`data:image/svg+xml;base64,${Buffer.from(svg, 'utf8').toString('base64')}`);
+}
+
+/**
  * @param {string} body
  */
 function firstH1AfterFrontmatter(body) {
@@ -513,26 +565,29 @@ function firstH1AfterFrontmatter(body) {
 
 /**
  * @param {string} text
+ * @returns {{ title: string, icon: string }}
  */
-function extractNoteTitleFromMarkdown(text) {
+function extractNoteMetaFromMarkdown(text) {
   let src = String(text ?? '');
   if (src.charCodeAt(0) === 0xfeff) {
     src = src.slice(1);
   }
   const fmMatch = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/.exec(src);
   let title = '';
+  let icon = '';
   if (fmMatch) {
     title = titleFromFrontmatterBlock(fmMatch[1]) || firstH1AfterFrontmatter(src.slice(fmMatch[0].length));
+    icon = iconFromFrontmatterBlock(fmMatch[1]);
   } else {
     title = firstH1AfterFrontmatter(src);
   }
-  return stripHtmlComments(title);
+  return { title: stripHtmlComments(title), icon };
 }
 
-/** Caches note tree labels by file path and mtime. Content is read off the tree UI thread. */
+/** Caches note tree labels/icons by file path and mtime. Content is read off the tree UI thread. */
 class NoteTitleCache {
   constructor() {
-    /** @type {Map<string, { mtimeMs: number, label: string, resolved: boolean }>} */
+    /** @type {Map<string, { mtimeMs: number, label: string, icon: string, resolved: boolean }>} */
     this._entries = new Map();
     /** @type {Set<string>} */
     this._inflight = new Set();
@@ -565,6 +620,25 @@ class NoteTitleCache {
   }
 
   /**
+   * Fast path for YAML `icon:` when already resolved; otherwise `''` (default markdown icon).
+   * @param {string} filePath
+   */
+  getIconFast(filePath) {
+    const key = normalizeFsPath(filePath);
+    let mtimeMs = 0;
+    try {
+      mtimeMs = fs.statSync(filePath).mtimeMs;
+    } catch {
+      return '';
+    }
+    const cached = this._entries.get(key);
+    if (cached && cached.mtimeMs === mtimeMs && cached.resolved) {
+      return cached.icon || '';
+    }
+    return '';
+  }
+
+  /**
    * @param {string} filePath
    */
   needsResolve(filePath) {
@@ -583,39 +657,55 @@ class NoteTitleCache {
   }
 
   /**
-   * Reads a note prefix and stores the label. Call from a background turn.
+   * Reads a note prefix and stores label + icon. Call from a background turn.
    * @param {string} filePath
-   * @returns {{ label: string, changed: boolean }}
+   * @returns {{ label: string, icon: string, changed: boolean }}
    */
   resolveFromDisk(filePath) {
     const key = normalizeFsPath(filePath);
     const stem = noteStemFromPath(filePath);
-    const before = this.getLabelFast(filePath);
+    const beforeLabel = this.getLabelFast(filePath);
+    const beforeIcon = this.getIconFast(filePath);
     let mtimeMs = 0;
     try {
       mtimeMs = fs.statSync(filePath).mtimeMs;
     } catch {
-      this._entries.set(key, { mtimeMs: 0, label: stem, resolved: true });
-      return { label: stem, changed: before !== stem };
+      this._entries.set(key, { mtimeMs: 0, label: stem, icon: '', resolved: true });
+      return {
+        label: stem,
+        icon: '',
+        changed: beforeLabel !== stem || beforeIcon !== '',
+      };
     }
 
     let label = stem;
+    let icon = '';
     try {
       const fd = fs.openSync(filePath, 'r');
       const buf = Buffer.alloc(NOTE_TITLE_READ_BYTES);
       const read = fs.readSync(fd, buf, 0, NOTE_TITLE_READ_BYTES, 0);
       fs.closeSync(fd);
       const text = buf.slice(0, read).toString('utf8');
-      const title = extractNoteTitleFromMarkdown(text);
-      if (title) {
-        label = title;
+      const meta = extractNoteMetaFromMarkdown(text);
+      if (meta.title) {
+        label = meta.title;
+      }
+      if (meta.icon) {
+        icon = meta.icon;
       }
     } catch {
-      // keep stem
+      // keep stem / empty icon
     }
 
-    this._entries.set(key, { mtimeMs, label, resolved: true });
-    return { label, changed: label !== before };
+    this._entries.set(key, { mtimeMs, label, icon, resolved: true });
+    const titlesOn = getShowNoteTitleFromContent();
+    const displayBefore = titlesOn ? beforeLabel : stem;
+    const displayAfter = titlesOn ? label : stem;
+    return {
+      label,
+      icon,
+      changed: displayBefore !== displayAfter || icon !== beforeIcon,
+    };
   }
 
   /**
@@ -2054,12 +2144,13 @@ class NotesProvider {
   }
 
   /**
-   * Queue content-title reads after the tree has already painted file-name labels.
+   * Queue content reads (YAML title + icon) after the tree has already painted.
+   * Titles apply only when the setting is on; icons always apply once resolved.
    * @param {string[]} filePaths
    * @param {string | undefined} parentDir
    */
   scheduleNoteTitleResolve(filePaths, parentDir) {
-    if (!getShowNoteTitleFromContent() || !Array.isArray(filePaths) || filePaths.length === 0) {
+    if (!Array.isArray(filePaths) || filePaths.length === 0) {
       return;
     }
     for (const filePath of filePaths) {
@@ -2488,7 +2579,8 @@ class NotesProvider {
     tooltipLines.push('', 'Drop files to copy into this note (featured-image → root, images → img, others → files).');
     item.tooltip = tooltipLines.join('\n');
 
-    item.iconPath = new vscode.ThemeIcon('markdown');
+    const emojiIcon = noteIconPathFromEmoji(noteTitleCache.getIconFast(filePath));
+    item.iconPath = emojiIcon || new vscode.ThemeIcon('markdown');
     if (assetsVisible) {
       item.contextValue = 'noteWithAssets';
     } else if (noteDirHasAttachments(noteDir)) {
