@@ -3053,28 +3053,111 @@ function escapePreviewCopyConfigAttr(json) {
 }
 
 /**
- * Parse simple `key: value` rows from raw YAML frontmatter text.
+ * Format an indented YAML block under a top-level key (lists / nested maps).
+ * @param {string[]} blockLines
+ */
+function formatYamlBlockValue(blockLines) {
+  /** @type {string[]} */
+  const simpleListItems = [];
+  let isSimpleScalarList = true;
+  for (const line of blockLines) {
+    if (!line.trim() || line.trimStart().startsWith('#')) {
+      continue;
+    }
+    const listItem = line.match(/^\s+-\s+(.*)$/);
+    if (!listItem) {
+      isSimpleScalarList = false;
+      break;
+    }
+    const item = listItem[1].trim();
+    // Nested map entry in a list: `- author: …` / continuation lines → not a simple list.
+    if (/^[A-Za-z0-9_.-]+\s*:/.test(item) || /^\s+\S/.test(line.replace(/^\s+-\s+/, ' '))) {
+      // `- author: X` is a map item, not a plain scalar list.
+      if (/^[A-Za-z0-9_.-]+\s*:/.test(item)) {
+        isSimpleScalarList = false;
+        break;
+      }
+    }
+    simpleListItems.push(unquoteYamlScalar(item));
+  }
+  if (isSimpleScalarList && simpleListItems.length > 0) {
+    return simpleListItems.join(', ');
+  }
+  return blockLines
+    .map((line) => line.replace(/\s+$/, ''))
+    .filter((line, idx, arr) => line.trim() || (idx > 0 && idx < arr.length - 1))
+    .join('\n')
+    .replace(/^\n+|\n+$/g, '');
+}
+
+/**
+ * Parse YAML frontmatter into table rows. Handles `key: value` and indented lists
+ * (`tags:\n  - a\n  - b` → `tags` / `a, b`). Nested maps keep a compact multi-line value.
  * @param {string} fmText
  * @returns {Array<[string, string]>}
  */
 function parseFrontmatterRows(fmText) {
+  const lines = String(fmText || '').split(/\r?\n/);
   /** @type {Array<[string, string]>} */
   const rows = [];
-  for (const line of String(fmText || '').split(/\r?\n/)) {
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i];
     if (!line.trim() || line.trimStart().startsWith('#')) {
+      i += 1;
       continue;
     }
+    // Top-level keys only (no leading indent).
     const kv = line.match(/^([A-Za-z0-9_.-]+)\s*:\s*(.*)$/);
     if (!kv) {
+      i += 1;
       continue;
     }
-    let value = kv[2].trim();
-    if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
-      value = value.slice(1, -1);
+    const key = kv[1];
+    const value = kv[2].trim();
+    i += 1;
+    if (value) {
+      rows.push([key, unquoteYamlScalar(value)]);
+      continue;
     }
-    rows.push([kv[1], value]);
+    /** @type {string[]} */
+    const blockLines = [];
+    while (i < lines.length) {
+      const next = lines[i];
+      if (!next.trim()) {
+        // Blank line inside a block: keep only if more indented content follows.
+        let look = i + 1;
+        while (look < lines.length && !lines[look].trim()) {
+          look += 1;
+        }
+        if (look < lines.length && /^\s+\S/.test(lines[look])) {
+          blockLines.push(next);
+          i += 1;
+          continue;
+        }
+        break;
+      }
+      if (next.trimStart().startsWith('#') && /^\s+#/.test(next)) {
+        i += 1;
+        continue;
+      }
+      if (!/^\s+\S/.test(next)) {
+        break;
+      }
+      blockLines.push(next);
+      i += 1;
+    }
+    rows.push([key, formatYamlBlockValue(blockLines)]);
   }
   return rows;
+}
+
+/**
+ * Escape text for an HTML table cell; preserve line breaks for nested YAML blocks.
+ * @param {string} value
+ */
+function formatFrontmatterCellHtml(value) {
+  return escapeHtmlAttr(value).replace(/\r\n|\n|\r/g, '<br>');
 }
 
 /**
@@ -3125,7 +3208,7 @@ function buildFrontmatterPreviewHtml(rows, cfg, rawYaml = '') {
   let inner = '';
   if (rows.length > 0) {
     const tableRows = rows
-      .map(([key, value]) => `<tr><td>${escapeHtmlAttr(key)}</td><td>${escapeHtmlAttr(value)}</td></tr>`)
+      .map(([key, value]) => `<tr><td>${escapeHtmlAttr(key)}</td><td>${formatFrontmatterCellHtml(value)}</td></tr>`)
       .join('');
     inner = `<table class="frontmatter hne-frontmatter-table"><tbody>${tableRows}</tbody></table>\n`;
   } else if (String(rawYaml || '').trim()) {
