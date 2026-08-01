@@ -49,17 +49,24 @@ def android_group() -> None:
 
 
 @android_group.command("build")
+@click.option(
+    "--all",
+    "build_all",
+    is_flag=True,
+    help="Build and install all projects from paths_android_projects sequentially.",
+)
 @click.argument("args", nargs=-1)
-def android_build(args: tuple[str, ...]) -> None:
+def android_build(args: tuple[str, ...], *, build_all: bool) -> None:
     """Build Android APK for FOLDER (`debug`/`release`, or `android_build_variant` from config).
 
     Examples: `hsk android build ./android`, `hsk android build ./android debug`,
-    `hsk android build debug` (FOLDER defaults to `.`).
+    `hsk android build debug` (FOLDER defaults to `.`),
+    `hsk android build --all`, `hsk android build --all debug`.
 
     """
-    folder, variant = _parse_android_build_cli_args(args)
+    folder, variant = _parse_android_build_cli_args(args, require_folder=not build_all)
     action = OnAndroidBuild()
-    action(folder_path=folder, variant=variant, noninteractive=True)
+    action(folder_path=folder, variant=variant, build_all=build_all, noninteractive=True)
     _finish_timed_action(action)
 
 
@@ -650,7 +657,11 @@ def _finish_timed_action(action: object) -> None:
     _exit_if_action_failed(action)
 
 
-def _parse_android_build_cli_args(args: tuple[str, ...]) -> tuple[Path, str | None]:
+def _parse_android_build_cli_args(
+    args: tuple[str, ...],
+    *,
+    require_folder: bool = True,
+) -> tuple[Path | None, str | None]:
     """Parse optional FOLDER and debug/release for ``hsk android build``."""
     variants = {name.lower() for name in OnAndroidBuild.CLI_VARIANTS}
     max_args = 2  # optional FOLDER + optional variant
@@ -671,6 +682,8 @@ def _parse_android_build_cli_args(args: tuple[str, ...]) -> tuple[Path, str | No
         raise click.UsageError(msg)
 
     if folder is None:
+        if not require_folder:
+            return None, variant
         folder = Path()
     if not folder.is_dir():
         msg = f"Folder does not exist: {folder}"

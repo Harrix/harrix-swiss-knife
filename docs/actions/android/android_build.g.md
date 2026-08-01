@@ -28,13 +28,15 @@ Build an Android APK (`assembleDebug` or `assembleRelease`).
 
 Tray uses `android_build_variant` from `config/config.json` (`debug` or
 `release`, default `release`). The tray dialog lists folders from
-`paths_android_projects` (or browse). CLI may pass a project folder and
-optional `debug`/`release` to override the variant. Requires Windows,
-JDK 17, and Android SDK (`ANDROID_HOME` / `local.properties`). Use
-`install/setup-android-sdk.bat` once to install the toolchain. After a
-successful build, the result dialog can open the APK folder, and the
-action runs `adb install -r` when a USB device is connected. If the phone
-is still waiting for USB debugging authorization, waits for confirmation.
+`paths_android_projects` (or browse) and can build all listed projects
+sequentially. CLI may pass a project folder and optional `debug`/`release`
+to override the variant, or `--all` to build every configured project.
+Requires Windows, JDK 17, and Android SDK (`ANDROID_HOME` /
+`local.properties`). Use `install/setup-android-sdk.bat` once to install
+the toolchain. After a successful build, the result dialog can open the APK
+folder, and the action runs `adb install -r` when a USB device is connected.
+If the phone is still waiting for USB debugging authorization, waits for
+confirmation.
 
 <details>
 <summary>Code:</summary>
@@ -45,11 +47,12 @@ class OnAndroidBuild(ActionBase):
     icon = "📱"
     title = "Build Android APK in …"
     cli_available = True
-    cli_hint = "android build [FOLDER] [debug|release]"
+    cli_hint = "android build [FOLDER] [debug|release] [--all]"
 
     CLI_VARIANTS: ClassVar[tuple[str, ...]] = ("debug", "release")
     DEFAULT_VARIANT: ClassVar[str] = "release"
     CONFIG_KEY: ClassVar[str] = "android_build_variant"
+    ALL_PROJECTS_CHECKBOX_LABEL: ClassVar[str] = "Build and install all projects sequentially"
 
     _ADB_AUTH_POLL_INTERVAL_SEC: ClassVar[float] = 2.0
     _ADB_AUTH_TIMEOUT_SEC: ClassVar[float] = 120.0
@@ -65,6 +68,7 @@ class OnAndroidBuild(ActionBase):
         *_args: Any,
         folder_path: Path | None = None,
         variant: str | None = None,
+        build_all: bool = False,
         noninteractive: bool = False,
         **_kwargs: Any,
     ) -> None:
@@ -75,27 +79,41 @@ class OnAndroidBuild(ActionBase):
                 self.show_result()
             return
 
-        if noninteractive and folder_path is None:
+        if noninteractive and folder_path is None and not build_all:
             self.handle_error(
-                ValueError("folder_path is required when noninteractive is True"),
+                ValueError("folder_path is required when noninteractive is True (unless --all)"),
                 self.title,
             )
             return
 
-        if folder_path is not None:
-            android_dir = Path(folder_path).resolve()
+        projects: list[Path] = []
+        if build_all:
+            projects = self._configured_android_projects()
+            if not projects:
+                self.add_line("❌ No valid Android projects in paths_android_projects.")
+                if not noninteractive:
+                    self.show_result()
+                return
+        elif folder_path is not None:
+            projects = [Path(folder_path).resolve()]
         else:
-            android_dir = self.dialogs.get_folder_with_choice_option(
-                self.config["paths_android_projects"], self.config["path_github"]
+            choice = self.dialogs.get_folder_with_choice_option(
+                self.config["paths_android_projects"],
+                self.config["path_github"],
+                checkbox_label=self.ALL_PROJECTS_CHECKBOX_LABEL,
             )
-        if not android_dir:
-            return
-
-        if not is_android_project(android_dir):
-            self.add_line(f"❌ {android_dir} is not an Android project (no gradlew.bat)")
-            if not noninteractive:
-                self.show_result()
-            return
+            if choice is None:
+                return
+            android_dir, selected_build_all = choice
+            if selected_build_all:
+                projects = self._configured_android_projects()
+                if not projects:
+                    self.add_line("❌ No valid Android projects in paths_android_projects.")
+                    if not noninteractive:
+                        self.show_result()
+                    return
+            else:
+                projects = [android_dir]
 
         resolved = self._resolve_variant(variant=variant)
         if resolved is None:
@@ -104,8 +122,7 @@ class OnAndroidBuild(ActionBase):
             return
 
         variant_key, gradle_task = resolved
-        local_props = android_dir / "local.properties"
-        if not local_props.is_file() and not resolve_android_home():
+        if not resolve_android_home() and not any((project / "local.properties").is_file() for project in projects):
             self.add_line(
                 "❌ Android SDK not configured. Run `install\\setup-android-sdk.bat` "
                 "or set ANDROID_HOME and create local.properties in the project."
@@ -127,23 +144,24 @@ class OnAndroidBuild(ActionBase):
         self._variant_key = variant_key
         self._gradle_task = gradle_task
         self._java_home = java_home
+        self._android_projects = projects
 
         if noninteractive:
-            self._run_gradle_build(android_dir, variant_key, gradle_task, java_home)
+            self._run_projects_build(projects, variant_key, gradle_task, java_home)
             return
 
-        self.folder_path = android_dir
+        self.folder_path = projects[0]
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
     @ActionBase.handle_exceptions("android apk build thread")
     def in_thread(self) -> str | None:
         """Run Gradle in a worker thread for the tray UI."""
-        android_dir = getattr(self, "folder_path", None)
+        projects = getattr(self, "_android_projects", None)
         java_home = getattr(self, "_java_home", None)
-        if android_dir is None or not java_home:
+        if not projects or not java_home:
             return None
-        self._run_gradle_build(
-            android_dir,
+        self._run_projects_build(
+            projects,
             getattr(self, "_variant_key", self.DEFAULT_VARIANT),
             getattr(self, "_gradle_task", "assembleRelease"),
             java_home,
@@ -156,6 +174,30 @@ class OnAndroidBuild(ActionBase):
         failed = any(isinstance(line, str) and line.strip().startswith("❌") for line in self.result_lines)
         self.show_toast(f"{self.title} {'failed' if failed else 'completed'}")
         self.show_result()
+
+    def _configured_android_projects(self) -> list[Path]:
+        """Return existing Android project folders from `paths_android_projects`."""
+        raw = self.config.get("paths_android_projects")
+        if not isinstance(raw, list):
+            self.add_line('❌ config "paths_android_projects" must be a list.')
+            return []
+
+        projects: list[Path] = []
+        for entry in raw:
+            path = Path(str(entry)).expanduser()
+            try:
+                resolved = path.resolve()
+            except OSError:
+                self.add_line(f"⚠️ Could not resolve path: {entry}")
+                continue
+            if not resolved.is_dir():
+                self.add_line(f"⚠️ Skip (not a directory): {resolved}")
+                continue
+            if not is_android_project(resolved):
+                self.add_line(f"⚠️ Skip (not an Android project): {resolved}")
+                continue
+            projects.append(resolved)
+        return projects
 
     def _install_apk_via_adb(self, apk_path: Path) -> None:
         """Install the APK on the first connected adb device, if any."""
@@ -269,8 +311,18 @@ class OnAndroidBuild(ActionBase):
         variant_key: str,
         gradle_task: str,
         java_home: str,
-    ) -> None:
-        """Invoke Gradle with a resolved JDK and report the APK path or failure."""
+    ) -> bool:
+        """Invoke Gradle with a resolved JDK and report the APK path or failure.
+
+        Returns:
+
+        - `bool`: `True` when the APK was produced successfully.
+
+        """
+        if not is_android_project(android_dir):
+            self.add_line(f"❌ {android_dir} is not an Android project (no gradlew.bat)")
+            return False
+
         gradlew = android_dir / "gradlew.bat"
 
         self.add_line(f"🔵 Starting {gradle_task} in {android_dir}")
@@ -288,17 +340,44 @@ class OnAndroidBuild(ActionBase):
                 self.add_line("Hint: set JAVA_HOME or run install\\setup-android-sdk.bat, then restart the app.")
             else:
                 self.add_line("Hint: run install\\setup-android-sdk.bat if the SDK is not installed.")
-            return
+            return False
 
         apk_path = find_built_apk(android_dir, variant_key)
         if apk_path is None:
             expected = android_dir / "app" / "build" / "outputs" / "apk" / variant_key
             self.add_line(f"❌ {gradle_task} finished but no APK found in {expected}")
-            return
+            return False
 
         self.add_line(f"✅ APK: {apk_path}")
         self.result_folder = apk_path.parent
         self._install_apk_via_adb(apk_path)
+        return True
+
+    def _run_projects_build(
+        self,
+        projects: list[Path],
+        variant_key: str,
+        gradle_task: str,
+        java_home: str,
+    ) -> None:
+        """Build and install one or more Android projects sequentially."""
+        total = len(projects)
+        if total > 1:
+            self.add_line(f"🔵 Building {total} Android project(s) sequentially…")
+
+        failed: list[str] = []
+        for index, project in enumerate(projects, start=1):
+            if total > 1:
+                self.add_line(f"\n=== [{index}/{total}] {project.name} ({project}) ===")
+            if not self._run_gradle_build(project, variant_key, gradle_task, java_home):
+                failed.append(project.name)
+
+        if total > 1:
+            passed = total - len(failed)
+            if not failed:
+                self.add_line(f"\n✅ All Android projects built ({passed}/{total}).")
+            else:
+                self.add_line(f"\n❌ Build failed in {len(failed)} project(s): {', '.join(failed)}")
 
     def _wait_for_adb_device(self, adb: Path) -> list[str]:
         """Return authorized adb serials, waiting if the phone needs USB auth."""
@@ -352,6 +431,7 @@ def execute(
         *_args: Any,
         folder_path: Path | None = None,
         variant: str | None = None,
+        build_all: bool = False,
         noninteractive: bool = False,
         **_kwargs: Any,
     ) -> None:
@@ -361,27 +441,41 @@ def execute(
                 self.show_result()
             return
 
-        if noninteractive and folder_path is None:
+        if noninteractive and folder_path is None and not build_all:
             self.handle_error(
-                ValueError("folder_path is required when noninteractive is True"),
+                ValueError("folder_path is required when noninteractive is True (unless --all)"),
                 self.title,
             )
             return
 
-        if folder_path is not None:
-            android_dir = Path(folder_path).resolve()
+        projects: list[Path] = []
+        if build_all:
+            projects = self._configured_android_projects()
+            if not projects:
+                self.add_line("❌ No valid Android projects in paths_android_projects.")
+                if not noninteractive:
+                    self.show_result()
+                return
+        elif folder_path is not None:
+            projects = [Path(folder_path).resolve()]
         else:
-            android_dir = self.dialogs.get_folder_with_choice_option(
-                self.config["paths_android_projects"], self.config["path_github"]
+            choice = self.dialogs.get_folder_with_choice_option(
+                self.config["paths_android_projects"],
+                self.config["path_github"],
+                checkbox_label=self.ALL_PROJECTS_CHECKBOX_LABEL,
             )
-        if not android_dir:
-            return
-
-        if not is_android_project(android_dir):
-            self.add_line(f"❌ {android_dir} is not an Android project (no gradlew.bat)")
-            if not noninteractive:
-                self.show_result()
-            return
+            if choice is None:
+                return
+            android_dir, selected_build_all = choice
+            if selected_build_all:
+                projects = self._configured_android_projects()
+                if not projects:
+                    self.add_line("❌ No valid Android projects in paths_android_projects.")
+                    if not noninteractive:
+                        self.show_result()
+                    return
+            else:
+                projects = [android_dir]
 
         resolved = self._resolve_variant(variant=variant)
         if resolved is None:
@@ -390,8 +484,7 @@ def execute(
             return
 
         variant_key, gradle_task = resolved
-        local_props = android_dir / "local.properties"
-        if not local_props.is_file() and not resolve_android_home():
+        if not resolve_android_home() and not any((project / "local.properties").is_file() for project in projects):
             self.add_line(
                 "❌ Android SDK not configured. Run `install\\setup-android-sdk.bat` "
                 "or set ANDROID_HOME and create local.properties in the project."
@@ -413,12 +506,13 @@ def execute(
         self._variant_key = variant_key
         self._gradle_task = gradle_task
         self._java_home = java_home
+        self._android_projects = projects
 
         if noninteractive:
-            self._run_gradle_build(android_dir, variant_key, gradle_task, java_home)
+            self._run_projects_build(projects, variant_key, gradle_task, java_home)
             return
 
-        self.folder_path = android_dir
+        self.folder_path = projects[0]
         self.start_thread(self.in_thread, self.thread_after, self.title)
 ```
 
@@ -437,12 +531,12 @@ Run Gradle in a worker thread for the tray UI.
 
 ```python
 def in_thread(self) -> str | None:
-        android_dir = getattr(self, "folder_path", None)
+        projects = getattr(self, "_android_projects", None)
         java_home = getattr(self, "_java_home", None)
-        if android_dir is None or not java_home:
+        if not projects or not java_home:
             return None
-        self._run_gradle_build(
-            android_dir,
+        self._run_projects_build(
+            projects,
             getattr(self, "_variant_key", self.DEFAULT_VARIANT),
             getattr(self, "_gradle_task", "assembleRelease"),
             java_home,

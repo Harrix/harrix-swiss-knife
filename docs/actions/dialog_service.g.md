@@ -22,6 +22,8 @@ lang: en
   - [⚙️ Method `get_dual_checkbox_selection`](#%EF%B8%8F-method-get_dual_checkbox_selection)
   - [⚙️ Method `get_existing_directory`](#%EF%B8%8F-method-get_existing_directory)
   - [⚙️ Method `get_folder_with_choice_option`](#%EF%B8%8F-method-get_folder_with_choice_option)
+  - [⚙️ Method `get_folder_with_choice_option`](#%EF%B8%8F-method-get_folder_with_choice_option-1)
+  - [⚙️ Method `get_folder_with_choice_option`](#%EF%B8%8F-method-get_folder_with_choice_option-2)
   - [⚙️ Method `get_icon_choice`](#%EF%B8%8F-method-get_icon_choice)
   - [⚙️ Method `get_max_image_size_option`](#%EF%B8%8F-method-get_max_image_size_option)
   - [⚙️ Method `get_open_filename`](#%EF%B8%8F-method-get_open_filename)
@@ -599,21 +601,74 @@ class ActionDialogService:
             return None
         return Path(folder_path)
 
-    def get_folder_with_choice_option(self, folders_list: list[str], default_path: str) -> Path | None:
-        """Pick folder from list or browse for directory."""
+    @overload
+    def get_folder_with_choice_option(
+        self,
+        folders_list: list[str],
+        default_path: str,
+        *,
+        checkbox_label: None = None,
+        checkbox_default: bool = False,
+    ) -> Path | None: ...
+
+    @overload
+    def get_folder_with_choice_option(
+        self,
+        folders_list: list[str],
+        default_path: str,
+        *,
+        checkbox_label: str,
+        checkbox_default: bool = False,
+    ) -> tuple[Path, bool] | None: ...
+
+    def get_folder_with_choice_option(
+        self,
+        folders_list: list[str],
+        default_path: str,
+        *,
+        checkbox_label: str | None = None,
+        checkbox_default: bool = False,
+    ) -> Path | tuple[Path, bool] | None:
+        """Pick folder from list or browse for directory.
+
+        When `checkbox_label` is set, also show a checkbox and return
+        `(path, checked)` on accept.
+
+        """
         select_folder = "📁 Select folder …"
         display_folders = [f"📁 {folder}" for folder in folders_list]
         full_list = [select_folder, *display_folders]
 
-        selected_folder = self.get_choice_from_list(select_folder, "Folders", full_list)
-        if not selected_folder:
+        if checkbox_label is None:
+            selected_folder = self.get_choice_from_list(select_folder, "Folders", full_list)
+            if not selected_folder:
+                return None
+            return self._resolve_folder_choice(
+                selected_folder,
+                select_folder,
+                default_path,
+                browse=True,
+            )
+
+        selected = self._get_choice_from_list_with_checkbox(
+            select_folder,
+            "Folders",
+            full_list,
+            checkbox_label=checkbox_label,
+            checkbox_default=checkbox_default,
+        )
+        if selected is None:
             return None
-
-        if selected_folder == select_folder:
-            return self.get_existing_directory(select_folder, default_path)
-
-        clean_folder_path = selected_folder.replace("📁 ", "", 1)
-        return Path(clean_folder_path)
+        selected_folder, checked = selected
+        path = self._resolve_folder_choice(
+            selected_folder,
+            select_folder,
+            default_path,
+            browse=not checked,
+        )
+        if path is None:
+            return None
+        return path, checked
 
     def get_icon_choice(
         self,
@@ -1357,6 +1412,92 @@ class ActionDialogService:
             dialog.resize(size)
 
         QTimer.singleShot(0, _enforce)
+
+    def _get_choice_from_list_with_checkbox(
+        self,
+        title: str,
+        label: str,
+        choices: list[str],
+        *,
+        checkbox_label: str,
+        checkbox_default: bool = False,
+    ) -> tuple[str, bool] | None:
+        """Return `(selected item, checkbox checked)` from a list dialog, or `None` on cancel."""
+        if not choices:
+            self._add_line("❌ No choices provided.")
+            return None
+
+        list_widget: QListWidget | None = None
+        checkbox: QCheckBox | None = None
+
+        def _build(dialog: QDialog, layout: QVBoxLayout) -> None:
+            nonlocal list_widget, checkbox
+
+            label_widget = QLabel(label)
+            layout.addWidget(label_widget)
+
+            lw = QListWidget()
+            lw.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+
+            font = lw.font()
+            font.setPointSize(12)
+            lw.setFont(font)
+
+            for choice in choices:
+                lw.addItem(QListWidgetItem(choice))
+
+            if lw.count() > 0:
+                lw.setCurrentRow(0)
+
+            fit_widget_height(
+                lw,
+                list_content_height(lw),
+                maximum=self._default_size.height() - 200,
+            )
+
+            lw.itemDoubleClicked.connect(dialog.accept)
+            layout.addWidget(lw)
+
+            cb = QCheckBox(checkbox_label)
+            cb.setChecked(checkbox_default)
+            layout.addWidget(cb)
+
+            buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+            self._apply_emoji_dialog_buttons(buttons)
+            buttons.accepted.connect(dialog.accept)
+            buttons.rejected.connect(dialog.reject)
+            layout.addWidget(buttons)
+
+            list_widget = lw
+            checkbox = cb
+
+        result, _dialog = self._exec_standard_dialog(title, _build, stretch_row=1)
+
+        if result != QDialog.DialogCode.Accepted:
+            return None
+        if list_widget is None or checkbox is None:
+            return None
+        current_item = list_widget.currentItem()
+        if current_item is None:
+            return None
+        return current_item.text(), checkbox.isChecked()
+
+    def _resolve_folder_choice(
+        self,
+        selected_folder: str,
+        select_folder: str,
+        default_path: str,
+        *,
+        browse: bool,
+    ) -> Path | None:
+        """Map a folder-list selection to a `Path`, optionally opening a browse dialog."""
+        if selected_folder == select_folder:
+            if not browse:
+                return Path(default_path)
+            return self.get_existing_directory(select_folder, default_path)
+
+        clean_folder_path = selected_folder.replace("📁 ", "", 1)
+        return Path(clean_folder_path)
 ```
 
 </details>
@@ -2033,26 +2174,105 @@ def get_existing_directory(self, title: str, default_path: str) -> Path | None:
 def get_folder_with_choice_option(self, folders_list: list[str], default_path: str) -> Path | None
 ```
 
-Pick folder from list or browse for directory.
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def get_folder_with_choice_option(self, folders_list: list[str], default_path: str) -> Path | None:
+def get_folder_with_choice_option(
+        self,
+        folders_list: list[str],
+        default_path: str,
+        *,
+        checkbox_label: None = None,
+        checkbox_default: bool = False,
+    ) -> Path | None: ...
+```
+
+</details>
+
+### ⚙️ Method `get_folder_with_choice_option`
+
+```python
+def get_folder_with_choice_option(self, folders_list: list[str], default_path: str) -> tuple[Path, bool] | None
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_folder_with_choice_option(
+        self,
+        folders_list: list[str],
+        default_path: str,
+        *,
+        checkbox_label: str,
+        checkbox_default: bool = False,
+    ) -> tuple[Path, bool] | None: ...
+```
+
+</details>
+
+### ⚙️ Method `get_folder_with_choice_option`
+
+```python
+def get_folder_with_choice_option(self, folders_list: list[str], default_path: str) -> Path | tuple[Path, bool] | None
+```
+
+Pick folder from list or browse for directory.
+
+When `checkbox_label` is set, also show a checkbox and return
+`(path, checked)` on accept.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_folder_with_choice_option(
+        self,
+        folders_list: list[str],
+        default_path: str,
+        *,
+        checkbox_label: str | None = None,
+        checkbox_default: bool = False,
+    ) -> Path | tuple[Path, bool] | None:
         select_folder = "📁 Select folder …"
         display_folders = [f"📁 {folder}" for folder in folders_list]
         full_list = [select_folder, *display_folders]
 
-        selected_folder = self.get_choice_from_list(select_folder, "Folders", full_list)
-        if not selected_folder:
+        if checkbox_label is None:
+            selected_folder = self.get_choice_from_list(select_folder, "Folders", full_list)
+            if not selected_folder:
+                return None
+            return self._resolve_folder_choice(
+                selected_folder,
+                select_folder,
+                default_path,
+                browse=True,
+            )
+
+        selected = self._get_choice_from_list_with_checkbox(
+            select_folder,
+            "Folders",
+            full_list,
+            checkbox_label=checkbox_label,
+            checkbox_default=checkbox_default,
+        )
+        if selected is None:
             return None
-
-        if selected_folder == select_folder:
-            return self.get_existing_directory(select_folder, default_path)
-
-        clean_folder_path = selected_folder.replace("📁 ", "", 1)
-        return Path(clean_folder_path)
+        selected_folder, checked = selected
+        path = self._resolve_folder_choice(
+            selected_folder,
+            select_folder,
+            default_path,
+            browse=not checked,
+        )
+        if path is None:
+            return None
+        return path, checked
 ```
 
 </details>

@@ -94,16 +94,17 @@ def android_build(args: tuple[str, ...]) -> None
 Build Android APK for FOLDER (`debug`/`release`, or `android_build_variant` from config).
 
 Examples: `hsk android build ./android`, `hsk android build ./android debug`,
-`hsk android build debug` (FOLDER defaults to `.`).
+`hsk android build debug` (FOLDER defaults to `.`),
+`hsk android build --all`, `hsk android build --all debug`.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def android_build(args: tuple[str, ...]) -> None:
-    folder, variant = _parse_android_build_cli_args(args)
+def android_build(args: tuple[str, ...], *, build_all: bool) -> None:
+    folder, variant = _parse_android_build_cli_args(args, require_folder=not build_all)
     action = OnAndroidBuild()
-    action(folder_path=folder, variant=variant, noninteractive=True)
+    action(folder_path=folder, variant=variant, build_all=build_all, noninteractive=True)
     _finish_timed_action(action)
 ```
 
