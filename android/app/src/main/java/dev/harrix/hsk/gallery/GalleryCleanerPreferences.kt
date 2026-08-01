@@ -60,6 +60,38 @@ class GalleryCleanerPreferences(
         prefs.edit().putString(KEY_REVIEW_ORDER, order.storageValue).apply()
     }
 
+    /**
+     * Custom images folder as MediaStore relative path (e.g. `DCIM/Screenshots/`).
+     * `null` means the default Camera folder.
+     */
+    fun getImagesRelativePath(): String? {
+        val stored = prefs.getString(KEY_IMAGES_RELATIVE_PATH, null)?.trim().orEmpty()
+        return stored.takeIf { it.isNotEmpty() }?.let(MediaFolderPaths::normalizeRelativePath)
+    }
+
+    fun setImagesRelativePath(relativePath: String?) {
+        val normalized =
+            relativePath
+                ?.trim()
+                ?.takeIf { it.isNotEmpty() }
+                ?.let(MediaFolderPaths::normalizeRelativePath)
+        prefs
+            .edit()
+            .apply {
+                if (normalized == null) {
+                    remove(KEY_IMAGES_RELATIVE_PATH)
+                } else {
+                    putString(KEY_IMAGES_RELATIVE_PATH, normalized)
+                }
+            }.apply()
+    }
+
+    fun isDefaultImagesFolder(): Boolean = getImagesRelativePath() == null
+
+    fun resetImagesFolderToDefault() {
+        setImagesRelativePath(null)
+    }
+
     fun getReviewedPhotoIds(): Set<Long> = prefs
         .getStringSet(KEY_REVIEWED_PHOTO_IDS, emptySet())
         .orEmpty()
@@ -100,6 +132,7 @@ class GalleryCleanerPreferences(
             .remove(KEY_DATE_FILTER_END_SEC)
             .putBoolean(KEY_UNREVIEWED_ONLY_MODE, false)
             .putString(KEY_REVIEW_ORDER, GalleryReviewOrder.Random.storageValue)
+            .remove(KEY_IMAGES_RELATIVE_PATH)
             .apply()
     }
 
@@ -112,6 +145,7 @@ class GalleryCleanerPreferences(
         private const val KEY_DATE_FILTER_END_SEC = "date_filter_end_sec"
         private const val KEY_UNREVIEWED_ONLY_MODE = "unreviewed_only_mode"
         private const val KEY_REVIEW_ORDER = "review_order"
+        private const val KEY_IMAGES_RELATIVE_PATH = "images_relative_path"
         private const val KEY_REVIEWED_PHOTO_IDS = "reviewed_photo_ids"
     }
 }

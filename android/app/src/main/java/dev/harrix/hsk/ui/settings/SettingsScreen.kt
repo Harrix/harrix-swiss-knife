@@ -1,6 +1,8 @@
 package dev.harrix.hsk.ui.settings
 
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -61,6 +63,7 @@ import dev.harrix.hsk.gallery.GalleryCleanerPreferences
 import dev.harrix.hsk.gallery.GalleryDateFilter
 import dev.harrix.hsk.gallery.GalleryPermissions
 import dev.harrix.hsk.gallery.GalleryReviewOrder
+import dev.harrix.hsk.gallery.MediaFolderPaths
 import dev.harrix.hsk.ui.theme.ThemeMode
 import java.text.DateFormat
 import java.text.DateFormatSymbols
@@ -393,6 +396,8 @@ private fun GalleryCleanerSettingsSection(
         mutableStateOf(preferences.isUnreviewedOnlyModeEnabled())
     }
     var reviewOrder by remember { mutableStateOf(preferences.getReviewOrder()) }
+    var imagesRelativePath by remember { mutableStateOf(preferences.getImagesRelativePath()) }
+    var folderMessage by remember { mutableStateOf<String?>(null) }
     var reviewedCount by remember { mutableIntStateOf(preferences.reviewedPhotoCount()) }
     var clearMessage by remember { mutableStateOf<String?>(null) }
     var resetMessage by remember { mutableStateOf<String?>(null) }
@@ -405,6 +410,23 @@ private fun GalleryCleanerSettingsSection(
                     .getDateInstance(DateFormat.MEDIUM)
                     .format(Date(epochMs))
             }
+        }
+    val folderPicker =
+        rememberLauncherForActivityResult(
+            ActivityResultContracts.OpenDocumentTree(),
+        ) { uri ->
+            if (uri == null) {
+                return@rememberLauncherForActivityResult
+            }
+            val path = MediaFolderPaths.fromTreeUri(uri)
+            if (path == null) {
+                folderMessage =
+                    context.getString(R.string.settings_gallery_images_folder_invalid)
+                return@rememberLauncherForActivityResult
+            }
+            preferences.setImagesRelativePath(path)
+            imagesRelativePath = path
+            folderMessage = null
         }
 
     fun persist(next: GalleryDateFilter) {
@@ -430,6 +452,61 @@ private fun GalleryCleanerSettingsSection(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
+
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(
+                text = stringResource(R.string.settings_gallery_images_folder),
+                style = MaterialTheme.typography.bodyLarge,
+            )
+            Text(
+                text = stringResource(R.string.settings_gallery_images_folder_hint),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            val folderLabel = MediaFolderPaths.displayLabel(imagesRelativePath)
+            Text(
+                text =
+                stringResource(R.string.settings_gallery_images_folder_current, folderLabel) +
+                    if (imagesRelativePath == null) {
+                        stringResource(R.string.settings_gallery_images_folder_default_suffix)
+                    } else {
+                        ""
+                    },
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                OutlinedButton(
+                    onClick = { folderPicker.launch(null) },
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Text(stringResource(R.string.settings_gallery_images_folder_choose))
+                }
+                OutlinedButton(
+                    onClick = {
+                        preferences.resetImagesFolderToDefault()
+                        imagesRelativePath = null
+                        folderMessage = null
+                    },
+                    enabled = imagesRelativePath != null,
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Text(stringResource(R.string.settings_gallery_images_folder_restore))
+                }
+            }
+            folderMessage?.let { message ->
+                Text(
+                    text = message,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
+        }
+
+        HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
 
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(
@@ -587,6 +664,8 @@ private fun GalleryCleanerSettingsSection(
                 filter = preferences.loadDateFilter()
                 unreviewedOnlyMode = preferences.isUnreviewedOnlyModeEnabled()
                 reviewOrder = preferences.getReviewOrder()
+                imagesRelativePath = preferences.getImagesRelativePath()
+                folderMessage = null
                 introEnabled = preferences.shouldShowIntro()
                 introMessage = null
                 clearMessage = null

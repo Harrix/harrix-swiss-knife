@@ -392,7 +392,12 @@ fun GalleryCleanerScreen(
         val orderChanged = previousOrder != reviewOrder
         val previousPhotoId = currentPhoto?.id
         // Date filter + unreviewed-only are applied here.
-        val photos = orderPhotos(applyFilters(repository.loadCameraPhotos()))
+        val photos =
+            orderPhotos(
+                applyFilters(
+                    repository.loadCameraPhotos(preferences.getImagesRelativePath()),
+                ),
+            )
         remainingPhotos = photos
         remainingCount = photos.size
         currentPhoto =

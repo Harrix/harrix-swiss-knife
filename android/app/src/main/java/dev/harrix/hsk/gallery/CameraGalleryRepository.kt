@@ -14,7 +14,7 @@ import kotlin.math.pow
 class CameraGalleryRepository(
     private val context: Context,
 ) {
-    fun loadCameraPhotos(): List<CameraPhoto> {
+    fun loadCameraPhotos(relativePath: String? = null): List<CameraPhoto> {
         val collection =
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL)
@@ -32,7 +32,7 @@ class CameraGalleryRepository(
                 MediaStore.Images.Media.MIME_TYPE,
             )
 
-        val (selection, selectionArgs) = cameraFolderSelection()
+        val (selection, selectionArgs) = imagesFolderSelection(relativePath)
         val sortOrder = "${MediaStore.Images.Media.DATE_ADDED} DESC"
 
         val photos = mutableListOf<CameraPhoto>()
@@ -88,7 +88,7 @@ class CameraGalleryRepository(
                 MediaStore.Video.Media.SIZE,
             )
 
-        val (selection, selectionArgs) = cameraFolderSelection()
+        val (selection, selectionArgs) = defaultCameraFolderSelection()
         val sortOrder = "${MediaStore.Video.Media.DATE_ADDED} DESC"
 
         val videos = mutableListOf<CameraVideo>()
@@ -163,13 +163,39 @@ class CameraGalleryRepository(
         false
     }
 
-    private fun cameraFolderSelection(): Pair<String, Array<String>> {
-        val notTrashed =
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                " AND ${MediaStore.MediaColumns.IS_TRASHED} = 0"
-            } else {
-                ""
-            }
+    private fun imagesFolderSelection(relativePath: String?): Pair<String, Array<String>> {
+        val custom = relativePath?.let(MediaFolderPaths::normalizeRelativePath)?.takeIf { it.isNotEmpty() }
+        return if (custom == null) {
+            defaultCameraFolderSelection()
+        } else {
+            customFolderSelection(custom)
+        }
+    }
+
+    private fun customFolderSelection(relativePath: String): Pair<String, Array<String>> {
+        val notTrashed = notTrashedClause()
+        val folder = relativePath.trimEnd('/')
+        val withSlash = "$folder/"
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val selection =
+                "(" +
+                    "${MediaStore.MediaColumns.RELATIVE_PATH} = ? OR " +
+                    "${MediaStore.MediaColumns.RELATIVE_PATH} LIKE ?" +
+                    ")$notTrashed"
+            selection to arrayOf(withSlash, "$withSlash%")
+        } else {
+            @Suppress("DEPRECATION")
+            val selection =
+                "(" +
+                    "${MediaStore.MediaColumns.DATA} LIKE ? OR " +
+                    "${MediaStore.MediaColumns.DATA} LIKE ?" +
+                    ")"
+            selection to arrayOf("%/$folder/%", "%/$folder")
+        }
+    }
+
+    private fun defaultCameraFolderSelection(): Pair<String, Array<String>> {
+        val notTrashed = notTrashedClause()
 
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             val selection =
@@ -199,6 +225,12 @@ class CameraGalleryRepository(
                     "Camera",
                 )
         }
+    }
+
+    private fun notTrashedClause(): String = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+        " AND ${MediaStore.MediaColumns.IS_TRASHED} = 0"
+    } else {
+        ""
     }
 
     companion object {

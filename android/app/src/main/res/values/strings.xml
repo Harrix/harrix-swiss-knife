@@ -33,6 +33,13 @@
     <string name="settings_gallery_preset_week">Week</string>
     <string name="settings_gallery_preset_1_month">1 month</string>
     <string name="settings_gallery_preset_1_year">1 year</string>
+    <string name="settings_gallery_images_folder">Images folder</string>
+    <string name="settings_gallery_images_folder_hint">Gallery Cleaner loads photos from this folder. Default is the Camera gallery folder.</string>
+    <string name="settings_gallery_images_folder_current">Current: %1$s</string>
+    <string name="settings_gallery_images_folder_default_suffix"> (default)</string>
+    <string name="settings_gallery_images_folder_choose">Choose folder</string>
+    <string name="settings_gallery_images_folder_restore">Restore Camera folder</string>
+    <string name="settings_gallery_images_folder_invalid">Could not use that folder. Pick a folder on shared storage.</string>
     <string name="settings_gallery_review_order">Photo order</string>
     <string name="settings_gallery_review_order_hint">How the next photo is chosen while reviewing.</string>
     <string name="settings_gallery_review_order_random">Random</string>
@@ -45,7 +52,7 @@
     <string name="settings_gallery_reviewed_count">Reviewed photos: %1$d</string>
     <string name="settings_gallery_reset">Reset Gallery Cleaner settings</string>
     <string name="settings_gallery_reset_done">Gallery Cleaner settings restored to defaults</string>
-    <string name="settings_gallery_reset_hint">Resets order, unreviewed-only mode, date filter, and tips. Reviewed history is not cleared.</string>
+    <string name="settings_gallery_reset_hint">Resets order, images folder, unreviewed-only mode, date filter, and tips. Reviewed history is not cleared.</string>
     <string name="settings_gallery_restore_intro">Show how-it-works screen again</string>
     <string name="settings_gallery_restore_intro_done">Intro will show when you return to Gallery Cleaner</string>
     <string name="settings_restore_manage_media_tip">Show media management tip again</string>
