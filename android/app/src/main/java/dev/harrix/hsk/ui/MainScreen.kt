@@ -1,6 +1,7 @@
 package dev.harrix.hsk.ui
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -54,10 +55,15 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import dev.harrix.hsk.R
 import dev.harrix.hsk.ui.about.AboutScreen
@@ -72,6 +78,8 @@ import kotlinx.coroutines.launch
 private const val HomeGridColumns = 2
 private val UtilityCardMinHeight = 104.dp
 private val UtilityCardIconSize = 40.dp
+private val TopBarLogoSize = 28.dp
+private val DrawerLogoSize = 40.dp
 
 private enum class AppDestination {
     Home,
@@ -173,7 +181,13 @@ fun MainScreen(
                     Scaffold(
                         topBar = {
                             TopAppBar(
-                                title = { Text(appName) },
+                                title = {
+                                    BrandTitle(
+                                        appName = appName,
+                                        logoSize = TopBarLogoSize,
+                                        textStyle = MaterialTheme.typography.titleLarge,
+                                    )
+                                },
                                 navigationIcon = {
                                     IconButton(
                                         onClick = {
@@ -370,6 +384,36 @@ private fun UtilityCard(
 }
 
 @Composable
+private fun BrandTitle(
+    appName: String,
+    logoSize: Dp,
+    textStyle: TextStyle,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Image(
+            painter = painterResource(R.mipmap.ic_launcher),
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier =
+            Modifier
+                .size(logoSize)
+                .clip(CircleShape),
+        )
+        Spacer(modifier = Modifier.width(12.dp))
+        Text(
+            text = appName,
+            style = textStyle,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+@Composable
 private fun AppNavigationDrawerContent(
     appName: String,
     selected: AppDestination,
@@ -377,9 +421,10 @@ private fun AppNavigationDrawerContent(
     onAbout: () -> Unit,
 ) {
     ModalDrawerSheet {
-        Text(
-            text = appName,
-            style = MaterialTheme.typography.titleLarge,
+        BrandTitle(
+            appName = appName,
+            logoSize = DrawerLogoSize,
+            textStyle = MaterialTheme.typography.titleLarge,
             modifier =
             Modifier.padding(
                 horizontal = 28.dp,
