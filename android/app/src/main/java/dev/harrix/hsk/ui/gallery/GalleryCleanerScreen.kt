@@ -1098,7 +1098,6 @@ fun GalleryCleanerScreen(
                                     imageVector = Icons.Filled.Share,
                                     contentDescription =
                                     stringResource(R.string.gallery_cleaner_share),
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             }
                         }
