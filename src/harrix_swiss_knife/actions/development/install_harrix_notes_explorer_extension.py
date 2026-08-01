@@ -21,8 +21,8 @@ class OnInstallHarrixNotesExplorerExtension(ActionBase):
     """Install the Harrix Notes Explorer extension into selected VS Code-like editors.
 
     On Windows: runs `OnSyncHarrixNotesExplorer` (HSK → `path_harrix_notes_explorer`), copies the
-    HSK extension into each selected editor profile, and optionally copies the public
-    `harrix-notes-explorer` tree from that repo.
+    HSK extension into each selected editor profile, clears matching `.obsolete` uninstall markers,
+    and optionally copies the public `harrix-notes-explorer` tree from that repo.
 
     """
 
@@ -175,6 +175,41 @@ class OnInstallHarrixNotesExplorerExtension(ActionBase):
             return display[: -len(suffix)]
         return display
 
+    @classmethod
+    def _clear_obsolete_extension(cls, ext_root: Path, ext_id: str, version: str) -> None:
+        """Remove uninstall markers for `ext_id` from `ext_root/.obsolete` if present.
+
+        VS Code / Cursor write `{publisher.name}-{version}: true` into `.obsolete` when the user
+        uninstalls an extension in the UI. Copying the folder and updating `extensions.json` alone
+        does not clear that marker, so the extension stays hidden until `.obsolete` is updated.
+
+        """
+        obsolete_path = ext_root / ".obsolete"
+        if not obsolete_path.is_file():
+            return
+        try:
+            loaded = json.loads(obsolete_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            return
+        if not isinstance(loaded, dict):
+            return
+
+        exact_key = f"{ext_id}-{version}"
+        keys_to_drop = [k for k in loaded if isinstance(k, str) and (k == exact_key or k.startswith(f"{ext_id}-"))]
+        if not keys_to_drop:
+            return
+        for key in keys_to_drop:
+            loaded.pop(key, None)
+
+        tmp_path = ext_root / f".obsolete.{os.getpid()}.tmp"
+        try:
+            payload = json.dumps(loaded, ensure_ascii=False, separators=(",", ":"))
+            tmp_path.write_text(payload, encoding="utf-8")
+            tmp_path.replace(obsolete_path)
+        except OSError:
+            with contextlib.suppress(OSError):
+                tmp_path.unlink(missing_ok=True)
+
     @staticmethod
     def _cursor_installed_win32() -> bool:
         if shutil.which("cursor"):
@@ -283,6 +318,7 @@ class OnInstallHarrixNotesExplorerExtension(ActionBase):
                 self.add_line(f"❌ {label}: could not copy HSK to {dest}: {e}")
                 self.add_line("   Close that editor if files are locked, then try again.")
                 continue
+            self._clear_obsolete_extension(ext_root, self._HARRIX_NOTES_EXPLORER_EXT_ID, ext_version)
             merged, merge_err = self._merge_hsk_extensions_json(ext_root, dest, ext_version)
             if merged:
                 self.add_line(f"✅ {label}: HSK installed to {dest} (extensions.json updated)")
@@ -328,6 +364,7 @@ class OnInstallHarrixNotesExplorerExtension(ActionBase):
                 self.add_line(f"❌ {label}: could not copy public extension to {dest}: {e}")
                 self.add_line("   Close that editor if files are locked, then try again.")
                 continue
+            self._clear_obsolete_extension(ext_root, self._public_extension_id(pkg_publisher), ext_version)
             merged, merge_err = self._merge_public_extensions_json(
                 ext_root,
                 dest,

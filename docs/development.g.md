@@ -160,15 +160,17 @@ Restart the editor or run **Developer: Reload Window** after installing.
 
 1. **Confirm `extensions.json` lists the extension**
 
-Open `%USERPROFILE%\.vscode-insiders\extensions\extensions.json` (or `.vscode\extensions` / `.cursor\extensions` for the editor you use) and search for **`local.harrix-notes-explorer-hsk`**. If the folder exists but this ID is missing, the editor may not show the extension until you register it (tray action, or **Developer: Install Extension from Location**). 2. **Confirm the editor sees the install**
+Open `%USERPROFILE%\.vscode-insiders\extensions\extensions.json` (or `.vscode\extensions` / `.cursor\extensions` for the editor you use) and search for **`local.harrix-notes-explorer-hsk`**. If the folder exists but this ID is missing, the editor may not show the extension until you register it (tray action, or **Developer: Install Extension from Location**). 2. **Uninstalled earlier via the Extensions UI (`.obsolete`)**
 
-Run `code-insiders --list-extensions` (or `code --list-extensions`) and check for **`local.harrix-notes-explorer-hsk`**. 3. **Custom extensions directory**
+Uninstalling in the editor writes `local.harrix-notes-explorer-hsk-0.0.1` (publisher.name-version) into `%USERPROFILE%\…\extensions\.obsolete`. While that key is `true`, copying the folder and updating **`extensions.json`** is not enough — the extension stays hidden. The tray install action clears matching keys; or edit/remove them manually, then reload. 3. **Confirm the editor sees the install**
 
-Open `%USERPROFILE%\.vscode-insiders\argv.json` (or the matching `argv.json` for stable VS Code / Cursor) and check for **`--extensions-dir`**. If set, the extension folder and **`extensions.json`** live under that directory instead of the default `%USERPROFILE%\.vscode-insiders\extensions`. 4. **Copy failed or old files remain**
+Run `code-insiders --list-extensions` (or `code --list-extensions` / `cursor --list-extensions`) and check for **`local.harrix-notes-explorer-hsk`**. 4. **Custom extensions directory**
 
-Close the corresponding editor (file locks), delete `%USERPROFILE%\…\extensions\harrix-notes-explorer-hsk` if needed, then run the tray action or `Copy-Item` again. 5. **Manual copy without tray or script**
+Open `%USERPROFILE%\.vscode-insiders\argv.json` (or the matching `argv.json` for stable VS Code / Cursor) and check for **`--extensions-dir`**. If set, the extension folder and **`extensions.json`** live under that directory instead of the default `%USERPROFILE%\.vscode-insiders\extensions`. 5. **Copy failed or old files remain**
 
-Command Palette → **Developer: Install Extension from Location** → select the repo folder `vscode\harrix-notes-explorer-hsk` (or the copied `harrix-notes-explorer-hsk` folder). Then **Developer: Reload Window**. 6. **Logs**
+Close the corresponding editor (file locks), delete `%USERPROFILE%\…\extensions\harrix-notes-explorer-hsk` if needed, then run the tray action or `Copy-Item` again. 6. **Manual copy without tray or script**
+
+Command Palette → **Developer: Install Extension from Location** → select the repo folder `vscode\harrix-notes-explorer-hsk` (or the copied `harrix-notes-explorer-hsk` folder). Then **Developer: Reload Window**. 7. **Logs**
 
 **Developer: Show Logs…** → **Window** or **Extension Host** for manifest or path errors.
 
