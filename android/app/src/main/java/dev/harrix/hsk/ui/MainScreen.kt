@@ -60,6 +60,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import dev.harrix.hsk.R
+import dev.harrix.hsk.ui.about.AboutScreen
 import dev.harrix.hsk.ui.gallery.GalleryCleanerScreen
 import dev.harrix.hsk.ui.gallery.VideoCleanerScreen
 import dev.harrix.hsk.ui.settings.SettingsScreen
@@ -100,6 +101,7 @@ fun MainScreen(
     var settingsSection by rememberSaveable { mutableStateOf<SettingsSection?>(null) }
     var settingsRevision by rememberSaveable { mutableIntStateOf(0) }
     var settingsShootDayEpochMs by rememberSaveable { mutableStateOf<Long?>(null) }
+    var showAbout by rememberSaveable { mutableStateOf(false) }
     var homeMenuExpanded by remember { mutableStateOf(false) }
 
     BackHandler(enabled = drawerState.isOpen) {
@@ -160,7 +162,10 @@ fun MainScreen(
                                 }
                             },
                             onAbout = {
-                                scope.launch { drawerState.close() }
+                                scope.launch {
+                                    drawerState.close()
+                                    showAbout = true
+                                }
                             },
                         )
                     },
@@ -259,6 +264,13 @@ fun MainScreen(
                     { settingsSection = SettingsSection.All }
                 },
                 currentShootDayEpochMs = settingsShootDayEpochMs,
+                modifier = Modifier.fillMaxSize(),
+            )
+        }
+
+        if (showAbout) {
+            AboutScreen(
+                onClose = { showAbout = false },
                 modifier = Modifier.fillMaxSize(),
             )
         }
