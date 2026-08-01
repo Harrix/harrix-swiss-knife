@@ -92,7 +92,9 @@ fun PhotoCropEditor(
     val density = LocalDensity.current
     var imageWidth by remember(photo.id, imageRevision) { mutableIntStateOf(0) }
     var imageHeight by remember(photo.id, imageRevision) { mutableIntStateOf(0) }
-    val handleHitSlopPx = with(density) { 28.dp.toPx() }
+    // Large hit targets: corners sit near the phone bezel and are hard to grab otherwise.
+    val handleHitSlopPx = with(density) { 52.dp.toPx() }
+    val handleVisualPx = with(density) { 24.dp.toPx() }
     val cropRectState = rememberUpdatedState(cropRect)
     val onCropRectChangeState = rememberUpdatedState(onCropRectChange)
     val rotationState = rememberUpdatedState(rotationDegrees)
@@ -121,17 +123,8 @@ fun PhotoCropEditor(
             val viewportW = constraints.maxWidth.toFloat()
             val viewportH = constraints.maxHeight.toFloat()
             val workspace =
-                remember(viewportW, viewportH, imageWidth, imageHeight) {
-                    if (imageWidth > 0 && imageHeight > 0) {
-                        PhotoEditSaver.fittedImageRect(
-                            viewportW,
-                            viewportH,
-                            imageWidth,
-                            imageHeight,
-                        )
-                    } else {
-                        PhotoEditSaver.FittedRect(0f, 0f, 0f, 0f)
-                    }
+                remember(viewportW, viewportH) {
+                    PhotoEditSaver.fittedSquareInViewport(viewportW, viewportH)
                 }
             val imageDrawSize =
                 remember(imageWidth, imageHeight, workspace) {
@@ -235,7 +228,7 @@ fun PhotoCropEditor(
                         end = Offset(cropPx.right, midY),
                         strokeWidth = guideStroke,
                     )
-                    val handle = 14.dp.toPx()
+                    val handle = handleVisualPx
                     val corners =
                         listOf(
                             Offset(cropPx.left, cropPx.top),
@@ -445,11 +438,15 @@ private fun applyPainterSize(
     }
 }
 
+/**
+ * Prefer corner handles (large slop, including outside the crop toward the bezel).
+ * Move only when the press is inside the crop, away from corners.
+ */
 private fun hitTestCropHandle(
     point: Offset,
     cropPx: Rect,
     slop: Float,
-): CropDragMode {
+): CropDragMode? {
     val corners =
         listOf(
             CropDragMode.ResizeTopLeft to Offset(cropPx.left, cropPx.top),
@@ -457,17 +454,36 @@ private fun hitTestCropHandle(
             CropDragMode.ResizeBottomLeft to Offset(cropPx.left, cropPx.bottom),
             CropDragMode.ResizeBottomRight to Offset(cropPx.right, cropPx.bottom),
         )
+    var bestMode: CropDragMode? = null
+    var bestDistSq = Float.MAX_VALUE
     for ((mode, corner) in corners) {
-        if (abs(point.x - corner.x) <= slop && abs(point.y - corner.y) <= slop) {
-            return mode
+        val dx = point.x - corner.x
+        val dy = point.y - corner.y
+        if (abs(dx) <= slop && abs(dy) <= slop) {
+            val distSq = dx * dx + dy * dy
+            if (distSq < bestDistSq) {
+                bestDistSq = distSq
+                bestMode = mode
+            }
         }
     }
-    return CropDragMode.Move
+    if (bestMode != null) {
+        return bestMode
+    }
+    val insideCrop =
+        point.x in cropPx.left..cropPx.right &&
+            point.y in cropPx.top..cropPx.bottom
+    return if (insideCrop) {
+        CropDragMode.Move
+    } else {
+        null
+    }
 }
 
 /**
  * Resize keeps the crop aspect equal to the source file (`width / height`).
- * Workspace is square, so normalized aspect matches pixel aspect.
+ * Workspace is square, so normalized aspect matches pixel aspect. Crop may extend
+ * into black letterbox areas around the photo.
  */
 private fun applyAspectCropDrag(
     cropRect: NormalizedCropRect,

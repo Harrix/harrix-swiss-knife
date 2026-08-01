@@ -19,8 +19,8 @@ import kotlin.math.min
 import kotlin.math.roundToInt
 
 /**
- * Normalized crop rectangle in the fitted image workspace, each edge in `0f..1f`.
- * Mapped onto the rotated square canvas when saving.
+ * Normalized crop rectangle on the rotated square canvas, each edge in `0f..1f`.
+ * Matches [PhotoEditSaver.renderRotatedOnSquare] (image centered on a black square).
  */
 data class NormalizedCropRect(
     val left: Float,
@@ -108,7 +108,8 @@ class PhotoEditSaver(
     ): SaveResult {
         val oriented =
             decodeOrientedBitmap(uri) ?: return SaveResult.Failed
-        val squareCrop = mapImageCropToSquareCrop(crop, oriented.width, oriented.height)
+        val imageAspect = oriented.width.toFloat() / oriented.height.toFloat().coerceAtLeast(1f)
+        val squareCrop = clampCropRect(crop, imageAspect)
         val workspace =
             renderRotatedOnSquare(oriented, rotationDegrees) ?: run {
                 oriented.recycle()
@@ -382,37 +383,25 @@ class PhotoEditSaver(
         private const val EDIT_UNDO_BACKUP_PREFIX = "gallery_cleaner_edit_undo_"
 
         /**
-         * Image rectangle fitted in the viewport: largest size that keeps aspect ratio
-         * (letterboxing outside is black).
+         * Largest square that fits in the viewport (centered). Crop and rotation use this
+         * canvas; areas outside the photo are black.
          */
-        fun fittedImageRect(
+        fun fittedSquareInViewport(
             viewportWidth: Float,
             viewportHeight: Float,
-            imageWidth: Int,
-            imageHeight: Int,
         ): FittedRect {
-            val hasInvalidSize =
-                imageWidth <= 0 ||
-                    imageHeight <= 0 ||
-                    viewportWidth <= 0f ||
-                    viewportHeight <= 0f
-            if (hasInvalidSize) {
+            if (viewportWidth <= 0f || viewportHeight <= 0f) {
                 return FittedRect(0f, 0f, 0f, 0f)
             }
-            val scale =
-                min(
-                    viewportWidth / imageWidth.toFloat(),
-                    viewportHeight / imageHeight.toFloat(),
-                )
-            val width = imageWidth * scale
-            val height = imageHeight * scale
-            val left = (viewportWidth - width) / 2f
-            val top = (viewportHeight - height) / 2f
-            return FittedRect(left, top, width, height)
+            val side = min(viewportWidth, viewportHeight)
+            val left = (viewportWidth - side) / 2f
+            val top = (viewportHeight - side) / 2f
+            return FittedRect(left, top, side, side)
         }
 
         /**
-         * Draw size of the unrotated image inside [workspace] (fills the fitted rect).
+         * Draw size of the unrotated image inside a square workspace (same proportions as
+         * [renderRotatedOnSquare]).
          */
         fun imageDrawSizeInWorkspace(
             imageWidth: Int,
@@ -422,11 +411,15 @@ class PhotoEditSaver(
             if (imageWidth <= 0 || imageHeight <= 0 || workspace.width <= 0f) {
                 return 0f to 0f
             }
-            return workspace.width to workspace.height
+            val diag = hypot(imageWidth.toFloat(), imageHeight.toFloat())
+            if (diag <= 0f) {
+                return 0f to 0f
+            }
+            return (imageWidth / diag) * workspace.width to (imageHeight / diag) * workspace.height
         }
 
         /**
-         * Initial crop covering the full fitted image (no inset).
+         * Initial crop covering the unrotated photo inside the square (letterbox is excluded).
          */
         fun imageContentCrop(
             imageWidth: Int,
@@ -435,39 +428,20 @@ class PhotoEditSaver(
             if (imageWidth <= 0 || imageHeight <= 0) {
                 return NormalizedCropRect.Full
             }
-            return NormalizedCropRect.Full
-        }
-
-        /**
-         * Maps a crop in fitted-image space onto the rotated square canvas used when saving.
-         */
-        fun mapImageCropToSquareCrop(
-            crop: NormalizedCropRect,
-            imageWidth: Int,
-            imageHeight: Int,
-        ): NormalizedCropRect {
             val diag = hypot(imageWidth.toFloat(), imageHeight.toFloat())
-            if (diag <= 0f || imageHeight <= 0) {
-                return crop
+            if (diag <= 0f) {
+                return NormalizedCropRect.Full
             }
             val width = (imageWidth / diag).coerceIn(0f, 1f)
             val height = (imageHeight / diag).coerceIn(0f, 1f)
-            val left0 = ((1f - width) / 2f).coerceIn(0f, 1f)
-            val top0 = ((1f - height) / 2f).coerceIn(0f, 1f)
-            return clampCropRect(
-                rect =
-                NormalizedCropRect(
-                    left = (left0 + crop.left * width).coerceIn(0f, 1f),
-                    top = (top0 + crop.top * height).coerceIn(0f, 1f),
-                    right = (left0 + crop.right * width).coerceIn(0f, 1f),
-                    bottom = (top0 + crop.bottom * height).coerceIn(0f, 1f),
-                ),
-                imageAspect = imageWidth.toFloat() / imageHeight.toFloat(),
-            )
+            val left = ((1f - width) / 2f).coerceIn(0f, 1f)
+            val top = ((1f - height) / 2f).coerceIn(0f, 1f)
+            return NormalizedCropRect(left, top, left + width, top + height)
         }
 
         /**
-         * Clamp crop to `0..1`, keeping [imageAspect] (`width / height` of the source file).
+         * Clamp crop to `0..1` of the square workspace, keeping [imageAspect]
+         * (`width / height` of the source file). Crop may cover black letterbox areas.
          */
         fun clampCropRect(
             rect: NormalizedCropRect,
