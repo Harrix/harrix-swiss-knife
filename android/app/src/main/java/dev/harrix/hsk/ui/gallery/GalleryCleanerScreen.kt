@@ -1,6 +1,8 @@
 package dev.harrix.hsk.ui.gallery
 
 import android.app.Activity
+import android.content.ActivityNotFoundException
+import android.content.ClipData
 import android.content.Intent
 import android.content.IntentSender
 import android.content.pm.PackageManager
@@ -39,6 +41,7 @@ import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -607,6 +610,27 @@ fun GalleryCleanerScreen(
         }
     }
 
+    fun sharePhoto(photo: CameraPhoto) {
+        val mimeType = photo.mimeType?.takeIf { it.isNotBlank() } ?: "image/*"
+        val shareIntent =
+            Intent(Intent.ACTION_SEND).apply {
+                type = mimeType
+                putExtra(Intent.EXTRA_STREAM, photo.uri)
+                clipData = ClipData.newUri(context.contentResolver, photo.displayName, photo.uri)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+        try {
+            context.startActivity(
+                Intent.createChooser(
+                    shareIntent,
+                    context.getString(R.string.gallery_cleaner_share),
+                ),
+            )
+        } catch (_: ActivityNotFoundException) {
+            statusMessage = context.getString(R.string.gallery_cleaner_share_failed)
+        }
+    }
+
     DisposableEffect(lifecycleOwner) {
         val observer =
             LifecycleEventObserver { _, event ->
@@ -886,6 +910,17 @@ fun GalleryCleanerScreen(
                                         stringResource(R.string.gallery_cleaner_action_rotate),
                                     )
                                 }
+                            }
+                        }
+                        if (!isEditing && canEditPhoto) {
+                            TextButton(onClick = { currentPhoto?.let { sharePhoto(it) } }) {
+                                Icon(
+                                    imageVector = Icons.Filled.Share,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp),
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(stringResource(R.string.gallery_cleaner_share))
                             }
                         }
                         if (!isEditing && canUndo) {
