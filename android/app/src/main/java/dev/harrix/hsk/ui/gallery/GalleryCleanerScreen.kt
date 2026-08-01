@@ -164,8 +164,10 @@ fun GalleryCleanerScreen(
     var reviewOrder by remember {
         mutableStateOf(preferences.getReviewOrder())
     }
+    var sessionReviewedCount by remember { mutableIntStateOf(0) }
     var sessionDeletedCount by remember { mutableIntStateOf(0) }
     var sessionFreedBytes by remember { mutableLongStateOf(0L) }
+    var showStatsDialog by remember { mutableStateOf(false) }
     var isEditing by remember { mutableStateOf(false) }
     var editRotationDegrees by remember { mutableFloatStateOf(0f) }
     var editCropRect by remember { mutableStateOf(NormalizedCropRect.Full) }
@@ -263,6 +265,7 @@ fun GalleryCleanerScreen(
         deleted: Boolean = false,
     ) {
         view.performLightActionHaptic()
+        sessionReviewedCount += 1
         if (unreviewedOnlyMode) {
             preferences.markPhotoReviewed(photo.id)
         }
@@ -316,6 +319,7 @@ fun GalleryCleanerScreen(
         if (unreviewedOnlyMode) {
             preferences.unmarkPhotoReviewed(photo.id)
         }
+        sessionReviewedCount = (sessionReviewedCount - 1).coerceAtLeast(0)
         sessionDeletedCount = (sessionDeletedCount - 1).coerceAtLeast(0)
         sessionFreedBytes = (sessionFreedBytes - photo.sizeBytes).coerceAtLeast(0L)
         val updated = orderPhotos(remainingPhotos + photo)
@@ -332,6 +336,7 @@ fun GalleryCleanerScreen(
         if (unreviewedOnlyMode) {
             preferences.unmarkPhotoReviewed(photo.id)
         }
+        sessionReviewedCount = (sessionReviewedCount - 1).coerceAtLeast(0)
         remainingPhotos =
             orderPhotos(
                 if (remainingPhotos.any { it.id == photo.id }) {
@@ -716,6 +721,40 @@ fun GalleryCleanerScreen(
         }
     }
 
+    if (showStatsDialog) {
+        AlertDialog(
+            onDismissRequest = { showStatsDialog = false },
+            title = { Text(stringResource(R.string.gallery_cleaner_stats_title)) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        stringResource(
+                            R.string.gallery_cleaner_stats_reviewed,
+                            sessionReviewedCount,
+                        ),
+                    )
+                    Text(
+                        stringResource(
+                            R.string.gallery_cleaner_stats_deleted,
+                            sessionDeletedCount,
+                        ),
+                    )
+                    Text(
+                        stringResource(
+                            R.string.gallery_cleaner_stats_freed,
+                            CameraGalleryRepository.formatFileSize(sessionFreedBytes),
+                        ),
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showStatsDialog = false }) {
+                    Text(stringResource(R.string.gallery_cleaner_stats_ok))
+                }
+            },
+        )
+    }
+
     if (showIntro) {
         GalleryCleanerIntroDialog(
             dontShowAgain = dontShowAgain,
@@ -869,6 +908,15 @@ fun GalleryCleanerScreen(
                                             if (hasPermission && !showIntro) {
                                                 reloadPhotos()
                                             }
+                                        },
+                                    )
+                                    DropdownMenuItem(
+                                        text = {
+                                            Text(stringResource(R.string.gallery_cleaner_stats))
+                                        },
+                                        onClick = {
+                                            menuExpanded = false
+                                            showStatsDialog = true
                                         },
                                     )
                                     DropdownMenuItem(

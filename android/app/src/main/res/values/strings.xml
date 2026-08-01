@@ -96,6 +96,12 @@
     <string name="gallery_cleaner_remaining">%1$d remaining</string>
     <string name="gallery_cleaner_remaining_unreviewed">%1$d unreviewed</string>
     <string name="gallery_cleaner_session_stats">Deleted: %1$d · Freed: %2$s</string>
+    <string name="gallery_cleaner_stats">Statistics</string>
+    <string name="gallery_cleaner_stats_title">Session statistics</string>
+    <string name="gallery_cleaner_stats_reviewed">Reviewed: %1$d</string>
+    <string name="gallery_cleaner_stats_deleted">Deleted: %1$d</string>
+    <string name="gallery_cleaner_stats_freed">Space freed: %1$s</string>
+    <string name="gallery_cleaner_stats_ok">OK</string>
     <string name="gallery_cleaner_date_filter_active">Filter: %1$s – %2$s</string>
     <string name="gallery_cleaner_date_filter_active_day">Filter: %1$s</string>
     <string name="gallery_cleaner_untitled">Untitled photo</string>
