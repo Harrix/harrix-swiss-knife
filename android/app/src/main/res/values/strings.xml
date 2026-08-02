@@ -179,5 +179,8 @@
     <string name="video_cleaner_sort_date_asc">Date (oldest first)</string>
     <string name="video_cleaner_sort_size_desc">Size (largest first)</string>
     <string name="video_cleaner_sort_size_asc">Size (smallest first)</string>
+    <string name="video_cleaner_play">Play</string>
+    <string name="video_cleaner_share">Share</string>
+    <string name="video_cleaner_share_failed">Could not share video</string>
     <string name="video_cleaner_play_close">Close playback</string>
 </resources>

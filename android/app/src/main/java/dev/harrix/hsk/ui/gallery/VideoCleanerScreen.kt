@@ -1,6 +1,8 @@
 package dev.harrix.hsk.ui.gallery
 
 import android.app.Activity
+import android.content.ActivityNotFoundException
+import android.content.ClipData
 import android.content.Intent
 import android.content.IntentSender
 import android.content.pm.PackageManager
@@ -54,8 +56,10 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Deselect
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.SelectAll
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -263,6 +267,31 @@ fun VideoCleanerScreen(
             } else {
                 statusMessage = context.getString(R.string.video_cleaner_delete_failed)
             }
+        }
+    }
+
+    fun shareVideo(video: CameraVideo) {
+        val shareIntent =
+            Intent(Intent.ACTION_SEND).apply {
+                type = "video/*"
+                putExtra(Intent.EXTRA_STREAM, video.uri)
+                clipData =
+                    ClipData.newUri(
+                        context.contentResolver,
+                        video.displayName ?: context.getString(R.string.video_cleaner_untitled),
+                        video.uri,
+                    )
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+        try {
+            context.startActivity(
+                Intent.createChooser(
+                    shareIntent,
+                    context.getString(R.string.video_cleaner_share),
+                ),
+            )
+        } catch (_: ActivityNotFoundException) {
+            statusMessage = context.getString(R.string.video_cleaner_share_failed)
         }
     }
 
@@ -541,7 +570,8 @@ fun VideoCleanerScreen(
                                                 selectedIds + video.id
                                             }
                                     },
-                                    onLongPress = { playingVideo = video },
+                                    onPlay = { playingVideo = video },
+                                    onShare = { shareVideo(video) },
                                 )
                             }
                         }
@@ -739,10 +769,12 @@ private fun VideoGalleryItem(
     video: CameraVideo,
     selected: Boolean,
     onToggle: () -> Unit,
-    onLongPress: () -> Unit,
+    onPlay: () -> Unit,
+    onShare: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
+    var menuExpanded by remember { mutableStateOf(false) }
     val dateLabel =
         remember(video.dateAddedEpochSec) {
             DateFormat
@@ -770,7 +802,7 @@ private fun VideoGalleryItem(
             )
             .combinedClickable(
                 onClick = onToggle,
-                onLongClick = onLongPress,
+                onLongClick = { menuExpanded = true },
             ),
     ) {
         VideoThumbnail(
@@ -818,6 +850,37 @@ private fun VideoGalleryItem(
                     .padding(6.dp)
                     .size(22.dp)
                     .background(colorScheme.onPrimary, CircleShape),
+            )
+        }
+        DropdownMenu(
+            expanded = menuExpanded,
+            onDismissRequest = { menuExpanded = false },
+        ) {
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.video_cleaner_play)) },
+                onClick = {
+                    menuExpanded = false
+                    onPlay()
+                },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Filled.PlayArrow,
+                        contentDescription = null,
+                    )
+                },
+            )
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.video_cleaner_share)) },
+                onClick = {
+                    menuExpanded = false
+                    onShare()
+                },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Filled.Share,
+                        contentDescription = null,
+                    )
+                },
             )
         }
     }
