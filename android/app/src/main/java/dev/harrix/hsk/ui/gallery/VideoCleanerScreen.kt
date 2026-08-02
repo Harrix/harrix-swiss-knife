@@ -41,6 +41,7 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDownward
@@ -73,6 +74,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -94,6 +96,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.viewmodel.compose.viewModel
 import dev.harrix.hsk.R
 import dev.harrix.hsk.gallery.CameraGalleryRepository
 import dev.harrix.hsk.gallery.CameraVideo
@@ -105,10 +108,11 @@ import dev.harrix.hsk.ui.isCompactWidth
 import dev.harrix.hsk.ui.performLightActionHaptic
 import dev.harrix.hsk.ui.videoGridColumnCount
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.withContext
 import java.util.Date
 
-private enum class VideoSort(
+enum class VideoSort(
     val labelRes: Int,
     val icon: ImageVector,
 ) {
@@ -125,6 +129,7 @@ fun VideoCleanerScreen(
     onOpenSettings: () -> Unit,
     modifier: Modifier = Modifier,
     settingsRevision: Int = 0,
+    viewModel: VideoCleanerViewModel = viewModel(),
 ) {
     val context = LocalContext.current
     val view = LocalView.current
@@ -143,20 +148,40 @@ fun VideoCleanerScreen(
     var showManageMediaPrompt by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
     var videos by remember { mutableStateOf<List<CameraVideo>>(emptyList()) }
-    var selectedIds by remember { mutableStateOf<Set<Long>>(emptySet()) }
-    var statusMessage by remember { mutableStateOf<String?>(null) }
-    var pendingTrashIds by remember { mutableStateOf<Set<Long>>(emptySet()) }
-    var sort by remember { mutableStateOf(VideoSort.DATE_DESC) }
+    var selectedIds by viewModel.selectedIds
+    var statusMessage by viewModel.statusMessage
+    var pendingTrashIds by viewModel.pendingTrashIds
+    var sort by viewModel.sort
     var sortMenuExpanded by remember { mutableStateOf(false) }
-    var playingVideo by remember { mutableStateOf<CameraVideo?>(null) }
+    var playingVideo by viewModel.playingVideo
+    val gridState =
+        rememberLazyGridState(
+            initialFirstVisibleItemIndex = viewModel.gridFirstVisibleIndex,
+            initialFirstVisibleItemScrollOffset = viewModel.gridFirstVisibleOffset,
+        )
+
+    fun leaveCleaner() {
+        viewModel.resetSession()
+        onClose()
+    }
 
     BackHandler {
         when {
             playingVideo != null -> playingVideo = null
             sortMenuExpanded -> sortMenuExpanded = false
             selectedIds.isNotEmpty() -> selectedIds = emptySet()
-            else -> onClose()
+            else -> leaveCleaner()
         }
+    }
+
+    LaunchedEffect(gridState) {
+        snapshotFlow {
+            gridState.firstVisibleItemIndex to gridState.firstVisibleItemScrollOffset
+        }.distinctUntilChanged()
+            .collect { (index, offset) ->
+                viewModel.gridFirstVisibleIndex = index
+                viewModel.gridFirstVisibleOffset = offset
+            }
     }
 
     fun refreshManageMediaAccess() {
@@ -172,9 +197,15 @@ fun VideoCleanerScreen(
         statusMessage = null
         val loaded = repository.loadCameraVideos()
         videos = loaded
-        selectedIds = selectedIds.intersect(loaded.map { it.id }.toSet())
+        val loadedIds = loaded.map { it.id }.toSet()
+        selectedIds = selectedIds.intersect(loadedIds)
+        playingVideo =
+            playingVideo
+                ?.id
+                ?.let { id -> loaded.firstOrNull { it.id == id } }
         isLoading = false
         refreshManageMediaAccess()
+        viewModel.sessionInitialized = true
     }
 
     val permissionLauncher =
@@ -296,7 +327,7 @@ fun VideoCleanerScreen(
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = onClose) {
+                    IconButton(onClick = { leaveCleaner() }) {
                         Icon(
                             imageVector = Icons.Filled.Close,
                             contentDescription = stringResource(R.string.video_cleaner_close),
@@ -470,6 +501,7 @@ fun VideoCleanerScreen(
                         }
                         LazyVerticalGrid(
                             columns = GridCells.Fixed(videoGridColumnCount()),
+                            state = gridState,
                             modifier =
                             Modifier
                                 .weight(1f)

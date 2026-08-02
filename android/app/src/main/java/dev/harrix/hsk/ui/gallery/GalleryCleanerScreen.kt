@@ -80,8 +80,6 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -109,12 +107,12 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import dev.harrix.hsk.R
 import dev.harrix.hsk.gallery.CameraGalleryRepository
 import dev.harrix.hsk.gallery.CameraPhoto
-import dev.harrix.hsk.gallery.GalleryCleanerPreferences
 import dev.harrix.hsk.gallery.GalleryDateFilter
 import dev.harrix.hsk.gallery.GalleryPermissions
 import dev.harrix.hsk.gallery.GalleryReviewOrder
@@ -144,13 +142,14 @@ fun GalleryCleanerScreen(
     onOpenSettings: (shootDayEpochMs: Long?) -> Unit,
     modifier: Modifier = Modifier,
     settingsRevision: Int = 0,
+    viewModel: GalleryCleanerViewModel = viewModel(),
 ) {
     val context = LocalContext.current
     val view = LocalView.current
     val lifecycleOwner = LocalLifecycleOwner.current
-    val repository = remember { CameraGalleryRepository(context.applicationContext) }
-    val preferences = remember { GalleryCleanerPreferences(context.applicationContext) }
-    val photoEditSaver = remember { PhotoEditSaver(context.applicationContext) }
+    val repository = viewModel.repository
+    val preferences = viewModel.preferences
+    val photoEditSaver = viewModel.photoEditSaver
     val scope = rememberCoroutineScope()
 
     var hasPermission by remember {
@@ -162,40 +161,41 @@ fun GalleryCleanerScreen(
         )
     }
     var canManageMedia by remember { mutableStateOf(repository.canTrashWithoutPrompt()) }
-    var showIntro by remember { mutableStateOf(preferences.shouldShowIntro()) }
+    var showIntro by viewModel.showIntro
     var lastIntroPref by remember { mutableStateOf(preferences.shouldShowIntro()) }
     var showManageMediaPrompt by remember { mutableStateOf(false) }
-    var dontShowAgain by remember { mutableStateOf(false) }
-    var isLoading by remember { mutableStateOf(false) }
-    var remainingPhotos by remember { mutableStateOf<List<CameraPhoto>>(emptyList()) }
-    var currentPhoto by remember { mutableStateOf<CameraPhoto?>(null) }
-    var remainingCount by remember { mutableIntStateOf(0) }
-    var statusMessage by remember { mutableStateOf<String?>(null) }
-    var pendingTrashPhoto by remember { mutableStateOf<CameraPhoto?>(null) }
-    var pendingRestorePhoto by remember { mutableStateOf<CameraPhoto?>(null) }
+    var dontShowAgain by viewModel.dontShowAgain
+    var isLoading by viewModel.isLoading
+    var remainingPhotos by viewModel.remainingPhotos
+    var currentPhoto by viewModel.currentPhoto
+    var remainingCount by viewModel.remainingCount
+    var statusMessage by viewModel.statusMessage
+    var pendingTrashPhoto by viewModel.pendingTrashPhoto
+    var pendingRestorePhoto by viewModel.pendingRestorePhoto
 
     /** Session undo stack: keeps, deletes and edits, newest last. */
-    var undoStack by remember { mutableStateOf<List<GallerySessionUndo>>(emptyList()) }
-    var cardResetKey by remember { mutableIntStateOf(0) }
+    var undoStack by viewModel.undoStack
+    var cardResetKey by viewModel.cardResetKey
     var menuExpanded by remember { mutableStateOf(false) }
-    var dateFilter by remember { mutableStateOf(GalleryDateFilter(enabled = false)) }
-    var unreviewedOnlyMode by remember {
-        mutableStateOf(preferences.isUnreviewedOnlyModeEnabled())
+    var dateFilter by viewModel.dateFilter
+    var unreviewedOnlyMode by viewModel.unreviewedOnlyMode
+    var reviewOrder by viewModel.reviewOrder
+    var sessionReviewedCount by viewModel.sessionReviewedCount
+    var sessionDeletedCount by viewModel.sessionDeletedCount
+    var sessionFreedBytes by viewModel.sessionFreedBytes
+    var showStatsDialog by viewModel.showStatsDialog
+    var isEditing by viewModel.isEditing
+    var editRotationDegrees by viewModel.editRotationDegrees
+    var editCropRect by viewModel.editCropRect
+    var editImageRevision by viewModel.editImageRevision
+    var isSavingEdit by viewModel.isSavingEdit
+    var pendingWritePhoto by viewModel.pendingWritePhoto
+    var pendingWriteKind by viewModel.pendingWriteKind
+
+    fun leaveCleaner() {
+        viewModel.resetSession()
+        onClose()
     }
-    var reviewOrder by remember {
-        mutableStateOf(preferences.getReviewOrder())
-    }
-    var sessionReviewedCount by remember { mutableIntStateOf(0) }
-    var sessionDeletedCount by remember { mutableIntStateOf(0) }
-    var sessionFreedBytes by remember { mutableLongStateOf(0L) }
-    var showStatsDialog by remember { mutableStateOf(false) }
-    var isEditing by remember { mutableStateOf(false) }
-    var editRotationDegrees by remember { mutableFloatStateOf(0f) }
-    var editCropRect by remember { mutableStateOf(NormalizedCropRect.Full) }
-    var editImageRevision by remember { mutableIntStateOf(0) }
-    var isSavingEdit by remember { mutableStateOf(false) }
-    var pendingWritePhoto by remember { mutableStateOf<CameraPhoto?>(null) }
-    var pendingWriteKind by remember { mutableStateOf<PendingWriteKind?>(null) }
 
     fun refreshManageMediaAccess() {
         canManageMedia = repository.canTrashWithoutPrompt()
@@ -519,7 +519,7 @@ fun GalleryCleanerScreen(
             showStatsDialog -> showStatsDialog = false
             menuExpanded -> menuExpanded = false
             isEditing -> exitEditMode()
-            else -> onClose()
+            else -> leaveCleaner()
         }
     }
 
@@ -745,13 +745,7 @@ fun GalleryCleanerScreen(
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
-            photoEditSaver.clearAllEditBackups()
         }
-    }
-
-    LaunchedEffect(Unit) {
-        preferences.clearDateFilter()
-        dateFilter = preferences.loadDateFilter()
     }
 
     LaunchedEffect(settingsRevision) {
@@ -764,7 +758,17 @@ fun GalleryCleanerScreen(
     }
 
     LaunchedEffect(hasPermission, showIntro, settingsRevision) {
-        if (hasPermission && !showIntro) {
+        if (!hasPermission || showIntro) {
+            return@LaunchedEffect
+        }
+        if (!viewModel.sessionInitialized) {
+            viewModel.bootstrapDateFilter()
+            reloadPhotos()
+            viewModel.markSessionInitialized(settingsRevision)
+            return@LaunchedEffect
+        }
+        if (viewModel.appliedSettingsRevision != settingsRevision) {
+            viewModel.markSettingsApplied(settingsRevision)
             reloadPhotos()
         }
     }
@@ -872,7 +876,7 @@ fun GalleryCleanerScreen(
                             .padding(end = 4.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        IconButton(onClick = onClose) {
+                        IconButton(onClick = { leaveCleaner() }) {
                             Icon(
                                 imageVector = Icons.Filled.Close,
                                 contentDescription = stringResource(R.string.gallery_cleaner_close),
@@ -1279,7 +1283,7 @@ fun GalleryCleanerScreen(
     }
 }
 
-private enum class PendingWriteKind {
+enum class PendingWriteKind {
     SaveEdit,
     RestoreEdit,
 }
