@@ -168,7 +168,7 @@
     <string name="video_cleaner_permission_message">Allow access to videos to clean the Camera gallery.</string>
     <string name="video_cleaner_permission_grant">Grant access</string>
     <string name="video_cleaner_empty">No Camera videos found</string>
-    <string name="video_cleaner_loading">Loading videos…</string>
+    <string name="video_cleaner_loading">Please wait, videos are loading…</string>
     <string name="video_cleaner_delete_selected">Delete selected (%1$d)</string>
     <string name="video_cleaner_delete_selected_short">Delete (%1$d)</string>
     <string name="video_cleaner_header_sizes">Total: %1$s · Selected: %2$s</string>

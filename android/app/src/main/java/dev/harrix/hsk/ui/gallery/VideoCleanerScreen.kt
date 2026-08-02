@@ -86,6 +86,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
@@ -126,6 +127,7 @@ import dev.harrix.hsk.ui.performLightActionHaptic
 import dev.harrix.hsk.ui.videoGridColumnCount
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.Date
 
@@ -151,6 +153,7 @@ fun VideoCleanerScreen(
     val context = LocalContext.current
     val view = LocalView.current
     val lifecycleOwner = LocalLifecycleOwner.current
+    val scope = rememberCoroutineScope()
     val repository = remember { CameraGalleryRepository(context.applicationContext) }
     val preferences = remember { GalleryCleanerPreferences(context.applicationContext) }
     val videoPreferences = remember { VideoCleanerPreferences(context.applicationContext) }
@@ -230,17 +233,22 @@ fun VideoCleanerScreen(
     fun reloadVideos() {
         isLoading = true
         statusMessage = null
-        val loaded = repository.loadCameraVideos()
-        videos = loaded
-        val loadedIds = loaded.map { it.id }.toSet()
-        selectedIds = selectedIds.intersect(loadedIds)
-        playingVideo =
-            playingVideo
-                ?.id
-                ?.let { id -> loaded.firstOrNull { it.id == id } }
-        isLoading = false
-        refreshManageMediaAccess()
-        viewModel.sessionInitialized = true
+        scope.launch {
+            val loaded =
+                withContext(Dispatchers.IO) {
+                    repository.loadCameraVideos()
+                }
+            videos = loaded
+            val loadedIds = loaded.map { it.id }.toSet()
+            selectedIds = selectedIds.intersect(loadedIds)
+            playingVideo =
+                playingVideo
+                    ?.id
+                    ?.let { id -> loaded.firstOrNull { it.id == id } }
+            isLoading = false
+            refreshManageMediaAccess()
+            viewModel.sessionInitialized = true
+        }
     }
 
     val permissionLauncher =
@@ -612,7 +620,7 @@ fun VideoCleanerScreen(
                     }
                 }
 
-                isLoading -> {
+                isLoading || (hasPermission && !viewModel.sessionInitialized) -> {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             CircularProgressIndicator()
