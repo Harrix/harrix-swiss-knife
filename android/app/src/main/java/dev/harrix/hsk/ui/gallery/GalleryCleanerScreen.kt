@@ -129,6 +129,7 @@ import dev.harrix.hsk.ui.CompactBottomActionButton
 import dev.harrix.hsk.ui.adaptiveBottomBarWidth
 import dev.harrix.hsk.ui.isCompactHeight
 import dev.harrix.hsk.ui.isCompactWidth
+import dev.harrix.hsk.ui.isTablet
 import dev.harrix.hsk.ui.performLightActionHaptic
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -867,6 +868,8 @@ fun GalleryCleanerScreen(
 
     val isLandscape =
         LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
+    // Split layout is for phones only; tablets keep the original stacked layout.
+    val useLandscapeSplit = isLandscape && !isTablet()
     val canEditPhoto = hasPermission && currentPhoto != null && !showIntro
     val canUndo = undoStack.isNotEmpty()
     val showSecondaryBar =
@@ -1080,7 +1083,7 @@ fun GalleryCleanerScreen(
                         }
                     }
                 }
-                if (showSecondaryBar && !isLandscape) {
+                if (showSecondaryBar && !useLandscapeSplit) {
                     PhotoSecondaryActionsRow(
                         dateFilter = dateFilter,
                         isEditing = isEditing,
@@ -1097,7 +1100,7 @@ fun GalleryCleanerScreen(
         },
         bottomBar = {
             val showPortraitActions =
-                hasPermission && currentPhoto != null && !isEditing && !isLandscape
+                hasPermission && currentPhoto != null && !isEditing && !useLandscapeSplit
             if (showPortraitActions) {
                 val photo = currentPhoto!!
                 ReviewActionBar(
@@ -1193,7 +1196,7 @@ fun GalleryCleanerScreen(
                             onDiscard = { exitEditMode() },
                             modifier = Modifier.fillMaxSize(),
                         )
-                    } else if (isLandscape) {
+                    } else if (useLandscapeSplit) {
                         Row(modifier = Modifier.fillMaxSize()) {
                             SwipeablePhotoCard(
                                 photo = photo,
