@@ -7,6 +7,7 @@
     <string name="settings_back">Back</string>
     <string name="settings_open_all">All settings</string>
     <string name="settings_appearance_title">Appearance</string>
+    <string name="settings_appearance_summary">Theme and language</string>
     <string name="settings_language_title">Language</string>
     <string name="settings_language_system">System</string>
     <string name="settings_theme_title">Theme</string>
@@ -15,7 +16,10 @@
     <string name="settings_theme_dark">Dark</string>
     <string name="settings_section_expand">Expand section</string>
     <string name="settings_section_collapse">Collapse section</string>
+    <string name="settings_category_tools">Tools</string>
+    <string name="settings_category_main">Main</string>
     <string name="settings_permissions_title">Permissions</string>
+    <string name="settings_permissions_summary">Photos, videos, media management</string>
     <string name="settings_photos_access_granted">Photos access: granted</string>
     <string name="settings_photos_access_denied">Photos access: not granted</string>
     <string name="settings_videos_access_granted">Videos access: granted</string>
@@ -27,6 +31,7 @@
     <string name="settings_open_manage_media">Open media management settings</string>
     <string name="settings_manage_media_hint">Special app access → Media management apps. Photo/video access alone is not enough.</string>
     <string name="settings_gallery_cleaner_title">Gallery Cleaner</string>
+    <string name="settings_gallery_cleaner_summary">Folder, review order, date filter</string>
     <string name="settings_video_cleaner_title">Video Cleaner</string>
     <string name="settings_gallery_date_filter_enabled">Filter photos by date</string>
     <string name="settings_gallery_date_presets">Quick ranges</string>

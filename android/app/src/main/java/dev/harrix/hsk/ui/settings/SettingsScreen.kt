@@ -3,10 +3,8 @@ package dev.harrix.hsk.ui.settings
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -20,22 +18,15 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.ExpandLess
-import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -105,6 +96,13 @@ enum class SettingsSection {
     VideoCleaner,
 }
 
+private enum class HskSettingsPage {
+    Hub,
+    Appearance,
+    Gallery,
+    Permissions,
+}
+
 private const val EarliestFilterYear = 2008
 
 private data class GalleryFolderStats(
@@ -140,13 +138,33 @@ fun SettingsScreen(
     onOpenAllSettings: (() -> Unit)? = null,
     currentShootDayEpochMs: Long? = null,
 ) {
-    val titleRes =
-        when (section) {
-            SettingsSection.All -> R.string.settings_title
-            SettingsSection.GalleryCleaner -> R.string.settings_gallery_cleaner_title
-            SettingsSection.VideoCleaner -> R.string.settings_video_cleaner_title
+    var page by rememberSaveable(section) {
+        mutableStateOf(
+            when (section) {
+                SettingsSection.All -> HskSettingsPage.Hub
+                SettingsSection.GalleryCleaner -> HskSettingsPage.Gallery
+                SettingsSection.VideoCleaner -> HskSettingsPage.Hub
+            },
+        )
+    }
+
+    val pageTitle =
+        when (page) {
+            HskSettingsPage.Hub -> stringResource(R.string.settings_title)
+            HskSettingsPage.Appearance -> stringResource(R.string.settings_appearance_title)
+            HskSettingsPage.Gallery -> stringResource(R.string.settings_gallery_cleaner_title)
+            HskSettingsPage.Permissions -> stringResource(R.string.settings_permissions_title)
         }
-    BackHandler(onBack = onClose)
+
+    fun goBack() {
+        if (page == HskSettingsPage.Hub) {
+            onClose()
+        } else {
+            page = HskSettingsPage.Hub
+        }
+    }
+
+    BackHandler(onBack = { goBack() })
 
     Scaffold(
         modifier = modifier,
@@ -155,13 +173,13 @@ fun SettingsScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = stringResource(titleRes),
+                        text = pageTitle,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = onClose) {
+                    IconButton(onClick = { goBack() }) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = stringResource(R.string.settings_back),
@@ -171,44 +189,43 @@ fun SettingsScreen(
             )
         },
     ) { innerPadding ->
-        Column(
-            modifier =
-            Modifier
-                .padding(innerPadding)
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp, vertical = 8.dp)
-                .adaptiveContentWidth(),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            when (section) {
-                SettingsSection.All -> {
-                    AppearanceSettingsSection(
-                        themeMode = themeMode,
-                        onThemeModeChange = onThemeModeChange,
-                        appLanguage = appLanguage,
-                        onAppLanguageChange = onAppLanguageChange,
+        when (page) {
+            HskSettingsPage.Hub -> {
+                Column(
+                    modifier =
+                    Modifier
+                        .padding(innerPadding)
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .adaptiveContentWidth(),
+                ) {
+                    SettingsHubRow(
+                        title = stringResource(R.string.settings_appearance_title),
+                        summary = stringResource(R.string.settings_appearance_summary),
+                        icon = Icons.Filled.Palette,
+                        onClick = { page = HskSettingsPage.Appearance },
                     )
-                    GalleryCleanerSettingsSection(
-                        showSectionTitle = true,
-                        currentShootDayEpochMs = currentShootDayEpochMs,
+                    HorizontalDivider()
+                    SettingsCategoryHeader(text = stringResource(R.string.settings_category_tools))
+                    SettingsHubRow(
+                        title = stringResource(R.string.settings_gallery_cleaner_title),
+                        summary = stringResource(R.string.settings_gallery_cleaner_summary),
+                        icon = Icons.Filled.PhotoLibrary,
+                        onClick = { page = HskSettingsPage.Gallery },
                     )
-                }
-
-                SettingsSection.GalleryCleaner -> {
-                    AppearanceSettingsSection(
-                        themeMode = themeMode,
-                        onThemeModeChange = onThemeModeChange,
-                        appLanguage = appLanguage,
-                        onAppLanguageChange = onAppLanguageChange,
-                    )
-                    GalleryCleanerSettingsSection(
-                        showSectionTitle = false,
-                        currentShootDayEpochMs = currentShootDayEpochMs,
+                    HorizontalDivider()
+                    SettingsCategoryHeader(text = stringResource(R.string.settings_category_main))
+                    SettingsHubRow(
+                        title = stringResource(R.string.settings_permissions_title),
+                        summary = stringResource(R.string.settings_permissions_summary),
+                        icon = Icons.Filled.Security,
+                        onClick = { page = HskSettingsPage.Permissions },
                     )
                 }
+            }
 
-                SettingsSection.VideoCleaner -> {
+            HskSettingsPage.Appearance -> {
+                SettingsDetailPane(innerPadding = innerPadding) {
                     AppearanceSettingsSection(
                         themeMode = themeMode,
                         onThemeModeChange = onThemeModeChange,
@@ -218,15 +235,22 @@ fun SettingsScreen(
                 }
             }
 
-            PermissionsSettingsSection()
+            HskSettingsPage.Gallery -> {
+                SettingsDetailPane(innerPadding = innerPadding) {
+                    GalleryCleanerSettingsSection(
+                        currentShootDayEpochMs = currentShootDayEpochMs,
+                    )
+                    if (onOpenAllSettings != null && section != SettingsSection.All) {
+                        TextButton(onClick = onOpenAllSettings) {
+                            Text(stringResource(R.string.settings_open_all))
+                        }
+                    }
+                }
+            }
 
-            if (onOpenAllSettings != null && section != SettingsSection.All) {
-                Spacer(modifier = Modifier.height(8.dp))
-                TextButton(
-                    onClick = onOpenAllSettings,
-                    modifier = Modifier.align(Alignment.Start),
-                ) {
-                    Text(stringResource(R.string.settings_open_all))
+            HskSettingsPage.Permissions -> {
+                SettingsDetailPane(innerPadding = innerPadding) {
+                    PermissionsSettingsSection()
                 }
             }
         }
@@ -234,83 +258,79 @@ fun SettingsScreen(
 }
 
 @Composable
-private fun SettingsCategoryCard(
-    title: String,
-    icon: ImageVector,
-    modifier: Modifier = Modifier,
-    initiallyExpanded: Boolean = true,
+private fun SettingsDetailPane(
+    innerPadding: PaddingValues,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    var expanded by rememberSaveable(title) { mutableStateOf(initiallyExpanded) }
-    Card(
-        modifier = modifier.fillMaxWidth(),
+    Column(
+        modifier =
+        Modifier
+            .padding(innerPadding)
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .adaptiveContentWidth(),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+        content = content,
+    )
+}
+
+@Composable
+private fun SettingsCategoryHeader(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.labelLarge,
+        color = MaterialTheme.colorScheme.primary,
+        modifier =
+        Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+    )
+}
+
+@Composable
+private fun SettingsHubRow(
+    title: String,
+    summary: String,
+    icon: ImageVector,
+    onClick: () -> Unit,
+) {
+    ListItem(
+        headlineContent = {
+            Text(
+                text = title,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        },
+        supportingContent = {
+            Text(
+                text = summary,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+        },
+        leadingContent = {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        },
         colors =
-        CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+        ListItemDefaults.colors(
+            containerColor = MaterialTheme.colorScheme.surface,
         ),
-    ) {
-        Column(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Row(
-                modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .clickable(
-                        role = Role.Button,
-                        onClick = { expanded = !expanded },
-                    )
-                    .padding(vertical = 2.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Box(
-                    modifier =
-                    Modifier
-                        .size(40.dp)
-                        .background(
-                            color = MaterialTheme.colorScheme.primaryContainer,
-                            shape = CircleShape,
-                        ),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                        modifier = Modifier.size(22.dp),
-                    )
-                }
-                Spacer(modifier = Modifier.width(12.dp))
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleMedium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f),
-                )
-                Icon(
-                    imageVector =
-                    if (expanded) {
-                        Icons.Filled.ExpandLess
-                    } else {
-                        Icons.Filled.ExpandMore
-                    },
-                    contentDescription =
-                    stringResource(
-                        if (expanded) {
-                            R.string.settings_section_collapse
-                        } else {
-                            R.string.settings_section_expand
-                        },
-                    ),
-                )
-            }
-            if (expanded) {
-                content()
-            }
-        }
-    }
+        modifier =
+        Modifier
+            .fillMaxWidth()
+            .clickable(
+                role = Role.Button,
+                onClick = onClick,
+            ),
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -337,10 +357,9 @@ private fun AppearanceSettingsSection(
             appLanguage.nativeLabel
         }
 
-    SettingsCategoryCard(
-        title = stringResource(R.string.settings_appearance_title),
-        icon = Icons.Filled.Palette,
-        modifier = modifier,
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Text(
             text = stringResource(R.string.settings_language_title),
@@ -477,10 +496,9 @@ private fun PermissionsSettingsSection(modifier: Modifier = Modifier) {
             else -> R.string.settings_manage_media_denied
         }
 
-    SettingsCategoryCard(
-        title = stringResource(R.string.settings_permissions_title),
-        icon = Icons.Filled.Security,
-        modifier = modifier,
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Text(
             text = stringResource(photosStatusRes),
@@ -539,7 +557,6 @@ private fun PermissionsSettingsSection(modifier: Modifier = Modifier) {
 
 @Composable
 private fun GalleryCleanerSettingsSection(
-    showSectionTitle: Boolean,
     modifier: Modifier = Modifier,
     currentShootDayEpochMs: Long? = null,
 ) {
@@ -991,10 +1008,9 @@ private fun GalleryCleanerSettingsSection(
         }
     }
 
-    SettingsCategoryCard(
-        title = stringResource(R.string.settings_gallery_cleaner_title),
-        icon = Icons.Filled.PhotoLibrary,
-        modifier = modifier,
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
         content = body,
     )
 }

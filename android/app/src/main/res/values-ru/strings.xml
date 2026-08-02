@@ -7,6 +7,7 @@
     <string name="settings_back">Назад</string>
     <string name="settings_open_all">Все настройки</string>
     <string name="settings_appearance_title">Оформление</string>
+    <string name="settings_appearance_summary">Тема и язык</string>
     <string name="settings_language_title">Язык</string>
     <string name="settings_language_system">Системный</string>
     <string name="settings_theme_title">Тема</string>
@@ -15,7 +16,10 @@
     <string name="settings_theme_dark">Тёмная</string>
     <string name="settings_section_expand">Развернуть раздел</string>
     <string name="settings_section_collapse">Свернуть раздел</string>
+    <string name="settings_category_tools">Инструменты</string>
+    <string name="settings_category_main">Основное</string>
     <string name="settings_permissions_title">Разрешения</string>
+    <string name="settings_permissions_summary">Фото, видео, управление медиа</string>
     <string name="settings_photos_access_granted">Доступ к фотографиям: предоставлен</string>
     <string name="settings_photos_access_denied">Доступ к фотографиям: не предоставлен</string>
     <string name="settings_videos_access_granted">Доступ к видео: предоставлен</string>
@@ -27,6 +31,7 @@
     <string name="settings_open_manage_media">Открыть настройки управления мультимедиа</string>
     <string name="settings_manage_media_hint">Специальный доступ к приложениям → Приложения для управления медиа. Одного доступа к фото/видео недостаточно.</string>
     <string name="settings_gallery_cleaner_title">Gallery Cleaner</string>
+    <string name="settings_gallery_cleaner_summary">Папка, порядок просмотра, фильтр по дате</string>
     <string name="settings_video_cleaner_title">Video Cleaner</string>
     <string name="settings_gallery_date_filter_enabled">Фильтровать фотографии по дате</string>
     <string name="settings_gallery_date_presets">Быстрые диапазоны</string>
