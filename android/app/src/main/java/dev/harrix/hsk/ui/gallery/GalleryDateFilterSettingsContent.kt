@@ -2,6 +2,7 @@ package dev.harrix.hsk.ui.gallery
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -34,11 +35,13 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.harrix.hsk.R
 import dev.harrix.hsk.gallery.GalleryDateFilter
-import dev.harrix.hsk.ui.isCompactWidth
 import java.text.DateFormatSymbols
 import java.util.Calendar
 
 private const val EarliestFilterYear = 2008
+
+/** Below this width, year/month/day stack; above, a dense single-row layout is used. */
+private val DateFieldsStackBelow = 200.dp
 
 /**
  * Date filter controls shared by Gallery Cleaner settings and the in-utility dialog.
@@ -133,7 +136,11 @@ private fun GalleryDateFilterEditors(
     val now = remember { Calendar.getInstance() }
     val currentYear = now.get(Calendar.YEAR)
     val years = remember(currentYear) { (EarliestFilterYear..currentYear).toList().reversed() }
-    val monthLabels = remember { DateFormatSymbols.getInstance().months.take(12) }
+    // Short names fit year/month/day in one row inside AlertDialog / narrow panes.
+    val monthLabels =
+        remember {
+            DateFormatSymbols.getInstance().shortMonths.take(12).map { it.trim().trimEnd('.') }
+        }
 
     var fromYear by remember(filter.startEpochSecInclusive) {
         mutableIntStateOf(filter.fromYear())
@@ -325,7 +332,7 @@ private fun YearMonthDayRow(
         remember(year, month) {
             (1..GalleryDateFilter.daysInMonth(year, month)).toList()
         }
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Text(
             text = label,
             style = MaterialTheme.typography.labelLarge,
@@ -336,59 +343,70 @@ private fun YearMonthDayRow(
                 MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
             },
         )
-        if (isCompactWidth()) {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                SimpleDropdownField(
-                    value = year.toString(),
-                    options = years.map { it.toString() },
-                    enabled = enabled,
-                    onOptionSelect = { index -> onYearChange(years[index]) },
+        // Use available width (dialog is narrower than the screen), not isCompactWidth().
+        BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+            val stack = maxWidth < DateFieldsStackBelow
+            val dense = !stack
+            if (stack) {
+                Column(
                     modifier = Modifier.fillMaxWidth(),
-                )
-                SimpleDropdownField(
-                    value = monthLabels[month - 1],
-                    options = monthLabels,
-                    enabled = enabled,
-                    onOptionSelect = { index -> onMonthChange(index + 1) },
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    SimpleDropdownField(
+                        value = year.toString(),
+                        options = years.map { it.toString() },
+                        enabled = enabled,
+                        dense = false,
+                        onOptionSelect = { index -> onYearChange(years[index]) },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    SimpleDropdownField(
+                        value = monthLabels[month - 1],
+                        options = monthLabels,
+                        enabled = enabled,
+                        dense = false,
+                        onOptionSelect = { index -> onMonthChange(index + 1) },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    SimpleDropdownField(
+                        value = day.toString(),
+                        options = days.map { it.toString() },
+                        enabled = enabled,
+                        dense = false,
+                        onOptionSelect = { index -> onDayChange(days[index]) },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            } else {
+                Row(
                     modifier = Modifier.fillMaxWidth(),
-                )
-                SimpleDropdownField(
-                    value = day.toString(),
-                    options = days.map { it.toString() },
-                    enabled = enabled,
-                    onOptionSelect = { index -> onDayChange(days[index]) },
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
-        } else {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                SimpleDropdownField(
-                    value = year.toString(),
-                    options = years.map { it.toString() },
-                    enabled = enabled,
-                    onOptionSelect = { index -> onYearChange(years[index]) },
-                    modifier = Modifier.weight(1.1f),
-                )
-                SimpleDropdownField(
-                    value = monthLabels[month - 1],
-                    options = monthLabels,
-                    enabled = enabled,
-                    onOptionSelect = { index -> onMonthChange(index + 1) },
-                    modifier = Modifier.weight(1.4f),
-                )
-                SimpleDropdownField(
-                    value = day.toString(),
-                    options = days.map { it.toString() },
-                    enabled = enabled,
-                    onOptionSelect = { index -> onDayChange(days[index]) },
-                    modifier = Modifier.weight(0.9f),
-                )
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    SimpleDropdownField(
+                        value = year.toString(),
+                        options = years.map { it.toString() },
+                        enabled = enabled,
+                        dense = dense,
+                        onOptionSelect = { index -> onYearChange(years[index]) },
+                        modifier = Modifier.weight(1.05f),
+                    )
+                    SimpleDropdownField(
+                        value = monthLabels[month - 1],
+                        options = monthLabels,
+                        enabled = enabled,
+                        dense = dense,
+                        onOptionSelect = { index -> onMonthChange(index + 1) },
+                        modifier = Modifier.weight(1.15f),
+                    )
+                    SimpleDropdownField(
+                        value = day.toString(),
+                        options = days.map { it.toString() },
+                        enabled = enabled,
+                        dense = dense,
+                        onOptionSelect = { index -> onDayChange(days[index]) },
+                        modifier = Modifier.weight(0.8f),
+                    )
+                }
             }
         }
     }
@@ -402,6 +420,7 @@ private fun SimpleDropdownField(
     enabled: Boolean,
     onOptionSelect: (Int) -> Unit,
     modifier: Modifier = Modifier,
+    dense: Boolean = false,
 ) {
     var expanded by remember { mutableStateOf(false) }
     ExposedDropdownMenuBox(
@@ -415,7 +434,21 @@ private fun SimpleDropdownField(
             readOnly = true,
             enabled = enabled,
             singleLine = true,
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            textStyle =
+            if (dense) {
+                MaterialTheme.typography.bodySmall
+            } else {
+                MaterialTheme.typography.bodyLarge
+            },
+            // Trailing chevrons eat ~48dp each; hide in dense row — field still opens the menu.
+            trailingIcon =
+            if (dense) {
+                null
+            } else {
+                {
+                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
+                }
+            },
             modifier =
             Modifier
                 .menuAnchor(MenuAnchorType.PrimaryNotEditable, enabled = enabled)
