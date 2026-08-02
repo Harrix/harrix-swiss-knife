@@ -3,9 +3,12 @@ package dev.harrix.hsk.ui.settings
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
@@ -17,14 +20,22 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.PhotoLibrary
+import androidx.compose.material.icons.filled.Security
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -55,9 +66,11 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -166,7 +179,7 @@ fun SettingsScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 16.dp, vertical = 8.dp)
                 .adaptiveContentWidth(),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             when (section) {
                 SettingsSection.All -> {
@@ -176,7 +189,6 @@ fun SettingsScreen(
                         appLanguage = appLanguage,
                         onAppLanguageChange = onAppLanguageChange,
                     )
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
                     GalleryCleanerSettingsSection(
                         showSectionTitle = true,
                         currentShootDayEpochMs = currentShootDayEpochMs,
@@ -190,7 +202,6 @@ fun SettingsScreen(
                         appLanguage = appLanguage,
                         onAppLanguageChange = onAppLanguageChange,
                     )
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
                     GalleryCleanerSettingsSection(
                         showSectionTitle = false,
                         currentShootDayEpochMs = currentShootDayEpochMs,
@@ -207,12 +218,10 @@ fun SettingsScreen(
                 }
             }
 
-            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
             PermissionsSettingsSection()
 
             if (onOpenAllSettings != null && section != SettingsSection.All) {
-                Spacer(modifier = Modifier.height(16.dp))
-                HorizontalDivider()
+                Spacer(modifier = Modifier.height(8.dp))
                 TextButton(
                     onClick = onOpenAllSettings,
                     modifier = Modifier.align(Alignment.Start),
@@ -225,53 +234,81 @@ fun SettingsScreen(
 }
 
 @Composable
-private fun CollapsibleSettingsSection(
+private fun SettingsCategoryCard(
     title: String,
+    icon: ImageVector,
     modifier: Modifier = Modifier,
     initiallyExpanded: Boolean = true,
-    content: @Composable () -> Unit,
+    content: @Composable ColumnScope.() -> Unit,
 ) {
-    var expanded by remember { mutableStateOf(initiallyExpanded) }
-    Column(
+    var expanded by rememberSaveable(title) { mutableStateOf(initiallyExpanded) }
+    Card(
         modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        colors =
+        CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+        ),
     ) {
-        Row(
-            modifier =
-            Modifier
-                .fillMaxWidth()
-                .clickable(
-                    role = Role.Button,
-                    onClick = { expanded = !expanded },
-                )
-                .padding(vertical = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
+        Column(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.weight(1f),
-            )
-            Icon(
-                imageVector =
-                if (expanded) {
-                    Icons.Filled.ExpandLess
-                } else {
-                    Icons.Filled.ExpandMore
-                },
-                contentDescription =
-                stringResource(
+            Row(
+                modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .clickable(
+                        role = Role.Button,
+                        onClick = { expanded = !expanded },
+                    )
+                    .padding(vertical = 2.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box(
+                    modifier =
+                    Modifier
+                        .size(40.dp)
+                        .background(
+                            color = MaterialTheme.colorScheme.primaryContainer,
+                            shape = CircleShape,
+                        ),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                        modifier = Modifier.size(22.dp),
+                    )
+                }
+                Spacer(modifier = Modifier.width(12.dp))
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
+                )
+                Icon(
+                    imageVector =
                     if (expanded) {
-                        R.string.settings_section_collapse
+                        Icons.Filled.ExpandLess
                     } else {
-                        R.string.settings_section_expand
+                        Icons.Filled.ExpandMore
                     },
-                ),
-            )
-        }
-        if (expanded) {
-            content()
+                    contentDescription =
+                    stringResource(
+                        if (expanded) {
+                            R.string.settings_section_collapse
+                        } else {
+                            R.string.settings_section_expand
+                        },
+                    ),
+                )
+            }
+            if (expanded) {
+                content()
+            }
         }
     }
 }
@@ -300,8 +337,9 @@ private fun AppearanceSettingsSection(
             appLanguage.nativeLabel
         }
 
-    CollapsibleSettingsSection(
+    SettingsCategoryCard(
         title = stringResource(R.string.settings_appearance_title),
+        icon = Icons.Filled.Palette,
         modifier = modifier,
     ) {
         Text(
@@ -439,8 +477,9 @@ private fun PermissionsSettingsSection(modifier: Modifier = Modifier) {
             else -> R.string.settings_manage_media_denied
         }
 
-    CollapsibleSettingsSection(
+    SettingsCategoryCard(
         title = stringResource(R.string.settings_permissions_title),
+        icon = Icons.Filled.Security,
         modifier = modifier,
     ) {
         Text(
@@ -684,7 +723,7 @@ private fun GalleryCleanerSettingsSection(
         }
     }
 
-    val body: @Composable () -> Unit = {
+    val body: @Composable ColumnScope.() -> Unit = {
         SettingsFullWidthOutlinedButton(
             onClick = {
                 preferences.setShowIntro(true)
@@ -952,19 +991,12 @@ private fun GalleryCleanerSettingsSection(
         }
     }
 
-    if (showSectionTitle) {
-        CollapsibleSettingsSection(
-            title = stringResource(R.string.settings_gallery_cleaner_title),
-            modifier = modifier,
-            content = body,
-        )
-    } else {
-        Column(
-            modifier = modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            content = { body() },
-        )
-    }
+    SettingsCategoryCard(
+        title = stringResource(R.string.settings_gallery_cleaner_title),
+        icon = Icons.Filled.PhotoLibrary,
+        modifier = modifier,
+        content = body,
+    )
 }
 
 @Composable
