@@ -103,6 +103,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
@@ -1212,7 +1213,6 @@ fun GalleryCleanerScreen(
                                 Modifier
                                     .width(300.dp)
                                     .fillMaxHeight()
-                                    .background(MaterialTheme.colorScheme.surfaceContainer)
                                     .padding(horizontal = 12.dp, vertical = 8.dp),
                                 verticalArrangement = Arrangement.spacedBy(8.dp),
                             ) {
@@ -1232,7 +1232,8 @@ fun GalleryCleanerScreen(
                                 }
                                 PhotoMetaInfo(
                                     photo = photo,
-                                    compact = true,
+                                    compact = false,
+                                    endAligned = true,
                                     modifier = Modifier.fillMaxWidth(),
                                 )
                                 Spacer(modifier = Modifier.weight(1f))
@@ -1821,6 +1822,7 @@ private fun PhotoMetaInfo(
     photo: CameraPhoto,
     compact: Boolean,
     modifier: Modifier = Modifier,
+    endAligned: Boolean = false,
 ) {
     val dateLabel =
         remember(photo.dateTakenEpochMs) {
@@ -1835,12 +1837,14 @@ private fun PhotoMetaInfo(
     val nameLabel =
         photo.displayName?.takeIf { it.isNotBlank() }
             ?: stringResource(R.string.gallery_cleaner_untitled)
+    val textAlign = if (endAligned) TextAlign.End else TextAlign.Start
     Column(
         modifier =
         modifier.padding(
-            horizontal = 16.dp,
+            horizontal = if (endAligned) 0.dp else 16.dp,
             vertical = if (compact) 6.dp else 10.dp,
         ),
+        horizontalAlignment = if (endAligned) Alignment.End else Alignment.Start,
         verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
         if (compact) {
@@ -1850,6 +1854,8 @@ private fun PhotoMetaInfo(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
+                textAlign = textAlign,
+                modifier = if (endAligned) Modifier.fillMaxWidth() else Modifier,
             )
         } else {
             Text(
@@ -1857,6 +1863,8 @@ private fun PhotoMetaInfo(
                 style = MaterialTheme.typography.titleSmall,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
+                textAlign = textAlign,
+                modifier = if (endAligned) Modifier.fillMaxWidth() else Modifier,
             )
             Text(
                 text = dateLabel,
@@ -1864,6 +1872,8 @@ private fun PhotoMetaInfo(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
+                textAlign = textAlign,
+                modifier = if (endAligned) Modifier.fillMaxWidth() else Modifier,
             )
             Text(
                 text = sizeLabel,
@@ -1871,6 +1881,8 @@ private fun PhotoMetaInfo(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
+                textAlign = textAlign,
+                modifier = if (endAligned) Modifier.fillMaxWidth() else Modifier,
             )
         }
     }
