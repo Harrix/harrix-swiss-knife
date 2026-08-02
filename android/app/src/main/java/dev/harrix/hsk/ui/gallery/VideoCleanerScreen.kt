@@ -33,6 +33,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
@@ -51,7 +52,9 @@ import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Deselect
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.SelectAll
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material3.Button
@@ -63,12 +66,15 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalMinimumInteractiveComponentSize
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -90,6 +96,7 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
@@ -493,33 +500,21 @@ fun VideoCleanerScreen(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
-                                TextButton(
+                                VideoSelectionTextButton(
                                     onClick = {
                                         selectedIds = sortedVideos.map { it.id }.toSet()
                                     },
+                                    icon = Icons.Filled.SelectAll,
+                                    label = stringResource(R.string.video_cleaner_select_all),
                                     modifier = Modifier.weight(1f, fill = false),
-                                    contentPadding =
-                                    PaddingValues(horizontal = 8.dp, vertical = 8.dp),
-                                ) {
-                                    Text(
-                                        text = stringResource(R.string.video_cleaner_select_all),
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                    )
-                                }
-                                TextButton(
+                                )
+                                VideoSelectionTextButton(
                                     onClick = { selectedIds = emptySet() },
+                                    icon = Icons.Filled.Deselect,
+                                    label = stringResource(R.string.video_cleaner_deselect_all),
                                     enabled = selectedIds.isNotEmpty(),
                                     modifier = Modifier.weight(1f, fill = false),
-                                    contentPadding =
-                                    PaddingValues(horizontal = 8.dp, vertical = 8.dp),
-                                ) {
-                                    Text(
-                                        text = stringResource(R.string.video_cleaner_deselect_all),
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                    )
-                                }
+                                )
                             }
                         }
                         LazyVerticalGrid(
@@ -577,6 +572,58 @@ fun VideoCleanerScreen(
 }
 
 @Composable
+private fun VideoSelectionTextButton(
+    onClick: () -> Unit,
+    icon: ImageVector,
+    label: String,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    compact: Boolean = false,
+) {
+    val button: @Composable () -> Unit = {
+        TextButton(
+            onClick = onClick,
+            enabled = enabled,
+            modifier =
+            modifier.heightIn(
+                min = if (compact) 28.dp else 40.dp,
+                max = if (compact) 32.dp else Dp.Unspecified,
+            ),
+            contentPadding =
+            PaddingValues(
+                horizontal = if (compact) 6.dp else 8.dp,
+                vertical = if (compact) 0.dp else 4.dp,
+            ),
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                modifier = Modifier.size(if (compact) 16.dp else 18.dp),
+            )
+            Spacer(modifier = Modifier.width(4.dp))
+            Text(
+                text = label,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                style =
+                if (compact) {
+                    MaterialTheme.typography.labelLarge
+                } else {
+                    LocalTextStyle.current
+                },
+            )
+        }
+    }
+    if (compact) {
+        CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 28.dp) {
+            button()
+        }
+    } else {
+        button()
+    }
+}
+
+@Composable
 private fun VideoCleanerBottomBar(
     selectedCount: Int,
     selectedSizeLabel: String?,
@@ -604,43 +651,43 @@ private fun VideoCleanerBottomBar(
             disabledContainerColor = colorScheme.onSurface.copy(alpha = 0.12f),
             disabledContentColor = colorScheme.onSurface.copy(alpha = 0.38f),
         )
+    val landscapeSelect = onSelectAll != null && onDeselectAll != null
     Column(
         modifier =
         modifier
             .fillMaxWidth()
             .background(MaterialTheme.colorScheme.surfaceContainer)
             .windowInsetsPadding(WindowInsets.navigationBars)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .padding(
+                horizontal = 16.dp,
+                vertical = if (landscapeSelect) 8.dp else 12.dp,
+            ),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         if (onSelectAll != null && onDeselectAll != null) {
+            val selectAllClick = onSelectAll
+            val deselectAllClick = onDeselectAll
             Row(
                 modifier = Modifier.adaptiveBottomBarWidth(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Column {
-                    TextButton(
-                        onClick = onSelectAll,
-                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
-                    ) {
-                        Text(
-                            text = stringResource(R.string.video_cleaner_select_all),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                    TextButton(
-                        onClick = onDeselectAll,
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(0.dp),
+                ) {
+                    VideoSelectionTextButton(
+                        onClick = selectAllClick,
+                        icon = Icons.Filled.SelectAll,
+                        label = stringResource(R.string.video_cleaner_select_all),
+                        compact = true,
+                    )
+                    VideoSelectionTextButton(
+                        onClick = deselectAllClick,
+                        icon = Icons.Filled.Deselect,
+                        label = stringResource(R.string.video_cleaner_deselect_all),
                         enabled = canDeselect,
-                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
-                    ) {
-                        Text(
-                            text = stringResource(R.string.video_cleaner_deselect_all),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
+                        compact = true,
+                    )
                 }
                 Column(modifier = Modifier.weight(1f)) {
                     if (selectedSizeLabel != null) {
