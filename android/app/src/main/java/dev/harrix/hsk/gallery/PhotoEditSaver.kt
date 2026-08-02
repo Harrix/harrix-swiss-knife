@@ -554,33 +554,6 @@ class PhotoEditSaver(
         }
 
         /**
-         * Largest rectangle with [rect]'s aspect ratio that fits inside [bounds]
-         * (both in normalized square workspace coordinates), centered in [bounds].
-         */
-        fun fitCropIntoBounds(
-            rect: NormalizedCropRect,
-            bounds: NormalizedCropRect,
-        ): NormalizedCropRect {
-            val aspect = (rect.width / rect.height.coerceAtLeast(1e-6f)).coerceAtLeast(1e-6f)
-            val bw = bounds.width.coerceAtLeast(1e-6f)
-            val bh = bounds.height.coerceAtLeast(1e-6f)
-            val width: Float
-            val height: Float
-            if (bw / bh > aspect) {
-                height = bh
-                width = height * aspect
-            } else {
-                width = bw
-                height = width / aspect
-            }
-            val left = bounds.left + (bw - width) / 2f
-            val top = bounds.top + (bh - height) / 2f
-            return clampCropRectFree(
-                NormalizedCropRect(left, top, left + width, top + height),
-            )
-        }
-
-        /**
          * Swap width/height around the center (aspect ↔ 1/aspect) without shrinking.
          * Scales down only if the swapped rect would not fit in the square.
          */

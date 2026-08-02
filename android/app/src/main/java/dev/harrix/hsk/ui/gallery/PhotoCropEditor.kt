@@ -519,20 +519,10 @@ fun PhotoCropEditor(
                 val compactChrome = isCompactWidth() || isCompactHeight()
                 FilledTonalButton(
                     onClick = {
-                        val visible =
-                            visibleWorkspaceNormalized(
-                                viewportW = viewportW,
-                                viewportH = viewportH,
-                                side = workspace.width,
-                                scale = viewScale,
-                                offset = viewOffset,
-                            )
-                        onCropRectChange(
-                            PhotoEditSaver.fitCropIntoBounds(
-                                rect = cropRect,
-                                bounds = visible,
-                            ),
-                        )
+                        // Return the workspace (image + crop grid) to 1×; crop stays in
+                        // normalized coords and simply draws at the unzoomed size again.
+                        viewScale = 1f
+                        viewOffset = Offset.Zero
                     },
                     modifier =
                     Modifier
@@ -725,40 +715,6 @@ private fun clampCropViewOffset(
         x = offset.x.coerceIn(-maxX, maxX),
         y = offset.y.coerceIn(-maxY, maxY),
     )
-}
-
-/**
- * Normalized region of the square workspace currently visible in the viewport.
- * Matches center-origin [graphicsLayer] scale + translation on a centered square.
- */
-private fun visibleWorkspaceNormalized(
-    viewportW: Float,
-    viewportH: Float,
-    side: Float,
-    scale: Float,
-    offset: Offset,
-): NormalizedCropRect {
-    val s = scale.coerceAtLeast(1e-6f)
-    val centerX = viewportW / 2f
-    val centerY = viewportH / 2f
-    fun parentToNorm(
-        px: Float,
-        py: Float,
-    ): Pair<Float, Float> {
-        val lx = side / 2f + (px - centerX - offset.x) / s
-        val ly = side / 2f + (py - centerY - offset.y) / s
-        return (lx / side) to (ly / side)
-    }
-    val (nLeft, nTop) = parentToNorm(0f, 0f)
-    val (nRight, nBottom) = parentToNorm(viewportW, viewportH)
-    val left = min(nLeft, nRight).coerceIn(0f, 1f)
-    val top = min(nTop, nBottom).coerceIn(0f, 1f)
-    val right = max(nLeft, nRight).coerceIn(0f, 1f)
-    val bottom = max(nTop, nBottom).coerceIn(0f, 1f)
-    if (right - left < 0.06f || bottom - top < 0.06f) {
-        return NormalizedCropRect.Full
-    }
-    return NormalizedCropRect(left, top, right, bottom)
 }
 
 /**
