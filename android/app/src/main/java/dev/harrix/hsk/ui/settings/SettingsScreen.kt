@@ -23,7 +23,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
@@ -52,6 +54,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -65,6 +68,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import dev.harrix.hsk.R
+import dev.harrix.hsk.gallery.CameraGalleryRepository
 import dev.harrix.hsk.gallery.GalleryCleanerPreferences
 import dev.harrix.hsk.gallery.GalleryDateFilter
 import dev.harrix.hsk.gallery.GalleryPermissions
@@ -73,6 +77,9 @@ import dev.harrix.hsk.gallery.MediaFolderPaths
 import dev.harrix.hsk.ui.adaptiveContentWidth
 import dev.harrix.hsk.ui.isCompactWidth
 import dev.harrix.hsk.ui.theme.ThemeMode
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.text.DateFormat
 import java.text.DateFormatSymbols
 import java.util.Calendar
@@ -85,6 +92,26 @@ enum class SettingsSection {
 }
 
 private const val EarliestFilterYear = 2008
+
+private data class GalleryFolderStats(
+    val totalCount: Int,
+    val totalBytes: Long,
+    val reviewedHistoryCount: Int,
+    val reviewedInFolderCount: Int,
+    val unreviewedCount: Int,
+    val filteredCount: Int?,
+    val filteredBytes: Long?,
+)
+
+private sealed interface GalleryStatsDialogState {
+    data object Loading : GalleryStatsDialogState
+
+    data object NoPermission : GalleryStatsDialogState
+
+    data class Ready(
+        val stats: GalleryFolderStats,
+    ) : GalleryStatsDialogState
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -400,7 +427,9 @@ private fun GalleryCleanerSettingsSection(
     currentShootDayEpochMs: Long? = null,
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     val preferences = remember { GalleryCleanerPreferences(context.applicationContext) }
+    val repository = remember { CameraGalleryRepository(context.applicationContext) }
     var filter by remember { mutableStateOf(preferences.loadDateFilter()) }
     var unreviewedOnlyMode by remember {
         mutableStateOf(preferences.isUnreviewedOnlyModeEnabled())
@@ -413,6 +442,7 @@ private fun GalleryCleanerSettingsSection(
     var resetMessage by remember { mutableStateOf<String?>(null) }
     var introEnabled by remember { mutableStateOf(preferences.shouldShowIntro()) }
     var introMessage by remember { mutableStateOf<String?>(null) }
+    var statsState by remember { mutableStateOf<GalleryStatsDialogState?>(null) }
     val shootDayLabel =
         remember(currentShootDayEpochMs) {
             currentShootDayEpochMs?.let { epochMs ->
@@ -442,6 +472,138 @@ private fun GalleryCleanerSettingsSection(
     fun persist(next: GalleryDateFilter) {
         filter = next
         preferences.saveDateFilter(next)
+    }
+
+    fun collectStatistics() {
+        if (!GalleryPermissions.hasPhotosPermission(context)) {
+            statsState = GalleryStatsDialogState.NoPermission
+            return
+        }
+        statsState = GalleryStatsDialogState.Loading
+        val relativePath = imagesRelativePath
+        val dateFilter = filter
+        val reviewedIds = preferences.getReviewedPhotoIds()
+        scope.launch {
+            val result =
+                withContext(Dispatchers.IO) {
+                    val photos = repository.loadCameraPhotos(relativePath)
+                    val reviewedInFolder = photos.count { it.id in reviewedIds }
+                    val filtered =
+                        if (dateFilter.enabled) {
+                            photos.filter { photo ->
+                                dateFilter.contains(photo.dateTakenEpochMs / 1000L)
+                            }
+                        } else {
+                            null
+                        }
+                    GalleryFolderStats(
+                        totalCount = photos.size,
+                        totalBytes = photos.sumOf { it.sizeBytes },
+                        reviewedHistoryCount = reviewedIds.size,
+                        reviewedInFolderCount = reviewedInFolder,
+                        unreviewedCount = photos.size - reviewedInFolder,
+                        filteredCount = filtered?.size,
+                        filteredBytes = filtered?.sumOf { it.sizeBytes },
+                    )
+                }
+            statsState = GalleryStatsDialogState.Ready(result)
+            reviewedCount = result.reviewedHistoryCount
+        }
+    }
+
+    when (val state = statsState) {
+        null -> Unit
+
+        GalleryStatsDialogState.Loading -> {
+            AlertDialog(
+                onDismissRequest = {},
+                title = { Text(stringResource(R.string.settings_gallery_stats_title)) },
+                text = {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    ) {
+                        CircularProgressIndicator()
+                        Text(stringResource(R.string.settings_gallery_stats_collecting))
+                    }
+                },
+                confirmButton = {},
+            )
+        }
+
+        GalleryStatsDialogState.NoPermission -> {
+            AlertDialog(
+                onDismissRequest = { statsState = null },
+                title = { Text(stringResource(R.string.settings_gallery_stats_title)) },
+                text = { Text(stringResource(R.string.settings_gallery_stats_no_permission)) },
+                confirmButton = {
+                    TextButton(onClick = { statsState = null }) {
+                        Text(stringResource(R.string.settings_gallery_stats_ok))
+                    }
+                },
+            )
+        }
+
+        is GalleryStatsDialogState.Ready -> {
+            val stats = state.stats
+            AlertDialog(
+                onDismissRequest = { statsState = null },
+                title = { Text(stringResource(R.string.settings_gallery_stats_title)) },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            stringResource(
+                                R.string.settings_gallery_stats_total,
+                                stats.totalCount,
+                            ),
+                        )
+                        Text(
+                            stringResource(
+                                R.string.settings_gallery_stats_size,
+                                CameraGalleryRepository.formatFileSize(stats.totalBytes),
+                            ),
+                        )
+                        Text(
+                            stringResource(
+                                R.string.settings_gallery_stats_reviewed_history,
+                                stats.reviewedHistoryCount,
+                            ),
+                        )
+                        Text(
+                            stringResource(
+                                R.string.settings_gallery_stats_reviewed_in_folder,
+                                stats.reviewedInFolderCount,
+                            ),
+                        )
+                        Text(
+                            stringResource(
+                                R.string.settings_gallery_stats_unreviewed,
+                                stats.unreviewedCount,
+                            ),
+                        )
+                        if (stats.filteredCount != null && stats.filteredBytes != null) {
+                            Text(
+                                stringResource(
+                                    R.string.settings_gallery_stats_filtered,
+                                    stats.filteredCount,
+                                ),
+                            )
+                            Text(
+                                stringResource(
+                                    R.string.settings_gallery_stats_filtered_size,
+                                    CameraGalleryRepository.formatFileSize(stats.filteredBytes),
+                                ),
+                            )
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { statsState = null }) {
+                        Text(stringResource(R.string.settings_gallery_stats_ok))
+                    }
+                },
+            )
+        }
     }
 
     val body: @Composable () -> Unit = {
@@ -624,6 +786,11 @@ private fun GalleryCleanerSettingsSection(
             text = stringResource(R.string.settings_gallery_reviewed_count, reviewedCount),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        SettingsFullWidthOutlinedButton(
+            onClick = { collectStatistics() },
+            enabled = statsState !is GalleryStatsDialogState.Loading,
+            label = stringResource(R.string.settings_gallery_collect_stats),
         )
         SettingsFullWidthOutlinedButton(
             onClick = {
