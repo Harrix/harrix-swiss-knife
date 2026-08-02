@@ -170,7 +170,17 @@
     <string name="video_cleaner_delete_selected">Delete selected (%1$d)</string>
     <string name="video_cleaner_delete_selected_short">Delete (%1$d)</string>
     <string name="video_cleaner_total_size">Total: %1$s</string>
+    <string name="video_cleaner_session_stats">Deleted: %1$d · Freed: %2$s</string>
     <string name="video_cleaner_selected_size">Selected: %1$s</string>
+    <string name="video_cleaner_stats">Statistics</string>
+    <string name="video_cleaner_stats_title">Statistics</string>
+    <string name="video_cleaner_stats_in_folder">Videos in folder: %1$d</string>
+    <string name="video_cleaner_stats_folder_size">Folder size: %1$s</string>
+    <string name="video_cleaner_stats_deleted_session">Deleted this session: %1$d</string>
+    <string name="video_cleaner_stats_freed_session">Space freed this session: %1$s</string>
+    <string name="video_cleaner_stats_deleted">Deleted (all time): %1$d</string>
+    <string name="video_cleaner_stats_freed">Space freed (all time): %1$s</string>
+    <string name="video_cleaner_stats_ok">OK</string>
     <string name="video_cleaner_delete_failed">Could not delete selected videos</string>
     <string name="video_cleaner_untitled">Untitled video</string>
     <string name="video_cleaner_select_all">Select all</string>

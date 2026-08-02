@@ -50,6 +50,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
+import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
@@ -61,6 +62,7 @@ import androidx.compose.material.icons.filled.SelectAll
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Videocam
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -115,6 +117,7 @@ import dev.harrix.hsk.gallery.CameraGalleryRepository
 import dev.harrix.hsk.gallery.CameraVideo
 import dev.harrix.hsk.gallery.GalleryCleanerPreferences
 import dev.harrix.hsk.gallery.GalleryPermissions
+import dev.harrix.hsk.gallery.VideoCleanerPreferences
 import dev.harrix.hsk.ui.CompactWideActionButton
 import dev.harrix.hsk.ui.adaptiveBottomBarWidth
 import dev.harrix.hsk.ui.isCompactWidth
@@ -150,6 +153,7 @@ fun VideoCleanerScreen(
     val lifecycleOwner = LocalLifecycleOwner.current
     val repository = remember { CameraGalleryRepository(context.applicationContext) }
     val preferences = remember { GalleryCleanerPreferences(context.applicationContext) }
+    val videoPreferences = remember { VideoCleanerPreferences(context.applicationContext) }
 
     var hasPermission by remember {
         mutableStateOf(
@@ -165,9 +169,13 @@ fun VideoCleanerScreen(
     var selectedIds by viewModel.selectedIds
     var statusMessage by viewModel.statusMessage
     var pendingTrashIds by viewModel.pendingTrashIds
+    var pendingTrashBytes by viewModel.pendingTrashBytes
     var sort by viewModel.sort
     var sortMenuExpanded by remember { mutableStateOf(false) }
     var playingVideo by viewModel.playingVideo
+    var sessionDeletedCount by viewModel.sessionDeletedCount
+    var sessionFreedBytes by viewModel.sessionFreedBytes
+    var showStatsDialog by viewModel.showStatsDialog
     val gridState =
         rememberLazyGridState(
             initialFirstVisibleItemIndex = viewModel.gridFirstVisibleIndex,
@@ -179,8 +187,21 @@ fun VideoCleanerScreen(
         onClose()
     }
 
+    fun recordSuccessfulDeletes(
+        count: Int,
+        sizeBytes: Long,
+    ) {
+        if (count <= 0) {
+            return
+        }
+        sessionDeletedCount += count
+        sessionFreedBytes += sizeBytes
+        videoPreferences.recordDeletedVideos(count = count, sizeBytes = sizeBytes)
+    }
+
     BackHandler {
         when {
+            showStatsDialog -> showStatsDialog = false
             playingVideo != null -> playingVideo = null
             sortMenuExpanded -> sortMenuExpanded = false
             selectedIds.isNotEmpty() -> selectedIds = emptySet()
@@ -237,9 +258,12 @@ fun VideoCleanerScreen(
             ActivityResultContracts.StartIntentSenderForResult(),
         ) { result ->
             val ids = pendingTrashIds
+            val bytes = pendingTrashBytes
             pendingTrashIds = emptySet()
+            pendingTrashBytes = 0L
             if (result.resultCode == Activity.RESULT_OK && ids.isNotEmpty()) {
                 view.performLightActionHaptic()
+                recordSuccessfulDeletes(count = ids.size, sizeBytes = bytes)
                 videos = videos.filterNot { it.id in ids }
                 selectedIds = selectedIds - ids
                 statusMessage = null
@@ -255,14 +279,17 @@ fun VideoCleanerScreen(
         }
         statusMessage = null
         val uris = toDelete.map { it.uri }
+        val deleteBytes = toDelete.sumOf { it.sizeBytes }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             pendingTrashIds = toDelete.map { it.id }.toSet()
+            pendingTrashBytes = deleteBytes
             val sender: IntentSender = repository.createTrashRequest(uris)
             trashLauncher.launch(IntentSenderRequest.Builder(sender).build())
         } else {
             val deletedCount = repository.deletePermanently(uris)
             if (deletedCount > 0) {
                 view.performLightActionHaptic()
+                recordSuccessfulDeletes(count = deletedCount, sizeBytes = deleteBytes)
                 reloadVideos()
             } else {
                 statusMessage = context.getString(R.string.video_cleaner_delete_failed)
@@ -316,6 +343,62 @@ fun VideoCleanerScreen(
         refreshManageMediaAccess()
     }
 
+    val totalBytes = remember(videos) { videos.sumOf { it.sizeBytes } }
+
+    if (showStatsDialog) {
+        AlertDialog(
+            onDismissRequest = { showStatsDialog = false },
+            title = { Text(stringResource(R.string.video_cleaner_stats_title)) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        stringResource(
+                            R.string.video_cleaner_stats_in_folder,
+                            videos.size,
+                        ),
+                    )
+                    Text(
+                        stringResource(
+                            R.string.video_cleaner_stats_folder_size,
+                            CameraGalleryRepository.formatFileSize(totalBytes),
+                        ),
+                    )
+                    Text(
+                        stringResource(
+                            R.string.video_cleaner_stats_deleted_session,
+                            sessionDeletedCount,
+                        ),
+                    )
+                    Text(
+                        stringResource(
+                            R.string.video_cleaner_stats_freed_session,
+                            CameraGalleryRepository.formatFileSize(sessionFreedBytes),
+                        ),
+                    )
+                    Text(
+                        stringResource(
+                            R.string.video_cleaner_stats_deleted,
+                            videoPreferences.totalDeletedCount(),
+                        ),
+                    )
+                    Text(
+                        stringResource(
+                            R.string.video_cleaner_stats_freed,
+                            CameraGalleryRepository.formatFileSize(
+                                videoPreferences.totalFreedBytes(),
+                            ),
+                        ),
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showStatsDialog = false }) {
+                    Text(stringResource(R.string.video_cleaner_stats_ok))
+                }
+            },
+        )
+    }
+
     if (showManageMediaPrompt) {
         ManageMediaPromptDialog(
             onOpenSettings = {
@@ -352,7 +435,6 @@ fun VideoCleanerScreen(
         }
     val selectedVideos = sortedVideos.filter { it.id in selectedIds }
     val selectedBytes = selectedVideos.sumOf { it.sizeBytes }
-    val totalBytes = remember(videos) { videos.sumOf { it.sizeBytes } }
     val useLandscapeSplit =
         LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE &&
             !isTablet()
@@ -369,18 +451,32 @@ fun VideoCleanerScreen(
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
-                        if (hasPermission && videos.isNotEmpty()) {
+                        if (hasPermission) {
                             Text(
                                 text =
                                 stringResource(
-                                    R.string.video_cleaner_total_size,
-                                    CameraGalleryRepository.formatFileSize(totalBytes),
+                                    R.string.video_cleaner_session_stats,
+                                    sessionDeletedCount,
+                                    CameraGalleryRepository.formatFileSize(sessionFreedBytes),
                                 ),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                             )
+                            if (videos.isNotEmpty()) {
+                                Text(
+                                    text =
+                                    stringResource(
+                                        R.string.video_cleaner_total_size,
+                                        CameraGalleryRepository.formatFileSize(totalBytes),
+                                    ),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
                         }
                     }
                 },
@@ -420,6 +516,21 @@ fun VideoCleanerScreen(
                                 )
                             }
                             HorizontalDivider()
+                            DropdownMenuItem(
+                                text = {
+                                    Text(stringResource(R.string.video_cleaner_stats))
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Filled.BarChart,
+                                        contentDescription = null,
+                                    )
+                                },
+                                onClick = {
+                                    sortMenuExpanded = false
+                                    showStatsDialog = true
+                                },
+                            )
                             DropdownMenuItem(
                                 text = {
                                     Text(stringResource(R.string.video_cleaner_settings))
