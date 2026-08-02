@@ -7,6 +7,7 @@
     <string name="settings_back">Zurück</string>
     <string name="settings_open_all">Alle Einstellungen</string>
     <string name="settings_appearance_title">Aussehen</string>
+    <string name="settings_appearance_summary">Design und Sprache</string>
     <string name="settings_language_title">Sprache</string>
     <string name="settings_language_system">System</string>
     <string name="settings_theme_title">Thema</string>
@@ -15,7 +16,10 @@
     <string name="settings_theme_dark">Dunkel</string>
     <string name="settings_section_expand">Abschnitt erweitern</string>
     <string name="settings_section_collapse">Abschnitt ausblenden</string>
+    <string name="settings_category_tools">Werkzeuge</string>
+    <string name="settings_category_main">Allgemein</string>
     <string name="settings_permissions_title">Berechtigungen</string>
+    <string name="settings_permissions_summary">Fotos, Videos, Medienverwaltung</string>
     <string name="settings_photos_access_granted">Zugriff auf Fotos: gewährt</string>
     <string name="settings_photos_access_denied">Zugriff auf Fotos: nicht gewährt</string>
     <string name="settings_videos_access_granted">Zugriff auf Videos: gewährt</string>
@@ -27,6 +31,7 @@
     <string name="settings_open_manage_media">Öffnen Sie die Medienverwaltungseinstellungen</string>
     <string name="settings_manage_media_hint">Spezieller App-Zugriff → Medienverwaltungs-Apps. Der Zugriff auf Fotos/Videos allein reicht nicht aus.</string>
     <string name="settings_gallery_cleaner_title">Gallery Cleaner</string>
+    <string name="settings_gallery_cleaner_summary">Ordner, Prüfreihenfolge, Datumsfilter</string>
     <string name="settings_video_cleaner_title">Video Cleaner</string>
     <string name="settings_gallery_date_filter_enabled">Fotos nach Datum filtern</string>
     <string name="settings_gallery_date_presets">Schnelle Reichweiten</string>
@@ -52,6 +57,9 @@
     <string name="settings_gallery_clear_reviewed">Überprüften Verlauf zurücksetzen</string>
     <string name="settings_gallery_clear_reviewed_done">Überprüfter Verlauf gelöscht (%1$d)</string>
     <string name="settings_gallery_reviewed_count">Bewertete Fotos: %1$d</string>
+    <string name="settings_gallery_reset_stats">Statistiken zurücksetzen</string>
+    <string name="settings_gallery_reset_stats_done">Statistiken zurückgesetzt</string>
+    <string name="settings_gallery_reset_stats_hint">Löscht die Gesamtzahl gelöschter Fotos und den freigegebenen Speicher. Der geprüfte Verlauf wird nicht gelöscht.</string>
     <string name="settings_gallery_collect_stats">Statistiken sammeln</string>
     <string name="settings_gallery_stats_title">Galeriestatistiken</string>
     <string name="settings_gallery_stats_total">Fotos im Ordner: %1$d</string>
@@ -137,6 +145,7 @@
     <string name="gallery_cleaner_stats_remaining">Noch nicht überprüft: %1$d</string>
     <string name="gallery_cleaner_stats_deleted">Gelöscht (alle Zeiten): %1$d</string>
     <string name="gallery_cleaner_stats_freed">Freier Speicherplatz (jederzeit): %1$s</string>
+    <string name="gallery_cleaner_stats_reset">Statistiken zurücksetzen</string>
     <string name="gallery_cleaner_stats_ok">OK</string>
     <string name="gallery_cleaner_date_filter_active">Filter: %1$s – %2$s</string>
     <string name="gallery_cleaner_date_filter_active_day">Filter: %1$s</string>

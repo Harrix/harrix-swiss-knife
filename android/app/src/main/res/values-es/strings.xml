@@ -7,6 +7,7 @@
     <string name="settings_back">Atrás</string>
     <string name="settings_open_all">Todas las configuraciones</string>
     <string name="settings_appearance_title">Apariencia</string>
+    <string name="settings_appearance_summary">Tema e idioma</string>
     <string name="settings_language_title">Idioma</string>
     <string name="settings_language_system">Sistema</string>
     <string name="settings_theme_title">Tema</string>
@@ -15,7 +16,10 @@
     <string name="settings_theme_dark">Oscuro</string>
     <string name="settings_section_expand">Expandir sección</string>
     <string name="settings_section_collapse">Contraer sección</string>
+    <string name="settings_category_tools">Herramientas</string>
+    <string name="settings_category_main">Principal</string>
     <string name="settings_permissions_title">Permisos</string>
+    <string name="settings_permissions_summary">Fotos, vídeos, gestión de medios</string>
     <string name="settings_photos_access_granted">Acceso a las fotos: concedido</string>
     <string name="settings_photos_access_denied">Acceso a fotos: no concedido</string>
     <string name="settings_videos_access_granted">Acceso a vídeos: concedido</string>
@@ -27,6 +31,7 @@
     <string name="settings_open_manage_media">Abrir configuración de administración de medios</string>
     <string name="settings_manage_media_hint">Acceso a aplicaciones especiales → Aplicaciones de gestión de medios. El acceso a fotografías y vídeos por sí solo no es suficiente.</string>
     <string name="settings_gallery_cleaner_title">Gallery Cleaner</string>
+    <string name="settings_gallery_cleaner_summary">Carpeta, orden de revisión, filtro de fecha</string>
     <string name="settings_video_cleaner_title">Video Cleaner</string>
     <string name="settings_gallery_date_filter_enabled">Filtrar fotos por fecha</string>
     <string name="settings_gallery_date_presets">rangos rápidos</string>
@@ -52,6 +57,9 @@
     <string name="settings_gallery_clear_reviewed">Restablecer el historial revisado</string>
     <string name="settings_gallery_clear_reviewed_done">Historial revisado borrado (%1$d)</string>
     <string name="settings_gallery_reviewed_count">Fotos revisadas: %1$d</string>
+    <string name="settings_gallery_reset_stats">Restablecer estadísticas</string>
+    <string name="settings_gallery_reset_stats_done">Estadísticas restablecidas</string>
+    <string name="settings_gallery_reset_stats_hint">Borra el recuento total de eliminados y el espacio liberado. El historial revisado no se borra.</string>
     <string name="settings_gallery_collect_stats">Recopilar estadísticas</string>
     <string name="settings_gallery_stats_title">Estadísticas de la galería</string>
     <string name="settings_gallery_stats_total">Fotos en carpeta: %1$d</string>
@@ -137,6 +145,7 @@
     <string name="gallery_cleaner_stats_remaining">Restante sin revisar: %1$d</string>
     <string name="gallery_cleaner_stats_deleted">Eliminado (todo el tiempo): %1$d</string>
     <string name="gallery_cleaner_stats_freed">Espacio liberado (todo el tiempo): %1$s</string>
+    <string name="gallery_cleaner_stats_reset">Restablecer estadísticas</string>
     <string name="gallery_cleaner_stats_ok">DE ACUERDO</string>
     <string name="gallery_cleaner_date_filter_active">Filtro: %1$s – %2$s</string>
     <string name="gallery_cleaner_date_filter_active_day">Filtro: %1$s</string>

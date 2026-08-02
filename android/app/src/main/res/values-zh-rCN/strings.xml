@@ -7,6 +7,7 @@
     <string name="settings_back">后退</string>
     <string name="settings_open_all">所有设置</string>
     <string name="settings_appearance_title">外貌</string>
+    <string name="settings_appearance_summary">主题和语言</string>
     <string name="settings_language_title">语言</string>
     <string name="settings_language_system">系统</string>
     <string name="settings_theme_title">主题</string>
@@ -15,7 +16,10 @@
     <string name="settings_theme_dark">黑暗的</string>
     <string name="settings_section_expand">展开部分</string>
     <string name="settings_section_collapse">折叠部分</string>
+    <string name="settings_category_tools">工具</string>
+    <string name="settings_category_main">主要</string>
     <string name="settings_permissions_title">权限</string>
+    <string name="settings_permissions_summary">照片、视频、媒体管理</string>
     <string name="settings_photos_access_granted">照片访问权限：已授予</string>
     <string name="settings_photos_access_denied">照片访问权限：未授予</string>
     <string name="settings_videos_access_granted">视频访问权限：已授予</string>
@@ -27,6 +31,7 @@
     <string name="settings_open_manage_media">打开媒体管理设置</string>
     <string name="settings_manage_media_hint">特殊应用程序访问 → 媒体管理应用程序。仅仅访问照片/视频是不够的。</string>
     <string name="settings_gallery_cleaner_title">Gallery Cleaner</string>
+    <string name="settings_gallery_cleaner_summary">文件夹、浏览顺序、日期筛选</string>
     <string name="settings_video_cleaner_title">Video Cleaner</string>
     <string name="settings_gallery_date_filter_enabled">按日期过滤照片</string>
     <string name="settings_gallery_date_presets">快速范围</string>
@@ -52,6 +57,9 @@
     <string name="settings_gallery_clear_reviewed">重置已审核历史记录</string>
     <string name="settings_gallery_clear_reviewed_done">已审核的历史记录已清除 (%1$d)</string>
     <string name="settings_gallery_reviewed_count">已审核照片：%1$d</string>
+    <string name="settings_gallery_reset_stats">重置统计</string>
+    <string name="settings_gallery_reset_stats_done">统计已重置</string>
+    <string name="settings_gallery_reset_stats_hint">清除累计删除数量和释放空间。已审阅历史不会清除。</string>
     <string name="settings_gallery_collect_stats">收集统计数据</string>
     <string name="settings_gallery_stats_title">画廊统计</string>
     <string name="settings_gallery_stats_total">文件夹中的照片：%1$d</string>
@@ -137,6 +145,7 @@
     <string name="gallery_cleaner_stats_remaining">剩余未审核：%1$d</string>
     <string name="gallery_cleaner_stats_deleted">已删除（所有时间）：%1$d</string>
     <string name="gallery_cleaner_stats_freed">释放空间（所有时间）：%1$s</string>
+    <string name="gallery_cleaner_stats_reset">重置统计</string>
     <string name="gallery_cleaner_stats_ok">好的</string>
     <string name="gallery_cleaner_date_filter_active">过滤器：%1$s – %2$s</string>
     <string name="gallery_cleaner_date_filter_active_day">过滤器：%1$s</string>

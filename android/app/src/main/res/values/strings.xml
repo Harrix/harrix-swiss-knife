@@ -57,6 +57,9 @@
     <string name="settings_gallery_clear_reviewed">Reset reviewed history</string>
     <string name="settings_gallery_clear_reviewed_done">Reviewed history cleared (%1$d)</string>
     <string name="settings_gallery_reviewed_count">Reviewed photos: %1$d</string>
+    <string name="settings_gallery_reset_stats">Reset statistics</string>
+    <string name="settings_gallery_reset_stats_done">Statistics reset</string>
+    <string name="settings_gallery_reset_stats_hint">Clears all-time deleted count and freed space. Reviewed history is not cleared.</string>
     <string name="settings_gallery_collect_stats">Collect statistics</string>
     <string name="settings_gallery_stats_title">Gallery statistics</string>
     <string name="settings_gallery_stats_total">Photos in folder: %1$d</string>
@@ -142,6 +145,7 @@
     <string name="gallery_cleaner_stats_remaining">Remaining unreviewed: %1$d</string>
     <string name="gallery_cleaner_stats_deleted">Deleted (all time): %1$d</string>
     <string name="gallery_cleaner_stats_freed">Space freed (all time): %1$s</string>
+    <string name="gallery_cleaner_stats_reset">Reset statistics</string>
     <string name="gallery_cleaner_stats_ok">OK</string>
     <string name="gallery_cleaner_date_filter_active">Filter: %1$s – %2$s</string>
     <string name="gallery_cleaner_date_filter_active_day">Filter: %1$s</string>

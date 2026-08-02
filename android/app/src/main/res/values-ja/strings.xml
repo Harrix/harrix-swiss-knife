@@ -7,6 +7,7 @@
     <string name="settings_back">戻る</string>
     <string name="settings_open_all">すべての設定</string>
     <string name="settings_appearance_title">外観</string>
+    <string name="settings_appearance_summary">テーマと言語</string>
     <string name="settings_language_title">言語</string>
     <string name="settings_language_system">システム</string>
     <string name="settings_theme_title">テーマ</string>
@@ -15,7 +16,10 @@
     <string name="settings_theme_dark">暗い</string>
     <string name="settings_section_expand">セクションを展開する</string>
     <string name="settings_section_collapse">セクションを折りたたむ</string>
+    <string name="settings_category_tools">ツール</string>
+    <string name="settings_category_main">メイン</string>
     <string name="settings_permissions_title">権限</string>
+    <string name="settings_permissions_summary">写真、動画、メディア管理</string>
     <string name="settings_photos_access_granted">写真へのアクセス: 許可</string>
     <string name="settings_photos_access_denied">写真へのアクセス: 許可されていません</string>
     <string name="settings_videos_access_granted">動画へのアクセス: 許可</string>
@@ -27,6 +31,7 @@
     <string name="settings_open_manage_media">メディア管理設定を開く</string>
     <string name="settings_manage_media_hint">特別なアプリへのアクセス → メディア管理アプリ。写真やビデオへのアクセスだけでは十分ではありません。</string>
     <string name="settings_gallery_cleaner_title">Gallery Cleaner</string>
+    <string name="settings_gallery_cleaner_summary">フォルダ、確認順、日付フィルタ</string>
     <string name="settings_video_cleaner_title">Video Cleaner</string>
     <string name="settings_gallery_date_filter_enabled">写真を日付でフィルタリングする</string>
     <string name="settings_gallery_date_presets">クイックレンジ</string>
@@ -52,6 +57,9 @@
     <string name="settings_gallery_clear_reviewed">レビュー履歴をリセット</string>
     <string name="settings_gallery_clear_reviewed_done">レビュー履歴がクリアされました (%1$d)</string>
     <string name="settings_gallery_reviewed_count">レビューした写真: %1$d</string>
+    <string name="settings_gallery_reset_stats">統計をリセット</string>
+    <string name="settings_gallery_reset_stats_done">統計をリセットしました</string>
+    <string name="settings_gallery_reset_stats_hint">これまで削除した枚数と解放した容量をクリアします。確認済み履歴は消えません。</string>
     <string name="settings_gallery_collect_stats">統計の収集</string>
     <string name="settings_gallery_stats_title">ギャラリー統計</string>
     <string name="settings_gallery_stats_total">フォルダー内の写真: %1$d</string>
@@ -137,6 +145,7 @@
     <string name="gallery_cleaner_stats_remaining">未レビューのまま: %1$d</string>
     <string name="gallery_cleaner_stats_deleted">削除済み (常に): %1$d</string>
     <string name="gallery_cleaner_stats_freed">解放されたスペース (常時): %1$s</string>
+    <string name="gallery_cleaner_stats_reset">統計をリセット</string>
     <string name="gallery_cleaner_stats_ok">わかりました</string>
     <string name="gallery_cleaner_date_filter_active">フィルター: %1$s – %2$s</string>
     <string name="gallery_cleaner_date_filter_active_day">フィルター: %1$s</string>

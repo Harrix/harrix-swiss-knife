@@ -132,6 +132,17 @@ class GalleryCleanerPreferences(
         adjustLifetimeDeleteStats(deletedDelta = -1, freedBytesDelta = -sizeBytes)
     }
 
+    /** Clears all-time deleted count and freed space. Reviewed history is kept. */
+    fun clearLifetimeDeleteStats() {
+        synchronized(this) {
+            prefs
+                .edit()
+                .remove(KEY_TOTAL_DELETED_COUNT)
+                .remove(KEY_TOTAL_FREED_BYTES)
+                .apply()
+        }
+    }
+
     private fun adjustLifetimeDeleteStats(
         deletedDelta: Int,
         freedBytesDelta: Long,
@@ -148,8 +159,8 @@ class GalleryCleanerPreferences(
     }
 
     /**
-     * Restores Gallery Cleaner options to defaults. Reviewed-photo history is kept;
-     * use [clearReviewedPhotos] to reset that separately.
+     * Restores Gallery Cleaner options to defaults. Reviewed-photo history and delete
+     * statistics are kept; use [clearReviewedPhotos] / [clearLifetimeDeleteStats] separately.
      */
     fun resetSettingsToDefaults() {
         prefs

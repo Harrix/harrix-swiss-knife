@@ -57,6 +57,9 @@
     <string name="settings_gallery_clear_reviewed">Сбросить историю просмотров</string>
     <string name="settings_gallery_clear_reviewed_done">Просмотренная история очищена (%1$d)</string>
     <string name="settings_gallery_reviewed_count">Просмотренные фотографии: %1$d</string>
+    <string name="settings_gallery_reset_stats">Сбросить статистику</string>
+    <string name="settings_gallery_reset_stats_done">Статистика сброшена</string>
+    <string name="settings_gallery_reset_stats_hint">Сбрасывает счётчики удалённых фото и освобождённого места за всё время. История просмотров не очищается.</string>
     <string name="settings_gallery_collect_stats">Собирать статистику</string>
     <string name="settings_gallery_stats_title">Статистика галереи</string>
     <string name="settings_gallery_stats_total">Фотографии в папке: %1$d</string>
@@ -142,6 +145,7 @@
     <string name="gallery_cleaner_stats_remaining">Осталось нерассмотренным: %1$d</string>
     <string name="gallery_cleaner_stats_deleted">Удалено (всегда): %1$d.</string>
     <string name="gallery_cleaner_stats_freed">Свободно место (за все время): %1$s</string>
+    <string name="gallery_cleaner_stats_reset">Сбросить статистику</string>
     <string name="gallery_cleaner_stats_ok">ХОРОШО</string>
     <string name="gallery_cleaner_date_filter_active">Фильтр: %1$s – %2$s</string>
     <string name="gallery_cleaner_date_filter_active_day">Фильтр: %1$s</string>

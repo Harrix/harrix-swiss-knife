@@ -84,6 +84,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -799,9 +800,11 @@ fun GalleryCleanerScreen(
     }
 
     if (showStatsDialog) {
-        val reviewedTotal = preferences.reviewedPhotoCount()
-        val lifetimeDeleted = preferences.totalDeletedCount()
-        val lifetimeFreed = preferences.totalFreedBytes()
+        var statsTick by remember { mutableIntStateOf(0) }
+        val reviewedTotal = remember(statsTick) { preferences.reviewedPhotoCount() }
+        val lifetimeDeleted = remember(statsTick) { preferences.totalDeletedCount() }
+        val lifetimeFreed = remember(statsTick) { preferences.totalFreedBytes() }
+        val canResetStats = lifetimeDeleted > 0 || lifetimeFreed > 0L
         AlertDialog(
             onDismissRequest = { showStatsDialog = false },
             title = { Text(stringResource(R.string.gallery_cleaner_stats_title)) },
@@ -842,6 +845,19 @@ fun GalleryCleanerScreen(
                             CameraGalleryRepository.formatFileSize(lifetimeFreed),
                         ),
                     )
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        preferences.clearLifetimeDeleteStats()
+                        sessionDeletedCount = 0
+                        sessionFreedBytes = 0L
+                        statsTick += 1
+                    },
+                    enabled = canResetStats,
+                ) {
+                    Text(stringResource(R.string.gallery_cleaner_stats_reset))
                 }
             },
             confirmButton = {

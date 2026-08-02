@@ -54,6 +54,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -572,7 +573,10 @@ private fun GalleryCleanerSettingsSection(
     var imagesRelativePath by remember { mutableStateOf(preferences.getImagesRelativePath()) }
     var folderMessage by remember { mutableStateOf<String?>(null) }
     var reviewedCount by remember { mutableIntStateOf(preferences.reviewedPhotoCount()) }
+    var lifetimeDeletedCount by remember { mutableIntStateOf(preferences.totalDeletedCount()) }
+    var lifetimeFreedBytes by remember { mutableLongStateOf(preferences.totalFreedBytes()) }
     var clearMessage by remember { mutableStateOf<String?>(null) }
+    var resetStatsMessage by remember { mutableStateOf<String?>(null) }
     var resetMessage by remember { mutableStateOf<String?>(null) }
     var introEnabled by remember { mutableStateOf(preferences.shouldShowIntro()) }
     var introMessage by remember { mutableStateOf<String?>(null) }
@@ -944,6 +948,46 @@ private fun GalleryCleanerSettingsSection(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
+        Text(
+            text =
+            stringResource(
+                R.string.gallery_cleaner_stats_deleted,
+                lifetimeDeletedCount,
+            ),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Text(
+            text =
+            stringResource(
+                R.string.gallery_cleaner_stats_freed,
+                CameraGalleryRepository.formatFileSize(lifetimeFreedBytes),
+            ),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Text(
+            text = stringResource(R.string.settings_gallery_reset_stats_hint),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        SettingsFullWidthOutlinedButton(
+            onClick = {
+                preferences.clearLifetimeDeleteStats()
+                lifetimeDeletedCount = 0
+                lifetimeFreedBytes = 0L
+                resetStatsMessage = context.getString(R.string.settings_gallery_reset_stats_done)
+            },
+            enabled = lifetimeDeletedCount > 0 || lifetimeFreedBytes > 0L,
+            label = stringResource(R.string.settings_gallery_reset_stats),
+        )
+        resetStatsMessage?.let { message ->
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
 
         HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
 
@@ -995,6 +1039,7 @@ private fun GalleryCleanerSettingsSection(
                 introEnabled = preferences.shouldShowIntro()
                 introMessage = null
                 clearMessage = null
+                resetStatsMessage = null
                 resetMessage = context.getString(R.string.settings_gallery_reset_done)
             },
             label = stringResource(R.string.settings_gallery_reset),
