@@ -51,6 +51,9 @@ class GalleryCleanerViewModel(
     val statusMessage = mutableStateOf<String?>(null)
     val isLoading = mutableStateOf(false)
 
+    /** Unreviewed photos in folder ignoring the date filter (for empty-state hints). */
+    val unreviewedCountIgnoringDateFilter = mutableIntStateOf(0)
+
     /** False until the first successful session bootstrap after opening the utility. */
     var sessionInitialized: Boolean = false
         private set
@@ -99,6 +102,7 @@ class GalleryCleanerViewModel(
         showStatsDialog.value = false
         statusMessage.value = null
         isLoading.value = false
+        unreviewedCountIgnoringDateFilter.intValue = 0
         sessionInitialized = false
         appliedSettingsRevision = -1
     }

@@ -192,6 +192,7 @@ fun GalleryCleanerScreen(
     var isEditing by viewModel.isEditing
     var editRotationDegrees by viewModel.editRotationDegrees
     var editCropRect by viewModel.editCropRect
+    var unreviewedCountIgnoringDateFilter by viewModel.unreviewedCountIgnoringDateFilter
     var editImageRevision by viewModel.editImageRevision
     var isSavingEdit by viewModel.isSavingEdit
     var pendingWritePhoto by viewModel.pendingWritePhoto
@@ -307,6 +308,8 @@ fun GalleryCleanerScreen(
         sessionReviewedCount += 1
         if (unreviewedOnlyMode) {
             preferences.markPhotoReviewed(photo.id)
+            unreviewedCountIgnoringDateFilter =
+                (unreviewedCountIgnoringDateFilter - 1).coerceAtLeast(0)
         }
         if (deleted) {
             sessionDeletedCount += 1
@@ -356,6 +359,7 @@ fun GalleryCleanerScreen(
         view.performLightActionHaptic()
         if (unreviewedOnlyMode) {
             preferences.unmarkPhotoReviewed(photo.id)
+            unreviewedCountIgnoringDateFilter += 1
         }
         sessionReviewedCount = (sessionReviewedCount - 1).coerceAtLeast(0)
         sessionDeletedCount = (sessionDeletedCount - 1).coerceAtLeast(0)
@@ -371,6 +375,7 @@ fun GalleryCleanerScreen(
         view.performLightActionHaptic()
         if (unreviewedOnlyMode) {
             preferences.unmarkPhotoReviewed(photo.id)
+            unreviewedCountIgnoringDateFilter += 1
         }
         sessionReviewedCount = (sessionReviewedCount - 1).coerceAtLeast(0)
         reinsertAsCurrent(photo)
@@ -411,6 +416,13 @@ fun GalleryCleanerScreen(
             val loaded =
                 withContext(Dispatchers.IO) {
                     repository.loadCameraPhotos(imagesPath)
+                }
+            unreviewedCountIgnoringDateFilter =
+                if (unreviewedOnlyMode) {
+                    val reviewedIds = preferences.getReviewedPhotoIds()
+                    loaded.count { it.id !in reviewedIds }
+                } else {
+                    0
                 }
             val photos = orderPhotos(applyFilters(loaded))
             remainingPhotos = photos
@@ -1163,6 +1175,12 @@ fun GalleryCleanerScreen(
                 }
 
                 currentPhoto == null -> {
+                    val suggestClearDateFilter =
+                        dateFilter.enabled &&
+                            unreviewedOnlyMode &&
+                            unreviewedCountIgnoringDateFilter > 0
+                    val congratsUnreviewedDone =
+                        unreviewedOnlyMode && unreviewedCountIgnoringDateFilter == 0
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         modifier = Modifier.padding(24.dp),
@@ -1171,14 +1189,30 @@ fun GalleryCleanerScreen(
                             text =
                             stringResource(
                                 when {
+                                    suggestClearDateFilter ->
+                                        R.string.gallery_cleaner_empty_filtered_has_unreviewed
+
+                                    congratsUnreviewedDone ->
+                                        R.string.gallery_cleaner_congrats_unreviewed
+
                                     dateFilter.enabled -> R.string.gallery_cleaner_empty_filtered
+
                                     unreviewedOnlyMode -> R.string.gallery_cleaner_empty_unreviewed
+
                                     else -> R.string.gallery_cleaner_empty
                                 },
                             ),
-                            style = MaterialTheme.typography.bodyLarge,
+                            style =
+                            if (congratsUnreviewedDone) {
+                                MaterialTheme.typography.titleMedium
+                            } else {
+                                MaterialTheme.typography.bodyLarge
+                            },
+                            textAlign = TextAlign.Center,
                         )
-                        if (dateFilter.enabled) {
+                        if (dateFilter.enabled &&
+                            (suggestClearDateFilter || !congratsUnreviewedDone)
+                        ) {
                             Spacer(modifier = Modifier.height(16.dp))
                             Button(
                                 onClick = {

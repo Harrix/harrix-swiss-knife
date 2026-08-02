@@ -107,7 +107,9 @@
     <string name="gallery_cleaner_permission_grant">Grant access</string>
     <string name="gallery_cleaner_empty">No Camera photos found</string>
     <string name="gallery_cleaner_empty_filtered">No Camera photos in selected date range</string>
+    <string name="gallery_cleaner_empty_filtered_has_unreviewed">No photos in this date range. Unreviewed photos are available outside the filter.</string>
     <string name="gallery_cleaner_empty_unreviewed">No unreviewed Camera photos left</string>
+    <string name="gallery_cleaner_congrats_unreviewed">Congratulations! You have reviewed all photos.</string>
     <string name="gallery_cleaner_loading">Please wait, photos are loading…</string>
     <string name="gallery_cleaner_menu">More options</string>
     <string name="gallery_cleaner_settings">Settings</string>
