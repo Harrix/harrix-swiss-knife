@@ -179,6 +179,11 @@ fun SettingsScreen(
                 }
 
                 SettingsSection.GalleryCleaner -> {
+                    AppearanceSettingsSection(
+                        themeMode = themeMode,
+                        onThemeModeChange = onThemeModeChange,
+                    )
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
                     GalleryCleanerSettingsSection(
                         showSectionTitle = false,
                         currentShootDayEpochMs = currentShootDayEpochMs,
@@ -186,7 +191,10 @@ fun SettingsScreen(
                 }
 
                 SettingsSection.VideoCleaner -> {
-                    // Video Cleaner currently has no utility-specific settings.
+                    AppearanceSettingsSection(
+                        themeMode = themeMode,
+                        onThemeModeChange = onThemeModeChange,
+                    )
                 }
             }
 
