@@ -25,10 +25,14 @@ import androidx.compose.material.icons.filled.CropFree
 import androidx.compose.material.icons.filled.CropRotate
 import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.FitScreen
+import androidx.compose.material.icons.filled.RestartAlt
+import androidx.compose.material.icons.filled.Rotate90DegreesCcw
+import androidx.compose.material.icons.filled.Rotate90DegreesCw
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -588,9 +592,9 @@ fun PhotoCropEditor(
                                 text =
                                 stringResource(
                                     if (compactChrome) {
-                                        R.string.gallery_cleaner_edit_trim_bars_short
+                                        R.string.gallery_cleaner_edit_trim_black_short
                                     } else {
-                                        R.string.gallery_cleaner_edit_trim_bars
+                                        R.string.gallery_cleaner_edit_trim_black
                                     },
                                 ),
                                 maxLines = 1,
@@ -753,6 +757,46 @@ fun PhotoCropEditor(
                         },
                         modifier = Modifier.weight(1f),
                     )
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    IconButton(
+                        onClick = {
+                            onRotationDegreesChange(rotationDegrees - 90f)
+                        },
+                        enabled = !isSaving,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Rotate90DegreesCcw,
+                            contentDescription =
+                            stringResource(R.string.gallery_cleaner_edit_rotate_ccw),
+                        )
+                    }
+                    IconButton(
+                        onClick = { onRotationDegreesChange(0f) },
+                        enabled = !isSaving && abs(displayDegrees) >= 0.5f,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.RestartAlt,
+                            contentDescription =
+                            stringResource(R.string.gallery_cleaner_edit_reset_rotation),
+                        )
+                    }
+                    IconButton(
+                        onClick = {
+                            onRotationDegreesChange(rotationDegrees + 90f)
+                        },
+                        enabled = !isSaving,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Rotate90DegreesCw,
+                            contentDescription =
+                            stringResource(R.string.gallery_cleaner_edit_rotate_cw),
+                        )
+                    }
                 }
                 Row(
                     modifier = Modifier.fillMaxWidth(),

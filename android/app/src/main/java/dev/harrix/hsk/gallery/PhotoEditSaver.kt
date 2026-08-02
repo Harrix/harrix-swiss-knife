@@ -24,7 +24,7 @@ import android.graphics.Rect as AndroidRect
 
 /**
  * Normalized crop rectangle on the rotated square canvas, each edge in `0f..1f`.
- * Matches [PhotoEditSaver.renderRotatedOnSquare] (image centered on a black square).
+ * Matches [PhotoEditSaver.renderRotatedOnSquare] (image centered on a square canvas).
  */
 data class NormalizedCropRect(
     val left: Float,
@@ -212,10 +212,11 @@ class PhotoEditSaver(
     }
 
     /**
-     * Analyzes [crop] on the rotated square canvas for empty near-black voids (letterbox /
-     * rotation padding). When voids are significant, [BlackVoidCropAnalysis.suggestedCrop] is
-     * the largest axis-aligned rectangle inside [crop] that stays on photo content only
-     * (inscribed — avoids triangular blacks left by a content bounding box after rotation).
+     * Analyzes [crop] on the rotated square canvas for empty near-black voids inside the
+     * photo (letterbox bars). Off-image padding uses a non-black sentinel so rotation
+     * triangles are not mistaken for black bars. When voids are significant,
+     * [BlackVoidCropAnalysis.suggestedCrop] is the largest axis-aligned rectangle inside
+     * [crop] that stays on non-black photo content.
      */
     fun analyzeBlackVoidsInCrop(
         uri: Uri,
@@ -233,7 +234,11 @@ class PhotoEditSaver(
             oriented.recycle()
         }
         val square =
-            renderRotatedOnSquare(analyze, rotationDegrees) ?: run {
+            renderRotatedOnSquare(
+                bitmap = analyze,
+                degrees = rotationDegrees,
+                backgroundColor = OutsideCanvasColor,
+            ) ?: run {
                 analyze.recycle()
                 return BlackVoidCropAnalysis.None
             }
@@ -391,11 +396,14 @@ class PhotoEditSaver(
     }
 
     /**
-     * Draws [bitmap] centered on a black square large enough for any rotation, then rotates it.
+     * Draws [bitmap] centered on a square large enough for any rotation, then rotates it.
+     * [backgroundColor] fills off-image pixels: black for the saved file, a non-black
+     * sentinel when analyzing black bars so rotation padding is not treated as voids.
      */
     private fun renderRotatedOnSquare(
         bitmap: Bitmap,
         degrees: Float,
+        backgroundColor: Int = Color.BLACK,
     ): Bitmap? {
         val diag =
             ceil(hypot(bitmap.width.toDouble(), bitmap.height.toDouble()))
@@ -408,7 +416,7 @@ class PhotoEditSaver(
                 return null
             }
         val canvas = Canvas(square)
-        canvas.drawColor(Color.BLACK)
+        canvas.drawColor(backgroundColor)
         canvas.translate(diag / 2f, diag / 2f)
         canvas.rotate(degrees)
         canvas.drawBitmap(bitmap, -bitmap.width / 2f, -bitmap.height / 2f, null)
@@ -433,7 +441,12 @@ class PhotoEditSaver(
         }
     }
 
+    private fun isOutsidePixel(color: Int): Boolean = color == OutsideCanvasColor
+
     private fun isVoidPixel(color: Int): Boolean {
+        if (isOutsidePixel(color)) {
+            return false
+        }
         val r = Color.red(color)
         val g = Color.green(color)
         val b = Color.blue(color)
@@ -576,7 +589,8 @@ class PhotoEditSaver(
         if (!insideX || !insideY) {
             return false
         }
-        return !isVoidPixel(pixels[y * width + x])
+        return !isOutsidePixel(pixels[y * width + x]) &&
+            !isVoidPixel(pixels[y * width + x])
     }
 
     private fun isContentColumn(
@@ -587,7 +601,8 @@ class PhotoEditSaver(
         bottom: Int,
     ): Boolean {
         for (y in top..bottom) {
-            if (isVoidPixel(pixels[y * width + x])) {
+            val color = pixels[y * width + x]
+            if (isOutsidePixel(color) || isVoidPixel(color)) {
                 return false
             }
         }
@@ -602,7 +617,8 @@ class PhotoEditSaver(
         right: Int,
     ): Boolean {
         for (x in left..right) {
-            if (isVoidPixel(pixels[y * width + x])) {
+            val color = pixels[y * width + x]
+            if (isOutsidePixel(color) || isVoidPixel(color)) {
                 return false
             }
         }
@@ -681,6 +697,12 @@ class PhotoEditSaver(
         private const val BlackBarMinContentFraction = 0.08f
         private const val BlackVoidMinRatio = 0.02f
         private const val BlackVoidMaxKeepAreaRatio = 0.98f
+
+        /**
+         * Off-image fill during void analysis. Must not look near-black; save path still
+         * uses [Color.BLACK] so exported letterbox stays black.
+         */
+        private val OutsideCanvasColor: Int = Color.rgb(255, 0, 255)
 
         /**
          * Largest square that fits in the viewport (centered). Crop and rotation use this
