@@ -1,9 +1,9 @@
 package dev.harrix.hsk
 
 import android.os.Bundle
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.getValue
@@ -14,7 +14,7 @@ import androidx.compose.ui.Modifier
 import dev.harrix.hsk.ui.MainScreen
 import dev.harrix.hsk.ui.theme.HskAndroidTheme
 
-class MainActivity : ComponentActivity() {
+class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         val preferences = AppPreferences(this)
         preferences.loadAppLanguage().apply()

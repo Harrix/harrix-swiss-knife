@@ -14,7 +14,46 @@ from harrix_swiss_knife.actions.base import ActionBase
 from harrix_swiss_knife.cli_menu import CLI_EXECUTABLE
 
 _RULE_ID_RE = re.compile(r"^H\d+")
+# Location may be `path`, `path:line`, or `path:line:col` (Windows drive-safe via non-greedy path).
+_FORMATTED_ERROR_RE = re.compile(
+    r"^(?P<location>.*?): (?P<code>[A-Z]+\d+)(?P<rest>\n  .*| .*|)$",
+    re.DOTALL,
+)
 _INCLUDE_G_MD_CHOICE = "Include .g.md files"
+
+
+def _line_col_suffix(location: str) -> str:
+    """Return `:line` / `:line:col` suffix from a checker location, if present."""
+    parts = location.split(":")
+    if not parts:
+        return ""
+    if parts[-1].isdigit():
+        if len(parts) >= 2 and parts[-2].isdigit():  # noqa: PLR2004
+            return f":{parts[-2]}:{parts[-1]}"
+        return f":{parts[-1]}"
+    return ""
+
+
+def _absolutize_checker_error(error: str, file_path: str) -> str:
+    """Replace the relative path prefix with an absolute path; keep multi-line body."""
+    match = _FORMATTED_ERROR_RE.match(error)
+    if match is None:
+        return error
+    location = f"{file_path}{_line_col_suffix(match.group('location'))}"
+    return f"{location}: {match.group('code')}{match.group('rest')}"
+
+
+def _error_type_description(error: str) -> str | None:
+    """Build a short stats key like `H060 Asset file not referenced in Markdown`."""
+    match = _FORMATTED_ERROR_RE.match(error)
+    if match is None:
+        return None
+    code = match.group("code")
+    rest = match.group("rest").strip()
+    if not rest:
+        return code
+    summary = rest.split(": ", 1)[0].strip()
+    return f"{code} {summary}" if summary else code
 
 
 class OnCheckMd(ActionBase):
@@ -50,23 +89,22 @@ class OnCheckMd(ActionBase):
             for error in file_errors:
                 # MdChecker formats errors with a path relative to the git root.
                 # Replace that relative prefix with the full absolute path (the dict key).
-                _, sep, rest = error.partition(":")
-                all_errors.append(f"{file_path}:{rest}" if sep else error)
+                all_errors.append(_absolutize_checker_error(error, file_path))
 
         self.last_error_count = len(all_errors)
         if all_errors:
-            self.add_line("\n".join(all_errors))
-            self.add_line(f"\n🔢 Count errors = {len(all_errors)}")
+            for index, error in enumerate(all_errors):
+                if index:
+                    self.add_line("")
+                self.add_line(error)
+            self.add_line("")
+            self.add_line(f"🔢 Count errors = {len(all_errors)}")
 
             desc_counts = Counter()
             for err in all_errors:
-                # Format from MdChecker._format_error: "{path}:{line}:{col}: {error_code} {message}"
-                parts = err.split(": ", maxsplit=2)
-                count_parts = 2
-                if len(parts) >= count_parts:
-                    description = parts[1]
-                    if description.strip():
-                        desc_counts[description] += 1
+                description = _error_type_description(err)
+                if description:
+                    desc_counts[description] += 1
 
             sorted_stats = sorted(desc_counts.items(), key=lambda x: (-x[1], x[0]))
             stats_lines = [f"  {count}: {desc}" for desc, count in sorted_stats]
