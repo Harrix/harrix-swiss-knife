@@ -3823,8 +3823,8 @@ async function activate(context) {
       const refreshDone = waitForTreeRefresh(provider);
       provider.setNoteAssetsVisible(noteDir, true);
       await refreshDone;
-      // Deep-expand note + all attachment folders/subfolders under it.
-      await revealNoteWithAttachments(view, provider, uri.fsPath, 99);
+      // Do not view.reveal: it pins the note to the bottom of the viewport and hides
+      // attachments below. Expansion comes from CollapsibleState.Expanded on note/assets.
     }),
   );
   context.subscriptions.push(
@@ -3854,7 +3854,7 @@ async function activate(context) {
       const refreshDone = waitForTreeRefresh(provider);
       provider.refreshNoteAssets(uri.fsPath);
       await refreshDone;
-      await revealNoteWithAttachments(view, provider, uri.fsPath, 99);
+      // Same as Show Attachments: skip reveal so the scroll position stays put.
     }),
   );
   context.subscriptions.push(
