@@ -211,8 +211,8 @@ class PhotoEditSaver(
 
     /**
      * If [crop] covers empty canvas outside the photo (letterbox and/or rotation gaps),
-     * returns a tighter axis-aligned frame grown from the crop center until its corners
-     * lie on the photo edges. Works at any [rotationDegrees], including 0°.
+     * returns the maximum-area axis-aligned frame that fits entirely inside the photo.
+     * Works at any [rotationDegrees], including 0°.
      */
     fun analyzeCropEmptyZones(
         imageWidth: Int,
@@ -230,11 +230,8 @@ class PhotoEditSaver(
             return CropInsetAnalysis.None
         }
         val suggested =
-            insetCropToPhoto(crop, geometry) ?: return CropInsetAnalysis.None
-        val areaRatio =
-            (suggested.width * suggested.height) /
-                (crop.width * crop.height).coerceAtLeast(1e-6f)
-        if (areaRatio > CropInsetMaxKeepAreaRatio) {
+            maxAreaInscribedCrop(geometry) ?: return CropInsetAnalysis.None
+        if (rectsAlmostEqual(suggested, crop)) {
             return CropInsetAnalysis.None
         }
         return CropInsetAnalysis(hasEmptyZones = true, suggestedCrop = suggested)
@@ -314,49 +311,33 @@ class PhotoEditSaver(
         return samples.any { (x, y) -> !isInsidePhoto(x, y, geometry) }
     }
 
-    /**
-     * Largest axis-aligned crop centered on the current crop center (photo center if
-     * needed) whose corners stay on/inside the photo.
-     */
-    private fun insetCropToPhoto(
-        crop: NormalizedCropRect,
-        geometry: PhotoGeometry,
-    ): NormalizedCropRect? {
-        var centerX = (crop.left + crop.right) * 0.5f
-        var centerY = (crop.top + crop.bottom) * 0.5f
-        if (!isInsidePhoto(centerX, centerY, geometry)) {
-            centerX = 0.5f
-            centerY = 0.5f
-        }
-        val inscribed =
-            maxInscribedCropAtCenter(centerX, centerY, geometry)
-                ?: run {
-                    if (centerX == 0.5f && centerY == 0.5f) {
-                        return null
-                    }
-                    maxInscribedCropAtCenter(0.5f, 0.5f, geometry)
-                }
-                ?: return null
-        return clampCropRectFree(inscribed)
-    }
+    private fun rectsAlmostEqual(
+        a: NormalizedCropRect,
+        b: NormalizedCropRect,
+    ): Boolean = abs(a.left - b.left) <= CropInsetRectEpsilon &&
+        abs(a.top - b.top) <= CropInsetRectEpsilon &&
+        abs(a.right - b.right) <= CropInsetRectEpsilon &&
+        abs(a.bottom - b.bottom) <= CropInsetRectEpsilon
 
-    private fun maxInscribedCropAtCenter(
-        centerX: Float,
-        centerY: Float,
-        geometry: PhotoGeometry,
-    ): NormalizedCropRect? {
-        if (!isInsidePhoto(centerX, centerY, geometry)) {
-            return null
-        }
+    /**
+     * Maximum-area axis-aligned rectangle inside the photo. For a centered rotated
+     * rectangle the optimum shares the photo center; half-sizes come from active
+     * edge constraints (with a dense search as backup).
+     */
+    private fun maxAreaInscribedCrop(geometry: PhotoGeometry): NormalizedCropRect? {
         var bestHalfW = 0f
         var bestHalfH = 0f
         var bestArea = 0f
-        val steps = 96
-        for (step in 1..steps) {
-            val halfH = 0.5f * step / steps
-            val halfW = maxHalfWidthForHalfHeight(centerX, centerY, halfH, geometry)
-            if (halfW <= CropInsetMinHalf) {
-                continue
+
+        fun consider(
+            halfW: Float,
+            halfH: Float,
+        ) {
+            if (halfW <= CropInsetMinHalf || halfH <= CropInsetMinHalf) {
+                return
+            }
+            if (!aaRectInsidePhoto(halfW, halfH, geometry)) {
+                return
             }
             val area = halfW * halfH
             if (area > bestArea) {
@@ -365,43 +346,78 @@ class PhotoEditSaver(
                 bestHalfH = halfH
             }
         }
+
+        val cos = geometry.cos
+        val sin = geometry.sin
+        val hw = geometry.halfWidth
+        val hh = geometry.halfHeight
+        // Corner on both photo edges: solve for all sign combinations.
+        for (signX in floatArrayOf(-1f, 1f)) {
+            for (signY in floatArrayOf(-1f, 1f)) {
+                val rhsX = signX * hw
+                val rhsY = signY * hh
+                // Inverse of [cos, sin; -sin, cos] is [cos, -sin; sin, cos].
+                val halfW = cos * rhsX - sin * rhsY
+                val halfH = sin * rhsX + cos * rhsY
+                if (halfW > 0f && halfH > 0f) {
+                    consider(halfW, halfH)
+                }
+            }
+        }
+
+        val maxHalfH =
+            min(
+                if (abs(sin) > CropInsetEpsilon) hw / abs(sin) else Float.MAX_VALUE,
+                if (abs(cos) > CropInsetEpsilon) hh / abs(cos) else Float.MAX_VALUE,
+            ).coerceIn(CropInsetMinHalf, 0.5f)
+        val steps = 256
+        for (step in 1..steps) {
+            val halfH = maxHalfH * step / steps
+            consider(maxHalfWidthForHalfHeight(halfH, geometry), halfH)
+        }
+
         if (bestHalfW <= CropInsetMinHalf || bestHalfH <= CropInsetMinHalf) {
             return null
         }
-        return NormalizedCropRect(
-            left = centerX - bestHalfW,
-            top = centerY - bestHalfH,
-            right = centerX + bestHalfW,
-            bottom = centerY + bestHalfH,
+        return clampCropRectFree(
+            NormalizedCropRect(
+                left = 0.5f - bestHalfW,
+                top = 0.5f - bestHalfH,
+                right = 0.5f + bestHalfW,
+                bottom = 0.5f + bestHalfH,
+            ),
         )
     }
 
+    private fun aaRectInsidePhoto(
+        halfW: Float,
+        halfH: Float,
+        geometry: PhotoGeometry,
+    ): Boolean {
+        val corners =
+            arrayOf(
+                0.5f - halfW to 0.5f - halfH,
+                0.5f + halfW to 0.5f - halfH,
+                0.5f - halfW to 0.5f + halfH,
+                0.5f + halfW to 0.5f + halfH,
+            )
+        return corners.all { (x, y) ->
+            x in 0f..1f && y in 0f..1f && isInsidePhoto(x, y, geometry)
+        }
+    }
+
     private fun maxHalfWidthForHalfHeight(
-        centerX: Float,
-        centerY: Float,
         halfH: Float,
         geometry: PhotoGeometry,
     ): Float {
-        fun fits(halfW: Float): Boolean {
-            val corners =
-                arrayOf(
-                    centerX - halfW to centerY - halfH,
-                    centerX + halfW to centerY - halfH,
-                    centerX - halfW to centerY + halfH,
-                    centerX + halfW to centerY + halfH,
-                )
-            return corners.all { (x, y) ->
-                x in 0f..1f && y in 0f..1f && isInsidePhoto(x, y, geometry)
-            }
-        }
-        if (!fits(CropInsetMinHalf)) {
+        if (!aaRectInsidePhoto(CropInsetMinHalf, halfH, geometry)) {
             return 0f
         }
         var low = CropInsetMinHalf
         var high = 0.5f
-        repeat(40) {
+        repeat(48) {
             val mid = (low + high) * 0.5f
-            if (fits(mid)) {
+            if (aaRectInsidePhoto(mid, halfH, geometry)) {
                 low = mid
             } else {
                 high = mid
@@ -594,9 +610,9 @@ class PhotoEditSaver(
     companion object {
         private const val JPEG_QUALITY = 95
         private const val EDIT_UNDO_BACKUP_PREFIX = "gallery_cleaner_edit_undo_"
-        private const val CropInsetMaxKeepAreaRatio = 0.98f
         private const val CropInsetMinHalf = 0.02f
         private const val CropInsetEpsilon = 1e-4f
+        private const val CropInsetRectEpsilon = 0.004f
 
         /**
          * Largest square that fits in the viewport (centered). Crop and rotation use this
