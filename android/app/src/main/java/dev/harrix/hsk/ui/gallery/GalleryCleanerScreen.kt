@@ -397,7 +397,7 @@ fun GalleryCleanerScreen(
         dateFilter = next
     }
 
-    fun reloadPhotos() {
+    fun reloadPhotos(markInitializedRevision: Int? = null) {
         isLoading = true
         statusMessage = null
         val previousOrder = reviewOrder
@@ -406,32 +406,34 @@ fun GalleryCleanerScreen(
         reviewOrder = preferences.getReviewOrder()
         val orderChanged = previousOrder != reviewOrder
         val previousPhotoId = currentPhoto?.id
-        // Date filter + unreviewed-only are applied here.
-        val photos =
-            orderPhotos(
-                applyFilters(
-                    repository.loadCameraPhotos(preferences.getImagesRelativePath()),
-                ),
-            )
-        remainingPhotos = photos
-        remainingCount = photos.size
-        currentPhoto =
-            if (orderChanged) {
-                // Switch to a photo for the new order; keep the previous one in the pool
-                // (skip) so unreviewed-only can show it again later.
-                val others =
+        val imagesPath = preferences.getImagesRelativePath()
+        scope.launch {
+            val loaded =
+                withContext(Dispatchers.IO) {
+                    repository.loadCameraPhotos(imagesPath)
+                }
+            val photos = orderPhotos(applyFilters(loaded))
+            remainingPhotos = photos
+            remainingCount = photos.size
+            currentPhoto =
+                if (orderChanged) {
+                    // Switch to a photo for the new order; keep the previous one in the pool
+                    // (skip) so unreviewed-only can show it again later.
+                    val others =
+                        previousPhotoId
+                            ?.let { id -> photos.filterNot { it.id == id } }
+                            ?: photos
+                    pickNext(others) ?: pickNext(photos)
+                } else {
                     previousPhotoId
-                        ?.let { id -> photos.filterNot { it.id == id } }
-                        ?: photos
-                pickNext(others) ?: pickNext(photos)
-            } else {
-                previousPhotoId
-                    ?.let { id -> photos.firstOrNull { it.id == id } }
-                    ?: pickNext(photos)
-            }
-        cardResetKey += 1
-        isLoading = false
-        refreshManageMediaAccess()
+                        ?.let { id -> photos.firstOrNull { it.id == id } }
+                        ?: pickNext(photos)
+                }
+            cardResetKey += 1
+            isLoading = false
+            refreshManageMediaAccess()
+            markInitializedRevision?.let { viewModel.markSessionInitialized(it) }
+        }
     }
 
     val permissionLauncher =
@@ -775,8 +777,7 @@ fun GalleryCleanerScreen(
         }
         if (!viewModel.sessionInitialized) {
             viewModel.bootstrapDateFilter()
-            reloadPhotos()
-            viewModel.markSessionInitialized(settingsRevision)
+            reloadPhotos(markInitializedRevision = settingsRevision)
             return@LaunchedEffect
         }
         if (viewModel.appliedSettingsRevision != settingsRevision) {
@@ -1153,7 +1154,7 @@ fun GalleryCleanerScreen(
                     )
                 }
 
-                isLoading -> {
+                isLoading || (hasPermission && !showIntro && !viewModel.sessionInitialized) -> {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         CircularProgressIndicator()
                         Spacer(modifier = Modifier.height(16.dp))
