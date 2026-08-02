@@ -22,6 +22,7 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.CleaningServices
@@ -84,6 +85,8 @@ private val UtilityCardCompactIconSize = 36.dp
 private val TopBarLogoSize = 28.dp
 private val DrawerLogoSize = 40.dp
 private val DrawerMaxWidth = 320.dp
+private val DrawerItemShape = RoundedCornerShape(8.dp)
+private val DrawerItemPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
 
 private enum class AppDestination {
     Home,
@@ -459,7 +462,7 @@ private fun AppNavigationDrawerContent(
             }
         }
         HorizontalDivider(
-            modifier = Modifier.padding(bottom = 8.dp),
+            modifier = Modifier.padding(bottom = 4.dp),
         )
         DrawerNavItem(
             label = stringResource(R.string.nav_drawer_home),
@@ -495,6 +498,7 @@ private fun DrawerNavItem(
     onClick: () -> Unit,
     icon: ImageVector,
 ) {
+    val colorScheme = MaterialTheme.colorScheme
     NavigationDrawerItem(
         label = {
             Text(
@@ -511,7 +515,17 @@ private fun DrawerNavItem(
                 contentDescription = null,
             )
         },
-        modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding),
+        shape = DrawerItemShape,
+        colors =
+        NavigationDrawerItemDefaults.colors(
+            selectedContainerColor = colorScheme.surfaceVariant,
+            selectedIconColor = colorScheme.onSurface,
+            selectedTextColor = colorScheme.onSurface,
+            unselectedContainerColor = colorScheme.surface,
+            unselectedIconColor = colorScheme.onSurfaceVariant,
+            unselectedTextColor = colorScheme.onSurfaceVariant,
+        ),
+        modifier = Modifier.padding(DrawerItemPadding),
     )
 }
 
