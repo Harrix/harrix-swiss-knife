@@ -455,28 +455,15 @@ fun VideoCleanerScreen(
                             Text(
                                 text =
                                 stringResource(
-                                    R.string.video_cleaner_session_stats,
-                                    sessionDeletedCount,
-                                    CameraGalleryRepository.formatFileSize(sessionFreedBytes),
+                                    R.string.video_cleaner_header_sizes,
+                                    CameraGalleryRepository.formatFileSize(totalBytes),
+                                    CameraGalleryRepository.formatFileSize(selectedBytes),
                                 ),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                             )
-                            if (videos.isNotEmpty()) {
-                                Text(
-                                    text =
-                                    stringResource(
-                                        R.string.video_cleaner_total_size,
-                                        CameraGalleryRepository.formatFileSize(totalBytes),
-                                    ),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
-                            }
                         }
                     }
                 },
