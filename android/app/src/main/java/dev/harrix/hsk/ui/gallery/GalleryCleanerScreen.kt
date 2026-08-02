@@ -1340,6 +1340,11 @@ private fun ReviewActionBar(
                 onClick = onKeep,
                 icon = Icons.Filled.Done,
                 label = stringResource(R.string.gallery_cleaner_action_keep),
+                colors =
+                ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.secondary,
+                    contentColor = MaterialTheme.colorScheme.onSecondary,
+                ),
             )
         }
     }

@@ -38,7 +38,6 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -70,7 +69,7 @@ import dev.harrix.hsk.ui.adaptiveBottomBarWidth
 import dev.harrix.hsk.ui.isCompactHeight
 import dev.harrix.hsk.ui.isCompactWidth
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import kotlin.math.abs
 import kotlin.math.hypot
@@ -113,7 +112,6 @@ fun PhotoCropEditor(
 ) {
     val context = LocalContext.current
     val density = LocalDensity.current
-    val scope = rememberCoroutineScope()
     val photoEditSaver = remember { PhotoEditSaver(context.applicationContext) }
     var imageWidth by remember(photo.id, imageRevision) { mutableIntStateOf(0) }
     var imageHeight by remember(photo.id, imageRevision) { mutableIntStateOf(0) }
@@ -132,31 +130,22 @@ fun PhotoCropEditor(
     var viewOffset by remember(photo.id, imageRevision) { mutableStateOf(Offset.Zero) }
     val viewScaleState = rememberUpdatedState(viewScale)
     val viewOffsetState = rememberUpdatedState(viewOffset)
-    var isTrimmingBars by remember { mutableStateOf(false) }
+    var trimSuggestion by remember(photo.id, imageRevision) {
+        mutableStateOf<NormalizedCropRect?>(null)
+    }
+    val showTrimBars = trimSuggestion != null
     val isViewTransformed =
         abs(viewScale - 1f) > CropViewZoomEpsilon ||
             hypot(viewOffset.x.toDouble(), viewOffset.y.toDouble()) > 1.0
 
     fun trimBlackBars() {
-        if (isSaving || isTrimmingBars || imageWidth <= 0) {
+        val suggestion = trimSuggestion ?: return
+        if (isSaving) {
             return
         }
-        isTrimmingBars = true
-        val degrees = rotationDegrees
-        scope.launch {
-            val rect =
-                withContext(Dispatchers.IO) {
-                    photoEditSaver.cropWithoutBlackBars(
-                        uri = photo.uri,
-                        rotationDegrees = degrees,
-                    )
-                }
-            if (rect != null) {
-                aspectMode = CropAspectMode.Free
-                onCropRectChange(rect)
-            }
-            isTrimmingBars = false
-        }
+        aspectMode = CropAspectMode.Free
+        onCropRectChange(suggestion)
+        trimSuggestion = null
     }
 
     LaunchedEffect(imageWidth, imageHeight, didInitCrop) {
@@ -164,6 +153,29 @@ fun PhotoCropEditor(
             onCropRectChangeState.value(PhotoEditSaver.imageContentCrop(imageWidth, imageHeight))
             didInitCrop = true
         }
+    }
+
+    LaunchedEffect(photo.uri, imageRevision, rotationDegrees, cropRect, imageWidth, didInitCrop) {
+        if (!didInitCrop || imageWidth <= 0 || isSaving) {
+            trimSuggestion = null
+            return@LaunchedEffect
+        }
+        trimSuggestion = null
+        delay(280)
+        val analysis =
+            withContext(Dispatchers.IO) {
+                photoEditSaver.analyzeBlackVoidsInCrop(
+                    uri = photo.uri,
+                    rotationDegrees = rotationDegrees,
+                    crop = cropRect,
+                )
+            }
+        trimSuggestion =
+            if (analysis.hasSignificantVoids) {
+                analysis.suggestedCrop
+            } else {
+                null
+            }
     }
 
     val originalAspect =
@@ -562,35 +574,29 @@ fun PhotoCropEditor(
                         .padding(12.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    FilledTonalButton(
-                        onClick = { trimBlackBars() },
-                        enabled = !isTrimmingBars,
-                    ) {
-                        if (isTrimmingBars) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(18.dp),
-                                strokeWidth = 2.dp,
-                            )
-                        } else {
+                    if (showTrimBars) {
+                        FilledTonalButton(
+                            onClick = { trimBlackBars() },
+                        ) {
                             Icon(
                                 imageVector = Icons.Filled.Crop,
                                 contentDescription = null,
                                 modifier = Modifier.size(18.dp),
                             )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text =
+                                stringResource(
+                                    if (compactChrome) {
+                                        R.string.gallery_cleaner_edit_trim_bars_short
+                                    } else {
+                                        R.string.gallery_cleaner_edit_trim_bars
+                                    },
+                                ),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
                         }
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text =
-                            stringResource(
-                                if (compactChrome) {
-                                    R.string.gallery_cleaner_edit_trim_bars_short
-                                } else {
-                                    R.string.gallery_cleaner_edit_trim_bars
-                                },
-                            ),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
                     }
                     if (isViewTransformed) {
                         FilledTonalButton(

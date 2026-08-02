@@ -60,6 +60,16 @@ data class PendingEditUndo(
     val photoSnapshot: CameraPhoto,
 )
 
+/** Result of scanning the current crop for empty near-black voids. */
+data class BlackVoidCropAnalysis(
+    val hasSignificantVoids: Boolean,
+    val suggestedCrop: NormalizedCropRect?,
+) {
+    companion object {
+        val None = BlackVoidCropAnalysis(hasSignificantVoids = false, suggestedCrop = null)
+    }
+}
+
 /** One undoable action from the current Gallery Cleaner session (LIFO). */
 sealed class GallerySessionUndo {
     data class Delete(
@@ -202,19 +212,22 @@ class PhotoEditSaver(
     }
 
     /**
-     * Finds the largest crop on the rotated square canvas that excludes near-black edge bars
-     * (letterbox / pillarbox and canvas padding), without treating dark photo content as bars.
+     * Analyzes [crop] on the rotated square canvas for empty near-black voids (letterbox /
+     * rotation padding). When voids are significant, [BlackVoidCropAnalysis.suggestedCrop] is
+     * the largest axis-aligned rectangle inside [crop] that stays on photo content only
+     * (inscribed — avoids triangular blacks left by a content bounding box after rotation).
      */
-    fun cropWithoutBlackBars(
+    fun analyzeBlackVoidsInCrop(
         uri: Uri,
         rotationDegrees: Float,
+        crop: NormalizedCropRect,
         maxAnalyzeSide: Int = BlackBarAnalyzeMaxSide,
-    ): NormalizedCropRect? {
-        val oriented = decodeOrientedBitmap(uri) ?: return null
+    ): BlackVoidCropAnalysis {
+        val oriented = decodeOrientedBitmap(uri) ?: return BlackVoidCropAnalysis.None
         val analyze =
             scaleBitmapToMaxSide(oriented, maxAnalyzeSide) ?: run {
                 oriented.recycle()
-                return null
+                return BlackVoidCropAnalysis.None
             }
         if (analyze !== oriented) {
             oriented.recycle()
@@ -222,27 +235,67 @@ class PhotoEditSaver(
         val square =
             renderRotatedOnSquare(analyze, rotationDegrees) ?: run {
                 analyze.recycle()
-                return null
+                return BlackVoidCropAnalysis.None
             }
         if (square !== analyze) {
             analyze.recycle()
         }
-        val bounds = findNonBlackContentBounds(square)
-        val width = square.width.toFloat().coerceAtLeast(1f)
-        val height = square.height.toFloat().coerceAtLeast(1f)
+        val width = square.width
+        val height = square.height
+        val search =
+            AndroidRect(
+                (crop.left * width).roundToInt().coerceIn(0, width - 1),
+                (crop.top * height).roundToInt().coerceIn(0, height - 1),
+                (crop.right * width).roundToInt().coerceIn(1, width),
+                (crop.bottom * height).roundToInt().coerceIn(1, height),
+            )
+        if (search.width() < 2 || search.height() < 2) {
+            square.recycle()
+            return BlackVoidCropAnalysis.None
+        }
+        val pixels = IntArray(width * height)
+        square.getPixels(pixels, 0, width, 0, 0, width, height)
         square.recycle()
-        if (bounds == null) {
-            return null
+
+        val voidRatio = voidRatioInRect(pixels, width, search)
+        if (voidRatio < BlackVoidMinRatio) {
+            return BlackVoidCropAnalysis.None
         }
-        val left = (bounds.left / width).coerceIn(0f, 1f)
-        val top = (bounds.top / height).coerceIn(0f, 1f)
-        val right = (bounds.right / width).coerceIn(0f, 1f)
-        val bottom = (bounds.bottom / height).coerceIn(0f, 1f)
-        if (right <= left || bottom <= top) {
-            return null
+        val content =
+            largestContentRectInside(pixels, width, height, search) ?: return BlackVoidCropAnalysis.None
+        val suggested =
+            clampCropRectFree(
+                NormalizedCropRect(
+                    left = content.left / width.toFloat(),
+                    top = content.top / height.toFloat(),
+                    right = content.right / width.toFloat(),
+                    bottom = content.bottom / height.toFloat(),
+                ),
+            )
+        // Must meaningfully shrink the frame; otherwise voids are photo-dark noise.
+        val areaRatio =
+            (suggested.width * suggested.height) /
+                (crop.width * crop.height).coerceAtLeast(1e-6f)
+        if (areaRatio > BlackVoidMaxKeepAreaRatio) {
+            return BlackVoidCropAnalysis.None
         }
-        return clampCropRectFree(NormalizedCropRect(left, top, right, bottom))
+        return BlackVoidCropAnalysis(
+            hasSignificantVoids = true,
+            suggestedCrop = suggested,
+        )
     }
+
+    fun cropWithoutBlackBars(
+        uri: Uri,
+        rotationDegrees: Float,
+        crop: NormalizedCropRect,
+        maxAnalyzeSide: Int = BlackBarAnalyzeMaxSide,
+    ): NormalizedCropRect? = analyzeBlackVoidsInCrop(
+        uri = uri,
+        rotationDegrees = rotationDegrees,
+        crop = crop,
+        maxAnalyzeSide = maxAnalyzeSide,
+    ).suggestedCrop
 
     private sealed class BackupResult {
         data object Success : BackupResult()
@@ -380,109 +433,180 @@ class PhotoEditSaver(
         }
     }
 
+    private fun isVoidPixel(color: Int): Boolean {
+        val r = Color.red(color)
+        val g = Color.green(color)
+        val b = Color.blue(color)
+        return r <= BlackBarChannelMax &&
+            g <= BlackBarChannelMax &&
+            b <= BlackBarChannelMax
+    }
+
+    private fun voidRatioInRect(
+        pixels: IntArray,
+        width: Int,
+        rect: AndroidRect,
+    ): Float {
+        val sampleStep =
+            max(1, min(rect.width(), rect.height()) / BlackBarSampleDivisor).coerceAtLeast(1)
+        var voids = 0
+        var total = 0
+        var y = rect.top
+        while (y < rect.bottom) {
+            var x = rect.left
+            while (x < rect.right) {
+                if (isVoidPixel(pixels[y * width + x])) {
+                    voids += 1
+                }
+                total += 1
+                x += sampleStep
+            }
+            y += sampleStep
+        }
+        if (total == 0) {
+            return 0f
+        }
+        return voids.toFloat() / total.toFloat()
+    }
+
     /**
-     * Walks inward from each edge while lines stay nearly uniform near-black.
-     * Returns null when no usable content remains.
+     * Grows the largest axis-aligned rectangle of non-void pixels inside [search]
+     * from a content seed near the center (inscribed in rotated photo content).
      */
-    private fun findNonBlackContentBounds(bitmap: Bitmap): AndroidRect? {
-        val width = bitmap.width
-        val height = bitmap.height
-        if (width < 2 || height < 2) {
-            return null
-        }
-        val sampleStep = max(1, min(width, height) / BlackBarSampleDivisor)
-        val pixels = IntArray(width * height)
-        bitmap.getPixels(pixels, 0, width, 0, 0, width, height)
-
-        fun isBlackLine(
-            horizontal: Boolean,
-            index: Int,
-        ): Boolean {
-            var black = 0
-            var total = 0
-            var sumR = 0
-            var sumG = 0
-            var sumB = 0
-            if (horizontal) {
-                var x = 0
-                while (x < width) {
-                    val color = pixels[index * width + x]
-                    val r = Color.red(color)
-                    val g = Color.green(color)
-                    val b = Color.blue(color)
-                    sumR += r
-                    sumG += g
-                    sumB += b
-                    if (r <= BlackBarChannelMax &&
-                        g <= BlackBarChannelMax &&
-                        b <= BlackBarChannelMax
-                    ) {
-                        black += 1
-                    }
-                    total += 1
-                    x += sampleStep
-                }
-            } else {
-                var y = 0
-                while (y < height) {
-                    val color = pixels[y * width + index]
-                    val r = Color.red(color)
-                    val g = Color.green(color)
-                    val b = Color.blue(color)
-                    sumR += r
-                    sumG += g
-                    sumB += b
-                    if (r <= BlackBarChannelMax &&
-                        g <= BlackBarChannelMax &&
-                        b <= BlackBarChannelMax
-                    ) {
-                        black += 1
-                    }
-                    total += 1
-                    y += sampleStep
-                }
+    private fun largestContentRectInside(
+        pixels: IntArray,
+        width: Int,
+        height: Int,
+        search: AndroidRect,
+    ): AndroidRect? {
+        val seed =
+            findContentSeed(pixels, width, search) ?: return null
+        var left = seed.first
+        var right = seed.first
+        var top = seed.second
+        var bottom = seed.second
+        var expanded = true
+        while (expanded) {
+            expanded = false
+            if (left > search.left &&
+                isContentColumn(pixels, width, left - 1, top, bottom)
+            ) {
+                left -= 1
+                expanded = true
             }
-            if (total == 0) {
-                return true
+            if (right + 1 < search.right &&
+                isContentColumn(pixels, width, right + 1, top, bottom)
+            ) {
+                right += 1
+                expanded = true
             }
-            val blackRatio = black.toFloat() / total.toFloat()
-            if (blackRatio < BlackBarMinBlackRatio) {
-                return false
+            if (top > search.top &&
+                isContentRow(pixels, width, top - 1, left, right)
+            ) {
+                top -= 1
+                expanded = true
             }
-            // Uniform dark strip (letterbox), not noisy dark photo content.
-            val meanR = sumR.toFloat() / total
-            val meanG = sumG.toFloat() / total
-            val meanB = sumB.toFloat() / total
-            return meanR <= BlackBarMeanMax &&
-                meanG <= BlackBarMeanMax &&
-                meanB <= BlackBarMeanMax
+            if (bottom + 1 < search.bottom &&
+                isContentRow(pixels, width, bottom + 1, left, right)
+            ) {
+                bottom += 1
+                expanded = true
+            }
         }
-
-        var top = 0
-        while (top < height && isBlackLine(horizontal = true, index = top)) {
-            top += 1
-        }
-        var bottom = height - 1
-        while (bottom > top && isBlackLine(horizontal = true, index = bottom)) {
-            bottom -= 1
-        }
-        var left = 0
-        while (left < width && isBlackLine(horizontal = false, index = left)) {
-            left += 1
-        }
-        var right = width - 1
-        while (right > left && isBlackLine(horizontal = false, index = right)) {
-            right -= 1
-        }
-
         val contentWidth = right - left + 1
         val contentHeight = bottom - top + 1
-        val minSide = max(2, (min(width, height) * BlackBarMinContentFraction).roundToInt())
+        val minSide =
+            max(
+                2,
+                (min(search.width(), search.height()) * BlackBarMinContentFraction).roundToInt(),
+            )
         if (contentWidth < minSide || contentHeight < minSide) {
             return null
         }
-        // Inclusive right/bottom in AndroidRect are exclusive for width/height math below.
         return AndroidRect(left, top, right + 1, bottom + 1)
+    }
+
+    private fun findContentSeed(
+        pixels: IntArray,
+        width: Int,
+        search: AndroidRect,
+    ): Pair<Int, Int>? {
+        val cx = (search.left + search.right - 1) / 2
+        val cy = (search.top + search.bottom - 1) / 2
+        if (isContentPixel(pixels, width, cx, cy, search)) {
+            return cx to cy
+        }
+        val maxRadius = max(search.width(), search.height()).coerceAtLeast(1)
+        for (radius in 1..maxRadius) {
+            val y0 = (cy - radius).coerceAtLeast(search.top)
+            val y1 = (cy + radius).coerceAtMost(search.bottom - 1)
+            val x0 = (cx - radius).coerceAtLeast(search.left)
+            val x1 = (cx + radius).coerceAtMost(search.right - 1)
+            // Top and bottom edges of the ring.
+            for (x in x0..x1) {
+                if (isContentPixel(pixels, width, x, y0, search)) {
+                    return x to y0
+                }
+                if (isContentPixel(pixels, width, x, y1, search)) {
+                    return x to y1
+                }
+            }
+            // Left and right edges (corners already checked).
+            for (y in (y0 + 1) until y1) {
+                if (isContentPixel(pixels, width, x0, y, search)) {
+                    return x0 to y
+                }
+                if (isContentPixel(pixels, width, x1, y, search)) {
+                    return x1 to y
+                }
+            }
+        }
+        return null
+    }
+
+    private fun isContentPixel(
+        pixels: IntArray,
+        width: Int,
+        x: Int,
+        y: Int,
+        search: AndroidRect,
+    ): Boolean {
+        val insideX = x in search.left until search.right
+        val insideY = y in search.top until search.bottom
+        if (!insideX || !insideY) {
+            return false
+        }
+        return !isVoidPixel(pixels[y * width + x])
+    }
+
+    private fun isContentColumn(
+        pixels: IntArray,
+        width: Int,
+        x: Int,
+        top: Int,
+        bottom: Int,
+    ): Boolean {
+        for (y in top..bottom) {
+            if (isVoidPixel(pixels[y * width + x])) {
+                return false
+            }
+        }
+        return true
+    }
+
+    private fun isContentRow(
+        pixels: IntArray,
+        width: Int,
+        y: Int,
+        left: Int,
+        right: Int,
+    ): Boolean {
+        for (x in left..right) {
+            if (isVoidPixel(pixels[y * width + x])) {
+                return false
+            }
+        }
+        return true
     }
 
     private fun cropBitmap(
@@ -553,10 +677,10 @@ class PhotoEditSaver(
         private const val EDIT_UNDO_BACKUP_PREFIX = "gallery_cleaner_edit_undo_"
         private const val BlackBarAnalyzeMaxSide = 512
         private const val BlackBarSampleDivisor = 128
-        private const val BlackBarChannelMax = 18
-        private const val BlackBarMeanMax = 14f
-        private const val BlackBarMinBlackRatio = 0.97f
+        private const val BlackBarChannelMax = 12
         private const val BlackBarMinContentFraction = 0.08f
+        private const val BlackVoidMinRatio = 0.02f
+        private const val BlackVoidMaxKeepAreaRatio = 0.98f
 
         /**
          * Largest square that fits in the viewport (centered). Crop and rotation use this
