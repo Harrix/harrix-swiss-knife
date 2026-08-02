@@ -903,7 +903,15 @@ fun GalleryCleanerScreen(
                             .padding(end = 4.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        IconButton(onClick = { leaveCleaner() }) {
+                        IconButton(
+                            onClick = {
+                                if (isEditing) {
+                                    exitEditMode()
+                                } else {
+                                    leaveCleaner()
+                                }
+                            },
+                        ) {
                             Icon(
                                 imageVector = Icons.Filled.Close,
                                 contentDescription = stringResource(R.string.gallery_cleaner_close),
