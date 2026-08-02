@@ -50,12 +50,13 @@ class OnCheckMd(ActionBase):
             if errors:
                 errors_dict[str(md_file)] = errors
 
-        all_errors = []
-        for file_path, file_errors in errors_dict.items():
-            for error in file_errors:
-                # MdChecker formats errors with a path relative to the git root.
-                # Replace that relative prefix with the full absolute path (the dict key).
-                all_errors.append(_absolutize_checker_error(error, file_path))
+        # MdChecker formats errors with a path relative to the git root.
+        # Replace that relative prefix with the full absolute path (the dict key).
+        all_errors = [
+            _absolutize_checker_error(error, file_path)
+            for file_path, file_errors in errors_dict.items()
+            for error in file_errors
+        ]
 
         self.last_error_count = len(all_errors)
         if all_errors:

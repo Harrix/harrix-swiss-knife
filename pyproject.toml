@@ -105,6 +105,7 @@ lint.ignore = [
 ]
 line-length = 120
 exclude = [
+    "android",
     "src/harrix_swiss_knife/resources_rc.py",
     "src/harrix_swiss_knife/apps/fitness/window.py",
     "src/harrix_swiss_knife/apps/food/window.py",
@@ -112,6 +113,10 @@ exclude = [
     "src/harrix_swiss_knife/apps/habits/window.py",
     "install/dependencies",
 ]
+
+[tool.ty.src]
+include = ["src", "tests"]
+exclude = ["android"]
 
 # Disable specific checks in test files:
 # S101 - Use of assert detected
