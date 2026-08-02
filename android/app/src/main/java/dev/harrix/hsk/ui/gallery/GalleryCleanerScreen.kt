@@ -28,6 +28,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -35,6 +36,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
@@ -73,7 +75,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -124,7 +125,6 @@ import dev.harrix.hsk.gallery.NormalizedCropRect
 import dev.harrix.hsk.gallery.PendingEditUndo
 import dev.harrix.hsk.gallery.PhotoEditSaver
 import dev.harrix.hsk.ui.CompactBottomActionButton
-import dev.harrix.hsk.ui.CompactWideActionButton
 import dev.harrix.hsk.ui.adaptiveBottomBarWidth
 import dev.harrix.hsk.ui.isCompactHeight
 import dev.harrix.hsk.ui.isCompactWidth
@@ -864,9 +864,20 @@ fun GalleryCleanerScreen(
         )
     }
 
+    val isLandscape =
+        LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
+    val canEditPhoto = hasPermission && currentPhoto != null && !showIntro
+    val canUndo = undoStack.isNotEmpty()
+    val showSecondaryBar =
+        canEditPhoto ||
+            (!isEditing && (dateFilter.enabled || canUndo))
+
     Scaffold(
-        modifier = modifier,
-        contentWindowInsets = WindowInsets.safeDrawing,
+        modifier =
+        modifier.windowInsetsPadding(
+            WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal),
+        ),
+        contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Vertical),
         topBar = {
             Column {
                 // Custom bar: default TopAppBar clips a two-line title on compact phones.
@@ -1068,104 +1079,22 @@ fun GalleryCleanerScreen(
                         }
                     }
                 }
-                val canEditPhoto = hasPermission && currentPhoto != null && !showIntro
-                val canUndo = undoStack.isNotEmpty()
-                val showSecondaryBar =
-                    canEditPhoto ||
-                        (!isEditing && (dateFilter.enabled || canUndo))
-                if (showSecondaryBar) {
-                    Row(
-                        modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(start = 16.dp, end = 4.dp, top = 0.dp, bottom = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        if (!isEditing && dateFilter.enabled) {
-                            val dateFormat =
-                                remember {
-                                    DateFormat.getDateInstance(DateFormat.SHORT)
-                                }
-                            val startLabel =
-                                dateFormat.format(Date(dateFilter.startEpochSecInclusive * 1000L))
-                            val endLabel =
-                                dateFormat.format(Date(dateFilter.endEpochSecInclusive * 1000L))
-                            val sameDay =
-                                dateFilter.fromYear() == dateFilter.toYear() &&
-                                    dateFilter.fromMonth() == dateFilter.toMonth() &&
-                                    dateFilter.fromDay() == dateFilter.toDay()
-                            Text(
-                                text =
-                                if (sameDay) {
-                                    stringResource(
-                                        R.string.gallery_cleaner_date_filter_active_day,
-                                        startLabel,
-                                    )
-                                } else {
-                                    stringResource(
-                                        R.string.gallery_cleaner_date_filter_active,
-                                        startLabel,
-                                        endLabel,
-                                    )
-                                },
-                                modifier = Modifier.weight(1f),
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 2,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                        } else {
-                            Spacer(modifier = Modifier.weight(1f))
-                        }
-                        if (canEditPhoto) {
-                            if (!isEditing) {
-                                IconButton(
-                                    onClick = { enterEditMode() },
-                                    enabled = !isSavingEdit,
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Filled.Crop,
-                                        contentDescription =
-                                        stringResource(R.string.gallery_cleaner_action_crop),
-                                    )
-                                }
-                                IconButton(
-                                    onClick = { enterEditMode() },
-                                    enabled = !isSavingEdit,
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.AutoMirrored.Filled.RotateRight,
-                                        contentDescription =
-                                        stringResource(R.string.gallery_cleaner_action_rotate),
-                                    )
-                                }
-                            }
-                        }
-                        if (!isEditing && canEditPhoto) {
-                            IconButton(onClick = { currentPhoto?.let { sharePhoto(it) } }) {
-                                Icon(
-                                    imageVector = Icons.Filled.Share,
-                                    contentDescription =
-                                    stringResource(R.string.gallery_cleaner_share),
-                                )
-                            }
-                        }
-                        if (!isEditing && canUndo) {
-                            IconButton(onClick = { undoLastAction() }) {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.Undo,
-                                    contentDescription =
-                                    stringResource(R.string.gallery_cleaner_undo_delete),
-                                )
-                            }
-                        }
-                    }
+                if (showSecondaryBar && !isLandscape) {
+                    PhotoSecondaryActionsRow(
+                        dateFilter = dateFilter,
+                        isEditing = isEditing,
+                        canEditPhoto = canEditPhoto,
+                        canUndo = canUndo,
+                        isSavingEdit = isSavingEdit,
+                        onCrop = { enterEditMode() },
+                        onRotate = { enterEditMode() },
+                        onShare = { currentPhoto?.let { sharePhoto(it) } },
+                        onUndo = { undoLastAction() },
+                    )
                 }
             }
         },
         bottomBar = {
-            val isLandscape =
-                LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
             val showPortraitActions =
                 hasPermission && currentPhoto != null && !isEditing && !isLandscape
             if (showPortraitActions) {
@@ -1183,8 +1112,6 @@ fun GalleryCleanerScreen(
             }
         },
     ) { innerPadding ->
-        val isLandscape =
-            LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
         Box(
             modifier =
             Modifier
@@ -1277,22 +1204,35 @@ fun GalleryCleanerScreen(
                                 modifier =
                                 Modifier
                                     .weight(1f)
-                                    .fillMaxHeight(),
+                                    .fillMaxHeight()
+                                    .padding(8.dp),
                             )
                             Column(
                                 modifier =
                                 Modifier
-                                    .weight(0.42f)
-                                    .widthIn(max = 360.dp)
+                                    .width(300.dp)
                                     .fillMaxHeight()
                                     .background(MaterialTheme.colorScheme.surfaceContainer)
-                                    .windowInsetsPadding(WindowInsets.navigationBars)
-                                    .padding(horizontal = 12.dp, vertical = 12.dp),
-                                verticalArrangement = Arrangement.spacedBy(12.dp),
+                                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp),
                             ) {
+                                if (showSecondaryBar) {
+                                    PhotoSecondaryActionsRow(
+                                        dateFilter = dateFilter,
+                                        isEditing = isEditing,
+                                        canEditPhoto = canEditPhoto,
+                                        canUndo = canUndo,
+                                        isSavingEdit = isSavingEdit,
+                                        onCrop = { enterEditMode() },
+                                        onRotate = { enterEditMode() },
+                                        onShare = { sharePhoto(photo) },
+                                        onUndo = { undoLastAction() },
+                                        compact = true,
+                                    )
+                                }
                                 PhotoMetaInfo(
                                     photo = photo,
-                                    compact = false,
+                                    compact = true,
                                     modifier = Modifier.fillMaxWidth(),
                                 )
                                 Spacer(modifier = Modifier.weight(1f))
@@ -1305,7 +1245,7 @@ fun GalleryCleanerScreen(
                                     } else {
                                         null
                                     },
-                                    vertical = true,
+                                    embedded = true,
                                     modifier = Modifier.fillMaxWidth(),
                                 )
                             }
@@ -1349,14 +1289,32 @@ private fun ReviewActionBar(
     onKeep: () -> Unit,
     modifier: Modifier = Modifier,
     onSkip: (() -> Unit)? = null,
-    vertical: Boolean = false,
+    embedded: Boolean = false,
 ) {
-    if (vertical) {
-        Column(
-            modifier = modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+    val barModifier =
+        if (embedded) {
+            modifier.fillMaxWidth()
+        } else {
+            modifier
+                .fillMaxWidth()
+                .background(MaterialTheme.colorScheme.surfaceContainer)
+                .windowInsetsPadding(WindowInsets.navigationBars)
+        }
+    Box(
+        modifier = barModifier,
+        contentAlignment = Alignment.Center,
+    ) {
+        Row(
+            modifier =
+            Modifier
+                .then(if (embedded) Modifier.fillMaxWidth() else Modifier.adaptiveBottomBarWidth())
+                .padding(
+                    horizontal = if (embedded) 0.dp else 12.dp,
+                    vertical = if (embedded) 0.dp else 10.dp,
+                ),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            CompactWideActionButton(
+            CompactBottomActionButton(
                 onClick = onDelete,
                 icon = Icons.Filled.Delete,
                 label = stringResource(R.string.gallery_cleaner_action_delete),
@@ -1367,72 +1325,119 @@ private fun ReviewActionBar(
                 ),
             )
             if (onSkip != null) {
-                OutlinedButton(
+                CompactBottomActionButton(
                     onClick = onSkip,
-                    modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .heightIn(min = 56.dp),
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp),
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.SkipNext,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp),
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = stringResource(R.string.gallery_cleaner_action_skip),
-                        style = MaterialTheme.typography.labelLarge,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
+                    icon = Icons.Filled.SkipNext,
+                    label = stringResource(R.string.gallery_cleaner_action_skip),
+                    outlined = true,
+                )
             }
-            CompactWideActionButton(
+            CompactBottomActionButton(
                 onClick = onKeep,
                 icon = Icons.Filled.Done,
                 label = stringResource(R.string.gallery_cleaner_action_keep),
             )
         }
-    } else {
-        Box(
-            modifier =
-            modifier
-                .fillMaxWidth()
-                .background(MaterialTheme.colorScheme.surfaceContainer)
-                .windowInsetsPadding(WindowInsets.navigationBars),
-            contentAlignment = Alignment.Center,
-        ) {
-            Row(
-                modifier =
-                Modifier
-                    .adaptiveBottomBarWidth()
-                    .padding(horizontal = 12.dp, vertical = 10.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                CompactBottomActionButton(
-                    onClick = onDelete,
-                    icon = Icons.Filled.Delete,
-                    label = stringResource(R.string.gallery_cleaner_action_delete),
-                    colors =
-                    ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.error,
-                        contentColor = MaterialTheme.colorScheme.onError,
-                    ),
-                )
-                if (onSkip != null) {
-                    CompactBottomActionButton(
-                        onClick = onSkip,
-                        icon = Icons.Filled.SkipNext,
-                        label = stringResource(R.string.gallery_cleaner_action_skip),
-                        outlined = true,
-                    )
+    }
+}
+
+@Composable
+private fun PhotoSecondaryActionsRow(
+    dateFilter: GalleryDateFilter,
+    isEditing: Boolean,
+    canEditPhoto: Boolean,
+    canUndo: Boolean,
+    isSavingEdit: Boolean,
+    onCrop: () -> Unit,
+    onRotate: () -> Unit,
+    onShare: () -> Unit,
+    onUndo: () -> Unit,
+    modifier: Modifier = Modifier,
+    compact: Boolean = false,
+) {
+    Row(
+        modifier =
+        modifier
+            .fillMaxWidth()
+            .padding(
+                start = if (compact) 0.dp else 16.dp,
+                end = if (compact) 0.dp else 4.dp,
+                top = 0.dp,
+                bottom = if (compact) 0.dp else 4.dp,
+            ),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        if (!isEditing && dateFilter.enabled) {
+            val dateFormat =
+                remember {
+                    DateFormat.getDateInstance(DateFormat.SHORT)
                 }
-                CompactBottomActionButton(
-                    onClick = onKeep,
-                    icon = Icons.Filled.Done,
-                    label = stringResource(R.string.gallery_cleaner_action_keep),
+            val startLabel =
+                dateFormat.format(Date(dateFilter.startEpochSecInclusive * 1000L))
+            val endLabel =
+                dateFormat.format(Date(dateFilter.endEpochSecInclusive * 1000L))
+            val sameDay =
+                dateFilter.fromYear() == dateFilter.toYear() &&
+                    dateFilter.fromMonth() == dateFilter.toMonth() &&
+                    dateFilter.fromDay() == dateFilter.toDay()
+            Text(
+                text =
+                if (sameDay) {
+                    stringResource(
+                        R.string.gallery_cleaner_date_filter_active_day,
+                        startLabel,
+                    )
+                } else {
+                    stringResource(
+                        R.string.gallery_cleaner_date_filter_active,
+                        startLabel,
+                        endLabel,
+                    )
+                },
+                modifier = Modifier.weight(1f),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = if (compact) 1 else 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+        } else {
+            Spacer(modifier = Modifier.weight(1f))
+        }
+        if (canEditPhoto && !isEditing) {
+            IconButton(
+                onClick = onCrop,
+                enabled = !isSavingEdit,
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Crop,
+                    contentDescription =
+                    stringResource(R.string.gallery_cleaner_action_crop),
+                )
+            }
+            IconButton(
+                onClick = onRotate,
+                enabled = !isSavingEdit,
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.RotateRight,
+                    contentDescription =
+                    stringResource(R.string.gallery_cleaner_action_rotate),
+                )
+            }
+            IconButton(onClick = onShare) {
+                Icon(
+                    imageVector = Icons.Filled.Share,
+                    contentDescription =
+                    stringResource(R.string.gallery_cleaner_share),
+                )
+            }
+        }
+        if (!isEditing && canUndo) {
+            IconButton(onClick = onUndo) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.Undo,
+                    contentDescription =
+                    stringResource(R.string.gallery_cleaner_undo_delete),
                 )
             }
         }
