@@ -370,7 +370,7 @@ fun PhotoCropEditor(
                             )
                         corners.forEach { corner ->
                             drawRect(
-                                color = Color.White,
+                                color = Color.White.copy(alpha = 0.55f),
                                 topLeft = Offset(corner.x - handle / 2f, corner.y - handle / 2f),
                                 size = Size(handle, handle),
                             )
