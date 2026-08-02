@@ -72,9 +72,7 @@ import dev.harrix.hsk.ui.CompactBottomActionButton
 import dev.harrix.hsk.ui.adaptiveBottomBarWidth
 import dev.harrix.hsk.ui.isCompactHeight
 import dev.harrix.hsk.ui.isCompactWidth
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.withContext
 import kotlin.math.abs
 import kotlin.math.hypot
 import kotlin.math.max
@@ -142,7 +140,7 @@ fun PhotoCropEditor(
         abs(viewScale - 1f) > CropViewZoomEpsilon ||
             hypot(viewOffset.x.toDouble(), viewOffset.y.toDouble()) > 1.0
 
-    fun trimBlackBars() {
+    fun trimEmptyZones() {
         val suggestion = trimSuggestion ?: return
         if (isSaving) {
             return
@@ -159,23 +157,34 @@ fun PhotoCropEditor(
         }
     }
 
-    LaunchedEffect(photo.uri, imageRevision, rotationDegrees, cropRect, imageWidth, didInitCrop) {
-        if (!didInitCrop || imageWidth <= 0 || isSaving) {
+    LaunchedEffect(
+        photo.id,
+        imageRevision,
+        rotationDegrees,
+        cropRect,
+        imageWidth,
+        imageHeight,
+        didInitCrop,
+    ) {
+        if (!didInitCrop || isSaving) {
+            trimSuggestion = null
+            return@LaunchedEffect
+        }
+        if (imageWidth <= 0 || imageHeight <= 0) {
             trimSuggestion = null
             return@LaunchedEffect
         }
         trimSuggestion = null
         delay(280)
         val analysis =
-            withContext(Dispatchers.IO) {
-                photoEditSaver.analyzeBlackVoidsInCrop(
-                    uri = photo.uri,
-                    rotationDegrees = rotationDegrees,
-                    crop = cropRect,
-                )
-            }
+            photoEditSaver.analyzeCropEmptyZones(
+                imageWidth = imageWidth,
+                imageHeight = imageHeight,
+                rotationDegrees = rotationDegrees,
+                crop = cropRect,
+            )
         trimSuggestion =
-            if (analysis.hasSignificantVoids) {
+            if (analysis.hasEmptyZones) {
                 analysis.suggestedCrop
             } else {
                 null
@@ -580,7 +589,7 @@ fun PhotoCropEditor(
                 ) {
                     if (showTrimBars) {
                         FilledTonalButton(
-                            onClick = { trimBlackBars() },
+                            onClick = { trimEmptyZones() },
                         ) {
                             Icon(
                                 imageVector = Icons.Filled.Crop,
@@ -592,9 +601,9 @@ fun PhotoCropEditor(
                                 text =
                                 stringResource(
                                     if (compactChrome) {
-                                        R.string.gallery_cleaner_edit_trim_black_short
+                                        R.string.gallery_cleaner_edit_trim_empty_short
                                     } else {
-                                        R.string.gallery_cleaner_edit_trim_black
+                                        R.string.gallery_cleaner_edit_trim_empty
                                     },
                                 ),
                                 maxLines = 1,

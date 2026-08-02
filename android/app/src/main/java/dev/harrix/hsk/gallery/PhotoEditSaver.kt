@@ -16,11 +16,9 @@ import java.io.File
 import kotlin.math.abs
 import kotlin.math.ceil
 import kotlin.math.hypot
-import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
-import android.graphics.Rect as AndroidRect
 
 /**
  * Normalized crop rectangle on the rotated square canvas, each edge in `0f..1f`.
@@ -60,13 +58,13 @@ data class PendingEditUndo(
     val photoSnapshot: CameraPhoto,
 )
 
-/** Result of scanning the current crop for empty near-black voids. */
-data class BlackVoidCropAnalysis(
-    val hasSignificantVoids: Boolean,
+/** Result of checking whether the crop frame covers empty zones outside the photo. */
+data class CropInsetAnalysis(
+    val hasEmptyZones: Boolean,
     val suggestedCrop: NormalizedCropRect?,
 ) {
     companion object {
-        val None = BlackVoidCropAnalysis(hasSignificantVoids = false, suggestedCrop = null)
+        val None = CropInsetAnalysis(hasEmptyZones = false, suggestedCrop = null)
     }
 }
 
@@ -212,95 +210,205 @@ class PhotoEditSaver(
     }
 
     /**
-     * Analyzes [crop] on the rotated square canvas for empty near-black voids inside the
-     * photo (letterbox bars). Off-image padding uses a non-black sentinel so rotation
-     * triangles are not mistaken for black bars. When voids are significant,
-     * [BlackVoidCropAnalysis.suggestedCrop] is the largest axis-aligned rectangle inside
-     * [crop] that stays on non-black photo content.
+     * If [crop] covers empty canvas outside the photo (letterbox and/or rotation gaps),
+     * returns a tighter axis-aligned frame grown from the crop center until its corners
+     * lie on the photo edges. Works at any [rotationDegrees], including 0°.
      */
-    fun analyzeBlackVoidsInCrop(
-        uri: Uri,
+    fun analyzeCropEmptyZones(
+        imageWidth: Int,
+        imageHeight: Int,
         rotationDegrees: Float,
         crop: NormalizedCropRect,
-        maxAnalyzeSide: Int = BlackBarAnalyzeMaxSide,
-    ): BlackVoidCropAnalysis {
-        val oriented = decodeOrientedBitmap(uri) ?: return BlackVoidCropAnalysis.None
-        val analyze =
-            scaleBitmapToMaxSide(oriented, maxAnalyzeSide) ?: run {
-                oriented.recycle()
-                return BlackVoidCropAnalysis.None
-            }
-        if (analyze !== oriented) {
-            oriented.recycle()
+    ): CropInsetAnalysis {
+        if (imageWidth <= 0 || imageHeight <= 0) {
+            return CropInsetAnalysis.None
         }
-        val square =
-            renderRotatedOnSquare(
-                bitmap = analyze,
-                degrees = rotationDegrees,
-                backgroundColor = OutsideCanvasColor,
-            ) ?: run {
-                analyze.recycle()
-                return BlackVoidCropAnalysis.None
-            }
-        if (square !== analyze) {
-            analyze.recycle()
+        val geometry =
+            photoGeometry(imageWidth, imageHeight, rotationDegrees)
+                ?: return CropInsetAnalysis.None
+        if (!cropCoversEmptyZones(crop, geometry)) {
+            return CropInsetAnalysis.None
         }
-        val width = square.width
-        val height = square.height
-        val search =
-            AndroidRect(
-                (crop.left * width).roundToInt().coerceIn(0, width - 1),
-                (crop.top * height).roundToInt().coerceIn(0, height - 1),
-                (crop.right * width).roundToInt().coerceIn(1, width),
-                (crop.bottom * height).roundToInt().coerceIn(1, height),
-            )
-        if (search.width() < 2 || search.height() < 2) {
-            square.recycle()
-            return BlackVoidCropAnalysis.None
-        }
-        val pixels = IntArray(width * height)
-        square.getPixels(pixels, 0, width, 0, 0, width, height)
-        square.recycle()
-
-        val voidRatio = voidRatioInRect(pixels, width, search)
-        if (voidRatio < BlackVoidMinRatio) {
-            return BlackVoidCropAnalysis.None
-        }
-        val content =
-            largestContentRectInside(pixels, width, height, search) ?: return BlackVoidCropAnalysis.None
         val suggested =
-            clampCropRectFree(
-                NormalizedCropRect(
-                    left = content.left / width.toFloat(),
-                    top = content.top / height.toFloat(),
-                    right = content.right / width.toFloat(),
-                    bottom = content.bottom / height.toFloat(),
-                ),
-            )
-        // Must meaningfully shrink the frame; otherwise voids are photo-dark noise.
+            insetCropToPhoto(crop, geometry) ?: return CropInsetAnalysis.None
         val areaRatio =
             (suggested.width * suggested.height) /
                 (crop.width * crop.height).coerceAtLeast(1e-6f)
-        if (areaRatio > BlackVoidMaxKeepAreaRatio) {
-            return BlackVoidCropAnalysis.None
+        if (areaRatio > CropInsetMaxKeepAreaRatio) {
+            return CropInsetAnalysis.None
         }
-        return BlackVoidCropAnalysis(
-            hasSignificantVoids = true,
-            suggestedCrop = suggested,
+        return CropInsetAnalysis(hasEmptyZones = true, suggestedCrop = suggested)
+    }
+
+    fun cropWithoutEmptyZones(
+        imageWidth: Int,
+        imageHeight: Int,
+        rotationDegrees: Float,
+        crop: NormalizedCropRect,
+    ): NormalizedCropRect? = analyzeCropEmptyZones(
+        imageWidth = imageWidth,
+        imageHeight = imageHeight,
+        rotationDegrees = rotationDegrees,
+        crop = crop,
+    ).suggestedCrop
+
+    private data class PhotoGeometry(
+        val halfWidth: Float,
+        val halfHeight: Float,
+        val cos: Float,
+        val sin: Float,
+    )
+
+    /**
+     * Unrotated photo half-size in normalized square coords (same as [imageContentCrop]),
+     * plus rotation used by [renderRotatedOnSquare] (clockwise, y-down).
+     */
+    private fun photoGeometry(
+        imageWidth: Int,
+        imageHeight: Int,
+        rotationDegrees: Float,
+    ): PhotoGeometry? {
+        val diag = hypot(imageWidth.toFloat(), imageHeight.toFloat())
+        if (diag <= 0f) {
+            return null
+        }
+        val rad = Math.toRadians(rotationDegrees.toDouble())
+        return PhotoGeometry(
+            halfWidth = imageWidth / (2f * diag),
+            halfHeight = imageHeight / (2f * diag),
+            cos = kotlin.math.cos(rad).toFloat(),
+            sin = kotlin.math.sin(rad).toFloat(),
         )
     }
 
-    fun cropWithoutBlackBars(
-        uri: Uri,
-        rotationDegrees: Float,
+    private fun isInsidePhoto(
+        x: Float,
+        y: Float,
+        geometry: PhotoGeometry,
+    ): Boolean {
+        val sx = x - 0.5f
+        val sy = y - 0.5f
+        val localX = sx * geometry.cos + sy * geometry.sin
+        val localY = -sx * geometry.sin + sy * geometry.cos
+        return abs(localX) <= geometry.halfWidth + CropInsetEpsilon &&
+            abs(localY) <= geometry.halfHeight + CropInsetEpsilon
+    }
+
+    private fun cropCoversEmptyZones(
         crop: NormalizedCropRect,
-        maxAnalyzeSide: Int = BlackBarAnalyzeMaxSide,
-    ): NormalizedCropRect? = analyzeBlackVoidsInCrop(
-        uri = uri,
-        rotationDegrees = rotationDegrees,
-        crop = crop,
-        maxAnalyzeSide = maxAnalyzeSide,
-    ).suggestedCrop
+        geometry: PhotoGeometry,
+    ): Boolean {
+        val midX = (crop.left + crop.right) * 0.5f
+        val midY = (crop.top + crop.bottom) * 0.5f
+        val samples =
+            arrayOf(
+                crop.left to crop.top,
+                crop.right to crop.top,
+                crop.left to crop.bottom,
+                crop.right to crop.bottom,
+                crop.left to midY,
+                crop.right to midY,
+                midX to crop.top,
+                midX to crop.bottom,
+            )
+        return samples.any { (x, y) -> !isInsidePhoto(x, y, geometry) }
+    }
+
+    /**
+     * Largest axis-aligned crop centered on the current crop center (photo center if
+     * needed) whose corners stay on/inside the photo.
+     */
+    private fun insetCropToPhoto(
+        crop: NormalizedCropRect,
+        geometry: PhotoGeometry,
+    ): NormalizedCropRect? {
+        var centerX = (crop.left + crop.right) * 0.5f
+        var centerY = (crop.top + crop.bottom) * 0.5f
+        if (!isInsidePhoto(centerX, centerY, geometry)) {
+            centerX = 0.5f
+            centerY = 0.5f
+        }
+        val inscribed =
+            maxInscribedCropAtCenter(centerX, centerY, geometry)
+                ?: run {
+                    if (centerX == 0.5f && centerY == 0.5f) {
+                        return null
+                    }
+                    maxInscribedCropAtCenter(0.5f, 0.5f, geometry)
+                }
+                ?: return null
+        return clampCropRectFree(inscribed)
+    }
+
+    private fun maxInscribedCropAtCenter(
+        centerX: Float,
+        centerY: Float,
+        geometry: PhotoGeometry,
+    ): NormalizedCropRect? {
+        if (!isInsidePhoto(centerX, centerY, geometry)) {
+            return null
+        }
+        var bestHalfW = 0f
+        var bestHalfH = 0f
+        var bestArea = 0f
+        val steps = 96
+        for (step in 1..steps) {
+            val halfH = 0.5f * step / steps
+            val halfW = maxHalfWidthForHalfHeight(centerX, centerY, halfH, geometry)
+            if (halfW <= CropInsetMinHalf) {
+                continue
+            }
+            val area = halfW * halfH
+            if (area > bestArea) {
+                bestArea = area
+                bestHalfW = halfW
+                bestHalfH = halfH
+            }
+        }
+        if (bestHalfW <= CropInsetMinHalf || bestHalfH <= CropInsetMinHalf) {
+            return null
+        }
+        return NormalizedCropRect(
+            left = centerX - bestHalfW,
+            top = centerY - bestHalfH,
+            right = centerX + bestHalfW,
+            bottom = centerY + bestHalfH,
+        )
+    }
+
+    private fun maxHalfWidthForHalfHeight(
+        centerX: Float,
+        centerY: Float,
+        halfH: Float,
+        geometry: PhotoGeometry,
+    ): Float {
+        fun fits(halfW: Float): Boolean {
+            val corners =
+                arrayOf(
+                    centerX - halfW to centerY - halfH,
+                    centerX + halfW to centerY - halfH,
+                    centerX - halfW to centerY + halfH,
+                    centerX + halfW to centerY + halfH,
+                )
+            return corners.all { (x, y) ->
+                x in 0f..1f && y in 0f..1f && isInsidePhoto(x, y, geometry)
+            }
+        }
+        if (!fits(CropInsetMinHalf)) {
+            return 0f
+        }
+        var low = CropInsetMinHalf
+        var high = 0.5f
+        repeat(40) {
+            val mid = (low + high) * 0.5f
+            if (fits(mid)) {
+                low = mid
+            } else {
+                high = mid
+            }
+        }
+        return low
+    }
 
     private sealed class BackupResult {
         data object Success : BackupResult()
@@ -396,14 +504,11 @@ class PhotoEditSaver(
     }
 
     /**
-     * Draws [bitmap] centered on a square large enough for any rotation, then rotates it.
-     * [backgroundColor] fills off-image pixels: black for the saved file, a non-black
-     * sentinel when analyzing black bars so rotation padding is not treated as voids.
+     * Draws [bitmap] centered on a black square large enough for any rotation, then rotates it.
      */
     private fun renderRotatedOnSquare(
         bitmap: Bitmap,
         degrees: Float,
-        backgroundColor: Int = Color.BLACK,
     ): Bitmap? {
         val diag =
             ceil(hypot(bitmap.width.toDouble(), bitmap.height.toDouble()))
@@ -416,213 +521,11 @@ class PhotoEditSaver(
                 return null
             }
         val canvas = Canvas(square)
-        canvas.drawColor(backgroundColor)
+        canvas.drawColor(Color.BLACK)
         canvas.translate(diag / 2f, diag / 2f)
         canvas.rotate(degrees)
         canvas.drawBitmap(bitmap, -bitmap.width / 2f, -bitmap.height / 2f, null)
         return square
-    }
-
-    private fun scaleBitmapToMaxSide(
-        bitmap: Bitmap,
-        maxSide: Int,
-    ): Bitmap? {
-        val longest = max(bitmap.width, bitmap.height)
-        if (longest <= maxSide) {
-            return bitmap
-        }
-        val scale = maxSide.toFloat() / longest.toFloat()
-        val width = (bitmap.width * scale).roundToInt().coerceAtLeast(1)
-        val height = (bitmap.height * scale).roundToInt().coerceAtLeast(1)
-        return try {
-            Bitmap.createScaledBitmap(bitmap, width, height, true)
-        } catch (_: OutOfMemoryError) {
-            null
-        }
-    }
-
-    private fun isOutsidePixel(color: Int): Boolean = color == OutsideCanvasColor
-
-    private fun isVoidPixel(color: Int): Boolean {
-        if (isOutsidePixel(color)) {
-            return false
-        }
-        val r = Color.red(color)
-        val g = Color.green(color)
-        val b = Color.blue(color)
-        return r <= BlackBarChannelMax &&
-            g <= BlackBarChannelMax &&
-            b <= BlackBarChannelMax
-    }
-
-    private fun voidRatioInRect(
-        pixels: IntArray,
-        width: Int,
-        rect: AndroidRect,
-    ): Float {
-        val sampleStep =
-            max(1, min(rect.width(), rect.height()) / BlackBarSampleDivisor).coerceAtLeast(1)
-        var voids = 0
-        var total = 0
-        var y = rect.top
-        while (y < rect.bottom) {
-            var x = rect.left
-            while (x < rect.right) {
-                if (isVoidPixel(pixels[y * width + x])) {
-                    voids += 1
-                }
-                total += 1
-                x += sampleStep
-            }
-            y += sampleStep
-        }
-        if (total == 0) {
-            return 0f
-        }
-        return voids.toFloat() / total.toFloat()
-    }
-
-    /**
-     * Grows the largest axis-aligned rectangle of non-void pixels inside [search]
-     * from a content seed near the center (inscribed in rotated photo content).
-     */
-    private fun largestContentRectInside(
-        pixels: IntArray,
-        width: Int,
-        height: Int,
-        search: AndroidRect,
-    ): AndroidRect? {
-        val seed =
-            findContentSeed(pixels, width, search) ?: return null
-        var left = seed.first
-        var right = seed.first
-        var top = seed.second
-        var bottom = seed.second
-        var expanded = true
-        while (expanded) {
-            expanded = false
-            if (left > search.left &&
-                isContentColumn(pixels, width, left - 1, top, bottom)
-            ) {
-                left -= 1
-                expanded = true
-            }
-            if (right + 1 < search.right &&
-                isContentColumn(pixels, width, right + 1, top, bottom)
-            ) {
-                right += 1
-                expanded = true
-            }
-            if (top > search.top &&
-                isContentRow(pixels, width, top - 1, left, right)
-            ) {
-                top -= 1
-                expanded = true
-            }
-            if (bottom + 1 < search.bottom &&
-                isContentRow(pixels, width, bottom + 1, left, right)
-            ) {
-                bottom += 1
-                expanded = true
-            }
-        }
-        val contentWidth = right - left + 1
-        val contentHeight = bottom - top + 1
-        val minSide =
-            max(
-                2,
-                (min(search.width(), search.height()) * BlackBarMinContentFraction).roundToInt(),
-            )
-        if (contentWidth < minSide || contentHeight < minSide) {
-            return null
-        }
-        return AndroidRect(left, top, right + 1, bottom + 1)
-    }
-
-    private fun findContentSeed(
-        pixels: IntArray,
-        width: Int,
-        search: AndroidRect,
-    ): Pair<Int, Int>? {
-        val cx = (search.left + search.right - 1) / 2
-        val cy = (search.top + search.bottom - 1) / 2
-        if (isContentPixel(pixels, width, cx, cy, search)) {
-            return cx to cy
-        }
-        val maxRadius = max(search.width(), search.height()).coerceAtLeast(1)
-        for (radius in 1..maxRadius) {
-            val y0 = (cy - radius).coerceAtLeast(search.top)
-            val y1 = (cy + radius).coerceAtMost(search.bottom - 1)
-            val x0 = (cx - radius).coerceAtLeast(search.left)
-            val x1 = (cx + radius).coerceAtMost(search.right - 1)
-            // Top and bottom edges of the ring.
-            for (x in x0..x1) {
-                if (isContentPixel(pixels, width, x, y0, search)) {
-                    return x to y0
-                }
-                if (isContentPixel(pixels, width, x, y1, search)) {
-                    return x to y1
-                }
-            }
-            // Left and right edges (corners already checked).
-            for (y in (y0 + 1) until y1) {
-                if (isContentPixel(pixels, width, x0, y, search)) {
-                    return x0 to y
-                }
-                if (isContentPixel(pixels, width, x1, y, search)) {
-                    return x1 to y
-                }
-            }
-        }
-        return null
-    }
-
-    private fun isContentPixel(
-        pixels: IntArray,
-        width: Int,
-        x: Int,
-        y: Int,
-        search: AndroidRect,
-    ): Boolean {
-        val insideX = x in search.left until search.right
-        val insideY = y in search.top until search.bottom
-        if (!insideX || !insideY) {
-            return false
-        }
-        return !isOutsidePixel(pixels[y * width + x]) &&
-            !isVoidPixel(pixels[y * width + x])
-    }
-
-    private fun isContentColumn(
-        pixels: IntArray,
-        width: Int,
-        x: Int,
-        top: Int,
-        bottom: Int,
-    ): Boolean {
-        for (y in top..bottom) {
-            val color = pixels[y * width + x]
-            if (isOutsidePixel(color) || isVoidPixel(color)) {
-                return false
-            }
-        }
-        return true
-    }
-
-    private fun isContentRow(
-        pixels: IntArray,
-        width: Int,
-        y: Int,
-        left: Int,
-        right: Int,
-    ): Boolean {
-        for (x in left..right) {
-            val color = pixels[y * width + x]
-            if (isOutsidePixel(color) || isVoidPixel(color)) {
-                return false
-            }
-        }
-        return true
     }
 
     private fun cropBitmap(
@@ -691,18 +594,9 @@ class PhotoEditSaver(
     companion object {
         private const val JPEG_QUALITY = 95
         private const val EDIT_UNDO_BACKUP_PREFIX = "gallery_cleaner_edit_undo_"
-        private const val BlackBarAnalyzeMaxSide = 512
-        private const val BlackBarSampleDivisor = 128
-        private const val BlackBarChannelMax = 12
-        private const val BlackBarMinContentFraction = 0.08f
-        private const val BlackVoidMinRatio = 0.02f
-        private const val BlackVoidMaxKeepAreaRatio = 0.98f
-
-        /**
-         * Off-image fill during void analysis. Must not look near-black; save path still
-         * uses [Color.BLACK] so exported letterbox stays black.
-         */
-        private val OutsideCanvasColor: Int = Color.rgb(255, 0, 255)
+        private const val CropInsetMaxKeepAreaRatio = 0.98f
+        private const val CropInsetMinHalf = 0.02f
+        private const val CropInsetEpsilon = 1e-4f
 
         /**
          * Largest square that fits in the viewport (centered). Crop and rotation use this
