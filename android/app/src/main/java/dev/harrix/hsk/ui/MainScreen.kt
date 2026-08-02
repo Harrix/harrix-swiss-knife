@@ -41,8 +41,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
-import androidx.compose.material3.NavigationDrawerItem
-import androidx.compose.material3.NavigationDrawerItemDefaults
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -59,6 +57,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
@@ -85,8 +84,9 @@ private val UtilityCardCompactIconSize = 36.dp
 private val TopBarLogoSize = 28.dp
 private val DrawerLogoSize = 40.dp
 private val DrawerMaxWidth = 320.dp
-private val DrawerItemShape = RoundedCornerShape(4.dp)
-private val DrawerItemPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+private val DrawerItemShape = RoundedCornerShape(12.dp)
+private val DrawerItemOuterPadding = PaddingValues(horizontal = 8.dp, vertical = 1.dp)
+private val DrawerItemContentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
 
 private enum class AppDestination {
     Home,
@@ -440,6 +440,7 @@ private fun AppNavigationDrawerContent(
 ) {
     ModalDrawerSheet(
         modifier = Modifier.widthIn(max = DrawerMaxWidth),
+        drawerContainerColor = MaterialTheme.colorScheme.surface,
     ) {
         Row(
             modifier =
@@ -491,6 +492,7 @@ private fun AppNavigationDrawerContent(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DrawerNavItem(
     label: String,
@@ -499,34 +501,50 @@ private fun DrawerNavItem(
     icon: ImageVector,
 ) {
     val colorScheme = MaterialTheme.colorScheme
-    NavigationDrawerItem(
-        label = {
-            Text(
-                text = label,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        },
+    val contentColor =
+        if (selected) {
+            colorScheme.onSurface
+        } else {
+            colorScheme.onSurfaceVariant
+        }
+    Surface(
         selected = selected,
         onClick = onClick,
-        icon = {
+        modifier =
+        Modifier
+            .fillMaxWidth()
+            .padding(DrawerItemOuterPadding),
+        shape = DrawerItemShape,
+        color =
+        if (selected) {
+            colorScheme.surfaceVariant
+        } else {
+            Color.Transparent
+        },
+        contentColor = contentColor,
+    ) {
+        Row(
+            modifier =
+            Modifier
+                .fillMaxWidth()
+                .heightIn(min = 40.dp)
+                .padding(DrawerItemContentPadding),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
+                modifier = Modifier.size(22.dp),
             )
-        },
-        shape = DrawerItemShape,
-        colors =
-        NavigationDrawerItemDefaults.colors(
-            selectedContainerColor = colorScheme.surfaceVariant,
-            selectedIconColor = colorScheme.onSurface,
-            selectedTextColor = colorScheme.onSurface,
-            unselectedContainerColor = colorScheme.surface,
-            unselectedIconColor = colorScheme.onSurfaceVariant,
-            unselectedTextColor = colorScheme.onSurfaceVariant,
-        ),
-        modifier = Modifier.padding(DrawerItemPadding),
-    )
+            Spacer(modifier = Modifier.width(10.dp))
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelLarge,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+    }
 }
 
 @Preview(showBackground = true)

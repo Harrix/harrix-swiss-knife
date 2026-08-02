@@ -27,6 +27,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import dev.harrix.hsk.ui.theme.ActionButtonShape
 
 /** Compact phone width where icon+label-in-a-row buttons tend to wrap mid-word. */
 const val CompactScreenWidthDp = 400
@@ -127,6 +128,7 @@ fun RowScope.CompactBottomActionButton(
             onClick = onClick,
             enabled = enabled,
             modifier = buttonModifier,
+            shape = ActionButtonShape,
             contentPadding = padding,
             colors = colors,
             content = { content() },
@@ -136,6 +138,7 @@ fun RowScope.CompactBottomActionButton(
             onClick = onClick,
             enabled = enabled,
             modifier = buttonModifier,
+            shape = ActionButtonShape,
             contentPadding = padding,
             colors = colors,
             content = { content() },
@@ -176,6 +179,7 @@ fun CompactWideActionButton(
         modifier = modifier
             .fillMaxWidth()
             .heightIn(min = 56.dp),
+        shape = ActionButtonShape,
         contentPadding =
         PaddingValues(
             horizontal = if (compact) 12.dp else 16.dp,
