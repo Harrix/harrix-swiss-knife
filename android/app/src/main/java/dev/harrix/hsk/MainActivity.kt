@@ -16,11 +16,13 @@ import dev.harrix.hsk.ui.theme.HskAndroidTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
+        val preferences = AppPreferences(this)
+        preferences.loadAppLanguage().apply()
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            val preferences = remember { AppPreferences(this) }
             var themeMode by remember { mutableStateOf(preferences.loadThemeMode()) }
+            var appLanguage by remember { mutableStateOf(preferences.loadAppLanguage()) }
             val darkTheme = themeMode.resolveDarkTheme(isSystemInDarkTheme())
             HskAndroidTheme(darkTheme = darkTheme) {
                 MainScreen(
@@ -28,6 +30,12 @@ class MainActivity : ComponentActivity() {
                     onThemeModeChange = { mode ->
                         preferences.saveThemeMode(mode)
                         themeMode = mode
+                    },
+                    appLanguage = appLanguage,
+                    onAppLanguageChange = { language ->
+                        preferences.saveAppLanguage(language)
+                        appLanguage = language
+                        language.apply()
                     },
                     modifier = Modifier.fillMaxSize(),
                 )

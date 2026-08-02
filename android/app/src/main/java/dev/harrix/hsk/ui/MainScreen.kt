@@ -73,6 +73,7 @@ import dev.harrix.hsk.ui.gallery.GalleryCleanerScreen
 import dev.harrix.hsk.ui.gallery.VideoCleanerScreen
 import dev.harrix.hsk.ui.settings.SettingsScreen
 import dev.harrix.hsk.ui.settings.SettingsSection
+import dev.harrix.hsk.ui.theme.AppLanguage
 import dev.harrix.hsk.ui.theme.HskAndroidTheme
 import dev.harrix.hsk.ui.theme.ThemeMode
 import kotlinx.coroutines.launch
@@ -106,6 +107,8 @@ private data class UtilityCardItem(
 fun MainScreen(
     themeMode: ThemeMode,
     onThemeModeChange: (ThemeMode) -> Unit,
+    appLanguage: AppLanguage,
+    onAppLanguageChange: (AppLanguage) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
@@ -284,6 +287,8 @@ fun MainScreen(
                 section = section,
                 themeMode = themeMode,
                 onThemeModeChange = onThemeModeChange,
+                appLanguage = appLanguage,
+                onAppLanguageChange = onAppLanguageChange,
                 onClose = {
                     settingsSection = null
                     settingsShootDayEpochMs = null
@@ -554,6 +559,8 @@ private fun MainScreenPreview() {
         MainScreen(
             themeMode = ThemeMode.Light,
             onThemeModeChange = {},
+            appLanguage = AppLanguage.System,
+            onAppLanguageChange = {},
         )
     }
 }

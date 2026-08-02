@@ -76,6 +76,7 @@ import dev.harrix.hsk.gallery.GalleryReviewOrder
 import dev.harrix.hsk.gallery.MediaFolderPaths
 import dev.harrix.hsk.ui.adaptiveContentWidth
 import dev.harrix.hsk.ui.isCompactWidth
+import dev.harrix.hsk.ui.theme.AppLanguage
 import dev.harrix.hsk.ui.theme.ThemeMode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -119,6 +120,8 @@ fun SettingsScreen(
     section: SettingsSection,
     themeMode: ThemeMode,
     onThemeModeChange: (ThemeMode) -> Unit,
+    appLanguage: AppLanguage,
+    onAppLanguageChange: (AppLanguage) -> Unit,
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
     onOpenAllSettings: (() -> Unit)? = null,
@@ -170,6 +173,8 @@ fun SettingsScreen(
                     AppearanceSettingsSection(
                         themeMode = themeMode,
                         onThemeModeChange = onThemeModeChange,
+                        appLanguage = appLanguage,
+                        onAppLanguageChange = onAppLanguageChange,
                     )
                     HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
                     GalleryCleanerSettingsSection(
@@ -182,6 +187,8 @@ fun SettingsScreen(
                     AppearanceSettingsSection(
                         themeMode = themeMode,
                         onThemeModeChange = onThemeModeChange,
+                        appLanguage = appLanguage,
+                        onAppLanguageChange = onAppLanguageChange,
                     )
                     HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
                     GalleryCleanerSettingsSection(
@@ -194,6 +201,8 @@ fun SettingsScreen(
                     AppearanceSettingsSection(
                         themeMode = themeMode,
                         onThemeModeChange = onThemeModeChange,
+                        appLanguage = appLanguage,
+                        onAppLanguageChange = onAppLanguageChange,
                     )
                 }
             }
@@ -267,10 +276,13 @@ private fun CollapsibleSettingsSection(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun AppearanceSettingsSection(
     themeMode: ThemeMode,
     onThemeModeChange: (ThemeMode) -> Unit,
+    appLanguage: AppLanguage,
+    onAppLanguageChange: (AppLanguage) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val options =
@@ -279,11 +291,69 @@ private fun AppearanceSettingsSection(
             ThemeMode.Light to R.string.settings_theme_light,
             ThemeMode.Dark to R.string.settings_theme_dark,
         )
+    var languageMenuExpanded by remember { mutableStateOf(false) }
+    val systemLanguageLabel = stringResource(R.string.settings_language_system)
+    val languageLabel =
+        if (appLanguage == AppLanguage.System) {
+            systemLanguageLabel
+        } else {
+            appLanguage.nativeLabel
+        }
 
     CollapsibleSettingsSection(
         title = stringResource(R.string.settings_appearance_title),
         modifier = modifier,
     ) {
+        Text(
+            text = stringResource(R.string.settings_language_title),
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        ExposedDropdownMenuBox(
+            expanded = languageMenuExpanded,
+            onExpandedChange = { languageMenuExpanded = it },
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            OutlinedTextField(
+                value = languageLabel,
+                onValueChange = {},
+                readOnly = true,
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = languageMenuExpanded) },
+                modifier =
+                Modifier
+                    .menuAnchor(MenuAnchorType.PrimaryNotEditable)
+                    .fillMaxWidth(),
+            )
+            ExposedDropdownMenu(
+                expanded = languageMenuExpanded,
+                onDismissRequest = { languageMenuExpanded = false },
+            ) {
+                AppLanguage.entries.forEach { language ->
+                    val optionLabel =
+                        if (language == AppLanguage.System) {
+                            systemLanguageLabel
+                        } else {
+                            language.nativeLabel
+                        }
+                    DropdownMenuItem(
+                        text = {
+                            Text(
+                                text = optionLabel,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        },
+                        onClick = {
+                            languageMenuExpanded = false
+                            if (language != appLanguage) {
+                                onAppLanguageChange(language)
+                            }
+                        },
+                    )
+                }
+            }
+        }
+        Spacer(modifier = Modifier.height(8.dp))
         Text(
             text = stringResource(R.string.settings_theme_title),
             style = MaterialTheme.typography.labelLarge,

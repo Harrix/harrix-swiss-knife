@@ -1,6 +1,7 @@
 package dev.harrix.hsk
 
 import android.content.Context
+import dev.harrix.hsk.ui.theme.AppLanguage
 import dev.harrix.hsk.ui.theme.ThemeMode
 
 /** App-wide SharedPreferences (appearance and similar). */
@@ -16,8 +17,15 @@ class AppPreferences(
         prefs.edit().putString(KEY_THEME_MODE, mode.name).apply()
     }
 
+    fun loadAppLanguage(): AppLanguage = AppLanguage.fromStorage(prefs.getString(KEY_APP_LANGUAGE, null))
+
+    fun saveAppLanguage(language: AppLanguage) {
+        prefs.edit().putString(KEY_APP_LANGUAGE, language.name).apply()
+    }
+
     companion object {
         private const val PREFS_NAME = "app_preferences"
         private const val KEY_THEME_MODE = "theme_mode"
+        private const val KEY_APP_LANGUAGE = "app_language"
     }
 }
