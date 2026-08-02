@@ -1497,7 +1497,7 @@ function buildDropMarkdownInsert(destPaths, noteDir, settings) {
     return '';
   }
   const snippets = destPaths.map((p) => formatDroppedMarkdownSnippet(p, noteDir, settings));
-  return `${snippets.join('\n')}\n`;
+  return snippets.join('\n');
 }
 
 /**
@@ -3098,7 +3098,7 @@ function createNoteAssetsDragAndDrop(provider) {
         dataTransfer.set('text/uri-list', new vscode.DataTransferItem(uriLines.join('\r\n')));
       }
       if (markdownSnippets.length > 0) {
-        dataTransfer.set('text/plain', new vscode.DataTransferItem(`${markdownSnippets.join('\n')}\n`));
+        dataTransfer.set('text/plain', new vscode.DataTransferItem(markdownSnippets.join('\n')));
       }
       if (movePaths.length > 0) {
         dataTransfer.set(HNE_TREE_MOVE_MIME, new vscode.DataTransferItem(movePaths));
