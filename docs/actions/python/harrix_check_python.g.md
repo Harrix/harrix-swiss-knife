@@ -94,14 +94,18 @@ class OnHarrixCheckPython(ActionBase):
         if docstring_errors:
             errors = (errors or []) + docstring_errors
 
-        self.add_line("🔵 Docstring Markdown check (incl. private, locations in .py)")
+        self.add_line("🔵 Starting docstring Markdown check (incl. private, locations in .py)")
         md_doc_errors = h.py.check_python_docstring_markdown_errors(folder, include_private=True)
         if md_doc_errors:
             errors = (errors or []) + md_doc_errors
 
         self.last_error_count = len(errors) if errors else 0
         if errors:
-            self.add_line("\n".join(errors))
+            for index, error in enumerate(errors):
+                if index:
+                    self.add_line("")
+                self.add_line(error)
+            self.add_line("")
             self.add_line(f"🔢 Count errors = {len(errors)}")
         else:
             self.add_line(f"✅ There are no errors in {self.folder_path}.")
@@ -122,7 +126,7 @@ class OnHarrixCheckPython(ActionBase):
         try:
             content = self._read_text_best_effort(path)
         except (OSError, UnicodeDecodeError) as e:
-            return [f"{path}:1:1: {self._DOCSTRING_SECTION_ERROR_CODE} Cannot read file: {e!s}"]
+            return [f"{path}:1:1: {self._DOCSTRING_SECTION_ERROR_CODE}\n  Cannot read file: {e!s}"]
 
         file_lines = content.splitlines()
         errors: list[str] = []
@@ -170,7 +174,7 @@ class OnHarrixCheckPython(ActionBase):
                 # Consider only Markdown list items "- " (not "--" and not "-\t")
                 if j == i + 1 and lines[j].lstrip().startswith("- "):
                     msg = f"Missing blank line after '{header}' before list"
-                    errors.append(f"{path}:{block_start + i + 1}:1: {self._DOCSTRING_SECTION_ERROR_CODE} {msg}")
+                    errors.append(f"{path}:{block_start + i + 1}:1: {self._DOCSTRING_SECTION_ERROR_CODE}\n  {msg}")
 
                 # Validate indentation of list items within this section:
                 # First-level list items should align with the section header indentation.
@@ -205,7 +209,7 @@ class OnHarrixCheckPython(ActionBase):
                         else:
                             msg = f"Unexpected list indentation in '{header}' section"
                             errors.append(
-                                f"{path}:{block_start + k + 1}:1: {self._DOCSTRING_LIST_INDENT_ERROR_CODE} {msg}"
+                                f"{path}:{block_start + k + 1}:1: {self._DOCSTRING_LIST_INDENT_ERROR_CODE}\n  {msg}"
                             )
                             prev_list_indent = item_indent
                             prev_was_list_item = True
@@ -304,14 +308,18 @@ def harrix_check_python_common(self) -> None:
         if docstring_errors:
             errors = (errors or []) + docstring_errors
 
-        self.add_line("🔵 Docstring Markdown check (incl. private, locations in .py)")
+        self.add_line("🔵 Starting docstring Markdown check (incl. private, locations in .py)")
         md_doc_errors = h.py.check_python_docstring_markdown_errors(folder, include_private=True)
         if md_doc_errors:
             errors = (errors or []) + md_doc_errors
 
         self.last_error_count = len(errors) if errors else 0
         if errors:
-            self.add_line("\n".join(errors))
+            for index, error in enumerate(errors):
+                if index:
+                    self.add_line("")
+                self.add_line(error)
+            self.add_line("")
             self.add_line(f"🔢 Count errors = {len(errors)}")
         else:
             self.add_line(f"✅ There are no errors in {self.folder_path}.")

@@ -63,23 +63,22 @@ class OnCheckMd(ActionBase):
             for error in file_errors:
                 # MdChecker formats errors with a path relative to the git root.
                 # Replace that relative prefix with the full absolute path (the dict key).
-                _, sep, rest = error.partition(":")
-                all_errors.append(f"{file_path}:{rest}" if sep else error)
+                all_errors.append(_absolutize_checker_error(error, file_path))
 
         self.last_error_count = len(all_errors)
         if all_errors:
-            self.add_line("\n".join(all_errors))
-            self.add_line(f"\n🔢 Count errors = {len(all_errors)}")
+            for index, error in enumerate(all_errors):
+                if index:
+                    self.add_line("")
+                self.add_line(error)
+            self.add_line("")
+            self.add_line(f"🔢 Count errors = {len(all_errors)}")
 
             desc_counts = Counter()
             for err in all_errors:
-                # Format from MdChecker._format_error: "{path}:{line}:{col}: {error_code} {message}"
-                parts = err.split(": ", maxsplit=2)
-                count_parts = 2
-                if len(parts) >= count_parts:
-                    description = parts[1]
-                    if description.strip():
-                        desc_counts[description] += 1
+                description = _error_type_description(err)
+                if description:
+                    desc_counts[description] += 1
 
             sorted_stats = sorted(desc_counts.items(), key=lambda x: (-x[1], x[0]))
             stats_lines = [f"  {count}: {desc}" for desc, count in sorted_stats]
@@ -225,23 +224,22 @@ def check_md_common(self) -> None:
             for error in file_errors:
                 # MdChecker formats errors with a path relative to the git root.
                 # Replace that relative prefix with the full absolute path (the dict key).
-                _, sep, rest = error.partition(":")
-                all_errors.append(f"{file_path}:{rest}" if sep else error)
+                all_errors.append(_absolutize_checker_error(error, file_path))
 
         self.last_error_count = len(all_errors)
         if all_errors:
-            self.add_line("\n".join(all_errors))
-            self.add_line(f"\n🔢 Count errors = {len(all_errors)}")
+            for index, error in enumerate(all_errors):
+                if index:
+                    self.add_line("")
+                self.add_line(error)
+            self.add_line("")
+            self.add_line(f"🔢 Count errors = {len(all_errors)}")
 
             desc_counts = Counter()
             for err in all_errors:
-                # Format from MdChecker._format_error: "{path}:{line}:{col}: {error_code} {message}"
-                parts = err.split(": ", maxsplit=2)
-                count_parts = 2
-                if len(parts) >= count_parts:
-                    description = parts[1]
-                    if description.strip():
-                        desc_counts[description] += 1
+                description = _error_type_description(err)
+                if description:
+                    desc_counts[description] += 1
 
             sorted_stats = sorted(desc_counts.items(), key=lambda x: (-x[1], x[0]))
             stats_lines = [f"  {count}: {desc}" for desc, count in sorted_stats]

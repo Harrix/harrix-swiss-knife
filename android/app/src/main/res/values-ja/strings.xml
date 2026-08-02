@@ -78,11 +78,11 @@
     <string name="settings_show_manage_media_tip">メディア管理のヒントを再度表示する</string>
     <string name="settings_show_manage_media_tip_done">プロンプトなしのゴミ箱が有効になっていない場合、ヒントが再度表示されます</string>
     <string name="gallery_cleaner_filter_shoot_day">この写真でフィルター\' の撮影日</string>
-    <string name="nav_drawer_home">家</string>
+    <string name="nav_drawer_home">ホーム</string>
     <string name="nav_drawer_gallery_cleaner">Gallery Cleaner</string>
     <string name="nav_drawer_video_cleaner">Video Cleaner</string>
-    <string name="nav_drawer_about">について</string>
-    <string name="about_title">について</string>
+    <string name="nav_drawer_about">アプリについて</string>
+    <string name="about_title">アプリについて</string>
     <string name="about_back">戻る</string>
     <string name="about_version">バージョン %1$s</string>
     <string name="about_description">開発者向けの多機能ツール。\n写真、ビデオなどを操作するためのユーティリティが含まれています。</string>

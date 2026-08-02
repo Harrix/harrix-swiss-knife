@@ -78,7 +78,7 @@
     <string name="settings_show_manage_media_tip">Mostrar nuevamente el consejo de administración de medios</string>
     <string name="settings_show_manage_media_tip_done">La sugerencia aparecerá nuevamente cuando la papelera sin mensajes no esté habilitada</string>
     <string name="gallery_cleaner_filter_shoot_day">Filtrar por el día de la sesión de esta foto</string>
-    <string name="nav_drawer_home">Hogar</string>
+    <string name="nav_drawer_home">Inicio</string>
     <string name="nav_drawer_gallery_cleaner">Gallery Cleaner</string>
     <string name="nav_drawer_video_cleaner">Video Cleaner</string>
     <string name="nav_drawer_about">Acerca de</string>

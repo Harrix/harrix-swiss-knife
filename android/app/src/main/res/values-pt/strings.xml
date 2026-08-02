@@ -78,11 +78,11 @@
     <string name="settings_show_manage_media_tip">Mostrar dica de gerenciamento de mídia novamente</string>
     <string name="settings_show_manage_media_tip_done">A dica aparecerá novamente quando a lixeira sem avisos não estiver ativada</string>
     <string name="gallery_cleaner_filter_shoot_day">Filtrar por esta foto dia de filmagem</string>
-    <string name="nav_drawer_home">Lar</string>
+    <string name="nav_drawer_home">Início</string>
     <string name="nav_drawer_gallery_cleaner">Gallery Cleaner</string>
     <string name="nav_drawer_video_cleaner">Video Cleaner</string>
-    <string name="nav_drawer_about">Sobre</string>
-    <string name="about_title">Sobre</string>
+    <string name="nav_drawer_about">Sobre o aplicativo</string>
+    <string name="about_title">Sobre o aplicativo</string>
     <string name="about_back">Voltar</string>
     <string name="about_version">Versão %1$s</string>
     <string name="about_description">Uma ferramenta multifuncional para desenvolvedores.\nInclui utilitários para trabalhar com fotos, vídeos e muito mais.</string>

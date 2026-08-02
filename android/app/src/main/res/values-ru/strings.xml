@@ -78,11 +78,11 @@
     <string name="settings_show_manage_media_tip">Показать совет по управлению медиа еще раз</string>
     <string name="settings_show_manage_media_tip_done">Подсказка появится снова, если опция «Корзина без подсказок» не включена.</string>
     <string name="gallery_cleaner_filter_shoot_day">Фильтровать по этой фотографии: день съемки</string>
-    <string name="nav_drawer_home">Дом</string>
+    <string name="nav_drawer_home">Главная</string>
     <string name="nav_drawer_gallery_cleaner">Gallery Cleaner</string>
     <string name="nav_drawer_video_cleaner">Video Cleaner</string>
-    <string name="nav_drawer_about">О</string>
-    <string name="about_title">О</string>
+    <string name="nav_drawer_about">О программе</string>
+    <string name="about_title">О программе</string>
     <string name="about_back">Назад</string>
     <string name="about_version">Версия %1$s</string>
     <string name="about_description">Многофункциональный инструмент для разработчиков.\nВключает в себя утилиты для работы с фотографиями, видео и многим другим.</string>

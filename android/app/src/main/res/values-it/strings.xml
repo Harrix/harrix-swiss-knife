@@ -78,11 +78,11 @@
     <string name="settings_show_manage_media_tip">Mostra di nuovo il suggerimento per la gestione dei media</string>
     <string name="settings_show_manage_media_tip_done">Il suggerimento verrà visualizzato di nuovo quando il cestino senza istruzioni non è abilitato</string>
     <string name="gallery_cleaner_filter_shoot_day">Filtra per giorno di scatto di questa foto\'s</string>
-    <string name="nav_drawer_home">Casa</string>
+    <string name="nav_drawer_home">Home</string>
     <string name="nav_drawer_gallery_cleaner">Gallery Cleaner</string>
     <string name="nav_drawer_video_cleaner">Video Cleaner</string>
-    <string name="nav_drawer_about">Di</string>
-    <string name="about_title">Di</string>
+    <string name="nav_drawer_about">Informazioni</string>
+    <string name="about_title">Informazioni</string>
     <string name="about_back">Indietro</string>
     <string name="about_version">Versione %1$s</string>
     <string name="about_description">Uno strumento multifunzionale per gli sviluppatori.\nInclude utilità per lavorare con foto, video e altro ancora.</string>

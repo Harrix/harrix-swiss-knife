@@ -22,40 +22,6 @@ _FORMATTED_ERROR_RE = re.compile(
 _INCLUDE_G_MD_CHOICE = "Include .g.md files"
 
 
-def _line_col_suffix(location: str) -> str:
-    """Return `:line` / `:line:col` suffix from a checker location, if present."""
-    parts = location.split(":")
-    if not parts:
-        return ""
-    if parts[-1].isdigit():
-        if len(parts) >= 2 and parts[-2].isdigit():  # noqa: PLR2004
-            return f":{parts[-2]}:{parts[-1]}"
-        return f":{parts[-1]}"
-    return ""
-
-
-def _absolutize_checker_error(error: str, file_path: str) -> str:
-    """Replace the relative path prefix with an absolute path; keep multi-line body."""
-    match = _FORMATTED_ERROR_RE.match(error)
-    if match is None:
-        return error
-    location = f"{file_path}{_line_col_suffix(match.group('location'))}"
-    return f"{location}: {match.group('code')}{match.group('rest')}"
-
-
-def _error_type_description(error: str) -> str | None:
-    """Build a short stats key like `H060 Asset file not referenced in Markdown`."""
-    match = _FORMATTED_ERROR_RE.match(error)
-    if match is None:
-        return None
-    code = match.group("code")
-    rest = match.group("rest").strip()
-    if not rest:
-        return code
-    summary = rest.split(": ", 1)[0].strip()
-    return f"{code} {summary}" if summary else code
-
-
 class OnCheckMd(ActionBase):
     """Check all Markdown files in a folder for errors with Harrix rules."""
 
@@ -212,3 +178,37 @@ class OnCheckMd(ActionBase):
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
         self.show_toast(f"{self.title} {self.folder_path} completed")
         self.show_result()
+
+
+def _absolutize_checker_error(error: str, file_path: str) -> str:
+    """Replace the relative path prefix with an absolute path; keep multi-line body."""
+    match = _FORMATTED_ERROR_RE.match(error)
+    if match is None:
+        return error
+    location = f"{file_path}{_line_col_suffix(match.group('location'))}"
+    return f"{location}: {match.group('code')}{match.group('rest')}"
+
+
+def _error_type_description(error: str) -> str | None:
+    """Build a short stats key like `H060 Asset file not referenced in Markdown`."""
+    match = _FORMATTED_ERROR_RE.match(error)
+    if match is None:
+        return None
+    code = match.group("code")
+    rest = match.group("rest").strip()
+    if not rest:
+        return code
+    summary = rest.split(": ", 1)[0].strip()
+    return f"{code} {summary}" if summary else code
+
+
+def _line_col_suffix(location: str) -> str:
+    """Return `:line` / `:line:col` suffix from a checker location, if present."""
+    parts = location.split(":")
+    if not parts:
+        return ""
+    if parts[-1].isdigit():
+        if len(parts) >= 2 and parts[-2].isdigit():  # noqa: PLR2004
+            return f":{parts[-2]}:{parts[-1]}"
+        return f":{parts[-1]}"
+    return ""

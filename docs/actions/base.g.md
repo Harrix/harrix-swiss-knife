@@ -170,7 +170,8 @@ class ActionBase(ABC):
         if getattr(self, "_fake_progress_active", False):
             try:
                 if getattr(sys.stderr, "isatty", lambda: False)():
-                    sys.stderr.write("\r" + " " * 80 + "\r")
+                    # Wider than the fake/real progress line so leftovers do not smear into stdout.
+                    sys.stderr.write("\r" + " " * 120 + "\r")
                     sys.stderr.flush()
             except OSError:
                 pass
@@ -872,7 +873,8 @@ def add_line(self, line: str) -> None:
         if getattr(self, "_fake_progress_active", False):
             try:
                 if getattr(sys.stderr, "isatty", lambda: False)():
-                    sys.stderr.write("\r" + " " * 80 + "\r")
+                    # Wider than the fake/real progress line so leftovers do not smear into stdout.
+                    sys.stderr.write("\r" + " " * 120 + "\r")
                     sys.stderr.flush()
             except OSError:
                 pass

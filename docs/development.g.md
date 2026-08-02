@@ -292,9 +292,11 @@ hsk android build android
 hsk android build android debug
 hsk android build android release
 hsk android build debug
+hsk android build --all
+hsk android build --all debug
 ```
 
-`hsk android format` / `check` / `build` take an Android project folder (directory with `gradlew.bat`). Tray actions show a folder dialog from `paths_android_projects` in `config/config.json`. `hsk android format` runs Spotless (`spotlessApply`). `hsk android check` runs `qualityCheck` (Spotless check + Detekt + `lintDebug`). The tray action **Build Android APK in …** uses `android_build_variant` from `config/config.json` (`debug` or `release`, default `release`) and does not ask each time. CLI may omit the variant (same config key) or pass `debug`/`release` to override; a lone `debug`/`release` argument still means variant with FOLDER defaulting to `.`. After a successful build it opens the APK folder and, if a phone is connected via USB and visible in `adb devices`, runs `adb install -r` automatically (first device in `device` state). If no device is connected, the APK is still produced.
+`hsk android format` / `check` / `build` take an Android project folder (directory with `gradlew.bat`). Tray actions show a folder dialog from `paths_android_projects` in `config/config.json`. For **Build Android APK in …**, the dialog also has a checkbox to build and install all listed projects sequentially (`hsk android build --all` does the same). `hsk android format` runs Spotless (`spotlessApply`). `hsk android check` runs `qualityCheck` (Spotless check + Detekt + `lintDebug`). The tray action **Build Android APK in …** uses `android_build_variant` from `config/config.json` (`debug` or `release`, default `release`) and does not ask each time. CLI may omit the variant (same config key) or pass `debug`/`release` to override; a lone `debug`/`release` argument still means variant with FOLDER defaulting to `.`. After a successful build it opens the APK folder and, if a phone is connected via USB and visible in `adb devices`, runs `adb install -r` automatically (first device in `device` state). If no device is connected, the APK is still produced.
 
 Manual install (optional):
 
