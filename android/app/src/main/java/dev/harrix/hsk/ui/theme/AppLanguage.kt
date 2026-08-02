@@ -25,12 +25,11 @@ enum class AppLanguage(
     Italian("it", "Italiano"),
     ;
 
-    fun toLocaleList(): LocaleListCompat =
-        if (languageTag.isNullOrBlank()) {
-            LocaleListCompat.getEmptyLocaleList()
-        } else {
-            LocaleListCompat.forLanguageTags(languageTag)
-        }
+    fun toLocaleList(): LocaleListCompat = if (languageTag.isNullOrBlank()) {
+        LocaleListCompat.getEmptyLocaleList()
+    } else {
+        LocaleListCompat.forLanguageTags(languageTag)
+    }
 
     fun apply() {
         AppCompatDelegate.setApplicationLocales(toLocaleList())
@@ -39,7 +38,6 @@ enum class AppLanguage(
     companion object {
         val Default: AppLanguage = System
 
-        fun fromStorage(value: String?): AppLanguage =
-            entries.firstOrNull { it.name.equals(value, ignoreCase = true) } ?: Default
+        fun fromStorage(value: String?): AppLanguage = entries.firstOrNull { it.name.equals(value, ignoreCase = true) } ?: Default
     }
 }

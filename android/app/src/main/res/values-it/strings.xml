@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version="1.0" ?>
 <resources>
     <string name="app_name">Harrix Swiss Knife</string>
     <string name="nav_open">Apri la navigazione</string>
@@ -77,7 +77,7 @@
     <string name="settings_gallery_show_intro_done">L\'introduzione verrà visualizzata quando torni a Gallery Cleaner</string>
     <string name="settings_show_manage_media_tip">Mostra di nuovo il suggerimento per la gestione dei media</string>
     <string name="settings_show_manage_media_tip_done">Il suggerimento verrà visualizzato di nuovo quando il cestino senza istruzioni non è abilitato</string>
-    <string name="gallery_cleaner_filter_shoot_day">Filtra per giorno di scatto di questa foto</string>
+    <string name="gallery_cleaner_filter_shoot_day">Filtra per giorno di scatto di questa foto\'s</string>
     <string name="nav_drawer_home">Casa</string>
     <string name="nav_drawer_gallery_cleaner">Gallery Cleaner</string>
     <string name="nav_drawer_video_cleaner">Video Cleaner</string>
@@ -87,7 +87,7 @@
     <string name="about_version">Versione %1$s</string>
     <string name="about_description">Uno strumento multifunzionale per gli sviluppatori.\nInclude utilità per lavorare con foto, video e altro ancora.</string>
     <string name="about_author_label">Autore</string>
-    <string name="about_author">Anton Revyenko (Harrix)</string>
+    <string name="about_author">Anton Sergienko (Harrix)</string>
     <string name="about_license_label">Licenza</string>
     <string name="about_license">MIT License</string>
     <string name="about_github_label">GitHub</string>
@@ -97,7 +97,7 @@
     <string name="gallery_cleaner_close">Esci Gallery Cleaner</string>
     <string name="gallery_cleaner_intro_title">Come funziona</string>
     <string name="gallery_cleaner_intro_message">Vengono visualizzate solo le foto dalla cartella Fotocamera.\n\nScorri verso sinistra o verso il basso: sposta la foto nel cestino di sistema.\nScorri verso destra o verso l\'alto: conserva la foto.\n\nSu Android 12 e versioni successive, attiva Gestione multimediale per questa app (Accesso speciale alle app → App di gestione multimediale) per spostarla nel cestino senza confermare ciascuna foto.\nSu Android 10 e versioni precedenti, l\'eliminazione rimuove la foto in modo permanente.</string>
-    <string name="gallery_cleaner_intro_dont_show">Non mostrare più</string>
+    <string name="gallery_cleaner_intro_dont_show">Non\'non mostrare più</string>
     <string name="gallery_cleaner_intro_ok">Fatto</string>
     <string name="gallery_cleaner_manage_media_title">Consenti cestino senza richieste</string>
     <string name="gallery_cleaner_manage_media_message">Per impostazione predefinita, Android chiede di confermare ogni eliminazione.\n\nAbilita questa app in:\nImpostazioni → Accesso speciale alle app → App di gestione multimediale\n\nL\'accesso alle foto da solo non è sufficiente. \"Apri collegamenti supportati\" è un\'impostazione diversa.</string>
