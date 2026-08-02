@@ -16,9 +16,11 @@ import java.io.File
 import kotlin.math.abs
 import kotlin.math.ceil
 import kotlin.math.hypot
+import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
+import android.graphics.Rect as AndroidRect
 
 /**
  * Normalized crop rectangle on the rotated square canvas, each edge in `0f..1f`.
@@ -199,6 +201,49 @@ class PhotoEditSaver(
         }
     }
 
+    /**
+     * Finds the largest crop on the rotated square canvas that excludes near-black edge bars
+     * (letterbox / pillarbox and canvas padding), without treating dark photo content as bars.
+     */
+    fun cropWithoutBlackBars(
+        uri: Uri,
+        rotationDegrees: Float,
+        maxAnalyzeSide: Int = BlackBarAnalyzeMaxSide,
+    ): NormalizedCropRect? {
+        val oriented = decodeOrientedBitmap(uri) ?: return null
+        val analyze =
+            scaleBitmapToMaxSide(oriented, maxAnalyzeSide) ?: run {
+                oriented.recycle()
+                return null
+            }
+        if (analyze !== oriented) {
+            oriented.recycle()
+        }
+        val square =
+            renderRotatedOnSquare(analyze, rotationDegrees) ?: run {
+                analyze.recycle()
+                return null
+            }
+        if (square !== analyze) {
+            analyze.recycle()
+        }
+        val bounds = findNonBlackContentBounds(square)
+        val width = square.width.toFloat().coerceAtLeast(1f)
+        val height = square.height.toFloat().coerceAtLeast(1f)
+        square.recycle()
+        if (bounds == null) {
+            return null
+        }
+        val left = (bounds.left / width).coerceIn(0f, 1f)
+        val top = (bounds.top / height).coerceIn(0f, 1f)
+        val right = (bounds.right / width).coerceIn(0f, 1f)
+        val bottom = (bounds.bottom / height).coerceIn(0f, 1f)
+        if (right <= left || bottom <= top) {
+            return null
+        }
+        return clampCropRectFree(NormalizedCropRect(left, top, right, bottom))
+    }
+
     private sealed class BackupResult {
         data object Success : BackupResult()
 
@@ -317,6 +362,129 @@ class PhotoEditSaver(
         return square
     }
 
+    private fun scaleBitmapToMaxSide(
+        bitmap: Bitmap,
+        maxSide: Int,
+    ): Bitmap? {
+        val longest = max(bitmap.width, bitmap.height)
+        if (longest <= maxSide) {
+            return bitmap
+        }
+        val scale = maxSide.toFloat() / longest.toFloat()
+        val width = (bitmap.width * scale).roundToInt().coerceAtLeast(1)
+        val height = (bitmap.height * scale).roundToInt().coerceAtLeast(1)
+        return try {
+            Bitmap.createScaledBitmap(bitmap, width, height, true)
+        } catch (_: OutOfMemoryError) {
+            null
+        }
+    }
+
+    /**
+     * Walks inward from each edge while lines stay nearly uniform near-black.
+     * Returns null when no usable content remains.
+     */
+    private fun findNonBlackContentBounds(bitmap: Bitmap): AndroidRect? {
+        val width = bitmap.width
+        val height = bitmap.height
+        if (width < 2 || height < 2) {
+            return null
+        }
+        val sampleStep = max(1, min(width, height) / BlackBarSampleDivisor)
+        val pixels = IntArray(width * height)
+        bitmap.getPixels(pixels, 0, width, 0, 0, width, height)
+
+        fun isBlackLine(
+            horizontal: Boolean,
+            index: Int,
+        ): Boolean {
+            var black = 0
+            var total = 0
+            var sumR = 0
+            var sumG = 0
+            var sumB = 0
+            if (horizontal) {
+                var x = 0
+                while (x < width) {
+                    val color = pixels[index * width + x]
+                    val r = Color.red(color)
+                    val g = Color.green(color)
+                    val b = Color.blue(color)
+                    sumR += r
+                    sumG += g
+                    sumB += b
+                    if (r <= BlackBarChannelMax &&
+                        g <= BlackBarChannelMax &&
+                        b <= BlackBarChannelMax
+                    ) {
+                        black += 1
+                    }
+                    total += 1
+                    x += sampleStep
+                }
+            } else {
+                var y = 0
+                while (y < height) {
+                    val color = pixels[y * width + index]
+                    val r = Color.red(color)
+                    val g = Color.green(color)
+                    val b = Color.blue(color)
+                    sumR += r
+                    sumG += g
+                    sumB += b
+                    if (r <= BlackBarChannelMax &&
+                        g <= BlackBarChannelMax &&
+                        b <= BlackBarChannelMax
+                    ) {
+                        black += 1
+                    }
+                    total += 1
+                    y += sampleStep
+                }
+            }
+            if (total == 0) {
+                return true
+            }
+            val blackRatio = black.toFloat() / total.toFloat()
+            if (blackRatio < BlackBarMinBlackRatio) {
+                return false
+            }
+            // Uniform dark strip (letterbox), not noisy dark photo content.
+            val meanR = sumR.toFloat() / total
+            val meanG = sumG.toFloat() / total
+            val meanB = sumB.toFloat() / total
+            return meanR <= BlackBarMeanMax &&
+                meanG <= BlackBarMeanMax &&
+                meanB <= BlackBarMeanMax
+        }
+
+        var top = 0
+        while (top < height && isBlackLine(horizontal = true, index = top)) {
+            top += 1
+        }
+        var bottom = height - 1
+        while (bottom > top && isBlackLine(horizontal = true, index = bottom)) {
+            bottom -= 1
+        }
+        var left = 0
+        while (left < width && isBlackLine(horizontal = false, index = left)) {
+            left += 1
+        }
+        var right = width - 1
+        while (right > left && isBlackLine(horizontal = false, index = right)) {
+            right -= 1
+        }
+
+        val contentWidth = right - left + 1
+        val contentHeight = bottom - top + 1
+        val minSide = max(2, (min(width, height) * BlackBarMinContentFraction).roundToInt())
+        if (contentWidth < minSide || contentHeight < minSide) {
+            return null
+        }
+        // Inclusive right/bottom in AndroidRect are exclusive for width/height math below.
+        return AndroidRect(left, top, right + 1, bottom + 1)
+    }
+
     private fun cropBitmap(
         bitmap: Bitmap,
         crop: NormalizedCropRect,
@@ -383,6 +551,12 @@ class PhotoEditSaver(
     companion object {
         private const val JPEG_QUALITY = 95
         private const val EDIT_UNDO_BACKUP_PREFIX = "gallery_cleaner_edit_undo_"
+        private const val BlackBarAnalyzeMaxSide = 512
+        private const val BlackBarSampleDivisor = 128
+        private const val BlackBarChannelMax = 18
+        private const val BlackBarMeanMax = 14f
+        private const val BlackBarMinBlackRatio = 0.97f
+        private const val BlackBarMinContentFraction = 0.08f
 
         /**
          * Largest square that fits in the viewport (centered). Crop and rotation use this

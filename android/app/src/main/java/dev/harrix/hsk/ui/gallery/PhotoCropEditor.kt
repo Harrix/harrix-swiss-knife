@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Crop
 import androidx.compose.material.icons.filled.CropFree
 import androidx.compose.material.icons.filled.CropRotate
 import androidx.compose.material.icons.filled.Done
@@ -37,6 +38,7 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -67,6 +69,9 @@ import dev.harrix.hsk.ui.CompactBottomActionButton
 import dev.harrix.hsk.ui.adaptiveBottomBarWidth
 import dev.harrix.hsk.ui.isCompactHeight
 import dev.harrix.hsk.ui.isCompactWidth
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlin.math.abs
 import kotlin.math.hypot
 import kotlin.math.max
@@ -108,6 +113,8 @@ fun PhotoCropEditor(
 ) {
     val context = LocalContext.current
     val density = LocalDensity.current
+    val scope = rememberCoroutineScope()
+    val photoEditSaver = remember { PhotoEditSaver(context.applicationContext) }
     var imageWidth by remember(photo.id, imageRevision) { mutableIntStateOf(0) }
     var imageHeight by remember(photo.id, imageRevision) { mutableIntStateOf(0) }
     // Large hit targets: corners sit near the phone bezel and are hard to grab otherwise.
@@ -125,9 +132,32 @@ fun PhotoCropEditor(
     var viewOffset by remember(photo.id, imageRevision) { mutableStateOf(Offset.Zero) }
     val viewScaleState = rememberUpdatedState(viewScale)
     val viewOffsetState = rememberUpdatedState(viewOffset)
+    var isTrimmingBars by remember { mutableStateOf(false) }
     val isViewTransformed =
         abs(viewScale - 1f) > CropViewZoomEpsilon ||
             hypot(viewOffset.x.toDouble(), viewOffset.y.toDouble()) > 1.0
+
+    fun trimBlackBars() {
+        if (isSaving || isTrimmingBars || imageWidth <= 0) {
+            return
+        }
+        isTrimmingBars = true
+        val degrees = rotationDegrees
+        scope.launch {
+            val rect =
+                withContext(Dispatchers.IO) {
+                    photoEditSaver.cropWithoutBlackBars(
+                        uri = photo.uri,
+                        rotationDegrees = degrees,
+                    )
+                }
+            if (rect != null) {
+                aspectMode = CropAspectMode.Free
+                onCropRectChange(rect)
+            }
+            isTrimmingBars = false
+        }
+    }
 
     LaunchedEffect(imageWidth, imageHeight, didInitCrop) {
         if (!didInitCrop && imageWidth > 0 && imageHeight > 0) {
@@ -523,48 +553,84 @@ fun PhotoCropEditor(
                 )
             }
 
-            if (isViewTransformed && !isSaving && workspace.width > 0f) {
+            if (!isSaving && workspace.width > 0f && imageWidth > 0) {
                 val compactChrome = isCompactWidth() || isCompactHeight()
-                FilledTonalButton(
-                    onClick = {
-                        val visible =
-                            visibleWorkspaceNormalized(
-                                viewportW = viewportW,
-                                viewportH = viewportH,
-                                side = workspace.width,
-                                scale = viewScale,
-                                offset = viewOffset,
-                            )
-                        onCropRectChange(
-                            PhotoEditSaver.fitCropIntoBounds(
-                                rect = cropRect,
-                                bounds = visible,
-                            ),
-                        )
-                    },
+                Row(
                     modifier =
                     Modifier
                         .align(Alignment.TopEnd)
                         .padding(12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    Icon(
-                        imageVector = Icons.Filled.FitScreen,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp),
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text =
-                        stringResource(
-                            if (compactChrome) {
-                                R.string.gallery_cleaner_edit_fit_frame_short
-                            } else {
-                                R.string.gallery_cleaner_edit_fit_frame
+                    FilledTonalButton(
+                        onClick = { trimBlackBars() },
+                        enabled = !isTrimmingBars,
+                    ) {
+                        if (isTrimmingBars) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(18.dp),
+                                strokeWidth = 2.dp,
+                            )
+                        } else {
+                            Icon(
+                                imageVector = Icons.Filled.Crop,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp),
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text =
+                            stringResource(
+                                if (compactChrome) {
+                                    R.string.gallery_cleaner_edit_trim_bars_short
+                                } else {
+                                    R.string.gallery_cleaner_edit_trim_bars
+                                },
+                            ),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                    if (isViewTransformed) {
+                        FilledTonalButton(
+                            onClick = {
+                                val visible =
+                                    visibleWorkspaceNormalized(
+                                        viewportW = viewportW,
+                                        viewportH = viewportH,
+                                        side = workspace.width,
+                                        scale = viewScale,
+                                        offset = viewOffset,
+                                    )
+                                onCropRectChange(
+                                    PhotoEditSaver.fitCropIntoBounds(
+                                        rect = cropRect,
+                                        bounds = visible,
+                                    ),
+                                )
                             },
-                        ),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.FitScreen,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp),
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text =
+                                stringResource(
+                                    if (compactChrome) {
+                                        R.string.gallery_cleaner_edit_fit_frame_short
+                                    } else {
+                                        R.string.gallery_cleaner_edit_fit_frame
+                                    },
+                                ),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                    }
                 }
             }
 

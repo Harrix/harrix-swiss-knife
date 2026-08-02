@@ -154,6 +154,8 @@
     <string name="gallery_cleaner_edit_aspect_free_short">Free</string>
     <string name="gallery_cleaner_edit_fit_frame">Fit frame</string>
     <string name="gallery_cleaner_edit_fit_frame_short">Fit</string>
+    <string name="gallery_cleaner_edit_trim_bars">Trim bars</string>
+    <string name="gallery_cleaner_edit_trim_bars_short">Trim</string>
     <string name="video_cleaner_title">Video Cleaner</string>
     <string name="video_cleaner_close">Exit Video Cleaner</string>
     <string name="video_cleaner_settings">Settings</string>
