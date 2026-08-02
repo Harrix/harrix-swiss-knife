@@ -139,7 +139,6 @@ import java.util.Date
 import kotlin.math.abs
 import kotlin.math.hypot
 import kotlin.math.roundToInt
-import kotlin.random.Random
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -214,23 +213,36 @@ fun GalleryCleanerScreen(
     }
 
     fun orderPhotos(photos: List<CameraPhoto>): List<CameraPhoto> = when (reviewOrder) {
-        GalleryReviewOrder.Random -> photos
+        // Shuffle once per load; session navigation stays sequential so undo/skip keep order.
+        GalleryReviewOrder.Random -> photos.shuffled()
+
         GalleryReviewOrder.OldestFirst -> photos.sortedBy { it.dateTakenEpochMs }
+
         GalleryReviewOrder.NewestFirst -> photos.sortedByDescending { it.dateTakenEpochMs }
     }
 
-    fun pickNext(from: List<CameraPhoto>): CameraPhoto? {
-        if (from.isEmpty()) {
-            return null
-        }
-        val ordered = orderPhotos(from)
-        return when (reviewOrder) {
-            GalleryReviewOrder.Random -> ordered[Random.nextInt(ordered.size)]
+    fun pickNext(from: List<CameraPhoto>): CameraPhoto? = from.firstOrNull()
 
-            GalleryReviewOrder.OldestFirst,
-            GalleryReviewOrder.NewestFirst,
-            -> ordered.first()
-        }
+    /**
+     * Puts [photo] back into the session deck immediately before the current photo
+     * (or at the front), then focuses it — same encounter order as skip after several undos.
+     */
+    fun reinsertAsCurrent(photo: CameraPhoto) {
+        val without = remainingPhotos.filterNot { it.id == photo.id }
+        val currentId = currentPhoto?.id
+        val insertAt =
+            when {
+                currentId == null || currentId == photo.id -> 0
+
+                else ->
+                    without
+                        .indexOfFirst { it.id == currentId }
+                        .takeIf { it >= 0 }
+                        ?: without.size
+            }
+        remainingPhotos = without.toMutableList().also { it.add(insertAt, photo) }
+        remainingCount = remainingPhotos.size
+        currentPhoto = photo
     }
 
     fun existingEditUndo(photoId: Long): PendingEditUndo? = undoStack
@@ -306,10 +318,17 @@ fun GalleryCleanerScreen(
         } else {
             pushKeepUndo(photo)
         }
-        val updated = orderPhotos(remainingPhotos.filterNot { it.id == photo.id })
+        val index = remainingPhotos.indexOfFirst { it.id == photo.id }
+        val updated = remainingPhotos.filterNot { it.id == photo.id }
         remainingPhotos = updated
         remainingCount = updated.size
-        currentPhoto = pickNext(updated)
+        currentPhoto =
+            when {
+                updated.isEmpty() -> null
+                index < 0 -> updated.first()
+                index >= updated.size -> updated.first()
+                else -> updated[index]
+            }
         cardResetKey += 1
         statusMessage = null
     }
@@ -321,23 +340,14 @@ fun GalleryCleanerScreen(
             cardResetKey += 1
             return
         }
-        currentPhoto =
-            when (reviewOrder) {
-                GalleryReviewOrder.Random ->
-                    pickNext(remainingPhotos.filterNot { it.id == photo.id }) ?: photo
-
-                GalleryReviewOrder.OldestFirst,
-                GalleryReviewOrder.NewestFirst,
-                -> {
-                    val ordered = orderPhotos(remainingPhotos)
-                    val index = ordered.indexOfFirst { it.id == photo.id }
-                    if (index < 0) {
-                        ordered.first()
-                    } else {
-                        ordered[(index + 1) % ordered.size]
-                    }
-                }
+        val index = remainingPhotos.indexOfFirst { it.id == photo.id }
+        val nextIndex =
+            if (index < 0) {
+                0
+            } else {
+                (index + 1) % remainingPhotos.size
             }
+        currentPhoto = remainingPhotos[nextIndex]
         cardResetKey += 1
         statusMessage = null
     }
@@ -351,10 +361,7 @@ fun GalleryCleanerScreen(
         sessionDeletedCount = (sessionDeletedCount - 1).coerceAtLeast(0)
         sessionFreedBytes = (sessionFreedBytes - photo.sizeBytes).coerceAtLeast(0L)
         preferences.recordRestoredDeletedPhoto(photo.sizeBytes)
-        val updated = orderPhotos(remainingPhotos + photo)
-        remainingPhotos = updated
-        remainingCount = updated.size
-        currentPhoto = photo
+        reinsertAsCurrent(photo)
         removeDeleteUndo(photo.id)
         cardResetKey += 1
         statusMessage = null
@@ -366,16 +373,7 @@ fun GalleryCleanerScreen(
             preferences.unmarkPhotoReviewed(photo.id)
         }
         sessionReviewedCount = (sessionReviewedCount - 1).coerceAtLeast(0)
-        remainingPhotos =
-            orderPhotos(
-                if (remainingPhotos.any { it.id == photo.id }) {
-                    remainingPhotos
-                } else {
-                    remainingPhotos + photo
-                },
-            )
-        remainingCount = remainingPhotos.size
-        currentPhoto = photo
+        reinsertAsCurrent(photo)
         removeKeepUndo(photo.id)
         cardResetKey += 1
         statusMessage = null
@@ -611,14 +609,20 @@ fun GalleryCleanerScreen(
     fun applyRestoredEdit(undo: PendingEditUndo) {
         view.performLightActionHaptic()
         val restored = undo.photoSnapshot.copy(sizeBytes = undo.originalSizeBytes)
-        remainingPhotos =
-            if (remainingPhotos.any { it.id == restored.id }) {
-                remainingPhotos.map { if (it.id == restored.id) restored else it }
-            } else {
-                remainingPhotos + restored
-            }
-        remainingCount = remainingPhotos.size
-        currentPhoto = restored
+        if (remainingPhotos.any { it.id == restored.id }) {
+            remainingPhotos =
+                remainingPhotos.map { photo ->
+                    if (photo.id == restored.id) {
+                        restored
+                    } else {
+                        photo
+                    }
+                }
+            remainingCount = remainingPhotos.size
+            currentPhoto = restored
+        } else {
+            reinsertAsCurrent(restored)
+        }
         removeEditUndo(undo.photoId)
         editImageRevision += 1
         cardResetKey += 1
