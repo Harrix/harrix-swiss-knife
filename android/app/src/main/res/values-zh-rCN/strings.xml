@@ -124,6 +124,7 @@
     <string name="gallery_cleaner_menu">更多选择</string>
     <string name="gallery_cleaner_settings">设置</string>
     <string name="gallery_cleaner_clear_date_filter">清除日期过滤器</string>
+    <string name="gallery_cleaner_date_filter">日期筛选</string>
     <string name="gallery_cleaner_enable_unreviewed_only">启用仅未审核模式</string>
     <string name="gallery_cleaner_disable_unreviewed_only">禁用仅未审阅模式</string>
     <string name="gallery_cleaner_date_range_from">从</string>

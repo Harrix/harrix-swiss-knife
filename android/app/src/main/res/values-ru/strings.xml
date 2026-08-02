@@ -124,6 +124,7 @@
     <string name="gallery_cleaner_menu">Больше возможностей</string>
     <string name="gallery_cleaner_settings">Настройки</string>
     <string name="gallery_cleaner_clear_date_filter">Очистить фильтр дат</string>
+    <string name="gallery_cleaner_date_filter">Фильтр по дате</string>
     <string name="gallery_cleaner_enable_unreviewed_only">Включить режим «только для непроверенных»</string>
     <string name="gallery_cleaner_disable_unreviewed_only">Отключить режим «только для непроверенных»</string>
     <string name="gallery_cleaner_date_range_from">От</string>

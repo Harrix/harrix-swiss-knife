@@ -54,6 +54,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Crop
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Done
+import androidx.compose.material.icons.filled.FilterAlt
 import androidx.compose.material.icons.filled.FilterAltOff
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
@@ -183,6 +184,7 @@ fun GalleryCleanerScreen(
     var undoStack by viewModel.undoStack
     var cardResetKey by viewModel.cardResetKey
     var menuExpanded by remember { mutableStateOf(false) }
+    var showDateFilterDialog by remember { mutableStateOf(false) }
     var dateFilter by viewModel.dateFilter
     var unreviewedOnlyMode by viewModel.unreviewedOnlyMode
     var reviewOrder by viewModel.reviewOrder
@@ -537,9 +539,19 @@ fun GalleryCleanerScreen(
 
     BackHandler {
         when {
+            showDateFilterDialog -> {
+                showDateFilterDialog = false
+                if (hasPermission && !showIntro) {
+                    reloadPhotos()
+                }
+            }
+
             showStatsDialog -> showStatsDialog = false
+
             menuExpanded -> menuExpanded = false
+
             isEditing -> exitEditMode()
+
             else -> leaveCleaner()
         }
     }
@@ -799,6 +811,51 @@ fun GalleryCleanerScreen(
         }
     }
 
+    if (showDateFilterDialog) {
+        val shootDayEpochMs = currentPhoto?.dateTakenEpochMs
+        val shootDayLabel =
+            remember(shootDayEpochMs) {
+                shootDayEpochMs?.let { epochMs ->
+                    DateFormat
+                        .getDateInstance(DateFormat.MEDIUM)
+                        .format(Date(epochMs))
+                }
+            }
+        AlertDialog(
+            onDismissRequest = {
+                showDateFilterDialog = false
+                if (hasPermission && !showIntro) {
+                    reloadPhotos()
+                }
+            },
+            title = { Text(stringResource(R.string.gallery_cleaner_date_filter)) },
+            text = {
+                GalleryDateFilterSettingsContent(
+                    filter = dateFilter,
+                    onFilterChange = { next ->
+                        preferences.saveDateFilter(next)
+                        dateFilter = next
+                    },
+                    shootDayEpochMs = shootDayEpochMs,
+                    shootDayLabel = shootDayLabel,
+                    modifier = Modifier.dialogScrollable(),
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDateFilterDialog = false
+                        if (hasPermission && !showIntro) {
+                            reloadPhotos()
+                        }
+                    },
+                ) {
+                    Text(stringResource(R.string.gallery_cleaner_stats_ok))
+                }
+            },
+        )
+    }
+
     if (showStatsDialog) {
         var statsTick by remember { mutableIntStateOf(0) }
         val reviewedTotal = remember(statsTick) { preferences.reviewedPhotoCount() }
@@ -1010,6 +1067,25 @@ fun GalleryCleanerScreen(
                                     expanded = menuExpanded,
                                     onDismissRequest = { menuExpanded = false },
                                 ) {
+                                    DropdownMenuItem(
+                                        text = {
+                                            Text(
+                                                stringResource(
+                                                    R.string.gallery_cleaner_date_filter,
+                                                ),
+                                            )
+                                        },
+                                        leadingIcon = {
+                                            Icon(
+                                                imageVector = Icons.Filled.FilterAlt,
+                                                contentDescription = null,
+                                            )
+                                        },
+                                        onClick = {
+                                            menuExpanded = false
+                                            showDateFilterDialog = true
+                                        },
+                                    )
                                     if (currentPhoto != null) {
                                         DropdownMenuItem(
                                             text = {

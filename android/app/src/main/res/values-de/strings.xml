@@ -124,6 +124,7 @@
     <string name="gallery_cleaner_menu">Weitere Optionen</string>
     <string name="gallery_cleaner_settings">Einstellungen</string>
     <string name="gallery_cleaner_clear_date_filter">Datumsfilter löschen</string>
+    <string name="gallery_cleaner_date_filter">Datumsfilter</string>
     <string name="gallery_cleaner_enable_unreviewed_only">Aktivieren Sie den Modus „Nur ungeprüft“.</string>
     <string name="gallery_cleaner_disable_unreviewed_only">Deaktivieren Sie den Modus „Nur nicht überprüft“.</string>
     <string name="gallery_cleaner_date_range_from">Aus</string>

@@ -124,6 +124,7 @@
     <string name="gallery_cleaner_menu">その他のオプション</string>
     <string name="gallery_cleaner_settings">設定</string>
     <string name="gallery_cleaner_clear_date_filter">日付フィルターをクリア</string>
+    <string name="gallery_cleaner_date_filter">日付フィルター</string>
     <string name="gallery_cleaner_enable_unreviewed_only">未レビュー専用モードを有効にする</string>
     <string name="gallery_cleaner_disable_unreviewed_only">未レビュー専用モードを無効にする</string>
     <string name="gallery_cleaner_date_range_from">から</string>

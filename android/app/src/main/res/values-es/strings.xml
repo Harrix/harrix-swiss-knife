@@ -124,6 +124,7 @@
     <string name="gallery_cleaner_menu">Más opciones</string>
     <string name="gallery_cleaner_settings">Ajustes</string>
     <string name="gallery_cleaner_clear_date_filter">Borrar filtro de fecha</string>
+    <string name="gallery_cleaner_date_filter">Filtro de fecha</string>
     <string name="gallery_cleaner_enable_unreviewed_only">Habilitar el modo solo sin revisar</string>
     <string name="gallery_cleaner_disable_unreviewed_only">Deshabilitar el modo solo sin revisar</string>
     <string name="gallery_cleaner_date_range_from">De</string>

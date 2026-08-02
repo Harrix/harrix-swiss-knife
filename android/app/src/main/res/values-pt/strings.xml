@@ -124,6 +124,7 @@
     <string name="gallery_cleaner_menu">Mais opções</string>
     <string name="gallery_cleaner_settings">Configurações</string>
     <string name="gallery_cleaner_clear_date_filter">Limpar filtro de data</string>
+    <string name="gallery_cleaner_date_filter">Filtro de data</string>
     <string name="gallery_cleaner_enable_unreviewed_only">Ativar modo somente não revisado</string>
     <string name="gallery_cleaner_disable_unreviewed_only">Desativar modo somente não revisado</string>
     <string name="gallery_cleaner_date_range_from">De</string>
