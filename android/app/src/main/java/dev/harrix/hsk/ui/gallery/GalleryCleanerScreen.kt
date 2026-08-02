@@ -6,6 +6,7 @@ import android.content.ClipData
 import android.content.Intent
 import android.content.IntentSender
 import android.content.pm.PackageManager
+import android.content.res.Configuration
 import android.net.Uri
 import android.os.Build
 import android.provider.Settings
@@ -27,6 +28,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -71,6 +73,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -121,6 +124,7 @@ import dev.harrix.hsk.gallery.NormalizedCropRect
 import dev.harrix.hsk.gallery.PendingEditUndo
 import dev.harrix.hsk.gallery.PhotoEditSaver
 import dev.harrix.hsk.ui.CompactBottomActionButton
+import dev.harrix.hsk.ui.CompactWideActionButton
 import dev.harrix.hsk.ui.adaptiveBottomBarWidth
 import dev.harrix.hsk.ui.isCompactHeight
 import dev.harrix.hsk.ui.isCompactWidth
@@ -1160,7 +1164,11 @@ fun GalleryCleanerScreen(
             }
         },
         bottomBar = {
-            if (hasPermission && currentPhoto != null && !isEditing) {
+            val isLandscape =
+                LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
+            val showPortraitActions =
+                hasPermission && currentPhoto != null && !isEditing && !isLandscape
+            if (showPortraitActions) {
                 val photo = currentPhoto!!
                 ReviewActionBar(
                     onDelete = { deletePhoto(photo) },
@@ -1175,6 +1183,8 @@ fun GalleryCleanerScreen(
             }
         },
     ) { innerPadding ->
+        val isLandscape =
+            LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
         Box(
             modifier =
             Modifier
@@ -1255,6 +1265,51 @@ fun GalleryCleanerScreen(
                             onDiscard = { exitEditMode() },
                             modifier = Modifier.fillMaxSize(),
                         )
+                    } else if (isLandscape) {
+                        Row(modifier = Modifier.fillMaxSize()) {
+                            SwipeablePhotoCard(
+                                photo = photo,
+                                resetKey = cardResetKey,
+                                imageRevision = editImageRevision,
+                                onDelete = { deletePhoto(photo) },
+                                onKeep = { advanceAfterReview(photo) },
+                                showMetadata = false,
+                                modifier =
+                                Modifier
+                                    .weight(1f)
+                                    .fillMaxHeight(),
+                            )
+                            Column(
+                                modifier =
+                                Modifier
+                                    .weight(0.42f)
+                                    .widthIn(max = 360.dp)
+                                    .fillMaxHeight()
+                                    .background(MaterialTheme.colorScheme.surfaceContainer)
+                                    .windowInsetsPadding(WindowInsets.navigationBars)
+                                    .padding(horizontal = 12.dp, vertical = 12.dp),
+                                verticalArrangement = Arrangement.spacedBy(12.dp),
+                            ) {
+                                PhotoMetaInfo(
+                                    photo = photo,
+                                    compact = false,
+                                    modifier = Modifier.fillMaxWidth(),
+                                )
+                                Spacer(modifier = Modifier.weight(1f))
+                                ReviewActionBar(
+                                    onDelete = { deletePhoto(photo) },
+                                    onKeep = { advanceAfterReview(photo) },
+                                    onSkip =
+                                    if (unreviewedOnlyMode) {
+                                        { skipPhoto(photo) }
+                                    } else {
+                                        null
+                                    },
+                                    vertical = true,
+                                    modifier = Modifier.fillMaxWidth(),
+                                )
+                            }
+                        }
                     } else {
                         SwipeablePhotoCard(
                             photo = photo,
@@ -1294,23 +1349,14 @@ private fun ReviewActionBar(
     onKeep: () -> Unit,
     modifier: Modifier = Modifier,
     onSkip: (() -> Unit)? = null,
+    vertical: Boolean = false,
 ) {
-    Box(
-        modifier =
-        modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surfaceContainer)
-            .windowInsetsPadding(WindowInsets.navigationBars),
-        contentAlignment = Alignment.Center,
-    ) {
-        Row(
-            modifier =
-            Modifier
-                .adaptiveBottomBarWidth()
-                .padding(horizontal = 12.dp, vertical = 10.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+    if (vertical) {
+        Column(
+            modifier = modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            CompactBottomActionButton(
+            CompactWideActionButton(
                 onClick = onDelete,
                 icon = Icons.Filled.Delete,
                 label = stringResource(R.string.gallery_cleaner_action_delete),
@@ -1321,18 +1367,74 @@ private fun ReviewActionBar(
                 ),
             )
             if (onSkip != null) {
-                CompactBottomActionButton(
+                OutlinedButton(
                     onClick = onSkip,
-                    icon = Icons.Filled.SkipNext,
-                    label = stringResource(R.string.gallery_cleaner_action_skip),
-                    outlined = true,
-                )
+                    modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 56.dp),
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.SkipNext,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = stringResource(R.string.gallery_cleaner_action_skip),
+                        style = MaterialTheme.typography.labelLarge,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
             }
-            CompactBottomActionButton(
+            CompactWideActionButton(
                 onClick = onKeep,
                 icon = Icons.Filled.Done,
                 label = stringResource(R.string.gallery_cleaner_action_keep),
             )
+        }
+    } else {
+        Box(
+            modifier =
+            modifier
+                .fillMaxWidth()
+                .background(MaterialTheme.colorScheme.surfaceContainer)
+                .windowInsetsPadding(WindowInsets.navigationBars),
+            contentAlignment = Alignment.Center,
+        ) {
+            Row(
+                modifier =
+                Modifier
+                    .adaptiveBottomBarWidth()
+                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                CompactBottomActionButton(
+                    onClick = onDelete,
+                    icon = Icons.Filled.Delete,
+                    label = stringResource(R.string.gallery_cleaner_action_delete),
+                    colors =
+                    ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error,
+                        contentColor = MaterialTheme.colorScheme.onError,
+                    ),
+                )
+                if (onSkip != null) {
+                    CompactBottomActionButton(
+                        onClick = onSkip,
+                        icon = Icons.Filled.SkipNext,
+                        label = stringResource(R.string.gallery_cleaner_action_skip),
+                        outlined = true,
+                    )
+                }
+                CompactBottomActionButton(
+                    onClick = onKeep,
+                    icon = Icons.Filled.Done,
+                    label = stringResource(R.string.gallery_cleaner_action_keep),
+                )
+            }
         }
     }
 }
@@ -1459,6 +1561,7 @@ private fun SwipeablePhotoCard(
     onDelete: () -> Unit,
     onKeep: () -> Unit,
     modifier: Modifier = Modifier,
+    showMetadata: Boolean = true,
 ) {
     val density = LocalDensity.current
     val scope = rememberCoroutineScope()
@@ -1470,19 +1573,6 @@ private fun SwipeablePhotoCard(
     var viewportSize by remember(resetKey) { mutableStateOf(IntSize.Zero) }
     val dismissThreshold = with(density) { 96.dp.toPx() }
     val exitDistance = with(density) { 480.dp.toPx() }
-    val dateLabel =
-        remember(photo.dateTakenEpochMs) {
-            DateFormat
-                .getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT)
-                .format(Date(photo.dateTakenEpochMs))
-        }
-    val sizeLabel =
-        remember(photo.sizeBytes) {
-            CameraGalleryRepository.formatFileSize(photo.sizeBytes)
-        }
-    val nameLabel =
-        photo.displayName?.takeIf { it.isNotBlank() }
-            ?: stringResource(R.string.gallery_cleaner_untitled)
     val isZoomed = zoomScale > 1.01f
 
     LaunchedEffect(resetKey) {
@@ -1708,48 +1798,75 @@ private fun SwipeablePhotoCard(
             )
         }
 
-        val compactMeta = isCompactHeight()
-        Column(
-            modifier =
-            Modifier
-                .fillMaxWidth()
-                .background(MaterialTheme.colorScheme.background)
-                .padding(
-                    horizontal = 16.dp,
-                    vertical = if (compactMeta) 6.dp else 10.dp,
-                ),
-            verticalArrangement = Arrangement.spacedBy(2.dp),
-        ) {
-            if (compactMeta) {
-                Text(
-                    text = "$dateLabel · $sizeLabel",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            } else {
-                Text(
-                    text = nameLabel,
-                    style = MaterialTheme.typography.titleSmall,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    text = dateLabel,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    text = sizeLabel,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
+        if (showMetadata) {
+            PhotoMetaInfo(
+                photo = photo,
+                compact = isCompactHeight(),
+                modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .background(MaterialTheme.colorScheme.background),
+            )
+        }
+    }
+}
+
+@Composable
+private fun PhotoMetaInfo(
+    photo: CameraPhoto,
+    compact: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    val dateLabel =
+        remember(photo.dateTakenEpochMs) {
+            DateFormat
+                .getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT)
+                .format(Date(photo.dateTakenEpochMs))
+        }
+    val sizeLabel =
+        remember(photo.sizeBytes) {
+            CameraGalleryRepository.formatFileSize(photo.sizeBytes)
+        }
+    val nameLabel =
+        photo.displayName?.takeIf { it.isNotBlank() }
+            ?: stringResource(R.string.gallery_cleaner_untitled)
+    Column(
+        modifier =
+        modifier.padding(
+            horizontal = 16.dp,
+            vertical = if (compact) 6.dp else 10.dp,
+        ),
+        verticalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
+        if (compact) {
+            Text(
+                text = "$dateLabel · $sizeLabel",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        } else {
+            Text(
+                text = nameLabel,
+                style = MaterialTheme.typography.titleSmall,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                text = dateLabel,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                text = sizeLabel,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
     }
 }
