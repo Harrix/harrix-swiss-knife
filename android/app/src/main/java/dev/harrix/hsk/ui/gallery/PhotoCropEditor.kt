@@ -249,9 +249,16 @@ fun PhotoCropEditor(
                         )
 
                     Canvas(modifier = Modifier.fillMaxSize()) {
+                        // Canvas lives inside zoomed graphicsLayer — divide by scale so
+                        // strokes and corner handles stay constant on screen.
+                        val invScale = 1f / viewScale.coerceAtLeast(1e-6f)
+                        val workspaceStroke = 1.dp.toPx() * invScale
+                        val cropStroke = 2.dp.toPx() * invScale
+                        val guideStroke = 1.dp.toPx() * invScale
+                        val handle = handleVisualPx * invScale
                         drawRect(
                             color = Color.White.copy(alpha = 0.35f),
-                            style = Stroke(width = 1.dp.toPx()),
+                            style = Stroke(width = workspaceStroke),
                         )
                         val dimPath =
                             Path().apply {
@@ -264,10 +271,9 @@ fun PhotoCropEditor(
                             color = Color.White,
                             topLeft = Offset(cropPx.left, cropPx.top),
                             size = Size(cropPx.width, cropPx.height),
-                            style = Stroke(width = 2.dp.toPx()),
+                            style = Stroke(width = cropStroke),
                         )
                         val guideColor = Color.White.copy(alpha = 0.7f)
-                        val guideStroke = 1.dp.toPx()
                         val thirdW = cropPx.width / 3f
                         val thirdH = cropPx.height / 3f
                         for (i in 1..2) {
@@ -300,7 +306,6 @@ fun PhotoCropEditor(
                             end = Offset(cropPx.right, midY),
                             strokeWidth = guideStroke,
                         )
-                        val handle = handleVisualPx
                         val corners =
                             listOf(
                                 Offset(cropPx.left, cropPx.top),
@@ -392,11 +397,14 @@ fun PhotoCropEditor(
                                                         right = currentCrop.right * side,
                                                         bottom = currentCrop.bottom * side,
                                                     )
+                                                val hitSlop =
+                                                    handleHitSlopPx /
+                                                        viewScaleState.value.coerceAtLeast(1e-6f)
                                                 cropMode =
                                                     hitTestCropHandle(
                                                         change.position,
                                                         currentCropPx,
-                                                        handleHitSlopPx,
+                                                        hitSlop,
                                                     )
                                             } else if (
                                                 imageHeight > 0 &&
@@ -519,10 +527,20 @@ fun PhotoCropEditor(
                 val compactChrome = isCompactWidth() || isCompactHeight()
                 FilledTonalButton(
                     onClick = {
-                        // Return the workspace (image + crop grid) to 1×; crop stays in
-                        // normalized coords and simply draws at the unzoomed size again.
-                        viewScale = 1f
-                        viewOffset = Offset.Zero
+                        val visible =
+                            visibleWorkspaceNormalized(
+                                viewportW = viewportW,
+                                viewportH = viewportH,
+                                side = workspace.width,
+                                scale = viewScale,
+                                offset = viewOffset,
+                            )
+                        onCropRectChange(
+                            PhotoEditSaver.fitCropIntoBounds(
+                                rect = cropRect,
+                                bounds = visible,
+                            ),
+                        )
                     },
                     modifier =
                     Modifier
@@ -715,6 +733,40 @@ private fun clampCropViewOffset(
         x = offset.x.coerceIn(-maxX, maxX),
         y = offset.y.coerceIn(-maxY, maxY),
     )
+}
+
+/**
+ * Normalized region of the square workspace currently visible in the viewport.
+ * Matches center-origin [graphicsLayer] scale + translation on a centered square.
+ */
+private fun visibleWorkspaceNormalized(
+    viewportW: Float,
+    viewportH: Float,
+    side: Float,
+    scale: Float,
+    offset: Offset,
+): NormalizedCropRect {
+    val s = scale.coerceAtLeast(1e-6f)
+    val centerX = viewportW / 2f
+    val centerY = viewportH / 2f
+    fun parentToNorm(
+        px: Float,
+        py: Float,
+    ): Pair<Float, Float> {
+        val lx = side / 2f + (px - centerX - offset.x) / s
+        val ly = side / 2f + (py - centerY - offset.y) / s
+        return (lx / side) to (ly / side)
+    }
+    val (nLeft, nTop) = parentToNorm(0f, 0f)
+    val (nRight, nBottom) = parentToNorm(viewportW, viewportH)
+    val left = min(nLeft, nRight).coerceIn(0f, 1f)
+    val top = min(nTop, nBottom).coerceIn(0f, 1f)
+    val right = max(nLeft, nRight).coerceIn(0f, 1f)
+    val bottom = max(nTop, nBottom).coerceIn(0f, 1f)
+    if (right - left < 0.06f || bottom - top < 0.06f) {
+        return NormalizedCropRect.Full
+    }
+    return NormalizedCropRect(left, top, right, bottom)
 }
 
 /**
