@@ -85,7 +85,7 @@ private val UtilityCardCompactIconSize = 36.dp
 private val TopBarLogoSize = 28.dp
 private val DrawerLogoSize = 40.dp
 private val DrawerMaxWidth = 320.dp
-private val DrawerItemShape = RoundedCornerShape(8.dp)
+private val DrawerItemShape = RoundedCornerShape(4.dp)
 private val DrawerItemPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
 
 private enum class AppDestination {
