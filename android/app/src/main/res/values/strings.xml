@@ -169,6 +169,7 @@
     <string name="video_cleaner_loading">Loading videos…</string>
     <string name="video_cleaner_delete_selected">Delete selected (%1$d)</string>
     <string name="video_cleaner_delete_selected_short">Delete (%1$d)</string>
+    <string name="video_cleaner_total_size">Total: %1$s</string>
     <string name="video_cleaner_selected_size">Selected: %1$s</string>
     <string name="video_cleaner_delete_failed">Could not delete selected videos</string>
     <string name="video_cleaner_untitled">Untitled video</string>

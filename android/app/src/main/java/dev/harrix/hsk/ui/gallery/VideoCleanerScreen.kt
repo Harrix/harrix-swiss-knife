@@ -352,6 +352,7 @@ fun VideoCleanerScreen(
         }
     val selectedVideos = sortedVideos.filter { it.id in selectedIds }
     val selectedBytes = selectedVideos.sumOf { it.sizeBytes }
+    val totalBytes = remember(videos) { videos.sumOf { it.sizeBytes } }
     val useLandscapeSplit =
         LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE &&
             !isTablet()
@@ -362,11 +363,26 @@ fun VideoCleanerScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Text(
-                        text = stringResource(R.string.video_cleaner_title),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
+                    Column {
+                        Text(
+                            text = stringResource(R.string.video_cleaner_title),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        if (hasPermission && videos.isNotEmpty()) {
+                            Text(
+                                text =
+                                stringResource(
+                                    R.string.video_cleaner_total_size,
+                                    CameraGalleryRepository.formatFileSize(totalBytes),
+                                ),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                    }
                 },
                 navigationIcon = {
                     IconButton(onClick = { leaveCleaner() }) {
