@@ -33,6 +33,8 @@
     <string name="settings_gallery_cleaner_title">Gallery Cleaner</string>
     <string name="settings_gallery_cleaner_summary">Ordner, Prüfreihenfolge, Datumsfilter</string>
     <string name="settings_video_cleaner_title">Video Cleaner</string>
+    <string name="settings_video_cleaner_summary">Löschstatistiken</string>
+    <string name="settings_video_reset_stats_hint">Löscht die Gesamtzahl gelöschter Videos und den freigegebenen Speicher.</string>
     <string name="settings_gallery_date_filter_enabled">Fotos nach Datum filtern</string>
     <string name="settings_gallery_date_presets">Schnelle Reichweiten</string>
     <string name="settings_gallery_preset_1_day">1 Tag</string>

@@ -33,6 +33,8 @@
     <string name="settings_gallery_cleaner_title">Gallery Cleaner</string>
     <string name="settings_gallery_cleaner_summary">Folder, review order, date filter</string>
     <string name="settings_video_cleaner_title">Video Cleaner</string>
+    <string name="settings_video_cleaner_summary">Delete statistics</string>
+    <string name="settings_video_reset_stats_hint">Clears all-time deleted count and freed space.</string>
     <string name="settings_gallery_date_filter_enabled">Filter photos by date</string>
     <string name="settings_gallery_date_presets">Quick ranges</string>
     <string name="settings_gallery_preset_1_day">1 day</string>

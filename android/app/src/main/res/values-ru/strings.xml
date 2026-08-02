@@ -33,6 +33,8 @@
     <string name="settings_gallery_cleaner_title">Gallery Cleaner</string>
     <string name="settings_gallery_cleaner_summary">Папка, порядок просмотра, фильтр по дате</string>
     <string name="settings_video_cleaner_title">Video Cleaner</string>
+    <string name="settings_video_cleaner_summary">Статистика удаления</string>
+    <string name="settings_video_reset_stats_hint">Сбрасывает счётчики удалённых видео и освобождённого места за всё время.</string>
     <string name="settings_gallery_date_filter_enabled">Фильтровать фотографии по дате</string>
     <string name="settings_gallery_date_presets">Быстрые диапазоны</string>
     <string name="settings_gallery_preset_1_day">1 день</string>

@@ -23,6 +23,17 @@ class VideoCleanerPreferences(
         adjustLifetimeDeleteStats(deletedDelta = count, freedBytesDelta = sizeBytes)
     }
 
+    /** Clears all-time deleted count and freed space. */
+    fun clearLifetimeDeleteStats() {
+        synchronized(this) {
+            prefs
+                .edit()
+                .remove(KEY_TOTAL_DELETED_COUNT)
+                .remove(KEY_TOTAL_FREED_BYTES)
+                .apply()
+        }
+    }
+
     private fun adjustLifetimeDeleteStats(
         deletedDelta: Int,
         freedBytesDelta: Long,

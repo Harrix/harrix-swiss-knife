@@ -33,6 +33,8 @@
     <string name="settings_gallery_cleaner_title">Gallery Cleaner</string>
     <string name="settings_gallery_cleaner_summary">Dossier, ordre de revue, filtre de date</string>
     <string name="settings_video_cleaner_title">Video Cleaner</string>
+    <string name="settings_video_cleaner_summary">Statistiques de suppression</string>
+    <string name="settings_video_reset_stats_hint">Efface le nombre total de suppressions et l\'espace libéré.</string>
     <string name="settings_gallery_date_filter_enabled">Filtrer les photos par date</string>
     <string name="settings_gallery_date_presets">Gammes rapides</string>
     <string name="settings_gallery_preset_1_day">1 jour</string>

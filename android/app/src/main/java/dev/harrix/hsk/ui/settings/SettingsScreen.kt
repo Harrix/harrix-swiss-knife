@@ -23,6 +23,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
@@ -76,6 +77,7 @@ import dev.harrix.hsk.gallery.GalleryDateFilter
 import dev.harrix.hsk.gallery.GalleryPermissions
 import dev.harrix.hsk.gallery.GalleryReviewOrder
 import dev.harrix.hsk.gallery.MediaFolderPaths
+import dev.harrix.hsk.gallery.VideoCleanerPreferences
 import dev.harrix.hsk.ui.adaptiveContentWidth
 import dev.harrix.hsk.ui.gallery.GalleryDateFilterSettingsContent
 import dev.harrix.hsk.ui.isCompactWidth
@@ -97,6 +99,7 @@ private enum class HskSettingsPage {
     Hub,
     Appearance,
     Gallery,
+    Video,
     Permissions,
 }
 
@@ -134,13 +137,7 @@ fun SettingsScreen(
     currentShootDayEpochMs: Long? = null,
 ) {
     var page by rememberSaveable(section) {
-        mutableStateOf(
-            when (section) {
-                SettingsSection.All -> HskSettingsPage.Hub
-                SettingsSection.GalleryCleaner -> HskSettingsPage.Gallery
-                SettingsSection.VideoCleaner -> HskSettingsPage.Hub
-            },
-        )
+        mutableStateOf(HskSettingsPage.Hub)
     }
 
     val pageTitle =
@@ -148,8 +145,14 @@ fun SettingsScreen(
             HskSettingsPage.Hub -> stringResource(R.string.settings_title)
             HskSettingsPage.Appearance -> stringResource(R.string.settings_appearance_title)
             HskSettingsPage.Gallery -> stringResource(R.string.settings_gallery_cleaner_title)
+            HskSettingsPage.Video -> stringResource(R.string.settings_video_cleaner_title)
             HskSettingsPage.Permissions -> stringResource(R.string.settings_permissions_title)
         }
+
+    val showGalleryTool =
+        section == SettingsSection.All || section == SettingsSection.GalleryCleaner
+    val showVideoTool =
+        section == SettingsSection.All || section == SettingsSection.VideoCleaner
 
     fun goBack() {
         if (page == HskSettingsPage.Hub) {
@@ -200,14 +203,29 @@ fun SettingsScreen(
                         icon = Icons.Filled.Palette,
                         onClick = { page = HskSettingsPage.Appearance },
                     )
-                    HorizontalDivider()
-                    SettingsCategoryHeader(text = stringResource(R.string.settings_category_tools))
-                    SettingsHubRow(
-                        title = stringResource(R.string.settings_gallery_cleaner_title),
-                        summary = stringResource(R.string.settings_gallery_cleaner_summary),
-                        icon = Icons.Filled.PhotoLibrary,
-                        onClick = { page = HskSettingsPage.Gallery },
-                    )
+                    if (showGalleryTool || showVideoTool) {
+                        HorizontalDivider()
+                        SettingsCategoryHeader(text = stringResource(R.string.settings_category_tools))
+                        if (showGalleryTool) {
+                            SettingsHubRow(
+                                title = stringResource(R.string.settings_gallery_cleaner_title),
+                                summary = stringResource(R.string.settings_gallery_cleaner_summary),
+                                icon = Icons.Filled.PhotoLibrary,
+                                onClick = { page = HskSettingsPage.Gallery },
+                            )
+                        }
+                        if (showVideoTool) {
+                            if (showGalleryTool) {
+                                HorizontalDivider()
+                            }
+                            SettingsHubRow(
+                                title = stringResource(R.string.settings_video_cleaner_title),
+                                summary = stringResource(R.string.settings_video_cleaner_summary),
+                                icon = Icons.Filled.Videocam,
+                                onClick = { page = HskSettingsPage.Video },
+                            )
+                        }
+                    }
                     HorizontalDivider()
                     SettingsCategoryHeader(text = stringResource(R.string.settings_category_main))
                     SettingsHubRow(
@@ -216,6 +234,14 @@ fun SettingsScreen(
                         icon = Icons.Filled.Security,
                         onClick = { page = HskSettingsPage.Permissions },
                     )
+                    if (onOpenAllSettings != null && section != SettingsSection.All) {
+                        TextButton(
+                            onClick = onOpenAllSettings,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp),
+                        ) {
+                            Text(stringResource(R.string.settings_open_all))
+                        }
+                    }
                 }
             }
 
@@ -235,11 +261,12 @@ fun SettingsScreen(
                     GalleryCleanerSettingsSection(
                         currentShootDayEpochMs = currentShootDayEpochMs,
                     )
-                    if (onOpenAllSettings != null && section != SettingsSection.All) {
-                        TextButton(onClick = onOpenAllSettings) {
-                            Text(stringResource(R.string.settings_open_all))
-                        }
-                    }
+                }
+            }
+
+            HskSettingsPage.Video -> {
+                SettingsDetailPane(innerPadding = innerPadding) {
+                    VideoCleanerSettingsSection()
                 }
             }
 
@@ -541,6 +568,61 @@ private fun PermissionsSettingsSection(modifier: Modifier = Modifier) {
             label = stringResource(R.string.settings_show_manage_media_tip),
         )
         manageMediaTipMessage?.let { message ->
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+@Composable
+private fun VideoCleanerSettingsSection(modifier: Modifier = Modifier) {
+    val context = LocalContext.current
+    val preferences = remember { VideoCleanerPreferences(context.applicationContext) }
+    var lifetimeDeletedCount by remember { mutableIntStateOf(preferences.totalDeletedCount()) }
+    var lifetimeFreedBytes by remember { mutableLongStateOf(preferences.totalFreedBytes()) }
+    var resetStatsMessage by remember { mutableStateOf<String?>(null) }
+
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Text(
+            text =
+            stringResource(
+                R.string.video_cleaner_stats_deleted,
+                lifetimeDeletedCount,
+            ),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Text(
+            text =
+            stringResource(
+                R.string.video_cleaner_stats_freed,
+                CameraGalleryRepository.formatFileSize(lifetimeFreedBytes),
+            ),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Text(
+            text = stringResource(R.string.settings_video_reset_stats_hint),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        SettingsFullWidthOutlinedButton(
+            onClick = {
+                preferences.clearLifetimeDeleteStats()
+                lifetimeDeletedCount = 0
+                lifetimeFreedBytes = 0L
+                resetStatsMessage = context.getString(R.string.settings_gallery_reset_stats_done)
+            },
+            enabled = lifetimeDeletedCount > 0 || lifetimeFreedBytes > 0L,
+            label = stringResource(R.string.settings_gallery_reset_stats),
+        )
+        resetStatsMessage?.let { message ->
             Text(
                 text = message,
                 style = MaterialTheme.typography.bodySmall,

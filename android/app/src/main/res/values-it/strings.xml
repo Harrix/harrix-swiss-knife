@@ -33,6 +33,8 @@
     <string name="settings_gallery_cleaner_title">Gallery Cleaner</string>
     <string name="settings_gallery_cleaner_summary">Cartella, ordine di revisione, filtro data</string>
     <string name="settings_video_cleaner_title">Video Cleaner</string>
+    <string name="settings_video_cleaner_summary">Statistiche di eliminazione</string>
+    <string name="settings_video_reset_stats_hint">Cancella il conteggio totale delle eliminazioni e lo spazio liberato.</string>
     <string name="settings_gallery_date_filter_enabled">Filtra le foto per data</string>
     <string name="settings_gallery_date_presets">Intervalli rapidi</string>
     <string name="settings_gallery_preset_1_day">1 giorno</string>

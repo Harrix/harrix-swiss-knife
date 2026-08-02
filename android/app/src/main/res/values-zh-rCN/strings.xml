@@ -33,6 +33,8 @@
     <string name="settings_gallery_cleaner_title">Gallery Cleaner</string>
     <string name="settings_gallery_cleaner_summary">文件夹、浏览顺序、日期筛选</string>
     <string name="settings_video_cleaner_title">Video Cleaner</string>
+    <string name="settings_video_cleaner_summary">删除统计</string>
+    <string name="settings_video_reset_stats_hint">清除累计删除数量和释放空间。</string>
     <string name="settings_gallery_date_filter_enabled">按日期过滤照片</string>
     <string name="settings_gallery_date_presets">快速范围</string>
     <string name="settings_gallery_preset_1_day">1天</string>

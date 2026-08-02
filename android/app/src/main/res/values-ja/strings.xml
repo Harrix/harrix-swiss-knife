@@ -33,6 +33,8 @@
     <string name="settings_gallery_cleaner_title">Gallery Cleaner</string>
     <string name="settings_gallery_cleaner_summary">フォルダ、確認順、日付フィルタ</string>
     <string name="settings_video_cleaner_title">Video Cleaner</string>
+    <string name="settings_video_cleaner_summary">削除の統計</string>
+    <string name="settings_video_reset_stats_hint">これまで削除した本数と解放した容量をクリアします。</string>
     <string name="settings_gallery_date_filter_enabled">写真を日付でフィルタリングする</string>
     <string name="settings_gallery_date_presets">クイックレンジ</string>
     <string name="settings_gallery_preset_1_day">1日</string>
