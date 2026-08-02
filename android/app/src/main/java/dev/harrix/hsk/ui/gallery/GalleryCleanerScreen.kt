@@ -1636,7 +1636,7 @@ private fun SwipeablePhotoCard(
                 SwipeHint(
                     icon = Icons.Filled.Done,
                     label = stringResource(R.string.gallery_cleaner_swipe_right_hint),
-                    color = MaterialTheme.colorScheme.primary,
+                    color = MaterialTheme.colorScheme.secondary,
                     alpha = horizontalProgress.coerceIn(0f, 1f),
                     modifier = Modifier.align(Alignment.CenterStart).padding(start = 24.dp),
                 )
@@ -1648,7 +1648,7 @@ private fun SwipeablePhotoCard(
                 SwipeHint(
                     icon = Icons.Filled.KeyboardArrowUp,
                     label = stringResource(R.string.gallery_cleaner_swipe_up_hint),
-                    color = MaterialTheme.colorScheme.primary,
+                    color = MaterialTheme.colorScheme.secondary,
                     alpha = upwardProgress.coerceIn(0f, 1f),
                     modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 24.dp),
                 )
