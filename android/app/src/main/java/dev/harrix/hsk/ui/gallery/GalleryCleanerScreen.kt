@@ -299,6 +299,7 @@ fun GalleryCleanerScreen(
         if (deleted) {
             sessionDeletedCount += 1
             sessionFreedBytes += photo.sizeBytes
+            preferences.recordDeletedPhoto(photo.sizeBytes)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                 pushDeleteUndo(photo)
             }
@@ -349,6 +350,7 @@ fun GalleryCleanerScreen(
         sessionReviewedCount = (sessionReviewedCount - 1).coerceAtLeast(0)
         sessionDeletedCount = (sessionDeletedCount - 1).coerceAtLeast(0)
         sessionFreedBytes = (sessionFreedBytes - photo.sizeBytes).coerceAtLeast(0L)
+        preferences.recordRestoredDeletedPhoto(photo.sizeBytes)
         val updated = orderPhotos(remainingPhotos + photo)
         remainingPhotos = updated
         remainingCount = updated.size
@@ -781,6 +783,8 @@ fun GalleryCleanerScreen(
 
     if (showStatsDialog) {
         val reviewedTotal = preferences.reviewedPhotoCount()
+        val lifetimeDeleted = preferences.totalDeletedCount()
+        val lifetimeFreed = preferences.totalFreedBytes()
         AlertDialog(
             onDismissRequest = { showStatsDialog = false },
             title = { Text(stringResource(R.string.gallery_cleaner_stats_title)) },
@@ -812,13 +816,13 @@ fun GalleryCleanerScreen(
                     Text(
                         stringResource(
                             R.string.gallery_cleaner_stats_deleted,
-                            sessionDeletedCount,
+                            lifetimeDeleted,
                         ),
                     )
                     Text(
                         stringResource(
                             R.string.gallery_cleaner_stats_freed,
-                            CameraGalleryRepository.formatFileSize(sessionFreedBytes),
+                            CameraGalleryRepository.formatFileSize(lifetimeFreed),
                         ),
                     )
                 }

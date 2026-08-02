@@ -15,4 +15,4 @@ val HskShapes =
     )
 
 /** Delete / Keep / Skip / Delete selected action buttons. */
-val ActionButtonShape = RoundedCornerShape(4.dp)
+val ActionButtonShape = RoundedCornerShape(10.dp)
