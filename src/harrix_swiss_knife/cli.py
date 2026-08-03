@@ -18,6 +18,7 @@ from harrix_swiss_knife.actions.markdown import (
     OnBeautifyMd,
     OnBeautifyMdAndRegenerateGMd,
     OnCheckMd,
+    OnFixSiteArticleLinkTitles,
     OnNewMarkdown,
     OnOptimizeImagesInMd,
 )
@@ -342,6 +343,20 @@ def markdown_edit_from_template(template_name: str | None) -> None:
     resolved = _resolve_template_name(templates, template_name)
     action.execute_edit_from_template(resolved, suppress_result_ui=True)
     _exit_if_action_failed(action)
+
+
+@markdown_group.command("fix-site-article-links")
+@click.argument(
+    "folder",
+    required=False,
+    default=".",
+    type=click.Path(exists=True, file_okay=False, path_type=Path),
+)
+def markdown_fix_site_article_links(folder: Path) -> None:
+    """Fix titles in harrix.dev-style site article dual links in FOLDER."""
+    action = OnFixSiteArticleLinkTitles()
+    action(folder_path=folder, noninteractive=True)
+    _finish_timed_action(action)
 
 
 @markdown_group.command("list-templates")

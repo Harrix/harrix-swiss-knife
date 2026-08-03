@@ -27,6 +27,7 @@ lang: en
 - [🔧 Function `markdown_beautify_regenerate_g_md`](#-function-markdown_beautify_regenerate_g_md)
 - [🔧 Function `markdown_check`](#-function-markdown_check)
 - [🔧 Function `markdown_edit_from_template`](#-function-markdown_edit_from_template)
+- [🔧 Function `markdown_fix_site_article_links`](#-function-markdown_fix_site_article_links)
 - [🔧 Function `markdown_list_templates`](#-function-markdown_list_templates)
 - [🔧 Function `markdown_new_cases_note`](#-function-markdown_new_cases_note)
 - [🔧 Function `markdown_new_diary_note`](#-function-markdown_new_diary_note)
@@ -396,6 +397,26 @@ def markdown_edit_from_template(template_name: str | None) -> None:
     resolved = _resolve_template_name(templates, template_name)
     action.execute_edit_from_template(resolved, suppress_result_ui=True)
     _exit_if_action_failed(action)
+```
+
+</details>
+
+## 🔧 Function `markdown_fix_site_article_links`
+
+```python
+def markdown_fix_site_article_links(folder: Path) -> None
+```
+
+Fix titles in harrix.dev-style site article dual links in FOLDER.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def markdown_fix_site_article_links(folder: Path) -> None:
+    action = OnFixSiteArticleLinkTitles()
+    action(folder_path=folder, noninteractive=True)
+    _finish_timed_action(action)
 ```
 
 </details>

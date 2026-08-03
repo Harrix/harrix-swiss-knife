@@ -65,8 +65,12 @@ These stay in `extension.js` for a public build:
 - `harrixNotesExplorerHsk.beautifyRegenerateGMd`
 - `harrixNotesExplorerHsk.checkMarkdownInFolder`
 - `harrixNotesExplorerHsk.optimizeImagesFolder`
+- `harrixNotesExplorerHsk.convertToSiteArticleLink` (local convert; does not run `hsk` in Terminal)
 
 ## Settings (CLI only)
 
 - `harrixNotesExplorerHsk.cliExecutable`
 - `harrixNotesExplorerHsk.optimizeImagesFolderMaxSize` (default `1024`)
+- `harrixNotesExplorerHsk.siteLink.defaultLanguage` (default `ru`)
+- `harrixNotesExplorerHsk.siteLink.siteName` (default `harrix.dev`)
+- `harrixNotesExplorerHsk.siteLink.githubUser` (default `Harrix`)

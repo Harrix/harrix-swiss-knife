@@ -249,6 +249,234 @@ function resolveFolderPathForCliCommand(treeItemOrUri, deps) {
  * Registers CLI commands and loads template folder targets into the tree provider.
  * @param {HarrixCliDeps} deps
  */
+/** @typedef {{ defaultLanguage: string, siteName: string, githubUser: string }} SiteLinkSettings */
+
+/** @returns {SiteLinkSettings} */
+function getSiteLinkSettings() {
+  const config = vscode.workspace.getConfiguration('harrixNotesExplorerHsk');
+  const defaultLanguage = String(config.get('siteLink.defaultLanguage', 'ru') || 'ru').trim() || 'ru';
+  const siteName = String(config.get('siteLink.siteName', 'harrix.dev') || 'harrix.dev').trim() || 'harrix.dev';
+  const githubUser = String(config.get('siteLink.githubUser', 'Harrix') || 'Harrix').trim() || 'Harrix';
+  return { defaultLanguage, siteName, githubUser };
+}
+
+/**
+ * @param {{ section: string, year: string | null, lang: string }} parts
+ * @param {SiteLinkSettings} settings
+ */
+function buildContentRepoName(parts, settings) {
+  let name = `${settings.siteName}-${parts.section}`;
+  if (parts.year) {
+    name += `-${parts.year}`;
+  }
+  if (parts.lang && parts.lang !== settings.defaultLanguage) {
+    name += `-${parts.lang}`;
+  }
+  return name;
+}
+
+/**
+ * @param {string} repoName
+ * @param {SiteLinkSettings} settings
+ * @returns {{ section: string, year: string | null, lang: string } | null}
+ */
+function parseContentRepoName(repoName, settings) {
+  const prefix = `${settings.siteName}-`;
+  if (!repoName.startsWith(prefix)) {
+    return null;
+  }
+  const tokens = repoName.slice(prefix.length).split('-').filter(Boolean);
+  if (tokens.length === 0) {
+    return null;
+  }
+  let lang = settings.defaultLanguage;
+  let year = null;
+  if (tokens.length >= 2 && /^(en|ru)$/i.test(tokens[tokens.length - 1])) {
+    lang = tokens.pop().toLowerCase();
+  }
+  if (tokens.length >= 2 && /^\d{4}$/.test(tokens[tokens.length - 1])) {
+    year = tokens.pop();
+  }
+  const section = tokens.join('-');
+  if (!section) {
+    return null;
+  }
+  return { section, year, lang };
+}
+
+/**
+ * @param {{ section: string, year: string | null, lang: string }} parts
+ * @param {string} slug
+ * @param {SiteLinkSettings} settings
+ */
+function buildSiteArticleUrl(parts, slug, settings) {
+  const segments = [parts.lang || settings.defaultLanguage, parts.section];
+  if (parts.year) {
+    segments.push(parts.year);
+  }
+  segments.push(slug);
+  return `https://${settings.siteName}/${segments.join('/')}/`;
+}
+
+/**
+ * @param {string} repoName
+ * @param {string} slug
+ * @param {SiteLinkSettings} settings
+ */
+function buildGitHubBlobUrl(repoName, slug, settings) {
+  return `https://github.com/${settings.githubUser}/${repoName}/blob/main/${slug}/${slug}.md`;
+}
+
+/**
+ * @param {string} linkText
+ * @param {string} githubUrl
+ * @param {string} siteUrl
+ */
+function formatSiteArticleDualLink(linkText, githubUrl, siteUrl) {
+  return `[${linkText}](${githubUrl}) | [↗️](${siteUrl})`;
+}
+
+/**
+ * @param {string} raw
+ * @returns {{ linkText: string, target: string } | null}
+ */
+function unwrapMarkdownLink(raw) {
+  const text = String(raw ?? '').trim();
+  const match = /^\[([^\]]*)\]\(([^)\s]+)\)$/.exec(text);
+  if (!match) {
+    return null;
+  }
+  return { linkText: match[1], target: match[2].trim() };
+}
+
+/**
+ * @param {string} url
+ * @param {SiteLinkSettings} settings
+ * @returns {{ section: string, year: string | null, lang: string, slug: string } | null}
+ */
+function parseGitHubBlobUrl(url, settings) {
+  const match = /^https?:\/\/github\.com\/[^/]+\/([^/]+)\/blob\/[^/]+\/([^/]+)\/\2\.md\/?(?:[?#].*)?$/i.exec(
+    String(url ?? '').trim(),
+  );
+  if (!match) {
+    return null;
+  }
+  const parsed = parseContentRepoName(match[1], settings);
+  if (!parsed) {
+    return null;
+  }
+  return { ...parsed, slug: match[2] };
+}
+
+/**
+ * @param {string} raw
+ * @param {SiteLinkSettings} settings
+ * @returns {{ section: string, year: string | null, lang: string, slug: string } | null}
+ */
+function parseSiteUrlOrPath(raw, settings) {
+  let pathText = String(raw ?? '').trim();
+  if (!pathText) {
+    return null;
+  }
+  const sitePrefix = `https://${settings.siteName}/`;
+  const sitePrefixHttp = `http://${settings.siteName}/`;
+  if (pathText.toLowerCase().startsWith(sitePrefix.toLowerCase())) {
+    pathText = pathText.slice(sitePrefix.length);
+  } else if (pathText.toLowerCase().startsWith(sitePrefixHttp.toLowerCase())) {
+    pathText = pathText.slice(sitePrefixHttp.length);
+  }
+  pathText = pathText.replace(/^[?#].*$/, '');
+  pathText = pathText.split(/[?#]/, 1)[0];
+  pathText = pathText.replace(/^\/+/, '').replace(/\/+$/, '');
+  const parts = pathText.split('/').filter(Boolean);
+  if (parts.length < 2) {
+    return null;
+  }
+  let lang = settings.defaultLanguage;
+  if (/^(en|ru)$/i.test(parts[0])) {
+    lang = parts.shift().toLowerCase();
+  }
+  if (parts.length < 2) {
+    return null;
+  }
+  const slug = parts.pop();
+  let year = null;
+  if (parts.length >= 2 && /^\d{4}$/.test(parts[parts.length - 1])) {
+    year = parts.pop();
+  }
+  const section = parts.join('-');
+  if (!section || !slug) {
+    return null;
+  }
+  return { section, year, lang, slug };
+}
+
+/**
+ * @param {string} input
+ * @param {SiteLinkSettings} settings
+ * @returns {string | null}
+ */
+function convertInputToSiteArticleDualLink(input, settings) {
+  const trimmed = String(input ?? '').trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  let linkText = '';
+  let target = trimmed;
+  const wrapped = unwrapMarkdownLink(trimmed);
+  if (wrapped) {
+    linkText = wrapped.linkText;
+    target = wrapped.target;
+  }
+
+  let parsed = parseGitHubBlobUrl(target, settings);
+  if (!parsed) {
+    parsed = parseSiteUrlOrPath(target, settings);
+  }
+  if (!parsed) {
+    return null;
+  }
+
+  const repoName = buildContentRepoName(parsed, settings);
+  const githubUrl = buildGitHubBlobUrl(repoName, parsed.slug, settings);
+  const siteUrl = buildSiteArticleUrl(parsed, parsed.slug, settings);
+  return formatSiteArticleDualLink(linkText, githubUrl, siteUrl);
+}
+
+async function convertToSiteArticleLinkCommand() {
+  const settings = getSiteLinkSettings();
+  const editor = vscode.window.activeTextEditor;
+  let input = '';
+  let useSelection = false;
+
+  if (editor && !editor.selection.isEmpty) {
+    input = editor.document.getText(editor.selection);
+    useSelection = true;
+  } else {
+    input = await vscode.env.clipboard.readText();
+  }
+
+  const dual = convertInputToSiteArticleDualLink(input, settings);
+  if (!dual) {
+    vscode.window.showErrorMessage('Could not parse selection/clipboard as a GitHub blob URL or site article path.');
+    return;
+  }
+
+  if (useSelection && editor) {
+    const ok = await editor.edit((editBuilder) => {
+      editBuilder.replace(editor.selection, dual);
+    });
+    if (ok) {
+      vscode.window.showInformationMessage('Converted to site article dual link.');
+    }
+    return;
+  }
+
+  await vscode.env.clipboard.writeText(dual);
+  vscode.window.showInformationMessage('Site article dual link copied to clipboard.');
+}
+
 function activateHarrixCliIntegration(deps) {
   const { context, provider, rootPath, uriToFsPath, isDirectoryPath, normalizeFsPath } = deps;
 
@@ -419,6 +647,17 @@ function activateHarrixCliIntegration(deps) {
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
         vscode.window.showErrorMessage(`Optimize images in folder failed: ${msg}`);
+      }
+    }),
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('harrixNotesExplorerHsk.convertToSiteArticleLink', async () => {
+      try {
+        await convertToSiteArticleLinkCommand();
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        vscode.window.showErrorMessage(`Convert to site article dual link failed: ${msg}`);
       }
     }),
   );

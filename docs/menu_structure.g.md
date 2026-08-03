@@ -120,6 +120,7 @@ def get_menu_structure() -> list[Any]:
                 OnBeautifyMd,
                 OnBeautifyMdAndRegenerateGMd,
                 OnCheckMd,
+                OnFixSiteArticleLinkTitles,
                 OnMoveMdIntoNamedFolders,
                 OnDownloadAndReplaceImages,
                 OnFixMdWithQuotes,

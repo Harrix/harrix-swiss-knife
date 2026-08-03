@@ -45,6 +45,25 @@
           "minimum": 1,
           "markdownDescription": "Max width or height in pixels for **Optimize Images in Folder** (`hsk md optimize-images-folder --max-size`). Images larger on either side are resized."
         },
+        "harrixNotesExplorerHsk.siteLink.defaultLanguage": {
+          "type": "string",
+          "default": "ru",
+          "enum": [
+            "ru",
+            "en"
+          ],
+          "markdownDescription": "Default language segment for site article dual links (`https://{site}/{lang}/…`). Non-default language adds a `-{lang}` suffix to the content repo name."
+        },
+        "harrixNotesExplorerHsk.siteLink.siteName": {
+          "type": "string",
+          "default": "harrix.dev",
+          "markdownDescription": "Site hostname / content-repo prefix for site article dual links (e.g. `harrix.dev` → repos `harrix.dev-articles-2017`)."
+        },
+        "harrixNotesExplorerHsk.siteLink.githubUser": {
+          "type": "string",
+          "default": "Harrix",
+          "markdownDescription": "GitHub user or org used when building `permalink-source` blob URLs for site article dual links."
+        },
         "harrixNotesExplorerHsk.rememberFolderExpansion": {
           "type": "boolean",
           "default": true,
@@ -353,6 +372,11 @@
         "category": "Harrix Notes (HSK)"
       },
       {
+        "command": "harrixNotesExplorerHsk.convertToSiteArticleLink",
+        "title": "Convert to Site Article Dual Link ꟲᴸᴵ",
+        "category": "Harrix Notes (HSK)"
+      },
+      {
         "command": "harrixNotesExplorerHsk.discardGitChangesInFolder",
         "title": "Discard Git Changes in Folder…"
       },
@@ -501,6 +525,10 @@
         {
           "command": "harrixNotesExplorerHsk.optimizeImagesFolder",
           "when": "resourceLangId == markdown"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.convertToSiteArticleLink",
+          "when": "true"
         },
         {
           "command": "harrixNotesExplorerHsk.addFolderInNote",
