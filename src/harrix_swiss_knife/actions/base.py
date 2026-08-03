@@ -172,15 +172,14 @@ class ActionBase(ABC):
         if self._output_bus is not None:
             self._output_bus.append_line(output_path, line)
 
-        if getattr(self, "_fake_progress_active", False):
-            try:
-                if getattr(sys.stderr, "isatty", lambda: False)():
-                    # Wider than the fake/real progress line so leftovers do not smear into stdout.
-                    sys.stderr.write("\r" + " " * 120 + "\r")
-                    sys.stderr.flush()
-            except OSError:
-                pass
-            self._fake_progress_active = False
+        # Clear in-place progress on stderr (real bar or fake placeholder) so logs do not smear into it.
+        try:
+            if getattr(sys.stderr, "isatty", lambda: False)():
+                sys.stderr.write("\r" + " " * 120 + "\r")
+                sys.stderr.flush()
+        except OSError:
+            pass
+        self._fake_progress_active = False
 
         try:
             print(line)
