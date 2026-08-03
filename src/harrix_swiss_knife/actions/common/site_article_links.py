@@ -293,6 +293,19 @@ def format_dual_link(title: str, ref: ContentArticleRef, settings: SiteLinkSetti
     return f"[{title}]({ref.github_blob_url(settings)}) | [↗️]({ref.site_url(settings)})"
 
 
+def is_single_word_link_text(text: str) -> bool:
+    """Return `True` when link text is one non-empty token with no whitespace.
+
+    Used to keep short placeholders like `here`, `link`, `article` instead of
+    replacing them with the full article H1.
+
+    """
+    stripped = text.strip()
+    if not stripped:
+        return False
+    return not any(char.isspace() for char in stripped)
+
+
 def normalize_url_for_compare(url: str) -> str:
     """Normalize URL for equality checks (strip trailing slash, lowercase scheme/host)."""
     return url.strip().removesuffix("/")

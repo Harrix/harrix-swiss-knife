@@ -27,6 +27,7 @@ lang: en
 - [🔧 Function `find_dual_links`](#-function-find_dual_links)
 - [🔧 Function `find_relative_site_links`](#-function-find_relative_site_links)
 - [🔧 Function `format_dual_link`](#-function-format_dual_link)
+- [🔧 Function `is_single_word_link_text`](#-function-is_single_word_link_text)
 - [🔧 Function `normalize_url_for_compare`](#-function-normalize_url_for_compare)
 - [🔧 Function `parse_content_repo_name`](#-function-parse_content_repo_name)
 - [🔧 Function `parse_github_blob_url`](#-function-parse_github_blob_url)
@@ -521,6 +522,30 @@ Build `[title](github) | [↗️](site)` for an article ref.
 ```python
 def format_dual_link(title: str, ref: ContentArticleRef, settings: SiteLinkSettings) -> str:
     return f"[{title}]({ref.github_blob_url(settings)}) | [↗️]({ref.site_url(settings)})"
+```
+
+</details>
+
+## 🔧 Function `is_single_word_link_text`
+
+```python
+def is_single_word_link_text(text: str) -> bool
+```
+
+Return `True` when link text is one non-empty token with no whitespace.
+
+Used to keep short placeholders like `here`, `link`, `article` instead of
+replacing them with the full article H1.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def is_single_word_link_text(text: str) -> bool:
+    stripped = text.strip()
+    if not stripped:
+        return False
+    return not any(char.isspace() for char in stripped)
 ```
 
 </details>

@@ -17,6 +17,7 @@ from harrix_swiss_knife.actions.common.site_article_links import (
     find_dual_links,
     find_relative_site_links,
     format_dual_link,
+    is_single_word_link_text,
     normalize_url_for_compare,
     replace_dual_link_title,
     replace_span,
@@ -30,6 +31,7 @@ class OnFixSiteArticleLinkTitles(ActionBase):
     Scans notes for:
 
     1. Dual links `[title](github…) | [↗️](site…)` — updates `title` from article H1
+       (skips non-empty single-word titles without spaces, e.g. `here`, `link`)
     2. Site-relative / site-absolute links like `[text](/games/dashes/)` — converts them
        to dual form with the article H1
     3. Content articles `{repo}/{slug}/{slug}.md` — checks/fixes/adds YAML
@@ -180,6 +182,9 @@ class OnFixSiteArticleLinkTitles(ActionBase):
                     continue
 
                 if match.title == title:
+                    continue
+
+                if is_single_word_link_text(match.title):
                     continue
 
                 updated = replace_dual_link_title(updated, match, title)
