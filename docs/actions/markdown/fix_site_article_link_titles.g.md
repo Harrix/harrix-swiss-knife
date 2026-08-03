@@ -26,12 +26,14 @@ class OnFixSiteArticleLinkTitles(ActionBase)
 
 Fix titles in site article dual links in Markdown files.
 
-Scans notes for links of the form:
+Scans notes for:
 
-`[title](https://github.com/.../slug/slug.md) | [↗️](https://site/...)`
+1. Dual links `[title](github…) | [↗️](site…)` — updates `title` from article H1
+2. Site-relative / site-absolute links like `[text](/games/dashes/)` — converts them
+   to dual form with the article H1
 
-and replaces `title` with the article H1 from the content repositories folder
-(`paths_sites[0].input`). Missing articles and mismatched site URLs are reported.
+Content repositories come from `paths_sites[0].input`. Missing articles and
+mismatched site URLs are reported.
 
 <details>
 <summary>Code:</summary>
@@ -90,7 +92,7 @@ class OnFixSiteArticleLinkTitles(ActionBase):
         self.show_result()
 
     def _fix_titles_common(self) -> None:
-        """Scan Markdown files, fix dual-link titles, and log issues."""
+        """Scan Markdown files, convert relative site links, fix dual-link titles."""
         if self.folder_path is None:
             return
 
@@ -105,15 +107,15 @@ class OnFixSiteArticleLinkTitles(ActionBase):
         self.add_line(f"📚 Indexed articles: {len(title_index)}")
 
         md_files = [
-            path
-            for path in Path(self.folder_path).rglob("*.md")
-            if path.is_file() and not path.name.endswith(".g.md")
+            path for path in Path(self.folder_path).rglob("*.md") if path.is_file() and not path.name.endswith(".g.md")
         ]
 
         fixed_count = 0
+        converted_count = 0
         missing_count = 0
         mismatch_count = 0
-        checked_links = 0
+        checked_dual = 0
+        checked_relative = 0
 
         for md_path in h.file.iter_with_progress(md_files):
             try:
@@ -122,19 +124,35 @@ class OnFixSiteArticleLinkTitles(ActionBase):
                 self.add_line(f"❌ {md_path}: cannot read ({exc})")
                 continue
 
-            matches = find_dual_links(original)
-            if not matches:
-                continue
-
             updated = original
-            # Apply replacements from the end so earlier offsets stay valid.
-            for match in reversed(matches):
-                checked_links += 1
+
+            relative_matches = find_relative_site_links(updated, settings)
+            for match in reversed(relative_matches):
+                checked_relative += 1
+                repo = match.ref.repo_name(settings)
+                key = (repo, match.ref.slug)
+                title = title_index.get(key)
+                if title is None:
+                    missing_count += 1
+                    self.add_line(
+                        f"❌ {md_path}: article not found for relative link `{match.target}` → "
+                        f"`{repo}/{match.ref.slug}/{match.ref.slug}.md`"
+                    )
+                    continue
+
+                dual = format_dual_link(title, match.ref, settings)
+                updated = replace_span(updated, match.start, match.end, dual)
+                converted_count += 1
+                self.add_line(f"🔗 {md_path}: `{match.target}` → dual link (`{title}`)")
+
+            dual_matches = find_dual_links(updated)
+            for match in reversed(dual_matches):
+                checked_dual += 1
                 key = (match.repo, match.slug)
                 expected_site = expected_site_url_from_repo(match.repo, match.slug, settings)
-                if expected_site is not None and normalize_url_for_compare(
-                    match.site_url
-                ) != normalize_url_for_compare(expected_site):
+                if expected_site is not None and normalize_url_for_compare(match.site_url) != normalize_url_for_compare(
+                    expected_site
+                ):
                     mismatch_count += 1
                     self.add_line(
                         f"⚠️ {md_path}: site URL mismatch for `{match.repo}/{match.slug}`\n"
@@ -146,8 +164,7 @@ class OnFixSiteArticleLinkTitles(ActionBase):
                 if title is None:
                     missing_count += 1
                     self.add_line(
-                        f"❌ {md_path}: article not found in content repos: "
-                        f"`{match.repo}/{match.slug}/{match.slug}.md`"
+                        f"❌ {md_path}: article not found in content repos: `{match.repo}/{match.slug}/{match.slug}.md`"
                     )
                     continue
 
@@ -162,12 +179,14 @@ class OnFixSiteArticleLinkTitles(ActionBase):
                 md_path.write_text(updated, encoding="utf-8")
 
         self.add_line("")
-        self.add_line(f"🔎 Dual links checked: {checked_links}")
+        self.add_line(f"🔎 Relative site links checked: {checked_relative}")
+        self.add_line(f"🔗 Converted to dual links: {converted_count}")
+        self.add_line(f"🔎 Dual links checked: {checked_dual}")
         self.add_line(f"✏️ Titles fixed: {fixed_count}")
         self.add_line(f"❌ Missing articles: {missing_count}")
         self.add_line(f"⚠️ Site URL mismatches: {mismatch_count}")
-        if missing_count == 0 and mismatch_count == 0 and fixed_count == 0:
-            self.add_line(f"✅ No title changes needed in {self.folder_path}.")
+        if missing_count == 0 and mismatch_count == 0 and fixed_count == 0 and converted_count == 0:
+            self.add_line(f"✅ No link changes needed in {self.folder_path}.")
 ```
 
 </details>

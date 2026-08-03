@@ -16,16 +16,21 @@ lang: en
   - [⚙️ Method `repo_name`](#%EF%B8%8F-method-repo_name)
   - [⚙️ Method `site_url`](#%EF%B8%8F-method-site_url)
 - [🏛️ Class `DualLinkMatch`](#%EF%B8%8F-class-duallinkmatch)
+- [🏛️ Class `RelativeSiteLinkMatch`](#%EF%B8%8F-class-relativesitelinkmatch)
 - [🏛️ Class `SiteLinkSettings`](#%EF%B8%8F-class-sitelinksettings)
 - [🔧 Function `build_article_title_index`](#-function-build_article_title_index)
 - [🔧 Function `content_root_from_config`](#-function-content_root_from_config)
 - [🔧 Function `expected_site_url_from_repo`](#-function-expected_site_url_from_repo)
 - [🔧 Function `extract_first_h1`](#-function-extract_first_h1)
 - [🔧 Function `find_dual_links`](#-function-find_dual_links)
+- [🔧 Function `find_relative_site_links`](#-function-find_relative_site_links)
+- [🔧 Function `format_dual_link`](#-function-format_dual_link)
 - [🔧 Function `normalize_url_for_compare`](#-function-normalize_url_for_compare)
 - [🔧 Function `parse_content_repo_name`](#-function-parse_content_repo_name)
 - [🔧 Function `parse_github_blob_url`](#-function-parse_github_blob_url)
+- [🔧 Function `parse_site_url_or_path`](#-function-parse_site_url_or_path)
 - [🔧 Function `replace_dual_link_title`](#-function-replace_dual_link_title)
+- [🔧 Function `replace_span`](#-function-replace_span)
 
 </details>
 
@@ -163,6 +168,29 @@ class DualLinkMatch:
 
 </details>
 
+## 🏛️ Class `RelativeSiteLinkMatch`
+
+```python
+class RelativeSiteLinkMatch
+```
+
+One convertible site-relative or site-absolute Markdown link.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class RelativeSiteLinkMatch:
+
+    start: int
+    end: int
+    title: str
+    target: str
+    ref: ContentArticleRef
+```
+
+</details>
+
 ## 🏛️ Class `SiteLinkSettings`
 
 ```python
@@ -285,9 +313,7 @@ Return the first ATX H1 after optional YAML frontmatter.
 
 ````python
 def extract_first_h1(markdown: str) -> str:
-    body = markdown
-    if body.startswith("\ufeff"):
-        body = body[1:]
+    body = markdown.removeprefix("\ufeff")
     fm_match = _FRONTMATTER_RE.match(body)
     if fm_match is not None:
         body = body[fm_match.end() :]
@@ -342,6 +368,69 @@ def find_dual_links(text: str) -> list[DualLinkMatch]:
 
 </details>
 
+## 🔧 Function `find_relative_site_links`
+
+```python
+def find_relative_site_links(text: str, settings: SiteLinkSettings) -> list[RelativeSiteLinkMatch]
+```
+
+Return site-relative / site-absolute article links that are not already dual links.
+
+Matches forms like `[text](/games/dashes/)`, `[text](/ru/games/dashes/)`, and
+`[text](https://harrix.dev/ru/games/dashes/)`. Skips image links, asset paths,
+GitHub URLs, and spans already covered by dual links.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def find_relative_site_links(text: str, settings: SiteLinkSettings) -> list[RelativeSiteLinkMatch]:
+    dual_spans = [(item.start, item.end) for item in find_dual_links(text)]
+    results: list[RelativeSiteLinkMatch] = []
+    for match in _MD_LINK_RE.finditer(text):
+        start, end = match.start(), match.end()
+        if any(span_start <= start < span_end for span_start, span_end in dual_spans):
+            continue
+        target = match.group("target").strip()
+        if target.lower().startswith("https://github.com/") or target.lower().startswith("http://github.com/"):
+            continue
+        if _looks_like_asset_target(target):
+            continue
+        ref = parse_site_url_or_path(target, settings)
+        if ref is None:
+            continue
+        results.append(
+            RelativeSiteLinkMatch(
+                start=start,
+                end=end,
+                title=match.group("title"),
+                target=target,
+                ref=ref,
+            )
+        )
+    return results
+```
+
+</details>
+
+## 🔧 Function `format_dual_link`
+
+```python
+def format_dual_link(title: str, ref: ContentArticleRef, settings: SiteLinkSettings) -> str
+```
+
+Build `[title](github) | [↗️](site)` for an article ref.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def format_dual_link(title: str, ref: ContentArticleRef, settings: SiteLinkSettings) -> str:
+    return f"[{title}]({ref.github_blob_url(settings)}) | [↗️]({ref.site_url(settings)})"
+```
+
+</details>
+
 ## 🔧 Function `normalize_url_for_compare`
 
 ```python
@@ -355,10 +444,7 @@ Normalize URL for equality checks (strip trailing slash, lowercase scheme/host).
 
 ```python
 def normalize_url_for_compare(url: str) -> str:
-    text = url.strip()
-    if text.endswith("/"):
-        text = text[:-1]
-    return text
+    return url.strip().removesuffix("/")
 ```
 
 </details>
@@ -384,9 +470,9 @@ def parse_content_repo_name(repo_name: str, settings: SiteLinkSettings) -> Conte
         return None
     lang = settings.default_language
     year: str | None = None
-    if len(tokens) >= 2 and _LANG_RE.fullmatch(tokens[-1]):
+    if len(tokens) >= _MIN_REPO_TAIL_PARTS and _LANG_RE.fullmatch(tokens[-1]):
         lang = tokens.pop().lower()
-    if len(tokens) >= 2 and _YEAR_RE.fullmatch(tokens[-1]):
+    if len(tokens) >= _MIN_REPO_TAIL_PARTS and _YEAR_RE.fullmatch(tokens[-1]):
         year = tokens.pop()
     section = "-".join(tokens)
     if not section:
@@ -424,6 +510,58 @@ def parse_github_blob_url(url: str, settings: SiteLinkSettings) -> ContentArticl
 
 </details>
 
+## 🔧 Function `parse_site_url_or_path`
+
+```python
+def parse_site_url_or_path(raw: str, settings: SiteLinkSettings) -> ContentArticleRef | None
+```
+
+Parse `/games/dashes/`, `/ru/articles/2017/slug/`, or full site URLs into a ref.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def parse_site_url_or_path(raw: str, settings: SiteLinkSettings) -> ContentArticleRef | None:
+    path_text = raw.strip()
+    if not path_text:
+        return None
+
+    site_https = f"https://{settings.site_name}/"
+    site_http = f"http://{settings.site_name}/"
+    lower = path_text.lower()
+    if lower.startswith(site_https.lower()):
+        path_text = path_text[len(site_https) :]
+    elif lower.startswith(site_http.lower()):
+        path_text = path_text[len(site_http) :]
+    elif path_text.startswith("/"):
+        path_text = path_text.lstrip("/")
+    else:
+        return None
+
+    path_text = path_text.split("?", 1)[0].split("#", 1)[0].strip("/")
+    parts = [part for part in path_text.split("/") if part]
+    if len(parts) < _MIN_REPO_TAIL_PARTS:
+        return None
+
+    lang = settings.default_language
+    if _LANG_RE.fullmatch(parts[0]):
+        lang = parts.pop(0).lower()
+    if len(parts) < _MIN_REPO_TAIL_PARTS:
+        return None
+
+    slug = parts.pop()
+    year: str | None = None
+    if len(parts) >= _MIN_REPO_TAIL_PARTS and _YEAR_RE.fullmatch(parts[-1]):
+        year = parts.pop()
+    section = "-".join(parts)
+    if not section or not slug or _ASSET_EXT_RE.search(slug):
+        return None
+    return ContentArticleRef(section=section, year=year, lang=lang, slug=slug)
+```
+
+</details>
+
 ## 🔧 Function `replace_dual_link_title`
 
 ```python
@@ -439,6 +577,24 @@ Return `original` with the dual-link title at `match` replaced by `new_title`.
 def replace_dual_link_title(original: str, match: DualLinkMatch, new_title: str) -> str:
     replacement = f"[{new_title}]({match.github_url}) | [↗️]({match.site_url})"
     return original[: match.start] + replacement + original[match.end :]
+```
+
+</details>
+
+## 🔧 Function `replace_span`
+
+```python
+def replace_span(original: str, start: int, end: int, replacement: str) -> str
+```
+
+Return `original` with `[start:end]` replaced by `replacement`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def replace_span(original: str, start: int, end: int, replacement: str) -> str:
+    return original[:start] + replacement + original[end:]
 ```
 
 </details>
