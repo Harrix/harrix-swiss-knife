@@ -2726,6 +2726,51 @@ async function revealNoteWithAttachments(view, provider, filePath, expandLevels 
   }
 }
 
+/**
+ * Expand a note's attachment subtree after Show/Reload Attachments.
+ * Reveals the first attachment (not the note): that expands the note and keeps
+ * attachment rows in view. Revealing the note alone pins it to the viewport bottom.
+ * @param {vscode.TreeView<vscode.TreeItem>} view
+ * @param {NotesProvider} provider
+ * @param {string} filePath
+ */
+async function expandNoteAttachmentsInTree(view, provider, filePath) {
+  const noteItem = provider.createFileItem(filePath);
+  const noteDir = path.dirname(filePath);
+  const assets = provider.getNoteAssetChildren(noteDir, filePath);
+
+  /** @type {vscode.TreeItem[]} */
+  const ancestors = [];
+  let cur = provider.getParent(noteItem);
+  while (cur) {
+    ancestors.unshift(cur);
+    cur = provider.getParent(cur);
+  }
+  for (const node of ancestors) {
+    try {
+      await view.reveal(node, { expand: true, select: false, focus: false });
+    } catch {
+      // ignore
+    }
+  }
+
+  if (assets.length > 0) {
+    try {
+      // expand: 3 is the API max; asset folders are Expanded by default when loaded.
+      await view.reveal(assets[0], { expand: 3, select: false, focus: false });
+      return;
+    } catch {
+      // fall through — note may not be expandable in the view yet
+    }
+  }
+
+  try {
+    await view.reveal(noteItem, { expand: 3, select: true, focus: false });
+  } catch {
+    // ignore
+  }
+}
+
 function getAutoRevealNotes() {
   const config = vscode.workspace.getConfiguration('harrixNotesExplorerHsk');
   return config.get('autoReveal') !== false;
@@ -3823,8 +3868,9 @@ async function activate(context) {
       const refreshDone = waitForTreeRefresh(provider);
       provider.setNoteAssetsVisible(noteDir, true);
       await refreshDone;
-      // Do not view.reveal: it pins the note to the bottom of the viewport and hides
-      // attachments below. Expansion comes from CollapsibleState.Expanded on note/assets.
+      // Let the tree apply the refreshed note row before expand/reveal.
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      await expandNoteAttachmentsInTree(view, provider, uri.fsPath);
     }),
   );
   context.subscriptions.push(
@@ -3854,7 +3900,8 @@ async function activate(context) {
       const refreshDone = waitForTreeRefresh(provider);
       provider.refreshNoteAssets(uri.fsPath);
       await refreshDone;
-      // Same as Show Attachments: skip reveal so the scroll position stays put.
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      await expandNoteAttachmentsInTree(view, provider, uri.fsPath);
     }),
   );
   context.subscriptions.push(
