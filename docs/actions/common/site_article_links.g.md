@@ -16,10 +16,12 @@ lang: en
   - [⚙️ Method `repo_name`](#%EF%B8%8F-method-repo_name)
   - [⚙️ Method `site_url`](#%EF%B8%8F-method-site_url)
 - [🏛️ Class `DualLinkMatch`](#%EF%B8%8F-class-duallinkmatch)
+- [🏛️ Class `PermalinkYamlFix`](#%EF%B8%8F-class-permalinkyamlfix)
 - [🏛️ Class `RelativeSiteLinkMatch`](#%EF%B8%8F-class-relativesitelinkmatch)
 - [🏛️ Class `SiteLinkSettings`](#%EF%B8%8F-class-sitelinksettings)
 - [🔧 Function `build_article_title_index`](#-function-build_article_title_index)
 - [🔧 Function `content_root_from_config`](#-function-content_root_from_config)
+- [🔧 Function `ensure_article_permalink_yaml`](#-function-ensure_article_permalink_yaml)
 - [🔧 Function `expected_site_url_from_repo`](#-function-expected_site_url_from_repo)
 - [🔧 Function `extract_first_h1`](#-function-extract_first_h1)
 - [🔧 Function `find_dual_links`](#-function-find_dual_links)
@@ -31,6 +33,7 @@ lang: en
 - [🔧 Function `parse_site_url_or_path`](#-function-parse_site_url_or_path)
 - [🔧 Function `replace_dual_link_title`](#-function-replace_dual_link_title)
 - [🔧 Function `replace_span`](#-function-replace_span)
+- [🔧 Function `resolve_content_article_ref`](#-function-resolve_content_article_ref)
 
 </details>
 
@@ -168,6 +171,26 @@ class DualLinkMatch:
 
 </details>
 
+## 🏛️ Class `PermalinkYamlFix`
+
+```python
+class PermalinkYamlFix
+```
+
+Result of ensuring `permalink` / `permalink-source` in article YAML.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class PermalinkYamlFix:
+
+    text: str
+    changes: tuple[str, ...]
+```
+
+</details>
+
 ## 🏛️ Class `RelativeSiteLinkMatch`
 
 ```python
@@ -274,6 +297,77 @@ def content_root_from_config(config: dict) -> Path | None:
         return None
     path = Path(str(raw)).expanduser().resolve()
     return path if path.is_dir() else None
+```
+
+</details>
+
+## 🔧 Function `ensure_article_permalink_yaml`
+
+```python
+def ensure_article_permalink_yaml(markdown: str, ref: ContentArticleRef, settings: SiteLinkSettings) -> PermalinkYamlFix
+```
+
+Check/fix/add `permalink-source` and `permalink` top-level YAML keys.
+
+Preserves the rest of the frontmatter text (no full YAML round-trip).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def ensure_article_permalink_yaml(
+    markdown: str,
+    ref: ContentArticleRef,
+    settings: SiteLinkSettings,
+) -> PermalinkYamlFix:
+    expected = {
+        "permalink-source": ref.github_blob_url(settings),
+        "permalink": ref.site_url(settings),
+    }
+    had_bom = markdown.startswith("\ufeff")
+    body = markdown.removeprefix("\ufeff")
+    fm_match = _FRONTMATTER_RE.match(body)
+    if fm_match is None:
+        yaml_block = "---\n" + "".join(f"{key}: {value}\n" for key, value in expected.items()) + "---\n\n"
+        new_text = yaml_block + body.lstrip("\n")
+        if had_bom:
+            new_text = "\ufeff" + new_text
+        return PermalinkYamlFix(text=new_text, changes=("permalink-source added", "permalink added"))
+
+    fm_full = fm_match.group(0)
+    newline = "\r\n" if "\r\n" in fm_full else "\n"
+    inner = fm_full.strip().removeprefix("---").removesuffix("---").strip("\r\n")
+    lines = inner.splitlines()
+    key_line_indexes: dict[str, int] = {}
+    for index, line in enumerate(lines):
+        match = _TOP_LEVEL_YAML_KEY_RE.match(line)
+        if match is None:
+            continue
+        key_line_indexes[match.group(1)] = index
+
+    changes: list[str] = []
+    for key, value in expected.items():
+        new_line = f"{key}: {value}"
+        if key in key_line_indexes:
+            index = key_line_indexes[key]
+            current = _yaml_scalar_value(lines[index])
+            if normalize_url_for_compare(current) == normalize_url_for_compare(value):
+                continue
+            lines[index] = new_line
+            changes.append(f"{key} fixed")
+        else:
+            lines.append(new_line)
+            changes.append(f"{key} added")
+
+    if not changes:
+        return PermalinkYamlFix(text=markdown, changes=())
+
+    new_inner = newline.join(lines)
+    new_fm = f"---{newline}{new_inner}{newline}---{newline}"
+    new_text = new_fm + body[fm_match.end() :]
+    if had_bom:
+        new_text = "\ufeff" + new_text
+    return PermalinkYamlFix(text=new_text, changes=tuple(changes))
 ```
 
 </details>
@@ -595,6 +689,34 @@ Return `original` with `[start:end]` replaced by `replacement`.
 ```python
 def replace_span(original: str, start: int, end: int, replacement: str) -> str:
     return original[:start] + replacement + original[end:]
+```
+
+</details>
+
+## 🔧 Function `resolve_content_article_ref`
+
+```python
+def resolve_content_article_ref(md_path: Path, settings: SiteLinkSettings) -> ContentArticleRef | None
+```
+
+Return article ref when `md_path` is `{repo}/{slug}/{slug}.md` under a content repo name.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def resolve_content_article_ref(md_path: Path, settings: SiteLinkSettings) -> ContentArticleRef | None:
+    path = md_path.resolve()
+    if path.suffix.lower() != ".md":
+        return None
+    slug = path.stem
+    if path.parent.name != slug:
+        return None
+    repo_name = path.parent.parent.name
+    parsed = parse_content_repo_name(repo_name, settings)
+    if parsed is None:
+        return None
+    return ContentArticleRef(section=parsed.section, year=parsed.year, lang=parsed.lang, slug=slug)
 ```
 
 </details>

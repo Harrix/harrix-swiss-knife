@@ -31,6 +31,8 @@ Scans notes for:
 1. Dual links `[title](github…) | [↗️](site…)` — updates `title` from article H1
 2. Site-relative / site-absolute links like `[text](/games/dashes/)` — converts them
    to dual form with the article H1
+3. Content articles `{repo}/{slug}/{slug}.md` — checks/fixes/adds YAML
+   `permalink-source` and `permalink`
 
 Content repositories come from `paths_sites[0].input`. Missing articles and
 mismatched site URLs are reported.
@@ -92,7 +94,7 @@ class OnFixSiteArticleLinkTitles(ActionBase):
         self.show_result()
 
     def _fix_titles_common(self) -> None:
-        """Scan Markdown files, convert relative site links, fix dual-link titles."""
+        """Scan Markdown files, convert relative site links, fix dual-link titles and YAML."""
         if self.folder_path is None:
             return
 
@@ -112,10 +114,12 @@ class OnFixSiteArticleLinkTitles(ActionBase):
 
         fixed_count = 0
         converted_count = 0
+        permalink_yaml_count = 0
         missing_count = 0
         mismatch_count = 0
         checked_dual = 0
         checked_relative = 0
+        checked_permalink_yaml = 0
 
         for md_path in h.file.iter_with_progress(md_files):
             try:
@@ -125,6 +129,16 @@ class OnFixSiteArticleLinkTitles(ActionBase):
                 continue
 
             updated = original
+
+            article_ref = resolve_content_article_ref(md_path, settings)
+            if article_ref is not None:
+                checked_permalink_yaml += 1
+                yaml_fix = ensure_article_permalink_yaml(updated, article_ref, settings)
+                if yaml_fix.changes:
+                    updated = yaml_fix.text
+                    permalink_yaml_count += 1
+                    changes = ", ".join(yaml_fix.changes)
+                    self.add_line(f"📎 {md_path}: YAML permalinks ({changes})")
 
             relative_matches = find_relative_site_links(updated, settings)
             for match in reversed(relative_matches):
@@ -183,9 +197,17 @@ class OnFixSiteArticleLinkTitles(ActionBase):
         self.add_line(f"🔗 Converted to dual links: {converted_count}")
         self.add_line(f"🔎 Dual links checked: {checked_dual}")
         self.add_line(f"✏️ Titles fixed: {fixed_count}")
+        self.add_line(f"🔎 Content article YAML checked: {checked_permalink_yaml}")
+        self.add_line(f"📎 Permalinks YAML fixed/added: {permalink_yaml_count}")
         self.add_line(f"❌ Missing articles: {missing_count}")
         self.add_line(f"⚠️ Site URL mismatches: {mismatch_count}")
-        if missing_count == 0 and mismatch_count == 0 and fixed_count == 0 and converted_count == 0:
+        if (
+            missing_count == 0
+            and mismatch_count == 0
+            and fixed_count == 0
+            and converted_count == 0
+            and permalink_yaml_count == 0
+        ):
             self.add_line(f"✅ No link changes needed in {self.folder_path}.")
 ```
 

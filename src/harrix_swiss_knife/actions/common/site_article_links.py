@@ -26,6 +26,7 @@ _ASSET_EXT_RE = re.compile(
     r"\.(?:png|jpe?g|gif|svg|webp|avif|ico|md|pdf|zip|mp[34]|webm|mov|css|js)$",
     re.IGNORECASE,
 )
+_TOP_LEVEL_YAML_KEY_RE = re.compile(r"^([A-Za-z0-9_-]+):\s*(.*)$")
 
 
 @dataclass(frozen=True, slots=True)
@@ -72,6 +73,14 @@ class DualLinkMatch:
     user: str
     repo: str
     slug: str
+
+
+@dataclass(frozen=True, slots=True)
+class PermalinkYamlFix:
+    """Result of ensuring `permalink` / `permalink-source` in article YAML."""
+
+    text: str
+    changes: tuple[str, ...]
 
 
 @dataclass(frozen=True, slots=True)
@@ -132,6 +141,66 @@ def content_root_from_config(config: dict) -> Path | None:
         return None
     path = Path(str(raw)).expanduser().resolve()
     return path if path.is_dir() else None
+
+
+def ensure_article_permalink_yaml(
+    markdown: str,
+    ref: ContentArticleRef,
+    settings: SiteLinkSettings,
+) -> PermalinkYamlFix:
+    """Check/fix/add `permalink-source` and `permalink` top-level YAML keys.
+
+    Preserves the rest of the frontmatter text (no full YAML round-trip).
+
+    """
+    expected = {
+        "permalink-source": ref.github_blob_url(settings),
+        "permalink": ref.site_url(settings),
+    }
+    had_bom = markdown.startswith("\ufeff")
+    body = markdown.removeprefix("\ufeff")
+    fm_match = _FRONTMATTER_RE.match(body)
+    if fm_match is None:
+        yaml_block = "---\n" + "".join(f"{key}: {value}\n" for key, value in expected.items()) + "---\n\n"
+        new_text = yaml_block + body.lstrip("\n")
+        if had_bom:
+            new_text = "\ufeff" + new_text
+        return PermalinkYamlFix(text=new_text, changes=("permalink-source added", "permalink added"))
+
+    fm_full = fm_match.group(0)
+    newline = "\r\n" if "\r\n" in fm_full else "\n"
+    inner = fm_full.strip().removeprefix("---").removesuffix("---").strip("\r\n")
+    lines = inner.splitlines()
+    key_line_indexes: dict[str, int] = {}
+    for index, line in enumerate(lines):
+        match = _TOP_LEVEL_YAML_KEY_RE.match(line)
+        if match is None:
+            continue
+        key_line_indexes[match.group(1)] = index
+
+    changes: list[str] = []
+    for key, value in expected.items():
+        new_line = f"{key}: {value}"
+        if key in key_line_indexes:
+            index = key_line_indexes[key]
+            current = _yaml_scalar_value(lines[index])
+            if normalize_url_for_compare(current) == normalize_url_for_compare(value):
+                continue
+            lines[index] = new_line
+            changes.append(f"{key} fixed")
+        else:
+            lines.append(new_line)
+            changes.append(f"{key} added")
+
+    if not changes:
+        return PermalinkYamlFix(text=markdown, changes=())
+
+    new_inner = newline.join(lines)
+    new_fm = f"---{newline}{new_inner}{newline}---{newline}"
+    new_text = new_fm + body[fm_match.end() :]
+    if had_bom:
+        new_text = "\ufeff" + new_text
+    return PermalinkYamlFix(text=new_text, changes=tuple(changes))
 
 
 def expected_site_url_from_repo(repo: str, slug: str, settings: SiteLinkSettings) -> str | None:
@@ -314,7 +383,34 @@ def replace_span(original: str, start: int, end: int, replacement: str) -> str:
     return original[:start] + replacement + original[end:]
 
 
+def resolve_content_article_ref(md_path: Path, settings: SiteLinkSettings) -> ContentArticleRef | None:
+    """Return article ref when `md_path` is `{repo}/{slug}/{slug}.md` under a content repo name."""
+    path = md_path.resolve()
+    if path.suffix.lower() != ".md":
+        return None
+    slug = path.stem
+    if path.parent.name != slug:
+        return None
+    repo_name = path.parent.parent.name
+    parsed = parse_content_repo_name(repo_name, settings)
+    if parsed is None:
+        return None
+    return ContentArticleRef(section=parsed.section, year=parsed.year, lang=parsed.lang, slug=slug)
+
+
 def _looks_like_asset_target(target: str) -> bool:
     """Return `True` when `target` looks like a static asset path, not an article permalink."""
     path_only = target.split("?", 1)[0].split("#", 1)[0]
     return _ASSET_EXT_RE.search(path_only) is not None
+
+
+def _yaml_scalar_value(line: str) -> str:
+    """Extract a top-level YAML scalar value from a `key: value` line."""
+    match = _TOP_LEVEL_YAML_KEY_RE.match(line)
+    if match is None:
+        return ""
+    value = match.group(2).strip()
+    min_quoted_len = 2
+    if len(value) >= min_quoted_len and value[0] == value[-1] and value[0] in {'"', "'"}:
+        return value[1:-1]
+    return value
