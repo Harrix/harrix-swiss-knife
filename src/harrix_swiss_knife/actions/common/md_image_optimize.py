@@ -10,7 +10,7 @@ from tempfile import TemporaryDirectory
 import harrix_pylib as h
 from PIL import Image
 
-from harrix_swiss_knife.actions.common.image_optimize import optimize_images_in_folder
+from harrix_swiss_knife.actions.common.image_optimize import OptimizeSizeStats, optimize_images_in_folder
 
 SUPPORTED_IMAGE_EXTENSIONS = [".jpg", ".jpeg", ".webp", ".gif", ".mp4", ".png", ".svg", ".avif"]
 REMOTE_IMAGE_PATTERN = re.compile(r"^\!\[(.*?)\]\((http.*?)\)$")
@@ -26,6 +26,7 @@ def optimize_image_file(
     is_convert_png_to_avif: bool = False,
     is_compare_png_avif_sizes: bool = False,
     max_size: int | None = None,
+    size_stats: OptimizeSizeStats | None = None,
 ) -> tuple[Path, str] | None:
     """Optimize a local image file and copy it to the target location.
 
@@ -42,6 +43,8 @@ def optimize_image_file(
 
     if _is_already_optimized(image_filename, ext, max_size=max_size):
         return None
+
+    before_size = image_filename.stat().st_size
 
     with TemporaryDirectory() as temp_folder:
         temp_folder_path = Path(temp_folder)
@@ -79,6 +82,8 @@ def optimize_image_file(
         if image_filename.exists():
             image_filename.unlink()
         shutil.copy(optimized_image, new_image_path)
+        if size_stats is not None:
+            size_stats.add(before_size, new_image_path.stat().st_size)
         return new_image_path, new_image_rel_path
 
 
@@ -89,6 +94,7 @@ def optimize_images_in_md_file(
     is_compare_png_avif_sizes: bool = False,
     max_size: int | None = None,
     filter_names: set[str] | None = None,
+    size_stats: OptimizeSizeStats | None = None,
 ) -> str:
     """Optimise images in a Markdown file and write changes when content differs."""
     path = Path(filename)
@@ -100,6 +106,7 @@ def optimize_images_in_md_file(
         is_convert_png_to_avif=is_convert_png_to_avif,
         is_compare_png_avif_sizes=is_compare_png_avif_sizes,
         max_size=max_size,
+        size_stats=size_stats,
     )
     if document != document_new:
         path.write_text(document_new, encoding="utf-8")
@@ -142,6 +149,7 @@ def process_markdown_image_line(
     is_convert_png_to_avif: bool = False,
     is_compare_png_avif_sizes: bool = False,
     max_size: int | None = None,
+    size_stats: OptimizeSizeStats | None = None,
 ) -> str:
     """Process a single Markdown line and optimise any matching local image reference."""
     if REMOTE_IMAGE_PATTERN.search(markdown_line.strip()):
@@ -171,6 +179,7 @@ def process_markdown_image_line(
         is_convert_png_to_avif=is_convert_png_to_avif,
         is_compare_png_avif_sizes=is_compare_png_avif_sizes,
         max_size=max_size,
+        size_stats=size_stats,
     )
     if result is None:
         return markdown_line
@@ -188,6 +197,7 @@ def transform_markdown_content(
     is_convert_png_to_avif: bool = False,
     is_compare_png_avif_sizes: bool = False,
     max_size: int | None = None,
+    size_stats: OptimizeSizeStats | None = None,
 ) -> str:
     """Optimise local images referenced in Markdown content, preserving YAML and code blocks."""
     yaml_md, content_md = h.md.split_yaml_content(markdown_text)
@@ -207,6 +217,7 @@ def transform_markdown_content(
                 is_convert_png_to_avif=is_convert_png_to_avif,
                 is_compare_png_avif_sizes=is_compare_png_avif_sizes,
                 max_size=max_size,
+                size_stats=size_stats,
             )
         )
     content_md = "\n".join(new_lines)
@@ -281,6 +292,7 @@ def _run_image_optimize(
     project_root = h.dev.get_project_root()
     compare_png_avif = is_compare_png_avif_sizes and ext == ".png"
     convert_png_to_avif = is_convert_png_to_avif and ext == ".png" and not compare_png_avif
+    # External size_stats keeps the per-image summary out of the temp-folder log.
     optimize_images_in_folder(
         temp_path,
         output_dir,
@@ -288,5 +300,6 @@ def _run_image_optimize(
         max_size=max_size,
         compare_png_avif=compare_png_avif,
         convert_png_to_avif=convert_png_to_avif,
+        size_stats=OptimizeSizeStats(),
     )
     return output_dir

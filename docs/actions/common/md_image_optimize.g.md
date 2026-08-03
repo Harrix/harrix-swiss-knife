@@ -46,6 +46,7 @@ def optimize_image_file(
     is_convert_png_to_avif: bool = False,
     is_compare_png_avif_sizes: bool = False,
     max_size: int | None = None,
+    size_stats: OptimizeSizeStats | None = None,
 ) -> tuple[Path, str] | None:
     ext = image_filename.suffix.lower()
     if ext not in SUPPORTED_IMAGE_EXTENSIONS:
@@ -53,6 +54,8 @@ def optimize_image_file(
 
     if _is_already_optimized(image_filename, ext, max_size=max_size):
         return None
+
+    before_size = image_filename.stat().st_size
 
     with TemporaryDirectory() as temp_folder:
         temp_folder_path = Path(temp_folder)
@@ -90,6 +93,8 @@ def optimize_image_file(
         if image_filename.exists():
             image_filename.unlink()
         shutil.copy(optimized_image, new_image_path)
+        if size_stats is not None:
+            size_stats.add(before_size, new_image_path.stat().st_size)
         return new_image_path, new_image_rel_path
 ```
 
@@ -114,6 +119,7 @@ def optimize_images_in_md_file(
     is_compare_png_avif_sizes: bool = False,
     max_size: int | None = None,
     filter_names: set[str] | None = None,
+    size_stats: OptimizeSizeStats | None = None,
 ) -> str:
     path = Path(filename)
     document = path.read_text(encoding="utf-8")
@@ -124,6 +130,7 @@ def optimize_images_in_md_file(
         is_convert_png_to_avif=is_convert_png_to_avif,
         is_compare_png_avif_sizes=is_compare_png_avif_sizes,
         max_size=max_size,
+        size_stats=size_stats,
     )
     if document != document_new:
         path.write_text(document_new, encoding="utf-8")
@@ -193,6 +200,7 @@ def process_markdown_image_line(
     is_convert_png_to_avif: bool = False,
     is_compare_png_avif_sizes: bool = False,
     max_size: int | None = None,
+    size_stats: OptimizeSizeStats | None = None,
 ) -> str:
     if REMOTE_IMAGE_PATTERN.search(markdown_line.strip()):
         return markdown_line
@@ -221,6 +229,7 @@ def process_markdown_image_line(
         is_convert_png_to_avif=is_convert_png_to_avif,
         is_compare_png_avif_sizes=is_compare_png_avif_sizes,
         max_size=max_size,
+        size_stats=size_stats,
     )
     if result is None:
         return markdown_line
@@ -252,6 +261,7 @@ def transform_markdown_content(
     is_convert_png_to_avif: bool = False,
     is_compare_png_avif_sizes: bool = False,
     max_size: int | None = None,
+    size_stats: OptimizeSizeStats | None = None,
 ) -> str:
     yaml_md, content_md = h.md.split_yaml_content(markdown_text)
 
@@ -270,6 +280,7 @@ def transform_markdown_content(
                 is_convert_png_to_avif=is_convert_png_to_avif,
                 is_compare_png_avif_sizes=is_compare_png_avif_sizes,
                 max_size=max_size,
+                size_stats=size_stats,
             )
         )
     content_md = "\n".join(new_lines)

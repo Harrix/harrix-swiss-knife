@@ -103,12 +103,13 @@ class OnOptimizeSelectedImages(ActionBase):
             images_by_dir.setdefault(parent_dir, []).append(image_path)
 
         processed_files = []
+        size_stats = OptimizeSizeStats()
         for parent_dir, images in images_by_dir.items():
             md_file = self.find_markdown_file_one_level_up(parent_dir)
             if md_file:
                 self.add_line(f"🔵 Found MD file: {md_file}")
                 self.add_line(f"🔵 Processing {len(images)} images in {parent_dir}")
-                result = self.optimize_selected_images_in_md(md_file, images, self.max_size)
+                result = self.optimize_selected_images_in_md(md_file, images, self.max_size, size_stats)
                 processed_files.append((md_file, result))
             else:
                 self.add_line(f"❌ No Markdown file found one level up from {parent_dir}")
@@ -117,9 +118,15 @@ class OnOptimizeSelectedImages(ActionBase):
             self.add_line(f"✅ Processed {len(processed_files)} Markdown file(s)")
         else:
             self.add_line("❌ No Markdown files were processed")
+        if size_stats.count > 0:
+            self.add_line(size_stats.format_summary())
 
     def optimize_selected_images_in_md(
-        self, md_file: Path, selected_images: list[Path], max_size: int | None = None
+        self,
+        md_file: Path,
+        selected_images: list[Path],
+        max_size: int | None = None,
+        size_stats: OptimizeSizeStats | None = None,
     ) -> str:
         """Optimize only the selected images in a Markdown file."""
         try:
@@ -131,6 +138,7 @@ class OnOptimizeSelectedImages(ActionBase):
                 filter_names=selected_image_names,
                 is_compare_png_avif_sizes=True,
                 max_size=max_size,
+                size_stats=size_stats,
             )
             if document != document_new:
                 md_file.write_text(document_new, encoding="utf-8")
@@ -232,12 +240,13 @@ def in_thread(self) -> str | None:
             images_by_dir.setdefault(parent_dir, []).append(image_path)
 
         processed_files = []
+        size_stats = OptimizeSizeStats()
         for parent_dir, images in images_by_dir.items():
             md_file = self.find_markdown_file_one_level_up(parent_dir)
             if md_file:
                 self.add_line(f"🔵 Found MD file: {md_file}")
                 self.add_line(f"🔵 Processing {len(images)} images in {parent_dir}")
-                result = self.optimize_selected_images_in_md(md_file, images, self.max_size)
+                result = self.optimize_selected_images_in_md(md_file, images, self.max_size, size_stats)
                 processed_files.append((md_file, result))
             else:
                 self.add_line(f"❌ No Markdown file found one level up from {parent_dir}")
@@ -246,6 +255,8 @@ def in_thread(self) -> str | None:
             self.add_line(f"✅ Processed {len(processed_files)} Markdown file(s)")
         else:
             self.add_line("❌ No Markdown files were processed")
+        if size_stats.count > 0:
+            self.add_line(size_stats.format_summary())
 ```
 
 </details>
@@ -253,7 +264,7 @@ def in_thread(self) -> str | None:
 ### ⚙️ Method `optimize_selected_images_in_md`
 
 ```python
-def optimize_selected_images_in_md(self, md_file: Path, selected_images: list[Path], max_size: int | None = None) -> str
+def optimize_selected_images_in_md(self, md_file: Path, selected_images: list[Path], max_size: int | None = None, size_stats: OptimizeSizeStats | None = None) -> str
 ```
 
 Optimize only the selected images in a Markdown file.
@@ -263,7 +274,11 @@ Optimize only the selected images in a Markdown file.
 
 ```python
 def optimize_selected_images_in_md(
-        self, md_file: Path, selected_images: list[Path], max_size: int | None = None
+        self,
+        md_file: Path,
+        selected_images: list[Path],
+        max_size: int | None = None,
+        size_stats: OptimizeSizeStats | None = None,
     ) -> str:
         try:
             document = md_file.read_text(encoding="utf-8")
@@ -274,6 +289,7 @@ def optimize_selected_images_in_md(
                 filter_names=selected_image_names,
                 is_compare_png_avif_sizes=True,
                 max_size=max_size,
+                size_stats=size_stats,
             )
             if document != document_new:
                 md_file.write_text(document_new, encoding="utf-8")

@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any, ClassVar
 
 from harrix_swiss_knife.actions.base import ActionBase
+from harrix_swiss_knife.actions.common.image_optimize import OptimizeSizeStats
 from harrix_swiss_knife.actions.common.md_image_optimize import optimize_images_in_md_file
 
 
@@ -77,6 +78,7 @@ class OnOptimizeImagesInMd(ActionBase):
         if self.folder_path is None:
             return
         results = []
+        size_stats = OptimizeSizeStats()
         for md_file in sorted(Path(self.folder_path).rglob("*.md")):
             if md_file.name.endswith(".g.md"):
                 continue
@@ -86,9 +88,12 @@ class OnOptimizeImagesInMd(ActionBase):
                     is_convert_png_to_avif=False,
                     is_compare_png_avif_sizes=True,
                     max_size=self.max_size,
+                    size_stats=size_stats,
                 )
             )
         self.add_line("\n".join(results))
+        if size_stats.count > 0:
+            self.add_line(size_stats.format_summary())
 
     def _load_max_size_from_config(self) -> int:
         """Return stored max size from config, or the default."""
