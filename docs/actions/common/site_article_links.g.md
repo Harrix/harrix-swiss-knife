@@ -27,6 +27,7 @@ lang: en
 - [🔧 Function `find_dual_links`](#-function-find_dual_links)
 - [🔧 Function `find_relative_site_links`](#-function-find_relative_site_links)
 - [🔧 Function `format_dual_link`](#-function-format_dual_link)
+- [🔧 Function `is_forbidden_cross_language_link`](#-function-is_forbidden_cross_language_link)
 - [🔧 Function `is_single_word_link_text`](#-function-is_single_word_link_text)
 - [🔧 Function `normalize_url_for_compare`](#-function-normalize_url_for_compare)
 - [🔧 Function `parse_content_repo_name`](#-function-parse_content_repo_name)
@@ -522,6 +523,26 @@ Build `[title](github) | [↗️](site)` for an article ref.
 ```python
 def format_dual_link(title: str, ref: ContentArticleRef, settings: SiteLinkSettings) -> str:
     return f"[{title}]({ref.github_blob_url(settings)}) | [↗️]({ref.site_url(settings)})"
+```
+
+</details>
+
+## 🔧 Function `is_forbidden_cross_language_link`
+
+```python
+def is_forbidden_cross_language_link(source_lang: str, target_lang: str) -> bool
+```
+
+Return `True` when an English article links to a Russian one.
+
+English content articles must not point at the Russian site section.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def is_forbidden_cross_language_link(source_lang: str, target_lang: str) -> bool:
+    return source_lang == "en" and target_lang == "ru"
 ```
 
 </details>

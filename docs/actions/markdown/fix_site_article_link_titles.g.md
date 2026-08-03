@@ -34,6 +34,8 @@ Scans notes for:
    to dual form with the article H1
 3. Content articles `{repo}/{slug}/{slug}.md` — checks/fixes/adds YAML
    `permalink-source` and `permalink`
+4. English content articles — reports links to Russian articles (does not rewrite them;
+   skips converting relative `/ru/…` links to dual form)
 
 Content repositories come from `paths_sites[0].input`. Missing articles and
 mismatched site URLs are reported.
@@ -118,6 +120,7 @@ class OnFixSiteArticleLinkTitles(ActionBase):
         permalink_yaml_count = 0
         missing_count = 0
         mismatch_count = 0
+        cross_lang_count = 0
         checked_dual = 0
         checked_relative = 0
         checked_permalink_yaml = 0
@@ -132,6 +135,7 @@ class OnFixSiteArticleLinkTitles(ActionBase):
             updated = original
 
             article_ref = resolve_content_article_ref(md_path, settings)
+            source_lang = article_ref.lang if article_ref is not None else None
             if article_ref is not None:
                 checked_permalink_yaml += 1
                 yaml_fix = ensure_article_permalink_yaml(updated, article_ref, settings)
@@ -145,6 +149,15 @@ class OnFixSiteArticleLinkTitles(ActionBase):
             for match in reversed(relative_matches):
                 checked_relative += 1
                 repo = match.ref.repo_name(settings)
+                if source_lang is not None and is_forbidden_cross_language_link(source_lang, match.ref.lang):
+                    cross_lang_count += 1
+                    self.add_line(
+                        f"⚠️ {md_path}: English article must not link to Russian article "
+                        f"`{repo}/{match.ref.slug}`\n"
+                        f"  site: {match.target}"
+                    )
+                    continue
+
                 key = (repo, match.ref.slug)
                 title = title_index.get(key)
                 if title is None:
@@ -164,6 +177,19 @@ class OnFixSiteArticleLinkTitles(ActionBase):
             for match in reversed(dual_matches):
                 checked_dual += 1
                 key = (match.repo, match.slug)
+                target_parsed = parse_content_repo_name(match.repo, settings)
+                if (
+                    source_lang is not None
+                    and target_parsed is not None
+                    and is_forbidden_cross_language_link(source_lang, target_parsed.lang)
+                ):
+                    cross_lang_count += 1
+                    self.add_line(
+                        f"⚠️ {md_path}: English article must not link to Russian article "
+                        f"`{match.repo}/{match.slug}`\n"
+                        f"  site: {match.site_url}"
+                    )
+
                 expected_site = expected_site_url_from_repo(match.repo, match.slug, settings)
                 if expected_site is not None and normalize_url_for_compare(match.site_url) != normalize_url_for_compare(
                     expected_site
@@ -205,9 +231,11 @@ class OnFixSiteArticleLinkTitles(ActionBase):
         self.add_line(f"📎 Permalinks YAML fixed/added: {permalink_yaml_count}")
         self.add_line(f"❌ Missing articles: {missing_count}")
         self.add_line(f"⚠️ Site URL mismatches: {mismatch_count}")
+        self.add_line(f"⚠️ EN→RU cross-language links: {cross_lang_count}")
         if (
             missing_count == 0
             and mismatch_count == 0
+            and cross_lang_count == 0
             and fixed_count == 0
             and converted_count == 0
             and permalink_yaml_count == 0

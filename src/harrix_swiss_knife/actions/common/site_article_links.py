@@ -293,6 +293,15 @@ def format_dual_link(title: str, ref: ContentArticleRef, settings: SiteLinkSetti
     return f"[{title}]({ref.github_blob_url(settings)}) | [↗️]({ref.site_url(settings)})"
 
 
+def is_forbidden_cross_language_link(source_lang: str, target_lang: str) -> bool:
+    """Return `True` when an English article links to a Russian one.
+
+    English content articles must not point at the Russian site section.
+
+    """
+    return source_lang == "en" and target_lang == "ru"
+
+
 def is_single_word_link_text(text: str) -> bool:
     """Return `True` when link text is one non-empty token with no whitespace.
 
