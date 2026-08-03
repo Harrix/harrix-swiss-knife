@@ -2088,10 +2088,12 @@ class NotesProvider {
     this._gitWorkTreeCache = new Map();
     /** @type {Set<string>} note paths waiting for background title resolve */
     this._titleResolveQueued = new Set();
-    /** @type {Set<string>} parent dirs to refresh after title updates */
-    this._titleResolveParents = new Set();
+    /** @type {Set<string>} parent dirs that need a delayed re-sort after title updates */
+    this._titleResolveParentsPendingSort = new Set();
     /** @type {ReturnType<typeof setTimeout> | null} */
     this._titleResolveTimer = null;
+    /** @type {ReturnType<typeof setTimeout> | null} */
+    this._titleResolveParentSortTimer = null;
     /** True when a resolved title differs from the label already shown */
     this._titleResolveDirty = false;
   }
@@ -2144,11 +2146,15 @@ class NotesProvider {
     this._gitWorkTreeCache.clear();
     noteTitleCache.clear();
     this._titleResolveQueued.clear();
-    this._titleResolveParents.clear();
+    this._titleResolveParentsPendingSort.clear();
     this._titleResolveDirty = false;
     if (this._titleResolveTimer != null) {
       clearTimeout(this._titleResolveTimer);
       this._titleResolveTimer = null;
+    }
+    if (this._titleResolveParentSortTimer != null) {
+      clearTimeout(this._titleResolveParentSortTimer);
+      this._titleResolveParentSortTimer = null;
     }
     this._emitter.fire();
   }
@@ -2163,13 +2169,17 @@ class NotesProvider {
     if (!Array.isArray(filePaths) || filePaths.length === 0) {
       return;
     }
+    let queuedAny = false;
     for (const filePath of filePaths) {
       if (noteTitleCache.needsResolve(filePath)) {
         this._titleResolveQueued.add(normalizeFsPath(filePath));
+        queuedAny = true;
       }
     }
-    if (typeof parentDir === 'string' && parentDir) {
-      this._titleResolveParents.add(normalizeFsPath(parentDir));
+    // Only remember the parent when something will actually resolve — otherwise
+    // stale parents accumulate and refresh the wrong root mid-expand.
+    if (queuedAny && typeof parentDir === 'string' && parentDir) {
+      this._titleResolveParentsPendingSort.add(normalizeFsPath(parentDir));
     }
     this._kickTitleResolve();
   }
@@ -2189,40 +2199,69 @@ class NotesProvider {
     for (const filePath of batch) {
       this._titleResolveQueued.delete(filePath);
     }
+    /** @type {string[]} */
+    const changedNotes = [];
     for (const filePath of batch) {
       noteTitleCache.markInflight(filePath);
       try {
         const { changed } = noteTitleCache.resolveFromDisk(filePath);
         if (changed) {
           this._titleResolveDirty = true;
+          changedNotes.push(filePath);
         }
       } finally {
         noteTitleCache.clearInflight(filePath);
       }
     }
+
+    // Update leaf labels immediately without re-listing parent folders (avoids
+    // VS Code AsyncDataTree races when another workspace root is expanding).
+    for (const filePath of changedNotes) {
+      this._emitter.fire(this.createFileItem(filePath));
+      this._titleResolveParentsPendingSort.add(normalizeFsPath(getNoteTreeParentDir(filePath)));
+    }
+
     if (this._titleResolveQueued.size > 0) {
       this._kickTitleResolve();
       return;
     }
+
     if (!this._titleResolveDirty) {
-      this._titleResolveParents.clear();
+      this._titleResolveParentsPendingSort.clear();
       return;
     }
     this._titleResolveDirty = false;
-    const parents = [...this._titleResolveParents];
-    this._titleResolveParents.clear();
-    if (parents.length === 0) {
-      this._emitter.fire();
+    this._scheduleParentSortRefresh();
+  }
+
+  /**
+   * Debounce parent re-list so label-based sort can update after expand settles.
+   * Firing parents immediately races concurrent getChildren for other roots.
+   */
+  _scheduleParentSortRefresh() {
+    if (this._titleResolveParentSortTimer != null) {
+      clearTimeout(this._titleResolveParentSortTimer);
+    }
+    this._titleResolveParentSortTimer = setTimeout(() => {
+      this._titleResolveParentSortTimer = null;
+      const parents = [...this._titleResolveParentsPendingSort];
+      this._titleResolveParentsPendingSort.clear();
+      for (const parentDir of parents) {
+        this._fireFolderForTitleRefresh(parentDir);
+      }
+    }, 300);
+  }
+
+  /**
+   * @param {string} parentDir
+   */
+  _fireFolderForTitleRefresh(parentDir) {
+    if (this.isWorkspaceRootPath(parentDir)) {
+      const entry = this.findRootForPath(parentDir);
+      this._emitter.fire(this.createWorkspaceRootFolderItem(parentDir, entry?.name));
       return;
     }
-    for (const parentDir of parents) {
-      if (this.isWorkspaceRootPath(parentDir)) {
-        const entry = this.findRootForPath(parentDir);
-        this._emitter.fire(this.createWorkspaceRootFolderItem(parentDir, entry?.name));
-      } else {
-        this._emitter.fire(this.createFolderItem(parentDir, path.basename(parentDir), 1));
-      }
-    }
+    this._emitter.fire(this.createFolderItem(parentDir, path.basename(parentDir), this.folderDepthForPath(parentDir)));
   }
 
   /**
@@ -2313,6 +2352,10 @@ class NotesProvider {
   }
 
   getTreeItem(el) {
+    // Rebuild notes so title/icon fires apply without re-listing the parent folder.
+    if (el?.isNoteItem && el.resourceUri?.fsPath) {
+      return this.createFileItem(el.resourceUri.fsPath);
+    }
     return el;
   }
 
