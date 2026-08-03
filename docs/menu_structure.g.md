@@ -33,6 +33,7 @@ def get_menu_structure() -> list[Any]:
                 OnSyncQuickAccessToTotalCommander,
                 OnUpdateHarrixSwissKnife,
                 OnViewRecentActionLogs,
+                OnShowActionUsageStats,
                 OnClearTempFolder,
                 OnUpdateUv,
                 OnInstallCli,

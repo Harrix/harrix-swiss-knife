@@ -57,6 +57,7 @@ _Figure 1: Screenshot_
   - ⬇️ Download ffmpeg, avifenc, avifdec
   - ⌨️ Install CLI (hsk on PATH) ꟲᴸᴵ
   - ⚙️ Open `config.json`
+  - 📊 Show action usage stats ꟲᴸᴵ
   - 📌 Sync Quick Access folders to Total Commander
   - ⬆️ Update Harrix Swiss Knife from GitHub…
   - 📥 Update Node.js

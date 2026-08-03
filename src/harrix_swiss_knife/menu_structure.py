@@ -19,6 +19,7 @@ from harrix_swiss_knife.actions.development.exit_ import OnExit
 from harrix_swiss_knife.actions.development.install_cli import OnInstallCli
 from harrix_swiss_knife.actions.development.npm_manage_packages import OnNpmManagePackages
 from harrix_swiss_knife.actions.development.open_config_json import OnOpenConfigJson
+from harrix_swiss_knife.actions.development.show_action_usage_stats import OnShowActionUsageStats
 from harrix_swiss_knife.actions.development.sync_quick_access_to_total_commander import (
     OnSyncQuickAccessToTotalCommander,
 )
@@ -121,6 +122,7 @@ def get_menu_structure() -> list[Any]:
                 OnSyncQuickAccessToTotalCommander,
                 OnUpdateHarrixSwissKnife,
                 OnViewRecentActionLogs,
+                OnShowActionUsageStats,
                 OnClearTempFolder,
                 OnUpdateUv,
                 OnInstallCli,

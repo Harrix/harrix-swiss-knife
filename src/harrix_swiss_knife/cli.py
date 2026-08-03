@@ -12,7 +12,7 @@ from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication
 
 from harrix_swiss_knife.actions.android import OnAndroidBuild, OnAndroidCheck, OnAndroidFormat
-from harrix_swiss_knife.actions.development import OnInstallCli
+from harrix_swiss_knife.actions.development import OnInstallCli, OnShowActionUsageStats
 from harrix_swiss_knife.actions.files import OnDiscardGitChanges
 from harrix_swiss_knife.actions.markdown import (
     OnBeautifyMd,
@@ -102,6 +102,14 @@ def android_format(folder: Path) -> None:
 @cli.group("dev")
 def dev_group() -> None:
     """Development-related commands."""
+
+
+@dev_group.command("action-usage")
+def dev_action_usage() -> None:
+    """Show sorted action invocation statistics (unused first)."""
+    action = OnShowActionUsageStats()
+    action(noninteractive=True)
+    _exit_if_action_failed(action)
 
 
 @dev_group.command("install-cli")

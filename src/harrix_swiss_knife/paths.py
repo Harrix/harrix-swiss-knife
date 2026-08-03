@@ -136,6 +136,11 @@ def get_action_output_dir() -> Path:
     return _default_user_action_output_dir()
 
 
+def get_action_usage_path() -> Path:
+    """Return absolute path to persistent action usage statistics JSON."""
+    return get_project_root() / "config" / "action_usage.json"
+
+
 def get_config_path() -> Path:
     """Return absolute path to main config file (creates from example if needed)."""
     return ensure_local_config()

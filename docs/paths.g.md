@@ -15,6 +15,7 @@ lang: en
 - [🔧 Function `clear_temp_folder`](#-function-clear_temp_folder)
 - [🔧 Function `ensure_local_config`](#-function-ensure_local_config)
 - [🔧 Function `get_action_output_dir`](#-function-get_action_output_dir)
+- [🔧 Function `get_action_usage_path`](#-function-get_action_usage_path)
 - [🔧 Function `get_config_path`](#-function-get_config_path)
 - [🔧 Function `get_config_path_str`](#-function-get_config_path_str)
 - [🔧 Function `get_project_root`](#-function-get_project_root)
@@ -165,6 +166,24 @@ def get_action_output_dir() -> Path:
     if _can_use_project_temp_dir(project_temp):
         return project_temp / "action_output"
     return _default_user_action_output_dir()
+```
+
+</details>
+
+## 🔧 Function `get_action_usage_path`
+
+```python
+def get_action_usage_path() -> Path
+```
+
+Return absolute path to persistent action usage statistics JSON.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_action_usage_path() -> Path:
+    return get_project_root() / "config" / "action_usage.json"
 ```
 
 </details>

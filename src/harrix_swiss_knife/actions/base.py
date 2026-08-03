@@ -35,6 +35,7 @@ from PySide6.QtWidgets import (
 
 from harrix_swiss_knife import toast_cancellable_http_notification, toast_countdown_notification, toast_notification
 from harrix_swiss_knife.action_title import strip_md_inline_code_markers
+from harrix_swiss_knife.action_usage import record_action_usage
 from harrix_swiss_knife.actions.dialog_service import ActionDialogService
 from harrix_swiss_knife.config_model import load_app_config
 from harrix_swiss_knife.integrations.http_download import DownloadCancelledError
@@ -125,6 +126,7 @@ class ActionBase(ABC):
         finally:
             if getattr(_output_path_local, "file", None) is self.file:
                 delattr(_output_path_local, "file")
+            record_action_usage(type(self).__name__, via_cli=bool(kwargs.get("noninteractive")))
 
     def __init__(self, **kwargs: Any) -> None:
         """Initialize the action with a temporary output file.

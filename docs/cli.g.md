@@ -17,6 +17,7 @@ lang: en
 - [🔧 Function `android_check`](#-function-android_check)
 - [🔧 Function `android_format`](#-function-android_format)
 - [🔧 Function `dev_group`](#-function-dev_group)
+- [🔧 Function `dev_action_usage`](#-function-dev_action_usage)
 - [🔧 Function `dev_install_cli`](#-function-dev_install_cli)
 - [🔧 Function `dev_install_harrix_notes_explorer_hsk`](#-function-dev_install_harrix_notes_explorer_hsk)
 - [🔧 Function `file_group`](#-function-file_group)
@@ -164,6 +165,26 @@ Development-related commands.
 
 ```python
 def dev_group() -> None:
+```
+
+</details>
+
+## 🔧 Function `dev_action_usage`
+
+```python
+def dev_action_usage() -> None
+```
+
+Show sorted action invocation statistics (unused first).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def dev_action_usage() -> None:
+    action = OnShowActionUsageStats()
+    action(noninteractive=True)
+    _exit_if_action_failed(action)
 ```
 
 </details>

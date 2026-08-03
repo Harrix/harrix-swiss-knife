@@ -15,6 +15,7 @@ api-keys/*
 # Personal machine config (paths, local prefs) — track only the example template
 config/config.json
 config/config-temp.json
+config/action_usage.json
 # Android Kotlin daemon sessions
 android/.kotlin/
 install/dependencies/
