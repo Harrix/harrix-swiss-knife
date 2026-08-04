@@ -22,6 +22,7 @@ lang: en
   - [⚙️ Method `on_check_problematic_records`](#%EF%B8%8F-method-on_check_problematic_records)
   - [⚙️ Method `on_clear_food_manual_name`](#%EF%B8%8F-method-on_clear_food_manual_name)
   - [⚙️ Method `on_favorite_food_item_selection_changed`](#%EF%B8%8F-method-on_favorite_food_item_selection_changed)
+  - [⚙️ Method `on_food_add_by_voice`](#%EF%B8%8F-method-on_food_add_by_voice)
   - [⚙️ Method `on_food_add_with_ai`](#%EF%B8%8F-method-on_food_add_with_ai)
   - [⚙️ Method `on_food_item_double_clicked`](#%EF%B8%8F-method-on_food_item_double_clicked)
   - [⚙️ Method `on_food_log_table_cell_clicked`](#%EF%B8%8F-method-on_food_log_table_cell_clicked)
@@ -487,6 +488,64 @@ class MainWindow(
             if item:
                 food_name = extract_food_name_from_display(item.text())
                 self._process_food_item_selection(food_name)
+
+    def on_food_add_by_voice(self) -> None:
+        """Record speech, transcribe via BotHub, convert to food log TSV, then open preview dialog."""
+        recording_dialog = SimpleRecordingDialog(self)
+        if recording_dialog.exec() != QDialog.DialogCode.Accepted:
+            recording_dialog.release_multimedia()
+            return
+
+        audio_path = recording_dialog.get_audio_path()
+        recording_dialog.release_multimedia()
+        if not audio_path:
+            return
+
+        try:
+            audio_data = audio_bytes_and_mime(audio_path)
+        except ValueError as exc:
+            message_box.critical(self, "Audio Error", str(exc))
+            return
+
+        def on_transcription_success(transcribed_text: str) -> None:
+            if not transcribed_text.strip():
+                message_box.critical(self, "BotHub Error", "Empty transcription from BotHub.")
+                return
+
+            try:
+                prompt_text = build_prompt(
+                    self._app_config,
+                    "food_voice_log_to_tsv",
+                    {"RAW_DATA": transcribed_text},
+                )
+            except ValueError as exc:
+                show_bothub_prompt_build_error(self, exc)
+                return
+
+            def on_tsv_success(response_text: str) -> None:
+                self._open_text_input_dialog(
+                    self.dateEdit_food.date(),
+                    initial_text=response_text,
+                    focus_text_on_show=False,
+                )
+
+            self._start_bothub_worker(
+                prompt_text,
+                on_tsv_success,
+                toast_message="Parsing food log…",
+            )
+
+        run_bothub_request(
+            self,
+            self._app_config,
+            build_transcription_prompt(),
+            on_transcription_success,
+            audio=audio_data,
+            model=get_speech_model(self._app_config),
+            toast_message="Recognizing speech…",
+            is_busy=lambda: self._bothub_state.worker is not None,
+            state=self._bothub_state,
+        )
 
     @requires_database()
     def on_food_add_with_ai(
@@ -1347,6 +1406,7 @@ class MainWindow(
         # Add buttons
         self.pushButton_food_add.clicked.connect(self.on_add_food_log)
         self.pushButton_food_add_with_ai.clicked.connect(self.on_food_add_with_ai)
+        self.pushButton_food_add_by_voice.clicked.connect(self.on_food_add_by_voice)
         bothub_cfg = self._app_config.get("bothub") or {}
         max_image_side = int(bothub_cfg.get("max_image_side", 1600))
         self._ai_image_drop_zone = ImagePicker(
@@ -2600,6 +2660,7 @@ class MainWindow(
         # Set emoji for buttons
         self.pushButton_food_add.setText(f"➕ {self.pushButton_food_add.text()}")  # noqa: RUF001
         self.pushButton_food_add_with_ai.setText(f"🤖 {self.pushButton_food_add_with_ai.text()}")
+        self.pushButton_food_add_by_voice.setText(f"🎙️ {self.pushButton_food_add_by_voice.text()}")
         self.pushButton_translate_with_ai.setText(f"🤖 {self.pushButton_translate_with_ai.text()}")
         self.pushButton_food_yesterday.setText(f"📅 {self.pushButton_food_yesterday.text()}")
         self.action_refresh.setText(f"🔄 {self.action_refresh.text()}")
@@ -2864,6 +2925,7 @@ class MainWindow(
         *,
         images: list[tuple[bytes, str]] | None = None,
         image: tuple[bytes, str] | None = None,
+        toast_message: str = "Requesting BotHub…",
     ) -> None:
         """Run BotHub chat completion in a background worker."""
         run_bothub_request(
@@ -2873,6 +2935,7 @@ class MainWindow(
             on_success,
             images=images,
             image=image,
+            toast_message=toast_message,
             is_busy=lambda: self._bothub_state.worker is not None,
             state=self._bothub_state,
         )
@@ -3993,6 +4056,78 @@ def on_favorite_food_item_selection_changed(self, current: QModelIndex, _previou
             if item:
                 food_name = extract_food_name_from_display(item.text())
                 self._process_food_item_selection(food_name)
+```
+
+</details>
+
+### ⚙️ Method `on_food_add_by_voice`
+
+```python
+def on_food_add_by_voice(self) -> None
+```
+
+Record speech, transcribe via BotHub, convert to food log TSV, then open preview dialog.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def on_food_add_by_voice(self) -> None:
+        recording_dialog = SimpleRecordingDialog(self)
+        if recording_dialog.exec() != QDialog.DialogCode.Accepted:
+            recording_dialog.release_multimedia()
+            return
+
+        audio_path = recording_dialog.get_audio_path()
+        recording_dialog.release_multimedia()
+        if not audio_path:
+            return
+
+        try:
+            audio_data = audio_bytes_and_mime(audio_path)
+        except ValueError as exc:
+            message_box.critical(self, "Audio Error", str(exc))
+            return
+
+        def on_transcription_success(transcribed_text: str) -> None:
+            if not transcribed_text.strip():
+                message_box.critical(self, "BotHub Error", "Empty transcription from BotHub.")
+                return
+
+            try:
+                prompt_text = build_prompt(
+                    self._app_config,
+                    "food_voice_log_to_tsv",
+                    {"RAW_DATA": transcribed_text},
+                )
+            except ValueError as exc:
+                show_bothub_prompt_build_error(self, exc)
+                return
+
+            def on_tsv_success(response_text: str) -> None:
+                self._open_text_input_dialog(
+                    self.dateEdit_food.date(),
+                    initial_text=response_text,
+                    focus_text_on_show=False,
+                )
+
+            self._start_bothub_worker(
+                prompt_text,
+                on_tsv_success,
+                toast_message="Parsing food log…",
+            )
+
+        run_bothub_request(
+            self,
+            self._app_config,
+            build_transcription_prompt(),
+            on_transcription_success,
+            audio=audio_data,
+            model=get_speech_model(self._app_config),
+            toast_message="Recognizing speech…",
+            is_busy=lambda: self._bothub_state.worker is not None,
+            state=self._bothub_state,
+        )
 ```
 
 </details>

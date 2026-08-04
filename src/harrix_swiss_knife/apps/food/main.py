@@ -44,6 +44,7 @@ from harrix_swiss_knife.apps.common.app_entry import run_app_main
 from harrix_swiss_knife.apps.common.apps_config import get_apps_list_limits
 from harrix_swiss_knife.apps.common.chart_colors import generate_pastel_qcolors
 from harrix_swiss_knife.apps.common.db_init import init_tracker_database
+from harrix_swiss_knife.apps.common.dialogs.simple_recording_dialog import SimpleRecordingDialog
 from harrix_swiss_knife.apps.common.qt_main_window import AppWindowMixin
 from harrix_swiss_knife.apps.common.scroll_pagination import ScrollPagination, on_scroll_load_more
 from harrix_swiss_knife.apps.common.table_models import create_table_proxy_model
@@ -76,7 +77,10 @@ from harrix_swiss_knife.apps.food.text_input_dialog import TextInputDialog
 from harrix_swiss_knife.apps.food.text_parser import TextParser
 from harrix_swiss_knife.integrations.bothub import (
     BothubRequestState,
+    audio_bytes_and_mime,
     build_prompt,
+    build_transcription_prompt,
+    get_speech_model,
     run_bothub_request,
     show_bothub_prompt_build_error,
 )
@@ -518,6 +522,64 @@ class MainWindow(
             if item:
                 food_name = extract_food_name_from_display(item.text())
                 self._process_food_item_selection(food_name)
+
+    def on_food_add_by_voice(self) -> None:
+        """Record speech, transcribe via BotHub, convert to food log TSV, then open preview dialog."""
+        recording_dialog = SimpleRecordingDialog(self)
+        if recording_dialog.exec() != QDialog.DialogCode.Accepted:
+            recording_dialog.release_multimedia()
+            return
+
+        audio_path = recording_dialog.get_audio_path()
+        recording_dialog.release_multimedia()
+        if not audio_path:
+            return
+
+        try:
+            audio_data = audio_bytes_and_mime(audio_path)
+        except ValueError as exc:
+            message_box.critical(self, "Audio Error", str(exc))
+            return
+
+        def on_transcription_success(transcribed_text: str) -> None:
+            if not transcribed_text.strip():
+                message_box.critical(self, "BotHub Error", "Empty transcription from BotHub.")
+                return
+
+            try:
+                prompt_text = build_prompt(
+                    self._app_config,
+                    "food_voice_log_to_tsv",
+                    {"RAW_DATA": transcribed_text},
+                )
+            except ValueError as exc:
+                show_bothub_prompt_build_error(self, exc)
+                return
+
+            def on_tsv_success(response_text: str) -> None:
+                self._open_text_input_dialog(
+                    self.dateEdit_food.date(),
+                    initial_text=response_text,
+                    focus_text_on_show=False,
+                )
+
+            self._start_bothub_worker(
+                prompt_text,
+                on_tsv_success,
+                toast_message="Parsing food log…",
+            )
+
+        run_bothub_request(
+            self,
+            self._app_config,
+            build_transcription_prompt(),
+            on_transcription_success,
+            audio=audio_data,
+            model=get_speech_model(self._app_config),
+            toast_message="Recognizing speech…",
+            is_busy=lambda: self._bothub_state.worker is not None,
+            state=self._bothub_state,
+        )
 
     @requires_database()
     def on_food_add_with_ai(
@@ -1378,6 +1440,7 @@ class MainWindow(
         # Add buttons
         self.pushButton_food_add.clicked.connect(self.on_add_food_log)
         self.pushButton_food_add_with_ai.clicked.connect(self.on_food_add_with_ai)
+        self.pushButton_food_add_by_voice.clicked.connect(self.on_food_add_by_voice)
         bothub_cfg = self._app_config.get("bothub") or {}
         max_image_side = int(bothub_cfg.get("max_image_side", 1600))
         self._ai_image_drop_zone = ImagePicker(
@@ -2631,6 +2694,7 @@ class MainWindow(
         # Set emoji for buttons
         self.pushButton_food_add.setText(f"➕ {self.pushButton_food_add.text()}")  # noqa: RUF001
         self.pushButton_food_add_with_ai.setText(f"🤖 {self.pushButton_food_add_with_ai.text()}")
+        self.pushButton_food_add_by_voice.setText(f"🎙️ {self.pushButton_food_add_by_voice.text()}")
         self.pushButton_translate_with_ai.setText(f"🤖 {self.pushButton_translate_with_ai.text()}")
         self.pushButton_food_yesterday.setText(f"📅 {self.pushButton_food_yesterday.text()}")
         self.action_refresh.setText(f"🔄 {self.action_refresh.text()}")
@@ -2895,6 +2959,7 @@ class MainWindow(
         *,
         images: list[tuple[bytes, str]] | None = None,
         image: tuple[bytes, str] | None = None,
+        toast_message: str = "Requesting BotHub…",
     ) -> None:
         """Run BotHub chat completion in a background worker."""
         run_bothub_request(
@@ -2904,6 +2969,7 @@ class MainWindow(
             on_success,
             images=images,
             image=image,
+            toast_message=toast_message,
             is_busy=lambda: self._bothub_state.worker is not None,
             state=self._bothub_state,
         )
