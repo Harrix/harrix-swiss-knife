@@ -199,6 +199,7 @@ class SimpleRecordingDialog(QDialog):
         layout.addWidget(self._status_label)
 
         controls = QHBoxLayout()
+        controls.setContentsMargins(0, 16, 0, 8)
         controls.addStretch()
 
         column = QVBoxLayout()
