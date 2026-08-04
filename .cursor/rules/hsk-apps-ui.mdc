@@ -1,0 +1,26 @@
+---
+description: Edit apps UI only in window.ui; regenerate window.py with pyside6-uic
+globs: src/harrix_swiss_knife/apps/**/*
+alwaysApply: false
+---
+
+# hsk apps UI (window.ui → window.py)
+
+When changing the Qt UI of an app under `src/harrix_swiss_knife/apps/`:
+
+1. Edit only the corresponding `window.ui` file.
+2. Regenerate `window.py` with `pyside6-uic` (do not hand-edit `window.py`).
+3. Wire behavior in `main.py` and other app modules as needed.
+
+Never invent or patch layout/widgets directly in `window.py` — it is generated output.
+
+## Commands (from repo root)
+
+```text
+pyside6-uic src/harrix_swiss_knife/apps/fitness/window.ui -o src/harrix_swiss_knife/apps/fitness/window.py
+pyside6-uic src/harrix_swiss_knife/apps/finance/window.ui -o src/harrix_swiss_knife/apps/finance/window.py
+pyside6-uic src/harrix_swiss_knife/apps/food/window.ui -o src/harrix_swiss_knife/apps/food/window.py
+pyside6-uic src/harrix_swiss_knife/apps/habits/window.ui -o src/harrix_swiss_knife/apps/habits/window.py
+```
+
+Run the command for the app you changed. Activate the project virtualenv before calling `pyside6-uic`.
