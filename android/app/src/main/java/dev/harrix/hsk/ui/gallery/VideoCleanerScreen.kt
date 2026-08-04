@@ -102,7 +102,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
@@ -407,7 +407,7 @@ fun VideoCleanerScreen(
             },
             confirmButton = {
                 TextButton(onClick = { showStatsDialog = false }) {
-                    AutoFitText(text = stringResource(R.string.video_cleaner_stats_ok), maxLines = 1)
+                    AutoFitText(text = stringResource(R.string.video_cleaner_stats_ok), maxLines = 2)
                 }
             },
         )
@@ -616,7 +616,7 @@ fun VideoCleanerScreen(
                             ) {
                                 AutoFitText(
                                     text = stringResource(R.string.video_cleaner_permission_grant),
-                                    maxLines = 1,
+                                    maxLines = 2,
                                 )
                             }
                         }
@@ -741,12 +741,11 @@ private fun VideoSelectionTextButton(
             modifier =
             modifier.heightIn(
                 min = if (compact) 28.dp else 40.dp,
-                max = if (compact) 32.dp else Dp.Unspecified,
             ),
             contentPadding =
             PaddingValues(
                 horizontal = if (compact) 6.dp else 8.dp,
-                vertical = if (compact) 0.dp else 4.dp,
+                vertical = if (compact) 2.dp else 4.dp,
             ),
         ) {
             Icon(
@@ -757,7 +756,9 @@ private fun VideoSelectionTextButton(
             Spacer(modifier = Modifier.width(4.dp))
             AutoFitText(
                 text = label,
-                maxLines = 1,
+                modifier = Modifier.weight(1f, fill = false),
+                maxLines = 2,
+                textAlign = TextAlign.Center,
                 style =
                 if (compact) {
                     MaterialTheme.typography.labelLarge

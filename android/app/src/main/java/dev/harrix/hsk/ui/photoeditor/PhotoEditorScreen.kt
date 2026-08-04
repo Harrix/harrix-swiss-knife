@@ -200,7 +200,7 @@ fun PhotoEditorScreen(
                         )
                         Spacer(modifier = Modifier.height(24.dp))
                         Button(onClick = { openPicker() }) {
-                            AutoFitText(text = stringResource(R.string.photo_editor_open_photo), maxLines = 1)
+                            AutoFitText(text = stringResource(R.string.photo_editor_open_photo), maxLines = 2)
                         }
                     }
                 }

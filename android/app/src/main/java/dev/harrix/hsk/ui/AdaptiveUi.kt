@@ -78,7 +78,7 @@ fun videoGridColumnCount(): Int {
 
 /**
  * Bottom-bar action: icon and label on one row. Short labels (Delete / Skip / Keep)
- * fit on narrow phones; longer translations shrink then ellipsize.
+ * fit on narrow phones; longer translations wrap up to two lines, then shrink/ellipsis.
  * Grows evenly in a [RowScope].
  */
 @Composable
@@ -98,6 +98,7 @@ fun RowScope.CompactBottomActionButton(
 ) {
     val content: @Composable () -> Unit = {
         Row(
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center,
         ) {
@@ -109,16 +110,17 @@ fun RowScope.CompactBottomActionButton(
             Spacer(modifier = Modifier.width(6.dp))
             AutoFitText(
                 text = label,
+                modifier = Modifier.weight(1f, fill = false),
                 style = MaterialTheme.typography.labelLarge,
-                maxLines = 1,
-                softWrap = false,
+                maxLines = 2,
+                textAlign = TextAlign.Center,
             )
         }
     }
     val buttonModifier =
         modifier
             .weight(1f)
-            .heightIn(min = 48.dp)
+            .heightIn(min = 56.dp)
     val padding = PaddingValues(horizontal = 8.dp, vertical = 10.dp)
     if (outlined) {
         OutlinedButton(
@@ -157,8 +159,8 @@ fun Modifier.adaptiveContentWidth(): Modifier = this
     .widthIn(max = AdaptiveContentMaxWidth)
 
 /**
- * Full-width primary action (e.g. Video Cleaner delete): keeps icon+label on one line
- * on narrow phones via reduced padding; long labels shrink then ellipsize.
+ * Full-width primary action (e.g. Video Cleaner delete): on narrow phones stacks icon
+ * above label; long labels wrap up to two lines, then shrink/ellipsis.
  */
 @Composable
 fun CompactWideActionButton(
@@ -175,7 +177,7 @@ fun CompactWideActionButton(
         enabled = enabled,
         modifier = modifier
             .fillMaxWidth()
-            .heightIn(min = 56.dp),
+            .heightIn(min = if (compact) 64.dp else 56.dp),
         shape = ActionButtonShape,
         contentPadding =
         PaddingValues(
@@ -186,6 +188,7 @@ fun CompactWideActionButton(
     ) {
         if (compact) {
             Column(
+                modifier = Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
@@ -197,13 +200,16 @@ fun CompactWideActionButton(
                 AutoFitText(
                     text = label,
                     style = MaterialTheme.typography.labelLarge,
-                    maxLines = 1,
-                    softWrap = false,
+                    maxLines = 2,
                     textAlign = TextAlign.Center,
                 )
             }
         } else {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center,
+            ) {
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
@@ -212,8 +218,10 @@ fun CompactWideActionButton(
                 Spacer(modifier = Modifier.width(8.dp))
                 AutoFitText(
                     text = label,
+                    modifier = Modifier.weight(1f, fill = false),
                     style = MaterialTheme.typography.labelLarge,
-                    maxLines = 1,
+                    maxLines = 2,
+                    textAlign = TextAlign.Center,
                 )
             }
         }

@@ -775,7 +775,7 @@ fun GalleryCleanerScreen(
                         }
                     },
                 ) {
-                    AutoFitText(text = stringResource(R.string.gallery_cleaner_stats_ok), maxLines = 1)
+                    AutoFitText(text = stringResource(R.string.gallery_cleaner_stats_ok), maxLines = 2)
                 }
             },
         )
@@ -844,12 +844,12 @@ fun GalleryCleanerScreen(
                     },
                     enabled = canResetStats,
                 ) {
-                    AutoFitText(text = stringResource(R.string.gallery_cleaner_stats_reset), maxLines = 1)
+                    AutoFitText(text = stringResource(R.string.gallery_cleaner_stats_reset), maxLines = 2)
                 }
             },
             confirmButton = {
                 TextButton(onClick = { showStatsDialog = false }) {
-                    AutoFitText(text = stringResource(R.string.gallery_cleaner_stats_ok), maxLines = 1)
+                    AutoFitText(text = stringResource(R.string.gallery_cleaner_stats_ok), maxLines = 2)
                 }
             },
         )
@@ -1247,7 +1247,7 @@ fun GalleryCleanerScreen(
                                     }
                                 },
                             ) {
-                                AutoFitText(text = stringResource(R.string.gallery_cleaner_clear_date_filter), maxLines = 1)
+                                AutoFitText(text = stringResource(R.string.gallery_cleaner_clear_date_filter), maxLines = 2)
                             }
                         }
                     }
@@ -1554,7 +1554,7 @@ private fun GalleryCleanerIntroDialog(
         },
         confirmButton = {
             TextButton(onClick = onConfirm) {
-                AutoFitText(text = stringResource(R.string.gallery_cleaner_intro_ok), maxLines = 1)
+                AutoFitText(text = stringResource(R.string.gallery_cleaner_intro_ok), maxLines = 2)
             }
         },
     )
@@ -1578,7 +1578,7 @@ internal fun ManageMediaPromptDialog(
             TextButton(onClick = onOpenSettings) {
                 AutoFitText(
                     text = stringResource(R.string.gallery_cleaner_manage_media_open),
-                    maxLines = 1,
+                    maxLines = 2,
                 )
             }
         },
@@ -1586,7 +1586,7 @@ internal fun ManageMediaPromptDialog(
             TextButton(onClick = onSkip) {
                 AutoFitText(
                     text = stringResource(R.string.gallery_cleaner_manage_media_skip),
-                    maxLines = 1,
+                    maxLines = 2,
                 )
             }
         },
@@ -1618,7 +1618,7 @@ private fun PermissionRequestContent(
         ) {
             AutoFitText(
                 text = stringResource(R.string.gallery_cleaner_permission_grant),
-                maxLines = 1,
+                maxLines = 2,
             )
         }
     }

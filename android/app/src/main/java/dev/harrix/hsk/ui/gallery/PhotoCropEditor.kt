@@ -591,7 +591,7 @@ fun PhotoCropEditor(
                                         R.string.gallery_cleaner_edit_trim_empty
                                     },
                                 ),
-                                maxLines = 1,
+                                maxLines = 2,
                             )
                         }
                     }
@@ -629,7 +629,7 @@ fun PhotoCropEditor(
                                         R.string.gallery_cleaner_edit_fit_frame
                                     },
                                 ),
-                                maxLines = 1,
+                                maxLines = 2,
                             )
                         }
                     }
@@ -685,7 +685,7 @@ fun PhotoCropEditor(
                                         R.string.gallery_cleaner_edit_aspect_rotate
                                     },
                                 ),
-                                maxLines = 1,
+                                maxLines = 2,
                             )
                         },
                         leadingIcon =
@@ -729,7 +729,7 @@ fun PhotoCropEditor(
                                             R.string.gallery_cleaner_edit_aspect_3_4
                                         },
                                     ),
-                                    maxLines = 1,
+                                    maxLines = 2,
                                 )
                             },
                             leadingIcon =
@@ -766,7 +766,7 @@ fun PhotoCropEditor(
                                         R.string.gallery_cleaner_edit_aspect_free
                                     },
                                 ),
-                                maxLines = 1,
+                                maxLines = 2,
                             )
                         },
                         leadingIcon =

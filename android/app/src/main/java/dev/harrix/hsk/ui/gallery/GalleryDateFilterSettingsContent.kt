@@ -31,6 +31,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import dev.harrix.hsk.R
 import dev.harrix.hsk.gallery.GalleryDateFilter
@@ -291,7 +292,8 @@ private fun DatePresetButton(
     val content: @Composable () -> Unit = {
         AutoFitText(
             text = label,
-            maxLines = 1,
+            maxLines = 2,
+            textAlign = TextAlign.Center,
         )
     }
     if (selected) {

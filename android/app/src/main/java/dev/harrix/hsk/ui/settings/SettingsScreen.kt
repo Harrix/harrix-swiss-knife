@@ -259,7 +259,7 @@ fun SettingsScreen(
                     }
                     if (onOpenAllSettings != null && section != SettingsSection.All) {
                         TextButton(onClick = onOpenAllSettings) {
-                            AutoFitText(text = stringResource(R.string.settings_open_all), maxLines = 1)
+                            AutoFitText(text = stringResource(R.string.settings_open_all), maxLines = 2)
                         }
                     }
                 }
@@ -476,7 +476,8 @@ private fun EssentialSettingsSection(
                 ) {
                     AutoFitText(
                         text = stringResource(labelRes),
-                        maxLines = 1,
+                        maxLines = 2,
+                        textAlign = TextAlign.Center,
                     )
                 }
             }
@@ -719,7 +720,7 @@ private fun GalleryCleanerSettingsSection(
                 text = { Text(stringResource(R.string.settings_gallery_stats_no_permission)) },
                 confirmButton = {
                     TextButton(onClick = { statsState = null }) {
-                        AutoFitText(text = stringResource(R.string.settings_gallery_stats_ok), maxLines = 1)
+                        AutoFitText(text = stringResource(R.string.settings_gallery_stats_ok), maxLines = 2)
                     }
                 },
             )
@@ -780,7 +781,7 @@ private fun GalleryCleanerSettingsSection(
                 },
                 confirmButton = {
                     TextButton(onClick = { statsState = null }) {
-                        AutoFitText(text = stringResource(R.string.settings_gallery_stats_ok), maxLines = 1)
+                        AutoFitText(text = stringResource(R.string.settings_gallery_stats_ok), maxLines = 2)
                     }
                 },
             )
@@ -842,7 +843,8 @@ private fun GalleryCleanerSettingsSection(
                     ) {
                         AutoFitText(
                             text = stringResource(R.string.settings_gallery_images_folder_choose),
-                            maxLines = 1,
+                            maxLines = 2,
+                            textAlign = TextAlign.Center,
                         )
                     }
                     OutlinedButton(
@@ -857,7 +859,8 @@ private fun GalleryCleanerSettingsSection(
                     ) {
                         AutoFitText(
                             text = stringResource(R.string.settings_gallery_images_folder_restore),
-                            maxLines = 1,
+                            maxLines = 2,
+                            textAlign = TextAlign.Center,
                         )
                     }
                 }
@@ -873,7 +876,8 @@ private fun GalleryCleanerSettingsSection(
                     ) {
                         AutoFitText(
                             text = stringResource(R.string.settings_gallery_images_folder_choose),
-                            maxLines = 1,
+                            maxLines = 2,
+                            textAlign = TextAlign.Center,
                         )
                     }
                     OutlinedButton(
@@ -888,7 +892,8 @@ private fun GalleryCleanerSettingsSection(
                     ) {
                         AutoFitText(
                             text = stringResource(R.string.settings_gallery_images_folder_restore),
-                            maxLines = 1,
+                            maxLines = 2,
+                            textAlign = TextAlign.Center,
                         )
                     }
                 }
@@ -1254,7 +1259,8 @@ private fun DatePresetButton(
     val content: @Composable () -> Unit = {
         AutoFitText(
             text = label,
-            maxLines = 1,
+            maxLines = 2,
+            textAlign = TextAlign.Center,
         )
     }
     if (selected) {
