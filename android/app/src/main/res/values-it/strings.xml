@@ -106,7 +106,7 @@
     <string name="nav_drawer_home">Home</string>
     <string name="nav_drawer_gallery_cleaner">Gallery Cleaner</string>
     <string name="nav_drawer_video_cleaner">Video Cleaner</string>
-    <string name="nav_drawer_photo_editor">Photo Editor</string>
+    <string name="nav_drawer_photo_editor">Harrix Photo Editor</string>
     <string name="nav_drawer_about">Informazioni</string>
     <string name="about_title">Informazioni</string>
     <string name="about_back">Indietro</string>
@@ -120,8 +120,8 @@
     <string name="gallery_cleaner_card_description">Rivedi le foto della fotocamera. Scorri o tocca per eliminare o conservare.</string>
     <string name="video_cleaner_card_description">Elenca i video della fotocamera per data e cestina quelli selezionati.</string>
     <string name="photo_editor_card_description">Ritaglia e raddrizza una foto. Aprila dall\'app o condividi un\'immagine qui.</string>
-    <string name="photo_editor_title">Photo Editor</string>
-    <string name="photo_editor_close">Esci da Photo Editor</string>
+    <string name="photo_editor_title">Harrix Photo Editor</string>
+    <string name="photo_editor_close">Esci da Harrix Photo Editor</string>
     <string name="photo_editor_open_photo">Apri foto</string>
     <string name="photo_editor_empty_title">Nessuna foto aperta</string>
     <string name="photo_editor_empty_message">Scegli una foto da ritagliare e raddrizzare, oppure condividi un\'immagine con questa app.</string>
