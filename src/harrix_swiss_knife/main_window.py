@@ -36,7 +36,11 @@ if TYPE_CHECKING:
 
 from harrix_swiss_knife.cli_menu import get_cli_copy_command, show_copy_cli_menu
 from harrix_swiss_knife.keyboard_layout_search import command_matches_search
-from harrix_swiss_knife.main_window_settings import load_main_window_icon_grid, save_main_window_icon_grid
+from harrix_swiss_knife.main_window_settings import (
+    MAIN_WINDOW_DEFAULT_SIZE,
+    load_main_window_icon_grid,
+    save_main_window_icon_grid,
+)
 from harrix_swiss_knife.qt_command_section import (
     apply_opaque_white,
     create_command_section,
@@ -67,7 +71,7 @@ class MainWindow(QMainWindow):
         super().__init__()
 
         self.setWindowTitle("Harrix Swiss Knife")
-        self.resize(1024, 800)
+        self.resize(MAIN_WINDOW_DEFAULT_SIZE)
         try_apply_system_backdrop(self, backdrop=SystemBackdrop.MICA)
 
         self._icon_grid_mode = load_main_window_icon_grid()

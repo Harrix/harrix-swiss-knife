@@ -1140,6 +1140,8 @@ class ActionDialogService:
             "Action usage stats",
             build_action_usage_stats_browser(rows, summary=summary),
             stretch_row=1,
+            adaptive=False,
+            size=MAIN_WINDOW_DEFAULT_SIZE,
         )
 
     def show_git_commit_offer(
@@ -1373,10 +1375,12 @@ class ActionDialogService:
         parent: QWidget | None = None,
         stretch_row: int | None = 1,
         adaptive: bool = True,
+        size: QSize | None = None,
     ) -> tuple[int, QDialog]:
         """Create, size, and execute a standard action dialog."""
         dialog_parent = QApplication.activeWindow() if parent is None else parent
-        dialog = StandardActionDialog(self._default_size, dialog_parent)
+        dialog_size = size if size is not None else self._default_size
+        dialog = StandardActionDialog(dialog_size, dialog_parent)
         dialog.setWindowTitle(title)
 
         layout = QVBoxLayout()
@@ -1388,6 +1392,7 @@ class ActionDialogService:
             layout,
             stretch_row=stretch_row,
             adaptive=adaptive,
+            size=dialog_size,
         )
         result = dialog.exec()
         return result, dialog
@@ -1399,13 +1404,14 @@ class ActionDialogService:
         *,
         stretch_row: int | None = 1,
         adaptive: bool = True,
+        size: QSize | None = None,
     ) -> None:
         """Apply dialog sizing and optional stretch row.
 
         When `adaptive` is `False`, keep the fixed default size (e.g. result dialogs).
 
         """
-        target = self._default_size
+        target = size if size is not None else self._default_size
         if adaptive:
             size = apply_adaptive_dialog_size(dialog, layout, target=target, stretch_row=stretch_row)
         else:
@@ -2951,6 +2957,8 @@ def show_action_usage_stats_browser(
             "Action usage stats",
             build_action_usage_stats_browser(rows, summary=summary),
             stretch_row=1,
+            adaptive=False,
+            size=MAIN_WINDOW_DEFAULT_SIZE,
         )
 ```
 

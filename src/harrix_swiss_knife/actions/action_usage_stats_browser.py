@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import TYPE_CHECKING, TypedDict
 
 from PySide6.QtCore import Qt
@@ -143,10 +144,13 @@ def build_action_usage_stats_browser(
 
 
 def _format_last_used(value: str) -> str:
-    """Return a compact display string for an ISO timestamp."""
+    """Return local date-time without timezone offset."""
     if not value:
         return "—"
-    return value.replace("T", " ")
+    try:
+        return datetime.fromisoformat(value).strftime("%Y-%m-%d %H:%M:%S")
+    except ValueError:
+        return value.replace("T", " ")
 
 
 def _row_icon(icon_name: str) -> QIcon:

@@ -50,7 +50,7 @@ class MainWindow(QMainWindow):
         super().__init__()
 
         self.setWindowTitle("Harrix Swiss Knife")
-        self.resize(1024, 800)
+        self.resize(MAIN_WINDOW_DEFAULT_SIZE)
         try_apply_system_backdrop(self, backdrop=SystemBackdrop.MICA)
 
         self._icon_grid_mode = load_main_window_icon_grid()
@@ -509,7 +509,7 @@ def __init__(self, menu: QMenu, *, output_bus: ActionOutputBus | None = None) ->
         super().__init__()
 
         self.setWindowTitle("Harrix Swiss Knife")
-        self.resize(1024, 800)
+        self.resize(MAIN_WINDOW_DEFAULT_SIZE)
         try_apply_system_backdrop(self, backdrop=SystemBackdrop.MICA)
 
         self._icon_grid_mode = load_main_window_icon_grid()
