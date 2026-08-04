@@ -329,14 +329,9 @@ fun PhotoCropEditor(
                         // Canvas lives inside zoomed graphicsLayer — divide by scale so
                         // strokes and corner handles stay constant on screen.
                         val invScale = 1f / viewScale.coerceAtLeast(1e-6f)
-                        val workspaceStroke = 1.dp.toPx() * invScale
                         val cropStroke = 2.dp.toPx() * invScale
                         val guideStroke = 1.dp.toPx() * invScale
                         val handle = handleVisualPx * invScale
-                        drawRect(
-                            color = Color.White.copy(alpha = 0.35f),
-                            style = Stroke(width = workspaceStroke),
-                        )
                         val dimPath =
                             Path().apply {
                                 fillType = PathFillType.EvenOdd
