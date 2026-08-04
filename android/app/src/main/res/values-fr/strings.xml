@@ -192,6 +192,8 @@
     <string name="gallery_cleaner_edit_rotation_degrees">%1$d°</string>
     <string name="gallery_cleaner_edit_aspect_rotate">Exposition 90°</string>
     <string name="gallery_cleaner_edit_aspect_rotate_short">90°</string>
+    <string name="gallery_cleaner_edit_aspect_3_4">3:4</string>
+    <string name="gallery_cleaner_edit_aspect_3_4_short">3:4</string>
     <string name="gallery_cleaner_edit_aspect_free">Aspect gratuit</string>
     <string name="gallery_cleaner_edit_aspect_free_short">Gratuit</string>
     <string name="gallery_cleaner_edit_fit_frame">Ajuster le cadre</string>

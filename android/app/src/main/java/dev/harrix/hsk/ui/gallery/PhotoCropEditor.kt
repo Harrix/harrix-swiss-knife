@@ -93,12 +93,17 @@ private enum class CropDragMode {
     ResizeBottomRight,
 }
 
-/** Locked crop aspect relative to the original photo, or free resize. */
-private enum class CropAspectMode {
-    Original,
-    Rotated90,
-    Free,
-}
+/** Locked crop aspect relative to the square workspace, or free resize. */
+private const val AspectThreeFour = 3f / 4f
+private const val AspectMatchEpsilon = 0.02f
+
+private fun nearAspect(
+    aspect: Float,
+    target: Float,
+): Boolean = abs(aspect - target) < AspectMatchEpsilon
+
+private fun isThreeFourFamily(aspect: Float): Boolean = nearAspect(aspect, AspectThreeFour) ||
+    nearAspect(aspect, 1f / AspectThreeFour)
 
 @Composable
 fun PhotoCropEditor(
@@ -128,8 +133,10 @@ fun PhotoCropEditor(
     val onRotationDegreesChangeState = rememberUpdatedState(onRotationDegreesChange)
     var isRotatingHint by remember { mutableStateOf(false) }
     var didInitCrop by remember(photo.id, imageRevision) { mutableStateOf(false) }
-    var aspectMode by remember(photo.id, imageRevision) { mutableStateOf(CropAspectMode.Original) }
-    val aspectModeState = rememberUpdatedState(aspectMode)
+
+    /** `null` = free aspect; otherwise width/height lock for the crop frame. */
+    var lockedAspect by remember(photo.id, imageRevision) { mutableStateOf<Float?>(null) }
+    val lockedAspectState = rememberUpdatedState(lockedAspect)
     var viewScale by remember(photo.id, imageRevision) { mutableFloatStateOf(1f) }
     var viewOffset by remember(photo.id, imageRevision) { mutableStateOf(Offset.Zero) }
     val viewScaleState = rememberUpdatedState(viewScale)
@@ -147,7 +154,7 @@ fun PhotoCropEditor(
         if (isSaving) {
             return
         }
-        aspectMode = CropAspectMode.Free
+        lockedAspect = null
         onCropRectChange(suggestion)
         trimSuggestion = null
     }
@@ -155,6 +162,7 @@ fun PhotoCropEditor(
     LaunchedEffect(imageWidth, imageHeight, didInitCrop) {
         if (!didInitCrop && imageWidth > 0 && imageHeight > 0) {
             onCropRectChangeState.value(PhotoEditSaver.imageContentCrop(imageWidth, imageHeight))
+            lockedAspect = imageWidth.toFloat() / imageHeight.toFloat()
             didInitCrop = true
         }
     }
@@ -201,27 +209,39 @@ fun PhotoCropEditor(
                 1f
             }
         }
-    fun applyAspectMode(mode: CropAspectMode) {
-        val previous = aspectMode
-        aspectMode = mode
-        if (mode == CropAspectMode.Free || imageWidth <= 0 || imageHeight <= 0) {
+    val showThreeFourChip =
+        imageWidth > 0 && imageHeight > 0 && !nearAspect(originalAspect, AspectThreeFour)
+
+    fun applyLockedAspect(aspect: Float) {
+        if (imageWidth <= 0 || imageHeight <= 0) {
             return
         }
-        // Original ↔ 90° are reciprocal aspects: swap sides to keep size stable.
-        val swapped =
-            (previous == CropAspectMode.Original && mode == CropAspectMode.Rotated90) ||
-                (previous == CropAspectMode.Rotated90 && mode == CropAspectMode.Original)
-        if (swapped) {
-            onCropRectChange(PhotoEditSaver.swapCropDimensions(cropRect))
+        lockedAspect = aspect
+        val base = PhotoEditSaver.imageContentCrop(imageWidth, imageHeight)
+        onCropRectChange(PhotoEditSaver.fitCropToAspect(base, aspect))
+    }
+
+    fun rotateCropAspect90() {
+        if (imageWidth <= 0 || imageHeight <= 0) {
             return
         }
-        val aspect =
-            when (mode) {
-                CropAspectMode.Original -> originalAspect
-                CropAspectMode.Rotated90 -> 1f / originalAspect.coerceAtLeast(1e-6f)
-                CropAspectMode.Free -> return
-            }
-        onCropRectChange(PhotoEditSaver.fitCropToAspect(cropRect, aspect))
+        val swapped = PhotoEditSaver.swapCropDimensions(cropRect)
+        onCropRectChange(swapped)
+        val currentLock = lockedAspect
+        if (currentLock != null) {
+            lockedAspect = 1f / currentLock.coerceAtLeast(1e-6f)
+        }
+    }
+
+    fun toggleFreeAspect() {
+        if (imageWidth <= 0 || imageHeight <= 0) {
+            return
+        }
+        if (lockedAspect == null) {
+            applyLockedAspect(originalAspect)
+        } else {
+            lockedAspect = null
+        }
     }
 
     val displayDegrees = ((rotationDegrees % 360f) + 360f) % 360f
@@ -389,7 +409,7 @@ fun PhotoCropEditor(
                                 isSaving,
                                 imageWidth,
                                 imageHeight,
-                                aspectMode,
+                                lockedAspect,
                                 viewportW,
                                 viewportH,
                             ) {
@@ -469,64 +489,32 @@ fun PhotoCropEditor(
                                             ) {
                                                 val drag = change.position - change.previousPosition
                                                 if (drag != Offset.Zero) {
-                                                    val mode = aspectModeState.value
-                                                    val original =
-                                                        imageWidth.toFloat() /
-                                                            imageHeight.toFloat()
+                                                    val aspectLock = lockedAspectState.value
                                                     val next =
-                                                        when (mode) {
-                                                            CropAspectMode.Free ->
-                                                                applyFreeCropDrag(
-                                                                    cropRect = cropRectState.value,
-                                                                    mode = activeMode,
-                                                                    dragX = drag.x / side,
-                                                                    dragY = drag.y / side,
-                                                                )
-
-                                                            CropAspectMode.Original ->
-                                                                applyAspectCropDrag(
-                                                                    cropRect = cropRectState.value,
-                                                                    mode = activeMode,
-                                                                    dragX = drag.x / side,
-                                                                    dragY = drag.y / side,
-                                                                    imageAspect = original,
-                                                                )
-
-                                                            CropAspectMode.Rotated90 ->
-                                                                applyAspectCropDrag(
-                                                                    cropRect = cropRectState.value,
-                                                                    mode = activeMode,
-                                                                    dragX = drag.x / side,
-                                                                    dragY = drag.y / side,
-                                                                    imageAspect =
-                                                                    1f /
-                                                                        original.coerceAtLeast(
-                                                                            1e-6f,
-                                                                        ),
-                                                                )
+                                                        if (aspectLock == null) {
+                                                            applyFreeCropDrag(
+                                                                cropRect = cropRectState.value,
+                                                                mode = activeMode,
+                                                                dragX = drag.x / side,
+                                                                dragY = drag.y / side,
+                                                            )
+                                                        } else {
+                                                            applyAspectCropDrag(
+                                                                cropRect = cropRectState.value,
+                                                                mode = activeMode,
+                                                                dragX = drag.x / side,
+                                                                dragY = drag.y / side,
+                                                                imageAspect = aspectLock,
+                                                            )
                                                         }
                                                     onCropRectChangeState.value(
-                                                        when (mode) {
-                                                            CropAspectMode.Free ->
-                                                                PhotoEditSaver.clampCropRectFree(
-                                                                    next,
-                                                                )
-
-                                                            CropAspectMode.Original ->
-                                                                PhotoEditSaver.clampCropRect(
-                                                                    rect = next,
-                                                                    imageAspect = original,
-                                                                )
-
-                                                            CropAspectMode.Rotated90 ->
-                                                                PhotoEditSaver.clampCropRect(
-                                                                    rect = next,
-                                                                    imageAspect =
-                                                                    1f /
-                                                                        original.coerceAtLeast(
-                                                                            1e-6f,
-                                                                        ),
-                                                                )
+                                                        if (aspectLock == null) {
+                                                            PhotoEditSaver.clampCropRectFree(next)
+                                                        } else {
+                                                            PhotoEditSaver.clampCropRect(
+                                                                rect = next,
+                                                                imageAspect = aspectLock,
+                                                            )
                                                         },
                                                     )
                                                     change.consume()
@@ -686,16 +674,12 @@ fun PhotoCropEditor(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     FilterChip(
-                        selected = aspectMode == CropAspectMode.Rotated90,
+                        selected = false,
                         onClick = {
                             if (isSaving || imageWidth <= 0) {
                                 return@FilterChip
                             }
-                            if (aspectMode == CropAspectMode.Rotated90) {
-                                applyAspectMode(CropAspectMode.Original)
-                            } else {
-                                applyAspectMode(CropAspectMode.Rotated90)
-                            }
+                            rotateCropAspect90()
                         },
                         enabled = !isSaving && imageWidth > 0,
                         label = {
@@ -726,18 +710,59 @@ fun PhotoCropEditor(
                         },
                         modifier = Modifier.weight(1f),
                     )
+                    if (showThreeFourChip) {
+                        val locked = lockedAspect
+                        val threeFourSelected =
+                            locked != null && isThreeFourFamily(locked)
+                        FilterChip(
+                            selected = threeFourSelected,
+                            onClick = {
+                                if (isSaving || imageWidth <= 0) {
+                                    return@FilterChip
+                                }
+                                if (threeFourSelected) {
+                                    applyLockedAspect(originalAspect)
+                                } else {
+                                    applyLockedAspect(AspectThreeFour)
+                                }
+                            },
+                            enabled = !isSaving && imageWidth > 0,
+                            label = {
+                                Text(
+                                    text =
+                                    stringResource(
+                                        if (compactChrome) {
+                                            R.string.gallery_cleaner_edit_aspect_3_4_short
+                                        } else {
+                                            R.string.gallery_cleaner_edit_aspect_3_4
+                                        },
+                                    ),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            },
+                            leadingIcon =
+                            if (compactChrome) {
+                                null
+                            } else {
+                                {
+                                    Icon(
+                                        imageVector = Icons.Filled.Crop,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp),
+                                    )
+                                }
+                            },
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
                     FilterChip(
-                        selected = aspectMode == CropAspectMode.Free,
+                        selected = lockedAspect == null,
                         onClick = {
                             if (isSaving || imageWidth <= 0) {
                                 return@FilterChip
                             }
-                            if (aspectMode == CropAspectMode.Free) {
-                                // Restoring lock always returns to the original photo aspect.
-                                applyAspectMode(CropAspectMode.Original)
-                            } else {
-                                applyAspectMode(CropAspectMode.Free)
-                            }
+                            toggleFreeAspect()
                         },
                         enabled = !isSaving && imageWidth > 0,
                         label = {
