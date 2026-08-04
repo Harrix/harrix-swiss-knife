@@ -234,6 +234,10 @@
       "output": "<YOUR_SITE_OUTPUT>"
     }
   ],
+  "path_site_repo": "<YOUR_SITE_GIT_REPO>",
+  "site_name": "harrix.dev",
+  "github_user": "Harrix",
+  "site_default_language": "ru",
   "paths_with_featured_image": [
     "<YOUR_PATH>"
   ],

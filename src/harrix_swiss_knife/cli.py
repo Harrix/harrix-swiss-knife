@@ -18,7 +18,6 @@ from harrix_swiss_knife.actions.markdown import (
     OnBeautifyMd,
     OnBeautifyMdAndRegenerateGMd,
     OnCheckMd,
-    OnFixSiteArticleLinkTitles,
     OnNewMarkdown,
     OnOptimizeImagesInMd,
 )
@@ -29,6 +28,7 @@ from harrix_swiss_knife.actions.python import (
     OnSortRuffFmtDocsPythonCode,
     OnSortRuffFmtPythonCode,
 )
+from harrix_swiss_knife.actions.site import OnAddSiteContentSubmodule, OnFixSiteArticleLinkTitles
 from harrix_swiss_knife.actions.text import OnFixTextWithAI
 from harrix_swiss_knife.actions.vscode import (
     OnInstallHarrixNotesExplorerExtension,
@@ -353,20 +353,6 @@ def markdown_edit_from_template(template_name: str | None) -> None:
     _exit_if_action_failed(action)
 
 
-@markdown_group.command("fix-site-article-links")
-@click.argument(
-    "folder",
-    required=False,
-    default=".",
-    type=click.Path(exists=True, file_okay=False, path_type=Path),
-)
-def markdown_fix_site_article_links(folder: Path) -> None:
-    """Fix titles in harrix.dev-style site article dual links in FOLDER."""
-    action = OnFixSiteArticleLinkTitles()
-    action(folder_path=folder, noninteractive=True)
-    _finish_timed_action(action)
-
-
 @markdown_group.command("list-templates")
 def markdown_list_templates() -> None:
     """List markdown_templates as JSON (ID + title + path_target)."""
@@ -597,6 +583,37 @@ def python_ruff_sort_docs(folder: Path, *, apply_prose_fixes: bool) -> None:
     """Ruff sort, ruff format, sort code, generate docs and format Markdown (same as tray action)."""
     action = OnSortRuffFmtDocsPythonCode()
     action(folder_path=folder, noninteractive=True, apply_prose_fixes=apply_prose_fixes)
+    _finish_timed_action(action)
+
+
+@cli.group("site")
+def site_group() -> None:
+    """Site repository and content submodule commands."""
+
+
+@site_group.command("add-submodule")
+@click.argument(
+    "folder",
+    type=click.Path(exists=True, file_okay=False, path_type=Path),
+)
+def site_add_submodule(folder: Path) -> None:
+    """Add content FOLDER as a Git submodule of `path_site_repo`."""
+    action = OnAddSiteContentSubmodule()
+    action(folder_path=folder, noninteractive=True)
+    _finish_timed_action(action)
+
+
+@site_group.command("fix-article-links")
+@click.argument(
+    "folder",
+    required=False,
+    default=".",
+    type=click.Path(exists=True, file_okay=False, path_type=Path),
+)
+def site_fix_article_links(folder: Path) -> None:
+    """Fix titles in site article dual links in FOLDER."""
+    action = OnFixSiteArticleLinkTitles()
+    action(folder_path=folder, noninteractive=True)
     _finish_timed_action(action)
 
 

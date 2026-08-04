@@ -60,6 +60,17 @@ class ContentArticleRef:
         segments.append(self.slug)
         return f"https://{settings.site_name}/{'/'.join(segments)}/"
 
+    def submodule_relpath(self, settings: SiteLinkSettings) -> str:
+        """Return site-repo relative path for this content repository (no slug).
+
+        Example: `content/en/articles/2021` for `harrix.dev-articles-2021-en`.
+
+        """
+        segments = ["content", self.lang or settings.default_language, self.section]
+        if self.year:
+            segments.append(self.year)
+        return "/".join(segments)
+
 
 @dataclass(frozen=True, slots=True)
 class DualLinkMatch:
@@ -293,6 +304,11 @@ def format_dual_link(title: str, ref: ContentArticleRef, settings: SiteLinkSetti
     return f"[{title}]({ref.github_blob_url(settings)}) | [↗️]({ref.site_url(settings)})"
 
 
+def github_https_url_for_repo(repo_name: str, settings: SiteLinkSettings) -> str:
+    """Return `https://github.com/{user}/{repo}` for a content repository name."""
+    return f"https://github.com/{settings.github_user}/{repo_name}"
+
+
 def is_forbidden_cross_language_link(source_lang: str, target_lang: str) -> bool:
     """Return `True` when an English article links to a Russian one.
 
@@ -418,6 +434,28 @@ def resolve_content_article_ref(md_path: Path, settings: SiteLinkSettings) -> Co
     if parsed is None:
         return None
     return ContentArticleRef(section=parsed.section, year=parsed.year, lang=parsed.lang, slug=slug)
+
+
+def site_link_settings_from_config(config: dict) -> SiteLinkSettings:
+    """Build `SiteLinkSettings` from optional config keys (with defaults)."""
+    defaults = SiteLinkSettings()
+    site_name = config.get("site_name") or defaults.site_name
+    github_user = config.get("github_user") or defaults.github_user
+    default_language = config.get("site_default_language") or defaults.default_language
+    return SiteLinkSettings(
+        site_name=str(site_name),
+        github_user=str(github_user),
+        default_language=str(default_language),
+    )
+
+
+def site_repo_from_config(config: dict) -> Path | None:
+    """Resolve main site Git repository path from `path_site_repo`."""
+    raw = config.get("path_site_repo")
+    if not raw:
+        return None
+    path = Path(str(raw)).expanduser().resolve()
+    return path if path.is_dir() else None
 
 
 def _looks_like_asset_target(target: str) -> bool:

@@ -270,6 +270,10 @@
       "output": "D:/temp"
     }
   ],
+  "path_site_repo": "D:/GitHub/harrix.dev",
+  "site_name": "harrix.dev",
+  "github_user": "Harrix",
+  "site_default_language": "ru",
   "paths_with_featured_image": [
     "D:/Dropbox/IT/3D printer/Models/Print",
     "D:/Dropbox/IT/3D printer/Models/Printed",

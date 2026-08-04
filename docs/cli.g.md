@@ -28,7 +28,6 @@ lang: en
 - [🔧 Function `markdown_beautify_regenerate_g_md`](#-function-markdown_beautify_regenerate_g_md)
 - [🔧 Function `markdown_check`](#-function-markdown_check)
 - [🔧 Function `markdown_edit_from_template`](#-function-markdown_edit_from_template)
-- [🔧 Function `markdown_fix_site_article_links`](#-function-markdown_fix_site_article_links)
 - [🔧 Function `markdown_list_templates`](#-function-markdown_list_templates)
 - [🔧 Function `markdown_new_cases_note`](#-function-markdown_new_cases_note)
 - [🔧 Function `markdown_new_diary_note`](#-function-markdown_new_diary_note)
@@ -43,6 +42,9 @@ lang: en
 - [🔧 Function `python_harrix_check`](#-function-python_harrix_check)
 - [🔧 Function `python_ruff_sort`](#-function-python_ruff_sort)
 - [🔧 Function `python_ruff_sort_docs`](#-function-python_ruff_sort_docs)
+- [🔧 Function `site_group`](#-function-site_group)
+- [🔧 Function `site_add_submodule`](#-function-site_add_submodule)
+- [🔧 Function `site_fix_article_links`](#-function-site_fix_article_links)
 - [🔧 Function `text_group`](#-function-text_group)
 - [🔧 Function `text_fix_text_with_ai`](#-function-text_fix_text_with_ai)
 - [🔧 Function `vscode_group`](#-function-vscode_group)
@@ -422,26 +424,6 @@ def markdown_edit_from_template(template_name: str | None) -> None:
 
 </details>
 
-## 🔧 Function `markdown_fix_site_article_links`
-
-```python
-def markdown_fix_site_article_links(folder: Path) -> None
-```
-
-Fix titles in harrix.dev-style site article dual links in FOLDER.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def markdown_fix_site_article_links(folder: Path) -> None:
-    action = OnFixSiteArticleLinkTitles()
-    action(folder_path=folder, noninteractive=True)
-    _finish_timed_action(action)
-```
-
-</details>
-
 ## 🔧 Function `markdown_list_templates`
 
 ```python
@@ -746,6 +728,63 @@ Ruff sort, ruff format, sort code, generate docs and format Markdown (same as tr
 def python_ruff_sort_docs(folder: Path, *, apply_prose_fixes: bool) -> None:
     action = OnSortRuffFmtDocsPythonCode()
     action(folder_path=folder, noninteractive=True, apply_prose_fixes=apply_prose_fixes)
+    _finish_timed_action(action)
+```
+
+</details>
+
+## 🔧 Function `site_group`
+
+```python
+def site_group() -> None
+```
+
+Site repository and content submodule commands.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def site_group() -> None:
+```
+
+</details>
+
+## 🔧 Function `site_add_submodule`
+
+```python
+def site_add_submodule(folder: Path) -> None
+```
+
+Add content FOLDER as a Git submodule of `path_site_repo`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def site_add_submodule(folder: Path) -> None:
+    action = OnAddSiteContentSubmodule()
+    action(folder_path=folder, noninteractive=True)
+    _finish_timed_action(action)
+```
+
+</details>
+
+## 🔧 Function `site_fix_article_links`
+
+```python
+def site_fix_article_links(folder: Path) -> None
+```
+
+Fix titles in site article dual links in FOLDER.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def site_fix_article_links(folder: Path) -> None:
+    action = OnFixSiteArticleLinkTitles()
+    action(folder_path=folder, noninteractive=True)
     _finish_timed_action(action)
 ```
 

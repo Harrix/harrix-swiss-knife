@@ -15,6 +15,7 @@ lang: en
   - [⚙️ Method `github_blob_url`](#%EF%B8%8F-method-github_blob_url)
   - [⚙️ Method `repo_name`](#%EF%B8%8F-method-repo_name)
   - [⚙️ Method `site_url`](#%EF%B8%8F-method-site_url)
+  - [⚙️ Method `submodule_relpath`](#%EF%B8%8F-method-submodule_relpath)
 - [🏛️ Class `DualLinkMatch`](#%EF%B8%8F-class-duallinkmatch)
 - [🏛️ Class `PermalinkYamlFix`](#%EF%B8%8F-class-permalinkyamlfix)
 - [🏛️ Class `RelativeSiteLinkMatch`](#%EF%B8%8F-class-relativesitelinkmatch)
@@ -27,6 +28,7 @@ lang: en
 - [🔧 Function `find_dual_links`](#-function-find_dual_links)
 - [🔧 Function `find_relative_site_links`](#-function-find_relative_site_links)
 - [🔧 Function `format_dual_link`](#-function-format_dual_link)
+- [🔧 Function `github_https_url_for_repo`](#-function-github_https_url_for_repo)
 - [🔧 Function `is_forbidden_cross_language_link`](#-function-is_forbidden_cross_language_link)
 - [🔧 Function `is_single_word_link_text`](#-function-is_single_word_link_text)
 - [🔧 Function `normalize_url_for_compare`](#-function-normalize_url_for_compare)
@@ -36,6 +38,8 @@ lang: en
 - [🔧 Function `replace_dual_link_title`](#-function-replace_dual_link_title)
 - [🔧 Function `replace_span`](#-function-replace_span)
 - [🔧 Function `resolve_content_article_ref`](#-function-resolve_content_article_ref)
+- [🔧 Function `site_link_settings_from_config`](#-function-site_link_settings_from_config)
+- [🔧 Function `site_repo_from_config`](#-function-site_repo_from_config)
 
 </details>
 
@@ -79,6 +83,17 @@ class ContentArticleRef:
             segments.append(self.year)
         segments.append(self.slug)
         return f"https://{settings.site_name}/{'/'.join(segments)}/"
+
+    def submodule_relpath(self, settings: SiteLinkSettings) -> str:
+        """Return site-repo relative path for this content repository (no slug).
+
+        Example: `content/en/articles/2021` for `harrix.dev-articles-2021-en`.
+
+        """
+        segments = ["content", self.lang or settings.default_language, self.section]
+        if self.year:
+            segments.append(self.year)
+        return "/".join(segments)
 ```
 
 </details>
@@ -143,6 +158,29 @@ def site_url(self, settings: SiteLinkSettings) -> str:
             segments.append(self.year)
         segments.append(self.slug)
         return f"https://{settings.site_name}/{'/'.join(segments)}/"
+```
+
+</details>
+
+### ⚙️ Method `submodule_relpath`
+
+```python
+def submodule_relpath(self, settings: SiteLinkSettings) -> str
+```
+
+Return site-repo relative path for this content repository (no slug).
+
+Example: `content/en/articles/2021` for `harrix.dev-articles-2021-en`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def submodule_relpath(self, settings: SiteLinkSettings) -> str:
+        segments = ["content", self.lang or settings.default_language, self.section]
+        if self.year:
+            segments.append(self.year)
+        return "/".join(segments)
 ```
 
 </details>
@@ -527,6 +565,24 @@ def format_dual_link(title: str, ref: ContentArticleRef, settings: SiteLinkSetti
 
 </details>
 
+## 🔧 Function `github_https_url_for_repo`
+
+```python
+def github_https_url_for_repo(repo_name: str, settings: SiteLinkSettings) -> str
+```
+
+Return `https://github.com/{user}/{repo}` for a content repository name.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def github_https_url_for_repo(repo_name: str, settings: SiteLinkSettings) -> str:
+    return f"https://github.com/{settings.github_user}/{repo_name}"
+```
+
+</details>
+
 ## 🔧 Function `is_forbidden_cross_language_link`
 
 ```python
@@ -763,6 +819,54 @@ def resolve_content_article_ref(md_path: Path, settings: SiteLinkSettings) -> Co
     if parsed is None:
         return None
     return ContentArticleRef(section=parsed.section, year=parsed.year, lang=parsed.lang, slug=slug)
+```
+
+</details>
+
+## 🔧 Function `site_link_settings_from_config`
+
+```python
+def site_link_settings_from_config(config: dict) -> SiteLinkSettings
+```
+
+Build `SiteLinkSettings` from optional config keys (with defaults).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def site_link_settings_from_config(config: dict) -> SiteLinkSettings:
+    defaults = SiteLinkSettings()
+    site_name = config.get("site_name") or defaults.site_name
+    github_user = config.get("github_user") or defaults.github_user
+    default_language = config.get("site_default_language") or defaults.default_language
+    return SiteLinkSettings(
+        site_name=str(site_name),
+        github_user=str(github_user),
+        default_language=str(default_language),
+    )
+```
+
+</details>
+
+## 🔧 Function `site_repo_from_config`
+
+```python
+def site_repo_from_config(config: dict) -> Path | None
+```
+
+Resolve main site Git repository path from `path_site_repo`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def site_repo_from_config(config: dict) -> Path | None:
+    raw = config.get("path_site_repo")
+    if not raw:
+        return None
+    path = Path(str(raw)).expanduser().resolve()
+    return path if path.is_dir() else None
 ```
 
 </details>

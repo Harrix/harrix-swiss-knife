@@ -1,55 +1,55 @@
-"""Fix titles in harrix.dev-style site article dual links inside Markdown notes."""
+---
+author: Anton Sergienko
+author-email: anton.b.sergienko@gmail.com
+lang: en
+---
 
-from __future__ import annotations
+# 📄 File `fix_site_article_link_titles.py`
 
-from pathlib import Path
-from typing import Any
+<details>
+<summary>📖 Contents ⬇️</summary>
 
-import harrix_pylib as h
+## Contents
 
-from harrix_swiss_knife.actions.base import ActionBase
-from harrix_swiss_knife.actions.common.site_article_links import (
-    SiteLinkSettings,
-    build_article_title_index,
-    content_root_from_config,
-    ensure_article_permalink_yaml,
-    expected_site_url_from_repo,
-    find_dual_links,
-    find_relative_site_links,
-    format_dual_link,
-    is_forbidden_cross_language_link,
-    is_single_word_link_text,
-    normalize_url_for_compare,
-    parse_content_repo_name,
-    replace_dual_link_title,
-    replace_span,
-    resolve_content_article_ref,
-)
+- [🏛️ Class `OnFixSiteArticleLinkTitles`](#%EF%B8%8F-class-onfixsitearticlelinktitles)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
+  - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread)
+  - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after)
 
+</details>
 
+## 🏛️ Class `OnFixSiteArticleLinkTitles`
+
+```python
+class OnFixSiteArticleLinkTitles(ActionBase)
+```
+
+Fix titles in site article dual links in Markdown files.
+
+Scans notes for:
+
+1. Dual links `[title](github…) | [↗️](site…)` — updates `title` from article H1
+   (skips non-empty single-word titles without spaces, e.g. `here`, `link`)
+2. Site-relative / site-absolute links like `[text](/games/dashes/)` — converts them
+   to dual form with the article H1
+3. Content articles `{repo}/{slug}/{slug}.md` — checks/fixes/adds YAML
+   `permalink-source` and `permalink`
+4. English content articles — reports links to Russian articles (does not rewrite them;
+   skips converting relative `/ru/…` links to dual form)
+
+Content repositories come from `paths_sites[0].input`. Missing articles and
+mismatched site URLs are reported.
+
+<details>
+<summary>Code:</summary>
+
+```python
 class OnFixSiteArticleLinkTitles(ActionBase):
-    """Fix titles in site article dual links in Markdown files.
-
-    Scans notes for:
-
-    1. Dual links `[title](github…) | [↗️](site…)` — updates `title` from article H1
-       (skips non-empty single-word titles without spaces, e.g. `here`, `link`)
-    2. Site-relative / site-absolute links like `[text](/games/dashes/)` — converts them
-       to dual form with the article H1
-    3. Content articles `{repo}/{slug}/{slug}.md` — checks/fixes/adds YAML
-       `permalink-source` and `permalink`
-    4. English content articles — reports links to Russian articles (does not rewrite them;
-       skips converting relative `/ru/…` links to dual form)
-
-    Content repositories come from `paths_sites[0].input`. Missing articles and
-    mismatched site URLs are reported.
-
-    """
 
     icon = "🔗"
     title = "Fix site article link titles in …"
-    cli_available = True
-    cli_hint = "md fix-site-article-links"
+    cli_available: ClassVar[bool] = True
+    cli_hint: ClassVar[str] = "site fix-article-links"
 
     folder_path: Path | None = None
 
@@ -106,7 +106,7 @@ class OnFixSiteArticleLinkTitles(ActionBase):
             self.add_line("❌ Content repos folder not found. Set `paths_sites[0].input` in config.json.")
             return
 
-        settings = SiteLinkSettings()
+        settings = site_link_settings_from_config(self.config)
         self.add_line(f"📂 Content repos: {content_root}")
         title_index = build_article_title_index(content_root)
         self.add_line(f"📚 Indexed articles: {len(title_index)}")
@@ -241,3 +241,88 @@ class OnFixSiteArticleLinkTitles(ActionBase):
             and permalink_yaml_count == 0
         ):
             self.add_line(f"✅ No link changes needed in {self.folder_path}.")
+```
+
+</details>
+
+### ⚙️ Method `execute`
+
+```python
+def execute(self, *_args: Any, **_kwargs: Any) -> None
+```
+
+Fix site article dual-link titles in a notes folder.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def execute(
+        self,
+        *_args: Any,
+        folder_path: Path | None = None,
+        noninteractive: bool = False,
+        **_kwargs: Any,
+    ) -> None:
+        if noninteractive and folder_path is None:
+            self.handle_error(
+                ValueError("folder_path is required when noninteractive is True"),
+                self.title,
+            )
+            return
+
+        if folder_path is not None:
+            self.folder_path = Path(folder_path).resolve()
+        else:
+            self.folder_path = self.dialogs.get_folder_with_choice_option(
+                self.config["paths_notes"], self.config["path_notes"]
+            )
+        if not self.folder_path:
+            return
+
+        if noninteractive:
+            self.add_line(f"🔵 Starting site article link title fix for path: {self.folder_path}")
+            self._fix_titles_common()
+            return
+
+        self.start_thread(self.in_thread, self.thread_after, self.title)
+```
+
+</details>
+
+### ⚙️ Method `in_thread`
+
+```python
+def in_thread(self) -> str | None
+```
+
+Execute code in a separate thread.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def in_thread(self) -> str | None:
+        self._fix_titles_common()
+```
+
+</details>
+
+### ⚙️ Method `thread_after`
+
+```python
+def thread_after(self, result: Any) -> None
+```
+
+Show toast and result dialog after the worker thread finishes.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def thread_after(self, result: Any) -> None:  # noqa: ARG002
+        self.show_toast(f"{self.title} {self.folder_path} completed")
+        self.show_result()
+```
+
+</details>

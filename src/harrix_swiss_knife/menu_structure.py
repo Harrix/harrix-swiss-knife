@@ -73,7 +73,6 @@ from harrix_swiss_knife.actions.markdown.check_md import OnCheckMd
 from harrix_swiss_knife.actions.markdown.decrease_heading_level_content import OnDecreaseHeadingLevelContent
 from harrix_swiss_knife.actions.markdown.download_and_replace_images import OnDownloadAndReplaceImages
 from harrix_swiss_knife.actions.markdown.fix_md_with_quotes import OnFixMdWithQuotes
-from harrix_swiss_knife.actions.markdown.fix_site_article_link_titles import OnFixSiteArticleLinkTitles
 from harrix_swiss_knife.actions.markdown.generate_short_note_toc_with_links import OnGenerateShortNoteTocWithLinks
 from harrix_swiss_knife.actions.markdown.generate_static_site import OnGenerateStaticSite
 from harrix_swiss_knife.actions.markdown.get_list_movies_books import OnGetListMoviesBooks
@@ -94,6 +93,7 @@ from harrix_swiss_knife.actions.python.publish_python_library import OnPublishPy
 from harrix_swiss_knife.actions.python.sort_ruff_fmt_docs_python_code import OnSortRuffFmtDocsPythonCode
 from harrix_swiss_knife.actions.python.sort_ruff_fmt_python_code import OnSortRuffFmtPythonCode
 from harrix_swiss_knife.actions.quick_launcher.action import OnQuickLauncher
+from harrix_swiss_knife.actions.site import OnAddSiteContentSubmodule, OnFixSiteArticleLinkTitles
 from harrix_swiss_knife.actions.text.fix_text_with_ai import OnFixTextWithAI
 from harrix_swiss_knife.actions.text.fix_text_with_ai_from_clipboard import OnFixTextWithAIFromClipboard
 from harrix_swiss_knife.actions.text.rewrite_text_with_ai import OnRewriteTextWithAI
@@ -210,7 +210,6 @@ def get_menu_structure() -> list[Any]:
                 OnBeautifyMd,
                 OnBeautifyMdAndRegenerateGMd,
                 OnCheckMd,
-                OnFixSiteArticleLinkTitles,
                 OnMoveMdIntoNamedFolders,
                 OnDownloadAndReplaceImages,
                 OnFixMdWithQuotes,
@@ -220,6 +219,14 @@ def get_menu_structure() -> list[Any]:
                 OnOptimizeImagesInMd,
                 OnOptimizeSelectedImages,
                 OnSortSections,
+            ],
+        ),
+        (
+            "Site",
+            "🌐",
+            [
+                OnAddSiteContentSubmodule,
+                OnFixSiteArticleLinkTitles,
             ],
         ),
         (

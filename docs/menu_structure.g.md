@@ -121,7 +121,6 @@ def get_menu_structure() -> list[Any]:
                 OnBeautifyMd,
                 OnBeautifyMdAndRegenerateGMd,
                 OnCheckMd,
-                OnFixSiteArticleLinkTitles,
                 OnMoveMdIntoNamedFolders,
                 OnDownloadAndReplaceImages,
                 OnFixMdWithQuotes,
@@ -131,6 +130,14 @@ def get_menu_structure() -> list[Any]:
                 OnOptimizeImagesInMd,
                 OnOptimizeSelectedImages,
                 OnSortSections,
+            ],
+        ),
+        (
+            "Site",
+            "🌐",
+            [
+                OnAddSiteContentSubmodule,
+                OnFixSiteArticleLinkTitles,
             ],
         ),
         (
