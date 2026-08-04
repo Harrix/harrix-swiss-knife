@@ -106,7 +106,7 @@
     <string name="nav_drawer_home">Nhà</string>
     <string name="nav_drawer_gallery_cleaner">Gallery Cleaner</string>
     <string name="nav_drawer_video_cleaner">Video Cleaner</string>
-    <string name="nav_drawer_photo_editor">Harrix Photo Editor</string>
+    <string name="nav_drawer_photo_editor">Photo Editor</string>
     <string name="nav_drawer_about">Về</string>
     <string name="about_title">Về</string>
     <string name="about_back">Trở lại</string>
@@ -120,8 +120,9 @@
     <string name="gallery_cleaner_card_description">Xem lại Ảnh Máy ảnh. Vuốt hoặc nhấn vào thùng rác hoặc giữ.</string>
     <string name="video_cleaner_card_description">Liệt kê Các Video Camera theo ngày và thùng rác được chọn.</string>
     <string name="photo_editor_card_description">Cắt và làm thẳng ảnh. Mở từ ứng dụng hoặc chia sẻ hình ảnh tại đây.</string>
-    <string name="photo_editor_title">Harrix Photo Editor</string>
-    <string name="photo_editor_close">Lối ra Harrix Photo Editor</string>
+    <string name="photo_editor_share_label">Harrix Photo Editor</string>
+    <string name="photo_editor_title">Photo Editor</string>
+    <string name="photo_editor_close">Thoát Photo Editor</string>
     <string name="photo_editor_open_photo">Mở ảnh</string>
     <string name="photo_editor_empty_title">Không mở ảnh</string>
     <string name="photo_editor_empty_message">Chọn ảnh để cắt và làm thẳng hoặc chia sẻ hình ảnh với ứng dụng này.</string>

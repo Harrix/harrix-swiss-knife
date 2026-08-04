@@ -106,7 +106,7 @@
     <string name="nav_drawer_home">Home</string>
     <string name="nav_drawer_gallery_cleaner">Gallery Cleaner</string>
     <string name="nav_drawer_video_cleaner">Video Cleaner</string>
-    <string name="nav_drawer_photo_editor">Harrix Photo Editor</string>
+    <string name="nav_drawer_photo_editor">Photo Editor</string>
     <string name="nav_drawer_about">About</string>
     <string name="about_title">About</string>
     <string name="about_back">Back</string>
@@ -120,8 +120,9 @@
     <string name="gallery_cleaner_card_description">Review Camera photos. Swipe or tap to trash or keep.</string>
     <string name="video_cleaner_card_description">List Camera videos by date and trash selected ones.</string>
     <string name="photo_editor_card_description">Crop and straighten a photo. Open from the app or share an image here.</string>
-    <string name="photo_editor_title">Harrix Photo Editor</string>
-    <string name="photo_editor_close">Exit Harrix Photo Editor</string>
+    <string name="photo_editor_share_label">Harrix Photo Editor</string>
+    <string name="photo_editor_title">Photo Editor</string>
+    <string name="photo_editor_close">Exit Photo Editor</string>
     <string name="photo_editor_open_photo">Open photo</string>
     <string name="photo_editor_empty_title">No photo open</string>
     <string name="photo_editor_empty_message">Choose a photo to crop and straighten, or share an image with this app.</string>

@@ -106,7 +106,7 @@
     <string name="nav_drawer_home">Início</string>
     <string name="nav_drawer_gallery_cleaner">Gallery Cleaner</string>
     <string name="nav_drawer_video_cleaner">Video Cleaner</string>
-    <string name="nav_drawer_photo_editor">Harrix Photo Editor</string>
+    <string name="nav_drawer_photo_editor">Photo Editor</string>
     <string name="nav_drawer_about">Sobre o aplicativo</string>
     <string name="about_title">Sobre o aplicativo</string>
     <string name="about_back">Voltar</string>
@@ -120,8 +120,9 @@
     <string name="gallery_cleaner_card_description">Revise as fotos da câmera. Deslize ou toque para descartar ou manter.</string>
     <string name="video_cleaner_card_description">Liste os vídeos da câmera por data e descarte os selecionados.</string>
     <string name="photo_editor_card_description">Recorte e endireite uma foto. Abra pelo app ou compartilhe uma imagem aqui.</string>
-    <string name="photo_editor_title">Harrix Photo Editor</string>
-    <string name="photo_editor_close">Sair do Harrix Photo Editor</string>
+    <string name="photo_editor_share_label">Harrix Photo Editor</string>
+    <string name="photo_editor_title">Photo Editor</string>
+    <string name="photo_editor_close">Sair do Photo Editor</string>
     <string name="photo_editor_open_photo">Abrir foto</string>
     <string name="photo_editor_empty_title">Nenhuma foto aberta</string>
     <string name="photo_editor_empty_message">Escolha uma foto para recortar e endireitar, ou compartilhe uma imagem com este app.</string>

@@ -106,7 +106,7 @@
     <string name="nav_drawer_home">Acasă</string>
     <string name="nav_drawer_gallery_cleaner">Gallery Cleaner</string>
     <string name="nav_drawer_video_cleaner">Video Cleaner</string>
-    <string name="nav_drawer_photo_editor">Harrix Photo Editor</string>
+    <string name="nav_drawer_photo_editor">Photo Editor</string>
     <string name="nav_drawer_about">Despre</string>
     <string name="about_title">Despre</string>
     <string name="about_back">Înapoi</string>
@@ -120,8 +120,9 @@
     <string name="gallery_cleaner_card_description">Examinați fotografiile camerei. Glisați sau atingeți la coșul de gunoi sau păstrați.</string>
     <string name="video_cleaner_card_description">Listați videoclipurile camerei după dată și coșul de gunoi selectat.</string>
     <string name="photo_editor_card_description">Decupați și îndreptați o fotografie. Deschideți din aplicație sau partajați o imagine aici.</string>
-    <string name="photo_editor_title">Harrix Photo Editor</string>
-    <string name="photo_editor_close">Ieșire Harrix Photo Editor</string>
+    <string name="photo_editor_share_label">Harrix Photo Editor</string>
+    <string name="photo_editor_title">Photo Editor</string>
+    <string name="photo_editor_close">Ieși din Photo Editor</string>
     <string name="photo_editor_open_photo">Deschide fotografia</string>
     <string name="photo_editor_empty_title">Nicio fotografie deschisă</string>
     <string name="photo_editor_empty_message">Alegeți o fotografie pentru a decupa și îndrepta sau partajați o imagine cu această aplicație.</string>

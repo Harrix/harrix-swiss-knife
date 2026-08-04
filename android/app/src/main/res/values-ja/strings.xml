@@ -106,7 +106,7 @@
     <string name="nav_drawer_home">ホーム</string>
     <string name="nav_drawer_gallery_cleaner">Gallery Cleaner</string>
     <string name="nav_drawer_video_cleaner">Video Cleaner</string>
-    <string name="nav_drawer_photo_editor">Harrix Photo Editor</string>
+    <string name="nav_drawer_photo_editor">Photo Editor</string>
     <string name="nav_drawer_about">アプリについて</string>
     <string name="about_title">アプリについて</string>
     <string name="about_back">戻る</string>
@@ -120,8 +120,9 @@
     <string name="gallery_cleaner_card_description">カメラの写真を確認します。スワイプまたはタップしてゴミ箱または保管します。</string>
     <string name="video_cleaner_card_description">カメラビデオを日付ごとにリストし、選択したビデオをゴミ箱に入れます。</string>
     <string name="photo_editor_card_description">写真の切り抜きと傾き補正。アプリから開くか、画像を共有します。</string>
-    <string name="photo_editor_title">Harrix Photo Editor</string>
-    <string name="photo_editor_close">Harrix Photo Editor を終了</string>
+    <string name="photo_editor_share_label">Harrix Photo Editor</string>
+    <string name="photo_editor_title">Photo Editor</string>
+    <string name="photo_editor_close">Photo Editor を終了</string>
     <string name="photo_editor_open_photo">写真を開く</string>
     <string name="photo_editor_empty_title">写真が開かれていません</string>
     <string name="photo_editor_empty_message">切り抜きと傾き補正する写真を選ぶか、このアプリに画像を共有してください。</string>

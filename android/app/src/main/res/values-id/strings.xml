@@ -106,7 +106,7 @@
     <string name="nav_drawer_home">Rumah</string>
     <string name="nav_drawer_gallery_cleaner">Gallery Cleaner</string>
     <string name="nav_drawer_video_cleaner">Video Cleaner</string>
-    <string name="nav_drawer_photo_editor">Harrix Photo Editor</string>
+    <string name="nav_drawer_photo_editor">Photo Editor</string>
     <string name="nav_drawer_about">Tentang Kami</string>
     <string name="about_title">Tentang Kami</string>
     <string name="about_back">Kembali</string>
@@ -120,8 +120,9 @@
     <string name="gallery_cleaner_card_description">Tinjau foto kamera. Gesek atau ketuk untuk membuang atau menyimpan.</string>
     <string name="video_cleaner_card_description">Buat daftar video Kamera berdasarkan tanggal dan buang video yang dipilih.</string>
     <string name="photo_editor_card_description">Pangkas dan luruskan foto. Buka dari aplikasi atau bagikan gambar di sini.</string>
-    <string name="photo_editor_title">Harrix Photo Editor</string>
-    <string name="photo_editor_close">Keluar Harrix Photo Editor</string>
+    <string name="photo_editor_share_label">Harrix Photo Editor</string>
+    <string name="photo_editor_title">Photo Editor</string>
+    <string name="photo_editor_close">Keluar dari Photo Editor</string>
     <string name="photo_editor_open_photo">Buka foto</string>
     <string name="photo_editor_empty_title">Tidak ada foto yang dibuka</string>
     <string name="photo_editor_empty_message">Pilih foto untuk dipotong dan diluruskan, atau bagikan gambar dengan aplikasi ini.</string>

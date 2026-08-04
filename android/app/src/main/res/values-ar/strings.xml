@@ -106,7 +106,7 @@
     <string name="nav_drawer_home">الرئيسية</string>
     <string name="nav_drawer_gallery_cleaner">Gallery Cleaner</string>
     <string name="nav_drawer_video_cleaner">Video Cleaner</string>
-    <string name="nav_drawer_photo_editor">Harrix Photo Editor</string>
+    <string name="nav_drawer_photo_editor">Photo Editor</string>
     <string name="nav_drawer_about">حول</string>
     <string name="about_title">حول</string>
     <string name="about_back">العودة</string>
@@ -120,8 +120,9 @@
     <string name="gallery_cleaner_card_description">مراجعة صور الكاميرا. اسحب أو اضغط على سلة المهملات أو الاحتفاظ بها.</string>
     <string name="video_cleaner_card_description">قائمة مقاطع فيديو الكاميرا حسب التاريخ والقمامة المحددة.</string>
     <string name="photo_editor_card_description">المحاصيل وتصويب الصورة. افتح من التطبيق أو شارك صورة هنا.</string>
-    <string name="photo_editor_title">Harrix Photo Editor</string>
-    <string name="photo_editor_close">خروج Harrix Photo Editor</string>
+    <string name="photo_editor_share_label">Harrix Photo Editor</string>
+    <string name="photo_editor_title">Photo Editor</string>
+    <string name="photo_editor_close">خروج من Photo Editor</string>
     <string name="photo_editor_open_photo">فتح صورة</string>
     <string name="photo_editor_empty_title">لا توجد صورة مفتوحة</string>
     <string name="photo_editor_empty_message">اختيار صورة لاقتصاص وتصويب ، أو مشاركة صورة مع هذا التطبيق.</string>

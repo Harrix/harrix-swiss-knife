@@ -16,7 +16,7 @@ object PhotoEditorShareShortcuts {
         val shortcut =
             ShortcutInfoCompat
                 .Builder(activity, ShortcutId)
-                .setShortLabel(activity.getString(R.string.photo_editor_title))
+                .setShortLabel(activity.getString(R.string.photo_editor_share_label))
                 .setLongLabel(activity.getString(R.string.photo_editor_card_description))
                 .setIcon(IconCompat.createWithResource(activity, R.mipmap.ic_launcher))
                 .setIntent(

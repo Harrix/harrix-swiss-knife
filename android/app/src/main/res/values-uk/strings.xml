@@ -106,7 +106,7 @@
     <string name="nav_drawer_home">Додому</string>
     <string name="nav_drawer_gallery_cleaner">Gallery Cleaner</string>
     <string name="nav_drawer_video_cleaner">Video Cleaner</string>
-    <string name="nav_drawer_photo_editor">Harrix Photo Editor</string>
+    <string name="nav_drawer_photo_editor">Photo Editor</string>
     <string name="nav_drawer_about">Про програму</string>
     <string name="about_title">Про програму</string>
     <string name="about_back">Назад</string>
@@ -120,8 +120,9 @@
     <string name="gallery_cleaner_card_description">Перегляньте фотографії, зроблені з камери. Проведіть пальцем або торкніться, щоб видалити їх або зберегти.</string>
     <string name="video_cleaner_card_description">Відобразіть відео з камери за датою та видаліть вибрані з них.</string>
     <string name="photo_editor_card_description">Обрізайте і вирівнюйте фотографію. Відкрийте зображення з програми або поділіться ним тут.</string>
-    <string name="photo_editor_title">Harrix Photo Editor</string>
-    <string name="photo_editor_close">Вийти з Harrix Photo Editor</string>
+    <string name="photo_editor_share_label">Harrix Photo Editor</string>
+    <string name="photo_editor_title">Photo Editor</string>
+    <string name="photo_editor_close">Вийти з Photo Editor</string>
     <string name="photo_editor_open_photo">Відкрити фото</string>
     <string name="photo_editor_empty_title">Фотографія не відкрита</string>
     <string name="photo_editor_empty_message">Виберіть фотографію для обрізання та випрямлення або Поділіться зображенням за допомогою цієї програми.</string>

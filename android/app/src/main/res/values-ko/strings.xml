@@ -106,7 +106,7 @@
     <string name="nav_drawer_home">홈</string>
     <string name="nav_drawer_gallery_cleaner">Gallery Cleaner</string>
     <string name="nav_drawer_video_cleaner">Video Cleaner</string>
-    <string name="nav_drawer_photo_editor">Harrix Photo Editor</string>
+    <string name="nav_drawer_photo_editor">Photo Editor</string>
     <string name="nav_drawer_about">약</string>
     <string name="about_title">약</string>
     <string name="about_back">뒤로</string>
@@ -120,8 +120,9 @@
     <string name="gallery_cleaner_card_description">카메라 사진을 검토합니다. 스 와이프 또는 휴지통 또는 유지 누릅니다.</string>
     <string name="video_cleaner_card_description">날짜별로 카메라 비디오를 나열하고 선택한 비디오를 휴지통으로 나열하십시오.</string>
     <string name="photo_editor_card_description">사진을 자르고 곧게 펴십시오. 응용 프로그램에서 열거 나 여기에 이미지를 공유 할 수 있습니다.</string>
-    <string name="photo_editor_title">Harrix Photo Editor</string>
-    <string name="photo_editor_close">출구 Harrix Photo Editor</string>
+    <string name="photo_editor_share_label">Harrix Photo Editor</string>
+    <string name="photo_editor_title">Photo Editor</string>
+    <string name="photo_editor_close">Photo Editor 종료</string>
     <string name="photo_editor_open_photo">사진 열기</string>
     <string name="photo_editor_empty_title">사진 없음</string>
     <string name="photo_editor_empty_message">자르기 및 똑 바르게,또는이 응용 프로그램과 함께 이미지를 공유 할 사진을 선택합니다.</string>

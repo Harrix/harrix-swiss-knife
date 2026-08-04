@@ -106,7 +106,7 @@
     <string name="nav_drawer_home">Stránka</string>
     <string name="nav_drawer_gallery_cleaner">Gallery Cleaner</string>
     <string name="nav_drawer_video_cleaner">Video Cleaner</string>
-    <string name="nav_drawer_photo_editor">Harrix Photo Editor</string>
+    <string name="nav_drawer_photo_editor">Photo Editor</string>
     <string name="nav_drawer_about">O</string>
     <string name="about_title">O</string>
     <string name="about_back">Zpět</string>
@@ -120,8 +120,9 @@
     <string name="gallery_cleaner_card_description">Zkontrolujte fotografie z fotoaparátu. Přejeďte nebo klepněte na koš nebo ponechat.</string>
     <string name="video_cleaner_card_description">Seznam videí z kamery podle data a vybraných košů.</string>
     <string name="photo_editor_card_description">Ořízněte a narovnejte fotografii. Otevřete z aplikace nebo Sdílejte obrázek zde.</string>
-    <string name="photo_editor_title">Harrix Photo Editor</string>
-    <string name="photo_editor_close">Exit Harrix Photo Editor</string>
+    <string name="photo_editor_share_label">Harrix Photo Editor</string>
+    <string name="photo_editor_title">Photo Editor</string>
+    <string name="photo_editor_close">Ukončit Photo Editor</string>
     <string name="photo_editor_open_photo">Otevřít fotografii</string>
     <string name="photo_editor_empty_title">Neotevřená fotka</string>
     <string name="photo_editor_empty_message">Vyberte fotografii, kterou chcete oříznout a narovnat, nebo Sdílejte obrázek s touto aplikací.</string>

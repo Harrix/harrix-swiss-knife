@@ -106,7 +106,7 @@
     <string name="nav_drawer_home">Huis</string>
     <string name="nav_drawer_gallery_cleaner">Gallery Cleaner</string>
     <string name="nav_drawer_video_cleaner">Video Cleaner</string>
-    <string name="nav_drawer_photo_editor">Harrix Photo Editor</string>
+    <string name="nav_drawer_photo_editor">Photo Editor</string>
     <string name="nav_drawer_about">Over</string>
     <string name="about_title">Over</string>
     <string name="about_back">Terug</string>
@@ -120,8 +120,9 @@
     <string name="gallery_cleaner_card_description">Camera foto \' s bekijken. Veeg of tik om de prullenbak te verwijderen of te bewaren.</string>
     <string name="video_cleaner_card_description">Lijst cameravideo \' s op datum en prullenbak geselecteerde.</string>
     <string name="photo_editor_card_description">Knip en maak een foto recht. Open vanuit de app of deel hier een afbeelding.</string>
-    <string name="photo_editor_title">Harrix Photo Editor</string>
-    <string name="photo_editor_close">Afsluiten Harrix Photo Editor</string>
+    <string name="photo_editor_share_label">Harrix Photo Editor</string>
+    <string name="photo_editor_title">Photo Editor</string>
+    <string name="photo_editor_close">Photo Editor afsluiten</string>
     <string name="photo_editor_open_photo">Foto openen</string>
     <string name="photo_editor_empty_title">Geen foto geopend</string>
     <string name="photo_editor_empty_message">Kies een foto om bij te snijden en recht te maken, of deel een afbeelding met deze app.</string>

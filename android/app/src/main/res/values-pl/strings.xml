@@ -106,7 +106,7 @@
     <string name="nav_drawer_home">Spis treści</string>
     <string name="nav_drawer_gallery_cleaner">Gallery Cleaner</string>
     <string name="nav_drawer_video_cleaner">Video Cleaner</string>
-    <string name="nav_drawer_photo_editor">Harrix Photo Editor</string>
+    <string name="nav_drawer_photo_editor">Photo Editor</string>
     <string name="nav_drawer_about">O firmie</string>
     <string name="about_title">O firmie</string>
     <string name="about_back">Wstecz</string>
@@ -120,8 +120,9 @@
     <string name="gallery_cleaner_card_description">Przejrzyj zdjęcia z aparatu. Przesuń lub dotknij, aby kosza Lub zachować.</string>
     <string name="video_cleaner_card_description">Lista filmów z aparatu według daty i wybranych śmieci.</string>
     <string name="photo_editor_card_description">Przytnij i wyprostuj zdjęcie. Otwórz z aplikacji lub Udostępnij obraz tutaj.</string>
-    <string name="photo_editor_title">Harrix Photo Editor</string>
-    <string name="photo_editor_close">Wyjdź Harrix Photo Editor</string>
+    <string name="photo_editor_share_label">Harrix Photo Editor</string>
+    <string name="photo_editor_title">Photo Editor</string>
+    <string name="photo_editor_close">Wyjdź z Photo Editor</string>
     <string name="photo_editor_open_photo">Otwórz zdjęcie</string>
     <string name="photo_editor_empty_title">Brak otwartego zdjęcia</string>
     <string name="photo_editor_empty_message">Wybierz zdjęcie do przycięcia i wyprostowania lub udostępnij zdjęcie za pomocą tej aplikacji.</string>

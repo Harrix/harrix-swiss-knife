@@ -106,7 +106,7 @@
     <string name="nav_drawer_home">Ev</string>
     <string name="nav_drawer_gallery_cleaner">Gallery Cleaner</string>
     <string name="nav_drawer_video_cleaner">Video Cleaner</string>
-    <string name="nav_drawer_photo_editor">Harrix Photo Editor</string>
+    <string name="nav_drawer_photo_editor">Photo Editor</string>
     <string name="nav_drawer_about">Hakkında</string>
     <string name="about_title">Hakkında</string>
     <string name="about_back">Geri</string>
@@ -120,8 +120,9 @@
     <string name="gallery_cleaner_card_description">Kamera fotoğraflarını inceleyin. Çöp kutusuna atmak veya saklamak için kaydırın veya dokunun.</string>
     <string name="video_cleaner_card_description">Kamera videolarını tarihe göre listeleyin ve istediğiniz videoları silin.</string>
     <string name="photo_editor_card_description">Bir fotoğrafı kırpın ve düzeltin. Uygulamadan açın veya burada bir resim paylaşın.</string>
-    <string name="photo_editor_title">Harrix Photo Editor</string>
-    <string name="photo_editor_close">Harrix Harrix Photo Editor</string>
+    <string name="photo_editor_share_label">Harrix Photo Editor</string>
+    <string name="photo_editor_title">Photo Editor</string>
+    <string name="photo_editor_close">Photo Editor\'dan çık</string>
     <string name="photo_editor_open_photo">Fotoğrafı aç</string>
     <string name="photo_editor_empty_title">Açık fotoğraf yok</string>
     <string name="photo_editor_empty_message">Kırpmak ve düzeltmek için bir fotoğraf seçin veya bu uygulamayla bir görseli paylaşın.</string>

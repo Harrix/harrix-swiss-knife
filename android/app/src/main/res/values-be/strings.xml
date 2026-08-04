@@ -106,7 +106,7 @@
     <string name="nav_drawer_home">Дадому</string>
     <string name="nav_drawer_gallery_cleaner">Gallery Cleaner</string>
     <string name="nav_drawer_video_cleaner">Video Cleaner</string>
-    <string name="nav_drawer_photo_editor">Harrix Photo Editor</string>
+    <string name="nav_drawer_photo_editor">Photo Editor</string>
     <string name="nav_drawer_about">Пра праграму</string>
     <string name="about_title">Пра праграму</string>
     <string name="about_back">Назад</string>
@@ -120,8 +120,9 @@
     <string name="gallery_cleaner_card_description">Праглядзіце фатаграфіі, зробленыя з камеры. Правядзіце пальцам або краніце, каб выдаліць іх ці захаваць.</string>
     <string name="video_cleaner_card_description">Адлюстраванне відэа з камеры па даце і выдаліць выбраныя з іх.</string>
     <string name="photo_editor_card_description">Абрэзаць і выраўнаваць фатаграфію. Адкрыйце малюнак з прыкладання або падзяліцца ім тут.</string>
-    <string name="photo_editor_title">Harrix Photo Editor</string>
-    <string name="photo_editor_close">Выйсці з Harrix Photo Editor</string>
+    <string name="photo_editor_share_label">Harrix Photo Editor</string>
+    <string name="photo_editor_title">Photo Editor</string>
+    <string name="photo_editor_close">Выйсці з Photo Editor</string>
     <string name="photo_editor_open_photo">Адкрыць фота</string>
     <string name="photo_editor_empty_title">Фатаграфія не адкрыта</string>
     <string name="photo_editor_empty_message">Выберыце фатаграфію для абрэзкі і выпроствання або Падзяліцеся малюнкам з дапамогай гэтага прыкладання.</string>
