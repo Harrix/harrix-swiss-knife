@@ -1,5 +1,7 @@
 package dev.harrix.hsk
 
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -15,15 +17,20 @@ import dev.harrix.hsk.ui.MainScreen
 import dev.harrix.hsk.ui.theme.HskAndroidTheme
 
 class MainActivity : AppCompatActivity() {
+    private var pendingImageUriState = mutableStateOf<Uri?>(null)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         val preferences = AppPreferences(this)
         preferences.loadAppLanguage().apply()
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        PhotoEditorShareShortcuts.publish(this)
+        consumeIncomingIntent(intent)
         setContent {
             var themeMode by remember { mutableStateOf(preferences.loadThemeMode()) }
             var appLanguage by remember { mutableStateOf(preferences.loadAppLanguage()) }
             val darkTheme = themeMode.resolveDarkTheme(isSystemInDarkTheme())
+            var pendingImageUri by pendingImageUriState
             HskAndroidTheme(darkTheme = darkTheme) {
                 MainScreen(
                     themeMode = themeMode,
@@ -37,9 +44,40 @@ class MainActivity : AppCompatActivity() {
                         appLanguage = language
                         language.apply()
                     },
+                    pendingImageUri = pendingImageUri,
+                    onPendingImageUriConsume = { pendingImageUriState.value = null },
                     modifier = Modifier.fillMaxSize(),
                 )
             }
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        consumeIncomingIntent(intent)
+    }
+
+    private fun consumeIncomingIntent(intent: Intent?) {
+        val uri = IncomingImageIntents.extractImageUri(intent) ?: return
+        tryTakePersistableReadPermission(uri, intent?.flags ?: 0)
+        pendingImageUriState.value = uri
+    }
+
+    private fun tryTakePersistableReadPermission(
+        uri: Uri,
+        intentFlags: Int,
+    ) {
+        val persistable = intentFlags and Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION != 0
+        val read = intentFlags and Intent.FLAG_GRANT_READ_URI_PERMISSION != 0
+        if (!persistable || !read) {
+            return
+        }
+        runCatching {
+            contentResolver.takePersistableUriPermission(
+                uri,
+                Intent.FLAG_GRANT_READ_URI_PERMISSION,
+            )
         }
     }
 }
