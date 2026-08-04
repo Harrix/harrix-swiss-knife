@@ -3,14 +3,10 @@
 from __future__ import annotations
 
 import harrix_pylib as h
-from PySide6.QtCore import QSize
 
 from harrix_swiss_knife.paths import get_config_path_str, get_temp_config_path
 
 MAIN_WINDOW_ICON_GRID_KEY = "main_window_icon_grid"
-
-# Default size of the tray-click main window (also used by matching dialogs).
-MAIN_WINDOW_DEFAULT_SIZE = QSize(1024, 800)
 
 
 def load_main_window_icon_grid() -> bool:

@@ -50,7 +50,6 @@ class MainWindow(QMainWindow):
         super().__init__()
 
         self.setWindowTitle("Harrix Swiss Knife")
-        self.resize(MAIN_WINDOW_DEFAULT_SIZE)
         try_apply_system_backdrop(self, backdrop=SystemBackdrop.MICA)
 
         self._icon_grid_mode = load_main_window_icon_grid()
@@ -461,29 +460,7 @@ class MainWindow(QMainWindow):
 
     def _setup_window_size_and_position(self) -> None:
         """Set window size and position based on screen resolution and characteristics."""
-        screen_geometry = QApplication.primaryScreen().geometry()
-        screen_width = screen_geometry.width()
-        screen_height = screen_geometry.height()
-
-        aspect_ratio = screen_width / screen_height
-        standard_aspect_ratio = 2.0
-        is_standard_aspect = aspect_ratio <= standard_aspect_ratio
-
-        standard_width = 1920
-        if is_standard_aspect and screen_width >= standard_width:
-            self.setWindowState(Qt.WindowState.WindowMaximized)
-        else:
-            title_bar_height = 30
-            windows_task_bar_height = 48
-            window_width = standard_width
-            window_height = screen_height - title_bar_height - windows_task_bar_height
-            screen_center = screen_geometry.center()
-            self.setGeometry(
-                screen_center.x() - window_width // 2,
-                title_bar_height,
-                window_width,
-                window_height,
-            )
+        apply_app_window_size_and_position(self)
 ```
 
 </details>
@@ -509,7 +486,6 @@ def __init__(self, menu: QMenu, *, output_bus: ActionOutputBus | None = None) ->
         super().__init__()
 
         self.setWindowTitle("Harrix Swiss Knife")
-        self.resize(MAIN_WINDOW_DEFAULT_SIZE)
         try_apply_system_backdrop(self, backdrop=SystemBackdrop.MICA)
 
         self._icon_grid_mode = load_main_window_icon_grid()

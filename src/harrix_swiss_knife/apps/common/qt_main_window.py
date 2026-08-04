@@ -29,6 +29,10 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+_STANDARD_ASPECT_RATIO = 2.0
+_TITLE_BAR_HEIGHT = 30
+_WINDOWS_TASK_BAR_HEIGHT = 48
+
 
 class AppWindowMixin:
     """Mixin with common `QMainWindow` helpers shared across apps."""
@@ -215,31 +219,7 @@ class AppWindowMixin:
         `showMaximized` and a fixed layout. Defaults to `1920`.
 
         """
-        screen = QApplication.primaryScreen()
-        if screen is None:
-            return
-        screen_geometry = screen.geometry()
-        screen_width = screen_geometry.width()
-        screen_height = screen_geometry.height()
-
-        aspect_ratio = screen_width / screen_height
-        standard_aspect_ratio = 2.0
-        is_standard_aspect = aspect_ratio <= standard_aspect_ratio
-
-        if is_standard_aspect and screen_width >= standard_width:
-            self.showMaximized()  # type: ignore[attr-defined]
-        else:
-            title_bar_height = 30
-            windows_task_bar_height = 48
-            window_width = standard_width
-            window_height = screen_height - title_bar_height - windows_task_bar_height
-            screen_center = screen_geometry.center()
-            self.setGeometry(  # type: ignore[attr-defined]
-                screen_center.x() - window_width // 2,
-                title_bar_height,
-                window_width,
-                window_height,
-            )
+        apply_app_window_size_and_position(cast("QWidget", self), standard_width=standard_width)
 
     def _validate_database_connection(self) -> bool:
         """Validate that database connection is available and open.
@@ -258,3 +238,36 @@ class AppWindowMixin:
             return False
 
         return True
+
+
+def apply_app_window_size_and_position(widget: QWidget, *, standard_width: int = 1920) -> None:
+    """Set widget size and position like food/finance/habits main Windows.
+
+    On a standard-aspect screen at least `standard_width` wide, maximize.
+    Otherwise center a window of width `standard_width` and height equal to
+    the screen height minus title bar and task bar.
+
+    """
+    screen = QApplication.primaryScreen()
+    if screen is None:
+        return
+    screen_geometry = screen.geometry()
+    screen_width = screen_geometry.width()
+    screen_height = screen_geometry.height()
+
+    aspect_ratio = screen_width / screen_height
+    is_standard_aspect = aspect_ratio <= _STANDARD_ASPECT_RATIO
+
+    if is_standard_aspect and screen_width >= standard_width:
+        widget.showMaximized()
+        return
+
+    window_width = standard_width
+    window_height = screen_height - _TITLE_BAR_HEIGHT - _WINDOWS_TASK_BAR_HEIGHT
+    screen_center = screen_geometry.center()
+    widget.setGeometry(
+        screen_center.x() - window_width // 2,
+        _TITLE_BAR_HEIGHT,
+        window_width,
+        window_height,
+    )

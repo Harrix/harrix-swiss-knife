@@ -1136,13 +1136,18 @@ class ActionDialogService:
         summary: str,
     ) -> None:
         """Show a sortable table of action invocation statistics."""
-        self._exec_standard_dialog(
-            "Action usage stats",
-            build_action_usage_stats_browser(rows, summary=summary),
-            stretch_row=1,
-            adaptive=False,
-            size=MAIN_WINDOW_DEFAULT_SIZE,
-        )
+        dialog_parent = QApplication.activeWindow()
+        dialog = QDialog(dialog_parent)
+        dialog.setWindowTitle("Action usage stats")
+
+        layout = QVBoxLayout()
+        build_action_usage_stats_browser(rows, summary=summary)(dialog, layout)
+        dialog.setLayout(layout)
+        layout.setStretch(1, 1)
+
+        # Same sizing as food/finance/habits main windows (maximize or ~1920 wide).
+        apply_app_window_size_and_position(dialog)
+        dialog.exec()
 
     def show_git_commit_offer(
         self,
@@ -2953,13 +2958,18 @@ def show_action_usage_stats_browser(
         *,
         summary: str,
     ) -> None:
-        self._exec_standard_dialog(
-            "Action usage stats",
-            build_action_usage_stats_browser(rows, summary=summary),
-            stretch_row=1,
-            adaptive=False,
-            size=MAIN_WINDOW_DEFAULT_SIZE,
-        )
+        dialog_parent = QApplication.activeWindow()
+        dialog = QDialog(dialog_parent)
+        dialog.setWindowTitle("Action usage stats")
+
+        layout = QVBoxLayout()
+        build_action_usage_stats_browser(rows, summary=summary)(dialog, layout)
+        dialog.setLayout(layout)
+        layout.setStretch(1, 1)
+
+        # Same sizing as food/finance/habits main windows (maximize or ~1920 wide).
+        apply_app_window_size_and_position(dialog)
+        dialog.exec()
 ```
 
 </details>

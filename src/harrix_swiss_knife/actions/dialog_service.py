@@ -73,7 +73,7 @@ from harrix_swiss_knife.actions.text_result_dialog import (
     append_result_action_buttons,
 )
 from harrix_swiss_knife.apps.common import message_box
-from harrix_swiss_knife.main_window_settings import MAIN_WINDOW_DEFAULT_SIZE
+from harrix_swiss_knife.apps.common.qt_main_window import apply_app_window_size_and_position
 from harrix_swiss_knife.qt_action_card_grid import configure_action_card_grid
 from harrix_swiss_knife.qt_command_section import create_command_section, style_transparent_icon_grid
 from harrix_swiss_knife.qt_described_choice_cards import (
@@ -1181,13 +1181,18 @@ class ActionDialogService:
         summary: str,
     ) -> None:
         """Show a sortable table of action invocation statistics."""
-        self._exec_standard_dialog(
-            "Action usage stats",
-            build_action_usage_stats_browser(rows, summary=summary),
-            stretch_row=1,
-            adaptive=False,
-            size=MAIN_WINDOW_DEFAULT_SIZE,
-        )
+        dialog_parent = QApplication.activeWindow()
+        dialog = QDialog(dialog_parent)
+        dialog.setWindowTitle("Action usage stats")
+
+        layout = QVBoxLayout()
+        build_action_usage_stats_browser(rows, summary=summary)(dialog, layout)
+        dialog.setLayout(layout)
+        layout.setStretch(1, 1)
+
+        # Same sizing as food/finance/habits main windows (maximize or ~1920 wide).
+        apply_app_window_size_and_position(dialog)
+        dialog.exec()
 
     def show_git_commit_offer(
         self,

@@ -14,6 +14,7 @@ lang: en
 - [🏛️ Class `AppWindowMixin`](#%EF%B8%8F-class-appwindowmixin)
   - [⚙️ Method `on_about`](#%EF%B8%8F-method-on_about)
   - [⚙️ Method `on_exit`](#%EF%B8%8F-method-on_exit)
+- [🔧 Function `apply_app_window_size_and_position`](#-function-apply_app_window_size_and_position)
 
 </details>
 
@@ -213,31 +214,7 @@ class AppWindowMixin:
         `showMaximized` and a fixed layout. Defaults to `1920`.
 
         """
-        screen = QApplication.primaryScreen()
-        if screen is None:
-            return
-        screen_geometry = screen.geometry()
-        screen_width = screen_geometry.width()
-        screen_height = screen_geometry.height()
-
-        aspect_ratio = screen_width / screen_height
-        standard_aspect_ratio = 2.0
-        is_standard_aspect = aspect_ratio <= standard_aspect_ratio
-
-        if is_standard_aspect and screen_width >= standard_width:
-            self.showMaximized()  # type: ignore[attr-defined]
-        else:
-            title_bar_height = 30
-            windows_task_bar_height = 48
-            window_width = standard_width
-            window_height = screen_height - title_bar_height - windows_task_bar_height
-            screen_center = screen_geometry.center()
-            self.setGeometry(  # type: ignore[attr-defined]
-                screen_center.x() - window_width // 2,
-                title_bar_height,
-                window_width,
-                window_height,
-            )
+        apply_app_window_size_and_position(cast("QWidget", self), standard_width=standard_width)
 
     def _validate_database_connection(self) -> bool:
         """Validate that database connection is available and open.
@@ -320,6 +297,50 @@ Close the application window.
 ```python
 def on_exit(self) -> None:
         self.close()  # type: ignore[attr-defined]
+```
+
+</details>
+
+## 🔧 Function `apply_app_window_size_and_position`
+
+```python
+def apply_app_window_size_and_position(widget: QWidget) -> None
+```
+
+Set widget size and position like food/finance/habits main Windows.
+
+On a standard-aspect screen at least `standard_width` wide, maximize.
+Otherwise center a window of width `standard_width` and height equal to
+the screen height minus title bar and task bar.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def apply_app_window_size_and_position(widget: QWidget, *, standard_width: int = 1920) -> None:
+    screen = QApplication.primaryScreen()
+    if screen is None:
+        return
+    screen_geometry = screen.geometry()
+    screen_width = screen_geometry.width()
+    screen_height = screen_geometry.height()
+
+    aspect_ratio = screen_width / screen_height
+    is_standard_aspect = aspect_ratio <= _STANDARD_ASPECT_RATIO
+
+    if is_standard_aspect and screen_width >= standard_width:
+        widget.showMaximized()
+        return
+
+    window_width = standard_width
+    window_height = screen_height - _TITLE_BAR_HEIGHT - _WINDOWS_TASK_BAR_HEIGHT
+    screen_center = screen_geometry.center()
+    widget.setGeometry(
+        screen_center.x() - window_width // 2,
+        _TITLE_BAR_HEIGHT,
+        window_width,
+        window_height,
+    )
 ```
 
 </details>
