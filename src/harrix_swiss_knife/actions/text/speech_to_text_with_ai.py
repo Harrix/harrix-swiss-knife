@@ -59,32 +59,29 @@ class OnSpeechToTextWithAI(ActionBase):
                 return
 
             current = fixed_text
-            while True:
-                self.text_to_clipboard(current)
-                dialog_result = self.show_text_multiline(
-                    current,
-                    title="Speech to text result",
-                    rerun_button=True,
-                    rerun_button_label="Record new",
-                    rerun_button_emoji="🎙️",
-                    rewrite_button=True,
-                    remove_paragraphs_button=True,
-                )
-                if not isinstance(dialog_result, tuple):
-                    return
-                _, action_code = dialog_result
-
-                updated_text = resolve_text_result_dialog_action(
-                    action_code,
-                    current,
-                    on_rerun=self,
-                    on_rewrite=lambda current=current: OnRewriteTextWithAI(output_bus=self._output_bus)(
-                        initial_text=current
-                    ),
-                )
-                if updated_text is None:
-                    return
-                current = updated_text
+            self.text_to_clipboard(current)
+            dialog_result = self.show_text_multiline(
+                current,
+                title="Speech to text result",
+                rerun_button=True,
+                rerun_button_label="Record new",
+                rerun_button_emoji="🎙️",
+                rewrite_button=True,
+                remove_paragraphs_button=True,
+            )
+            if not isinstance(dialog_result, tuple):
+                return
+            result_text, action_code = dialog_result
+            if result_text is not None:
+                current = result_text
+            resolve_text_result_dialog_action(
+                action_code,
+                current,
+                on_rerun=self,
+                on_rewrite=lambda current=current: OnRewriteTextWithAI(output_bus=self._output_bus)(
+                    initial_text=current
+                ),
+            )
 
         def on_fix_error(message: str) -> None:
             message_box.critical(None, "BotHub Error", message)

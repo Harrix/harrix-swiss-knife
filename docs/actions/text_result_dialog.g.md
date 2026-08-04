@@ -89,7 +89,7 @@ def add_open_folder_button(button_layout: QHBoxLayout, click_handler: Callable[[
 def append_result_action_buttons(dialog: QDialog, button_layout: QHBoxLayout) -> None
 ```
 
-Add optional rerun/rewrite/remove-paragraphs buttons that close the dialog with custom codes.
+Add optional rerun/rewrite buttons and in-place remove-paragraphs action.
 
 <details>
 <summary>Code:</summary>
@@ -104,6 +104,7 @@ def append_result_action_buttons(
     rerun_button_emoji: str = RERUN_BUTTON_EMOJI,
     rewrite_button: bool = False,
     remove_paragraphs_button: bool = False,
+    on_remove_paragraphs: Callable[[], None] | None = None,
 ) -> None:
     if rerun_button:
         rerun_btn = make_emoji_push_button(rerun_button_label, rerun_button_emoji)
@@ -115,12 +116,12 @@ def append_result_action_buttons(
         rewrite_btn.clicked.connect(lambda: dialog.done(REWRITE_DIALOG_CODE))
         button_layout.addWidget(rewrite_btn)
 
-    if remove_paragraphs_button:
+    if remove_paragraphs_button and on_remove_paragraphs is not None:
         remove_paragraphs_btn = make_emoji_push_button(
             REMOVE_PARAGRAPHS_BUTTON_LABEL,
             REMOVE_PARAGRAPHS_BUTTON_EMOJI,
         )
-        remove_paragraphs_btn.clicked.connect(lambda: dialog.done(REMOVE_PARAGRAPHS_DIALOG_CODE))
+        remove_paragraphs_btn.clicked.connect(on_remove_paragraphs)
         button_layout.addWidget(remove_paragraphs_btn)
 ```
 
@@ -147,10 +148,10 @@ def collapse_text_to_single_line(text: str) -> str:
 ## 🔧 Function `resolve_text_result_dialog_action`
 
 ```python
-def resolve_text_result_dialog_action(action_code: int, current_text: str) -> str | None
+def resolve_text_result_dialog_action(action_code: int, _current_text: str) -> str | None
 ```
 
-Handle custom dialog codes. Return updated text to continue the loop, or `None` to stop.
+Handle custom dialog codes. Always returns `None` after optional callbacks.
 
 <details>
 <summary>Code:</summary>
@@ -158,7 +159,7 @@ Handle custom dialog codes. Return updated text to continue the loop, or `None` 
 ```python
 def resolve_text_result_dialog_action(
     action_code: int,
-    current_text: str,
+    _current_text: str,
     *,
     on_rerun: Callable[[], None] | None = None,
     on_rewrite: Callable[[], None] | None = None,
@@ -171,8 +172,6 @@ def resolve_text_result_dialog_action(
         if on_rewrite is not None:
             on_rewrite()
         return None
-    if action_code == REMOVE_PARAGRAPHS_DIALOG_CODE:
-        return collapse_text_to_single_line(current_text)
     return None
 ```
 

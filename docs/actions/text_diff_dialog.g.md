@@ -28,6 +28,7 @@ def build_text_diff_side_by_side(
     rerun_button_label: str = RERUN_BUTTON_LABEL,
     rerun_button_emoji: str = RERUN_BUTTON_EMOJI,
     remove_paragraphs_button: bool = False,
+    result_text_holder: list[str] | None = None,
 ) -> Callable[[QDialog, QVBoxLayout], None]:
 
     def _make_selection(
@@ -254,6 +255,15 @@ def build_text_diff_side_by_side(
 
         add_copy_button(button_layout, click_copy_button)
 
+        def on_remove_paragraphs() -> None:
+            collapsed = collapse_text_to_single_line(after_edit.toPlainText())
+            after_edit.setPlainText(collapsed)
+            after_edit.setExtraSelections([])
+            QGuiApplication.clipboard().setText(collapsed)
+            if result_text_holder is not None:
+                result_text_holder[0] = collapsed
+            show_toast("Converted to single line")
+
         append_result_action_buttons(
             dialog,
             button_layout,
@@ -261,6 +271,7 @@ def build_text_diff_side_by_side(
             rerun_button_label=rerun_button_label,
             rerun_button_emoji=rerun_button_emoji,
             remove_paragraphs_button=remove_paragraphs_button,
+            on_remove_paragraphs=on_remove_paragraphs if remove_paragraphs_button else None,
         )
 
         add_ok_button(dialog, button_layout)

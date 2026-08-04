@@ -1254,6 +1254,7 @@ class ActionDialogService:
         remove_paragraphs_button: bool = False,
     ) -> tuple[str | None, int]:
         """Show read-only before/after diff with inline change highlighting."""
+        result_text_holder = [after_text]
         result, _dialog = self._exec_standard_dialog(
             title,
             build_text_diff_side_by_side(
@@ -1265,12 +1266,14 @@ class ActionDialogService:
                 rerun_button_label=rerun_button_label,
                 rerun_button_emoji=rerun_button_emoji,
                 remove_paragraphs_button=remove_paragraphs_button,
+                result_text_holder=result_text_holder,
             ),
             stretch_row=0,
         )
-        if result in (RERUN_DIALOG_CODE, REMOVE_PARAGRAPHS_DIALOG_CODE):
-            return after_text, result
-        return (after_text if result == QDialog.DialogCode.Accepted else None, result)
+        final_text = result_text_holder[0]
+        if result == RERUN_DIALOG_CODE:
+            return final_text, result
+        return (final_text if result == QDialog.DialogCode.Accepted else None, result)
 
     def show_text_multiline(
         self,
@@ -1287,10 +1290,12 @@ class ActionDialogService:
         """Show read-only multi-line text dialog and return text if accepted."""
         has_action_buttons = rerun_button or rewrite_button or remove_paragraphs_button
         folder_to_open = Path(open_folder_path) if open_folder_path is not None else None
+        current_text = text
 
         def _build(dialog: QDialog, layout: QVBoxLayout) -> None:
+            nonlocal current_text
             text_edit = QPlainTextEdit()
-            text_edit.setPlainText(text)
+            text_edit.setPlainText(current_text)
             text_edit.setReadOnly(True)
             text_edit.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
             text_edit.setMinimumHeight(self._default_size.height() - 120)
@@ -1325,6 +1330,13 @@ class ActionDialogService:
 
                 add_open_folder_button(button_layout, click_open_folder)
 
+            def on_remove_paragraphs() -> None:
+                nonlocal current_text
+                current_text = collapse_text_to_single_line(text_edit.toPlainText())
+                text_edit.setPlainText(current_text)
+                QGuiApplication.clipboard().setText(current_text)
+                self._show_toast("Converted to single line")
+
             append_result_action_buttons(
                 dialog,
                 button_layout,
@@ -1333,6 +1345,7 @@ class ActionDialogService:
                 rerun_button_emoji=rerun_button_emoji,
                 rewrite_button=rewrite_button,
                 remove_paragraphs_button=remove_paragraphs_button,
+                on_remove_paragraphs=on_remove_paragraphs if remove_paragraphs_button else None,
             )
 
             add_ok_button(dialog, button_layout)
@@ -1341,10 +1354,10 @@ class ActionDialogService:
 
         result, _dialog = self._exec_standard_dialog(title, _build, stretch_row=0, adaptive=False)
         if has_action_buttons:
-            if result in (RERUN_DIALOG_CODE, REWRITE_DIALOG_CODE, REMOVE_PARAGRAPHS_DIALOG_CODE):
-                return text, result
-            return (text if result == QDialog.DialogCode.Accepted else None, result)
-        return text if result == QDialog.DialogCode.Accepted else None
+            if result in (RERUN_DIALOG_CODE, REWRITE_DIALOG_CODE):
+                return current_text, result
+            return (current_text if result == QDialog.DialogCode.Accepted else None, result)
+        return current_text if result == QDialog.DialogCode.Accepted else None
 
     def _apply_emoji_dialog_buttons(self, buttons: QDialogButtonBox) -> None:
         """Set emoji icons on standard QDialogButtonBox buttons."""
@@ -3118,6 +3131,7 @@ def show_text_diff_side_by_side(
         rerun_button_emoji: str = RERUN_BUTTON_EMOJI,
         remove_paragraphs_button: bool = False,
     ) -> tuple[str | None, int]:
+        result_text_holder = [after_text]
         result, _dialog = self._exec_standard_dialog(
             title,
             build_text_diff_side_by_side(
@@ -3129,12 +3143,14 @@ def show_text_diff_side_by_side(
                 rerun_button_label=rerun_button_label,
                 rerun_button_emoji=rerun_button_emoji,
                 remove_paragraphs_button=remove_paragraphs_button,
+                result_text_holder=result_text_holder,
             ),
             stretch_row=0,
         )
-        if result in (RERUN_DIALOG_CODE, REMOVE_PARAGRAPHS_DIALOG_CODE):
-            return after_text, result
-        return (after_text if result == QDialog.DialogCode.Accepted else None, result)
+        final_text = result_text_holder[0]
+        if result == RERUN_DIALOG_CODE:
+            return final_text, result
+        return (final_text if result == QDialog.DialogCode.Accepted else None, result)
 ```
 
 </details>
@@ -3165,10 +3181,12 @@ def show_text_multiline(
     ) -> str | tuple[str | None, int] | None:
         has_action_buttons = rerun_button or rewrite_button or remove_paragraphs_button
         folder_to_open = Path(open_folder_path) if open_folder_path is not None else None
+        current_text = text
 
         def _build(dialog: QDialog, layout: QVBoxLayout) -> None:
+            nonlocal current_text
             text_edit = QPlainTextEdit()
-            text_edit.setPlainText(text)
+            text_edit.setPlainText(current_text)
             text_edit.setReadOnly(True)
             text_edit.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
             text_edit.setMinimumHeight(self._default_size.height() - 120)
@@ -3203,6 +3221,13 @@ def show_text_multiline(
 
                 add_open_folder_button(button_layout, click_open_folder)
 
+            def on_remove_paragraphs() -> None:
+                nonlocal current_text
+                current_text = collapse_text_to_single_line(text_edit.toPlainText())
+                text_edit.setPlainText(current_text)
+                QGuiApplication.clipboard().setText(current_text)
+                self._show_toast("Converted to single line")
+
             append_result_action_buttons(
                 dialog,
                 button_layout,
@@ -3211,6 +3236,7 @@ def show_text_multiline(
                 rerun_button_emoji=rerun_button_emoji,
                 rewrite_button=rewrite_button,
                 remove_paragraphs_button=remove_paragraphs_button,
+                on_remove_paragraphs=on_remove_paragraphs if remove_paragraphs_button else None,
             )
 
             add_ok_button(dialog, button_layout)
@@ -3219,10 +3245,10 @@ def show_text_multiline(
 
         result, _dialog = self._exec_standard_dialog(title, _build, stretch_row=0, adaptive=False)
         if has_action_buttons:
-            if result in (RERUN_DIALOG_CODE, REWRITE_DIALOG_CODE, REMOVE_PARAGRAPHS_DIALOG_CODE):
-                return text, result
-            return (text if result == QDialog.DialogCode.Accepted else None, result)
-        return text if result == QDialog.DialogCode.Accepted else None
+            if result in (RERUN_DIALOG_CODE, REWRITE_DIALOG_CODE):
+                return current_text, result
+            return (current_text if result == QDialog.DialogCode.Accepted else None, result)
+        return current_text if result == QDialog.DialogCode.Accepted else None
 ```
 
 </details>

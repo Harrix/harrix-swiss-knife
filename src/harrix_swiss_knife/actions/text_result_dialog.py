@@ -14,7 +14,6 @@ if TYPE_CHECKING:
 
 RERUN_DIALOG_CODE = 2
 REWRITE_DIALOG_CODE = 3
-REMOVE_PARAGRAPHS_DIALOG_CODE = 4
 
 RERUN_BUTTON_LABEL = "Run again"
 RERUN_BUTTON_EMOJI = "🔄"
@@ -68,8 +67,9 @@ def append_result_action_buttons(
     rerun_button_emoji: str = RERUN_BUTTON_EMOJI,
     rewrite_button: bool = False,
     remove_paragraphs_button: bool = False,
+    on_remove_paragraphs: Callable[[], None] | None = None,
 ) -> None:
-    """Add optional rerun/rewrite/remove-paragraphs buttons that close the dialog with custom codes."""
+    """Add optional rerun/rewrite buttons and in-place remove-paragraphs action."""
     if rerun_button:
         rerun_btn = make_emoji_push_button(rerun_button_label, rerun_button_emoji)
         rerun_btn.clicked.connect(lambda: dialog.done(RERUN_DIALOG_CODE))
@@ -80,12 +80,12 @@ def append_result_action_buttons(
         rewrite_btn.clicked.connect(lambda: dialog.done(REWRITE_DIALOG_CODE))
         button_layout.addWidget(rewrite_btn)
 
-    if remove_paragraphs_button:
+    if remove_paragraphs_button and on_remove_paragraphs is not None:
         remove_paragraphs_btn = make_emoji_push_button(
             REMOVE_PARAGRAPHS_BUTTON_LABEL,
             REMOVE_PARAGRAPHS_BUTTON_EMOJI,
         )
-        remove_paragraphs_btn.clicked.connect(lambda: dialog.done(REMOVE_PARAGRAPHS_DIALOG_CODE))
+        remove_paragraphs_btn.clicked.connect(on_remove_paragraphs)
         button_layout.addWidget(remove_paragraphs_btn)
 
 
@@ -96,12 +96,12 @@ def collapse_text_to_single_line(text: str) -> str:
 
 def resolve_text_result_dialog_action(
     action_code: int,
-    current_text: str,
+    _current_text: str,
     *,
     on_rerun: Callable[[], None] | None = None,
     on_rewrite: Callable[[], None] | None = None,
 ) -> str | None:
-    """Handle custom dialog codes. Return updated text to continue the loop, or `None` to stop."""
+    """Handle custom dialog codes. Always returns `None` after optional callbacks."""
     if action_code == RERUN_DIALOG_CODE:
         if on_rerun is not None:
             on_rerun()
@@ -110,6 +110,4 @@ def resolve_text_result_dialog_action(
         if on_rewrite is not None:
             on_rewrite()
         return None
-    if action_code == REMOVE_PARAGRAPHS_DIALOG_CODE:
-        return collapse_text_to_single_line(current_text)
     return None

@@ -111,42 +111,38 @@ class OnFixTextWithAI(ActionBase):
         noninteractive: bool,
     ) -> None:
         current = response_text
-        use_diff = diff_before is not None
+        self.text_to_clipboard(current)
 
-        while True:
-            self.text_to_clipboard(current)
-            if use_diff and diff_before is not None:
-                _, action_code = self.dialogs.show_text_diff_side_by_side(
-                    diff_before,
-                    current,
-                    title=title,
-                    rerun_button=True,
-                    rerun_button_label=FIX_AGAIN_BUTTON_LABEL,
-                    rerun_button_emoji=FIX_AGAIN_BUTTON_EMOJI,
-                    remove_paragraphs_button=True,
-                )
-                use_diff = False
-            else:
-                dialog_result = self.show_text_multiline(
-                    current,
-                    title=title,
-                    rerun_button=True,
-                    rerun_button_label=FIX_AGAIN_BUTTON_LABEL,
-                    rerun_button_emoji=FIX_AGAIN_BUTTON_EMOJI,
-                    remove_paragraphs_button=True,
-                )
-                if not isinstance(dialog_result, tuple):
-                    return
-                _, action_code = dialog_result
-
-            updated_text = resolve_text_result_dialog_action(
-                action_code,
+        if diff_before is not None:
+            result_text, action_code = self.dialogs.show_text_diff_side_by_side(
+                diff_before,
                 current,
-                on_rerun=lambda current=current: self._run(
-                    initial_text=current,
-                    noninteractive=noninteractive,
-                ),
+                title=title,
+                rerun_button=True,
+                rerun_button_label=FIX_AGAIN_BUTTON_LABEL,
+                rerun_button_emoji=FIX_AGAIN_BUTTON_EMOJI,
+                remove_paragraphs_button=True,
             )
-            if updated_text is None:
+        else:
+            dialog_result = self.show_text_multiline(
+                current,
+                title=title,
+                rerun_button=True,
+                rerun_button_label=FIX_AGAIN_BUTTON_LABEL,
+                rerun_button_emoji=FIX_AGAIN_BUTTON_EMOJI,
+                remove_paragraphs_button=True,
+            )
+            if not isinstance(dialog_result, tuple):
                 return
-            current = updated_text
+            result_text, action_code = dialog_result
+
+        if result_text is not None:
+            current = result_text
+        resolve_text_result_dialog_action(
+            action_code,
+            current,
+            on_rerun=lambda current=current: self._run(
+                initial_text=current,
+                noninteractive=noninteractive,
+            ),
+        )
