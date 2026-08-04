@@ -93,7 +93,11 @@ from harrix_swiss_knife.actions.python.publish_python_library import OnPublishPy
 from harrix_swiss_knife.actions.python.sort_ruff_fmt_docs_python_code import OnSortRuffFmtDocsPythonCode
 from harrix_swiss_knife.actions.python.sort_ruff_fmt_python_code import OnSortRuffFmtPythonCode
 from harrix_swiss_knife.actions.quick_launcher.action import OnQuickLauncher
-from harrix_swiss_knife.actions.site import OnAddSiteContentSubmodule, OnFixSiteArticleLinkTitles
+from harrix_swiss_knife.actions.site import (
+    OnAddSiteContentSubmodule,
+    OnFixSiteArticleLinkTitles,
+    OnPullSiteSubmodules,
+)
 from harrix_swiss_knife.actions.text.fix_text_with_ai import OnFixTextWithAI
 from harrix_swiss_knife.actions.text.fix_text_with_ai_from_clipboard import OnFixTextWithAIFromClipboard
 from harrix_swiss_knife.actions.text.rewrite_text_with_ai import OnRewriteTextWithAI
@@ -227,6 +231,7 @@ def get_menu_structure() -> list[Any]:
             [
                 OnAddSiteContentSubmodule,
                 OnFixSiteArticleLinkTitles,
+                OnPullSiteSubmodules,
             ],
         ),
         (

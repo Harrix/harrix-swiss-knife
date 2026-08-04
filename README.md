@@ -129,6 +129,7 @@ _Figure 1: Screenshot_
 - **Site**
   - 📦 Add site content submodule… ꟲᴸᴵ
   - 🔗 Fix site article link titles in … ꟲᴸᴵ
+  - ⬇️ Pull site submodules ꟲᴸᴵ
 - **Text**
   - 🤖 Fix text with AI from clipboard
   - 🤖 Fix text with AI… ꟲᴸᴵ

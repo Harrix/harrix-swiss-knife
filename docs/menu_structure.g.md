@@ -138,6 +138,7 @@ def get_menu_structure() -> list[Any]:
             [
                 OnAddSiteContentSubmodule,
                 OnFixSiteArticleLinkTitles,
+                OnPullSiteSubmodules,
             ],
         ),
         (

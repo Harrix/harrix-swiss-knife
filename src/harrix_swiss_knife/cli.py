@@ -28,7 +28,11 @@ from harrix_swiss_knife.actions.python import (
     OnSortRuffFmtDocsPythonCode,
     OnSortRuffFmtPythonCode,
 )
-from harrix_swiss_knife.actions.site import OnAddSiteContentSubmodule, OnFixSiteArticleLinkTitles
+from harrix_swiss_knife.actions.site import (
+    OnAddSiteContentSubmodule,
+    OnFixSiteArticleLinkTitles,
+    OnPullSiteSubmodules,
+)
 from harrix_swiss_knife.actions.text import OnFixTextWithAI
 from harrix_swiss_knife.actions.vscode import (
     OnInstallHarrixNotesExplorerExtension,
@@ -613,6 +617,20 @@ def site_add_submodule(folder: Path) -> None:
 def site_fix_article_links(folder: Path) -> None:
     """Fix titles in site article dual links in FOLDER."""
     action = OnFixSiteArticleLinkTitles()
+    action(folder_path=folder, noninteractive=True)
+    _finish_timed_action(action)
+
+
+@site_group.command("pull-submodules")
+@click.argument(
+    "folder",
+    required=False,
+    default=None,
+    type=click.Path(exists=True, file_okay=False, path_type=Path),
+)
+def site_pull_submodules(folder: Path | None) -> None:
+    """Pull `origin main` in each submodule (`path_site_repo` or FOLDER)."""
+    action = OnPullSiteSubmodules()
     action(folder_path=folder, noninteractive=True)
     _finish_timed_action(action)
 

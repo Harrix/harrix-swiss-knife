@@ -45,6 +45,7 @@ lang: en
 - [🔧 Function `site_group`](#-function-site_group)
 - [🔧 Function `site_add_submodule`](#-function-site_add_submodule)
 - [🔧 Function `site_fix_article_links`](#-function-site_fix_article_links)
+- [🔧 Function `site_pull_submodules`](#-function-site_pull_submodules)
 - [🔧 Function `text_group`](#-function-text_group)
 - [🔧 Function `text_fix_text_with_ai`](#-function-text_fix_text_with_ai)
 - [🔧 Function `vscode_group`](#-function-vscode_group)
@@ -784,6 +785,26 @@ Fix titles in site article dual links in FOLDER.
 ```python
 def site_fix_article_links(folder: Path) -> None:
     action = OnFixSiteArticleLinkTitles()
+    action(folder_path=folder, noninteractive=True)
+    _finish_timed_action(action)
+```
+
+</details>
+
+## 🔧 Function `site_pull_submodules`
+
+```python
+def site_pull_submodules(folder: Path | None) -> None
+```
+
+Pull `origin main` in each submodule (`path_site_repo` or FOLDER).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def site_pull_submodules(folder: Path | None) -> None:
+    action = OnPullSiteSubmodules()
     action(folder_path=folder, noninteractive=True)
     _finish_timed_action(action)
 ```
