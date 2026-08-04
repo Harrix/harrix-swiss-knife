@@ -80,6 +80,7 @@ from harrix_swiss_knife.integrations.bothub import (
     run_bothub_request,
     show_bothub_prompt_build_error,
 )
+from harrix_swiss_knife.keyboard_layout_search import text_matches_autocomplete
 from harrix_swiss_knife.paths import get_config_path_str
 from harrix_swiss_knife.qt_emoji_icon import CANCEL_BUTTON_EMOJI, OK_BUTTON_EMOJI, make_emoji_push_button
 from harrix_swiss_knife.win11_backdrop import SystemBackdrop, try_apply_system_backdrop
@@ -1987,26 +1988,25 @@ class MainWindow(
             self._show_all_food_items()
             return
 
-        # Convert to lowercase for case-insensitive search
-        filter_text = text.lower()
-
         # Filter favorite food items
         if self.favorite_food_items_list_model:
             for i in range(self.favorite_food_items_list_model.rowCount()):
                 item = self.favorite_food_items_list_model.item(i)
                 if item:
-                    item_text = item.text().lower()
-                    # Hide/show row based on filter match
-                    self.listView_favorite_food_items.setRowHidden(i, filter_text not in item_text)
+                    self.listView_favorite_food_items.setRowHidden(
+                        i,
+                        not text_matches_autocomplete(item.text(), text),
+                    )
 
         # Filter main food items
         if self.food_items_list_model:
             for i in range(self.food_items_list_model.rowCount()):
                 item = self.food_items_list_model.item(i)
                 if item:
-                    item_text = item.text().lower()
-                    # Hide/show row based on filter match
-                    self.listView_food_items.setRowHidden(i, filter_text not in item_text)
+                    self.listView_food_items.setRowHidden(
+                        i,
+                        not text_matches_autocomplete(item.text(), text),
+                    )
 
     def _finish_window_initialization(self) -> None:
         """Finish window initialization by showing the window and adjusting columns."""

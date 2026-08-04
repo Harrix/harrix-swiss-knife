@@ -1957,26 +1957,25 @@ class MainWindow(
             self._show_all_food_items()
             return
 
-        # Convert to lowercase for case-insensitive search
-        filter_text = text.lower()
-
         # Filter favorite food items
         if self.favorite_food_items_list_model:
             for i in range(self.favorite_food_items_list_model.rowCount()):
                 item = self.favorite_food_items_list_model.item(i)
                 if item:
-                    item_text = item.text().lower()
-                    # Hide/show row based on filter match
-                    self.listView_favorite_food_items.setRowHidden(i, filter_text not in item_text)
+                    self.listView_favorite_food_items.setRowHidden(
+                        i,
+                        not text_matches_autocomplete(item.text(), text),
+                    )
 
         # Filter main food items
         if self.food_items_list_model:
             for i in range(self.food_items_list_model.rowCount()):
                 item = self.food_items_list_model.item(i)
                 if item:
-                    item_text = item.text().lower()
-                    # Hide/show row based on filter match
-                    self.listView_food_items.setRowHidden(i, filter_text not in item_text)
+                    self.listView_food_items.setRowHidden(
+                        i,
+                        not text_matches_autocomplete(item.text(), text),
+                    )
 
     def _finish_window_initialization(self) -> None:
         """Finish window initialization by showing the window and adjusting columns."""

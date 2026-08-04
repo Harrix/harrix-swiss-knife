@@ -300,13 +300,7 @@ class FoodNameAutocompleteProxyModel(QSortFilterProxyModel):
         if data is None:
             return False
 
-        text = str(data).lower()
-        filter_lower = self.filter_text.lower()
-
-        if text.startswith(filter_lower):
-            return True
-
-        return filter_lower in text
+        return text_matches_autocomplete(str(data), self.filter_text)
 
     def lessThan(  # noqa: N802
         self,
@@ -325,15 +319,14 @@ class FoodNameAutocompleteProxyModel(QSortFilterProxyModel):
                 return left_lower < right_lower
             return source_left.row() < source_right.row()
 
-        filter_lower = self.filter_text.lower()
         left_data = self.sourceModel().data(source_left, Qt.ItemDataRole.DisplayRole)
         right_data = self.sourceModel().data(source_right, Qt.ItemDataRole.DisplayRole)
 
         if left_data is None or right_data is None:
             return False
 
-        left_tier = _match_tier(str(left_data), filter_lower)
-        right_tier = _match_tier(str(right_data), filter_lower)
+        left_tier = _match_tier(str(left_data), self.filter_text)
+        right_tier = _match_tier(str(right_data), self.filter_text)
 
         if left_tier != right_tier:
             return left_tier < right_tier
@@ -398,13 +391,7 @@ def filterAcceptsRow(self, source_row: int, source_parent: QModelIndex | QPersis
         if data is None:
             return False
 
-        text = str(data).lower()
-        filter_lower = self.filter_text.lower()
-
-        if text.startswith(filter_lower):
-            return True
-
-        return filter_lower in text
+        return text_matches_autocomplete(str(data), self.filter_text)
 ```
 
 </details>
@@ -437,15 +424,14 @@ def lessThan(  # noqa: N802
                 return left_lower < right_lower
             return source_left.row() < source_right.row()
 
-        filter_lower = self.filter_text.lower()
         left_data = self.sourceModel().data(source_left, Qt.ItemDataRole.DisplayRole)
         right_data = self.sourceModel().data(source_right, Qt.ItemDataRole.DisplayRole)
 
         if left_data is None or right_data is None:
             return False
 
-        left_tier = _match_tier(str(left_data), filter_lower)
-        right_tier = _match_tier(str(right_data), filter_lower)
+        left_tier = _match_tier(str(left_data), self.filter_text)
+        right_tier = _match_tier(str(right_data), self.filter_text)
 
         if left_tier != right_tier:
             return left_tier < right_tier

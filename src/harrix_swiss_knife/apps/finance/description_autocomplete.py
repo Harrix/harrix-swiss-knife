@@ -3,6 +3,8 @@
 from PySide6.QtCore import QModelIndex, QPersistentModelIndex, QSortFilterProxyModel, Qt
 from PySide6.QtWidgets import QWidget
 
+from harrix_swiss_knife.keyboard_layout_search import autocomplete_match_tier, text_matches_autocomplete
+
 
 class DescriptionAutocompleteProxyModel(QSortFilterProxyModel):
     """Proxy model for description autocomplete with exact/starts-with/contains ordering."""
@@ -26,13 +28,7 @@ class DescriptionAutocompleteProxyModel(QSortFilterProxyModel):
         if data is None:
             return False
 
-        text = str(data).lower()
-        filter_lower = self.filter_text.lower()
-
-        if text.startswith(filter_lower):
-            return True
-
-        return filter_lower in text
+        return text_matches_autocomplete(str(data), self.filter_text)
 
     def lessThan(  # noqa: N802
         self,
@@ -43,15 +39,14 @@ class DescriptionAutocompleteProxyModel(QSortFilterProxyModel):
         if not self.filter_text:
             return source_left.row() < source_right.row()
 
-        filter_lower = self.filter_text.lower()
         left_data = self.sourceModel().data(source_left, Qt.ItemDataRole.DisplayRole)
         right_data = self.sourceModel().data(source_right, Qt.ItemDataRole.DisplayRole)
 
         if left_data is None or right_data is None:
             return False
 
-        left_tier = _match_tier(str(left_data), filter_lower)
-        right_tier = _match_tier(str(right_data), filter_lower)
+        left_tier = _match_tier(str(left_data), self.filter_text)
+        right_tier = _match_tier(str(right_data), self.filter_text)
 
         if left_tier != right_tier:
             return left_tier < right_tier
@@ -71,11 +66,6 @@ def dedupe_descriptions_for_autocomplete(descriptions: list[str]) -> list[str]:
 
 
 def _match_tier(text: str, filter_text: str) -> int:
-    """Return sort tier: 0 exact, 1 starts-with, 2 contains."""
-    filter_lower = filter_text.lower()
-    text_lower = text.lower()
-    if text_lower == filter_lower:
-        return 0
-    if text_lower.startswith(filter_lower):
-        return 1
-    return 2
+    """Return sort tier: 0 exact, 1 starts-with, 2 contains (EN/RU layout tolerant)."""
+    tier = autocomplete_match_tier(text, filter_text)
+    return 2 if tier is None else tier
