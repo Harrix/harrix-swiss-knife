@@ -27,7 +27,7 @@ lang: en
 class SimpleRecordingDialog(QDialog)
 ```
 
-Modal dialog that starts recording on open; waveform, mic picker, and Stop.
+Modal dialog that starts recording on open; waveform, mic picker, Stop, and Cancel.
 
 <details>
 <summary>Code:</summary>
@@ -227,6 +227,13 @@ class SimpleRecordingDialog(QDialog):
         controls.addLayout(column)
         controls.addStretch()
         layout.addLayout(controls)
+
+        button_layout = QHBoxLayout()
+        button_layout.addStretch()
+        cancel_button = make_emoji_push_button("Cancel", "❌")
+        cancel_button.clicked.connect(self.reject)
+        button_layout.addWidget(cancel_button)
+        layout.addLayout(button_layout)
 
     def _start_recording_with_current_device(self) -> None:
         if self._accept_pending:

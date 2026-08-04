@@ -1,4 +1,4 @@
-"""Minimal dialog: auto-start microphone recording with waveform, mic picker, and Stop."""
+"""Minimal dialog: auto-start microphone recording with waveform, mic picker, Stop, and Cancel."""
 
 from __future__ import annotations
 
@@ -18,13 +18,14 @@ from harrix_swiss_knife.apps.common.audio_recording import (
     audio_device_id,
     load_saved_microphone_id,
 )
+from harrix_swiss_knife.qt_emoji_icon import make_emoji_push_button
 
 if TYPE_CHECKING:
     from PySide6.QtGui import QShowEvent
 
 
 class SimpleRecordingDialog(QDialog):
-    """Modal dialog that starts recording on open; waveform, mic picker, and Stop."""
+    """Modal dialog that starts recording on open; waveform, mic picker, Stop, and Cancel."""
 
     def __init__(self, parent: QWidget | None = None) -> None:
         """Initialize the simple recording dialog."""
@@ -218,6 +219,13 @@ class SimpleRecordingDialog(QDialog):
         controls.addLayout(column)
         controls.addStretch()
         layout.addLayout(controls)
+
+        button_layout = QHBoxLayout()
+        button_layout.addStretch()
+        cancel_button = make_emoji_push_button("Cancel", "❌")
+        cancel_button.clicked.connect(self.reject)
+        button_layout.addWidget(cancel_button)
+        layout.addLayout(button_layout)
 
     def _start_recording_with_current_device(self) -> None:
         if self._accept_pending:
