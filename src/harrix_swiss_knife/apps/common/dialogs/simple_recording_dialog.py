@@ -200,9 +200,11 @@ class SimpleRecordingDialog(QDialog):
 
         controls = QHBoxLayout()
         controls.setContentsMargins(0, 16, 0, 8)
+        controls.setAlignment(Qt.AlignmentFlag.AlignBottom)
         controls.addStretch()
 
         column = QVBoxLayout()
+        column.setSpacing(12)
         column.setAlignment(Qt.AlignmentFlag.AlignHCenter)
 
         self._stop_button = RecordButton()
@@ -219,14 +221,12 @@ class SimpleRecordingDialog(QDialog):
 
         controls.addLayout(column)
         controls.addStretch()
-        layout.addLayout(controls)
 
-        button_layout = QHBoxLayout()
-        button_layout.addStretch()
         cancel_button = make_emoji_push_button("Cancel", "❌")
         cancel_button.clicked.connect(self.reject)
-        button_layout.addWidget(cancel_button)
-        layout.addLayout(button_layout)
+        controls.addWidget(cancel_button, alignment=Qt.AlignmentFlag.AlignBottom)
+
+        layout.addLayout(controls)
 
     def _start_recording_with_current_device(self) -> None:
         if self._accept_pending:
