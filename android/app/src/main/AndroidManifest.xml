@@ -26,6 +26,35 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!--
+              Direct Share / Sharing Shortcuts only: requires IMAGE_EDIT category,
+              so this does not duplicate the alias entry in the regular share list.
+            -->
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="dev.harrix.hsk.share.IMAGE_EDIT" />
+                <data android:mimeType="image/*" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.SEND_MULTIPLE" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="dev.harrix.hsk.share.IMAGE_EDIT" />
+                <data android:mimeType="image/*" />
+            </intent-filter>
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/shortcuts" />
+        </activity>
+
+        <!-- Appears in Share / Open with as "Photo Editor". -->
+        <activity-alias
+            android:name=".ShareToPhotoEditor"
+            android:enabled="true"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher"
+            android:label="@string/photo_editor_title"
+            android:targetActivity=".MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -39,6 +68,7 @@
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
                 <data android:mimeType="image/*" />
             </intent-filter>
             <intent-filter>
@@ -46,7 +76,8 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="image/*" />
             </intent-filter>
-        </activity>
+        </activity-alias>
+
         <!-- Lets AppCompat apply in-app locales on API &lt; 33 after process start. -->
         <service
             android:name="androidx.appcompat.app.AppLocalesMetadataHolderService"

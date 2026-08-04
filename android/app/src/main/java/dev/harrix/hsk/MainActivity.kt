@@ -24,6 +24,7 @@ class MainActivity : AppCompatActivity() {
         preferences.loadAppLanguage().apply()
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        PhotoEditorShareShortcuts.publish(this)
         consumeIncomingIntent(intent)
         setContent {
             var themeMode by remember { mutableStateOf(preferences.loadThemeMode()) }
