@@ -313,6 +313,32 @@
                 </widget>
                </item>
                <item>
+                <widget class="QPushButton" name="pushButton_food_add_by_voice">
+                 <property name="minimumSize">
+                  <size>
+                   <width>0</width>
+                   <height>41</height>
+                  </size>
+                 </property>
+                 <property name="styleSheet">
+                  <string notr="true">QPushButton {
+                                      background-color: #e3f2fd;
+                                      border: 1px solid #2196F3;
+                                      border-radius: 4px;
+                                      }
+                                      QPushButton:hover {
+                                      background-color: #bbdefb;
+                                      }
+                                      QPushButton:pressed {
+                                      background-color: #90caf9;
+                                      }</string>
+                 </property>
+                 <property name="text">
+                  <string>Add by voice</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
                 <layout class="QHBoxLayout" name="horizontalLayout_food_commands">
                  <item>
                   <widget class="QPushButton" name="pushButton_translate_with_ai">
