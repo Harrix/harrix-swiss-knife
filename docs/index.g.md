@@ -295,11 +295,16 @@ Folder arguments are optional (default: current directory) for commands that tak
 - `hsk md beautify-md "D:/path/to/project"` — deletes generated `*.g.md` dumps first (keeps `*.include.g.md`)
 - `hsk md beautify-md "D:/path/to/project" --no-prose-fixes` — skip MdChecker typography autofixes in MdFormatter
 - `hsk md beautify-md "D:/path/to/project" --no-format-code-blocks` — skip formatting fenced code bodies (e.g. `latex`)
+- `hsk md beautify-md "D:/path/to/project" --prose-wrap always --print-width 80` — Prettier prose wrap (`always`/`never`/`preserve`)
 - `hsk md beautify-regenerate-g-md "D:/path/to/project"`
 - `hsk md beautify-regenerate-g-md "D:/path/to/project" --no-prose-fixes` — skip MdChecker typography autofixes in MdFormatter
 - `hsk md beautify-regenerate-g-md "D:/path/to/project" --no-format-code-blocks` — skip formatting fenced code bodies (e.g. `latex`)
+- `hsk md beautify-regenerate-g-md "D:/path/to/project" --prose-wrap always --print-width 80` — Prettier prose wrap (`always`/`never`/`preserve`)
 - `hsk md check "D:/path/to/project"` — all Harrix MD rules
 - `hsk md check "D:/path/to/project" --include-g-md` — all Harrix MD rules and checking `.g.md`
+- `hsk md check "D:/path/to/project" --rule H001` — check only selected rule ids (repeatable)
+- `hsk md optimize-images-folder "D:/path/to/folder"` — optimize images referenced by Markdown under the folder
+- `hsk md optimize-images-folder "D:/path/to/folder" --max-size 1920` — resize when width or height exceeds max px
 - `hsk py check "D:/path/to/project"` — ty, ruff, pytest, Harrix PY/MD for one folder
 - `hsk py check-all` — ty, ruff, pytest, Harrix PY/MD for all paths_python_projects
 - `hsk py harrix-check "D:/path/to/project"` — Harrix PY rules + docstring Markdown (incl. Private; locations in `.py`)
@@ -323,13 +328,22 @@ Folder arguments are optional (default: current directory) for commands that tak
 - `hsk md add-from-template --template "Movie"`
 - `hsk md add-from-template --template "Book"`
 - `hsk md add-from-template --template "Travel"`
+- `hsk md edit-from-template --template "Movie"` — edit existing Markdown via a markdown_templates entry
 - `hsk android format [FOLDER]` — Spotless (ktlint) format (tray uses `paths_android_projects`)
 - `hsk android check [FOLDER]` — Spotless check + Detekt + Android Lint (`qualityCheck`)
 - `hsk android build [FOLDER] [debug|release]` — build APK using `android_build_variant` in `config.json` when variant omitted (default `release`; Windows; JDK 17 + Android SDK)
 - `hsk android build debug` — build debug APK in `.`
 - `hsk android build release` — build release APK in `.` (debug-signed for sideload)
+- `hsk android build --all` — build/install all `paths_android_projects` sequentially
+- `hsk android build --all release` — same with explicit variant
 - `hsk vscode format` — Biome format for `vscode/harrix-notes-explorer-hsk/`
 - `hsk vscode check` — Biome lint + format check for the VS Code extension
+- `hsk vscode sync-notes-explorer` — sync HSK extension into public `path_harrix_notes_explorer` repo
+- `hsk site add-submodule "D:/path/to/content"` — add folder as Git submodule of `path_site_repo`
+- `hsk site fix-article-links "D:/path/to/article"` — fix titles in site article dual links
+- `hsk site pull-submodules` — pull `origin main` in each submodule of `path_site_repo`
+- `hsk site pull-submodules "D:/path/to/site-repo"` — same for an explicit site repo folder
+- `hsk dev action-usage` — show sorted action invocation statistics (unused first)
 - `hsk dev install-cli` (global `hsk` on PATH via `uv tool install -e`)
 - `hsk dev install-harrix-notes-explorer-hsk vscode` (Windows only; syncs public repo when `path_harrix_notes_explorer` is set; reload the editor window after install)
 - `hsk dev install-harrix-notes-explorer-hsk insiders`

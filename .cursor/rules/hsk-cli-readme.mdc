@@ -1,0 +1,18 @@
+---
+description: Keep README ## CLI commands in sync with cli.py
+globs: src/harrix_swiss_knife/cli.py
+alwaysApply: false
+---
+
+# hsk CLI README
+
+When adding, renaming, removing, or changing options of any `hsk` command in [`src/harrix_swiss_knife/cli.py`](src/harrix_swiss_knife/cli.py), update [`README.md`](README.md) section **`## 💻 CLI commands`** in the same change.
+
+## Checklist
+
+1. Every **visible** group and subcommand appears in that section.
+2. Descriptions match current CLI behavior (help text / implementation).
+3. For each meaningful option or flag, add a **separate bullet** with that key (same style as `--no-prose-fixes`, `--status`, `--with-public`).
+4. Do **not** document commands marked `hidden=True`.
+5. Prefer verifying with `hsk <group> --help` / `hsk <group> <cmd> --help` when `hsk` is available.
+6. Preserve the existing bullet format: `` `hsk …` — short description ``.
