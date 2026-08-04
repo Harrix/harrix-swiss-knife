@@ -53,6 +53,7 @@ class Ui_MainWindow(object):
         self.pushButton_food_add.setText(QCoreApplication.translate("MainWindow", u"Add Food", None))
         self.groupBox_food_commands.setTitle(QCoreApplication.translate("MainWindow", u"Commands", None))
         self.pushButton_food_add_with_ai.setText(QCoreApplication.translate("MainWindow", u"Add with AI", None))
+        self.pushButton_food_add_by_voice.setText(QCoreApplication.translate("MainWindow", u"Add by voice", None))
         self.pushButton_translate_with_ai.setText(QCoreApplication.translate("MainWindow", u"Translate with AI", None))
         self.pushButton_add_as_text.setText(QCoreApplication.translate("MainWindow", u"Add As Text", None))
         self.pushButton_show_all_records.setText(QCoreApplication.translate("MainWindow", u"Show All Records", None))
@@ -281,6 +282,23 @@ class Ui_MainWindow(object):
 "                                      }")
 
         self.verticalLayout_2.addWidget(self.pushButton_food_add_with_ai)
+
+        self.pushButton_food_add_by_voice = QPushButton(self.groupBox_food_commands)
+        self.pushButton_food_add_by_voice.setObjectName(u"pushButton_food_add_by_voice")
+        self.pushButton_food_add_by_voice.setMinimumSize(QSize(0, 41))
+        self.pushButton_food_add_by_voice.setStyleSheet(u"QPushButton {\n"
+"                                      background-color: #e3f2fd;\n"
+"                                      border: 1px solid #2196F3;\n"
+"                                      border-radius: 4px;\n"
+"                                      }\n"
+"                                      QPushButton:hover {\n"
+"                                      background-color: #bbdefb;\n"
+"                                      }\n"
+"                                      QPushButton:pressed {\n"
+"                                      background-color: #90caf9;\n"
+"                                      }")
+
+        self.verticalLayout_2.addWidget(self.pushButton_food_add_by_voice)
 
         self.horizontalLayout_food_commands = QHBoxLayout()
         self.horizontalLayout_food_commands.setObjectName(u"horizontalLayout_food_commands")
@@ -590,6 +608,7 @@ def retranslateUi(self, MainWindow):
         self.pushButton_food_add.setText(QCoreApplication.translate("MainWindow", u"Add Food", None))
         self.groupBox_food_commands.setTitle(QCoreApplication.translate("MainWindow", u"Commands", None))
         self.pushButton_food_add_with_ai.setText(QCoreApplication.translate("MainWindow", u"Add with AI", None))
+        self.pushButton_food_add_by_voice.setText(QCoreApplication.translate("MainWindow", u"Add by voice", None))
         self.pushButton_translate_with_ai.setText(QCoreApplication.translate("MainWindow", u"Translate with AI", None))
         self.pushButton_add_as_text.setText(QCoreApplication.translate("MainWindow", u"Add As Text", None))
         self.pushButton_show_all_records.setText(QCoreApplication.translate("MainWindow", u"Show All Records", None))
@@ -834,6 +853,23 @@ def setupUi(self, MainWindow):
 "                                      }")
 
         self.verticalLayout_2.addWidget(self.pushButton_food_add_with_ai)
+
+        self.pushButton_food_add_by_voice = QPushButton(self.groupBox_food_commands)
+        self.pushButton_food_add_by_voice.setObjectName(u"pushButton_food_add_by_voice")
+        self.pushButton_food_add_by_voice.setMinimumSize(QSize(0, 41))
+        self.pushButton_food_add_by_voice.setStyleSheet(u"QPushButton {\n"
+"                                      background-color: #e3f2fd;\n"
+"                                      border: 1px solid #2196F3;\n"
+"                                      border-radius: 4px;\n"
+"                                      }\n"
+"                                      QPushButton:hover {\n"
+"                                      background-color: #bbdefb;\n"
+"                                      }\n"
+"                                      QPushButton:pressed {\n"
+"                                      background-color: #90caf9;\n"
+"                                      }")
+
+        self.verticalLayout_2.addWidget(self.pushButton_food_add_by_voice)
 
         self.horizontalLayout_food_commands = QHBoxLayout()
         self.horizontalLayout_food_commands.setObjectName(u"horizontalLayout_food_commands")
