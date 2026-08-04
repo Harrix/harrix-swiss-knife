@@ -37,6 +37,7 @@ lang: en
   - [⚙️ Method `get_yes_no_question`](#%EF%B8%8F-method-get_yes_no_question)
   - [⚙️ Method `show_about_dialog`](#%EF%B8%8F-method-show_about_dialog)
   - [⚙️ Method `show_action_output_log_browser`](#%EF%B8%8F-method-show_action_output_log_browser)
+  - [⚙️ Method `show_action_usage_stats_browser`](#%EF%B8%8F-method-show_action_usage_stats_browser)
   - [⚙️ Method `show_git_commit_offer`](#%EF%B8%8F-method-show_git_commit_offer)
   - [⚙️ Method `show_instructions`](#%EF%B8%8F-method-show_instructions)
   - [⚙️ Method `show_text_diff_side_by_side`](#%EF%B8%8F-method-show_text_diff_side_by_side)
@@ -1126,6 +1127,19 @@ class ActionDialogService:
                 show_toast=self._show_toast,
             ),
             stretch_row=0,
+        )
+
+    def show_action_usage_stats_browser(
+        self,
+        rows: list[ActionUsageStatsRow],
+        *,
+        summary: str,
+    ) -> None:
+        """Show a sortable table of action invocation statistics."""
+        self._exec_standard_dialog(
+            "Action usage stats",
+            build_action_usage_stats_browser(rows, summary=summary),
+            stretch_row=1,
         )
 
     def show_git_commit_offer(
@@ -2910,6 +2924,33 @@ def show_action_output_log_browser(
                 show_toast=self._show_toast,
             ),
             stretch_row=0,
+        )
+```
+
+</details>
+
+### ⚙️ Method `show_action_usage_stats_browser`
+
+```python
+def show_action_usage_stats_browser(self, rows: list[ActionUsageStatsRow]) -> None
+```
+
+Show a sortable table of action invocation statistics.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def show_action_usage_stats_browser(
+        self,
+        rows: list[ActionUsageStatsRow],
+        *,
+        summary: str,
+    ) -> None:
+        self._exec_standard_dialog(
+            "Action usage stats",
+            build_action_usage_stats_browser(rows, summary=summary),
+            stretch_row=1,
         )
 ```
 

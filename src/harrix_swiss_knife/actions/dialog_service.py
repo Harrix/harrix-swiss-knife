@@ -44,6 +44,7 @@ from PySide6.QtWidgets import (
 )
 
 from harrix_swiss_knife.actions.action_log_browser import build_action_output_log_browser
+from harrix_swiss_knife.actions.action_usage_stats_browser import build_action_usage_stats_browser
 from harrix_swiss_knife.actions.dialog_geometry import (
     apply_adaptive_dialog_size,
     fit_widget_height,
@@ -96,6 +97,8 @@ COMMIT_OFFER_COPY_CODE = 11
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Collection
+
+    from harrix_swiss_knife.actions.action_usage_stats_browser import ActionUsageStatsRow
 
 
 class ActionDialogService:
@@ -1168,6 +1171,19 @@ class ActionDialogService:
                 show_toast=self._show_toast,
             ),
             stretch_row=0,
+        )
+
+    def show_action_usage_stats_browser(
+        self,
+        rows: list[ActionUsageStatsRow],
+        *,
+        summary: str,
+    ) -> None:
+        """Show a sortable table of action invocation statistics."""
+        self._exec_standard_dialog(
+            "Action usage stats",
+            build_action_usage_stats_browser(rows, summary=summary),
+            stretch_row=1,
         )
 
     def show_git_commit_offer(

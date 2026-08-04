@@ -20,14 +20,27 @@ def collect_quick_launcher_actions(structure: list[Any]) -> list[type[ActionBase
     return sorted(actions, key=lambda cls: cls.title)
 
 
-def iter_menu_structure(structure: list[Any]) -> Iterator[type[ActionBase]]:
-    """Yield action classes from a nested menu structure (submenus and root items)."""
+def iter_menu_actions_with_category(
+    structure: list[Any],
+    category: str = "",
+) -> Iterator[tuple[type[ActionBase], str]]:
+    """Yield `(action_class, category_title)` from a nested menu structure.
+
+    Root-level actions (outside a submenu) get an empty category string.
+
+    """
     for element in structure:
         if isinstance(element, tuple) and len(element) == _MENU_SUBMENU_TUPLE_LEN:
-            _title, _icon, items = element
-            yield from iter_menu_structure(items)
+            title, _icon, items = element
+            yield from iter_menu_actions_with_category(items, title)
             continue
         if element == "-":
             continue
         if isinstance(element, type) and issubclass(element, ActionBase):
-            yield element
+            yield element, category
+
+
+def iter_menu_structure(structure: list[Any]) -> Iterator[type[ActionBase]]:
+    """Yield action classes from a nested menu structure (submenus and root items)."""
+    for action_cls, _category in iter_menu_actions_with_category(structure):
+        yield action_cls
