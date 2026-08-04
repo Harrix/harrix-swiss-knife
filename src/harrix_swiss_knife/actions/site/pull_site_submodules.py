@@ -53,17 +53,6 @@ class OnPullSiteSubmodules(ActionBase):
         self.add_line(f"📂 Site repo: {site_repo}")
         self.add_line("▶️ Command: git submodule foreach git pull origin main")
 
-        if not noninteractive:
-            confirmed = self.dialogs.get_yes_no_question(
-                self.title,
-                (f"Run in `{site_repo}`?\n\ngit submodule foreach git pull origin main"),
-                default_yes=True,
-            )
-            if not confirmed:
-                self.add_line("ℹ️ Cancelled.")  # noqa: RUF001
-                self.show_result()
-                return
-
         output = h.dev.run_command(_PULL_COMMAND, cwd=str(site_repo))
         self.add_line(output or "✅ Done (no output).")
         if not noninteractive:
