@@ -1,11 +1,12 @@
 package dev.harrix.hsk.ui
 
-import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
@@ -23,8 +24,9 @@ val AutoFitTextMinFontSize = 10.sp
 /**
  * Label text that shrinks to fit the available space, then ellipsizes at [minFontSize].
  *
- * Use for buttons, chips, top-bar titles, and other fixed-width chrome where
- * translations may be longer than the English source.
+ * Implemented without [androidx.compose.foundation.layout.BoxWithConstraints] so it is safe
+ * inside [androidx.compose.material3.ListItem], segmented buttons, and other layouts that
+ * request intrinsic measurements.
  */
 @Composable
 fun AutoFitText(
@@ -36,7 +38,6 @@ fun AutoFitText(
     maxLines: Int = 1,
     softWrap: Boolean = maxLines > 1,
     minFontSize: TextUnit = AutoFitTextMinFontSize,
-    fillMaxWidth: Boolean = false,
 ) {
     val mergedStyle = LocalTextStyle.current.merge(style)
     val baseFontSize =
@@ -47,96 +48,90 @@ fun AutoFitText(
         }
     val minSp = minFontSize.value.coerceAtLeast(1f)
     val maxSp = baseFontSize.value.coerceAtLeast(minSp)
-
-    BoxWithConstraints(modifier = modifier) {
-        val textMeasurer = rememberTextMeasurer()
-        val maxWidthPx =
-            if (constraints.hasBoundedWidth) {
-                constraints.maxWidth.coerceAtLeast(0)
-            } else {
-                Constraints.Infinity
-            }
-        val maxHeightPx =
-            if (constraints.hasBoundedHeight) {
-                constraints.maxHeight.coerceAtLeast(0)
-            } else {
-                Constraints.Infinity
-            }
-
-        val fontSize =
-            remember(
-                text,
-                maxWidthPx,
-                maxHeightPx,
-                maxSp,
-                minSp,
-                maxLines,
-                softWrap,
-                mergedStyle,
-                color,
-            ) {
-                if (maxWidthPx == Constraints.Infinity && maxHeightPx == Constraints.Infinity) {
-                    return@remember maxSp.sp
-                }
-
-                fun fits(sizeSp: Float): Boolean {
-                    val candidate = mergedStyle.withAutoFitFontSize(sizeSp.sp, color)
-                    val result =
-                        textMeasurer.measure(
-                            text = text,
-                            style = candidate,
-                            overflow = TextOverflow.Clip,
-                            softWrap = softWrap,
-                            maxLines = maxLines,
-                            constraints =
-                            Constraints(
-                                maxWidth = maxWidthPx,
-                                maxHeight = maxHeightPx,
-                            ),
-                        )
-                    return !result.hasVisualOverflow
-                }
-
-                if (fits(maxSp)) {
-                    return@remember maxSp.sp
-                }
-                if (!fits(minSp)) {
-                    return@remember minSp.sp
-                }
-                var low = minSp
-                var high = maxSp
-                var best = minSp
-                repeat(14) {
-                    val mid = (low + high) / 2f
-                    if (fits(mid)) {
-                        best = mid
-                        low = mid
-                    } else {
-                        high = mid
-                    }
-                }
-                best.sp
-            }
-
-        Text(
-            text = text,
-            modifier = if (fillMaxWidth) Modifier.fillMaxWidth() else Modifier,
-            color = color,
-            style = mergedStyle.withAutoFitFontSize(fontSize, color),
-            textAlign = textAlign,
-            overflow = TextOverflow.Ellipsis,
-            softWrap = softWrap,
-            maxLines = maxLines,
-        )
+    val textMeasurer = rememberTextMeasurer()
+    var fontSizeSp by remember(text, maxSp, minSp, maxLines, softWrap, mergedStyle) {
+        mutableFloatStateOf(maxSp)
     }
+
+    Text(
+        text = text,
+        modifier = modifier,
+        color = color,
+        style = mergedStyle.withAutoFitFontSize(fontSizeSp.sp, color),
+        textAlign = textAlign,
+        overflow = TextOverflow.Ellipsis,
+        softWrap = softWrap,
+        maxLines = maxLines,
+        onTextLayout = { result ->
+            if (!result.hasVisualOverflow || fontSizeSp <= minSp + 0.01f) {
+                return@Text
+            }
+            val constraints = result.layoutInput.constraints
+            val maxWidth = constraints.maxWidth.coerceAtLeast(0)
+            val maxHeight =
+                if (constraints.hasBoundedHeight) {
+                    constraints.maxHeight.coerceAtLeast(0)
+                } else {
+                    Constraints.Infinity
+                }
+
+            fun fits(sizeSp: Float): Boolean {
+                val measured =
+                    textMeasurer.measure(
+                        text = text,
+                        style = mergedStyle.withAutoFitFontSize(sizeSp.sp, color),
+                        overflow = TextOverflow.Clip,
+                        softWrap = softWrap,
+                        maxLines = maxLines,
+                        constraints =
+                        Constraints(
+                            maxWidth = maxWidth,
+                            maxHeight = maxHeight,
+                        ),
+                    )
+                return !measured.hasVisualOverflow
+            }
+
+            val best =
+                if (!fits(minSp)) {
+                    minSp
+                } else {
+                    var low = minSp
+                    var high = fontSizeSp
+                    var found = minSp
+                    repeat(12) {
+                        val mid = (low + high) / 2f
+                        if (fits(mid)) {
+                            found = mid
+                            low = mid
+                        } else {
+                            high = mid
+                        }
+                    }
+                    found
+                }
+            if (best < fontSizeSp - 0.05f) {
+                fontSizeSp = best
+            } else if (fontSizeSp > minSp) {
+                // Still overflowing but binary search stalled — force the floor.
+                fontSizeSp = minSp
+            }
+        },
+    )
 }
 
 private fun TextStyle.withAutoFitFontSize(
     size: TextUnit,
     color: Color,
 ): TextStyle {
+    val canScaleLineHeight =
+        fontSize.isSpecified &&
+            lineHeight.isSpecified &&
+            fontSize.isSp &&
+            lineHeight.isSp &&
+            fontSize.value > 0f
     val scaledLineHeight =
-        if (fontSize.isSpecified && lineHeight.isSpecified && fontSize.value > 0f) {
+        if (canScaleLineHeight) {
             (lineHeight.value * size.value / fontSize.value).sp
         } else {
             TextUnit.Unspecified
