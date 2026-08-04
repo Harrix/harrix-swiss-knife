@@ -1,34 +1,32 @@
-"""Text input dialog for food entries.
+"""Food input dialog for reviewing items before saving.
 
-This module provides a dialog for entering food information as text,
-which will be parsed and converted to food log records. The underlying
-implementation is the shared `apps.common.dialogs.TextInputDialog`.
+This module provides a dialog for reviewing and editing food information
+in a table (default) or as text before records are saved to the database.
 
 """
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
-from harrix_swiss_knife.apps.common.dialogs import TextInputDialog as _BaseTextInputDialog
+from harrix_swiss_knife.apps.food.food_table_dialog import FoodTableDialog
 
 if TYPE_CHECKING:
     from PySide6.QtCore import QDate
     from PySide6.QtWidgets import QWidget
 
+    from harrix_swiss_knife.apps.food.text_parser import ParsedFoodItem
+
 
 _DESCRIPTION = (
-    "Enter food information in text format. Each line represents one food item.\n"
-    "TSV format (from AI): Name\tWeight\tCalories\tMode\tDrink\n"
-    "  Mode: weight (calories per 100g) or portion (calories per serving)\n"
-    "  Drink: yes or no\n"
-    "Legacy format examples:\n"
-    "• 100 200 Apple (weight: 100g, calories per 100g: 200)\n"
-    "• 150 Coffee (weight: 150g, calories from database)\n"
-    "• Coffee 100 portion (100 calories per portion)\n"
-    "• Apple 2025-01-15 (with specific date in line)\n"
-    "• Water (default weight and calories from database)\n\n"
-    "Note: Use Tab character for TSV columns. Date can be selected in the date field above."
+    "Review and edit food items before saving. Each row is one food log entry.\n"
+    "Table mode: columns Name, Weight, Calories, Mode, Drink.\n"
+    "  Mode: weight (calories per 100g) or portion (calories per serving).\n"
+    "  Drink: yes or no.\n"
+    "Text mode: one item per line. Prefer TSV from AI "
+    "(Name<Tab>Weight<Tab>Calories<Tab>Mode<Tab>Drink).\n"
+    "Legacy text formats are still accepted in Text mode.\n"
+    "Use Add row / Delete row in table mode. Date can be selected above."
 )
 
 FOOD_TEXT_PLACEHOLDER = (
@@ -43,8 +41,8 @@ FOOD_TEXT_PLACEHOLDER = (
 )
 
 
-class TextInputDialog(_BaseTextInputDialog):
-    """Dialog for entering food information as text."""
+class TextInputDialog(FoodTableDialog):
+    """Dialog for entering food information in an editable table."""
 
     def __init__(
         self,
@@ -53,24 +51,30 @@ class TextInputDialog(_BaseTextInputDialog):
         *,
         initial_text: str | None = None,
         focus_text_on_show: bool = True,
+        db_manager: Any | None = None,
     ) -> None:
-        """Initialize the food text input dialog.
+        """Initialize the food input dialog.
 
         Args:
 
         - `parent` (`QWidget | None`): Parent widget. Defaults to `None`.
         - `default_date` (`QDate | None`): Default date for food log entries.
-        - `initial_text` (`str | None`): Pre-filled text. Defaults to `None`.
-        - `focus_text_on_show` (`bool`): Focus text area on show. Defaults to `True`.
+        - `initial_text` (`str | None`): Pre-filled lines from AI. Defaults to `None`.
+        - `focus_text_on_show` (`bool`): Ignored; kept for API compatibility.
+        - `db_manager` (`Any | None`): Database manager for legacy text lookup.
 
         """
         super().__init__(
             parent,
             title="Add Food as Text",
             description=_DESCRIPTION,
-            placeholder=FOOD_TEXT_PLACEHOLDER,
-            show_date=True,
             default_date=default_date,
             initial_text=initial_text,
-            focus_text_on_show=focus_text_on_show,
+            text_placeholder=FOOD_TEXT_PLACEHOLDER,
+            db_manager=db_manager,
         )
+        _ = focus_text_on_show
+
+    def get_items(self) -> list[ParsedFoodItem]:
+        """Return validated food items accepted by the user."""
+        return super().get_items()

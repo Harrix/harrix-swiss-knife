@@ -2315,19 +2315,20 @@ class MainWindow(
         initial_text: str | None = None,
         focus_text_on_show: bool = True,
     ) -> None:
-        """Show food text dialog and process accepted input."""
+        """Show food table dialog and process accepted input."""
         dialog = TextInputDialog(
             self,
             default_date=default_date,
             initial_text=initial_text,
             focus_text_on_show=focus_text_on_show,
+            db_manager=self.db_manager,
         )
         if dialog.exec() != QDialog.DialogCode.Accepted:
             return
-        text = dialog.get_text()
+        items = dialog.get_items()
         date = dialog.get_date()
-        if text and date:
-            self._process_text_input(text, date)
+        if items and date:
+            self._process_food_items(items, date)
 
     def _populate_form_from_food_name(self, food_name: str) -> None:
         """Populate form fields based on food name from database.
@@ -2500,12 +2501,12 @@ class MainWindow(
             self.spinBox_food_weight.setFocus()
             self.spinBox_food_weight.selectAll()
 
-    def _process_text_input(self, text: str, default_date: str) -> None:
-        """Process text input and add food items to database.
+    def _process_food_items(self, parsed_items: list[ParsedFoodItem], default_date: str) -> None:
+        """Add parsed food items to the database.
 
         Args:
 
-        - `text` (`str`): Text input to process.
+        - `parsed_items` (`list[ParsedFoodItem]`): Food items to save.
         - `default_date` (`str`): Default date for entries in yyyy-MM-dd format.
 
         """
@@ -2513,20 +2514,10 @@ class MainWindow(
             logger.error("❌ Database manager is not initialized")
             return
 
-        # Create parser and parse text
-        parser = TextParser()
-        parsed_items = parser.parse_text(
-            text,
-            self.db_manager,
-            default_date,
-            correct_unparseable_line=self._correct_food_input_line,
-        )
-
         if not parsed_items:
-            message_box.information(self, "No Items", "No valid food items found in the text.")
+            message_box.information(self, "No Items", "No valid food items found.")
             return
 
-        # Add items to database
         success_count = 0
         error_count = 0
         error_messages = []
@@ -2550,7 +2541,6 @@ class MainWindow(
                 error_count += 1
                 error_messages.append(f"Error adding {item.name}: {e}")
 
-        # Show results
         if success_count > 0:
             self.update_food_data()
 
@@ -2569,6 +2559,28 @@ class MainWindow(
                 parent=self,
             )
             toast.exec()
+
+    def _process_text_input(self, text: str, default_date: str) -> None:
+        """Process text input and add food items to database.
+
+        Args:
+
+        - `text` (`str`): Text input to process.
+        - `default_date` (`str`): Default date for entries in yyyy-MM-dd format.
+
+        """
+        if self.db_manager is None:
+            logger.error("❌ Database manager is not initialized")
+            return
+
+        parser = TextParser()
+        parsed_items = parser.parse_text(
+            text,
+            self.db_manager,
+            default_date,
+            correct_unparseable_line=self._correct_food_input_line,
+        )
+        self._process_food_items(parsed_items, default_date)
 
     def _reconnect_context_menu(self) -> None:
         """Reconnect the context menu signal after deletion."""

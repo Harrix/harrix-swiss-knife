@@ -1,0 +1,505 @@
+---
+author: Anton Sergienko
+author-email: anton.b.sergienko@gmail.com
+lang: en
+---
+
+# 📄 File `food_table_dialog.py`
+
+<details>
+<summary>📖 Contents ⬇️</summary>
+
+## Contents
+
+- [🏛️ Class `FoodTableDialog`](#%EF%B8%8F-class-foodtabledialog)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
+  - [⚙️ Method `get_date`](#%EF%B8%8F-method-get_date)
+  - [⚙️ Method `get_items`](#%EF%B8%8F-method-get_items)
+
+</details>
+
+## 🏛️ Class `FoodTableDialog`
+
+```python
+class FoodTableDialog(QDialog)
+```
+
+Show food items in an editable table with a live calorie total before saving.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class FoodTableDialog(QDialog):
+
+    _COL_NAME = 0
+    _COL_WEIGHT = 1
+    _COL_CALORIES = 2
+    _COL_MODE = 3
+    _COL_DRINK = 4
+    _HEADERS = ("Name", "Weight", "Calories", "Mode", "Drink")
+    _MODE_TABLE = 0
+    _MODE_TEXT = 1
+
+    def __init__(
+        self,
+        parent: QWidget | None = None,
+        *,
+        title: str = "Add Food",
+        description: str | None = None,
+        default_date: QDate | None = None,
+        initial_text: str | None = None,
+        text_placeholder: str = "",
+        db_manager: Any | None = None,
+    ) -> None:
+        """Initialize the food table dialog."""
+        super().__init__(parent)
+        self._title = title
+        self._description = description
+        self._default_date = default_date
+        self._initial_text = initial_text
+        self._text_placeholder = text_placeholder
+        self._db_manager = db_manager
+        self._parser = TextParser()
+        self._accepted_items: list[ParsedFoodItem] = []
+        self._updating_total = False
+        self._syncing_modes = False
+        self._setup_ui()
+        self._populate_from_initial_text()
+        self._update_total_label()
+
+    def get_date(self) -> str | None:
+        """Return selected date in yyyy-MM-dd format, or `None` if cancelled."""
+        if self.result() != QDialog.DialogCode.Accepted:
+            return None
+        return self.date_edit.date().toString("yyyy-MM-dd")
+
+    def get_items(self) -> list[ParsedFoodItem]:
+        """Return validated food items accepted by the user."""
+        if self.result() != QDialog.DialogCode.Accepted:
+            return []
+        return list(self._accepted_items)
+
+    def _add_row(
+        self,
+        *,
+        name: str = "",
+        weight: str = "",
+        calories: str = "",
+        mode: str = "weight",
+        drink: str = "no",
+    ) -> None:
+        row_idx = self._table.rowCount()
+        self._table.insertRow(row_idx)
+        self._table.setItem(row_idx, self._COL_NAME, QTableWidgetItem(name))
+        self._table.setItem(row_idx, self._COL_WEIGHT, QTableWidgetItem(weight))
+        self._table.setItem(row_idx, self._COL_CALORIES, QTableWidgetItem(calories))
+        self._table.setItem(row_idx, self._COL_MODE, QTableWidgetItem(mode))
+        self._table.setItem(row_idx, self._COL_DRINK, QTableWidgetItem(drink))
+
+    def _add_row_and_update(self) -> None:
+        self._add_row()
+        self._update_total_label()
+
+    def _cell_text(self, row_idx: int, column: int) -> str:
+        item = self._table.item(row_idx, column)
+        return item.text().strip() if item is not None else ""
+
+    def _current_input_mode(self) -> int:
+        return self._mode_stack.currentIndex()
+
+    def _default_date_str(self) -> str:
+        return self.date_edit.date().toString("yyyy-MM-dd")
+
+    def _delete_selected_rows(self) -> None:
+        selected_rows = sorted({index.row() for index in self._table.selectedIndexes()}, reverse=True)
+        if not selected_rows and self._table.rowCount() > 0:
+            self._table.removeRow(self._table.rowCount() - 1)
+            self._update_total_label()
+            return
+        for row_idx in selected_rows:
+            self._table.removeRow(row_idx)
+        if self._table.rowCount() == 0:
+            self._add_row()
+        self._update_total_label()
+
+    def _format_row_from_item(self, item: ParsedFoodItem) -> tuple[str, str, str, str, str]:
+        is_portion = item.portion_calories is not None and item.portion_calories > 0
+        mode = "portion" if is_portion else "weight"
+        calories = item.portion_calories if is_portion else (item.calories_per_100g or 0)
+        weight = item.weight if item.weight is not None else 0
+        drink = "yes" if item.is_drink else "no"
+        return (
+            item.name,
+            f"{weight:g}" if weight else "",
+            f"{calories:g}" if calories else "",
+            mode,
+            drink,
+        )
+
+    def _is_text_mode(self) -> bool:
+        return self._current_input_mode() == self._MODE_TEXT
+
+    def _item_calories(self, item: ParsedFoodItem) -> float:
+        if item.portion_calories is not None and item.portion_calories > 0:
+            return float(item.portion_calories)
+        if item.weight is not None and item.calories_per_100g is not None:
+            return float(item.weight) * float(item.calories_per_100g) / 100.0
+        return 0.0
+
+    def _on_accept(self) -> None:
+        default_date = self._default_date_str()
+        if self._is_text_mode():
+            items, invalid_line_numbers = self._read_text_items(default_date)
+            if not items:
+                if invalid_line_numbers:
+                    QMessageBox.warning(
+                        self,
+                        "Invalid Lines",
+                        "Some lines have incomplete or invalid data.\n"
+                        "TSV: Name<Tab>Weight<Tab>Calories<Tab>Mode<Tab>Drink "
+                        "(Mode: weight|portion, Drink: yes|no).\n\n"
+                        f"Invalid lines: {', '.join(str(line_num) for line_num in invalid_line_numbers)}",
+                    )
+                else:
+                    QMessageBox.information(self, "No Items", "Add at least one food line.")
+                return
+            self._accepted_items = items
+            self.accept()
+            return
+
+        items, invalid_rows = self._read_table_items(default_date)
+        if not items:
+            if invalid_rows:
+                QMessageBox.warning(
+                    self,
+                    "Invalid Rows",
+                    "Some rows have incomplete or invalid data. "
+                    "Each row needs Name, Weight, Calories, Mode (weight/portion), "
+                    "and Drink (yes/no).\n\n"
+                    f"Invalid rows: {', '.join(str(row + 1) for row in invalid_rows)}",
+                )
+            else:
+                QMessageBox.information(self, "No Items", "Add at least one food row.")
+            return
+        self._accepted_items = items
+        self.accept()
+
+    def _on_input_mode_changed(self, mode_id: int) -> None:
+        if self._syncing_modes:
+            return
+
+        self._syncing_modes = True
+        try:
+            if mode_id == self._MODE_TEXT:
+                self._text_edit.setPlainText(self._table_to_text())
+            else:
+                self._populate_table_from_text(self._text_edit.toPlainText())
+        finally:
+            self._syncing_modes = False
+
+        self._mode_stack.setCurrentIndex(mode_id)
+        self._row_buttons_widget.setVisible(mode_id == self._MODE_TABLE)
+        self._update_total_label()
+
+    def _on_item_changed(self, _item: QTableWidgetItem) -> None:
+        if self._updating_total or self._is_text_mode():
+            return
+        self._update_total_label()
+
+    def _on_text_changed(self) -> None:
+        if self._updating_total or not self._is_text_mode():
+            return
+        self._update_total_label()
+
+    def _populate_from_initial_text(self) -> None:
+        self._table.setRowCount(0)
+        if self._initial_text:
+            self._populate_table_from_text(self._initial_text)
+            self._text_edit.setPlainText(self._initial_text.strip())
+        else:
+            self._add_row()
+            self._text_edit.clear()
+        self._mode_table_radio.setChecked(True)
+        self._mode_stack.setCurrentIndex(self._MODE_TABLE)
+        self._row_buttons_widget.setVisible(True)
+
+    def _populate_table_from_text(self, text: str) -> None:
+        self._updating_total = True
+        try:
+            self._table.setRowCount(0)
+            has_rows = False
+            default_date = self._default_date_str()
+            for _line_num, line in enumerate_stripped_non_empty_lines(text):
+                has_rows = True
+                parsed_items = self._parser.parse_text(line, self._db_manager, default_date)
+                if parsed_items:
+                    name, weight, calories, mode, drink = self._format_row_from_item(parsed_items[0])
+                    self._add_row(
+                        name=name,
+                        weight=weight,
+                        calories=calories,
+                        mode=mode,
+                        drink=drink,
+                    )
+                    continue
+
+                parts = line.split("\t")
+                column_count = len(self._HEADERS)
+                while len(parts) < column_count:
+                    parts.append("")
+                self._add_row(
+                    name=parts[0].strip(),
+                    weight=parts[1].strip(),
+                    calories=parts[2].strip(),
+                    mode=parts[3].strip() or "weight",
+                    drink=parts[4].strip() or "no",
+                )
+
+            if not has_rows:
+                self._add_row()
+        finally:
+            self._updating_total = False
+
+    def _read_table_items(self, default_date: str) -> tuple[list[ParsedFoodItem], list[int]]:
+        items: list[ParsedFoodItem] = []
+        invalid_rows: list[int] = []
+
+        for row_idx in range(self._table.rowCount()):
+            name = self._cell_text(row_idx, self._COL_NAME)
+            weight = self._cell_text(row_idx, self._COL_WEIGHT)
+            calories = self._cell_text(row_idx, self._COL_CALORIES)
+            mode = self._cell_text(row_idx, self._COL_MODE)
+            drink = self._cell_text(row_idx, self._COL_DRINK)
+
+            if not name and not weight and not calories and not mode and not drink:
+                continue
+
+            parsed = self._parser.parse_row(name, weight, calories, mode, drink, default_date)
+            if parsed is None:
+                invalid_rows.append(row_idx)
+                continue
+            items.append(parsed)
+
+        return items, sorted(invalid_rows)
+
+    def _read_text_items(self, default_date: str) -> tuple[list[ParsedFoodItem], list[int]]:
+        items: list[ParsedFoodItem] = []
+        invalid_line_numbers: list[int] = []
+
+        for line_num, line in enumerate_stripped_non_empty_lines(self._text_edit.toPlainText()):
+            parsed_items = self._parser.parse_text(line, self._db_manager, default_date)
+            if not parsed_items:
+                invalid_line_numbers.append(line_num)
+                continue
+            items.append(parsed_items[0])
+
+        return items, sorted(invalid_line_numbers)
+
+    def _setup_ui(self) -> None:
+        self.setWindowTitle(self._title)
+        self.setMinimumSize(900, 520)
+        self.setModal(True)
+
+        layout = QVBoxLayout(self)
+
+        if self._description:
+            description_label = QLabel(self._description)
+            description_label.setWordWrap(True)
+            layout.addWidget(description_label)
+
+        date_layout = QHBoxLayout()
+        date_label = QLabel("Date:")
+        date_layout.addWidget(date_label)
+        self.date_edit = QDateEdit()
+        self.date_edit.setCalendarPopup(True)
+        self.date_edit.setDisplayFormat("yyyy-MM-dd")
+        self.date_edit.setDate(self._default_date or QDate.currentDate())
+        self.date_edit.dateChanged.connect(lambda *_: self._update_total_label())
+        date_layout.addWidget(self.date_edit)
+        date_layout.addStretch()
+        layout.addLayout(date_layout)
+
+        mode_layout = QHBoxLayout()
+        mode_label = QLabel("Input mode:")
+        mode_layout.addWidget(mode_label)
+
+        self._mode_button_group = QButtonGroup(self)
+        self._mode_table_radio = QRadioButton("Table")
+        self._mode_text_radio = QRadioButton("Text")
+        self._mode_button_group.addButton(self._mode_table_radio, self._MODE_TABLE)
+        self._mode_button_group.addButton(self._mode_text_radio, self._MODE_TEXT)
+        self._mode_table_radio.setChecked(True)
+        mode_layout.addWidget(self._mode_table_radio)
+        mode_layout.addWidget(self._mode_text_radio)
+        mode_layout.addStretch()
+        layout.addLayout(mode_layout)
+
+        self._mode_stack = QStackedWidget(self)
+
+        table_page = QWidget(self)
+        table_page_layout = QVBoxLayout(table_page)
+        table_page_layout.setContentsMargins(0, 0, 0, 0)
+
+        self._table: QTableWidgetType = QTableWidget(table_page)
+        self._table.setColumnCount(len(self._HEADERS))
+        self._table.setHorizontalHeaderLabels(list(self._HEADERS))
+        self._table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self._table.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
+        self._table.itemChanged.connect(self._on_item_changed)
+
+        header = self._table.horizontalHeader()
+        if header is not None:
+            for column in range(len(self._HEADERS)):
+                header.setSectionResizeMode(column, QHeaderView.ResizeMode.Stretch)
+
+        table_page_layout.addWidget(self._table)
+
+        self._row_buttons_widget = QWidget(table_page)
+        row_buttons_layout = QHBoxLayout(self._row_buttons_widget)
+        row_buttons_layout.setContentsMargins(0, 0, 0, 0)
+        add_row_button = make_emoji_push_button("Add row", "➕")  # noqa: RUF001
+        add_row_button.clicked.connect(self._add_row_and_update)
+        row_buttons_layout.addWidget(add_row_button)
+        delete_row_button = make_emoji_push_button("Delete row", "🗑️")
+        delete_row_button.clicked.connect(self._delete_selected_rows)
+        row_buttons_layout.addWidget(delete_row_button)
+        row_buttons_layout.addStretch()
+        table_page_layout.addWidget(self._row_buttons_widget)
+
+        self._mode_stack.addWidget(table_page)
+
+        self._text_edit = QPlainTextEdit(self)
+        if self._text_placeholder:
+            self._text_edit.setPlaceholderText(self._text_placeholder)
+        self._text_edit.textChanged.connect(self._on_text_changed)
+        self._mode_stack.addWidget(self._text_edit)
+
+        layout.addWidget(self._mode_stack)
+
+        self._mode_button_group.idClicked.connect(self._on_input_mode_changed)
+
+        self.total_label = QLabel()
+        self.total_label.setStyleSheet("font-weight: bold; font-size: 14px;")
+        layout.addWidget(self.total_label)
+
+        button_layout = QHBoxLayout()
+        button_layout.addStretch()
+        cancel_button = make_emoji_push_button("Cancel", "❌")
+        cancel_button.clicked.connect(self.reject)
+        button_layout.addWidget(cancel_button)
+        ok_button = make_emoji_push_button("OK", "✅")
+        ok_button.setDefault(True)
+        ok_button.clicked.connect(self._on_accept)
+        button_layout.addWidget(ok_button)
+        layout.addLayout(button_layout)
+
+    def _table_to_text(self) -> str:
+        lines: list[str] = []
+        for row_idx in range(self._table.rowCount()):
+            name = self._cell_text(row_idx, self._COL_NAME)
+            weight = self._cell_text(row_idx, self._COL_WEIGHT)
+            calories = self._cell_text(row_idx, self._COL_CALORIES)
+            mode = self._cell_text(row_idx, self._COL_MODE)
+            drink = self._cell_text(row_idx, self._COL_DRINK)
+            if not name and not weight and not calories and not mode and not drink:
+                continue
+            lines.append(f"{name}\t{weight}\t{calories}\t{mode or 'weight'}\t{drink or 'no'}")
+        return "\n".join(lines)
+
+    def _update_total_label(self) -> None:
+        self._updating_total = True
+        try:
+            default_date = self._default_date_str()
+            if self._is_text_mode():
+                items, _invalid_lines = self._read_text_items(default_date)
+            else:
+                items, _invalid_rows = self._read_table_items(default_date)
+            total_calories = sum(self._item_calories(item) for item in items)
+            self.total_label.setText(f"Total: {total_calories:,.0f} kcal · {len(items)} item(s)")
+        finally:
+            self._updating_total = False
+```
+
+</details>
+
+### ⚙️ Method `__init__`
+
+```python
+def __init__(self, parent: QWidget | None = None) -> None
+```
+
+Initialize the food table dialog.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def __init__(
+        self,
+        parent: QWidget | None = None,
+        *,
+        title: str = "Add Food",
+        description: str | None = None,
+        default_date: QDate | None = None,
+        initial_text: str | None = None,
+        text_placeholder: str = "",
+        db_manager: Any | None = None,
+    ) -> None:
+        super().__init__(parent)
+        self._title = title
+        self._description = description
+        self._default_date = default_date
+        self._initial_text = initial_text
+        self._text_placeholder = text_placeholder
+        self._db_manager = db_manager
+        self._parser = TextParser()
+        self._accepted_items: list[ParsedFoodItem] = []
+        self._updating_total = False
+        self._syncing_modes = False
+        self._setup_ui()
+        self._populate_from_initial_text()
+        self._update_total_label()
+```
+
+</details>
+
+### ⚙️ Method `get_date`
+
+```python
+def get_date(self) -> str | None
+```
+
+Return selected date in yyyy-MM-dd format, or `None` if cancelled.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_date(self) -> str | None:
+        if self.result() != QDialog.DialogCode.Accepted:
+            return None
+        return self.date_edit.date().toString("yyyy-MM-dd")
+```
+
+</details>
+
+### ⚙️ Method `get_items`
+
+```python
+def get_items(self) -> list[ParsedFoodItem]
+```
+
+Return validated food items accepted by the user.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_items(self) -> list[ParsedFoodItem]:
+        if self.result() != QDialog.DialogCode.Accepted:
+            return []
+        return list(self._accepted_items)
+```
+
+</details>

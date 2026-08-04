@@ -63,6 +63,34 @@ class TextParser:
         self._two_numbers = 2
         self._tsv_column_count = 5
 
+    def parse_row(
+        self,
+        name: str,
+        weight_str: str,
+        calories_str: str,
+        mode: str,
+        drink: str,
+        default_date: str,
+    ) -> ParsedFoodItem | None:
+        """Parse a single table row (same rules as a TSV line).
+
+        Args:
+
+        - `name` (`str`): Food item name.
+        - `weight_str` (`str`): Weight in grams.
+        - `calories_str` (`str`): Calories (per 100g or per portion, depending on mode).
+        - `mode` (`str`): `weight` or `portion`.
+        - `drink` (`str`): `yes` / `no` (and common aliases).
+        - `default_date` (`str`): Date in YYYY-MM-DD format.
+
+        Returns:
+
+        - `ParsedFoodItem | None`: Parsed item or `None` if parsing failed.
+
+        """
+        line = f"{name.strip()}\t{weight_str.strip()}\t{calories_str.strip()}\t{mode.strip()}\t{drink.strip()}"
+        return self._parse_tsv_line(line, default_date)
+
     def parse_text(
         self,
         text: str,

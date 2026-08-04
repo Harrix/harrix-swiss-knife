@@ -14,6 +14,7 @@ lang: en
 - [🏛️ Class `ParsedFoodItem`](#%EF%B8%8F-class-parsedfooditem)
 - [🏛️ Class `TextParser`](#%EF%B8%8F-class-textparser)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
+  - [⚙️ Method `parse_row`](#%EF%B8%8F-method-parse_row)
   - [⚙️ Method `parse_text`](#%EF%B8%8F-method-parse_text)
 
 </details>
@@ -79,6 +80,34 @@ class TextParser:
         self.date_pattern = re.compile(r"\b\d{4}-\d{2}-\d{2}\b")
         self._two_numbers = 2
         self._tsv_column_count = 5
+
+    def parse_row(
+        self,
+        name: str,
+        weight_str: str,
+        calories_str: str,
+        mode: str,
+        drink: str,
+        default_date: str,
+    ) -> ParsedFoodItem | None:
+        """Parse a single table row (same rules as a TSV line).
+
+        Args:
+
+        - `name` (`str`): Food item name.
+        - `weight_str` (`str`): Weight in grams.
+        - `calories_str` (`str`): Calories (per 100g or per portion, depending on mode).
+        - `mode` (`str`): `weight` or `portion`.
+        - `drink` (`str`): `yes` / `no` (and common aliases).
+        - `default_date` (`str`): Date in YYYY-MM-DD format.
+
+        Returns:
+
+        - `ParsedFoodItem | None`: Parsed item or `None` if parsing failed.
+
+        """
+        line = f"{name.strip()}\t{weight_str.strip()}\t{calories_str.strip()}\t{mode.strip()}\t{drink.strip()}"
+        return self._parse_tsv_line(line, default_date)
 
     def parse_text(
         self,
@@ -707,6 +736,46 @@ def __init__(self) -> None:
         self.date_pattern = re.compile(r"\b\d{4}-\d{2}-\d{2}\b")
         self._two_numbers = 2
         self._tsv_column_count = 5
+```
+
+</details>
+
+### ⚙️ Method `parse_row`
+
+```python
+def parse_row(self, name: str, weight_str: str, calories_str: str, mode: str, drink: str, default_date: str) -> ParsedFoodItem | None
+```
+
+Parse a single table row (same rules as a TSV line).
+
+Args:
+
+- `name` (`str`): Food item name.
+- `weight_str` (`str`): Weight in grams.
+- `calories_str` (`str`): Calories (per 100g or per portion, depending on mode).
+- `mode` (`str`): `weight` or `portion`.
+- `drink` (`str`): `yes` / `no` (and common aliases).
+- `default_date` (`str`): Date in YYYY-MM-DD format.
+
+Returns:
+
+- `ParsedFoodItem | None`: Parsed item or `None` if parsing failed.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def parse_row(
+        self,
+        name: str,
+        weight_str: str,
+        calories_str: str,
+        mode: str,
+        drink: str,
+        default_date: str,
+    ) -> ParsedFoodItem | None:
+        line = f"{name.strip()}\t{weight_str.strip()}\t{calories_str.strip()}\t{mode.strip()}\t{drink.strip()}"
+        return self._parse_tsv_line(line, default_date)
 ```
 
 </details>
