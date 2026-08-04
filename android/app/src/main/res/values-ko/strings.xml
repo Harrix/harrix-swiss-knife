@@ -162,7 +162,7 @@
     <string name="gallery_cleaner_swipe_down_hint">삭제</string>
     <string name="gallery_cleaner_action_delete">삭제</string>
     <string name="gallery_cleaner_action_keep">유지</string>
-    <string name="gallery_cleaner_action_skip">스키프</string>
+    <string name="gallery_cleaner_action_skip">건너뛰기</string>
     <string name="gallery_cleaner_remaining">%1$d 남은</string>
     <string name="gallery_cleaner_remaining_unreviewed">%1$d 검토되지 않은</string>
     <string name="gallery_cleaner_session_stats">삭제: %1$d *해방: %2$s</string>

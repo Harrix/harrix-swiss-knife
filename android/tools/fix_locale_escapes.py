@@ -18,8 +18,8 @@ def fix_content(content: str) -> str:
     # broken "Don't" style translations: Non\'non / Ne \'ne
     content = re.sub(r"Non\\'non\s*", "Non ", content, flags=re.IGNORECASE)
     content = re.sub(r"Ne \\'ne\s*", "Ne ", content, flags=re.IGNORECASE)
-    content = re.sub(r"Не\\'не\s*", "Не ", content)
-    content = re.sub(r"не\\'не\s*", "не ", content)
+    content = re.sub(r"Не\\'не\s*", "Не ", content)  # ignore: HP001
+    content = re.sub(r"не\\'не\s*", "не ", content)  # ignore: HP001
     # protect existing escapes
     content = content.replace("\\'", "\0A\0")
     content = content.replace('\\"', "\0Q\0")

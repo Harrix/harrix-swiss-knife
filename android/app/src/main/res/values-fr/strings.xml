@@ -88,7 +88,7 @@
     <string name="settings_gallery_stats_filtered_size">Taille filtrée : %1$s</string>
     <string name="settings_gallery_stats_no_permission">Accorder l\'accès aux photos pour collecter des statistiques</string>
     <string name="settings_gallery_stats_collecting">Collecte de statistiques…</string>
-    <string name="settings_gallery_stats_ok">D\'ACCORD</string>
+    <string name="settings_gallery_stats_ok">OK</string>
     <string name="settings_gallery_reset">Réinitialiser les paramètres Gallery Cleaner</string>
     <string name="settings_gallery_reset_done">Paramètres Gallery Cleaner restaurés aux valeurs par défaut</string>
     <string name="settings_gallery_reset_hint">Réinitialise l\'ordre, le dossier d\'images, le mode non révisé uniquement, le filtre de date et les astuces. L’historique révisé n’est pas effacé.</string>
@@ -163,7 +163,7 @@
     <string name="gallery_cleaner_swipe_down_hint">Supprimer</string>
     <string name="gallery_cleaner_action_delete">Supprimer</string>
     <string name="gallery_cleaner_action_keep">Garder</string>
-    <string name="gallery_cleaner_action_skip">Sauter</string>
+    <string name="gallery_cleaner_action_skip">Passer</string>
     <string name="gallery_cleaner_remaining">%1$d restant</string>
     <string name="gallery_cleaner_remaining_unreviewed">%1$d non révisé</string>
     <string name="gallery_cleaner_session_stats">Supprimé : %1$d · Libéré : %2$s</string>
@@ -175,7 +175,7 @@
     <string name="gallery_cleaner_stats_deleted">Supprimé (tous les temps) : %1$d</string>
     <string name="gallery_cleaner_stats_freed">Espace libéré (toujours) : %1$s</string>
     <string name="gallery_cleaner_stats_reset">Réinitialiser les statistiques</string>
-    <string name="gallery_cleaner_stats_ok">D\'ACCORD</string>
+    <string name="gallery_cleaner_stats_ok">OK</string>
     <string name="gallery_cleaner_date_filter_active">Filtre : %1$s – %2$s</string>
     <string name="gallery_cleaner_date_filter_active_day">Filtre : %1$s</string>
     <string name="gallery_cleaner_untitled">Photo sans titre</string>
@@ -225,7 +225,7 @@
     <string name="video_cleaner_stats_freed_session">Espace libéré cette session : %1$s</string>
     <string name="video_cleaner_stats_deleted">Supprimé (tous les temps) : %1$d</string>
     <string name="video_cleaner_stats_freed">Espace libéré (toujours) : %1$s</string>
-    <string name="video_cleaner_stats_ok">D\'ACCORD</string>
+    <string name="video_cleaner_stats_ok">OK</string>
     <string name="video_cleaner_delete_failed">Impossible de supprimer les vidéos sélectionnées</string>
     <string name="video_cleaner_untitled">Vidéo sans titre</string>
     <string name="video_cleaner_select_all">Tout sélectionner</string>

@@ -88,7 +88,7 @@
     <string name="settings_gallery_stats_filtered_size">フィルタリングされたサイズ: %1$s</string>
     <string name="settings_gallery_stats_no_permission">統計を収集するための写真へのアクセスを許可する</string>
     <string name="settings_gallery_stats_collecting">統計を収集しています…</string>
-    <string name="settings_gallery_stats_ok">わかりました</string>
+    <string name="settings_gallery_stats_ok">OK</string>
     <string name="settings_gallery_reset">Gallery Cleaner 設定をリセット</string>
     <string name="settings_gallery_reset_done">Gallery Cleaner 設定がデフォルトに復元されました</string>
     <string name="settings_gallery_reset_hint">順序、画像フォルダー、未レビュー専用モード、日付フィルター、ヒントをリセットします。レビュー履歴は消去されません。</string>
@@ -175,7 +175,7 @@
     <string name="gallery_cleaner_stats_deleted">削除済み (常に): %1$d</string>
     <string name="gallery_cleaner_stats_freed">解放されたスペース (常時): %1$s</string>
     <string name="gallery_cleaner_stats_reset">統計をリセット</string>
-    <string name="gallery_cleaner_stats_ok">わかりました</string>
+    <string name="gallery_cleaner_stats_ok">OK</string>
     <string name="gallery_cleaner_date_filter_active">フィルター: %1$s – %2$s</string>
     <string name="gallery_cleaner_date_filter_active_day">フィルター: %1$s</string>
     <string name="gallery_cleaner_untitled">無題の写真</string>
@@ -225,7 +225,7 @@
     <string name="video_cleaner_stats_freed_session">このセッションで解放されたスペース: %1$s</string>
     <string name="video_cleaner_stats_deleted">削除済み (常に): %1$d</string>
     <string name="video_cleaner_stats_freed">解放されたスペース (常時): %1$s</string>
-    <string name="video_cleaner_stats_ok">わかりました</string>
+    <string name="video_cleaner_stats_ok">OK</string>
     <string name="video_cleaner_delete_failed">選択した動画を削除できませんでした</string>
     <string name="video_cleaner_untitled">無題のビデオ</string>
     <string name="video_cleaner_select_all">すべて選択</string>

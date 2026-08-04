@@ -85,7 +85,7 @@
     <string name="settings_gallery_stats_filtered_size">حجم تصفيتها: %1$s</string>
     <string name="settings_gallery_stats_no_permission">منح الصور الوصول إلى جمع الإحصاءات</string>
     <string name="settings_gallery_stats_collecting">جمع الإحصاءات…</string>
-    <string name="settings_gallery_stats_ok">حسنا</string>
+    <string name="settings_gallery_stats_ok">موافق</string>
     <string name="settings_gallery_reset">إعادة تعيين Gallery Cleaner الإعدادات</string>
     <string name="settings_gallery_reset_done">Gallery Cleaner استعادة الإعدادات إلى الإعدادات الافتراضية</string>
     <string name="settings_gallery_reset_hint">إعادة تعيين النظام ، مجلد الصور ، وضع لم تتم مراجعتها فقط ، فلتر التاريخ ، والنصائح. لم يتم مسح التاريخ الذي تمت مراجعته.</string>
@@ -173,7 +173,7 @@
     <string name="gallery_cleaner_stats_remaining">المتبقية لم تتم مراجعتها: %1$d</string>
     <string name="gallery_cleaner_stats_deleted">حذف (كل الوقت): %1$d</string>
     <string name="gallery_cleaner_stats_freed">حررت الفضاء (كل الوقت): %1$s</string>
-    <string name="gallery_cleaner_stats_ok">حسنا</string>
+    <string name="gallery_cleaner_stats_ok">موافق</string>
     <string name="gallery_cleaner_stats_reset">إعادة تعيين الإحصاءات</string>
     <string name="gallery_cleaner_date_filter">تصفية التاريخ</string>
     <string name="gallery_cleaner_date_filter_active">تصفية: %1$s – %2$s</string>
@@ -225,7 +225,7 @@
     <string name="video_cleaner_stats_freed_session">حرر الفضاء هذه الجلسة: %1$s</string>
     <string name="video_cleaner_stats_deleted">حذف (كل الوقت): %1$d</string>
     <string name="video_cleaner_stats_freed">حررت الفضاء (كل الوقت): %1$s</string>
-    <string name="video_cleaner_stats_ok">حسنا</string>
+    <string name="video_cleaner_stats_ok">موافق</string>
     <string name="video_cleaner_delete_failed">تعذر حذف مقاطع الفيديو المحددة</string>
     <string name="video_cleaner_untitled">بدون عنوان فيديو</string>
     <string name="video_cleaner_select_all">اختر الكل</string>

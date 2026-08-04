@@ -88,7 +88,7 @@
     <string name="settings_gallery_stats_filtered_size">Tamaño filtrado: %1$s</string>
     <string name="settings_gallery_stats_no_permission">Conceder acceso a las fotos para recopilar estadísticas</string>
     <string name="settings_gallery_stats_collecting">Recopilando estadísticas…</string>
-    <string name="settings_gallery_stats_ok">DE ACUERDO</string>
+    <string name="settings_gallery_stats_ok">OK</string>
     <string name="settings_gallery_reset">Restablecer la configuración de Gallery Cleaner</string>
     <string name="settings_gallery_reset_done">Gallery Cleaner configuración restaurada a los valores predeterminados</string>
     <string name="settings_gallery_reset_hint">Restablece el orden, la carpeta de imágenes, el modo solo sin revisar, el filtro de fecha y las sugerencias. El historial revisado no se borra.</string>
@@ -175,7 +175,7 @@
     <string name="gallery_cleaner_stats_deleted">Eliminado (todo el tiempo): %1$d</string>
     <string name="gallery_cleaner_stats_freed">Espacio liberado (todo el tiempo): %1$s</string>
     <string name="gallery_cleaner_stats_reset">Restablecer estadísticas</string>
-    <string name="gallery_cleaner_stats_ok">DE ACUERDO</string>
+    <string name="gallery_cleaner_stats_ok">OK</string>
     <string name="gallery_cleaner_date_filter_active">Filtro: %1$s – %2$s</string>
     <string name="gallery_cleaner_date_filter_active_day">Filtro: %1$s</string>
     <string name="gallery_cleaner_untitled">Foto sin título</string>
@@ -225,7 +225,7 @@
     <string name="video_cleaner_stats_freed_session">Espacio liberado en esta sesión: %1$s</string>
     <string name="video_cleaner_stats_deleted">Eliminado (todo el tiempo): %1$d</string>
     <string name="video_cleaner_stats_freed">Espacio liberado (todo el tiempo): %1$s</string>
-    <string name="video_cleaner_stats_ok">DE ACUERDO</string>
+    <string name="video_cleaner_stats_ok">OK</string>
     <string name="video_cleaner_delete_failed">No se pudieron eliminar los videos seleccionados</string>
     <string name="video_cleaner_untitled">Vídeo sin título</string>
     <string name="video_cleaner_select_all">Seleccionar todo</string>

@@ -88,7 +88,7 @@
     <string name="settings_gallery_stats_filtered_size">过滤尺寸：%1$s</string>
     <string name="settings_gallery_stats_no_permission">授予照片访问权限以收集统计数据</string>
     <string name="settings_gallery_stats_collecting">收集统计数据...</string>
-    <string name="settings_gallery_stats_ok">好的</string>
+    <string name="settings_gallery_stats_ok">确定</string>
     <string name="settings_gallery_reset">重置 Gallery Cleaner 设置</string>
     <string name="settings_gallery_reset_done">Gallery Cleaner 设置恢复为默认值</string>
     <string name="settings_gallery_reset_hint">重置顺序、图像文件夹、仅限未审阅模式、日期过滤器和提示。已查看的历史记录不会被清除。</string>
@@ -158,11 +158,11 @@
     <string name="gallery_cleaner_date_range_from">从</string>
     <string name="gallery_cleaner_date_range_to">到</string>
     <string name="gallery_cleaner_swipe_left_hint">删除</string>
-    <string name="gallery_cleaner_swipe_right_hint">保持</string>
-    <string name="gallery_cleaner_swipe_up_hint">保持</string>
+    <string name="gallery_cleaner_swipe_right_hint">保留</string>
+    <string name="gallery_cleaner_swipe_up_hint">保留</string>
     <string name="gallery_cleaner_swipe_down_hint">删除</string>
     <string name="gallery_cleaner_action_delete">删除</string>
-    <string name="gallery_cleaner_action_keep">保持</string>
+    <string name="gallery_cleaner_action_keep">保留</string>
     <string name="gallery_cleaner_action_skip">跳过</string>
     <string name="gallery_cleaner_remaining">剩余 %1$d</string>
     <string name="gallery_cleaner_remaining_unreviewed">%1$d 未经审查</string>
@@ -175,7 +175,7 @@
     <string name="gallery_cleaner_stats_deleted">已删除（所有时间）：%1$d</string>
     <string name="gallery_cleaner_stats_freed">释放空间（所有时间）：%1$s</string>
     <string name="gallery_cleaner_stats_reset">重置统计</string>
-    <string name="gallery_cleaner_stats_ok">好的</string>
+    <string name="gallery_cleaner_stats_ok">确定</string>
     <string name="gallery_cleaner_date_filter_active">过滤器：%1$s – %2$s</string>
     <string name="gallery_cleaner_date_filter_active_day">过滤器：%1$s</string>
     <string name="gallery_cleaner_untitled">无标题照片</string>
@@ -225,7 +225,7 @@
     <string name="video_cleaner_stats_freed_session">本次会话释放的空间：%1$s</string>
     <string name="video_cleaner_stats_deleted">已删除（所有时间）：%1$d</string>
     <string name="video_cleaner_stats_freed">释放空间（所有时间）：%1$s</string>
-    <string name="video_cleaner_stats_ok">好的</string>
+    <string name="video_cleaner_stats_ok">确定</string>
     <string name="video_cleaner_delete_failed">无法删除选定的视频</string>
     <string name="video_cleaner_untitled">无标题视频</string>
     <string name="video_cleaner_select_all">选择全部</string>

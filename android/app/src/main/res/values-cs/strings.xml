@@ -85,7 +85,7 @@
     <string name="settings_gallery_stats_filtered_size">Filtrovaná velikost: %1$s</string>
     <string name="settings_gallery_stats_no_permission">Udělte fotografiím přístup ke shromažďování statistik</string>
     <string name="settings_gallery_stats_collecting">Sběr statistik…</string>
-    <string name="settings_gallery_stats_ok">OKO</string>
+    <string name="settings_gallery_stats_ok">OK</string>
     <string name="settings_gallery_reset">Obnovit Gallery Cleaner nastavení</string>
     <string name="settings_gallery_reset_done">Gallery Cleaner nastavení obnovena na výchozí hodnoty</string>
     <string name="settings_gallery_reset_hint">Resetuje pořadí, složku obrázků, režim pouze pro nezařazené, filtr data a tipy. Recenzovaná historie není vymazána.</string>
@@ -157,11 +157,11 @@
     <string name="gallery_cleaner_date_range_from">Z</string>
     <string name="gallery_cleaner_date_range_to">Na</string>
     <string name="gallery_cleaner_swipe_left_hint">Odstranit</string>
-    <string name="gallery_cleaner_swipe_right_hint">Udržet</string>
-    <string name="gallery_cleaner_swipe_up_hint">Udržet</string>
+    <string name="gallery_cleaner_swipe_right_hint">Ponechat</string>
+    <string name="gallery_cleaner_swipe_up_hint">Ponechat</string>
     <string name="gallery_cleaner_swipe_down_hint">Odstranit</string>
     <string name="gallery_cleaner_action_delete">Odstranit</string>
-    <string name="gallery_cleaner_action_keep">Udržet</string>
+    <string name="gallery_cleaner_action_keep">Ponechat</string>
     <string name="gallery_cleaner_action_skip">Přeskočit</string>
     <string name="gallery_cleaner_remaining">%1$d ostatní</string>
     <string name="gallery_cleaner_remaining_unreviewed">%1$d Nezařazeno</string>
@@ -173,7 +173,7 @@
     <string name="gallery_cleaner_stats_remaining">Zbývající nezařazené: %1$d</string>
     <string name="gallery_cleaner_stats_deleted">Smazáno (po celou dobu): %1$d</string>
     <string name="gallery_cleaner_stats_freed">Volný prostor (všech dob): %1$s</string>
-    <string name="gallery_cleaner_stats_ok">OKO</string>
+    <string name="gallery_cleaner_stats_ok">OK</string>
     <string name="gallery_cleaner_stats_reset">Obnovit statistiky</string>
     <string name="gallery_cleaner_date_filter">Filtr data</string>
     <string name="gallery_cleaner_date_filter_active">Filtrovat: %1$s – %2$s</string>
@@ -225,7 +225,7 @@
     <string name="video_cleaner_stats_freed_session">Prostor uvolnil tuto relaci: %1$s</string>
     <string name="video_cleaner_stats_deleted">Smazáno (po celou dobu): %1$d</string>
     <string name="video_cleaner_stats_freed">Volný prostor (všech dob): %1$s</string>
-    <string name="video_cleaner_stats_ok">OKO</string>
+    <string name="video_cleaner_stats_ok">OK</string>
     <string name="video_cleaner_delete_failed">Nelze odstranit vybraná videa</string>
     <string name="video_cleaner_untitled">Video bez názvu</string>
     <string name="video_cleaner_select_all">Vybrat vše</string>

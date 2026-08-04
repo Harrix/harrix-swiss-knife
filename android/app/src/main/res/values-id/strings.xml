@@ -162,7 +162,7 @@
     <string name="gallery_cleaner_swipe_down_hint">Hapus</string>
     <string name="gallery_cleaner_action_delete">Hapus</string>
     <string name="gallery_cleaner_action_keep">Simpan</string>
-    <string name="gallery_cleaner_action_skip">Skip</string>
+    <string name="gallery_cleaner_action_skip">Lewati</string>
     <string name="gallery_cleaner_remaining">%1$d tersisa</string>
     <string name="gallery_cleaner_remaining_unreviewed">%1$d belum ditinjau</string>
     <string name="gallery_cleaner_session_stats">Dihapus: %1$d * Dibebaskan: %2$s</string>

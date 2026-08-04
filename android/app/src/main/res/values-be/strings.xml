@@ -85,7 +85,7 @@
     <string name="settings_gallery_stats_filtered_size">Памер адабраных файлаў: %1$s</string>
     <string name="settings_gallery_stats_no_permission">Падайце доступ да фатаграфій для збору статыстыкі</string>
     <string name="settings_gallery_stats_collecting">Збіраць статыстыку…</string>
-    <string name="settings_gallery_stats_ok">OK</string>
+    <string name="settings_gallery_stats_ok">ОК</string>
     <string name="settings_gallery_reset">Скіньце Налады Gallery Cleaner</string>
     <string name="settings_gallery_reset_done">Gallery Cleaner адноўлены да значэнняў па змаўчанні</string>
     <string name="settings_gallery_reset_hint">Скід парадку, тэчкі з выявамі, рэжыму "толькі для прагляду", фільтра дат і падказак. Гісторыя праглядаў не чысціцца.</string>
@@ -157,11 +157,11 @@
     <string name="gallery_cleaner_date_range_from">Ад</string>
     <string name="gallery_cleaner_date_range_to">К</string>
     <string name="gallery_cleaner_swipe_left_hint">Выдаліць</string>
-    <string name="gallery_cleaner_swipe_right_hint">Пакінуць</string>
-    <string name="gallery_cleaner_swipe_up_hint">Пакінуць</string>
+    <string name="gallery_cleaner_swipe_right_hint">Захаваць</string>
+    <string name="gallery_cleaner_swipe_up_hint">Захаваць</string>
     <string name="gallery_cleaner_swipe_down_hint">Выдаліць</string>
     <string name="gallery_cleaner_action_delete">Выдаліць</string>
-    <string name="gallery_cleaner_action_keep">Пакінуць</string>
+    <string name="gallery_cleaner_action_keep">Захаваць</string>
     <string name="gallery_cleaner_action_skip">Прапусціць</string>
     <string name="gallery_cleaner_remaining">Засталося: %1$d</string>
     <string name="gallery_cleaner_remaining_unreviewed">%1$d ня прагледжана</string>
@@ -173,7 +173,7 @@
     <string name="gallery_cleaner_stats_remaining">Засталося непрагледжаных: %1$d</string>
     <string name="gallery_cleaner_stats_deleted">Выдалена (за ўвесь час): %1$d</string>
     <string name="gallery_cleaner_stats_freed">Вызвалена месца (за ўвесь час): %1$s</string>
-    <string name="gallery_cleaner_stats_ok">OK</string>
+    <string name="gallery_cleaner_stats_ok">ОК</string>
     <string name="gallery_cleaner_stats_reset">Скід статыстыкі</string>
     <string name="gallery_cleaner_date_filter">Фільтр па даце</string>
     <string name="gallery_cleaner_date_filter_active">Фільтр:%1$s –%2$s</string>
@@ -225,7 +225,7 @@
     <string name="video_cleaner_stats_freed_session">Вызвалена месца за гэты сеанс: %1$s</string>
     <string name="video_cleaner_stats_deleted">Выдалена (за ўвесь час): %1$d</string>
     <string name="video_cleaner_stats_freed">Вызвалена месца (за ўвесь час): %1$s</string>
-    <string name="video_cleaner_stats_ok">OK</string>
+    <string name="video_cleaner_stats_ok">ОК</string>
     <string name="video_cleaner_delete_failed">Не атрымалася выдаліць выбраныя відэа</string>
     <string name="video_cleaner_untitled">Відэа без назвы</string>
     <string name="video_cleaner_select_all">Выбраць усе</string>

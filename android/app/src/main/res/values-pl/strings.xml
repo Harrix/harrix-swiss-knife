@@ -157,12 +157,12 @@
     <string name="gallery_cleaner_date_range_from">Od</string>
     <string name="gallery_cleaner_date_range_to">Do</string>
     <string name="gallery_cleaner_swipe_left_hint">Usunąć</string>
-    <string name="gallery_cleaner_swipe_right_hint">Keep</string>
-    <string name="gallery_cleaner_swipe_up_hint">Keep</string>
+    <string name="gallery_cleaner_swipe_right_hint">Zachowaj</string>
+    <string name="gallery_cleaner_swipe_up_hint">Zachowaj</string>
     <string name="gallery_cleaner_swipe_down_hint">Usunąć</string>
     <string name="gallery_cleaner_action_delete">Usunąć</string>
-    <string name="gallery_cleaner_action_keep">Keep</string>
-    <string name="gallery_cleaner_action_skip">Skip</string>
+    <string name="gallery_cleaner_action_keep">Zachowaj</string>
+    <string name="gallery_cleaner_action_skip">Pomiń</string>
     <string name="gallery_cleaner_remaining">%1$d pozostały</string>
     <string name="gallery_cleaner_remaining_unreviewed">%1$d unreviewed</string>
     <string name="gallery_cleaner_session_stats">Usunięte: %1$d * Freed: %2$s</string>

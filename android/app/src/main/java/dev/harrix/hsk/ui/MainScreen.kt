@@ -281,7 +281,7 @@ fun MainScreen(
                                                         stringResource(
                                                             R.string.nav_settings,
                                                         ),
-                                                        maxLines = 1,
+                                                        maxLines = 2,
                                                     )
                                                 },
                                                 leadingIcon = {

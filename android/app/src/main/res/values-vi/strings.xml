@@ -157,11 +157,11 @@
     <string name="gallery_cleaner_date_range_from">Từ</string>
     <string name="gallery_cleaner_date_range_to">Để</string>
     <string name="gallery_cleaner_swipe_left_hint">Xóa</string>
-    <string name="gallery_cleaner_swipe_right_hint">Giữ</string>
-    <string name="gallery_cleaner_swipe_up_hint">Giữ</string>
+    <string name="gallery_cleaner_swipe_right_hint">Lưu</string>
+    <string name="gallery_cleaner_swipe_up_hint">Lưu</string>
     <string name="gallery_cleaner_swipe_down_hint">Xóa</string>
     <string name="gallery_cleaner_action_delete">Xóa</string>
-    <string name="gallery_cleaner_action_keep">Giữ</string>
+    <string name="gallery_cleaner_action_keep">Lưu</string>
     <string name="gallery_cleaner_action_skip">Bỏ qua</string>
     <string name="gallery_cleaner_remaining">%1$d còn lại</string>
     <string name="gallery_cleaner_remaining_unreviewed">%1$d chưa xem xét</string>

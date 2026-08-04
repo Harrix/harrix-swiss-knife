@@ -1000,7 +1000,7 @@ fun GalleryCleanerScreen(
                                                 text = stringResource(
                                                     R.string.gallery_cleaner_date_filter,
                                                 ),
-                                                maxLines = 1,
+                                                maxLines = 2,
                                             )
                                         },
                                         leadingIcon = {
@@ -1021,7 +1021,7 @@ fun GalleryCleanerScreen(
                                                     text = stringResource(
                                                         R.string.gallery_cleaner_filter_shoot_day,
                                                     ),
-                                                    maxLines = 1,
+                                                    maxLines = 2,
                                                 )
                                             },
                                             leadingIcon = {
@@ -1046,7 +1046,7 @@ fun GalleryCleanerScreen(
                                                     text = stringResource(
                                                         R.string.gallery_cleaner_clear_date_filter,
                                                     ),
-                                                    maxLines = 1,
+                                                    maxLines = 2,
                                                 )
                                             },
                                             leadingIcon = {
@@ -1076,7 +1076,7 @@ fun GalleryCleanerScreen(
                                                         R.string.gallery_cleaner_enable_unreviewed_only
                                                     },
                                                 ),
-                                                maxLines = 1,
+                                                maxLines = 2,
                                             )
                                         },
                                         leadingIcon = {
@@ -1102,7 +1102,7 @@ fun GalleryCleanerScreen(
                                     )
                                     DropdownMenuItem(
                                         text = {
-                                            AutoFitText(text = stringResource(R.string.gallery_cleaner_stats), maxLines = 1)
+                                            AutoFitText(text = stringResource(R.string.gallery_cleaner_stats), maxLines = 2)
                                         },
                                         leadingIcon = {
                                             Icon(
@@ -1117,7 +1117,7 @@ fun GalleryCleanerScreen(
                                     )
                                     DropdownMenuItem(
                                         text = {
-                                            AutoFitText(text = stringResource(R.string.gallery_cleaner_settings), maxLines = 1)
+                                            AutoFitText(text = stringResource(R.string.gallery_cleaner_settings), maxLines = 2)
                                         },
                                         leadingIcon = {
                                             Icon(

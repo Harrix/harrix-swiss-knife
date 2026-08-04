@@ -99,10 +99,9 @@ private fun DateFilterSwitchRow(
 ) {
     ListItem(
         headlineContent = {
-            AutoFitText(
+            Text(
                 text = title,
                 style = MaterialTheme.typography.bodyLarge,
-                maxLines = 2,
             )
         },
         trailingContent = {
@@ -461,7 +460,7 @@ private fun SimpleDropdownField(
                     text = {
                         AutoFitText(
                             text = option,
-                            maxLines = 1,
+                            maxLines = 2,
                         )
                     },
                     onClick = {

@@ -157,11 +157,11 @@
     <string name="gallery_cleaner_date_range_from">Van</string>
     <string name="gallery_cleaner_date_range_to">Naar</string>
     <string name="gallery_cleaner_swipe_left_hint">Verwijderen</string>
-    <string name="gallery_cleaner_swipe_right_hint">Houden</string>
-    <string name="gallery_cleaner_swipe_up_hint">Houden</string>
+    <string name="gallery_cleaner_swipe_right_hint">Bewaren</string>
+    <string name="gallery_cleaner_swipe_up_hint">Bewaren</string>
     <string name="gallery_cleaner_swipe_down_hint">Verwijderen</string>
     <string name="gallery_cleaner_action_delete">Verwijderen</string>
-    <string name="gallery_cleaner_action_keep">Houden</string>
+    <string name="gallery_cleaner_action_keep">Bewaren</string>
     <string name="gallery_cleaner_action_skip">Overslaan</string>
     <string name="gallery_cleaner_remaining">%1$d overige</string>
     <string name="gallery_cleaner_remaining_unreviewed">%1$d niet bekeken</string>

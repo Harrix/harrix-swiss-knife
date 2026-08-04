@@ -162,7 +162,7 @@
     <string name="gallery_cleaner_swipe_down_hint">Șterge</string>
     <string name="gallery_cleaner_action_delete">Șterge</string>
     <string name="gallery_cleaner_action_keep">Păstrați</string>
-    <string name="gallery_cleaner_action_skip">Skip</string>
+    <string name="gallery_cleaner_action_skip">Omite</string>
     <string name="gallery_cleaner_remaining">%1$d rămase</string>
     <string name="gallery_cleaner_remaining_unreviewed">%1$d nerevizuit</string>
     <string name="gallery_cleaner_session_stats">Eliminat: %1$d * Eliberat: %2$s</string>

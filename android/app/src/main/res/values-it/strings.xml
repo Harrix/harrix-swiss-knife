@@ -158,12 +158,12 @@
     <string name="gallery_cleaner_date_range_from">Da</string>
     <string name="gallery_cleaner_date_range_to">A</string>
     <string name="gallery_cleaner_swipe_left_hint">Eliminare</string>
-    <string name="gallery_cleaner_swipe_right_hint">Mantenere</string>
-    <string name="gallery_cleaner_swipe_up_hint">Mantenere</string>
+    <string name="gallery_cleaner_swipe_right_hint">Mantieni</string>
+    <string name="gallery_cleaner_swipe_up_hint">Mantieni</string>
     <string name="gallery_cleaner_swipe_down_hint">Eliminare</string>
     <string name="gallery_cleaner_action_delete">Eliminare</string>
-    <string name="gallery_cleaner_action_keep">Mantenere</string>
-    <string name="gallery_cleaner_action_skip">Saltare</string>
+    <string name="gallery_cleaner_action_keep">Mantieni</string>
+    <string name="gallery_cleaner_action_skip">Salta</string>
     <string name="gallery_cleaner_remaining">%1$d rimanente</string>
     <string name="gallery_cleaner_remaining_unreviewed">%1$d non recensito</string>
     <string name="gallery_cleaner_session_stats">Eliminato: %1$d · Liberato: %2$s</string>

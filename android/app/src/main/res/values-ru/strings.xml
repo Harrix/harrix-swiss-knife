@@ -85,7 +85,7 @@
     <string name="settings_gallery_stats_filtered_size">Отфильтрованный размер: %1$s</string>
     <string name="settings_gallery_stats_no_permission">Предоставьте доступ к фотографиям для сбора статистики</string>
     <string name="settings_gallery_stats_collecting">Собираем статистику…</string>
-    <string name="settings_gallery_stats_ok">ХОРОШО</string>
+    <string name="settings_gallery_stats_ok">ОК</string>
     <string name="settings_gallery_reset">Сбросить настройки Gallery Cleaner</string>
     <string name="settings_gallery_reset_done">Настройки Gallery Cleaner восстановлены до значений по умолчанию</string>
     <string name="settings_gallery_reset_hint">Сбрасывает порядок, папку изображений, режим «только для непросмотренных», фильтр по дате и советы. Просмотренная история не очищается.</string>
@@ -157,12 +157,12 @@
     <string name="gallery_cleaner_date_range_from">От</string>
     <string name="gallery_cleaner_date_range_to">К</string>
     <string name="gallery_cleaner_swipe_left_hint">Удалить</string>
-    <string name="gallery_cleaner_swipe_right_hint">Держать</string>
-    <string name="gallery_cleaner_swipe_up_hint">Держать</string>
+    <string name="gallery_cleaner_swipe_right_hint">Сохранить</string>
+    <string name="gallery_cleaner_swipe_up_hint">Сохранить</string>
     <string name="gallery_cleaner_swipe_down_hint">Удалить</string>
     <string name="gallery_cleaner_action_delete">Удалить</string>
-    <string name="gallery_cleaner_action_keep">Держать</string>
-    <string name="gallery_cleaner_action_skip">Пропускать</string>
+    <string name="gallery_cleaner_action_keep">Сохранить</string>
+    <string name="gallery_cleaner_action_skip">Пропустить</string>
     <string name="gallery_cleaner_remaining">осталось %1$d</string>
     <string name="gallery_cleaner_remaining_unreviewed">%1$d не проверено</string>
     <string name="gallery_cleaner_session_stats">Удалено: %1$d · Освобождено: %2$s</string>
@@ -173,7 +173,7 @@
     <string name="gallery_cleaner_stats_remaining">Осталось нерассмотренным: %1$d</string>
     <string name="gallery_cleaner_stats_deleted">Удалено (всегда): %1$d.</string>
     <string name="gallery_cleaner_stats_freed">Свободно место (за все время): %1$s</string>
-    <string name="gallery_cleaner_stats_ok">ХОРОШО</string>
+    <string name="gallery_cleaner_stats_ok">ОК</string>
     <string name="gallery_cleaner_stats_reset">Сбросить статистику</string>
     <string name="gallery_cleaner_date_filter">Фильтр по дате</string>
     <string name="gallery_cleaner_date_filter_active">Фильтр: %1$s – %2$s</string>
@@ -225,7 +225,7 @@
     <string name="video_cleaner_stats_freed_session">В этом сеансе освободилось место: %1$s.</string>
     <string name="video_cleaner_stats_deleted">Удалено (всегда): %1$d.</string>
     <string name="video_cleaner_stats_freed">Свободно место (за все время): %1$s</string>
-    <string name="video_cleaner_stats_ok">ХОРОШО</string>
+    <string name="video_cleaner_stats_ok">ОК</string>
     <string name="video_cleaner_delete_failed">Не удалось удалить выбранные видео.</string>
     <string name="video_cleaner_untitled">Видео без названия</string>
     <string name="video_cleaner_select_all">Выбрать все</string>

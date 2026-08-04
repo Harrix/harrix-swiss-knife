@@ -349,17 +349,15 @@ private fun SettingsHubRow(
 ) {
     ListItem(
         headlineContent = {
-            AutoFitText(
+            Text(
                 text = title,
-                maxLines = 1,
             )
         },
         supportingContent = {
-            AutoFitText(
+            Text(
                 text = summary,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 2,
             )
         },
         leadingContent = {
@@ -446,7 +444,7 @@ private fun EssentialSettingsSection(
                         text = {
                             AutoFitText(
                                 text = optionLabel,
-                                maxLines = 1,
+                                maxLines = 2,
                             )
                         },
                         onClick = {
@@ -734,55 +732,48 @@ private fun GalleryCleanerSettingsSection(
                 title = { AutoFitText(text = stringResource(R.string.settings_gallery_stats_title), maxLines = 2) },
                 text = {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        AutoFitText(
+                        Text(
                             text = stringResource(
                                 R.string.settings_gallery_stats_total,
                                 stats.totalCount,
                             ),
-                            maxLines = 1,
                         )
-                        AutoFitText(
+                        Text(
                             text = stringResource(
                                 R.string.settings_gallery_stats_size,
                                 CameraGalleryRepository.formatFileSize(stats.totalBytes),
                             ),
-                            maxLines = 1,
                         )
-                        AutoFitText(
+                        Text(
                             text = stringResource(
                                 R.string.settings_gallery_stats_reviewed_history,
                                 stats.reviewedHistoryCount,
                             ),
-                            maxLines = 1,
                         )
-                        AutoFitText(
+                        Text(
                             text = stringResource(
                                 R.string.settings_gallery_stats_reviewed_in_folder,
                                 stats.reviewedInFolderCount,
                             ),
-                            maxLines = 1,
                         )
-                        AutoFitText(
+                        Text(
                             text = stringResource(
                                 R.string.settings_gallery_stats_unreviewed,
                                 stats.unreviewedCount,
                             ),
-                            maxLines = 1,
                         )
                         if (stats.filteredCount != null && stats.filteredBytes != null) {
-                            AutoFitText(
+                            Text(
                                 text = stringResource(
                                     R.string.settings_gallery_stats_filtered,
                                     stats.filteredCount,
                                 ),
-                                maxLines = 1,
                             )
-                            AutoFitText(
+                            Text(
                                 text = stringResource(
                                     R.string.settings_gallery_stats_filtered_size,
                                     CameraGalleryRepository.formatFileSize(stats.filteredBytes),
                                 ),
-                                maxLines = 1,
                             )
                         }
                     }
@@ -827,7 +818,7 @@ private fun GalleryCleanerSettingsSection(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             val folderLabel = MediaFolderPaths.displayLabel(imagesRelativePath)
-            AutoFitText(
+            Text(
                 text =
                 stringResource(R.string.settings_gallery_images_folder_current, folderLabel) +
                     if (imagesRelativePath == null) {
@@ -837,7 +828,6 @@ private fun GalleryCleanerSettingsSection(
                     },
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 2,
             )
             val folderButtonPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp)
             if (isCompactWidth()) {
@@ -1066,20 +1056,18 @@ private fun SettingsSwitchRow(
 ) {
     ListItem(
         headlineContent = {
-            AutoFitText(
+            Text(
                 text = title,
                 style = MaterialTheme.typography.bodyLarge,
-                maxLines = 2,
             )
         },
         supportingContent =
         description?.let {
             {
-                AutoFitText(
+                Text(
                     text = it,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 4,
                 )
             }
         },
@@ -1408,7 +1396,7 @@ private fun SimpleDropdownField(
                     text = {
                         AutoFitText(
                             text = option,
-                            maxLines = 1,
+                            maxLines = 2,
                         )
                     },
                     onClick = {

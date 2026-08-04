@@ -501,7 +501,7 @@ fun VideoCleanerScreen(
                         ) {
                             VideoSort.entries.forEach { option ->
                                 DropdownMenuItem(
-                                    text = { AutoFitText(text = stringResource(option.labelRes), maxLines = 1) },
+                                    text = { AutoFitText(text = stringResource(option.labelRes), maxLines = 2) },
                                     leadingIcon = {
                                         Icon(
                                             imageVector = option.icon,
@@ -517,7 +517,7 @@ fun VideoCleanerScreen(
                             HorizontalDivider()
                             DropdownMenuItem(
                                 text = {
-                                    AutoFitText(text = stringResource(R.string.video_cleaner_stats), maxLines = 1)
+                                    AutoFitText(text = stringResource(R.string.video_cleaner_stats), maxLines = 2)
                                 },
                                 leadingIcon = {
                                     Icon(
@@ -532,7 +532,7 @@ fun VideoCleanerScreen(
                             )
                             DropdownMenuItem(
                                 text = {
-                                    AutoFitText(text = stringResource(R.string.video_cleaner_settings), maxLines = 1)
+                                    AutoFitText(text = stringResource(R.string.video_cleaner_settings), maxLines = 2)
                                 },
                                 leadingIcon = {
                                     Icon(
@@ -977,7 +977,7 @@ private fun VideoGalleryItem(
             onDismissRequest = { menuExpanded = false },
         ) {
             DropdownMenuItem(
-                text = { AutoFitText(text = stringResource(R.string.video_cleaner_play), maxLines = 1) },
+                text = { AutoFitText(text = stringResource(R.string.video_cleaner_play), maxLines = 2) },
                 onClick = {
                     menuExpanded = false
                     onPlay()
@@ -990,7 +990,7 @@ private fun VideoGalleryItem(
                 },
             )
             DropdownMenuItem(
-                text = { AutoFitText(text = stringResource(R.string.video_cleaner_share), maxLines = 1) },
+                text = { AutoFitText(text = stringResource(R.string.video_cleaner_share), maxLines = 2) },
                 onClick = {
                     menuExpanded = false
                     onShare()

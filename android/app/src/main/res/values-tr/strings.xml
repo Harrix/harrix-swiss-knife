@@ -85,7 +85,7 @@
     <string name="settings_gallery_stats_filtered_size">Filtrelenmiş boyut: %1$s</string>
     <string name="settings_gallery_stats_no_permission">İstatistik toplamak için fotoğraflara erişim izni verin</string>
     <string name="settings_gallery_stats_collecting">İstatistik toplama…</string>
-    <string name="settings_gallery_stats_ok">tamam</string>
+    <string name="settings_gallery_stats_ok">Tamam</string>
     <string name="settings_gallery_reset">Gallery Cleaner ayarlarını sıfırla</string>
     <string name="settings_gallery_reset_done">Gallery Cleaner ayarları varsayılanlara geri yüklendi</string>
     <string name="settings_gallery_reset_hint">Siparişi, resimler klasörünü, yalnızca görüntülenmeyen modu, tarih filtresini ve ipuçlarını sıfırlar. Gözden geçirilen geçmiş temizlenmedi.</string>
@@ -157,12 +157,12 @@
     <string name="gallery_cleaner_date_range_from">-den</string>
     <string name="gallery_cleaner_date_range_to">-e doğru</string>
     <string name="gallery_cleaner_swipe_left_hint">Silmek</string>
-    <string name="gallery_cleaner_swipe_right_hint">Tutmak</string>
-    <string name="gallery_cleaner_swipe_up_hint">Tutmak</string>
+    <string name="gallery_cleaner_swipe_right_hint">Sakla</string>
+    <string name="gallery_cleaner_swipe_up_hint">Sakla</string>
     <string name="gallery_cleaner_swipe_down_hint">Silmek</string>
     <string name="gallery_cleaner_action_delete">Silmek</string>
-    <string name="gallery_cleaner_action_keep">Tutmak</string>
-    <string name="gallery_cleaner_action_skip">Atlamak</string>
+    <string name="gallery_cleaner_action_keep">Sakla</string>
+    <string name="gallery_cleaner_action_skip">Atla</string>
     <string name="gallery_cleaner_remaining">%1$d kaldı</string>
     <string name="gallery_cleaner_remaining_unreviewed">%1$d görüntülenmedi</string>
     <string name="gallery_cleaner_session_stats">Silinen: %1$d · Serbest bırakılan: %2$s</string>
@@ -173,7 +173,7 @@
     <string name="gallery_cleaner_stats_remaining">İncelenmemiş kalan sayı: %1$d</string>
     <string name="gallery_cleaner_stats_deleted">Silinenler (tüm zamanlar): %1$d</string>
     <string name="gallery_cleaner_stats_freed">Boşaltılan alan (tüm zamanlar): %1$s</string>
-    <string name="gallery_cleaner_stats_ok">tamam</string>
+    <string name="gallery_cleaner_stats_ok">Tamam</string>
     <string name="gallery_cleaner_stats_reset">İstatistikleri sıfırla</string>
     <string name="gallery_cleaner_date_filter">Tarih filtresi</string>
     <string name="gallery_cleaner_date_filter_active">Filtre: %1$s – %2$s</string>
@@ -225,7 +225,7 @@
     <string name="video_cleaner_stats_freed_session">Bu oturumda boşaltılan alan: %1$s</string>
     <string name="video_cleaner_stats_deleted">Silinmiş (tüm zamanlar): %1$d</string>
     <string name="video_cleaner_stats_freed">Boşaltılan alan (tüm zamanlar): %1$s</string>
-    <string name="video_cleaner_stats_ok">tamam</string>
+    <string name="video_cleaner_stats_ok">Tamam</string>
     <string name="video_cleaner_delete_failed">Seçilen videolar silinemedi</string>
     <string name="video_cleaner_untitled">Başlıksız video</string>
     <string name="video_cleaner_select_all">Tümünü seç</string>
