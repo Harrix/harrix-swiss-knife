@@ -91,6 +91,7 @@
     <string name="nav_drawer_home">Главная</string>
     <string name="nav_drawer_gallery_cleaner">Gallery Cleaner</string>
     <string name="nav_drawer_video_cleaner">Video Cleaner</string>
+    <string name="nav_drawer_photo_editor">Photo Editor</string>
     <string name="nav_drawer_about">О программе</string>
     <string name="about_title">О программе</string>
     <string name="about_back">Назад</string>
@@ -103,6 +104,15 @@
     <string name="about_github_label">GitHub</string>
     <string name="gallery_cleaner_card_description">Просмотр фотографий с камеры. Проведите пальцем по экрану или коснитесь, чтобы удалить или сохранить.</string>
     <string name="video_cleaner_card_description">Список видео с камеры по дате и удаление выбранных.</string>
+    <string name="photo_editor_card_description">Обрезка и выравнивание фото. Откройте из приложения или поделитесь изображением.</string>
+    <string name="photo_editor_title">Photo Editor</string>
+    <string name="photo_editor_close">Выход Photo Editor</string>
+    <string name="photo_editor_open_photo">Открыть фотографию</string>
+    <string name="photo_editor_empty_title">Фотография не открыта</string>
+    <string name="photo_editor_empty_message">Выберите фотографию для обрезки и выравнивания или поделитесь изображением с этим приложением.</string>
+    <string name="photo_editor_open_failed">Не удалось открыть фотографию</string>
+    <string name="photo_editor_saved">Фотография сохранена</string>
+    <string name="photo_editor_saved_as_copy">Сохранена копия в Pictures/HSK</string>
     <string name="gallery_cleaner_title">Gallery Cleaner</string>
     <string name="gallery_cleaner_close">Выход Gallery Cleaner</string>
     <string name="gallery_cleaner_intro_title">Как это работает</string>

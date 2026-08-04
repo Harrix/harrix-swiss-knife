@@ -1,5 +1,6 @@
 package dev.harrix.hsk.gallery
 
+import android.content.ContentValues
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -9,10 +10,15 @@ import android.graphics.ImageDecoder
 import android.graphics.Matrix
 import android.net.Uri
 import android.os.Build
+import android.os.Environment
+import android.provider.MediaStore
 import androidx.exifinterface.media.ExifInterface
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import kotlin.math.abs
 import kotlin.math.ceil
 import kotlin.math.hypot
@@ -106,6 +112,15 @@ class PhotoEditSaver(
         data object Failed : RestoreResult()
     }
 
+    sealed class CopyResult {
+        data class Success(
+            val uri: Uri,
+            val sizeBytes: Long,
+        ) : CopyResult()
+
+        data object Failed : CopyResult()
+    }
+
     fun save(
         photoId: Long,
         uri: Uri,
@@ -118,33 +133,9 @@ class PhotoEditSaver(
          */
         existingUndo: PendingEditUndo? = null,
     ): SaveResult {
-        val oriented =
-            decodeOrientedBitmap(uri) ?: return SaveResult.Failed
-        // Editor already applied the chosen aspect (original / 90° / free).
-        val squareCrop = clampCropRectFree(crop)
-        val workspace =
-            renderRotatedOnSquare(oriented, rotationDegrees) ?: run {
-                oriented.recycle()
-                return SaveResult.Failed
-            }
-        if (workspace !== oriented) {
-            oriented.recycle()
-        }
-        val cropped =
-            cropBitmap(workspace, squareCrop) ?: run {
-                workspace.recycle()
-                return SaveResult.Failed
-            }
-        if (cropped !== workspace) {
-            workspace.recycle()
-        }
-
         val encoded =
-            encodeBitmap(cropped, mimeType) ?: run {
-                cropped.recycle()
-                return SaveResult.Failed
-            }
-        cropped.recycle()
+            renderEditedBytes(uri, mimeType, rotationDegrees, crop)
+                ?: return SaveResult.Failed
 
         val reuseBackup =
             existingUndo != null &&
@@ -170,6 +161,118 @@ class PhotoEditSaver(
                 written
             }
         }
+    }
+
+    /**
+     * Writes the edited image as a new file under Pictures/HSK when in-place overwrite
+     * is not possible.
+     */
+    fun saveAsCopy(
+        sourceUri: Uri,
+        mimeType: String?,
+        rotationDegrees: Float,
+        crop: NormalizedCropRect,
+        displayName: String? = null,
+    ): CopyResult {
+        val encoded =
+            renderEditedBytes(sourceUri, mimeType, rotationDegrees, crop)
+                ?: return CopyResult.Failed
+        val resolvedMime = resolvedOutputMime(mimeType)
+        val extension = extensionForMime(resolvedMime)
+        val baseName =
+            displayName
+                ?.substringBeforeLast('.')
+                ?.takeIf { it.isNotBlank() }
+                ?: "EDIT_${SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())}"
+        val fileName = "$baseName.$extension"
+        val values =
+            ContentValues().apply {
+                put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
+                put(MediaStore.MediaColumns.MIME_TYPE, resolvedMime)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    put(
+                        MediaStore.MediaColumns.RELATIVE_PATH,
+                        "${Environment.DIRECTORY_PICTURES}/HSK",
+                    )
+                    put(MediaStore.MediaColumns.IS_PENDING, 1)
+                }
+            }
+        val collection =
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
+            } else {
+                MediaStore.Images.Media.EXTERNAL_CONTENT_URI
+            }
+        val outUri =
+            try {
+                context.contentResolver.insert(collection, values)
+            } catch (_: Exception) {
+                null
+            } ?: return CopyResult.Failed
+        return try {
+            context.contentResolver.openOutputStream(outUri)?.use { output ->
+                output.write(encoded)
+                output.flush()
+            } ?: run {
+                context.contentResolver.delete(outUri, null, null)
+                return CopyResult.Failed
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                values.clear()
+                values.put(MediaStore.MediaColumns.IS_PENDING, 0)
+                context.contentResolver.update(outUri, values, null, null)
+            }
+            CopyResult.Success(uri = outUri, sizeBytes = encoded.size.toLong())
+        } catch (_: Exception) {
+            runCatching { context.contentResolver.delete(outUri, null, null) }
+            CopyResult.Failed
+        }
+    }
+
+    private fun renderEditedBytes(
+        uri: Uri,
+        mimeType: String?,
+        rotationDegrees: Float,
+        crop: NormalizedCropRect,
+    ): ByteArray? {
+        val oriented = decodeOrientedBitmap(uri) ?: return null
+        // Editor already applied the chosen aspect (original / 90° / free).
+        val squareCrop = clampCropRectFree(crop)
+        val workspace =
+            renderRotatedOnSquare(oriented, rotationDegrees) ?: run {
+                oriented.recycle()
+                return null
+            }
+        if (workspace !== oriented) {
+            oriented.recycle()
+        }
+        val cropped =
+            cropBitmap(workspace, squareCrop) ?: run {
+                workspace.recycle()
+                return null
+            }
+        if (cropped !== workspace) {
+            workspace.recycle()
+        }
+        val encoded =
+            encodeBitmap(cropped, mimeType) ?: run {
+                cropped.recycle()
+                return null
+            }
+        cropped.recycle()
+        return encoded
+    }
+
+    private fun resolvedOutputMime(mimeType: String?): String = when {
+        mimeType.equals("image/png", ignoreCase = true) -> "image/png"
+        mimeType.equals("image/webp", ignoreCase = true) -> "image/webp"
+        else -> "image/jpeg"
+    }
+
+    private fun extensionForMime(mimeType: String): String = when (mimeType.lowercase(Locale.US)) {
+        "image/png" -> "png"
+        "image/webp" -> "webp"
+        else -> "jpg"
     }
 
     fun restoreFromUndo(undo: PendingEditUndo): RestoreResult {
@@ -613,6 +716,10 @@ class PhotoEditSaver(
         private const val CropInsetMinHalf = 0.02f
         private const val CropInsetEpsilon = 1e-4f
         private const val CropInsetRectEpsilon = 0.004f
+
+        /** True when [MediaStore.createWriteRequest] can be used for [uri] on this API level. */
+        fun canRequestMediaStoreWrite(uri: Uri): Boolean = Build.VERSION.SDK_INT >= Build.VERSION_CODES.R &&
+            uri.authority == MediaStore.AUTHORITY
 
         /**
          * Largest square that fits in the viewport (centered). Crop and rotation use this

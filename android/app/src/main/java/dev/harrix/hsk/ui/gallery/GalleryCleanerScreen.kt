@@ -124,7 +124,6 @@ import dev.harrix.hsk.gallery.GalleryDateFilter
 import dev.harrix.hsk.gallery.GalleryPermissions
 import dev.harrix.hsk.gallery.GalleryReviewOrder
 import dev.harrix.hsk.gallery.GallerySessionUndo
-import dev.harrix.hsk.gallery.NormalizedCropRect
 import dev.harrix.hsk.gallery.PendingEditUndo
 import dev.harrix.hsk.gallery.PhotoEditSaver
 import dev.harrix.hsk.ui.CompactBottomActionButton
@@ -193,13 +192,9 @@ fun GalleryCleanerScreen(
     var sessionFreedBytes by viewModel.sessionFreedBytes
     var showStatsDialog by viewModel.showStatsDialog
     var isEditing by viewModel.isEditing
-    var editRotationDegrees by viewModel.editRotationDegrees
-    var editCropRect by viewModel.editCropRect
     var unreviewedCountIgnoringDateFilter by viewModel.unreviewedCountIgnoringDateFilter
     var editImageRevision by viewModel.editImageRevision
-    var isSavingEdit by viewModel.isSavingEdit
     var pendingWritePhoto by viewModel.pendingWritePhoto
-    var pendingWriteKind by viewModel.pendingWriteKind
 
     fun leaveCleaner() {
         viewModel.resetSession()
@@ -489,28 +484,17 @@ fun GalleryCleanerScreen(
         }
 
     var writeLauncherPending by remember {
-        mutableStateOf<((CameraPhoto) -> Unit)?>(null)
+        mutableStateOf<(() -> Unit)?>(null)
     }
     val writeLauncher =
         rememberLauncherForActivityResult(
             ActivityResultContracts.StartIntentSenderForResult(),
         ) { result ->
-            val photo = pendingWritePhoto
-            val kind = pendingWriteKind
             pendingWritePhoto = null
-            pendingWriteKind = null
-            if (result.resultCode == Activity.RESULT_OK && photo != null) {
-                writeLauncherPending?.invoke(photo)
+            if (result.resultCode == Activity.RESULT_OK) {
+                writeLauncherPending?.invoke()
             } else {
-                isSavingEdit = false
-                statusMessage =
-                    when (kind) {
-                        PendingWriteKind.RestoreEdit ->
-                            context.getString(R.string.gallery_cleaner_undo_failed)
-
-                        else ->
-                            context.getString(R.string.gallery_cleaner_edit_save_failed)
-                    }
+                statusMessage = context.getString(R.string.gallery_cleaner_undo_failed)
             }
             writeLauncherPending = null
         }
@@ -520,20 +504,12 @@ fun GalleryCleanerScreen(
             return
         }
         isEditing = true
-        editRotationDegrees = 0f
-        editCropRect = NormalizedCropRect.Full
         statusMessage = null
         menuExpanded = false
     }
 
     fun exitEditMode() {
         isEditing = false
-        editRotationDegrees = 0f
-        editCropRect = NormalizedCropRect.Full
-        isSavingEdit = false
-        pendingWritePhoto = null
-        pendingWriteKind = null
-        writeLauncherPending = null
         statusMessage = null
     }
 
@@ -581,56 +557,6 @@ fun GalleryCleanerScreen(
         cardResetKey += 1
         exitEditMode()
         statusMessage = null
-    }
-
-    fun performSaveEdit(
-        photo: CameraPhoto,
-        requestWriteIfNeeded: Boolean,
-    ) {
-        isSavingEdit = true
-        statusMessage = null
-        scope.launch {
-            val result =
-                withContext(Dispatchers.IO) {
-                    photoEditSaver.save(
-                        photoId = photo.id,
-                        uri = photo.uri,
-                        mimeType = photo.mimeType,
-                        rotationDegrees = editRotationDegrees,
-                        crop = editCropRect,
-                        existingUndo = existingEditUndo(photo.id),
-                    )
-                }
-            when (result) {
-                is PhotoEditSaver.SaveResult.Success -> {
-                    applySavedPhoto(
-                        photo = photo,
-                        sizeBytes = result.sizeBytes,
-                        keepEditUndo = result.backupCreated,
-                    )
-                }
-
-                PhotoEditSaver.SaveResult.NeedsWritePermission -> {
-                    if (requestWriteIfNeeded && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                        pendingWritePhoto = photo
-                        pendingWriteKind = PendingWriteKind.SaveEdit
-                        writeLauncherPending = { grantedPhoto ->
-                            performSaveEdit(grantedPhoto, requestWriteIfNeeded = false)
-                        }
-                        val sender = repository.createWriteRequest(photo.uri)
-                        writeLauncher.launch(IntentSenderRequest.Builder(sender).build())
-                    } else {
-                        isSavingEdit = false
-                        statusMessage = context.getString(R.string.gallery_cleaner_edit_save_failed)
-                    }
-                }
-
-                PhotoEditSaver.SaveResult.Failed -> {
-                    isSavingEdit = false
-                    statusMessage = context.getString(R.string.gallery_cleaner_edit_save_failed)
-                }
-            }
-        }
     }
 
     fun applyRestoredEdit(undo: PendingEditUndo) {
@@ -681,7 +607,6 @@ fun GalleryCleanerScreen(
                             return@launch
                         }
                         pendingWritePhoto = photo
-                        pendingWriteKind = PendingWriteKind.RestoreEdit
                         writeLauncherPending = {
                             performUndoEdit(undo, requestWriteIfNeeded = false)
                         }
@@ -1210,7 +1135,7 @@ fun GalleryCleanerScreen(
                         isEditing = isEditing,
                         canEditPhoto = canEditPhoto,
                         canUndo = canUndo,
-                        isSavingEdit = isSavingEdit,
+                        isSavingEdit = false,
                         onCrop = { enterEditMode() },
                         onRotate = { enterEditMode() },
                         onShare = { currentPhoto?.let { sharePhoto(it) } },
@@ -1325,18 +1250,21 @@ fun GalleryCleanerScreen(
                 else -> {
                     val photo = currentPhoto!!
                     if (isEditing) {
-                        PhotoCropEditor(
+                        EditablePhotoHost(
                             photo = photo,
-                            rotationDegrees = editRotationDegrees,
-                            onRotationDegreesChange = { editRotationDegrees = it },
-                            cropRect = editCropRect,
-                            onCropRectChange = { editCropRect = it },
                             imageRevision = editImageRevision,
-                            isSaving = isSavingEdit,
-                            onSave = {
-                                performSaveEdit(photo, requestWriteIfNeeded = true)
+                            existingUndo = existingEditUndo(photo.id),
+                            allowSaveCopyFallback = false,
+                            createWriteRequest = { uri -> repository.createWriteRequest(uri) },
+                            onSave = { result ->
+                                applySavedPhoto(
+                                    photo = photo,
+                                    sizeBytes = result.sizeBytes,
+                                    keepEditUndo = result.backupCreated,
+                                )
                             },
                             onDiscard = { exitEditMode() },
+                            onError = { message -> statusMessage = message },
                             modifier = Modifier.fillMaxSize(),
                         )
                     } else if (useLandscapeSplit) {
@@ -1368,7 +1296,7 @@ fun GalleryCleanerScreen(
                                         isEditing = isEditing,
                                         canEditPhoto = canEditPhoto,
                                         canUndo = canUndo,
-                                        isSavingEdit = isSavingEdit,
+                                        isSavingEdit = false,
                                         onCrop = { enterEditMode() },
                                         onRotate = { enterEditMode() },
                                         onShare = { sharePhoto(photo) },
@@ -1423,11 +1351,6 @@ fun GalleryCleanerScreen(
             }
         }
     }
-}
-
-enum class PendingWriteKind {
-    SaveEdit,
-    RestoreEdit,
 }
 
 @Composable

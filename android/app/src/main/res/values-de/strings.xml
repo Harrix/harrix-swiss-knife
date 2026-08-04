@@ -91,6 +91,7 @@
     <string name="nav_drawer_home">Start</string>
     <string name="nav_drawer_gallery_cleaner">Gallery Cleaner</string>
     <string name="nav_drawer_video_cleaner">Video Cleaner</string>
+    <string name="nav_drawer_photo_editor">Photo Editor</string>
     <string name="nav_drawer_about">Über die App</string>
     <string name="about_title">Über die App</string>
     <string name="about_back">Zurück</string>
@@ -103,6 +104,15 @@
     <string name="about_github_label">GitHub</string>
     <string name="gallery_cleaner_card_description">Überprüfen Sie Kamerafotos. Wischen oder tippen Sie, um in den Papierkorb zu gelangen oder zu behalten.</string>
     <string name="video_cleaner_card_description">Kameravideos nach Datum auflisten und ausgewählte Videos in den Papierkorb werfen.</string>
+    <string name="photo_editor_card_description">Foto zuschneiden und gerade ausrichten. Aus der App öffnen oder ein Bild teilen.</string>
+    <string name="photo_editor_title">Photo Editor</string>
+    <string name="photo_editor_close">Photo Editor beenden</string>
+    <string name="photo_editor_open_photo">Foto öffnen</string>
+    <string name="photo_editor_empty_title">Kein Foto geöffnet</string>
+    <string name="photo_editor_empty_message">Wählen Sie ein Foto zum Zuschneiden und Ausrichten, oder teilen Sie ein Bild mit dieser App.</string>
+    <string name="photo_editor_open_failed">Foto konnte nicht geöffnet werden</string>
+    <string name="photo_editor_saved">Foto gespeichert</string>
+    <string name="photo_editor_saved_as_copy">Als Kopie in Pictures/HSK gespeichert</string>
     <string name="gallery_cleaner_title">Gallery Cleaner</string>
     <string name="gallery_cleaner_close">Beenden Sie Gallery Cleaner</string>
     <string name="gallery_cleaner_intro_title">Wie es funktioniert</string>

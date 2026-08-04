@@ -91,6 +91,7 @@
     <string name="nav_drawer_home">Accueil</string>
     <string name="nav_drawer_gallery_cleaner">Gallery Cleaner</string>
     <string name="nav_drawer_video_cleaner">Video Cleaner</string>
+    <string name="nav_drawer_photo_editor">Photo Editor</string>
     <string name="nav_drawer_about">À propos</string>
     <string name="about_title">À propos</string>
     <string name="about_back">Retour</string>
@@ -103,6 +104,15 @@
     <string name="about_github_label">GitHub</string>
     <string name="gallery_cleaner_card_description">Examinez les photos de l\'appareil photo. Faites glisser ou appuyez pour supprimer ou conserver.</string>
     <string name="video_cleaner_card_description">Répertoriez les vidéos de la caméra par date et supprimez celles sélectionnées.</string>
+    <string name="photo_editor_card_description">Recadrez et redressez une photo. Ouvrez-la depuis l\'app ou partagez une image ici.</string>
+    <string name="photo_editor_title">Photo Editor</string>
+    <string name="photo_editor_close">Quitter Photo Editor</string>
+    <string name="photo_editor_open_photo">Ouvrir une photo</string>
+    <string name="photo_editor_empty_title">Aucune photo ouverte</string>
+    <string name="photo_editor_empty_message">Choisissez une photo à recadrer et redresser, ou partagez une image avec cette application.</string>
+    <string name="photo_editor_open_failed">Impossible d\'ouvrir la photo</string>
+    <string name="photo_editor_saved">Photo enregistrée</string>
+    <string name="photo_editor_saved_as_copy">Enregistrée en copie dans Pictures/HSK</string>
     <string name="gallery_cleaner_title">Gallery Cleaner</string>
     <string name="gallery_cleaner_close">Quitter Gallery Cleaner</string>
     <string name="gallery_cleaner_intro_title">Comment ça marche</string>

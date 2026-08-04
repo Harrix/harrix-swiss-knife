@@ -91,6 +91,7 @@
     <string name="nav_drawer_home">主页</string>
     <string name="nav_drawer_gallery_cleaner">Gallery Cleaner</string>
     <string name="nav_drawer_video_cleaner">Video Cleaner</string>
+    <string name="nav_drawer_photo_editor">Photo Editor</string>
     <string name="nav_drawer_about">关于应用</string>
     <string name="about_title">关于应用</string>
     <string name="about_back">返回</string>
@@ -103,6 +104,15 @@
     <string name="about_github_label">GitHub</string>
     <string name="gallery_cleaner_card_description">查看相机照片。滑动或点击即可删除或保留。</string>
     <string name="video_cleaner_card_description">按日期列出相机视频并删除选定的视频。</string>
+    <string name="photo_editor_card_description">裁剪并校正照片。可从应用打开，或将图片分享到此处。</string>
+    <string name="photo_editor_title">Photo Editor</string>
+    <string name="photo_editor_close">退出 Photo Editor</string>
+    <string name="photo_editor_open_photo">打开照片</string>
+    <string name="photo_editor_empty_title">未打开照片</string>
+    <string name="photo_editor_empty_message">选择要裁剪和校正的照片，或将图片分享到此应用。</string>
+    <string name="photo_editor_open_failed">无法打开照片</string>
+    <string name="photo_editor_saved">照片已保存</string>
+    <string name="photo_editor_saved_as_copy">已另存为副本到 Pictures/HSK</string>
     <string name="gallery_cleaner_title">Gallery Cleaner</string>
     <string name="gallery_cleaner_close">退出Gallery Cleaner</string>
     <string name="gallery_cleaner_intro_title">它是如何运作的</string>

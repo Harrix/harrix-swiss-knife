@@ -1,7 +1,6 @@
 package dev.harrix.hsk.ui.gallery
 
 import android.app.Application
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -12,7 +11,6 @@ import dev.harrix.hsk.gallery.GalleryCleanerPreferences
 import dev.harrix.hsk.gallery.GalleryDateFilter
 import dev.harrix.hsk.gallery.GalleryReviewOrder
 import dev.harrix.hsk.gallery.GallerySessionUndo
-import dev.harrix.hsk.gallery.NormalizedCropRect
 import dev.harrix.hsk.gallery.PhotoEditSaver
 
 /**
@@ -37,14 +35,10 @@ class GalleryCleanerViewModel(
     val sessionDeletedCount = mutableIntStateOf(0)
     val sessionFreedBytes = mutableLongStateOf(0L)
     val isEditing = mutableStateOf(false)
-    val editRotationDegrees = mutableFloatStateOf(0f)
-    val editCropRect = mutableStateOf(NormalizedCropRect.Full)
     val editImageRevision = mutableIntStateOf(0)
-    val isSavingEdit = mutableStateOf(false)
     val pendingTrashPhoto = mutableStateOf<CameraPhoto?>(null)
     val pendingRestorePhoto = mutableStateOf<CameraPhoto?>(null)
     val pendingWritePhoto = mutableStateOf<CameraPhoto?>(null)
-    val pendingWriteKind = mutableStateOf<PendingWriteKind?>(null)
     val showIntro = mutableStateOf(preferences.shouldShowIntro())
     val dontShowAgain = mutableStateOf(false)
     val showStatsDialog = mutableStateOf(false)
@@ -89,14 +83,10 @@ class GalleryCleanerViewModel(
         sessionDeletedCount.intValue = 0
         sessionFreedBytes.longValue = 0L
         isEditing.value = false
-        editRotationDegrees.floatValue = 0f
-        editCropRect.value = NormalizedCropRect.Full
         editImageRevision.intValue = 0
-        isSavingEdit.value = false
         pendingTrashPhoto.value = null
         pendingRestorePhoto.value = null
         pendingWritePhoto.value = null
-        pendingWriteKind.value = null
         showIntro.value = preferences.shouldShowIntro()
         dontShowAgain.value = false
         showStatsDialog.value = false
