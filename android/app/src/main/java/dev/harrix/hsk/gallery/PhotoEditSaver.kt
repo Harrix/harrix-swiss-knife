@@ -24,7 +24,6 @@ import kotlin.math.ceil
 import kotlin.math.hypot
 import kotlin.math.min
 import kotlin.math.roundToInt
-import kotlin.math.sqrt
 
 /**
  * Normalized crop rectangle on the rotated square canvas, each edge in `0f..1f`.
@@ -870,8 +869,9 @@ class PhotoEditSaver(
         }
 
         /**
-         * Rebuild [rect] with [imageAspect], keeping the center and roughly the same
-         * area (so repeated calls do not shrink the frame).
+         * Largest rectangle with [imageAspect] that fits entirely inside [rect]
+         * (centered). Preserving area would spill into letterbox when switching
+         * e.g. landscape photo content → 3:4.
          */
         fun fitCropToAspect(
             rect: NormalizedCropRect,
@@ -882,25 +882,15 @@ class PhotoEditSaver(
             if (abs(currentAspect - aspect) < 0.001f) {
                 return clampCropRect(rect, aspect)
             }
-            val centerX = (rect.left + rect.right) / 2f
-            val centerY = (rect.top + rect.bottom) / 2f
-            val area = (rect.width * rect.height).coerceAtLeast(0.06f * 0.06f)
-            var width = sqrt(area * aspect)
-            var height = width / aspect
-            if (width > 1f) {
-                width = 1f
-                height = width / aspect
-            }
-            if (height > 1f) {
-                height = 1f
-                width = height * aspect
-            }
-            val left = (centerX - width / 2f).coerceIn(0f, 1f - width)
-            val top = (centerY - height / 2f).coerceIn(0f, 1f - height)
-            return clampCropRect(
-                NormalizedCropRect(left, top, left + width, top + height),
-                aspect,
-            )
+            // Dummy size only supplies the target aspect; [fitCropIntoBounds] sizes it.
+            val aspectSeed =
+                NormalizedCropRect(
+                    left = 0f,
+                    top = 0f,
+                    right = aspect.coerceIn(0.06f, 1f),
+                    bottom = 1f,
+                )
+            return clampCropRect(fitCropIntoBounds(aspectSeed, rect), aspect)
         }
 
         /**

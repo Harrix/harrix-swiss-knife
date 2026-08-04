@@ -190,7 +190,7 @@
     <string name="gallery_cleaner_edit_discard">Discard</string>
     <string name="gallery_cleaner_edit_save_failed">Could not save photo</string>
     <string name="gallery_cleaner_edit_rotation_degrees">%1$d°</string>
-    <string name="gallery_cleaner_edit_aspect_rotate">Aspect 90°</string>
+    <string name="gallery_cleaner_edit_aspect_rotate">Rotate aspect 90°</string>
     <string name="gallery_cleaner_edit_aspect_rotate_short">90°</string>
     <string name="gallery_cleaner_edit_aspect_3_4">3:4</string>
     <string name="gallery_cleaner_edit_aspect_3_4_short">3:4</string>
@@ -198,7 +198,7 @@
     <string name="gallery_cleaner_edit_aspect_free_short">Free</string>
     <string name="gallery_cleaner_edit_fit_frame">Fit frame</string>
     <string name="gallery_cleaner_edit_fit_frame_short">Fit</string>
-    <string name="gallery_cleaner_edit_trim_empty">Trim empty</string>
+    <string name="gallery_cleaner_edit_trim_empty">Trim empty edges</string>
     <string name="gallery_cleaner_edit_trim_empty_short">Trim</string>
     <string name="gallery_cleaner_edit_rotate_ccw">Rotate 90° left</string>
     <string name="gallery_cleaner_edit_rotate_cw">Rotate 90° right</string>
