@@ -7,6 +7,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -20,11 +22,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.filled.Security
-import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -51,8 +53,8 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -70,6 +72,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import dev.harrix.hsk.AppPreferences
 import dev.harrix.hsk.R
 import dev.harrix.hsk.gallery.CameraGalleryRepository
 import dev.harrix.hsk.gallery.GalleryCleanerPreferences
@@ -77,9 +80,7 @@ import dev.harrix.hsk.gallery.GalleryDateFilter
 import dev.harrix.hsk.gallery.GalleryPermissions
 import dev.harrix.hsk.gallery.GalleryReviewOrder
 import dev.harrix.hsk.gallery.MediaFolderPaths
-import dev.harrix.hsk.gallery.VideoCleanerPreferences
 import dev.harrix.hsk.ui.adaptiveContentWidth
-import dev.harrix.hsk.ui.gallery.GalleryDateFilterSettingsContent
 import dev.harrix.hsk.ui.isCompactWidth
 import dev.harrix.hsk.ui.theme.AppLanguage
 import dev.harrix.hsk.ui.theme.ThemeMode
@@ -87,6 +88,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.text.DateFormat
+import java.text.DateFormatSymbols
+import java.util.Calendar
 import java.util.Date
 
 enum class SettingsSection {
@@ -95,13 +98,18 @@ enum class SettingsSection {
     VideoCleaner,
 }
 
+/**
+ * Settings navigation mirrors Markor's nested preference screens:
+ * General / tool pages, with Theme & Language on the hub root.
+ */
 private enum class HskSettingsPage {
     Hub,
-    Appearance,
+    General,
     Gallery,
-    Video,
-    Permissions,
+    Other,
 }
+
+private const val EarliestFilterYear = 2008
 
 private data class GalleryFolderStats(
     val totalCount: Int,
@@ -136,23 +144,28 @@ fun SettingsScreen(
     onOpenAllSettings: (() -> Unit)? = null,
     currentShootDayEpochMs: Long? = null,
 ) {
+    val context = LocalContext.current
+    val appPreferences = remember { AppPreferences(context.applicationContext) }
+    val galleryPreferences = remember { GalleryCleanerPreferences(context.applicationContext) }
+    var settingsEpoch by rememberSaveable { mutableIntStateOf(0) }
+    var resetMessage by rememberSaveable { mutableStateOf<String?>(null) }
     var page by rememberSaveable(section) {
-        mutableStateOf(HskSettingsPage.Hub)
+        mutableStateOf(
+            when (section) {
+                SettingsSection.All -> HskSettingsPage.Hub
+                SettingsSection.GalleryCleaner -> HskSettingsPage.Gallery
+                SettingsSection.VideoCleaner -> HskSettingsPage.Hub
+            },
+        )
     }
 
     val pageTitle =
         when (page) {
             HskSettingsPage.Hub -> stringResource(R.string.settings_title)
-            HskSettingsPage.Appearance -> stringResource(R.string.settings_appearance_title)
+            HskSettingsPage.General -> stringResource(R.string.settings_general_title)
             HskSettingsPage.Gallery -> stringResource(R.string.settings_gallery_cleaner_title)
-            HskSettingsPage.Video -> stringResource(R.string.settings_video_cleaner_title)
-            HskSettingsPage.Permissions -> stringResource(R.string.settings_permissions_title)
+            HskSettingsPage.Other -> stringResource(R.string.settings_other_title)
         }
-
-    val showGalleryTool =
-        section == SettingsSection.All || section == SettingsSection.GalleryCleaner
-    val showVideoTool =
-        section == SettingsSection.All || section == SettingsSection.VideoCleaner
 
     fun goBack() {
         if (page == HskSettingsPage.Hub) {
@@ -198,81 +211,86 @@ fun SettingsScreen(
                         .adaptiveContentWidth(),
                 ) {
                     SettingsHubRow(
-                        title = stringResource(R.string.settings_appearance_title),
-                        summary = stringResource(R.string.settings_appearance_summary),
-                        icon = Icons.Filled.Palette,
-                        onClick = { page = HskSettingsPage.Appearance },
+                        title = stringResource(R.string.settings_general_title),
+                        summary = stringResource(R.string.settings_general_summary),
+                        icon = Icons.Filled.Security,
+                        onClick = { page = HskSettingsPage.General },
                     )
-                    if (showGalleryTool || showVideoTool) {
-                        HorizontalDivider()
-                        SettingsCategoryHeader(text = stringResource(R.string.settings_category_tools))
-                        if (showGalleryTool) {
-                            SettingsHubRow(
-                                title = stringResource(R.string.settings_gallery_cleaner_title),
-                                summary = stringResource(R.string.settings_gallery_cleaner_summary),
-                                icon = Icons.Filled.PhotoLibrary,
-                                onClick = { page = HskSettingsPage.Gallery },
-                            )
-                        }
-                        if (showVideoTool) {
-                            if (showGalleryTool) {
-                                HorizontalDivider()
-                            }
-                            SettingsHubRow(
-                                title = stringResource(R.string.settings_video_cleaner_title),
-                                summary = stringResource(R.string.settings_video_cleaner_summary),
-                                icon = Icons.Filled.Videocam,
-                                onClick = { page = HskSettingsPage.Video },
-                            )
-                        }
-                    }
                     HorizontalDivider()
+                    SettingsHubRow(
+                        title = stringResource(R.string.settings_gallery_cleaner_title),
+                        summary = stringResource(R.string.settings_gallery_cleaner_summary),
+                        icon = Icons.Filled.PhotoLibrary,
+                        onClick = { page = HskSettingsPage.Gallery },
+                    )
+                    SettingsCategoryHeader(text = stringResource(R.string.settings_category_essential))
+                    key(settingsEpoch) {
+                        EssentialSettingsSection(
+                            themeMode = themeMode,
+                            onThemeModeChange = onThemeModeChange,
+                            appLanguage = appLanguage,
+                            onAppLanguageChange = onAppLanguageChange,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                        )
+                    }
                     SettingsCategoryHeader(text = stringResource(R.string.settings_category_main))
                     SettingsHubRow(
-                        title = stringResource(R.string.settings_permissions_title),
-                        summary = stringResource(R.string.settings_permissions_summary),
-                        icon = Icons.Filled.Security,
-                        onClick = { page = HskSettingsPage.Permissions },
+                        title = stringResource(R.string.settings_other_title),
+                        summary = stringResource(R.string.settings_other_summary),
+                        icon = Icons.Filled.MoreHoriz,
+                        onClick = { page = HskSettingsPage.Other },
                     )
+                }
+            }
+
+            HskSettingsPage.General -> {
+                SettingsDetailPane(innerPadding = innerPadding) {
+                    key(settingsEpoch) {
+                        GeneralSettingsSection()
+                    }
+                }
+            }
+
+            HskSettingsPage.Gallery -> {
+                SettingsDetailPane(innerPadding = innerPadding) {
+                    key(settingsEpoch) {
+                        GalleryCleanerSettingsSection(
+                            currentShootDayEpochMs = currentShootDayEpochMs,
+                        )
+                    }
                     if (onOpenAllSettings != null && section != SettingsSection.All) {
-                        TextButton(
-                            onClick = onOpenAllSettings,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp),
-                        ) {
+                        TextButton(onClick = onOpenAllSettings) {
                             Text(stringResource(R.string.settings_open_all))
                         }
                     }
                 }
             }
 
-            HskSettingsPage.Appearance -> {
+            HskSettingsPage.Other -> {
                 SettingsDetailPane(innerPadding = innerPadding) {
-                    AppearanceSettingsSection(
-                        themeMode = themeMode,
-                        onThemeModeChange = onThemeModeChange,
-                        appLanguage = appLanguage,
-                        onAppLanguageChange = onAppLanguageChange,
+                    Text(
+                        text = stringResource(R.string.settings_reset_hint),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                }
-            }
-
-            HskSettingsPage.Gallery -> {
-                SettingsDetailPane(innerPadding = innerPadding) {
-                    GalleryCleanerSettingsSection(
-                        currentShootDayEpochMs = currentShootDayEpochMs,
+                    SettingsFullWidthOutlinedButton(
+                        onClick = {
+                            appPreferences.resetAppearanceToDefaults()
+                            galleryPreferences.resetSettingsToDefaults()
+                            onThemeModeChange(ThemeMode.System)
+                            onAppLanguageChange(AppLanguage.System)
+                            settingsEpoch += 1
+                            resetMessage = context.getString(R.string.settings_reset_done)
+                        },
+                        label = stringResource(R.string.settings_reset),
                     )
-                }
-            }
-
-            HskSettingsPage.Video -> {
-                SettingsDetailPane(innerPadding = innerPadding) {
-                    VideoCleanerSettingsSection()
-                }
-            }
-
-            HskSettingsPage.Permissions -> {
-                SettingsDetailPane(innerPadding = innerPadding) {
-                    PermissionsSettingsSection()
+                    resetMessage?.let { message ->
+                        Text(
+                            text = message,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 }
             }
         }
@@ -307,6 +325,19 @@ private fun SettingsCategoryHeader(text: String) {
         Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 12.dp),
+    )
+}
+
+@Composable
+private fun SettingsSectionHeader(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.labelLarge,
+        color = MaterialTheme.colorScheme.primary,
+        modifier =
+        Modifier
+            .fillMaxWidth()
+            .padding(top = 8.dp, bottom = 4.dp),
     )
 }
 
@@ -357,7 +388,7 @@ private fun SettingsHubRow(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun AppearanceSettingsSection(
+private fun EssentialSettingsSection(
     themeMode: ThemeMode,
     onThemeModeChange: (ThemeMode) -> Unit,
     appLanguage: AppLanguage,
@@ -461,7 +492,7 @@ private fun AppearanceSettingsSection(
 }
 
 @Composable
-private fun PermissionsSettingsSection(modifier: Modifier = Modifier) {
+private fun GeneralSettingsSection(modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     var hasPhotosPermission by remember {
@@ -522,6 +553,7 @@ private fun PermissionsSettingsSection(modifier: Modifier = Modifier) {
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
+        SettingsSectionHeader(text = stringResource(R.string.settings_category_access))
         Text(
             text = stringResource(photosStatusRes),
             style = MaterialTheme.typography.bodyMedium,
@@ -538,6 +570,7 @@ private fun PermissionsSettingsSection(modifier: Modifier = Modifier) {
             },
             label = stringResource(R.string.settings_open_app_permissions),
         )
+        SettingsSectionHeader(text = stringResource(R.string.settings_category_media_management))
         Text(
             text = stringResource(manageMediaStatusRes),
             style = MaterialTheme.typography.bodyMedium,
@@ -578,61 +611,6 @@ private fun PermissionsSettingsSection(modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun VideoCleanerSettingsSection(modifier: Modifier = Modifier) {
-    val context = LocalContext.current
-    val preferences = remember { VideoCleanerPreferences(context.applicationContext) }
-    var lifetimeDeletedCount by remember { mutableIntStateOf(preferences.totalDeletedCount()) }
-    var lifetimeFreedBytes by remember { mutableLongStateOf(preferences.totalFreedBytes()) }
-    var resetStatsMessage by remember { mutableStateOf<String?>(null) }
-
-    Column(
-        modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Text(
-            text =
-            stringResource(
-                R.string.video_cleaner_stats_deleted,
-                lifetimeDeletedCount,
-            ),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Text(
-            text =
-            stringResource(
-                R.string.video_cleaner_stats_freed,
-                CameraGalleryRepository.formatFileSize(lifetimeFreedBytes),
-            ),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Text(
-            text = stringResource(R.string.settings_video_reset_stats_hint),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        SettingsFullWidthOutlinedButton(
-            onClick = {
-                preferences.clearLifetimeDeleteStats()
-                lifetimeDeletedCount = 0
-                lifetimeFreedBytes = 0L
-                resetStatsMessage = context.getString(R.string.settings_gallery_reset_stats_done)
-            },
-            enabled = lifetimeDeletedCount > 0 || lifetimeFreedBytes > 0L,
-            label = stringResource(R.string.settings_gallery_reset_stats),
-        )
-        resetStatsMessage?.let { message ->
-            Text(
-                text = message,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-    }
-}
-
-@Composable
 private fun GalleryCleanerSettingsSection(
     modifier: Modifier = Modifier,
     currentShootDayEpochMs: Long? = null,
@@ -649,11 +627,7 @@ private fun GalleryCleanerSettingsSection(
     var imagesRelativePath by remember { mutableStateOf(preferences.getImagesRelativePath()) }
     var folderMessage by remember { mutableStateOf<String?>(null) }
     var reviewedCount by remember { mutableIntStateOf(preferences.reviewedPhotoCount()) }
-    var lifetimeDeletedCount by remember { mutableIntStateOf(preferences.totalDeletedCount()) }
-    var lifetimeFreedBytes by remember { mutableLongStateOf(preferences.totalFreedBytes()) }
     var clearMessage by remember { mutableStateOf<String?>(null) }
-    var resetStatsMessage by remember { mutableStateOf<String?>(null) }
-    var resetMessage by remember { mutableStateOf<String?>(null) }
     var introEnabled by remember { mutableStateOf(preferences.shouldShowIntro()) }
     var introMessage by remember { mutableStateOf<String?>(null) }
     var statsState by remember { mutableStateOf<GalleryStatsDialogState?>(null) }
@@ -821,6 +795,7 @@ private fun GalleryCleanerSettingsSection(
     }
 
     val body: @Composable ColumnScope.() -> Unit = {
+        SettingsSectionHeader(text = stringResource(R.string.settings_category_tips))
         SettingsFullWidthOutlinedButton(
             onClick = {
                 preferences.setShowIntro(true)
@@ -838,6 +813,7 @@ private fun GalleryCleanerSettingsSection(
             )
         }
 
+        SettingsSectionHeader(text = stringResource(R.string.settings_category_location))
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(
                 text = stringResource(R.string.settings_gallery_images_folder),
@@ -939,8 +915,7 @@ private fun GalleryCleanerSettingsSection(
             }
         }
 
-        HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-
+        SettingsSectionHeader(text = stringResource(R.string.settings_category_review))
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(
                 text = stringResource(R.string.settings_gallery_review_order),
@@ -984,8 +959,6 @@ private fun GalleryCleanerSettingsSection(
             }
         }
 
-        HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-
         SettingsSwitchRow(
             title = stringResource(R.string.settings_gallery_unreviewed_only),
             description = stringResource(R.string.settings_gallery_unreviewed_only_hint),
@@ -996,6 +969,7 @@ private fun GalleryCleanerSettingsSection(
             },
         )
 
+        SettingsSectionHeader(text = stringResource(R.string.settings_category_history))
         Text(
             text = stringResource(R.string.settings_gallery_reviewed_count, reviewedCount),
             style = MaterialTheme.typography.bodyMedium,
@@ -1024,86 +998,37 @@ private fun GalleryCleanerSettingsSection(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        Text(
-            text =
-            stringResource(
-                R.string.gallery_cleaner_stats_deleted,
-                lifetimeDeletedCount,
-            ),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Text(
-            text =
-            stringResource(
-                R.string.gallery_cleaner_stats_freed,
-                CameraGalleryRepository.formatFileSize(lifetimeFreedBytes),
-            ),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Text(
-            text = stringResource(R.string.settings_gallery_reset_stats_hint),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        SettingsFullWidthOutlinedButton(
-            onClick = {
-                preferences.clearLifetimeDeleteStats()
-                lifetimeDeletedCount = 0
-                lifetimeFreedBytes = 0L
-                resetStatsMessage = context.getString(R.string.settings_gallery_reset_stats_done)
-            },
-            enabled = lifetimeDeletedCount > 0 || lifetimeFreedBytes > 0L,
-            label = stringResource(R.string.settings_gallery_reset_stats),
-        )
-        resetStatsMessage?.let { message ->
-            Text(
-                text = message,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
 
-        HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+        SettingsSectionHeader(text = stringResource(R.string.settings_category_date_filter))
+        SettingsSwitchRow(
+            title = stringResource(R.string.settings_gallery_date_filter_enabled),
+            checked = filter.enabled,
+            onCheckedChange = { checked -> persist(filter.withEnabled(checked)) },
+        )
 
-        GalleryDateFilterSettingsContent(
+        GalleryDateFilterEditors(
             filter = filter,
+            enabled = filter.enabled,
             onFilterChange = { persist(it) },
+        )
+
+        Text(
+            text = stringResource(R.string.settings_gallery_date_presets),
+            style = MaterialTheme.typography.labelLarge,
+            color =
+            if (filter.enabled) {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            } else {
+                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+            },
+        )
+        GalleryDatePresets(
+            filter = filter,
+            enabled = filter.enabled,
             shootDayEpochMs = currentShootDayEpochMs,
             shootDayLabel = shootDayLabel,
+            onPreset = { persist(it) },
         )
-
-        HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-
-        Text(
-            text = stringResource(R.string.settings_gallery_reset_hint),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        SettingsFullWidthOutlinedButton(
-            onClick = {
-                preferences.resetSettingsToDefaults()
-                filter = preferences.loadDateFilter()
-                unreviewedOnlyMode = preferences.isUnreviewedOnlyModeEnabled()
-                reviewOrder = preferences.getReviewOrder()
-                imagesRelativePath = preferences.getImagesRelativePath()
-                folderMessage = null
-                introEnabled = preferences.shouldShowIntro()
-                introMessage = null
-                clearMessage = null
-                resetStatsMessage = null
-                resetMessage = context.getString(R.string.settings_gallery_reset_done)
-            },
-            label = stringResource(R.string.settings_gallery_reset),
-        )
-        resetMessage?.let { message ->
-            Text(
-                text = message,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
     }
 
     Column(
@@ -1182,4 +1107,324 @@ private fun SettingsSwitchRow(
                 onClick = { onCheckedChange(!checked) },
             ),
     )
+}
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@Composable
+private fun GalleryDateFilterEditors(
+    filter: GalleryDateFilter,
+    enabled: Boolean,
+    onFilterChange: (GalleryDateFilter) -> Unit,
+) {
+    val now = remember { Calendar.getInstance() }
+    val currentYear = now.get(Calendar.YEAR)
+    val years = remember(currentYear) { (EarliestFilterYear..currentYear).toList().reversed() }
+    val monthLabels = remember { DateFormatSymbols.getInstance().months.take(12) }
+
+    var fromYear by remember(filter.startEpochSecInclusive) {
+        mutableIntStateOf(filter.fromYear())
+    }
+    var fromMonth by remember(filter.startEpochSecInclusive) {
+        mutableIntStateOf(filter.fromMonth())
+    }
+    var fromDay by remember(filter.startEpochSecInclusive) {
+        mutableIntStateOf(filter.fromDay())
+    }
+    var toYear by remember(filter.endEpochSecInclusive) {
+        mutableIntStateOf(filter.toYear())
+    }
+    var toMonth by remember(filter.endEpochSecInclusive) {
+        mutableIntStateOf(filter.toMonth())
+    }
+    var toDay by remember(filter.endEpochSecInclusive) {
+        mutableIntStateOf(filter.toDay())
+    }
+
+    fun applyDateRange() {
+        onFilterChange(
+            filter.withDateRange(
+                fromYear = fromYear,
+                fromMonth = fromMonth,
+                fromDay = fromDay,
+                toYear = toYear,
+                toMonth = toMonth,
+                toDay = toDay,
+            ),
+        )
+    }
+
+    fun clampDay(
+        year: Int,
+        month: Int,
+        day: Int,
+    ): Int = day.coerceIn(1, GalleryDateFilter.daysInMonth(year, month))
+
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        YearMonthDayRow(
+            label = stringResource(R.string.gallery_cleaner_date_range_from),
+            year = fromYear,
+            month = fromMonth,
+            day = fromDay,
+            years = years,
+            monthLabels = monthLabels,
+            enabled = enabled,
+            onYearChange = { year ->
+                fromYear = year
+                fromDay = clampDay(year, fromMonth, fromDay)
+                applyDateRange()
+            },
+            onMonthChange = { month ->
+                fromMonth = month
+                fromDay = clampDay(fromYear, month, fromDay)
+                applyDateRange()
+            },
+            onDayChange = { day ->
+                fromDay = day
+                applyDateRange()
+            },
+        )
+        YearMonthDayRow(
+            label = stringResource(R.string.gallery_cleaner_date_range_to),
+            year = toYear,
+            month = toMonth,
+            day = toDay,
+            years = years,
+            monthLabels = monthLabels,
+            enabled = enabled,
+            onYearChange = { year ->
+                toYear = year
+                toDay = clampDay(year, toMonth, toDay)
+                applyDateRange()
+            },
+            onMonthChange = { month ->
+                toMonth = month
+                toDay = clampDay(toYear, month, toDay)
+                applyDateRange()
+            },
+            onDayChange = { day ->
+                toDay = day
+                applyDateRange()
+            },
+        )
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun GalleryDatePresets(
+    filter: GalleryDateFilter,
+    enabled: Boolean,
+    onPreset: (GalleryDateFilter) -> Unit,
+    shootDayEpochMs: Long? = null,
+    shootDayLabel: String? = null,
+) {
+    val presets =
+        listOf(
+            R.string.settings_gallery_preset_1_day to
+                { GalleryDateFilter.lastDaysIncludingToday(1) },
+            R.string.settings_gallery_preset_2_days to
+                { GalleryDateFilter.lastDaysIncludingToday(2) },
+            R.string.settings_gallery_preset_week to
+                { GalleryDateFilter.lastDaysIncludingToday(7) },
+            R.string.settings_gallery_preset_1_month to
+                { GalleryDateFilter.lastCalendarMonths(1) },
+            R.string.settings_gallery_preset_1_year to
+                { GalleryDateFilter.lastCalendarYears(1) },
+        )
+
+    FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        if (shootDayEpochMs != null && shootDayLabel != null) {
+            val shootDayFilter = GalleryDateFilter.forShootDay(shootDayEpochMs)
+            DatePresetButton(
+                label =
+                stringResource(
+                    R.string.settings_gallery_filter_shoot_day_label,
+                    shootDayLabel,
+                ),
+                selected = filter.matchesDateRange(shootDayFilter),
+                enabled = enabled,
+                onClick = { onPreset(shootDayFilter) },
+            )
+        }
+        presets.forEach { (labelRes, factory) ->
+            val presetFilter = factory()
+            DatePresetButton(
+                label = stringResource(labelRes),
+                selected = filter.matchesDateRange(presetFilter),
+                enabled = enabled,
+                onClick = { onPreset(presetFilter) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun DatePresetButton(
+    label: String,
+    selected: Boolean,
+    enabled: Boolean,
+    onClick: () -> Unit,
+) {
+    val padding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
+    val content: @Composable () -> Unit = {
+        Text(
+            text = label,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+    if (selected) {
+        Button(
+            onClick = onClick,
+            enabled = enabled,
+            contentPadding = padding,
+            content = { content() },
+        )
+    } else {
+        OutlinedButton(
+            onClick = onClick,
+            enabled = enabled,
+            contentPadding = padding,
+            content = { content() },
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun YearMonthDayRow(
+    label: String,
+    year: Int,
+    month: Int,
+    day: Int,
+    years: List<Int>,
+    monthLabels: List<String>,
+    enabled: Boolean,
+    onYearChange: (Int) -> Unit,
+    onMonthChange: (Int) -> Unit,
+    onDayChange: (Int) -> Unit,
+) {
+    val days = remember(year, month) {
+        (1..GalleryDateFilter.daysInMonth(year, month)).toList()
+    }
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelLarge,
+            color =
+            if (enabled) {
+                MaterialTheme.colorScheme.onSurface
+            } else {
+                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+            },
+        )
+        if (isCompactWidth()) {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                SimpleDropdownField(
+                    value = year.toString(),
+                    options = years.map { it.toString() },
+                    enabled = enabled,
+                    onOptionSelect = { index -> onYearChange(years[index]) },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                SimpleDropdownField(
+                    value = monthLabels[month - 1],
+                    options = monthLabels,
+                    enabled = enabled,
+                    onOptionSelect = { index -> onMonthChange(index + 1) },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                SimpleDropdownField(
+                    value = day.toString(),
+                    options = days.map { it.toString() },
+                    enabled = enabled,
+                    onOptionSelect = { index -> onDayChange(days[index]) },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        } else {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                SimpleDropdownField(
+                    value = year.toString(),
+                    options = years.map { it.toString() },
+                    enabled = enabled,
+                    onOptionSelect = { index -> onYearChange(years[index]) },
+                    modifier = Modifier.weight(1.1f),
+                )
+                SimpleDropdownField(
+                    value = monthLabels[month - 1],
+                    options = monthLabels,
+                    enabled = enabled,
+                    onOptionSelect = { index -> onMonthChange(index + 1) },
+                    modifier = Modifier.weight(1.4f),
+                )
+                SimpleDropdownField(
+                    value = day.toString(),
+                    options = days.map { it.toString() },
+                    enabled = enabled,
+                    onOptionSelect = { index -> onDayChange(days[index]) },
+                    modifier = Modifier.weight(0.9f),
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SimpleDropdownField(
+    value: String,
+    options: List<String>,
+    enabled: Boolean,
+    onOptionSelect: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    ExposedDropdownMenuBox(
+        expanded = expanded && enabled,
+        onExpandedChange = { if (enabled) expanded = it },
+        modifier = modifier,
+    ) {
+        OutlinedTextField(
+            value = value,
+            onValueChange = {},
+            readOnly = true,
+            enabled = enabled,
+            singleLine = true,
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            modifier =
+            Modifier
+                .menuAnchor(MenuAnchorType.PrimaryNotEditable, enabled = enabled)
+                .fillMaxWidth(),
+        )
+        ExposedDropdownMenu(
+            expanded = expanded && enabled,
+            onDismissRequest = { expanded = false },
+        ) {
+            options.forEachIndexed { index, option ->
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            text = option,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    },
+                    onClick = {
+                        onOptionSelect(index)
+                        expanded = false
+                    },
+                )
+            }
+        }
+    }
 }

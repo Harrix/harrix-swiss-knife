@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-# file-ignore: HP001
 from pathlib import Path
 import re
 

@@ -23,6 +23,15 @@ class AppPreferences(
         prefs.edit().putString(KEY_APP_LANGUAGE, language.name).apply()
     }
 
+    /** Restores theme and language to system defaults. */
+    fun resetAppearanceToDefaults() {
+        prefs
+            .edit()
+            .putString(KEY_THEME_MODE, ThemeMode.System.name)
+            .putString(KEY_APP_LANGUAGE, AppLanguage.System.name)
+            .apply()
+    }
+
     companion object {
         private const val PREFS_NAME = "app_preferences"
         private const val KEY_THEME_MODE = "theme_mode"

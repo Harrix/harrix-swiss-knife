@@ -1,6 +1,5 @@
 package dev.harrix.hsk.ui
 
-import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
@@ -27,7 +26,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.CleaningServices
-import androidx.compose.material.icons.filled.Crop
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
@@ -50,13 +48,11 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -75,7 +71,6 @@ import dev.harrix.hsk.R
 import dev.harrix.hsk.ui.about.AboutScreen
 import dev.harrix.hsk.ui.gallery.GalleryCleanerScreen
 import dev.harrix.hsk.ui.gallery.VideoCleanerScreen
-import dev.harrix.hsk.ui.photoeditor.PhotoEditorScreen
 import dev.harrix.hsk.ui.settings.SettingsScreen
 import dev.harrix.hsk.ui.settings.SettingsSection
 import dev.harrix.hsk.ui.theme.AppLanguage
@@ -98,7 +93,6 @@ private enum class AppDestination {
     Home,
     GalleryCleaner,
     VideoCleaner,
-    PhotoEditor,
 }
 
 private data class UtilityCardItem(
@@ -116,8 +110,6 @@ fun MainScreen(
     appLanguage: AppLanguage,
     onAppLanguageChange: (AppLanguage) -> Unit,
     modifier: Modifier = Modifier,
-    pendingImageUri: Uri? = null,
-    onPendingImageUriConsume: () -> Unit = {},
 ) {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
@@ -129,17 +121,6 @@ fun MainScreen(
     var settingsShootDayEpochMs by rememberSaveable { mutableStateOf<Long?>(null) }
     var showAbout by rememberSaveable { mutableStateOf(false) }
     var homeMenuExpanded by remember { mutableStateOf(false) }
-    var photoEditorInitialUri by remember { mutableStateOf<Uri?>(null) }
-    val onPendingImageUriConsumeState = rememberUpdatedState(onPendingImageUriConsume)
-
-    LaunchedEffect(pendingImageUri) {
-        val uri = pendingImageUri ?: return@LaunchedEffect
-        photoEditorInitialUri = uri
-        destination = AppDestination.PhotoEditor
-        showAbout = false
-        settingsSection = null
-        onPendingImageUriConsumeState.value()
-    }
 
     BackHandler(enabled = drawerState.isOpen) {
         scope.launch { drawerState.close() }
@@ -158,12 +139,6 @@ fun MainScreen(
                 descriptionRes = R.string.video_cleaner_card_description,
                 icon = Icons.Filled.VideoLibrary,
                 destination = AppDestination.VideoCleaner,
-            ),
-            UtilityCardItem(
-                titleRes = R.string.nav_drawer_photo_editor,
-                descriptionRes = R.string.photo_editor_card_description,
-                icon = Icons.Filled.Crop,
-                destination = AppDestination.PhotoEditor,
             ),
         )
 
@@ -186,18 +161,6 @@ fun MainScreen(
                     onClose = { destination = AppDestination.Home },
                     onOpenSettings = { settingsSection = SettingsSection.VideoCleaner },
                     settingsRevision = settingsRevision,
-                    modifier = Modifier.fillMaxSize(),
-                )
-            }
-
-            AppDestination.PhotoEditor -> {
-                PhotoEditorScreen(
-                    onClose = {
-                        photoEditorInitialUri = null
-                        destination = AppDestination.Home
-                    },
-                    initialUri = photoEditorInitialUri,
-                    onInitialUriConsume = { photoEditorInitialUri = null },
                     modifier = Modifier.fillMaxSize(),
                 )
             }
@@ -524,12 +487,6 @@ private fun AppNavigationDrawerContent(
             selected = selected == AppDestination.VideoCleaner,
             onClick = { onNavigate(AppDestination.VideoCleaner) },
             icon = Icons.Filled.VideoLibrary,
-        )
-        DrawerNavItem(
-            label = stringResource(R.string.nav_drawer_photo_editor),
-            selected = selected == AppDestination.PhotoEditor,
-            onClick = { onNavigate(AppDestination.PhotoEditor) },
-            icon = Icons.Filled.Crop,
         )
         DrawerNavItem(
             label = stringResource(R.string.nav_drawer_about),

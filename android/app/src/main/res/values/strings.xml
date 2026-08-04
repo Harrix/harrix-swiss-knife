@@ -6,6 +6,8 @@
     <string name="settings_title">Settings</string>
     <string name="settings_back">Back</string>
     <string name="settings_open_all">All settings</string>
+    <string name="settings_general_title">General</string>
+    <string name="settings_general_summary">Permissions and media access</string>
     <string name="settings_appearance_title">Appearance</string>
     <string name="settings_appearance_summary">Theme and language</string>
     <string name="settings_language_title">Language</string>
@@ -16,8 +18,21 @@
     <string name="settings_theme_dark">Dark</string>
     <string name="settings_section_expand">Expand section</string>
     <string name="settings_section_collapse">Collapse section</string>
+    <string name="settings_category_essential">Essential</string>
     <string name="settings_category_tools">Tools</string>
     <string name="settings_category_main">Main</string>
+    <string name="settings_category_access">Access</string>
+    <string name="settings_category_media_management">Media management</string>
+    <string name="settings_category_location">Location</string>
+    <string name="settings_category_review">Review</string>
+    <string name="settings_category_history">History</string>
+    <string name="settings_category_date_filter">Date filter</string>
+    <string name="settings_category_tips">Tips</string>
+    <string name="settings_other_title">Other</string>
+    <string name="settings_other_summary">Reset to defaults</string>
+    <string name="settings_reset">Reset settings</string>
+    <string name="settings_reset_hint">Restore theme, language, and Gallery Cleaner options to defaults. Reviewed history is kept.</string>
+    <string name="settings_reset_done">Settings restored to defaults</string>
     <string name="settings_permissions_title">Permissions</string>
     <string name="settings_permissions_summary">Photos, videos, media management</string>
     <string name="settings_photos_access_granted">Photos access: granted</string>
@@ -34,7 +49,7 @@
     <string name="settings_gallery_cleaner_summary">Folder, review order, date filter</string>
     <string name="settings_video_cleaner_title">Video Cleaner</string>
     <string name="settings_video_cleaner_summary">Delete statistics</string>
-    <string name="settings_video_reset_stats_hint">Clears all-time deleted count and freed space.</string>
+    <string name="settings_video_reset_stats_hint">Clears lifetime deleted video count and freed space.</string>
     <string name="settings_gallery_date_filter_enabled">Filter photos by date</string>
     <string name="settings_gallery_date_presets">Quick ranges</string>
     <string name="settings_gallery_preset_1_day">1 day</string>
@@ -59,9 +74,6 @@
     <string name="settings_gallery_clear_reviewed">Reset reviewed history</string>
     <string name="settings_gallery_clear_reviewed_done">Reviewed history cleared (%1$d)</string>
     <string name="settings_gallery_reviewed_count">Reviewed photos: %1$d</string>
-    <string name="settings_gallery_reset_stats">Reset statistics</string>
-    <string name="settings_gallery_reset_stats_done">Statistics reset</string>
-    <string name="settings_gallery_reset_stats_hint">Clears all-time deleted count and freed space. Reviewed history is not cleared.</string>
     <string name="settings_gallery_collect_stats">Collect statistics</string>
     <string name="settings_gallery_stats_title">Gallery statistics</string>
     <string name="settings_gallery_stats_total">Photos in folder: %1$d</string>
@@ -77,6 +89,9 @@
     <string name="settings_gallery_reset">Reset Gallery Cleaner settings</string>
     <string name="settings_gallery_reset_done">Gallery Cleaner settings restored to defaults</string>
     <string name="settings_gallery_reset_hint">Resets order, images folder, unreviewed-only mode, date filter, and tips. Reviewed history is not cleared.</string>
+    <string name="settings_gallery_reset_stats">Reset statistics</string>
+    <string name="settings_gallery_reset_stats_done">Statistics reset</string>
+    <string name="settings_gallery_reset_stats_hint">Clears lifetime deleted photo count and freed space. Reviewed history is not cleared.</string>
     <string name="settings_gallery_restore_intro">Show how-it-works screen again</string>
     <string name="settings_gallery_restore_intro_done">Intro will show when you return to Gallery Cleaner</string>
     <string name="settings_restore_manage_media_tip">Show media management tip again</string>
@@ -109,7 +124,7 @@
     <string name="photo_editor_close">Exit Photo Editor</string>
     <string name="photo_editor_open_photo">Open photo</string>
     <string name="photo_editor_empty_title">No photo open</string>
-    <string name="photo_editor_empty_message">Choose a photo to crop and straighten, or share an image to this app.</string>
+    <string name="photo_editor_empty_message">Choose a photo to crop and straighten, or share an image with this app.</string>
     <string name="photo_editor_open_failed">Could not open photo</string>
     <string name="photo_editor_saved">Photo saved</string>
     <string name="photo_editor_saved_as_copy">Saved as a copy in Pictures/HSK</string>
@@ -137,7 +152,6 @@
     <string name="gallery_cleaner_menu">More options</string>
     <string name="gallery_cleaner_settings">Settings</string>
     <string name="gallery_cleaner_clear_date_filter">Clear date filter</string>
-    <string name="gallery_cleaner_date_filter">Date filter</string>
     <string name="gallery_cleaner_enable_unreviewed_only">Enable unreviewed-only mode</string>
     <string name="gallery_cleaner_disable_unreviewed_only">Disable unreviewed-only mode</string>
     <string name="gallery_cleaner_date_range_from">From</string>
@@ -159,8 +173,9 @@
     <string name="gallery_cleaner_stats_remaining">Remaining unreviewed: %1$d</string>
     <string name="gallery_cleaner_stats_deleted">Deleted (all time): %1$d</string>
     <string name="gallery_cleaner_stats_freed">Space freed (all time): %1$s</string>
-    <string name="gallery_cleaner_stats_reset">Reset statistics</string>
     <string name="gallery_cleaner_stats_ok">OK</string>
+    <string name="gallery_cleaner_stats_reset">Reset statistics</string>
+    <string name="gallery_cleaner_date_filter">Date filter</string>
     <string name="gallery_cleaner_date_filter_active">Filter: %1$s – %2$s</string>
     <string name="gallery_cleaner_date_filter_active_day">Filter: %1$s</string>
     <string name="gallery_cleaner_untitled">Untitled photo</string>

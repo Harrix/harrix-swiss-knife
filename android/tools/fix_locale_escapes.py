@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
-# file-ignore: HP001
-"""Post-process locale `strings.xml` for valid Android escaping."""
+"""Post-process locale strings.xml for valid Android escaping."""
 from __future__ import annotations
 
 import re
