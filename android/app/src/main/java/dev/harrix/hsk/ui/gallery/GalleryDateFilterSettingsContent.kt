@@ -31,10 +31,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.harrix.hsk.R
 import dev.harrix.hsk.gallery.GalleryDateFilter
+import dev.harrix.hsk.ui.AutoFitText
 import java.text.DateFormatSymbols
 import java.util.Calendar
 
@@ -99,11 +99,10 @@ private fun DateFilterSwitchRow(
 ) {
     ListItem(
         headlineContent = {
-            Text(
+            AutoFitText(
                 text = title,
                 style = MaterialTheme.typography.bodyLarge,
                 maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
             )
         },
         trailingContent = {
@@ -291,10 +290,9 @@ private fun DatePresetButton(
 ) {
     val padding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
     val content: @Composable () -> Unit = {
-        Text(
+        AutoFitText(
             text = label,
             maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
         )
     }
     if (selected) {
@@ -461,10 +459,9 @@ private fun SimpleDropdownField(
             options.forEachIndexed { index, option ->
                 DropdownMenuItem(
                     text = {
-                        Text(
+                        AutoFitText(
                             text = option,
                             maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
                         )
                     },
                     onClick = {

@@ -18,14 +18,12 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.harrix.hsk.ui.theme.ActionButtonShape
 
@@ -80,7 +78,7 @@ fun videoGridColumnCount(): Int {
 
 /**
  * Bottom-bar action: icon and label on one row. Short labels (Delete / Skip / Keep)
- * fit on narrow phones; longer text ellipsizes instead of wrapping mid-word.
+ * fit on narrow phones; longer translations shrink then ellipsize.
  * Grows evenly in a [RowScope].
  */
 @Composable
@@ -109,12 +107,11 @@ fun RowScope.CompactBottomActionButton(
                 modifier = Modifier.size(18.dp),
             )
             Spacer(modifier = Modifier.width(6.dp))
-            Text(
+            AutoFitText(
                 text = label,
                 style = MaterialTheme.typography.labelLarge,
                 maxLines = 1,
                 softWrap = false,
-                overflow = TextOverflow.Ellipsis,
             )
         }
     }
@@ -161,7 +158,7 @@ fun Modifier.adaptiveContentWidth(): Modifier = this
 
 /**
  * Full-width primary action (e.g. Video Cleaner delete): keeps icon+label on one line
- * on narrow phones via reduced padding and ellipsis.
+ * on narrow phones via reduced padding; long labels shrink then ellipsize.
  */
 @Composable
 fun CompactWideActionButton(
@@ -197,12 +194,11 @@ fun CompactWideActionButton(
                     contentDescription = null,
                     modifier = Modifier.size(20.dp),
                 )
-                Text(
+                AutoFitText(
                     text = label,
                     style = MaterialTheme.typography.labelLarge,
                     maxLines = 1,
                     softWrap = false,
-                    overflow = TextOverflow.Ellipsis,
                     textAlign = TextAlign.Center,
                 )
             }
@@ -214,11 +210,10 @@ fun CompactWideActionButton(
                     modifier = Modifier.size(18.dp),
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                Text(
+                AutoFitText(
                     text = label,
                     style = MaterialTheme.typography.labelLarge,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
                 )
             }
         }

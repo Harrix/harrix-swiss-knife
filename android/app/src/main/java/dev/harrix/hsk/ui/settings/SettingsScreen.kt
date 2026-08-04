@@ -67,7 +67,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -80,6 +79,7 @@ import dev.harrix.hsk.gallery.GalleryDateFilter
 import dev.harrix.hsk.gallery.GalleryPermissions
 import dev.harrix.hsk.gallery.GalleryReviewOrder
 import dev.harrix.hsk.gallery.MediaFolderPaths
+import dev.harrix.hsk.ui.AutoFitText
 import dev.harrix.hsk.ui.adaptiveContentWidth
 import dev.harrix.hsk.ui.isCompactWidth
 import dev.harrix.hsk.ui.theme.AppLanguage
@@ -183,10 +183,9 @@ fun SettingsScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Text(
+                    AutoFitText(
                         text = pageTitle,
                         maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
                     )
                 },
                 navigationIcon = {
@@ -260,7 +259,7 @@ fun SettingsScreen(
                     }
                     if (onOpenAllSettings != null && section != SettingsSection.All) {
                         TextButton(onClick = onOpenAllSettings) {
-                            Text(stringResource(R.string.settings_open_all))
+                            AutoFitText(text = stringResource(R.string.settings_open_all), maxLines = 1)
                         }
                     }
                 }
@@ -350,19 +349,17 @@ private fun SettingsHubRow(
 ) {
     ListItem(
         headlineContent = {
-            Text(
+            AutoFitText(
                 text = title,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
             )
         },
         supportingContent = {
-            Text(
+            AutoFitText(
                 text = summary,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
             )
         },
         leadingContent = {
@@ -447,10 +444,9 @@ private fun EssentialSettingsSection(
                         }
                     DropdownMenuItem(
                         text = {
-                            Text(
+                            AutoFitText(
                                 text = optionLabel,
                                 maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
                             )
                         },
                         onClick = {
@@ -480,10 +476,9 @@ private fun EssentialSettingsSection(
                         count = options.size,
                     ),
                 ) {
-                    Text(
+                    AutoFitText(
                         text = stringResource(labelRes),
                         maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
                     )
                 }
             }
@@ -705,7 +700,7 @@ private fun GalleryCleanerSettingsSection(
         GalleryStatsDialogState.Loading -> {
             AlertDialog(
                 onDismissRequest = {},
-                title = { Text(stringResource(R.string.settings_gallery_stats_title)) },
+                title = { AutoFitText(text = stringResource(R.string.settings_gallery_stats_title), maxLines = 2) },
                 text = {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -722,11 +717,11 @@ private fun GalleryCleanerSettingsSection(
         GalleryStatsDialogState.NoPermission -> {
             AlertDialog(
                 onDismissRequest = { statsState = null },
-                title = { Text(stringResource(R.string.settings_gallery_stats_title)) },
+                title = { AutoFitText(text = stringResource(R.string.settings_gallery_stats_title), maxLines = 2) },
                 text = { Text(stringResource(R.string.settings_gallery_stats_no_permission)) },
                 confirmButton = {
                     TextButton(onClick = { statsState = null }) {
-                        Text(stringResource(R.string.settings_gallery_stats_ok))
+                        AutoFitText(text = stringResource(R.string.settings_gallery_stats_ok), maxLines = 1)
                     }
                 },
             )
@@ -736,58 +731,65 @@ private fun GalleryCleanerSettingsSection(
             val stats = state.stats
             AlertDialog(
                 onDismissRequest = { statsState = null },
-                title = { Text(stringResource(R.string.settings_gallery_stats_title)) },
+                title = { AutoFitText(text = stringResource(R.string.settings_gallery_stats_title), maxLines = 2) },
                 text = {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text(
-                            stringResource(
+                        AutoFitText(
+                            text = stringResource(
                                 R.string.settings_gallery_stats_total,
                                 stats.totalCount,
                             ),
+                            maxLines = 1,
                         )
-                        Text(
-                            stringResource(
+                        AutoFitText(
+                            text = stringResource(
                                 R.string.settings_gallery_stats_size,
                                 CameraGalleryRepository.formatFileSize(stats.totalBytes),
                             ),
+                            maxLines = 1,
                         )
-                        Text(
-                            stringResource(
+                        AutoFitText(
+                            text = stringResource(
                                 R.string.settings_gallery_stats_reviewed_history,
                                 stats.reviewedHistoryCount,
                             ),
+                            maxLines = 1,
                         )
-                        Text(
-                            stringResource(
+                        AutoFitText(
+                            text = stringResource(
                                 R.string.settings_gallery_stats_reviewed_in_folder,
                                 stats.reviewedInFolderCount,
                             ),
+                            maxLines = 1,
                         )
-                        Text(
-                            stringResource(
+                        AutoFitText(
+                            text = stringResource(
                                 R.string.settings_gallery_stats_unreviewed,
                                 stats.unreviewedCount,
                             ),
+                            maxLines = 1,
                         )
                         if (stats.filteredCount != null && stats.filteredBytes != null) {
-                            Text(
-                                stringResource(
+                            AutoFitText(
+                                text = stringResource(
                                     R.string.settings_gallery_stats_filtered,
                                     stats.filteredCount,
                                 ),
+                                maxLines = 1,
                             )
-                            Text(
-                                stringResource(
+                            AutoFitText(
+                                text = stringResource(
                                     R.string.settings_gallery_stats_filtered_size,
                                     CameraGalleryRepository.formatFileSize(stats.filteredBytes),
                                 ),
+                                maxLines = 1,
                             )
                         }
                     }
                 },
                 confirmButton = {
                     TextButton(onClick = { statsState = null }) {
-                        Text(stringResource(R.string.settings_gallery_stats_ok))
+                        AutoFitText(text = stringResource(R.string.settings_gallery_stats_ok), maxLines = 1)
                     }
                 },
             )
@@ -825,7 +827,7 @@ private fun GalleryCleanerSettingsSection(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             val folderLabel = MediaFolderPaths.displayLabel(imagesRelativePath)
-            Text(
+            AutoFitText(
                 text =
                 stringResource(R.string.settings_gallery_images_folder_current, folderLabel) +
                     if (imagesRelativePath == null) {
@@ -836,7 +838,6 @@ private fun GalleryCleanerSettingsSection(
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
             )
             val folderButtonPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp)
             if (isCompactWidth()) {
@@ -849,10 +850,9 @@ private fun GalleryCleanerSettingsSection(
                         modifier = Modifier.fillMaxWidth(),
                         contentPadding = folderButtonPadding,
                     ) {
-                        Text(
+                        AutoFitText(
                             text = stringResource(R.string.settings_gallery_images_folder_choose),
                             maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
                         )
                     }
                     OutlinedButton(
@@ -865,10 +865,9 @@ private fun GalleryCleanerSettingsSection(
                         modifier = Modifier.fillMaxWidth(),
                         contentPadding = folderButtonPadding,
                     ) {
-                        Text(
+                        AutoFitText(
                             text = stringResource(R.string.settings_gallery_images_folder_restore),
                             maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
                         )
                     }
                 }
@@ -882,10 +881,9 @@ private fun GalleryCleanerSettingsSection(
                         modifier = Modifier.weight(1f),
                         contentPadding = folderButtonPadding,
                     ) {
-                        Text(
+                        AutoFitText(
                             text = stringResource(R.string.settings_gallery_images_folder_choose),
                             maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
                         )
                     }
                     OutlinedButton(
@@ -898,10 +896,9 @@ private fun GalleryCleanerSettingsSection(
                         modifier = Modifier.weight(1f),
                         contentPadding = folderButtonPadding,
                     ) {
-                        Text(
+                        AutoFitText(
                             text = stringResource(R.string.settings_gallery_images_folder_restore),
                             maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
                         )
                     }
                 }
@@ -1051,10 +1048,9 @@ private fun SettingsFullWidthOutlinedButton(
         modifier = modifier.fillMaxWidth(),
         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp),
     ) {
-        Text(
+        AutoFitText(
             text = label,
             maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
             textAlign = TextAlign.Center,
         )
     }
@@ -1070,22 +1066,20 @@ private fun SettingsSwitchRow(
 ) {
     ListItem(
         headlineContent = {
-            Text(
+            AutoFitText(
                 text = title,
                 style = MaterialTheme.typography.bodyLarge,
                 maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
             )
         },
         supportingContent =
         description?.let {
             {
-                Text(
+                AutoFitText(
                     text = it,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 4,
-                    overflow = TextOverflow.Ellipsis,
                 )
             }
         },
@@ -1270,10 +1264,9 @@ private fun DatePresetButton(
 ) {
     val padding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
     val content: @Composable () -> Unit = {
-        Text(
+        AutoFitText(
             text = label,
             maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
         )
     }
     if (selected) {
@@ -1413,10 +1406,9 @@ private fun SimpleDropdownField(
             options.forEachIndexed { index, option ->
                 DropdownMenuItem(
                     text = {
-                        Text(
+                        AutoFitText(
                             text = option,
                             maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
                         )
                     },
                     onClick = {

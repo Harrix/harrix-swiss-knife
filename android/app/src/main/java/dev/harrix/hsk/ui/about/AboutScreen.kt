@@ -39,9 +39,9 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.harrix.hsk.R
+import dev.harrix.hsk.ui.AutoFitText
 import dev.harrix.hsk.ui.adaptiveContentWidth
 
 private const val GithubUrl = "https://github.com/harrix/harrix-swiss-knife"
@@ -80,10 +80,9 @@ fun AboutScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Text(
+                    AutoFitText(
                         text = stringResource(R.string.about_title),
                         maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
                     )
                 },
                 navigationIcon = {
@@ -115,12 +114,11 @@ fun AboutScreen(
                 modifier = Modifier.size(72.dp),
             )
             Spacer(modifier = Modifier.height(8.dp))
-            Text(
+            AutoFitText(
                 text = stringResource(R.string.app_name),
                 style = MaterialTheme.typography.headlineSmall,
                 textAlign = TextAlign.Center,
                 maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
             )
             Text(
                 text = stringResource(R.string.about_version, versionName),

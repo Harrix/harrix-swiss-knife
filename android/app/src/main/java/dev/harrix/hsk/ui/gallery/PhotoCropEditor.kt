@@ -61,7 +61,6 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
@@ -69,6 +68,7 @@ import dev.harrix.hsk.R
 import dev.harrix.hsk.gallery.CameraPhoto
 import dev.harrix.hsk.gallery.NormalizedCropRect
 import dev.harrix.hsk.gallery.PhotoEditSaver
+import dev.harrix.hsk.ui.AutoFitText
 import dev.harrix.hsk.ui.CompactBottomActionButton
 import dev.harrix.hsk.ui.adaptiveBottomBarWidth
 import dev.harrix.hsk.ui.isCompactHeight
@@ -587,7 +587,7 @@ fun PhotoCropEditor(
                                 modifier = Modifier.size(18.dp),
                             )
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text(
+                            AutoFitText(
                                 text =
                                 stringResource(
                                     if (compactChrome) {
@@ -597,7 +597,6 @@ fun PhotoCropEditor(
                                     },
                                 ),
                                 maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
                             )
                         }
                     }
@@ -626,7 +625,7 @@ fun PhotoCropEditor(
                                 modifier = Modifier.size(18.dp),
                             )
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text(
+                            AutoFitText(
                                 text =
                                 stringResource(
                                     if (compactChrome) {
@@ -636,7 +635,6 @@ fun PhotoCropEditor(
                                     },
                                 ),
                                 maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
                             )
                         }
                     }
@@ -683,7 +681,7 @@ fun PhotoCropEditor(
                         },
                         enabled = !isSaving && imageWidth > 0,
                         label = {
-                            Text(
+                            AutoFitText(
                                 text =
                                 stringResource(
                                     if (compactChrome) {
@@ -693,7 +691,6 @@ fun PhotoCropEditor(
                                     },
                                 ),
                                 maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
                             )
                         },
                         leadingIcon =
@@ -728,7 +725,7 @@ fun PhotoCropEditor(
                             },
                             enabled = !isSaving && imageWidth > 0,
                             label = {
-                                Text(
+                                AutoFitText(
                                     text =
                                     stringResource(
                                         if (compactChrome) {
@@ -738,7 +735,6 @@ fun PhotoCropEditor(
                                         },
                                     ),
                                     maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
                                 )
                             },
                             leadingIcon =
@@ -766,7 +762,7 @@ fun PhotoCropEditor(
                         },
                         enabled = !isSaving && imageWidth > 0,
                         label = {
-                            Text(
+                            AutoFitText(
                                 text =
                                 stringResource(
                                     if (compactChrome) {
@@ -776,7 +772,6 @@ fun PhotoCropEditor(
                                     },
                                 ),
                                 maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
                             )
                         },
                         leadingIcon =

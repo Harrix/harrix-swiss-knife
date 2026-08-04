@@ -102,7 +102,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -119,6 +118,7 @@ import dev.harrix.hsk.gallery.CameraVideo
 import dev.harrix.hsk.gallery.GalleryCleanerPreferences
 import dev.harrix.hsk.gallery.GalleryPermissions
 import dev.harrix.hsk.gallery.VideoCleanerPreferences
+import dev.harrix.hsk.ui.AutoFitText
 import dev.harrix.hsk.ui.CompactWideActionButton
 import dev.harrix.hsk.ui.adaptiveBottomBarWidth
 import dev.harrix.hsk.ui.isCompactWidth
@@ -356,52 +356,58 @@ fun VideoCleanerScreen(
     if (showStatsDialog) {
         AlertDialog(
             onDismissRequest = { showStatsDialog = false },
-            title = { Text(stringResource(R.string.video_cleaner_stats_title)) },
+            title = { AutoFitText(text = stringResource(R.string.video_cleaner_stats_title), maxLines = 2) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(
-                        stringResource(
+                    AutoFitText(
+                        text = stringResource(
                             R.string.video_cleaner_stats_in_folder,
                             videos.size,
                         ),
+                        maxLines = 1,
                     )
-                    Text(
-                        stringResource(
+                    AutoFitText(
+                        text = stringResource(
                             R.string.video_cleaner_stats_folder_size,
                             CameraGalleryRepository.formatFileSize(totalBytes),
                         ),
+                        maxLines = 1,
                     )
-                    Text(
-                        stringResource(
+                    AutoFitText(
+                        text = stringResource(
                             R.string.video_cleaner_stats_deleted_session,
                             sessionDeletedCount,
                         ),
+                        maxLines = 1,
                     )
-                    Text(
-                        stringResource(
+                    AutoFitText(
+                        text = stringResource(
                             R.string.video_cleaner_stats_freed_session,
                             CameraGalleryRepository.formatFileSize(sessionFreedBytes),
                         ),
+                        maxLines = 1,
                     )
-                    Text(
-                        stringResource(
+                    AutoFitText(
+                        text = stringResource(
                             R.string.video_cleaner_stats_deleted,
                             videoPreferences.totalDeletedCount(),
                         ),
+                        maxLines = 1,
                     )
-                    Text(
-                        stringResource(
+                    AutoFitText(
+                        text = stringResource(
                             R.string.video_cleaner_stats_freed,
                             CameraGalleryRepository.formatFileSize(
                                 videoPreferences.totalFreedBytes(),
                             ),
                         ),
+                        maxLines = 1,
                     )
                 }
             },
             confirmButton = {
                 TextButton(onClick = { showStatsDialog = false }) {
-                    Text(stringResource(R.string.video_cleaner_stats_ok))
+                    AutoFitText(text = stringResource(R.string.video_cleaner_stats_ok), maxLines = 1)
                 }
             },
         )
@@ -454,13 +460,12 @@ fun VideoCleanerScreen(
             TopAppBar(
                 title = {
                     Column {
-                        Text(
+                        AutoFitText(
                             text = stringResource(R.string.video_cleaner_title),
                             maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
                         )
                         if (hasPermission) {
-                            Text(
+                            AutoFitText(
                                 text =
                                 stringResource(
                                     R.string.video_cleaner_header_sizes,
@@ -470,7 +475,6 @@ fun VideoCleanerScreen(
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
                             )
                         }
                     }
@@ -497,7 +501,7 @@ fun VideoCleanerScreen(
                         ) {
                             VideoSort.entries.forEach { option ->
                                 DropdownMenuItem(
-                                    text = { Text(stringResource(option.labelRes)) },
+                                    text = { AutoFitText(text = stringResource(option.labelRes), maxLines = 1) },
                                     leadingIcon = {
                                         Icon(
                                             imageVector = option.icon,
@@ -513,7 +517,7 @@ fun VideoCleanerScreen(
                             HorizontalDivider()
                             DropdownMenuItem(
                                 text = {
-                                    Text(stringResource(R.string.video_cleaner_stats))
+                                    AutoFitText(text = stringResource(R.string.video_cleaner_stats), maxLines = 1)
                                 },
                                 leadingIcon = {
                                     Icon(
@@ -528,7 +532,7 @@ fun VideoCleanerScreen(
                             )
                             DropdownMenuItem(
                                 text = {
-                                    Text(stringResource(R.string.video_cleaner_settings))
+                                    AutoFitText(text = stringResource(R.string.video_cleaner_settings), maxLines = 1)
                                 },
                                 leadingIcon = {
                                     Icon(
@@ -610,10 +614,9 @@ fun VideoCleanerScreen(
                                 contentPadding =
                                 PaddingValues(horizontal = 16.dp, vertical = 10.dp),
                             ) {
-                                Text(
+                                AutoFitText(
                                     text = stringResource(R.string.video_cleaner_permission_grant),
                                     maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
                                 )
                             }
                         }
@@ -625,7 +628,7 @@ fun VideoCleanerScreen(
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             CircularProgressIndicator()
                             Spacer(modifier = Modifier.height(16.dp))
-                            Text(stringResource(R.string.video_cleaner_loading))
+                            AutoFitText(text = stringResource(R.string.video_cleaner_loading), maxLines = 1)
                         }
                     }
                 }
@@ -702,12 +705,11 @@ fun VideoCleanerScreen(
             }
 
             statusMessage?.let { message ->
-                Text(
+                AutoFitText(
                     text = message,
                     color = MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.bodyMedium,
                     maxLines = 3,
-                    overflow = TextOverflow.Ellipsis,
                     modifier =
                     Modifier
                         .align(Alignment.BottomCenter)
@@ -753,10 +755,9 @@ private fun VideoSelectionTextButton(
                 modifier = Modifier.size(if (compact) 16.dp else 18.dp),
             )
             Spacer(modifier = Modifier.width(4.dp))
-            Text(
+            AutoFitText(
                 text = label,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
                 style =
                 if (compact) {
                     MaterialTheme.typography.labelLarge
@@ -843,12 +844,11 @@ private fun VideoCleanerBottomBar(
                 }
                 Column(modifier = Modifier.weight(1f)) {
                     if (selectedSizeLabel != null) {
-                        Text(
+                        AutoFitText(
                             text = selectedSizeLabel,
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
                             modifier = Modifier.padding(bottom = 4.dp),
                         )
                     }
@@ -864,12 +864,11 @@ private fun VideoCleanerBottomBar(
         } else {
             Column(modifier = Modifier.adaptiveBottomBarWidth()) {
                 if (selectedSizeLabel != null) {
-                    Text(
+                    AutoFitText(
                         text = selectedSizeLabel,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.padding(bottom = 8.dp),
                     )
                 }
@@ -944,20 +943,19 @@ private fun VideoGalleryItem(
                 .padding(horizontal = 6.dp, vertical = 6.dp),
         ) {
             Column {
-                Text(
+                AutoFitText(
                     text = dateLabel,
                     color = Color.White,
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.SemiBold,
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontWeight = FontWeight.SemiBold,
+                    ),
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
                 )
-                Text(
+                AutoFitText(
                     text = sizeLabel,
                     color = Color.White.copy(alpha = 0.9f),
                     style = MaterialTheme.typography.labelSmall,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
                 )
             }
         }
@@ -979,7 +977,7 @@ private fun VideoGalleryItem(
             onDismissRequest = { menuExpanded = false },
         ) {
             DropdownMenuItem(
-                text = { Text(stringResource(R.string.video_cleaner_play)) },
+                text = { AutoFitText(text = stringResource(R.string.video_cleaner_play), maxLines = 1) },
                 onClick = {
                     menuExpanded = false
                     onPlay()
@@ -992,7 +990,7 @@ private fun VideoGalleryItem(
                 },
             )
             DropdownMenuItem(
-                text = { Text(stringResource(R.string.video_cleaner_share)) },
+                text = { AutoFitText(text = stringResource(R.string.video_cleaner_share), maxLines = 1) },
                 onClick = {
                     menuExpanded = false
                     onShare()

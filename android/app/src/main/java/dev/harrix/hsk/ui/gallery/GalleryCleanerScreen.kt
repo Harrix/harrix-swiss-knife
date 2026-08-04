@@ -106,7 +106,6 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
@@ -126,6 +125,7 @@ import dev.harrix.hsk.gallery.GalleryReviewOrder
 import dev.harrix.hsk.gallery.GallerySessionUndo
 import dev.harrix.hsk.gallery.PendingEditUndo
 import dev.harrix.hsk.gallery.PhotoEditSaver
+import dev.harrix.hsk.ui.AutoFitText
 import dev.harrix.hsk.ui.CompactBottomActionButton
 import dev.harrix.hsk.ui.adaptiveBottomBarWidth
 import dev.harrix.hsk.ui.isCompactHeight
@@ -753,7 +753,7 @@ fun GalleryCleanerScreen(
                     reloadPhotos()
                 }
             },
-            title = { Text(stringResource(R.string.gallery_cleaner_date_filter)) },
+            title = { AutoFitText(text = stringResource(R.string.gallery_cleaner_date_filter), maxLines = 2) },
             text = {
                 GalleryDateFilterSettingsContent(
                     filter = dateFilter,
@@ -775,7 +775,7 @@ fun GalleryCleanerScreen(
                         }
                     },
                 ) {
-                    Text(stringResource(R.string.gallery_cleaner_stats_ok))
+                    AutoFitText(text = stringResource(R.string.gallery_cleaner_stats_ok), maxLines = 1)
                 }
             },
         )
@@ -789,43 +789,48 @@ fun GalleryCleanerScreen(
         val canResetStats = lifetimeDeleted > 0 || lifetimeFreed > 0L
         AlertDialog(
             onDismissRequest = { showStatsDialog = false },
-            title = { Text(stringResource(R.string.gallery_cleaner_stats_title)) },
+            title = { AutoFitText(text = stringResource(R.string.gallery_cleaner_stats_title), maxLines = 2) },
             text = {
                 Column(
                     modifier = Modifier.dialogScrollable(),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     if (unreviewedOnlyMode) {
-                        Text(
-                            stringResource(
+                        AutoFitText(
+                            text = stringResource(
                                 R.string.gallery_cleaner_stats_reviewed_total,
                                 reviewedTotal,
                             ),
+                            maxLines = 1,
                         )
-                        Text(
-                            stringResource(
+                        AutoFitText(
+                            text = stringResource(
                                 R.string.gallery_cleaner_stats_remaining,
                                 remainingCount,
                             ),
+                            maxLines = 1,
                         )
                     }
-                    Text(
-                        stringResource(
+                    AutoFitText(
+                        text = stringResource(
                             R.string.gallery_cleaner_stats_reviewed_session,
                             sessionReviewedCount,
                         ),
+                        maxLines = 1,
                     )
-                    Text(
-                        stringResource(
+                    AutoFitText(
+                        text = stringResource(
                             R.string.gallery_cleaner_stats_deleted,
                             lifetimeDeleted,
                         ),
+                        maxLines = 1,
                     )
-                    Text(
-                        stringResource(
+                    AutoFitText(
+                        text = stringResource(
                             R.string.gallery_cleaner_stats_freed,
                             CameraGalleryRepository.formatFileSize(lifetimeFreed),
                         ),
+                        maxLines = 1,
                     )
                 }
             },
@@ -839,12 +844,12 @@ fun GalleryCleanerScreen(
                     },
                     enabled = canResetStats,
                 ) {
-                    Text(stringResource(R.string.gallery_cleaner_stats_reset))
+                    AutoFitText(text = stringResource(R.string.gallery_cleaner_stats_reset), maxLines = 1)
                 }
             },
             confirmButton = {
                 TextButton(onClick = { showStatsDialog = false }) {
-                    Text(stringResource(R.string.gallery_cleaner_stats_ok))
+                    AutoFitText(text = stringResource(R.string.gallery_cleaner_stats_ok), maxLines = 1)
                 }
             },
         )
@@ -934,13 +939,12 @@ fun GalleryCleanerScreen(
                                 .weight(1f)
                                 .padding(end = 8.dp),
                         ) {
-                            Text(
+                            AutoFitText(
                                 text = stringResource(R.string.gallery_cleaner_title),
                                 style = MaterialTheme.typography.titleLarge,
                                 maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
                             )
-                            Text(
+                            AutoFitText(
                                 text =
                                 stringResource(
                                     R.string.gallery_cleaner_session_stats,
@@ -950,12 +954,11 @@ fun GalleryCleanerScreen(
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
                             )
                         }
                         if (hasPermission && remainingCount > 0 && !isEditing) {
                             val compact = isCompactWidth()
-                            Text(
+                            AutoFitText(
                                 text =
                                 if (compact) {
                                     remainingCount.toString()
@@ -972,7 +975,6 @@ fun GalleryCleanerScreen(
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
                                 modifier =
                                 Modifier
                                     .widthIn(max = if (compact) 64.dp else 140.dp)
@@ -994,10 +996,11 @@ fun GalleryCleanerScreen(
                                 ) {
                                     DropdownMenuItem(
                                         text = {
-                                            Text(
-                                                stringResource(
+                                            AutoFitText(
+                                                text = stringResource(
                                                     R.string.gallery_cleaner_date_filter,
                                                 ),
+                                                maxLines = 1,
                                             )
                                         },
                                         leadingIcon = {
@@ -1014,10 +1017,11 @@ fun GalleryCleanerScreen(
                                     if (currentPhoto != null) {
                                         DropdownMenuItem(
                                             text = {
-                                                Text(
-                                                    stringResource(
+                                                AutoFitText(
+                                                    text = stringResource(
                                                         R.string.gallery_cleaner_filter_shoot_day,
                                                     ),
+                                                    maxLines = 1,
                                                 )
                                             },
                                             leadingIcon = {
@@ -1038,10 +1042,11 @@ fun GalleryCleanerScreen(
                                     if (dateFilter.enabled) {
                                         DropdownMenuItem(
                                             text = {
-                                                Text(
-                                                    stringResource(
+                                                AutoFitText(
+                                                    text = stringResource(
                                                         R.string.gallery_cleaner_clear_date_filter,
                                                     ),
+                                                    maxLines = 1,
                                                 )
                                             },
                                             leadingIcon = {
@@ -1063,14 +1068,15 @@ fun GalleryCleanerScreen(
                                     }
                                     DropdownMenuItem(
                                         text = {
-                                            Text(
-                                                stringResource(
+                                            AutoFitText(
+                                                text = stringResource(
                                                     if (unreviewedOnlyMode) {
                                                         R.string.gallery_cleaner_disable_unreviewed_only
                                                     } else {
                                                         R.string.gallery_cleaner_enable_unreviewed_only
                                                     },
                                                 ),
+                                                maxLines = 1,
                                             )
                                         },
                                         leadingIcon = {
@@ -1096,7 +1102,7 @@ fun GalleryCleanerScreen(
                                     )
                                     DropdownMenuItem(
                                         text = {
-                                            Text(stringResource(R.string.gallery_cleaner_stats))
+                                            AutoFitText(text = stringResource(R.string.gallery_cleaner_stats), maxLines = 1)
                                         },
                                         leadingIcon = {
                                             Icon(
@@ -1111,7 +1117,7 @@ fun GalleryCleanerScreen(
                                     )
                                     DropdownMenuItem(
                                         text = {
-                                            Text(stringResource(R.string.gallery_cleaner_settings))
+                                            AutoFitText(text = stringResource(R.string.gallery_cleaner_settings), maxLines = 1)
                                         },
                                         leadingIcon = {
                                             Icon(
@@ -1187,7 +1193,7 @@ fun GalleryCleanerScreen(
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         CircularProgressIndicator()
                         Spacer(modifier = Modifier.height(16.dp))
-                        Text(stringResource(R.string.gallery_cleaner_loading))
+                        AutoFitText(text = stringResource(R.string.gallery_cleaner_loading), maxLines = 1)
                     }
                 }
 
@@ -1241,7 +1247,7 @@ fun GalleryCleanerScreen(
                                     }
                                 },
                             ) {
-                                Text(stringResource(R.string.gallery_cleaner_clear_date_filter))
+                                AutoFitText(text = stringResource(R.string.gallery_cleaner_clear_date_filter), maxLines = 1)
                             }
                         }
                     }
@@ -1455,7 +1461,7 @@ private fun PhotoSecondaryActionsRow(
                 dateFilter.fromYear() == dateFilter.toYear() &&
                     dateFilter.fromMonth() == dateFilter.toMonth() &&
                     dateFilter.fromDay() == dateFilter.toDay()
-            Text(
+            AutoFitText(
                 text =
                 if (sameDay) {
                     stringResource(
@@ -1473,7 +1479,6 @@ private fun PhotoSecondaryActionsRow(
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = if (compact) 1 else 2,
-                overflow = TextOverflow.Ellipsis,
             )
         } else {
             Spacer(modifier = Modifier.weight(1f))
@@ -1527,7 +1532,7 @@ private fun GalleryCleanerIntroDialog(
 ) {
     AlertDialog(
         onDismissRequest = onConfirm,
-        title = { Text(stringResource(R.string.gallery_cleaner_intro_title)) },
+        title = { AutoFitText(text = stringResource(R.string.gallery_cleaner_intro_title), maxLines = 2) },
         text = {
             Column(modifier = Modifier.dialogScrollable()) {
                 Text(stringResource(R.string.gallery_cleaner_intro_message))
@@ -1549,7 +1554,7 @@ private fun GalleryCleanerIntroDialog(
         },
         confirmButton = {
             TextButton(onClick = onConfirm) {
-                Text(stringResource(R.string.gallery_cleaner_intro_ok))
+                AutoFitText(text = stringResource(R.string.gallery_cleaner_intro_ok), maxLines = 1)
             }
         },
     )
@@ -1562,7 +1567,7 @@ internal fun ManageMediaPromptDialog(
 ) {
     AlertDialog(
         onDismissRequest = onSkip,
-        title = { Text(stringResource(R.string.gallery_cleaner_manage_media_title)) },
+        title = { AutoFitText(text = stringResource(R.string.gallery_cleaner_manage_media_title), maxLines = 2) },
         text = {
             Text(
                 text = stringResource(R.string.gallery_cleaner_manage_media_message),
@@ -1571,19 +1576,17 @@ internal fun ManageMediaPromptDialog(
         },
         confirmButton = {
             TextButton(onClick = onOpenSettings) {
-                Text(
+                AutoFitText(
                     text = stringResource(R.string.gallery_cleaner_manage_media_open),
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
                 )
             }
         },
         dismissButton = {
             TextButton(onClick = onSkip) {
-                Text(
+                AutoFitText(
                     text = stringResource(R.string.gallery_cleaner_manage_media_skip),
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
                 )
             }
         },
@@ -1613,10 +1616,9 @@ private fun PermissionRequestContent(
             onClick = onGrantClick,
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp),
         ) {
-            Text(
+            AutoFitText(
                 text = stringResource(R.string.gallery_cleaner_permission_grant),
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
             )
         }
     }
@@ -1922,39 +1924,35 @@ private fun PhotoMetaInfo(
         verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
         if (compact) {
-            Text(
+            AutoFitText(
                 text = "$dateLabel · $sizeLabel",
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
                 textAlign = textAlign,
                 modifier = if (endAligned) Modifier.fillMaxWidth() else Modifier,
             )
         } else {
-            Text(
+            AutoFitText(
                 text = nameLabel,
                 style = MaterialTheme.typography.titleSmall,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
                 textAlign = textAlign,
                 modifier = if (endAligned) Modifier.fillMaxWidth() else Modifier,
             )
-            Text(
+            AutoFitText(
                 text = dateLabel,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
                 textAlign = textAlign,
                 modifier = if (endAligned) Modifier.fillMaxWidth() else Modifier,
             )
-            Text(
+            AutoFitText(
                 text = sizeLabel,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
                 textAlign = textAlign,
                 modifier = if (endAligned) Modifier.fillMaxWidth() else Modifier,
             )

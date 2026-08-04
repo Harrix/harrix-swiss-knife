@@ -67,7 +67,6 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -277,13 +276,12 @@ fun MainScreen(
                                         ) {
                                             DropdownMenuItem(
                                                 text = {
-                                                    Text(
+                                                    AutoFitText(
                                                         text =
                                                         stringResource(
                                                             R.string.nav_settings,
                                                         ),
                                                         maxLines = 1,
-                                                        overflow = TextOverflow.Ellipsis,
                                                     )
                                                 },
                                                 leadingIcon = {
@@ -424,20 +422,18 @@ private fun UtilityCard(
             }
             Spacer(modifier = Modifier.width(if (compact) 10.dp else 12.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(
+                AutoFitText(
                     text = title,
                     style = MaterialTheme.typography.titleSmall,
                     color = colorScheme.onSurface,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
                 )
                 Spacer(modifier = Modifier.height(4.dp))
-                Text(
+                AutoFitText(
                     text = description,
                     style = MaterialTheme.typography.bodySmall,
                     color = colorScheme.onSurfaceVariant,
                     maxLines = if (compact) 2 else 3,
-                    overflow = TextOverflow.Ellipsis,
                 )
             }
         }
@@ -462,11 +458,10 @@ private fun BrandTitle(
             modifier = Modifier.size(logoSize),
         )
         Spacer(modifier = Modifier.width(12.dp))
-        Text(
+        AutoFitText(
             text = appName,
             style = textStyle,
             maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f, fill = false),
         )
     }
@@ -585,11 +580,10 @@ private fun DrawerNavItem(
                 modifier = Modifier.size(22.dp),
             )
             Spacer(modifier = Modifier.width(10.dp))
-            Text(
+            AutoFitText(
                 text = label,
                 style = MaterialTheme.typography.labelLarge,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
             )
         }
     }

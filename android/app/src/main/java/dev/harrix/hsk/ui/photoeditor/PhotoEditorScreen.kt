@@ -37,10 +37,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import dev.harrix.hsk.R
+import dev.harrix.hsk.ui.AutoFitText
 import dev.harrix.hsk.ui.gallery.EditablePhotoHost
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -105,10 +105,9 @@ fun PhotoEditorScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Text(
+                    AutoFitText(
                         text = stringResource(R.string.photo_editor_title),
                         maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
                     )
                 },
                 navigationIcon = {
@@ -201,7 +200,7 @@ fun PhotoEditorScreen(
                         )
                         Spacer(modifier = Modifier.height(24.dp))
                         Button(onClick = { openPicker() }) {
-                            Text(stringResource(R.string.photo_editor_open_photo))
+                            AutoFitText(text = stringResource(R.string.photo_editor_open_photo), maxLines = 1)
                         }
                     }
                 }
