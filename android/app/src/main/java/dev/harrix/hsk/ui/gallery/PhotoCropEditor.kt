@@ -24,6 +24,7 @@ import androidx.compose.material.icons.filled.Crop
 import androidx.compose.material.icons.filled.CropFree
 import androidx.compose.material.icons.filled.CropRotate
 import androidx.compose.material.icons.filled.Done
+import androidx.compose.material.icons.filled.FileCopy
 import androidx.compose.material.icons.filled.FitScreen
 import androidx.compose.material.icons.filled.RestartAlt
 import androidx.compose.material.icons.filled.Rotate90DegreesCcw
@@ -111,6 +112,7 @@ fun PhotoCropEditor(
     onSave: () -> Unit,
     onDiscard: () -> Unit,
     modifier: Modifier = Modifier,
+    onSaveCopy: (() -> Unit)? = null,
 ) {
     val context = LocalContext.current
     val density = LocalDensity.current
@@ -818,6 +820,15 @@ fun PhotoCropEditor(
                         enabled = !isSaving,
                         outlined = true,
                     )
+                    if (onSaveCopy != null) {
+                        CompactBottomActionButton(
+                            onClick = onSaveCopy,
+                            icon = Icons.Filled.FileCopy,
+                            label = stringResource(R.string.photo_editor_save_copy),
+                            enabled = !isSaving,
+                            outlined = true,
+                        )
+                    }
                     CompactBottomActionButton(
                         onClick = onSave,
                         icon = Icons.Filled.Done,

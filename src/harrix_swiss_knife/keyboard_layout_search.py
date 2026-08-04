@@ -83,6 +83,27 @@ for _en, _ru in _LAYOUT_PAIRS:
 _BOLD_TITLE_PREFIX = "★ "
 
 
+def autocomplete_match_tier(text: str, query: str) -> int | None:
+    """Return best match tier for autocomplete, including EN/RU layout mistakes.
+
+    Tiers: `0` exact, `1` starts-with, `2` contains. Returns `None` if neither the
+    plain query nor its layout-swapped form matches `text`.
+
+    """
+    text_fold = text.casefold()
+    query_fold = query.casefold()
+    swapped_fold = swap_keyboard_layout(query).casefold()
+
+    best: int | None = None
+    for needle in (query_fold, swapped_fold):
+        if not needle:
+            continue
+        tier = _plain_autocomplete_tier(text_fold, needle)
+        if tier is not None and (best is None or tier < best):
+            best = tier
+    return best
+
+
 def command_matches_search(title: str, query: str) -> bool:
     """Return `True` if query matches title, including EN/RU layout mistakes.
 
@@ -111,3 +132,19 @@ def normalize_command_title(title: str) -> str:
 def swap_keyboard_layout(text: str) -> str:
     """Swap characters as if typed on the other EN/RU keyboard layout."""
     return "".join(_LAYOUT_SWAP.get(char, char) for char in text)
+
+
+def text_matches_autocomplete(text: str, query: str) -> bool:
+    """Return `True` if query matches text for autocomplete, including layout mistakes."""
+    return autocomplete_match_tier(text, query) is not None
+
+
+def _plain_autocomplete_tier(text_fold: str, query_fold: str) -> int | None:
+    """Return match tier for a single folded query, or `None` if no match."""
+    if text_fold == query_fold:
+        return 0
+    if text_fold.startswith(query_fold):
+        return 1
+    if query_fold in text_fold:
+        return 2
+    return None

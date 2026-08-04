@@ -113,6 +113,7 @@
     <string name="photo_editor_open_failed">Foto konnte nicht geöffnet werden</string>
     <string name="photo_editor_saved">Foto gespeichert</string>
     <string name="photo_editor_saved_as_copy">Als Kopie in Pictures/HSK gespeichert</string>
+    <string name="photo_editor_save_copy">Kopie speichern</string>
     <string name="gallery_cleaner_title">Gallery Cleaner</string>
     <string name="gallery_cleaner_close">Beenden Sie Gallery Cleaner</string>
     <string name="gallery_cleaner_intro_title">Wie es funktioniert</string>

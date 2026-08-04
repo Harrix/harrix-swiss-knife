@@ -1255,7 +1255,7 @@ fun GalleryCleanerScreen(
                             imageRevision = editImageRevision,
                             existingUndo = existingEditUndo(photo.id),
                             allowSaveCopyFallback = false,
-                            createWriteRequest = { uri -> repository.createWriteRequest(uri) },
+                            repository = repository,
                             onSave = { result ->
                                 applySavedPhoto(
                                     photo = photo,

@@ -113,6 +113,7 @@
     <string name="photo_editor_open_failed">Не удалось открыть фотографию</string>
     <string name="photo_editor_saved">Фотография сохранена</string>
     <string name="photo_editor_saved_as_copy">Сохранена копия в Pictures/HSK</string>
+    <string name="photo_editor_save_copy">Сохранить копию</string>
     <string name="gallery_cleaner_title">Gallery Cleaner</string>
     <string name="gallery_cleaner_close">Выход Gallery Cleaner</string>
     <string name="gallery_cleaner_intro_title">Как это работает</string>

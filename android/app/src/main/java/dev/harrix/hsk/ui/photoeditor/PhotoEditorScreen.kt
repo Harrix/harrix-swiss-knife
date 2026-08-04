@@ -150,7 +150,8 @@ fun PhotoEditorScreen(
                         photo = photo,
                         imageRevision = imageRevision,
                         allowSaveCopyFallback = true,
-                        createWriteRequest = { uri -> repository.createWriteRequest(uri) },
+                        showSaveCopyButton = true,
+                        repository = repository,
                         onSave = { result ->
                             viewModel.applySaved(result.photo, result.sizeBytes)
                             statusMessage =

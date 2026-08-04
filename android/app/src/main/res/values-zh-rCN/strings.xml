@@ -113,6 +113,7 @@
     <string name="photo_editor_open_failed">无法打开照片</string>
     <string name="photo_editor_saved">照片已保存</string>
     <string name="photo_editor_saved_as_copy">已另存为副本到 Pictures/HSK</string>
+    <string name="photo_editor_save_copy">保存副本</string>
     <string name="gallery_cleaner_title">Gallery Cleaner</string>
     <string name="gallery_cleaner_close">退出Gallery Cleaner</string>
     <string name="gallery_cleaner_intro_title">它是如何运作的</string>

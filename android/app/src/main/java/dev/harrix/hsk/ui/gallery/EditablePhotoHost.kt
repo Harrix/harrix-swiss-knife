@@ -1,8 +1,8 @@
 package dev.harrix.hsk.ui.gallery
 
 import android.app.Activity
-import android.content.IntentSender
 import android.net.Uri
+import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -18,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import dev.harrix.hsk.R
+import dev.harrix.hsk.gallery.CameraGalleryRepository
 import dev.harrix.hsk.gallery.CameraPhoto
 import dev.harrix.hsk.gallery.NormalizedCropRect
 import dev.harrix.hsk.gallery.PendingEditUndo
@@ -46,10 +47,11 @@ fun EditablePhotoHost(
     onSave: (EditablePhotoSaveResult) -> Unit,
     onDiscard: () -> Unit,
     onError: (String) -> Unit,
-    createWriteRequest: (Uri) -> IntentSender,
+    repository: CameraGalleryRepository,
     modifier: Modifier = Modifier,
     existingUndo: PendingEditUndo? = null,
     allowSaveCopyFallback: Boolean = false,
+    showSaveCopyButton: Boolean = false,
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -68,7 +70,7 @@ fun EditablePhotoHost(
                 pendingRetry?.invoke()
             } else if (allowSaveCopyFallback) {
                 pendingRetry = null
-                performSaveAsCopy(
+                runSaveAsCopy(
                     scope = scope,
                     photoEditSaver = photoEditSaver,
                     photo = photo,
@@ -85,6 +87,20 @@ fun EditablePhotoHost(
                 onError(saveFailedMessage)
             }
         }
+
+    fun saveCopy() {
+        runSaveAsCopy(
+            scope = scope,
+            photoEditSaver = photoEditSaver,
+            photo = photo,
+            rotationDegrees = rotationDegrees,
+            cropRect = cropRect,
+            isSavingSetter = { isSaving = it },
+            onSave = onSave,
+            onError = onError,
+            saveFailedMessage = saveFailedMessage,
+        )
+    }
 
     fun performOverwrite(requestWriteIfNeeded: Boolean) {
         isSaving = true
@@ -117,24 +133,24 @@ fun EditablePhotoHost(
                 PhotoEditSaver.SaveResult.NeedsWritePermission -> {
                     val canRequest =
                         requestWriteIfNeeded &&
+                            Build.VERSION.SDK_INT >= Build.VERSION_CODES.R &&
                             PhotoEditSaver.canRequestMediaStoreWrite(photo.uri)
                     if (canRequest) {
-                        pendingRetry = { performOverwrite(requestWriteIfNeeded = false) }
-                        writeLauncher.launch(
-                            IntentSenderRequest.Builder(createWriteRequest(photo.uri)).build(),
-                        )
+                        try {
+                            pendingRetry = { performOverwrite(requestWriteIfNeeded = false) }
+                            val sender = repository.createWriteRequest(photo.uri)
+                            writeLauncher.launch(IntentSenderRequest.Builder(sender).build())
+                        } catch (_: Exception) {
+                            pendingRetry = null
+                            if (allowSaveCopyFallback) {
+                                saveCopy()
+                            } else {
+                                isSaving = false
+                                onError(saveFailedMessage)
+                            }
+                        }
                     } else if (allowSaveCopyFallback) {
-                        performSaveAsCopy(
-                            scope = scope,
-                            photoEditSaver = photoEditSaver,
-                            photo = photo,
-                            rotationDegrees = rotationDegrees,
-                            cropRect = cropRect,
-                            isSavingSetter = { isSaving = it },
-                            onSave = onSave,
-                            onError = onError,
-                            saveFailedMessage = saveFailedMessage,
-                        )
+                        saveCopy()
                     } else {
                         isSaving = false
                         onError(saveFailedMessage)
@@ -143,17 +159,7 @@ fun EditablePhotoHost(
 
                 PhotoEditSaver.SaveResult.Failed -> {
                     if (allowSaveCopyFallback) {
-                        performSaveAsCopy(
-                            scope = scope,
-                            photoEditSaver = photoEditSaver,
-                            photo = photo,
-                            rotationDegrees = rotationDegrees,
-                            cropRect = cropRect,
-                            isSavingSetter = { isSaving = it },
-                            onSave = onSave,
-                            onError = onError,
-                            saveFailedMessage = saveFailedMessage,
-                        )
+                        saveCopy()
                     } else {
                         isSaving = false
                         onError(saveFailedMessage)
@@ -173,11 +179,16 @@ fun EditablePhotoHost(
         isSaving = isSaving,
         onSave = { performOverwrite(requestWriteIfNeeded = true) },
         onDiscard = onDiscard,
+        onSaveCopy = if (showSaveCopyButton) {
+            { saveCopy() }
+        } else {
+            null
+        },
         modifier = modifier.fillMaxSize(),
     )
 }
 
-private fun performSaveAsCopy(
+private fun runSaveAsCopy(
     scope: CoroutineScope,
     photoEditSaver: PhotoEditSaver,
     photo: CameraPhoto,

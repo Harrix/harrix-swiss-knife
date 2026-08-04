@@ -718,8 +718,21 @@ class PhotoEditSaver(
         private const val CropInsetRectEpsilon = 0.004f
 
         /** True when [MediaStore.createWriteRequest] can be used for [uri] on this API level. */
-        fun canRequestMediaStoreWrite(uri: Uri): Boolean = Build.VERSION.SDK_INT >= Build.VERSION_CODES.R &&
-            uri.authority == MediaStore.AUTHORITY
+        fun canRequestMediaStoreWrite(uri: Uri): Boolean {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+                return false
+            }
+            if (uri.authority != MediaStore.AUTHORITY) {
+                return false
+            }
+            val path = uri.path.orEmpty().lowercase(Locale.US)
+            // Photo Picker / grant URIs share authority "media" but are not writable.
+            if (path.contains("/picker/") || path.contains("photopicker")) {
+                return false
+            }
+            // Classic MediaStore image rows, e.g. /external/images/media/123
+            return path.contains("/images/media/")
+        }
 
         /**
          * Largest square that fits in the viewport (centered). Crop and rotation use this

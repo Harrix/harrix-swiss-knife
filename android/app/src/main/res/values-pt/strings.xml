@@ -113,6 +113,7 @@
     <string name="photo_editor_open_failed">Não foi possível abrir a foto</string>
     <string name="photo_editor_saved">Foto salva</string>
     <string name="photo_editor_saved_as_copy">Salva como cópia em Pictures/HSK</string>
+    <string name="photo_editor_save_copy">Salvar cópia</string>
     <string name="gallery_cleaner_title">Gallery Cleaner</string>
     <string name="gallery_cleaner_close">Sair Gallery Cleaner</string>
     <string name="gallery_cleaner_intro_title">Como funciona</string>

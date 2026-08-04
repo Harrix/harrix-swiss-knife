@@ -113,6 +113,7 @@
     <string name="photo_editor_open_failed">写真を開けませんでした</string>
     <string name="photo_editor_saved">写真を保存しました</string>
     <string name="photo_editor_saved_as_copy">Pictures/HSK にコピーとして保存しました</string>
+    <string name="photo_editor_save_copy">コピーを保存</string>
     <string name="gallery_cleaner_title">Gallery Cleaner</string>
     <string name="gallery_cleaner_close">Gallery Cleaner を終了します</string>
     <string name="gallery_cleaner_intro_title">仕組み</string>
