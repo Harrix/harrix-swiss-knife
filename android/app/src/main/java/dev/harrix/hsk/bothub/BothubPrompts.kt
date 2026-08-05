@@ -4,7 +4,7 @@ import android.content.Context
 import java.io.IOException
 
 /**
- * BotHub prompt templates. Fix/rewrite markdown is loaded from assets
+ * BotHub prompt templates. Fix/rewrite/medicine markdown is loaded from assets
  * (synced from `config/prompts/` at Gradle preBuild).
  */
 object BothubPrompts {
@@ -13,8 +13,12 @@ object BothubPrompts {
             "Return only the transcribed text without comments or formatting."
 
     private const val TEXT_PLACEHOLDER = "{{TEXT}}"
+    private const val MEDICINES_PLACEHOLDER = "{{MEDICINES}}"
+    private const val QUERY_PLACEHOLDER = "{{QUERY}}"
     private const val ASSET_FIX = "prompts/text-fix-ru.md"
     private const val ASSET_REWRITE = "prompts/text-rewrite-ru.md"
+    private const val ASSET_MEDICINE_SEARCH = "prompts/medicine-search.md"
+    private const val EMPTY_MEDICINES_MARKER = "(список лекарств не задан)"
 
     fun buildTextFixPrompt(
         context: Context,
@@ -25,6 +29,27 @@ object BothubPrompts {
         context: Context,
         text: String,
     ): String = applyTextPlaceholder(loadAsset(context, ASSET_REWRITE), text)
+
+    fun buildMedicineSearchPrompt(
+        context: Context,
+        medicinesMarkdown: String?,
+        query: String,
+    ): String {
+        val template = loadAsset(context, ASSET_MEDICINE_SEARCH)
+        if (!template.contains(MEDICINES_PLACEHOLDER) || !template.contains(QUERY_PLACEHOLDER)) {
+            throw BothubApiException(
+                "Prompt template is missing $MEDICINES_PLACEHOLDER or $QUERY_PLACEHOLDER",
+            )
+        }
+        val medicines =
+            medicinesMarkdown
+                ?.trim()
+                ?.takeIf { it.isNotEmpty() }
+                ?: EMPTY_MEDICINES_MARKER
+        return template
+            .replace(MEDICINES_PLACEHOLDER, medicines)
+            .replace(QUERY_PLACEHOLDER, query.trim())
+    }
 
     private fun applyTextPlaceholder(
         template: String,

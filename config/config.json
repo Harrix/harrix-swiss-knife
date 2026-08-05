@@ -2,7 +2,10 @@
   "beginning_of_article": "snippet:config/beginning-of-article.md",
   "beginning_of_md": "snippet:config/beginning-of-md.md",
   "beginning_of_md_docs": "snippet:config/beginning-of-md-en.md",
-  "block_drives": ["E", "F"],
+  "block_drives": [
+    "E",
+    "F"
+  ],
   "cli_commands": "snippet:config/cli-commands.md",
   "combine_for_ai_unchecked_extensions": [
     "svg",
@@ -30,11 +33,15 @@
   "hotkeys": [
     {
       "action": "OnQuickLauncher",
-      "hotkeys": ["Ctrl+Shift+F1"]
+      "hotkeys": [
+        "Ctrl+Shift+F1"
+      ]
     },
     {
       "action": "OnScreenshotRegion",
-      "hotkeys": ["Ctrl+Shift+F2"]
+      "hotkeys": [
+        "Ctrl+Shift+F2"
+      ]
     }
   ],
   "quick_launcher_markdown_in_panel": true,
@@ -172,7 +179,10 @@
     "snippet:config/beginning-of-article.md",
     "snippet:config/beginning-of-md-en.md"
   ],
-  "npm_packages": ["npm-check-updates", "prettier"],
+  "npm_packages": [
+    "npm-check-updates",
+    "prettier"
+  ],
   "path_3d": "D:/Downloads",
   "path_articles": "D:/GitHub/_content__harrix-dev/harrix.dev-articles-2025",
   "path_books": "D:/Dropbox/Books",
@@ -191,7 +201,9 @@
   "paths_combine_for_ai": [
     {
       "base_folder": "D:/GitHub/harrix-swiss-knife",
-      "files": ["D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/**/*.py"],
+      "files": [
+        "D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/**/*.py"
+      ],
       "name": "harrix-swiss-knife"
     },
     {
@@ -220,7 +232,9 @@
     },
     {
       "base_folder": "D:/GitHub/harrix-swiss-knife",
-      "files": ["D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/apps/**/*.py"],
+      "files": [
+        "D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/apps/**/*.py"
+      ],
       "name": "harrix-swiss-knife - all Python files in apps"
     }
   ],
@@ -253,10 +267,23 @@
     "D:/Dropbox/Notes/Notes-Lists/Books",
     "D:/Dropbox/Notes/Notes-Lists/Books-of-nonfiction"
   ],
-  "paths_android_projects": ["D:/GitHub/harrix-swiss-knife/android", "D:/GitHub/harrix-notes-android"],
-  "paths_python_libraries": ["D:/GitHub/harrix-pylib", "D:/GitHub/harrix-pyssg"],
-  "paths_python_project_creation": ["C:/Users/sergi/OneDrive/Projects/Python", "D:/GitHub"],
-  "paths_python_projects": ["D:/GitHub/harrix-swiss-knife", "D:/GitHub/harrix-pylib", "D:/GitHub/harrix-pyssg"],
+  "paths_android_projects": [
+    "D:/GitHub/harrix-swiss-knife/android",
+    "D:/GitHub/harrix-notes-android"
+  ],
+  "paths_python_libraries": [
+    "D:/GitHub/harrix-pylib",
+    "D:/GitHub/harrix-pyssg"
+  ],
+  "paths_python_project_creation": [
+    "C:/Users/sergi/OneDrive/Projects/Python",
+    "D:/GitHub"
+  ],
+  "paths_python_projects": [
+    "D:/GitHub/harrix-swiss-knife",
+    "D:/GitHub/harrix-pylib",
+    "D:/GitHub/harrix-pyssg"
+  ],
   "paths_quotes": [
     "D:/Dropbox/Notes/Notes-Lists/Quotes/Fiction",
     "D:/Dropbox/Notes/Notes-Lists/Quotes/Religion",
@@ -309,7 +336,8 @@
     "text_fix_ru_clipboard": "snippet:config/prompts/text-fix-ru-clipboard.md",
     "text_rewrite_ru": "snippet:config/prompts/text-rewrite-ru.md",
     "image_ocr_to_markdown": "snippet:config/prompts/image-ocr-to-markdown.md",
-    "markdown_template_fields_from_source": "snippet:config/prompts/markdown-template-fields-from-source.md"
+    "markdown_template_fields_from_source": "snippet:config/prompts/markdown-template-fields-from-source.md",
+    "finance_standard_items_translate_names": "snippet:config/prompts/finance-standard-items-translate-names.md"
   },
   "pypi_token": "snippet:api-keys/pypi-token.txt",
   "show_main_window_on_startup": false,
@@ -320,5 +348,6 @@
   "start_pattern_jupyter_notebooks": "jupyter-notebook-",
   "start_pattern_py_projects": "python-project-",
   "vscode_workspace_articles": "D:/Dropbox/Programs/vscode_workspaces/_content__harrix-dev.code-workspace",
-  "vscode_workspace_notes": "D:/Dropbox/Programs/vscode_workspaces/Notes.code-workspace"
+  "vscode_workspace_notes": "D:/Dropbox/Programs/vscode_workspaces/Notes.code-workspace",
+  "finance_standard_items_translate_names_limit": 250
 }

@@ -29,6 +29,7 @@ import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.CleaningServices
 import androidx.compose.material.icons.filled.Crop
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Medication
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MoreVert
@@ -75,6 +76,7 @@ import dev.harrix.hsk.R
 import dev.harrix.hsk.ui.about.AboutScreen
 import dev.harrix.hsk.ui.gallery.GalleryCleanerScreen
 import dev.harrix.hsk.ui.gallery.VideoCleanerScreen
+import dev.harrix.hsk.ui.medicinesearch.MedicineSearchScreen
 import dev.harrix.hsk.ui.photoeditor.PhotoEditorScreen
 import dev.harrix.hsk.ui.settings.SettingsScreen
 import dev.harrix.hsk.ui.settings.SettingsSection
@@ -101,6 +103,7 @@ private enum class AppDestination {
     VideoCleaner,
     PhotoEditor,
     SpeechToText,
+    MedicineSearch,
 }
 
 private data class UtilityCardItem(
@@ -173,6 +176,12 @@ fun MainScreen(
                 icon = Icons.Filled.Mic,
                 destination = AppDestination.SpeechToText,
             ),
+            UtilityCardItem(
+                titleRes = R.string.nav_drawer_medicine_search,
+                descriptionRes = R.string.medicine_search_card_description,
+                icon = Icons.Filled.Medication,
+                destination = AppDestination.MedicineSearch,
+            ),
         )
 
     Box(modifier = modifier.fillMaxSize()) {
@@ -213,6 +222,15 @@ fun MainScreen(
             AppDestination.SpeechToText -> {
                 SpeechToTextScreen(
                     onClose = { destination = AppDestination.Home },
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
+
+            AppDestination.MedicineSearch -> {
+                MedicineSearchScreen(
+                    onClose = { destination = AppDestination.Home },
+                    onOpenSettings = { settingsSection = SettingsSection.MedicineSearch },
+                    settingsRevision = settingsRevision,
                     modifier = Modifier.fillMaxSize(),
                 )
             }
@@ -547,6 +565,12 @@ private fun AppNavigationDrawerContent(
             selected = selected == AppDestination.SpeechToText,
             onClick = { onNavigate(AppDestination.SpeechToText) },
             icon = Icons.Filled.Mic,
+        )
+        DrawerNavItem(
+            label = stringResource(R.string.nav_drawer_medicine_search),
+            selected = selected == AppDestination.MedicineSearch,
+            onClick = { onNavigate(AppDestination.MedicineSearch) },
+            icon = Icons.Filled.Medication,
         )
         DrawerNavItem(
             label = stringResource(R.string.nav_drawer_about),

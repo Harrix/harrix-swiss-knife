@@ -1,5 +1,7 @@
 package dev.harrix.hsk.ui.settings
 
+import android.content.Intent
+import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -22,6 +24,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Medication
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.filled.Security
@@ -79,6 +82,7 @@ import dev.harrix.hsk.gallery.GalleryDateFilter
 import dev.harrix.hsk.gallery.GalleryPermissions
 import dev.harrix.hsk.gallery.GalleryReviewOrder
 import dev.harrix.hsk.gallery.MediaFolderPaths
+import dev.harrix.hsk.medicinesearch.MedicineSearchPreferences
 import dev.harrix.hsk.ui.AutoFitText
 import dev.harrix.hsk.ui.adaptiveContentWidth
 import dev.harrix.hsk.ui.isCompactWidth
@@ -96,6 +100,7 @@ enum class SettingsSection {
     All,
     GalleryCleaner,
     VideoCleaner,
+    MedicineSearch,
 }
 
 /**
@@ -106,6 +111,7 @@ private enum class HskSettingsPage {
     Hub,
     General,
     Gallery,
+    MedicineSearch,
     Other,
 }
 
@@ -147,6 +153,7 @@ fun SettingsScreen(
     val context = LocalContext.current
     val appPreferences = remember { AppPreferences(context.applicationContext) }
     val galleryPreferences = remember { GalleryCleanerPreferences(context.applicationContext) }
+    val medicinePreferences = remember { MedicineSearchPreferences(context.applicationContext) }
     var settingsEpoch by rememberSaveable { mutableIntStateOf(0) }
     var resetMessage by rememberSaveable { mutableStateOf<String?>(null) }
     var page by rememberSaveable(section) {
@@ -155,6 +162,7 @@ fun SettingsScreen(
                 SettingsSection.All -> HskSettingsPage.Hub
                 SettingsSection.GalleryCleaner -> HskSettingsPage.Gallery
                 SettingsSection.VideoCleaner -> HskSettingsPage.Hub
+                SettingsSection.MedicineSearch -> HskSettingsPage.MedicineSearch
             },
         )
     }
@@ -162,8 +170,14 @@ fun SettingsScreen(
     val pageTitle =
         when (page) {
             HskSettingsPage.Hub -> stringResource(R.string.settings_title)
+
             HskSettingsPage.General -> stringResource(R.string.settings_general_title)
+
             HskSettingsPage.Gallery -> stringResource(R.string.settings_gallery_cleaner_title)
+
+            HskSettingsPage.MedicineSearch ->
+                stringResource(R.string.settings_medicine_search_title)
+
             HskSettingsPage.Other -> stringResource(R.string.settings_other_title)
         }
 
@@ -222,6 +236,12 @@ fun SettingsScreen(
                         icon = Icons.Filled.PhotoLibrary,
                         onClick = { page = HskSettingsPage.Gallery },
                     )
+                    SettingsHubRow(
+                        title = stringResource(R.string.settings_medicine_search_title),
+                        summary = stringResource(R.string.settings_medicine_search_summary),
+                        icon = Icons.Filled.Medication,
+                        onClick = { page = HskSettingsPage.MedicineSearch },
+                    )
                     SettingsCategoryHeader(text = stringResource(R.string.settings_category_essential))
                     key(settingsEpoch) {
                         EssentialSettingsSection(
@@ -265,6 +285,21 @@ fun SettingsScreen(
                 }
             }
 
+            HskSettingsPage.MedicineSearch -> {
+                SettingsDetailPane(innerPadding = innerPadding) {
+                    key(settingsEpoch) {
+                        MedicineSearchSettingsSection(
+                            preferences = medicinePreferences,
+                        )
+                    }
+                    if (onOpenAllSettings != null && section != SettingsSection.All) {
+                        TextButton(onClick = onOpenAllSettings) {
+                            AutoFitText(text = stringResource(R.string.settings_open_all), maxLines = 2)
+                        }
+                    }
+                }
+            }
+
             HskSettingsPage.Other -> {
                 SettingsDetailPane(innerPadding = innerPadding) {
                     Text(
@@ -276,6 +311,7 @@ fun SettingsScreen(
                         onClick = {
                             appPreferences.resetAppearanceToDefaults()
                             galleryPreferences.resetSettingsToDefaults()
+                            medicinePreferences.resetSettingsToDefaults()
                             onThemeModeChange(ThemeMode.System)
                             onAppLanguageChange(AppLanguage.System)
                             settingsEpoch += 1
@@ -603,6 +639,101 @@ private fun GeneralSettingsSection(modifier: Modifier = Modifier) {
         }
     }
 }
+
+@Composable
+private fun MedicineSearchSettingsSection(
+    preferences: MedicineSearchPreferences,
+    modifier: Modifier = Modifier,
+) {
+    val context = LocalContext.current
+    var fileLabel by remember {
+        mutableStateOf(preferences.getMedicinesUri()?.let(::medicinesUriLabel))
+    }
+    var statusMessage by remember { mutableStateOf<String?>(null) }
+
+    val openDocument =
+        rememberLauncherForActivityResult(
+            ActivityResultContracts.OpenDocument(),
+        ) { uri: Uri? ->
+            if (uri == null) {
+                return@rememberLauncherForActivityResult
+            }
+            runCatching {
+                context.contentResolver.takePersistableUriPermission(
+                    uri,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION,
+                )
+            }
+            val previous = preferences.getMedicinesUri()
+            preferences.setMedicinesUri(uri)
+            if (previous != null && previous != uri) {
+                runCatching {
+                    context.contentResolver.releasePersistableUriPermission(
+                        previous,
+                        Intent.FLAG_GRANT_READ_URI_PERMISSION,
+                    )
+                }
+            }
+            fileLabel = medicinesUriLabel(uri)
+            statusMessage = context.getString(R.string.settings_medicine_search_file_saved)
+        }
+
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        SettingsSectionHeader(text = stringResource(R.string.settings_medicine_search_file))
+        Text(
+            text = stringResource(R.string.settings_medicine_search_file_hint),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Text(
+            text =
+            if (fileLabel.isNullOrBlank()) {
+                stringResource(R.string.settings_medicine_search_file_none)
+            } else {
+                stringResource(R.string.settings_medicine_search_file_current, fileLabel!!)
+            },
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        SettingsFullWidthOutlinedButton(
+            onClick = {
+                openDocument.launch(arrayOf("text/markdown", "text/plain", "*/*"))
+            },
+            label = stringResource(R.string.settings_medicine_search_choose_file),
+        )
+        SettingsFullWidthOutlinedButton(
+            onClick = {
+                val previous = preferences.getMedicinesUri()
+                preferences.clearMedicinesUri()
+                if (previous != null) {
+                    runCatching {
+                        context.contentResolver.releasePersistableUriPermission(
+                            previous,
+                            Intent.FLAG_GRANT_READ_URI_PERMISSION,
+                        )
+                    }
+                }
+                fileLabel = null
+                statusMessage = context.getString(R.string.settings_medicine_search_file_cleared)
+            },
+            enabled = !fileLabel.isNullOrBlank(),
+            label = stringResource(R.string.settings_medicine_search_clear_file),
+        )
+        statusMessage?.let { message ->
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+private fun medicinesUriLabel(uri: Uri): String = uri.lastPathSegment?.substringAfterLast('/')?.takeIf { it.isNotBlank() }
+    ?: uri.toString()
 
 @Composable
 private fun GalleryCleanerSettingsSection(
