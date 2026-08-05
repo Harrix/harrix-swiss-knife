@@ -31,6 +31,7 @@ class Ui_MainWindow(object):
         MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", u"Finance Tracker", None))
         self.actionExit.setText(QCoreApplication.translate("MainWindow", u"Exit", None))
         self.actionAbout.setText(QCoreApplication.translate("MainWindow", u"About", None))
+        self.action_standard_items.setText(QCoreApplication.translate("MainWindow", u"Standard Items", None))
         self.groupBox_transaction.setTitle(QCoreApplication.translate("MainWindow", u"Transaction Details", None))
         self.label_category_now.setText(QCoreApplication.translate("MainWindow", u"TextLabel", None))
         self.lineEdit_description.setPlaceholderText(QCoreApplication.translate("MainWindow", u"Description", None))
@@ -43,7 +44,6 @@ class Ui_MainWindow(object):
         self.groupBox_commands.setTitle(QCoreApplication.translate("MainWindow", u"Commands", None))
         self.pushButton_add_as_text_with_ai.setText(QCoreApplication.translate("MainWindow", u"Add with AI", None))
         self.pushButton_translate_with_ai.setText(QCoreApplication.translate("MainWindow", u"Translate with AI", None))
-        self.pushButton_standard_items.setText(QCoreApplication.translate("MainWindow", u"Standard Items", None))
         self.pushButton_delete.setText(QCoreApplication.translate("MainWindow", u"Delete", None))
         self.pushButton_show_all_records.setText(QCoreApplication.translate("MainWindow", u"Show All Records", None))
         self.pushButton_refresh.setText(QCoreApplication.translate("MainWindow", u"Refresh", None))
@@ -198,6 +198,8 @@ class Ui_MainWindow(object):
         self.actionExit.setObjectName(u"actionExit")
         self.actionAbout = QAction(MainWindow)
         self.actionAbout.setObjectName(u"actionAbout")
+        self.action_standard_items = QAction(MainWindow)
+        self.action_standard_items.setObjectName(u"action_standard_items")
         self.centralWidget = QWidget(MainWindow)
         self.centralWidget.setObjectName(u"centralWidget")
         self.horizontalLayout = QHBoxLayout(self.centralWidget)
@@ -360,11 +362,6 @@ class Ui_MainWindow(object):
         self.pushButton_translate_with_ai.setObjectName(u"pushButton_translate_with_ai")
 
         self.verticalLayout_2.addWidget(self.pushButton_translate_with_ai)
-
-        self.pushButton_standard_items = QPushButton(self.groupBox_commands)
-        self.pushButton_standard_items.setObjectName(u"pushButton_standard_items")
-
-        self.verticalLayout_2.addWidget(self.pushButton_standard_items)
 
         self.horizontalLayout_8 = QHBoxLayout()
         self.horizontalLayout_8.setObjectName(u"horizontalLayout_8")
@@ -1844,6 +1841,7 @@ class Ui_MainWindow(object):
         self.menuBar.addAction(self.menuCommands.menuAction())
         self.menuBar.addAction(self.menuHelp.menuAction())
         self.menuFile.addAction(self.actionExit)
+        self.menuCommands.addAction(self.action_standard_items)
         self.menuHelp.addAction(self.actionAbout)
 
         self.retranslateUi(MainWindow)

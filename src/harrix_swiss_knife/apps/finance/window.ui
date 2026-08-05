@@ -289,13 +289,6 @@
                 </widget>
                </item>
                <item>
-                <widget class="QPushButton" name="pushButton_standard_items">
-                 <property name="text">
-                  <string>Standard Items</string>
-                 </property>
-                </widget>
-               </item>
-               <item>
                 <layout class="QHBoxLayout" name="horizontalLayout_8">
                  <item>
                   <widget class="QPushButton" name="pushButton_delete">
@@ -2693,6 +2686,7 @@
     <property name="title">
      <string>Commands</string>
     </property>
+    <addaction name="action_standard_items"/>
    </widget>
    <widget class="QMenu" name="menuHelp">
     <property name="title">
@@ -2704,6 +2698,11 @@
    <addaction name="menuCommands"/>
    <addaction name="menuHelp"/>
   </widget>
+  <action name="action_standard_items">
+   <property name="text">
+    <string>Standard Items</string>
+   </property>
+  </action>
   <action name="actionExit">
    <property name="text">
     <string>Exit</string>

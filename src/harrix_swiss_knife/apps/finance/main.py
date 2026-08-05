@@ -1864,7 +1864,7 @@ class MainWindow(
         self.pushButton_add.clicked.connect(self.on_add_transaction)
         self.pushButton_add_as_text_with_ai.clicked.connect(self.on_add_as_text_with_ai)
         self.pushButton_translate_with_ai.clicked.connect(self.on_translate_with_ai)
-        self.pushButton_standard_items.clicked.connect(self.on_standard_items)
+        self.action_standard_items.triggered.connect(self.on_standard_items)
         bothub_cfg = self._app_config.get("bothub") or {}
         max_image_side = int(bothub_cfg.get("max_image_side", 1600))
         self._ai_image_drop_zone = ImagePicker(
@@ -4999,7 +4999,7 @@ class MainWindow(
         self.pushButton_add.setText(f"➕ {self.pushButton_add.text()}")  # noqa: RUF001
         self.pushButton_add_as_text_with_ai.setText(f"🤖 {self.pushButton_add_as_text_with_ai.text()}")
         self.pushButton_translate_with_ai.setText(f"🤖 {self.pushButton_translate_with_ai.text()}")
-        self.pushButton_standard_items.setText(f"📋 {self.pushButton_standard_items.text()}")
+        self.action_standard_items.setText(f"📋 {self.action_standard_items.text()}")
         self.pushButton_delete.setText(f"🗑️ {self.pushButton_delete.text()}")
         self.pushButton_refresh.setText(f"🔄 {self.pushButton_refresh.text()}")
         self.pushButton_clear_filter.setText(f"🧹 {self.pushButton_clear_filter.text()}")
