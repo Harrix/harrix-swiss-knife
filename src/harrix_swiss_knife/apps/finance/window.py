@@ -31,6 +31,9 @@ class Ui_MainWindow(object):
         MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", u"Finance Tracker", None))
         self.actionExit.setText(QCoreApplication.translate("MainWindow", u"Exit", None))
         self.actionAbout.setText(QCoreApplication.translate("MainWindow", u"About", None))
+        self.action_add_category.setText(QCoreApplication.translate("MainWindow", u"Add Category", None))
+        self.action_categories_refresh.setText(QCoreApplication.translate("MainWindow", u"Refresh Categories", None))
+        self.action_copy_categories_as_text.setText(QCoreApplication.translate("MainWindow", u"Copy Categories As Text", None))
         self.action_standard_items.setText(QCoreApplication.translate("MainWindow", u"Standard Items", None))
         self.groupBox_transaction.setTitle(QCoreApplication.translate("MainWindow", u"Transaction Details", None))
         self.label_category_now.setText(QCoreApplication.translate("MainWindow", u"TextLabel", None))
@@ -82,11 +85,6 @@ class Ui_MainWindow(object):
         self.label_balance_account_details.setText(QCoreApplication.translate("MainWindow", u"0.00\u20bd", None))
         self.pushButton_balance_check.setText(QCoreApplication.translate("MainWindow", u"\U0001f9ee Balance Check", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_accounts), QCoreApplication.translate("MainWindow", u"Accounts", None))
-        self.groupBox_7.setTitle(QCoreApplication.translate("MainWindow", u"Commands", None))
-        self.pushButton_category_add.setText(QCoreApplication.translate("MainWindow", u"Add Category", None))
-        self.pushButton_categories_delete.setText(QCoreApplication.translate("MainWindow", u"Delete", None))
-        self.pushButton_categories_refresh.setText(QCoreApplication.translate("MainWindow", u"Refresh", None))
-        self.pushButton_copy_categories_as_text.setText(QCoreApplication.translate("MainWindow", u"Copy Categories As Text", None))
         self.groupBox_default_currency.setTitle(QCoreApplication.translate("MainWindow", u"Default Currency", None))
         self.pushButton_set_default_currency.setText(QCoreApplication.translate("MainWindow", u"Set Default", None))
         self.groupBox_add_currency.setTitle(QCoreApplication.translate("MainWindow", u"Add New Currency", None))
@@ -198,6 +196,12 @@ class Ui_MainWindow(object):
         self.actionExit.setObjectName(u"actionExit")
         self.actionAbout = QAction(MainWindow)
         self.actionAbout.setObjectName(u"actionAbout")
+        self.action_add_category = QAction(MainWindow)
+        self.action_add_category.setObjectName(u"action_add_category")
+        self.action_categories_refresh = QAction(MainWindow)
+        self.action_categories_refresh.setObjectName(u"action_categories_refresh")
+        self.action_copy_categories_as_text = QAction(MainWindow)
+        self.action_copy_categories_as_text.setObjectName(u"action_copy_categories_as_text")
         self.action_standard_items = QAction(MainWindow)
         self.action_standard_items.setObjectName(u"action_standard_items")
         self.centralWidget = QWidget(MainWindow)
@@ -799,51 +803,6 @@ class Ui_MainWindow(object):
         self.splitter_3 = QSplitter(self.tab_categories)
         self.splitter_3.setObjectName(u"splitter_3")
         self.splitter_3.setOrientation(Qt.Orientation.Horizontal)
-        self.frame_2 = QFrame(self.splitter_3)
-        self.frame_2.setObjectName(u"frame_2")
-        self.frame_2.setMinimumSize(QSize(300, 0))
-        self.frame_2.setMaximumSize(QSize(16777215, 16777215))
-        self.frame_2.setFrameShape(QFrame.Shape.StyledPanel)
-        self.frame_2.setFrameShadow(QFrame.Shadow.Raised)
-        self.verticalLayout_15 = QVBoxLayout(self.frame_2)
-        self.verticalLayout_15.setObjectName(u"verticalLayout_15")
-        self.groupBox_7 = QGroupBox(self.frame_2)
-        self.groupBox_7.setObjectName(u"groupBox_7")
-        self.verticalLayout_11 = QVBoxLayout(self.groupBox_7)
-        self.verticalLayout_11.setObjectName(u"verticalLayout_11")
-        self.pushButton_category_add = QPushButton(self.groupBox_7)
-        self.pushButton_category_add.setObjectName(u"pushButton_category_add")
-
-        self.verticalLayout_11.addWidget(self.pushButton_category_add)
-
-        self.horizontalLayout_20 = QHBoxLayout()
-        self.horizontalLayout_20.setObjectName(u"horizontalLayout_20")
-        self.pushButton_categories_delete = QPushButton(self.groupBox_7)
-        self.pushButton_categories_delete.setObjectName(u"pushButton_categories_delete")
-
-        self.horizontalLayout_20.addWidget(self.pushButton_categories_delete)
-
-        self.pushButton_categories_refresh = QPushButton(self.groupBox_7)
-        self.pushButton_categories_refresh.setObjectName(u"pushButton_categories_refresh")
-
-        self.horizontalLayout_20.addWidget(self.pushButton_categories_refresh)
-
-
-        self.verticalLayout_11.addLayout(self.horizontalLayout_20)
-
-        self.pushButton_copy_categories_as_text = QPushButton(self.groupBox_7)
-        self.pushButton_copy_categories_as_text.setObjectName(u"pushButton_copy_categories_as_text")
-
-        self.verticalLayout_11.addWidget(self.pushButton_copy_categories_as_text)
-
-
-        self.verticalLayout_15.addWidget(self.groupBox_7)
-
-        self.verticalSpacer_2 = QSpacerItem(20, 581, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
-
-        self.verticalLayout_15.addItem(self.verticalSpacer_2)
-
-        self.splitter_3.addWidget(self.frame_2)
         self.tableView_categories = QTableView(self.splitter_3)
         self.tableView_categories.setObjectName(u"tableView_categories")
         self.splitter_3.addWidget(self.tableView_categories)
@@ -1841,6 +1800,10 @@ class Ui_MainWindow(object):
         self.menuBar.addAction(self.menuCommands.menuAction())
         self.menuBar.addAction(self.menuHelp.menuAction())
         self.menuFile.addAction(self.actionExit)
+        self.menuCommands.addAction(self.action_add_category)
+        self.menuCommands.addAction(self.action_categories_refresh)
+        self.menuCommands.addAction(self.action_copy_categories_as_text)
+        self.menuCommands.addSeparator()
         self.menuCommands.addAction(self.action_standard_items)
         self.menuHelp.addAction(self.actionAbout)
 

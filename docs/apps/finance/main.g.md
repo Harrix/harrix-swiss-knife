@@ -1783,7 +1783,6 @@ class MainWindow(
         # Delete and refresh buttons for all tables
         tables_with_controls: dict[str, tuple[str, str]] = {
             "transactions": ("pushButton_delete", "pushButton_refresh"),
-            "categories": ("pushButton_categories_delete", "pushButton_categories_refresh"),
             "accounts": ("pushButton_accounts_delete", "pushButton_accounts_refresh"),
             "currencies": ("pushButton_currencies_delete", "pushButton_currencies_refresh"),
             "currency_exchanges": ("pushButton_exchange_delete", "pushButton_exchange_refresh"),
@@ -1802,15 +1801,16 @@ class MainWindow(
 
             refresh_button.clicked.connect(self.update_all)
 
+        # Category commands (menu bar)
+        self.action_add_category.triggered.connect(self.on_add_category)
+        self.action_categories_refresh.triggered.connect(self.update_all)
+        self.action_copy_categories_as_text.triggered.connect(self.on_copy_categories_as_text)
+
         # Add buttons
-        self.pushButton_category_add.clicked.connect(self.on_add_category)
         self.pushButton_account_add.clicked.connect(self.on_add_account)
         self.pushButton_balance_check.clicked.connect(self._on_balance_check_clicked)
         self.pushButton_currency_add.clicked.connect(self.on_add_currency)
         self.pushButton_exchange_add.clicked.connect(self.on_add_exchange)
-
-        # Copy categories as text button
-        self.pushButton_copy_categories_as_text.clicked.connect(self.on_copy_categories_as_text)
 
         # Filter signals
         self.pushButton_apply_filter.clicked.connect(self.apply_filter)
@@ -4891,6 +4891,9 @@ class MainWindow(
         self.pushButton_add.setText(f"➕ {self.pushButton_add.text()}")  # noqa: RUF001
         self.pushButton_add_as_text_with_ai.setText(f"🤖 {self.pushButton_add_as_text_with_ai.text()}")
         self.pushButton_translate_with_ai.setText(f"🤖 {self.pushButton_translate_with_ai.text()}")
+        self.action_add_category.setText(f"➕ {self.action_add_category.text()}")  # noqa: RUF001
+        self.action_categories_refresh.setText(f"🔄 {self.action_categories_refresh.text()}")
+        self.action_copy_categories_as_text.setText(f"📋 {self.action_copy_categories_as_text.text()}")
         self.action_standard_items.setText(f"📋 {self.action_standard_items.text()}")
         self.pushButton_delete.setText(f"🗑️ {self.pushButton_delete.text()}")
         self.pushButton_refresh.setText(f"🔄 {self.pushButton_refresh.text()}")
@@ -4931,14 +4934,10 @@ class MainWindow(
         self.pushButton_currencies_delete.setText(f"🗑️ {self.pushButton_currencies_delete.text()}")
         self.pushButton_currencies_refresh.setText(f"🔄 {self.pushButton_currencies_refresh.text()}")
 
-        # Set emoji for account and category buttons
+        # Set emoji for account buttons
         self.pushButton_account_add.setText(f"➕ {self.pushButton_account_add.text()}")  # noqa: RUF001
         self.pushButton_accounts_delete.setText(f"🗑️ {self.pushButton_accounts_delete.text()}")
         self.pushButton_accounts_refresh.setText(f"🔄 {self.pushButton_accounts_refresh.text()}")
-        self.pushButton_category_add.setText(f"➕ {self.pushButton_category_add.text()}")  # noqa: RUF001
-        self.pushButton_categories_delete.setText(f"🗑️ {self.pushButton_categories_delete.text()}")
-        self.pushButton_categories_refresh.setText(f"🔄 {self.pushButton_categories_refresh.text()}")
-        self.pushButton_copy_categories_as_text.setText(f"📋 {self.pushButton_copy_categories_as_text.text()}")
 
         # Set emoji for exchange buttons
         self.pushButton_exchange_add.setText(f"➕ {self.pushButton_exchange_add.text()}")  # noqa: RUF001
@@ -5005,11 +5004,10 @@ class MainWindow(
         self.splitter_2.setStretchFactor(0, 1)  # frame_accounts gets less space
         self.splitter_2.setStretchFactor(1, 3)  # tableView_accounts gets more space
 
-        # Configure splitter_3 proportions (frames narrow, tableViews wide)
-        self.splitter_3.setStretchFactor(0, 1)  # frame_2 gets less space
-        self.splitter_3.setStretchFactor(1, 3)  # tableView_categories gets more space
-        self.splitter_3.setStretchFactor(2, 1)  # frame_currencies gets less space
-        self.splitter_3.setStretchFactor(3, 3)  # tableView_currencies gets more space
+        # Configure splitter_3 proportions (tableViews wide, currencies panel narrow)
+        self.splitter_3.setStretchFactor(0, 3)  # tableView_categories gets more space
+        self.splitter_3.setStretchFactor(1, 1)  # frame_currencies gets less space
+        self.splitter_3.setStretchFactor(2, 3)  # tableView_currencies gets more space
 
         # Configure splitter_5 proportions (frame_5 narrow, tableView_reports wide)
         self.splitter_5.setStretchFactor(0, 1)  # frame_5 gets less space
@@ -5049,16 +5047,31 @@ class MainWindow(
         context_menu.exec_(self.listView_categories.mapToGlobal(position))
 
     def _show_categories_table_context_menu(self, position: QPoint) -> None:
-        """Show context menu on categories table with Edit action."""
+        """Show context menu on categories table with edit/delete and category commands."""
         index = self.tableView_categories.indexAt(position)
         category_id = self._category_id_from_table_index(index)
-        if category_id is None:
-            return
+        if category_id is not None:
+            self.tableView_categories.selectRow(index.row())
 
         context_menu = QMenu(self)
-        edit_action = context_menu.addAction("✏️ Edit category")
-        edit_action.triggered.connect(partial(self._open_category_edit_dialog_by_id, category_id))
-        context_menu.exec_(self.tableView_categories.viewport().mapToGlobal(position))
+        if category_id is not None:
+            edit_action = context_menu.addAction("✏️ Edit category")
+            edit_action.triggered.connect(partial(self._open_category_edit_dialog_by_id, category_id))
+            delete_action = context_menu.addAction("🗑️ Delete category")
+            delete_action.triggered.connect(partial(self.delete_record, "categories"))
+            context_menu.addSeparator()
+
+        add_action = context_menu.addAction(self.action_add_category.text())
+        add_action.triggered.connect(self.on_add_category)
+        refresh_action = context_menu.addAction(self.action_categories_refresh.text())
+        refresh_action.triggered.connect(self.update_all)
+        copy_action = context_menu.addAction(self.action_copy_categories_as_text.text())
+        copy_action.triggered.connect(self.on_copy_categories_as_text)
+
+        viewport = self.tableView_categories.viewport()
+        if viewport is None:
+            return
+        context_menu.exec_(viewport.mapToGlobal(position))
 
     def _show_category_label_context_menu(self, position: QPoint) -> None:
         """Show context menu on the category label with all available categories.
