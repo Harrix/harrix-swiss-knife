@@ -57,6 +57,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import dev.harrix.hsk.R
 import dev.harrix.hsk.medicinesearch.MedicinesNoteOpener
 import dev.harrix.hsk.ui.AutoFitText
+import dev.harrix.hsk.ui.SimpleMarkdownText
 import dev.harrix.hsk.ui.adaptiveContentWidth
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -70,7 +71,7 @@ fun MedicineSearchScreen(
 ) {
     var phase by viewModel.phase
     var queryText by viewModel.queryText
-    var resultText by viewModel.resultText
+    val resultText by viewModel.resultText
     var fileDisplayName by viewModel.fileDisplayName
     var medicinesUri by viewModel.medicinesUri
     var hasMedicinesFile by viewModel.hasMedicinesFile
@@ -357,12 +358,9 @@ fun MedicineSearchScreen(
                         text = stringResource(R.string.medicine_search_result_label),
                         style = MaterialTheme.typography.titleSmall,
                     )
-                    OutlinedTextField(
-                        value = resultText,
-                        onValueChange = { resultText = it },
+                    SimpleMarkdownText(
+                        markdown = resultText,
                         modifier = Modifier.fillMaxWidth(),
-                        enabled = !isSearching,
-                        minLines = 8,
                     )
                     FilledTonalButton(
                         onClick = {
