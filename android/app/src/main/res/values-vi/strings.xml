@@ -259,6 +259,7 @@
     <string name="gallery_cleaner_edit_aspect_free_short">Tự do</string>
     <string name="gallery_cleaner_edit_perspective">Phối cảnh</string>
     <string name="gallery_cleaner_edit_perspective_short">Phối</string>
+    <string name="gallery_cleaner_edit_perspective_apply">Apply perspective</string>
     <string name="gallery_cleaner_edit_fit_frame">Vừa khung</string>
     <string name="gallery_cleaner_edit_fit_frame_short">Vừa</string>
     <string name="gallery_cleaner_edit_trim_empty">Cắt viền trống</string>

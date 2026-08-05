@@ -534,7 +534,10 @@ fun PhotoCropEditor(
                                             val rotationDelta = event.calculateRotation()
                                             val zoomChange = event.calculateZoom()
                                             val panChange = event.calculatePan()
-                                            if (rotationDelta != 0f) {
+                                            // Keep current rotation while adjusting a perspective quad.
+                                            if (rotationDelta != 0f &&
+                                                perspectiveQuadState.value == null
+                                            ) {
                                                 isRotatingHint = true
                                                 onRotationDegreesChangeState.value(
                                                     rotationState.value + rotationDelta,
@@ -798,14 +801,18 @@ fun PhotoCropEditor(
         val discardLabel = stringResource(R.string.gallery_cleaner_edit_discard)
         val saveCopyLabel = stringResource(R.string.photo_editor_save_copy)
         val saveLabel = stringResource(R.string.gallery_cleaner_edit_save)
+        val applyPerspectiveLabel =
+            stringResource(R.string.gallery_cleaner_edit_perspective_apply)
         val moreLabel = stringResource(R.string.gallery_cleaner_edit_more)
         val locked = lockedAspect
         val threeFourSelected = locked != null && isThreeFourFamily(locked)
         val freeAspectSelected = lockedAspect == null && !isPerspective
         val canEditAspect = !isSaving && imageWidth > 0 && !isPerspective
         val canTogglePerspective = !isSaving && imageWidth > 0
-        val canResetRotation = !isSaving && abs(displayDegrees) >= 0.5f
+        val canRotate = !isSaving && !isPerspective
+        val canResetRotation = canRotate && abs(displayDegrees) >= 0.5f
         val canFitFrame = isViewTransformed && !isPerspective && imageWidth > 0
+        val primaryActionLabel = if (isPerspective) applyPerspectiveLabel else saveLabel
         var moreMenuExpanded by remember { mutableStateOf(false) }
 
         fun applyFitFrame() {
@@ -885,11 +892,20 @@ fun PhotoCropEditor(
                         enabled = canTogglePerspective,
                         selected = isPerspective,
                     )
+                    if (isPerspective) {
+                        EditToolbarIconButton(
+                            onClick = onSave,
+                            icon = Icons.Filled.Done,
+                            label = applyPerspectiveLabel,
+                            enabled = !isSaving,
+                            filled = true,
+                        )
+                    }
                     EditToolbarIconButton(
                         onClick = { onRotationDegreesChange(rotationDegrees - 90f) },
                         icon = Icons.Filled.Rotate90DegreesCcw,
                         label = rotateCcwLabel,
-                        enabled = !isSaving,
+                        enabled = canRotate,
                     )
                     EditToolbarIconButton(
                         onClick = { onRotationDegreesChange(0f) },
@@ -901,7 +917,7 @@ fun PhotoCropEditor(
                         onClick = { onRotationDegreesChange(rotationDegrees + 90f) },
                         icon = Icons.Filled.Rotate90DegreesCw,
                         label = rotateCwLabel,
-                        enabled = !isSaving,
+                        enabled = canRotate,
                     )
                     Box {
                         EditToolbarIconButton(
@@ -956,11 +972,22 @@ fun PhotoCropEditor(
                                     togglePerspectiveMode()
                                 },
                             )
+                            if (isPerspective) {
+                                EditOverflowMenuItem(
+                                    icon = Icons.Filled.Done,
+                                    label = applyPerspectiveLabel,
+                                    enabled = !isSaving,
+                                    onClick = {
+                                        moreMenuExpanded = false
+                                        onSave()
+                                    },
+                                )
+                            }
                             HorizontalDivider()
                             EditOverflowMenuItem(
                                 icon = Icons.Filled.Rotate90DegreesCcw,
                                 label = rotateCcwLabel,
-                                enabled = !isSaving,
+                                enabled = canRotate,
                                 onClick = {
                                     moreMenuExpanded = false
                                     onRotationDegreesChange(rotationDegrees - 90f)
@@ -978,7 +1005,7 @@ fun PhotoCropEditor(
                             EditOverflowMenuItem(
                                 icon = Icons.Filled.Rotate90DegreesCw,
                                 label = rotateCwLabel,
-                                enabled = !isSaving,
+                                enabled = canRotate,
                                 onClick = {
                                     moreMenuExpanded = false
                                     onRotationDegreesChange(rotationDegrees + 90f)
@@ -1026,7 +1053,7 @@ fun PhotoCropEditor(
                             }
                             EditOverflowMenuItem(
                                 icon = Icons.Filled.Done,
-                                label = saveLabel,
+                                label = primaryActionLabel,
                                 enabled = !isSaving,
                                 onClick = {
                                     moreMenuExpanded = false
@@ -1060,7 +1087,7 @@ fun PhotoCropEditor(
                     EditToolbarIconButton(
                         onClick = onSave,
                         icon = Icons.Filled.Done,
-                        label = saveLabel,
+                        label = primaryActionLabel,
                         enabled = !isSaving,
                         filled = true,
                     )

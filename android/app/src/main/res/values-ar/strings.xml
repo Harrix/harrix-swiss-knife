@@ -259,6 +259,7 @@
     <string name="gallery_cleaner_edit_aspect_free_short">حر</string>
     <string name="gallery_cleaner_edit_perspective">المنظور</string>
     <string name="gallery_cleaner_edit_perspective_short">منظور</string>
+    <string name="gallery_cleaner_edit_perspective_apply">Apply perspective</string>
     <string name="gallery_cleaner_edit_fit_frame">ملاءمة الإطار</string>
     <string name="gallery_cleaner_edit_fit_frame_short">ملاءمة</string>
     <string name="gallery_cleaner_edit_trim_empty">قص الحواف الفارغة</string>

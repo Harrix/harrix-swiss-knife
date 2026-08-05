@@ -259,6 +259,7 @@
     <string name="gallery_cleaner_edit_aspect_free_short">Свободно</string>
     <string name="gallery_cleaner_edit_perspective">Перспектива</string>
     <string name="gallery_cleaner_edit_perspective_short">Персп.</string>
+    <string name="gallery_cleaner_edit_perspective_apply">Применить перспективу</string>
     <string name="gallery_cleaner_edit_fit_frame">Вписать в кадр</string>
     <string name="gallery_cleaner_edit_fit_frame_short">Вписать</string>
     <string name="gallery_cleaner_edit_trim_empty">Обрезать пустые края</string>

@@ -259,6 +259,7 @@
     <string name="gallery_cleaner_edit_aspect_free_short">Vrij</string>
     <string name="gallery_cleaner_edit_perspective">Perspectief</string>
     <string name="gallery_cleaner_edit_perspective_short">Persp.</string>
+    <string name="gallery_cleaner_edit_perspective_apply">Apply perspective</string>
     <string name="gallery_cleaner_edit_fit_frame">In kader passen</string>
     <string name="gallery_cleaner_edit_fit_frame_short">Passen</string>
     <string name="gallery_cleaner_edit_trim_empty">Lege randen bijsnijden</string>
