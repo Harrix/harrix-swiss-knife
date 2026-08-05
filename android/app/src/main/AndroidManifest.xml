@@ -26,28 +26,16 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-            <!--
-              Direct Share / Sharing Shortcuts only: requires IMAGE_EDIT category,
-              so this does not duplicate the alias entry in the regular share list.
-            -->
-            <intent-filter>
-                <action android:name="android.intent.action.SEND" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="dev.harrix.hsk.share.IMAGE_EDIT" />
-                <data android:mimeType="image/*" />
-            </intent-filter>
-            <intent-filter>
-                <action android:name="android.intent.action.SEND_MULTIPLE" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="dev.harrix.hsk.share.IMAGE_EDIT" />
-                <data android:mimeType="image/*" />
-            </intent-filter>
             <meta-data
                 android:name="android.app.shortcuts"
                 android:resource="@xml/shortcuts" />
         </activity>
 
-        <!-- Appears in Share / Open with as "Harrix Photo Editor". -->
+        <!--
+          Only share / open / edit target for images. Do not put ACTION_SEND on
+          MainActivity: filters may list extra categories and still match plain
+          share intents, which duplicates this entry as the app name.
+        -->
         <activity-alias
             android:name=".ShareToPhotoEditor"
             android:enabled="true"

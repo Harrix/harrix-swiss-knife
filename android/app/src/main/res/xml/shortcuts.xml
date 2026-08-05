@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
-    <share-target android:targetClass="dev.harrix.hsk.MainActivity">
+    <share-target android:targetClass="dev.harrix.hsk.ShareToPhotoEditor">
         <data android:mimeType="image/*" />
         <category android:name="dev.harrix.hsk.share.IMAGE_EDIT" />
     </share-target>
