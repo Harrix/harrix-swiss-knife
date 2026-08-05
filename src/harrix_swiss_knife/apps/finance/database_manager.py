@@ -45,6 +45,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         self._init_default_settings()
         self._ensure_category_name_local_column()
         self._ensure_transaction_description_en_column()
+        self._ensure_standard_items_table()
         self._ensure_system_categories()
         self._ensure_performance_indexes()
 
@@ -192,6 +193,31 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         """
         return self.exchange_rates.add_exchange_rate(currency_id, rate, date)
+
+    def add_standard_item(self, name: str, category_id: int, name_en: str = "") -> bool:
+        """Add a standard purchase/income catalog item.
+
+        Args:
+
+        - `name` (`str`): Display name used as transaction description.
+        - `category_id` (`int`): Category ID.
+        - `name_en` (`str`): English name. Defaults to `""`.
+
+        Returns:
+
+        - `bool`: `True` if successful, `False` otherwise.
+
+        """
+        query = """
+            INSERT INTO standard_items (name, name_en, _id_categories)
+            VALUES (:name, :name_en, :category_id)
+        """
+        params = {
+            "name": name.strip(),
+            "name_en": name_en.strip() or None,
+            "category_id": category_id,
+        }
+        return self.execute_simple_query(query, params)
 
     def add_transaction(
         self,
@@ -417,6 +443,20 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         """
         return self.exchange_rates.delete_exchange_rates_by_days(days)
 
+    def delete_standard_item(self, item_id: int) -> bool:
+        """Delete a standard catalog item.
+
+        Args:
+
+        - `item_id` (`int`): Standard item ID to delete.
+
+        Returns:
+
+        - `bool`: `True` if successful, `False` otherwise.
+
+        """
+        return self.execute_simple_query("DELETE FROM standard_items WHERE _id = :id", {"id": item_id})
+
     def delete_transaction(self, transaction_id: int) -> bool:
         """Delete a transaction.
 
@@ -629,6 +669,24 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         """
         return self.exchange_rates.get_all_exchange_rates(limit, offset)
+
+    def get_all_standard_items(self) -> list[list[Any]]:
+        r"""Get all standard catalog items with category info.
+
+        Returns:
+
+        - `list[list[Any]]`: Rows
+          [\_id, name, name_en, category_id, category_name, category_icon, category_type].
+
+        """
+        return self.get_rows(
+            """
+            SELECT s._id, s.name, s.name_en, s._id_categories, c.name, c.icon, c.type
+            FROM standard_items s
+            JOIN categories c ON s._id_categories = c._id
+            ORDER BY s.name COLLATE NOCASE
+            """
+        )
 
     def get_all_transactions(self, limit: int | None = None, offset: int = 0) -> list[list[Any]]:
         """Get all transactions with category and currency information.
@@ -1211,7 +1269,15 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         limit_frequent = int(limit * limit_frequent_percentage)
         limit_recent = limit - limit_frequent
         rows = self.get_rows(query, {"limit_frequent": limit_frequent, "limit_recent": limit_recent})
-        return [(str(row[0]), str(row[1])) for row in rows if row[0] and row[1]]
+        pairs = [(str(row[0]), str(row[1])) for row in rows if row[0] and row[1]]
+        catalog_pairs = self.get_standard_item_description_category_pairs()
+        seen = {(description.lower(), category) for description, category in pairs}
+        for description, category in catalog_pairs:
+            key = (description.lower(), category)
+            if key not in seen:
+                pairs.append((description, category))
+                seen.add(key)
+        return pairs
 
     def get_recent_transaction_descriptions_for_autocomplete(self, limit: int = 1000) -> list[str]:
         """Get recent unique transaction descriptions for autocomplete.
@@ -1308,6 +1374,69 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             ORDER BY t._id
         """
         return self.get_rows(query, {"currency_id": currency_id, "date": date})
+
+    def get_standard_item_by_name(self, name: str) -> list[Any] | None:
+        r"""Return one standard item by exact name.
+
+        Returns:
+
+        - `list[Any] | None`:
+          [\_id, name, name_en, category_id, category_name, category_icon, category_type]
+          or `None`.
+
+        """
+        rows = self.get_rows(
+            """
+            SELECT s._id, s.name, s.name_en, s._id_categories, c.name, c.icon, c.type
+            FROM standard_items s
+            JOIN categories c ON s._id_categories = c._id
+            WHERE s.name = :name
+            LIMIT 1
+            """,
+            {"name": name},
+        )
+        return rows[0] if rows else None
+
+    def get_standard_item_description_category_pairs(self) -> list[tuple[str, str]]:
+        """Return `(name, category_name)` pairs from the standard items catalog."""
+        rows = self.get_rows(
+            """
+            SELECT s.name, c.name
+            FROM standard_items s
+            JOIN categories c ON s._id_categories = c._id
+            WHERE s.name IS NOT NULL AND TRIM(s.name) != ''
+            ORDER BY s.name COLLATE NOCASE
+            """
+        )
+        return [(str(row[0]), str(row[1])) for row in rows if row[0] and row[1]]
+
+    def get_standard_item_names_for_autocomplete(self) -> list[str]:
+        """Return catalog names for description autocomplete."""
+        rows = self.get_rows(
+            """
+            SELECT name
+            FROM standard_items
+            WHERE name IS NOT NULL AND TRIM(name) != ''
+            ORDER BY name COLLATE NOCASE
+            """
+        )
+        return [str(row[0]) for row in rows if row[0]]
+
+    def get_standard_items_missing_name_en(self, *, limit: int = 1000) -> list[str]:
+        """Return catalog names whose English translation is missing."""
+        rows = self.get_rows(
+            """
+            SELECT name
+            FROM standard_items
+            WHERE name IS NOT NULL
+              AND TRIM(name) != ''
+              AND (name_en IS NULL OR TRIM(name_en) = '')
+            ORDER BY name COLLATE NOCASE
+            LIMIT :limit
+            """,
+            {"limit": max(1, limit)},
+        )
+        return [str(row[0]) for row in rows if row[0]]
 
     def get_tag_amount_totals_by_currency(self, tag: str) -> list[tuple[int, str, str, int]]:
         """Sum transaction amounts per currency (minor units) for this tag.
@@ -1519,23 +1648,48 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         return self.exchange_rates.has_exchange_rates_data()
 
     def lookup_existing_description_en_for_descriptions(self, descriptions: list[str]) -> dict[str, str]:
-        """Return existing non-empty English translations keyed by description."""
+        """Return existing non-empty English translations keyed by description.
+
+        Prefers `standard_items.name_en`, then fills gaps from `transactions.description_en`.
+
+        """
         if not descriptions:
             return {}
         placeholders = ", ".join(f":description_{index}" for index in range(len(descriptions)))
         params = {f"description_{index}": description for index, description in enumerate(descriptions)}
-        rows = self.get_rows(
+        result: dict[str, str] = {}
+        catalog_rows = self.get_rows(
             f"""
-            SELECT description, MIN(description_en)
-            FROM transactions
-            WHERE description IN ({placeholders})
-              AND description_en IS NOT NULL
-              AND TRIM(description_en) != ''
-            GROUP BY description
+            SELECT name, name_en
+            FROM standard_items
+            WHERE name IN ({placeholders})
+              AND name_en IS NOT NULL
+              AND TRIM(name_en) != ''
             """,
             params,
         )
-        return {str(row[0]): str(row[1]) for row in rows if row[0] and row[1]}
+        for row in catalog_rows:
+            if row[0] and row[1]:
+                result[str(row[0])] = str(row[1])
+        missing = [description for description in descriptions if description not in result]
+        if missing:
+            missing_placeholders = ", ".join(f":description_{index}" for index in range(len(missing)))
+            missing_params = {f"description_{index}": description for index, description in enumerate(missing)}
+            rows = self.get_rows(
+                f"""
+                SELECT description, MIN(description_en)
+                FROM transactions
+                WHERE description IN ({missing_placeholders})
+                  AND description_en IS NOT NULL
+                  AND TRIM(description_en) != ''
+                GROUP BY description
+                """,
+                missing_params,
+            )
+            for row in rows:
+                if row[0] and row[1]:
+                    result[str(row[0])] = str(row[1])
+        return result
 
     def set_default_currency(self, currency_code: str) -> bool:
         """Set the default currency.
@@ -1808,6 +1962,49 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         """
         return self.exchange_rates.update_exchange_rate(currency_id, date, rate)
 
+    def update_standard_item(self, item_id: int, name: str, category_id: int, name_en: str = "") -> bool:
+        """Update a standard catalog item.
+
+        Args:
+
+        - `item_id` (`int`): Standard item ID.
+        - `name` (`str`): Display name.
+        - `category_id` (`int`): Category ID.
+        - `name_en` (`str`): English name. Defaults to `""`.
+
+        Returns:
+
+        - `bool`: `True` if successful, `False` otherwise.
+
+        """
+        return self.execute_simple_query(
+            """
+            UPDATE standard_items
+            SET name = :name, name_en = :name_en, _id_categories = :category_id
+            WHERE _id = :id
+            """,
+            {
+                "id": item_id,
+                "name": name.strip(),
+                "name_en": name_en.strip() or None,
+                "category_id": category_id,
+            },
+        )
+
+    def update_standard_item_name_en_by_name(self, name: str, name_en: str) -> bool:
+        """Fill English name for a catalog item when it is missing."""
+        if not name.strip() or not name_en.strip():
+            return False
+        return self.execute_simple_query(
+            """
+            UPDATE standard_items
+            SET name_en = :name_en
+            WHERE name = :name
+              AND (name_en IS NULL OR TRIM(name_en) = '')
+            """,
+            {"name": name, "name_en": name_en},
+        )
+
     def update_transaction(
         self,
         transaction_id: int,
@@ -1895,6 +2092,31 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         else:
             return True
 
+    def upsert_standard_item(self, name: str, category_id: int, name_en: str = "") -> tuple[bool, str]:
+        """Insert a catalog item or update category/English when the name already exists.
+
+        Returns:
+
+        - `tuple[bool, str]`: `(success, action)` where action is `added`, `updated`, or `unchanged`.
+
+        """
+        name = name.strip()
+        if not name:
+            return False, "unchanged"
+        existing = self.get_standard_item_by_name(name)
+        name_en_clean = name_en.strip()
+        if existing is None:
+            ok = self.add_standard_item(name, category_id, name_en_clean)
+            return ok, "added" if ok else "unchanged"
+        item_id = int(existing[0])
+        current_en = str(existing[2] or "").strip()
+        current_category_id = int(existing[3])
+        new_en = name_en_clean or current_en
+        if current_category_id == category_id and current_en == new_en:
+            return True, "unchanged"
+        ok = self.update_standard_item(item_id, name, category_id, new_en)
+        return ok, "updated" if ok else "unchanged"
+
     def _ensure_category_name_local_column(self) -> None:
         """Ensure `name_local` exists on categories (migrate from `name_ru` if needed)."""
         try:
@@ -1923,8 +2145,26 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             self.execute_simple_query(
                 "CREATE INDEX IF NOT EXISTS idx_transactions_date_currency ON transactions(date, _id_currencies)"
             )
+            self.execute_simple_query("CREATE INDEX IF NOT EXISTS idx_standard_items_name ON standard_items(name)")
         except Exception:
             logger.exception("Could not ensure performance indexes")
+
+    def _ensure_standard_items_table(self) -> None:
+        """Ensure the standard_items catalog table exists."""
+        try:
+            self.execute_simple_query(
+                """
+                CREATE TABLE IF NOT EXISTS standard_items (
+                    _id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT NOT NULL UNIQUE,
+                    name_en TEXT,
+                    _id_categories INTEGER NOT NULL,
+                    FOREIGN KEY (_id_categories) REFERENCES categories(_id)
+                )
+                """
+            )
+        except Exception:
+            logger.exception("Could not ensure standard_items table")
 
     def _ensure_system_categories(self) -> None:
         """Ensure revision categories exist and merge legacy Balance Correction."""

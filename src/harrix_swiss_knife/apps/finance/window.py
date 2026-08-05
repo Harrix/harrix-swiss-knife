@@ -43,6 +43,7 @@ class Ui_MainWindow(object):
         self.groupBox_commands.setTitle(QCoreApplication.translate("MainWindow", u"Commands", None))
         self.pushButton_add_as_text_with_ai.setText(QCoreApplication.translate("MainWindow", u"Add with AI", None))
         self.pushButton_translate_with_ai.setText(QCoreApplication.translate("MainWindow", u"Translate with AI", None))
+        self.pushButton_standard_items.setText(QCoreApplication.translate("MainWindow", u"Standard Items", None))
         self.pushButton_delete.setText(QCoreApplication.translate("MainWindow", u"Delete", None))
         self.pushButton_show_all_records.setText(QCoreApplication.translate("MainWindow", u"Show All Records", None))
         self.pushButton_refresh.setText(QCoreApplication.translate("MainWindow", u"Refresh", None))
@@ -359,6 +360,11 @@ class Ui_MainWindow(object):
         self.pushButton_translate_with_ai.setObjectName(u"pushButton_translate_with_ai")
 
         self.verticalLayout_2.addWidget(self.pushButton_translate_with_ai)
+
+        self.pushButton_standard_items = QPushButton(self.groupBox_commands)
+        self.pushButton_standard_items.setObjectName(u"pushButton_standard_items")
+
+        self.verticalLayout_2.addWidget(self.pushButton_standard_items)
 
         self.horizontalLayout_8 = QHBoxLayout()
         self.horizontalLayout_8.setObjectName(u"horizontalLayout_8")

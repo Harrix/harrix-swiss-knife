@@ -125,6 +125,7 @@ from harrix_swiss_knife.apps.finance.mixins import (
 )
 from harrix_swiss_knife.apps.finance.report_operations import ReportOperations
 from harrix_swiss_knife.apps.finance.services.account_balance import format_total_accounts_balance_details
+from harrix_swiss_knife.apps.finance.standard_items_dialog import StandardItemsDialog
 from harrix_swiss_knife.apps.finance.text_input_dialog import TextInputDialog
 from harrix_swiss_knife.apps.finance.transaction_helpers import (
     MIN_TRANSACTION_ROW_LENGTH,
@@ -1153,6 +1154,20 @@ class MainWindow(
 
         self._load_transactions_page(reset=True)
 
+    @requires_database()
+    def on_standard_items(self) -> None:
+        """Open the standard items catalog dialog."""
+        if self.db_manager is None:
+            return
+        dialog = StandardItemsDialog(
+            self,
+            self.db_manager,
+            app_config=self._app_config,
+            bothub_state=self._bothub_state,
+        )
+        dialog.exec()
+        self._update_autocomplete_data()
+
     def on_tab_changed(self, index: int) -> None:
         """React to tab change.
 
@@ -1500,6 +1515,41 @@ class MainWindow(
         except Exception as e:
             self._show_db_error(f"Failed to add {entity_name}: {e}")
 
+    def _add_transaction_row_to_standard_items(self, index: QModelIndex) -> None:
+        """Add description/category from a transactions table row into standard_items."""
+        if not index.isValid() or self.db_manager is None:
+            return
+        model = self.tableView_transactions.model()
+        if model is None:
+            return
+        description = str(model.data(model.index(index.row(), 0)) or "").strip()
+        description_en = str(model.data(model.index(index.row(), 1)) or "").strip()
+        category_value = str(model.data(model.index(index.row(), 3)) or "").strip()
+        if not description:
+            message_box.warning(self, "Error", "Selected row has empty description")
+            return
+        category_name = self._clean_category_display_name(category_value)
+        if not category_name:
+            message_box.warning(self, "Error", "Selected row has no category")
+            return
+        category_id = self.db_manager.get_id("categories", "name", category_name)
+        if category_id is None:
+            message_box.warning(self, "Error", f"Category '{category_name}' not found")
+            return
+        ok, action = self.db_manager.upsert_standard_item(description, int(category_id), description_en)
+        if not ok:
+            message_box.warning(self, "Error", "Failed to add standard item")
+            return
+        self._update_autocomplete_data()
+        if action == "added":
+            message = f"Added to Standard Items: {description}"
+        elif action == "updated":
+            message = f"Updated Standard Item: {description}"
+        else:
+            message = f"Already in Standard Items: {description}"
+        toast = toast_notification.ToastNotification(message, duration=2000, parent=self)
+        toast.exec()
+
     def _append_colored_rows_to_model(
         self,
         model: QStandardItemModel,
@@ -1653,6 +1703,19 @@ class MainWindow(
     def _chart_date_nums(x_values: list[datetime]) -> list[float]:
         return list(date2num(x_values))
 
+    def _clean_category_display_name(self, category_value: str) -> str:
+        """Strip emoji / income marker from a category cell display value."""
+        clean_category_name = category_value
+        if (
+            clean_category_name
+            and clean_category_name[0] not in "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+        ):
+            for i, char in enumerate(clean_category_name):
+                if char in "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz":
+                    clean_category_name = clean_category_name[i:].lstrip()
+                    break
+        return clean_category_name.replace(" (Income)", "").strip()
+
     def _cleanup_balance_check_worker(self) -> None:
         """Release the balance check worker after the thread finishes."""
         worker = getattr(self, "_balance_check_worker", None)
@@ -1801,6 +1864,7 @@ class MainWindow(
         self.pushButton_add.clicked.connect(self.on_add_transaction)
         self.pushButton_add_as_text_with_ai.clicked.connect(self.on_add_as_text_with_ai)
         self.pushButton_translate_with_ai.clicked.connect(self.on_translate_with_ai)
+        self.pushButton_standard_items.clicked.connect(self.on_standard_items)
         bothub_cfg = self._app_config.get("bothub") or {}
         max_image_side = int(bothub_cfg.get("max_image_side", 1600))
         self._ai_image_drop_zone = ImagePicker(
@@ -4296,7 +4360,13 @@ class MainWindow(
         current_date: QDate = self.dateEdit.date()
 
         try:
-            # Get the most recent transaction with this description
+            catalog_item = self.db_manager.get_standard_item_by_name(description)
+            if catalog_item is not None:
+                category_name = str(catalog_item[4])
+                if category_name:
+                    self._select_category_by_name(category_name)
+
+            # Get the most recent transaction with this description (for amount/currency)
             query: str = """
                 SELECT t.amount, cat.name, c.code
                 FROM transactions t
@@ -4319,17 +4389,9 @@ class MainWindow(
                 amount: float = float(amount_cents) / 100  # Convert from cents
                 self.doubleSpinBox_amount.setValue(amount)
 
-                # Set category if found
-                if category_name:
-                    # Find the category in the list view
-                    model = self.listView_categories.model()
-                    if model:
-                        for row in range(model.rowCount()):
-                            index: QModelIndex = model.index(row, 0)
-                            item_data = model.data(index, Qt.ItemDataRole.UserRole)
-                            if item_data == category_name:
-                                self.listView_categories.setCurrentIndex(index)
-                                break
+                # Prefer catalog category; fall back to last transaction category
+                if catalog_item is None and category_name:
+                    self._select_category_by_name(category_name)
 
                 # Set currency if found
                 if currency_code:
@@ -4937,6 +4999,7 @@ class MainWindow(
         self.pushButton_add.setText(f"➕ {self.pushButton_add.text()}")  # noqa: RUF001
         self.pushButton_add_as_text_with_ai.setText(f"🤖 {self.pushButton_add_as_text_with_ai.text()}")
         self.pushButton_translate_with_ai.setText(f"🤖 {self.pushButton_translate_with_ai.text()}")
+        self.pushButton_standard_items.setText(f"📋 {self.pushButton_standard_items.text()}")
         self.pushButton_delete.setText(f"🗑️ {self.pushButton_delete.text()}")
         self.pushButton_refresh.setText(f"🔄 {self.pushButton_refresh.text()}")
         self.pushButton_clear_filter.setText(f"🧹 {self.pushButton_clear_filter.text()}")
@@ -5521,6 +5584,11 @@ class MainWindow(
                     # Add separator
                     context_menu.addSeparator()
 
+        add_to_standard_items_action = None
+        if index.isValid():
+            add_to_standard_items_action = context_menu.addAction("📋 Add to Standard Items")
+            context_menu.addSeparator()
+
         # Add separator before export action
         context_menu.addSeparator()
 
@@ -5661,6 +5729,8 @@ class MainWindow(
             logger.debug("🔧 Context menu: Delete action triggered")
             # Perform the deletion
             self.delete_record("transactions")
+        elif add_to_standard_items_action is not None and action == add_to_standard_items_action:
+            self._add_transaction_row_to_standard_items(index)
         elif (
             action == clear_filters_action
             or (filter_by_category_action and action == filter_by_category_action)
@@ -5754,10 +5824,11 @@ class MainWindow(
             return
 
         try:
+            catalog_names = self.db_manager.get_standard_item_names_for_autocomplete()
             raw_descriptions: list[str] = self.db_manager.get_recent_transaction_descriptions_for_autocomplete(
                 self.description_autocomplete_limit,
             )
-            descriptions = dedupe_descriptions_for_autocomplete(raw_descriptions)
+            descriptions = dedupe_descriptions_for_autocomplete([*catalog_names, *raw_descriptions])
 
             self.description_completer_source_model.setStringList(descriptions)
             self.description_completer_proxy.invalidateFilter()
