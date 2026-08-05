@@ -168,6 +168,11 @@
     <string name="speech_to_text_stop">Stop</string>
     <string name="speech_to_text_cancel_recording">Cancel</string>
     <string name="speech_to_text_recording">Recording…</string>
+    <string name="speech_to_text_recorded_ready">Recording ready. Continue, re-record, or recognize.</string>
+    <string name="speech_to_text_continue">Continue</string>
+    <string name="speech_to_text_rerecord">Re-record</string>
+    <string name="speech_to_text_recognize">Recognize</string>
+    <string name="speech_to_text_discard_recording">Discard</string>
     <string name="speech_to_text_recognizing">Recognizing speech…</string>
     <string name="speech_to_text_fixing">Fixing text…</string>
     <string name="speech_to_text_rewriting">Rewriting text…</string>

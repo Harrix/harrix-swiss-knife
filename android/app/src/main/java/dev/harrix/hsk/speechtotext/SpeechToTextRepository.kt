@@ -20,7 +20,10 @@ class SpeechToTextRepository(
         }
     }
 
-    fun transcribe(audioFile: File): String {
+    fun transcribe(
+        audioFile: File,
+        mimeType: String = AudioRecorder.MIME_WAV,
+    ): String {
         requireApiKey()
         val bytes = audioFile.readBytes()
         if (bytes.size < AudioRecorder.MIN_AUDIO_BYTES) {
@@ -30,7 +33,7 @@ class SpeechToTextRepository(
             client.chatCompletion(
                 model = BothubConfig.speechModel,
                 text = BothubPrompts.TRANSCRIPTION,
-                audio = bytes to AudioRecorder.MIME_M4A,
+                audio = bytes to mimeType,
             )
         if (transcribed.isBlank()) {
             throw BothubApiException("Empty transcription from BotHub")

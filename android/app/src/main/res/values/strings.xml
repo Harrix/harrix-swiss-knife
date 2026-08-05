@@ -163,11 +163,16 @@
     <string name="speech_to_text_widget_label">Speech to Text</string>
     <string name="speech_to_text_widget_description">Open Speech to Text with AI</string>
     <string name="speech_to_text_close">Exit Speech to Text</string>
-    <string name="speech_to_text_idle_message">Tap Record, speak, then stop. The app will recognize speech, fix the text, and show the result.</string>
+    <string name="speech_to_text_idle_message">Tap Record, speak, then stop. You can continue or re-record before recognition.</string>
     <string name="speech_to_text_record">Record</string>
     <string name="speech_to_text_stop">Stop</string>
     <string name="speech_to_text_cancel_recording">Cancel</string>
     <string name="speech_to_text_recording">Recording…</string>
+    <string name="speech_to_text_recorded_ready">Recording ready. Continue, re-record, or recognize.</string>
+    <string name="speech_to_text_continue">Continue</string>
+    <string name="speech_to_text_rerecord">Re-record</string>
+    <string name="speech_to_text_recognize">Recognize</string>
+    <string name="speech_to_text_discard_recording">Discard</string>
     <string name="speech_to_text_recognizing">Recognizing speech…</string>
     <string name="speech_to_text_fixing">Fixing text…</string>
     <string name="speech_to_text_rewriting">Rewriting text…</string>

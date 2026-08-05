@@ -163,11 +163,16 @@
     <string name="speech_to_text_widget_label">Speech to Text</string>
     <string name="speech_to_text_widget_description">Открыть Speech to Text with AI</string>
     <string name="speech_to_text_close">Выйти из Speech to Text</string>
-    <string name="speech_to_text_idle_message">Нажмите «Запись», говорите, затем остановите. Приложение распознает речь, исправит текст и покажет результат.</string>
+    <string name="speech_to_text_idle_message">Нажмите «Запись», говорите, затем «Стоп». Можно продолжить или перезаписать перед распознаванием.</string>
     <string name="speech_to_text_record">Запись</string>
     <string name="speech_to_text_stop">Стоп</string>
     <string name="speech_to_text_cancel_recording">Отмена</string>
     <string name="speech_to_text_recording">Идёт запись…</string>
+    <string name="speech_to_text_recorded_ready">Запись готова. Продолжите, перезапишите или распознайте.</string>
+    <string name="speech_to_text_continue">Продолжить</string>
+    <string name="speech_to_text_rerecord">Перезаписать</string>
+    <string name="speech_to_text_recognize">Распознать</string>
+    <string name="speech_to_text_discard_recording">Отменить</string>
     <string name="speech_to_text_recognizing">Распознавание речи…</string>
     <string name="speech_to_text_fixing">Исправление текста…</string>
     <string name="speech_to_text_rewriting">Рерайт текста…</string>
