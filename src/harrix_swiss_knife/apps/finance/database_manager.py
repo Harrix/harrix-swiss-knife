@@ -43,7 +43,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         # Initialize default settings if they don't exist
         self._init_default_settings()
-        self._ensure_category_name_ru_column()
+        self._ensure_category_name_local_column()
         self._ensure_system_categories()
         self._ensure_performance_indexes()
 
@@ -79,7 +79,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         }
         return self.execute_simple_query(query, params)
 
-    def add_category(self, name: str, category_type: int, icon: str = "", name_ru: str = "") -> bool:
+    def add_category(self, name: str, category_type: int, icon: str = "", name_local: str = "") -> bool:
         """Add a new category to the database.
 
         Args:
@@ -87,19 +87,19 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         - `name` (`str`): Category name.
         - `category_type` (`int`): Category type (0 = expense, 1 = income).
         - `icon` (`str`): Category icon. Defaults to `""`.
-        - `name_ru` (`str`): Russian category name. Defaults to `""`.
+        - `name_local` (`str`): Local-language category name. Defaults to `""`.
 
         Returns:
 
         - `bool`: `True` if successful, `False` otherwise.
 
         """
-        query = "INSERT INTO categories (name, type, icon, name_ru) VALUES (:name, :type, :icon, :name_ru)"
+        query = "INSERT INTO categories (name, type, icon, name_local) VALUES (:name, :type, :icon, :name_local)"
         params = {
             "name": name,
             "type": category_type,
             "icon": icon,
-            "name_ru": name_ru or None,
+            "name_local": name_local or None,
         }
         return self.execute_simple_query(query, params)
 
@@ -537,10 +537,10 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `list[list[Any]]`: List of category records [\_id, name, type, icon, name_ru].
+        - `list[list[Any]]`: List of category records [\_id, name, type, icon, name_local].
 
         """
-        return self.get_rows("SELECT _id, name, type, icon, name_ru FROM categories ORDER BY type, name")
+        return self.get_rows("SELECT _id, name, type, icon, name_local FROM categories ORDER BY type, name")
 
     def get_all_currencies(self) -> list[list[Any]]:
         r"""Get all currencies.
@@ -658,7 +658,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         return [row[0] for row in rows]
 
     def get_categories_with_icons_by_type(self, category_type: int) -> list[tuple[str, str, str]]:
-        """Get category names, icons, and Russian names by type.
+        """Get category names, icons, and local names by type.
 
         Args:
 
@@ -666,11 +666,11 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `list[tuple[str, str, str]]`: List of `(name, icon, name_ru)` tuples.
+        - `list[tuple[str, str, str]]`: List of `(name, icon, name_local)` tuples.
 
         """
         rows = self.get_rows(
-            "SELECT name, icon, name_ru FROM categories WHERE type = :type ORDER BY name",
+            "SELECT name, icon, name_local FROM categories WHERE type = :type ORDER BY name",
             {"type": category_type},
         )
         return [(str(row[0] or ""), str(row[1] or ""), str(row[2] or "") if row[2] is not None else "") for row in rows]
@@ -684,10 +684,10 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `list[Any] | None`: Category data [\_id, name, type, icon, name_ru] or `None` if not found.
+        - `list[Any] | None`: Category data [\_id, name, type, icon, name_local] or `None` if not found.
 
         """
-        query = "SELECT _id, name, type, icon, name_ru FROM categories WHERE _id = :category_id"
+        query = "SELECT _id, name, type, icon, name_local FROM categories WHERE _id = :category_id"
         rows = self.get_rows(query, {"category_id": category_id})
         return rows[0] if rows else None
 
@@ -1574,7 +1574,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         name: str,
         category_type: int,
         icon: str = "",
-        name_ru: str = "",
+        name_local: str = "",
     ) -> bool:
         """Update an existing category.
 
@@ -1584,7 +1584,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         - `name` (`str`): Category name.
         - `category_type` (`int`): Category type.
         - `icon` (`str`): Category icon. Defaults to `""`.
-        - `name_ru` (`str`): Russian category name. Defaults to `""`.
+        - `name_local` (`str`): Local-language category name. Defaults to `""`.
 
         Returns:
 
@@ -1593,14 +1593,14 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         """
         query = """
             UPDATE categories
-            SET name = :name, type = :type, icon = :icon, name_ru = :name_ru
+            SET name = :name, type = :type, icon = :icon, name_local = :name_local
             WHERE _id = :id
         """
         params = {
             "name": name,
             "type": category_type,
             "icon": icon,
-            "name_ru": name_ru or None,
+            "name_local": name_local or None,
             "id": category_id,
         }
         return self.execute_simple_query(query, params)
@@ -1825,20 +1825,24 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         else:
             return True
 
-    def _ensure_category_name_ru_column(self) -> None:
-        """Add `name_ru` to categories when missing (existing databases)."""
+    def _ensure_category_name_local_column(self) -> None:
+        """Ensure `name_local` exists on categories (migrate from `name_ru` if needed)."""
         try:
             columns = {
                 str(row[1])
                 for row in self.get_rows("PRAGMA table_info(categories)")
                 if row and len(row) > 1 and row[1] is not None
             }
-            if "name_ru" in columns:
+            if "name_local" in columns:
                 return
-            if not self.execute_simple_query("ALTER TABLE categories ADD COLUMN name_ru TEXT"):
-                logger.error("Failed to add categories.name_ru column")
+            if "name_ru" in columns:
+                if not self.execute_simple_query("ALTER TABLE categories RENAME COLUMN name_ru TO name_local"):
+                    logger.error("Failed to rename categories.name_ru to name_local")
+                return
+            if not self.execute_simple_query("ALTER TABLE categories ADD COLUMN name_local TEXT"):
+                logger.error("Failed to add categories.name_local column")
         except Exception:
-            logger.exception("Could not ensure categories.name_ru column")
+            logger.exception("Could not ensure categories.name_local column")
 
     def _ensure_performance_indexes(self) -> None:
         """Create indexes for exchange_rates and transactions if missing (faster currency conversion)."""

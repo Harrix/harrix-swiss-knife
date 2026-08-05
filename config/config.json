@@ -324,7 +324,7 @@
   "bothub_api_key": "snippet:api-keys/bothub-api-key.txt",
   "prompts": {
     "finance_purchases_to_tsv": "snippet:config/prompts/finance-purchases-to-tsv.md",
-    "finance_category_translate_ru": "snippet:config/prompts/finance-category-translate-ru.md",
+    "finance_category_translate_local": "snippet:config/prompts/finance-category-translate-local.md",
     "food_log_to_tsv": "snippet:config/prompts/food-log-to-tsv.md",
     "food_voice_log_to_tsv": "snippet:config/prompts/food-voice-log-to-tsv.md",
     "food_kcal_lookup": "snippet:config/prompts/food-kcal-lookup.md",

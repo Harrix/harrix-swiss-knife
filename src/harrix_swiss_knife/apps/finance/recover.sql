@@ -26,7 +26,7 @@ CREATE TABLE "categories" (
 	"name"	TEXT NOT NULL,
 	"type"	INTEGER NOT NULL,
 	"icon"	TEXT,
-	"name_ru"	TEXT,
+	"name_local"	TEXT,
 	PRIMARY KEY("_id" AUTOINCREMENT)
 );
 
@@ -73,11 +73,11 @@ INSERT INTO currencies (code, name, symbol, subdivision) VALUES ('USD', 'US Doll
 INSERT INTO currencies (code, name, symbol, subdivision) VALUES ('EUR', 'Euro', '€', 100);
 INSERT INTO currencies (code, name, symbol, subdivision) VALUES ('CNY', 'Chinese Yuan', '¥', 100);
 
-INSERT INTO categories (name, type, icon) VALUES ('Salary', 1, "💰");
-INSERT INTO categories (name, type, icon) VALUES ('Food', 0, "🍔");
-INSERT INTO categories (name, type, icon) VALUES ('Transport', 0, "🚗");
-INSERT INTO categories (name, type, icon) VALUES ('Revision Income', 1, "🧾");
-INSERT INTO categories (name, type, icon) VALUES ('Revision Expense', 0, "🧾");
+INSERT INTO categories (name, type, icon, name_local) VALUES ('Salary', 1, "💰", 'Зарплата');
+INSERT INTO categories (name, type, icon, name_local) VALUES ('Food', 0, "🍔", 'Еда');
+INSERT INTO categories (name, type, icon, name_local) VALUES ('Transport', 0, "🚗", 'Транспорт');
+INSERT INTO categories (name, type, icon, name_local) VALUES ('Revision Income', 1, "🧾", 'Корректировка дохода');
+INSERT INTO categories (name, type, icon, name_local) VALUES ('Revision Expense', 0, "🧾", 'Корректировка расхода');
 
 INSERT INTO accounts (name, _id_currencies, balance, is_liquid, is_cash) VALUES ('Cash', 1, 0, 1, 1);
 INSERT INTO accounts (name, _id_currencies, balance, is_liquid, is_cash) VALUES ('Bank Account', 1, 0, 1, 0);

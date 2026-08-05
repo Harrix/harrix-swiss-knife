@@ -98,13 +98,7 @@ class CategorySuggestDelegate(QStyledItemDelegate):
         painter.fillRect(option.rect, background)
 
         text_rect = option.rect.adjusted(6, 0, -(reserved + 4), 0)
-        painter.setPen(text_color)
-        painter.setFont(opt.font)
-        painter.drawText(
-            text_rect,
-            int(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft | Qt.TextFlag.TextSingleLine),
-            opt.text,
-        )
+        self._paint_category_label(painter, opt, index, text_rect, text_color)
 
         if show_button:
             self._paint_use_button(painter, opt)
@@ -143,6 +137,74 @@ class CategorySuggestDelegate(QStyledItemDelegate):
             return None
         text = str(value).strip()
         return text or None
+
+    def _category_name_local(self, index: QModelIndex | QPersistentModelIndex) -> str | None:
+        value = index.data(NAME_LOCAL_ROLE)
+        if value is None:
+            return None
+        text = str(value).strip()
+        return text or None
+
+    def _paint_category_label(
+        self,
+        painter: QPainter,
+        option: QStyleOptionViewItem,
+        index: QModelIndex | QPersistentModelIndex,
+        text_rect: QRect,
+        text_color: QColor,
+    ) -> None:
+        """Draw main category text and optional gray smaller local name."""
+        main_text = option.text
+        name_local = self._category_name_local(index)
+
+        painter.setPen(text_color)
+        painter.setFont(option.font)
+        main_metrics = QFontMetrics(option.font)
+        flags = int(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft | Qt.TextFlag.TextSingleLine)
+
+        if not name_local:
+            painter.drawText(text_rect, flags, main_text)
+            return
+
+        local_font = QFont(option.font)
+        base_size = option.font.pointSizeF()
+        if base_size <= 0:
+            base_size = float(option.font.pointSize() or 9)
+        local_font.setPointSizeF(max(_NAME_LOCAL_MIN_POINT_SIZE, base_size * _NAME_LOCAL_FONT_SCALE))
+        local_metrics = QFontMetrics(local_font)
+        local_text = f" ({name_local})"
+
+        available = max(0, text_rect.width())
+        main_width = main_metrics.horizontalAdvance(main_text)
+        local_width = local_metrics.horizontalAdvance(local_text)
+
+        if main_width + local_width <= available:
+            painter.drawText(text_rect, flags, main_text)
+            local_rect = QRect(text_rect.left() + main_width, text_rect.top(), local_width, text_rect.height())
+            painter.setPen(_NAME_LOCAL_COLOR)
+            painter.setFont(local_font)
+            painter.drawText(local_rect, flags, local_text)
+            return
+
+        # Prefer keeping local name visible when space is tight: elide main text.
+        remaining_for_main = max(0, available - local_width)
+        elided_main = main_metrics.elidedText(main_text, Qt.TextElideMode.ElideRight, remaining_for_main)
+        elided_main_width = main_metrics.horizontalAdvance(elided_main)
+        painter.drawText(text_rect, flags, elided_main)
+        if elided_main_width < available:
+            local_rect = QRect(
+                text_rect.left() + elided_main_width,
+                text_rect.top(),
+                available - elided_main_width,
+                text_rect.height(),
+            )
+            painter.setPen(_NAME_LOCAL_COLOR)
+            painter.setFont(local_font)
+            painter.drawText(
+                local_rect,
+                flags,
+                local_metrics.elidedText(local_text, Qt.TextElideMode.ElideRight, local_rect.width()),
+            )
 
     def _paint_use_button(self, painter: QPainter, option: QStyleOptionViewItem) -> None:
         button_rect = self._button_rect(option.rect, option)
@@ -271,13 +333,7 @@ def paint(
         painter.fillRect(option.rect, background)
 
         text_rect = option.rect.adjusted(6, 0, -(reserved + 4), 0)
-        painter.setPen(text_color)
-        painter.setFont(opt.font)
-        painter.drawText(
-            text_rect,
-            int(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft | Qt.TextFlag.TextSingleLine),
-            opt.text,
-        )
+        self._paint_category_label(painter, opt, index, text_rect, text_color)
 
         if show_button:
             self._paint_use_button(painter, opt)

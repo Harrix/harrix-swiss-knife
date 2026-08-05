@@ -17,13 +17,13 @@ from PySide6.QtWidgets import (
 )
 
 from harrix_swiss_knife.apps.common import message_box
-from harrix_swiss_knife.apps.finance.category_name_ru_translate import request_category_name_ru_translation
+from harrix_swiss_knife.apps.finance.category_name_local_translate import request_category_name_local_translation
 from harrix_swiss_knife.integrations.bothub import BothubRequestState
 from harrix_swiss_knife.qt_emoji_icon import apply_emoji_dialog_buttons, make_emoji_push_button
 
 
 class CategoryAddDialog(QDialog):
-    """Modal dialog to enter category name, Russian name, and type."""
+    """Modal dialog to enter category name, local name, and type."""
 
     def __init__(
         self,
@@ -54,17 +54,17 @@ class CategoryAddDialog(QDialog):
         name_row.addWidget(self._name_edit, 1)
         form_layout.addLayout(name_row)
 
-        name_ru_row = QHBoxLayout()
-        name_ru_row.addWidget(QLabel("Russian:", form_group))
-        self._name_ru_edit = QLineEdit(form_group)
-        self._name_ru_edit.setPlaceholderText("Russian name")
-        name_ru_row.addWidget(self._name_ru_edit, 1)
+        name_local_row = QHBoxLayout()
+        name_local_row.addWidget(QLabel("Local:", form_group))
+        self._name_local_edit = QLineEdit(form_group)
+        self._name_local_edit.setPlaceholderText("Local name")
+        name_local_row.addWidget(self._name_local_edit, 1)
         self._translate_button = make_emoji_push_button("", "🤖")
-        self._translate_button.setToolTip("Translate name to Russian with AI")
+        self._translate_button.setToolTip("Translate name to local language with AI")
         self._translate_button.setFixedWidth(36)
         self._translate_button.clicked.connect(self._on_translate_clicked)
-        name_ru_row.addWidget(self._translate_button)
-        form_layout.addLayout(name_ru_row)
+        name_local_row.addWidget(self._translate_button)
+        form_layout.addLayout(name_local_row)
 
         type_row = QHBoxLayout()
         type_row.addWidget(QLabel("Type:", form_group))
@@ -84,7 +84,7 @@ class CategoryAddDialog(QDialog):
         self._name_edit.setFocus()
 
     def get_result(self) -> tuple[str, int, str] | None:
-        """Return `(name, category_type, name_ru)` when accepted, else `None`."""
+        """Return `(name, category_type, name_local)` when accepted, else `None`."""
         return self._result
 
     def _on_accept(self) -> None:
@@ -92,15 +92,15 @@ class CategoryAddDialog(QDialog):
         if not name:
             message_box.warning(self, "Validation Error", "Enter category name")
             return
-        self._result = (name, self._type_combo.currentIndex(), self._name_ru_edit.text().strip())
+        self._result = (name, self._type_combo.currentIndex(), self._name_local_edit.text().strip())
         self.accept()
 
     def _on_translate_clicked(self) -> None:
-        request_category_name_ru_translation(
+        request_category_name_local_translation(
             self,
             app_config=self._app_config,
             bothub_state=self._bothub_state,
             name_edit=self._name_edit,
-            name_ru_edit=self._name_ru_edit,
+            name_local_edit=self._name_local_edit,
             translate_button=self._translate_button,
         )

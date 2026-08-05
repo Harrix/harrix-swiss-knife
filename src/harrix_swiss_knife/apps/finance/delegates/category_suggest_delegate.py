@@ -22,10 +22,10 @@ _BUTTON_BORDER = QColor("#7DB68A")
 _BUTTON_TEXT_COLOR = QColor("#1B5E20")
 _ROW_HOVER_BG = QColor("#F0FAF0")
 _ROW_SELECTED_BG = QColor("#E8F5E8")
-NAME_RU_ROLE = Qt.ItemDataRole.UserRole + 1
-_NAME_RU_COLOR = QColor("#888888")
-_NAME_RU_FONT_SCALE = 0.85
-_NAME_RU_MIN_POINT_SIZE = 7.0
+NAME_LOCAL_ROLE = Qt.ItemDataRole.UserRole + 1
+_NAME_LOCAL_COLOR = QColor("#888888")
+_NAME_LOCAL_FONT_SCALE = 0.85
+_NAME_LOCAL_MIN_POINT_SIZE = 7.0
 
 
 class CategorySuggestDelegate(QStyledItemDelegate):
@@ -134,8 +134,8 @@ class CategorySuggestDelegate(QStyledItemDelegate):
         text = str(value).strip()
         return text or None
 
-    def _category_name_ru(self, index: QModelIndex | QPersistentModelIndex) -> str | None:
-        value = index.data(NAME_RU_ROLE)
+    def _category_name_local(self, index: QModelIndex | QPersistentModelIndex) -> str | None:
+        value = index.data(NAME_LOCAL_ROLE)
         if value is None:
             return None
         text = str(value).strip()
@@ -149,57 +149,57 @@ class CategorySuggestDelegate(QStyledItemDelegate):
         text_rect: QRect,
         text_color: QColor,
     ) -> None:
-        """Draw main category text and optional gray smaller Russian name."""
+        """Draw main category text and optional gray smaller local name."""
         main_text = option.text
-        name_ru = self._category_name_ru(index)
+        name_local = self._category_name_local(index)
 
         painter.setPen(text_color)
         painter.setFont(option.font)
         main_metrics = QFontMetrics(option.font)
         flags = int(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft | Qt.TextFlag.TextSingleLine)
 
-        if not name_ru:
+        if not name_local:
             painter.drawText(text_rect, flags, main_text)
             return
 
-        ru_font = QFont(option.font)
+        local_font = QFont(option.font)
         base_size = option.font.pointSizeF()
         if base_size <= 0:
             base_size = float(option.font.pointSize() or 9)
-        ru_font.setPointSizeF(max(_NAME_RU_MIN_POINT_SIZE, base_size * _NAME_RU_FONT_SCALE))
-        ru_metrics = QFontMetrics(ru_font)
-        ru_text = f" ({name_ru})"
+        local_font.setPointSizeF(max(_NAME_LOCAL_MIN_POINT_SIZE, base_size * _NAME_LOCAL_FONT_SCALE))
+        local_metrics = QFontMetrics(local_font)
+        local_text = f" ({name_local})"
 
         available = max(0, text_rect.width())
         main_width = main_metrics.horizontalAdvance(main_text)
-        ru_width = ru_metrics.horizontalAdvance(ru_text)
+        local_width = local_metrics.horizontalAdvance(local_text)
 
-        if main_width + ru_width <= available:
+        if main_width + local_width <= available:
             painter.drawText(text_rect, flags, main_text)
-            ru_rect = QRect(text_rect.left() + main_width, text_rect.top(), ru_width, text_rect.height())
-            painter.setPen(_NAME_RU_COLOR)
-            painter.setFont(ru_font)
-            painter.drawText(ru_rect, flags, ru_text)
+            local_rect = QRect(text_rect.left() + main_width, text_rect.top(), local_width, text_rect.height())
+            painter.setPen(_NAME_LOCAL_COLOR)
+            painter.setFont(local_font)
+            painter.drawText(local_rect, flags, local_text)
             return
 
-        # Prefer keeping Russian visible when space is tight: elide main text.
-        remaining_for_main = max(0, available - ru_width)
+        # Prefer keeping local name visible when space is tight: elide main text.
+        remaining_for_main = max(0, available - local_width)
         elided_main = main_metrics.elidedText(main_text, Qt.TextElideMode.ElideRight, remaining_for_main)
         elided_main_width = main_metrics.horizontalAdvance(elided_main)
         painter.drawText(text_rect, flags, elided_main)
         if elided_main_width < available:
-            ru_rect = QRect(
+            local_rect = QRect(
                 text_rect.left() + elided_main_width,
                 text_rect.top(),
                 available - elided_main_width,
                 text_rect.height(),
             )
-            painter.setPen(_NAME_RU_COLOR)
-            painter.setFont(ru_font)
+            painter.setPen(_NAME_LOCAL_COLOR)
+            painter.setFont(local_font)
             painter.drawText(
-                ru_rect,
+                local_rect,
                 flags,
-                ru_metrics.elidedText(ru_text, Qt.TextElideMode.ElideRight, ru_rect.width()),
+                local_metrics.elidedText(local_text, Qt.TextElideMode.ElideRight, local_rect.width()),
             )
 
     def _paint_use_button(self, painter: QPainter, option: QStyleOptionViewItem) -> None:

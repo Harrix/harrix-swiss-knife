@@ -209,7 +209,7 @@ class MainWindow(
             "categories": (
                 self.tableView_categories,
                 "categories",
-                ["Name", "Type", "Russian"],
+                ["Name", "Type", "Local"],
             ),
             "accounts": (
                 self.tableView_accounts,
@@ -595,14 +595,14 @@ class MainWindow(
         result = dialog.get_result()
         if result is None:
             return
-        name, category_type, name_ru = result
+        name, category_type, name_local = result
 
         if not self.db_manager:
             self._show_error("Error", "Database not initialized")
             return
 
         try:
-            if self.db_manager.add_category(name, category_type, name_ru=name_ru):
+            if self.db_manager.add_category(name, category_type, name_local=name_local):
                 self._mark_categories_changed()
                 self.update_all()
             else:
@@ -2665,7 +2665,7 @@ class MainWindow(
 
         rows: list[tuple[str, str, int, str, str, object, object]] = []
         for row in self.db_manager.get_all_categories():
-            category_id, name, category_type, icon, name_ru = (
+            category_id, name, category_type, icon, name_local = (
                 row[0],
                 str(row[1] or ""),
                 int(row[2] or 0),
@@ -2675,7 +2675,7 @@ class MainWindow(
             type_label = "Expense" if category_type == 0 else "Income"
             color = QColor(255, 200, 200) if category_type == 0 else QColor(200, 255, 200)
             display_name = f"{icon} {name}".strip() if icon else name
-            rows.append((display_name, type_label, category_type, name, name_ru, color, category_id))
+            rows.append((display_name, type_label, category_type, name, name_local, color, category_id))
 
         headers = self.table_config["categories"][2]
         table_model = create_categories_table_proxy_model(rows, headers)
@@ -3861,7 +3861,7 @@ class MainWindow(
             "name": category_data[1] or "",
             "type": int(category_data[2] or 0),
             "icon": category_data[3] or "",
-            "name_ru": category_data[4] or "",
+            "name_local": category_data[4] or "",
         }
 
         self._category_edit_dialog_open = True
@@ -3884,7 +3884,7 @@ class MainWindow(
                 result["name"],
                 int(result["type"]),
                 result.get("icon", "") or "",
-                result.get("name_ru", "") or "",
+                result.get("name_local", "") or "",
             )
             if success:
                 self._mark_categories_changed()
@@ -5520,29 +5520,31 @@ class MainWindow(
                 combo.addItems(currencies)
 
             # Update categories list view with icons
-            expense_categories: list[tuple[str, str]] = self.db_manager.get_categories_with_icons_by_type(0)
-            income_categories: list[tuple[str, str]] = self.db_manager.get_categories_with_icons_by_type(1)
+            expense_categories: list[tuple[str, str, str]] = self.db_manager.get_categories_with_icons_by_type(0)
+            income_categories: list[tuple[str, str, str]] = self.db_manager.get_categories_with_icons_by_type(1)
 
             model: QStandardItemModel = QStandardItemModel()
 
             # Add expense categories first
-            for category_name, icon in expense_categories:
+            for category_name, icon, name_local in expense_categories:
                 # Create display text with icon
                 display_text: str = f"{icon} {category_name}" if icon else category_name
                 item: QStandardItem = QStandardItem(display_text)
                 # Store the original category name as data for selection handling
                 item.setData(category_name, Qt.ItemDataRole.UserRole)
+                item.setData(name_local, NAME_LOCAL_ROLE)
                 item.setTextAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
                 model.appendRow(item)
 
             # Add income categories with special marking
-            for category_name, icon in income_categories:
+            for category_name, icon, name_local in income_categories:
                 # Create display text with icon and income marker
                 base_text: str = f"{icon} {category_name}" if icon else category_name
                 display_text: str = f"{base_text} (Income)"  # Add income marker in parentheses
                 item: QStandardItem = QStandardItem(display_text)
                 # Store the original category name as data for selection handling
                 item.setData(category_name, Qt.ItemDataRole.UserRole)
+                item.setData(name_local, NAME_LOCAL_ROLE)
                 item.setTextAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
                 model.appendRow(item)
 
@@ -5844,7 +5846,7 @@ def __init__(self, *, hide_on_close: bool = False) -> None:
             "categories": (
                 self.tableView_categories,
                 "categories",
-                ["Name", "Type", "Russian"],
+                ["Name", "Type", "Local"],
             ),
             "accounts": (
                 self.tableView_accounts,
@@ -6343,14 +6345,14 @@ def on_add_category(self) -> None:
         result = dialog.get_result()
         if result is None:
             return
-        name, category_type, name_ru = result
+        name, category_type, name_local = result
 
         if not self.db_manager:
             self._show_error("Error", "Database not initialized")
             return
 
         try:
-            if self.db_manager.add_category(name, category_type, name_ru=name_ru):
+            if self.db_manager.add_category(name, category_type, name_local=name_local):
                 self._mark_categories_changed()
                 self.update_all()
             else:

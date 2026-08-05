@@ -16,7 +16,7 @@ from PySide6.QtWidgets import (
 )
 
 from harrix_swiss_knife.apps.common import message_box
-from harrix_swiss_knife.apps.finance.category_name_ru_translate import request_category_name_ru_translation
+from harrix_swiss_knife.apps.finance.category_name_local_translate import request_category_name_local_translation
 from harrix_swiss_knife.integrations.bothub import BothubRequestState
 from harrix_swiss_knife.qt_emoji_icon import (
     CANCEL_BUTTON_EMOJI,
@@ -27,7 +27,7 @@ from harrix_swiss_knife.qt_emoji_icon import (
 
 
 class CategoryEditDialog(QDialog):
-    """Dialog for editing category name, Russian name, type, and icon."""
+    """Dialog for editing category name, local name, type, and icon."""
 
     def __init__(
         self,
@@ -42,7 +42,7 @@ class CategoryEditDialog(QDialog):
         Args:
 
         - `parent` (`QWidget | None`): Parent widget. Defaults to `None`.
-        - `category_data` (`dict | None`): Category fields (`id`, `name`, `type`, `icon`, `name_ru`).
+        - `category_data` (`dict | None`): Category fields (`id`, `name`, `type`, `icon`, `name_local`).
         - `app_config` (`dict[str, Any] | None`): App config for BotHub translation.
         - `bothub_state` (`BothubRequestState | None`): Shared in-flight BotHub request state.
 
@@ -91,17 +91,17 @@ class CategoryEditDialog(QDialog):
             "name": name,
             "type": self.type_combo.currentIndex(),
             "icon": self.icon_edit.text().strip(),
-            "name_ru": self.name_ru_edit.text().strip(),
+            "name_local": self.name_local_edit.text().strip(),
         }
         self.accept()
 
     def _on_translate_clicked(self) -> None:
-        request_category_name_ru_translation(
+        request_category_name_local_translation(
             self,
             app_config=self._app_config,
             bothub_state=self._bothub_state,
             name_edit=self.name_edit,
-            name_ru_edit=self.name_ru_edit,
+            name_local_edit=self.name_local_edit,
             translate_button=self.translate_button,
         )
 
@@ -111,7 +111,7 @@ class CategoryEditDialog(QDialog):
         category_type = int(self.category_data.get("type", 0) or 0)
         self.type_combo.setCurrentIndex(0 if category_type == 0 else 1)
         self.icon_edit.setText(str(self.category_data.get("icon", "") or ""))
-        self.name_ru_edit.setText(str(self.category_data.get("name_ru", "") or ""))
+        self.name_local_edit.setText(str(self.category_data.get("name_local", "") or ""))
         self.name_edit.setFocus()
         self.name_edit.selectAll()
 
@@ -126,17 +126,17 @@ class CategoryEditDialog(QDialog):
         name_layout.addWidget(self.name_edit, 1)
         layout.addLayout(name_layout)
 
-        name_ru_layout = QHBoxLayout()
-        name_ru_layout.addWidget(QLabel("Russian:"))
-        self.name_ru_edit = QLineEdit()
-        self.name_ru_edit.setPlaceholderText("Russian name")
-        name_ru_layout.addWidget(self.name_ru_edit, 1)
+        name_local_layout = QHBoxLayout()
+        name_local_layout.addWidget(QLabel("Local:"))
+        self.name_local_edit = QLineEdit()
+        self.name_local_edit.setPlaceholderText("Local name")
+        name_local_layout.addWidget(self.name_local_edit, 1)
         self.translate_button = make_emoji_push_button("", "🤖")
-        self.translate_button.setToolTip("Translate name to Russian with AI")
+        self.translate_button.setToolTip("Translate name to local language with AI")
         self.translate_button.setFixedWidth(36)
         self.translate_button.clicked.connect(self._on_translate_clicked)
-        name_ru_layout.addWidget(self.translate_button)
-        layout.addLayout(name_ru_layout)
+        name_local_layout.addWidget(self.translate_button)
+        layout.addLayout(name_local_layout)
 
         type_layout = QHBoxLayout()
         type_layout.addWidget(QLabel("Type:"))
