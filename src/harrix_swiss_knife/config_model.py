@@ -42,8 +42,6 @@ class AppConfig(TypedDict, total=False):
     sqlite_fitness: str
     sqlite_food: str
     sqlite_habits: str
-    sqlite_media_sorter: str
-    media_sorter: MediaSorterSettings
     food_calorie_thresholds: FoodCalorieThresholds
     block_drives: list[str]
     markdown_templates: dict[str, Any]
@@ -77,22 +75,6 @@ class HotkeyEntry(TypedDict):
     action: str
     hotkeys: NotRequired[list[str]]
     hotkey: NotRequired[str]
-
-
-class MediaSorterBin(TypedDict, total=False):
-    """One destination bin for Media Sorter (defined only in config)."""
-
-    id: str
-    title: str
-    path: str
-    mode: str  # "copy" | "move"
-
-
-class MediaSorterSettings(TypedDict, total=False):
-    """Media Sorter app settings from `config.json`."""
-
-    default_folder: str
-    bins: list[MediaSorterBin]
 
 
 def load_app_config(config_path: str | None = None) -> dict[str, Any]:
@@ -140,29 +122,6 @@ def validate_app_config(config: dict[str, Any]) -> list[str]:
     if templates is not None and not isinstance(templates, dict):
         msg = "Config key 'markdown_templates' must be an object."
         raise TypeError(msg)
-
-    media_sorter = config.get("media_sorter")
-    if media_sorter is not None:
-        if not isinstance(media_sorter, dict):
-            msg = "Config key 'media_sorter' must be an object."
-            raise TypeError(msg)
-        bins = media_sorter.get("bins")
-        if bins is not None:
-            if not isinstance(bins, list):
-                msg = "Config key 'media_sorter.bins' must be a list."
-                raise TypeError(msg)
-            for index, item in enumerate(bins):
-                if not isinstance(item, dict):
-                    msg = f"Config media_sorter.bins[{index}] must be an object."
-                    raise TypeError(msg)
-                bin_id = str(item.get("id") or "").strip()
-                if not bin_id:
-                    msg = f"Config media_sorter.bins[{index}] is missing non-empty 'id'."
-                    raise TypeError(msg)
-                mode = str(item.get("mode") or "copy").strip().lower()
-                if mode not in {"copy", "move"}:
-                    msg = f"Config media_sorter.bins[{index}].mode must be 'copy' or 'move'."
-                    raise TypeError(msg)
 
     for key in _RECOMMENDED_KEYS:
         value = config.get(key)

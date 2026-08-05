@@ -149,7 +149,6 @@ _Figure 1: Screenshot_
 - 🏃🏻 Fitness tracker
 - 🍔 Food tracker
 - ✅ Habit tracker
-- 🖼️ Media Sorter
 - ⚡ Quick launcher…
 - × Exit
 
