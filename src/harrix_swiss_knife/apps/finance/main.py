@@ -4599,7 +4599,8 @@ class MainWindow(
         self.description_completer = QCompleter(self.description_completer_proxy, self)
         self.description_completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
         self.description_completer.setFilterMode(Qt.MatchFlag.MatchContains)
-        self.description_completer.setCompletionMode(QCompleter.CompletionMode.PopupCompletion)
+        # Proxy already filters (incl. EN/RU layout); do not re-filter by literal prefix.
+        self.description_completer.setCompletionMode(QCompleter.CompletionMode.UnfilteredPopupCompletion)
 
         self.lineEdit_description.setCompleter(self.description_completer)
 

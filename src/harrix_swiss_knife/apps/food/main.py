@@ -2672,7 +2672,8 @@ class MainWindow(
         self.food_completer = QCompleter(self.food_completer_proxy, self)
         self.food_completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
         self.food_completer.setFilterMode(Qt.MatchFlag.MatchContains)
-        self.food_completer.setCompletionMode(QCompleter.CompletionMode.PopupCompletion)
+        # Proxy already filters (incl. EN/RU layout); do not re-filter by literal prefix.
+        self.food_completer.setCompletionMode(QCompleter.CompletionMode.UnfilteredPopupCompletion)
 
         self.lineEdit_food_manual_name.setCompleter(self.food_completer)
         setup_completer_item_tooltips(self.food_completer)
