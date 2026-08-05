@@ -135,8 +135,9 @@
     <string name="medicine_search_clear_file">Очистить файл</string>
     <string name="medicine_search_file_label">Файл: %1$s</string>
     <string name="medicine_search_file_unnamed">Выбранный файл</string>
-    <string name="medicine_search_list_title">Лекарства (%1$d)</string>
-    <string name="medicine_search_list_empty">В файле не найдено названий. Полный Markdown всё равно отправится в BotHub.</string>
+    <string name="medicine_search_open_note">Открыть заметку</string>
+    <string name="medicine_search_open_with">Открыть файл с лекарствами</string>
+    <string name="medicine_search_open_failed">Не удалось открыть файл с лекарствами</string>
     <string name="medicine_search_query_label">Вопрос</string>
     <string name="medicine_search_query_hint">У меня болит голова, что из лекарств принять?</string>
     <string name="medicine_search_search">Спросить BotHub</string>

@@ -31,8 +31,8 @@ class MedicineSearchViewModel(
     val phase = mutableStateOf(MedicineSearchPhase.Idle)
     val queryText = mutableStateOf("")
     val resultText = mutableStateOf("")
-    val medicineNames = mutableStateOf<List<String>>(emptyList())
     val fileDisplayName = mutableStateOf<String?>(null)
+    val medicinesUri = mutableStateOf<Uri?>(null)
     val hasMedicinesFile = mutableStateOf(false)
     val errorMessage = mutableStateOf<String?>(null)
     val hasApiKey = mutableStateOf(BothubConfig.hasApiKey)
@@ -154,7 +154,7 @@ class MedicineSearchViewModel(
                 outcome
                     .onSuccess { content ->
                         medicinesMarkdown = content.markdown
-                        medicineNames.value = content.names
+                        medicinesUri.value = content.uri
                         fileDisplayName.value = content.displayName
                         hasMedicinesFile.value = true
                         phase.value =
@@ -178,7 +178,7 @@ class MedicineSearchViewModel(
 
     private fun clearFileState() {
         medicinesMarkdown = null
-        medicineNames.value = emptyList()
+        medicinesUri.value = null
         fileDisplayName.value = null
         hasMedicinesFile.value = false
     }

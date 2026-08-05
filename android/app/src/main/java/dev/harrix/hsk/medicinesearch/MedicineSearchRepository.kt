@@ -13,7 +13,6 @@ data class MedicinesFileContent(
     val uri: Uri,
     val displayName: String?,
     val markdown: String,
-    val names: List<String>,
 )
 
 /**
@@ -48,7 +47,6 @@ class MedicineSearchRepository(
             uri = uri,
             displayName = queryDisplayName(uri),
             markdown = markdown,
-            names = MedicinesMarkdownParser.parseNames(markdown),
         )
     }
 

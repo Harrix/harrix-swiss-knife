@@ -135,8 +135,9 @@
     <string name="medicine_search_clear_file">Clear file</string>
     <string name="medicine_search_file_label">File: %1$s</string>
     <string name="medicine_search_file_unnamed">Selected file</string>
-    <string name="medicine_search_list_title">Medicines (%1$d)</string>
-    <string name="medicine_search_list_empty">No medicine names found in the file. The full Markdown is still sent to BotHub.</string>
+    <string name="medicine_search_open_note">Open note</string>
+    <string name="medicine_search_open_with">Open medicines file</string>
+    <string name="medicine_search_open_failed">Could not open medicines file</string>
     <string name="medicine_search_query_label">Question</string>
     <string name="medicine_search_query_hint">I have a headache. What from my medicines can I take?</string>
     <string name="medicine_search_search">Ask BotHub</string>

@@ -15,6 +15,19 @@
         android:name="android.hardware.microphone"
         android:required="false" />
 
+    <!-- Package visibility for opening medicines notes in Harrix Notes / Open with. -->
+    <queries>
+        <package android:name="dev.harrix.notes" />
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:mimeType="text/markdown" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:mimeType="text/plain" />
+        </intent>
+    </queries>
+
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"

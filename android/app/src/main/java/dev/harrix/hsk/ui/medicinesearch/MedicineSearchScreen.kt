@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Medication
@@ -29,10 +30,8 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -54,6 +53,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import dev.harrix.hsk.R
+import dev.harrix.hsk.medicinesearch.MedicinesNoteOpener
 import dev.harrix.hsk.ui.AutoFitText
 import dev.harrix.hsk.ui.adaptiveContentWidth
 
@@ -69,14 +69,15 @@ fun MedicineSearchScreen(
     var phase by viewModel.phase
     var queryText by viewModel.queryText
     var resultText by viewModel.resultText
-    var medicineNames by viewModel.medicineNames
     var fileDisplayName by viewModel.fileDisplayName
+    var medicinesUri by viewModel.medicinesUri
     var hasMedicinesFile by viewModel.hasMedicinesFile
     var errorMessage by viewModel.errorMessage
     var hasApiKey by viewModel.hasApiKey
     val context = LocalContext.current
     val clipboard = LocalClipboardManager.current
     val copiedMessage = stringResource(R.string.medicine_search_copied)
+    val openFailedMessage = stringResource(R.string.medicine_search_open_failed)
     val busy =
         phase == MedicineSearchPhase.Searching ||
             phase == MedicineSearchPhase.LoadingFile
@@ -84,6 +85,17 @@ fun MedicineSearchScreen(
     fun leave() {
         viewModel.resetSession()
         onClose()
+    }
+
+    fun openMedicinesNote() {
+        val uri = medicinesUri
+        if (uri == null) {
+            return
+        }
+        val opened = MedicinesNoteOpener.open(context, uri)
+        if (!opened) {
+            Toast.makeText(context, openFailedMessage, Toast.LENGTH_SHORT).show()
+        }
     }
 
     BackHandler(onBack = { leave() })
@@ -209,6 +221,22 @@ fun MedicineSearchScreen(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                    FilledTonalButton(
+                        onClick = { openMedicinesNote() },
+                        enabled = !busy && medicinesUri != null,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.OpenInNew,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                        )
+                        Spacer(modifier = Modifier.size(8.dp))
+                        AutoFitText(
+                            text = stringResource(R.string.medicine_search_open_note),
+                            maxLines = 2,
+                        )
+                    }
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -234,41 +262,6 @@ fun MedicineSearchScreen(
                                 maxLines = 2,
                                 textAlign = TextAlign.Center,
                             )
-                        }
-                    }
-                    Text(
-                        text =
-                        stringResource(
-                            R.string.medicine_search_list_title,
-                            medicineNames.size,
-                        ),
-                        style = MaterialTheme.typography.titleSmall,
-                    )
-                    if (medicineNames.isEmpty()) {
-                        Text(
-                            text = stringResource(R.string.medicine_search_list_empty),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    } else {
-                        Column(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalArrangement = Arrangement.spacedBy(0.dp),
-                        ) {
-                            medicineNames.take(80).forEach { name ->
-                                ListItem(
-                                    headlineContent = { Text(name) },
-                                )
-                                HorizontalDivider()
-                            }
-                            if (medicineNames.size > 80) {
-                                Text(
-                                    text = "… +${medicineNames.size - 80}",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.padding(vertical = 8.dp),
-                                )
-                            }
                         }
                     }
                 }
