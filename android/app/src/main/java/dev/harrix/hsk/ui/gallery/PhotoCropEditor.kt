@@ -109,6 +109,19 @@ private enum class PerspectiveDragMode {
     Corner3,
 }
 
+/** One-finger gesture: pan the zoomed view, or edit the crop/perspective frame. */
+private sealed class OneFingerAction {
+    data object PanView : OneFingerAction()
+
+    data class Crop(
+        val mode: CropDragMode,
+    ) : OneFingerAction()
+
+    data class Perspective(
+        val mode: PerspectiveDragMode,
+    ) : OneFingerAction()
+}
+
 /** Accent color for the perspective frame (distinct from the white AABB crop). */
 private val PerspectiveFrameColor = Color(0xFFFFB74D)
 
@@ -322,6 +335,7 @@ fun PhotoCropEditor(
                 // All crop math is local to this square (0..side). The photo is smaller and
                 // centered; black letterbox around it is valid crop space (saved as black).
                 // Pinch zoom/pan scales the whole square (image + crop frame together).
+                val side = workspace.width
                 Box(
                     modifier =
                     Modifier
@@ -368,7 +382,6 @@ fun PhotoCropEditor(
                             },
                     )
 
-                    val side = workspace.width
                     val activeQuad = perspectiveQuad
                     val cropPx =
                         Rect(
@@ -493,147 +506,116 @@ fun PhotoCropEditor(
                             }
                         }
                     }
+                }
 
-                    Box(
-                        modifier =
-                        Modifier
-                            .fillMaxSize()
-                            .pointerInput(
-                                side,
-                                handleHitSlopPx,
-                                isSaving,
-                                imageWidth,
-                                imageHeight,
-                                lockedAspect,
-                                isPerspective,
-                                viewportW,
-                                viewportH,
-                            ) {
-                                if (isSaving) {
-                                    return@pointerInput
-                                }
-                                awaitEachGesture {
-                                    awaitFirstDown(requireUnconsumed = false)
-                                    var multiTouch = false
-                                    var cropMode: CropDragMode? = null
-                                    var perspectiveMode: PerspectiveDragMode? = null
-                                    var gestureActive = true
-                                    var gestureScale = viewScaleState.value
-                                    var gestureOffset = viewOffsetState.value
-                                    isRotatingHint = false
+                // Full-viewport overlay so pinch/pan work on letterbox and rotated image edges.
+                Box(
+                    modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .pointerInput(
+                            side,
+                            handleHitSlopPx,
+                            isSaving,
+                            imageWidth,
+                            imageHeight,
+                            lockedAspect,
+                            isPerspective,
+                            viewportW,
+                            viewportH,
+                        ) {
+                            if (isSaving) {
+                                return@pointerInput
+                            }
+                            awaitEachGesture {
+                                awaitFirstDown(requireUnconsumed = false)
+                                var multiTouch = false
+                                var oneFingerAction: OneFingerAction? = null
+                                var gestureActive = true
+                                var gestureScale = viewScaleState.value
+                                var gestureOffset = viewOffsetState.value
+                                isRotatingHint = false
 
-                                    while (gestureActive) {
-                                        val event = awaitPointerEvent()
-                                        val pressed = event.changes.filter { it.pressed }
-                                        if (pressed.isEmpty()) {
-                                            gestureActive = false
-                                        } else if (pressed.size >= 2) {
-                                            multiTouch = true
-                                            cropMode = null
-                                            perspectiveMode = null
-                                            val rotationDelta = event.calculateRotation()
-                                            val zoomChange = event.calculateZoom()
-                                            val panChange = event.calculatePan()
-                                            // Keep current rotation while adjusting a perspective quad.
-                                            if (rotationDelta != 0f &&
-                                                perspectiveQuadState.value == null
-                                            ) {
-                                                isRotatingHint = true
-                                                onRotationDegreesChangeState.value(
-                                                    rotationState.value + rotationDelta,
+                                fun viewportToWorkspace(point: Offset): Offset = viewportToWorkspacePoint(
+                                    point = point,
+                                    side = side,
+                                    scale = gestureScale,
+                                    offset = gestureOffset,
+                                    viewportW = viewportW,
+                                    viewportH = viewportH,
+                                )
+
+                                while (gestureActive) {
+                                    val event = awaitPointerEvent()
+                                    val pressed = event.changes.filter { it.pressed }
+                                    if (pressed.isEmpty()) {
+                                        gestureActive = false
+                                    } else if (pressed.size >= 2) {
+                                        multiTouch = true
+                                        oneFingerAction = null
+                                        val rotationDelta = event.calculateRotation()
+                                        val zoomChange = event.calculateZoom()
+                                        val panChange = event.calculatePan()
+                                        // Keep current rotation while adjusting a perspective quad.
+                                        if (rotationDelta != 0f &&
+                                            perspectiveQuadState.value == null
+                                        ) {
+                                            isRotatingHint = true
+                                            onRotationDegreesChangeState.value(
+                                                rotationState.value + rotationDelta,
+                                            )
+                                        }
+                                        if (zoomChange != 1f || panChange != Offset.Zero) {
+                                            gestureScale =
+                                                (gestureScale * zoomChange)
+                                                    .coerceIn(CropViewMinZoom, CropViewMaxZoom)
+                                            gestureOffset =
+                                                clampCropViewOffset(
+                                                    offset = gestureOffset + panChange,
+                                                    scale = gestureScale,
+                                                    side = side,
+                                                    viewportW = viewportW,
+                                                    viewportH = viewportH,
                                                 )
+                                            viewScale = gestureScale
+                                            viewOffset = gestureOffset
+                                        }
+                                        pressed.forEach { change ->
+                                            if (change.positionChanged()) {
+                                                change.consume()
                                             }
-                                            if (zoomChange != 1f || panChange != Offset.Zero) {
-                                                gestureScale =
-                                                    (gestureScale * zoomChange)
-                                                        .coerceIn(CropViewMinZoom, CropViewMaxZoom)
-                                                gestureOffset =
-                                                    clampCropViewOffset(
-                                                        offset = gestureOffset + panChange,
-                                                        scale = gestureScale,
-                                                        side = side,
-                                                        viewportW = viewportW,
-                                                        viewportH = viewportH,
-                                                    )
-                                                viewScale = gestureScale
-                                                viewOffset = gestureOffset
-                                            }
-                                            pressed.forEach { change ->
-                                                if (change.positionChanged()) {
-                                                    change.consume()
-                                                }
-                                            }
-                                        } else if (!multiTouch && pressed.size == 1) {
-                                            val change = pressed[0]
+                                        }
+                                    } else if (!multiTouch && pressed.size == 1) {
+                                        val change = pressed[0]
+                                        val activeAction = oneFingerAction
+                                        if (activeAction == null) {
+                                            val local = viewportToWorkspace(change.position)
+                                            val hitSlop =
+                                                handleHitSlopPx /
+                                                    gestureScale.coerceAtLeast(1e-6f)
                                             val currentPerspective = perspectiveQuadState.value
-                                            if (currentPerspective != null) {
-                                                val activeMode = perspectiveMode
-                                                if (activeMode == null) {
-                                                    val hitSlop =
-                                                        handleHitSlopPx /
-                                                            viewScaleState.value.coerceAtLeast(1e-6f)
+                                            oneFingerAction =
+                                                if (currentPerspective != null) {
                                                     val cornersPx =
                                                         currentPerspective.corners().map { corner ->
                                                             Offset(corner.x * side, corner.y * side)
                                                         }
-                                                    perspectiveMode =
-                                                        hitTestPerspectiveHandle(
-                                                            change.position,
-                                                            cornersPx,
-                                                            hitSlop,
+                                                    val cornersVisible =
+                                                        anyWorkspacePointsVisible(
+                                                            points = cornersPx,
+                                                            side = side,
+                                                            scale = gestureScale,
+                                                            offset = gestureOffset,
+                                                            viewportW = viewportW,
+                                                            viewportH = viewportH,
                                                         )
-                                                } else if (side > 0f) {
-                                                    val drag =
-                                                        change.position - change.previousPosition
-                                                    if (drag != Offset.Zero) {
-                                                        val next =
-                                                            when (activeMode) {
-                                                                PerspectiveDragMode.Move ->
-                                                                    PhotoEditSaver.movePerspectiveQuad(
-                                                                        currentPerspective,
-                                                                        drag.x / side,
-                                                                        drag.y / side,
-                                                                    )
-
-                                                                PerspectiveDragMode.Corner0 ->
-                                                                    PhotoEditSaver.dragPerspectiveCorner(
-                                                                        currentPerspective,
-                                                                        0,
-                                                                        drag.x / side,
-                                                                        drag.y / side,
-                                                                    )
-
-                                                                PerspectiveDragMode.Corner1 ->
-                                                                    PhotoEditSaver.dragPerspectiveCorner(
-                                                                        currentPerspective,
-                                                                        1,
-                                                                        drag.x / side,
-                                                                        drag.y / side,
-                                                                    )
-
-                                                                PerspectiveDragMode.Corner2 ->
-                                                                    PhotoEditSaver.dragPerspectiveCorner(
-                                                                        currentPerspective,
-                                                                        2,
-                                                                        drag.x / side,
-                                                                        drag.y / side,
-                                                                    )
-
-                                                                PerspectiveDragMode.Corner3 ->
-                                                                    PhotoEditSaver.dragPerspectiveCorner(
-                                                                        currentPerspective,
-                                                                        3,
-                                                                        drag.x / side,
-                                                                        drag.y / side,
-                                                                    )
-                                                            }
-                                                        onPerspectiveQuadChangeState.value(next)
-                                                        change.consume()
-                                                    }
-                                                }
-                                            } else {
-                                                val activeMode = cropMode
-                                                if (activeMode == null) {
+                                                    resolvePerspectiveOneFingerAction(
+                                                        localPoint = local,
+                                                        cornersPx = cornersPx,
+                                                        slop = hitSlop,
+                                                        cornersVisible = cornersVisible,
+                                                    )
+                                                } else {
                                                     val currentCrop = cropRectState.value
                                                     val currentCropPx =
                                                         Rect(
@@ -642,61 +624,163 @@ fun PhotoCropEditor(
                                                             right = currentCrop.right * side,
                                                             bottom = currentCrop.bottom * side,
                                                         )
-                                                    val hitSlop =
-                                                        handleHitSlopPx /
-                                                            viewScaleState.value.coerceAtLeast(1e-6f)
-                                                    cropMode =
-                                                        hitTestCropHandle(
-                                                            change.position,
-                                                            currentCropPx,
-                                                            hitSlop,
+                                                    val cornersVisible =
+                                                        anyWorkspacePointsVisible(
+                                                            points =
+                                                            listOf(
+                                                                Offset(
+                                                                    currentCropPx.left,
+                                                                    currentCropPx.top,
+                                                                ),
+                                                                Offset(
+                                                                    currentCropPx.right,
+                                                                    currentCropPx.top,
+                                                                ),
+                                                                Offset(
+                                                                    currentCropPx.left,
+                                                                    currentCropPx.bottom,
+                                                                ),
+                                                                Offset(
+                                                                    currentCropPx.right,
+                                                                    currentCropPx.bottom,
+                                                                ),
+                                                            ),
+                                                            side = side,
+                                                            scale = gestureScale,
+                                                            offset = gestureOffset,
+                                                            viewportW = viewportW,
+                                                            viewportH = viewportH,
                                                         )
-                                                } else if (
-                                                    imageHeight > 0 &&
-                                                    side > 0f
-                                                ) {
-                                                    val drag =
-                                                        change.position - change.previousPosition
-                                                    if (drag != Offset.Zero) {
-                                                        val aspectLock = lockedAspectState.value
-                                                        val next =
-                                                            if (aspectLock == null) {
-                                                                applyFreeCropDrag(
-                                                                    cropRect = cropRectState.value,
-                                                                    mode = activeMode,
-                                                                    dragX = drag.x / side,
-                                                                    dragY = drag.y / side,
-                                                                )
-                                                            } else {
-                                                                applyAspectCropDrag(
-                                                                    cropRect = cropRectState.value,
-                                                                    mode = activeMode,
-                                                                    dragX = drag.x / side,
-                                                                    dragY = drag.y / side,
-                                                                    imageAspect = aspectLock,
-                                                                )
-                                                            }
-                                                        onCropRectChangeState.value(
-                                                            if (aspectLock == null) {
-                                                                PhotoEditSaver.clampCropRectFree(next)
-                                                            } else {
-                                                                PhotoEditSaver.clampCropRect(
-                                                                    rect = next,
-                                                                    imageAspect = aspectLock,
-                                                                )
-                                                            },
-                                                        )
+                                                    resolveCropOneFingerAction(
+                                                        localPoint = local,
+                                                        cropPx = currentCropPx,
+                                                        slop = hitSlop,
+                                                        cornersVisible = cornersVisible,
+                                                    )
+                                                }
+                                        } else {
+                                            val drag = change.position - change.previousPosition
+                                            if (drag != Offset.Zero) {
+                                                when (activeAction) {
+                                                    OneFingerAction.PanView -> {
+                                                        gestureOffset =
+                                                            clampCropViewOffset(
+                                                                offset = gestureOffset + drag,
+                                                                scale = gestureScale,
+                                                                side = side,
+                                                                viewportW = viewportW,
+                                                                viewportH = viewportH,
+                                                            )
+                                                        viewOffset = gestureOffset
                                                         change.consume()
+                                                    }
+
+                                                    is OneFingerAction.Crop -> {
+                                                        if (imageHeight > 0 && side > 0f) {
+                                                            val dragLocal = drag / gestureScale
+                                                            val aspectLock =
+                                                                lockedAspectState.value
+                                                            val next =
+                                                                if (aspectLock == null) {
+                                                                    applyFreeCropDrag(
+                                                                        cropRect =
+                                                                        cropRectState.value,
+                                                                        mode = activeAction.mode,
+                                                                        dragX = dragLocal.x / side,
+                                                                        dragY = dragLocal.y / side,
+                                                                    )
+                                                                } else {
+                                                                    applyAspectCropDrag(
+                                                                        cropRect =
+                                                                        cropRectState.value,
+                                                                        mode = activeAction.mode,
+                                                                        dragX = dragLocal.x / side,
+                                                                        dragY = dragLocal.y / side,
+                                                                        imageAspect = aspectLock,
+                                                                    )
+                                                                }
+                                                            onCropRectChangeState.value(
+                                                                if (aspectLock == null) {
+                                                                    PhotoEditSaver.clampCropRectFree(
+                                                                        next,
+                                                                    )
+                                                                } else {
+                                                                    PhotoEditSaver.clampCropRect(
+                                                                        rect = next,
+                                                                        imageAspect = aspectLock,
+                                                                    )
+                                                                },
+                                                            )
+                                                            change.consume()
+                                                        }
+                                                    }
+
+                                                    is OneFingerAction.Perspective -> {
+                                                        if (side > 0f) {
+                                                            val currentPerspective =
+                                                                perspectiveQuadState.value
+                                                            if (currentPerspective != null) {
+                                                                val dragLocal = drag / gestureScale
+                                                                val next =
+                                                                    when (activeAction.mode) {
+                                                                        PerspectiveDragMode.Move ->
+                                                                            PhotoEditSaver
+                                                                                .movePerspectiveQuad(
+                                                                                    currentPerspective,
+                                                                                    dragLocal.x / side,
+                                                                                    dragLocal.y / side,
+                                                                                )
+
+                                                                        PerspectiveDragMode.Corner0 ->
+                                                                            PhotoEditSaver
+                                                                                .dragPerspectiveCorner(
+                                                                                    currentPerspective,
+                                                                                    0,
+                                                                                    dragLocal.x / side,
+                                                                                    dragLocal.y / side,
+                                                                                )
+
+                                                                        PerspectiveDragMode.Corner1 ->
+                                                                            PhotoEditSaver
+                                                                                .dragPerspectiveCorner(
+                                                                                    currentPerspective,
+                                                                                    1,
+                                                                                    dragLocal.x / side,
+                                                                                    dragLocal.y / side,
+                                                                                )
+
+                                                                        PerspectiveDragMode.Corner2 ->
+                                                                            PhotoEditSaver
+                                                                                .dragPerspectiveCorner(
+                                                                                    currentPerspective,
+                                                                                    2,
+                                                                                    dragLocal.x / side,
+                                                                                    dragLocal.y / side,
+                                                                                )
+
+                                                                        PerspectiveDragMode.Corner3 ->
+                                                                            PhotoEditSaver
+                                                                                .dragPerspectiveCorner(
+                                                                                    currentPerspective,
+                                                                                    3,
+                                                                                    dragLocal.x / side,
+                                                                                    dragLocal.y / side,
+                                                                                )
+                                                                    }
+                                                                onPerspectiveQuadChangeState.value(next)
+                                                                change.consume()
+                                                            }
+                                                        }
                                                     }
                                                 }
                                             }
                                         }
                                     }
-                                    isRotatingHint = false
                                 }
-                            },
-                    )
-                }
+                                isRotatingHint = false
+                            }
+                        },
+                )
             } else {
                 AsyncImage(
                     model =
@@ -1238,9 +1322,138 @@ private fun visibleWorkspaceNormalized(
 }
 
 /**
- * Prefer perspective corner handles; move when the press is inside the quad.
+ * Map a viewport touch into the unscaled workspace square (same space as crop math).
  */
-private fun hitTestPerspectiveHandle(
+private fun viewportToWorkspacePoint(
+    point: Offset,
+    side: Float,
+    scale: Float,
+    offset: Offset,
+    viewportW: Float,
+    viewportH: Float,
+): Offset {
+    val s = scale.coerceAtLeast(1e-6f)
+    return Offset(
+        x = side / 2f + (point.x - viewportW / 2f - offset.x) / s,
+        y = side / 2f + (point.y - viewportH / 2f - offset.y) / s,
+    )
+}
+
+private fun workspaceToViewportPoint(
+    point: Offset,
+    side: Float,
+    scale: Float,
+    offset: Offset,
+    viewportW: Float,
+    viewportH: Float,
+): Offset {
+    val s = scale.coerceAtLeast(1e-6f)
+    return Offset(
+        x = viewportW / 2f + (point.x - side / 2f) * s + offset.x,
+        y = viewportH / 2f + (point.y - side / 2f) * s + offset.y,
+    )
+}
+
+private fun isViewportPointVisible(
+    point: Offset,
+    viewportW: Float,
+    viewportH: Float,
+    margin: Float = 0f,
+): Boolean = point.x in -margin..(viewportW + margin) &&
+    point.y in -margin..(viewportH + margin)
+
+private fun anyWorkspacePointsVisible(
+    points: List<Offset>,
+    side: Float,
+    scale: Float,
+    offset: Offset,
+    viewportW: Float,
+    viewportH: Float,
+): Boolean = points.any { point ->
+    isViewportPointVisible(
+        point =
+        workspaceToViewportPoint(
+            point = point,
+            side = side,
+            scale = scale,
+            offset = offset,
+            viewportW = viewportW,
+            viewportH = viewportH,
+        ),
+        viewportW = viewportW,
+        viewportH = viewportH,
+    )
+}
+
+/**
+ * Outside frame → pan view. Inside without visible corners → pan view.
+ * Visible corners → resize near a handle, otherwise move the frame.
+ */
+private fun resolveCropOneFingerAction(
+    localPoint: Offset,
+    cropPx: Rect,
+    slop: Float,
+    cornersVisible: Boolean,
+): OneFingerAction {
+    val cornerHit = hitTestCropCornerOnly(localPoint, cropPx, slop)
+    if (cornerHit != null) {
+        return OneFingerAction.Crop(cornerHit)
+    }
+    val inside =
+        localPoint.x in cropPx.left..cropPx.right &&
+            localPoint.y in cropPx.top..cropPx.bottom
+    if (!inside || !cornersVisible) {
+        return OneFingerAction.PanView
+    }
+    return OneFingerAction.Crop(CropDragMode.Move)
+}
+
+private fun resolvePerspectiveOneFingerAction(
+    localPoint: Offset,
+    cornersPx: List<Offset>,
+    slop: Float,
+    cornersVisible: Boolean,
+): OneFingerAction {
+    val cornerHit = hitTestPerspectiveCornerOnly(localPoint, cornersPx, slop)
+    if (cornerHit != null) {
+        return OneFingerAction.Perspective(cornerHit)
+    }
+    val inside = pointInConvexQuad(localPoint, cornersPx)
+    if (!inside || !cornersVisible) {
+        return OneFingerAction.PanView
+    }
+    return OneFingerAction.Perspective(PerspectiveDragMode.Move)
+}
+
+private fun hitTestCropCornerOnly(
+    point: Offset,
+    cropPx: Rect,
+    slop: Float,
+): CropDragMode? {
+    val corners =
+        listOf(
+            CropDragMode.ResizeTopLeft to Offset(cropPx.left, cropPx.top),
+            CropDragMode.ResizeTopRight to Offset(cropPx.right, cropPx.top),
+            CropDragMode.ResizeBottomLeft to Offset(cropPx.left, cropPx.bottom),
+            CropDragMode.ResizeBottomRight to Offset(cropPx.right, cropPx.bottom),
+        )
+    var bestMode: CropDragMode? = null
+    var bestDistSq = Float.MAX_VALUE
+    for ((mode, corner) in corners) {
+        val dx = point.x - corner.x
+        val dy = point.y - corner.y
+        if (abs(dx) <= slop && abs(dy) <= slop) {
+            val distSq = dx * dx + dy * dy
+            if (distSq < bestDistSq) {
+                bestDistSq = distSq
+                bestMode = mode
+            }
+        }
+    }
+    return bestMode
+}
+
+private fun hitTestPerspectiveCornerOnly(
     point: Offset,
     cornersPx: List<Offset>,
     slop: Float,
@@ -1269,9 +1482,18 @@ private fun hitTestPerspectiveHandle(
             }
         }
     }
-    if (bestMode != null) {
-        return bestMode
-    }
+    return bestMode
+}
+
+/**
+ * Prefer perspective corner handles; move when the press is inside the quad.
+ */
+private fun hitTestPerspectiveHandle(
+    point: Offset,
+    cornersPx: List<Offset>,
+    slop: Float,
+): PerspectiveDragMode? {
+    hitTestPerspectiveCornerOnly(point, cornersPx, slop)?.let { return it }
     return if (pointInConvexQuad(point, cornersPx)) {
         PerspectiveDragMode.Move
     } else {
@@ -1312,29 +1534,7 @@ private fun hitTestCropHandle(
     cropPx: Rect,
     slop: Float,
 ): CropDragMode? {
-    val corners =
-        listOf(
-            CropDragMode.ResizeTopLeft to Offset(cropPx.left, cropPx.top),
-            CropDragMode.ResizeTopRight to Offset(cropPx.right, cropPx.top),
-            CropDragMode.ResizeBottomLeft to Offset(cropPx.left, cropPx.bottom),
-            CropDragMode.ResizeBottomRight to Offset(cropPx.right, cropPx.bottom),
-        )
-    var bestMode: CropDragMode? = null
-    var bestDistSq = Float.MAX_VALUE
-    for ((mode, corner) in corners) {
-        val dx = point.x - corner.x
-        val dy = point.y - corner.y
-        if (abs(dx) <= slop && abs(dy) <= slop) {
-            val distSq = dx * dx + dy * dy
-            if (distSq < bestDistSq) {
-                bestDistSq = distSq
-                bestMode = mode
-            }
-        }
-    }
-    if (bestMode != null) {
-        return bestMode
-    }
+    hitTestCropCornerOnly(point, cropPx, slop)?.let { return it }
     val insideCrop =
         point.x in cropPx.left..cropPx.right &&
             point.y in cropPx.top..cropPx.bottom
