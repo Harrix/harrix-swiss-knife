@@ -72,6 +72,18 @@
             </intent-filter>
         </activity-alias>
 
+        <receiver
+            android:name=".speechtotext.SpeechToTextWidgetProvider"
+            android:exported="true"
+            android:label="@string/speech_to_text_widget_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/speech_to_text_widget_info" />
+        </receiver>
+
         <!-- Lets AppCompat apply in-app locales on API &lt; 33 after process start. -->
         <service
             android:name="androidx.appcompat.app.AppLocalesMetadataHolderService"

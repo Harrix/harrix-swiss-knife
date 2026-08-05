@@ -159,6 +159,8 @@
     <string name="settings_medicine_search_file_saved">Файл с лекарствами сохранён</string>
     <string name="settings_medicine_search_file_cleared">Файл с лекарствами очищен</string>
     <string name="speech_to_text_title">Speech to Text with AI</string>
+    <string name="speech_to_text_widget_label">Speech to Text</string>
+    <string name="speech_to_text_widget_description">Открыть Speech to Text with AI</string>
     <string name="speech_to_text_close">Выйти из Speech to Text</string>
     <string name="speech_to_text_idle_message">Нажмите «Запись», говорите, затем остановите. Приложение распознает речь, исправит текст и покажет результат.</string>
     <string name="speech_to_text_record">Запись</string>

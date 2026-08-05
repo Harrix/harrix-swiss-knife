@@ -13,11 +13,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import dev.harrix.hsk.speechtotext.SpeechToTextWidgetProvider
 import dev.harrix.hsk.ui.MainScreen
 import dev.harrix.hsk.ui.theme.HskAndroidTheme
 
 class MainActivity : AppCompatActivity() {
     private var pendingImageUriState = mutableStateOf<Uri?>(null)
+    private var pendingOpenSpeechToTextState = mutableStateOf(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         val preferences = AppPreferences(this)
@@ -31,6 +33,7 @@ class MainActivity : AppCompatActivity() {
             var appLanguage by remember { mutableStateOf(preferences.loadAppLanguage()) }
             val darkTheme = themeMode.resolveDarkTheme(isSystemInDarkTheme())
             var pendingImageUri by pendingImageUriState
+            var pendingOpenSpeechToText by pendingOpenSpeechToTextState
             HskAndroidTheme(darkTheme = darkTheme) {
                 MainScreen(
                     themeMode = themeMode,
@@ -46,6 +49,10 @@ class MainActivity : AppCompatActivity() {
                     },
                     pendingImageUri = pendingImageUri,
                     onPendingImageUriConsume = { pendingImageUriState.value = null },
+                    pendingOpenSpeechToText = pendingOpenSpeechToText,
+                    onPendingOpenSpeechToTextConsume = {
+                        pendingOpenSpeechToTextState.value = false
+                    },
                     modifier = Modifier.fillMaxSize(),
                 )
             }
@@ -59,8 +66,15 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun consumeIncomingIntent(intent: Intent?) {
+        if (intent == null) {
+            return
+        }
+        if (intent.action == SpeechToTextWidgetProvider.ACTION_OPEN_SPEECH_TO_TEXT) {
+            pendingOpenSpeechToTextState.value = true
+            return
+        }
         val uri = IncomingImageIntents.extractImageUri(intent) ?: return
-        tryTakePersistableReadPermission(uri, intent?.flags ?: 0)
+        tryTakePersistableReadPermission(uri, intent.flags)
         pendingImageUriState.value = uri
     }
 

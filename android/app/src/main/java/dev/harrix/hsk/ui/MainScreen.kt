@@ -123,6 +123,8 @@ fun MainScreen(
     modifier: Modifier = Modifier,
     pendingImageUri: Uri? = null,
     onPendingImageUriConsume: () -> Unit = {},
+    pendingOpenSpeechToText: Boolean = false,
+    onPendingOpenSpeechToTextConsume: () -> Unit = {},
 ) {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
@@ -136,6 +138,8 @@ fun MainScreen(
     var homeMenuExpanded by remember { mutableStateOf(false) }
     var photoEditorInitialUri by remember { mutableStateOf<Uri?>(null) }
     val onPendingImageUriConsumeState = rememberUpdatedState(onPendingImageUriConsume)
+    val onPendingOpenSpeechToTextConsumeState =
+        rememberUpdatedState(onPendingOpenSpeechToTextConsume)
 
     LaunchedEffect(pendingImageUri) {
         val uri = pendingImageUri ?: return@LaunchedEffect
@@ -144,6 +148,16 @@ fun MainScreen(
         showAbout = false
         settingsSection = null
         onPendingImageUriConsumeState.value()
+    }
+
+    LaunchedEffect(pendingOpenSpeechToText) {
+        if (!pendingOpenSpeechToText) {
+            return@LaunchedEffect
+        }
+        destination = AppDestination.SpeechToText
+        showAbout = false
+        settingsSection = null
+        onPendingOpenSpeechToTextConsumeState.value()
     }
 
     BackHandler(enabled = drawerState.isOpen) {

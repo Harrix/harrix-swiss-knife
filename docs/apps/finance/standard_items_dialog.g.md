@@ -51,6 +51,24 @@ class StandardItemsDialog(QDialog):
     def _categories(self) -> list[list[Any]]:
         return self.db_manager.get_all_categories()
 
+    def _item_dict_for_row(self, row: int) -> dict[str, Any] | None:
+        if row < 0:
+            return None
+        name_item = self.table.item(row, 0)
+        en_item = self.table.item(row, 1)
+        if name_item is None:
+            return None
+        item_id = name_item.data(_COL_ID)
+        category_id = name_item.data(_COL_CATEGORY_ID)
+        if item_id is None or category_id is None:
+            return None
+        return {
+            "id": int(item_id),
+            "name": name_item.text(),
+            "name_en": en_item.text() if en_item is not None else "",
+            "category_id": int(category_id),
+        }
+
     def _on_add(self) -> None:
         dialog = _StandardItemEditDialog(self, self._categories())
         if dialog.exec() != QDialog.DialogCode.Accepted:
@@ -62,23 +80,30 @@ class StandardItemsDialog(QDialog):
         self._reload_table()
 
     def _on_delete(self) -> None:
-        item = self._selected_item_dict()
-        if item is None:
+        items = self._selected_item_dicts()
+        if not items:
             message_box.warning(self, "Error", "Select a row to delete")
             return
+        if len(items) == 1:
+            confirm_text = f"Delete standard item '{items[0]['name']}'?"
+        else:
+            confirm_text = f"Delete {len(items)} selected standard items?"
         reply = message_box.question(
             self,
             "Confirm Delete",
-            f"Delete standard item '{item['name']}'?",
+            confirm_text,
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No,
         )
         if reply != QMessageBox.StandardButton.Yes:
             return
-        if not self.db_manager.delete_standard_item(int(item["id"])):
-            message_box.warning(self, "Error", "Failed to delete standard item")
-            return
+        failed = 0
+        for item in items:
+            if not self.db_manager.delete_standard_item(int(item["id"])):
+                failed += 1
         self._reload_table()
+        if failed:
+            message_box.warning(self, "Error", f"Failed to delete {failed} standard item(s)")
 
     def _on_edit(self) -> None:
         item = self._selected_item_dict()
@@ -180,23 +205,22 @@ class StandardItemsDialog(QDialog):
             self.table.setItem(row_idx, 2, category_item)
 
     def _selected_item_dict(self) -> dict[str, Any] | None:
-        row = self.table.currentRow()
-        if row < 0:
-            return None
-        name_item = self.table.item(row, 0)
-        en_item = self.table.item(row, 1)
-        if name_item is None:
-            return None
-        item_id = name_item.data(_COL_ID)
-        category_id = name_item.data(_COL_CATEGORY_ID)
-        if item_id is None or category_id is None:
-            return None
-        return {
-            "id": int(item_id),
-            "name": name_item.text(),
-            "name_en": en_item.text() if en_item is not None else "",
-            "category_id": int(category_id),
-        }
+        items = self._selected_item_dicts()
+        if len(items) == 1:
+            return items[0]
+        return self._item_dict_for_row(self.table.currentRow())
+
+    def _selected_item_dicts(self) -> list[dict[str, Any]]:
+        selection_model = self.table.selectionModel()
+        if selection_model is None:
+            return []
+        selected_rows = sorted({index.row() for index in selection_model.selectedRows()})
+        items: list[dict[str, Any]] = []
+        for row in selected_rows:
+            item = self._item_dict_for_row(row)
+            if item is not None:
+                items.append(item)
+        return items
 
     def _setup_ui(self) -> None:
         layout = QVBoxLayout(self)
@@ -212,8 +236,10 @@ class StandardItemsDialog(QDialog):
         self.table.setColumnCount(3)
         self.table.setHorizontalHeaderLabels(["Name", "English", "Category"])
         self.table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
-        self.table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+        self.table.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
         self.table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.table.customContextMenuRequested.connect(self._show_table_context_menu)
         self.table.doubleClicked.connect(self._on_edit)
         header = self.table.horizontalHeader()
         if header is not None:
@@ -240,6 +266,24 @@ class StandardItemsDialog(QDialog):
         buttons.addStretch(1)
         buttons.addWidget(self.close_button)
         layout.addLayout(buttons)
+
+    def _show_table_context_menu(self, position: QPoint) -> None:
+        selected = self._selected_item_dicts()
+        if not selected:
+            index = self.table.indexAt(position)
+            if index.isValid():
+                self.table.selectRow(index.row())
+                selected = self._selected_item_dicts()
+        if not selected:
+            return
+        menu = QMenu(self)
+        if len(selected) == 1:
+            delete_action = menu.addAction(f"{DELETE_BUTTON_EMOJI} Delete selected row")
+        else:
+            delete_action = menu.addAction(f"{DELETE_BUTTON_EMOJI} Delete selected rows")
+        action = menu.exec(self.table.viewport().mapToGlobal(position))
+        if action == delete_action:
+            self._on_delete()
 
     def _translate_limit(self) -> int:
         raw = self._app_config.get("finance_standard_items_translate_names_limit", _DEFAULT_TRANSLATE_LIMIT)
