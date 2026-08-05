@@ -13,6 +13,8 @@ lang: en
 
 - [🏛️ Class `OnPullSiteSubmodules`](#%EF%B8%8F-class-onpullsitesubmodules)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
+  - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread)
+  - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after)
 
 </details>
 
@@ -38,6 +40,8 @@ class OnPullSiteSubmodules(ActionBase):
     cli_available: ClassVar[bool] = True
     cli_hint: ClassVar[str] = "site pull-submodules"
 
+    site_repo: Path | None = None
+
     @ActionBase.handle_exceptions("pulling site submodules")
     def execute(
         self,
@@ -62,13 +66,36 @@ class OnPullSiteSubmodules(ActionBase):
                     self.show_result()
                 return
 
-        self.add_line(f"📂 Site repo: {site_repo}")
+        self.site_repo = site_repo
+
+        if noninteractive:
+            self._pull_submodules()
+            return
+
+        self.start_thread(self.in_thread, self.thread_after, self.title)
+
+    @ActionBase.handle_exceptions("pulling site submodules thread")
+    def in_thread(self) -> str | None:
+        """Pull submodules in a worker thread."""
+        self._pull_submodules()
+        return f"{self.title} completed"
+
+    @ActionBase.handle_exceptions("pulling site submodules thread completion")
+    def thread_after(self, result: Any) -> None:  # noqa: ARG002
+        """Show toast and result dialog after the worker finishes."""
+        self.show_toast(f"{self.title} completed")
+        self.show_result()
+
+    def _pull_submodules(self) -> None:
+        """Run `git submodule foreach git pull origin main` in `site_repo`."""
+        if self.site_repo is None:
+            return
+
+        self.add_line(f"📂 Site repo: {self.site_repo}")
         self.add_line("▶️ Command: git submodule foreach git pull origin main")
 
-        output = h.dev.run_command(_PULL_COMMAND, cwd=str(site_repo))
+        output = h.dev.run_command(_PULL_COMMAND, cwd=str(self.site_repo))
         self.add_line(output or "✅ Done (no output).")
-        if not noninteractive:
-            self.show_result()
 ```
 
 </details>
@@ -107,13 +134,51 @@ def execute(
                     self.show_result()
                 return
 
-        self.add_line(f"📂 Site repo: {site_repo}")
-        self.add_line("▶️ Command: git submodule foreach git pull origin main")
+        self.site_repo = site_repo
 
-        output = h.dev.run_command(_PULL_COMMAND, cwd=str(site_repo))
-        self.add_line(output or "✅ Done (no output).")
-        if not noninteractive:
-            self.show_result()
+        if noninteractive:
+            self._pull_submodules()
+            return
+
+        self.start_thread(self.in_thread, self.thread_after, self.title)
+```
+
+</details>
+
+### ⚙️ Method `in_thread`
+
+```python
+def in_thread(self) -> str | None
+```
+
+Pull submodules in a worker thread.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def in_thread(self) -> str | None:
+        self._pull_submodules()
+        return f"{self.title} completed"
+```
+
+</details>
+
+### ⚙️ Method `thread_after`
+
+```python
+def thread_after(self, result: Any) -> None
+```
+
+Show toast and result dialog after the worker finishes.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def thread_after(self, result: Any) -> None:  # noqa: ARG002
+        self.show_toast(f"{self.title} completed")
+        self.show_result()
 ```
 
 </details>
