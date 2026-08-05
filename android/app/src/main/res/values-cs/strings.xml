@@ -219,6 +219,8 @@
     <string name="gallery_cleaner_edit_aspect_3_4_short">3:4</string>
     <string name="gallery_cleaner_edit_aspect_free">Volný poměr</string>
     <string name="gallery_cleaner_edit_aspect_free_short">Volný</string>
+    <string name="gallery_cleaner_edit_perspective">Perspektiva</string>
+    <string name="gallery_cleaner_edit_perspective_short">Persp.</string>
     <string name="gallery_cleaner_edit_fit_frame">Přizpůsobit rámečku</string>
     <string name="gallery_cleaner_edit_fit_frame_short">Přizpůsobit</string>
     <string name="gallery_cleaner_edit_trim_empty">Oříznout prázdné okraje</string>

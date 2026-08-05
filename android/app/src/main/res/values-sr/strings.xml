@@ -219,6 +219,8 @@
     <string name="gallery_cleaner_edit_aspect_3_4_short">3:4</string>
     <string name="gallery_cleaner_edit_aspect_free">Слободне пропорције</string>
     <string name="gallery_cleaner_edit_aspect_free_short">Слободно</string>
+    <string name="gallery_cleaner_edit_perspective">Перспектива</string>
+    <string name="gallery_cleaner_edit_perspective_short">Персп.</string>
     <string name="gallery_cleaner_edit_fit_frame">Уклопи у оквир</string>
     <string name="gallery_cleaner_edit_fit_frame_short">Уклопи</string>
     <string name="gallery_cleaner_edit_trim_empty">Одсеци празне ивице</string>

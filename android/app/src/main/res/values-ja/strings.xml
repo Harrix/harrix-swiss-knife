@@ -219,6 +219,8 @@
     <string name="gallery_cleaner_edit_aspect_3_4_short">3:4</string>
     <string name="gallery_cleaner_edit_aspect_free">自由な縦横比</string>
     <string name="gallery_cleaner_edit_aspect_free_short">自由</string>
+    <string name="gallery_cleaner_edit_perspective">遠近法</string>
+    <string name="gallery_cleaner_edit_perspective_short">遠近</string>
     <string name="gallery_cleaner_edit_fit_frame">フレームに合わせる</string>
     <string name="gallery_cleaner_edit_fit_frame_short">合わせる</string>
     <string name="gallery_cleaner_edit_trim_empty">余白を切り取る</string>

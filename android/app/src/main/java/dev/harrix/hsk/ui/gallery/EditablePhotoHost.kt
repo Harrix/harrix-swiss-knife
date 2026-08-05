@@ -21,6 +21,7 @@ import dev.harrix.hsk.R
 import dev.harrix.hsk.gallery.CameraGalleryRepository
 import dev.harrix.hsk.gallery.CameraPhoto
 import dev.harrix.hsk.gallery.NormalizedCropRect
+import dev.harrix.hsk.gallery.NormalizedPerspectiveQuad
 import dev.harrix.hsk.gallery.PendingEditUndo
 import dev.harrix.hsk.gallery.PhotoEditSaver
 import kotlinx.coroutines.CoroutineScope
@@ -58,6 +59,9 @@ fun EditablePhotoHost(
     val photoEditSaver = remember { PhotoEditSaver(context.applicationContext) }
     var rotationDegrees by remember(photo.id, imageRevision) { mutableFloatStateOf(0f) }
     var cropRect by remember(photo.id, imageRevision) { mutableStateOf(NormalizedCropRect.Full) }
+    var perspectiveQuad by remember(photo.id, imageRevision) {
+        mutableStateOf<NormalizedPerspectiveQuad?>(null)
+    }
     var isSaving by remember(photo.id, imageRevision) { mutableStateOf(false) }
     val saveFailedMessage = stringResource(R.string.gallery_cleaner_edit_save_failed)
 
@@ -76,6 +80,7 @@ fun EditablePhotoHost(
                     photo = photo,
                     rotationDegrees = rotationDegrees,
                     cropRect = cropRect,
+                    perspectiveQuad = perspectiveQuad,
                     isSavingSetter = { isSaving = it },
                     onSave = onSave,
                     onError = onError,
@@ -95,6 +100,7 @@ fun EditablePhotoHost(
             photo = photo,
             rotationDegrees = rotationDegrees,
             cropRect = cropRect,
+            perspectiveQuad = perspectiveQuad,
             isSavingSetter = { isSaving = it },
             onSave = onSave,
             onError = onError,
@@ -113,6 +119,7 @@ fun EditablePhotoHost(
                         mimeType = photo.mimeType,
                         rotationDegrees = rotationDegrees,
                         crop = cropRect,
+                        perspectiveQuad = perspectiveQuad,
                         existingUndo = existingUndo,
                     )
                 }
@@ -175,6 +182,8 @@ fun EditablePhotoHost(
         onRotationDegreesChange = { rotationDegrees = it },
         cropRect = cropRect,
         onCropRectChange = { cropRect = it },
+        perspectiveQuad = perspectiveQuad,
+        onPerspectiveQuadChange = { perspectiveQuad = it },
         imageRevision = imageRevision,
         isSaving = isSaving,
         onSave = { performOverwrite(requestWriteIfNeeded = true) },
@@ -194,6 +203,7 @@ private fun runSaveAsCopy(
     photo: CameraPhoto,
     rotationDegrees: Float,
     cropRect: NormalizedCropRect,
+    perspectiveQuad: NormalizedPerspectiveQuad?,
     isSavingSetter: (Boolean) -> Unit,
     onSave: (EditablePhotoSaveResult) -> Unit,
     onError: (String) -> Unit,
@@ -208,6 +218,7 @@ private fun runSaveAsCopy(
                     mimeType = photo.mimeType,
                     rotationDegrees = rotationDegrees,
                     crop = cropRect,
+                    perspectiveQuad = perspectiveQuad,
                     displayName = photo.displayName,
                 )
             }

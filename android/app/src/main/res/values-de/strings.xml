@@ -219,6 +219,8 @@
     <string name="gallery_cleaner_edit_aspect_3_4_short">3:4</string>
     <string name="gallery_cleaner_edit_aspect_free">Freies Seitenverhältnis</string>
     <string name="gallery_cleaner_edit_aspect_free_short">Frei</string>
+    <string name="gallery_cleaner_edit_perspective">Perspektive</string>
+    <string name="gallery_cleaner_edit_perspective_short">Persp.</string>
     <string name="gallery_cleaner_edit_fit_frame">In Rahmen einpassen</string>
     <string name="gallery_cleaner_edit_fit_frame_short">Einpassen</string>
     <string name="gallery_cleaner_edit_trim_empty">Leere Ränder entfernen</string>

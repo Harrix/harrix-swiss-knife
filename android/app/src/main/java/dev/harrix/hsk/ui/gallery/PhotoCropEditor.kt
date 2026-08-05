@@ -29,6 +29,7 @@ import androidx.compose.material.icons.filled.FitScreen
 import androidx.compose.material.icons.filled.RestartAlt
 import androidx.compose.material.icons.filled.Rotate90DegreesCcw
 import androidx.compose.material.icons.filled.Rotate90DegreesCw
+import androidx.compose.material.icons.filled.Transform
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
@@ -67,6 +68,7 @@ import coil.request.ImageRequest
 import dev.harrix.hsk.R
 import dev.harrix.hsk.gallery.CameraPhoto
 import dev.harrix.hsk.gallery.NormalizedCropRect
+import dev.harrix.hsk.gallery.NormalizedPerspectiveQuad
 import dev.harrix.hsk.gallery.PhotoEditSaver
 import dev.harrix.hsk.ui.AutoFitText
 import dev.harrix.hsk.ui.CompactBottomActionButton
@@ -94,6 +96,18 @@ private enum class CropDragMode {
     ResizeBottomRight,
 }
 
+/** Drag modes for perspective-crop corners (indices match [NormalizedPerspectiveQuad.corners]). */
+private enum class PerspectiveDragMode {
+    Move,
+    Corner0,
+    Corner1,
+    Corner2,
+    Corner3,
+}
+
+/** Accent color for the perspective frame (distinct from the white AABB crop). */
+private val PerspectiveFrameColor = Color(0xFFFFB74D)
+
 /** Locked crop aspect relative to the square workspace, or free resize. */
 private const val AspectThreeFour = 3f / 4f
 private const val AspectMatchEpsilon = 0.02f
@@ -113,6 +127,8 @@ fun PhotoCropEditor(
     onRotationDegreesChange: (Float) -> Unit,
     cropRect: NormalizedCropRect,
     onCropRectChange: (NormalizedCropRect) -> Unit,
+    perspectiveQuad: NormalizedPerspectiveQuad?,
+    onPerspectiveQuadChange: (NormalizedPerspectiveQuad?) -> Unit,
     imageRevision: Int,
     isSaving: Boolean,
     onSave: () -> Unit,
@@ -130,10 +146,13 @@ fun PhotoCropEditor(
     val handleVisualPx = with(density) { 24.dp.toPx() }
     val cropRectState = rememberUpdatedState(cropRect)
     val onCropRectChangeState = rememberUpdatedState(onCropRectChange)
+    val perspectiveQuadState = rememberUpdatedState(perspectiveQuad)
+    val onPerspectiveQuadChangeState = rememberUpdatedState(onPerspectiveQuadChange)
     val rotationState = rememberUpdatedState(rotationDegrees)
     val onRotationDegreesChangeState = rememberUpdatedState(onRotationDegreesChange)
     var isRotatingHint by remember { mutableStateOf(false) }
     var didInitCrop by remember(photo.id, imageRevision) { mutableStateOf(false) }
+    val isPerspective = perspectiveQuad != null
 
     /** `null` = free aspect; otherwise width/height lock for the crop frame. */
     var lockedAspect by remember(photo.id, imageRevision) { mutableStateOf<Float?>(null) }
@@ -145,19 +164,38 @@ fun PhotoCropEditor(
     var trimSuggestion by remember(photo.id, imageRevision) {
         mutableStateOf<NormalizedCropRect?>(null)
     }
-    val showTrimBars = trimSuggestion != null
+    val showTrimBars = trimSuggestion != null && !isPerspective
     val isViewTransformed =
         abs(viewScale - 1f) > CropViewZoomEpsilon ||
             hypot(viewOffset.x.toDouble(), viewOffset.y.toDouble()) > 1.0
 
     fun trimEmptyZones() {
         val suggestion = trimSuggestion ?: return
-        if (isSaving) {
+        if (isSaving || isPerspective) {
             return
         }
         lockedAspect = null
         onCropRectChange(suggestion)
         trimSuggestion = null
+    }
+
+    fun togglePerspectiveMode() {
+        if (isSaving || imageWidth <= 0) {
+            return
+        }
+        val currentQuad = perspectiveQuad
+        if (currentQuad == null) {
+            lockedAspect = null
+            trimSuggestion = null
+            onPerspectiveQuadChange(
+                PhotoEditSaver.clampPerspectiveQuad(
+                    NormalizedPerspectiveQuad.fromRect(cropRect),
+                ),
+            )
+        } else {
+            onCropRectChange(currentQuad.boundingRect())
+            onPerspectiveQuadChange(null)
+        }
     }
 
     LaunchedEffect(imageWidth, imageHeight, didInitCrop) {
@@ -173,11 +211,12 @@ fun PhotoCropEditor(
         imageRevision,
         rotationDegrees,
         cropRect,
+        perspectiveQuad,
         imageWidth,
         imageHeight,
         didInitCrop,
     ) {
-        if (!didInitCrop || isSaving) {
+        if (!didInitCrop || isSaving || perspectiveQuad != null) {
             trimSuggestion = null
             return@LaunchedEffect
         }
@@ -318,6 +357,7 @@ fun PhotoCropEditor(
                     )
 
                     val side = workspace.width
+                    val activeQuad = perspectiveQuad
                     val cropPx =
                         Rect(
                             left = cropRect.left * side,
@@ -325,6 +365,10 @@ fun PhotoCropEditor(
                             right = cropRect.right * side,
                             bottom = cropRect.bottom * side,
                         )
+                    val quadCornersPx =
+                        activeQuad?.corners()?.map { corner ->
+                            Offset(corner.x * side, corner.y * side)
+                        }
 
                     Canvas(modifier = Modifier.fillMaxSize()) {
                         // Canvas lives inside zoomed graphicsLayer — divide by scale so
@@ -333,65 +377,108 @@ fun PhotoCropEditor(
                         val cropStroke = 2.dp.toPx() * invScale
                         val guideStroke = 1.dp.toPx() * invScale
                         val handle = handleVisualPx * invScale
-                        val dimPath =
-                            Path().apply {
-                                fillType = PathFillType.EvenOdd
-                                addRect(Rect(0f, 0f, size.width, size.height))
-                                addRect(cropPx)
+                        if (quadCornersPx != null && quadCornersPx.size == 4) {
+                            val framePath =
+                                Path().apply {
+                                    moveTo(quadCornersPx[0].x, quadCornersPx[0].y)
+                                    lineTo(quadCornersPx[1].x, quadCornersPx[1].y)
+                                    lineTo(quadCornersPx[2].x, quadCornersPx[2].y)
+                                    lineTo(quadCornersPx[3].x, quadCornersPx[3].y)
+                                    close()
+                                }
+                            val dimPath =
+                                Path().apply {
+                                    fillType = PathFillType.EvenOdd
+                                    addRect(Rect(0f, 0f, size.width, size.height))
+                                    addPath(framePath)
+                                }
+                            drawPath(dimPath, Color.Black.copy(alpha = 0.55f))
+                            drawPath(
+                                path = framePath,
+                                color = PerspectiveFrameColor,
+                                style = Stroke(width = cropStroke),
+                            )
+                            // Diagonals help align poster/document corners.
+                            drawLine(
+                                color = PerspectiveFrameColor.copy(alpha = 0.55f),
+                                start = quadCornersPx[0],
+                                end = quadCornersPx[2],
+                                strokeWidth = guideStroke,
+                            )
+                            drawLine(
+                                color = PerspectiveFrameColor.copy(alpha = 0.55f),
+                                start = quadCornersPx[1],
+                                end = quadCornersPx[3],
+                                strokeWidth = guideStroke,
+                            )
+                            quadCornersPx.forEach { corner ->
+                                drawRect(
+                                    color = PerspectiveFrameColor.copy(alpha = 0.85f),
+                                    topLeft = Offset(corner.x - handle / 2f, corner.y - handle / 2f),
+                                    size = Size(handle, handle),
+                                )
                             }
-                        drawPath(dimPath, Color.Black.copy(alpha = 0.55f))
-                        drawRect(
-                            color = Color.White,
-                            topLeft = Offset(cropPx.left, cropPx.top),
-                            size = Size(cropPx.width, cropPx.height),
-                            style = Stroke(width = cropStroke),
-                        )
-                        val guideColor = Color.White.copy(alpha = 0.7f)
-                        val thirdW = cropPx.width / 3f
-                        val thirdH = cropPx.height / 3f
-                        for (i in 1..2) {
-                            val x = cropPx.left + thirdW * i
-                            drawLine(
-                                color = guideColor,
-                                start = Offset(x, cropPx.top),
-                                end = Offset(x, cropPx.bottom),
-                                strokeWidth = guideStroke,
-                            )
-                            val y = cropPx.top + thirdH * i
-                            drawLine(
-                                color = guideColor,
-                                start = Offset(cropPx.left, y),
-                                end = Offset(cropPx.right, y),
-                                strokeWidth = guideStroke,
-                            )
-                        }
-                        val midX = cropPx.left + cropPx.width / 2f
-                        val midY = cropPx.top + cropPx.height / 2f
-                        drawLine(
-                            color = guideColor,
-                            start = Offset(midX, cropPx.top),
-                            end = Offset(midX, cropPx.bottom),
-                            strokeWidth = guideStroke,
-                        )
-                        drawLine(
-                            color = guideColor,
-                            start = Offset(cropPx.left, midY),
-                            end = Offset(cropPx.right, midY),
-                            strokeWidth = guideStroke,
-                        )
-                        val corners =
-                            listOf(
-                                Offset(cropPx.left, cropPx.top),
-                                Offset(cropPx.right, cropPx.top),
-                                Offset(cropPx.left, cropPx.bottom),
-                                Offset(cropPx.right, cropPx.bottom),
-                            )
-                        corners.forEach { corner ->
+                        } else {
+                            val dimPath =
+                                Path().apply {
+                                    fillType = PathFillType.EvenOdd
+                                    addRect(Rect(0f, 0f, size.width, size.height))
+                                    addRect(cropPx)
+                                }
+                            drawPath(dimPath, Color.Black.copy(alpha = 0.55f))
                             drawRect(
-                                color = Color.White.copy(alpha = 0.55f),
-                                topLeft = Offset(corner.x - handle / 2f, corner.y - handle / 2f),
-                                size = Size(handle, handle),
+                                color = Color.White,
+                                topLeft = Offset(cropPx.left, cropPx.top),
+                                size = Size(cropPx.width, cropPx.height),
+                                style = Stroke(width = cropStroke),
                             )
+                            val guideColor = Color.White.copy(alpha = 0.7f)
+                            val thirdW = cropPx.width / 3f
+                            val thirdH = cropPx.height / 3f
+                            for (i in 1..2) {
+                                val x = cropPx.left + thirdW * i
+                                drawLine(
+                                    color = guideColor,
+                                    start = Offset(x, cropPx.top),
+                                    end = Offset(x, cropPx.bottom),
+                                    strokeWidth = guideStroke,
+                                )
+                                val y = cropPx.top + thirdH * i
+                                drawLine(
+                                    color = guideColor,
+                                    start = Offset(cropPx.left, y),
+                                    end = Offset(cropPx.right, y),
+                                    strokeWidth = guideStroke,
+                                )
+                            }
+                            val midX = cropPx.left + cropPx.width / 2f
+                            val midY = cropPx.top + cropPx.height / 2f
+                            drawLine(
+                                color = guideColor,
+                                start = Offset(midX, cropPx.top),
+                                end = Offset(midX, cropPx.bottom),
+                                strokeWidth = guideStroke,
+                            )
+                            drawLine(
+                                color = guideColor,
+                                start = Offset(cropPx.left, midY),
+                                end = Offset(cropPx.right, midY),
+                                strokeWidth = guideStroke,
+                            )
+                            val corners =
+                                listOf(
+                                    Offset(cropPx.left, cropPx.top),
+                                    Offset(cropPx.right, cropPx.top),
+                                    Offset(cropPx.left, cropPx.bottom),
+                                    Offset(cropPx.right, cropPx.bottom),
+                                )
+                            corners.forEach { corner ->
+                                drawRect(
+                                    color = Color.White.copy(alpha = 0.55f),
+                                    topLeft = Offset(corner.x - handle / 2f, corner.y - handle / 2f),
+                                    size = Size(handle, handle),
+                                )
+                            }
                         }
                     }
 
@@ -406,6 +493,7 @@ fun PhotoCropEditor(
                                 imageWidth,
                                 imageHeight,
                                 lockedAspect,
+                                isPerspective,
                                 viewportW,
                                 viewportH,
                             ) {
@@ -416,6 +504,7 @@ fun PhotoCropEditor(
                                     awaitFirstDown(requireUnconsumed = false)
                                     var multiTouch = false
                                     var cropMode: CropDragMode? = null
+                                    var perspectiveMode: PerspectiveDragMode? = null
                                     var gestureActive = true
                                     var gestureScale = viewScaleState.value
                                     var gestureOffset = viewOffsetState.value
@@ -429,6 +518,7 @@ fun PhotoCropEditor(
                                         } else if (pressed.size >= 2) {
                                             multiTouch = true
                                             cropMode = null
+                                            perspectiveMode = null
                                             val rotationDelta = event.calculateRotation()
                                             val zoomChange = event.calculateZoom()
                                             val panChange = event.calculatePan()
@@ -460,60 +550,129 @@ fun PhotoCropEditor(
                                             }
                                         } else if (!multiTouch && pressed.size == 1) {
                                             val change = pressed[0]
-                                            val activeMode = cropMode
-                                            if (activeMode == null) {
-                                                val currentCrop = cropRectState.value
-                                                val currentCropPx =
-                                                    Rect(
-                                                        left = currentCrop.left * side,
-                                                        top = currentCrop.top * side,
-                                                        right = currentCrop.right * side,
-                                                        bottom = currentCrop.bottom * side,
-                                                    )
-                                                val hitSlop =
-                                                    handleHitSlopPx /
-                                                        viewScaleState.value.coerceAtLeast(1e-6f)
-                                                cropMode =
-                                                    hitTestCropHandle(
-                                                        change.position,
-                                                        currentCropPx,
-                                                        hitSlop,
-                                                    )
-                                            } else if (
-                                                imageHeight > 0 &&
-                                                side > 0f
-                                            ) {
-                                                val drag = change.position - change.previousPosition
-                                                if (drag != Offset.Zero) {
-                                                    val aspectLock = lockedAspectState.value
-                                                    val next =
-                                                        if (aspectLock == null) {
-                                                            applyFreeCropDrag(
-                                                                cropRect = cropRectState.value,
-                                                                mode = activeMode,
-                                                                dragX = drag.x / side,
-                                                                dragY = drag.y / side,
-                                                            )
-                                                        } else {
-                                                            applyAspectCropDrag(
-                                                                cropRect = cropRectState.value,
-                                                                mode = activeMode,
-                                                                dragX = drag.x / side,
-                                                                dragY = drag.y / side,
-                                                                imageAspect = aspectLock,
-                                                            )
+                                            val currentPerspective = perspectiveQuadState.value
+                                            if (currentPerspective != null) {
+                                                val activeMode = perspectiveMode
+                                                if (activeMode == null) {
+                                                    val hitSlop =
+                                                        handleHitSlopPx /
+                                                            viewScaleState.value.coerceAtLeast(1e-6f)
+                                                    val cornersPx =
+                                                        currentPerspective.corners().map { corner ->
+                                                            Offset(corner.x * side, corner.y * side)
                                                         }
-                                                    onCropRectChangeState.value(
-                                                        if (aspectLock == null) {
-                                                            PhotoEditSaver.clampCropRectFree(next)
-                                                        } else {
-                                                            PhotoEditSaver.clampCropRect(
-                                                                rect = next,
-                                                                imageAspect = aspectLock,
-                                                            )
-                                                        },
-                                                    )
-                                                    change.consume()
+                                                    perspectiveMode =
+                                                        hitTestPerspectiveHandle(
+                                                            change.position,
+                                                            cornersPx,
+                                                            hitSlop,
+                                                        )
+                                                } else if (side > 0f) {
+                                                    val drag =
+                                                        change.position - change.previousPosition
+                                                    if (drag != Offset.Zero) {
+                                                        val next =
+                                                            when (activeMode) {
+                                                                PerspectiveDragMode.Move ->
+                                                                    PhotoEditSaver.movePerspectiveQuad(
+                                                                        currentPerspective,
+                                                                        drag.x / side,
+                                                                        drag.y / side,
+                                                                    )
+
+                                                                PerspectiveDragMode.Corner0 ->
+                                                                    PhotoEditSaver.dragPerspectiveCorner(
+                                                                        currentPerspective,
+                                                                        0,
+                                                                        drag.x / side,
+                                                                        drag.y / side,
+                                                                    )
+
+                                                                PerspectiveDragMode.Corner1 ->
+                                                                    PhotoEditSaver.dragPerspectiveCorner(
+                                                                        currentPerspective,
+                                                                        1,
+                                                                        drag.x / side,
+                                                                        drag.y / side,
+                                                                    )
+
+                                                                PerspectiveDragMode.Corner2 ->
+                                                                    PhotoEditSaver.dragPerspectiveCorner(
+                                                                        currentPerspective,
+                                                                        2,
+                                                                        drag.x / side,
+                                                                        drag.y / side,
+                                                                    )
+
+                                                                PerspectiveDragMode.Corner3 ->
+                                                                    PhotoEditSaver.dragPerspectiveCorner(
+                                                                        currentPerspective,
+                                                                        3,
+                                                                        drag.x / side,
+                                                                        drag.y / side,
+                                                                    )
+                                                            }
+                                                        onPerspectiveQuadChangeState.value(next)
+                                                        change.consume()
+                                                    }
+                                                }
+                                            } else {
+                                                val activeMode = cropMode
+                                                if (activeMode == null) {
+                                                    val currentCrop = cropRectState.value
+                                                    val currentCropPx =
+                                                        Rect(
+                                                            left = currentCrop.left * side,
+                                                            top = currentCrop.top * side,
+                                                            right = currentCrop.right * side,
+                                                            bottom = currentCrop.bottom * side,
+                                                        )
+                                                    val hitSlop =
+                                                        handleHitSlopPx /
+                                                            viewScaleState.value.coerceAtLeast(1e-6f)
+                                                    cropMode =
+                                                        hitTestCropHandle(
+                                                            change.position,
+                                                            currentCropPx,
+                                                            hitSlop,
+                                                        )
+                                                } else if (
+                                                    imageHeight > 0 &&
+                                                    side > 0f
+                                                ) {
+                                                    val drag =
+                                                        change.position - change.previousPosition
+                                                    if (drag != Offset.Zero) {
+                                                        val aspectLock = lockedAspectState.value
+                                                        val next =
+                                                            if (aspectLock == null) {
+                                                                applyFreeCropDrag(
+                                                                    cropRect = cropRectState.value,
+                                                                    mode = activeMode,
+                                                                    dragX = drag.x / side,
+                                                                    dragY = drag.y / side,
+                                                                )
+                                                            } else {
+                                                                applyAspectCropDrag(
+                                                                    cropRect = cropRectState.value,
+                                                                    mode = activeMode,
+                                                                    dragX = drag.x / side,
+                                                                    dragY = drag.y / side,
+                                                                    imageAspect = aspectLock,
+                                                                )
+                                                            }
+                                                        onCropRectChangeState.value(
+                                                            if (aspectLock == null) {
+                                                                PhotoEditSaver.clampCropRectFree(next)
+                                                            } else {
+                                                                PhotoEditSaver.clampCropRect(
+                                                                    rect = next,
+                                                                    imageAspect = aspectLock,
+                                                                )
+                                                            },
+                                                        )
+                                                        change.consume()
+                                                    }
                                                 }
                                             }
                                         }
@@ -602,7 +761,7 @@ fun PhotoCropEditor(
                             }
                         }
                     }
-                    if (isViewTransformed) {
+                    if (isViewTransformed && !isPerspective) {
                         val fitLabel =
                             stringResource(
                                 if (compactChrome) {
@@ -682,12 +841,12 @@ fun PhotoCropEditor(
                     FilterChip(
                         selected = false,
                         onClick = {
-                            if (isSaving || imageWidth <= 0) {
+                            if (isSaving || imageWidth <= 0 || isPerspective) {
                                 return@FilterChip
                             }
                             rotateCropAspect90()
                         },
-                        enabled = !isSaving && imageWidth > 0,
+                        enabled = !isSaving && imageWidth > 0 && !isPerspective,
                         label = {
                             AutoFitText(
                                 text =
@@ -722,7 +881,7 @@ fun PhotoCropEditor(
                         FilterChip(
                             selected = threeFourSelected,
                             onClick = {
-                                if (isSaving || imageWidth <= 0) {
+                                if (isSaving || imageWidth <= 0 || isPerspective) {
                                     return@FilterChip
                                 }
                                 if (threeFourSelected) {
@@ -731,7 +890,7 @@ fun PhotoCropEditor(
                                     applyLockedAspect(AspectThreeFour)
                                 }
                             },
-                            enabled = !isSaving && imageWidth > 0,
+                            enabled = !isSaving && imageWidth > 0 && !isPerspective,
                             label = {
                                 AutoFitText(
                                     text =
@@ -761,14 +920,14 @@ fun PhotoCropEditor(
                         )
                     }
                     FilterChip(
-                        selected = lockedAspect == null,
+                        selected = lockedAspect == null && !isPerspective,
                         onClick = {
-                            if (isSaving || imageWidth <= 0) {
+                            if (isSaving || imageWidth <= 0 || isPerspective) {
                                 return@FilterChip
                             }
                             toggleFreeAspect()
                         },
-                        enabled = !isSaving && imageWidth > 0,
+                        enabled = !isSaving && imageWidth > 0 && !isPerspective,
                         label = {
                             AutoFitText(
                                 text =
@@ -789,6 +948,37 @@ fun PhotoCropEditor(
                             {
                                 Icon(
                                     imageVector = Icons.Filled.CropFree,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp),
+                                )
+                            }
+                        },
+                        modifier = Modifier.weight(1f),
+                    )
+                    FilterChip(
+                        selected = isPerspective,
+                        onClick = { togglePerspectiveMode() },
+                        enabled = !isSaving && imageWidth > 0,
+                        label = {
+                            AutoFitText(
+                                text =
+                                stringResource(
+                                    if (compactChrome) {
+                                        R.string.gallery_cleaner_edit_perspective_short
+                                    } else {
+                                        R.string.gallery_cleaner_edit_perspective
+                                    },
+                                ),
+                                maxLines = 2,
+                            )
+                        },
+                        leadingIcon =
+                        if (compactChrome) {
+                            null
+                        } else {
+                            {
+                                Icon(
+                                    imageVector = Icons.Filled.Transform,
                                     contentDescription = null,
                                     modifier = Modifier.size(18.dp),
                                 )
@@ -931,6 +1121,72 @@ private fun visibleWorkspaceNormalized(
         return NormalizedCropRect.Full
     }
     return NormalizedCropRect(left, top, right, bottom)
+}
+
+/**
+ * Prefer perspective corner handles; move when the press is inside the quad.
+ */
+private fun hitTestPerspectiveHandle(
+    point: Offset,
+    cornersPx: List<Offset>,
+    slop: Float,
+): PerspectiveDragMode? {
+    if (cornersPx.size != 4) {
+        return null
+    }
+    val cornerModes =
+        listOf(
+            PerspectiveDragMode.Corner0,
+            PerspectiveDragMode.Corner1,
+            PerspectiveDragMode.Corner2,
+            PerspectiveDragMode.Corner3,
+        )
+    var bestMode: PerspectiveDragMode? = null
+    var bestDistSq = Float.MAX_VALUE
+    for (i in cornersPx.indices) {
+        val corner = cornersPx[i]
+        val dx = point.x - corner.x
+        val dy = point.y - corner.y
+        if (abs(dx) <= slop && abs(dy) <= slop) {
+            val distSq = dx * dx + dy * dy
+            if (distSq < bestDistSq) {
+                bestDistSq = distSq
+                bestMode = cornerModes[i]
+            }
+        }
+    }
+    if (bestMode != null) {
+        return bestMode
+    }
+    return if (pointInConvexQuad(point, cornersPx)) {
+        PerspectiveDragMode.Move
+    } else {
+        null
+    }
+}
+
+/** Ray-crossing test for a convex quad (or any simple polygon). */
+private fun pointInConvexQuad(
+    point: Offset,
+    corners: List<Offset>,
+): Boolean {
+    if (corners.size != 4) {
+        return false
+    }
+    var inside = false
+    var j = corners.lastIndex
+    for (i in corners.indices) {
+        val ci = corners[i]
+        val cj = corners[j]
+        val intersects =
+            (ci.y > point.y) != (cj.y > point.y) &&
+                point.x < (cj.x - ci.x) * (point.y - ci.y) / (cj.y - ci.y + 1e-6f) + ci.x
+        if (intersects) {
+            inside = !inside
+        }
+        j = i
+    }
+    return inside
 }
 
 /**

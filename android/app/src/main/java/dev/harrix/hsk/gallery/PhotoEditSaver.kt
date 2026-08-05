@@ -8,6 +8,7 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.ImageDecoder
 import android.graphics.Matrix
+import android.graphics.Paint
 import android.net.Uri
 import android.os.Build
 import android.os.Environment
@@ -46,6 +47,52 @@ data class NormalizedCropRect(
 
     companion object {
         val Full = NormalizedCropRect(0f, 0f, 1f, 1f)
+    }
+}
+
+/** Normalized point on the rotated square canvas (`0f..1f`). */
+data class NormalizedPoint(
+    val x: Float,
+    val y: Float,
+)
+
+/**
+ * Perspective crop quad on the rotated square canvas (corners in `0f..1f`).
+ * Order is clockwise from top-left, matching [Matrix.setPolyToPoly] source points.
+ */
+data class NormalizedPerspectiveQuad(
+    val topLeft: NormalizedPoint,
+    val topRight: NormalizedPoint,
+    val bottomRight: NormalizedPoint,
+    val bottomLeft: NormalizedPoint,
+) {
+    fun corners(): List<NormalizedPoint> = listOf(topLeft, topRight, bottomRight, bottomLeft)
+
+    /** Axis-aligned bounds of the four corners (for returning to rect crop mode). */
+    fun boundingRect(): NormalizedCropRect {
+        val xs = corners().map { it.x }
+        val ys = corners().map { it.y }
+        val left = xs.minOrNull() ?: 0f
+        val top = ys.minOrNull() ?: 0f
+        val right = xs.maxOrNull() ?: 1f
+        val bottom = ys.maxOrNull() ?: 1f
+        return PhotoEditSaver.clampCropRectFree(
+            NormalizedCropRect(
+                left,
+                top,
+                right.coerceAtLeast(left + 0.06f),
+                bottom.coerceAtLeast(top + 0.06f),
+            ),
+        )
+    }
+
+    companion object {
+        fun fromRect(rect: NormalizedCropRect): NormalizedPerspectiveQuad = NormalizedPerspectiveQuad(
+            topLeft = NormalizedPoint(rect.left, rect.top),
+            topRight = NormalizedPoint(rect.right, rect.top),
+            bottomRight = NormalizedPoint(rect.right, rect.bottom),
+            bottomLeft = NormalizedPoint(rect.left, rect.bottom),
+        )
     }
 }
 
@@ -127,13 +174,17 @@ class PhotoEditSaver(
         rotationDegrees: Float,
         crop: NormalizedCropRect,
         /**
+         * When non-null, applies perspective warp instead of axis-aligned [crop].
+         */
+        perspectiveQuad: NormalizedPerspectiveQuad? = null,
+        /**
          * When non-null and still valid, keeps that pre-edit original across repeated saves
          * on the same photo for the session.
          */
         existingUndo: PendingEditUndo? = null,
     ): SaveResult {
         val encoded =
-            renderEditedBytes(uri, mimeType, rotationDegrees, crop)
+            renderEditedBytes(uri, mimeType, rotationDegrees, crop, perspectiveQuad)
                 ?: return SaveResult.Failed
 
         val reuseBackup =
@@ -171,10 +222,11 @@ class PhotoEditSaver(
         mimeType: String?,
         rotationDegrees: Float,
         crop: NormalizedCropRect,
+        perspectiveQuad: NormalizedPerspectiveQuad? = null,
         displayName: String? = null,
     ): CopyResult {
         val encoded =
-            renderEditedBytes(sourceUri, mimeType, rotationDegrees, crop)
+            renderEditedBytes(sourceUri, mimeType, rotationDegrees, crop, perspectiveQuad)
                 ?: return CopyResult.Failed
         val resolvedMime = resolvedOutputMime(mimeType)
         val extension = extensionForMime(resolvedMime)
@@ -233,10 +285,9 @@ class PhotoEditSaver(
         mimeType: String?,
         rotationDegrees: Float,
         crop: NormalizedCropRect,
+        perspectiveQuad: NormalizedPerspectiveQuad? = null,
     ): ByteArray? {
         val oriented = decodeOrientedBitmap(uri) ?: return null
-        // Editor already applied the chosen aspect (original / 90° / free).
-        val squareCrop = clampCropRectFree(crop)
         val workspace =
             renderRotatedOnSquare(oriented, rotationDegrees) ?: run {
                 oriented.recycle()
@@ -246,7 +297,11 @@ class PhotoEditSaver(
             oriented.recycle()
         }
         val cropped =
-            cropBitmap(workspace, squareCrop) ?: run {
+            if (perspectiveQuad != null) {
+                perspectiveCropBitmap(workspace, clampPerspectiveQuad(perspectiveQuad))
+            } else {
+                cropBitmap(workspace, clampCropRectFree(crop))
+            } ?: run {
                 workspace.recycle()
                 return null
             }
@@ -670,6 +725,61 @@ class PhotoEditSaver(
         return Bitmap.createBitmap(bitmap, left, top, width, height)
     }
 
+    /**
+     * Warps the perspective quad on [bitmap] into an axis-aligned rectangle.
+     * Destination size uses average edge lengths (Photoshop-style).
+     */
+    private fun perspectiveCropBitmap(
+        bitmap: Bitmap,
+        quad: NormalizedPerspectiveQuad,
+    ): Bitmap? {
+        if (!isPerspectiveQuadValid(quad)) {
+            return null
+        }
+        val bw = bitmap.width.toFloat()
+        val bh = bitmap.height.toFloat()
+        if (bw <= 0f || bh <= 0f) {
+            return null
+        }
+        val tlX = quad.topLeft.x * bw
+        val tlY = quad.topLeft.y * bh
+        val trX = quad.topRight.x * bw
+        val trY = quad.topRight.y * bh
+        val brX = quad.bottomRight.x * bw
+        val brY = quad.bottomRight.y * bh
+        val blX = quad.bottomLeft.x * bw
+        val blY = quad.bottomLeft.y * bh
+        val topLen = hypot(trX - tlX, trY - tlY)
+        val bottomLen = hypot(brX - blX, brY - blY)
+        val leftLen = hypot(blX - tlX, blY - tlY)
+        val rightLen = hypot(brX - trX, brY - trY)
+        val dstW = ((topLen + bottomLen) / 2f).roundToInt().coerceAtLeast(1)
+        val dstH = ((leftLen + rightLen) / 2f).roundToInt().coerceAtLeast(1)
+        val matrix = Matrix()
+        val mapped =
+            matrix.setPolyToPoly(
+                floatArrayOf(tlX, tlY, trX, trY, brX, brY, blX, blY),
+                0,
+                floatArrayOf(0f, 0f, dstW.toFloat(), 0f, dstW.toFloat(), dstH.toFloat(), 0f, dstH.toFloat()),
+                0,
+                4,
+            )
+        if (!mapped) {
+            return null
+        }
+        val out =
+            try {
+                Bitmap.createBitmap(dstW, dstH, Bitmap.Config.ARGB_8888)
+            } catch (_: OutOfMemoryError) {
+                return null
+            }
+        val canvas = Canvas(out)
+        canvas.drawColor(Color.BLACK)
+        val paint = Paint(Paint.FILTER_BITMAP_FLAG or Paint.ANTI_ALIAS_FLAG)
+        canvas.drawBitmap(bitmap, matrix, paint)
+        return out
+    }
+
     private fun encodeBitmap(
         bitmap: Bitmap,
         mimeType: String?,
@@ -715,6 +825,7 @@ class PhotoEditSaver(
         private const val CropInsetMinHalf = 0.02f
         private const val CropInsetEpsilon = 1e-4f
         private const val CropInsetRectEpsilon = 0.004f
+        private const val PerspectiveMinEdge = 0.06f
 
         /** True when [MediaStore.createWriteRequest] can be used for [uri] on this API level. */
         fun canRequestMediaStoreWrite(uri: Uri): Boolean {
@@ -944,6 +1055,141 @@ class PhotoEditSaver(
             val left = (centerX - width / 2f).coerceIn(0f, 1f - width)
             val top = (centerY - height / 2f).coerceIn(0f, 1f - height)
             return NormalizedCropRect(left, top, left + width, top + height)
+        }
+
+        /** Clamp each corner into `0..1` and keep a convex, non-degenerate quad when possible. */
+        fun clampPerspectiveQuad(
+            quad: NormalizedPerspectiveQuad,
+            minEdge: Float = PerspectiveMinEdge,
+        ): NormalizedPerspectiveQuad {
+            val clamped =
+                NormalizedPerspectiveQuad(
+                    topLeft = clampPoint(quad.topLeft),
+                    topRight = clampPoint(quad.topRight),
+                    bottomRight = clampPoint(quad.bottomRight),
+                    bottomLeft = clampPoint(quad.bottomLeft),
+                )
+            if (isPerspectiveQuadValid(clamped, minEdge)) {
+                return clamped
+            }
+            return NormalizedPerspectiveQuad.fromRect(clamped.boundingRect())
+        }
+
+        /**
+         * Move one corner by [dx]/[dy] (normalized). Returns previous quad if the result
+         * would be non-convex or degenerate.
+         */
+        fun dragPerspectiveCorner(
+            quad: NormalizedPerspectiveQuad,
+            cornerIndex: Int,
+            dx: Float,
+            dy: Float,
+            minEdge: Float = PerspectiveMinEdge,
+        ): NormalizedPerspectiveQuad {
+            val corners = quad.corners().toMutableList()
+            if (cornerIndex !in corners.indices) {
+                return quad
+            }
+            corners[cornerIndex] =
+                clampPoint(
+                    NormalizedPoint(
+                        x = corners[cornerIndex].x + dx,
+                        y = corners[cornerIndex].y + dy,
+                    ),
+                )
+            val next = quadFromCorners(corners)
+            return if (isPerspectiveQuadValid(next, minEdge)) next else quad
+        }
+
+        /** Translate all corners; rejects moves that push any corner outside `0..1`. */
+        fun movePerspectiveQuad(
+            quad: NormalizedPerspectiveQuad,
+            dx: Float,
+            dy: Float,
+        ): NormalizedPerspectiveQuad {
+            val corners = quad.corners()
+            val minX = corners.minOf { it.x }
+            val maxX = corners.maxOf { it.x }
+            val minY = corners.minOf { it.y }
+            val maxY = corners.maxOf { it.y }
+            val shiftX = dx.coerceIn(-minX, 1f - maxX)
+            val shiftY = dy.coerceIn(-minY, 1f - maxY)
+            if (shiftX == 0f && shiftY == 0f) {
+                return quad
+            }
+            return NormalizedPerspectiveQuad(
+                topLeft = NormalizedPoint(
+                    quad.topLeft.x + shiftX,
+                    quad.topLeft.y + shiftY,
+                ),
+                topRight = NormalizedPoint(
+                    quad.topRight.x + shiftX,
+                    quad.topRight.y + shiftY,
+                ),
+                bottomRight = NormalizedPoint(
+                    quad.bottomRight.x + shiftX,
+                    quad.bottomRight.y + shiftY,
+                ),
+                bottomLeft = NormalizedPoint(
+                    quad.bottomLeft.x + shiftX,
+                    quad.bottomLeft.y + shiftY,
+                ),
+            )
+        }
+
+        fun isPerspectiveQuadValid(
+            quad: NormalizedPerspectiveQuad,
+            minEdge: Float = PerspectiveMinEdge,
+        ): Boolean {
+            val c = quad.corners()
+            if (c.any { it.x !in 0f..1f || it.y !in 0f..1f }) {
+                return false
+            }
+            for (i in 0..3) {
+                val a = c[i]
+                val b = c[(i + 1) % 4]
+                if (hypot(b.x - a.x, b.y - a.y) < minEdge) {
+                    return false
+                }
+            }
+            return isConvexQuad(c)
+        }
+
+        private fun clampPoint(point: NormalizedPoint): NormalizedPoint = NormalizedPoint(
+            point.x.coerceIn(0f, 1f),
+            point.y.coerceIn(0f, 1f),
+        )
+
+        private fun quadFromCorners(
+            corners: List<NormalizedPoint>,
+        ): NormalizedPerspectiveQuad = NormalizedPerspectiveQuad(
+            topLeft = corners[0],
+            topRight = corners[1],
+            bottomRight = corners[2],
+            bottomLeft = corners[3],
+        )
+
+        private fun isConvexQuad(corners: List<NormalizedPoint>): Boolean {
+            if (corners.size != 4) {
+                return false
+            }
+            var sign = 0
+            for (i in 0..3) {
+                val a = corners[i]
+                val b = corners[(i + 1) % 4]
+                val c = corners[(i + 2) % 4]
+                val cross = (b.x - a.x) * (c.y - b.y) - (b.y - a.y) * (c.x - b.x)
+                if (abs(cross) < 1e-6f) {
+                    return false
+                }
+                val nextSign = if (cross > 0f) 1 else -1
+                if (sign == 0) {
+                    sign = nextSign
+                } else if (sign != nextSign) {
+                    return false
+                }
+            }
+            return true
         }
     }
 

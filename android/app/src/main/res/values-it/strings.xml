@@ -219,6 +219,8 @@
     <string name="gallery_cleaner_edit_aspect_3_4_short">3:4</string>
     <string name="gallery_cleaner_edit_aspect_free">Proporzioni libere</string>
     <string name="gallery_cleaner_edit_aspect_free_short">Libero</string>
+    <string name="gallery_cleaner_edit_perspective">Prospettiva</string>
+    <string name="gallery_cleaner_edit_perspective_short">Prosp.</string>
     <string name="gallery_cleaner_edit_fit_frame">Adatta al riquadro</string>
     <string name="gallery_cleaner_edit_fit_frame_short">Adatta</string>
     <string name="gallery_cleaner_edit_trim_empty">Taglia i bordi vuoti</string>

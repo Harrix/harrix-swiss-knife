@@ -219,6 +219,8 @@
     <string name="gallery_cleaner_edit_aspect_3_4_short">3:4</string>
     <string name="gallery_cleaner_edit_aspect_free">자유 비율</string>
     <string name="gallery_cleaner_edit_aspect_free_short">자유</string>
+    <string name="gallery_cleaner_edit_perspective">원근</string>
+    <string name="gallery_cleaner_edit_perspective_short">원근</string>
     <string name="gallery_cleaner_edit_fit_frame">프레임에 맞추기</string>
     <string name="gallery_cleaner_edit_fit_frame_short">맞추기</string>
     <string name="gallery_cleaner_edit_trim_empty">빈 여백 자르기</string>
