@@ -1,28 +1,39 @@
-CREATE TABLE "food_items" (
-	"_id"	INTEGER,
-	"name"	TEXT NOT NULL,
-	"name_en"	TEXT,
-	"is_drink"	INTEGER NOT NULL DEFAULT 0,
-	"calories_per_100g"	REAL DEFAULT NULL,
-	"default_portion_weight"	INTEGER DEFAULT NULL,
-	"default_portion_calories"	REAL DEFAULT NULL,
-	PRIMARY KEY("_id" AUTOINCREMENT)
+-- Recover / recreate Food database schema and seed data
+-- Generated from working food.db (food_items catalog only; food_log left empty)
+
+PRAGMA foreign_keys = OFF;
+
+DROP TABLE IF EXISTS food_log;
+DROP TABLE IF EXISTS food_items;
+
+PRAGMA foreign_keys = ON;
+
+CREATE TABLE food_items (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL UNIQUE,
+    name_en TEXT,
+    is_drink INTEGER NOT NULL DEFAULT 0 CHECK (is_drink IN (0, 1)),
+    calories_per_100g REAL,
+    default_portion_weight REAL,
+    default_portion_calories REAL
 );
 
-CREATE TABLE "food_log" (
-	"_id"	INTEGER,
-	"date"	TEXT,
-	"weight"	INTEGER DEFAULT NULL,
-	"portion_calories"	REAL DEFAULT NULL,
-	"calories_per_100g"	REAL DEFAULT NULL,
-	"name"	TEXT DEFAULT NULL,
-	"name_en"	TEXT DEFAULT NULL,
-	"is_drink"	INTEGER NOT NULL DEFAULT 0,
-	PRIMARY KEY("_id" AUTOINCREMENT)
+CREATE TABLE food_log (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    datetime TEXT NOT NULL,
+    food_item_id INTEGER,
+    name TEXT NOT NULL,
+    name_en TEXT,
+    is_drink INTEGER NOT NULL DEFAULT 0 CHECK (is_drink IN (0, 1)),
+    calories REAL,
+    weight REAL,
+    FOREIGN KEY (food_item_id) REFERENCES food_items(id) ON DELETE SET NULL
 );
 
+-- Seed catalog of food items from working database
 INSERT INTO food_items (name, name_en, is_drink, calories_per_100g, default_portion_weight, default_portion_calories) VALUES
 ('Абрикос', 'Apricot', 0, 48, NULL, NULL),
+('Авокадо', 'Avocado', 0, 160, NULL, NULL),
 ('Ананас', 'Pineapple', 0, 50, NULL, NULL),
 ('Апельсин', 'Orange', 0, 43, NULL, NULL),
 ('Арахис', 'Peanuts', 0, 567, NULL, NULL),
@@ -53,18 +64,24 @@ INSERT INTO food_items (name, name_en, is_drink, calories_per_100g, default_port
 ('Картофельное пюре', 'Mashed potatoes', 0, 88, NULL, NULL),
 ('Картошка', 'Potatoes', 0, 77, NULL, NULL),
 ('Картошка вареная', 'Boiled potatoes', 0, 82, NULL, NULL),
+('Кетчуп', NULL, 0, 112, NULL, NULL),
 ('Киви', 'Kiwi', 0, 61, NULL, NULL),
+('Кинза', NULL, 0, 23, NULL, NULL),
 ('Клубника', 'Strawberry', 0, 33, NULL, NULL),
 ('Кокос мякоть', 'Coconut meat', 0, 354, NULL, NULL),
 ('Кокосовая стружка', 'Coconut flakes', 0, 660, NULL, NULL),
+('Кола Добрый', NULL, 1, 0.3, NULL, NULL),
 ('Кофе Капучино без сахара', 'Cappuccino no sugar', 1, 53, NULL, NULL),
 ('Кофе Латте', 'Latte', 1, 44, NULL, NULL),
-('Кофе Флэт Уайт', 'Flat White', 1, 42, NULL, NULL),
+('Кофе Флэт Уайт', 'Flat White', 1, 42, 200, NULL),
+('Кофе капучино домашнее', '', 1, 67, 290, NULL),
+('Куриная грудка вареная', NULL, 0, 165, NULL, NULL),
 ('Курица вареная', 'Boiled chicken', 0, 170, NULL, NULL),
 ('Курица филе', 'Chicken breast', 0, 110, NULL, NULL),
 ('Лимон', 'Lemon', 0, 29, NULL, NULL),
 ('Лук зеленый', 'Green onion', 0, 19, NULL, NULL),
 ('Лук репчатый', 'Onion', 0, 40, NULL, NULL),
+('Майонез', NULL, 0, 620, NULL, NULL),
 ('Макароны отварные', 'Boiled pasta', 0, 112, NULL, NULL),
 ('Малина', 'Raspberry', 0, 53, NULL, NULL),
 ('Манго', 'Mango', 0, 70, NULL, NULL),
@@ -72,6 +89,8 @@ INSERT INTO food_items (name, name_en, is_drink, calories_per_100g, default_port
 ('Маракуйя', 'Passion fruit', 0, 97, NULL, NULL),
 ('Масло оливковое', 'Olive oil', 0, 884, NULL, NULL),
 ('Масло сливочное', 'Butter', 0, 750, NULL, NULL),
+('Молоко 3.2 %', NULL, 1, 62, NULL, NULL),
+('Молоко безлактозное', NULL, 1, 47, NULL, NULL),
 ('Морковь', 'Carrot', 0, 32, NULL, NULL),
 ('Морковь вареная', 'Boiled carrot', 0, 35, NULL, NULL),
 ('Морс', 'Fruit drink', 1, 52, NULL, NULL),
@@ -89,6 +108,7 @@ INSERT INTO food_items (name, name_en, is_drink, calories_per_100g, default_port
 ('Орех пекан', 'Pecan nuts', 0, 691, NULL, NULL),
 ('Орех фисташки', 'Pistachios', 0, 562, NULL, NULL),
 ('Орех фундук', 'Hazelnuts', 0, 628, NULL, NULL),
+('Паста томатная', NULL, 0, 91, NULL, NULL),
 ('Перец болгарский', 'Bell pepper', 0, 27, NULL, NULL),
 ('Перец острый', 'Hot pepper', 0, 40, NULL, NULL),
 ('Персик', 'Peach', 0, 39, NULL, NULL),
@@ -97,14 +117,15 @@ INSERT INTO food_items (name, name_en, is_drink, calories_per_100g, default_port
 ('Печенье Юбилейное', 'Jubilee cookies', 0, NULL, NULL, 52),
 ('Пицца', 'Pizza', 0, 266, NULL, NULL),
 ('Помидоры', 'Tomatoes', 0, 20, NULL, NULL),
+('Псиллиум', NULL, 0, 42, 10, NULL),
 ('Растительное масло', 'Vegetable oil', 0, 899, NULL, NULL),
-('Редис', 'Radish', 0, 16, NULL, NULL),
+('Редис', NULL, 0, 16, NULL, NULL),
 ('Редька зеленая', 'Green radish', 0, 32, NULL, NULL),
 ('Рис вареный', 'Boiled rice', 0, 116, NULL, NULL),
-('Салат айсберг', 'Iceberg lettuce', 0, 14, NULL, NULL),
-('Салат латук', 'Lettuce', 0, 15, NULL, NULL),
 ('Салат Оливье', 'Olivier salad', 0, 160, NULL, NULL),
 ('Салат Столичный', 'Capital salad', 0, 217, NULL, NULL),
+('Салат айсберг', 'Iceberg lettuce', 0, 14, NULL, NULL),
+('Салат латук', 'Lettuce', 0, 15, NULL, NULL),
 ('Сахар', 'Sugar', 0, 387, NULL, NULL),
 ('Свекла', 'Beetroot', 0, 43, NULL, NULL),
 ('Свинина', 'Pork', 0, 242, NULL, NULL),
@@ -119,6 +140,7 @@ INSERT INTO food_items (name, name_en, is_drink, calories_per_100g, default_port
 ('Творог 0,5%', 'Cottage cheese 0.5%', 0, 90, NULL, NULL),
 ('Творог 2%', 'Cottage cheese 2%', 0, 103, NULL, NULL),
 ('Тефтели', 'Meatballs', 0, 197, NULL, NULL),
+('Томатный сок', NULL, 1, 17, NULL, NULL),
 ('Укроп', 'Dill', 0, 38, NULL, NULL),
 ('Уксус', 'Vinegar', 0, 18, NULL, NULL),
 ('Финики', 'Dates', 0, 282, NULL, NULL),
@@ -129,10 +151,10 @@ INSERT INTO food_items (name, name_en, is_drink, calories_per_100g, default_port
 ('Черная смородина', 'Black currant', 0, 44, NULL, NULL),
 ('Чеснок', 'Garlic', 0, 143, NULL, NULL),
 ('Шампиньоны', 'Mushrooms', 0, 22, NULL, NULL),
-('Шаурма', 'Shawarma', 0, 174, NULL, NULL),
 ('Шаурма с говядиной', 'Beef shawarma', 0, 192, NULL, NULL),
 ('Шашлык из курицы', 'Chicken kebab', 0, 142, NULL, NULL),
 ('Шашлык из свинины', 'Pork kebab', 0, 326, NULL, NULL),
 ('Шпинат зеленый', 'Green spinach', 0, 22, NULL, NULL),
 ('Яблоко', 'Apple', 0, 47, NULL, NULL),
-('Яйцо вареное', 'Boiled egg', 0, 155, NULL, NULL);
+('Яйцо вареное', 'Boiled egg', 0, 155, NULL, NULL),
+
