@@ -11,6 +11,7 @@ from harrix_swiss_knife.actions.apps.finance import OnFinance
 from harrix_swiss_knife.actions.apps.fitness import OnFitness
 from harrix_swiss_knife.actions.apps.food import OnFood
 from harrix_swiss_knife.actions.apps.habits import OnHabits
+from harrix_swiss_knife.actions.apps.media_sorter import OnMediaSorter
 from harrix_swiss_knife.actions.development.about_dialog import OnAboutDialog
 from harrix_swiss_knife.actions.development.clear_temp_folder import OnClearTempFolder
 from harrix_swiss_knife.actions.development.create_desktop_shortcut import OnCreateDesktopShortcut
@@ -263,6 +264,7 @@ def get_menu_structure() -> list[Any]:
         OnFitness,
         OnFood,
         OnHabits,
+        OnMediaSorter,
         "-",
         OnQuickLauncher,
         "-",

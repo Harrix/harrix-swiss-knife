@@ -245,6 +245,24 @@
   "sqlite_fitness": "<YOUR_FITNESS_DB>",
   "sqlite_food": "<YOUR_FOOD_DB>",
   "sqlite_habits": "<YOUR_HABITS_DB>",
+  "sqlite_media_sorter": "<YOUR_MEDIA_SORTER_DB>",
+  "media_sorter": {
+    "default_folder": "<YOUR_PHOTOS_FOLDER>",
+    "bins": [
+      {
+        "id": "keep",
+        "title": "Keep",
+        "path": "<YOUR_MEDIA_SORTER_KEEP_FOLDER>",
+        "mode": "copy"
+      },
+      {
+        "id": "archive",
+        "title": "Archive",
+        "path": "<YOUR_MEDIA_SORTER_ARCHIVE_FOLDER>",
+        "mode": "move"
+      }
+    ]
+  },
   "start_pattern_jupyter_notebooks": "jupyter-notebook-",
   "start_pattern_py_projects": "python-project-",
   "vscode_workspace_articles": "<YOUR_ARTICLES_CODE_WORKSPACE>",
