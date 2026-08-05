@@ -355,7 +355,7 @@ private fun SettingsCategoryHeader(text: String) {
     Text(
         text = text,
         style = MaterialTheme.typography.labelLarge,
-        color = MaterialTheme.colorScheme.primary,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier =
         Modifier
             .fillMaxWidth()
@@ -368,7 +368,7 @@ private fun SettingsSectionHeader(text: String) {
     Text(
         text = text,
         style = MaterialTheme.typography.labelLarge,
-        color = MaterialTheme.colorScheme.primary,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier =
         Modifier
             .fillMaxWidth()
