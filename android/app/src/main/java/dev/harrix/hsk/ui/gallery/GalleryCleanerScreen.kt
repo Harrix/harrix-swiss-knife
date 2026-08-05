@@ -1748,27 +1748,8 @@ private fun SwipeablePhotoCard(
                 modifier =
                 Modifier
                     .fillMaxSize()
-                    .graphicsLayer {
-                        scaleX = zoomScale
-                        scaleY = zoomScale
-                        translationX = zoomOffset.x
-                        translationY = zoomOffset.y
-                        rotationZ = if (isZoomed) 0f else displayOffset.x / 40f
-                        alpha =
-                            if (isZoomed) {
-                                1f
-                            } else {
-                                1f - (travel / (exitDistance * 1.2f)).coerceIn(0f, 0.35f)
-                            }
-                    }
-                    .offset {
-                        if (isZoomed) {
-                            IntOffset.Zero
-                        } else {
-                            IntOffset(displayOffset.x.roundToInt(), displayOffset.y.roundToInt())
-                        }
-                    }
-                    .background(MaterialTheme.colorScheme.background)
+                    // Pointer input before graphicsLayer so pan deltas stay in viewport
+                    // space and match translationX/Y 1:1 (not slowed by zoom scale).
                     .pointerInput(resetKey, photo.id) {
                         awaitEachGesture {
                             awaitFirstDown(requireUnconsumed = false)
@@ -1876,7 +1857,28 @@ private fun SwipeablePhotoCard(
                                 }
                             }
                         }
-                    },
+                    }
+                    .graphicsLayer {
+                        scaleX = zoomScale
+                        scaleY = zoomScale
+                        translationX = zoomOffset.x
+                        translationY = zoomOffset.y
+                        rotationZ = if (isZoomed) 0f else displayOffset.x / 40f
+                        alpha =
+                            if (isZoomed) {
+                                1f
+                            } else {
+                                1f - (travel / (exitDistance * 1.2f)).coerceIn(0f, 0.35f)
+                            }
+                    }
+                    .offset {
+                        if (isZoomed) {
+                            IntOffset.Zero
+                        } else {
+                            IntOffset(displayOffset.x.roundToInt(), displayOffset.y.roundToInt())
+                        }
+                    }
+                    .background(MaterialTheme.colorScheme.background),
             )
         }
 
