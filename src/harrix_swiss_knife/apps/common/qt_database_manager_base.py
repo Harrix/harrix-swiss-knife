@@ -93,6 +93,7 @@ class QtSqliteDatabaseManagerBase:
                 logger.error("Failed to create database: %s", open_err or "Unknown error")
                 return False
 
+            query: QSqlQuery | None = None
             try:
                 query = QSqlQuery(temp_db)
                 statements = [stmt.strip() for stmt in sql_content.split(";") if stmt.strip()]
@@ -105,7 +106,13 @@ class QtSqliteDatabaseManagerBase:
                 logger.info("Database created successfully: %s", db_filename)
                 return True
             finally:
+                # Qt requires all QSqlQuery / QSqlDatabase handles gone before removeDatabase.
+                if query is not None:
+                    query.finish()
+                    query.clear()
+                    del query
                 temp_db.close()
+                del temp_db
                 QSqlDatabase.removeDatabase(temp_connection_name)
         except Exception:
             logger.exception("Error creating database from SQL file")
