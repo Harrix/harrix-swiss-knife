@@ -1,6 +1,7 @@
 package dev.harrix.hsk.ui.photoeditor
 
 import android.net.Uri
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -35,6 +36,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -54,27 +56,39 @@ fun PhotoEditorScreen(
 ) {
     var currentPhoto by viewModel.currentPhoto
     var imageRevision by viewModel.imageRevision
-    var statusMessage by viewModel.statusMessage
     var isLoading by viewModel.isLoading
     val repository = viewModel.repository
+    val context = LocalContext.current
     val openFailedMessage = stringResource(R.string.photo_editor_open_failed)
     val savedMessage = stringResource(R.string.photo_editor_saved)
     val savedAsCopyMessage = stringResource(R.string.photo_editor_saved_as_copy)
     val onInitialUriConsumeState = rememberUpdatedState(onInitialUriConsume)
+
+    fun showToast(
+        message: String,
+        long: Boolean = false,
+    ) {
+        Toast
+            .makeText(
+                context,
+                message,
+                if (long) Toast.LENGTH_LONG else Toast.LENGTH_SHORT,
+            ).show()
+    }
 
     val pickMedia =
         rememberLauncherForActivityResult(
             ActivityResultContracts.PickVisualMedia(),
         ) { uri ->
             if (uri != null && !viewModel.loadFromUri(uri)) {
-                statusMessage = openFailedMessage
+                showToast(openFailedMessage)
             }
         }
 
     LaunchedEffect(initialUri) {
         val uri = initialUri ?: return@LaunchedEffect
         if (!viewModel.applyIncomingUri(uri)) {
-            statusMessage = openFailedMessage
+            showToast(openFailedMessage)
         }
         onInitialUriConsumeState.value()
     }
@@ -93,7 +107,6 @@ fun PhotoEditorScreen(
     BackHandler {
         if (currentPhoto != null) {
             viewModel.clearPhoto()
-            statusMessage = null
         } else {
             leaveEditor()
         }
@@ -153,19 +166,21 @@ fun PhotoEditorScreen(
                         repository = repository,
                         onSave = { result ->
                             viewModel.applySaved(result.photo, result.sizeBytes)
-                            statusMessage =
+                            showToast(
+                                message =
                                 if (result.savedAsCopy) {
                                     savedAsCopyMessage
                                 } else {
                                     savedMessage
-                                }
+                                },
+                                long = result.savedAsCopy,
+                            )
                         },
                         onDiscard = {
                             // Remount editor with a clean crop/rotation state.
                             imageRevision += 1
-                            statusMessage = null
                         },
-                        onError = { message -> statusMessage = message },
+                        onError = { message -> showToast(message, long = true) },
                         modifier = Modifier.fillMaxSize(),
                     )
                 }
@@ -204,19 +219,6 @@ fun PhotoEditorScreen(
                         }
                     }
                 }
-            }
-
-            statusMessage?.let { message ->
-                Text(
-                    text = message,
-                    modifier =
-                    Modifier
-                        .align(Alignment.BottomCenter)
-                        .padding(24.dp),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    textAlign = TextAlign.Center,
-                )
             }
         }
     }

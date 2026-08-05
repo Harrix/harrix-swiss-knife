@@ -21,7 +21,6 @@ class PhotoEditorViewModel(
 
     val currentPhoto = mutableStateOf<CameraPhoto?>(null)
     val imageRevision = mutableIntStateOf(0)
-    val statusMessage = mutableStateOf<String?>(null)
     val isLoading = mutableStateOf(false)
 
     /** Last inbound URI applied so the same share is not re-opened after consume. */
@@ -30,7 +29,6 @@ class PhotoEditorViewModel(
 
     fun loadFromUri(uri: Uri): Boolean {
         isLoading.value = true
-        statusMessage.value = null
         val photo = EditableImageLoader.load(getApplication(), uri)
         isLoading.value = false
         if (photo == null) {
@@ -60,7 +58,6 @@ class PhotoEditorViewModel(
     fun clearPhoto() {
         currentPhoto.value = null
         imageRevision.intValue = 0
-        statusMessage.value = null
         isLoading.value = false
     }
 
