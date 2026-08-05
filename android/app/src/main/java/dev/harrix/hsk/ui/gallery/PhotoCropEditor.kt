@@ -12,10 +12,12 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Crop
@@ -29,6 +31,7 @@ import androidx.compose.material.icons.filled.RestartAlt
 import androidx.compose.material.icons.filled.Rotate90DegreesCcw
 import androidx.compose.material.icons.filled.Rotate90DegreesCw
 import androidx.compose.material.icons.filled.Transform
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -67,6 +70,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
@@ -76,6 +80,7 @@ import dev.harrix.hsk.gallery.CameraPhoto
 import dev.harrix.hsk.gallery.NormalizedCropRect
 import dev.harrix.hsk.gallery.NormalizedPerspectiveQuad
 import dev.harrix.hsk.gallery.PhotoEditSaver
+import dev.harrix.hsk.ui.AutoFitText
 import dev.harrix.hsk.ui.OverflowTextTooltipBox
 import dev.harrix.hsk.ui.adaptiveBottomBarWidth
 import dev.harrix.hsk.ui.isCompactHeight
@@ -941,34 +946,36 @@ fun PhotoCropEditor(
                     horizontalArrangement = Arrangement.SpaceEvenly,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    EditToolbarIconButton(
-                        onClick = { rotateCropAspect90() },
-                        icon = Icons.Filled.CropRotate,
-                        label = aspectRotateLabel,
-                        enabled = canEditAspect,
-                    )
-                    if (showThreeFourChip) {
+                    if (!isPerspective) {
                         EditToolbarIconButton(
-                            onClick = {
-                                if (threeFourSelected) {
-                                    applyLockedAspect(originalAspect)
-                                } else {
-                                    applyLockedAspect(AspectThreeFour)
-                                }
-                            },
-                            icon = Icons.Filled.Crop,
-                            label = aspectThreeFourLabel,
+                            onClick = { rotateCropAspect90() },
+                            icon = Icons.Filled.CropRotate,
+                            label = aspectRotateLabel,
                             enabled = canEditAspect,
-                            selected = threeFourSelected,
+                        )
+                        if (showThreeFourChip) {
+                            EditToolbarIconButton(
+                                onClick = {
+                                    if (threeFourSelected) {
+                                        applyLockedAspect(originalAspect)
+                                    } else {
+                                        applyLockedAspect(AspectThreeFour)
+                                    }
+                                },
+                                icon = Icons.Filled.Crop,
+                                label = aspectThreeFourLabel,
+                                enabled = canEditAspect,
+                                selected = threeFourSelected,
+                            )
+                        }
+                        EditToolbarIconButton(
+                            onClick = { toggleFreeAspect() },
+                            icon = Icons.Filled.CropFree,
+                            label = aspectFreeLabel,
+                            enabled = canEditAspect,
+                            selected = freeAspectSelected,
                         )
                     }
-                    EditToolbarIconButton(
-                        onClick = { toggleFreeAspect() },
-                        icon = Icons.Filled.CropFree,
-                        label = aspectFreeLabel,
-                        enabled = canEditAspect,
-                        selected = freeAspectSelected,
-                    )
                     EditToolbarIconButton(
                         onClick = { togglePerspectiveMode() },
                         icon = Icons.Filled.Transform,
@@ -984,25 +991,26 @@ fun PhotoCropEditor(
                             enabled = !isSaving,
                             filled = true,
                         )
+                    } else {
+                        EditToolbarIconButton(
+                            onClick = { onRotationDegreesChange(rotationDegrees - 90f) },
+                            icon = Icons.Filled.Rotate90DegreesCcw,
+                            label = rotateCcwLabel,
+                            enabled = canRotate,
+                        )
+                        EditToolbarIconButton(
+                            onClick = { onRotationDegreesChange(0f) },
+                            icon = Icons.Filled.RestartAlt,
+                            label = resetRotationLabel,
+                            enabled = canResetRotation,
+                        )
+                        EditToolbarIconButton(
+                            onClick = { onRotationDegreesChange(rotationDegrees + 90f) },
+                            icon = Icons.Filled.Rotate90DegreesCw,
+                            label = rotateCwLabel,
+                            enabled = canRotate,
+                        )
                     }
-                    EditToolbarIconButton(
-                        onClick = { onRotationDegreesChange(rotationDegrees - 90f) },
-                        icon = Icons.Filled.Rotate90DegreesCcw,
-                        label = rotateCcwLabel,
-                        enabled = canRotate,
-                    )
-                    EditToolbarIconButton(
-                        onClick = { onRotationDegreesChange(0f) },
-                        icon = Icons.Filled.RestartAlt,
-                        label = resetRotationLabel,
-                        enabled = canResetRotation,
-                    )
-                    EditToolbarIconButton(
-                        onClick = { onRotationDegreesChange(rotationDegrees + 90f) },
-                        icon = Icons.Filled.Rotate90DegreesCw,
-                        label = rotateCwLabel,
-                        enabled = canRotate,
-                    )
                     Box {
                         EditToolbarIconButton(
                             onClick = { moreMenuExpanded = true },
@@ -1149,7 +1157,7 @@ fun PhotoCropEditor(
                 }
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     EditToolbarIconButton(
@@ -1159,7 +1167,7 @@ fun PhotoCropEditor(
                         enabled = !isSaving,
                         outlined = true,
                     )
-                    if (onSaveCopy != null) {
+                    if (onSaveCopy != null && !isPerspective) {
                         EditToolbarIconButton(
                             onClick = onSaveCopy,
                             icon = Icons.Filled.FileCopy,
@@ -1168,13 +1176,33 @@ fun PhotoCropEditor(
                             outlined = true,
                         )
                     }
-                    EditToolbarIconButton(
-                        onClick = onSave,
-                        icon = Icons.Filled.Done,
-                        label = primaryActionLabel,
-                        enabled = !isSaving,
-                        filled = true,
-                    )
+                    if (isPerspective) {
+                        Button(
+                            onClick = onSave,
+                            enabled = !isSaving,
+                            modifier = Modifier.weight(1f),
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Done,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp),
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            AutoFitText(
+                                text = applyPerspectiveLabel,
+                                maxLines = 2,
+                                textAlign = TextAlign.Center,
+                            )
+                        }
+                    } else {
+                        EditToolbarIconButton(
+                            onClick = onSave,
+                            icon = Icons.Filled.Done,
+                            label = saveLabel,
+                            enabled = !isSaving,
+                            filled = true,
+                        )
+                    }
                 }
             }
         }
