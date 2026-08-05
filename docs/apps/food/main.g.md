@@ -2631,7 +2631,7 @@ class MainWindow(
 
     def _setup_autocomplete(self) -> None:
         """Set up autocomplete functionality for food name input."""
-        self.food_completer_source_model = QStringListModel(self)
+        self.food_completer_source_model = QStandardItemModel(self)
         self.food_completer_proxy = FoodNameAutocompleteProxyModel(self)
         self.food_completer_proxy.setSourceModel(self.food_completer_source_model)
 
@@ -3193,10 +3193,14 @@ class MainWindow(
         try:
             log_names = self.db_manager.get_recent_food_names_for_autocomplete(self.name_autocomplete_log_limit)
             item_names = self.db_manager.get_food_item_names_for_autocomplete()
-            merged_names = list(dict.fromkeys(log_names + item_names))
+            merged_entries = database_manager.merge_food_autocomplete_entries(log_names, item_names)
 
             if self.food_completer_source_model is not None:
-                self.food_completer_source_model.setStringList(merged_names)
+                self.food_completer_source_model.clear()
+                for entry in merged_entries:
+                    item = QStandardItem(entry.name)
+                    item.setData(entry.name_en or "", Qt.ItemDataRole.UserRole)
+                    self.food_completer_source_model.appendRow(item)
                 self.food_completer_proxy.invalidateFilter()
 
         except Exception:

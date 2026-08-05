@@ -144,6 +144,8 @@ class MainWindow(
 
         # Track whether account double-click handler is connected
         self._account_double_click_connected: bool = False
+        self._category_double_click_connected: bool = False
+        self._category_edit_dialog_open: bool = False
 
         # Toggle for showing all records vs last self.count_transactions_to_show
         initial_count, load_more_count = get_apps_list_limits(self._app_config)
@@ -207,7 +209,7 @@ class MainWindow(
             "categories": (
                 self.tableView_categories,
                 "categories",
-                ["Name", "Type", "Icon"],
+                ["Name", "Type"],
             ),
             "accounts": (
                 self.tableView_accounts,
@@ -1464,6 +1466,32 @@ class MainWindow(
         revision_rows = self.db_manager.get_revision_expense_transactions(currency_id)
         return plan_revision_expense_consolidation_for_positive_diff(revision_rows, diff_minor) is not None
 
+    def _category_id_from_table_index(self, index: QModelIndex) -> int | None:
+        """Return category database ID for a categories table model index."""
+        if not index.isValid():
+            return None
+
+        proxy_model = self.models.get("categories")
+        if proxy_model is None:
+            return None
+
+        source_model = proxy_model.sourceModel()
+        if source_model is None or not isinstance(source_model, QStandardItemModel):
+            return None
+
+        source_index = proxy_model.mapToSource(index)
+        if not source_index.isValid():
+            return None
+
+        row_id_item = source_model.verticalHeaderItem(source_index.row())
+        if row_id_item is None:
+            return None
+
+        try:
+            return int(row_id_item.text())
+        except (TypeError, ValueError):
+            return None
+
     @staticmethod
     def _chart_date_nums(x_values: list[datetime]) -> list[float]:
         return list(date2num(x_values))
@@ -1711,6 +1739,12 @@ class MainWindow(
         # Add context menu for transactions table
         self.tableView_transactions.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.tableView_transactions.customContextMenuRequested.connect(self._show_transactions_context_menu)
+
+        # Categories table: read-only; edit via double-click / context menu dialog
+        self.tableView_categories.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.tableView_categories.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.tableView_categories.customContextMenuRequested.connect(self._show_categories_table_context_menu)
+        self.tableView_categories.setSortingEnabled(True)
 
         # Install event filter to track mouse events on transactions table
         self.tableView_transactions.viewport().installEventFilter(self)
@@ -2625,17 +2659,32 @@ class MainWindow(
         self._account_double_click_connected = True
 
     def _load_categories_table(self) -> None:
-        """Load categories table."""
+        """Load categories table (read-only; icon shown with name)."""
+        if self.db_manager is None:
+            return
 
-        def transform(rows: list) -> list[list]:
-            result: list[list] = []
-            for row in rows:
-                type_str: str = "Expense" if row[2] == 0 else "Income"
-                color: QColor = QColor(255, 200, 200) if row[2] == 0 else QColor(200, 255, 200)
-                result.append([row[1], type_str, row[3], row[0], color])
-            return result
+        rows: list[tuple[str, str, int, str, object, object]] = []
+        for row in self.db_manager.get_all_categories():
+            category_id, name, category_type, icon = row[0], str(row[1] or ""), int(row[2] or 0), str(row[3] or "")
+            type_label = "Expense" if category_type == 0 else "Income"
+            color = QColor(255, 200, 200) if category_type == 0 else QColor(200, 255, 200)
+            display_name = f"{icon} {name}".strip() if icon else name
+            rows.append((display_name, type_label, category_type, name, color, category_id))
 
-        self._load_simple_colored_table("categories", self.db_manager.get_all_categories, transform)
+        headers = self.table_config["categories"][2]
+        table_model = create_categories_table_proxy_model(rows, headers)
+        self.models["categories"] = table_model
+        self._set_table_model_and_stretch_columns(self.tableView_categories, table_model)
+        self.tableView_categories.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.tableView_categories.setSortingEnabled(True)
+
+        if self._category_double_click_connected:
+            with contextlib.suppress(TypeError, RuntimeError):
+                self.tableView_categories.doubleClicked.disconnect(self._on_category_double_clicked)
+            self._category_double_click_connected = False
+
+        self.tableView_categories.doubleClicked.connect(self._on_category_double_clicked)
+        self._category_double_click_connected = True
 
     def _load_currencies_table(self) -> None:
         """Load currencies table."""
@@ -3157,6 +3206,12 @@ class MainWindow(
         self._close_balance_check_toast()
         logger.error("%s", f"Error in test balance: {error_message}")
         message_box.warning(self, "Error", f"Error: {error_message}")
+
+    def _on_category_double_clicked(self, index: QModelIndex) -> None:
+        """Open category edit dialog on double-click."""
+        if not index.isValid():
+            return
+        self._open_category_edit_dialog_for_index(index)
 
     def _on_check_completed(self, currencies_to_process: list) -> None:
         """Handle successful completion of exchange rate check.
@@ -3781,6 +3836,65 @@ class MainWindow(
         self.doubleSpinBox_amount.setValue(result)
         self.doubleSpinBox_amount.setFocus()
         self.doubleSpinBox_amount.selectAll()
+
+    def _open_category_edit_dialog_by_id(self, category_id: int) -> None:
+        """Open edit dialog for category with database `category_id`."""
+        if self._category_edit_dialog_open:
+            return
+
+        if not self._validate_database_connection() or self.db_manager is None:
+            return
+
+        category_data = self.db_manager.get_category_by_id(category_id)
+        if not category_data:
+            message_box.warning(self, "Error", "Category not found")
+            return
+
+        category_dict = {
+            "id": category_data[0],
+            "name": category_data[1] or "",
+            "type": int(category_data[2] or 0),
+            "icon": category_data[3] or "",
+        }
+
+        self._category_edit_dialog_open = True
+        dialog = CategoryEditDialog(self, category_dict)
+        result_code = dialog.exec()
+        self._category_edit_dialog_open = False
+
+        if result_code != QDialog.DialogCode.Accepted:
+            return
+
+        result = dialog.get_result()
+        if result.get("action") == "save":
+            success = self.db_manager.update_category(
+                category_id,
+                result["name"],
+                int(result["type"]),
+                result.get("icon", "") or "",
+            )
+            if success:
+                self._mark_categories_changed()
+                self.update_all()
+            else:
+                message_box.warning(self, "Error", "Failed to update category")
+            return
+
+        if result.get("action") == "delete":
+            success = self.db_manager.delete_category(category_id)
+            if success:
+                self._mark_categories_changed()
+                self.update_all()
+                message_box.information(self, "Success", "Category deleted successfully")
+            else:
+                message_box.warning(self, "Error", "Failed to delete category")
+
+    def _open_category_edit_dialog_for_index(self, index: QModelIndex) -> None:
+        """Open edit dialog for the category row at `index`."""
+        category_id = self._category_id_from_table_index(index)
+        if category_id is None:
+            return
+        self._open_category_edit_dialog_by_id(category_id)
 
     def _open_text_input_dialog(
         self,
@@ -4739,6 +4853,18 @@ class MainWindow(
         filter_action.triggered.connect(lambda: self._filter_by_category_from_table(category_value))
         context_menu.exec_(self.listView_categories.mapToGlobal(position))
 
+    def _show_categories_table_context_menu(self, position: QPoint) -> None:
+        """Show context menu on categories table with Edit action."""
+        index = self.tableView_categories.indexAt(position)
+        category_id = self._category_id_from_table_index(index)
+        if category_id is None:
+            return
+
+        context_menu = QMenu(self)
+        edit_action = context_menu.addAction("✏️ Edit category")
+        edit_action.triggered.connect(partial(self._open_category_edit_dialog_by_id, category_id))
+        context_menu.exec_(self.tableView_categories.viewport().mapToGlobal(position))
+
     def _show_category_label_context_menu(self, position: QPoint) -> None:
         """Show context menu on the category label with all available categories.
 
@@ -5640,6 +5766,8 @@ def __init__(self, *, hide_on_close: bool = False) -> None:
 
         # Track whether account double-click handler is connected
         self._account_double_click_connected: bool = False
+        self._category_double_click_connected: bool = False
+        self._category_edit_dialog_open: bool = False
 
         # Toggle for showing all records vs last self.count_transactions_to_show
         initial_count, load_more_count = get_apps_list_limits(self._app_config)
@@ -5703,7 +5831,7 @@ def __init__(self, *, hide_on_close: bool = False) -> None:
             "categories": (
                 self.tableView_categories,
                 "categories",
-                ["Name", "Type", "Icon"],
+                ["Name", "Type"],
             ),
             "accounts": (
                 self.tableView_accounts,

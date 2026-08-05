@@ -54,7 +54,6 @@ class AutoSaveOperations(AutoSaveMixin):
         """Return map of table name to save handler `(model, row, row_id) -> None`."""
         return {
             "transactions": self._save_transaction_data,
-            "categories": self._save_category_data,
             "accounts": self._save_account_data,
             "currencies": self._save_currency_data,
             "currency_exchanges": self._save_exchange_data,
@@ -108,43 +107,6 @@ class AutoSaveOperations(AutoSaveMixin):
         else:
             # Update related UI elements
             self._update_comboboxes()
-
-    def _save_category_data(self, model: QStandardItemModel, row: int, row_id: str) -> None:
-        """Save category data.
-
-        Args:
-
-        - `model` (`QStandardItemModel`): The model containing the data.
-        - `row` (`int`): Row index.
-        - `row_id` (`str`): Database ID of the row.
-
-        """
-        name = model.data(model.index(row, 0)) or ""
-        type_str = model.data(model.index(row, 1)) or "0"
-        icon = model.data(model.index(row, 2)) or ""
-
-        # Validate category name
-        if not name.strip():
-            self._show_validation_error("Category name cannot be empty")
-            return
-
-        # Convert type to int and validate
-        try:
-            category_type = int(type_str)
-        except (ValueError, TypeError):
-            self._show_validation_error(f"Invalid category type: {type_str}")
-            return
-        if category_type not in (0, 1):
-            self._show_validation_error("Type must be 0 or 1")
-            return
-
-        # Update database
-        if not self.db_manager.update_category(int(row_id), name.strip(), category_type, icon.strip()):
-            self._show_db_error("Failed to save category record")
-        else:
-            # Update related UI elements
-            self._update_comboboxes()
-            self.update_filter_comboboxes()
 
     def _save_currency_data(self, model: QStandardItemModel, row: int, row_id: str) -> None:
         """Save currency data.

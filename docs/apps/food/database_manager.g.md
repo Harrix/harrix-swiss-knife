@@ -39,8 +39,10 @@ lang: en
   - [⚙️ Method `update_food_log_name_en_by_name`](#%EF%B8%8F-method-update_food_log_name_en_by_name)
   - [⚙️ Method `update_food_log_record`](#%EF%B8%8F-method-update_food_log_record)
   - [⚙️ Method `update_food_log_weight_and_calories`](#%EF%B8%8F-method-update_food_log_weight_and_calories)
+- [🏛️ Class `FoodAutocompleteEntry`](#%EF%B8%8F-class-foodautocompleteentry)
 - [🏛️ Class `FoodItemByNameRow`](#%EF%B8%8F-class-fooditembynamerow)
 - [🏛️ Class `FoodLogItemByNameRow`](#%EF%B8%8F-class-foodlogitembynamerow)
+- [🔧 Function `merge_food_autocomplete_entries`](#-function-merge_food_autocomplete_entries)
 
 </details>
 
@@ -386,20 +388,20 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             default_portion_calories=float(row[6]) if row[6] not in (None, "") else None,
         )
 
-    def get_food_item_names_for_autocomplete(self) -> list[str]:
-        """Get all food item names for autocomplete functionality.
+    def get_food_item_names_for_autocomplete(self) -> list[FoodAutocompleteEntry]:
+        """Get all food item names (with English names) for autocomplete.
 
         Returns:
 
-        - `list[str]`: List of food item names from the catalog, sorted alphabetically.
+        - `list[FoodAutocompleteEntry]`: Catalog entries sorted alphabetically by name.
 
         """
         rows = self.get_rows("""
-            SELECT name FROM food_items
+            SELECT name, name_en FROM food_items
             WHERE name IS NOT NULL AND name != ''
             ORDER BY name ASC
         """)
-        return [row[0] for row in rows if row[0]]
+        return [_food_autocomplete_entry_from_row(row) for row in rows if row and row[0]]
 
     def get_food_log_item_by_name(self, name: str) -> FoodLogItemByNameRow | None:
         """Get food item data by name from food_log table (most recent record).
@@ -573,8 +575,8 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             {"limit": limit, "offset": offset},
         )
 
-    def get_recent_food_names_for_autocomplete(self, limit: int = 1000) -> list[str]:
-        """Get recent unique food names for autocomplete functionality.
+    def get_recent_food_names_for_autocomplete(self, limit: int = 1000) -> list[FoodAutocompleteEntry]:
+        """Get recent unique food names (with English names) for autocomplete.
 
         Args:
 
@@ -582,21 +584,26 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `list[str]`: List of unique food names from recent records.
+        - `list[FoodAutocompleteEntry]`: Unique names from recent log rows, sorted by name.
 
         """
         query = """
-            SELECT DISTINCT name
-            FROM (
-                SELECT name FROM food_log
-                WHERE name IS NOT NULL AND name != ''
-                ORDER BY date DESC, _id DESC
-                LIMIT :limit
-            ) as recent_foods
-            ORDER BY name ASC
+            SELECT name, name_en
+            FROM food_log
+            WHERE name IS NOT NULL AND name != ''
+            ORDER BY date DESC, _id DESC
+            LIMIT :limit
         """
         rows = self.get_rows(query, {"limit": limit})
-        return [row[0] for row in rows if row[0]]
+        by_name: dict[str, str | None] = {}
+        for row in rows:
+            if not row or not row[0]:
+                continue
+            _put_autocomplete_name(by_name, str(row[0]), _normalize_optional_name_en(row[1]))
+        return [
+            FoodAutocompleteEntry(name=name, name_en=name_en)
+            for name, name_en in sorted(by_name.items(), key=lambda item: item[0].casefold())
+        ]
 
     def get_unique_food_log_names_missing_name_en(self, *, limit: int = 1000) -> list[str]:
         """Return distinct Russian names from food_log rows missing English name.
@@ -1317,26 +1324,26 @@ def get_food_item_by_name(self, name: str) -> FoodItemByNameRow | None:
 ### ⚙️ Method `get_food_item_names_for_autocomplete`
 
 ```python
-def get_food_item_names_for_autocomplete(self) -> list[str]
+def get_food_item_names_for_autocomplete(self) -> list[FoodAutocompleteEntry]
 ```
 
-Get all food item names for autocomplete functionality.
+Get all food item names (with English names) for autocomplete.
 
 Returns:
 
-- `list[str]`: List of food item names from the catalog, sorted alphabetically.
+- `list[FoodAutocompleteEntry]`: Catalog entries sorted alphabetically by name.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def get_food_item_names_for_autocomplete(self) -> list[str]:
+def get_food_item_names_for_autocomplete(self) -> list[FoodAutocompleteEntry]:
         rows = self.get_rows("""
-            SELECT name FROM food_items
+            SELECT name, name_en FROM food_items
             WHERE name IS NOT NULL AND name != ''
             ORDER BY name ASC
         """)
-        return [row[0] for row in rows if row[0]]
+        return [_food_autocomplete_entry_from_row(row) for row in rows if row and row[0]]
 ```
 
 </details>
@@ -1576,10 +1583,10 @@ def get_recent_food_log_records(self, limit: int = 5000, offset: int = 0) -> lis
 ### ⚙️ Method `get_recent_food_names_for_autocomplete`
 
 ```python
-def get_recent_food_names_for_autocomplete(self, limit: int = 1000) -> list[str]
+def get_recent_food_names_for_autocomplete(self, limit: int = 1000) -> list[FoodAutocompleteEntry]
 ```
 
-Get recent unique food names for autocomplete functionality.
+Get recent unique food names (with English names) for autocomplete.
 
 Args:
 
@@ -1587,25 +1594,30 @@ Args:
 
 Returns:
 
-- `list[str]`: List of unique food names from recent records.
+- `list[FoodAutocompleteEntry]`: Unique names from recent log rows, sorted by name.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def get_recent_food_names_for_autocomplete(self, limit: int = 1000) -> list[str]:
+def get_recent_food_names_for_autocomplete(self, limit: int = 1000) -> list[FoodAutocompleteEntry]:
         query = """
-            SELECT DISTINCT name
-            FROM (
-                SELECT name FROM food_log
-                WHERE name IS NOT NULL AND name != ''
-                ORDER BY date DESC, _id DESC
-                LIMIT :limit
-            ) as recent_foods
-            ORDER BY name ASC
+            SELECT name, name_en
+            FROM food_log
+            WHERE name IS NOT NULL AND name != ''
+            ORDER BY date DESC, _id DESC
+            LIMIT :limit
         """
         rows = self.get_rows(query, {"limit": limit})
-        return [row[0] for row in rows if row[0]]
+        by_name: dict[str, str | None] = {}
+        for row in rows:
+            if not row or not row[0]:
+                continue
+            _put_autocomplete_name(by_name, str(row[0]), _normalize_optional_name_en(row[1]))
+        return [
+            FoodAutocompleteEntry(name=name, name_en=name_en)
+            for name, name_en in sorted(by_name.items(), key=lambda item: item[0].casefold())
+        ]
 ```
 
 </details>
@@ -1903,6 +1915,26 @@ def update_food_log_weight_and_calories(
 
 </details>
 
+## 🏛️ Class `FoodAutocompleteEntry`
+
+```python
+class FoodAutocompleteEntry
+```
+
+Name pair used by food name autocomplete.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class FoodAutocompleteEntry:
+
+    name: str
+    name_en: str | None
+```
+
+</details>
+
 ## 🏛️ Class `FoodItemByNameRow`
 
 ```python
@@ -1948,6 +1980,30 @@ class FoodLogItemByNameRow:
     calories_per_100g: float | None
     weight: float | None
     portion_calories: float | None
+```
+
+</details>
+
+## 🔧 Function `merge_food_autocomplete_entries`
+
+```python
+def merge_food_autocomplete_entries(primary: list[FoodAutocompleteEntry], secondary: list[FoodAutocompleteEntry]) -> list[FoodAutocompleteEntry]
+```
+
+Merge autocomplete entries, keeping primary order and filling empty English names.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def merge_food_autocomplete_entries(
+    primary: list[FoodAutocompleteEntry],
+    secondary: list[FoodAutocompleteEntry],
+) -> list[FoodAutocompleteEntry]:
+    merged: dict[str, str | None] = {}
+    for entry in primary + secondary:
+        _put_autocomplete_name(merged, entry.name, entry.name_en)
+    return [FoodAutocompleteEntry(name=name, name_en=name_en) for name, name_en in merged.items()]
 ```
 
 </details>
