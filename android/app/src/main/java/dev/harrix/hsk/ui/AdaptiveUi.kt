@@ -19,6 +19,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -96,6 +100,7 @@ fun RowScope.CompactBottomActionButton(
             ButtonDefaults.buttonColors()
         },
 ) {
+    var labelOverflows by remember(label) { mutableStateOf(false) }
     val content: @Composable () -> Unit = {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -114,34 +119,41 @@ fun RowScope.CompactBottomActionButton(
                 style = MaterialTheme.typography.labelLarge,
                 maxLines = 2,
                 textAlign = TextAlign.Center,
+                enableOverflowTooltip = false,
+                onOverflowChange = { labelOverflows = it },
             )
         }
     }
-    val buttonModifier =
-        modifier
-            .weight(1f)
-            .heightIn(min = 56.dp)
+    val buttonModifier = Modifier
+        .fillMaxWidth()
+        .heightIn(min = 56.dp)
     val padding = PaddingValues(horizontal = 8.dp, vertical = 10.dp)
-    if (outlined) {
-        OutlinedButton(
-            onClick = onClick,
-            enabled = enabled,
-            modifier = buttonModifier,
-            shape = ActionButtonShape,
-            contentPadding = padding,
-            colors = colors,
-            content = { content() },
-        )
-    } else {
-        Button(
-            onClick = onClick,
-            enabled = enabled,
-            modifier = buttonModifier,
-            shape = ActionButtonShape,
-            contentPadding = padding,
-            colors = colors,
-            content = { content() },
-        )
+    OverflowTextTooltipBox(
+        text = label,
+        enabled = labelOverflows,
+        modifier = modifier.weight(1f),
+    ) {
+        if (outlined) {
+            OutlinedButton(
+                onClick = onClick,
+                enabled = enabled,
+                modifier = buttonModifier,
+                shape = ActionButtonShape,
+                contentPadding = padding,
+                colors = colors,
+                content = { content() },
+            )
+        } else {
+            Button(
+                onClick = onClick,
+                enabled = enabled,
+                modifier = buttonModifier,
+                shape = ActionButtonShape,
+                contentPadding = padding,
+                colors = colors,
+                content = { content() },
+            )
+        }
     }
 }
 
@@ -172,57 +184,64 @@ fun CompactWideActionButton(
     colors: ButtonColors = ButtonDefaults.buttonColors(),
 ) {
     val compact = isCompactWidth()
-    Button(
-        onClick = onClick,
-        enabled = enabled,
-        modifier = modifier
-            .fillMaxWidth()
-            .heightIn(min = if (compact) 64.dp else 56.dp),
-        shape = ActionButtonShape,
-        contentPadding =
-        PaddingValues(
-            horizontal = if (compact) 12.dp else 16.dp,
-            vertical = 10.dp,
-        ),
-        colors = colors,
-    ) {
-        if (compact) {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(2.dp),
-            ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    modifier = Modifier.size(20.dp),
-                )
-                AutoFitText(
-                    text = label,
-                    style = MaterialTheme.typography.labelLarge,
-                    maxLines = 2,
-                    textAlign = TextAlign.Center,
-                )
-            }
-        } else {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center,
-            ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp),
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                AutoFitText(
-                    text = label,
-                    modifier = Modifier.weight(1f, fill = false),
-                    style = MaterialTheme.typography.labelLarge,
-                    maxLines = 2,
-                    textAlign = TextAlign.Center,
-                )
+    var labelOverflows by remember(label) { mutableStateOf(false) }
+    OverflowTextTooltipBox(text = label, enabled = labelOverflows) {
+        Button(
+            onClick = onClick,
+            enabled = enabled,
+            modifier = modifier
+                .fillMaxWidth()
+                .heightIn(min = if (compact) 64.dp else 56.dp),
+            shape = ActionButtonShape,
+            contentPadding =
+            PaddingValues(
+                horizontal = if (compact) 12.dp else 16.dp,
+                vertical = 10.dp,
+            ),
+            colors = colors,
+        ) {
+            if (compact) {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                ) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp),
+                    )
+                    AutoFitText(
+                        text = label,
+                        style = MaterialTheme.typography.labelLarge,
+                        maxLines = 2,
+                        textAlign = TextAlign.Center,
+                        enableOverflowTooltip = false,
+                        onOverflowChange = { labelOverflows = it },
+                    )
+                }
+            } else {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center,
+                ) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    AutoFitText(
+                        text = label,
+                        modifier = Modifier.weight(1f, fill = false),
+                        style = MaterialTheme.typography.labelLarge,
+                        maxLines = 2,
+                        textAlign = TextAlign.Center,
+                        enableOverflowTooltip = false,
+                        onOverflowChange = { labelOverflows = it },
+                    )
+                }
             }
         }
     }

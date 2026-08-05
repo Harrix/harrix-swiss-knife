@@ -120,6 +120,7 @@ import dev.harrix.hsk.gallery.GalleryPermissions
 import dev.harrix.hsk.gallery.VideoCleanerPreferences
 import dev.harrix.hsk.ui.AutoFitText
 import dev.harrix.hsk.ui.CompactWideActionButton
+import dev.harrix.hsk.ui.OverflowTextTooltipBox
 import dev.harrix.hsk.ui.adaptiveBottomBarWidth
 import dev.harrix.hsk.ui.isCompactWidth
 import dev.harrix.hsk.ui.isTablet
@@ -734,38 +735,47 @@ private fun VideoSelectionTextButton(
     enabled: Boolean = true,
     compact: Boolean = false,
 ) {
+    var labelOverflows by remember(label) { mutableStateOf(false) }
     val button: @Composable () -> Unit = {
-        TextButton(
-            onClick = onClick,
-            enabled = enabled,
-            modifier =
-            modifier.heightIn(
-                min = if (compact) 28.dp else 40.dp,
-            ),
-            contentPadding =
-            PaddingValues(
-                horizontal = if (compact) 6.dp else 8.dp,
-                vertical = if (compact) 2.dp else 4.dp,
-            ),
+        OverflowTextTooltipBox(
+            text = label,
+            enabled = labelOverflows,
+            modifier = modifier,
         ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                modifier = Modifier.size(if (compact) 16.dp else 18.dp),
-            )
-            Spacer(modifier = Modifier.width(4.dp))
-            AutoFitText(
-                text = label,
-                modifier = Modifier.weight(1f, fill = false),
-                maxLines = 2,
-                textAlign = TextAlign.Center,
-                style =
-                if (compact) {
-                    MaterialTheme.typography.labelLarge
-                } else {
-                    LocalTextStyle.current
-                },
-            )
+            TextButton(
+                onClick = onClick,
+                enabled = enabled,
+                modifier =
+                Modifier.heightIn(
+                    min = if (compact) 28.dp else 40.dp,
+                ),
+                contentPadding =
+                PaddingValues(
+                    horizontal = if (compact) 6.dp else 8.dp,
+                    vertical = if (compact) 2.dp else 4.dp,
+                ),
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    modifier = Modifier.size(if (compact) 16.dp else 18.dp),
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                AutoFitText(
+                    text = label,
+                    modifier = Modifier.weight(1f, fill = false),
+                    maxLines = 2,
+                    textAlign = TextAlign.Center,
+                    style =
+                    if (compact) {
+                        MaterialTheme.typography.labelLarge
+                    } else {
+                        LocalTextStyle.current
+                    },
+                    enableOverflowTooltip = false,
+                    onOverflowChange = { labelOverflows = it },
+                )
+            }
         }
     }
     if (compact) {

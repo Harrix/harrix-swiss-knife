@@ -70,6 +70,7 @@ import dev.harrix.hsk.gallery.NormalizedCropRect
 import dev.harrix.hsk.gallery.PhotoEditSaver
 import dev.harrix.hsk.ui.AutoFitText
 import dev.harrix.hsk.ui.CompactBottomActionButton
+import dev.harrix.hsk.ui.OverflowTextTooltipBox
 import dev.harrix.hsk.ui.adaptiveBottomBarWidth
 import dev.harrix.hsk.ui.isCompactHeight
 import dev.harrix.hsk.ui.isCompactWidth
@@ -573,64 +574,76 @@ fun PhotoCropEditor(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     if (showTrimBars) {
-                        FilledTonalButton(
-                            onClick = { trimEmptyZones() },
-                        ) {
-                            Icon(
-                                imageVector = Icons.Filled.Crop,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp),
+                        val trimLabel =
+                            stringResource(
+                                if (compactChrome) {
+                                    R.string.gallery_cleaner_edit_trim_empty_short
+                                } else {
+                                    R.string.gallery_cleaner_edit_trim_empty
+                                },
                             )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            AutoFitText(
-                                text =
-                                stringResource(
-                                    if (compactChrome) {
-                                        R.string.gallery_cleaner_edit_trim_empty_short
-                                    } else {
-                                        R.string.gallery_cleaner_edit_trim_empty
-                                    },
-                                ),
-                                maxLines = 2,
-                            )
+                        var trimOverflows by remember(trimLabel) { mutableStateOf(false) }
+                        OverflowTextTooltipBox(text = trimLabel, enabled = trimOverflows) {
+                            FilledTonalButton(
+                                onClick = { trimEmptyZones() },
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.Crop,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp),
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                AutoFitText(
+                                    text = trimLabel,
+                                    maxLines = 2,
+                                    enableOverflowTooltip = false,
+                                    onOverflowChange = { trimOverflows = it },
+                                )
+                            }
                         }
                     }
                     if (isViewTransformed) {
-                        FilledTonalButton(
-                            onClick = {
-                                val visible =
-                                    visibleWorkspaceNormalized(
-                                        viewportW = viewportW,
-                                        viewportH = viewportH,
-                                        side = workspace.width,
-                                        scale = viewScale,
-                                        offset = viewOffset,
+                        val fitLabel =
+                            stringResource(
+                                if (compactChrome) {
+                                    R.string.gallery_cleaner_edit_fit_frame_short
+                                } else {
+                                    R.string.gallery_cleaner_edit_fit_frame
+                                },
+                            )
+                        var fitOverflows by remember(fitLabel) { mutableStateOf(false) }
+                        OverflowTextTooltipBox(text = fitLabel, enabled = fitOverflows) {
+                            FilledTonalButton(
+                                onClick = {
+                                    val visible =
+                                        visibleWorkspaceNormalized(
+                                            viewportW = viewportW,
+                                            viewportH = viewportH,
+                                            side = workspace.width,
+                                            scale = viewScale,
+                                            offset = viewOffset,
+                                        )
+                                    onCropRectChange(
+                                        PhotoEditSaver.fitCropIntoBounds(
+                                            rect = cropRect,
+                                            bounds = visible,
+                                        ),
                                     )
-                                onCropRectChange(
-                                    PhotoEditSaver.fitCropIntoBounds(
-                                        rect = cropRect,
-                                        bounds = visible,
-                                    ),
+                                },
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.FitScreen,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp),
                                 )
-                            },
-                        ) {
-                            Icon(
-                                imageVector = Icons.Filled.FitScreen,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp),
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            AutoFitText(
-                                text =
-                                stringResource(
-                                    if (compactChrome) {
-                                        R.string.gallery_cleaner_edit_fit_frame_short
-                                    } else {
-                                        R.string.gallery_cleaner_edit_fit_frame
-                                    },
-                                ),
-                                maxLines = 2,
-                            )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                AutoFitText(
+                                    text = fitLabel,
+                                    maxLines = 2,
+                                    enableOverflowTooltip = false,
+                                    onOverflowChange = { fitOverflows = it },
+                                )
+                            }
                         }
                     }
                 }
