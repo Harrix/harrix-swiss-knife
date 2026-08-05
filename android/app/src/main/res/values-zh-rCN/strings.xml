@@ -122,7 +122,7 @@
     <string name="gallery_cleaner_card_description">查看相机照片。滑动或点击即可删除或保留。</string>
     <string name="video_cleaner_card_description">按日期列出相机视频并删除选定的视频。</string>
     <string name="photo_editor_card_description">裁剪并校正照片。可从应用打开，或将图片分享到此处。</string>
-    <string name="speech_to_text_card_description">Record speech, recognize with BotHub, then fix or rewrite the text.</string>
+    <string name="speech_to_text_card_description">Record speech, recognize with AI, then fix or rewrite the text.</string>
     <string name="medicine_search_card_description">Ask about symptoms; BotHub suggests medicines from your Markdown list or what to buy.</string>
     <string name="medicine_search_title">Medicine Search</string>
     <string name="medicine_search_close">Exit Medicine Search</string>
@@ -182,10 +182,10 @@
     <string name="speech_to_text_rewrite">Rewrite with AI</string>
     <string name="speech_to_text_single_line">To single line</string>
     <string name="speech_to_text_record_new">Record new</string>
-    <string name="speech_to_text_error_title">BotHub Error</string>
+    <string name="speech_to_text_error_title">AI Error</string>
     <string name="speech_to_text_error_ok">OK</string>
     <string name="speech_to_text_permission_denied">Microphone permission is required to record speech.</string>
-    <string name="speech_to_text_missing_api_key">BotHub API key is missing. Create api-keys/bothub-api-key.txt (or set BOTHUB_API_KEY) and rebuild the APK.</string>
+    <string name="speech_to_text_missing_api_key">AI API key is missing. Create api-keys/bothub-api-key.txt (or set BOTHUB_API_KEY) and rebuild the APK.</string>
     <string name="photo_editor_share_label">Harrix Photo Editor</string>
     <string name="photo_editor_title">Photo Editor</string>
     <string name="photo_editor_close">退出 Photo Editor</string>

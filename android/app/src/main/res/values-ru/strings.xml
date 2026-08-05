@@ -122,7 +122,7 @@
     <string name="gallery_cleaner_card_description">Просмотр фотографий с камеры. Проведите пальцем по экрану или коснитесь, чтобы удалить или сохранить.</string>
     <string name="video_cleaner_card_description">Список видео с камеры по дате и удаление выбранных.</string>
     <string name="photo_editor_card_description">Обрезка и выравнивание фото. Откройте из приложения или поделитесь изображением сюда.</string>
-    <string name="speech_to_text_card_description">Запись речи, распознавание через BotHub, затем фиксация или рерайт текста.</string>
+    <string name="speech_to_text_card_description">Запись речи, распознавание через AI, затем правка или рерайт текста.</string>
     <string name="medicine_search_card_description">Спросите о симптомах — BotHub подскажет по вашему Markdown-списку или что купить.</string>
     <string name="medicine_search_title">Поиск по лекарствам</string>
     <string name="medicine_search_close">Выйти из поиска по лекарствам</string>
@@ -182,10 +182,10 @@
     <string name="speech_to_text_rewrite">Рерайт с AI</string>
     <string name="speech_to_text_single_line">В одну строку</string>
     <string name="speech_to_text_record_new">Новая запись</string>
-    <string name="speech_to_text_error_title">Ошибка BotHub</string>
+    <string name="speech_to_text_error_title">Ошибка AI</string>
     <string name="speech_to_text_error_ok">OK</string>
     <string name="speech_to_text_permission_denied">Для записи речи нужен доступ к микрофону.</string>
-    <string name="speech_to_text_missing_api_key">Нет API-ключа BotHub. Создайте api-keys/bothub-api-key.txt (или задайте BOTHUB_API_KEY) и пересоберите APK.</string>
+    <string name="speech_to_text_missing_api_key">Нет API-ключа AI. Создайте api-keys/bothub-api-key.txt (или задайте BOTHUB_API_KEY) и пересоберите APK.</string>
     <string name="photo_editor_share_label">Harrix Photo Editor</string>
     <string name="photo_editor_title">Photo Editor</string>
     <string name="photo_editor_close">Выйти из Photo Editor</string>

@@ -122,7 +122,7 @@
     <string name="gallery_cleaner_card_description">Перегляньте фотографії, зроблені з камери. Проведіть пальцем або торкніться, щоб видалити їх або зберегти.</string>
     <string name="video_cleaner_card_description">Відобразіть відео з камери за датою та видаліть вибрані з них.</string>
     <string name="photo_editor_card_description">Обрізайте і вирівнюйте фотографію. Відкрийте зображення з програми або поділіться ним тут.</string>
-    <string name="speech_to_text_card_description">Record speech, recognize with BotHub, then fix or rewrite the text.</string>
+    <string name="speech_to_text_card_description">Запис мови, розпізнавання через AI, потім виправлення або рерайт тексту.</string>
     <string name="medicine_search_card_description">Запитайте про симптоми — BotHub підкаже за вашим Markdown-списком або що купити.</string>
     <string name="medicine_search_title">Пошук за ліками</string>
     <string name="medicine_search_close">Вийти з пошуку за ліками</string>
@@ -182,10 +182,10 @@
     <string name="speech_to_text_rewrite">Rewrite with AI</string>
     <string name="speech_to_text_single_line">To single line</string>
     <string name="speech_to_text_record_new">Record new</string>
-    <string name="speech_to_text_error_title">BotHub Error</string>
+    <string name="speech_to_text_error_title">Помилка AI</string>
     <string name="speech_to_text_error_ok">OK</string>
     <string name="speech_to_text_permission_denied">Microphone permission is required to record speech.</string>
-    <string name="speech_to_text_missing_api_key">BotHub API key is missing. Create api-keys/bothub-api-key.txt (or set BOTHUB_API_KEY) and rebuild the APK.</string>
+    <string name="speech_to_text_missing_api_key">Немає API-ключа AI. Створіть api-keys/bothub-api-key.txt (або задайте BOTHUB_API_KEY) і перезберіть APK.</string>
     <string name="photo_editor_share_label">Harrix Photo Editor</string>
     <string name="photo_editor_title">Photo Editor</string>
     <string name="photo_editor_close">Вийти з Photo Editor</string>

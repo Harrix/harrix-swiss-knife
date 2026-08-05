@@ -36,7 +36,7 @@ class SpeechToTextRepository(
                 audio = bytes to mimeType,
             )
         if (transcribed.isBlank()) {
-            throw BothubApiException("Empty transcription from BotHub")
+            throw BothubApiException("Empty transcription from AI")
         }
         return transcribed
     }
@@ -49,7 +49,7 @@ class SpeechToTextRepository(
                 text = BothubPrompts.buildTextFixPrompt(context, text),
             )
         if (fixed.isBlank()) {
-            throw BothubApiException("Empty response from BotHub")
+            throw BothubApiException("Empty response from AI")
         }
         return fixed
     }
@@ -62,7 +62,7 @@ class SpeechToTextRepository(
                 text = BothubPrompts.buildTextRewritePrompt(context, text),
             )
         if (rewritten.isBlank()) {
-            throw BothubApiException("Empty response from BotHub")
+            throw BothubApiException("Empty response from AI")
         }
         return rewritten
     }
