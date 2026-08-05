@@ -50,14 +50,35 @@ class SpeechToTextViewModel(
     private var recordedMime: String = AudioRecorder.MIME_WAV
     private var workJob: Job? = null
     private var durationJob: Job? = null
+    private val pendingEnvelopes = ArrayDeque<WaveformBucket>()
+    private var envelopeFlushPosted = false
 
     init {
         audioRecorder.setEnvelopeListener { bucket ->
+            synchronized(pendingEnvelopes) {
+                pendingEnvelopes.addLast(bucket)
+                if (envelopeFlushPosted) {
+                    return@setEnvelopeListener
+                }
+                envelopeFlushPosted = true
+            }
             mainHandler.post {
-                if (phase.value != SpeechToTextPhase.Recording) {
+                val batch =
+                    synchronized(pendingEnvelopes) {
+                        envelopeFlushPosted = false
+                        if (pendingEnvelopes.isEmpty()) {
+                            return@post
+                        }
+                        ArrayList<WaveformBucket>(pendingEnvelopes.size).also { out ->
+                            while (pendingEnvelopes.isNotEmpty()) {
+                                out.add(pendingEnvelopes.removeFirst())
+                            }
+                        }
+                    }
+                if (phase.value != SpeechToTextPhase.Recording || batch.isEmpty()) {
                     return@post
                 }
-                waveformBuckets.add(bucket)
+                waveformBuckets.addAll(batch)
             }
         }
     }

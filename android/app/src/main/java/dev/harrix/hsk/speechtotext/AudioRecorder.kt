@@ -62,51 +62,14 @@ class AudioRecorder(
             file.length() > WAV_HEADER_SIZE + MIN_AUDIO_BYTES
     }
 
-    /**
-     * Starts a new recording, or appends to [appendTo] when continuing.
-     */
     @SuppressLint("MissingPermission")
     fun start(appendTo: File? = null): File {
         if (recording.get()) {
             throw AudioRecorderException("Recording already in progress")
         }
-        val minBuf =
-            AudioRecord
-                .getMinBufferSize(SAMPLE_RATE, CHANNEL_CONFIG, ENCODING)
-                .coerceAtLeast(SAMPLE_RATE)
-        val recorder =
-            AudioRecord(
-                MediaRecorder.AudioSource.MIC,
-                SAMPLE_RATE,
-                CHANNEL_CONFIG,
-                ENCODING,
-                minBuf * 2,
-            )
-        if (recorder.state != AudioRecord.STATE_INITIALIZED) {
-            recorder.release()
-            throw AudioRecorderException("Could not initialize microphone")
-        }
-
-        val file: File
-        val startDataOffset: Long
-        if (appendTo != null && appendTo.isFile && appendTo.length() > WAV_HEADER_SIZE) {
-            file = appendTo
-            startDataOffset = appendTo.length()
-            basePcmDataBytes = wavDataSize(appendTo)
-            pcmDataBytes = basePcmDataBytes
-        } else {
-            file =
-                File(
-                    context.cacheDir,
-                    "hsk-speech-${UUID.randomUUID()}.wav",
-                )
-            writeWavHeader(file, dataSize = 0)
-            startDataOffset = WAV_HEADER_SIZE.toLong()
-            basePcmDataBytes = 0L
-            pcmDataBytes = 0L
-            outputFile?.takeIf { it != file }?.delete()
-        }
-        outputFile = file
+        val recorder = createAudioRecord()
+        val prepared = prepareOutputFile(appendTo)
+        outputFile = prepared.file
 
         recording.set(true)
         audioRecord = recorder
@@ -114,11 +77,58 @@ class AudioRecorder(
         writeThread =
             Thread(
                 {
-                    writeLoop(recorder, file, startDataOffset, minBuf)
+                    writeLoop(recorder, prepared.file, prepared.startDataOffset)
                 },
                 "hsk-audio-record",
             ).also { it.start() }
-        return file
+        return prepared.file
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun createAudioRecord(): AudioRecord {
+        val minBuf =
+            AudioRecord.getMinBufferSize(SAMPLE_RATE, CHANNEL_CONFIG, ENCODING)
+        if (minBuf <= 0) {
+            throw AudioRecorderException("Could not initialize microphone")
+        }
+        // Keep the hardware buffer modest so read() returns often (~50 FPS waveform).
+        val recorderBufferBytes = max(minBuf, READ_SAMPLES * BYTES_PER_SAMPLE) * 2
+        val recorder =
+            AudioRecord(
+                MediaRecorder.AudioSource.MIC,
+                SAMPLE_RATE,
+                CHANNEL_CONFIG,
+                ENCODING,
+                recorderBufferBytes,
+            )
+        if (recorder.state != AudioRecord.STATE_INITIALIZED) {
+            recorder.release()
+            throw AudioRecorderException("Could not initialize microphone")
+        }
+        return recorder
+    }
+
+    private data class PreparedOutput(
+        val file: File,
+        val startDataOffset: Long,
+    )
+
+    private fun prepareOutputFile(appendTo: File?): PreparedOutput {
+        if (appendTo != null && appendTo.isFile && appendTo.length() > WAV_HEADER_SIZE) {
+            basePcmDataBytes = wavDataSize(appendTo)
+            pcmDataBytes = basePcmDataBytes
+            return PreparedOutput(file = appendTo, startDataOffset = appendTo.length())
+        }
+        val file =
+            File(
+                context.cacheDir,
+                "hsk-speech-${UUID.randomUUID()}.wav",
+            )
+        writeWavHeader(file, dataSize = 0)
+        basePcmDataBytes = 0L
+        pcmDataBytes = 0L
+        outputFile?.takeIf { it != file }?.delete()
+        return PreparedOutput(file = file, startDataOffset = WAV_HEADER_SIZE.toLong())
     }
 
     /**
@@ -183,9 +193,9 @@ class AudioRecorder(
         recorder: AudioRecord,
         file: File,
         startOffset: Long,
-        bufferSize: Int,
     ) {
-        val buffer = ShortArray(bufferSize / 2)
+        // Small reads so envelopes fire at ~WAVEFORM_FPS like the desktop action.
+        val buffer = ShortArray(READ_SAMPLES)
         val envelope = EnvelopeAccumulator()
         try {
             RandomAccessFile(file, "rw").use { raf ->
@@ -279,11 +289,16 @@ class AudioRecorder(
         const val MIN_AUDIO_BYTES = 512
         const val SAMPLE_RATE = 44_100
         const val LIVE_BUCKET_COUNT = 120
+
+        /** Target live waveform updates per second (desktop action is similarly snappy). */
+        const val WAVEFORM_FPS = 50
         private const val CHANNEL_CONFIG = AudioFormat.CHANNEL_IN_MONO
         private const val ENCODING = AudioFormat.ENCODING_PCM_16BIT
         private const val WAV_HEADER_SIZE = 44
-        private const val BYTES_PER_SECOND = SAMPLE_RATE * 2
-        private const val ENVELOPE_SAMPLES = SAMPLE_RATE / 20
+        private const val BYTES_PER_SAMPLE = 2
+        private const val BYTES_PER_SECOND = SAMPLE_RATE * BYTES_PER_SAMPLE
+        private const val READ_SAMPLES = SAMPLE_RATE / WAVEFORM_FPS
+        private const val ENVELOPE_SAMPLES = READ_SAMPLES
         private const val LEVEL_GAIN = 2f
 
         fun formatDuration(totalSeconds: Float): String {
