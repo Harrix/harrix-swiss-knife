@@ -148,11 +148,12 @@ class OnFixSiteArticleLinkTitles(ActionBase):
             relative_matches = find_relative_site_links(updated, settings)
             for match in reversed(relative_matches):
                 checked_relative += 1
+                loc = _location(md_path, updated, match.start)
                 repo = match.ref.repo_name(settings)
                 if source_lang is not None and is_forbidden_cross_language_link(source_lang, match.ref.lang):
                     cross_lang_count += 1
                     self.add_line(
-                        f"⚠️ {md_path}: English article must not link to Russian article "
+                        f"⚠️ {loc}: English article must not link to Russian article "
                         f"`{repo}/{match.ref.slug}`\n"
                         f"  site: {match.target}"
                     )
@@ -163,7 +164,7 @@ class OnFixSiteArticleLinkTitles(ActionBase):
                 if title is None:
                     missing_count += 1
                     self.add_line(
-                        f"❌ {md_path}: article not found for relative link `{match.target}` → "
+                        f"❌ {loc}: article not found for relative link `{match.target}` → "
                         f"`{repo}/{match.ref.slug}/{match.ref.slug}.md`"
                     )
                     continue
@@ -171,11 +172,12 @@ class OnFixSiteArticleLinkTitles(ActionBase):
                 dual = format_dual_link(title, match.ref, settings)
                 updated = replace_span(updated, match.start, match.end, dual)
                 converted_count += 1
-                self.add_line(f"🔗 {md_path}: `{match.target}` → dual link (`{title}`)")
+                self.add_line(f"🔗 {loc}: `{match.target}` → dual link (`{title}`)")
 
             dual_matches = find_dual_links(updated)
             for match in reversed(dual_matches):
                 checked_dual += 1
+                loc = _location(md_path, updated, match.start)
                 key = (match.repo, match.slug)
                 target_parsed = parse_content_repo_name(match.repo, settings)
                 if (
@@ -185,7 +187,7 @@ class OnFixSiteArticleLinkTitles(ActionBase):
                 ):
                     cross_lang_count += 1
                     self.add_line(
-                        f"⚠️ {md_path}: English article must not link to Russian article "
+                        f"⚠️ {loc}: English article must not link to Russian article "
                         f"`{match.repo}/{match.slug}`\n"
                         f"  site: {match.site_url}"
                     )
@@ -196,7 +198,7 @@ class OnFixSiteArticleLinkTitles(ActionBase):
                 ):
                     mismatch_count += 1
                     self.add_line(
-                        f"⚠️ {md_path}: site URL mismatch for `{match.repo}/{match.slug}`\n"
+                        f"⚠️ {loc}: site URL mismatch for `{match.repo}/{match.slug}`\n"
                         f"  found:    {match.site_url}\n"
                         f"  expected: {expected_site}"
                     )
@@ -205,7 +207,7 @@ class OnFixSiteArticleLinkTitles(ActionBase):
                 if title is None:
                     missing_count += 1
                     self.add_line(
-                        f"❌ {md_path}: article not found in content repos: `{match.repo}/{match.slug}/{match.slug}.md`"
+                        f"❌ {loc}: article not found in content repos: `{match.repo}/{match.slug}/{match.slug}.md`"
                     )
                     continue
 
@@ -217,7 +219,7 @@ class OnFixSiteArticleLinkTitles(ActionBase):
 
                 updated = replace_dual_link_title(updated, match, title)
                 fixed_count += 1
-                self.add_line(f"✏️ {md_path}: `{match.title}` → `{title}`")
+                self.add_line(f"✏️ {loc}: `{match.title}` → `{title}`")
 
             if updated != original:
                 md_path.write_text(updated, encoding="utf-8")
