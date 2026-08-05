@@ -26,6 +26,7 @@ lang: en
   - [Customization](#customization)
 - [Android app (Harrix Swiss Knife)](#android-app-harrix-swiss-knife)
   - [Requirements](#requirements)
+  - [BotHub API key (Android)](#bothub-api-key-android)
   - [Optional SDK setup (install scripts)](#optional-sdk-setup-install-scripts)
   - [Build APK](#build-apk)
   - [Workflow](#workflow)
@@ -227,12 +228,12 @@ Example user settings:
 
 ## Android app (Harrix Swiss Knife)
 
-Optional Android companion app in this monorepo (Gallery Cleaner and Video Cleaner). Markdown notes browsing lives in the separate [harrix-notes-android](https://github.com/Harrix/harrix-notes-android) app (**Harrix Notes**). Not part of the Windows install zip pipeline (numbered steps `01` to `07`).
+Optional Android companion app in this monorepo (Gallery Cleaner, Video Cleaner, Photo Editor, Speech to Text with AI). Markdown notes browsing lives in the separate [harrix-notes-android](https://github.com/Harrix/harrix-notes-android) app (**Harrix Notes**). Not part of the Windows install zip pipeline (numbered steps `01` to `07`).
 
 - Folder: `android/`
 - Package / applicationId: `dev.harrix.hsk` (reverse DNS for <https://harrix.dev>)
 - UI: Kotlin + Jetpack Compose
-- Utilities: **Gallery Cleaner**, **Video Cleaner**
+- Utilities: **Gallery Cleaner**, **Video Cleaner**, **Photo Editor**, **Speech to Text with AI**
 - App name (launcher): **Harrix Swiss Knife**
 - Icon: from `src/harrix_swiss_knife/assets/logo.svg` / `app.ico`
 
@@ -242,8 +243,32 @@ Optional Android companion app in this monorepo (Gallery Cleaner and Video Clean
 - Android SDK with `ANDROID_HOME` (or `ANDROID_SDK_ROOT`)
 - SDK packages: `platform-tools`, `platforms;android-35`, `build-tools;35.0.0`
 - `android/local.properties` with `sdk.dir=...` (gitignored; created by the setup script)
+- For AI utilities (Speech to Text with AI): BotHub API key at build time (see [BotHub API key (Android)](#bothub-api-key-android))
 
 User `Path` should include `%JAVA_HOME%\bin` and `%ANDROID_HOME%\platform-tools` (and optionally `%ANDROID_HOME%\emulator`, `%ANDROID_HOME%\cmdline-tools\latest\bin`).
+
+### BotHub API key (Android)
+
+The APK embeds the BotHub token via `BuildConfig` at compile time. The key is **not** committed to Git.
+
+Resolution order in `android/app/build.gradle.kts`:
+
+1. Environment variable `BOTHUB_API_KEY` (useful for CI)
+2. Otherwise the same file as the desktop app: `api-keys/bothub-api-key.txt` (repo root; gitignored)
+
+Optional overrides (env, or `android/local.properties`):
+
+| Env                   | `local.properties`    | Default                                |
+| --------------------- | --------------------- | -------------------------------------- |
+| `BOTHUB_BASE_URL`     | `bothub.base_url`     | `https://bothub.chat/api/v2/openai/v1` |
+| `BOTHUB_MODEL`        | `bothub.model`        | `gpt-5.4`                              |
+| `BOTHUB_SPEECH_MODEL` | `bothub.speech_model` | `gemini-3.1-flash-lite-preview`        |
+
+Setup: copy `api-keys/bothub-api-key.example.txt` → `api-keys/bothub-api-key.txt` and paste the token (one line). Rebuild the APK after changing the key.
+
+If the key is missing, the project still builds; Speech to Text shows an in-app error until a key is provided. The key ends up inside the APK binary (decompilation can extract it) — acceptable for personal sideload, not for distributing a secret publicly.
+
+Prompt Markdown for fix/rewrite is copied from `config/prompts/` into generated app assets on every `preBuild`.
 
 ### Optional SDK setup (install scripts)
 

@@ -30,6 +30,7 @@ import androidx.compose.material.icons.filled.CleaningServices
 import androidx.compose.material.icons.filled.Crop
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.VideoLibrary
@@ -77,6 +78,7 @@ import dev.harrix.hsk.ui.gallery.VideoCleanerScreen
 import dev.harrix.hsk.ui.photoeditor.PhotoEditorScreen
 import dev.harrix.hsk.ui.settings.SettingsScreen
 import dev.harrix.hsk.ui.settings.SettingsSection
+import dev.harrix.hsk.ui.speechtotext.SpeechToTextScreen
 import dev.harrix.hsk.ui.theme.AppLanguage
 import dev.harrix.hsk.ui.theme.HskAndroidTheme
 import dev.harrix.hsk.ui.theme.ThemeMode
@@ -98,6 +100,7 @@ private enum class AppDestination {
     GalleryCleaner,
     VideoCleaner,
     PhotoEditor,
+    SpeechToText,
 }
 
 private data class UtilityCardItem(
@@ -164,6 +167,12 @@ fun MainScreen(
                 icon = Icons.Filled.Crop,
                 destination = AppDestination.PhotoEditor,
             ),
+            UtilityCardItem(
+                titleRes = R.string.nav_drawer_speech_to_text,
+                descriptionRes = R.string.speech_to_text_card_description,
+                icon = Icons.Filled.Mic,
+                destination = AppDestination.SpeechToText,
+            ),
         )
 
     Box(modifier = modifier.fillMaxSize()) {
@@ -197,6 +206,13 @@ fun MainScreen(
                     },
                     initialUri = photoEditorInitialUri,
                     onInitialUriConsume = { photoEditorInitialUri = null },
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
+
+            AppDestination.SpeechToText -> {
+                SpeechToTextScreen(
+                    onClose = { destination = AppDestination.Home },
                     modifier = Modifier.fillMaxSize(),
                 )
             }
@@ -525,6 +541,12 @@ private fun AppNavigationDrawerContent(
             selected = selected == AppDestination.PhotoEditor,
             onClick = { onNavigate(AppDestination.PhotoEditor) },
             icon = Icons.Filled.Crop,
+        )
+        DrawerNavItem(
+            label = stringResource(R.string.nav_drawer_speech_to_text),
+            selected = selected == AppDestination.SpeechToText,
+            onClick = { onNavigate(AppDestination.SpeechToText) },
+            icon = Icons.Filled.Mic,
         )
         DrawerNavItem(
             label = stringResource(R.string.nav_drawer_about),

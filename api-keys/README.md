@@ -20,6 +20,8 @@ Local secret files for harrix-swiss-knife. **Not committed to Git** (see root `.
 | `pypi-token.txt`     | `pypi_token` in `config/config.json`     | PyPI token for publishing Python libraries |
 | `bothub-api-key.txt` | `bothub_api_key` in `config/config.json` | BotHub access token for AI features        |
 
+`bothub-api-key.txt` is also read by the Android Gradle build (`android/app/build.gradle.kts`) and embedded into the APK as `BuildConfig.BOTHUB_API_KEY` (override with env `BOTHUB_API_KEY`). See [`DEVELOPMENT.md` — BotHub API key (Android)](../DEVELOPMENT.md#bothub-api-key-android).
+
 For school/corporate Wi-Fi, set optional `bothub.proxy` in `config/config.json` (see [`DEVELOPMENT.md`](../DEVELOPMENT.md#bothub-food--finance-ai-on-restricted-networks)).
 
 Paths in `config.json` use the `snippet:api-keys/...` prefix; `harrix_pylib` loads file contents at runtime.
