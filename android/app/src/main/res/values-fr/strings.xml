@@ -266,6 +266,7 @@
     <string name="gallery_cleaner_edit_rotate_ccw">Pivoter de 90° à gauche</string>
     <string name="gallery_cleaner_edit_rotate_cw">Pivoter de 90° à droite</string>
     <string name="gallery_cleaner_edit_reset_rotation">Réinitialiser la rotation</string>
+    <string name="gallery_cleaner_edit_more">More edit actions</string>
     <string name="video_cleaner_title">Video Cleaner</string>
     <string name="video_cleaner_close">Quitter Video Cleaner</string>
     <string name="video_cleaner_settings">Paramètres</string>

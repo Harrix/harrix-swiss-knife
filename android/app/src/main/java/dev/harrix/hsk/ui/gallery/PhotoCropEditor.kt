@@ -12,12 +12,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Crop
@@ -26,19 +24,25 @@ import androidx.compose.material.icons.filled.CropRotate
 import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.FileCopy
 import androidx.compose.material.icons.filled.FitScreen
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.RestartAlt
 import androidx.compose.material.icons.filled.Rotate90DegreesCcw
 import androidx.compose.material.icons.filled.Rotate90DegreesCw
 import androidx.compose.material.icons.filled.Transform
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.FilterChip
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.FilledIconButton
+import androidx.compose.material3.FilledTonalIconButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedIconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
@@ -56,12 +60,14 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathFillType
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChanged
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
@@ -70,8 +76,6 @@ import dev.harrix.hsk.gallery.CameraPhoto
 import dev.harrix.hsk.gallery.NormalizedCropRect
 import dev.harrix.hsk.gallery.NormalizedPerspectiveQuad
 import dev.harrix.hsk.gallery.PhotoEditSaver
-import dev.harrix.hsk.ui.AutoFitText
-import dev.harrix.hsk.ui.CompactBottomActionButton
 import dev.harrix.hsk.ui.OverflowTextTooltipBox
 import dev.harrix.hsk.ui.adaptiveBottomBarWidth
 import dev.harrix.hsk.ui.isCompactHeight
@@ -161,6 +165,9 @@ fun PhotoCropEditor(
     var viewOffset by remember(photo.id, imageRevision) { mutableStateOf(Offset.Zero) }
     val viewScaleState = rememberUpdatedState(viewScale)
     val viewOffsetState = rememberUpdatedState(viewOffset)
+    var lastViewportW by remember(photo.id, imageRevision) { mutableFloatStateOf(0f) }
+    var lastViewportH by remember(photo.id, imageRevision) { mutableFloatStateOf(0f) }
+    var lastWorkspaceSide by remember(photo.id, imageRevision) { mutableFloatStateOf(0f) }
     var trimSuggestion by remember(photo.id, imageRevision) {
         mutableStateOf<NormalizedCropRect?>(null)
     }
@@ -301,6 +308,11 @@ fun PhotoCropEditor(
                 remember(viewportW, viewportH) {
                     PhotoEditSaver.fittedSquareInViewport(viewportW, viewportH)
                 }
+            SideEffect {
+                lastViewportW = viewportW
+                lastViewportH = viewportH
+                lastWorkspaceSide = workspace.width
+            }
             val imageDrawSize =
                 remember(imageWidth, imageHeight, workspace) {
                     PhotoEditSaver.imageDrawSizeInWorkspace(imageWidth, imageHeight, workspace)
@@ -724,86 +736,43 @@ fun PhotoCropEditor(
             }
 
             if (!isSaving && workspace.width > 0f && imageWidth > 0) {
-                val compactChrome = isCompactWidth() || isCompactHeight()
                 Row(
                     modifier =
                     Modifier
                         .align(Alignment.TopEnd)
                         .padding(12.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
                     if (showTrimBars) {
-                        val trimLabel =
-                            stringResource(
-                                if (compactChrome) {
-                                    R.string.gallery_cleaner_edit_trim_empty_short
-                                } else {
-                                    R.string.gallery_cleaner_edit_trim_empty
-                                },
-                            )
-                        var trimOverflows by remember(trimLabel) { mutableStateOf(false) }
-                        OverflowTextTooltipBox(text = trimLabel, enabled = trimOverflows) {
-                            FilledTonalButton(
-                                onClick = { trimEmptyZones() },
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Filled.Crop,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(18.dp),
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                AutoFitText(
-                                    text = trimLabel,
-                                    maxLines = 2,
-                                    enableOverflowTooltip = false,
-                                    onOverflowChange = { trimOverflows = it },
-                                )
-                            }
-                        }
+                        EditToolbarIconButton(
+                            onClick = { trimEmptyZones() },
+                            icon = Icons.Filled.Crop,
+                            label = stringResource(R.string.gallery_cleaner_edit_trim_empty),
+                            tonal = true,
+                        )
                     }
                     if (isViewTransformed && !isPerspective) {
-                        val fitLabel =
-                            stringResource(
-                                if (compactChrome) {
-                                    R.string.gallery_cleaner_edit_fit_frame_short
-                                } else {
-                                    R.string.gallery_cleaner_edit_fit_frame
-                                },
-                            )
-                        var fitOverflows by remember(fitLabel) { mutableStateOf(false) }
-                        OverflowTextTooltipBox(text = fitLabel, enabled = fitOverflows) {
-                            FilledTonalButton(
-                                onClick = {
-                                    val visible =
-                                        visibleWorkspaceNormalized(
-                                            viewportW = viewportW,
-                                            viewportH = viewportH,
-                                            side = workspace.width,
-                                            scale = viewScale,
-                                            offset = viewOffset,
-                                        )
-                                    onCropRectChange(
-                                        PhotoEditSaver.fitCropIntoBounds(
-                                            rect = cropRect,
-                                            bounds = visible,
-                                        ),
+                        EditToolbarIconButton(
+                            onClick = {
+                                val visible =
+                                    visibleWorkspaceNormalized(
+                                        viewportW = viewportW,
+                                        viewportH = viewportH,
+                                        side = workspace.width,
+                                        scale = viewScale,
+                                        offset = viewOffset,
                                     )
-                                },
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Filled.FitScreen,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(18.dp),
+                                onCropRectChange(
+                                    PhotoEditSaver.fitCropIntoBounds(
+                                        rect = cropRect,
+                                        bounds = visible,
+                                    ),
                                 )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                AutoFitText(
-                                    text = fitLabel,
-                                    maxLines = 2,
-                                    enableOverflowTooltip = false,
-                                    onOverflowChange = { fitOverflows = it },
-                                )
-                            }
-                        }
+                            },
+                            icon = Icons.Filled.FitScreen,
+                            label = stringResource(R.string.gallery_cleaner_edit_fit_frame),
+                            tonal = true,
+                        )
                     }
                 }
             }
@@ -817,6 +786,48 @@ fun PhotoCropEditor(
         }
 
         val compactChrome = isCompactWidth() || isCompactHeight()
+        val aspectRotateLabel = stringResource(R.string.gallery_cleaner_edit_aspect_rotate)
+        val aspectThreeFourLabel = stringResource(R.string.gallery_cleaner_edit_aspect_3_4)
+        val aspectFreeLabel = stringResource(R.string.gallery_cleaner_edit_aspect_free)
+        val perspectiveLabel = stringResource(R.string.gallery_cleaner_edit_perspective)
+        val rotateCcwLabel = stringResource(R.string.gallery_cleaner_edit_rotate_ccw)
+        val resetRotationLabel = stringResource(R.string.gallery_cleaner_edit_reset_rotation)
+        val rotateCwLabel = stringResource(R.string.gallery_cleaner_edit_rotate_cw)
+        val trimEmptyLabel = stringResource(R.string.gallery_cleaner_edit_trim_empty)
+        val fitFrameLabel = stringResource(R.string.gallery_cleaner_edit_fit_frame)
+        val discardLabel = stringResource(R.string.gallery_cleaner_edit_discard)
+        val saveCopyLabel = stringResource(R.string.photo_editor_save_copy)
+        val saveLabel = stringResource(R.string.gallery_cleaner_edit_save)
+        val moreLabel = stringResource(R.string.gallery_cleaner_edit_more)
+        val locked = lockedAspect
+        val threeFourSelected = locked != null && isThreeFourFamily(locked)
+        val freeAspectSelected = lockedAspect == null && !isPerspective
+        val canEditAspect = !isSaving && imageWidth > 0 && !isPerspective
+        val canTogglePerspective = !isSaving && imageWidth > 0
+        val canResetRotation = !isSaving && abs(displayDegrees) >= 0.5f
+        val canFitFrame = isViewTransformed && !isPerspective && imageWidth > 0
+        var moreMenuExpanded by remember { mutableStateOf(false) }
+
+        fun applyFitFrame() {
+            if (!canFitFrame || lastWorkspaceSide <= 0f) {
+                return
+            }
+            val visible =
+                visibleWorkspaceNormalized(
+                    viewportW = lastViewportW,
+                    viewportH = lastViewportH,
+                    side = lastWorkspaceSide,
+                    scale = viewScale,
+                    offset = viewOffset,
+                )
+            onCropRectChange(
+                PhotoEditSaver.fitCropIntoBounds(
+                    rect = cropRect,
+                    bounds = visible,
+                ),
+            )
+        }
+
         Box(
             modifier =
             Modifier
@@ -829,234 +840,310 @@ fun PhotoCropEditor(
                 Modifier
                     .adaptiveBottomBarWidth()
                     .padding(
-                        horizontal = if (compactChrome) 8.dp else 12.dp,
-                        vertical = if (compactChrome) 6.dp else 10.dp,
+                        horizontal = if (compactChrome) 4.dp else 8.dp,
+                        vertical = if (compactChrome) 4.dp else 8.dp,
                     ),
-                verticalArrangement = Arrangement.spacedBy(if (compactChrome) 6.dp else 8.dp),
+                verticalArrangement = Arrangement.spacedBy(if (compactChrome) 2.dp else 4.dp),
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    FilterChip(
-                        selected = false,
-                        onClick = {
-                            if (isSaving || imageWidth <= 0 || isPerspective) {
-                                return@FilterChip
-                            }
-                            rotateCropAspect90()
-                        },
-                        enabled = !isSaving && imageWidth > 0 && !isPerspective,
-                        label = {
-                            AutoFitText(
-                                text =
-                                stringResource(
-                                    if (compactChrome) {
-                                        R.string.gallery_cleaner_edit_aspect_rotate_short
-                                    } else {
-                                        R.string.gallery_cleaner_edit_aspect_rotate
-                                    },
-                                ),
-                                maxLines = 2,
-                            )
-                        },
-                        leadingIcon =
-                        if (compactChrome) {
-                            null
-                        } else {
-                            {
-                                Icon(
-                                    imageVector = Icons.Filled.CropRotate,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(18.dp),
-                                )
-                            }
-                        },
-                        modifier = Modifier.weight(1f),
+                    EditToolbarIconButton(
+                        onClick = { rotateCropAspect90() },
+                        icon = Icons.Filled.CropRotate,
+                        label = aspectRotateLabel,
+                        enabled = canEditAspect,
                     )
                     if (showThreeFourChip) {
-                        val locked = lockedAspect
-                        val threeFourSelected =
-                            locked != null && isThreeFourFamily(locked)
-                        FilterChip(
-                            selected = threeFourSelected,
+                        EditToolbarIconButton(
                             onClick = {
-                                if (isSaving || imageWidth <= 0 || isPerspective) {
-                                    return@FilterChip
-                                }
                                 if (threeFourSelected) {
                                     applyLockedAspect(originalAspect)
                                 } else {
                                     applyLockedAspect(AspectThreeFour)
                                 }
                             },
-                            enabled = !isSaving && imageWidth > 0 && !isPerspective,
-                            label = {
-                                AutoFitText(
-                                    text =
-                                    stringResource(
-                                        if (compactChrome) {
-                                            R.string.gallery_cleaner_edit_aspect_3_4_short
-                                        } else {
-                                            R.string.gallery_cleaner_edit_aspect_3_4
-                                        },
-                                    ),
-                                    maxLines = 2,
-                                )
-                            },
-                            leadingIcon =
-                            if (compactChrome) {
-                                null
-                            } else {
-                                {
-                                    Icon(
-                                        imageVector = Icons.Filled.Crop,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(18.dp),
-                                    )
-                                }
-                            },
-                            modifier = Modifier.weight(1f),
+                            icon = Icons.Filled.Crop,
+                            label = aspectThreeFourLabel,
+                            enabled = canEditAspect,
+                            selected = threeFourSelected,
                         )
                     }
-                    FilterChip(
-                        selected = lockedAspect == null && !isPerspective,
-                        onClick = {
-                            if (isSaving || imageWidth <= 0 || isPerspective) {
-                                return@FilterChip
-                            }
-                            toggleFreeAspect()
-                        },
-                        enabled = !isSaving && imageWidth > 0 && !isPerspective,
-                        label = {
-                            AutoFitText(
-                                text =
-                                stringResource(
-                                    if (compactChrome) {
-                                        R.string.gallery_cleaner_edit_aspect_free_short
-                                    } else {
-                                        R.string.gallery_cleaner_edit_aspect_free
-                                    },
-                                ),
-                                maxLines = 2,
-                            )
-                        },
-                        leadingIcon =
-                        if (compactChrome) {
-                            null
-                        } else {
-                            {
-                                Icon(
-                                    imageVector = Icons.Filled.CropFree,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(18.dp),
-                                )
-                            }
-                        },
-                        modifier = Modifier.weight(1f),
+                    EditToolbarIconButton(
+                        onClick = { toggleFreeAspect() },
+                        icon = Icons.Filled.CropFree,
+                        label = aspectFreeLabel,
+                        enabled = canEditAspect,
+                        selected = freeAspectSelected,
                     )
-                    FilterChip(
-                        selected = isPerspective,
+                    EditToolbarIconButton(
                         onClick = { togglePerspectiveMode() },
-                        enabled = !isSaving && imageWidth > 0,
-                        label = {
-                            AutoFitText(
-                                text =
-                                stringResource(
-                                    if (compactChrome) {
-                                        R.string.gallery_cleaner_edit_perspective_short
-                                    } else {
-                                        R.string.gallery_cleaner_edit_perspective
-                                    },
-                                ),
-                                maxLines = 2,
+                        icon = Icons.Filled.Transform,
+                        label = perspectiveLabel,
+                        enabled = canTogglePerspective,
+                        selected = isPerspective,
+                    )
+                    EditToolbarIconButton(
+                        onClick = { onRotationDegreesChange(rotationDegrees - 90f) },
+                        icon = Icons.Filled.Rotate90DegreesCcw,
+                        label = rotateCcwLabel,
+                        enabled = !isSaving,
+                    )
+                    EditToolbarIconButton(
+                        onClick = { onRotationDegreesChange(0f) },
+                        icon = Icons.Filled.RestartAlt,
+                        label = resetRotationLabel,
+                        enabled = canResetRotation,
+                    )
+                    EditToolbarIconButton(
+                        onClick = { onRotationDegreesChange(rotationDegrees + 90f) },
+                        icon = Icons.Filled.Rotate90DegreesCw,
+                        label = rotateCwLabel,
+                        enabled = !isSaving,
+                    )
+                    Box {
+                        EditToolbarIconButton(
+                            onClick = { moreMenuExpanded = true },
+                            icon = Icons.Filled.MoreVert,
+                            label = moreLabel,
+                            enabled = !isSaving,
+                        )
+                        DropdownMenu(
+                            expanded = moreMenuExpanded,
+                            onDismissRequest = { moreMenuExpanded = false },
+                        ) {
+                            EditOverflowMenuItem(
+                                icon = Icons.Filled.CropRotate,
+                                label = aspectRotateLabel,
+                                enabled = canEditAspect,
+                                onClick = {
+                                    moreMenuExpanded = false
+                                    rotateCropAspect90()
+                                },
                             )
-                        },
-                        leadingIcon =
-                        if (compactChrome) {
-                            null
-                        } else {
-                            {
-                                Icon(
-                                    imageVector = Icons.Filled.Transform,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(18.dp),
+                            if (showThreeFourChip) {
+                                EditOverflowMenuItem(
+                                    icon = Icons.Filled.Crop,
+                                    label = aspectThreeFourLabel,
+                                    enabled = canEditAspect,
+                                    onClick = {
+                                        moreMenuExpanded = false
+                                        if (threeFourSelected) {
+                                            applyLockedAspect(originalAspect)
+                                        } else {
+                                            applyLockedAspect(AspectThreeFour)
+                                        }
+                                    },
                                 )
                             }
-                        },
-                        modifier = Modifier.weight(1f),
-                    )
+                            EditOverflowMenuItem(
+                                icon = Icons.Filled.CropFree,
+                                label = aspectFreeLabel,
+                                enabled = canEditAspect,
+                                onClick = {
+                                    moreMenuExpanded = false
+                                    toggleFreeAspect()
+                                },
+                            )
+                            EditOverflowMenuItem(
+                                icon = Icons.Filled.Transform,
+                                label = perspectiveLabel,
+                                enabled = canTogglePerspective,
+                                onClick = {
+                                    moreMenuExpanded = false
+                                    togglePerspectiveMode()
+                                },
+                            )
+                            HorizontalDivider()
+                            EditOverflowMenuItem(
+                                icon = Icons.Filled.Rotate90DegreesCcw,
+                                label = rotateCcwLabel,
+                                enabled = !isSaving,
+                                onClick = {
+                                    moreMenuExpanded = false
+                                    onRotationDegreesChange(rotationDegrees - 90f)
+                                },
+                            )
+                            EditOverflowMenuItem(
+                                icon = Icons.Filled.RestartAlt,
+                                label = resetRotationLabel,
+                                enabled = canResetRotation,
+                                onClick = {
+                                    moreMenuExpanded = false
+                                    onRotationDegreesChange(0f)
+                                },
+                            )
+                            EditOverflowMenuItem(
+                                icon = Icons.Filled.Rotate90DegreesCw,
+                                label = rotateCwLabel,
+                                enabled = !isSaving,
+                                onClick = {
+                                    moreMenuExpanded = false
+                                    onRotationDegreesChange(rotationDegrees + 90f)
+                                },
+                            )
+                            HorizontalDivider()
+                            EditOverflowMenuItem(
+                                icon = Icons.Filled.Crop,
+                                label = trimEmptyLabel,
+                                enabled = showTrimBars && !isSaving,
+                                onClick = {
+                                    moreMenuExpanded = false
+                                    trimEmptyZones()
+                                },
+                            )
+                            EditOverflowMenuItem(
+                                icon = Icons.Filled.FitScreen,
+                                label = fitFrameLabel,
+                                enabled = canFitFrame && !isSaving,
+                                onClick = {
+                                    moreMenuExpanded = false
+                                    applyFitFrame()
+                                },
+                            )
+                            HorizontalDivider()
+                            EditOverflowMenuItem(
+                                icon = Icons.Filled.Close,
+                                label = discardLabel,
+                                enabled = !isSaving,
+                                onClick = {
+                                    moreMenuExpanded = false
+                                    onDiscard()
+                                },
+                            )
+                            if (onSaveCopy != null) {
+                                EditOverflowMenuItem(
+                                    icon = Icons.Filled.FileCopy,
+                                    label = saveCopyLabel,
+                                    enabled = !isSaving,
+                                    onClick = {
+                                        moreMenuExpanded = false
+                                        onSaveCopy()
+                                    },
+                                )
+                            }
+                            EditOverflowMenuItem(
+                                icon = Icons.Filled.Done,
+                                label = saveLabel,
+                                enabled = !isSaving,
+                                onClick = {
+                                    moreMenuExpanded = false
+                                    onSave()
+                                },
+                            )
+                        }
+                    }
                 }
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.Center,
+                    horizontalArrangement = Arrangement.SpaceEvenly,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    IconButton(
-                        onClick = {
-                            onRotationDegreesChange(rotationDegrees - 90f)
-                        },
-                        enabled = !isSaving,
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.Rotate90DegreesCcw,
-                            contentDescription =
-                            stringResource(R.string.gallery_cleaner_edit_rotate_ccw),
-                        )
-                    }
-                    IconButton(
-                        onClick = { onRotationDegreesChange(0f) },
-                        enabled = !isSaving && abs(displayDegrees) >= 0.5f,
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.RestartAlt,
-                            contentDescription =
-                            stringResource(R.string.gallery_cleaner_edit_reset_rotation),
-                        )
-                    }
-                    IconButton(
-                        onClick = {
-                            onRotationDegreesChange(rotationDegrees + 90f)
-                        },
-                        enabled = !isSaving,
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.Rotate90DegreesCw,
-                            contentDescription =
-                            stringResource(R.string.gallery_cleaner_edit_rotate_cw),
-                        )
-                    }
-                }
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    CompactBottomActionButton(
+                    EditToolbarIconButton(
                         onClick = onDiscard,
                         icon = Icons.Filled.Close,
-                        label = stringResource(R.string.gallery_cleaner_edit_discard),
+                        label = discardLabel,
                         enabled = !isSaving,
                         outlined = true,
                     )
                     if (onSaveCopy != null) {
-                        CompactBottomActionButton(
+                        EditToolbarIconButton(
                             onClick = onSaveCopy,
                             icon = Icons.Filled.FileCopy,
-                            label = stringResource(R.string.photo_editor_save_copy),
+                            label = saveCopyLabel,
                             enabled = !isSaving,
                             outlined = true,
                         )
                     }
-                    CompactBottomActionButton(
+                    EditToolbarIconButton(
                         onClick = onSave,
                         icon = Icons.Filled.Done,
-                        label = stringResource(R.string.gallery_cleaner_edit_save),
+                        label = saveLabel,
                         enabled = !isSaving,
+                        filled = true,
                     )
                 }
             }
         }
     }
+}
+
+@Composable
+private fun EditToolbarIconButton(
+    onClick: () -> Unit,
+    icon: ImageVector,
+    label: String,
+    enabled: Boolean = true,
+    selected: Boolean = false,
+    tonal: Boolean = false,
+    outlined: Boolean = false,
+    filled: Boolean = false,
+) {
+    OverflowTextTooltipBox(text = label, enabled = true) {
+        val iconContent: @Composable () -> Unit = {
+            Icon(
+                imageVector = icon,
+                contentDescription = label,
+            )
+        }
+        when {
+            filled ->
+                FilledIconButton(
+                    onClick = onClick,
+                    enabled = enabled,
+                    content = iconContent,
+                )
+
+            selected || tonal ->
+                FilledTonalIconButton(
+                    onClick = onClick,
+                    enabled = enabled,
+                    content = iconContent,
+                )
+
+            outlined ->
+                OutlinedIconButton(
+                    onClick = onClick,
+                    enabled = enabled,
+                    content = iconContent,
+                )
+
+            else ->
+                IconButton(
+                    onClick = onClick,
+                    enabled = enabled,
+                    content = iconContent,
+                )
+        }
+    }
+}
+
+@Composable
+private fun EditOverflowMenuItem(
+    icon: ImageVector,
+    label: String,
+    onClick: () -> Unit,
+    enabled: Boolean = true,
+) {
+    DropdownMenuItem(
+        text = {
+            Text(
+                text = label,
+                maxLines = Int.MAX_VALUE,
+                overflow = TextOverflow.Clip,
+            )
+        },
+        onClick = onClick,
+        enabled = enabled,
+        leadingIcon = {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+            )
+        },
+    )
 }
 
 private fun applyPainterSize(

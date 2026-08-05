@@ -266,6 +266,7 @@
     <string name="gallery_cleaner_edit_rotate_ccw">Ruota di 90° a sinistra</string>
     <string name="gallery_cleaner_edit_rotate_cw">Ruota di 90° a destra</string>
     <string name="gallery_cleaner_edit_reset_rotation">Reimposta rotazione</string>
+    <string name="gallery_cleaner_edit_more">More edit actions</string>
     <string name="video_cleaner_title">Video Cleaner</string>
     <string name="video_cleaner_close">Esci Video Cleaner</string>
     <string name="video_cleaner_settings">Impostazioni</string>

@@ -266,6 +266,7 @@
     <string name="gallery_cleaner_edit_rotate_ccw">왼쪽으로 90° 회전</string>
     <string name="gallery_cleaner_edit_rotate_cw">오른쪽으로 90° 회전</string>
     <string name="gallery_cleaner_edit_reset_rotation">회전 초기화</string>
+    <string name="gallery_cleaner_edit_more">More edit actions</string>
     <string name="video_cleaner_title">Video Cleaner</string>
     <string name="video_cleaner_close">출구 Video Cleaner</string>
     <string name="video_cleaner_settings">설정</string>

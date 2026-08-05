@@ -266,6 +266,7 @@
     <string name="gallery_cleaner_edit_rotate_ccw">Rotește 90° la stânga</string>
     <string name="gallery_cleaner_edit_rotate_cw">Rotește 90° la dreapta</string>
     <string name="gallery_cleaner_edit_reset_rotation">Resetează rotația</string>
+    <string name="gallery_cleaner_edit_more">More edit actions</string>
     <string name="video_cleaner_title">Video Cleaner</string>
     <string name="video_cleaner_close">Ieșire Video Cleaner</string>
     <string name="video_cleaner_settings">Setări</string>

@@ -266,6 +266,7 @@
     <string name="gallery_cleaner_edit_rotate_ccw">左に90°回転</string>
     <string name="gallery_cleaner_edit_rotate_cw">右に90°回転</string>
     <string name="gallery_cleaner_edit_reset_rotation">回転をリセット</string>
+    <string name="gallery_cleaner_edit_more">More edit actions</string>
     <string name="video_cleaner_title">Video Cleaner</string>
     <string name="video_cleaner_close">Video Cleaner を終了します</string>
     <string name="video_cleaner_settings">設定</string>

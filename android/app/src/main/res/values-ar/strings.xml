@@ -266,6 +266,7 @@
     <string name="gallery_cleaner_edit_rotate_ccw">تدوير 90° يسارًا</string>
     <string name="gallery_cleaner_edit_rotate_cw">تدوير 90° يمينًا</string>
     <string name="gallery_cleaner_edit_reset_rotation">إعادة تعيين التدوير</string>
+    <string name="gallery_cleaner_edit_more">More edit actions</string>
     <string name="video_cleaner_title">Video Cleaner</string>
     <string name="video_cleaner_close">خروج Video Cleaner</string>
     <string name="video_cleaner_settings">الإعدادات</string>

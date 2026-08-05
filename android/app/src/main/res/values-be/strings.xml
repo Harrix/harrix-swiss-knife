@@ -266,6 +266,7 @@
     <string name="gallery_cleaner_edit_rotate_ccw">Павярнуць на 90° налева</string>
     <string name="gallery_cleaner_edit_rotate_cw">Павярнуць на 90° направа</string>
     <string name="gallery_cleaner_edit_reset_rotation">Скінуць паварот</string>
+    <string name="gallery_cleaner_edit_more">Іншыя дзеянні рэдактара</string>
     <string name="video_cleaner_title">Video Cleaner</string>
     <string name="video_cleaner_close">Выйдзіце з праграмы Video Cleaner</string>
     <string name="video_cleaner_settings">Налады</string>

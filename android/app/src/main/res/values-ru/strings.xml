@@ -266,6 +266,7 @@
     <string name="gallery_cleaner_edit_rotate_ccw">Повернуть на 90° влево</string>
     <string name="gallery_cleaner_edit_rotate_cw">Повернуть на 90° вправо</string>
     <string name="gallery_cleaner_edit_reset_rotation">Сбросить поворот</string>
+    <string name="gallery_cleaner_edit_more">Другие действия редактора</string>
     <string name="video_cleaner_title">Video Cleaner</string>
     <string name="video_cleaner_close">Выход Video Cleaner</string>
     <string name="video_cleaner_settings">Настройки</string>

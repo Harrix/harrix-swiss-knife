@@ -266,6 +266,7 @@
     <string name="gallery_cleaner_edit_rotate_ccw">Putar 90° ke kiri</string>
     <string name="gallery_cleaner_edit_rotate_cw">Putar 90° ke kanan</string>
     <string name="gallery_cleaner_edit_reset_rotation">Atur ulang rotasi</string>
+    <string name="gallery_cleaner_edit_more">More edit actions</string>
     <string name="video_cleaner_title">Video Cleaner</string>
     <string name="video_cleaner_close">Keluar Video Cleaner</string>
     <string name="video_cleaner_settings">Pengaturan</string>

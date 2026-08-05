@@ -266,6 +266,7 @@
     <string name="gallery_cleaner_edit_rotate_ccw">Xoay 90° sang trái</string>
     <string name="gallery_cleaner_edit_rotate_cw">Xoay 90° sang phải</string>
     <string name="gallery_cleaner_edit_reset_rotation">Đặt lại xoay</string>
+    <string name="gallery_cleaner_edit_more">More edit actions</string>
     <string name="video_cleaner_title">Video Cleaner</string>
     <string name="video_cleaner_close">Lối ra Video Cleaner</string>
     <string name="video_cleaner_settings">Cài đặt</string>
