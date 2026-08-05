@@ -44,6 +44,7 @@ CREATE TABLE "transactions" (
 	"_id"	INTEGER,
 	"amount"	INTEGER NOT NULL,
 	"description"	TEXT NOT NULL,
+	"description_en"	TEXT,
 	"_id_categories"	INTEGER NOT NULL,
 	"_id_currencies"	INTEGER NOT NULL,
 	"date"	TEXT NOT NULL,

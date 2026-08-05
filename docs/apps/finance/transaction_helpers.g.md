@@ -1678,7 +1678,8 @@ Uses exchange rate at transaction date. If target_currency_id is `None`, uses
 default currency from settings.
 
 Row format: same as get_filtered_transactions / get_all_transactions:
-[t.\_id, t.amount, description, cat.name, c.code, t.date, t.tag, cat.type, cat.icon, c.symbol].
+[t.\_id, t.amount, description, cat.name, c.code, t.date, t.tag, cat.type,
+cat.icon, c.symbol, description_en].
 
 Args:
 
@@ -2028,6 +2029,9 @@ def transform_transaction_data(
         tag: str = row[6]
         category_type: int = row[7]
         icon: str = row[8]
+        description_en: str = (
+            str(row[TRANSACTION_DESCRIPTION_EN_INDEX] or "") if len(row) > TRANSACTION_DESCRIPTION_EN_INDEX else ""
+        )
 
         amount: float
         if db_manager:
@@ -2060,6 +2064,7 @@ def transform_transaction_data(
 
         transformed_row: list[Any] = [
             description,
+            description_en,
             amount_display,
             display_category_name,
             currency_code,

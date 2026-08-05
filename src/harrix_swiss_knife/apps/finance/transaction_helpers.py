@@ -1282,7 +1282,8 @@ def get_transaction_money_op_value(
     default currency from settings.
 
     Row format: same as get_filtered_transactions / get_all_transactions:
-    [t.\_id, t.amount, description, cat.name, c.code, t.date, t.tag, cat.type, cat.icon, c.symbol].
+    [t.\_id, t.amount, description, cat.name, c.code, t.date, t.tag, cat.type,
+    cat.icon, c.symbol, description_en].
 
     Args:
 
@@ -1554,6 +1555,9 @@ def transform_transaction_data(
         tag: str = row[6]
         category_type: int = row[7]
         icon: str = row[8]
+        description_en: str = (
+            str(row[TRANSACTION_DESCRIPTION_EN_INDEX] or "") if len(row) > TRANSACTION_DESCRIPTION_EN_INDEX else ""
+        )
 
         amount: float
         if db_manager:
@@ -1586,6 +1590,7 @@ def transform_transaction_data(
 
         transformed_row: list[Any] = [
             description,
+            description_en,
             amount_display,
             display_category_name,
             currency_code,
@@ -1918,6 +1923,7 @@ def _transaction_matches_chart_filter(
 
 # Minimum row length for get_filtered_transactions / get_all_transactions (up to category_type index 7)
 MIN_TRANSACTION_ROW_LENGTH = 8
+TRANSACTION_DESCRIPTION_EN_INDEX = 10
 
 # Minimum row length for get_all_currency_exchanges (up to date index 7, description 8)
 MIN_EXCHANGE_ROW_LENGTH = 9

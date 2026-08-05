@@ -38,6 +38,7 @@ lang: en
   - [⚙️ Method `on_set_default_currency`](#%EF%B8%8F-method-on_set_default_currency)
   - [⚙️ Method `on_show_all_records_clicked`](#%EF%B8%8F-method-on_show_all_records_clicked)
   - [⚙️ Method `on_tab_changed`](#%EF%B8%8F-method-on_tab_changed)
+  - [⚙️ Method `on_translate_with_ai`](#%EF%B8%8F-method-on_translate_with_ai)
   - [⚙️ Method `on_yesterday`](#%EF%B8%8F-method-on_yesterday)
   - [⚙️ Method `on_yesterday_exchange`](#%EF%B8%8F-method-on_yesterday_exchange)
   - [⚙️ Method `set_chart_all_time`](#%EF%B8%8F-method-set_chart_all_time)
@@ -97,6 +98,8 @@ class MainWindow(
     about_app_name = "Finance tracker"
     about_description = "Track accounts, transactions, and exchange rates."
     _NO_CATEGORY_LABEL: str = "No selected category"
+    _TRANSACTION_AMOUNT_COLUMN: int = 2
+    _TRANSLATION_FAILURE_PREVIEW_LIMIT: int = 8
 
     def __init__(self, *, hide_on_close: bool = False) -> None:
         """Initialize main window for finance tracking application."""
@@ -204,7 +207,7 @@ class MainWindow(
             "transactions": (
                 self.tableView_transactions,
                 "transactions",
-                ["Description", "Amount", "Category", "Currency", "Date", "Tag", "Total per day"],
+                ["Description", "English", "Amount", "Category", "Currency", "Date", "Tag", "Total per day"],
             ),
             "categories": (
                 self.tableView_categories,
@@ -1065,6 +1068,52 @@ class MainWindow(
             self.on_generate_report(refresh_summary=True)
         # Note: Transactions tab (index 0) needs no updates - data loaded on startup
 
+    @requires_database()
+    def on_translate_with_ai(self) -> None:
+        """Translate missing transaction descriptions into English via BotHub."""
+        if self.db_manager is None:
+            return
+        limit = self._finance_transactions_translate_descriptions_limit()
+        descriptions = self.db_manager.get_unique_transaction_descriptions_missing_description_en(limit=limit)
+        if not descriptions:
+            self._report_transaction_translate_completion()
+            return
+        known = self.db_manager.lookup_existing_description_en_for_descriptions(descriptions)
+        filled = self._commit_transaction_translations(known, show_completion=False)
+        descriptions_for_ai = [description for description in descriptions if description not in known]
+        if not descriptions_for_ai:
+            self._report_transaction_translate_completion(
+                prefix=f"Filled {filled} unique description(s) from existing database translations."
+            )
+            return
+        try:
+            prompt_text = build_prompt(
+                self._app_config,
+                "finance_transactions_translate_descriptions",
+                {"TRANSACTION_DESCRIPTIONS": "\n".join(descriptions_for_ai)},
+            )
+        except ValueError as exc:
+            show_bothub_prompt_build_error(self, exc)
+            return
+
+        def on_success(response_text: str) -> None:
+            self._show_transaction_translate_preview(
+                descriptions_for_ai,
+                response_text,
+                limit=limit,
+                filled_from_existing=filled,
+            )
+
+        run_bothub_request(
+            self,
+            self._app_config,
+            prompt_text,
+            on_success,
+            toast_message="Translating descriptions…",
+            is_busy=lambda: self._bothub_state.worker is not None,
+            state=self._bothub_state,
+        )
+
     def on_yesterday(self) -> None:
         """Set yesterday's date in the main date field."""
         yesterday: QDate = QDate.currentDate().addDays(-1)
@@ -1385,7 +1434,7 @@ class MainWindow(
                 item: QStandardItem = QStandardItem(str(value) if value is not None else "")
                 item.setBackground(QBrush(row_color))
 
-                if col_idx == 1:
+                if col_idx == self._TRANSACTION_AMOUNT_COLUMN:
                     original_value: str = (
                         str(value).replace("-", "") if value and str(value).startswith("-") else str(value)
                     )
@@ -1605,6 +1654,37 @@ class MainWindow(
             toast.close()
             self._chart_build_toast = None
 
+    def _commit_transaction_translations(
+        self,
+        translations: dict[str, str],
+        *,
+        show_completion: bool = True,
+        prefix: str = "",
+    ) -> int:
+        """Write description-to-English mappings to untranslated transactions."""
+        if self.db_manager is None or not translations:
+            if show_completion:
+                self._report_transaction_translate_completion(prefix=prefix)
+            return 0
+        updated = 0
+        failed: list[str] = []
+        for description, description_en in translations.items():
+            if self.db_manager.update_transaction_description_en_by_description(description, description_en):
+                updated += 1
+            else:
+                failed.append(description)
+        self._load_transactions_page(reset=True)
+        if show_completion:
+            result_parts = [prefix] if prefix else []
+            if updated:
+                result_parts.append(f"Updated English descriptions for {updated} unique transaction description(s).")
+            if failed:
+                preview = ", ".join(failed[: self._TRANSLATION_FAILURE_PREVIEW_LIMIT])
+                suffix = "…" if len(failed) > self._TRANSLATION_FAILURE_PREVIEW_LIMIT else ""
+                result_parts.append(f"Database update failed ({len(failed)}): {preview}{suffix}")
+            self._report_transaction_translate_completion(prefix="\n\n".join(result_parts))
+        return updated
+
     def _connect_signals(self) -> None:
         """Connect UI signals to their handlers."""
         self._connect_exit_about_actions()
@@ -1612,6 +1692,7 @@ class MainWindow(
         # Main transaction signals
         self.pushButton_add.clicked.connect(self.on_add_transaction)
         self.pushButton_add_as_text_with_ai.clicked.connect(self.on_add_as_text_with_ai)
+        self.pushButton_translate_with_ai.clicked.connect(self.on_translate_with_ai)
         bothub_cfg = self._app_config.get("bothub") or {}
         max_image_side = int(bothub_cfg.get("max_image_side", 1600))
         self._ai_image_drop_zone = ImagePicker(
@@ -1867,8 +1948,8 @@ class MainWindow(
                 # Set background color for the item
                 item.setBackground(QBrush(row_color))
 
-                # For amount column (index 1), store original value without minus sign for editing
-                if col_idx == 1:  # Amount column
+                # For amount column, store original value without minus sign for editing
+                if col_idx == self._TRANSACTION_AMOUNT_COLUMN:
                     # Remove minus sign for editing, keep only the numeric value
                     original_value: str = (
                         str(value).replace("-", "") if value and str(value).startswith("-") else str(value)
@@ -2313,6 +2394,15 @@ class MainWindow(
             self.apply_filter()
         except Exception:
             logger.exception("❌ Error filtering by category from table")
+
+    def _finance_transactions_translate_descriptions_limit(self) -> int:
+        """Return max unique untranslated descriptions per AI batch."""
+        raw = self._app_config.get("finance_transactions_translate_descriptions_limit", 250)
+        try:
+            limit = int(raw)
+        except (TypeError, ValueError):
+            limit = 250
+        return max(1, limit)
 
     def _finish_window_initialization(self) -> None:
         """Finish window initialization by showing the window."""
@@ -4281,6 +4371,34 @@ class MainWindow(
             self._load_transactions_table()
             self._connect_table_auto_save_signals()
 
+    def _report_transaction_translate_completion(self, *, prefix: str = "") -> None:
+        """Report remaining untranslated rows and offer another batch."""
+        if self.db_manager is None:
+            return
+        remaining = self.db_manager.count_transactions_missing_description_en()
+        if remaining == 0:
+            message = "All transactions have an English description. Everything is translated."
+            if prefix:
+                message = f"{prefix}\n\n{message}"
+            message_box.information(self, "Translate with AI", message)
+            return
+        limit = self._finance_transactions_translate_descriptions_limit()
+        message = (
+            f"{remaining} transaction(s) still have an empty or NULL English description.\n\n"
+            f"Run Translate with AI again? The next batch processes up to {limit} unique descriptions."
+        )
+        if prefix:
+            message = f"{prefix}\n\n{message}"
+        answer = message_box.question(
+            self,
+            "Translate with AI",
+            message,
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if answer == QMessageBox.StandardButton.Yes:
+            self.on_translate_with_ai()
+
     def _reset_transactions_pagination_state(self) -> None:
         """Reset pagination counters and display state for transactions table."""
         self._transactions_pagination.reset()
@@ -4680,24 +4798,24 @@ class MainWindow(
 
         categories: list[str] = self._get_categories_for_delegate()
         self.category_delegate = CategoryComboBoxDelegate(self.tableView_transactions, categories)
-        self.tableView_transactions.setItemDelegateForColumn(2, self.category_delegate)
+        self.tableView_transactions.setItemDelegateForColumn(3, self.category_delegate)
 
         currencies: list[str] = self._get_currencies_for_delegate()
         self.currency_delegate = CurrencyComboBoxDelegate(self.tableView_transactions, currencies)
-        self.tableView_transactions.setItemDelegateForColumn(3, self.currency_delegate)
+        self.tableView_transactions.setItemDelegateForColumn(4, self.currency_delegate)
 
         self.date_delegate = DateDelegate(self.tableView_transactions)
-        self.tableView_transactions.setItemDelegateForColumn(4, self.date_delegate)
+        self.tableView_transactions.setItemDelegateForColumn(5, self.date_delegate)
 
         tags: list[str] = self._get_tags_for_delegate()
         self.tag_delegate = TagDelegate(self.tableView_transactions, tags)
-        self.tableView_transactions.setItemDelegateForColumn(5, self.tag_delegate)
+        self.tableView_transactions.setItemDelegateForColumn(6, self.tag_delegate)
 
         self.amount_delegate = AmountDelegate(self.tableView_transactions, self.db_manager)
-        self.tableView_transactions.setItemDelegateForColumn(1, self.amount_delegate)
+        self.tableView_transactions.setItemDelegateForColumn(2, self.amount_delegate)
 
         self.total_per_day_delegate = AmountDelegate(self.tableView_transactions, self.db_manager)
-        self.tableView_transactions.setItemDelegateForColumn(6, self.total_per_day_delegate)
+        self.tableView_transactions.setItemDelegateForColumn(7, self.total_per_day_delegate)
 
         self.tableView_transactions.setEditTriggers(QAbstractItemView.EditTrigger.DoubleClicked)
 
@@ -4710,6 +4828,7 @@ class MainWindow(
         self.pushButton_yesterday.setText(f"📅 {self.pushButton_yesterday.text()}")
         self.pushButton_add.setText(f"➕ {self.pushButton_add.text()}")  # noqa: RUF001
         self.pushButton_add_as_text_with_ai.setText(f"🤖 {self.pushButton_add_as_text_with_ai.text()}")
+        self.pushButton_translate_with_ai.setText(f"🤖 {self.pushButton_translate_with_ai.text()}")
         self.pushButton_delete.setText(f"🗑️ {self.pushButton_delete.text()}")
         self.pushButton_refresh.setText(f"🔄 {self.pushButton_refresh.text()}")
         self.pushButton_clear_filter.setText(f"🧹 {self.pushButton_clear_filter.text()}")
@@ -5058,6 +5177,49 @@ class MainWindow(
 
         dialog.exec()
 
+    def _show_transaction_translate_preview(
+        self,
+        descriptions: list[str],
+        response_text: str,
+        *,
+        limit: int,
+        filled_from_existing: int = 0,
+    ) -> None:
+        """Parse AI TSV, preview translations, and apply confirmed values."""
+        translations = parse_transaction_translate_response(response_text)
+        if not translations:
+            preview = response_text.strip()[:300]
+            message_box.warning(
+                self,
+                "AI Response",
+                f"Could not parse BotHub response.\n\nExpected TSV: Description<TAB>English\n\nResponse:\n{preview}",
+            )
+            return
+        dialog = TransactionTranslatePreviewDialog(
+            self,
+            descriptions,
+            translations,
+            limit,
+            filled_from_existing=filled_from_existing,
+        )
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            if filled_from_existing:
+                self._report_transaction_translate_completion(
+                    prefix=f"Filled {filled_from_existing} unique description(s) from existing database translations."
+                )
+            return
+        to_apply = dialog.get_translations_to_apply()
+        if not to_apply:
+            message_box.information(self, "Translate with AI", "No translations selected to apply.")
+            self._report_transaction_translate_completion()
+            return
+        prefix = (
+            f"Filled {filled_from_existing} unique description(s) from existing database translations."
+            if filled_from_existing
+            else ""
+        )
+        self._commit_transaction_translations(to_apply, prefix=prefix)
+
     def _show_transactions_by_tag_dialog(self, initial_tag: str | None = None) -> None:
         """Open modal dialog with tag selector, expense totals, and transactions table."""
         if not self._validate_database_connection() or self.db_manager is None:
@@ -5198,8 +5360,8 @@ class MainWindow(
         index: QModelIndex = self.tableView_transactions.indexAt(position)
         filter_by_category_action = None
         if index.isValid():
-            # Get the category from the Category column (index 2)
-            category_index: QModelIndex = self.tableView_transactions.model().index(index.row(), 2)
+            # Get the category from the Category column
+            category_index: QModelIndex = self.tableView_transactions.model().index(index.row(), 3)
             if category_index.isValid():
                 category_value: str = self.tableView_transactions.model().data(category_index)
                 if category_value:
@@ -5209,7 +5371,7 @@ class MainWindow(
                         lambda: self._filter_by_category_from_table(category_value)
                     )
 
-            tag_column_index = 5
+            tag_column_index = 6
             tag_index: QModelIndex = self.tableView_transactions.model().index(index.row(), tag_column_index)
             tag_for_dialog: str = ""
             if index.column() == tag_column_index and tag_index.isValid():
@@ -5223,8 +5385,8 @@ class MainWindow(
                 if filter_by_category_action is not None:
                     context_menu.addSeparator()
 
-            # Get the date from the Date column (index 4)
-            date_index: QModelIndex = self.tableView_transactions.model().index(index.row(), 4)
+            # Get the date from the Date column
+            date_index: QModelIndex = self.tableView_transactions.model().index(index.row(), 5)
             if date_index.isValid():
                 date_value: str = self.tableView_transactions.model().data(date_index)
                 if date_value:
@@ -5276,7 +5438,7 @@ class MainWindow(
 
         # Sum Amount column for unique selected rows (any column selection counts)
         selected_indexes = self.tableView_transactions.selectionModel().selectedIndexes()
-        amount_column_index = 1
+        amount_column_index = 2
         selected_amount_values: list[float] = []
         model = self.tableView_transactions.model()
         seen_rows: set[int] = set()
@@ -5841,7 +6003,7 @@ def __init__(self, *, hide_on_close: bool = False) -> None:
             "transactions": (
                 self.tableView_transactions,
                 "transactions",
-                ["Description", "Amount", "Category", "Currency", "Date", "Tag", "Total per day"],
+                ["Description", "English", "Amount", "Category", "Currency", "Date", "Tag", "Total per day"],
             ),
             "categories": (
                 self.tableView_categories,
@@ -7027,6 +7189,65 @@ def on_tab_changed(self, index: int) -> None:
                 self._charts_initialized = True
         elif index == id_reports_tab:  # Reports tab
             self.on_generate_report(refresh_summary=True)
+```
+
+</details>
+
+### ⚙️ Method `on_translate_with_ai`
+
+```python
+def on_translate_with_ai(self) -> None
+```
+
+Translate missing transaction descriptions into English via BotHub.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def on_translate_with_ai(self) -> None:
+        if self.db_manager is None:
+            return
+        limit = self._finance_transactions_translate_descriptions_limit()
+        descriptions = self.db_manager.get_unique_transaction_descriptions_missing_description_en(limit=limit)
+        if not descriptions:
+            self._report_transaction_translate_completion()
+            return
+        known = self.db_manager.lookup_existing_description_en_for_descriptions(descriptions)
+        filled = self._commit_transaction_translations(known, show_completion=False)
+        descriptions_for_ai = [description for description in descriptions if description not in known]
+        if not descriptions_for_ai:
+            self._report_transaction_translate_completion(
+                prefix=f"Filled {filled} unique description(s) from existing database translations."
+            )
+            return
+        try:
+            prompt_text = build_prompt(
+                self._app_config,
+                "finance_transactions_translate_descriptions",
+                {"TRANSACTION_DESCRIPTIONS": "\n".join(descriptions_for_ai)},
+            )
+        except ValueError as exc:
+            show_bothub_prompt_build_error(self, exc)
+            return
+
+        def on_success(response_text: str) -> None:
+            self._show_transaction_translate_preview(
+                descriptions_for_ai,
+                response_text,
+                limit=limit,
+                filled_from_existing=filled,
+            )
+
+        run_bothub_request(
+            self,
+            self._app_config,
+            prompt_text,
+            on_success,
+            toast_message="Translating descriptions…",
+            is_busy=lambda: self._bothub_state.worker is not None,
+            state=self._bothub_state,
+        )
 ```
 
 </details>

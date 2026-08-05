@@ -249,11 +249,12 @@ class AutoSaveOperations(AutoSaveMixin):
         """
         # Correct column order in tableView_transactions
         description = model.data(model.index(row, 0)) or ""  # Description
-        amount_str = model.data(model.index(row, 1)) or "0"  # Amount
-        category_name = model.data(model.index(row, 2)) or ""  # Category
-        currency_code = model.data(model.index(row, 3)) or ""  # Currency
-        date = model.data(model.index(row, 4)) or ""  # Date
-        tag = model.data(model.index(row, 5)) or ""  # Tag
+        description_en = model.data(model.index(row, 1)) or ""  # English
+        amount_str = model.data(model.index(row, 2)) or "0"  # Amount
+        category_name = model.data(model.index(row, 3)) or ""  # Category
+        currency_code = model.data(model.index(row, 4)) or ""  # Currency
+        date = model.data(model.index(row, 5)) or ""  # Date
+        tag = model.data(model.index(row, 6)) or ""  # Tag
 
         # Validate date format
         if not self._is_valid_date(date):
@@ -305,7 +306,16 @@ class AutoSaveOperations(AutoSaveMixin):
         currency_id = currency_info[0]
 
         # Update database
-        if not self.db_manager.update_transaction(int(row_id), amount, description, cat_id, currency_id, date, tag):
+        if not self.db_manager.update_transaction(
+            int(row_id),
+            amount,
+            description,
+            cat_id,
+            currency_id,
+            date,
+            tag,
+            description_en,
+        ):
             self._show_db_error("Failed to save transaction record")
 
     def _show_auto_save_error(self, message: str) -> None:

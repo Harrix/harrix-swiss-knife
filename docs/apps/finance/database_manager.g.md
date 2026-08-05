@@ -25,6 +25,7 @@ lang: en
   - [⚙️ Method `close`](#%EF%B8%8F-method-close)
   - [⚙️ Method `convert_from_minor_units`](#%EF%B8%8F-method-convert_from_minor_units)
   - [⚙️ Method `convert_to_minor_units`](#%EF%B8%8F-method-convert_to_minor_units)
+  - [⚙️ Method `count_transactions_missing_description_en`](#%EF%B8%8F-method-count_transactions_missing_description_en)
   - [⚙️ Method `delete_account`](#%EF%B8%8F-method-delete_account)
   - [⚙️ Method `delete_category`](#%EF%B8%8F-method-delete_category)
   - [⚙️ Method `delete_currency`](#%EF%B8%8F-method-delete_currency)
@@ -79,8 +80,10 @@ lang: en
   - [⚙️ Method `get_transaction_by_id`](#%EF%B8%8F-method-get_transaction_by_id)
   - [⚙️ Method `get_transaction_totals_by_currency`](#%EF%B8%8F-method-get_transaction_totals_by_currency)
   - [⚙️ Method `get_transactions_for_tag`](#%EF%B8%8F-method-get_transactions_for_tag)
+  - [⚙️ Method `get_unique_transaction_descriptions_missing_description_en`](#%EF%B8%8F-method-get_unique_transaction_descriptions_missing_description_en)
   - [⚙️ Method `get_usd_to_currency_rate`](#%EF%B8%8F-method-get_usd_to_currency_rate)
   - [⚙️ Method `has_exchange_rates_data`](#%EF%B8%8F-method-has_exchange_rates_data)
+  - [⚙️ Method `lookup_existing_description_en_for_descriptions`](#%EF%B8%8F-method-lookup_existing_description_en_for_descriptions)
   - [⚙️ Method `set_default_currency`](#%EF%B8%8F-method-set_default_currency)
   - [⚙️ Method `should_update_exchange_rates`](#%EF%B8%8F-method-should_update_exchange_rates)
   - [⚙️ Method `update_account`](#%EF%B8%8F-method-update_account)
@@ -90,6 +93,7 @@ lang: en
   - [⚙️ Method `update_currency_ticker`](#%EF%B8%8F-method-update_currency_ticker)
   - [⚙️ Method `update_exchange_rate`](#%EF%B8%8F-method-update_exchange_rate)
   - [⚙️ Method `update_transaction`](#%EF%B8%8F-method-update_transaction)
+  - [⚙️ Method `update_transaction_description_en_by_description`](#%EF%B8%8F-method-update_transaction_description_en_by_description)
   - [⚙️ Method `update_transactions_date`](#%EF%B8%8F-method-update_transactions_date)
 
 </details>
@@ -134,6 +138,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         # Initialize default settings if they don't exist
         self._init_default_settings()
         self._ensure_category_name_local_column()
+        self._ensure_transaction_description_en_column()
         self._ensure_system_categories()
         self._ensure_performance_indexes()
 
@@ -290,6 +295,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         currency_id: int,
         date: str,
         tag: str = "",
+        description_en: str = "",
     ) -> bool:
         """Add a new transaction.
 
@@ -301,14 +307,17 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         - `currency_id` (`int`): Currency ID.
         - `date` (`str`): Date in YYYY-MM-DD format.
         - `tag` (`str`): Transaction tag. Defaults to `""`.
+        - `description_en` (`str`): English transaction description. Defaults to `""`.
 
         Returns:
 
         - `bool`: `True` if successful, `False` otherwise.
 
         """
-        query = """INSERT INTO transactions (amount, description, _id_categories, _id_currencies, date, tag)
-                   VALUES (:amount, :description, :category_id, :currency_id, :date, :tag)"""
+        query = """INSERT INTO transactions
+                   (amount, description, _id_categories, _id_currencies, date, tag, description_en)
+                   VALUES
+                   (:amount, :description, :category_id, :currency_id, :date, :tag, :description_en)"""
         params = {
             "amount": self.convert_to_minor_units(amount, currency_id),
             "description": description,
@@ -316,6 +325,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             "currency_id": currency_id,
             "date": date,
             "tag": tag,
+            "description_en": description_en or None,
         }
         return self.execute_simple_query(query, params)
 
@@ -398,6 +408,17 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         """
         subdivision = self.get_currency_subdivision(currency_id)
         return int(amount_major * subdivision)
+
+    def count_transactions_missing_description_en(self) -> int:
+        """Return number of transactions with an empty English description."""
+        rows = self.get_rows(
+            """
+            SELECT COUNT(*)
+            FROM transactions
+            WHERE description_en IS NULL OR TRIM(description_en) = ''
+            """
+        )
+        return int(rows[0][0]) if rows else 0
 
     def delete_account(self, account_id: int) -> bool:
         """Delete an account from the database.
@@ -718,7 +739,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         """
         query = """
             SELECT t._id, t.amount, t.description, cat.name, c.code, t.date, t.tag,
-                   cat.type, cat.icon, c.symbol
+                   cat.type, cat.icon, c.symbol, t.description_en
             FROM transactions t
             JOIN categories cat ON t._id_categories = cat._id
             JOIN currencies c ON t._id_currencies = c._id
@@ -1067,7 +1088,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         query_text = """
             SELECT t._id, t.amount, t.description, cat.name, c.code, t.date, t.tag,
-                   cat.type, cat.icon, c.symbol
+                   cat.type, cat.icon, c.symbol, t.description_en
             FROM transactions t
             JOIN categories cat ON t._id_categories = cat._id
             JOIN currencies c ON t._id_currencies = c._id
@@ -1347,7 +1368,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         """
         query = """
             SELECT t._id, t.amount, t.description, cat.name, c.code, t.date, t.tag,
-                   cat.type, cat.icon, c.symbol
+                   cat.type, cat.icon, c.symbol, t.description_en
             FROM transactions t
             JOIN categories cat ON t._id_categories = cat._id
             JOIN currencies c ON t._id_currencies = c._id
@@ -1371,7 +1392,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         """
         query = """
             SELECT t._id, t.amount, t.description, cat.name, c.code, t.date, t.tag,
-                   cat.type, cat.icon, c.symbol
+                   cat.type, cat.icon, c.symbol, t.description_en
             FROM transactions t
             JOIN categories cat ON t._id_categories = cat._id
             JOIN currencies c ON t._id_currencies = c._id
@@ -1546,6 +1567,23 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         """
         return self.get_rows(query, {"tag": tag})
 
+    def get_unique_transaction_descriptions_missing_description_en(self, *, limit: int = 1000) -> list[str]:
+        """Return unique descriptions whose English translation is missing."""
+        rows = self.get_rows(
+            """
+            SELECT description
+            FROM transactions
+            WHERE description IS NOT NULL
+              AND TRIM(description) != ''
+              AND (description_en IS NULL OR TRIM(description_en) = '')
+            GROUP BY description
+            ORDER BY MAX(_id) DESC
+            LIMIT :limit
+            """,
+            {"limit": max(1, limit)},
+        )
+        return [str(row[0]) for row in rows if row[0]]
+
     def get_usd_to_currency_rate(self, currency_id: int, date: str | None = None) -> float:
         """Get exchange rate from currency to USD (how many USD for 1 currency unit).
 
@@ -1573,6 +1611,25 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         """
         return self.exchange_rates.has_exchange_rates_data()
+
+    def lookup_existing_description_en_for_descriptions(self, descriptions: list[str]) -> dict[str, str]:
+        """Return existing non-empty English translations keyed by description."""
+        if not descriptions:
+            return {}
+        placeholders = ", ".join(f":description_{index}" for index in range(len(descriptions)))
+        params = {f"description_{index}": description for index, description in enumerate(descriptions)}
+        rows = self.get_rows(
+            f"""
+            SELECT description, MIN(description_en)
+            FROM transactions
+            WHERE description IN ({placeholders})
+              AND description_en IS NOT NULL
+              AND TRIM(description_en) != ''
+            GROUP BY description
+            """,
+            params,
+        )
+        return {str(row[0]): str(row[1]) for row in rows if row[0] and row[1]}
 
     def set_default_currency(self, currency_code: str) -> bool:
         """Set the default currency.
@@ -1854,6 +1911,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         currency_id: int,
         date: str,
         tag: str = "",
+        description_en: str = "",
     ) -> bool:
         """Update an existing transaction.
 
@@ -1866,6 +1924,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         - `currency_id` (`int`): Currency ID.
         - `date` (`str`): Date in YYYY-MM-DD format.
         - `tag` (`str`): Transaction tag. Defaults to `""`.
+        - `description_en` (`str`): English transaction description. Defaults to `""`.
 
         Returns:
 
@@ -1874,7 +1933,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         """
         query = """UPDATE transactions SET amount = :amount, description = :description,
                    _id_categories = :category_id, _id_currencies = :currency_id,
-                   date = :date, tag = :tag WHERE _id = :id"""
+                   date = :date, tag = :tag, description_en = :description_en WHERE _id = :id"""
         params = {
             "amount": self.convert_to_minor_units(amount, currency_id),
             "description": description,
@@ -1882,9 +1941,24 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             "currency_id": currency_id,
             "date": date,
             "tag": tag,
+            "description_en": description_en or None,
             "id": transaction_id,
         }
         return self.execute_simple_query(query, params)
+
+    def update_transaction_description_en_by_description(self, description: str, description_en: str) -> bool:
+        """Fill English description for all matching untranslated transactions."""
+        if not description.strip() or not description_en.strip():
+            return False
+        return self.execute_simple_query(
+            """
+            UPDATE transactions
+            SET description_en = :description_en
+            WHERE description = :description
+              AND (description_en IS NULL OR TRIM(description_en) = '')
+            """,
+            {"description": description, "description_en": description_en},
+        )
 
     def update_transactions_date(self, transaction_ids: list[int], date: str) -> bool:
         """Set the same calendar date on many transactions (only the `date` column).
@@ -1960,6 +2034,21 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             self._migrate_balance_correction_to_revision_expense()
         except Exception:
             logger.exception("Could not ensure system categories")
+
+    def _ensure_transaction_description_en_column(self) -> None:
+        """Ensure `description_en` exists on transactions."""
+        try:
+            columns = {
+                str(row[1])
+                for row in self.get_rows("PRAGMA table_info(transactions)")
+                if row and len(row) > 1 and row[1] is not None
+            }
+            if "description_en" in columns:
+                return
+            if not self.execute_simple_query("ALTER TABLE transactions ADD COLUMN description_en TEXT"):
+                logger.error("Failed to add transactions.description_en column")
+        except Exception:
+            logger.exception("Could not ensure transactions.description_en column")
 
     def _get_currency_conversion_sql(
         self,
@@ -2142,6 +2231,7 @@ def __init__(self, db_filename: str) -> None:
         # Initialize default settings if they don't exist
         self._init_default_settings()
         self._ensure_category_name_local_column()
+        self._ensure_transaction_description_en_column()
         self._ensure_system_categories()
         self._ensure_performance_indexes()
 
@@ -2356,7 +2446,7 @@ def add_exchange_rate(self, currency_id: int, rate: float, date: str) -> bool:
 ### ⚙️ Method `add_transaction`
 
 ```python
-def add_transaction(self, amount: float, description: str, category_id: int, currency_id: int, date: str, tag: str = "") -> bool
+def add_transaction(self, amount: float, description: str, category_id: int, currency_id: int, date: str, tag: str = "", description_en: str = "") -> bool
 ```
 
 Add a new transaction.
@@ -2369,6 +2459,7 @@ Args:
 - `currency_id` (`int`): Currency ID.
 - `date` (`str`): Date in YYYY-MM-DD format.
 - `tag` (`str`): Transaction tag. Defaults to `""`.
+- `description_en` (`str`): English transaction description. Defaults to `""`.
 
 Returns:
 
@@ -2386,9 +2477,12 @@ def add_transaction(
         currency_id: int,
         date: str,
         tag: str = "",
+        description_en: str = "",
     ) -> bool:
-        query = """INSERT INTO transactions (amount, description, _id_categories, _id_currencies, date, tag)
-                   VALUES (:amount, :description, :category_id, :currency_id, :date, :tag)"""
+        query = """INSERT INTO transactions
+                   (amount, description, _id_categories, _id_currencies, date, tag, description_en)
+                   VALUES
+                   (:amount, :description, :category_id, :currency_id, :date, :tag, :description_en)"""
         params = {
             "amount": self.convert_to_minor_units(amount, currency_id),
             "description": description,
@@ -2396,6 +2490,7 @@ def add_transaction(
             "currency_id": currency_id,
             "date": date,
             "tag": tag,
+            "description_en": description_en or None,
         }
         return self.execute_simple_query(query, params)
 ```
@@ -2552,6 +2647,31 @@ Returns:
 def convert_to_minor_units(self, amount_major: float, currency_id: int) -> int:
         subdivision = self.get_currency_subdivision(currency_id)
         return int(amount_major * subdivision)
+```
+
+</details>
+
+### ⚙️ Method `count_transactions_missing_description_en`
+
+```python
+def count_transactions_missing_description_en(self) -> int
+```
+
+Return number of transactions with an empty English description.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def count_transactions_missing_description_en(self) -> int:
+        rows = self.get_rows(
+            """
+            SELECT COUNT(*)
+            FROM transactions
+            WHERE description_en IS NULL OR TRIM(description_en) = ''
+            """
+        )
+        return int(rows[0][0]) if rows else 0
 ```
 
 </details>
@@ -3076,7 +3196,7 @@ Returns:
 def get_all_transactions(self, limit: int | None = None, offset: int = 0) -> list[list[Any]]:
         query = """
             SELECT t._id, t.amount, t.description, cat.name, c.code, t.date, t.tag,
-                   cat.type, cat.icon, c.symbol
+                   cat.type, cat.icon, c.symbol, t.description_en
             FROM transactions t
             JOIN categories cat ON t._id_categories = cat._id
             JOIN currencies c ON t._id_currencies = c._id
@@ -3657,7 +3777,7 @@ def get_filtered_transactions(
 
         query_text = """
             SELECT t._id, t.amount, t.description, cat.name, c.code, t.date, t.tag,
-                   cat.type, cat.icon, c.symbol
+                   cat.type, cat.icon, c.symbol, t.description_en
             FROM transactions t
             JOIN categories cat ON t._id_categories = cat._id
             JOIN currencies c ON t._id_currencies = c._id
@@ -4049,7 +4169,7 @@ Returns:
 def get_revision_expense_transactions(self, currency_id: int) -> list[list[Any]]:
         query = """
             SELECT t._id, t.amount, t.description, cat.name, c.code, t.date, t.tag,
-                   cat.type, cat.icon, c.symbol
+                   cat.type, cat.icon, c.symbol, t.description_en
             FROM transactions t
             JOIN categories cat ON t._id_categories = cat._id
             JOIN currencies c ON t._id_currencies = c._id
@@ -4085,7 +4205,7 @@ Returns:
 def get_revision_transactions_for_currency_on_date(self, currency_id: int, date: str) -> list[list[Any]]:
         query = """
             SELECT t._id, t.amount, t.description, cat.name, c.code, t.date, t.tag,
-                   cat.type, cat.icon, c.symbol
+                   cat.type, cat.icon, c.symbol, t.description_en
             FROM transactions t
             JOIN categories cat ON t._id_categories = cat._id
             JOIN currencies c ON t._id_currencies = c._id
@@ -4363,6 +4483,37 @@ def get_transactions_for_tag(self, tag: str) -> list[list[Any]]:
 
 </details>
 
+### ⚙️ Method `get_unique_transaction_descriptions_missing_description_en`
+
+```python
+def get_unique_transaction_descriptions_missing_description_en(self) -> list[str]
+```
+
+Return unique descriptions whose English translation is missing.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_unique_transaction_descriptions_missing_description_en(self, *, limit: int = 1000) -> list[str]:
+        rows = self.get_rows(
+            """
+            SELECT description
+            FROM transactions
+            WHERE description IS NOT NULL
+              AND TRIM(description) != ''
+              AND (description_en IS NULL OR TRIM(description_en) = '')
+            GROUP BY description
+            ORDER BY MAX(_id) DESC
+            LIMIT :limit
+            """,
+            {"limit": max(1, limit)},
+        )
+        return [str(row[0]) for row in rows if row[0]]
+```
+
+</details>
+
 ### ⚙️ Method `get_usd_to_currency_rate`
 
 ```python
@@ -4411,6 +4562,39 @@ Returns:
 ```python
 def has_exchange_rates_data(self) -> bool:
         return self.exchange_rates.has_exchange_rates_data()
+```
+
+</details>
+
+### ⚙️ Method `lookup_existing_description_en_for_descriptions`
+
+```python
+def lookup_existing_description_en_for_descriptions(self, descriptions: list[str]) -> dict[str, str]
+```
+
+Return existing non-empty English translations keyed by description.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def lookup_existing_description_en_for_descriptions(self, descriptions: list[str]) -> dict[str, str]:
+        if not descriptions:
+            return {}
+        placeholders = ", ".join(f":description_{index}" for index in range(len(descriptions)))
+        params = {f"description_{index}": description for index, description in enumerate(descriptions)}
+        rows = self.get_rows(
+            f"""
+            SELECT description, MIN(description_en)
+            FROM transactions
+            WHERE description IN ({placeholders})
+              AND description_en IS NOT NULL
+              AND TRIM(description_en) != ''
+            GROUP BY description
+            """,
+            params,
+        )
+        return {str(row[0]): str(row[1]) for row in rows if row[0] and row[1]}
 ```
 
 </details>
@@ -4785,7 +4969,7 @@ def update_exchange_rate(self, currency_id: int, date: str, rate: float) -> bool
 ### ⚙️ Method `update_transaction`
 
 ```python
-def update_transaction(self, transaction_id: int, amount: float, description: str, category_id: int, currency_id: int, date: str, tag: str = "") -> bool
+def update_transaction(self, transaction_id: int, amount: float, description: str, category_id: int, currency_id: int, date: str, tag: str = "", description_en: str = "") -> bool
 ```
 
 Update an existing transaction.
@@ -4799,6 +4983,7 @@ Args:
 - `currency_id` (`int`): Currency ID.
 - `date` (`str`): Date in YYYY-MM-DD format.
 - `tag` (`str`): Transaction tag. Defaults to `""`.
+- `description_en` (`str`): English transaction description. Defaults to `""`.
 
 Returns:
 
@@ -4817,10 +5002,11 @@ def update_transaction(
         currency_id: int,
         date: str,
         tag: str = "",
+        description_en: str = "",
     ) -> bool:
         query = """UPDATE transactions SET amount = :amount, description = :description,
                    _id_categories = :category_id, _id_currencies = :currency_id,
-                   date = :date, tag = :tag WHERE _id = :id"""
+                   date = :date, tag = :tag, description_en = :description_en WHERE _id = :id"""
         params = {
             "amount": self.convert_to_minor_units(amount, currency_id),
             "description": description,
@@ -4828,9 +5014,38 @@ def update_transaction(
             "currency_id": currency_id,
             "date": date,
             "tag": tag,
+            "description_en": description_en or None,
             "id": transaction_id,
         }
         return self.execute_simple_query(query, params)
+```
+
+</details>
+
+### ⚙️ Method `update_transaction_description_en_by_description`
+
+```python
+def update_transaction_description_en_by_description(self, description: str, description_en: str) -> bool
+```
+
+Fill English description for all matching untranslated transactions.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def update_transaction_description_en_by_description(self, description: str, description_en: str) -> bool:
+        if not description.strip() or not description_en.strip():
+            return False
+        return self.execute_simple_query(
+            """
+            UPDATE transactions
+            SET description_en = :description_en
+            WHERE description = :description
+              AND (description_en IS NULL OR TRIM(description_en) = '')
+            """,
+            {"description": description, "description_en": description_en},
+        )
 ```
 
 </details>

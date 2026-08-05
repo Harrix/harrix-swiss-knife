@@ -30,15 +30,11 @@
   "hotkeys": [
     {
       "action": "OnQuickLauncher",
-      "hotkeys": [
-        "Ctrl+Shift+F1"
-      ]
+      "hotkeys": ["Ctrl+Shift+F1"]
     },
     {
       "action": "OnScreenshotRegion",
-      "hotkeys": [
-        "Ctrl+Shift+F2"
-      ]
+      "hotkeys": ["Ctrl+Shift+F2"]
     }
   ],
   "quick_launcher_markdown_in_panel": true,
@@ -56,6 +52,7 @@
   "android_build_variant": "release",
   "optimize_images_folder_max_size": 1024,
   "food_log_translate_names_limit": 250,
+  "finance_transactions_translate_descriptions_limit": 250,
   "github_user": "Harrix",
   "harrix_notes_explorer_publisher": "harrix",
   "markdown_templates": {
@@ -175,10 +172,7 @@
     "snippet:config/beginning-of-article.md",
     "snippet:config/beginning-of-md-en.md"
   ],
-  "npm_packages": [
-    "npm-check-updates",
-    "prettier"
-  ],
+  "npm_packages": ["npm-check-updates", "prettier"],
   "path_3d": "<YOUR_DOWNLOADS_FOLDER>",
   "path_articles": "<YOUR_ARTICLES_FOLDER>",
   "path_books": "<YOUR_BOOKS_FOLDER>",
@@ -197,37 +191,18 @@
   "paths_combine_for_ai": [
     {
       "base_folder": "<YOUR_GITHUB_FOLDER>/harrix-swiss-knife",
-      "files": [
-        "<YOUR_GITHUB_FOLDER>/harrix-swiss-knife/src/**/*.py"
-      ],
+      "files": ["<YOUR_GITHUB_FOLDER>/harrix-swiss-knife/src/**/*.py"],
       "name": "example-project"
     }
   ],
-  "paths_git": [
-    "<YOUR_PATH>"
-  ],
-  "paths_notes": [
-    "<YOUR_PATH>"
-  ],
-  "paths_notes_for_summaries": [
-    "<YOUR_PATH>"
-  ],
-  "paths_android_projects": [
-    "<YOUR_GITHUB_FOLDER>/harrix-swiss-knife/android"
-  ],
-  "paths_python_libraries": [
-    "<YOUR_GITHUB_FOLDER>/harrix-pylib",
-    "<YOUR_GITHUB_FOLDER>/harrix-pyssg"
-  ],
-  "paths_python_project_creation": [
-    "<YOUR_PATH>"
-  ],
-  "paths_python_projects": [
-    "<YOUR_GITHUB_FOLDER>/harrix-swiss-knife"
-  ],
-  "paths_quotes": [
-    "<YOUR_PATH>"
-  ],
+  "paths_git": ["<YOUR_PATH>"],
+  "paths_notes": ["<YOUR_PATH>"],
+  "paths_notes_for_summaries": ["<YOUR_PATH>"],
+  "paths_android_projects": ["<YOUR_GITHUB_FOLDER>/harrix-swiss-knife/android"],
+  "paths_python_libraries": ["<YOUR_GITHUB_FOLDER>/harrix-pylib", "<YOUR_GITHUB_FOLDER>/harrix-pyssg"],
+  "paths_python_project_creation": ["<YOUR_PATH>"],
+  "paths_python_projects": ["<YOUR_GITHUB_FOLDER>/harrix-swiss-knife"],
+  "paths_quotes": ["<YOUR_PATH>"],
   "paths_sites": [
     {
       "input": "<YOUR_SITE_CONTENT>",
@@ -238,9 +213,7 @@
   "site_name": "harrix.dev",
   "github_user": "Harrix",
   "site_default_language": "ru",
-  "paths_with_featured_image": [
-    "<YOUR_PATH>"
-  ],
+  "paths_with_featured_image": ["<YOUR_PATH>"],
   "bothub": {
     "base_url": "https://bothub.chat/api/v2/openai/v1",
     "model": "gpt-5.4",
@@ -252,6 +225,7 @@
   "prompts": {
     "finance_purchases_to_tsv": "snippet:config/prompts/finance-purchases-to-tsv.md",
     "finance_category_translate_local": "snippet:config/prompts/finance-category-translate-local.md",
+    "finance_transactions_translate_descriptions": "snippet:config/prompts/finance-transactions-translate-descriptions.md",
     "food_log_to_tsv": "snippet:config/prompts/food-log-to-tsv.md",
     "food_voice_log_to_tsv": "snippet:config/prompts/food-voice-log-to-tsv.md",
     "food_kcal_lookup": "snippet:config/prompts/food-kcal-lookup.md",

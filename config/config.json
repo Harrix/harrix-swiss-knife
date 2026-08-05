@@ -2,10 +2,7 @@
   "beginning_of_article": "snippet:config/beginning-of-article.md",
   "beginning_of_md": "snippet:config/beginning-of-md.md",
   "beginning_of_md_docs": "snippet:config/beginning-of-md-en.md",
-  "block_drives": [
-    "E",
-    "F"
-  ],
+  "block_drives": ["E", "F"],
   "cli_commands": "snippet:config/cli-commands.md",
   "combine_for_ai_unchecked_extensions": [
     "svg",
@@ -33,15 +30,11 @@
   "hotkeys": [
     {
       "action": "OnQuickLauncher",
-      "hotkeys": [
-        "Ctrl+Shift+F1"
-      ]
+      "hotkeys": ["Ctrl+Shift+F1"]
     },
     {
       "action": "OnScreenshotRegion",
-      "hotkeys": [
-        "Ctrl+Shift+F2"
-      ]
+      "hotkeys": ["Ctrl+Shift+F2"]
     }
   ],
   "quick_launcher_markdown_in_panel": true,
@@ -59,6 +52,7 @@
   "android_build_variant": "release",
   "optimize_images_folder_max_size": 1024,
   "food_log_translate_names_limit": 250,
+  "finance_transactions_translate_descriptions_limit": 250,
   "github_user": "Harrix",
   "harrix_notes_explorer_publisher": "harrix",
   "markdown_templates": {
@@ -178,10 +172,7 @@
     "snippet:config/beginning-of-article.md",
     "snippet:config/beginning-of-md-en.md"
   ],
-  "npm_packages": [
-    "npm-check-updates",
-    "prettier"
-  ],
+  "npm_packages": ["npm-check-updates", "prettier"],
   "path_3d": "D:/Downloads",
   "path_articles": "D:/GitHub/_content__harrix-dev/harrix.dev-articles-2025",
   "path_books": "D:/Dropbox/Books",
@@ -200,9 +191,7 @@
   "paths_combine_for_ai": [
     {
       "base_folder": "D:/GitHub/harrix-swiss-knife",
-      "files": [
-        "D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/**/*.py"
-      ],
+      "files": ["D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/**/*.py"],
       "name": "harrix-swiss-knife"
     },
     {
@@ -231,9 +220,7 @@
     },
     {
       "base_folder": "D:/GitHub/harrix-swiss-knife",
-      "files": [
-        "D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/apps/**/*.py"
-      ],
+      "files": ["D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/apps/**/*.py"],
       "name": "harrix-swiss-knife - all Python files in apps"
     }
   ],
@@ -266,23 +253,10 @@
     "D:/Dropbox/Notes/Notes-Lists/Books",
     "D:/Dropbox/Notes/Notes-Lists/Books-of-nonfiction"
   ],
-  "paths_android_projects": [
-    "D:/GitHub/harrix-swiss-knife/android",
-    "D:/GitHub/harrix-notes-android"
-  ],
-  "paths_python_libraries": [
-    "D:/GitHub/harrix-pylib",
-    "D:/GitHub/harrix-pyssg"
-  ],
-  "paths_python_project_creation": [
-    "C:/Users/sergi/OneDrive/Projects/Python",
-    "D:/GitHub"
-  ],
-  "paths_python_projects": [
-    "D:/GitHub/harrix-swiss-knife",
-    "D:/GitHub/harrix-pylib",
-    "D:/GitHub/harrix-pyssg"
-  ],
+  "paths_android_projects": ["D:/GitHub/harrix-swiss-knife/android", "D:/GitHub/harrix-notes-android"],
+  "paths_python_libraries": ["D:/GitHub/harrix-pylib", "D:/GitHub/harrix-pyssg"],
+  "paths_python_project_creation": ["C:/Users/sergi/OneDrive/Projects/Python", "D:/GitHub"],
+  "paths_python_projects": ["D:/GitHub/harrix-swiss-knife", "D:/GitHub/harrix-pylib", "D:/GitHub/harrix-pyssg"],
   "paths_quotes": [
     "D:/Dropbox/Notes/Notes-Lists/Quotes/Fiction",
     "D:/Dropbox/Notes/Notes-Lists/Quotes/Religion",
@@ -325,6 +299,7 @@
   "prompts": {
     "finance_purchases_to_tsv": "snippet:config/prompts/finance-purchases-to-tsv.md",
     "finance_category_translate_local": "snippet:config/prompts/finance-category-translate-local.md",
+    "finance_transactions_translate_descriptions": "snippet:config/prompts/finance-transactions-translate-descriptions.md",
     "food_log_to_tsv": "snippet:config/prompts/food-log-to-tsv.md",
     "food_voice_log_to_tsv": "snippet:config/prompts/food-voice-log-to-tsv.md",
     "food_kcal_lookup": "snippet:config/prompts/food-kcal-lookup.md",

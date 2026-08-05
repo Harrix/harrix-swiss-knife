@@ -41,10 +41,11 @@ class Ui_MainWindow(object):
         self.label_tag.setText(QCoreApplication.translate("MainWindow", u"Tag:", None))
         self.lineEdit_tag.setPlaceholderText(QCoreApplication.translate("MainWindow", u"Optional", None))
         self.groupBox_commands.setTitle(QCoreApplication.translate("MainWindow", u"Commands", None))
+        self.pushButton_add_as_text_with_ai.setText(QCoreApplication.translate("MainWindow", u"Add with AI", None))
+        self.pushButton_translate_with_ai.setText(QCoreApplication.translate("MainWindow", u"Translate with AI", None))
         self.pushButton_delete.setText(QCoreApplication.translate("MainWindow", u"Delete", None))
         self.pushButton_show_all_records.setText(QCoreApplication.translate("MainWindow", u"Show All Records", None))
         self.pushButton_refresh.setText(QCoreApplication.translate("MainWindow", u"Refresh", None))
-        self.pushButton_add_as_text_with_ai.setText(QCoreApplication.translate("MainWindow", u"Add with AI", None))
         self.groupBox_filter.setTitle(QCoreApplication.translate("MainWindow", u"Filter", None))
         self.radioButton_filter_type_all.setText(QCoreApplication.translate("MainWindow", u"All", None))
         self.radioButton_filter_type_expense.setText(QCoreApplication.translate("MainWindow", u"Expense", None))
@@ -336,6 +337,29 @@ class Ui_MainWindow(object):
         self.groupBox_commands.setMinimumSize(QSize(0, 1))
         self.verticalLayout_2 = QVBoxLayout(self.groupBox_commands)
         self.verticalLayout_2.setObjectName(u"verticalLayout_2")
+        self.pushButton_add_as_text_with_ai = QPushButton(self.groupBox_commands)
+        self.pushButton_add_as_text_with_ai.setObjectName(u"pushButton_add_as_text_with_ai")
+        self.pushButton_add_as_text_with_ai.setMinimumSize(QSize(0, 41))
+        font2 = QFont()
+        font2.setBold(True)
+        self.pushButton_add_as_text_with_ai.setFont(font2)
+        self.pushButton_add_as_text_with_ai.setStyleSheet(u"QPushButton {\n"
+"                                      background-color: #C1ECDD;\n"
+"                                      }\n"
+"                                      QPushButton:hover {\n"
+"                                      background-color: #D1F5E8;\n"
+"                                      }\n"
+"                                      QPushButton:pressed {\n"
+"                                      background-color: #A8E0C7;\n"
+"                                      }")
+
+        self.verticalLayout_2.addWidget(self.pushButton_add_as_text_with_ai)
+
+        self.pushButton_translate_with_ai = QPushButton(self.groupBox_commands)
+        self.pushButton_translate_with_ai.setObjectName(u"pushButton_translate_with_ai")
+
+        self.verticalLayout_2.addWidget(self.pushButton_translate_with_ai)
+
         self.horizontalLayout_8 = QHBoxLayout()
         self.horizontalLayout_8.setObjectName(u"horizontalLayout_8")
         self.pushButton_delete = QPushButton(self.groupBox_commands)
@@ -357,24 +381,6 @@ class Ui_MainWindow(object):
 
 
         self.verticalLayout_2.addLayout(self.horizontalLayout_8)
-
-        self.pushButton_add_as_text_with_ai = QPushButton(self.groupBox_commands)
-        self.pushButton_add_as_text_with_ai.setObjectName(u"pushButton_add_as_text_with_ai")
-        self.pushButton_add_as_text_with_ai.setMinimumSize(QSize(0, 41))
-        font2 = QFont()
-        font2.setBold(True)
-        self.pushButton_add_as_text_with_ai.setFont(font2)
-        self.pushButton_add_as_text_with_ai.setStyleSheet(u"QPushButton {\n"
-"                                      background-color: #C1ECDD;\n"
-"                                      }\n"
-"                                      QPushButton:hover {\n"
-"                                      background-color: #D1F5E8;\n"
-"                                      }\n"
-"                                      QPushButton:pressed {\n"
-"                                      background-color: #A8E0C7;\n"
-"                                      }")
-
-        self.verticalLayout_2.addWidget(self.pushButton_add_as_text_with_ai)
 
 
         self.verticalLayout_5.addWidget(self.groupBox_commands)

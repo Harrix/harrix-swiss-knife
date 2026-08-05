@@ -151,7 +151,7 @@ class AmountDelegate(QStyledItemDelegate):
 
         """
         try:
-            total_per_day_column = 6  # Column index for "Total per day"
+            total_per_day_column = 7  # Column index for "Total per day"
             if index.column() == total_per_day_column:
                 raw_value = index.data(Qt.ItemDataRole.DisplayRole)
                 # Show currency symbol only in cells that have a sum (non-empty value)
@@ -184,8 +184,8 @@ class AmountDelegate(QStyledItemDelegate):
                 super().paint(painter, option, index)
                 return
 
-            # Get the category column (index 2) from the same row
-            category_index = model.index(index.row(), 2)
+            # Get the category column (index 3) from the same row
+            category_index = model.index(index.row(), 3)
             category_text = model.data(category_index, Qt.ItemDataRole.DisplayRole)
 
             # Check if this is an income transaction (has "(Income)" suffix)
@@ -268,11 +268,11 @@ class AmountDelegate(QStyledItemDelegate):
         spin = cast("QDoubleSpinBox", editor)
         value = spin.value()
 
-        # Only apply transaction type logic for Amount column (index 1), not for Total per day (index 6)
-        amount_column_index = 1
+        # Only apply transaction type logic for Amount column, not for Total per day
+        amount_column_index = 2
         if index.column() == amount_column_index:
-            # Get the category column (index 2) from the same row to determine transaction type
-            category_index = model.index(index.row(), 2)
+            # Get the category column from the same row to determine transaction type
+            category_index = model.index(index.row(), 3)
             category_text = model.data(category_index, Qt.ItemDataRole.DisplayRole)
 
             # Check if this is an income transaction (has "(Income)" suffix)
