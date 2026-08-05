@@ -101,7 +101,7 @@ def lessThan(  # noqa: N802
 ## 🔧 Function `create_categories_table_proxy_model`
 
 ```python
-def create_categories_table_proxy_model(rows: list[tuple[str, str, int, str, object, object]], headers: list[str]) -> CategoriesTableProxyModel
+def create_categories_table_proxy_model(rows: list[tuple[str, str, int, str, str, object, object]], headers: list[str]) -> CategoriesTableProxyModel
 ```
 
 Build categories proxy from display rows.
@@ -109,7 +109,7 @@ Build categories proxy from display rows.
 Args:
 
 - `rows` (`list[tuple]`): Each item is
-  `(display_name, type_label, type_value, plain_name, color, row_id)`.
+  `(display_name, type_label, type_value, plain_name, name_ru, color, row_id)`.
 - `headers` (`list[str]`): Column headers for display columns.
 
 Returns:
@@ -121,13 +121,13 @@ Returns:
 
 ```python
 def create_categories_table_proxy_model(
-    rows: list[tuple[str, str, int, str, object, object]],
+    rows: list[tuple[str, str, int, str, str, object, object]],
     headers: list[str],
 ) -> CategoriesTableProxyModel:
     model = QStandardItemModel()
     model.setHorizontalHeaderLabels(headers)
 
-    for row_idx, (display_name, type_label, type_value, plain_name, color, row_id) in enumerate(rows):
+    for row_idx, (display_name, type_label, type_value, plain_name, name_ru, color, row_id) in enumerate(rows):
         name_item = QStandardItem(display_name)
         name_item.setData(plain_name, Qt.ItemDataRole.UserRole)
         name_item.setBackground(QBrush(color))
@@ -138,7 +138,11 @@ def create_categories_table_proxy_model(
         type_item.setBackground(QBrush(color))
         type_item.setEditable(False)
 
-        model.appendRow([name_item, type_item])
+        name_ru_item = QStandardItem(name_ru)
+        name_ru_item.setBackground(QBrush(color))
+        name_ru_item.setEditable(False)
+
+        model.appendRow([name_item, type_item, name_ru_item])
         model.setVerticalHeaderItem(row_idx, QStandardItem(str(row_id)))
 
     proxy = CategoriesTableProxyModel()

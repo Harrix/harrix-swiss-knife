@@ -209,7 +209,7 @@ class MainWindow(
             "categories": (
                 self.tableView_categories,
                 "categories",
-                ["Name", "Type"],
+                ["Name", "Type", "Russian"],
             ),
             "accounts": (
                 self.tableView_accounts,
@@ -588,21 +588,21 @@ class MainWindow(
     @requires_database()
     def on_add_category(self) -> None:
         """Add a new category via modal dialog."""
-        dialog = CategoryAddDialog(self)
+        dialog = CategoryAddDialog(self, app_config=self._app_config, bothub_state=self._bothub_state)
         if dialog.exec() != QDialog.DialogCode.Accepted:
             return
 
         result = dialog.get_result()
         if result is None:
             return
-        name, category_type = result
+        name, category_type, name_ru = result
 
         if not self.db_manager:
             self._show_error("Error", "Database not initialized")
             return
 
         try:
-            if self.db_manager.add_category(name, category_type):
+            if self.db_manager.add_category(name, category_type, name_ru=name_ru):
                 self._mark_categories_changed()
                 self.update_all()
             else:
@@ -2663,13 +2663,19 @@ class MainWindow(
         if self.db_manager is None:
             return
 
-        rows: list[tuple[str, str, int, str, object, object]] = []
+        rows: list[tuple[str, str, int, str, str, object, object]] = []
         for row in self.db_manager.get_all_categories():
-            category_id, name, category_type, icon = row[0], str(row[1] or ""), int(row[2] or 0), str(row[3] or "")
+            category_id, name, category_type, icon, name_ru = (
+                row[0],
+                str(row[1] or ""),
+                int(row[2] or 0),
+                str(row[3] or ""),
+                str(row[4] or "") if row[4] is not None else "",
+            )
             type_label = "Expense" if category_type == 0 else "Income"
             color = QColor(255, 200, 200) if category_type == 0 else QColor(200, 255, 200)
             display_name = f"{icon} {name}".strip() if icon else name
-            rows.append((display_name, type_label, category_type, name, color, category_id))
+            rows.append((display_name, type_label, category_type, name, name_ru, color, category_id))
 
         headers = self.table_config["categories"][2]
         table_model = create_categories_table_proxy_model(rows, headers)
@@ -3855,10 +3861,16 @@ class MainWindow(
             "name": category_data[1] or "",
             "type": int(category_data[2] or 0),
             "icon": category_data[3] or "",
+            "name_ru": category_data[4] or "",
         }
 
         self._category_edit_dialog_open = True
-        dialog = CategoryEditDialog(self, category_dict)
+        dialog = CategoryEditDialog(
+            self,
+            category_dict,
+            app_config=self._app_config,
+            bothub_state=self._bothub_state,
+        )
         result_code = dialog.exec()
         self._category_edit_dialog_open = False
 
@@ -3872,6 +3884,7 @@ class MainWindow(
                 result["name"],
                 int(result["type"]),
                 result.get("icon", "") or "",
+                result.get("name_ru", "") or "",
             )
             if success:
                 self._mark_categories_changed()
@@ -4052,7 +4065,7 @@ class MainWindow(
             return
 
         model = QStandardItemModel()
-        for cat_id, name, category_type, icon in self.db_manager.get_all_categories():
+        for cat_id, name, category_type, icon, *_rest in self.db_manager.get_all_categories():
             display_text = f"{icon} {name}" if icon else name
             if category_type == 1:
                 display_text = f"{display_text} (Income)"
@@ -5831,7 +5844,7 @@ def __init__(self, *, hide_on_close: bool = False) -> None:
             "categories": (
                 self.tableView_categories,
                 "categories",
-                ["Name", "Type"],
+                ["Name", "Type", "Russian"],
             ),
             "accounts": (
                 self.tableView_accounts,
@@ -6323,21 +6336,21 @@ Add a new category via modal dialog.
 
 ```python
 def on_add_category(self) -> None:
-        dialog = CategoryAddDialog(self)
+        dialog = CategoryAddDialog(self, app_config=self._app_config, bothub_state=self._bothub_state)
         if dialog.exec() != QDialog.DialogCode.Accepted:
             return
 
         result = dialog.get_result()
         if result is None:
             return
-        name, category_type = result
+        name, category_type, name_ru = result
 
         if not self.db_manager:
             self._show_error("Error", "Database not initialized")
             return
 
         try:
-            if self.db_manager.add_category(name, category_type):
+            if self.db_manager.add_category(name, category_type, name_ru=name_ru):
                 self._mark_categories_changed()
                 self.update_all()
             else:

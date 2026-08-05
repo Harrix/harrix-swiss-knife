@@ -23,7 +23,7 @@ lang: en
 class CategoryEditDialog(QDialog)
 ```
 
-Dialog for editing category name, type, and icon.
+Dialog for editing category name, Russian name, type, and icon.
 
 <details>
 <summary>Code:</summary>
@@ -31,22 +31,33 @@ Dialog for editing category name, type, and icon.
 ```python
 class CategoryEditDialog(QDialog):
 
-    def __init__(self, parent: QWidget | None = None, category_data: dict | None = None) -> None:
+    def __init__(
+        self,
+        parent: QWidget | None = None,
+        category_data: dict | None = None,
+        *,
+        app_config: dict[str, Any] | None = None,
+        bothub_state: BothubRequestState | None = None,
+    ) -> None:
         """Initialize the dialog.
 
         Args:
 
         - `parent` (`QWidget | None`): Parent widget. Defaults to `None`.
-        - `category_data` (`dict | None`): Category fields (`id`, `name`, `type`, `icon`).
+        - `category_data` (`dict | None`): Category fields (`id`, `name`, `type`, `icon`, `name_ru`).
+        - `app_config` (`dict[str, Any] | None`): App config for BotHub translation.
+        - `bothub_state` (`BothubRequestState | None`): Shared in-flight BotHub request state.
 
         """
         super().__init__(parent)
         self.category_data = category_data or {}
+        self._app_config = app_config or {}
+        self._bothub_state = bothub_state or BothubRequestState()
         self.result_data: dict = {}
 
         self.setWindowTitle("Edit Category")
         self.setModal(True)
-        self.setMinimumWidth(360)
+        self.setMinimumWidth(400)
 
         self._setup_ui()
         self._populate_data()
@@ -82,8 +93,19 @@ class CategoryEditDialog(QDialog):
             "name": name,
             "type": self.type_combo.currentIndex(),
             "icon": self.icon_edit.text().strip(),
+            "name_ru": self.name_ru_edit.text().strip(),
         }
         self.accept()
+
+    def _on_translate_clicked(self) -> None:
+        request_category_name_ru_translation(
+            self,
+            app_config=self._app_config,
+            bothub_state=self._bothub_state,
+            name_edit=self.name_edit,
+            name_ru_edit=self.name_ru_edit,
+            translate_button=self.translate_button,
+        )
 
     def _populate_data(self) -> None:
         """Fill widgets from `category_data`."""
@@ -91,6 +113,7 @@ class CategoryEditDialog(QDialog):
         category_type = int(self.category_data.get("type", 0) or 0)
         self.type_combo.setCurrentIndex(0 if category_type == 0 else 1)
         self.icon_edit.setText(str(self.category_data.get("icon", "") or ""))
+        self.name_ru_edit.setText(str(self.category_data.get("name_ru", "") or ""))
         self.name_edit.setFocus()
         self.name_edit.selectAll()
 
@@ -104,6 +127,18 @@ class CategoryEditDialog(QDialog):
         self.name_edit.setPlaceholderText("Category name")
         name_layout.addWidget(self.name_edit, 1)
         layout.addLayout(name_layout)
+
+        name_ru_layout = QHBoxLayout()
+        name_ru_layout.addWidget(QLabel("Russian:"))
+        self.name_ru_edit = QLineEdit()
+        self.name_ru_edit.setPlaceholderText("Russian name")
+        name_ru_layout.addWidget(self.name_ru_edit, 1)
+        self.translate_button = make_emoji_push_button("", "🤖")
+        self.translate_button.setToolTip("Translate name to Russian with AI")
+        self.translate_button.setFixedWidth(36)
+        self.translate_button.clicked.connect(self._on_translate_clicked)
+        name_ru_layout.addWidget(self.translate_button)
+        layout.addLayout(name_ru_layout)
 
         type_layout = QHBoxLayout()
         type_layout.addWidget(QLabel("Type:"))
@@ -151,20 +186,31 @@ Initialize the dialog.
 Args:
 
 - `parent` (`QWidget | None`): Parent widget. Defaults to `None`.
-- `category_data` (`dict | None`): Category fields (`id`, `name`, `type`, `icon`).
+- `category_data` (`dict | None`): Category fields (`id`, `name`, `type`, `icon`, `name_ru`).
+- `app_config` (`dict[str, Any] | None`): App config for BotHub translation.
+- `bothub_state` (`BothubRequestState | None`): Shared in-flight BotHub request state.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def __init__(self, parent: QWidget | None = None, category_data: dict | None = None) -> None:
+def __init__(
+        self,
+        parent: QWidget | None = None,
+        category_data: dict | None = None,
+        *,
+        app_config: dict[str, Any] | None = None,
+        bothub_state: BothubRequestState | None = None,
+    ) -> None:
         super().__init__(parent)
         self.category_data = category_data or {}
+        self._app_config = app_config or {}
+        self._bothub_state = bothub_state or BothubRequestState()
         self.result_data: dict = {}
 
         self.setWindowTitle("Edit Category")
         self.setModal(True)
-        self.setMinimumWidth(360)
+        self.setMinimumWidth(400)
 
         self._setup_ui()
         self._populate_data()

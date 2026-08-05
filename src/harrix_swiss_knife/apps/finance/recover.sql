@@ -26,6 +26,7 @@ CREATE TABLE "categories" (
 	"name"	TEXT NOT NULL,
 	"type"	INTEGER NOT NULL,
 	"icon"	TEXT,
+	"name_ru"	TEXT,
 	PRIMARY KEY("_id" AUTOINCREMENT)
 );
 

@@ -43,6 +43,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         # Initialize default settings if they don't exist
         self._init_default_settings()
+        self._ensure_category_name_ru_column()
         self._ensure_system_categories()
         self._ensure_performance_indexes()
 
@@ -78,7 +79,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         }
         return self.execute_simple_query(query, params)
 
-    def add_category(self, name: str, category_type: int, icon: str = "") -> bool:
+    def add_category(self, name: str, category_type: int, icon: str = "", name_ru: str = "") -> bool:
         """Add a new category to the database.
 
         Args:
@@ -86,17 +87,19 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         - `name` (`str`): Category name.
         - `category_type` (`int`): Category type (0 = expense, 1 = income).
         - `icon` (`str`): Category icon. Defaults to `""`.
+        - `name_ru` (`str`): Russian category name. Defaults to `""`.
 
         Returns:
 
         - `bool`: `True` if successful, `False` otherwise.
 
         """
-        query = "INSERT INTO categories (name, type, icon) VALUES (:name, :type, :icon)"
+        query = "INSERT INTO categories (name, type, icon, name_ru) VALUES (:name, :type, :icon, :name_ru)"
         params = {
             "name": name,
             "type": category_type,
             "icon": icon,
+            "name_ru": name_ru or None,
         }
         return self.execute_simple_query(query, params)
 
@@ -534,10 +537,10 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `list[list[Any]]`: List of category records [\_id, name, type, icon].
+        - `list[list[Any]]`: List of category records [\_id, name, type, icon, name_ru].
 
         """
-        return self.get_rows("SELECT _id, name, type, icon FROM categories ORDER BY type, name")
+        return self.get_rows("SELECT _id, name, type, icon, name_ru FROM categories ORDER BY type, name")
 
     def get_all_currencies(self) -> list[list[Any]]:
         r"""Get all currencies.
@@ -680,10 +683,10 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `list[Any] | None`: Category data [\_id, name, type, icon] or `None` if not found.
+        - `list[Any] | None`: Category data [\_id, name, type, icon, name_ru] or `None` if not found.
 
         """
-        query = "SELECT _id, name, type, icon FROM categories WHERE _id = :category_id"
+        query = "SELECT _id, name, type, icon, name_ru FROM categories WHERE _id = :category_id"
         rows = self.get_rows(query, {"category_id": category_id})
         return rows[0] if rows else None
 
@@ -1564,7 +1567,14 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         }
         return self.execute_simple_query(query, params)
 
-    def update_category(self, category_id: int, name: str, category_type: int, icon: str = "") -> bool:
+    def update_category(
+        self,
+        category_id: int,
+        name: str,
+        category_type: int,
+        icon: str = "",
+        name_ru: str = "",
+    ) -> bool:
         """Update an existing category.
 
         Args:
@@ -1573,17 +1583,23 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         - `name` (`str`): Category name.
         - `category_type` (`int`): Category type.
         - `icon` (`str`): Category icon. Defaults to `""`.
+        - `name_ru` (`str`): Russian category name. Defaults to `""`.
 
         Returns:
 
         - `bool`: `True` if successful, `False` otherwise.
 
         """
-        query = "UPDATE categories SET name = :name, type = :type, icon = :icon WHERE _id = :id"
+        query = """
+            UPDATE categories
+            SET name = :name, type = :type, icon = :icon, name_ru = :name_ru
+            WHERE _id = :id
+        """
         params = {
             "name": name,
             "type": category_type,
             "icon": icon,
+            "name_ru": name_ru or None,
             "id": category_id,
         }
         return self.execute_simple_query(query, params)
@@ -1808,6 +1824,21 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         else:
             return True
 
+    def _ensure_category_name_ru_column(self) -> None:
+        """Add `name_ru` to categories when missing (existing databases)."""
+        try:
+            columns = {
+                str(row[1])
+                for row in self.get_rows("PRAGMA table_info(categories)")
+                if row and len(row) > 1 and row[1] is not None
+            }
+            if "name_ru" in columns:
+                return
+            if not self.execute_simple_query("ALTER TABLE categories ADD COLUMN name_ru TEXT"):
+                logger.error("Failed to add categories.name_ru column")
+        except Exception:
+            logger.exception("Could not ensure categories.name_ru column")
+
     def _ensure_performance_indexes(self) -> None:
         """Create indexes for exchange_rates and transactions if missing (faster currency conversion)."""
         try:
@@ -1821,7 +1852,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             logger.exception("Could not ensure performance indexes")
 
     def _ensure_system_categories(self) -> None:
-        """Ensure revision categories exist for balance reconciliation actions."""
+        """Ensure revision categories exist and merge legacy Balance Correction."""
         try:
             rows = self.get_rows(
                 "SELECT name, type FROM categories WHERE name IN ('Revision Income', 'Revision Expense')"
@@ -1831,6 +1862,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
                 self.add_category("Revision Income", 1, "🧾")
             if ("Revision Expense", 0) not in existing:
                 self.add_category("Revision Expense", 0, "🧾")
+            self._migrate_balance_correction_to_revision_expense()
         except Exception:
             logger.exception("Could not ensure system categories")
 
@@ -1945,6 +1977,44 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             except (ValueError, TypeError):
                 code = stored_value or "RUB"
         self._default_currency_cache = (code, currency_id)
+
+    def _migrate_balance_correction_to_revision_expense(self) -> None:
+        """Move transactions from legacy Balance Correction onto Revision Expense."""
+        balance_rows = self.get_rows("SELECT _id FROM categories WHERE name = 'Balance Correction'")
+        if not balance_rows:
+            return
+
+        revision_rows = self.get_rows("SELECT _id FROM categories WHERE name = 'Revision Expense' AND type = 0")
+        if not revision_rows:
+            if not self.add_category("Revision Expense", 0, "🧾"):
+                logger.error("Failed to create Revision Expense while migrating Balance Correction")
+                return
+            revision_rows = self.get_rows("SELECT _id FROM categories WHERE name = 'Revision Expense' AND type = 0")
+            if not revision_rows:
+                logger.error("Revision Expense still missing after create")
+                return
+
+        balance_id = int(balance_rows[0][0])
+        revision_id = int(revision_rows[0][0])
+        if balance_id == revision_id:
+            return
+
+        if not self.execute_simple_query(
+            "UPDATE transactions SET _id_categories = :revision_id WHERE _id_categories = :balance_id",
+            {"revision_id": revision_id, "balance_id": balance_id},
+        ):
+            logger.error("Failed to reassign Balance Correction transactions")
+            return
+
+        if not self.delete_category(balance_id):
+            logger.error("Failed to delete legacy Balance Correction category id=%s", balance_id)
+            return
+
+        logger.info(
+            "Migrated Balance Correction (id=%s) transactions to Revision Expense (id=%s)",
+            balance_id,
+            revision_id,
+        )
 
 
 def _description_matches_filter(description: str | None, description_filter: str) -> bool:
