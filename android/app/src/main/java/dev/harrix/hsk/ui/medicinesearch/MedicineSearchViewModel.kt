@@ -7,11 +7,14 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import dev.harrix.hsk.bothub.BothubApiException
+import dev.harrix.hsk.bothub.BothubClient
 import dev.harrix.hsk.bothub.BothubConfig
 import dev.harrix.hsk.medicinesearch.MedicineSearchPreferences
 import dev.harrix.hsk.medicinesearch.MedicineSearchRepository
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -38,7 +41,8 @@ class MedicineSearchViewModel(
     val hasApiKey = mutableStateOf(BothubConfig.hasApiKey)
 
     private var medicinesMarkdown: String? = null
-    private var workJob: Job? = null
+    private var fileJob: Job? = null
+    private var searchJob: Job? = null
 
     init {
         reloadFromPreferences()
@@ -54,6 +58,10 @@ class MedicineSearchViewModel(
 
     fun reloadFromPreferences() {
         hasApiKey.value = BothubConfig.hasApiKey
+        // Do not interrupt an in-flight BotHub request when settings/file reload.
+        if (searchJob?.isActive == true || phase.value == MedicineSearchPhase.Searching) {
+            return
+        }
         val uri = preferences.getMedicinesUri()
         if (uri == null) {
             clearFileState()
@@ -79,6 +87,8 @@ class MedicineSearchViewModel(
     }
 
     fun clearMedicinesFile() {
+        fileJob?.cancel()
+        fileJob = null
         val previous = preferences.getMedicinesUri()
         preferences.clearMedicinesUri()
         if (previous != null) {
@@ -86,7 +96,12 @@ class MedicineSearchViewModel(
         }
         clearFileState()
         if (phase.value == MedicineSearchPhase.LoadingFile) {
-            phase.value = MedicineSearchPhase.Idle
+            phase.value =
+                if (resultText.value.isBlank()) {
+                    MedicineSearchPhase.Idle
+                } else {
+                    MedicineSearchPhase.Result
+                }
         }
     }
 
@@ -95,9 +110,14 @@ class MedicineSearchViewModel(
         if (query.isEmpty() || isBusy()) {
             return
         }
+        if (!BothubConfig.hasApiKey) {
+            hasApiKey.value = false
+            errorMessage.value = BothubClient.MISSING_API_KEY_MESSAGE
+            return
+        }
         errorMessage.value = null
-        workJob?.cancel()
-        workJob =
+        searchJob?.cancel()
+        searchJob =
             viewModelScope.launch {
                 phase.value = MedicineSearchPhase.Searching
                 val outcome =
@@ -109,12 +129,17 @@ class MedicineSearchViewModel(
                             )
                         }
                     }
+                ensureActive()
                 outcome
                     .onSuccess { answer ->
                         resultText.value = answer
                         phase.value = MedicineSearchPhase.Result
                     }.onFailure { error ->
-                        errorMessage.value = error.message ?: error.toString()
+                        if (error is CancellationException) {
+                            throw error
+                        }
+                        errorMessage.value = error.message?.takeIf { it.isNotBlank() }
+                            ?: error.toString()
                         phase.value =
                             if (resultText.value.isBlank()) {
                                 MedicineSearchPhase.Idle
@@ -126,8 +151,10 @@ class MedicineSearchViewModel(
     }
 
     fun resetSession() {
-        workJob?.cancel()
-        workJob = null
+        searchJob?.cancel()
+        searchJob = null
+        fileJob?.cancel()
+        fileJob = null
         queryText.value = ""
         resultText.value = ""
         errorMessage.value = null
@@ -142,36 +169,50 @@ class MedicineSearchViewModel(
         if (persist) {
             preferences.setMedicinesUri(uri)
         }
-        workJob?.cancel()
-        workJob =
+        fileJob?.cancel()
+        fileJob =
             viewModelScope.launch {
-                phase.value = MedicineSearchPhase.LoadingFile
+                val previousPhase = phase.value
+                if (previousPhase != MedicineSearchPhase.Searching) {
+                    phase.value = MedicineSearchPhase.LoadingFile
+                }
                 errorMessage.value = null
                 val outcome =
                     withContext(Dispatchers.IO) {
                         runCatching { repository.loadMedicinesFile(uri) }
                     }
+                ensureActive()
                 outcome
                     .onSuccess { content ->
                         medicinesMarkdown = content.markdown
                         medicinesUri.value = content.uri
                         fileDisplayName.value = content.displayName
                         hasMedicinesFile.value = true
-                        phase.value =
-                            if (resultText.value.isBlank()) {
-                                MedicineSearchPhase.Idle
-                            } else {
-                                MedicineSearchPhase.Result
-                            }
+                        if (phase.value == MedicineSearchPhase.LoadingFile) {
+                            phase.value =
+                                if (resultText.value.isBlank()) {
+                                    MedicineSearchPhase.Idle
+                                } else {
+                                    MedicineSearchPhase.Result
+                                }
+                        }
                     }.onFailure { error ->
+                        if (error is CancellationException) {
+                            throw error
+                        }
                         clearFileState()
                         preferences.clearMedicinesUri()
                         errorMessage.value =
                             when (error) {
                                 is BothubApiException -> error.message
-                                else -> error.message ?: error.toString()
+
+                                else ->
+                                    error.message?.takeIf { it.isNotBlank() }
+                                        ?: error.toString()
                             }
-                        phase.value = MedicineSearchPhase.Idle
+                        if (phase.value == MedicineSearchPhase.LoadingFile) {
+                            phase.value = MedicineSearchPhase.Idle
+                        }
                     }
             }
     }
@@ -205,7 +246,8 @@ class MedicineSearchViewModel(
     }
 
     override fun onCleared() {
-        workJob?.cancel()
+        searchJob?.cancel()
+        fileJob?.cancel()
         super.onCleared()
     }
 }

@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
@@ -47,6 +48,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextAlign
@@ -76,11 +78,14 @@ fun MedicineSearchScreen(
     var hasApiKey by viewModel.hasApiKey
     val context = LocalContext.current
     val clipboard = LocalClipboardManager.current
+    val keyboard = LocalSoftwareKeyboardController.current
+    val scrollState = rememberScrollState()
     val copiedMessage = stringResource(R.string.medicine_search_copied)
     val openFailedMessage = stringResource(R.string.medicine_search_open_failed)
-    val busy =
-        phase == MedicineSearchPhase.Searching ||
-            phase == MedicineSearchPhase.LoadingFile
+    val isSearching = phase == MedicineSearchPhase.Searching
+    val isLoadingFile = phase == MedicineSearchPhase.LoadingFile
+    val busy = isSearching || isLoadingFile
+    val showResult = resultText.isNotBlank()
 
     fun leave() {
         viewModel.resetSession()
@@ -98,10 +103,24 @@ fun MedicineSearchScreen(
         }
     }
 
+    fun askBotHub() {
+        keyboard?.hide()
+        viewModel.search()
+    }
+
     BackHandler(onBack = { leave() })
 
     LaunchedEffect(settingsRevision) {
         viewModel.reloadFromPreferences()
+    }
+
+    LaunchedEffect(phase, showResult) {
+        if (phase == MedicineSearchPhase.Searching ||
+            phase == MedicineSearchPhase.LoadingFile ||
+            showResult
+        ) {
+            scrollState.animateScrollTo(scrollState.maxValue)
+        }
     }
 
     val openDocument =
@@ -158,7 +177,7 @@ fun MedicineSearchScreen(
                 modifier =
                 Modifier
                     .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
+                    .verticalScroll(scrollState)
                     .adaptiveContentWidth()
                     .padding(horizontal = 16.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -282,77 +301,93 @@ fun MedicineSearchScreen(
                 )
 
                 Button(
-                    onClick = { viewModel.search() },
-                    enabled = !busy && queryText.isNotBlank() && hasApiKey,
+                    onClick = {
+                        if (!isSearching) {
+                            askBotHub()
+                        }
+                    },
+                    enabled = hasApiKey && queryText.isNotBlank() && !isLoadingFile,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Icon(
-                        imageVector = Icons.Filled.Search,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp),
-                    )
+                    if (isSearching) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.onPrimary,
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.Filled.Search,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                        )
+                    }
                     Spacer(modifier = Modifier.size(8.dp))
                     AutoFitText(
-                        text = stringResource(R.string.medicine_search_search),
+                        text =
+                        stringResource(
+                            if (isSearching) {
+                                R.string.medicine_search_searching
+                            } else {
+                                R.string.medicine_search_search
+                            },
+                        ),
                         maxLines = 1,
                     )
                 }
 
-                when (phase) {
-                    MedicineSearchPhase.LoadingFile -> {
-                        BusyRow(text = stringResource(R.string.medicine_search_loading_file))
-                    }
+                if (isLoadingFile) {
+                    BusyRow(text = stringResource(R.string.medicine_search_loading_file))
+                }
 
-                    MedicineSearchPhase.Searching -> {
-                        BusyRow(text = stringResource(R.string.medicine_search_searching))
-                    }
+                if (isSearching) {
+                    BusyRow(text = stringResource(R.string.medicine_search_searching))
+                }
 
-                    MedicineSearchPhase.Result -> {
-                        if (resultText.isNotBlank()) {
-                            Text(
-                                text = stringResource(R.string.medicine_search_result_label),
-                                style = MaterialTheme.typography.titleSmall,
-                            )
-                            OutlinedTextField(
-                                value = resultText,
-                                onValueChange = { resultText = it },
-                                modifier = Modifier.fillMaxWidth(),
-                                minLines = 8,
-                            )
-                            FilledTonalButton(
-                                onClick = {
-                                    clipboard.setText(AnnotatedString(resultText))
-                                    Toast
-                                        .makeText(context, copiedMessage, Toast.LENGTH_SHORT)
-                                        .show()
-                                },
-                                enabled = !busy,
-                                modifier = Modifier.fillMaxWidth(),
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Filled.ContentCopy,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(18.dp),
-                                )
-                                Spacer(modifier = Modifier.size(8.dp))
-                                AutoFitText(
-                                    text = stringResource(R.string.medicine_search_copy),
-                                    maxLines = 1,
-                                )
-                            }
-                        }
-                    }
+                if (!hasMedicinesFile && phase == MedicineSearchPhase.Idle && !showResult) {
+                    Text(
+                        text = stringResource(R.string.medicine_search_works_without_file),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
 
-                    MedicineSearchPhase.Idle -> {
-                        if (!hasMedicinesFile) {
-                            Text(
-                                text = stringResource(R.string.medicine_search_works_without_file),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
+                if (showResult) {
+                    Text(
+                        text = stringResource(R.string.medicine_search_result_label),
+                        style = MaterialTheme.typography.titleSmall,
+                    )
+                    OutlinedTextField(
+                        value = resultText,
+                        onValueChange = { resultText = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = !isSearching,
+                        minLines = 8,
+                    )
+                    FilledTonalButton(
+                        onClick = {
+                            clipboard.setText(AnnotatedString(resultText))
+                            Toast
+                                .makeText(context, copiedMessage, Toast.LENGTH_SHORT)
+                                .show()
+                        },
+                        enabled = !busy,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.ContentCopy,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                        )
+                        Spacer(modifier = Modifier.size(8.dp))
+                        AutoFitText(
+                            text = stringResource(R.string.medicine_search_copy),
+                            maxLines = 1,
+                        )
                     }
                 }
+
+                Spacer(modifier = Modifier.height(8.dp))
             }
         }
     }
