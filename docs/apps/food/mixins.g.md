@@ -82,10 +82,12 @@ class AutoSaveOperations(AutoSaveMixin):
                 if weight <= 0:
                     message_box.warning(None, "Validation Error", "Weight must be a positive number")
                     return
-        except (ValueError, TypeError):
-            if weight_str.strip():  # Only show error if there's actually a value
-                message_box.warning(None, "Validation Error", f"Invalid weight value: {weight_str}")
+            else:
+                message_box.warning(None, "Validation Error", "Weight is required")
                 return
+        except (ValueError, TypeError):
+            message_box.warning(None, "Validation Error", f"Invalid weight value: {weight_str}")
+            return
 
         try:
             if calories_per_100g_str.strip():

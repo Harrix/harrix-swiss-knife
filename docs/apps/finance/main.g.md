@@ -1766,7 +1766,7 @@ class MainWindow(
             extra_drop_targets=[self.pushButton_add_as_text_with_ai],
             max_image_side=max_image_side,
         )
-        self.verticalLayout_2.insertWidget(2, self._ai_image_drop_zone)
+        self.verticalLayout_2.insertWidget(1, self._ai_image_drop_zone)
         self.pushButton_description_clear.clicked.connect(self.on_clear_description)
 
         # Dropdown menu for yesterday button; context menu for main date edit

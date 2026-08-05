@@ -357,9 +357,10 @@ class MainWindow(
             message_box.warning(self, "Error", "Enter food name")
             return
 
-        # Validate weight based on radio button selection
-        if use_weight and weight <= 0:
-            message_box.warning(self, "Error", "Weight is required when using weight mode")
+        if weight <= 0:
+            message_box.warning(self, "Error", "Weight is required")
+            self.spinBox_food_weight.setFocus()
+            self.spinBox_food_weight.selectAll()
             return
 
         # Validate calories based on radio button selection
@@ -395,7 +396,7 @@ class MainWindow(
                 date=food_date,
                 calories_per_100g=calories_per_100g,
                 name=food_name,
-                weight=weight if weight > 0 else None,
+                weight=weight,
                 portion_calories=portion_calories,
                 is_drink=is_drink,
             ):
@@ -446,10 +447,14 @@ class MainWindow(
             # Update the food log table with only problematic records
             self._update_food_log_table_with_data(problematic_records)
 
-            # Show count of problematic records
-            message_box.information(
-                self, "Problematic Records", f"Found {len(problematic_records)} problematic records."
-            )
+            missing_weight = sum(1 for row in problematic_records if self._food_log_row_missing_weight(row))
+            missing_calories = sum(1 for row in problematic_records if self._food_log_row_missing_calories(row))
+            details = [
+                f"Found {len(problematic_records)} problematic record(s).",
+                f"• Missing or zero weight: {missing_weight}",
+                f"• Missing calories (non-drink): {missing_calories}",
+            ]
+            message_box.information(self, "Problematic Records", "\n".join(details))
 
         except Exception as e:
             message_box.warning(self, "Error", f"Failed to check problematic records: {e}")
@@ -1849,22 +1854,24 @@ class MainWindow(
                 else QDate.currentDate().toString("yyyy-MM-dd")
             )
 
-            # Delete selected records
-            for row_id in unique_rows.values():
-                self.db_manager.delete_food_log_record(row_id)
+            # Delete selected records only when replacement can be written with a valid weight
+            if total_weight <= 0:
+                message_box.warning(self, "Error", "Cannot replace records: total weight must be greater than zero")
+            else:
+                for row_id in unique_rows.values():
+                    self.db_manager.delete_food_log_record(row_id)
 
-            # Add new dish record
-            # Use weight mode with calories_per_100g
-            self.db_manager.add_food_log_record(
-                date=date_str,
-                calories_per_100g=calories_per_100g,
-                name=dish_name,
-                weight=int(total_weight) if total_weight > 0 else None,
-                portion_calories=None,  # Use weight mode, not portion mode
-                is_drink=is_drink,
-            )
+                # Add new dish record (weight mode with calories_per_100g)
+                self.db_manager.add_food_log_record(
+                    date=date_str,
+                    calories_per_100g=calories_per_100g,
+                    name=dish_name,
+                    weight=int(total_weight),
+                    portion_calories=None,
+                    is_drink=is_drink,
+                )
 
-            message_box.information(self, "Success", f"Selected records have been replaced with '{dish_name}'")
+                message_box.information(self, "Success", f"Selected records have been replaced with '{dish_name}'")
         elif add_to_food_items_reply == QMessageBox.StandardButton.Yes:
             message_box.information(
                 self, "Success", f"Dish '{dish_name}' has been added to Food Items.\n\n{info_message}"
@@ -2046,6 +2053,37 @@ class MainWindow(
         QTimer.singleShot(50, self._adjust_food_log_table_columns)
         # Update food stats chart after initialization
         QTimer.singleShot(100, self._update_food_calories_chart)
+
+    @staticmethod
+    def _food_log_row_missing_calories(row: list[Any]) -> bool:
+        """Return whether a problematic-query row lacks calories (non-drink)."""
+        if len(row) < 8:
+            return True
+        if int(row[7] or 0) == 1:
+            return False
+
+        def _empty_or_zero(value: Any) -> bool:
+            if value is None or value == "":
+                return True
+            try:
+                return float(value) <= 0
+            except (TypeError, ValueError):
+                return True
+
+        return _empty_or_zero(row[4]) and _empty_or_zero(row[3])
+
+    @staticmethod
+    def _food_log_row_missing_weight(row: list[Any]) -> bool:
+        """Return whether a food_log row has NULL/empty/non-positive weight."""
+        if len(row) < 3:
+            return True
+        weight = row[2]
+        if weight is None or weight == "":
+            return True
+        try:
+            return float(weight) <= 0
+        except (TypeError, ValueError):
+            return True
 
     def _food_log_translate_names_limit(self) -> int:
         """Return max unique untranslated names per AI batch from config."""
@@ -2524,6 +2562,10 @@ class MainWindow(
 
         for item in parsed_items:
             try:
+                if item.weight is None or item.weight <= 0:
+                    error_count += 1
+                    error_messages.append(f"Weight is required: {item.name}")
+                    continue
                 success = self.db_manager.add_food_log_record(
                     date=item.food_date or default_date,
                     calories_per_100g=item.calories_per_100g,
@@ -3902,9 +3944,10 @@ def on_add_food_log(self) -> None:
             message_box.warning(self, "Error", "Enter food name")
             return
 
-        # Validate weight based on radio button selection
-        if use_weight and weight <= 0:
-            message_box.warning(self, "Error", "Weight is required when using weight mode")
+        if weight <= 0:
+            message_box.warning(self, "Error", "Weight is required")
+            self.spinBox_food_weight.setFocus()
+            self.spinBox_food_weight.selectAll()
             return
 
         # Validate calories based on radio button selection
@@ -3940,7 +3983,7 @@ def on_add_food_log(self) -> None:
                 date=food_date,
                 calories_per_100g=calories_per_100g,
                 name=food_name,
-                weight=weight if weight > 0 else None,
+                weight=weight,
                 portion_calories=portion_calories,
                 is_drink=is_drink,
             ):
@@ -4005,10 +4048,14 @@ def on_check_problematic_records(self) -> None:
             # Update the food log table with only problematic records
             self._update_food_log_table_with_data(problematic_records)
 
-            # Show count of problematic records
-            message_box.information(
-                self, "Problematic Records", f"Found {len(problematic_records)} problematic records."
-            )
+            missing_weight = sum(1 for row in problematic_records if self._food_log_row_missing_weight(row))
+            missing_calories = sum(1 for row in problematic_records if self._food_log_row_missing_calories(row))
+            details = [
+                f"Found {len(problematic_records)} problematic record(s).",
+                f"• Missing or zero weight: {missing_weight}",
+                f"• Missing calories (non-drink): {missing_calories}",
+            ]
+            message_box.information(self, "Problematic Records", "\n".join(details))
 
         except Exception as e:
             message_box.warning(self, "Error", f"Failed to check problematic records: {e}")

@@ -160,7 +160,7 @@ class FoodTableDialog(QDialog):
                         "Invalid Lines",
                         "Some lines have incomplete or invalid data.\n"
                         "TSV: Name<Tab>Weight<Tab>Calories<Tab>Mode<Tab>Drink "
-                        "(Mode: weight|portion, Drink: yes|no).\n\n"
+                        "(Weight > 0; Mode: weight|portion, Drink: yes|no).\n\n"
                         f"Invalid lines: {', '.join(str(line_num) for line_num in invalid_line_numbers)}",
                     )
                 else:
@@ -177,7 +177,7 @@ class FoodTableDialog(QDialog):
                     self,
                     "Invalid Rows",
                     "Some rows have incomplete or invalid data. "
-                    "Each row needs Name, Weight, Calories, Mode (weight/portion), "
+                    "Each row needs Name, Weight (> 0), Calories, Mode (weight/portion), "
                     "and Drink (yes/no).\n\n"
                     f"Invalid rows: {', '.join(str(row + 1) for row in invalid_rows)}",
                 )
@@ -278,7 +278,7 @@ class FoodTableDialog(QDialog):
                 continue
 
             parsed = self._parser.parse_row(name, weight, calories, mode, drink, default_date)
-            if parsed is None:
+            if parsed is None or parsed.weight is None or parsed.weight <= 0:
                 invalid_rows.append(row_idx)
                 continue
             items.append(parsed)
@@ -291,7 +291,7 @@ class FoodTableDialog(QDialog):
 
         for line_num, line in enumerate_stripped_non_empty_lines(self._text_edit.toPlainText()):
             parsed_items = self._parser.parse_text(line, self._db_manager, default_date)
-            if not parsed_items:
+            if not parsed_items or parsed_items[0].weight is None or parsed_items[0].weight <= 0:
                 invalid_line_numbers.append(line_num)
                 continue
             items.append(parsed_items[0])
