@@ -1,6 +1,7 @@
 """Autocomplete proxy model and helpers for food name input."""
 
 from PySide6.QtCore import (
+    QAbstractItemModel,
     QEvent,
     QModelIndex,
     QObject,
@@ -14,7 +15,7 @@ from PySide6.QtGui import QCursor
 from PySide6.QtWidgets import QCompleter, QLabel, QStyleOptionViewItem, QWidget
 from shiboken6 import isValid
 
-from harrix_swiss_knife.keyboard_layout_search import autocomplete_match_tier, text_matches_autocomplete
+from harrix_swiss_knife.keyboard_layout_search import autocomplete_match_tier
 
 
 class CompleterPopupTooltipHelper(QObject):
@@ -170,7 +171,11 @@ class CompleterPopupTooltipHelper(QObject):
 
 
 class FoodNameAutocompleteProxyModel(QSortFilterProxyModel):
-    """Proxy model for food name autocomplete with exact/starts-with/contains ordering."""
+    """Proxy model for food name autocomplete with exact/starts-with/contains ordering.
+
+    Matches against both display name (`DisplayRole`) and English name (`UserRole`).
+
+    """
 
     def __init__(self, parent: QWidget | None = None) -> None:
         """Initialize the proxy model."""
@@ -185,13 +190,11 @@ class FoodNameAutocompleteProxyModel(QSortFilterProxyModel):
             return True
 
         source_model = self.sourceModel()
-        index = source_model.index(source_row, 0, source_parent)
-        data = source_model.data(index, Qt.ItemDataRole.DisplayRole)
-
-        if data is None:
+        if source_model is None:
             return False
 
-        return text_matches_autocomplete(str(data), self.filter_text)
+        index = source_model.index(source_row, 0, source_parent)
+        return _row_match_tier(source_model, index, self.filter_text) is not None
 
     def lessThan(  # noqa: N802
         self,
@@ -199,9 +202,13 @@ class FoodNameAutocompleteProxyModel(QSortFilterProxyModel):
         source_right: QModelIndex | QPersistentModelIndex,
     ) -> bool:
         """Sort by match tier, then alphabetically (case-insensitive) within tier."""
+        source_model = self.sourceModel()
+        if source_model is None:
+            return False
+
         if not self.filter_text:
-            left_data = self.sourceModel().data(source_left, Qt.ItemDataRole.DisplayRole)
-            right_data = self.sourceModel().data(source_right, Qt.ItemDataRole.DisplayRole)
+            left_data = source_model.data(source_left, Qt.ItemDataRole.DisplayRole)
+            right_data = source_model.data(source_right, Qt.ItemDataRole.DisplayRole)
             if left_data is None or right_data is None:
                 return False
             left_lower = str(left_data).lower()
@@ -210,17 +217,18 @@ class FoodNameAutocompleteProxyModel(QSortFilterProxyModel):
                 return left_lower < right_lower
             return source_left.row() < source_right.row()
 
-        left_data = self.sourceModel().data(source_left, Qt.ItemDataRole.DisplayRole)
-        right_data = self.sourceModel().data(source_right, Qt.ItemDataRole.DisplayRole)
+        left_tier = _row_match_tier(source_model, source_left, self.filter_text)
+        right_tier = _row_match_tier(source_model, source_right, self.filter_text)
+        left_rank = 2 if left_tier is None else left_tier
+        right_rank = 2 if right_tier is None else right_tier
 
+        if left_rank != right_rank:
+            return left_rank < right_rank
+
+        left_data = source_model.data(source_left, Qt.ItemDataRole.DisplayRole)
+        right_data = source_model.data(source_right, Qt.ItemDataRole.DisplayRole)
         if left_data is None or right_data is None:
             return False
-
-        left_tier = _match_tier(str(left_data), self.filter_text)
-        right_tier = _match_tier(str(right_data), self.filter_text)
-
-        if left_tier != right_tier:
-            return left_tier < right_tier
 
         left_lower = str(left_data).lower()
         right_lower = str(right_data).lower()
@@ -243,7 +251,18 @@ def setup_completer_item_tooltips(completer: QCompleter) -> CompleterPopupToolti
     return helper
 
 
-def _match_tier(text: str, filter_text: str) -> int:
-    """Return sort tier: 0 exact, 1 starts-with, 2 contains (EN/RU layout tolerant)."""
-    tier = autocomplete_match_tier(text, filter_text)
-    return 2 if tier is None else tier
+def _row_match_tier(
+    source_model: QAbstractItemModel,
+    index: QModelIndex | QPersistentModelIndex,
+    filter_text: str,
+) -> int | None:
+    """Return best autocomplete match tier for name or English name."""
+    name = source_model.data(index, Qt.ItemDataRole.DisplayRole)
+    name_en = source_model.data(index, Qt.ItemDataRole.UserRole)
+
+    best = autocomplete_match_tier(str(name), filter_text) if name is not None else None
+    if name_en:
+        en_tier = autocomplete_match_tier(str(name_en), filter_text)
+        if en_tier is not None and (best is None or en_tier < best):
+            best = en_tier
+    return best

@@ -342,20 +342,20 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             default_portion_calories=float(row[6]) if row[6] not in (None, "") else None,
         )
 
-    def get_food_item_names_for_autocomplete(self) -> list[str]:
-        """Get all food item names for autocomplete functionality.
+    def get_food_item_names_for_autocomplete(self) -> list[FoodAutocompleteEntry]:
+        """Get all food item names (with English names) for autocomplete.
 
         Returns:
 
-        - `list[str]`: List of food item names from the catalog, sorted alphabetically.
+        - `list[FoodAutocompleteEntry]`: Catalog entries sorted alphabetically by name.
 
         """
         rows = self.get_rows("""
-            SELECT name FROM food_items
+            SELECT name, name_en FROM food_items
             WHERE name IS NOT NULL AND name != ''
             ORDER BY name ASC
         """)
-        return [row[0] for row in rows if row[0]]
+        return [_food_autocomplete_entry_from_row(row) for row in rows if row and row[0]]
 
     def get_food_log_item_by_name(self, name: str) -> FoodLogItemByNameRow | None:
         """Get food item data by name from food_log table (most recent record).
@@ -529,8 +529,8 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             {"limit": limit, "offset": offset},
         )
 
-    def get_recent_food_names_for_autocomplete(self, limit: int = 1000) -> list[str]:
-        """Get recent unique food names for autocomplete functionality.
+    def get_recent_food_names_for_autocomplete(self, limit: int = 1000) -> list[FoodAutocompleteEntry]:
+        """Get recent unique food names (with English names) for autocomplete.
 
         Args:
 
@@ -538,21 +538,26 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `list[str]`: List of unique food names from recent records.
+        - `list[FoodAutocompleteEntry]`: Unique names from recent log rows, sorted by name.
 
         """
         query = """
-            SELECT DISTINCT name
-            FROM (
-                SELECT name FROM food_log
-                WHERE name IS NOT NULL AND name != ''
-                ORDER BY date DESC, _id DESC
-                LIMIT :limit
-            ) as recent_foods
-            ORDER BY name ASC
+            SELECT name, name_en
+            FROM food_log
+            WHERE name IS NOT NULL AND name != ''
+            ORDER BY date DESC, _id DESC
+            LIMIT :limit
         """
         rows = self.get_rows(query, {"limit": limit})
-        return [row[0] for row in rows if row[0]]
+        by_name: dict[str, str | None] = {}
+        for row in rows:
+            if not row or not row[0]:
+                continue
+            _put_autocomplete_name(by_name, str(row[0]), _normalize_optional_name_en(row[1]))
+        return [
+            FoodAutocompleteEntry(name=name, name_en=name_en)
+            for name, name_en in sorted(by_name.items(), key=lambda item: item[0].casefold())
+        ]
 
     def get_unique_food_log_names_missing_name_en(self, *, limit: int = 1000) -> list[str]:
         """Return distinct Russian names from food_log rows missing English name.
@@ -777,6 +782,14 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
 
 @dataclass(frozen=True, slots=True)
+class FoodAutocompleteEntry:
+    """Name pair used by food name autocomplete."""
+
+    name: str
+    name_en: str | None
+
+
+@dataclass(frozen=True, slots=True)
 class FoodItemByNameRow:
     """Row from `food_items` for lookups by exact name."""
 
@@ -799,6 +812,36 @@ class FoodLogItemByNameRow:
     calories_per_100g: float | None
     weight: float | None
     portion_calories: float | None
+
+
+def merge_food_autocomplete_entries(
+    primary: list[FoodAutocompleteEntry],
+    secondary: list[FoodAutocompleteEntry],
+) -> list[FoodAutocompleteEntry]:
+    """Merge autocomplete entries, keeping primary order and filling empty English names."""
+    merged: dict[str, str | None] = {}
+    for entry in primary + secondary:
+        _put_autocomplete_name(merged, entry.name, entry.name_en)
+    return [FoodAutocompleteEntry(name=name, name_en=name_en) for name, name_en in merged.items()]
+
+
+def _food_autocomplete_entry_from_row(row: list[Any] | tuple[Any, ...]) -> FoodAutocompleteEntry:
+    """Build an autocomplete entry from a `name, name_en` SQL row."""
+    return FoodAutocompleteEntry(name=str(row[0]), name_en=_normalize_optional_name_en(row[1]))
+
+
+def _normalize_optional_name_en(value: Any) -> str | None:
+    """Return a stripped English name, or `None` when empty."""
+    if value is None:
+        return None
+    text = str(value).strip()
+    return text or None
+
+
+def _put_autocomplete_name(target: dict[str, str | None], name: str, name_en: str | None) -> None:
+    """Insert `name` or fill a missing English name in `target`."""
+    if name not in target or (target[name] is None and name_en is not None):
+        target[name] = name_en
 
 
 def _sql_in_clause(values: list[str], param_prefix: str) -> tuple[str, dict[str, Any]]:
