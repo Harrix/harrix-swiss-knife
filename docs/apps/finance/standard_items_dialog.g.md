@@ -281,7 +281,10 @@ class StandardItemsDialog(QDialog):
             delete_action = menu.addAction(f"{DELETE_BUTTON_EMOJI} Delete selected row")
         else:
             delete_action = menu.addAction(f"{DELETE_BUTTON_EMOJI} Delete selected rows")
-        action = menu.exec(self.table.viewport().mapToGlobal(position))
+        viewport = self.table.viewport()
+        if viewport is None:
+            return
+        action = menu.exec_(viewport.mapToGlobal(position))
         if action == delete_action:
             self._on_delete()
 
