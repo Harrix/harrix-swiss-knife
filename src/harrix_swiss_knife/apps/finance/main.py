@@ -95,6 +95,7 @@ from harrix_swiss_knife.apps.finance.category_edit_dialog import CategoryEditDia
 from harrix_swiss_knife.apps.finance.category_suggest import suggest_categories
 from harrix_swiss_knife.apps.finance.chart_year_start_dialog import ChartYearStartDialog
 from harrix_swiss_knife.apps.finance.delegates import (
+    NAME_RU_ROLE,
     AmountDelegate,
     CategoryComboBoxDelegate,
     CategorySuggestDelegate,
@@ -5626,29 +5627,31 @@ class MainWindow(
                 combo.addItems(currencies)
 
             # Update categories list view with icons
-            expense_categories: list[tuple[str, str]] = self.db_manager.get_categories_with_icons_by_type(0)
-            income_categories: list[tuple[str, str]] = self.db_manager.get_categories_with_icons_by_type(1)
+            expense_categories: list[tuple[str, str, str]] = self.db_manager.get_categories_with_icons_by_type(0)
+            income_categories: list[tuple[str, str, str]] = self.db_manager.get_categories_with_icons_by_type(1)
 
             model: QStandardItemModel = QStandardItemModel()
 
             # Add expense categories first
-            for category_name, icon in expense_categories:
+            for category_name, icon, name_ru in expense_categories:
                 # Create display text with icon
                 display_text: str = f"{icon} {category_name}" if icon else category_name
                 item: QStandardItem = QStandardItem(display_text)
                 # Store the original category name as data for selection handling
                 item.setData(category_name, Qt.ItemDataRole.UserRole)
+                item.setData(name_ru, NAME_RU_ROLE)
                 item.setTextAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
                 model.appendRow(item)
 
             # Add income categories with special marking
-            for category_name, icon in income_categories:
+            for category_name, icon, name_ru in income_categories:
                 # Create display text with icon and income marker
                 base_text: str = f"{icon} {category_name}" if icon else category_name
                 display_text: str = f"{base_text} (Income)"  # Add income marker in parentheses
                 item: QStandardItem = QStandardItem(display_text)
                 # Store the original category name as data for selection handling
                 item.setData(category_name, Qt.ItemDataRole.UserRole)
+                item.setData(name_ru, NAME_RU_ROLE)
                 item.setTextAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
                 model.appendRow(item)
 

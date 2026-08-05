@@ -657,8 +657,8 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         rows = self.get_rows("SELECT name FROM categories WHERE type = :type ORDER BY name", {"type": category_type})
         return [row[0] for row in rows]
 
-    def get_categories_with_icons_by_type(self, category_type: int) -> list[tuple[str, str]]:
-        """Get category names and icons by type.
+    def get_categories_with_icons_by_type(self, category_type: int) -> list[tuple[str, str, str]]:
+        """Get category names, icons, and Russian names by type.
 
         Args:
 
@@ -666,13 +666,14 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `list[tuple[str, str]]`: List of (name, icon) tuples.
+        - `list[tuple[str, str, str]]`: List of `(name, icon, name_ru)` tuples.
 
         """
         rows = self.get_rows(
-            "SELECT name, icon FROM categories WHERE type = :type ORDER BY name", {"type": category_type}
+            "SELECT name, icon, name_ru FROM categories WHERE type = :type ORDER BY name",
+            {"type": category_type},
         )
-        return [(row[0], row[1]) for row in rows]
+        return [(str(row[0] or ""), str(row[1] or ""), str(row[2] or "") if row[2] is not None else "") for row in rows]
 
     def get_category_by_id(self, category_id: int) -> list[Any] | None:
         r"""Get category by ID.
