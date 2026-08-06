@@ -1,6 +1,7 @@
 package dev.harrix.hsk.ui
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -128,31 +129,34 @@ fun RowScope.CompactBottomActionButton(
         .fillMaxWidth()
         .heightIn(min = 56.dp)
     val padding = PaddingValues(horizontal = 8.dp, vertical = 10.dp)
-    OverflowTextTooltipBox(
-        text = label,
-        enabled = labelOverflows,
-        modifier = modifier.weight(1f),
-    ) {
-        if (outlined) {
-            OutlinedButton(
-                onClick = onClick,
-                enabled = enabled,
-                modifier = buttonModifier,
-                shape = ActionButtonShape,
-                contentPadding = padding,
-                colors = colors,
-                content = { content() },
-            )
-        } else {
-            Button(
-                onClick = onClick,
-                enabled = enabled,
-                modifier = buttonModifier,
-                shape = ActionButtonShape,
-                contentPadding = padding,
-                colors = colors,
-                content = { content() },
-            )
+    // TooltipBox is not a direct Row child; keep weight on this Box.
+    Box(modifier = modifier.weight(1f)) {
+        OverflowTextTooltipBox(
+            text = label,
+            enabled = labelOverflows,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            if (outlined) {
+                OutlinedButton(
+                    onClick = onClick,
+                    enabled = enabled,
+                    modifier = buttonModifier,
+                    shape = ActionButtonShape,
+                    contentPadding = padding,
+                    colors = colors,
+                    content = { content() },
+                )
+            } else {
+                Button(
+                    onClick = onClick,
+                    enabled = enabled,
+                    modifier = buttonModifier,
+                    shape = ActionButtonShape,
+                    contentPadding = padding,
+                    colors = colors,
+                    content = { content() },
+                )
+            }
         }
     }
 }
