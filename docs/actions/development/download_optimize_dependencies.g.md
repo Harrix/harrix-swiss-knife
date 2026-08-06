@@ -24,12 +24,12 @@ lang: en
 class OnDownloadOptimizeDependencies(ActionBase)
 ```
 
-Download `ffmpeg.exe`, `avifenc.exe`, `avifdec.exe` from official GitHub releases.
+Download `ffmpeg.exe`, `avifenc.exe`, and `avifdec.exe`.
 
 Fetches the latest Windows builds from AOMediaCodec/libavif and BtbN/FFmpeg-Builds,
-extracts the executables to the project root for use by image optimization actions.
-Requires Windows. HTTPS uses certifi for CA verification; optional GITHUB_TOKEN for API rate limits.
-Extra CA bundle: set SSL_CERT_FILE to a PEM file path (e.g. corporate root CA).
+then extracts the executables to the project root for image optimization. Requires
+Windows. HTTPS uses certifi for CA verification; optional GITHUB_TOKEN for API rate
+limits. Extra CA bundle: set SSL_CERT_FILE to a PEM file path (e.g. corporate root CA).
 
 <details>
 <summary>Code:</summary>
@@ -51,7 +51,7 @@ class OnDownloadOptimizeDependencies(ActionBase):
 
     @ActionBase.handle_exceptions("download Optimize dependencies")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Download `ffmpeg.exe`, `avifenc.exe`, `avifdec.exe` from official GitHub releases."""
+        """Download `ffmpeg.exe`, `avifenc.exe`, and `avifdec.exe`."""
         if sys.platform != "win32":
             self.add_line("This action is only available on Windows.")
             self.show_result()
@@ -226,7 +226,7 @@ class OnDownloadOptimizeDependencies(ActionBase):
 def execute(self, *args: Any, **kwargs: Any) -> None
 ```
 
-Download `ffmpeg.exe`, `avifenc.exe`, `avifdec.exe` from official GitHub releases.
+Download `ffmpeg.exe`, `avifenc.exe`, and `avifdec.exe`.
 
 <details>
 <summary>Code:</summary>

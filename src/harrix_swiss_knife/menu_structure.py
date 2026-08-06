@@ -66,7 +66,6 @@ from harrix_swiss_knife.actions.images.optimize_quality import OnOptimizeQuality
 from harrix_swiss_knife.actions.images.optimize_resize import OnOptimizeResize
 from harrix_swiss_knife.actions.images.optimize_single_image import OnOptimizeSingleImage
 from harrix_swiss_knife.actions.images.screenshot_region import OnScreenshotRegion
-from harrix_swiss_knife.actions.images.set_exif_datetime import OnSetExifDatetime
 from harrix_swiss_knife.actions.markdown.append_yaml_tag import OnAppendYamlTag
 from harrix_swiss_knife.actions.markdown.beautify_md import OnBeautifyMd
 from harrix_swiss_knife.actions.markdown.beautify_md_and_regenerate_g_md import OnBeautifyMdAndRegenerateGMd
@@ -173,7 +172,6 @@ def get_menu_structure() -> list[Any]:
                 OnOptimizeClipboard,
                 OnOptimizeClipboardDialog,
                 "-",
-                OnSetExifDatetime,
                 OnScreenshotRegion,
             ],
         ),

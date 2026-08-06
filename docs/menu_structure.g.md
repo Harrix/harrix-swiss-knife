@@ -79,7 +79,6 @@ def get_menu_structure() -> list[Any]:
                 OnOptimizeClipboard,
                 OnOptimizeClipboardDialog,
                 "-",
-                OnSetExifDatetime,
                 OnScreenshotRegion,
             ],
         ),

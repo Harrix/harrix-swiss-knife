@@ -14,7 +14,6 @@ from harrix_swiss_knife.actions.images.optimize_quality import OnOptimizeQuality
 from harrix_swiss_knife.actions.images.optimize_resize import OnOptimizeResize
 from harrix_swiss_knife.actions.images.optimize_single_image import OnOptimizeSingleImage
 from harrix_swiss_knife.actions.images.screenshot_region import OnScreenshotRegion
-from harrix_swiss_knife.actions.images.set_exif_datetime import OnSetExifDatetime
 
 __all__ = [
     "OnClearImages",
@@ -31,5 +30,4 @@ __all__ = [
     "OnOptimizeResize",
     "OnOptimizeSingleImage",
     "OnScreenshotRegion",
-    "OnSetExifDatetime",
 ]
