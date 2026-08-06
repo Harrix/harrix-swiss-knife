@@ -9,18 +9,21 @@ from PySide6.QtWidgets import (
     QDialogButtonBox,
     QHeaderView,
     QLabel,
+    QLineEdit,
     QTableWidget,
     QTableWidgetItem,
     QVBoxLayout,
     QWidget,
 )
 
-from harrix_swiss_knife.apps.common.ui_helpers import commit_table_editor_if_open
 from harrix_swiss_knife.qt_emoji_icon import (
     OK_BUTTON_EMOJI,
     apply_emoji_dialog_buttons,
     create_emoji_icon,
 )
+
+_COL_DESCRIPTION = 0
+_COL_ENGLISH = 1
 
 
 class TransactionTranslatePreviewDialog(QDialog):
@@ -62,14 +65,19 @@ class TransactionTranslatePreviewDialog(QDialog):
         self._table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
         header = self._table.horizontalHeader()
         if header is not None:
-            header.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
-            header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+            header.setSectionResizeMode(_COL_DESCRIPTION, QHeaderView.ResizeMode.Stretch)
+            header.setSectionResizeMode(_COL_ENGLISH, QHeaderView.ResizeMode.Stretch)
 
         for row_idx, description in enumerate(descriptions):
             description_item = QTableWidgetItem(description)
             description_item.setFlags(description_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
-            self._table.setItem(row_idx, 0, description_item)
-            self._table.setItem(row_idx, 1, QTableWidgetItem(translations.get(description, "")))
+            description_item.setData(Qt.ItemDataRole.UserRole, description)
+            self._table.setItem(row_idx, _COL_DESCRIPTION, description_item)
+
+            # Permanent line edits avoid QTableWidget inline-editor commit races on Apply/Enter.
+            english_edit = QLineEdit(translations.get(description, ""), self._table)
+            english_edit.setFrame(False)
+            self._table.setCellWidget(row_idx, _COL_ENGLISH, english_edit)
         layout.addWidget(self._table)
 
         button_box = QDialogButtonBox(self)
@@ -83,8 +91,7 @@ class TransactionTranslatePreviewDialog(QDialog):
         layout.addWidget(button_box)
 
     def accept(self) -> None:
-        """Commit in-progress cell edits, then close with Accepted."""
-        commit_table_editor_if_open(self._table)
+        """Snapshot current English edits, then close with Accepted."""
         self._accepted_translations = self._read_translations_from_table()
         super().accept()
 
@@ -92,19 +99,27 @@ class TransactionTranslatePreviewDialog(QDialog):
         """Return non-empty description-to-English pairs."""
         if self._accepted_translations is not None:
             return self._accepted_translations
-        commit_table_editor_if_open(self._table)
         return self._read_translations_from_table()
+
+    def _english_text(self, row_idx: int) -> str:
+        """Return the English value for `row_idx` from its cell line edit."""
+        widget = self._table.cellWidget(row_idx, _COL_ENGLISH)
+        if isinstance(widget, QLineEdit):
+            return widget.text().strip()
+        item = self._table.item(row_idx, _COL_ENGLISH)
+        return item.text().strip() if item is not None else ""
 
     def _read_translations_from_table(self) -> dict[str, str]:
         """Read current table cells into a description → English map."""
         result: dict[str, str] = {}
         for row_idx in range(self._table.rowCount()):
-            description_item = self._table.item(row_idx, 0)
-            english_item = self._table.item(row_idx, 1)
-            if description_item is None or english_item is None:
+            description_item = self._table.item(row_idx, _COL_DESCRIPTION)
+            if description_item is None:
                 continue
-            description = description_item.text().strip()
-            description_en = english_item.text().strip()
+            description = description_item.data(Qt.ItemDataRole.UserRole)
+            if not isinstance(description, str) or not description:
+                description = description_item.text()
+            description_en = self._english_text(row_idx)
             if description and description_en:
                 result[description] = description_en
         return result

@@ -81,17 +81,19 @@ class FoodTranslatePreviewDialog(QDialog):
 
         header = self._table.horizontalHeader()
         if header is not None:
-            header.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
-            header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+            header.setSectionResizeMode(_COL_NAME, QHeaderView.ResizeMode.Stretch)
+            header.setSectionResizeMode(_COL_ENGLISH, QHeaderView.ResizeMode.Stretch)
 
         for row_idx, name in enumerate(names):
             name_item = QTableWidgetItem(name)
             name_item.setFlags(name_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
-            self._table.setItem(row_idx, 0, name_item)
+            name_item.setData(Qt.ItemDataRole.UserRole, name)
+            self._table.setItem(row_idx, _COL_NAME, name_item)
 
-            english = translations.get(name, "")
-            english_item = QTableWidgetItem(english)
-            self._table.setItem(row_idx, 1, english_item)
+            # Permanent line edits avoid QTableWidget inline-editor commit races on Apply/Enter.
+            english_edit = QLineEdit(translations.get(name, ""), self._table)
+            english_edit.setFrame(False)
+            self._table.setCellWidget(row_idx, _COL_ENGLISH, english_edit)
 
         layout.addWidget(self._table)
 
@@ -106,8 +108,7 @@ class FoodTranslatePreviewDialog(QDialog):
         layout.addWidget(button_box)
 
     def accept(self) -> None:
-        """Commit in-progress cell edits, then close with Accepted."""
-        commit_table_editor_if_open(self._table)
+        """Snapshot current English edits, then close with Accepted."""
         self._accepted_translations = self._read_translations_from_table()
         super().accept()
 
@@ -121,19 +122,27 @@ class FoodTranslatePreviewDialog(QDialog):
         """
         if self._accepted_translations is not None:
             return self._accepted_translations
-        commit_table_editor_if_open(self._table)
         return self._read_translations_from_table()
+
+    def _english_text(self, row_idx: int) -> str:
+        """Return the English value for `row_idx` from its cell line edit."""
+        widget = self._table.cellWidget(row_idx, _COL_ENGLISH)
+        if isinstance(widget, QLineEdit):
+            return widget.text().strip()
+        item = self._table.item(row_idx, _COL_ENGLISH)
+        return item.text().strip() if item is not None else ""
 
     def _read_translations_from_table(self) -> dict[str, str]:
         """Read current table cells into a name → English map."""
         result: dict[str, str] = {}
         for row_idx in range(self._table.rowCount()):
-            name_item = self._table.item(row_idx, 0)
-            english_item = self._table.item(row_idx, 1)
-            if name_item is None or english_item is None:
+            name_item = self._table.item(row_idx, _COL_NAME)
+            if name_item is None:
                 continue
-            name = name_item.text().strip()
-            name_en = english_item.text().strip()
+            name = name_item.data(Qt.ItemDataRole.UserRole)
+            if not isinstance(name, str) or not name:
+                name = name_item.text()
+            name_en = self._english_text(row_idx)
             if name and name_en:
                 result[name] = name_en
         return result
@@ -199,17 +208,19 @@ def __init__(
 
         header = self._table.horizontalHeader()
         if header is not None:
-            header.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
-            header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+            header.setSectionResizeMode(_COL_NAME, QHeaderView.ResizeMode.Stretch)
+            header.setSectionResizeMode(_COL_ENGLISH, QHeaderView.ResizeMode.Stretch)
 
         for row_idx, name in enumerate(names):
             name_item = QTableWidgetItem(name)
             name_item.setFlags(name_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
-            self._table.setItem(row_idx, 0, name_item)
+            name_item.setData(Qt.ItemDataRole.UserRole, name)
+            self._table.setItem(row_idx, _COL_NAME, name_item)
 
-            english = translations.get(name, "")
-            english_item = QTableWidgetItem(english)
-            self._table.setItem(row_idx, 1, english_item)
+            # Permanent line edits avoid QTableWidget inline-editor commit races on Apply/Enter.
+            english_edit = QLineEdit(translations.get(name, ""), self._table)
+            english_edit.setFrame(False)
+            self._table.setCellWidget(row_idx, _COL_ENGLISH, english_edit)
 
         layout.addWidget(self._table)
 
@@ -232,14 +243,13 @@ def __init__(
 def accept(self) -> None
 ```
 
-Commit in-progress cell edits, then close with Accepted.
+Snapshot current English edits, then close with Accepted.
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def accept(self) -> None:
-        commit_table_editor_if_open(self._table)
         self._accepted_translations = self._read_translations_from_table()
         super().accept()
 ```
@@ -265,7 +275,6 @@ Returns:
 def get_translations_to_apply(self) -> dict[str, str]:
         if self._accepted_translations is not None:
             return self._accepted_translations
-        commit_table_editor_if_open(self._table)
         return self._read_translations_from_table()
 ```
 
