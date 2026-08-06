@@ -13,6 +13,7 @@ lang: en
 
 - [🏛️ Class `TransactionTranslatePreviewDialog`](#%EF%B8%8F-class-transactiontranslatepreviewdialog)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
+  - [⚙️ Method `accept`](#%EF%B8%8F-method-accept)
   - [⚙️ Method `get_translations_to_apply`](#%EF%B8%8F-method-get_translations_to_apply)
 
 </details>
@@ -44,6 +45,7 @@ class TransactionTranslatePreviewDialog(QDialog):
         super().__init__(parent)
         self.setWindowTitle("Translate with AI — preview")
         self.resize(720, 480)
+        self._accepted_translations: dict[str, str] | None = None
 
         layout = QVBoxLayout(self)
         translated = sum(1 for description in descriptions if translations.get(description))
@@ -86,8 +88,21 @@ class TransactionTranslatePreviewDialog(QDialog):
         button_box.rejected.connect(self.reject)
         layout.addWidget(button_box)
 
+    def accept(self) -> None:
+        """Commit in-progress cell edits, then close with Accepted."""
+        commit_table_editor_if_open(self._table)
+        self._accepted_translations = self._read_translations_from_table()
+        super().accept()
+
     def get_translations_to_apply(self) -> dict[str, str]:
         """Return non-empty description-to-English pairs."""
+        if self._accepted_translations is not None:
+            return self._accepted_translations
+        commit_table_editor_if_open(self._table)
+        return self._read_translations_from_table()
+
+    def _read_translations_from_table(self) -> dict[str, str]:
+        """Read current table cells into a description → English map."""
         result: dict[str, str] = {}
         for row_idx in range(self._table.rowCount()):
             description_item = self._table.item(row_idx, 0)
@@ -127,6 +142,7 @@ def __init__(
         super().__init__(parent)
         self.setWindowTitle("Translate with AI — preview")
         self.resize(720, 480)
+        self._accepted_translations: dict[str, str] | None = None
 
         layout = QVBoxLayout(self)
         translated = sum(1 for description in descriptions if translations.get(description))
@@ -172,6 +188,26 @@ def __init__(
 
 </details>
 
+### ⚙️ Method `accept`
+
+```python
+def accept(self) -> None
+```
+
+Commit in-progress cell edits, then close with Accepted.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def accept(self) -> None:
+        commit_table_editor_if_open(self._table)
+        self._accepted_translations = self._read_translations_from_table()
+        super().accept()
+```
+
+</details>
+
 ### ⚙️ Method `get_translations_to_apply`
 
 ```python
@@ -185,17 +221,10 @@ Return non-empty description-to-English pairs.
 
 ```python
 def get_translations_to_apply(self) -> dict[str, str]:
-        result: dict[str, str] = {}
-        for row_idx in range(self._table.rowCount()):
-            description_item = self._table.item(row_idx, 0)
-            english_item = self._table.item(row_idx, 1)
-            if description_item is None or english_item is None:
-                continue
-            description = description_item.text().strip()
-            description_en = english_item.text().strip()
-            if description and description_en:
-                result[description] = description_en
-        return result
+        if self._accepted_translations is not None:
+            return self._accepted_translations
+        commit_table_editor_if_open(self._table)
+        return self._read_translations_from_table()
 ```
 
 </details>

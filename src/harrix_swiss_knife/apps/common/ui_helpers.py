@@ -41,18 +41,31 @@ def close_table_editor_if_open(view: QAbstractItemView) -> None:
     - `view` (`QAbstractItemView`): Table or list view that may have an active editor.
 
     """
-    if view.state() != QAbstractItemView.State.EditingState:
-        return
-
-    index = view.currentIndex()
-    if not index.isValid():
-        return
-
-    editor = view.indexWidget(index)
+    editor = _active_table_editor(view)
     if editor is None:
         return
 
     view.closeEditor(editor, QAbstractItemDelegate.EndEditHint.SubmitModelCache)
+
+
+def commit_table_editor_if_open(view: QAbstractItemView) -> None:
+    """Commit and close an open inline cell editor so item/model data is current.
+
+    Needed when reading `QTableWidgetItem.text()` after the user typed in a cell
+    and immediately pressed a dialog default button (Enter) or clicked Apply —
+    without this, the editor value is discarded and the item stays stale.
+
+    Args:
+
+    - `view` (`QAbstractItemView`): Table or list view that may have an active editor.
+
+    """
+    editor = _active_table_editor(view)
+    if editor is None:
+        return
+
+    view.commitData(editor)
+    view.closeEditor(editor, QAbstractItemDelegate.EndEditHint.NoHint)
 
 
 def enumerate_stripped_non_empty_lines(text: str, start: int = 1) -> Iterator[tuple[int, str]]:
@@ -93,3 +106,22 @@ def iter_stripped_non_empty_lines(text: str) -> Iterator[str]:
         stripped = raw_line.strip()
         if stripped:
             yield stripped
+
+
+def _active_table_editor(view: QAbstractItemView) -> QWidget | None:
+    """Return the open inline cell editor, or `None` if the view is not editing."""
+    if view.state() != QAbstractItemView.State.EditingState:
+        return None
+
+    index = view.currentIndex()
+    if index.isValid():
+        # Permanent widgets from setIndexWidget (not temporary delegate editors).
+        editor = view.indexWidget(index)
+        if editor is not None:
+            return editor
+
+    # Temporary QAbstractItemDelegate editors are focus children, not index widgets.
+    focus = view.focusWidget()
+    if focus is not None and focus is not view:
+        return focus
+    return None
