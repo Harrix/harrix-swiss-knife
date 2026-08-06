@@ -113,8 +113,13 @@ def install_diagnostic_handlers(log: logging.Logger) -> None:
         QtMsgType.QtFatalMsg: logging.CRITICAL,
     }
 
+    # Harmless Windows/Qt noise (phantom/disconnected displays).
+    _qt_ignored_substrings = ("monitorData: Unable to obtain handle for monitor",)
+
     def _qt_message_handler(msg_type: QtMsgType, context: object, message: str) -> None:
         if msg_type not in _qt_msg_levels:
+            return
+        if any(part in message for part in _qt_ignored_substrings):
             return
         level = _qt_msg_levels[msg_type]
         location = ""
