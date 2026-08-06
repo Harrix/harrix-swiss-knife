@@ -48,6 +48,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -86,6 +87,8 @@ private val WaveformOutline = Color(0xFF81C784)
 fun SpeechToTextScreen(
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
+    autoStartRecording: Boolean = false,
+    onAutoStartRecordingConsume: () -> Unit = {},
     viewModel: SpeechToTextViewModel = viewModel(),
 ) {
     var phase by viewModel.phase
@@ -98,6 +101,7 @@ fun SpeechToTextScreen(
     val context = LocalContext.current
     val clipboard = LocalClipboardManager.current
     val copiedMessage = stringResource(R.string.speech_to_text_copied)
+    val onAutoStartRecordingConsumeState = rememberUpdatedState(onAutoStartRecordingConsume)
 
     var pendingMicAction by remember { mutableStateOf<MicAction?>(null) }
 
@@ -159,6 +163,14 @@ fun SpeechToTextScreen(
 
             else -> leave()
         }
+    }
+
+    LaunchedEffect(autoStartRecording) {
+        if (!autoStartRecording) {
+            return@LaunchedEffect
+        }
+        onAutoStartRecordingConsumeState.value()
+        startOrRequestMic(MicAction.Start)
     }
 
     LaunchedEffect(infoMessage) {
