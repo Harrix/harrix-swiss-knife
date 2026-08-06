@@ -566,7 +566,7 @@ class AudioSourceDialog(QDialog):
     def _setup_ui(self) -> None:
         self.setWindowTitle("Speech to text with AI")
         self.setMinimumSize(640, 480)
-        self.setModal(True)
+        qt_modality.set_owner_window_modal(self)
 
         layout = QVBoxLayout(self)
 

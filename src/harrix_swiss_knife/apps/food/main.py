@@ -36,6 +36,7 @@ from PySide6.QtWidgets import (
 )
 
 from harrix_swiss_knife import (
+    qt_modality,
     resources_rc,  # noqa: F401
     toast_notification,
 )
@@ -1775,7 +1776,7 @@ class MainWindow(
         # Show dialog for dish name and drink selection
         dialog = QDialog(self)
         dialog.setWindowTitle("Create Dish from Ingredients")
-        dialog.setModal(True)
+        qt_modality.set_owner_window_modal(dialog)
         dialog.setMinimumWidth(400)
 
         layout = QVBoxLayout(dialog)
@@ -2646,7 +2647,7 @@ class MainWindow(
                 duration=2000,
                 parent=self,
             )
-            toast.exec()
+            toast.present()
 
     def _process_text_input(self, text: str, default_date: str) -> None:
         """Process text input and add food items to database.

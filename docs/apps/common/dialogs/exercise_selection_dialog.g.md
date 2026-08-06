@@ -57,7 +57,7 @@ class ExerciseSelectionDialog(QDialog):
         """
         super().__init__(parent)
         self.setWindowTitle("Select Exercise")
-        self.setModal(True)
+        qt_modality.set_owner_window_modal(self)
         self.selected_exercise: str | None = current_selection
         self._icon_provider = icon_provider
         self._avif_manager = avif_manager
@@ -327,7 +327,7 @@ def __init__(
     ) -> None:
         super().__init__(parent)
         self.setWindowTitle("Select Exercise")
-        self.setModal(True)
+        qt_modality.set_owner_window_modal(self)
         self.selected_exercise: str | None = current_selection
         self._icon_provider = icon_provider
         self._avif_manager = avif_manager

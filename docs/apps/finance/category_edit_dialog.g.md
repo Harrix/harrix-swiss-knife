@@ -56,7 +56,7 @@ class CategoryEditDialog(QDialog):
         self.result_data: dict = {}
 
         self.setWindowTitle("Edit Category")
-        self.setModal(True)
+        qt_modality.set_owner_window_modal(self)
         self.setMinimumWidth(400)
 
         self._setup_ui()
@@ -209,7 +209,7 @@ def __init__(
         self.result_data: dict = {}
 
         self.setWindowTitle("Edit Category")
-        self.setModal(True)
+        qt_modality.set_owner_window_modal(self)
         self.setMinimumWidth(400)
 
         self._setup_ui()

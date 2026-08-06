@@ -299,7 +299,7 @@ class FoodTableDialog(QDialog):
     def _setup_ui(self) -> None:
         self.setWindowTitle(self._title)
         self.setMinimumSize(900, 520)
-        self.setModal(True)
+        qt_modality.set_owner_window_modal(self)
 
         layout = QVBoxLayout(self)
 

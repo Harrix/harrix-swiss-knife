@@ -34,7 +34,7 @@ class ScreenshotPreviewDialog(QDialog):
         """Create the preview dialog for `image`."""
         super().__init__(parent)
         self.setWindowTitle("Screenshot")
-        self.setModal(True)
+        qt_modality.set_owner_window_modal(self)
         self._image = image
 
         preview = QLabel()
@@ -153,7 +153,7 @@ Create the preview dialog for `image`.
 def __init__(self, image: QImage, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.setWindowTitle("Screenshot")
-        self.setModal(True)
+        qt_modality.set_owner_window_modal(self)
         self._image = image
 
         preview = QLabel()

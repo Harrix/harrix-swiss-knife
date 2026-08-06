@@ -18,6 +18,7 @@ from PySide6.QtCore import QDate, QSortFilterProxyModel, QTimer
 from PySide6.QtGui import QColor, QStandardItemModel
 from PySide6.QtWidgets import QAbstractItemView, QMessageBox, QWidget
 
+from harrix_swiss_knife import qt_modality
 from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.scroll_pagination import on_scroll_load_more
 from harrix_swiss_knife.apps.finance.delegates import AmountDelegate
@@ -330,6 +331,7 @@ class ExchangeRatesOperations:
                 self.check_progress_dialog.close()
 
             self.check_progress_dialog.buttonClicked.connect(cancel_check)
+            qt_modality.set_owner_window_modal(self.check_progress_dialog)
             self.check_progress_dialog.show()
 
             # Create and start checker thread
@@ -815,6 +817,7 @@ class ExchangeRatesOperations:
                 self.progress_dialog.close()
 
             self.progress_dialog.buttonClicked.connect(cancel_update)
+            qt_modality.set_owner_window_modal(self.progress_dialog)
             self.progress_dialog.show()
 
             # Create and start worker thread

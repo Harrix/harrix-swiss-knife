@@ -1731,7 +1731,7 @@ class MainWindow(
         # Show dialog for dish name and drink selection
         dialog = QDialog(self)
         dialog.setWindowTitle("Create Dish from Ingredients")
-        dialog.setModal(True)
+        qt_modality.set_owner_window_modal(dialog)
         dialog.setMinimumWidth(400)
 
         layout = QVBoxLayout(dialog)
@@ -2057,9 +2057,9 @@ class MainWindow(
     @staticmethod
     def _food_log_row_missing_calories(row: list[Any]) -> bool:
         """Return whether a problematic-query row lacks calories (non-drink)."""
-        if len(row) < 8:
+        if len(row) < _FOOD_LOG_QUERY_MIN_COLS_FOR_CALORIES:
             return True
-        if int(row[7] or 0) == 1:
+        if int(row[_FOOD_LOG_QUERY_COL_IS_DRINK] or 0) == 1:
             return False
 
         def _empty_or_zero(value: Any) -> bool:
@@ -2070,14 +2070,16 @@ class MainWindow(
             except (TypeError, ValueError):
                 return True
 
-        return _empty_or_zero(row[4]) and _empty_or_zero(row[3])
+        return _empty_or_zero(row[_FOOD_LOG_QUERY_COL_CALORIES_PER_100G]) and _empty_or_zero(
+            row[_FOOD_LOG_QUERY_COL_PORTION_CALORIES]
+        )
 
     @staticmethod
     def _food_log_row_missing_weight(row: list[Any]) -> bool:
         """Return whether a food_log row has NULL/empty/non-positive weight."""
-        if len(row) < 3:
+        if len(row) < _FOOD_LOG_QUERY_MIN_COLS_FOR_WEIGHT:
             return True
-        weight = row[2]
+        weight = row[_FOOD_LOG_QUERY_COL_WEIGHT]
         if weight is None or weight == "":
             return True
         try:
@@ -2600,7 +2602,7 @@ class MainWindow(
                 duration=2000,
                 parent=self,
             )
-            toast.exec()
+            toast.present()
 
     def _process_text_input(self, text: str, default_date: str) -> None:
         """Process text input and add food items to database.

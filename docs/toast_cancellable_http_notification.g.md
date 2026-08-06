@@ -30,9 +30,10 @@ class ToastCancellableHttpNotification(toast_countdown_notification.ToastCountdo
 
 Toast with elapsed timer and user-initiated request cancellation.
 
-Shown as `ApplicationModal` so Escape and the close button work even when the
-request was started from another modal dialog (e.g. New Markdown → Fill with AI).
-Prefer passing that dialog as `parent` so the toast is a child of the modal stack.
+Shown as `WindowModal` so only the owner window hierarchy is blocked (sibling
+apps in the same process stay interactive). Prefer passing the active modal
+dialog as `parent` so Escape and the close button still work during flows
+like New Markdown → Fill with AI; `present()` focuses the toast.
 
 Attributes:
 
@@ -55,7 +56,7 @@ class ToastCancellableHttpNotification(toast_countdown_notification.ToastCountdo
         self._completed = False
 
         # Must be set before show(); modality on an already-visible window is ignored.
-        self.setWindowModality(Qt.WindowModality.ApplicationModal)
+        qt_modality.set_owner_window_modal(self)
 
         self._close_button = QPushButton(self)
         self._close_button.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -205,7 +206,7 @@ def __init__(self, message: str = "Request in progress…", parent: QWidget | No
         self._completed = False
 
         # Must be set before show(); modality on an already-visible window is ignored.
-        self.setWindowModality(Qt.WindowModality.ApplicationModal)
+        qt_modality.set_owner_window_modal(self)
 
         self._close_button = QPushButton(self)
         self._close_button.setCursor(Qt.CursorShape.PointingHandCursor)

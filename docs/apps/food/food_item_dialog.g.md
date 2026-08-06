@@ -175,7 +175,7 @@ class FoodItemDialog(QDialog):
     def setup_ui(self) -> None:
         """Set up the user interface."""
         self.setWindowTitle("Create Food Item" if self.is_create else "Edit Food Item")
-        self.setModal(True)
+        qt_modality.set_owner_window_modal(self)
         self.resize(400, 300)
 
         # Main layout
@@ -436,7 +436,7 @@ Set up the user interface.
 ```python
 def setup_ui(self) -> None:
         self.setWindowTitle("Create Food Item" if self.is_create else "Edit Food Item")
-        self.setModal(True)
+        qt_modality.set_owner_window_modal(self)
         self.resize(400, 300)
 
         # Main layout

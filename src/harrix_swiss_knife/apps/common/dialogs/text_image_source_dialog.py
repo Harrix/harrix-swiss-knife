@@ -14,6 +14,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from harrix_swiss_knife import qt_modality
 from harrix_swiss_knife.apps.common.widgets.image_picker import ImagePicker, ImagePickerMode
 from harrix_swiss_knife.qt_emoji_icon import make_emoji_push_button
 
@@ -147,7 +148,7 @@ class TextImageSourceDialog(QDialog):
     def _setup_ui(self) -> None:
         self.setWindowTitle(self._title)
         self.setMinimumSize(640, 520)
-        self.setModal(True)
+        qt_modality.set_owner_window_modal(self)
 
         layout = QVBoxLayout(self)
 

@@ -30,6 +30,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from harrix_swiss_knife import qt_modality
 from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.dialogs.audio_source_dialog import AudioSourceDialog
 from harrix_swiss_knife.apps.common.dialogs.text_image_source_dialog import (
@@ -97,7 +98,7 @@ class MapCoordinatesExtractDialog(QDialog):
         super().__init__(parent)
         self._coordinates: tuple[float, float] | None = None
         self.setWindowTitle(f"Extract coordinates — {service_name}")
-        self.setModal(True)
+        qt_modality.set_owner_window_modal(self)
         self.setMinimumWidth(560)
 
         layout = QVBoxLayout(self)
@@ -221,7 +222,7 @@ class TemplateDialog(QDialog):
                 self._link_qurls.append(qurl)
 
         self.setWindowTitle(title)
-        self.setModal(True)
+        qt_modality.set_owner_window_modal(self)
         self._dialog_min_width = 1280 if entry_browser_groups else 1024
         self._dialog_min_height = 768
 

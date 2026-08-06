@@ -372,6 +372,7 @@ class ExchangeRatesOperations:
                 self.check_progress_dialog.close()
 
             self.check_progress_dialog.buttonClicked.connect(cancel_check)
+            qt_modality.set_owner_window_modal(self.check_progress_dialog)
             self.check_progress_dialog.show()
 
             # Create and start checker thread
@@ -857,6 +858,7 @@ class ExchangeRatesOperations:
                 self.progress_dialog.close()
 
             self.progress_dialog.buttonClicked.connect(cancel_update)
+            qt_modality.set_owner_window_modal(self.progress_dialog)
             self.progress_dialog.show()
 
             # Create and start worker thread
@@ -1362,6 +1364,7 @@ def on_update_exchange_rates(self) -> None:
                 self.check_progress_dialog.close()
 
             self.check_progress_dialog.buttonClicked.connect(cancel_check)
+            qt_modality.set_owner_window_modal(self.check_progress_dialog)
             self.check_progress_dialog.show()
 
             # Create and start checker thread

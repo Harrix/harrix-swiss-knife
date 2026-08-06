@@ -220,9 +220,9 @@ def _release_bothub_worker(worker: BothubChatWorker) -> None:
 def _resolve_toast_parent(parent: QWidget | None) -> QWidget | None:
     """Parent the cancel toast under the active modal dialog when possible.
 
-    Application-modal dialogs block input to sibling Windows. Parenting the toast
-    under the modal (and making the toast ApplicationModal) lets Escape / close
-    cancel the request during Fill with AI and similar flows.
+    Parenting the toast under the modal (with WindowModal on the toast) lets
+    Escape / close cancel the request during Fill with AI and similar flows,
+    without blocking sibling app Windows in the same process.
 
     """
     if parent is not None:

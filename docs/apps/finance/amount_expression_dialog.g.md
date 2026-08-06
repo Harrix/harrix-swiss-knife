@@ -54,7 +54,7 @@ class AmountExpressionDialog(QDialog):
         self._result: float | None = None
 
         self.setWindowTitle("Calculate Amount")
-        self.setModal(True)
+        qt_modality.set_owner_window_modal(self)
         self.setMinimumWidth(420)
 
         layout = QVBoxLayout(self)
@@ -184,7 +184,7 @@ def __init__(
         self._result: float | None = None
 
         self.setWindowTitle("Calculate Amount")
-        self.setModal(True)
+        qt_modality.set_owner_window_modal(self)
         self.setMinimumWidth(420)
 
         layout = QVBoxLayout(self)

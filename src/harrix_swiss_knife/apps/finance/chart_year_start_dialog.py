@@ -14,6 +14,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from harrix_swiss_knife import qt_modality
 from harrix_swiss_knife.qt_emoji_icon import apply_emoji_dialog_buttons
 
 _MONTH_NAMES: list[str] = [
@@ -45,7 +46,7 @@ class ChartYearStartDialog(QDialog):
         """Initialize the dialog with optional default month and day."""
         super().__init__(parent)
         self.setWindowTitle("Year start date")
-        self.setModal(True)
+        qt_modality.set_owner_window_modal(self)
 
         layout = QVBoxLayout(self)
         layout.addWidget(

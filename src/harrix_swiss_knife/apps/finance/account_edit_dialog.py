@@ -18,6 +18,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from harrix_swiss_knife import qt_modality
 from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.finance.number_utils import evaluate_arithmetic_expression
 from harrix_swiss_knife.qt_emoji_icon import (
@@ -61,7 +62,7 @@ class AccountEditDialog(QDialog):
         self._initial_balance: float = 0.0
 
         self.setWindowTitle("Edit Account")
-        self.setModal(True)
+        qt_modality.set_owner_window_modal(self)
         self.setFixedSize(400, 350)
 
         self._setup_ui()

@@ -561,7 +561,7 @@ class ActionBase(ABC):
             message=strip_md_inline_code_markers(message),
             duration=duration,
         )
-        toast.exec()
+        toast.present()
 
     def start_thread(
         self,
@@ -1709,7 +1709,7 @@ def show_toast(self, message: str, duration: int = 2000) -> None:
             message=strip_md_inline_code_markers(message),
             duration=duration,
         )
-        toast.exec()
+        toast.present()
 ```
 
 </details>

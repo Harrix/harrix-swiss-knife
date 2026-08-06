@@ -21,9 +21,9 @@ def qapp() -> QApplication:
     return app
 
 
-def test_cancellable_toast_is_application_modal(qapp: QApplication) -> None:  # noqa: ARG001
+def test_cancellable_toast_is_window_modal(qapp: QApplication) -> None:  # noqa: ARG001
     toast = ToastCancellableHttpNotification("Requesting BotHub…")
-    assert toast.windowModality() == Qt.WindowModality.ApplicationModal
+    assert toast.windowModality() == Qt.WindowModality.WindowModal
     toast.close()
 
 
@@ -47,7 +47,7 @@ def test_resolve_toast_parent_falls_back_to_active_modal(qapp: QApplication) -> 
 
 def test_cancellable_toast_parented_under_modal_can_be_focused(qapp: QApplication) -> None:  # noqa: ARG001
     modal = QDialog()
-    modal.setWindowModality(Qt.WindowModality.ApplicationModal)
+    modal.setWindowModality(Qt.WindowModality.WindowModal)
     modal.show()
     QApplication.processEvents()
 
@@ -56,7 +56,7 @@ def test_cancellable_toast_parented_under_modal_can_be_focused(qapp: QApplicatio
     QApplication.processEvents()
 
     assert toast.parent() is modal
-    assert toast.windowModality() == Qt.WindowModality.ApplicationModal
+    assert toast.windowModality() == Qt.WindowModality.WindowModal
     assert toast.isVisible()
     assert toast.hasFocus() or toast.isActiveWindow()
 

@@ -13,6 +13,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from harrix_swiss_knife import qt_modality
 from harrix_swiss_knife.apps.finance.number_utils import try_evaluate_arithmetic_expression
 from harrix_swiss_knife.qt_emoji_icon import apply_emoji_dialog_buttons
 
@@ -43,7 +44,7 @@ class AmountExpressionDialog(QDialog):
         self._result: float | None = None
 
         self.setWindowTitle("Calculate Amount")
-        self.setModal(True)
+        qt_modality.set_owner_window_modal(self)
         self.setMinimumWidth(420)
 
         layout = QVBoxLayout(self)

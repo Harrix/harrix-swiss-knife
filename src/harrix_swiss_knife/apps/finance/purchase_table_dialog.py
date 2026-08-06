@@ -23,6 +23,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from harrix_swiss_knife import qt_modality
 from harrix_swiss_knife.apps.common.ui_helpers import enumerate_stripped_non_empty_lines
 from harrix_swiss_knife.apps.finance.text_parser import ParsedPurchaseItem, TextParser
 from harrix_swiss_knife.qt_emoji_icon import make_emoji_push_button
@@ -263,7 +264,7 @@ class PurchaseTableDialog(QDialog):
     def _setup_ui(self) -> None:
         self.setWindowTitle(self._title)
         self.setMinimumSize(800, 500)
-        self.setModal(True)
+        qt_modality.set_owner_window_modal(self)
 
         layout = QVBoxLayout(self)
 

@@ -8,6 +8,7 @@ from PySide6.QtCore import Qt, QTimer
 from PySide6.QtMultimedia import QAudioDevice
 from PySide6.QtWidgets import QComboBox, QDialog, QHBoxLayout, QLabel, QVBoxLayout, QWidget
 
+from harrix_swiss_knife import qt_modality
 from harrix_swiss_knife.apps.common.audio_recording import (
     RECORD_CAPTION_STOP_STYLE,
     AudioLevelWidget,
@@ -178,7 +179,7 @@ class SimpleRecordingDialog(QDialog):
     def _setup_ui(self) -> None:
         self.setWindowTitle("Recording")
         self.setMinimumSize(480, 260)
-        self.setModal(True)
+        qt_modality.set_owner_window_modal(self)
 
         layout = QVBoxLayout(self)
 

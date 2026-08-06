@@ -18,6 +18,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from harrix_swiss_knife import qt_modality
 from harrix_swiss_knife.actions.text_result_dialog import (
     COPY_BUTTON_EMOJI,
     COPY_BUTTON_LABEL,
@@ -38,7 +39,7 @@ class ScreenshotPreviewDialog(QDialog):
         """Create the preview dialog for `image`."""
         super().__init__(parent)
         self.setWindowTitle("Screenshot")
-        self.setModal(True)
+        qt_modality.set_owner_window_modal(self)
         self._image = image
 
         preview = QLabel()

@@ -6,6 +6,8 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtWidgets import QAbstractButton, QMessageBox, QWidget
 
+from harrix_swiss_knife import qt_modality
+
 _COPY_BUTTON_ATTR = "_harrix_copy_button_added"
 _CLIPBOARD_TEXT_ATTR = "_harrix_clipboard_text"
 
@@ -125,6 +127,8 @@ def warning(parent: QWidget | None, title: str, text: str) -> QMessageBox.Standa
 
 def _exec_box(box: QMessageBox) -> QMessageBox.StandardButton:
     """Run `box` until the user clicks a standard button."""
+    # Prefer WindowModal so sibling apps in the same process stay interactive.
+    qt_modality.set_owner_window_modal(box)
     result_code = box.exec()
     clicked = box.clickedButton()
     if clicked is None or result_code == QMessageBox.DialogCode.Rejected:

@@ -23,6 +23,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from harrix_swiss_knife import qt_modality
 from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.finance.transaction_translate_parser import parse_transaction_translate_response
 from harrix_swiss_knife.apps.finance.transaction_translate_preview_dialog import TransactionTranslatePreviewDialog
@@ -332,7 +333,7 @@ class _StandardItemEditDialog(QDialog):
         self._item = item or {}
         self.result_data: dict[str, Any] = {}
         self.setWindowTitle("Edit Standard Item" if item else "Add Standard Item")
-        self.setModal(True)
+        qt_modality.set_owner_window_modal(self)
         self.setMinimumWidth(420)
         self._setup_ui()
         self._populate()

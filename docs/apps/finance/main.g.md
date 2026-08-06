@@ -1440,7 +1440,7 @@ class MainWindow(
         else:
             message = f"Already in Standard Items: {description}"
         toast = toast_notification.ToastNotification(message, duration=2000, parent=self)
-        toast.exec()
+        toast.present()
 
     def _append_colored_rows_to_model(
         self,
@@ -4378,7 +4378,7 @@ class MainWindow(
                 duration=2000,
                 parent=self,
             )
-            toast.exec()
+            toast.present()
 
     def _prompt_compare_last_years_start(self) -> bool:
         """Ask for the day and month when each comparison year begins."""
@@ -5309,7 +5309,7 @@ class MainWindow(
 
         dialog = QDialog(self)
         dialog.setWindowTitle("Transactions by tag")
-        dialog.setModal(True)
+        qt_modality.set_owner_window_modal(dialog)
         dialog.resize(920, 560)
 
         layout = QVBoxLayout(dialog)

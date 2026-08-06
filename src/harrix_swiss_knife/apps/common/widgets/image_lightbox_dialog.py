@@ -9,6 +9,7 @@ from PySide6.QtCore import QSize, Qt
 from PySide6.QtGui import QGuiApplication, QKeyEvent, QMouseEvent, QResizeEvent
 from PySide6.QtWidgets import QDialog, QLabel, QPushButton, QVBoxLayout
 
+from harrix_swiss_knife import qt_modality
 from harrix_swiss_knife.apps.common.avif_manager import load_image_pixmap
 from harrix_swiss_knife.qt_emoji_icon import CLOSE_BUTTON_EMOJI, create_emoji_icon
 
@@ -25,7 +26,7 @@ class ImageLightboxDialog(QDialog):
     def __init__(self, image_path: str | Path, parent: QWidget | None = None) -> None:
         """Build a modal dark overlay centered on the available screen."""
         super().__init__(parent)
-        self.setModal(True)
+        qt_modality.set_owner_window_modal(self)
         self.setWindowTitle(Path(image_path).name)
         self.setWindowFlags(
             Qt.WindowType.Dialog | Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowStaysOnTopHint

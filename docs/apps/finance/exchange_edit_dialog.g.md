@@ -55,7 +55,7 @@ class ExchangeEditDialog(QDialog):
         self.result_data = {}
 
         self.setWindowTitle("Edit Currency Exchange")
-        self.setModal(True)
+        qt_modality.set_owner_window_modal(self)
         self.setMinimumSize(450, 400)
 
         self._setup_ui()
@@ -269,7 +269,7 @@ def __init__(
         self.result_data = {}
 
         self.setWindowTitle("Edit Currency Exchange")
-        self.setModal(True)
+        qt_modality.set_owner_window_modal(self)
         self.setMinimumSize(450, 400)
 
         self._setup_ui()

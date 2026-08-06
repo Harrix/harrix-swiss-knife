@@ -19,6 +19,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from harrix_swiss_knife import qt_modality
 from harrix_swiss_knife.apps.common.avif_manager import AvifLabelKey
 from harrix_swiss_knife.qt_emoji_icon import apply_emoji_dialog_buttons
 
@@ -57,7 +58,7 @@ class ExerciseSelectionDialog(QDialog):
         """
         super().__init__(parent)
         self.setWindowTitle("Select Exercise")
-        self.setModal(True)
+        qt_modality.set_owner_window_modal(self)
         self.selected_exercise: str | None = current_selection
         self._icon_provider = icon_provider
         self._avif_manager = avif_manager

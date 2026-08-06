@@ -301,7 +301,7 @@ class DragDropFileDialog(QDialog):
         """Create file-selection dialog with optional resize controls."""
         super().__init__(parent)
         self.setWindowTitle(title)
-        self.setModal(True)
+        qt_modality.set_owner_window_modal(self)
         self.setAcceptDrops(True)
 
         self.default_path = default_path
@@ -482,7 +482,7 @@ def __init__(
     ) -> None:
         super().__init__(parent)
         self.setWindowTitle(title)
-        self.setModal(True)
+        qt_modality.set_owner_window_modal(self)
         self.setAcceptDrops(True)
 
         self.default_path = default_path

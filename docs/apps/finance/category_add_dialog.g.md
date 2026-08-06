@@ -45,7 +45,7 @@ class CategoryAddDialog(QDialog):
         self._result: tuple[str, int, str] | None = None
 
         self.setWindowTitle("Add Category")
-        self.setModal(True)
+        qt_modality.set_owner_window_modal(self)
         self.setMinimumWidth(400)
 
         layout = QVBoxLayout(self)
@@ -139,7 +139,7 @@ def __init__(
         self._result: tuple[str, int, str] | None = None
 
         self.setWindowTitle("Add Category")
-        self.setModal(True)
+        qt_modality.set_owner_window_modal(self)
         self.setMinimumWidth(400)
 
         layout = QVBoxLayout(self)

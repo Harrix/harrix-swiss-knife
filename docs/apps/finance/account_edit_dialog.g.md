@@ -57,7 +57,7 @@ class AccountEditDialog(QDialog):
         self._initial_balance: float = 0.0
 
         self.setWindowTitle("Edit Account")
-        self.setModal(True)
+        qt_modality.set_owner_window_modal(self)
         self.setFixedSize(400, 350)
 
         self._setup_ui()
@@ -288,7 +288,7 @@ def __init__(
         self._initial_balance: float = 0.0
 
         self.setWindowTitle("Edit Account")
-        self.setModal(True)
+        qt_modality.set_owner_window_modal(self)
         self.setFixedSize(400, 350)
 
         self._setup_ui()

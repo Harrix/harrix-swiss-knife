@@ -23,6 +23,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from harrix_swiss_knife import qt_modality
 from harrix_swiss_knife.apps.common.ui_helpers import enumerate_stripped_non_empty_lines
 from harrix_swiss_knife.apps.food.text_parser import ParsedFoodItem, TextParser
 from harrix_swiss_knife.qt_emoji_icon import make_emoji_push_button
@@ -301,7 +302,7 @@ class FoodTableDialog(QDialog):
     def _setup_ui(self) -> None:
         self.setWindowTitle(self._title)
         self.setMinimumSize(900, 520)
-        self.setModal(True)
+        qt_modality.set_owner_window_modal(self)
 
         layout = QVBoxLayout(self)
 

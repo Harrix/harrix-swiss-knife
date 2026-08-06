@@ -17,6 +17,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from harrix_swiss_knife import qt_modality
 from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.finance.exchange_validation import validate_exchange_data
 from harrix_swiss_knife.qt_emoji_icon import CANCEL_BUTTON_EMOJI, OK_BUTTON_EMOJI, make_emoji_push_button
@@ -53,7 +54,7 @@ class ExchangeEditDialog(QDialog):
         self.result_data = {}
 
         self.setWindowTitle("Edit Currency Exchange")
-        self.setModal(True)
+        qt_modality.set_owner_window_modal(self)
         self.setMinimumSize(450, 400)
 
         self._setup_ui()

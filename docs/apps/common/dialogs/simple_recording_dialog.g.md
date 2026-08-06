@@ -186,7 +186,7 @@ class SimpleRecordingDialog(QDialog):
     def _setup_ui(self) -> None:
         self.setWindowTitle("Recording")
         self.setMinimumSize(480, 260)
-        self.setModal(True)
+        qt_modality.set_owner_window_modal(self)
 
         layout = QVBoxLayout(self)
 

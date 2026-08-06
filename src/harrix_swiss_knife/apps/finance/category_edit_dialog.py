@@ -15,6 +15,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from harrix_swiss_knife import qt_modality
 from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.finance.category_name_local_translate import request_category_name_local_translation
 from harrix_swiss_knife.integrations.bothub import BothubRequestState
@@ -54,7 +55,7 @@ class CategoryEditDialog(QDialog):
         self.result_data: dict = {}
 
         self.setWindowTitle("Edit Category")
-        self.setModal(True)
+        qt_modality.set_owner_window_modal(self)
         self.setMinimumWidth(400)
 
         self._setup_ui()

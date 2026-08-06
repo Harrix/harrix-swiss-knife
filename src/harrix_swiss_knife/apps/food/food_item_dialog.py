@@ -21,6 +21,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from harrix_swiss_knife import qt_modality
 from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.food.database_manager import FoodItemByNameRow, FoodLogItemByNameRow
 from harrix_swiss_knife.qt_emoji_icon import DELETE_BUTTON_EMOJI, apply_emoji_dialog_buttons, make_emoji_push_button
@@ -171,7 +172,7 @@ class FoodItemDialog(QDialog):
     def setup_ui(self) -> None:
         """Set up the user interface."""
         self.setWindowTitle("Create Food Item" if self.is_create else "Edit Food Item")
-        self.setModal(True)
+        qt_modality.set_owner_window_modal(self)
         self.resize(400, 300)
 
         # Main layout

@@ -21,6 +21,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from harrix_swiss_knife import qt_modality
 from harrix_swiss_knife.apps.common.audio_compress import audio_file_to_mono_pcm
 from harrix_swiss_knife.apps.common.audio_recording import (
     PLAY_BUTTON_GAP,
@@ -510,7 +511,7 @@ class AudioSourceDialog(QDialog):
     def _setup_ui(self) -> None:
         self.setWindowTitle("Speech to text with AI")
         self.setMinimumSize(640, 480)
-        self.setModal(True)
+        qt_modality.set_owner_window_modal(self)
 
         layout = QVBoxLayout(self)
 

@@ -37,7 +37,7 @@ class ImageLightboxDialog(QDialog):
     def __init__(self, image_path: str | Path, parent: QWidget | None = None) -> None:
         """Build a modal dark overlay centered on the available screen."""
         super().__init__(parent)
-        self.setModal(True)
+        qt_modality.set_owner_window_modal(self)
         self.setWindowTitle(Path(image_path).name)
         self.setWindowFlags(
             Qt.WindowType.Dialog | Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowStaysOnTopHint
@@ -144,7 +144,7 @@ Build a modal dark overlay centered on the available screen.
 ```python
 def __init__(self, image_path: str | Path, parent: QWidget | None = None) -> None:
         super().__init__(parent)
-        self.setModal(True)
+        qt_modality.set_owner_window_modal(self)
         self.setWindowTitle(Path(image_path).name)
         self.setWindowFlags(
             Qt.WindowType.Dialog | Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowStaysOnTopHint

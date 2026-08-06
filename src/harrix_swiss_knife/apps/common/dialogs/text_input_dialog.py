@@ -14,6 +14,7 @@ from typing import TYPE_CHECKING
 from PySide6.QtCore import QDate
 from PySide6.QtWidgets import QDateEdit, QDialog, QHBoxLayout, QLabel, QPlainTextEdit, QVBoxLayout, QWidget
 
+from harrix_swiss_knife import qt_modality
 from harrix_swiss_knife.qt_emoji_icon import CANCEL_BUTTON_EMOJI, OK_BUTTON_EMOJI, make_emoji_push_button
 
 if TYPE_CHECKING:
@@ -116,7 +117,7 @@ class TextInputDialog(QDialog):
     def _setup_ui(self) -> None:
         self.setWindowTitle(self._title)
         self.setMinimumSize(self._min_width, self._min_height)
-        self.setModal(True)
+        qt_modality.set_owner_window_modal(self)
 
         layout = QVBoxLayout(self)
 
