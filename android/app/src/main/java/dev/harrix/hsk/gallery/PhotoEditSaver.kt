@@ -268,9 +268,14 @@ class PhotoEditSaver(
                 context.contentResolver.delete(outUri, null, null)
                 return CopyResult.Failed
             }
+            values.clear()
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                values.clear()
                 values.put(MediaStore.MediaColumns.IS_PENDING, 0)
+            }
+            ExifPreserver.dateTakenMillisFromBytes(encoded)?.let { takenMs ->
+                values.put(MediaStore.Images.Media.DATE_TAKEN, takenMs)
+            }
+            if (values.size() > 0) {
                 context.contentResolver.update(outUri, values, null, null)
             }
             CopyResult.Success(uri = outUri, sizeBytes = encoded.size.toLong())
@@ -308,13 +313,24 @@ class PhotoEditSaver(
         if (cropped !== workspace) {
             workspace.recycle()
         }
+        val width = cropped.width
+        val height = cropped.height
         val encoded =
             encodeBitmap(cropped, mimeType) ?: run {
                 cropped.recycle()
                 return null
             }
         cropped.recycle()
-        return encoded
+        val resolvedMime = resolvedOutputMime(mimeType)
+        return ExifPreserver.withPreservedExif(
+            context = context,
+            sourceUri = uri,
+            mimeType = resolvedMime,
+            encoded = encoded,
+            width = width,
+            height = height,
+            fileExtension = extensionForMime(resolvedMime),
+        )
     }
 
     private fun resolvedOutputMime(mimeType: String?): String = when {
@@ -811,6 +827,7 @@ class PhotoEditSaver(
         context.contentResolver.openOutputStream(uri, "wt")?.use { output ->
             output.write(bytes)
             output.flush()
+            ExifPreserver.syncMediaStoreDateTaken(context, uri, bytes)
             SaveResult.Success(sizeBytes = bytes.size.toLong(), backupCreated = false)
         } ?: SaveResult.Failed
     } catch (_: SecurityException) {
