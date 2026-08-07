@@ -189,7 +189,7 @@ def is_scroll_near_bottom(scroll_value: int, maximum: int, *, threshold: int = D
 def on_scroll_load_more(scroll_value: int, maximum: int, load_more: Callable[[], None], *, threshold: int = DEFAULT_SCROLL_THRESHOLD) -> None
 ```
 
-Call `load_more` when the user scrolls near the bottom of a view.
+Call [`load_more`](#%EF%B8%8F-method-load_more) when the user scrolls near the bottom of a view.
 
 <details>
 <summary>Code:</summary>

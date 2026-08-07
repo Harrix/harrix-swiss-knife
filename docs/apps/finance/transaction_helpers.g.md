@@ -121,7 +121,7 @@ class ChartComputeContext:
 def convert_amount(self, amount_major: float, from_currency_id: int, to_currency_id: int, date: str) -> float
 ```
 
-Convert a major-unit amount between currencies, mirroring `convert_currency_amount`.
+Convert a major-unit amount between currencies, mirroring [`convert_currency_amount`](#-function-convert_currency_amount).
 
 <details>
 <summary>Code:</summary>
@@ -371,7 +371,7 @@ def calculate_exchange_loss(
 def calculate_exchange_loss_cached(from_currency_id: int, to_currency_id: int, amount_from: float, amount_to: float, default_currency_id: int | None, rates: PreloadedExchangeRates, fee: float = 0.0, use_date: str | None = None) -> float
 ```
 
-Calculate exchange loss using preloaded rates (same semantics as `calculate_exchange_loss`).
+Calculate exchange loss using preloaded rates (same semantics as [`calculate_exchange_loss`](#-function-calculate_exchange_loss)).
 
 <details>
 <summary>Code:</summary>
@@ -1029,7 +1029,7 @@ def convert_currency_amount(
 def convert_currency_amount_cached(amount: float, from_currency_id: int, to_currency_id: int, rates: PreloadedExchangeRates, date: str | None = None) -> float
 ```
 
-Convert amount using preloaded exchange rates (same semantics as `convert_currency_amount`).
+Convert amount using preloaded exchange rates (same semantics as [`convert_currency_amount`](#-function-convert_currency_amount)).
 
 <details>
 <summary>Code:</summary>
@@ -1437,7 +1437,7 @@ def get_natural_cumulative_income_expense_minor_by_currency(transaction_rows: li
 
 Sum income (category type 1) and expense (type 0) amounts per currency in minor units.
 
-Transactions only; same storage interpretation as `get_natural_currency_reconciliation`.
+Transactions only; same storage interpretation as [`get_natural_currency_reconciliation`](#-function-get_natural_currency_reconciliation).
 
 <details>
 <summary>Code:</summary>
@@ -1481,8 +1481,8 @@ Assumes starting from zero: net journal in each currency is income minus expense
 in that currency, plus exchange legs: debit `from` by `amount_from + fee` (fee
 in from-currency minor units), credit `to` by `amount_to`.
 
-Row formats: same as `get_all_transactions`, `get_all_currency_exchanges`,
-`get_all_accounts`.
+Row formats: same as [`get_all_transactions`](database_manager.g.md#%EF%B8%8F-method-get_all_transactions), [`get_all_currency_exchanges`](database_manager.g.md#%EF%B8%8F-method-get_all_currency_exchanges),
+[`get_all_accounts`](database_manager.g.md#%EF%B8%8F-method-get_all_accounts).
 
 Args:
 
@@ -1609,7 +1609,7 @@ def get_natural_journal_net_minor_by_date(transaction_rows: list[list[Any]], exc
 
 Net journal change on `date` per currency (minor units, no FX).
 
-Uses the same rules as `get_natural_currency_reconciliation` but only rows whose
+Uses the same rules as [`get_natural_currency_reconciliation`](#-function-get_natural_currency_reconciliation) but only rows whose
 transaction or exchange date equals `date`.
 
 <details>
@@ -2000,7 +2000,7 @@ Args:
 
 Returns:
 
-- `TransformTransactionDataResult`: Transformed rows and updated pagination state.
+- [`TransformTransactionDataResult`](#%EF%B8%8F-class-transformtransactiondataresult): Transformed rows and updated pagination state.
 
 <details>
 <summary>Code:</summary>

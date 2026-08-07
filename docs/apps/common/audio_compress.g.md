@@ -127,7 +127,7 @@ Convert WAV to mono 16 kHz AAC m4a for speech transcription.
 
 Raises:
 
-- `FfmpegNotFoundError`: When `ffmpeg.exe` is missing.
+- [`FfmpegNotFoundError`](#%EF%B8%8F-class-ffmpegnotfounderror): When `ffmpeg.exe` is missing.
 - `RuntimeError`: When ffmpeg exits with a non-zero status.
 - `OSError`: When input/output paths are invalid.
 

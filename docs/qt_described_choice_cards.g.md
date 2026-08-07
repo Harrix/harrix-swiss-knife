@@ -318,7 +318,7 @@ Return the grid cell height that shows the wrapped title and description in full
 
 Args:
 
-- `metrics` (`DescribedCardMetrics`): Metrics already applied to this card.
+- `metrics` ([`DescribedCardMetrics`](#%EF%B8%8F-class-describedcardmetrics)): Metrics already applied to this card.
 
 <details>
 <summary>Code:</summary>
@@ -414,7 +414,7 @@ Set grid cell size and update every described card widget.
 
 Returns:
 
-- `DescribedCardMetrics`: Applied metrics, with the height grown to the tallest card text.
+- [`DescribedCardMetrics`](#%EF%B8%8F-class-describedcardmetrics): Applied metrics, with the height grown to the tallest card text.
 
 <details>
 <summary>Code:</summary>

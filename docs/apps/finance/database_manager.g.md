@@ -4527,7 +4527,7 @@ Args:
 
 Returns:
 
-- `list[list[Any]]`: Same row shape as `get_all_transactions`.
+- `list[list[Any]]`: Same row shape as [`get_all_transactions`](#%EF%B8%8F-method-get_all_transactions).
 
 <details>
 <summary>Code:</summary>
@@ -4563,7 +4563,7 @@ Args:
 
 Returns:
 
-- `list[list[Any]]`: Same row shape as `get_all_transactions`.
+- `list[list[Any]]`: Same row shape as [`get_all_transactions`](#%EF%B8%8F-method-get_all_transactions).
 
 <details>
 <summary>Code:</summary>

@@ -12,7 +12,7 @@ lang: en
 class ImagePickerMode(Enum)
 ```
 
-Display and interaction mode for `ImagePicker`.
+Display and interaction mode for [`ImagePicker`](image_picker.g.md#%EF%B8%8F-class-imagepicker).
 
 <details>
 <summary>Code:</summary>

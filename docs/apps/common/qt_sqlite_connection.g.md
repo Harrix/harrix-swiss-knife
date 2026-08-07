@@ -171,7 +171,7 @@ def reconnect_thread_scoped_qsqlite(
 def try_add_open_qsqlite(connection_name: str, db_filename: str) -> tuple[QSqlDatabase | None, str | None]
 ```
 
-Like `add_open_qsqlite` but return `(None, error_detail)` instead of raising.
+Like [`add_open_qsqlite`](#-function-add_open_qsqlite) but return `(None, error_detail)` instead of raising.
 
 On failure, the connection is removed from Qt's registry.
 

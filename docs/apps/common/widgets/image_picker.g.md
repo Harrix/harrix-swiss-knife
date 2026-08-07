@@ -920,7 +920,7 @@ Initialize the image picker.
 
 Args:
 
-- `mode`: `SINGLE`, `MULTI`, or `COMPACT`.
+- [`mode`](#%EF%B8%8F-method-mode-property): `SINGLE`, `MULTI`, or `COMPACT`.
 - `save_dir`: When set, images are copied into `save_dir/img/`.
 - `max_image_side`: Optional downscale limit for stored / pasted images.
 - `fallback_text_edit`: Paste text here when clipboard has text (single mode).

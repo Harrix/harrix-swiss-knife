@@ -37,7 +37,7 @@ retrieve icons, and generate documentation for menu items in a README file.
 Attributes:
 
 - `menu` (`QMenu`): The main menu object for the application, initialized in `__init__`.
-- `config` (`dict`): The configuration dictionary loaded from the config file.
+- [`config`](actions/common/base.g.md#%EF%B8%8F-method-config-property) (`dict`): The configuration dictionary loaded from the config file.
 - `compact_mode` (`bool`): Whether compact mode is enabled. Defaults to `False`.
 
 <details>
@@ -379,7 +379,7 @@ class MainMenuBase:
 def __init__(self, *, output_bus: object | None = None, config: dict | None = None) -> None
 ```
 
-Initialize the `MainMenuBase` with an empty QMenu.
+Initialize the [`MainMenuBase`](#%EF%B8%8F-class-mainmenubase) with an empty QMenu.
 
 <details>
 <summary>Code:</summary>

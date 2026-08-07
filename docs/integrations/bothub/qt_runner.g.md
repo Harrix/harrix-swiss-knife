@@ -48,7 +48,7 @@ Validate config, show toast, start worker. Returns `True` if the request started
 Args:
 
 - `parent`: Parent widget for message boxes.
-- `config`: Application config dict.
+- [`config`](../../actions/common/base.g.md#%EF%B8%8F-method-config-property): Application config dict.
 - `prompt_text`: Full prompt to send.
 - `on_success`: Called with assistant text when the request succeeds.
 - `images`: Optional vision inputs as `(bytes, mime_type)` pairs.

@@ -1404,7 +1404,7 @@ class PreloadedExchangeRates:
 def get_exchange_rate(self, from_currency_id: int, to_currency_id: int, date: str | None = None) -> float
 ```
 
-Convert between two currencies using USD as pivot (same semantics as `ExchangeRatesService`).
+Convert between two currencies using USD as pivot (same semantics as [`ExchangeRatesService`](#%EF%B8%8F-class-exchangeratesservice)).
 
 <details>
 <summary>Code:</summary>

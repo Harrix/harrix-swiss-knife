@@ -26,7 +26,7 @@ class OnInstallHarrixNotesExplorerExtension(ActionBase)
 
 Install the Harrix Notes Explorer extension into selected VS Code-like editors.
 
-On Windows: runs `OnSyncHarrixNotesExplorer` (HSK → `path_harrix_notes_explorer`), copies the
+On Windows: runs [`OnSyncHarrixNotesExplorer`](sync_harrix_notes_explorer.g.md#%EF%B8%8F-class-onsyncharrixnotesexplorer) (HSK → `path_harrix_notes_explorer`), copies the
 HSK extension into each selected editor profile, clears matching `.obsolete` uninstall markers,
 and optionally copies the public `harrix-notes-explorer` tree from that repo.
 

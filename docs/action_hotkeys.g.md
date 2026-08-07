@@ -23,7 +23,7 @@ lang: en
 class ActionHotkeyBinding
 ```
 
-One global hotkey bound to an action class name (e.g. `OnQuickLauncher`).
+One global hotkey bound to an action class name (e.g. [`OnQuickLauncher`](actions/quick_launcher/action.g.md#%EF%B8%8F-class-onquicklauncher)).
 
 <details>
 <summary>Code:</summary>
@@ -48,8 +48,8 @@ Return hotkey bindings from `config.json` (or from the given config dict).
 Expected shape::
 
     `hotkeys`: [
-      {`action`: `OnQuickLauncher`, `hotkeys`: ["Ctrl+Shift+F1"]},
-      {`action`: `OnScreenshotRegion`, `hotkeys`: ["Ctrl+Shift+F2"]}
+      {`action`: [`OnQuickLauncher`](actions/quick_launcher/action.g.md#%EF%B8%8F-class-onquicklauncher), `hotkeys`: ["Ctrl+Shift+F1"]},
+      {`action`: [`OnScreenshotRegion`](actions/images/screenshot_region.g.md#%EF%B8%8F-class-onscreenshotregion), `hotkeys`: ["Ctrl+Shift+F2"]}
     ]
 
 Each entry may use `"hotkeys"` (list of strings) or a single `"hotkey"` string.

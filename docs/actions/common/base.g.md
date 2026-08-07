@@ -70,10 +70,10 @@ Attributes:
 
 - `icon` (`str`): Icon identifier for the action. Defaults to `""`.
 - `title` (`str`): Action title. May include Markdown inline code (`` `name` ``)
-  for README generation; Qt UI shows it without backticks via `display_title`.
+  for README generation; Qt UI shows it without backticks via [`display_title`](#%EF%B8%8F-method-display_title-property).
   Defaults to `""`.
 - `description` (`str`): Short UI description for icon cards. Defaults to `""`
-  (falls back to the first docstring line via `resolve_description`).
+  (falls back to the first docstring line via [`resolve_description`](#%EF%B8%8F-method-resolve_description-classmethod)).
 - `cli_available` (`bool`): Whether the action is available via `hsk`. Defaults to `False`.
 - `cli_hint` (`str`): Short CLI example for menu tooltip. Defaults to `""`.
 - `file` (`Path`): Path to the output file where results are written.
@@ -1034,7 +1034,7 @@ Args:
 
 Returns:
 
-Optional value propagated from `__call__`; most actions return `None`.
+Optional value propagated from [`__call__`](#%EF%B8%8F-method-__call__); most actions return `None`.
 
 <details>
 <summary>Code:</summary>

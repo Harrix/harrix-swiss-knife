@@ -753,7 +753,7 @@ Args:
 - `name` (`str`): Food item name.
 - `weight_str` (`str`): Weight in grams.
 - `calories_str` (`str`): Calories (per 100g or per portion, depending on mode).
-- `mode` (`str`): `weight` or `portion`.
+- [`mode`](../common/widgets/image_picker.g.md#%EF%B8%8F-method-mode-property) (`str`): `weight` or `portion`.
 - `drink` (`str`): `yes` / `no` (and common aliases).
 - `default_date` (`str`): Date in YYYY-MM-DD format.
 

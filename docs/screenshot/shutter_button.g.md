@@ -227,7 +227,7 @@ Place an embedded panel at the primary screen's left edge inside the overlay.
 
 Args:
 
-- `panel` (`ShutterPanel`): Panel that is a child of the fullscreen overlay.
+- `panel` ([`ShutterPanel`](#%EF%B8%8F-class-shutterpanel)): Panel that is a child of the fullscreen overlay.
 - `overlay_geometry` (`QRect`): Overlay geometry in global (virtual desktop) coordinates.
 
 <details>

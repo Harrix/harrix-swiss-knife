@@ -27,7 +27,7 @@ lang: en
 def add_copy_button(box: QMessageBox) -> QAbstractButton
 ```
 
-Add a Copy button; on click, copy `clipboard_text_from_box` to the clipboard.
+Add a Copy button; on click, copy [`clipboard_text_from_box`](#-function-clipboard_text_from_box) to the clipboard.
 
 <details>
 <summary>Code:</summary>

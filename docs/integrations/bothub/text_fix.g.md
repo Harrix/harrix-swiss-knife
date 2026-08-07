@@ -79,7 +79,7 @@ Send text to BotHub synchronously and return corrected text.
 Raises:
 
 - `ValueError`: Configuration errors (prompt or API key).
-- `BotHubApiError`: API or network failure.
+- [`BotHubApiError`](../bothub_client.g.md#%EF%B8%8F-class-bothubapierror): API or network failure.
 
 <details>
 <summary>Code:</summary>

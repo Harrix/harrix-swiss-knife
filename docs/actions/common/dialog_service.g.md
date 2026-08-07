@@ -54,7 +54,7 @@ lang: en
 class ActionDialogService
 ```
 
-Dialog builder/service for `ActionBase`-like actions.
+Dialog builder/service for [`ActionBase`](base.g.md#%EF%B8%8F-class-actionbase)-like actions.
 
 <details>
 <summary>Code:</summary>
@@ -1682,7 +1682,7 @@ class ActionDialogService:
 def __init__(self, *, default_size: QSize, compact_size: QSize, add_line: Callable[[str], None], show_toast: Callable[[str], None], create_emoji_icon: Callable[[str, int], QIcon]) -> None
 ```
 
-Create service with UI callbacks injected from `ActionBase`.
+Create service with UI callbacks injected from [`ActionBase`](base.g.md#%EF%B8%8F-class-actionbase).
 
 <details>
 <summary>Code:</summary>

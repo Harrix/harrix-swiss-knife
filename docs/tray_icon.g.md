@@ -103,7 +103,7 @@ class TrayIcon(QSystemTrayIcon):
 def __init__(self, icon: QIcon, menu: QMenu, parent: QWidget | None = None, *, output_bus: ActionOutputBus | None = None) -> None
 ```
 
-Initialize the `TrayIcon` with the given icon and menu.
+Initialize the [`TrayIcon`](#%EF%B8%8F-class-trayicon) with the given icon and menu.
 
 Args:
 

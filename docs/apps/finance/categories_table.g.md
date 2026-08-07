@@ -114,7 +114,7 @@ Args:
 
 Returns:
 
-- `CategoriesTableProxyModel`: Sorted proxy model.
+- [`CategoriesTableProxyModel`](#%EF%B8%8F-class-categoriestableproxymodel): Sorted proxy model.
 
 <details>
 <summary>Code:</summary>

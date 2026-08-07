@@ -24,7 +24,7 @@ class OnTreeViewFolderIgnoreHiddenFolders(OnTreeViewFolder)
 
 Generate a tree view excluding hidden folders.
 
-This action extends `OnTreeViewFolder` by automatically setting the
+This action extends [`OnTreeViewFolder`](tree_view_folder.g.md#%EF%B8%8F-class-ontreeviewfolder) by automatically setting the
 `is_ignore_hidden_folders` flag to `True`, creating a cleaner tree view
 that omits hidden directories (those starting with a dot).
 

@@ -829,7 +829,7 @@ def resolve_content_article_ref(md_path: Path, settings: SiteLinkSettings) -> Co
 def site_link_settings_from_config(config: dict) -> SiteLinkSettings
 ```
 
-Build `SiteLinkSettings` from optional config keys (with defaults).
+Build [`SiteLinkSettings`](#%EF%B8%8F-class-sitelinksettings) from optional config keys (with defaults).
 
 <details>
 <summary>Code:</summary>

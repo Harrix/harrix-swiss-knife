@@ -150,7 +150,7 @@ def mark_screenshot_ui(widget: QWidget) -> None:
 def restore_app_windows(widgets: list[ConcealedWindow]) -> None
 ```
 
-Restore Windows previously concealed by `hide_app_windows` and bring them forward.
+Restore Windows previously concealed by [`hide_app_windows`](#-function-hide_app_windows) and bring them forward.
 
 After a fullscreen capture overlay, other apps may sit on top of the Z-order.
 Restored widgets are raised and the topmost modal dialog is activated so the

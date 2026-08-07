@@ -30,7 +30,7 @@ the specified duration.
 
 Attributes:
 
-- Inherits all attributes from `ToastNotificationBase`
+- Inherits all attributes from [`ToastNotificationBase`](toast_notification_base.g.md#%EF%B8%8F-class-toastnotificationbase)
 
 Args:
 
