@@ -162,6 +162,8 @@ class PhotoEditSaver(
         data class Success(
             val uri: Uri,
             val sizeBytes: Long,
+            /** Folder label shown in the toast, e.g. `DCIM/Camera` or `Pictures/HSK`. */
+            val folderLabel: String,
         ) : CopyResult()
 
         data object Failed : CopyResult()
@@ -214,8 +216,8 @@ class PhotoEditSaver(
     }
 
     /**
-     * Writes the edited image as a new file under Pictures/HSK when in-place overwrite
-     * is not possible.
+     * Writes the edited image as a new file next to [sourceUri] when its MediaStore
+     * folder is known; otherwise falls back to Pictures/HSK.
      */
     fun saveAsCopy(
         sourceUri: Uri,
@@ -228,61 +230,18 @@ class PhotoEditSaver(
         val encoded =
             renderEditedBytes(sourceUri, mimeType, rotationDegrees, crop, perspectiveQuad)
                 ?: return CopyResult.Failed
-        val resolvedMime = resolvedOutputMime(mimeType)
-        val extension = extensionForMime(resolvedMime)
-        val baseName =
-            displayName
-                ?.substringBeforeLast('.')
-                ?.takeIf { it.isNotBlank() }
-                ?: "EDIT_${SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())}"
-        val fileName = "$baseName.$extension"
-        val values =
-            ContentValues().apply {
-                put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
-                put(MediaStore.MediaColumns.MIME_TYPE, resolvedMime)
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    put(
-                        MediaStore.MediaColumns.RELATIVE_PATH,
-                        "${Environment.DIRECTORY_PICTURES}/HSK",
-                    )
-                    put(MediaStore.MediaColumns.IS_PENDING, 1)
-                }
-            }
-        val collection =
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
-            } else {
-                MediaStore.Images.Media.EXTERNAL_CONTENT_URI
-            }
-        val outUri =
-            try {
-                context.contentResolver.insert(collection, values)
-            } catch (_: Exception) {
-                null
-            } ?: return CopyResult.Failed
-        return try {
-            context.contentResolver.openOutputStream(outUri)?.use { output ->
-                output.write(encoded)
-                output.flush()
-            } ?: run {
-                context.contentResolver.delete(outUri, null, null)
-                return CopyResult.Failed
-            }
-            values.clear()
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                values.put(MediaStore.MediaColumns.IS_PENDING, 0)
-            }
-            ExifPreserver.dateTakenMillisFromBytes(encoded)?.let { takenMs ->
-                values.put(MediaStore.Images.Media.DATE_TAKEN, takenMs)
-            }
-            if (values.size() > 0) {
-                context.contentResolver.update(outUri, values, null, null)
-            }
-            CopyResult.Success(uri = outUri, sizeBytes = encoded.size.toLong())
-        } catch (_: Exception) {
-            runCatching { context.contentResolver.delete(outUri, null, null) }
-            CopyResult.Failed
-        }
+        val written =
+            PhotoEditCopyStore(context).writeCopy(
+                sourceUri = sourceUri,
+                encoded = encoded,
+                mimeType = resolvedOutputMime(mimeType),
+                displayName = displayName,
+            ) ?: return CopyResult.Failed
+        return CopyResult.Success(
+            uri = written.uri,
+            sizeBytes = written.sizeBytes,
+            folderLabel = written.folderLabel,
+        )
     }
 
     private fun renderEditedBytes(

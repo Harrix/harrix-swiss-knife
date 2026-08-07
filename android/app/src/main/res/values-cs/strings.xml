@@ -194,7 +194,7 @@
     <string name="photo_editor_empty_message">Vyberte fotografii, kterou chcete oříznout a narovnat, nebo Sdílejte obrázek s touto aplikací.</string>
     <string name="photo_editor_open_failed">Nelze otevřít fotografii</string>
     <string name="photo_editor_saved">Foto uloženo</string>
-    <string name="photo_editor_saved_as_copy">Uloženo jako kopie v Pictures/HSK</string>
+    <string name="photo_editor_saved_as_copy">Uloženo jako kopie v %1$s</string>
     <string name="photo_editor_save_copy">Uložit kopii</string>
     <string name="gallery_cleaner_title">Gallery Cleaner</string>
     <string name="gallery_cleaner_close">Exit Gallery Cleaner</string>

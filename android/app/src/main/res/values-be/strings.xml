@@ -194,7 +194,7 @@
     <string name="photo_editor_empty_message">Выберыце фатаграфію для абрэзкі і выпроствання або Падзяліцеся малюнкам з дапамогай гэтага прыкладання.</string>
     <string name="photo_editor_open_failed">Не атрымалася адкрыць фатаграфію</string>
     <string name="photo_editor_saved">Фота захавана</string>
-    <string name="photo_editor_saved_as_copy">Захавана як копія ў Pictures/HSK</string>
+    <string name="photo_editor_saved_as_copy">Захавана як копія ў %1$s</string>
     <string name="photo_editor_save_copy">Захаваць копію</string>
     <string name="gallery_cleaner_title">Gallery Cleaner</string>
     <string name="gallery_cleaner_close">Выйсці з Gallery Cleaner</string>

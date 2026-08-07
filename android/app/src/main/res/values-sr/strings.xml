@@ -194,7 +194,7 @@
     <string name="photo_editor_empty_message">Изаберите фотографију за обрезивање и исправљање или делите слику помоћу ове апликације.</string>
     <string name="photo_editor_open_failed">Отварање фотографије није успело</string>
     <string name="photo_editor_saved">Фотографија је сачувана</string>
-    <string name="photo_editor_saved_as_copy">Сачувано као копија у Pictures/HSK</string>
+    <string name="photo_editor_saved_as_copy">Сачувано као копија у %1$s</string>
     <string name="photo_editor_save_copy">Сачувај копију</string>
     <string name="gallery_cleaner_title">Gallery Cleaner</string>
     <string name="gallery_cleaner_close">Изађи из Gallery Cleaner</string>

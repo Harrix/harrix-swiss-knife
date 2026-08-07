@@ -36,6 +36,8 @@ data class EditablePhotoSaveResult(
     val backupCreated: Boolean,
     val savedAsCopy: Boolean,
     val outputUri: Uri,
+    /** Folder label when [savedAsCopy], e.g. `DCIM/Camera`. */
+    val copyFolderLabel: String? = null,
 )
 
 /**
@@ -232,6 +234,7 @@ private fun runSaveAsCopy(
                         backupCreated = false,
                         savedAsCopy = true,
                         outputUri = result.uri,
+                        copyFolderLabel = result.folderLabel,
                     ),
                 )
             }

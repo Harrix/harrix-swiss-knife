@@ -194,7 +194,7 @@
     <string name="photo_editor_empty_message">Choose a photo to crop and straighten, or share an image with this app.</string>
     <string name="photo_editor_open_failed">Could not open photo</string>
     <string name="photo_editor_saved">Photo saved</string>
-    <string name="photo_editor_saved_as_copy">Saved as a copy in Pictures/HSK</string>
+    <string name="photo_editor_saved_as_copy">Saved as a copy in %1$s</string>
     <string name="photo_editor_save_copy">Save copy</string>
     <string name="gallery_cleaner_title">Gallery Cleaner</string>
     <string name="gallery_cleaner_close">Exit Gallery Cleaner</string>

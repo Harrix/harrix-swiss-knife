@@ -194,7 +194,7 @@
     <string name="photo_editor_empty_message">Escolha uma foto para recortar e endireitar, ou compartilhe uma imagem com este app.</string>
     <string name="photo_editor_open_failed">Não foi possível abrir a foto</string>
     <string name="photo_editor_saved">Foto salva</string>
-    <string name="photo_editor_saved_as_copy">Salva como cópia em Pictures/HSK</string>
+    <string name="photo_editor_saved_as_copy">Salva como cópia em %1$s</string>
     <string name="photo_editor_save_copy">Salvar cópia</string>
     <string name="gallery_cleaner_title">Gallery Cleaner</string>
     <string name="gallery_cleaner_close">Sair Gallery Cleaner</string>

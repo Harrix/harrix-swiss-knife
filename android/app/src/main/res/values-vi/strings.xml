@@ -194,7 +194,7 @@
     <string name="photo_editor_empty_message">Chọn ảnh để cắt và làm thẳng hoặc chia sẻ hình ảnh với ứng dụng này.</string>
     <string name="photo_editor_open_failed">Không thể mở ảnh</string>
     <string name="photo_editor_saved">Ảnh đã lưu</string>
-    <string name="photo_editor_saved_as_copy">Đã lưu bản sao trong Pictures/HSK</string>
+    <string name="photo_editor_saved_as_copy">Đã lưu bản sao trong %1$s</string>
     <string name="photo_editor_save_copy">Lưu bản sao</string>
     <string name="gallery_cleaner_title">Gallery Cleaner</string>
     <string name="gallery_cleaner_close">Lối ra Gallery Cleaner</string>

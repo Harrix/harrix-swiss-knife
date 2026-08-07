@@ -194,7 +194,7 @@
     <string name="photo_editor_empty_message">اختيار صورة لاقتصاص وتصويب ، أو مشاركة صورة مع هذا التطبيق.</string>
     <string name="photo_editor_open_failed">لا يمكن فتح الصورة</string>
     <string name="photo_editor_saved">تم حفظ الصورة</string>
-    <string name="photo_editor_saved_as_copy">حُفظت كنسخة في Pictures/HSK</string>
+    <string name="photo_editor_saved_as_copy">حُفظت كنسخة في %1$s</string>
     <string name="photo_editor_save_copy">حفظ نسخة</string>
     <string name="gallery_cleaner_title">Gallery Cleaner</string>
     <string name="gallery_cleaner_close">خروج Gallery Cleaner</string>

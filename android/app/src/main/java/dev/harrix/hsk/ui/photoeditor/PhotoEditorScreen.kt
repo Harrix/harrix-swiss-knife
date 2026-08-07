@@ -61,7 +61,7 @@ fun PhotoEditorScreen(
     val context = LocalContext.current
     val openFailedMessage = stringResource(R.string.photo_editor_open_failed)
     val savedMessage = stringResource(R.string.photo_editor_saved)
-    val savedAsCopyMessage = stringResource(R.string.photo_editor_saved_as_copy)
+    val savedAsCopyFallbackFolder = "Pictures/HSK"
     val onInitialUriConsumeState = rememberUpdatedState(onInitialUriConsume)
 
     fun showToast(
@@ -169,7 +169,10 @@ fun PhotoEditorScreen(
                             showToast(
                                 message =
                                 if (result.savedAsCopy) {
-                                    savedAsCopyMessage
+                                    context.getString(
+                                        R.string.photo_editor_saved_as_copy,
+                                        result.copyFolderLabel ?: savedAsCopyFallbackFolder,
+                                    )
                                 } else {
                                     savedMessage
                                 },

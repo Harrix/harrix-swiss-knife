@@ -194,7 +194,7 @@
     <string name="photo_editor_empty_message">Виберіть фотографію для обрізання та випрямлення або Поділіться зображенням за допомогою цієї програми.</string>
     <string name="photo_editor_open_failed">Не вдалося відкрити фотографію</string>
     <string name="photo_editor_saved">Фото збережено</string>
-    <string name="photo_editor_saved_as_copy">Збережено як копію в Pictures/HSK</string>
+    <string name="photo_editor_saved_as_copy">Збережено як копію в %1$s</string>
     <string name="photo_editor_save_copy">Зберегти копію</string>
     <string name="gallery_cleaner_title">Gallery Cleaner</string>
     <string name="gallery_cleaner_close">Вийти з Gallery Cleaner</string>

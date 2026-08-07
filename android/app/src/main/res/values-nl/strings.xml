@@ -194,7 +194,7 @@
     <string name="photo_editor_empty_message">Kies een foto om bij te snijden en recht te maken, of deel een afbeelding met deze app.</string>
     <string name="photo_editor_open_failed">Kon foto niet openen</string>
     <string name="photo_editor_saved">Foto opgeslagen</string>
-    <string name="photo_editor_saved_as_copy">Opgeslagen als kopie in Pictures/HSK</string>
+    <string name="photo_editor_saved_as_copy">Opgeslagen als kopie in %1$s</string>
     <string name="photo_editor_save_copy">Kopie opslaan</string>
     <string name="gallery_cleaner_title">Gallery Cleaner</string>
     <string name="gallery_cleaner_close">Afsluiten Gallery Cleaner</string>

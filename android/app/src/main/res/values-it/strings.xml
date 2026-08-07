@@ -194,7 +194,7 @@
     <string name="photo_editor_empty_message">Scegli una foto da ritagliare e raddrizzare, oppure condividi un\'immagine con questa app.</string>
     <string name="photo_editor_open_failed">Impossibile aprire la foto</string>
     <string name="photo_editor_saved">Foto salvata</string>
-    <string name="photo_editor_saved_as_copy">Salvata come copia in Pictures/HSK</string>
+    <string name="photo_editor_saved_as_copy">Salvata come copia in %1$s</string>
     <string name="photo_editor_save_copy">Salva copia</string>
     <string name="gallery_cleaner_title">Gallery Cleaner</string>
     <string name="gallery_cleaner_close">Esci Gallery Cleaner</string>

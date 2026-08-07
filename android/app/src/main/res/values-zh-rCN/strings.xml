@@ -194,7 +194,7 @@
     <string name="photo_editor_empty_message">选择要裁剪和校正的照片，或将图片分享到此应用。</string>
     <string name="photo_editor_open_failed">无法打开照片</string>
     <string name="photo_editor_saved">照片已保存</string>
-    <string name="photo_editor_saved_as_copy">已另存为副本到 Pictures/HSK</string>
+    <string name="photo_editor_saved_as_copy">已另存为副本到 %1$s</string>
     <string name="photo_editor_save_copy">保存副本</string>
     <string name="gallery_cleaner_title">Gallery Cleaner</string>
     <string name="gallery_cleaner_close">退出Gallery Cleaner</string>

@@ -194,7 +194,7 @@
     <string name="photo_editor_empty_message">Choisissez une photo à recadrer et redresser, ou partagez une image avec cette application.</string>
     <string name="photo_editor_open_failed">Impossible d\'ouvrir la photo</string>
     <string name="photo_editor_saved">Photo enregistrée</string>
-    <string name="photo_editor_saved_as_copy">Enregistrée en copie dans Pictures/HSK</string>
+    <string name="photo_editor_saved_as_copy">Enregistrée en copie dans %1$s</string>
     <string name="photo_editor_save_copy">Enregistrer une copie</string>
     <string name="gallery_cleaner_title">Gallery Cleaner</string>
     <string name="gallery_cleaner_close">Quitter Gallery Cleaner</string>

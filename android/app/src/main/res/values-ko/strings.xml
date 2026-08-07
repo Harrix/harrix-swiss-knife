@@ -194,7 +194,7 @@
     <string name="photo_editor_empty_message">자르기 및 똑 바르게,또는이 응용 프로그램과 함께 이미지를 공유 할 사진을 선택합니다.</string>
     <string name="photo_editor_open_failed">사진을 열 수 없습니다</string>
     <string name="photo_editor_saved">사진이 저장됨</string>
-    <string name="photo_editor_saved_as_copy">Pictures/HSK에 사본으로 저장됨</string>
+    <string name="photo_editor_saved_as_copy">%1$s에 사본으로 저장됨</string>
     <string name="photo_editor_save_copy">사본 저장</string>
     <string name="gallery_cleaner_title">Gallery Cleaner</string>
     <string name="gallery_cleaner_close">출구 Gallery Cleaner</string>

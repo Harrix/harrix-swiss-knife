@@ -194,7 +194,7 @@
     <string name="photo_editor_empty_message">Kırpmak ve düzeltmek için bir fotoğraf seçin veya bu uygulamayla bir görseli paylaşın.</string>
     <string name="photo_editor_open_failed">Fotoğraf açılamadı</string>
     <string name="photo_editor_saved">Fotoğraf kaydedildi</string>
-    <string name="photo_editor_saved_as_copy">Pictures/HSK içinde kopya olarak kaydedildi</string>
+    <string name="photo_editor_saved_as_copy">%1$s içinde kopya olarak kaydedildi</string>
     <string name="photo_editor_save_copy">Kopyayı kaydet</string>
     <string name="gallery_cleaner_title">Gallery Cleaner</string>
     <string name="gallery_cleaner_close">Gallery Cleaner</string>

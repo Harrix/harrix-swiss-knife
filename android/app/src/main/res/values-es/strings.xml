@@ -194,7 +194,7 @@
     <string name="photo_editor_empty_message">Elige una foto para recortar y enderezar, o comparte una imagen con esta app.</string>
     <string name="photo_editor_open_failed">No se pudo abrir la foto</string>
     <string name="photo_editor_saved">Foto guardada</string>
-    <string name="photo_editor_saved_as_copy">Guardada como copia en Pictures/HSK</string>
+    <string name="photo_editor_saved_as_copy">Guardada como copia en %1$s</string>
     <string name="photo_editor_save_copy">Guardar copia</string>
     <string name="gallery_cleaner_title">Gallery Cleaner</string>
     <string name="gallery_cleaner_close">Salir Gallery Cleaner</string>

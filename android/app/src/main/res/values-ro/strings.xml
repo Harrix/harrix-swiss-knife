@@ -194,7 +194,7 @@
     <string name="photo_editor_empty_message">Alegeți o fotografie pentru a decupa și îndrepta sau partajați o imagine cu această aplicație.</string>
     <string name="photo_editor_open_failed">Nu s-a putut deschide fotografia</string>
     <string name="photo_editor_saved">Fotografie salvată</string>
-    <string name="photo_editor_saved_as_copy">Salvat ca o copie în Pictures/HSK</string>
+    <string name="photo_editor_saved_as_copy">Salvat ca o copie în %1$s</string>
     <string name="photo_editor_save_copy">Salvează copia</string>
     <string name="gallery_cleaner_title">Gallery Cleaner</string>
     <string name="gallery_cleaner_close">Ieșire Gallery Cleaner</string>

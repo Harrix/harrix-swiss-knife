@@ -194,7 +194,7 @@
     <string name="photo_editor_empty_message">Выберите фото для обрезки и выравнивания или поделитесь изображением с этим приложением.</string>
     <string name="photo_editor_open_failed">Не удалось открыть фото</string>
     <string name="photo_editor_saved">Фото сохранено</string>
-    <string name="photo_editor_saved_as_copy">Сохранено как копия в Pictures/HSK</string>
+    <string name="photo_editor_saved_as_copy">Сохранено как копия в %1$s</string>
     <string name="photo_editor_save_copy">Сохранить копию</string>
     <string name="gallery_cleaner_title">Gallery Cleaner</string>
     <string name="gallery_cleaner_close">Выход Gallery Cleaner</string>

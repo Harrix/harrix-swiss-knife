@@ -194,7 +194,7 @@
     <string name="photo_editor_empty_message">Pilih foto untuk dipotong dan diluruskan, atau bagikan gambar dengan aplikasi ini.</string>
     <string name="photo_editor_open_failed">Tidak dapat membuka foto</string>
     <string name="photo_editor_saved">Foto disimpan</string>
-    <string name="photo_editor_saved_as_copy">Disimpan sebagai salinan di Pictures/HSK</string>
+    <string name="photo_editor_saved_as_copy">Disimpan sebagai salinan di %1$s</string>
     <string name="photo_editor_save_copy">Simpan salinan</string>
     <string name="gallery_cleaner_title">Gallery Cleaner</string>
     <string name="gallery_cleaner_close">Keluar Gallery Cleaner</string>

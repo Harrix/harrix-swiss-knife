@@ -194,7 +194,7 @@
     <string name="photo_editor_empty_message">Wybierz zdjęcie do przycięcia i wyprostowania lub udostępnij zdjęcie za pomocą tej aplikacji.</string>
     <string name="photo_editor_open_failed">Nie można otworzyć zdjęcia</string>
     <string name="photo_editor_saved">Zdjęcie zapisane</string>
-    <string name="photo_editor_saved_as_copy">Zapisane jako kopia w Pictures/HSK</string>
+    <string name="photo_editor_saved_as_copy">Zapisane jako kopia w %1$s</string>
     <string name="photo_editor_save_copy">Zapisz kopię</string>
     <string name="gallery_cleaner_title">Gallery Cleaner</string>
     <string name="gallery_cleaner_close">Wyjdź Gallery Cleaner</string>
