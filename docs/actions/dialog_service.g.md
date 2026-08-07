@@ -22,8 +22,8 @@ lang: en
   - [⚙️ Method `get_dual_checkbox_selection`](#%EF%B8%8F-method-get_dual_checkbox_selection)
   - [⚙️ Method `get_existing_directory`](#%EF%B8%8F-method-get_existing_directory)
   - [⚙️ Method `get_folder_with_choice_option`](#%EF%B8%8F-method-get_folder_with_choice_option)
-  - [⚙️ Method `get_folder_with_choice_option`](#%EF%B8%8F-method-get_folder_with_choice_option-1)
-  - [⚙️ Method `get_folder_with_choice_option`](#%EF%B8%8F-method-get_folder_with_choice_option-2)
+  - [⚙️ Method `get_folder_with_choice_option (2)`](#%EF%B8%8F-method-get_folder_with_choice_option-2)
+  - [⚙️ Method `get_folder_with_choice_option (3)`](#%EF%B8%8F-method-get_folder_with_choice_option-3)
   - [⚙️ Method `get_icon_choice`](#%EF%B8%8F-method-get_icon_choice)
   - [⚙️ Method `get_max_image_size_option`](#%EF%B8%8F-method-get_max_image_size_option)
   - [⚙️ Method `get_open_filename`](#%EF%B8%8F-method-get_open_filename)
@@ -2230,7 +2230,7 @@ def get_folder_with_choice_option(
 
 </details>
 
-### ⚙️ Method `get_folder_with_choice_option`
+### ⚙️ Method `get_folder_with_choice_option (2)`
 
 ```python
 def get_folder_with_choice_option(self, folders_list: list[str], default_path: str) -> tuple[Path, bool] | None
@@ -2254,7 +2254,7 @@ def get_folder_with_choice_option(
 
 </details>
 
-### ⚙️ Method `get_folder_with_choice_option`
+### ⚙️ Method `get_folder_with_choice_option (3)`
 
 ```python
 def get_folder_with_choice_option(self, folders_list: list[str], default_path: str) -> Path | tuple[Path, bool] | None

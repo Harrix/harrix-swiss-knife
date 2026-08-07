@@ -14,7 +14,7 @@ lang: en
 - [🏛️ Class `CurrencyComboBoxDelegate`](#%EF%B8%8F-class-currencycomboboxdelegate)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `currencies`](#%EF%B8%8F-method-currencies)
-  - [⚙️ Method `currencies`](#%EF%B8%8F-method-currencies-1)
+  - [⚙️ Method `currencies (setter)`](#%EF%B8%8F-method-currencies-setter)
 
 </details>
 
@@ -96,7 +96,7 @@ def currencies(self) -> list[str]:
 
 </details>
 
-### ⚙️ Method `currencies`
+### ⚙️ Method `currencies (setter)`
 
 ```python
 def currencies(self, value: list[str] | None) -> None

@@ -14,7 +14,7 @@ lang: en
 - [🏛️ Class `TagDelegate`](#%EF%B8%8F-class-tagdelegate)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `tags`](#%EF%B8%8F-method-tags)
-  - [⚙️ Method `tags`](#%EF%B8%8F-method-tags-1)
+  - [⚙️ Method `tags (setter)`](#%EF%B8%8F-method-tags-setter)
 
 </details>
 
@@ -98,7 +98,7 @@ def tags(self) -> list[str]:
 
 </details>
 
-### ⚙️ Method `tags`
+### ⚙️ Method `tags (setter)`
 
 ```python
 def tags(self, value: list[str] | None) -> None

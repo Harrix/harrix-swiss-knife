@@ -1755,7 +1755,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         """Return existing non-empty English translations keyed by description.
 
         Prefers `standard_items.name_en`, then fills gaps from `transactions.description_en`.
-        Matching is trim-tolerant so `'Молоко '` reuses the translation for `'Молоко'`.
+        Matching is trim-tolerant so `'Молоко '` reuses the translation for `'Молоко'`. # ignore: HP001
         Result keys are the original `descriptions` strings (exact DB values).
 
         """

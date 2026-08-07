@@ -14,7 +14,7 @@ lang: en
 - [🏛️ Class `CategoryComboBoxDelegate`](#%EF%B8%8F-class-categorycomboboxdelegate)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `categories`](#%EF%B8%8F-method-categories)
-  - [⚙️ Method `categories`](#%EF%B8%8F-method-categories-1)
+  - [⚙️ Method `categories (setter)`](#%EF%B8%8F-method-categories-setter)
 
 </details>
 
@@ -96,7 +96,7 @@ def categories(self) -> list[str]:
 
 </details>
 
-### ⚙️ Method `categories`
+### ⚙️ Method `categories (setter)`
 
 ```python
 def categories(self, value: list[str] | None) -> None
