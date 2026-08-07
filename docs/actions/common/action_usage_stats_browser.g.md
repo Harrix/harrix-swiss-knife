@@ -12,13 +12,6 @@ lang: en
 ## Contents
 
 - [🏛️ Class `ActionUsageStatsRow`](#%EF%B8%8F-class-actionusagestatsrow)
-  - [📎 Attribute `count`](#-attribute-count)
-  - [📎 Attribute `title`](#-attribute-title)
-  - [📎 Attribute `icon`](#-attribute-icon)
-  - [📎 Attribute `category`](#-attribute-category)
-  - [📎 Attribute `gui`](#-attribute-gui)
-  - [📎 Attribute `cli`](#-attribute-cli)
-  - [📎 Attribute `last_used`](#-attribute-last_used)
 - [🔧 Function `build_action_usage_stats_browser`](#-function-build_action_usage_stats_browser)
 
 </details>
@@ -47,62 +40,6 @@ class ActionUsageStatsRow(TypedDict):
 ```
 
 </details>
-
-### 📎 Attribute `count`
-
-```python
-count: int
-```
-
-_No docstring provided._
-
-### 📎 Attribute `title`
-
-```python
-title: str
-```
-
-_No docstring provided._
-
-### 📎 Attribute `icon`
-
-```python
-icon: str
-```
-
-_No docstring provided._
-
-### 📎 Attribute `category`
-
-```python
-category: str
-```
-
-_No docstring provided._
-
-### 📎 Attribute `gui`
-
-```python
-gui: int
-```
-
-_No docstring provided._
-
-### 📎 Attribute `cli`
-
-```python
-cli: int
-```
-
-_No docstring provided._
-
-### 📎 Attribute `last_used`
-
-```python
-last_used: str
-```
-
-_No docstring provided._
 
 ## 🔧 Function `build_action_usage_stats_browser`
 

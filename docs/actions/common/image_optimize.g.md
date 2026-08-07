@@ -11,12 +11,7 @@ lang: en
 
 ## Contents
 
-- [📎 Constant `TOOL_EXTENSIONS`](#-constant-tool_extensions)
-- [📎 Constant `SUPPORTED_EXTENSIONS`](#-constant-supported_extensions)
 - [🏛️ Class `OptimizeSizeStats`](#%EF%B8%8F-class-optimizesizestats)
-  - [📎 Attribute `before_bytes`](#-attribute-before_bytes)
-  - [📎 Attribute `after_bytes`](#-attribute-after_bytes)
-  - [📎 Attribute `count`](#-attribute-count)
   - [⚙️ Method `add`](#%EF%B8%8F-method-add)
   - [⚙️ Method `format_summary`](#%EF%B8%8F-method-format_summary)
 - [🔧 Function `find_optimized_output`](#-function-find_optimized_output)
@@ -25,22 +20,6 @@ lang: en
 - [🔧 Function `optimize_images_in_folder`](#-function-optimize_images_in_folder)
 
 </details>
-
-## 📎 Constant `TOOL_EXTENSIONS`
-
-```python
-TOOL_EXTENSIONS = h.img.EXE_RASTER_EXTENSIONS
-```
-
-_No docstring provided._
-
-## 📎 Constant `SUPPORTED_EXTENSIONS`
-
-```python
-SUPPORTED_EXTENSIONS = frozenset({'.svg', *TOOL_EXTENSIONS, *RASTER_EXTENSIONS})
-```
-
-_No docstring provided._
 
 ## 🏛️ Class `OptimizeSizeStats`
 
@@ -89,30 +68,6 @@ class OptimizeSizeStats:
 ```
 
 </details>
-
-### 📎 Attribute `before_bytes`
-
-```python
-before_bytes: int = 0
-```
-
-_No docstring provided._
-
-### 📎 Attribute `after_bytes`
-
-```python
-after_bytes: int = 0
-```
-
-_No docstring provided._
-
-### 📎 Attribute `count`
-
-```python
-count: int = 0
-```
-
-_No docstring provided._
 
 ### ⚙️ Method `add`
 

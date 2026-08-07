@@ -12,7 +12,6 @@ lang: en
 ## Contents
 
 - [🏛️ Class `OnGitCommitMessage`](#%EF%B8%8F-class-ongitcommitmessage)
-  - [📎 Attribute `EMOJI_MAPPING`](#-attribute-emoji_mapping)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
 
 </details>
@@ -392,14 +391,6 @@ Path(sys.argv[1]).write_text(os.environ["HARRIX_NEW_SUBJECT"] + "\n", encoding="
 ```
 
 </details>
-
-### 📎 Attribute `EMOJI_MAPPING`
-
-```python
-EMOJI_MAPPING: ClassVar[dict[str, str]] = {'Add': '➕', 'Create': '➕', 'Build': '🚀', 'Delete': '🗑️', 'Remove': '🗑️', 'Docs': '📚', 'Experiment': '🧪', 'Fix': '🐞', 'Initial commit': '🎉', 'Modify': '🔧', 'Move': '🚚', 'Refactor': '♻️', 'Rename': '✒️', 'Replace': '🔄', 'Style': '✨', 'Test': '⚗️', 'Update': '⬆️', 'Revert': '🔙', 'Publish': '🚀', 'Merge': '🔀'}
-```
-
-_No docstring provided._
 
 ### ⚙️ Method `execute`
 

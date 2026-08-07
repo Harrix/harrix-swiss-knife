@@ -11,20 +11,11 @@ lang: en
 
 ## Contents
 
-- [📎 Constant `PROMPT_MISSING_MSG`](#-constant-prompt_missing_msg)
 - [🔧 Function `build_text_rewrite_prompt`](#-function-build_text_rewrite_prompt)
 - [🔧 Function `get_text_rewrite_prompt_template`](#-function-get_text_rewrite_prompt_template)
 - [🔧 Function `rewrite_text_sync`](#-function-rewrite_text_sync)
 
 </details>
-
-## 📎 Constant `PROMPT_MISSING_MSG`
-
-```python
-PROMPT_MISSING_MSG = 'Prompt text_rewrite_ru is not configured in config.json.'
-```
-
-_No docstring provided._
 
 ## 🔧 Function `build_text_rewrite_prompt`
 

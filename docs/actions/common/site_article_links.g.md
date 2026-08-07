@@ -11,38 +11,15 @@ lang: en
 
 ## Contents
 
-- [📎 Constant `DUAL_LINK_RE`](#-constant-dual_link_re)
 - [🏛️ Class `ContentArticleRef`](#%EF%B8%8F-class-contentarticleref)
-  - [📎 Attribute `section`](#-attribute-section)
-  - [📎 Attribute `year`](#-attribute-year)
-  - [📎 Attribute `lang`](#-attribute-lang)
-  - [📎 Attribute `slug`](#-attribute-slug)
   - [⚙️ Method `github_blob_url`](#%EF%B8%8F-method-github_blob_url)
   - [⚙️ Method `repo_name`](#%EF%B8%8F-method-repo_name)
   - [⚙️ Method `site_url`](#%EF%B8%8F-method-site_url)
   - [⚙️ Method `submodule_relpath`](#%EF%B8%8F-method-submodule_relpath)
 - [🏛️ Class `DualLinkMatch`](#%EF%B8%8F-class-duallinkmatch)
-  - [📎 Attribute `start`](#-attribute-start)
-  - [📎 Attribute `end`](#-attribute-end)
-  - [📎 Attribute `title`](#-attribute-title)
-  - [📎 Attribute `github_url`](#-attribute-github_url)
-  - [📎 Attribute `site_url`](#-attribute-site_url)
-  - [📎 Attribute `user`](#-attribute-user)
-  - [📎 Attribute `repo`](#-attribute-repo)
-  - [📎 Attribute `slug`](#-attribute-slug-1)
 - [🏛️ Class `PermalinkYamlFix`](#%EF%B8%8F-class-permalinkyamlfix)
-  - [📎 Attribute `text`](#-attribute-text)
-  - [📎 Attribute `changes`](#-attribute-changes)
 - [🏛️ Class `RelativeSiteLinkMatch`](#%EF%B8%8F-class-relativesitelinkmatch)
-  - [📎 Attribute `start`](#-attribute-start-1)
-  - [📎 Attribute `end`](#-attribute-end-1)
-  - [📎 Attribute `title`](#-attribute-title-1)
-  - [📎 Attribute `target`](#-attribute-target)
-  - [📎 Attribute `ref`](#-attribute-ref)
 - [🏛️ Class `SiteLinkSettings`](#%EF%B8%8F-class-sitelinksettings)
-  - [📎 Attribute `default_language`](#-attribute-default_language)
-  - [📎 Attribute `site_name`](#-attribute-site_name)
-  - [📎 Attribute `github_user`](#-attribute-github_user)
 - [🔧 Function `build_article_title_index`](#-function-build_article_title_index)
 - [🔧 Function `content_root_from_config`](#-function-content_root_from_config)
 - [🔧 Function `ensure_article_permalink_yaml`](#-function-ensure_article_permalink_yaml)
@@ -65,14 +42,6 @@ lang: en
 - [🔧 Function `site_repo_from_config`](#-function-site_repo_from_config)
 
 </details>
-
-## 📎 Constant `DUAL_LINK_RE`
-
-```python
-DUAL_LINK_RE = re.compile('\\[(?P<title>[^\\]]*)\\]\\((?P<github>https://github\\.com/(?P<user>[^/]+)/(?P<repo>[^/]+)/blob/[^/]+/(?P<slug>[^/]+)/(?P=slug)\\.md)\\)\\s*\\|\\s*\\[↗️\\]\\((?P<site>https?://[^)\\s]+)\\)')
-```
-
-_No docstring provided._
 
 ## 🏛️ Class `ContentArticleRef`
 
@@ -128,38 +97,6 @@ class ContentArticleRef:
 ```
 
 </details>
-
-### 📎 Attribute `section`
-
-```python
-section: str
-```
-
-_No docstring provided._
-
-### 📎 Attribute `year`
-
-```python
-year: str | None
-```
-
-_No docstring provided._
-
-### 📎 Attribute `lang`
-
-```python
-lang: str
-```
-
-_No docstring provided._
-
-### 📎 Attribute `slug`
-
-```python
-slug: str
-```
-
-_No docstring provided._
 
 ### ⚙️ Method `github_blob_url`
 
@@ -274,70 +211,6 @@ class DualLinkMatch:
 
 </details>
 
-### 📎 Attribute `start`
-
-```python
-start: int
-```
-
-_No docstring provided._
-
-### 📎 Attribute `end`
-
-```python
-end: int
-```
-
-_No docstring provided._
-
-### 📎 Attribute `title`
-
-```python
-title: str
-```
-
-_No docstring provided._
-
-### 📎 Attribute `github_url`
-
-```python
-github_url: str
-```
-
-_No docstring provided._
-
-### 📎 Attribute `site_url`
-
-```python
-site_url: str
-```
-
-_No docstring provided._
-
-### 📎 Attribute `user`
-
-```python
-user: str
-```
-
-_No docstring provided._
-
-### 📎 Attribute `repo`
-
-```python
-repo: str
-```
-
-_No docstring provided._
-
-### 📎 Attribute `slug`
-
-```python
-slug: str
-```
-
-_No docstring provided._
-
 ## 🏛️ Class `PermalinkYamlFix`
 
 ```python
@@ -357,22 +230,6 @@ class PermalinkYamlFix:
 ```
 
 </details>
-
-### 📎 Attribute `text`
-
-```python
-text: str
-```
-
-_No docstring provided._
-
-### 📎 Attribute `changes`
-
-```python
-changes: tuple[str, ...]
-```
-
-_No docstring provided._
 
 ## 🏛️ Class `RelativeSiteLinkMatch`
 
@@ -397,46 +254,6 @@ class RelativeSiteLinkMatch:
 
 </details>
 
-### 📎 Attribute `start`
-
-```python
-start: int
-```
-
-_No docstring provided._
-
-### 📎 Attribute `end`
-
-```python
-end: int
-```
-
-_No docstring provided._
-
-### 📎 Attribute `title`
-
-```python
-title: str
-```
-
-_No docstring provided._
-
-### 📎 Attribute `target`
-
-```python
-target: str
-```
-
-_No docstring provided._
-
-### 📎 Attribute `ref`
-
-```python
-ref: ContentArticleRef
-```
-
-_No docstring provided._
-
 ## 🏛️ Class `SiteLinkSettings`
 
 ```python
@@ -457,30 +274,6 @@ class SiteLinkSettings:
 ```
 
 </details>
-
-### 📎 Attribute `default_language`
-
-```python
-default_language: str = 'ru'
-```
-
-_No docstring provided._
-
-### 📎 Attribute `site_name`
-
-```python
-site_name: str = 'harrix.dev'
-```
-
-_No docstring provided._
-
-### 📎 Attribute `github_user`
-
-```python
-github_user: str = 'Harrix'
-```
-
-_No docstring provided._
 
 ## 🔧 Function `build_article_title_index`
 

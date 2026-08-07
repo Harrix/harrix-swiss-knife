@@ -11,35 +11,12 @@ lang: en
 
 ## Contents
 
-- [📦 Re-export `requires_database`](#-re-export-requires_database)
-- [📦 Re-export `TableOperations`](#-re-export-tableoperations)
 - [🏛️ Class `AutoSaveOperations`](#%EF%B8%8F-class-autosaveoperations)
-  - [📎 Attribute `db_manager`](#-attribute-db_manager)
-  - [📎 Attribute `update_filter_comboboxes`](#-attribute-update_filter_comboboxes)
-  - [📎 Attribute `update_food_calories_today`](#-attribute-update_food_calories_today)
 - [🏛️ Class `ChartOperations`](#%EF%B8%8F-class-chartoperations)
-  - [📎 Attribute `max_count_points_in_charts`](#-attribute-max_count_points_in_charts)
 - [🏛️ Class `DateOperations`](#%EF%B8%8F-class-dateoperations)
-  - [📎 Attribute `db_manager`](#-attribute-db_manager-1)
 - [🏛️ Class `ValidationOperations`](#%EF%B8%8F-class-validationoperations)
 
 </details>
-
-## 📦 Re-export `requires_database`
-
-```python
-from harrix_swiss_knife.apps.common.db_guard import requires_database
-```
-
-_Re-exported symbol._
-
-## 📦 Re-export `TableOperations`
-
-```python
-from harrix_swiss_knife.apps.common.qt_mixins import TableOperations
-```
-
-_Re-exported symbol._
 
 ## 🏛️ Class `AutoSaveOperations`
 
@@ -153,30 +130,6 @@ class AutoSaveOperations(AutoSaveMixin):
 ```
 
 </details>
-
-### 📎 Attribute `db_manager`
-
-```python
-db_manager: Any
-```
-
-_No docstring provided._
-
-### 📎 Attribute `update_filter_comboboxes`
-
-```python
-update_filter_comboboxes: Callable[[], None]
-```
-
-_No docstring provided._
-
-### 📎 Attribute `update_food_calories_today`
-
-```python
-update_food_calories_today: Callable[[], None]
-```
-
-_No docstring provided._
 
 ## 🏛️ Class `ChartOperations`
 
@@ -322,14 +275,6 @@ class ChartOperations(ChartOperationsBase):
 
 </details>
 
-### 📎 Attribute `max_count_points_in_charts`
-
-```python
-max_count_points_in_charts: int
-```
-
-_No docstring provided._
-
 ## 🏛️ Class `DateOperations`
 
 ```python
@@ -349,14 +294,6 @@ class DateOperations(DateMixin):
 ```
 
 </details>
-
-### 📎 Attribute `db_manager`
-
-```python
-db_manager: Any
-```
-
-_No docstring provided._
 
 ## 🏛️ Class `ValidationOperations`
 

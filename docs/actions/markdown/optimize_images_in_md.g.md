@@ -12,8 +12,6 @@ lang: en
 ## Contents
 
 - [🏛️ Class `OnOptimizeImagesInMd`](#%EF%B8%8F-class-onoptimizeimagesinmd)
-  - [📎 Attribute `CONFIG_KEY`](#-attribute-config_key)
-  - [📎 Attribute `DEFAULT_MAX_SIZE`](#-attribute-default_max_size)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
   - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread)
 
@@ -126,22 +124,6 @@ class OnOptimizeImagesInMd(ActionBase):
 ```
 
 </details>
-
-### 📎 Attribute `CONFIG_KEY`
-
-```python
-CONFIG_KEY: ClassVar[str] = 'optimize_images_folder_max_size'
-```
-
-_No docstring provided._
-
-### 📎 Attribute `DEFAULT_MAX_SIZE`
-
-```python
-DEFAULT_MAX_SIZE: ClassVar[int] = 1024
-```
-
-_No docstring provided._
 
 ### ⚙️ Method `execute`
 

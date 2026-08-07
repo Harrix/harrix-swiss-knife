@@ -11,7 +11,6 @@ lang: en
 
 ## Contents
 
-- [📎 Constant `NAME_LOCAL_ROLE`](#-constant-name_local_role)
 - [🏛️ Class `CategorySuggestDelegate`](#%EF%B8%8F-class-categorysuggestdelegate)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `clear_suggestions`](#%EF%B8%8F-method-clear_suggestions)
@@ -21,14 +20,6 @@ lang: en
   - [⚙️ Method `sizeHint`](#%EF%B8%8F-method-sizehint)
 
 </details>
-
-## 📎 Constant `NAME_LOCAL_ROLE`
-
-```python
-NAME_LOCAL_ROLE = Qt.ItemDataRole.UserRole + 1
-```
-
-_No docstring provided._
 
 ## 🏛️ Class `CategorySuggestDelegate`
 

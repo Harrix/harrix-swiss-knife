@@ -11,21 +11,12 @@ lang: en
 
 ## Contents
 
-- [📎 Constant `RASTER_EXTENSIONS`](#-constant-raster_extensions)
 - [🔧 Function `optimize_raster_file`](#-function-optimize_raster_file)
 - [🔧 Function `process_jpg_webp_to_avif`](#-function-process_jpg_webp_to_avif)
 - [🔧 Function `process_png_compare`](#-function-process_png_compare)
 - [🔧 Function `process_png_to_avif`](#-function-process_png_to_avif)
 
 </details>
-
-## 📎 Constant `RASTER_EXTENSIONS`
-
-```python
-RASTER_EXTENSIONS = frozenset({'.png', '.jpg', '.jpeg', '.webp'})
-```
-
-_No docstring provided._
 
 ## 🔧 Function `optimize_raster_file`
 

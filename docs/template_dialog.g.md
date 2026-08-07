@@ -11,8 +11,6 @@ lang: en
 
 ## Contents
 
-- [📦 Re-export `TemplateField`](#-re-export-templatefield)
-- [📦 Re-export `TemplateParser`](#-re-export-templateparser)
 - [🏛️ Class `TemplateDialog`](#%EF%B8%8F-class-templatedialog)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `get_field_values`](#%EF%B8%8F-method-get_field_values)
@@ -20,22 +18,6 @@ lang: en
   - [⚙️ Method `get_selected_entry`](#%EF%B8%8F-method-get_selected_entry)
 
 </details>
-
-## 📦 Re-export `TemplateField`
-
-```python
-from harrix_swiss_knife.template_parser import TemplateField
-```
-
-_Re-exported symbol._
-
-## 📦 Re-export `TemplateParser`
-
-```python
-from harrix_swiss_knife.template_parser import TemplateParser
-```
-
-_Re-exported symbol._
 
 ## 🏛️ Class `TemplateDialog`
 

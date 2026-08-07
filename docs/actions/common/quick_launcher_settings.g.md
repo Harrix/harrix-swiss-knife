@@ -6,24 +6,6 @@ lang: en
 
 # 📄 File `quick_launcher_settings.py`
 
-<details>
-<summary>📖 Contents ⬇️</summary>
-
-## Contents
-
-- [📎 Constant `QUICK_LAUNCHER_MARKDOWN_IN_PANEL_KEY`](#-constant-quick_launcher_markdown_in_panel_key)
-- [🔧 Function `load_quick_launcher_markdown_in_panel`](#-function-load_quick_launcher_markdown_in_panel)
-
-</details>
-
-## 📎 Constant `QUICK_LAUNCHER_MARKDOWN_IN_PANEL_KEY`
-
-```python
-QUICK_LAUNCHER_MARKDOWN_IN_PANEL_KEY = 'quick_launcher_markdown_in_panel'
-```
-
-_No docstring provided._
-
 ## 🔧 Function `load_quick_launcher_markdown_in_panel`
 
 ```python

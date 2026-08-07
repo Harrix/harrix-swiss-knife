@@ -12,8 +12,6 @@ lang: en
 ## Contents
 
 - [🏛️ Class `OnShowActionUsageStats`](#%EF%B8%8F-class-onshowactionusagestats)
-  - [📎 Attribute `cli_available`](#-attribute-cli_available)
-  - [📎 Attribute `cli_hint`](#-attribute-cli_hint)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
 
 </details>
@@ -98,22 +96,6 @@ class OnShowActionUsageStats(ActionBase):
 ```
 
 </details>
-
-### 📎 Attribute `cli_available`
-
-```python
-cli_available: ClassVar[bool] = True
-```
-
-_No docstring provided._
-
-### 📎 Attribute `cli_hint`
-
-```python
-cli_hint: ClassVar[str] = 'dev action-usage'
-```
-
-_No docstring provided._
 
 ### ⚙️ Method `execute`
 

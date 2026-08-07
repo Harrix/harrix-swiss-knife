@@ -11,20 +11,11 @@ lang: en
 
 ## Contents
 
-- [📎 Constant `PURCHASE_TEXT_PLACEHOLDER`](#-constant-purchase_text_placeholder)
 - [🏛️ Class `TextInputDialog`](#%EF%B8%8F-class-textinputdialog)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `get_items`](#%EF%B8%8F-method-get_items)
 
 </details>
-
-## 📎 Constant `PURCHASE_TEXT_PLACEHOLDER`
-
-```python
-PURCHASE_TEXT_PLACEHOLDER = "Enter your purchases here...\nExample:\nSugar-free Cola 'From Store'\tFood\t99 ₽\nMilk Cocktail 'Wonder'\tFood\t65 ₽"
-```
-
-_No docstring provided._
 
 ## 🏛️ Class `TextInputDialog`
 

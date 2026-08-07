@@ -12,7 +12,6 @@ lang: en
 ## Contents
 
 - [🏛️ Class `OnOptimizeResize`](#%EF%B8%8F-class-onoptimizeresize)
-  - [📎 Attribute `max_size`](#-attribute-max_size)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
   - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread)
 
@@ -59,14 +58,6 @@ class OnOptimizeResize(OnOptimize):
 ```
 
 </details>
-
-### 📎 Attribute `max_size`
-
-```python
-max_size: int
-```
-
-_No docstring provided._
 
 ### ⚙️ Method `execute`
 

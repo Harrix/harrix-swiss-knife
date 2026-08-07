@@ -11,13 +11,6 @@ lang: en
 
 ## Contents
 
-- [📎 Constant `DEFAULT_ACTION_BUTTON_SIDE`](#-constant-default_action_button_side)
-- [📎 Constant `COMPACT_ACTION_BUTTON_SIDE`](#-constant-compact_action_button_side)
-- [📎 Constant `ACTION_BUTTON_GAP`](#-constant-action_button_gap)
-- [📎 Constant `STACK_GAP`](#-constant-stack_gap)
-- [📎 Constant `SCREEN_MARGIN`](#-constant-screen_margin)
-- [📎 Constant `DEFAULT_ACTION_BUTTON_STYLE`](#-constant-default_action_button_style)
-- [📎 Constant `COMPACT_ACTION_BUTTON_STYLE`](#-constant-compact_action_button_style)
 - [🏛️ Class `ToastNotificationBase`](#%EF%B8%8F-class-toastnotificationbase)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `closeEvent`](#%EF%B8%8F-method-closeevent)
@@ -35,62 +28,6 @@ lang: en
 - [🔧 Function `make_action_icon`](#-function-make_action_icon)
 
 </details>
-
-## 📎 Constant `DEFAULT_ACTION_BUTTON_SIDE`
-
-```python
-DEFAULT_ACTION_BUTTON_SIDE = 24
-```
-
-_No docstring provided._
-
-## 📎 Constant `COMPACT_ACTION_BUTTON_SIDE`
-
-```python
-COMPACT_ACTION_BUTTON_SIDE = 18
-```
-
-_No docstring provided._
-
-## 📎 Constant `ACTION_BUTTON_GAP`
-
-```python
-ACTION_BUTTON_GAP = 2
-```
-
-_No docstring provided._
-
-## 📎 Constant `STACK_GAP`
-
-```python
-STACK_GAP = 8
-```
-
-_No docstring provided._
-
-## 📎 Constant `SCREEN_MARGIN`
-
-```python
-SCREEN_MARGIN = 20
-```
-
-_No docstring provided._
-
-## 📎 Constant `DEFAULT_ACTION_BUTTON_STYLE`
-
-```python
-DEFAULT_ACTION_BUTTON_STYLE = 'QPushButton {background-color: transparent;border: none;padding: 0px;margin: 0px;}QPushButton:hover {background-color: rgba(255, 255, 255, 40);border-radius: 4px;}'
-```
-
-_No docstring provided._
-
-## 📎 Constant `COMPACT_ACTION_BUTTON_STYLE`
-
-```python
-COMPACT_ACTION_BUTTON_STYLE = 'QPushButton {background-color: transparent;border: none;padding: 0px;margin: 0px;}QPushButton:hover {background-color: rgba(255, 255, 255, 40);border-radius: 3px;}'
-```
-
-_No docstring provided._
 
 ## 🏛️ Class `ToastNotificationBase`
 

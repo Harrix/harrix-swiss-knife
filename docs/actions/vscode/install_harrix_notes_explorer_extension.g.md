@@ -12,7 +12,6 @@ lang: en
 ## Contents
 
 - [🏛️ Class `OnInstallHarrixNotesExplorerExtension`](#%EF%B8%8F-class-oninstallharrixnotesexplorerextension)
-  - [📎 Attribute `CLI_EDITOR_CHOICES`](#-attribute-cli_editor_choices)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
   - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread)
   - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after)
@@ -713,14 +712,6 @@ class OnInstallHarrixNotesExplorerExtension(ActionBase):
 ```
 
 </details>
-
-### 📎 Attribute `CLI_EDITOR_CHOICES`
-
-```python
-CLI_EDITOR_CHOICES: tuple[str, ...] = ('vscode', 'insiders', 'cursor', 'vscodium', 'windsurf', 'antigravity')
-```
-
-_No docstring provided._
 
 ### ⚙️ Method `execute`
 

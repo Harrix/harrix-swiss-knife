@@ -11,30 +11,12 @@ lang: en
 
 ## Contents
 
-- [📎 Constant `TRANSCRIPTION_PROMPT`](#-constant-transcription_prompt)
-- [📎 Constant `MIN_AUDIO_BYTES`](#-constant-min_audio_bytes)
 - [🔧 Function `audio_bytes_and_mime`](#-function-audio_bytes_and_mime)
 - [🔧 Function `audio_format_from_suffix`](#-function-audio_format_from_suffix)
 - [🔧 Function `build_transcription_prompt`](#-function-build_transcription_prompt)
 - [🔧 Function `validate_audio_bytes`](#-function-validate_audio_bytes)
 
 </details>
-
-## 📎 Constant `TRANSCRIPTION_PROMPT`
-
-```python
-TRANSCRIPTION_PROMPT = 'Transcribe the speech in this audio accurately and verbatim. Return only the transcribed text without comments or formatting.'
-```
-
-_No docstring provided._
-
-## 📎 Constant `MIN_AUDIO_BYTES`
-
-```python
-MIN_AUDIO_BYTES = 512
-```
-
-_No docstring provided._
 
 ## 🔧 Function `audio_bytes_and_mime`
 

@@ -11,9 +11,6 @@ lang: en
 
 ## Contents
 
-- [📎 Constant `DEFAULT_MAX_ACTION_OUTPUT_FILES`](#-constant-default_max_action_output_files)
-- [📎 Constant `DEFAULT_RECENT_ACTION_OUTPUT_LIST_LIMIT`](#-constant-default_recent_action_output_list_limit)
-- [📎 Constant `TEMP_RESERVED_DIR_NAMES`](#-constant-temp_reserved_dir_names)
 - [🔧 Function `clear_directory_contents`](#-function-clear_directory_contents)
 - [🔧 Function `clear_temp_folder`](#-function-clear_temp_folder)
 - [🔧 Function `ensure_local_config`](#-function-ensure_local_config)
@@ -29,30 +26,6 @@ lang: en
 - [🔧 Function `prune_action_output_dir`](#-function-prune_action_output_dir)
 
 </details>
-
-## 📎 Constant `DEFAULT_MAX_ACTION_OUTPUT_FILES`
-
-```python
-DEFAULT_MAX_ACTION_OUTPUT_FILES = 80
-```
-
-_No docstring provided._
-
-## 📎 Constant `DEFAULT_RECENT_ACTION_OUTPUT_LIST_LIMIT`
-
-```python
-DEFAULT_RECENT_ACTION_OUTPUT_LIST_LIMIT = 50
-```
-
-_No docstring provided._
-
-## 📎 Constant `TEMP_RESERVED_DIR_NAMES`
-
-```python
-TEMP_RESERVED_DIR_NAMES = frozenset({'action_output', 'images', 'optimized_images'})
-```
-
-_No docstring provided._
 
 ## 🔧 Function `clear_directory_contents`
 

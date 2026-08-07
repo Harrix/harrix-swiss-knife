@@ -12,9 +12,6 @@ lang: en
 ## Contents
 
 - [🏛️ Class `OnPullSiteSubmodules`](#%EF%B8%8F-class-onpullsitesubmodules)
-  - [📎 Attribute `cli_available`](#-attribute-cli_available)
-  - [📎 Attribute `cli_hint`](#-attribute-cli_hint)
-  - [📎 Attribute `site_repo`](#-attribute-site_repo)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
   - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread)
   - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after)
@@ -103,30 +100,6 @@ class OnPullSiteSubmodules(ActionBase):
 ```
 
 </details>
-
-### 📎 Attribute `cli_available`
-
-```python
-cli_available: ClassVar[bool] = True
-```
-
-_No docstring provided._
-
-### 📎 Attribute `cli_hint`
-
-```python
-cli_hint: ClassVar[str] = 'site pull-submodules'
-```
-
-_No docstring provided._
-
-### 📎 Attribute `site_repo`
-
-```python
-site_repo: Path | None = None
-```
-
-_No docstring provided._
 
 ### ⚙️ Method `execute`
 

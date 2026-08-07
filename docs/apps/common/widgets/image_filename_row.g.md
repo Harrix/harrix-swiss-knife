@@ -11,7 +11,6 @@ lang: en
 
 ## Contents
 
-- [📎 Constant `EMPTY_TEMPLATE_DATE`](#-constant-empty_template_date)
 - [🏛️ Class `ImageFilenameRow`](#%EF%B8%8F-class-imagefilenamerow)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `refresh_auto_base`](#%EF%B8%8F-method-refresh_auto_base)
@@ -19,14 +18,6 @@ lang: en
 - [🔧 Function `compute_image_filename_base`](#-function-compute_image_filename_base)
 
 </details>
-
-## 📎 Constant `EMPTY_TEMPLATE_DATE`
-
-```python
-EMPTY_TEMPLATE_DATE = QDate(2000, 1, 1)
-```
-
-_No docstring provided._
 
 ## 🏛️ Class `ImageFilenameRow`
 

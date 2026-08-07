@@ -14,8 +14,6 @@ lang: en
 - [🏛️ Class `DatabaseConnectionUnavailableError`](#%EF%B8%8F-class-databaseconnectionunavailableerror)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
 - [🏛️ Class `QtSqliteDatabaseManagerBase`](#%EF%B8%8F-class-qtsqlitedatabasemanagerbase)
-  - [📎 Attribute `db`](#-attribute-db)
-  - [📎 Attribute `connection_name`](#-attribute-connection_name)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-1)
   - [⚙️ Method `close`](#%EF%B8%8F-method-close)
   - [⚙️ Method `create_database_from_sql (staticmethod)`](#%EF%B8%8F-method-create_database_from_sql-staticmethod)
@@ -386,22 +384,6 @@ class QtSqliteDatabaseManagerBase:
 ```
 
 </details>
-
-### 📎 Attribute `db`
-
-```python
-db: QSqlDatabase | None
-```
-
-_No docstring provided._
-
-### 📎 Attribute `connection_name`
-
-```python
-connection_name: str
-```
-
-_No docstring provided._
 
 ### ⚙️ Method `__init__`
 

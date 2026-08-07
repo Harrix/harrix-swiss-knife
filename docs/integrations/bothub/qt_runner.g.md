@@ -12,8 +12,6 @@ lang: en
 ## Contents
 
 - [🏛️ Class `BothubRequestState`](#%EF%B8%8F-class-bothubrequeststate)
-  - [📎 Attribute `worker`](#-attribute-worker)
-  - [📎 Attribute `toast`](#-attribute-toast)
 - [🔧 Function `run_bothub_request`](#-function-run_bothub_request)
 - [🔧 Function `run_bothub_request_blocking`](#-function-run_bothub_request_blocking)
 
@@ -38,22 +36,6 @@ class BothubRequestState:
 ```
 
 </details>
-
-### 📎 Attribute `worker`
-
-```python
-worker: BothubChatWorker | None = None
-```
-
-_No docstring provided._
-
-### 📎 Attribute `toast`
-
-```python
-toast: toast_notification_base.ToastNotificationBase | None = None
-```
-
-_No docstring provided._
 
 ## 🔧 Function `run_bothub_request`
 

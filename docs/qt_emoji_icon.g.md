@@ -11,74 +11,11 @@ lang: en
 
 ## Contents
 
-- [📎 Constant `DEFAULT_EMOJI_BUTTON_ICON_SIZE`](#-constant-default_emoji_button_icon_size)
-- [📎 Constant `OK_BUTTON_EMOJI`](#-constant-ok_button_emoji)
-- [📎 Constant `CANCEL_BUTTON_EMOJI`](#-constant-cancel_button_emoji)
-- [📎 Constant `SAVE_BUTTON_EMOJI`](#-constant-save_button_emoji)
-- [📎 Constant `CLOSE_BUTTON_EMOJI`](#-constant-close_button_emoji)
-- [📎 Constant `COPY_BUTTON_EMOJI`](#-constant-copy_button_emoji)
-- [📎 Constant `DELETE_BUTTON_EMOJI`](#-constant-delete_button_emoji)
 - [🔧 Function `apply_emoji_dialog_buttons`](#-function-apply_emoji_dialog_buttons)
 - [🔧 Function `create_emoji_icon`](#-function-create_emoji_icon)
 - [🔧 Function `make_emoji_push_button`](#-function-make_emoji_push_button)
 
 </details>
-
-## 📎 Constant `DEFAULT_EMOJI_BUTTON_ICON_SIZE`
-
-```python
-DEFAULT_EMOJI_BUTTON_ICON_SIZE = 18
-```
-
-_No docstring provided._
-
-## 📎 Constant `OK_BUTTON_EMOJI`
-
-```python
-OK_BUTTON_EMOJI = '✅'
-```
-
-_No docstring provided._
-
-## 📎 Constant `CANCEL_BUTTON_EMOJI`
-
-```python
-CANCEL_BUTTON_EMOJI = '❌'
-```
-
-_No docstring provided._
-
-## 📎 Constant `SAVE_BUTTON_EMOJI`
-
-```python
-SAVE_BUTTON_EMOJI = '💾'
-```
-
-_No docstring provided._
-
-## 📎 Constant `CLOSE_BUTTON_EMOJI`
-
-```python
-CLOSE_BUTTON_EMOJI = '❌'
-```
-
-_No docstring provided._
-
-## 📎 Constant `COPY_BUTTON_EMOJI`
-
-```python
-COPY_BUTTON_EMOJI = '📋'
-```
-
-_No docstring provided._
-
-## 📎 Constant `DELETE_BUTTON_EMOJI`
-
-```python
-DELETE_BUTTON_EMOJI = '🗑️'
-```
-
-_No docstring provided._
 
 ## 🔧 Function `apply_emoji_dialog_buttons`
 

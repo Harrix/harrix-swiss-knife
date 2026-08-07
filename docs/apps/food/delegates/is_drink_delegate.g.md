@@ -11,7 +11,6 @@ lang: en
 
 ## Contents
 
-- [📎 Constant `DRINK_EMOJI`](#-constant-drink_emoji)
 - [🏛️ Class `IsDrinkDelegate`](#%EF%B8%8F-class-isdrinkdelegate)
   - [⚙️ Method `createEditor`](#%EF%B8%8F-method-createeditor)
   - [⚙️ Method `displayText`](#%EF%B8%8F-method-displaytext)
@@ -22,14 +21,6 @@ lang: en
 - [🔧 Function `parse_is_drink_cell`](#-function-parse_is_drink_cell)
 
 </details>
-
-## 📎 Constant `DRINK_EMOJI`
-
-```python
-DRINK_EMOJI = '🥤'
-```
-
-_No docstring provided._
 
 ## 🏛️ Class `IsDrinkDelegate`
 

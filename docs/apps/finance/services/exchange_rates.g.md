@@ -33,10 +33,6 @@ lang: en
   - [⚙️ Method `should_update_exchange_rates`](#%EF%B8%8F-method-should_update_exchange_rates)
   - [⚙️ Method `update_exchange_rate`](#%EF%B8%8F-method-update_exchange_rate)
 - [🏛️ Class `PreloadedExchangeRates`](#%EF%B8%8F-class-preloadedexchangerates)
-  - [📎 Attribute `has_data`](#-attribute-has_data)
-  - [📎 Attribute `usd_currency_id`](#-attribute-usd_currency_id)
-  - [📎 Attribute `latest_rates`](#-attribute-latest_rates)
-  - [📎 Attribute `dated_rates`](#-attribute-dated_rates)
   - [⚙️ Method `get_exchange_rate`](#%EF%B8%8F-method-get_exchange_rate-1)
   - [⚙️ Method `get_usd_to_currency_rate`](#%EF%B8%8F-method-get_usd_to_currency_rate-1)
 
@@ -1401,38 +1397,6 @@ class PreloadedExchangeRates:
 ```
 
 </details>
-
-### 📎 Attribute `has_data`
-
-```python
-has_data: bool
-```
-
-_No docstring provided._
-
-### 📎 Attribute `usd_currency_id`
-
-```python
-usd_currency_id: int | None
-```
-
-_No docstring provided._
-
-### 📎 Attribute `latest_rates`
-
-```python
-latest_rates: dict[int, float] = field(default_factory=dict)
-```
-
-_No docstring provided._
-
-### 📎 Attribute `dated_rates`
-
-```python
-dated_rates: dict[int, list[tuple[str, float]]] = field(default_factory=dict)
-```
-
-_No docstring provided._
 
 ### ⚙️ Method `get_exchange_rate`
 

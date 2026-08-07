@@ -11,20 +11,11 @@ lang: en
 
 ## Contents
 
-- [📎 Constant `FOOD_TEXT_PLACEHOLDER`](#-constant-food_text_placeholder)
 - [🏛️ Class `TextInputDialog`](#%EF%B8%8F-class-textinputdialog)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `get_items`](#%EF%B8%8F-method-get_items)
 
 </details>
-
-## 📎 Constant `FOOD_TEXT_PLACEHOLDER`
-
-```python
-FOOD_TEXT_PLACEHOLDER = 'Enter your food items here...\nTSV example:\nOatmeal\t150\t350\tweight\tno\nCoffee\t250\t85\tportion\tyes\n\nLegacy example:\n100 200 Apple\n150 Coffee\nCoffee 100 portion'
-```
-
-_No docstring provided._
 
 ## 🏛️ Class `TextInputDialog`
 

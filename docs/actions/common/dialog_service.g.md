@@ -11,8 +11,6 @@ lang: en
 
 ## Contents
 
-- [📎 Constant `COMMIT_OFFER_CREATE_CODE`](#-constant-commit_offer_create_code)
-- [📎 Constant `COMMIT_OFFER_COPY_CODE`](#-constant-commit_offer_copy_code)
 - [🏛️ Class `ActionDialogService`](#%EF%B8%8F-class-actiondialogservice)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `create_emoji_icon`](#%EF%B8%8F-method-create_emoji_icon)
@@ -46,31 +44,9 @@ lang: en
   - [⚙️ Method `show_text_diff_side_by_side`](#%EF%B8%8F-method-show_text_diff_side_by_side)
   - [⚙️ Method `show_text_multiline`](#%EF%B8%8F-method-show_text_multiline)
 - [🏛️ Class `AndroidBuildDialogResult`](#%EF%B8%8F-class-androidbuilddialogresult)
-  - [📎 Attribute `folder`](#-attribute-folder)
-  - [📎 Attribute `build_all`](#-attribute-build_all)
-  - [📎 Attribute `release`](#-attribute-release)
-  - [📎 Attribute `device_id`](#-attribute-device_id)
 - [🏛️ Class `IconChoiceSelection`](#%EF%B8%8F-class-iconchoiceselection)
-  - [📎 Attribute `title`](#-attribute-title)
-  - [📎 Attribute `action`](#-attribute-action)
 
 </details>
-
-## 📎 Constant `COMMIT_OFFER_CREATE_CODE`
-
-```python
-COMMIT_OFFER_CREATE_CODE = 10
-```
-
-_No docstring provided._
-
-## 📎 Constant `COMMIT_OFFER_COPY_CODE`
-
-```python
-COMMIT_OFFER_COPY_CODE = 11
-```
-
-_No docstring provided._
 
 ## 🏛️ Class `ActionDialogService`
 
@@ -3577,38 +3553,6 @@ class AndroidBuildDialogResult:
 
 </details>
 
-### 📎 Attribute `folder`
-
-```python
-folder: Path
-```
-
-_No docstring provided._
-
-### 📎 Attribute `build_all`
-
-```python
-build_all: bool
-```
-
-_No docstring provided._
-
-### 📎 Attribute `release`
-
-```python
-release: bool
-```
-
-_No docstring provided._
-
-### 📎 Attribute `device_id`
-
-```python
-device_id: str | None
-```
-
-_No docstring provided._
-
 ## 🏛️ Class `IconChoiceSelection`
 
 ```python
@@ -3628,19 +3572,3 @@ class IconChoiceSelection:
 ```
 
 </details>
-
-### 📎 Attribute `title`
-
-```python
-title: str
-```
-
-_No docstring provided._
-
-### 📎 Attribute `action`
-
-```python
-action: str = ICON_CHOICE_ACTION_SELECT
-```
-
-_No docstring provided._

@@ -11,7 +11,6 @@ lang: en
 
 ## Contents
 
-- [📦 Re-export `ImagePickerMode`](#-re-export-imagepickermode)
 - [🏛️ Class `ImagePicker`](#%EF%B8%8F-class-imagepicker)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `configure_filename_row`](#%EF%B8%8F-method-configure_filename_row)
@@ -39,14 +38,6 @@ lang: en
 - [🔧 Function `save_qimage_to_temp_file`](#-function-save_qimage_to_temp_file)
 
 </details>
-
-## 📦 Re-export `ImagePickerMode`
-
-```python
-from harrix_swiss_knife.apps.common.widgets.image_picker_mode import ImagePickerMode
-```
-
-_Re-exported symbol._
 
 ## 🏛️ Class `ImagePicker`
 

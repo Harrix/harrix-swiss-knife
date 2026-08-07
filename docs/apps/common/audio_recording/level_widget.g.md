@@ -11,14 +11,6 @@ lang: en
 
 ## Contents
 
-- [📎 Constant `LEVEL_BAR_COUNT`](#-constant-level_bar_count)
-- [📎 Constant `WAVEFORM_BG`](#-constant-waveform_bg)
-- [📎 Constant `WAVEFORM_GRID`](#-constant-waveform_grid)
-- [📎 Constant `WAVEFORM_CENTER`](#-constant-waveform_center)
-- [📎 Constant `WAVEFORM_FILL`](#-constant-waveform_fill)
-- [📎 Constant `WAVEFORM_OUTLINE`](#-constant-waveform_outline)
-- [📎 Constant `WAVEFORM_LIVE_FILL`](#-constant-waveform_live_fill)
-- [📎 Constant `WAVEFORM_PLAYHEAD`](#-constant-waveform_playhead)
 - [🏛️ Class `AudioLevelWidget`](#%EF%B8%8F-class-audiolevelwidget)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `begin_live`](#%EF%B8%8F-method-begin_live)
@@ -30,70 +22,6 @@ lang: en
   - [⚙️ Method `show_overview`](#%EF%B8%8F-method-show_overview)
 
 </details>
-
-## 📎 Constant `LEVEL_BAR_COUNT`
-
-```python
-LEVEL_BAR_COUNT = 120
-```
-
-_No docstring provided._
-
-## 📎 Constant `WAVEFORM_BG`
-
-```python
-WAVEFORM_BG = QColor('#1e1e1e')
-```
-
-_No docstring provided._
-
-## 📎 Constant `WAVEFORM_GRID`
-
-```python
-WAVEFORM_GRID = QColor('#3a3a3a')
-```
-
-_No docstring provided._
-
-## 📎 Constant `WAVEFORM_CENTER`
-
-```python
-WAVEFORM_CENTER = QColor('#616161')
-```
-
-_No docstring provided._
-
-## 📎 Constant `WAVEFORM_FILL`
-
-```python
-WAVEFORM_FILL = QColor(76, 175, 80, 200)
-```
-
-_No docstring provided._
-
-## 📎 Constant `WAVEFORM_OUTLINE`
-
-```python
-WAVEFORM_OUTLINE = QColor('#81c784')
-```
-
-_No docstring provided._
-
-## 📎 Constant `WAVEFORM_LIVE_FILL`
-
-```python
-WAVEFORM_LIVE_FILL = QColor(102, 187, 106, 210)
-```
-
-_No docstring provided._
-
-## 📎 Constant `WAVEFORM_PLAYHEAD`
-
-```python
-WAVEFORM_PLAYHEAD = QColor('#ffeb3b')
-```
-
-_No docstring provided._
 
 ## 🏛️ Class `AudioLevelWidget`
 

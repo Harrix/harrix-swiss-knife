@@ -11,13 +11,7 @@ lang: en
 
 ## Contents
 
-- [📎 Constant `P`](#-constant-p)
-- [📎 Constant `R`](#-constant-r)
 - [🏛️ Class `ActionBase`](#%EF%B8%8F-class-actionbase)
-  - [📎 Attribute `cli_available`](#-attribute-cli_available)
-  - [📎 Attribute `cli_hint`](#-attribute-cli_hint)
-  - [📎 Attribute `DEFAULT_ACTION_DIALOG_SIZE`](#-attribute-default_action_dialog_size)
-  - [📎 Attribute `DEFAULT_COMPACT_ACTION_DIALOG_SIZE`](#-attribute-default_compact_action_dialog_size)
   - [⚙️ Method `__call__`](#%EF%B8%8F-method-__call__)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `add_elapsed_time`](#%EF%B8%8F-method-add_elapsed_time)
@@ -60,22 +54,6 @@ lang: en
   - [⚙️ Method `thread_after_show_result`](#%EF%B8%8F-method-thread_after_show_result)
 
 </details>
-
-## 📎 Constant `P`
-
-```python
-P = ParamSpec('P')
-```
-
-_No docstring provided._
-
-## 📎 Constant `R`
-
-```python
-R = TypeVar('R')
-```
-
-_No docstring provided._
 
 ## 🏛️ Class `ActionBase`
 
@@ -771,38 +749,6 @@ class ActionBase(ABC):
 ```
 
 </details>
-
-### 📎 Attribute `cli_available`
-
-```python
-cli_available: ClassVar[bool] = False
-```
-
-_No docstring provided._
-
-### 📎 Attribute `cli_hint`
-
-```python
-cli_hint: ClassVar[str] = ''
-```
-
-_No docstring provided._
-
-### 📎 Attribute `DEFAULT_ACTION_DIALOG_SIZE`
-
-```python
-DEFAULT_ACTION_DIALOG_SIZE: ClassVar[QSize] = QSize(1024, 768)
-```
-
-_No docstring provided._
-
-### 📎 Attribute `DEFAULT_COMPACT_ACTION_DIALOG_SIZE`
-
-```python
-DEFAULT_COMPACT_ACTION_DIALOG_SIZE: ClassVar[QSize] = QSize(520, 170)
-```
-
-_No docstring provided._
 
 ### ⚙️ Method `__call__`
 

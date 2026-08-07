@@ -11,9 +11,6 @@ lang: en
 
 ## Contents
 
-- [📎 Constant `SUPPORTED_IMAGE_EXTENSIONS`](#-constant-supported_image_extensions)
-- [📎 Constant `REMOTE_IMAGE_PATTERN`](#-constant-remote_image_pattern)
-- [📎 Constant `LOCAL_IMAGE_PATTERN`](#-constant-local_image_pattern)
 - [🔧 Function `optimize_image_file`](#-function-optimize_image_file)
 - [🔧 Function `optimize_images_in_md_file`](#-function-optimize_images_in_md_file)
 - [🔧 Function `optimize_single_image_for_template`](#-function-optimize_single_image_for_template)
@@ -21,30 +18,6 @@ lang: en
 - [🔧 Function `transform_markdown_content`](#-function-transform_markdown_content)
 
 </details>
-
-## 📎 Constant `SUPPORTED_IMAGE_EXTENSIONS`
-
-```python
-SUPPORTED_IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.webp', '.gif', '.mp4', '.png', '.svg', '.avif']
-```
-
-_No docstring provided._
-
-## 📎 Constant `REMOTE_IMAGE_PATTERN`
-
-```python
-REMOTE_IMAGE_PATTERN = re.compile('^\\!\\[(.*?)\\]\\((http.*?)\\)$')
-```
-
-_No docstring provided._
-
-## 📎 Constant `LOCAL_IMAGE_PATTERN`
-
-```python
-LOCAL_IMAGE_PATTERN = re.compile('^\\!\\[(.*?)\\]\\((.*?)\\)$')
-```
-
-_No docstring provided._
 
 ## 🔧 Function `optimize_image_file`
 

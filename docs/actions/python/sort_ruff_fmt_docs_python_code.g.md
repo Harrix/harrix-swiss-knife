@@ -12,7 +12,6 @@ lang: en
 ## Contents
 
 - [🏛️ Class `OnSortRuffFmtDocsPythonCode`](#%EF%B8%8F-class-onsortrufffmtdocspythoncode)
-  - [📎 Attribute `include_docs_generation`](#-attribute-include_docs_generation)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
   - [⚙️ Method `format_and_sort_python_common`](#%EF%B8%8F-method-format_and_sort_python_common)
@@ -194,14 +193,6 @@ class OnSortRuffFmtDocsPythonCode(ActionBase):
 ```
 
 </details>
-
-### 📎 Attribute `include_docs_generation`
-
-```python
-include_docs_generation: ClassVar[bool] = True
-```
-
-_No docstring provided._
 
 ### ⚙️ Method `__init__`
 

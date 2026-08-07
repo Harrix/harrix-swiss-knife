@@ -12,12 +12,6 @@ lang: en
 ## Contents
 
 - [🏛️ Class `ParsedFoodItem`](#%EF%B8%8F-class-parsedfooditem)
-  - [📎 Attribute `name`](#-attribute-name)
-  - [📎 Attribute `weight`](#-attribute-weight)
-  - [📎 Attribute `calories_per_100g`](#-attribute-calories_per_100g)
-  - [📎 Attribute `portion_calories`](#-attribute-portion_calories)
-  - [📎 Attribute `food_date`](#-attribute-food_date)
-  - [📎 Attribute `is_drink`](#-attribute-is_drink)
 - [🏛️ Class `TextParser`](#%EF%B8%8F-class-textparser)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `parse_row`](#%EF%B8%8F-method-parse_row)
@@ -57,54 +51,6 @@ class ParsedFoodItem(NamedTuple):
 ```
 
 </details>
-
-### 📎 Attribute `name`
-
-```python
-name: str
-```
-
-_No docstring provided._
-
-### 📎 Attribute `weight`
-
-```python
-weight: float | None
-```
-
-_No docstring provided._
-
-### 📎 Attribute `calories_per_100g`
-
-```python
-calories_per_100g: float | None
-```
-
-_No docstring provided._
-
-### 📎 Attribute `portion_calories`
-
-```python
-portion_calories: float | None
-```
-
-_No docstring provided._
-
-### 📎 Attribute `food_date`
-
-```python
-food_date: str | None
-```
-
-_No docstring provided._
-
-### 📎 Attribute `is_drink`
-
-```python
-is_drink: bool
-```
-
-_No docstring provided._
 
 ## 🏛️ Class `TextParser`
 

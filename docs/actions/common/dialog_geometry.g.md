@@ -11,8 +11,6 @@ lang: en
 
 ## Contents
 
-- [📎 Constant `MIN_DIALOG_HEIGHT`](#-constant-min_dialog_height)
-- [📎 Constant `MIN_CONTENT_HEIGHT`](#-constant-min_content_height)
 - [🔧 Function `apply_adaptive_dialog_size`](#-function-apply_adaptive_dialog_size)
 - [🔧 Function `available_max_height`](#-function-available_max_height)
 - [🔧 Function `fit_widget_height`](#-function-fit_widget_height)
@@ -22,22 +20,6 @@ lang: en
 - [🔧 Function `widget_content_height`](#-function-widget_content_height)
 
 </details>
-
-## 📎 Constant `MIN_DIALOG_HEIGHT`
-
-```python
-MIN_DIALOG_HEIGHT = 240
-```
-
-_No docstring provided._
-
-## 📎 Constant `MIN_CONTENT_HEIGHT`
-
-```python
-MIN_CONTENT_HEIGHT = 120
-```
-
-_No docstring provided._
 
 ## 🔧 Function `apply_adaptive_dialog_size`
 

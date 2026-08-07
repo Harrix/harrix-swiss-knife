@@ -12,10 +12,6 @@ lang: en
 ## Contents
 
 - [🏛️ Class `AppLauncherAction`](#%EF%B8%8F-class-applauncheraction)
-  - [📎 Attribute `main_window_module`](#-attribute-main_window_module)
-  - [📎 Attribute `main_window_class_name`](#-attribute-main_window_class_name)
-  - [📎 Attribute `show_in_compact_mode`](#-attribute-show_in_compact_mode)
-  - [📎 Attribute `hide_on_close`](#-attribute-hide_on_close)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
   - [⚙️ Method `get_main_window_class (classmethod)`](#%EF%B8%8F-method-get_main_window_class-classmethod)
@@ -97,38 +93,6 @@ class AppLauncherAction(ActionBase):
 ```
 
 </details>
-
-### 📎 Attribute `main_window_module`
-
-```python
-main_window_module: ClassVar[str] = ''
-```
-
-_No docstring provided._
-
-### 📎 Attribute `main_window_class_name`
-
-```python
-main_window_class_name: ClassVar[str] = 'MainWindow'
-```
-
-_No docstring provided._
-
-### 📎 Attribute `show_in_compact_mode`
-
-```python
-show_in_compact_mode: ClassVar[bool] = True
-```
-
-_No docstring provided._
-
-### 📎 Attribute `hide_on_close`
-
-```python
-hide_on_close: ClassVar[bool] = False
-```
-
-_No docstring provided._
 
 ### ⚙️ Method `__init__`
 

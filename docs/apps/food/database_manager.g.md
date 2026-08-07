@@ -40,23 +40,8 @@ lang: en
   - [⚙️ Method `update_food_log_record`](#%EF%B8%8F-method-update_food_log_record)
   - [⚙️ Method `update_food_log_weight_and_calories`](#%EF%B8%8F-method-update_food_log_weight_and_calories)
 - [🏛️ Class `FoodAutocompleteEntry`](#%EF%B8%8F-class-foodautocompleteentry)
-  - [📎 Attribute `name`](#-attribute-name)
-  - [📎 Attribute `name_en`](#-attribute-name_en)
 - [🏛️ Class `FoodItemByNameRow`](#%EF%B8%8F-class-fooditembynamerow)
-  - [📎 Attribute `id`](#-attribute-id)
-  - [📎 Attribute `name`](#-attribute-name-1)
-  - [📎 Attribute `name_en`](#-attribute-name_en-1)
-  - [📎 Attribute `is_drink`](#-attribute-is_drink)
-  - [📎 Attribute `calories_per_100g`](#-attribute-calories_per_100g)
-  - [📎 Attribute `default_portion_weight`](#-attribute-default_portion_weight)
-  - [📎 Attribute `default_portion_calories`](#-attribute-default_portion_calories)
 - [🏛️ Class `FoodLogItemByNameRow`](#%EF%B8%8F-class-foodlogitembynamerow)
-  - [📎 Attribute `name`](#-attribute-name-2)
-  - [📎 Attribute `name_en`](#-attribute-name_en-2)
-  - [📎 Attribute `is_drink`](#-attribute-is_drink-1)
-  - [📎 Attribute `calories_per_100g`](#-attribute-calories_per_100g-1)
-  - [📎 Attribute `weight`](#-attribute-weight)
-  - [📎 Attribute `portion_calories`](#-attribute-portion_calories)
 - [🔧 Function `merge_food_autocomplete_entries`](#-function-merge_food_autocomplete_entries)
 
 </details>
@@ -1950,22 +1935,6 @@ class FoodAutocompleteEntry:
 
 </details>
 
-### 📎 Attribute `name`
-
-```python
-name: str
-```
-
-_No docstring provided._
-
-### 📎 Attribute `name_en`
-
-```python
-name_en: str | None
-```
-
-_No docstring provided._
-
 ## 🏛️ Class `FoodItemByNameRow`
 
 ```python
@@ -1991,62 +1960,6 @@ class FoodItemByNameRow:
 
 </details>
 
-### 📎 Attribute `id`
-
-```python
-id: int
-```
-
-_No docstring provided._
-
-### 📎 Attribute `name`
-
-```python
-name: str
-```
-
-_No docstring provided._
-
-### 📎 Attribute `name_en`
-
-```python
-name_en: str | None
-```
-
-_No docstring provided._
-
-### 📎 Attribute `is_drink`
-
-```python
-is_drink: bool
-```
-
-_No docstring provided._
-
-### 📎 Attribute `calories_per_100g`
-
-```python
-calories_per_100g: float | None
-```
-
-_No docstring provided._
-
-### 📎 Attribute `default_portion_weight`
-
-```python
-default_portion_weight: float | None
-```
-
-_No docstring provided._
-
-### 📎 Attribute `default_portion_calories`
-
-```python
-default_portion_calories: float | None
-```
-
-_No docstring provided._
-
 ## 🏛️ Class `FoodLogItemByNameRow`
 
 ```python
@@ -2070,54 +1983,6 @@ class FoodLogItemByNameRow:
 ```
 
 </details>
-
-### 📎 Attribute `name`
-
-```python
-name: str | None
-```
-
-_No docstring provided._
-
-### 📎 Attribute `name_en`
-
-```python
-name_en: str | None
-```
-
-_No docstring provided._
-
-### 📎 Attribute `is_drink`
-
-```python
-is_drink: bool
-```
-
-_No docstring provided._
-
-### 📎 Attribute `calories_per_100g`
-
-```python
-calories_per_100g: float | None
-```
-
-_No docstring provided._
-
-### 📎 Attribute `weight`
-
-```python
-weight: float | None
-```
-
-_No docstring provided._
-
-### 📎 Attribute `portion_calories`
-
-```python
-portion_calories: float | None
-```
-
-_No docstring provided._
 
 ## 🔧 Function `merge_food_autocomplete_entries`
 

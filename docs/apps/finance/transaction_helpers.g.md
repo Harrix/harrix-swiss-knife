@@ -12,19 +12,11 @@ lang: en
 ## Contents
 
 - [🏛️ Class `ChartComputeContext`](#%EF%B8%8F-class-chartcomputecontext)
-  - [📎 Attribute `rates`](#-attribute-rates)
-  - [📎 Attribute `default_currency_id`](#-attribute-default_currency_id)
-  - [📎 Attribute `code_to_id`](#-attribute-code_to_id)
-  - [📎 Attribute `id_to_subdivision`](#-attribute-id_to_subdivision)
   - [⚙️ Method `convert_amount`](#%EF%B8%8F-method-convert_amount)
   - [⚙️ Method `load (classmethod)`](#%EF%B8%8F-method-load-classmethod)
   - [⚙️ Method `natural_minor_to_default_major`](#%EF%B8%8F-method-natural_minor_to_default_major)
   - [⚙️ Method `transaction_amount_in_default`](#%EF%B8%8F-method-transaction_amount_in_default)
 - [🏛️ Class `TransformTransactionDataResult`](#%EF%B8%8F-class-transformtransactiondataresult)
-  - [📎 Attribute `rows`](#-attribute-rows)
-  - [📎 Attribute `dates_with_totals`](#-attribute-dates_with_totals)
-  - [📎 Attribute `date_to_color_index`](#-attribute-date_to_color_index)
-  - [📎 Attribute `color_index`](#-attribute-color_index)
 - [🔧 Function `calculate_daily_expenses`](#-function-calculate_daily_expenses)
 - [🔧 Function `calculate_exchange_loss`](#-function-calculate_exchange_loss)
 - [🔧 Function `calculate_exchange_loss_cached`](#-function-calculate_exchange_loss_cached)
@@ -54,12 +46,6 @@ lang: en
 - [🔧 Function `plan_revision_expense_consolidation_for_positive_diff`](#-function-plan_revision_expense_consolidation_for_positive_diff)
 - [🔧 Function `sum_exchange_accounting_totals`](#-function-sum_exchange_accounting_totals)
 - [🔧 Function `transform_transaction_data`](#-function-transform_transaction_data)
-- [📎 Constant `MIN_TRANSACTION_ROW_LENGTH`](#-constant-min_transaction_row_length)
-- [📎 Constant `TRANSACTION_DESCRIPTION_EN_INDEX`](#-constant-transaction_description_en_index)
-- [📎 Constant `MIN_EXCHANGE_ROW_LENGTH`](#-constant-min_exchange_row_length)
-- [📎 Constant `MIN_ACCOUNTS_ROW_LENGTH`](#-constant-min_accounts_row_length)
-- [📎 Constant `DECEMBER`](#-constant-december)
-- [📎 Constant `CHART_COMPARE_COLOR_PALETTE`](#-constant-chart_compare_color_palette)
 
 </details>
 
@@ -128,38 +114,6 @@ class ChartComputeContext:
 ```
 
 </details>
-
-### 📎 Attribute `rates`
-
-```python
-rates: PreloadedExchangeRates
-```
-
-_No docstring provided._
-
-### 📎 Attribute `default_currency_id`
-
-```python
-default_currency_id: int
-```
-
-_No docstring provided._
-
-### 📎 Attribute `code_to_id`
-
-```python
-code_to_id: dict[str, int]
-```
-
-_No docstring provided._
-
-### 📎 Attribute `id_to_subdivision`
-
-```python
-id_to_subdivision: dict[int, int]
-```
-
-_No docstring provided._
 
 ### ⚙️ Method `convert_amount`
 
@@ -277,38 +231,6 @@ class TransformTransactionDataResult(NamedTuple):
 ```
 
 </details>
-
-### 📎 Attribute `rows`
-
-```python
-rows: list[list[Any]]
-```
-
-_No docstring provided._
-
-### 📎 Attribute `dates_with_totals`
-
-```python
-dates_with_totals: set[str]
-```
-
-_No docstring provided._
-
-### 📎 Attribute `date_to_color_index`
-
-```python
-date_to_color_index: dict[str, int]
-```
-
-_No docstring provided._
-
-### 📎 Attribute `color_index`
-
-```python
-color_index: int
-```
-
-_No docstring provided._
 
 ## 🔧 Function `calculate_daily_expenses`
 
@@ -2163,51 +2085,3 @@ def transform_transaction_data(
 ```
 
 </details>
-
-## 📎 Constant `MIN_TRANSACTION_ROW_LENGTH`
-
-```python
-MIN_TRANSACTION_ROW_LENGTH = 8
-```
-
-_No docstring provided._
-
-## 📎 Constant `TRANSACTION_DESCRIPTION_EN_INDEX`
-
-```python
-TRANSACTION_DESCRIPTION_EN_INDEX = 10
-```
-
-_No docstring provided._
-
-## 📎 Constant `MIN_EXCHANGE_ROW_LENGTH`
-
-```python
-MIN_EXCHANGE_ROW_LENGTH = 9
-```
-
-_No docstring provided._
-
-## 📎 Constant `MIN_ACCOUNTS_ROW_LENGTH`
-
-```python
-MIN_ACCOUNTS_ROW_LENGTH = 7
-```
-
-_No docstring provided._
-
-## 📎 Constant `DECEMBER`
-
-```python
-DECEMBER = 12
-```
-
-_No docstring provided._
-
-## 📎 Constant `CHART_COMPARE_COLOR_PALETTE`
-
-```python
-CHART_COMPARE_COLOR_PALETTE: list[str] = ['blue', 'green', 'orange', 'purple', 'brown', 'pink', 'gray', 'olive', 'cyan', 'magenta', 'teal', 'navy', 'maroon', 'lime', 'indigo', 'coral']
-```
-
-_No docstring provided._

@@ -11,22 +11,11 @@ lang: en
 
 ## Contents
 
-- [📎 Constant `HOTKEYS_KEY`](#-constant-hotkeys_key)
 - [🏛️ Class `ActionHotkeyBinding`](#%EF%B8%8F-class-actionhotkeybinding)
-  - [📎 Attribute `action`](#-attribute-action)
-  - [📎 Attribute `hotkey`](#-attribute-hotkey)
 - [🔧 Function `load_action_hotkeys`](#-function-load_action_hotkeys)
 - [🔧 Function `load_hotkeys_for_action`](#-function-load_hotkeys_for_action)
 
 </details>
-
-## 📎 Constant `HOTKEYS_KEY`
-
-```python
-HOTKEYS_KEY = 'hotkeys'
-```
-
-_No docstring provided._
 
 ## 🏛️ Class `ActionHotkeyBinding`
 
@@ -47,22 +36,6 @@ class ActionHotkeyBinding:
 ```
 
 </details>
-
-### 📎 Attribute `action`
-
-```python
-action: str
-```
-
-_No docstring provided._
-
-### 📎 Attribute `hotkey`
-
-```python
-hotkey: str
-```
-
-_No docstring provided._
 
 ## 🔧 Function `load_action_hotkeys`
 

@@ -11,28 +11,10 @@ lang: en
 
 ## Contents
 
-- [📎 Constant `MONTHLY_GOAL_STYLESHEET`](#-constant-monthly_goal_stylesheet)
-- [📎 Constant `NEW_RECORD_STYLESHEET`](#-constant-new_record_stylesheet)
 - [🔧 Function `show_monthly_goal_congratulations`](#-function-show_monthly_goal_congratulations)
 - [🔧 Function `show_record_congratulations`](#-function-show_record_congratulations)
 
 </details>
-
-## 📎 Constant `MONTHLY_GOAL_STYLESHEET`
-
-```python
-MONTHLY_GOAL_STYLESHEET = '\n    QMessageBox {\n        background-color: #f0fff0;\n        font-size: 12px;\n    }\n    QMessageBox QLabel {\n        color: #228b22;\n        font-weight: bold;\n    }\n'
-```
-
-_No docstring provided._
-
-## 📎 Constant `NEW_RECORD_STYLESHEET`
-
-```python
-NEW_RECORD_STYLESHEET = '\n    QMessageBox {\n        background-color: #f0f8ff;\n        font-size: 12px;\n    }\n    QMessageBox QLabel {\n        color: #2e8b57;\n        font-weight: bold;\n    }\n'
-```
-
-_No docstring provided._
 
 ## 🔧 Function `show_monthly_goal_congratulations`
 

@@ -12,15 +12,6 @@ lang: en
 ## Contents
 
 - [🏛️ Class `ExchangeRateUpdateWorker`](#%EF%B8%8F-class-exchangerateupdateworker)
-  - [📎 Attribute `progress_updated`](#-attribute-progress_updated)
-  - [📎 Attribute `currency_started`](#-attribute-currency_started)
-  - [📎 Attribute `rates_added`](#-attribute-rates_added)
-  - [📎 Attribute `finished_success`](#-attribute-finished_success)
-  - [📎 Attribute `finished_error`](#-attribute-finished_error)
-  - [📎 Attribute `db_filename`](#-attribute-db_filename)
-  - [📎 Attribute `currencies_to_process`](#-attribute-currencies_to_process)
-  - [📎 Attribute `should_stop`](#-attribute-should_stop)
-  - [📎 Attribute `unresolved_rates`](#-attribute-unresolved_rates)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `run`](#%EF%B8%8F-method-run)
   - [⚙️ Method `stop`](#%EF%B8%8F-method-stop)
@@ -413,78 +404,6 @@ class ExchangeRateUpdateWorker(QThread):
 ```
 
 </details>
-
-### 📎 Attribute `progress_updated`
-
-```python
-progress_updated: Signal = Signal(str)
-```
-
-_No docstring provided._
-
-### 📎 Attribute `currency_started`
-
-```python
-currency_started: Signal = Signal(str)
-```
-
-_No docstring provided._
-
-### 📎 Attribute `rates_added`
-
-```python
-rates_added: Signal = Signal(str, float, str)
-```
-
-_No docstring provided._
-
-### 📎 Attribute `finished_success`
-
-```python
-finished_success: Signal = Signal(int, int)
-```
-
-_No docstring provided._
-
-### 📎 Attribute `finished_error`
-
-```python
-finished_error: Signal = Signal(str)
-```
-
-_No docstring provided._
-
-### 📎 Attribute `db_filename`
-
-```python
-db_filename: str
-```
-
-_No docstring provided._
-
-### 📎 Attribute `currencies_to_process`
-
-```python
-currencies_to_process: list
-```
-
-_No docstring provided._
-
-### 📎 Attribute `should_stop`
-
-```python
-should_stop: bool
-```
-
-_No docstring provided._
-
-### 📎 Attribute `unresolved_rates`
-
-```python
-unresolved_rates: dict[str, list[str]]
-```
-
-_No docstring provided._
 
 ### ⚙️ Method `__init__`
 

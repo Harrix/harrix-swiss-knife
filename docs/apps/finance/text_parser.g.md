@@ -12,10 +12,6 @@ lang: en
 ## Contents
 
 - [🏛️ Class `ParsedPurchaseItem`](#%EF%B8%8F-class-parsedpurchaseitem)
-  - [📎 Attribute `name`](#-attribute-name)
-  - [📎 Attribute `category`](#-attribute-category)
-  - [📎 Attribute `amount`](#-attribute-amount)
-  - [📎 Attribute `currency_symbol`](#-attribute-currency_symbol)
 - [🏛️ Class `TextParser`](#%EF%B8%8F-class-textparser)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `parse_row`](#%EF%B8%8F-method-parse_row)
@@ -51,38 +47,6 @@ class ParsedPurchaseItem(NamedTuple):
 ```
 
 </details>
-
-### 📎 Attribute `name`
-
-```python
-name: str
-```
-
-_No docstring provided._
-
-### 📎 Attribute `category`
-
-```python
-category: str
-```
-
-_No docstring provided._
-
-### 📎 Attribute `amount`
-
-```python
-amount: float
-```
-
-_No docstring provided._
-
-### 📎 Attribute `currency_symbol`
-
-```python
-currency_symbol: str
-```
-
-_No docstring provided._
 
 ## 🏛️ Class `TextParser`
 

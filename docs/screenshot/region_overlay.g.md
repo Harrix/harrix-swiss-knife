@@ -11,7 +11,6 @@ lang: en
 
 ## Contents
 
-- [📎 Constant `RESULT_TOGGLE_ARRANGE`](#-constant-result_toggle_arrange)
 - [🏛️ Class `RegionOverlay`](#%EF%B8%8F-class-regionoverlay)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `cropped_image (property)`](#%EF%B8%8F-method-cropped_image-property)
@@ -22,14 +21,6 @@ lang: en
   - [⚙️ Method `paintEvent`](#%EF%B8%8F-method-paintevent)
 
 </details>
-
-## 📎 Constant `RESULT_TOGGLE_ARRANGE`
-
-```python
-RESULT_TOGGLE_ARRANGE = 2
-```
-
-_No docstring provided._
 
 ## 🏛️ Class `RegionOverlay`
 

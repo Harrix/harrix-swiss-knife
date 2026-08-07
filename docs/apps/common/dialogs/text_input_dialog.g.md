@@ -12,9 +12,6 @@ lang: en
 ## Contents
 
 - [🏛️ Class `TextInputDialog`](#%EF%B8%8F-class-textinputdialog)
-  - [📎 Attribute `text_edit`](#-attribute-text_edit)
-  - [📎 Attribute `date_edit`](#-attribute-date_edit)
-  - [📎 Attribute `accepted_text`](#-attribute-accepted_text)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `get_date`](#%EF%B8%8F-method-get_date)
   - [⚙️ Method `get_text`](#%EF%B8%8F-method-get_text)
@@ -171,30 +168,6 @@ class TextInputDialog(QDialog):
 ```
 
 </details>
-
-### 📎 Attribute `text_edit`
-
-```python
-text_edit: QPlainTextEdit
-```
-
-_No docstring provided._
-
-### 📎 Attribute `date_edit`
-
-```python
-date_edit: QDateEdit | None
-```
-
-_No docstring provided._
-
-### 📎 Attribute `accepted_text`
-
-```python
-accepted_text: str | None
-```
-
-_No docstring provided._
 
 ### ⚙️ Method `__init__`
 

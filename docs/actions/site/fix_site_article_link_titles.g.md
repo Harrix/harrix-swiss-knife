@@ -12,9 +12,6 @@ lang: en
 ## Contents
 
 - [🏛️ Class `OnFixSiteArticleLinkTitles`](#%EF%B8%8F-class-onfixsitearticlelinktitles)
-  - [📎 Attribute `cli_available`](#-attribute-cli_available)
-  - [📎 Attribute `cli_hint`](#-attribute-cli_hint)
-  - [📎 Attribute `folder_path`](#-attribute-folder_path)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
   - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread)
   - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after)
@@ -264,30 +261,6 @@ class OnFixSiteArticleLinkTitles(ActionBase):
 ```
 
 </details>
-
-### 📎 Attribute `cli_available`
-
-```python
-cli_available: ClassVar[bool] = True
-```
-
-_No docstring provided._
-
-### 📎 Attribute `cli_hint`
-
-```python
-cli_hint: ClassVar[str] = 'site fix-article-links'
-```
-
-_No docstring provided._
-
-### 📎 Attribute `folder_path`
-
-```python
-folder_path: Path | None = None
-```
-
-_No docstring provided._
 
 ### ⚙️ Method `execute`
 

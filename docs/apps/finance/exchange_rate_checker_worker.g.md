@@ -12,12 +12,6 @@ lang: en
 ## Contents
 
 - [🏛️ Class `ExchangeRateCheckerWorker`](#%EF%B8%8F-class-exchangeratecheckerworker)
-  - [📎 Attribute `progress_updated`](#-attribute-progress_updated)
-  - [📎 Attribute `check_completed`](#-attribute-check_completed)
-  - [📎 Attribute `check_failed`](#-attribute-check_failed)
-  - [📎 Attribute `db_filename`](#-attribute-db_filename)
-  - [📎 Attribute `check_from_first_transaction`](#-attribute-check_from_first_transaction)
-  - [📎 Attribute `should_stop`](#-attribute-should_stop)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `run`](#%EF%B8%8F-method-run)
   - [⚙️ Method `stop`](#%EF%B8%8F-method-stop)
@@ -191,54 +185,6 @@ class ExchangeRateCheckerWorker(QThread):
 ```
 
 </details>
-
-### 📎 Attribute `progress_updated`
-
-```python
-progress_updated: Signal = Signal(str)
-```
-
-_No docstring provided._
-
-### 📎 Attribute `check_completed`
-
-```python
-check_completed: Signal = Signal(list)
-```
-
-_No docstring provided._
-
-### 📎 Attribute `check_failed`
-
-```python
-check_failed: Signal = Signal(str)
-```
-
-_No docstring provided._
-
-### 📎 Attribute `db_filename`
-
-```python
-db_filename: str
-```
-
-_No docstring provided._
-
-### 📎 Attribute `check_from_first_transaction`
-
-```python
-check_from_first_transaction: bool
-```
-
-_No docstring provided._
-
-### 📎 Attribute `should_stop`
-
-```python
-should_stop: bool
-```
-
-_No docstring provided._
 
 ### ⚙️ Method `__init__`
 

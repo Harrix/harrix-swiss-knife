@@ -11,20 +11,11 @@ lang: en
 
 ## Contents
 
-- [📎 Constant `API_KEY_MISSING_MSG`](#-constant-api_key_missing_msg)
 - [🔧 Function `get_connection_params`](#-function-get_connection_params)
 - [🔧 Function `get_speech_model`](#-function-get_speech_model)
 - [🔧 Function `validate_api_key`](#-function-validate_api_key)
 
 </details>
-
-## 📎 Constant `API_KEY_MISSING_MSG`
-
-```python
-API_KEY_MISSING_MSG = 'BotHub API key is not configured.\n\nCopy api-keys/bothub-api-key.example.txt to api-keys/bothub-api-key.txt and add your access token (one line).'
-```
-
-_No docstring provided._
 
 ## 🔧 Function `get_connection_params`
 

@@ -12,16 +12,7 @@ lang: en
 ## Contents
 
 - [🏛️ Class `ChartExtremaLabelCandidate`](#%EF%B8%8F-class-chartextremalabelcandidate)
-  - [📎 Attribute `index`](#-attribute-index)
-  - [📎 Attribute `priority`](#-attribute-priority)
 - [🏛️ Class `ChartExtremaLabelsConfig`](#%EF%B8%8F-class-chartextremalabelsconfig)
-  - [📎 Attribute `max_annotations`](#-attribute-max_annotations)
-  - [📎 Attribute `max_local_extrema_each`](#-attribute-max_local_extrema_each)
-  - [📎 Attribute `extrema_window`](#-attribute-extrema_window)
-  - [📎 Attribute `label_fontsize`](#-attribute-label_fontsize)
-  - [📎 Attribute `overlap_pad`](#-attribute-overlap_pad)
-  - [📎 Attribute `priority_high`](#-attribute-priority_high)
-  - [📎 Attribute `priority_low`](#-attribute-priority_low)
 - [🔧 Function `annotate_chart_extrema_labels`](#-function-annotate_chart_extrema_labels)
 
 </details>
@@ -45,22 +36,6 @@ class ChartExtremaLabelCandidate:
 ```
 
 </details>
-
-### 📎 Attribute `index`
-
-```python
-index: int
-```
-
-_No docstring provided._
-
-### 📎 Attribute `priority`
-
-```python
-priority: int
-```
-
-_No docstring provided._
 
 ## 🏛️ Class `ChartExtremaLabelsConfig`
 
@@ -86,62 +61,6 @@ class ChartExtremaLabelsConfig:
 ```
 
 </details>
-
-### 📎 Attribute `max_annotations`
-
-```python
-max_annotations: int = 18
-```
-
-_No docstring provided._
-
-### 📎 Attribute `max_local_extrema_each`
-
-```python
-max_local_extrema_each: int = 8
-```
-
-_No docstring provided._
-
-### 📎 Attribute `extrema_window`
-
-```python
-extrema_window: int = 2
-```
-
-_No docstring provided._
-
-### 📎 Attribute `label_fontsize`
-
-```python
-label_fontsize: int = 8
-```
-
-_No docstring provided._
-
-### 📎 Attribute `overlap_pad`
-
-```python
-overlap_pad: float = 8.0
-```
-
-_No docstring provided._
-
-### 📎 Attribute `priority_high`
-
-```python
-priority_high: int = 0
-```
-
-_No docstring provided._
-
-### 📎 Attribute `priority_low`
-
-```python
-priority_low: int = 1
-```
-
-_No docstring provided._
 
 ## 🔧 Function `annotate_chart_extrema_labels`
 
