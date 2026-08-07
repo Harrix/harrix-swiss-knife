@@ -3,7 +3,7 @@
 import pytest
 from PySide6.QtWidgets import QApplication, QVBoxLayout, QWidget
 
-from harrix_swiss_knife.actions.quick_launcher.dialog import _layout_spacing_total
+from harrix_swiss_knife.actions.common.quick_launcher_dialog import _layout_spacing_total
 
 
 @pytest.fixture

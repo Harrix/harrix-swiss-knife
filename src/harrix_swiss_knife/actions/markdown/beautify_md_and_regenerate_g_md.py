@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from harrix_swiss_knife.actions.base import ActionBase
+from harrix_swiss_knife.actions.common.base import ActionBase
 from harrix_swiss_knife.actions.common.python_project import reject_python_project_for_md_beautify
 from harrix_swiss_knife.actions.markdown.beautify_md import OnBeautifyMd
 

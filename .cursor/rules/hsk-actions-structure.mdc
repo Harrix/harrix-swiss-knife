@@ -1,0 +1,40 @@
+---
+description: Structure of action modules under actions/ (one On* class per subcategory file)
+globs: src/harrix_swiss_knife/actions/**/*.py
+alwaysApply: false
+---
+
+# hsk actions structure
+
+## Subcategory folders (except `common/`)
+
+Each `.py` file under `src/harrix_swiss_knife/actions/<category>/` (not `common/`) must contain **one** public menu action class named `On*`.
+
+- Put module-level functions on that class as `@staticmethod` or instance methods.
+- Put module-level constants on that class as class attributes / `ClassVar`.
+- Helper classes used only by that action must be **nested** inside the `On*` class.
+- Do not put mixins or non-`On*` top-level classes in subcategory action files; fold them into the action class or move shared code to `common/`.
+
+## Shared code → `actions/common/`
+
+If helpers or classes are used by **more than one** action (and are not package-wide outside actions, and not in harrix-pylib), put them in `actions/common/`.
+
+`common/` holds framework pieces (`base`, dialogs) and domain helpers — not tray-menu `On*` action classes.
+
+## Example
+
+```python
+# BAD: module-level constants and helpers
+_TIMEOUT = 60.0
+
+def _normalize(path: Path) -> Path: ...
+
+class OnExample(ActionBase): ...
+
+# GOOD
+class OnExample(ActionBase):
+    _TIMEOUT = 60.0
+
+    @staticmethod
+    def _normalize(path: Path) -> Path: ...
+```

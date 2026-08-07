@@ -7,7 +7,7 @@ from typing import Any
 from PySide6.QtGui import QClipboard
 from PySide6.QtWidgets import QApplication
 
-from harrix_swiss_knife.actions.base import ActionBase
+from harrix_swiss_knife.actions.common.base import ActionBase
 
 
 class OnConvertPathToWindows(ActionBase):
@@ -32,11 +32,11 @@ class OnConvertPathToWindows(ActionBase):
             self.show_toast("❌ Clipboard text is empty.", duration=4000)
             return
 
-        windows_path = _to_windows_path(input_text)
+        windows_path = self._to_windows_path(input_text)
         clipboard.setText(windows_path, QClipboard.Mode.Clipboard)
         self.show_toast("✅ Windows path copied to clipboard.", duration=4000)
 
-
-def _to_windows_path(text: str) -> str:
-    r"""Normalize path text for Windows: trim, strip quotes, replace `/` with `\\`."""
-    return text.strip().strip('"').strip("'").replace("/", "\\")
+    @staticmethod
+    def _to_windows_path(text: str) -> str:
+        r"""Normalize path text for Windows: trim, strip quotes, replace `/` with `\\`."""
+        return text.strip().strip('"').strip("'").replace("/", "\\")

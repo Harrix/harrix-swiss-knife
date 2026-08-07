@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from harrix_swiss_knife.actions.base import ActionBase
+from harrix_swiss_knife.actions.common.base import ActionBase
 from harrix_swiss_knife.actions.files.list_files_simple import OnListFilesSimple
 
 

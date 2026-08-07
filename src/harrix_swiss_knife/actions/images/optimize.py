@@ -7,7 +7,7 @@ from typing import Any
 
 import harrix_pylib as h
 
-from harrix_swiss_knife.actions.base import ActionBase
+from harrix_swiss_knife.actions.common.base import ActionBase
 from harrix_swiss_knife.actions.common.image_optimize import optimize_images_in_folder as _optimize_images_in_folder
 
 

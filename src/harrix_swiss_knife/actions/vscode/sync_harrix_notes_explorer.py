@@ -11,7 +11,7 @@ from typing import Any, ClassVar, cast
 
 import harrix_pylib as h
 
-from harrix_swiss_knife.actions.base import ActionBase
+from harrix_swiss_knife.actions.common.base import ActionBase
 
 
 class OnSyncHarrixNotesExplorer(ActionBase):

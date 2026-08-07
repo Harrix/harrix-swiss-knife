@@ -7,8 +7,8 @@ from typing import Any
 from PySide6.QtGui import QClipboard
 from PySide6.QtWidgets import QApplication
 
-from harrix_swiss_knife.actions.base import ActionBase
-from harrix_swiss_knife.actions.text_result_dialog import (
+from harrix_swiss_knife.actions.common.base import ActionBase
+from harrix_swiss_knife.actions.common.text_result_dialog import (
     REWRITE_AGAIN_BUTTON_EMOJI,
     REWRITE_AGAIN_BUTTON_LABEL,
     resolve_text_result_dialog_action,

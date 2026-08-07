@@ -8,7 +8,7 @@ from pathlib import Path
 import harrix_pylib as h
 import pytest
 
-from harrix_swiss_knife.actions.quick_launcher.settings import (
+from harrix_swiss_knife.actions.common.quick_launcher_settings import (
     QUICK_LAUNCHER_MARKDOWN_IN_PANEL_KEY,
     load_quick_launcher_markdown_in_panel,
 )

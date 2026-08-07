@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from harrix_swiss_knife.actions.base import ActionBase
+from harrix_swiss_knife.actions.common.base import ActionBase
 from harrix_swiss_knife.actions.common.vscode_extension_path import (
     ensure_node_modules,
     resolve_extension_dir,

@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from harrix_swiss_knife.actions.base import ActionBase
-from harrix_swiss_knife.actions.quick_launcher.context import get_quick_launcher_context
+from harrix_swiss_knife.actions.common.base import ActionBase
+from harrix_swiss_knife.actions.common.quick_launcher_context import get_quick_launcher_context
 from harrix_swiss_knife.apps.common import message_box
 
 

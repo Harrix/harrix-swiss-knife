@@ -23,12 +23,12 @@ from PySide6.QtWidgets import (
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-from harrix_swiss_knife.actions.dialog_geometry import (
+from harrix_swiss_knife.actions.common.dialog_geometry import (
     fit_widget_height,
     list_content_height,
     text_content_height,
 )
-from harrix_swiss_knife.actions.dialog_widgets import ChoiceWithDescriptionDelegate
+from harrix_swiss_knife.actions.common.dialog_widgets import ChoiceWithDescriptionDelegate
 from harrix_swiss_knife.qt_emoji_icon import (
     COPY_BUTTON_EMOJI,
     apply_emoji_dialog_buttons,

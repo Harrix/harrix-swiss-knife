@@ -7,7 +7,7 @@ from typing import Any
 
 import harrix_pylib as h
 
-from harrix_swiss_knife.actions.base import ActionBase
+from harrix_swiss_knife.actions.common.base import ActionBase
 from harrix_swiss_knife.desktop_shortcut import create_desktop_shortcut
 from harrix_swiss_knife.pythonw_launcher import fix_pythonw_launcher
 

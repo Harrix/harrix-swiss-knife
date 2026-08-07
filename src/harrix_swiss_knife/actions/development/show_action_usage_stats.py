@@ -6,9 +6,9 @@ from typing import Any, ClassVar
 
 from harrix_swiss_knife.action_title import strip_md_inline_code_markers
 from harrix_swiss_knife.action_usage import load_action_usage
-from harrix_swiss_knife.actions.action_usage_stats_browser import ActionUsageStatsRow
-from harrix_swiss_knife.actions.base import ActionBase
-from harrix_swiss_knife.actions.quick_launcher.registry import iter_menu_actions_with_category
+from harrix_swiss_knife.actions.common.action_usage_stats_browser import ActionUsageStatsRow
+from harrix_swiss_knife.actions.common.base import ActionBase
+from harrix_swiss_knife.actions.common.quick_launcher_registry import iter_menu_actions_with_category
 
 
 class OnShowActionUsageStats(ActionBase):

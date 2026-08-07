@@ -11,7 +11,7 @@ from PIL import Image, ImageGrab
 from PySide6.QtCore import QMimeData, QUrl
 from PySide6.QtGui import QGuiApplication
 
-from harrix_swiss_knife.actions.base import ActionBase
+from harrix_swiss_knife.actions.common.base import ActionBase
 from harrix_swiss_knife.actions.common.image_optimize import optimize_images_in_folder
 
 

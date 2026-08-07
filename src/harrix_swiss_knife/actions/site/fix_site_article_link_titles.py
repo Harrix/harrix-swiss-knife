@@ -7,7 +7,7 @@ from typing import Any, ClassVar
 
 import harrix_pylib as h
 
-from harrix_swiss_knife.actions.base import ActionBase
+from harrix_swiss_knife.actions.common.base import ActionBase
 from harrix_swiss_knife.actions.common.site_article_links import (
     build_article_title_index,
     content_root_from_config,
@@ -148,7 +148,7 @@ class OnFixSiteArticleLinkTitles(ActionBase):
             relative_matches = find_relative_site_links(updated, settings)
             for match in reversed(relative_matches):
                 checked_relative += 1
-                loc = _location(md_path, updated, match.start)
+                loc = self._location(md_path, updated, match.start)
                 repo = match.ref.repo_name(settings)
                 if source_lang is not None and is_forbidden_cross_language_link(source_lang, match.ref.lang):
                     cross_lang_count += 1
@@ -177,7 +177,7 @@ class OnFixSiteArticleLinkTitles(ActionBase):
             dual_matches = find_dual_links(updated)
             for match in reversed(dual_matches):
                 checked_dual += 1
-                loc = _location(md_path, updated, match.start)
+                loc = self._location(md_path, updated, match.start)
                 key = (match.repo, match.slug)
                 target_parsed = parse_content_repo_name(match.repo, settings)
                 if (
@@ -244,17 +244,17 @@ class OnFixSiteArticleLinkTitles(ActionBase):
         ):
             self.add_line(f"✅ No link changes needed in {self.folder_path}.")
 
+    @staticmethod
+    def _line_col_at(text: str, offset: int) -> tuple[int, int]:
+        """Return 1-based line and column for a character offset in `text`."""
+        clamped = max(0, min(offset, len(text)))
+        line = text.count("\n", 0, clamped) + 1
+        last_newline = text.rfind("\n", 0, clamped)
+        col = clamped - last_newline
+        return line, col
 
-def _line_col_at(text: str, offset: int) -> tuple[int, int]:
-    """Return 1-based line and column for a character offset in `text`."""
-    clamped = max(0, min(offset, len(text)))
-    line = text.count("\n", 0, clamped) + 1
-    last_newline = text.rfind("\n", 0, clamped)
-    col = clamped - last_newline
-    return line, col
-
-
-def _location(path: Path, text: str, offset: int) -> str:
-    """Format `path:line:col` for checker-style clickable locations."""
-    line, col = _line_col_at(text, offset)
-    return f"{path}:{line}:{col}"
+    @staticmethod
+    def _location(path: Path, text: str, offset: int) -> str:
+        """Format `path:line:col` for checker-style clickable locations."""
+        line, col = OnFixSiteArticleLinkTitles._line_col_at(text, offset)
+        return f"{path}:{line}:{col}"

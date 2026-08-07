@@ -43,9 +43,9 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from harrix_swiss_knife.actions.action_log_browser import build_action_output_log_browser
-from harrix_swiss_knife.actions.action_usage_stats_browser import build_action_usage_stats_browser
-from harrix_swiss_knife.actions.dialog_geometry import (
+from harrix_swiss_knife.actions.common.action_log_browser import build_action_output_log_browser
+from harrix_swiss_knife.actions.common.action_usage_stats_browser import build_action_usage_stats_browser
+from harrix_swiss_knife.actions.common.dialog_geometry import (
     apply_adaptive_dialog_size,
     fit_widget_height,
     icon_grid_content_height,
@@ -53,13 +53,13 @@ from harrix_swiss_knife.actions.dialog_geometry import (
     text_content_height,
     widget_content_height,
 )
-from harrix_swiss_knife.actions.dialog_widgets import (
+from harrix_swiss_knife.actions.common.dialog_widgets import (
     ChoiceWithDescriptionDelegate,
     DragDropFileDialog,
     StandardActionDialog,
 )
-from harrix_swiss_knife.actions.text_diff_dialog import build_text_diff_side_by_side
-from harrix_swiss_knife.actions.text_result_dialog import (
+from harrix_swiss_knife.actions.common.text_diff_dialog import build_text_diff_side_by_side
+from harrix_swiss_knife.actions.common.text_result_dialog import (
     CANCEL_BUTTON_EMOJI,
     OK_BUTTON_EMOJI,
     RERUN_BUTTON_EMOJI,
@@ -99,7 +99,7 @@ COMMIT_OFFER_COPY_CODE = 11
 if TYPE_CHECKING:
     from collections.abc import Callable, Collection
 
-    from harrix_swiss_knife.actions.action_usage_stats_browser import ActionUsageStatsRow
+    from harrix_swiss_knife.actions.common.action_usage_stats_browser import ActionUsageStatsRow
 
 
 class ActionDialogService:

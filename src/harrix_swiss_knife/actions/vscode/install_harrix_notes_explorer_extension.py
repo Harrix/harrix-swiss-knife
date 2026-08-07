@@ -13,7 +13,7 @@ from typing import Any, ClassVar
 
 import harrix_pylib as h
 
-from harrix_swiss_knife.actions.base import ActionBase
+from harrix_swiss_knife.actions.common.base import ActionBase
 from harrix_swiss_knife.actions.vscode.sync_harrix_notes_explorer import OnSyncHarrixNotesExplorer
 
 

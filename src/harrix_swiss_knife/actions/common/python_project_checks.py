@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, ClassVar
 
 import harrix_pylib as h
 
-from harrix_swiss_knife.actions.base import ActionBase
+from harrix_swiss_knife.actions.common.base import ActionBase
 from harrix_swiss_knife.actions.common.subprocess_run import DEFAULT_SUBPROCESS_TIMEOUT
 from harrix_swiss_knife.actions.markdown.check_md import OnCheckMd
 from harrix_swiss_knife.actions.python.harrix_check_python import OnHarrixCheckPython

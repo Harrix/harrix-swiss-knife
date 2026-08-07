@@ -6,7 +6,7 @@ import warnings
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from harrix_swiss_knife.actions.base import ActionBase
+from harrix_swiss_knife.actions.common.base import ActionBase
 from harrix_swiss_knife.actions.common.ocr_markdown import (
     combine_markdown_sections,
     default_markdown_base,

@@ -39,6 +39,7 @@ class OnPullSiteSubmodules(ActionBase):
     description = "git submodule foreach git pull origin main in the site repo"
     cli_available: ClassVar[bool] = True
     cli_hint: ClassVar[str] = "site pull-submodules"
+    _PULL_COMMAND: ClassVar[list[str]] = ["git", "submodule", "foreach", "git", "pull", "origin", "main"]
 
     site_repo: Path | None = None
 
@@ -94,7 +95,7 @@ class OnPullSiteSubmodules(ActionBase):
         self.add_line(f"📂 Site repo: {self.site_repo}")
         self.add_line("▶️ Command: git submodule foreach git pull origin main")
 
-        output = h.dev.run_command(_PULL_COMMAND, cwd=str(self.site_repo))
+        output = h.dev.run_command(self._PULL_COMMAND, cwd=str(self.site_repo))
         self.add_line(output or "✅ Done (no output).")
 ```
 

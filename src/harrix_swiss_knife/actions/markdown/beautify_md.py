@@ -7,7 +7,7 @@ from typing import Any
 
 import harrix_pylib as h
 
-from harrix_swiss_knife.actions.base import ActionBase
+from harrix_swiss_knife.actions.common.base import ActionBase
 from harrix_swiss_knife.actions.common.python_project import reject_python_project_for_md_beautify
 
 

@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, ClassVar
 
-from harrix_swiss_knife.actions.base import ActionBase
+from harrix_swiss_knife.actions.common.base import ActionBase
 from harrix_swiss_knife.actions.common.image_optimize import OptimizeSizeStats
 from harrix_swiss_knife.actions.common.md_image_optimize import optimize_images_in_md_file
 

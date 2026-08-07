@@ -7,7 +7,7 @@ from typing import Any, ClassVar
 
 import harrix_pylib as h
 
-from harrix_swiss_knife.actions.base import ActionBase
+from harrix_swiss_knife.actions.common.base import ActionBase
 from harrix_swiss_knife.actions.common.python_project import is_python_project
 from harrix_swiss_knife.actions.markdown import OnBeautifyMd
 from harrix_swiss_knife.menu_list_markdown import update_readme_list_of_commands

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from harrix_swiss_knife.actions.base import ActionBase
+from harrix_swiss_knife.actions.common.base import ActionBase
 from harrix_swiss_knife.actions.python.sort_ruff_fmt_docs_python_code import (
     OnSortRuffFmtDocsPythonCode,
 )

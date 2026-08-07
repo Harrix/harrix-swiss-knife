@@ -6,7 +6,7 @@ from typing import Any
 
 import harrix_pylib as h
 
-from harrix_swiss_knife.actions.base import ActionBase
+from harrix_swiss_knife.actions.common.base import ActionBase
 from harrix_swiss_knife.actions.common.uv_name import validate_uv_project_name
 
 

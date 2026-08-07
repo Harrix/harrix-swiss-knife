@@ -395,7 +395,7 @@ Example action file:
 from __future__ import annotations
 from typing import Any
 import harrix_pylib as h
-from harrix_swiss_knife.actions.base import ActionBase
+from harrix_swiss_knife.actions.common.base import ActionBase
 
 
 class OnCheckFeaturedImageInFolders(ActionBase):
@@ -437,7 +437,7 @@ from harrix_swiss_knife.actions.files.check_featured_image_in_folders import OnC
 from __future__ import annotations
 from pathlib import Path
 from typing import Any
-from harrix_swiss_knife.actions.base import ActionBase
+from harrix_swiss_knife.actions.common.base import ActionBase
 class On<SomeActionName>Folder(ActionBase):
     """Do something with a folder (tray action + CLI command)."""
     icon = "🛠️"

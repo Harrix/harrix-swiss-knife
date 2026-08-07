@@ -6,7 +6,7 @@ from typing import Any
 
 from PySide6.QtWidgets import QApplication
 
-from harrix_swiss_knife.actions.base import ActionBase
+from harrix_swiss_knife.actions.common.base import ActionBase
 
 
 class OnExit(ActionBase):

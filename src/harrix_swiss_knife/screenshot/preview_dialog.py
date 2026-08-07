@@ -19,7 +19,7 @@ from PySide6.QtWidgets import (
 )
 
 from harrix_swiss_knife import qt_modality
-from harrix_swiss_knife.actions.text_result_dialog import (
+from harrix_swiss_knife.actions.common.text_result_dialog import (
     COPY_BUTTON_EMOJI,
     COPY_BUTTON_LABEL,
     add_ok_button,

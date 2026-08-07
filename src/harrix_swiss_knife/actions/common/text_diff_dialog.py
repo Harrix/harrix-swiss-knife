@@ -19,8 +19,8 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from harrix_swiss_knife.actions.dialog_geometry import fit_widget_height, text_content_height
-from harrix_swiss_knife.actions.text_result_dialog import (
+from harrix_swiss_knife.actions.common.dialog_geometry import fit_widget_height, text_content_height
+from harrix_swiss_knife.actions.common.text_result_dialog import (
     RERUN_BUTTON_EMOJI,
     RERUN_BUTTON_LABEL,
     add_copy_button,

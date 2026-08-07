@@ -6,8 +6,8 @@ from typing import TYPE_CHECKING
 
 import harrix_pylib as h
 
+from harrix_swiss_knife.actions.common.quick_launcher_context import QuickLauncherContext
 from harrix_swiss_knife.actions.markdown.new_markdown import OnNewMarkdown
-from harrix_swiss_knife.actions.quick_launcher.context import QuickLauncherContext
 from harrix_swiss_knife.menu_structure import get_menu_structure
 
 if TYPE_CHECKING:
@@ -41,7 +41,7 @@ def test_build_picker_choices_includes_templates_and_commands(monkeypatch: pytes
 
 def test_action_classes_excludes_new_markdown_when_panel_enabled(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
-        "harrix_swiss_knife.actions.quick_launcher.context.load_quick_launcher_markdown_in_panel",
+        "harrix_swiss_knife.actions.common.quick_launcher_context.load_quick_launcher_markdown_in_panel",
         lambda: True,
     )
     context = QuickLauncherContext(
@@ -55,7 +55,7 @@ def test_action_classes_excludes_new_markdown_when_panel_enabled(monkeypatch: py
 
 def test_action_classes_includes_new_markdown_when_panel_disabled(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
-        "harrix_swiss_knife.actions.quick_launcher.context.load_quick_launcher_markdown_in_panel",
+        "harrix_swiss_knife.actions.common.quick_launcher_context.load_quick_launcher_markdown_in_panel",
         lambda: False,
     )
     context = QuickLauncherContext(

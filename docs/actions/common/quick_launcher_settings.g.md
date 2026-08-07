@@ -4,7 +4,7 @@ author-email: anton.b.sergienko@gmail.com
 lang: en
 ---
 
-# 📄 File `settings.py`
+# 📄 File `quick_launcher_settings.py`
 
 ## 🔧 Function `load_quick_launcher_markdown_in_panel`
 

@@ -7,7 +7,7 @@ from typing import Any, ClassVar
 
 import harrix_pylib as h
 
-from harrix_swiss_knife.actions.base import ActionBase
+from harrix_swiss_knife.actions.common.base import ActionBase
 from harrix_swiss_knife.actions.common.site_article_links import (
     content_root_from_config,
     github_https_url_for_repo,
@@ -59,7 +59,7 @@ class OnAddSiteContentSubmodule(ActionBase):
         if folder_path is not None:
             content_folder = Path(folder_path).resolve()
         else:
-            folder_choices = _content_repo_choices(content_root)
+            folder_choices = self._content_repo_choices(content_root)
             default_path = str(content_root) if content_root is not None else str(site_repo)
             content_folder = self.dialogs.get_folder_with_choice_option(folder_choices, default_path)
         if not content_folder:
@@ -108,9 +108,9 @@ class OnAddSiteContentSubmodule(ActionBase):
         if not noninteractive:
             self.show_result()
 
-
-def _content_repo_choices(content_root: Path | None) -> list[str]:
-    """List immediate child directories under the content root for the picker."""
-    if content_root is None or not content_root.is_dir():
-        return []
-    return sorted(str(path) for path in content_root.iterdir() if path.is_dir() and not path.name.startswith("."))
+    @staticmethod
+    def _content_repo_choices(content_root: Path | None) -> list[str]:
+        """List immediate child directories under the content root for the picker."""
+        if content_root is None or not content_root.is_dir():
+            return []
+        return sorted(str(path) for path in content_root.iterdir() if path.is_dir() and not path.name.startswith("."))

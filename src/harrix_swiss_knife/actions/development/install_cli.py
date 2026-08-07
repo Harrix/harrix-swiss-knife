@@ -8,9 +8,7 @@ from typing import Any
 
 import harrix_pylib as h
 
-from harrix_swiss_knife.actions.base import ActionBase
-
-_UV_TOOL_TIMEOUT = 600.0
+from harrix_swiss_knife.actions.common.base import ActionBase
 
 
 class OnInstallCli(ActionBase):
@@ -26,6 +24,7 @@ class OnInstallCli(ActionBase):
     title = "Install CLI (hsk on PATH)"
     cli_available = True
     cli_hint = "dev install-cli"
+    _UV_TOOL_TIMEOUT = 600.0
 
     @ActionBase.handle_exceptions("install CLI")
     def execute(self, *args: Any, noninteractive: bool = False, **kwargs: Any) -> None:  # noqa: ARG002
@@ -101,10 +100,10 @@ class OnInstallCli(ActionBase):
                 text=True,
                 encoding="utf-8",
                 check=False,
-                timeout=_UV_TOOL_TIMEOUT,
+                timeout=self._UV_TOOL_TIMEOUT,
                 shell=False,
             )
         except subprocess.TimeoutExpired:
-            return f"Command timed out after {_UV_TOOL_TIMEOUT} seconds"
+            return f"Command timed out after {self._UV_TOOL_TIMEOUT} seconds"
         output_parts = [(process.stdout or "").strip(), (process.stderr or "").strip()]
         return "\n".join(filter(None, output_parts))

@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from harrix_swiss_knife.actions.base import ActionBase
+    from harrix_swiss_knife.actions.common.base import ActionBase
 
 
 def is_python_project(folder_path: Path | str) -> bool:

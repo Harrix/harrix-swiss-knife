@@ -4,10 +4,10 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
+from harrix_swiss_knife.actions.common.quick_launcher_dialog import QuickLauncherDialog
+from harrix_swiss_knife.actions.common.quick_launcher_registry import collect_quick_launcher_actions
+from harrix_swiss_knife.actions.common.quick_launcher_settings import load_quick_launcher_markdown_in_panel
 from harrix_swiss_knife.actions.markdown.new_markdown import OnNewMarkdown
-from harrix_swiss_knife.actions.quick_launcher.dialog import QuickLauncherDialog
-from harrix_swiss_knife.actions.quick_launcher.registry import collect_quick_launcher_actions
-from harrix_swiss_knife.actions.quick_launcher.settings import load_quick_launcher_markdown_in_panel
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -15,7 +15,7 @@ if TYPE_CHECKING:
     from PySide6.QtWidgets import QWidget
 
     from harrix_swiss_knife.action_output_bus import ActionOutputBus
-    from harrix_swiss_knife.actions.base import ActionBase
+    from harrix_swiss_knife.actions.common.base import ActionBase
 
 
 class QuickLauncherContext:

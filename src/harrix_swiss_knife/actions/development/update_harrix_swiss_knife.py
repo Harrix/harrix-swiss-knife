@@ -13,7 +13,7 @@ from typing import Any, Literal, TypedDict, cast
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
-from harrix_swiss_knife.actions.base import ActionBase
+from harrix_swiss_knife.actions.common.base import ActionBase
 from harrix_swiss_knife.actions.common.github_https import (
     github_api_headers,
     validate_https_url,

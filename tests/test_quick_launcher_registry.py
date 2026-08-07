@@ -5,8 +5,11 @@ from __future__ import annotations
 import pytest
 from PySide6.QtWidgets import QApplication
 
+from harrix_swiss_knife.actions.common.quick_launcher_registry import (
+    collect_quick_launcher_actions,
+    iter_menu_structure,
+)
 from harrix_swiss_knife.actions.images.optimize_clipboard import OnOptimizeClipboard
-from harrix_swiss_knife.actions.quick_launcher.registry import collect_quick_launcher_actions, iter_menu_structure
 from harrix_swiss_knife.actions.text.fix_text_with_ai import OnFixTextWithAI
 from harrix_swiss_knife.actions.text.speech_to_text_with_ai import OnSpeechToTextWithAI
 from harrix_swiss_knife.global_hotkey import MOD_ALT, MOD_CONTROL, parse_hotkey_string

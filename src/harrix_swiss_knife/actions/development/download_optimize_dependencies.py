@@ -14,7 +14,7 @@ from urllib.request import Request, urlopen
 
 import harrix_pylib as h
 
-from harrix_swiss_knife.actions.base import ActionBase
+from harrix_swiss_knife.actions.common.base import ActionBase
 from harrix_swiss_knife.actions.common.github_https import (
     github_api_headers,
     validate_https_url,

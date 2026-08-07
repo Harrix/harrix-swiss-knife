@@ -49,6 +49,7 @@ class OnPublishPythonLibrary(ActionBase):
 
     icon = "⚡"
     title = "Publish Python library to PyPI in …"
+    _DEFAULT_SUBPROCESS_TIMEOUT = 600.0
 
     @ActionBase.handle_exceptions("publishing Python library")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002

@@ -9,7 +9,7 @@ from typing import Any, ClassVar
 from PySide6.QtWidgets import QApplication
 from shiboken6 import isValid
 
-from harrix_swiss_knife.actions.base import ActionBase
+from harrix_swiss_knife.actions.common.base import ActionBase
 
 
 class AppLauncherAction(ActionBase):

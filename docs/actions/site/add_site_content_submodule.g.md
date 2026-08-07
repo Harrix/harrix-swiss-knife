@@ -67,7 +67,7 @@ class OnAddSiteContentSubmodule(ActionBase):
         if folder_path is not None:
             content_folder = Path(folder_path).resolve()
         else:
-            folder_choices = _content_repo_choices(content_root)
+            folder_choices = self._content_repo_choices(content_root)
             default_path = str(content_root) if content_root is not None else str(site_repo)
             content_folder = self.dialogs.get_folder_with_choice_option(folder_choices, default_path)
         if not content_folder:
@@ -115,6 +115,13 @@ class OnAddSiteContentSubmodule(ActionBase):
         self.add_line(output or "✅ Done (no output).")
         if not noninteractive:
             self.show_result()
+
+    @staticmethod
+    def _content_repo_choices(content_root: Path | None) -> list[str]:
+        """List immediate child directories under the content root for the picker."""
+        if content_root is None or not content_root.is_dir():
+            return []
+        return sorted(str(path) for path in content_root.iterdir() if path.is_dir() and not path.name.startswith("."))
 ```
 
 </details>
@@ -156,7 +163,7 @@ def execute(
         if folder_path is not None:
             content_folder = Path(folder_path).resolve()
         else:
-            folder_choices = _content_repo_choices(content_root)
+            folder_choices = self._content_repo_choices(content_root)
             default_path = str(content_root) if content_root is not None else str(site_repo)
             content_folder = self.dialogs.get_folder_with_choice_option(folder_choices, default_path)
         if not content_folder:

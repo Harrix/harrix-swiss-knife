@@ -21,8 +21,8 @@ from PySide6.QtWidgets import QApplication, QMessageBox
 from harrix_swiss_knife import resources_rc  # noqa: F401
 from harrix_swiss_knife.action_hotkeys import load_action_hotkeys
 from harrix_swiss_knife.action_output_bus import ActionOutputBus
-from harrix_swiss_knife.actions.quick_launcher.context import QuickLauncherContext, set_quick_launcher_context
-from harrix_swiss_knife.actions.quick_launcher.registry import iter_menu_structure
+from harrix_swiss_knife.actions.common.quick_launcher_context import QuickLauncherContext, set_quick_launcher_context
+from harrix_swiss_knife.actions.common.quick_launcher_registry import iter_menu_structure
 from harrix_swiss_knife.cli_menu import CliContextMenu
 from harrix_swiss_knife.global_hotkey import GlobalHotkeyManager
 from harrix_swiss_knife.main_menu_base import set_menu_tooltips_visible_recursive

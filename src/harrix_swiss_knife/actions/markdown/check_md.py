@@ -10,16 +10,8 @@ from typing import Any
 
 import harrix_pylib as h
 
-from harrix_swiss_knife.actions.base import ActionBase
+from harrix_swiss_knife.actions.common.base import ActionBase
 from harrix_swiss_knife.cli_menu import CLI_EXECUTABLE
-
-_RULE_ID_RE = re.compile(r"^H\d+")
-# Location may be `path`, `path:line`, or `path:line:col` (Windows drive-safe via non-greedy path).
-_FORMATTED_ERROR_RE = re.compile(
-    r"^(?P<location>.*?): (?P<code>[A-Z]+\d+)(?P<rest>\n  .*| .*|)$",
-    re.DOTALL,
-)
-_INCLUDE_G_MD_CHOICE = "Include .g.md files"
 
 
 class OnCheckMd(ActionBase):
@@ -31,6 +23,14 @@ class OnCheckMd(ActionBase):
     cli_hint = "md check"
 
     include_g_md: bool = False
+
+    _RULE_ID_RE = re.compile(r"^H\d+")
+    # Location may be `path`, `path:line`, or `path:line:col` (Windows drive-safe via non-greedy path).
+    _FORMATTED_ERROR_RE = re.compile(
+        r"^(?P<location>.*?): (?P<code>[A-Z]+\d+)(?P<rest>\n  .*| .*|)$",
+        re.DOTALL,
+    )
+    _INCLUDE_G_MD_CHOICE = "Include .g.md files"
 
     def check_md_common(self) -> None:
         """Check Markdown files in `folder_path` with `selected_rule_ids` and log results."""
@@ -53,7 +53,7 @@ class OnCheckMd(ActionBase):
         # MdChecker formats errors with a path relative to the git root.
         # Replace that relative prefix with the full absolute path (the dict key).
         all_errors = [
-            _absolutize_checker_error(error, file_path)
+            self._absolutize_checker_error(error, file_path)
             for file_path, file_errors in errors_dict.items()
             for error in file_errors
         ]
@@ -69,7 +69,7 @@ class OnCheckMd(ActionBase):
 
             desc_counts = Counter()
             for err in all_errors:
-                description = _error_type_description(err)
+                description = self._error_type_description(err)
                 if description:
                     desc_counts[description] += 1
 
@@ -79,7 +79,7 @@ class OnCheckMd(ActionBase):
 
             first_rule_id: str | None = None
             for desc, _count in sorted_stats:
-                rule_id_match = _RULE_ID_RE.match(desc.strip())
+                rule_id_match = self._RULE_ID_RE.match(desc.strip())
                 if rule_id_match is not None:
                     first_rule_id = rule_id_match.group(0)
                     break
@@ -143,7 +143,7 @@ class OnCheckMd(ActionBase):
 
         # Convert rules dict to list of rule descriptions for display
         rule_choices = [f"{rule_id}: {description}" for rule_id, description in checker.RULES.items()]
-        choices = [_INCLUDE_G_MD_CHOICE, *rule_choices]
+        choices = [self._INCLUDE_G_MD_CHOICE, *rule_choices]
 
         # Show dialog to select rules (all selected by default; .g.md opt-in)
         selected_rules = self.dialogs.get_checkbox_selection(
@@ -156,12 +156,12 @@ class OnCheckMd(ActionBase):
         if not selected_rules:
             return
 
-        self.include_g_md = _INCLUDE_G_MD_CHOICE in selected_rules
+        self.include_g_md = self._INCLUDE_G_MD_CHOICE in selected_rules
 
         # Extract rule IDs from selected descriptions
         self.selected_rule_ids = set()
         for selected_rule in selected_rules:
-            if selected_rule == _INCLUDE_G_MD_CHOICE:
+            if selected_rule == self._INCLUDE_G_MD_CHOICE:
                 continue
             # Extract rule ID (e.g., "H001" from "H001: Description")
             rule_id = selected_rule.split(":")[0].strip()
@@ -180,36 +180,36 @@ class OnCheckMd(ActionBase):
         self.show_toast(f"{self.title} {self.folder_path} completed")
         self.show_result()
 
+    @staticmethod
+    def _absolutize_checker_error(error: str, file_path: str) -> str:
+        """Replace the relative path prefix with an absolute path; keep multi-line body."""
+        match = OnCheckMd._FORMATTED_ERROR_RE.match(error)
+        if match is None:
+            return error
+        location = f"{file_path}{OnCheckMd._line_col_suffix(match.group('location'))}"
+        return f"{location}: {match.group('code')}{match.group('rest')}"
 
-def _absolutize_checker_error(error: str, file_path: str) -> str:
-    """Replace the relative path prefix with an absolute path; keep multi-line body."""
-    match = _FORMATTED_ERROR_RE.match(error)
-    if match is None:
-        return error
-    location = f"{file_path}{_line_col_suffix(match.group('location'))}"
-    return f"{location}: {match.group('code')}{match.group('rest')}"
+    @staticmethod
+    def _error_type_description(error: str) -> str | None:
+        """Build a short stats key like `H060 Asset file not referenced in Markdown`."""
+        match = OnCheckMd._FORMATTED_ERROR_RE.match(error)
+        if match is None:
+            return None
+        code = match.group("code")
+        rest = match.group("rest").strip()
+        if not rest:
+            return code
+        summary = rest.split(": ", 1)[0].strip()
+        return f"{code} {summary}" if summary else code
 
-
-def _error_type_description(error: str) -> str | None:
-    """Build a short stats key like `H060 Asset file not referenced in Markdown`."""
-    match = _FORMATTED_ERROR_RE.match(error)
-    if match is None:
-        return None
-    code = match.group("code")
-    rest = match.group("rest").strip()
-    if not rest:
-        return code
-    summary = rest.split(": ", 1)[0].strip()
-    return f"{code} {summary}" if summary else code
-
-
-def _line_col_suffix(location: str) -> str:
-    """Return `:line` / `:line:col` suffix from a checker location, if present."""
-    parts = location.split(":")
-    if not parts:
+    @staticmethod
+    def _line_col_suffix(location: str) -> str:
+        """Return `:line` / `:line:col` suffix from a checker location, if present."""
+        parts = location.split(":")
+        if not parts:
+            return ""
+        if parts[-1].isdigit():
+            if len(parts) >= 2 and parts[-2].isdigit():  # noqa: PLR2004
+                return f":{parts[-2]}:{parts[-1]}"
+            return f":{parts[-1]}"
         return ""
-    if parts[-1].isdigit():
-        if len(parts) >= 2 and parts[-2].isdigit():  # noqa: PLR2004
-            return f":{parts[-2]}:{parts[-1]}"
-        return f":{parts[-1]}"
-    return ""

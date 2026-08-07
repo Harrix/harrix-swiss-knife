@@ -1,45 +1,55 @@
----
-author: Anton Sergienko
-author-email: anton.b.sergienko@gmail.com
-lang: en
----
+"""Quick launcher overlay dialog."""
 
-# 📄 File `dialog.py`
+from __future__ import annotations
 
-<details>
-<summary>📖 Contents ⬇️</summary>
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, ClassVar, cast
 
-## Contents
+from PySide6.QtCore import QEvent, QObject, QPoint, QSize, Qt, QTimer
+from PySide6.QtGui import QFont, QIcon, QKeyEvent, QMouseEvent, QResizeEvent
+from PySide6.QtWidgets import (
+    QApplication,
+    QDialog,
+    QFrame,
+    QHBoxLayout,
+    QLabel,
+    QListWidget,
+    QListWidgetItem,
+    QPushButton,
+    QSizeGrip,
+    QSizePolicy,
+    QVBoxLayout,
+    QWidget,
+)
 
-- [🏛️ Class `QuickLauncherDialog`](#%EF%B8%8F-class-quicklauncherdialog)
-  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
-  - [⚙️ Method `eventFilter`](#%EF%B8%8F-method-eventfilter)
-  - [⚙️ Method `keyPressEvent`](#%EF%B8%8F-method-keypressevent)
-  - [⚙️ Method `mouseMoveEvent`](#%EF%B8%8F-method-mousemoveevent)
-  - [⚙️ Method `mousePressEvent`](#%EF%B8%8F-method-mousepressevent)
-  - [⚙️ Method `mouseReleaseEvent`](#%EF%B8%8F-method-mousereleaseevent)
-  - [⚙️ Method `nativeEvent`](#%EF%B8%8F-method-nativeevent)
-  - [⚙️ Method `present`](#%EF%B8%8F-method-present)
-  - [⚙️ Method `resizeEvent`](#%EF%B8%8F-method-resizeevent)
-  - [⚙️ Method `set_action_classes`](#%EF%B8%8F-method-set_action_classes)
-  - [⚙️ Method `toggle (classmethod)`](#%EF%B8%8F-method-toggle-classmethod)
-  - [⚙️ Method `update_session`](#%EF%B8%8F-method-update_session)
+from harrix_swiss_knife.action_hotkeys import load_hotkeys_for_action
+from harrix_swiss_knife.action_title import strip_md_inline_code_markers
+from harrix_swiss_knife.actions.common.quick_launcher_settings import load_quick_launcher_markdown_in_panel
+from harrix_swiss_knife.actions.markdown.new_markdown import OnNewMarkdown
+from harrix_swiss_knife.qt_action_card_grid import CARD_ICON_SIZE, configure_action_card_grid
+from harrix_swiss_knife.qt_command_section import (
+    apply_opaque_white,
+    create_command_section,
+    measure_icon_grid_height,
+    style_transparent_icon_grid,
+)
+from harrix_swiss_knife.qt_emoji_icon import create_emoji_icon
+from harrix_swiss_knife.qt_frameless_window import frameless_stay_on_top_flags, try_handle_frameless_resize_native_event
+from harrix_swiss_knife.qt_markdown_choice_cards import populate_icon_choice_cards
+from harrix_swiss_knife.win11_backdrop import SystemBackdrop, try_apply_system_backdrop
 
-</details>
+if TYPE_CHECKING:
+    from harrix_swiss_knife.action_output_bus import ActionOutputBus
+    from harrix_swiss_knife.actions.common.base import ActionBase
 
-## 🏛️ Class `QuickLauncherDialog`
+_OVERLAY_MIN_SIZE = QSize(900, 560)
+_OVERLAY_DEFAULT_SIZE = QSize(1024, 720)
+_WINDOW_FLAGS = frameless_stay_on_top_flags()
+_DIALOG_BORDER_STYLE = "#quickLauncherDialog { background-color: #ffffff; border: 1px solid #c0c0c0;}"
 
-```python
-class QuickLauncherDialog(QDialog)
-```
 
-Resizable always-on-top window listing quick-launcher actions.
-
-<details>
-<summary>Code:</summary>
-
-```python
 class QuickLauncherDialog(QDialog):
+    """Resizable always-on-top window listing quick-launcher actions."""
 
     _instance: ClassVar[QuickLauncherDialog | None] = None
 
@@ -518,404 +528,69 @@ class QuickLauncherDialog(QDialog):
         if hotkeys:
             hint_parts.append(f"{' / '.join(hotkeys)} to toggle")
         self._hint.setText(" · ".join(hint_parts))
-```
 
-</details>
 
-### ⚙️ Method `__init__`
-
-```python
-def __init__(self, parent: QWidget | None = None) -> None
-```
-
-Build the quick launcher dialog.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def __init__(self, parent: QWidget | None = None) -> None:
-        super().__init__(parent)
-        self._default_parent = parent
-        self.setModal(False)
-        self.setWindowModality(Qt.WindowModality.NonModal)
-        self.setWindowFlags(_WINDOW_FLAGS)
-        self.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating, on=False)
-        self.setMinimumSize(_OVERLAY_MIN_SIZE)
-        self.resize(_OVERLAY_DEFAULT_SIZE)
-        try_apply_system_backdrop(self, backdrop=SystemBackdrop.MICA)
-
-        self._output_bus: ActionOutputBus | None = None
-        self._action_classes: list[type[ActionBase]] = []
-        self._dragging = False
-        self._drag_position = QPoint()
-
-        apply_opaque_white(self)
-        self.setObjectName("quickLauncherDialog")
-        self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, on=True)
-        self.setStyleSheet(_DIALOG_BORDER_STYLE)
-
-        self._layout = QVBoxLayout(self)
-        self._layout.setContentsMargins(16, 16, 16, 16)
-        self._layout.setSpacing(12)
-
-        title = QLabel("Quick launcher")
-        title_font = QFont(title.font())
-        title_font.setPointSize(title_font.pointSize() + 1)
-        title_font.setBold(True)
-        title.setFont(title_font)
-        title.setCursor(Qt.CursorShape.OpenHandCursor)
-
-        self._close_button = QPushButton("X")
-        self._close_button.setFixedSize(28, 28)
-        self._close_button.setFlat(True)
-        self._close_button.setToolTip("Close")
-        self._close_button.setCursor(Qt.CursorShape.PointingHandCursor)
-        self._close_button.clicked.connect(self.hide)
-
-        header_spacer = QWidget(self)
-        header_spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
-        header_spacer.setCursor(Qt.CursorShape.OpenHandCursor)
-
-        header = QHBoxLayout()
-        header.setContentsMargins(0, 0, 0, 0)
-        header.addWidget(title)
-        header.addWidget(header_spacer, stretch=1)
-        header.addWidget(self._close_button)
-        self._layout.addLayout(header)
-
-        self._cards = QListWidget(self)
-        configure_action_card_grid(self._cards)
-        style_transparent_icon_grid(self._cards)
-        self._cards.itemClicked.connect(self._on_item_clicked)
-        self._actions_section, _, actions_layout = create_command_section(title="Actions")
-        actions_layout.addWidget(self._cards)
-        self._layout.addWidget(self._actions_section, stretch=1)
-
-        self._markdown_cards = QListWidget(self)
-        configure_action_card_grid(self._markdown_cards)
-        style_transparent_icon_grid(self._markdown_cards)
-        self._markdown_section, self._markdown_section_label, markdown_layout = create_command_section(
-            title="New Markdown",
-        )
-        if self._markdown_section_label is not None:
-            self._markdown_section_label.setCursor(Qt.CursorShape.OpenHandCursor)
-        markdown_layout.addWidget(self._markdown_cards)
-        self._layout.addWidget(self._markdown_section, stretch=1)
-
-        self._hint = QLabel(self)
-        self._hint.setStyleSheet("color: palette(mid);")
-        self._hint.setCursor(Qt.CursorShape.OpenHandCursor)
-        self._layout.addWidget(self._hint)
-        self._update_hint()
-
-        resize_row = QHBoxLayout()
-        resize_row.addStretch()
-        self._size_grip = QSizeGrip(self)
-        resize_row.addWidget(self._size_grip, alignment=Qt.AlignmentFlag.AlignRight)
-        self._layout.addLayout(resize_row)
-
-        draggable_widgets: list[QWidget] = [title, header_spacer, self._hint]
-        if self._markdown_section_label is not None:
-            draggable_widgets.append(self._markdown_section_label)
-        for draggable_widget in draggable_widgets:
-            draggable_widget.installEventFilter(self)
-
-        self._apply_split_layout(enabled=False)
-        self.setMouseTracking(True)
-        self.setCursor(Qt.CursorShape.OpenHandCursor)
-        self._center_on_screen()
-```
-
-</details>
-
-### ⚙️ Method `eventFilter`
-
-```python
-def eventFilter(self, watched: QObject, event: QEvent) -> bool
-```
-
-Start window drag from passive header and hint widgets.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
-        if isinstance(watched, QWidget) and self._is_drag_excluded_widget(watched):
-            return False
-
-        if (
-            event.type() == QEvent.Type.MouseButtonPress
-            and isinstance(event, QMouseEvent)
-            and event.button() == Qt.MouseButton.LeftButton
-        ):
-            self._start_drag(event.globalPosition().toPoint())
-            return True
-
-        if (
-            event.type() == QEvent.Type.MouseMove
-            and isinstance(event, QMouseEvent)
-            and event.buttons() & Qt.MouseButton.LeftButton
-            and self._dragging
-        ):
-            self._move_drag(event.globalPosition().toPoint())
-            return True
-
-        if (
-            event.type() == QEvent.Type.MouseButtonRelease
-            and isinstance(event, QMouseEvent)
-            and event.button() == Qt.MouseButton.LeftButton
-            and self._dragging
-        ):
-            self._end_drag()
-            return True
-
-        return False
-```
-
-</details>
-
-### ⚙️ Method `keyPressEvent`
-
-```python
-def keyPressEvent(self, event: QKeyEvent) -> None
-```
-
-Hide the overlay on Escape.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
-        if event.key() == Qt.Key.Key_Escape:
-            self.hide()
-            event.accept()
-            return
-        super().keyPressEvent(event)
-```
-
-</details>
-
-### ⚙️ Method `mouseMoveEvent`
-
-```python
-def mouseMoveEvent(self, event: QMouseEvent) -> None
-```
-
-Move the overlay while dragging from dialog margins.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def mouseMoveEvent(self, event: QMouseEvent) -> None:  # noqa: N802
-        if event.buttons() & Qt.MouseButton.LeftButton and self._dragging:
-            self._move_drag(event.globalPosition().toPoint())
-            event.accept()
-            return
-        super().mouseMoveEvent(event)
-```
-
-</details>
-
-### ⚙️ Method `mousePressEvent`
-
-```python
-def mousePressEvent(self, event: QMouseEvent) -> None
-```
-
-Start dragging from dialog margins and background.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def mousePressEvent(self, event: QMouseEvent) -> None:  # noqa: N802
-        if event.button() == Qt.MouseButton.LeftButton and self._can_start_drag_at(event.position().toPoint()):
-            self._start_drag(event.globalPosition().toPoint())
-            event.accept()
-            return
-        super().mousePressEvent(event)
-```
-
-</details>
-
-### ⚙️ Method `mouseReleaseEvent`
-
-```python
-def mouseReleaseEvent(self, event: QMouseEvent) -> None
-```
-
-Stop dragging the overlay.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def mouseReleaseEvent(self, event: QMouseEvent) -> None:  # noqa: N802
-        if event.button() == Qt.MouseButton.LeftButton and self._dragging:
-            self._end_drag()
-            event.accept()
-            return
-        super().mouseReleaseEvent(event)
-```
-
-</details>
-
-### ⚙️ Method `nativeEvent`
-
-```python
-def nativeEvent(self, event_type, message) -> tuple[bool, int]
-```
-
-Allow edge resize for this frameless window on Windows.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def nativeEvent(self, event_type, message) -> tuple[bool, int]:  # noqa: ANN001, N802
-        handled = try_handle_frameless_resize_native_event(self, event_type, message)
-        if handled is not None:
-            return handled
-        return cast("tuple[bool, int]", super().nativeEvent(event_type, message))
-```
-
-</details>
-
-### ⚙️ Method `present`
-
-```python
-def present(self) -> None
-```
-
-Show and focus the overlay.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def present(self) -> None:
-        self._update_hint()
-        self._retarget_to_active_modal_parent()
-        width = max(self.width(), _OVERLAY_DEFAULT_SIZE.width())
-        self.resize(width, _OVERLAY_DEFAULT_SIZE.height())
-        self.show()
-        self.raise_()
-        self.activateWindow()
-        QTimer.singleShot(0, self._present_after_show)
-```
-
-</details>
-
-### ⚙️ Method `resizeEvent`
-
-```python
-def resizeEvent(self, event: QResizeEvent) -> None
-```
-
-Reflow icon grids when the window width changes.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802
-        super().resizeEvent(event)
-        QTimer.singleShot(0, self._refit_grids_for_width)
-```
-
-</details>
-
-### ⚙️ Method `set_action_classes`
-
-```python
-def set_action_classes(self, action_classes: list[type[ActionBase]]) -> None
-```
-
-Rebuild the action card grid.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def set_action_classes(self, action_classes: list[type[ActionBase]]) -> None:
-        self._action_classes = list(action_classes)
-        self._cards.clear()
-        for action_cls in self._action_classes:
-            item = QListWidgetItem(strip_md_inline_code_markers(action_cls.title), self._cards)
-            item.setData(Qt.ItemDataRole.UserRole, action_cls)
-            item.setTextAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop)
-            item.setIcon(_action_icon(action_cls, CARD_ICON_SIZE))
-            self._cards.addItem(item)
-```
-
-</details>
-
-### ⚙️ Method `toggle (classmethod)`
-
-```python
-def toggle(cls, *, parent: QWidget | None, output_bus: ActionOutputBus | None, action_classes: list[type[ActionBase]]) -> None
-```
-
-Show or hide the singleton quick launcher dialog.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def toggle(
-        cls,
-        *,
-        parent: QWidget | None,
-        output_bus: ActionOutputBus | None,
-        action_classes: list[type[ActionBase]],
-    ) -> None:
-        if cls._instance is None:
-            cls._instance = cls(parent)
-        dialog = cls._instance
-        dialog.update_session(output_bus=output_bus, action_classes=action_classes)
-
-        if dialog.isVisible():
-            dialog.hide()
-            return
-
-        dialog.present()
-```
-
-</details>
-
-### ⚙️ Method `update_session`
-
-```python
-def update_session(self, *, output_bus: ActionOutputBus | None, action_classes: list[type[ActionBase]]) -> None
-```
-
-Refresh output bus and action list before showing.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def update_session(
-        self,
-        *,
-        output_bus: ActionOutputBus | None,
-        action_classes: list[type[ActionBase]],
-    ) -> None:
-        self._output_bus = output_bus
-        self.set_action_classes(action_classes)
-        split_markdown = load_quick_launcher_markdown_in_panel()
-        self._apply_split_layout(enabled=split_markdown)
-        if split_markdown:
-            choices, action_map = OnNewMarkdown(output_bus=output_bus).build_picker_choices()
-            template_titles = {title for title, (kind, _) in action_map.items() if kind == "template"}
-            self._set_markdown_choices(choices, ai_screenshot_titles=template_titles)
-        else:
-            self._markdown_cards.clear()
-        QTimer.singleShot(0, self._fit_to_content)
-```
-
-</details>
+@dataclass(frozen=True)
+class _ContentHeightMetrics:
+    split: bool
+    cards_natural: int
+    markdown_natural: int
+    sections_chrome: int
+    window_chrome: int
+    spacing_total: int
+    grids_natural: int
+    content_height: int
+
+
+def _action_icon(action_cls: type[ActionBase], size: int = CARD_ICON_SIZE) -> QIcon:
+    icon_name = getattr(action_cls, "icon", "") or ""
+    if ".svg" in icon_name:
+        return QIcon(f":/assets/{icon_name}")
+    if icon_name:
+        return create_emoji_icon(icon_name, size)
+    return QIcon()
+
+
+def _apply_card_grid_height(
+    grid: QListWidget,
+    *,
+    natural: int,
+    allocated: int,
+) -> None:
+    grid.setMinimumHeight(allocated)
+    grid.setMaximumHeight(allocated)
+    grid.setVerticalScrollBarPolicy(
+        Qt.ScrollBarPolicy.ScrollBarAsNeeded if allocated < natural else Qt.ScrollBarPolicy.ScrollBarAlwaysOff,
+    )
+    if allocated >= natural:
+        grid.verticalScrollBar().setRange(0, 0)
+        grid.horizontalScrollBar().setRange(0, 0)
+
+
+def _layout_spacing_total(layout: QVBoxLayout, *, split: bool) -> int:
+    # header, actions section, [markdown section], hint, resize row
+    visible_items = 4 + (1 if split else 0)
+    return layout.spacing() * max(0, visible_items - 1)
+
+
+def _layout_vertical_chrome(layout: QVBoxLayout, hint: QLabel) -> int:
+    margins = layout.contentsMargins()
+    header_layout = layout.itemAt(0).layout()
+    header_height = header_layout.sizeHint().height() if header_layout is not None else 0
+    return margins.top() + margins.bottom() + header_height + hint.sizeHint().height()
+
+
+def _section_chrome_height(section: QFrame) -> int:
+    """Height of section card chrome (margins, title, spacing) excluding the grid."""
+    layout = section.layout()
+    if layout is None:
+        return 0
+    margins = layout.contentsMargins()
+    chrome = margins.top() + margins.bottom()
+    if layout.count() == 0:
+        return chrome
+    first = layout.itemAt(0)
+    widget = first.widget() if first is not None else None
+    if isinstance(widget, QLabel):
+        chrome += widget.sizeHint().height() + layout.spacing()
+    return chrome

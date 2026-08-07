@@ -6,7 +6,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from harrix_swiss_knife.actions.base import ActionBase
+from harrix_swiss_knife.actions.common.base import ActionBase
 from harrix_swiss_knife.actions.common.android_gradle import (
     is_android_project,
     resolve_android_home,

@@ -5,12 +5,11 @@ from __future__ import annotations
 import subprocess
 from pathlib import Path
 
-from harrix_swiss_knife.actions.files.discard_git_changes import (
-    OnDiscardGitChanges,
-    find_git_repos,
-    git_porcelain,
-    is_git_repo,
-)
+from harrix_swiss_knife.actions.files.discard_git_changes import OnDiscardGitChanges
+
+find_git_repos = OnDiscardGitChanges.find_git_repos
+git_porcelain = OnDiscardGitChanges.git_porcelain
+is_git_repo = OnDiscardGitChanges.is_git_repo
 
 
 def _git_init(path: Path) -> None:

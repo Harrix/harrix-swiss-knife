@@ -1,1 +1,1 @@
-"""Shared helpers for actions (not menu action classes)."""
+"""Shared action framework and helpers (not menu action classes)."""

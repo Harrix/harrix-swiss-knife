@@ -9,26 +9,7 @@ from typing import Any
 
 import harrix_pylib as h
 
-from harrix_swiss_knife.actions.base import ActionBase
-
-# Quick Access ("Home") shell namespace CLSID.
-_QUICK_ACCESS_NAMESPACE = "shell:::{679f85cb-0220-4080-b29b-5540cc05aab6}"
-
-# PowerShell that prints "Name<TAB>Path" for pinned Quick Access folders only.
-_POWERSHELL_LIST_PINNED = (
-    "[Console]::OutputEncoding = [System.Text.Encoding]::UTF8\n"
-    "$qa = New-Object -ComObject shell.application\n"
-    f'$ns = $qa.Namespace("{_QUICK_ACCESS_NAMESPACE}")\n'
-    "foreach ($i in $ns.Items()) {\n"
-    '  if ($i.IsFolder -and $i.ExtendedProperty("System.Home.IsPinned")) {\n'
-    '    Write-Output ($i.Name + "`t" + $i.Path)\n'
-    "  }\n"
-    "}\n"
-)
-
-_ENTRY_RE = re.compile(r"^\s*(menu|cmd|path)(\d+)\s*=", re.IGNORECASE)
-_REDIRECT_RE = re.compile(r"^\s*RedirectSection\s*=\s*(.+?)\s*$", re.IGNORECASE)
-_SECTION_RE = re.compile(r"^\s*\[(?P<name>.+?)\]\s*$")
+from harrix_swiss_knife.actions.common.base import ActionBase
 
 
 class OnSyncQuickAccessToTotalCommander(ActionBase):
@@ -44,6 +25,25 @@ class OnSyncQuickAccessToTotalCommander(ActionBase):
 
     icon = "📌"
     title = "Sync Quick Access folders to Total Commander"
+
+    # Quick Access ("Home") shell namespace CLSID.
+    _QUICK_ACCESS_NAMESPACE = "shell:::{679f85cb-0220-4080-b29b-5540cc05aab6}"
+
+    # PowerShell that prints "Name<TAB>Path" for pinned Quick Access folders only.
+    _POWERSHELL_LIST_PINNED = (
+        "[Console]::OutputEncoding = [System.Text.Encoding]::UTF8\n"
+        "$qa = New-Object -ComObject shell.application\n"
+        f'$ns = $qa.Namespace("{_QUICK_ACCESS_NAMESPACE}")\n'
+        "foreach ($i in $ns.Items()) {\n"
+        '  if ($i.IsFolder -and $i.ExtendedProperty("System.Home.IsPinned")) {\n'
+        '    Write-Output ($i.Name + "`t" + $i.Path)\n'
+        "  }\n"
+        "}\n"
+    )
+
+    _ENTRY_RE = re.compile(r"^\s*(menu|cmd|path)(\d+)\s*=", re.IGNORECASE)
+    _REDIRECT_RE = re.compile(r"^\s*RedirectSection\s*=\s*(.+?)\s*$", re.IGNORECASE)
+    _SECTION_RE = re.compile(r"^\s*\[(?P<name>.+?)\]\s*$")
 
     @ActionBase.handle_exceptions("syncing Quick Access to Total Commander")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
@@ -137,7 +137,7 @@ class OnSyncQuickAccessToTotalCommander(ActionBase):
         """Return `(header_index, end_index)` for the section `name` (case-insensitive)."""
         start: int | None = None
         for index, line in enumerate(lines):
-            match = _SECTION_RE.match(line)
+            match = OnSyncQuickAccessToTotalCommander._SECTION_RE.match(line)
             if match and match.group("name").strip().lower() == name.lower():
                 start = index
                 break
@@ -145,7 +145,7 @@ class OnSyncQuickAccessToTotalCommander(ActionBase):
             return None, len(lines)
         end = len(lines)
         for index in range(start + 1, len(lines)):
-            if _SECTION_RE.match(lines[index]):
+            if OnSyncQuickAccessToTotalCommander._SECTION_RE.match(lines[index]):
                 end = index
                 break
         return start, end
@@ -162,7 +162,7 @@ class OnSyncQuickAccessToTotalCommander(ActionBase):
         used_indices: set[int] = set()
         existing_paths: set[str] = set()
         for line in lines[start + 1 : end]:
-            match = _ENTRY_RE.match(line)
+            match = self._ENTRY_RE.match(line)
             if not match:
                 continue
             used_indices.add(int(match.group(2)))
@@ -198,7 +198,7 @@ class OnSyncQuickAccessToTotalCommander(ActionBase):
 
     def _read_pinned_folders(self) -> list[tuple[str, str]]:
         """Return a list of `(name, path)` tuples for pinned Quick Access folders."""
-        output = h.dev.run_powershell_script(_POWERSHELL_LIST_PINNED) or ""
+        output = h.dev.run_powershell_script(self._POWERSHELL_LIST_PINNED) or ""
         folders: list[tuple[str, str]] = []
         for raw_line in output.splitlines():
             line = raw_line.rstrip("\r")
@@ -219,7 +219,7 @@ class OnSyncQuickAccessToTotalCommander(ActionBase):
         if start is None:
             return ini_path
         for line in text.split(newline)[start + 1 : end]:
-            match = _REDIRECT_RE.match(line)
+            match = self._REDIRECT_RE.match(line)
             if not match:
                 continue
             redirect = self._expand_tc_path_variables(match.group(1), ini_path)

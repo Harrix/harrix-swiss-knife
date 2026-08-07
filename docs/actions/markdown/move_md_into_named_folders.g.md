@@ -53,9 +53,11 @@ class OnMoveMdIntoNamedFolders(ActionBase):
             return
 
         folder = Path(self.folder_path).resolve()
-        to_move, conflicts, already_ok_count, g_md_count = _scan_folder(folder)
+        to_move, conflicts, already_ok_count, g_md_count = self._scan_folder(folder)
 
-        self._moves: list[_MoveItem] = [_MoveItem(source, target, overwrite=False) for source, target in to_move]
+        self._moves: list[OnMoveMdIntoNamedFolders._MoveItem] = [
+            self._MoveItem(source, target, overwrite=False) for source, target in to_move
+        ]
         skipped_conflicts = 0
 
         for source, target in conflicts:
@@ -64,7 +66,7 @@ class OnMoveMdIntoNamedFolders(ActionBase):
                 f"Target already exists:\n{target}\n\nOverwrite with:\n{source}?",
                 default_yes=False,
             ):
-                self._moves.append(_MoveItem(source, target, overwrite=True))
+                self._moves.append(self._MoveItem(source, target, overwrite=True))
             else:
                 skipped_conflicts += 1
                 self.add_line(f"⏭️ Skipped (conflict): {source.relative_to(folder)}")
@@ -125,6 +127,42 @@ class OnMoveMdIntoNamedFolders(ActionBase):
 
         self.show_toast(f"{self.title} completed")
         self.show_result()
+
+    @staticmethod
+    def _is_g_md(path: Path) -> bool:
+        return path.name.endswith(".g.md")
+
+    @staticmethod
+    def _scan_folder(
+        folder: Path,
+    ) -> tuple[list[tuple[Path, Path]], list[tuple[Path, Path]], int, int]:
+        """Return `(to_move, conflicts, already_ok_count, g_md_count)`."""
+        to_move: list[tuple[Path, Path]] = []
+        conflicts: list[tuple[Path, Path]] = []
+        already_ok_count = 0
+        g_md_count = 0
+
+        for md_path in sorted(folder.rglob("*.md")):
+            if OnMoveMdIntoNamedFolders._is_g_md(md_path):
+                g_md_count += 1
+                continue
+            if h.md.is_note_in_named_folder(md_path):
+                already_ok_count += 1
+                continue
+
+            target = h.md.named_note_md_path(md_path.parent, md_path.stem)
+            if target.exists() and target.resolve() != md_path.resolve():
+                conflicts.append((md_path, target))
+            else:
+                to_move.append((md_path, target))
+
+        return to_move, conflicts, already_ok_count, g_md_count
+
+    @dataclass(frozen=True)
+    class _MoveItem:
+        source: Path
+        target: Path
+        overwrite: bool
 ```
 
 </details>
@@ -153,9 +191,11 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
             return
 
         folder = Path(self.folder_path).resolve()
-        to_move, conflicts, already_ok_count, g_md_count = _scan_folder(folder)
+        to_move, conflicts, already_ok_count, g_md_count = self._scan_folder(folder)
 
-        self._moves: list[_MoveItem] = [_MoveItem(source, target, overwrite=False) for source, target in to_move]
+        self._moves: list[OnMoveMdIntoNamedFolders._MoveItem] = [
+            self._MoveItem(source, target, overwrite=False) for source, target in to_move
+        ]
         skipped_conflicts = 0
 
         for source, target in conflicts:
@@ -164,7 +204,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
                 f"Target already exists:\n{target}\n\nOverwrite with:\n{source}?",
                 default_yes=False,
             ):
-                self._moves.append(_MoveItem(source, target, overwrite=True))
+                self._moves.append(self._MoveItem(source, target, overwrite=True))
             else:
                 skipped_conflicts += 1
                 self.add_line(f"⏭️ Skipped (conflict): {source.relative_to(folder)}")

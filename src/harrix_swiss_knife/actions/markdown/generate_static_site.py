@@ -7,7 +7,7 @@ from typing import Any
 
 import harrix_pyssg as hsg
 
-from harrix_swiss_knife.actions.base import ActionBase
+from harrix_swiss_knife.actions.common.base import ActionBase
 
 
 class OnGenerateStaticSite(ActionBase):

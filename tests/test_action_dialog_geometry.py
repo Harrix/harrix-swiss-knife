@@ -15,13 +15,13 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
-from harrix_swiss_knife.actions.dialog_geometry import (
+from harrix_swiss_knife.actions.common.dialog_geometry import (
     MIN_DIALOG_HEIGHT,
     apply_adaptive_dialog_size,
     fit_widget_height,
     list_content_height,
 )
-from harrix_swiss_knife.actions.dialog_widgets import DragDropFileDialog, StandardActionDialog
+from harrix_swiss_knife.actions.common.dialog_widgets import DragDropFileDialog, StandardActionDialog
 
 _DEFAULT = QSize(1024, 768)
 

@@ -8,9 +8,7 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
-from harrix_swiss_knife.actions.base import ActionBase
-
-_DEFAULT_SUBPROCESS_TIMEOUT = 600.0
+from harrix_swiss_knife.actions.common.base import ActionBase
 
 
 class OnPublishPythonLibrary(ActionBase):
@@ -35,6 +33,7 @@ class OnPublishPythonLibrary(ActionBase):
 
     icon = "⚡"
     title = "Publish Python library to PyPI in …"
+    _DEFAULT_SUBPROCESS_TIMEOUT = 600.0
 
     @ActionBase.handle_exceptions("publishing Python library")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002

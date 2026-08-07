@@ -14,12 +14,12 @@ lang: en
 - [🏛️ Class `OnDiscardGitChanges`](#%EF%B8%8F-class-ondiscardgitchanges)
   - [⚙️ Method `discard_git_changes_common`](#%EF%B8%8F-method-discard_git_changes_common)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
+  - [⚙️ Method `find_git_repos (staticmethod)`](#%EF%B8%8F-method-find_git_repos-staticmethod)
+  - [⚙️ Method `git_porcelain (staticmethod)`](#%EF%B8%8F-method-git_porcelain-staticmethod)
+  - [⚙️ Method `git_run (staticmethod)`](#%EF%B8%8F-method-git_run-staticmethod)
   - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread)
+  - [⚙️ Method `is_git_repo (staticmethod)`](#%EF%B8%8F-method-is_git_repo-staticmethod)
   - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after)
-- [🔧 Function `find_git_repos`](#-function-find_git_repos)
-- [🔧 Function `git_porcelain`](#-function-git_porcelain)
-- [🔧 Function `git_run`](#-function-git_run)
-- [🔧 Function `is_git_repo`](#-function-is_git_repo)
 
 </details>
 
@@ -58,7 +58,7 @@ class OnDiscardGitChanges(ActionBase):
         if self.folder_path is None:
             return
 
-        repos = find_git_repos(self.folder_path)
+        repos = self.find_git_repos(self.folder_path)
         if not repos:
             self.add_line(f"❌ No git repositories found in {self.folder_path}")
             return
@@ -106,7 +106,7 @@ class OnDiscardGitChanges(ActionBase):
         if not self.folder_path:
             return
 
-        repos = find_git_repos(self.folder_path)
+        repos = self.find_git_repos(self.folder_path)
         if not repos:
             self.add_line(f"❌ No git repositories found in {self.folder_path}")
             if not noninteractive:
@@ -134,12 +134,60 @@ class OnDiscardGitChanges(ActionBase):
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
+    @staticmethod
+    def find_git_repos(root: Path) -> list[Path]:
+        """Return Git repos: `root` itself if it is a repo, else its immediate child repos."""
+        root = root.resolve()
+        if not root.is_dir():
+            return []
+
+        if OnDiscardGitChanges.is_git_repo(root):
+            return [root]
+
+        try:
+            children = sorted(root.iterdir(), key=lambda p: p.name.lower())
+        except OSError:
+            return []
+
+        return [
+            child
+            for child in children
+            if child.is_dir() and not child.name.startswith(".") and OnDiscardGitChanges.is_git_repo(child)
+        ]
+
+    @staticmethod
+    def git_porcelain(repo: Path) -> str:
+        """Return `git status --porcelain` output for `repo`."""
+        proc = OnDiscardGitChanges.git_run(repo, "status", "--porcelain")
+        return proc.stdout if proc.returncode == 0 else ""
+
+    @staticmethod
+    def git_run(cwd: Path, *args: str) -> subprocess.CompletedProcess[str]:
+        """Run a Git command in `cwd` and return the completed process."""
+        return subprocess.run(
+            ["git", *args],  # noqa: S607
+            cwd=cwd,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            check=False,
+        )
+
     @ActionBase.handle_exceptions("discarding uncommitted git changes thread")
     def in_thread(self) -> str | None:
         """Execute discard or status check in a worker thread."""
         status_only = bool(getattr(self, "status_only", False))
         self.discard_git_changes_common(status_only=status_only)
         return f"{self.title} completed"
+
+    @staticmethod
+    def is_git_repo(path: Path) -> bool:
+        """Return whether `path` is inside a Git work tree rooted at `path`."""
+        if not (path / ".git").exists():
+            return False
+        proc = OnDiscardGitChanges.git_run(path, "rev-parse", "--is-inside-work-tree")
+        return proc.returncode == 0 and proc.stdout.strip() == "true"
 
     @ActionBase.handle_exceptions("discarding uncommitted git changes thread completion")
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
@@ -148,18 +196,18 @@ class OnDiscardGitChanges(ActionBase):
         self.show_result()
 
     def _discard_one_repo(self, repo: Path) -> None:
-        dirty = git_porcelain(repo).strip()
+        dirty = self.git_porcelain(repo).strip()
         if not dirty:
             self.add_line(f"⚪ {repo.name}: clean (no uncommitted changes)")
             return
 
         self.add_line(f"🔵 {repo.name}: discarding uncommitted changes…")
-        reset_p = git_run(repo, "reset", "--hard", "HEAD")
+        reset_p = self.git_run(repo, "reset", "--hard", "HEAD")
         if reset_p.returncode != 0:
             self.add_line(f"❌ {repo.name}: git reset failed: {reset_p.stderr.strip() or reset_p.stdout}")
             return
 
-        clean_p = git_run(repo, "clean", "-fd")
+        clean_p = self.git_run(repo, "clean", "-fd")
         if clean_p.returncode != 0:
             self.add_line(f"❌ {repo.name}: git clean failed: {clean_p.stderr.strip() or clean_p.stdout}")
             return
@@ -168,7 +216,7 @@ class OnDiscardGitChanges(ActionBase):
 
     def _status_one_repo(self, repo: Path) -> bool:
         """Report whether `repo` has uncommitted changes. Return `True` if dirty."""
-        dirty = git_porcelain(repo).strip()
+        dirty = self.git_porcelain(repo).strip()
         if not dirty:
             return False
 
@@ -195,7 +243,7 @@ def discard_git_changes_common(self, *, status_only: bool = False) -> None:
         if self.folder_path is None:
             return
 
-        repos = find_git_repos(self.folder_path)
+        repos = self.find_git_repos(self.folder_path)
         if not repos:
             self.add_line(f"❌ No git repositories found in {self.folder_path}")
             return
@@ -256,7 +304,7 @@ def execute(
         if not self.folder_path:
             return
 
-        repos = find_git_repos(self.folder_path)
+        repos = self.find_git_repos(self.folder_path)
         if not repos:
             self.add_line(f"❌ No git repositories found in {self.folder_path}")
             if not noninteractive:
@@ -287,6 +335,85 @@ def execute(
 
 </details>
 
+### ⚙️ Method `find_git_repos (staticmethod)`
+
+```python
+def find_git_repos(root: Path) -> list[Path]
+```
+
+Return Git repos: `root` itself if it is a repo, else its immediate child repos.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def find_git_repos(root: Path) -> list[Path]:
+        root = root.resolve()
+        if not root.is_dir():
+            return []
+
+        if OnDiscardGitChanges.is_git_repo(root):
+            return [root]
+
+        try:
+            children = sorted(root.iterdir(), key=lambda p: p.name.lower())
+        except OSError:
+            return []
+
+        return [
+            child
+            for child in children
+            if child.is_dir() and not child.name.startswith(".") and OnDiscardGitChanges.is_git_repo(child)
+        ]
+```
+
+</details>
+
+### ⚙️ Method `git_porcelain (staticmethod)`
+
+```python
+def git_porcelain(repo: Path) -> str
+```
+
+Return `git status --porcelain` output for `repo`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def git_porcelain(repo: Path) -> str:
+        proc = OnDiscardGitChanges.git_run(repo, "status", "--porcelain")
+        return proc.stdout if proc.returncode == 0 else ""
+```
+
+</details>
+
+### ⚙️ Method `git_run (staticmethod)`
+
+```python
+def git_run(cwd: Path, *args: str) -> subprocess.CompletedProcess[str]
+```
+
+Run a Git command in `cwd` and return the completed process.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def git_run(cwd: Path, *args: str) -> subprocess.CompletedProcess[str]:
+        return subprocess.run(
+            ["git", *args],  # noqa: S607
+            cwd=cwd,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            check=False,
+        )
+```
+
+</details>
+
 ### ⚙️ Method `in_thread`
 
 ```python
@@ -307,6 +434,27 @@ def in_thread(self) -> str | None:
 
 </details>
 
+### ⚙️ Method `is_git_repo (staticmethod)`
+
+```python
+def is_git_repo(path: Path) -> bool
+```
+
+Return whether `path` is inside a Git work tree rooted at `path`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def is_git_repo(path: Path) -> bool:
+        if not (path / ".git").exists():
+            return False
+        proc = OnDiscardGitChanges.git_run(path, "rev-parse", "--is-inside-work-tree")
+        return proc.returncode == 0 and proc.stdout.strip() == "true"
+```
+
+</details>
+
 ### ⚙️ Method `thread_after`
 
 ```python
@@ -322,102 +470,6 @@ Show toast and result dialog after the worker finishes.
 def thread_after(self, result: Any) -> None:  # noqa: ARG002
         self.show_toast(f"{self.title} completed")
         self.show_result()
-```
-
-</details>
-
-## 🔧 Function `find_git_repos`
-
-```python
-def find_git_repos(root: Path) -> list[Path]
-```
-
-Return Git repos: `root` itself if it is a repo, else its immediate child repos.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def find_git_repos(root: Path) -> list[Path]:
-    root = root.resolve()
-    if not root.is_dir():
-        return []
-
-    if is_git_repo(root):
-        return [root]
-
-    try:
-        children = sorted(root.iterdir(), key=lambda p: p.name.lower())
-    except OSError:
-        return []
-
-    return [child for child in children if child.is_dir() and not child.name.startswith(".") and is_git_repo(child)]
-```
-
-</details>
-
-## 🔧 Function `git_porcelain`
-
-```python
-def git_porcelain(repo: Path) -> str
-```
-
-Return `git status --porcelain` output for `repo`.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def git_porcelain(repo: Path) -> str:
-    proc = git_run(repo, "status", "--porcelain")
-    return proc.stdout if proc.returncode == 0 else ""
-```
-
-</details>
-
-## 🔧 Function `git_run`
-
-```python
-def git_run(cwd: Path, *args: str) -> subprocess.CompletedProcess[str]
-```
-
-Run a Git command in `cwd` and return the completed process.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def git_run(cwd: Path, *args: str) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(
-        ["git", *args],  # noqa: S607
-        cwd=cwd,
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-        check=False,
-    )
-```
-
-</details>
-
-## 🔧 Function `is_git_repo`
-
-```python
-def is_git_repo(path: Path) -> bool
-```
-
-Return whether `path` is inside a Git work tree rooted at `path`.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def is_git_repo(path: Path) -> bool:
-    if not (path / ".git").exists():
-        return False
-    proc = git_run(path, "rev-parse", "--is-inside-work-tree")
-    return proc.returncode == 0 and proc.stdout.strip() == "true"
 ```
 
 </details>

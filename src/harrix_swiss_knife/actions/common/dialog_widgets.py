@@ -24,7 +24,7 @@ from PySide6.QtWidgets import (
 )
 
 from harrix_swiss_knife import qt_modality
-from harrix_swiss_knife.actions.dialog_geometry import (
+from harrix_swiss_knife.actions.common.dialog_geometry import (
     apply_adaptive_dialog_size,
     fit_widget_height,
     list_content_height,

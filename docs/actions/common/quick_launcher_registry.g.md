@@ -4,7 +4,7 @@ author-email: anton.b.sergienko@gmail.com
 lang: en
 ---
 
-# 📄 File `registry.py`
+# 📄 File `quick_launcher_registry.py`
 
 <details>
 <summary>📖 Contents ⬇️</summary>
