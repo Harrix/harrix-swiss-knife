@@ -104,6 +104,10 @@ class OnAndroidBuild(ActionBase):
         elif folder_path is not None:
             projects = [Path(folder_path).resolve()]
         else:
+            self.show_toast("Loading Android devices and AVDs…", duration=30000)
+            app = QApplication.instance()
+            if app is not None:
+                app.processEvents()
             targets = self._collect_install_targets()
             default_device_id = targets[0].device_id if targets else None
             release_default = self._config_variant_is_release()
@@ -735,6 +739,10 @@ def execute(
         elif folder_path is not None:
             projects = [Path(folder_path).resolve()]
         else:
+            self.show_toast("Loading Android devices and AVDs…", duration=30000)
+            app = QApplication.instance()
+            if app is not None:
+                app.processEvents()
             targets = self._collect_install_targets()
             default_device_id = targets[0].device_id if targets else None
             release_default = self._config_variant_is_release()

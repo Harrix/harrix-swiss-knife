@@ -150,9 +150,10 @@ class ActionDialogService:
         build_all_checkbox: QCheckBox | None = None
         release_checkbox: QCheckBox | None = None
 
+        # Keep default width; avoid double width + adaptive shrink (was very wide and short).
         dialog_size = QSize(
-            max(self._default_size.width() * 2, 900),
-            max(self._default_size.height(), 480),
+            self._default_size.width(),
+            max(self._default_size.height(), 560),
         )
 
         def _build(dialog: QDialog, layout: QVBoxLayout) -> None:
@@ -222,6 +223,7 @@ class ActionDialogService:
             select_folder,
             _build,
             stretch_row=0,
+            adaptive=False,
             size=dialog_size,
         )
         if result != QDialog.DialogCode.Accepted:
