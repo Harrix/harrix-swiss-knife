@@ -468,7 +468,7 @@ class MainWindow(QMainWindow):
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, menu: QMenu) -> None
+def __init__(self, menu: QMenu, *, output_bus: ActionOutputBus | None = None) -> None
 ```
 
 Initialize the main window from the tray menu structure.

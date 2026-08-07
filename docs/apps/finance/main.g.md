@@ -5974,7 +5974,7 @@ class MainWindow(
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self) -> None
+def __init__(self, *, hide_on_close: bool = False) -> None
 ```
 
 Initialize main window for finance tracking application.
@@ -6513,7 +6513,7 @@ def on_add_account(self) -> None:
 ### ⚙️ Method `on_add_as_text_with_ai`
 
 ```python
-def on_add_as_text_with_ai(self) -> None
+def on_add_as_text_with_ai(self, *, initial_image_path: str | None = None, initial_image_paths: list[str] | None = None) -> None
 ```
 
 Collect text/images, call BotHub, then open purchase text dialog with AI result.

@@ -192,7 +192,7 @@ class DescribedChoiceCard(QWidget):
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, icon_emoji: str, title: str, description: str) -> None
+def __init__(self, icon_emoji: str, title: str, description: str, *, icon_size: int = DESCRIBED_CARD_ICON_SIZE, metrics: DescribedCardMetrics | None = None, parent: QWidget | None = None) -> None
 ```
 
 Build a bordered card matching DevToys-style command tiles.
@@ -359,7 +359,7 @@ def mouseReleaseEvent(self, event: QMouseEvent) -> None:  # noqa: N802
 ## 🔧 Function `add_described_action_card`
 
 ```python
-def add_described_action_card(list_widget: QListWidget) -> QListWidgetItem
+def add_described_action_card(list_widget: QListWidget, *, icon: str, title: str, description: str, user_data: object, on_select: Callable[[], None] | None = None) -> QListWidgetItem
 ```
 
 Append one described card with arbitrary `UserRole` payload.
@@ -435,7 +435,7 @@ def apply_described_card_grid_metrics(
 ## 🔧 Function `configure_described_choice_card_grid`
 
 ```python
-def configure_described_choice_card_grid(list_widget: QListWidget) -> None
+def configure_described_choice_card_grid(list_widget: QListWidget, *, min_height: int | None = None) -> None
 ```
 
 Apply a wide horizontal-card grid layout for described choices.
@@ -523,7 +523,7 @@ def metrics_for_scale(scale: float) -> DescribedCardMetrics:
 ## 🔧 Function `populate_described_choice_cards`
 
 ```python
-def populate_described_choice_cards(list_widget: QListWidget, choices: list[tuple[str, str, str]]) -> None
+def populate_described_choice_cards(list_widget: QListWidget, choices: list[tuple[str, str, str]], *, icon_size: int = DESCRIBED_CARD_ICON_SIZE, on_select: Callable[[str], None] | None = None) -> None
 ```
 
 Fill `list_widget` with horizontal icon+title+description cards.

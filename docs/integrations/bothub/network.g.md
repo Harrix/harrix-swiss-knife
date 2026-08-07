@@ -19,7 +19,7 @@ lang: en
 ## 🔧 Function `qnetwork_proxy_to_url`
 
 ```python
-def qnetwork_proxy_to_url(proxy: QNetworkProxy | None = None) -> str | None
+def qnetwork_proxy_to_url(proxy: QNetworkProxy | None = None, *, system_proxies: Iterable[QNetworkProxy] | None = None) -> str | None
 ```
 
 Resolve Qt proxy to HTTP proxy URL for urllib.

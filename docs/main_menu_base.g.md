@@ -376,7 +376,7 @@ class MainMenuBase:
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self) -> None
+def __init__(self, *, output_bus: object | None = None, config: dict | None = None) -> None
 ```
 
 Initialize the `MainMenuBase` with an empty QMenu.

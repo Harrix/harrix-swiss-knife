@@ -128,7 +128,7 @@ class OnOptimizeImagesInMd(ActionBase):
 ### ⚙️ Method `execute`
 
 ```python
-def execute(self, *_args: Any, **_kwargs: Any) -> None
+def execute(self, *_args: Any, folder_path: Path | None = None, max_size: int | None = None, noninteractive: bool = False, **_kwargs: Any) -> None
 ```
 
 Optimize images in Markdown files with PNG/AVIF size comparison.

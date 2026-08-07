@@ -40,7 +40,7 @@ class BothubRequestState:
 ## 🔧 Function `run_bothub_request`
 
 ```python
-def run_bothub_request(parent: QWidget | None, config: dict[str, Any], prompt_text: str, on_success: Callable[[str], None]) -> bool
+def run_bothub_request(parent: QWidget | None, config: dict[str, Any], prompt_text: str, on_success: Callable[[str], None], *, images: list[tuple[bytes, str]] | None = None, image: tuple[bytes, str] | None = None, audio: tuple[bytes, str] | None = None, model: str | None = None, toast_message: str = "Requesting BotHub…", is_busy: Callable[[], bool] | None = None, state: BothubRequestState | None = None, on_error: Callable[[str], None] | None = None, on_cancelled: Callable[[], None] | None = None) -> bool
 ```
 
 Validate config, show toast, start worker. Returns `True` if the request started.
@@ -180,7 +180,7 @@ def run_bothub_request(
 ## 🔧 Function `run_bothub_request_blocking`
 
 ```python
-def run_bothub_request_blocking(parent: QWidget | None, config: dict[str, Any], prompt_text: str) -> str | None
+def run_bothub_request_blocking(parent: QWidget | None, config: dict[str, Any], prompt_text: str, *, images: list[tuple[bytes, str]] | None = None, image: tuple[bytes, str] | None = None, audio: tuple[bytes, str] | None = None, model: str | None = None, toast_message: str = "Requesting BotHub…", state: BothubRequestState | None = None) -> str | None
 ```
 
 Run a BotHub request and block the UI thread until it finishes.

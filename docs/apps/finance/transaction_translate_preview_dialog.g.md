@@ -133,7 +133,7 @@ class TransactionTranslatePreviewDialog(QDialog):
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, parent: QWidget | None, descriptions: list[str], translations: dict[str, str], unique_descriptions_limit: int) -> None
+def __init__(self, parent: QWidget | None, descriptions: list[str], translations: dict[str, str], unique_descriptions_limit: int, *, filled_from_existing: int = 0) -> None
 ```
 
 Initialize transaction translation preview.

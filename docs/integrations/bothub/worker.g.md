@@ -146,7 +146,7 @@ class BothubChatWorker(QThread):
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self) -> None
+def __init__(self, *, api_key: str, base_url: str, model: str, prompt_text: str, images: Sequence[tuple[bytes, str]] | None = None, image: tuple[bytes, str] | None = None, audio: tuple[bytes, str] | None = None, proxy_url: str | None = None, cancellable: bool = False) -> None
 ```
 
 Initialize the worker.

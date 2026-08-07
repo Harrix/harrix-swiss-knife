@@ -13,7 +13,7 @@ lang: en
 
 - [🏛️ Class `ImageThumbnailItem`](#%EF%B8%8F-class-imagethumbnailitem)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
-  - [⚙️ Method `marked_for_removal`](#%EF%B8%8F-method-marked_for_removal)
+  - [⚙️ Method `marked_for_removal (property)`](#%EF%B8%8F-method-marked_for_removal-property)
   - [⚙️ Method `mouseReleaseEvent`](#%EF%B8%8F-method-mousereleaseevent)
   - [⚙️ Method `set_marked_for_removal`](#%EF%B8%8F-method-set_marked_for_removal)
 
@@ -136,7 +136,7 @@ class ImageThumbnailItem(QFrame):
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, image_path: str) -> None
+def __init__(self, image_path: str, *, on_hard_remove: Callable[[str], None], soft_remove: bool = False, on_soft_removal_changed: Callable[..., None] | None = None, parent: QWidget | None = None) -> None
 ```
 
 Build a thumbnail tile with remove / undo controls.
@@ -199,7 +199,7 @@ def __init__(
 
 </details>
 
-### ⚙️ Method `marked_for_removal`
+### ⚙️ Method `marked_for_removal (property)`
 
 ```python
 def marked_for_removal(self) -> bool
@@ -246,7 +246,7 @@ def mouseReleaseEvent(self, event: QMouseEvent) -> None:  # noqa: N802
 ### ⚙️ Method `set_marked_for_removal`
 
 ```python
-def set_marked_for_removal(self) -> None
+def set_marked_for_removal(self, *, marked: bool) -> None
 ```
 
 Gray out the thumbnail when marked for removal; show undo control.

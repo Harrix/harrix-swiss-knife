@@ -139,7 +139,7 @@ def check_python_project_common(self) -> None:
 ### ⚙️ Method `execute`
 
 ```python
-def execute(self, *_args: Any, **_kwargs: Any) -> None
+def execute(self, *_args: Any, folder_path: Path | None = None, noninteractive: bool = False, **_kwargs: Any) -> None
 ```
 
 Run full Python checks for one project folder.

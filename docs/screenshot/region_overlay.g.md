@@ -13,7 +13,7 @@ lang: en
 
 - [🏛️ Class `RegionOverlay`](#%EF%B8%8F-class-regionoverlay)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
-  - [⚙️ Method `cropped_image`](#%EF%B8%8F-method-cropped_image)
+  - [⚙️ Method `cropped_image (property)`](#%EF%B8%8F-method-cropped_image-property)
   - [⚙️ Method `keyPressEvent`](#%EF%B8%8F-method-keypressevent)
   - [⚙️ Method `mouseMoveEvent`](#%EF%B8%8F-method-mousemoveevent)
   - [⚙️ Method `mousePressEvent`](#%EF%B8%8F-method-mousepressevent)
@@ -156,7 +156,7 @@ class RegionOverlay(QDialog):
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, frozen: QPixmap, geometry: QRect) -> None
+def __init__(self, frozen: QPixmap, geometry: QRect, *, with_shutter_controls: bool = False) -> None
 ```
 
 Create a fullscreen overlay for region selection, displaying the frozen desktop.
@@ -200,7 +200,7 @@ def __init__(self, frozen: QPixmap, geometry: QRect, *, with_shutter_controls: b
 
 </details>
 
-### ⚙️ Method `cropped_image`
+### ⚙️ Method `cropped_image (property)`
 
 ```python
 def cropped_image(self) -> QImage | None

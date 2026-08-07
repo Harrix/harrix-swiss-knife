@@ -67,7 +67,7 @@ class QuickLauncherContext:
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self) -> None
+def __init__(self, *, output_bus: ActionOutputBus | None, menu_structure_provider: Callable[[], list[Any]], parent: QWidget | None = None) -> None
 ```
 
 Store dependencies used by the tray action and global hotkey handler.

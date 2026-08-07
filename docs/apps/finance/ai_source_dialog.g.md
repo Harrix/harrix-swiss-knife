@@ -60,7 +60,7 @@ class AiSourceDialog(TextImageSourceDialog):
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, parent: QWidget | None = None) -> None
+def __init__(self, parent: QWidget | None = None, *, max_image_side: int | None = None, initial_image_path: str | None = None, initial_image_paths: list[str] | None = None) -> None
 ```
 
 Initialize the finance AI source dialog.

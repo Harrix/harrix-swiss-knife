@@ -16,7 +16,7 @@ lang: en
 - [🏛️ Class `QtSqliteDatabaseManagerBase`](#%EF%B8%8F-class-qtsqlitedatabasemanagerbase)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-1)
   - [⚙️ Method `close`](#%EF%B8%8F-method-close)
-  - [⚙️ Method `create_database_from_sql`](#%EF%B8%8F-method-create_database_from_sql)
+  - [⚙️ Method `create_database_from_sql (staticmethod)`](#%EF%B8%8F-method-create_database_from_sql-staticmethod)
   - [⚙️ Method `execute_query`](#%EF%B8%8F-method-execute_query)
   - [⚙️ Method `execute_simple_query`](#%EF%B8%8F-method-execute_simple_query)
   - [⚙️ Method `get_earliest_date`](#%EF%B8%8F-method-get_earliest_date)
@@ -24,7 +24,7 @@ lang: en
   - [⚙️ Method `get_items`](#%EF%B8%8F-method-get_items)
   - [⚙️ Method `get_rows`](#%EF%B8%8F-method-get_rows)
   - [⚙️ Method `is_database_open`](#%EF%B8%8F-method-is_database_open)
-  - [⚙️ Method `resolve_db_path_with_fallback`](#%EF%B8%8F-method-resolve_db_path_with_fallback)
+  - [⚙️ Method `resolve_db_path_with_fallback (staticmethod)`](#%EF%B8%8F-method-resolve_db_path_with_fallback-staticmethod)
   - [⚙️ Method `rows_from_query`](#%EF%B8%8F-method-rows_from_query)
   - [⚙️ Method `sql_transaction`](#%EF%B8%8F-method-sql_transaction)
   - [⚙️ Method `table_exists`](#%EF%B8%8F-method-table_exists)
@@ -388,7 +388,7 @@ class QtSqliteDatabaseManagerBase:
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self) -> None
+def __init__(self, *, prefix: str, db_filename: str) -> None
 ```
 
 Create manager bound to `db_filename` for the current thread.
@@ -433,7 +433,7 @@ def close(self) -> None:
 
 </details>
 
-### ⚙️ Method `create_database_from_sql`
+### ⚙️ Method `create_database_from_sql (staticmethod)`
 
 ```python
 def create_database_from_sql(db_filename: str, sql_file_path: str) -> bool
@@ -716,7 +716,7 @@ def is_database_open(self) -> bool:
 
 </details>
 
-### ⚙️ Method `resolve_db_path_with_fallback`
+### ⚙️ Method `resolve_db_path_with_fallback (staticmethod)`
 
 ```python
 def resolve_db_path_with_fallback(configured_path: Path, app_name: str) -> Path

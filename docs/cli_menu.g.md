@@ -186,7 +186,7 @@ def get_cli_copy_command(action: QAction | None) -> str | None:
 ## 🔧 Function `show_copy_cli_menu`
 
 ```python
-def show_copy_cli_menu() -> None
+def show_copy_cli_menu(*, parent: QWidget | None, global_pos: QPoint, cli_copy_command: str) -> None
 ```
 
 Show a small context menu to copy a CLI command to the clipboard.

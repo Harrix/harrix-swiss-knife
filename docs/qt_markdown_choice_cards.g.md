@@ -105,7 +105,7 @@ class IconChoiceCard(QWidget):
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, icon_emoji: str, title: str) -> None
+def __init__(self, icon_emoji: str, title: str, *, show_ai_screenshot: bool = False, icon_size: int = CARD_ICON_SIZE, parent: QWidget | None = None) -> None
 ```
 
 Build a card matching the shared action-card grid cell size.
@@ -197,7 +197,7 @@ def mouseReleaseEvent(self, event: QMouseEvent) -> None:  # noqa: N802
 ## 🔧 Function `populate_icon_choice_cards`
 
 ```python
-def populate_icon_choice_cards(list_widget: QListWidget, choices: list[tuple[str, str]]) -> None
+def populate_icon_choice_cards(list_widget: QListWidget, choices: list[tuple[str, str]], *, icon_size: int = CARD_ICON_SIZE, ai_screenshot_titles: Collection[str] | None = None, on_select: Callable[[str], None] | None = None, on_ai_screenshot: Callable[[str], None] | None = None) -> None
 ```
 
 Fill `list_widget` with icon cards; optional AI-screenshot buttons on templates.

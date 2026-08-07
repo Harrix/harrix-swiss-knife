@@ -72,7 +72,7 @@ class TextInputDialog(PurchaseTableDialog):
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, parent: QWidget | None = None, default_date: QDate | None = None) -> None
+def __init__(self, parent: QWidget | None = None, default_date: QDate | None = None, *, initial_text: str | None = None, focus_text_on_show: bool = True, currency_symbol: str = "") -> None
 ```
 
 Initialize the finance purchase input dialog.

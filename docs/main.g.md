@@ -49,7 +49,7 @@ class MainMenu(main_menu_base.MainMenuBase):
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self) -> None
+def __init__(self, *, output_bus: ActionOutputBus, config: dict | None = None) -> None
 ```
 
 Initialize the main menu with all submenus and actions.

@@ -174,7 +174,7 @@ def format_byte_size(num_bytes: int) -> str:
 ## 🔧 Function `optimize_image_file`
 
 ```python
-def optimize_image_file(source: Path, output_folder: Path, project_root: Path) -> str | None
+def optimize_image_file(source: Path, output_folder: Path, project_root: Path, *, quality: bool = False, max_size: int | None = None, compare_png_avif: bool = True, convert_png_to_avif: bool = False) -> str | None
 ```
 
 Optimize a single supported image file.
@@ -223,7 +223,7 @@ def optimize_image_file(
 ## 🔧 Function `optimize_images_in_folder`
 
 ```python
-def optimize_images_in_folder(images_folder: Path, output_folder: Path, project_root: Path) -> str
+def optimize_images_in_folder(images_folder: Path, output_folder: Path, project_root: Path, *, quality: bool = False, max_size: int | None = None, compare_png_avif: bool = True, convert_png_to_avif: bool = False, clear_output: bool = True, size_stats: OptimizeSizeStats | None = None) -> str
 ```
 
 Optimize all supported images in a folder.

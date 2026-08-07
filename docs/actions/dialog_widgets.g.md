@@ -461,7 +461,7 @@ class DragDropFileDialog(QDialog):
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, title: str, default_path: str, filter_: str, target_size: QSize, parent: QWidget | None = None) -> None
+def __init__(self, title: str, default_path: str, filter_: str, target_size: QSize, parent: QWidget | None = None, *, with_resize_option: bool = False) -> None
 ```
 
 Create file-selection dialog with optional resize controls.

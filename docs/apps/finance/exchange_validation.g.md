@@ -9,7 +9,7 @@ lang: en
 ## 🔧 Function `validate_exchange_data`
 
 ```python
-def validate_exchange_data(from_currency: str, to_currency: str, amount_from: float, amount_to: float, rate: float, fee: float) -> list[str]
+def validate_exchange_data(from_currency: str, to_currency: str, amount_from: float, amount_to: float, rate: float, fee: float, *, date_str: str | None = None, is_valid_date: Callable[[str], bool] | None = None) -> list[str]
 ```
 
 Validate exchange fields; return list of error messages (empty if valid).

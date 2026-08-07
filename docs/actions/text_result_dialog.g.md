@@ -86,7 +86,7 @@ def add_open_folder_button(button_layout: QHBoxLayout, click_handler: Callable[[
 ## 🔧 Function `append_result_action_buttons`
 
 ```python
-def append_result_action_buttons(dialog: QDialog, button_layout: QHBoxLayout) -> None
+def append_result_action_buttons(dialog: QDialog, button_layout: QHBoxLayout, *, rerun_button: bool = False, rerun_button_label: str = RERUN_BUTTON_LABEL, rerun_button_emoji: str = RERUN_BUTTON_EMOJI, rewrite_button: bool = False, remove_paragraphs_button: bool = False, on_remove_paragraphs: Callable[[], None] | None = None) -> None
 ```
 
 Add optional rerun/rewrite buttons and in-place remove-paragraphs action.
@@ -148,7 +148,7 @@ def collapse_text_to_single_line(text: str) -> str:
 ## 🔧 Function `resolve_text_result_dialog_action`
 
 ```python
-def resolve_text_result_dialog_action(action_code: int, _current_text: str) -> str | None
+def resolve_text_result_dialog_action(action_code: int, _current_text: str, *, on_rerun: Callable[[], None] | None = None, on_rewrite: Callable[[], None] | None = None) -> str | None
 ```
 
 Handle custom dialog codes. Always returns `None` after optional callbacks.

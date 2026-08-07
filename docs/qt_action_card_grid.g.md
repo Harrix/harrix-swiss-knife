@@ -9,7 +9,7 @@ lang: en
 ## 🔧 Function `configure_action_card_grid`
 
 ```python
-def configure_action_card_grid(list_widget: QListWidget) -> None
+def configure_action_card_grid(list_widget: QListWidget, *, min_height: int | None = None) -> None
 ```
 
 Apply the same icon-card layout used by New Markdown command picker.

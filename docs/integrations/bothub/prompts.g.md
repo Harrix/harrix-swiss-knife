@@ -19,7 +19,7 @@ lang: en
 ## 🔧 Function `build_prompt`
 
 ```python
-def build_prompt(config: dict[str, Any], prompt_key: str, replacements: dict[str, str]) -> str
+def build_prompt(config: dict[str, Any], prompt_key: str, replacements: dict[str, str], *, prompt_display_name: str | None = None) -> str
 ```
 
 Build full prompt from config template and placeholder replacements.

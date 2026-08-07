@@ -36,7 +36,7 @@ class DownloadCancelledError(Exception):
 ## 🔧 Function `download_https_to_path`
 
 ```python
-def download_https_to_path(url: str, dest: Path) -> None
+def download_https_to_path(url: str, dest: Path, *, headers: dict[str, str] | None = None, timeout: int = 120, chunk_size: int = 256 * 1024, should_cancel: Callable[[], bool] | None = None) -> None
 ```
 
 Download HTTPS URL to a local file with optional cancellation between chunks.

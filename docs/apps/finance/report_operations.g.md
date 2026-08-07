@@ -255,7 +255,7 @@ class ReportOperations:
 ### ⚙️ Method `on_generate_report`
 
 ```python
-def on_generate_report(self) -> None
+def on_generate_report(self, *, refresh_summary: bool = False) -> None
 ```
 
 Generate selected report on a background thread with a countdown toast.

@@ -9,7 +9,7 @@ lang: en
 ## 🔧 Function `open_in_editor`
 
 ```python
-def open_in_editor(editor: str, workspace: str | Path, file_path: str | Path) -> str
+def open_in_editor(editor: str, workspace: str | Path, file_path: str | Path, *, timeout: float | None = 120.0) -> str
 ```
 
 Launch an editor with workspace and file as separate argv entries.

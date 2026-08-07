@@ -1543,7 +1543,7 @@ class ActionDialogService:
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self) -> None
+def __init__(self, *, default_size: QSize, compact_size: QSize, add_line: Callable[[str], None], show_toast: Callable[[str], None], create_emoji_icon: Callable[[str, int], QIcon]) -> None
 ```
 
 Create service with UI callbacks injected from `ActionBase`.
@@ -1591,7 +1591,7 @@ def create_emoji_icon(self, emoji: str, size: int = 64) -> QIcon:
 ### ⚙️ Method `get_checkbox_selection`
 
 ```python
-def get_checkbox_selection(self, title: str, label: str, choices: list[str], default_selected: list[str] | None = None) -> list[str] | None
+def get_checkbox_selection(self, title: str, label: str, choices: list[str], default_selected: list[str] | None = None, *, enable_extension_filter: bool = False, disabled_choices: list[str] | None = None) -> list[str] | None
 ```
 
 Return checkbox-selected items, or `None` on cancel.
@@ -2046,7 +2046,7 @@ def get_choice_from_list_with_descriptions(
 ### ⚙️ Method `get_dual_checkbox_selection`
 
 ```python
-def get_dual_checkbox_selection(self, title: str) -> tuple[list[str], list[str]] | None
+def get_dual_checkbox_selection(self, title: str, *, section1_title: str, section1_label: str, section1_choices: list[str], section1_default_selected: list[str] | None = None, section1_disabled_choices: list[str] | None = None, section2_title: str, section2_label: str, section2_choices: list[str], section2_default_selected: list[str] | None = None, section2_disabled_choices: list[str] | None = None) -> tuple[list[str], list[str]] | None
 ```
 
 Return checkbox selections for two sections, or `None` on cancel.
@@ -2209,7 +2209,7 @@ def get_existing_directory(self, title: str, default_path: str) -> Path | None:
 ### ⚙️ Method `get_folder_with_choice_option`
 
 ```python
-def get_folder_with_choice_option(self, folders_list: list[str], default_path: str) -> Path | None
+def get_folder_with_choice_option(self, folders_list: list[str], default_path: str, *, checkbox_label: None = None, checkbox_default: bool = False) -> Path | None
 ```
 
 _No docstring provided._
@@ -2233,7 +2233,7 @@ def get_folder_with_choice_option(
 ### ⚙️ Method `get_folder_with_choice_option (2)`
 
 ```python
-def get_folder_with_choice_option(self, folders_list: list[str], default_path: str) -> tuple[Path, bool] | None
+def get_folder_with_choice_option(self, folders_list: list[str], default_path: str, *, checkbox_label: str, checkbox_default: bool = False) -> tuple[Path, bool] | None
 ```
 
 _No docstring provided._
@@ -2257,7 +2257,7 @@ def get_folder_with_choice_option(
 ### ⚙️ Method `get_folder_with_choice_option (3)`
 
 ```python
-def get_folder_with_choice_option(self, folders_list: list[str], default_path: str) -> Path | tuple[Path, bool] | None
+def get_folder_with_choice_option(self, folders_list: list[str], default_path: str, *, checkbox_label: str | None = None, checkbox_default: bool = False) -> Path | tuple[Path, bool] | None
 ```
 
 Pick folder from list or browse for directory.
@@ -2318,7 +2318,7 @@ def get_folder_with_choice_option(
 ### ⚙️ Method `get_icon_choice`
 
 ```python
-def get_icon_choice(self, title: str, label: str, choices: list[tuple[str, str]], icon_size: int = 64) -> IconChoiceSelection | None
+def get_icon_choice(self, title: str, label: str, choices: list[tuple[str, str]], icon_size: int = 64, *, ai_screenshot_titles: Collection[str] | None = None) -> IconChoiceSelection | None
 ```
 
 Return selected icon choice, optionally via AI-screenshot card button.
@@ -2410,7 +2410,7 @@ def get_icon_choice(
 ### ⚙️ Method `get_max_image_size_option`
 
 ```python
-def get_max_image_size_option(self, title: str = "Image size limit") -> tuple[bool, int] | None
+def get_max_image_size_option(self, title: str = "Image size limit", *, checkbox_label: str = "Limit max image size (px)", default_enabled: bool = True, default_max_size: int = 1024) -> tuple[bool, int] | None
 ```
 
 Ask whether to limit max image width/height.
@@ -2821,7 +2821,7 @@ def get_text_textarea(
 ### ⚙️ Method `get_yes_no_question`
 
 ```python
-def get_yes_no_question(self, title: str, message: str) -> bool
+def get_yes_no_question(self, title: str, message: str, *, default_yes: bool = False) -> bool
 ```
 
 Return `True` for Yes, `False` otherwise.
@@ -2847,7 +2847,7 @@ def get_yes_no_question(self, title: str, message: str, *, default_yes: bool = F
 ### ⚙️ Method `show_about_dialog`
 
 ```python
-def show_about_dialog(self) -> str | None
+def show_about_dialog(self, *, title: str = "About", app_name: str = "Harrix Swiss Knife", version: str = "1.0.0", description: str = "", author: str = "", license_text: str = "", github: str = "") -> str | None
 ```
 
 Show about dialog and return rendered text if accepted.
@@ -2921,7 +2921,7 @@ def show_about_dialog(
 ### ⚙️ Method `show_action_output_log_browser`
 
 ```python
-def show_action_output_log_browser(self, entries: list[tuple[Path, str]]) -> None
+def show_action_output_log_browser(self, entries: list[tuple[Path, str]], *, on_file_selected: Callable[[Path], None] | None = None) -> None
 ```
 
 Show a split view: log file list (left) and UTF-8 preview (right).
@@ -2956,7 +2956,7 @@ def show_action_output_log_browser(
 ### ⚙️ Method `show_action_usage_stats_browser`
 
 ```python
-def show_action_usage_stats_browser(self, rows: list[ActionUsageStatsRow]) -> None
+def show_action_usage_stats_browser(self, rows: list[ActionUsageStatsRow], *, summary: str) -> None
 ```
 
 Show a sortable table of action invocation statistics.
@@ -2990,7 +2990,7 @@ def show_action_usage_stats_browser(
 ### ⚙️ Method `show_git_commit_offer`
 
 ```python
-def show_git_commit_offer(self, commit_message: str) -> int
+def show_git_commit_offer(self, commit_message: str, *, repo_path: Path | None = None) -> int
 ```
 
 Offer to create a Git commit or copy the suggested commit message to the clipboard.
@@ -3111,7 +3111,7 @@ def show_instructions(self, instructions: str, title: str = "Instructions") -> s
 ### ⚙️ Method `show_text_diff_side_by_side`
 
 ```python
-def show_text_diff_side_by_side(self, before_text: str, after_text: str, title: str = "Diff (Before/After)") -> tuple[str | None, int]
+def show_text_diff_side_by_side(self, before_text: str, after_text: str, title: str = "Diff (Before/After)", *, rerun_button: bool = False, rerun_button_label: str = RERUN_BUTTON_LABEL, rerun_button_emoji: str = RERUN_BUTTON_EMOJI, remove_paragraphs_button: bool = False) -> tuple[str | None, int]
 ```
 
 Show read-only before/after diff with inline change highlighting.
@@ -3158,7 +3158,7 @@ def show_text_diff_side_by_side(
 ### ⚙️ Method `show_text_multiline`
 
 ```python
-def show_text_multiline(self, text: str, title: str = "Result") -> str | tuple[str | None, int] | None
+def show_text_multiline(self, text: str, title: str = "Result", *, open_folder_path: Path | str | None = None, rerun_button: bool = False, rerun_button_label: str = RERUN_BUTTON_LABEL, rerun_button_emoji: str = RERUN_BUTTON_EMOJI, rewrite_button: bool = False, remove_paragraphs_button: bool = False) -> str | tuple[str | None, int] | None
 ```
 
 Show read-only multi-line text dialog and return text if accepted.

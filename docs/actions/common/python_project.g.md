@@ -37,7 +37,7 @@ def is_python_project(folder_path: Path | str) -> bool:
 ## 🔧 Function `reject_python_project_for_md_beautify`
 
 ```python
-def reject_python_project_for_md_beautify(action: ActionBase, folder_path: Path | str) -> bool
+def reject_python_project_for_md_beautify(action: ActionBase, folder_path: Path | str, *, noninteractive: bool) -> bool
 ```
 
 Log an error and return `True` if Markdown beautify must not run on a Python project.

@@ -24,7 +24,7 @@ lang: en
 ## 🔧 Function `apply_adaptive_dialog_size`
 
 ```python
-def apply_adaptive_dialog_size(dialog: QDialog, layout: QVBoxLayout) -> QSize
+def apply_adaptive_dialog_size(dialog: QDialog, layout: QVBoxLayout, *, target: QSize, stretch_row: int | None = 1) -> QSize
 ```
 
 Size dialog to content: fixed width from `target`, adaptive height.
@@ -101,7 +101,7 @@ def available_max_height(widget: QWidget | None = None) -> int:
 ## 🔧 Function `fit_widget_height`
 
 ```python
-def fit_widget_height(widget: QWidget, content_height: int) -> int
+def fit_widget_height(widget: QWidget, content_height: int, *, minimum: int = MIN_CONTENT_HEIGHT, maximum: int) -> int
 ```
 
 Set widget minimum height from content, clamped to `[minimum, maximum]`.
@@ -131,7 +131,7 @@ def fit_widget_height(
 ## 🔧 Function `icon_grid_content_height`
 
 ```python
-def icon_grid_content_height(list_widget: QListWidget) -> int
+def icon_grid_content_height(list_widget: QListWidget, *, width: int = _DEFAULT_CONTENT_WIDTH) -> int
 ```
 
 Return pixel height needed for all icon cards in the grid.
@@ -177,7 +177,7 @@ def list_content_height(list_widget: QListWidget) -> int:
 ## 🔧 Function `text_content_height`
 
 ```python
-def text_content_height(edit: QPlainTextEdit | QTextEdit | QTextBrowser) -> int
+def text_content_height(edit: QPlainTextEdit | QTextEdit | QTextBrowser, *, width: int = _DEFAULT_CONTENT_WIDTH) -> int
 ```
 
 Return pixel height needed to show text document content.

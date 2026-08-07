@@ -9,7 +9,7 @@ lang: en
 ## 🔧 Function `build_action_output_log_browser`
 
 ```python
-def build_action_output_log_browser(entries: list[tuple[Path, str]]) -> Callable[[QDialog, QVBoxLayout], None]
+def build_action_output_log_browser(entries: list[tuple[Path, str]], *, on_file_selected: Callable[[Path], None] | None, show_toast: Callable[[str], None]) -> Callable[[QDialog, QVBoxLayout], None]
 ```
 
 Return dialog layout builder for recent action log browser.

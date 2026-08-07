@@ -22,7 +22,7 @@ lang: en
 ## 🔧 Function `optimize_image_file`
 
 ```python
-def optimize_image_file(image_filename: Path) -> tuple[Path, str] | None
+def optimize_image_file(image_filename: Path, *, md_dir: Path, image_path: str, image_folder: str = "img", is_convert_png_to_avif: bool = False, is_compare_png_avif_sizes: bool = False, max_size: int | None = None, size_stats: OptimizeSizeStats | None = None) -> tuple[Path, str] | None
 ```
 
 Optimize a local image file and copy it to the target location.
@@ -103,7 +103,7 @@ def optimize_image_file(
 ## 🔧 Function `optimize_images_in_md_file`
 
 ```python
-def optimize_images_in_md_file(filename: Path | str) -> str
+def optimize_images_in_md_file(filename: Path | str, *, is_convert_png_to_avif: bool = False, is_compare_png_avif_sizes: bool = False, max_size: int | None = None, filter_names: set[str] | None = None, size_stats: OptimizeSizeStats | None = None) -> str
 ```
 
 Optimise images in a Markdown file and write changes when content differs.
@@ -182,7 +182,7 @@ def optimize_single_image_for_template(
 ## 🔧 Function `process_markdown_image_line`
 
 ```python
-def process_markdown_image_line(markdown_line: str, path_md: Path | str) -> str
+def process_markdown_image_line(markdown_line: str, path_md: Path | str, *, filter_names: set[str] | None = None, image_folder: str = "img", is_convert_png_to_avif: bool = False, is_compare_png_avif_sizes: bool = False, max_size: int | None = None, size_stats: OptimizeSizeStats | None = None) -> str
 ```
 
 Process a single Markdown line and optimise any matching local image reference.
@@ -243,7 +243,7 @@ def process_markdown_image_line(
 ## 🔧 Function `transform_markdown_content`
 
 ```python
-def transform_markdown_content(markdown_text: str, path_md: Path | str) -> str
+def transform_markdown_content(markdown_text: str, path_md: Path | str, *, filter_names: set[str] | None = None, image_folder: str = "img", is_convert_png_to_avif: bool = False, is_compare_png_avif_sizes: bool = False, max_size: int | None = None, size_stats: OptimizeSizeStats | None = None) -> str
 ```
 
 Optimise local images referenced in Markdown content, preserving YAML and code blocks.

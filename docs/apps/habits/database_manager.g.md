@@ -438,7 +438,7 @@ def __init__(self, db_filename: str) -> None:
 ### ⚙️ Method `add_habit`
 
 ```python
-def add_habit(self, name: str) -> bool
+def add_habit(self, name: str, *, is_bool: bool | None = None) -> bool
 ```
 
 Add a new habit to the database.
@@ -782,7 +782,7 @@ def get_habit_calendar_data(
 ### ⚙️ Method `get_habits`
 
 ```python
-def get_habits(self) -> list[list[Any]]
+def get_habits(self, *, include_archived: bool = False) -> list[list[Any]]
 ```
 
 Get habits with optional inclusion of archived ones.
@@ -869,7 +869,7 @@ def get_limited_process_habits_records(self, limit: int = 5000) -> list[list[Any
 ### ⚙️ Method `set_habit_archived`
 
 ```python
-def set_habit_archived(self, habit_id: int) -> bool
+def set_habit_archived(self, habit_id: int, *, is_archived: bool) -> bool
 ```
 
 Archive/unarchive a habit by ID.
@@ -888,7 +888,7 @@ def set_habit_archived(self, habit_id: int, *, is_archived: bool) -> bool:
 ### ⚙️ Method `update_habit`
 
 ```python
-def update_habit(self, habit_id: int, name: str) -> bool
+def update_habit(self, habit_id: int, name: str, *, is_bool: bool | None = None, is_archived: bool | None = None) -> bool
 ```
 
 Update an existing habit.

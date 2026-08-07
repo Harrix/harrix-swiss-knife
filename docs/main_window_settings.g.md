@@ -44,7 +44,7 @@ def load_main_window_icon_grid() -> bool:
 ## 🔧 Function `save_main_window_icon_grid`
 
 ```python
-def save_main_window_icon_grid() -> None
+def save_main_window_icon_grid(*, icon_grid: bool) -> None
 ```
 
 Persist tray window view mode in `config-temp.json`.

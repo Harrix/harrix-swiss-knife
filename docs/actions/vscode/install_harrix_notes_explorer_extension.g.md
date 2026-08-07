@@ -716,7 +716,7 @@ class OnInstallHarrixNotesExplorerExtension(ActionBase):
 ### ⚙️ Method `execute`
 
 ```python
-def execute(self, *_args: Any, **_kwargs: Any) -> None
+def execute(self, *_args: Any, editor: str | None = None, noninteractive: bool = False, with_public: bool = False, **_kwargs: Any) -> None
 ```
 
 Sync public repo, install HSK, and optionally install public extension into editors.

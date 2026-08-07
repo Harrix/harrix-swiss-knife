@@ -12,7 +12,7 @@ lang: en
 ## Contents
 
 - [🏛️ Class `ReportBuildContext`](#%EF%B8%8F-class-reportbuildcontext)
-  - [⚙️ Method `load`](#%EF%B8%8F-method-load)
+  - [⚙️ Method `load (classmethod)`](#%EF%B8%8F-method-load-classmethod)
 
 </details>
 
@@ -52,7 +52,7 @@ class ReportBuildContext:
 
 </details>
 
-### ⚙️ Method `load`
+### ⚙️ Method `load (classmethod)`
 
 ```python
 def load(cls, db_filename: str) -> ReportBuildContext

@@ -120,7 +120,7 @@ class ComboBoxDelegate(QStyledItemDelegate):
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, parent: QObject | None = None) -> None
+def __init__(self, parent: QObject | None = None, *, items: list[str] | None = None, editable: bool = False, leading_empty_item: bool = False, strip_values: bool = False, write_empty_value: bool = False) -> None
 ```
 
 Initialize ComboBoxDelegate.

@@ -196,7 +196,7 @@ def resolve_java_home() -> str | None:
 ## 🔧 Function `run_gradle`
 
 ```python
-def run_gradle(android_dir: Path, java_home: str, *tasks: str) -> subprocess.CompletedProcess[str]
+def run_gradle(android_dir: Path, java_home: str, *tasks: str, timeout: float | None = 1800.0) -> subprocess.CompletedProcess[str]
 ```
 
 Run one or more Gradle tasks via ``gradlew.bat --no-daemon``.

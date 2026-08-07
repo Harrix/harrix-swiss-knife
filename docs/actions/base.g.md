@@ -16,9 +16,9 @@ lang: en
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `add_elapsed_time`](#%EF%B8%8F-method-add_elapsed_time)
   - [⚙️ Method `add_line`](#%EF%B8%8F-method-add_line)
-  - [⚙️ Method `config`](#%EF%B8%8F-method-config)
+  - [⚙️ Method `config (property)`](#%EF%B8%8F-method-config-property)
   - [⚙️ Method `create_emoji_icon`](#%EF%B8%8F-method-create_emoji_icon)
-  - [⚙️ Method `display_title`](#%EF%B8%8F-method-display_title)
+  - [⚙️ Method `display_title (property)`](#%EF%B8%8F-method-display_title-property)
   - [⚙️ Method `elapsed_mm_ss`](#%EF%B8%8F-method-elapsed_mm_ss)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
   - [⚙️ Method `get_checkbox_selection`](#%EF%B8%8F-method-get_checkbox_selection)
@@ -37,12 +37,12 @@ lang: en
   - [⚙️ Method `get_text_textarea`](#%EF%B8%8F-method-get_text_textarea)
   - [⚙️ Method `get_yes_no_question`](#%EF%B8%8F-method-get_yes_no_question)
   - [⚙️ Method `handle_error`](#%EF%B8%8F-method-handle_error)
-  - [⚙️ Method `handle_exceptions`](#%EF%B8%8F-method-handle_exceptions)
+  - [⚙️ Method `handle_exceptions (staticmethod)`](#%EF%B8%8F-method-handle_exceptions-staticmethod)
   - [⚙️ Method `invalidate_config_cache`](#%EF%B8%8F-method-invalidate_config_cache)
   - [⚙️ Method `is_work_cancelled`](#%EF%B8%8F-method-is_work_cancelled)
   - [⚙️ Method `raise_if_work_cancelled`](#%EF%B8%8F-method-raise_if_work_cancelled)
   - [⚙️ Method `resolve_config_value`](#%EF%B8%8F-method-resolve_config_value)
-  - [⚙️ Method `resolve_description`](#%EF%B8%8F-method-resolve_description)
+  - [⚙️ Method `resolve_description (classmethod)`](#%EF%B8%8F-method-resolve_description-classmethod)
   - [⚙️ Method `show_about_dialog`](#%EF%B8%8F-method-show_about_dialog)
   - [⚙️ Method `show_instructions`](#%EF%B8%8F-method-show_instructions)
   - [⚙️ Method `show_rename_preview`](#%EF%B8%8F-method-show_rename_preview)
@@ -927,7 +927,7 @@ def add_line(self, line: str) -> None:
 
 </details>
 
-### ⚙️ Method `config`
+### ⚙️ Method `config (property)`
 
 ```python
 def config(self) -> dict
@@ -978,7 +978,7 @@ def create_emoji_icon(self, emoji: str, size: int = 64) -> QIcon:
 
 </details>
 
-### ⚙️ Method `display_title`
+### ⚙️ Method `display_title (property)`
 
 ```python
 def display_title(self) -> str
@@ -1049,7 +1049,7 @@ def execute(self, *args: Any, **kwargs: Any) -> Any:
 ### ⚙️ Method `get_checkbox_selection`
 
 ```python
-def get_checkbox_selection(self, title: str, label: str, choices: list[str], default_selected: list[str] | None = None) -> list[str] | None
+def get_checkbox_selection(self, title: str, label: str, choices: list[str], default_selected: list[str] | None = None, *, enable_extension_filter: bool = False, disabled_choices: list[str] | None = None) -> list[str] | None
 ```
 
 Dialog wrapper. Prefer `self.dialogs.get_checkbox_selection()`.
@@ -1181,7 +1181,7 @@ def get_folder_with_choice_option(self, folders_list: list[str], default_path: s
 ### ⚙️ Method `get_max_image_size_option`
 
 ```python
-def get_max_image_size_option(self, title: str = "Image size limit") -> tuple[bool, int] | None
+def get_max_image_size_option(self, title: str = "Image size limit", *, checkbox_label: str = "Limit max image size (px)", default_enabled: bool = True, default_max_size: int = 1024) -> tuple[bool, int] | None
 ```
 
 Dialog wrapper. Prefer `self.dialogs.get_max_image_size_option()`.
@@ -1362,7 +1362,7 @@ def get_text_textarea(
 ### ⚙️ Method `get_yes_no_question`
 
 ```python
-def get_yes_no_question(self, title: str, message: str) -> bool
+def get_yes_no_question(self, title: str, message: str, *, default_yes: bool = False) -> bool
 ```
 
 Dialog wrapper. Prefer `self.dialogs.get_yes_no_question()`.
@@ -1411,7 +1411,7 @@ def handle_error(self, error: Exception, context: str) -> None:
 
 </details>
 
-### ⚙️ Method `handle_exceptions`
+### ⚙️ Method `handle_exceptions (staticmethod)`
 
 ```python
 def handle_exceptions(context: str = "") -> Callable[[Callable[Concatenate[SelfT, P], R]], Callable[Concatenate[SelfT, P], R | None]]
@@ -1531,7 +1531,7 @@ def resolve_config_value(self, key: Any, value: Any) -> Any:
 
 </details>
 
-### ⚙️ Method `resolve_description`
+### ⚙️ Method `resolve_description (classmethod)`
 
 ```python
 def resolve_description(cls) -> str
@@ -1613,7 +1613,7 @@ def show_instructions(self, instructions: str, title: str = "Instructions") -> s
 ### ⚙️ Method `show_rename_preview`
 
 ```python
-def show_rename_preview(self, instructions: str) -> bool
+def show_rename_preview(self, instructions: str, *, title: str | None = None) -> bool
 ```
 
 Show rename explanation with an example; return `False` if the user closed the dialog.
@@ -1717,7 +1717,7 @@ def show_toast(self, message: str, duration: int = 2000) -> None:
 ### ⚙️ Method `start_thread`
 
 ```python
-def start_thread(self, work_function: Callable, callback_function: Callable, message: str = "") -> None
+def start_thread(self, work_function: Callable, callback_function: Callable, message: str = "", *, cancellable: bool = False) -> None
 ```
 
 Start a worker thread with the provided work function and callback.

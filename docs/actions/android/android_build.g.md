@@ -417,7 +417,7 @@ class OnAndroidBuild(ActionBase):
 ### ⚙️ Method `execute`
 
 ```python
-def execute(self, *_args: Any, **_kwargs: Any) -> None
+def execute(self, *_args: Any, folder_path: Path | None = None, variant: str | None = None, build_all: bool = False, noninteractive: bool = False, **_kwargs: Any) -> None
 ```
 
 Build the Android APK (sync for CLI, background thread for tray).

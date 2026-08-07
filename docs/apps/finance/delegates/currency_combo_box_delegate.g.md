@@ -13,7 +13,7 @@ lang: en
 
 - [🏛️ Class `CurrencyComboBoxDelegate`](#%EF%B8%8F-class-currencycomboboxdelegate)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
-  - [⚙️ Method `currencies`](#%EF%B8%8F-method-currencies)
+  - [⚙️ Method `currencies (property)`](#%EF%B8%8F-method-currencies-property)
   - [⚙️ Method `currencies (setter)`](#%EF%B8%8F-method-currencies-setter)
 
 </details>
@@ -78,7 +78,7 @@ def __init__(self, parent: QObject | None = None, currencies: list[str] | None =
 
 </details>
 
-### ⚙️ Method `currencies`
+### ⚙️ Method `currencies (property)`
 
 ```python
 def currencies(self) -> list[str]

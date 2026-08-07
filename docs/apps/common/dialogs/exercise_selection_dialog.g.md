@@ -297,7 +297,7 @@ class ExerciseSelectionDialog(QDialog):
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, parent: QWidget | None) -> None
+def __init__(self, parent: QWidget | None, *, exercises: list[str], icon_provider: Callable[[str], QIcon | None], preview_size: QSize, current_selection: str | None, avif_manager: AvifManager | None = None) -> None
 ```
 
 Initialize the ExerciseSelectionDialog.

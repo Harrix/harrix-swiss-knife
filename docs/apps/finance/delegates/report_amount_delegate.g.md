@@ -154,7 +154,7 @@ class ReportAmountDelegate(QStyledItemDelegate):
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, parent: QWidget | None = None) -> None
+def __init__(self, parent: QWidget | None = None, *, is_bold: bool = False) -> None
 ```
 
 Initialize the report amount delegate.

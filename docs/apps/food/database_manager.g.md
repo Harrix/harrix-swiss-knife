@@ -859,7 +859,7 @@ def __init__(self, db_filename: str) -> None:
 ### ⚙️ Method `add_food_item`
 
 ```python
-def add_food_item(self, name: str, name_en: str | None = None) -> bool
+def add_food_item(self, name: str, name_en: str | None = None, *, is_drink: bool = False, calories_per_100g: float | None = None, default_portion_weight: float | None = None, default_portion_calories: float | None = None) -> bool
 ```
 
 Add a new food item.
@@ -917,7 +917,7 @@ def add_food_item(
 ### ⚙️ Method `add_food_log_record`
 
 ```python
-def add_food_log_record(self, date: str, calories_per_100g: float | None = None, name: str | None = None, name_en: str | None = None, weight: float | None = None, portion_calories: float | None = None) -> bool
+def add_food_log_record(self, date: str, calories_per_100g: float | None = None, name: str | None = None, name_en: str | None = None, weight: float | None = None, portion_calories: float | None = None, *, is_drink: bool = False) -> bool
 ```
 
 Add a new food log record.
@@ -1625,7 +1625,7 @@ def get_recent_food_names_for_autocomplete(self, limit: int = 1000) -> list[Food
 ### ⚙️ Method `get_unique_food_log_names_missing_name_en`
 
 ```python
-def get_unique_food_log_names_missing_name_en(self) -> list[str]
+def get_unique_food_log_names_missing_name_en(self, *, limit: int = 1000) -> list[str]
 ```
 
 Return distinct Russian names from food_log rows missing English name.
@@ -1724,7 +1724,7 @@ def lookup_existing_name_en_for_names(self, names: list[str]) -> dict[str, str]:
 ### ⚙️ Method `update_food_item`
 
 ```python
-def update_food_item(self, food_item_id: int, name: str, name_en: str | None = None) -> bool
+def update_food_item(self, food_item_id: int, name: str, name_en: str | None = None, *, is_drink: bool = False, calories_per_100g: float | None = None, default_portion_weight: float | None = None, default_portion_calories: float | None = None) -> bool
 ```
 
 Update a food item.
@@ -1815,7 +1815,7 @@ def update_food_log_name_en_by_name(self, name: str, name_en: str) -> bool:
 ### ⚙️ Method `update_food_log_record`
 
 ```python
-def update_food_log_record(self, record_id: int, date: str, calories_per_100g: float | None = None, name: str | None = None, name_en: str | None = None, weight: float | None = None, portion_calories: float | None = None) -> bool
+def update_food_log_record(self, record_id: int, date: str, calories_per_100g: float | None = None, name: str | None = None, name_en: str | None = None, weight: float | None = None, portion_calories: float | None = None, *, is_drink: bool = False) -> bool
 ```
 
 Update a food log record.

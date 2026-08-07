@@ -134,7 +134,7 @@ def in_thread(self) -> str | None:
 ### ⚙️ Method `run_optimize_images`
 
 ```python
-def run_optimize_images(self, images_folder: Path | str, output_folder: Path | str) -> str
+def run_optimize_images(self, images_folder: Path | str, output_folder: Path | str, *, quality: bool = False, max_size: int | None = None, compare_png_avif: bool = True, convert_png_to_avif: bool = False, clear_output: bool = True) -> str
 ```
 
 Optimize images in a folder and store the output path for the result dialog.

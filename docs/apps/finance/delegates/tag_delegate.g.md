@@ -13,7 +13,7 @@ lang: en
 
 - [🏛️ Class `TagDelegate`](#%EF%B8%8F-class-tagdelegate)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
-  - [⚙️ Method `tags`](#%EF%B8%8F-method-tags)
+  - [⚙️ Method `tags (property)`](#%EF%B8%8F-method-tags-property)
   - [⚙️ Method `tags (setter)`](#%EF%B8%8F-method-tags-setter)
 
 </details>
@@ -80,7 +80,7 @@ def __init__(self, parent: QObject | None = None, tags: list[str] | None = None)
 
 </details>
 
-### ⚙️ Method `tags`
+### ⚙️ Method `tags (property)`
 
 ```python
 def tags(self) -> list[str]

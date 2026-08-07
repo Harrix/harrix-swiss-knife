@@ -153,7 +153,7 @@ class FoodTranslatePreviewDialog(QDialog):
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, parent: QWidget | None, names: list[str], translations: dict[str, str], unique_names_limit: int) -> None
+def __init__(self, parent: QWidget | None, names: list[str], translations: dict[str, str], unique_names_limit: int, *, filled_from_existing: int = 0) -> None
 ```
 
 Initialize the preview dialog.

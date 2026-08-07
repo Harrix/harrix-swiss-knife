@@ -44,7 +44,7 @@ class ActionUsageStatsRow(TypedDict):
 ## 🔧 Function `build_action_usage_stats_browser`
 
 ```python
-def build_action_usage_stats_browser(rows: list[ActionUsageStatsRow]) -> Callable[[QDialog, QVBoxLayout], None]
+def build_action_usage_stats_browser(rows: list[ActionUsageStatsRow], *, summary: str) -> Callable[[QDialog, QVBoxLayout], None]
 ```
 
 Return dialog layout builder: summary label + sortable usage table.

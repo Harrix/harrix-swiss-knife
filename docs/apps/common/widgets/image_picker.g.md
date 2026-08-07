@@ -22,7 +22,7 @@ lang: en
   - [⚙️ Method `get_pending_removed_paths`](#%EF%B8%8F-method-get_pending_removed_paths)
   - [⚙️ Method `has_image`](#%EF%B8%8F-method-has_image)
   - [⚙️ Method `keyPressEvent`](#%EF%B8%8F-method-keypressevent)
-  - [⚙️ Method `mode`](#%EF%B8%8F-method-mode)
+  - [⚙️ Method `mode (property)`](#%EF%B8%8F-method-mode-property)
   - [⚙️ Method `mousePressEvent`](#%EF%B8%8F-method-mousepressevent)
   - [⚙️ Method `paste_from_clipboard`](#%EF%B8%8F-method-paste_from_clipboard)
   - [⚙️ Method `paste_image_from_clipboard`](#%EF%B8%8F-method-paste_image_from_clipboard)
@@ -913,7 +913,7 @@ class ImagePicker(QWidget):
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, parent: QWidget | None = None) -> None
+def __init__(self, parent: QWidget | None = None, *, mode: ImagePickerMode = ImagePickerMode.SINGLE, save_dir: Path | None = None, max_image_side: int | None = None, fallback_text_edit: QPlainTextEdit | None = None, on_paths: Callable[[list[str]], None] | None = None, on_double_click: Callable[[], None] | None = None, hint_text: str | None = None, extra_drop_targets: Sequence[QWidget] = (), show_label: bool = False, label_text: str = "", show_select_button: bool | None = None, show_add_button: bool | None = None, show_paste_button: bool | None = None, show_clear_button: bool | None = None, show_screenshot_button: bool | None = None) -> None
 ```
 
 Initialize the image picker.
@@ -1004,7 +1004,7 @@ def __init__(
 ### ⚙️ Method `configure_filename_row`
 
 ```python
-def configure_filename_row(self, date_edit: QDateEdit | None, source_widget: QLineEdit | QComboBox | None = None) -> None
+def configure_filename_row(self, date_edit: QDateEdit | None, source_widget: QLineEdit | QComboBox | None = None, *, source_field_name: str | None = None, initial_base: str | None = None, lock_auto_sync: bool = False) -> None
 ```
 
 Add filename row synced with date and optional linked template field.
@@ -1292,7 +1292,7 @@ def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
 
 </details>
 
-### ⚙️ Method `mode`
+### ⚙️ Method `mode (property)`
 
 ```python
 def mode(self) -> ImagePickerMode
@@ -1419,7 +1419,7 @@ def reset_filename_row(self) -> None:
 ### ⚙️ Method `set_image_path`
 
 ```python
-def set_image_path(self, path: str) -> None
+def set_image_path(self, path: str, *, soft_removable: bool = False) -> None
 ```
 
 Set a single image path (single mode), or clear when empty.
@@ -1453,7 +1453,7 @@ def set_image_path(self, path: str, *, soft_removable: bool = False) -> None:
 ### ⚙️ Method `set_image_paths`
 
 ```python
-def set_image_paths(self, paths: list[str]) -> None
+def set_image_paths(self, paths: list[str], *, soft_removable: bool = False) -> None
 ```
 
 Replace selected images (multi) or set the first path (single).
@@ -1569,7 +1569,7 @@ def is_image_file_path(file_path: str) -> bool:
 ## 🔧 Function `save_clipboard_image_to_temp_file`
 
 ```python
-def save_clipboard_image_to_temp_file() -> str | None
+def save_clipboard_image_to_temp_file(*, max_image_side: int | None = None) -> str | None
 ```
 
 Save clipboard image to a temporary PNG file and return its path.
@@ -1587,7 +1587,7 @@ def save_clipboard_image_to_temp_file(*, max_image_side: int | None = None) -> s
 ## 🔧 Function `save_qimage_to_temp_file`
 
 ```python
-def save_qimage_to_temp_file(qimage: QImage) -> str | None
+def save_qimage_to_temp_file(qimage: QImage, *, max_image_side: int | None = None) -> str | None
 ```
 
 Save a `QImage` to a temporary PNG file and return its path.

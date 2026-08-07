@@ -20,7 +20,7 @@ lang: en
 ## 🔧 Function `image_bytes_and_mime`
 
 ```python
-def image_bytes_and_mime(path: str | Path) -> tuple[bytes, str]
+def image_bytes_and_mime(path: str | Path, *, max_image_side: int | None = None) -> tuple[bytes, str]
 ```
 
 Read an image file and return its bytes and MIME type.
@@ -84,7 +84,7 @@ def image_mime_from_suffix(suffix: str) -> str | None:
 ## 🔧 Function `qimage_bytes_and_mime`
 
 ```python
-def qimage_bytes_and_mime(qimage: QImage) -> tuple[bytes, str]
+def qimage_bytes_and_mime(qimage: QImage, *, max_image_side: int | None = None) -> tuple[bytes, str]
 ```
 
 Encode a `QImage` as PNG bytes, optionally downscaled for BotHub.

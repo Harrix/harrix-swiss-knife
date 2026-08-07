@@ -2510,7 +2510,7 @@ def __init__(self, db_filename: str) -> None:
 ### ⚙️ Method `add_account`
 
 ```python
-def add_account(self, name: str, balance: float, currency_id: int) -> bool
+def add_account(self, name: str, balance: float, currency_id: int, *, is_liquid: bool = True, is_cash: bool = False) -> bool
 ```
 
 Add a new account to the database.
@@ -4174,7 +4174,7 @@ def get_filtered_transactions(
 ### ⚙️ Method `get_income_vs_expenses_in_currency`
 
 ```python
-def get_income_vs_expenses_in_currency(self, currency_id: int, date_from: str | None = None, date_to: str | None = None) -> tuple[float, float]
+def get_income_vs_expenses_in_currency(self, currency_id: int, date_from: str | None = None, date_to: str | None = None, *, use_latest_rates: bool = False) -> tuple[float, float]
 ```
 
 Get total income and expenses in specified currency.
@@ -4676,7 +4676,7 @@ def get_standard_item_names_for_autocomplete(self) -> list[str]:
 ### ⚙️ Method `get_standard_items_missing_name_en`
 
 ```python
-def get_standard_items_missing_name_en(self) -> list[str]
+def get_standard_items_missing_name_en(self, *, limit: int = 1000) -> list[str]
 ```
 
 Return catalog names whose English translation is missing.
@@ -4839,7 +4839,7 @@ def get_total_accounts_balance_in_currency(self, currency_id: int | None = None)
 ### ⚙️ Method `get_transaction_accounting_balance`
 
 ```python
-def get_transaction_accounting_balance(self, currency_id: int | None = None) -> float
+def get_transaction_accounting_balance(self, currency_id: int | None = None, *, use_latest_rates: bool = False) -> float
 ```
 
 Return income minus expenses for all transactions in target currency.
@@ -4970,7 +4970,7 @@ def get_transactions_for_tag(self, tag: str) -> list[list[Any]]:
 ### ⚙️ Method `get_unique_transaction_descriptions_missing_description_en`
 
 ```python
-def get_unique_transaction_descriptions_missing_description_en(self) -> list[str]
+def get_unique_transaction_descriptions_missing_description_en(self, *, limit: int = 1000) -> list[str]
 ```
 
 Return unique descriptions whose English translation is missing.
@@ -5194,7 +5194,7 @@ def should_update_exchange_rates(self) -> bool:
 ### ⚙️ Method `update_account`
 
 ```python
-def update_account(self, account_id: int, name: str, balance: float, currency_id: int) -> bool
+def update_account(self, account_id: int, name: str, balance: float, currency_id: int, *, is_liquid: bool = True, is_cash: bool = False) -> bool
 ```
 
 Update an existing account.

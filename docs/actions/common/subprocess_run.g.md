@@ -39,7 +39,7 @@ def completed_process_output(process: subprocess.CompletedProcess[Any]) -> str:
 ## 🔧 Function `run_argv`
 
 ```python
-def run_argv(command: list[str]) -> subprocess.CompletedProcess[str]
+def run_argv(command: list[str], *, cwd: str | Path | None = None, env: dict[str, str] | None = None, timeout: float | None = DEFAULT_SUBPROCESS_TIMEOUT, check: bool = False) -> subprocess.CompletedProcess[str]
 ```
 
 Run a command as an argv list with a default timeout.
@@ -92,7 +92,7 @@ def run_argv(
 ## 🔧 Function `run_argv_output`
 
 ```python
-def run_argv_output(command: list[str]) -> tuple[int, str]
+def run_argv_output(command: list[str], *, cwd: str | Path | None = None, env: dict[str, str] | None = None, timeout: float | None = DEFAULT_SUBPROCESS_TIMEOUT) -> tuple[int, str]
 ```
 
 Run argv command and return `(returncode, combined_output)`.

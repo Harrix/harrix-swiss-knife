@@ -172,7 +172,7 @@ def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
 ### ⚙️ Method `start_countdown`
 
 ```python
-def start_countdown(self) -> None
+def start_countdown(self, *, present: bool = True) -> None
 ```
 
 Start the countdown timer and initialize the display.

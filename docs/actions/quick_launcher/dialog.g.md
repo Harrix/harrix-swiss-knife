@@ -22,7 +22,7 @@ lang: en
   - [⚙️ Method `present`](#%EF%B8%8F-method-present)
   - [⚙️ Method `resizeEvent`](#%EF%B8%8F-method-resizeevent)
   - [⚙️ Method `set_action_classes`](#%EF%B8%8F-method-set_action_classes)
-  - [⚙️ Method `toggle`](#%EF%B8%8F-method-toggle)
+  - [⚙️ Method `toggle (classmethod)`](#%EF%B8%8F-method-toggle-classmethod)
   - [⚙️ Method `update_session`](#%EF%B8%8F-method-update_session)
 
 </details>
@@ -854,10 +854,10 @@ def set_action_classes(self, action_classes: list[type[ActionBase]]) -> None:
 
 </details>
 
-### ⚙️ Method `toggle`
+### ⚙️ Method `toggle (classmethod)`
 
 ```python
-def toggle(cls) -> None
+def toggle(cls, *, parent: QWidget | None, output_bus: ActionOutputBus | None, action_classes: list[type[ActionBase]]) -> None
 ```
 
 Show or hide the singleton quick launcher dialog.
@@ -890,7 +890,7 @@ def toggle(
 ### ⚙️ Method `update_session`
 
 ```python
-def update_session(self) -> None
+def update_session(self, *, output_bus: ActionOutputBus | None, action_classes: list[type[ActionBase]]) -> None
 ```
 
 Refresh output bus and action list before showing.

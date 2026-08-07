@@ -168,7 +168,7 @@ def log_startup_context(log: logging.Logger, log_path: Path) -> None:
 ## 🔧 Function `run_tray_application`
 
 ```python
-def run_tray_application(log: logging.Logger) -> int
+def run_tray_application(log: logging.Logger, *, main_menu_cls: type[MainMenuBase]) -> int
 ```
 
 Create QApplication, tray, main window, and run until the event loop exits.

@@ -14,7 +14,7 @@ lang: en
 - [🏛️ Class `AppLauncherAction`](#%EF%B8%8F-class-applauncheraction)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
-  - [⚙️ Method `get_main_window_class`](#%EF%B8%8F-method-get_main_window_class)
+  - [⚙️ Method `get_main_window_class (classmethod)`](#%EF%B8%8F-method-get_main_window_class-classmethod)
 
 </details>
 
@@ -162,7 +162,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 
 </details>
 
-### ⚙️ Method `get_main_window_class`
+### ⚙️ Method `get_main_window_class (classmethod)`
 
 ```python
 def get_main_window_class(cls) -> type

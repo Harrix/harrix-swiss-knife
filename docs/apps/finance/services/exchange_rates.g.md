@@ -583,7 +583,7 @@ def __init__(self, db: DatabaseManager) -> None:
 ### ⚙️ Method `add_exchange_rate`
 
 ```python
-def add_exchange_rate(self, currency_id: int, rate: float, date: str) -> bool
+def add_exchange_rate(self, currency_id: int, rate: float, date: str, *, invalidate_cache: bool = True) -> bool
 ```
 
 Insert one USD-quoted rate row.

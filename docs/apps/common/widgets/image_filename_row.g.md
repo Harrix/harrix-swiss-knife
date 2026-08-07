@@ -115,7 +115,7 @@ class ImageFilenameRow(QWidget):
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, parent: QWidget | None = None) -> None
+def __init__(self, parent: QWidget | None = None, *, multiple: bool, date_edit: QDateEdit | None, source_widget: QLineEdit | QComboBox | None = None, source_field_name: str | None = None, initial_base: str | None = None, lock_auto_sync: bool = False) -> None
 ```
 
 Build filename row widgets.
@@ -203,7 +203,7 @@ def refresh_auto_base(self) -> None:
 ## 🔧 Function `build_image_filename_hint`
 
 ```python
-def build_image_filename_hint() -> str
+def build_image_filename_hint(*, multiple: bool, source_field_name: str | None) -> str
 ```
 
 Return helper text shown below the filename input.
@@ -230,7 +230,7 @@ def build_image_filename_hint(*, multiple: bool, source_field_name: str | None) 
 ## 🔧 Function `compute_image_filename_base`
 
 ```python
-def compute_image_filename_base() -> str
+def compute_image_filename_base(*, date_edit: QDateEdit | None, source_widget: QLineEdit | QComboBox | None) -> str
 ```
 
 Compute filename base from linked source field or date.

@@ -216,7 +216,7 @@ def __init__(self, **kwargs) -> None:  # noqa: ANN003
 ### ⚙️ Method `execute`
 
 ```python
-def execute(self, *_args: Any, **_kwargs: Any) -> None
+def execute(self, *_args: Any, folder_path: Path | None = None, noninteractive: bool = False, apply_prose_fixes: bool = True, **_kwargs: Any) -> None
 ```
 
 Format, sort Python code and generate documentation in a selected folder.
@@ -271,7 +271,7 @@ def execute(
 ### ⚙️ Method `format_and_sort_python_common`
 
 ```python
-def format_and_sort_python_common(self, folder_path: str) -> None
+def format_and_sort_python_common(self, folder_path: str, *, is_include_docs_generation: bool = True) -> None
 ```
 
 Perform common formatting and sorting operations on Python files in a folder.

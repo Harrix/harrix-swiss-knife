@@ -55,7 +55,7 @@ class RequestCancelledError(BotHubApiError):
 ## 🔧 Function `chat_completion`
 
 ```python
-def chat_completion() -> str
+def chat_completion(*, api_key: str, base_url: str, model: str, text: str, images: Sequence[tuple[bytes, str]] | None = None, image: tuple[bytes, str] | None = None, audio: tuple[bytes, str] | None = None, timeout_sec: int = _DEFAULT_TIMEOUT_SEC, proxy_url: str | None = None, should_cancel: Callable[[], bool] | None = None, on_connection: Callable[[http.client.HTTPConnection], None] | None = None) -> str
 ```
 
 Send a chat completion request to BotHub and return assistant text.

@@ -77,7 +77,7 @@ def load_action_usage(path: Path | None = None) -> ActionUsageMap:
 ## 🔧 Function `record_action_usage`
 
 ```python
-def record_action_usage(class_name: str) -> None
+def record_action_usage(class_name: str, *, via_cli: bool, path: Path | None = None) -> None
 ```
 
 Increment counters for `class_name` and persist atomically.

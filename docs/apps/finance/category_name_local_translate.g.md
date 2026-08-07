@@ -41,7 +41,7 @@ def parse_category_name_local_response(response_text: str) -> str:
 ## 🔧 Function `request_category_name_local_translation`
 
 ```python
-def request_category_name_local_translation(parent: QWidget) -> None
+def request_category_name_local_translation(parent: QWidget, *, app_config: dict[str, Any], bothub_state: BothubRequestState, name_edit: QLineEdit, name_local_edit: QLineEdit, translate_button: QPushButton) -> None
 ```
 
 Translate category name into the local language via BotHub and fill `name_local_edit`.

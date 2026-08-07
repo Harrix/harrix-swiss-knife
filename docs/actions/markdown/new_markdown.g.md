@@ -1860,7 +1860,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 ### ⚙️ Method `execute_edit_from_template`
 
 ```python
-def execute_edit_from_template(self, template_name: str | None = None) -> None
+def execute_edit_from_template(self, template_name: str | None = None, *, suppress_result_ui: bool = False) -> None
 ```
 
 Edit an existing Markdown block using a configured template.
@@ -1886,7 +1886,7 @@ def execute_edit_from_template(self, template_name: str | None = None, *, suppre
 ### ⚙️ Method `execute_from_template`
 
 ```python
-def execute_from_template(self, template_name: str | None = None) -> None
+def execute_from_template(self, template_name: str | None = None, *, suppress_result_ui: bool = False, ai_screenshot: bool = False) -> None
 ```
 
 Add Markdown content using configured `markdown_templates`.
@@ -1986,7 +1986,7 @@ def execute_new_note(self) -> None:
 ### ⚙️ Method `execute_new_note_at`
 
 ```python
-def execute_new_note_at(self, folder_path: Path, note_stem: str) -> None
+def execute_new_note_at(self, folder_path: Path, note_stem: str, *, is_with_images: bool = False) -> None
 ```
 
 Create a note under `folder_path` (non-interactive; first beginning template).
@@ -2022,7 +2022,7 @@ def execute_new_note_with_images(self) -> None:
 ### ⚙️ Method `execute_picker_choice`
 
 ```python
-def execute_picker_choice(self, title: str) -> None
+def execute_picker_choice(self, title: str, *, ai_screenshot: bool = False) -> None
 ```
 
 Run a single New Markdown picker command by title (for quick launcher panel).

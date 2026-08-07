@@ -62,7 +62,7 @@ def get_speech_model(config: dict[str, Any]) -> str:
 ## 🔧 Function `validate_api_key`
 
 ```python
-def validate_api_key(config: dict[str, Any]) -> str | None
+def validate_api_key(config: dict[str, Any], *, parent: QWidget | None = None, show_message: bool = True) -> str | None
 ```
 
 Return API key if configured; optionally show warning dialog and return `None`.

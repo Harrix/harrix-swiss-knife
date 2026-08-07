@@ -15,11 +15,11 @@ lang: en
 - [🏛️ Class `TemplateField`](#%EF%B8%8F-class-templatefield)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
 - [🏛️ Class `TemplateParser`](#%EF%B8%8F-class-templateparser)
-  - [⚙️ Method `build_block_regex`](#%EF%B8%8F-method-build_block_regex)
-  - [⚙️ Method `fill_template`](#%EF%B8%8F-method-fill_template)
-  - [⚙️ Method `parse_block`](#%EF%B8%8F-method-parse_block)
-  - [⚙️ Method `parse_template`](#%EF%B8%8F-method-parse_template)
-  - [⚙️ Method `split_entries`](#%EF%B8%8F-method-split_entries)
+  - [⚙️ Method `build_block_regex (staticmethod)`](#%EF%B8%8F-method-build_block_regex-staticmethod)
+  - [⚙️ Method `fill_template (staticmethod)`](#%EF%B8%8F-method-fill_template-staticmethod)
+  - [⚙️ Method `parse_block (staticmethod)`](#%EF%B8%8F-method-parse_block-staticmethod)
+  - [⚙️ Method `parse_template (staticmethod)`](#%EF%B8%8F-method-parse_template-staticmethod)
+  - [⚙️ Method `split_entries (staticmethod)`](#%EF%B8%8F-method-split_entries-staticmethod)
 
 </details>
 
@@ -109,7 +109,7 @@ class TemplateField:
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, name: str, field_type: str, placeholder: str, default_value: str | None = None, options: list[str] | None = None, field_link: str | None = None) -> None
+def __init__(self, name: str, field_type: str, placeholder: str, default_value: str | None = None, options: list[str] | None = None, field_link: str | None = None, *, image_optimize: bool = False, image_max_size: int | None = None, date_from_images: str | None = None, date_from_images_overwrite: bool = False) -> None
 ```
 
 Initialize a template field.
@@ -592,7 +592,7 @@ class TemplateParser:
 
 </details>
 
-### ⚙️ Method `build_block_regex`
+### ⚙️ Method `build_block_regex (staticmethod)`
 
 ```python
 def build_block_regex(template_content: str, fields: list[TemplateField]) -> re.Pattern[str] | None
@@ -643,7 +643,7 @@ def build_block_regex(template_content: str, fields: list[TemplateField]) -> re.
 
 </details>
 
-### ⚙️ Method `fill_template`
+### ⚙️ Method `fill_template (staticmethod)`
 
 ```python
 def fill_template(template_content: str, field_values: dict[str, str]) -> str
@@ -670,7 +670,7 @@ def fill_template(template_content: str, field_values: dict[str, str]) -> str:
 
 </details>
 
-### ⚙️ Method `parse_block`
+### ⚙️ Method `parse_block (staticmethod)`
 
 ```python
 def parse_block(template_content: str, block_text: str, fields: list[TemplateField]) -> dict[str, str] | None
@@ -721,7 +721,7 @@ def parse_block(
 
 </details>
 
-### ⚙️ Method `parse_template`
+### ⚙️ Method `parse_template (staticmethod)`
 
 ```python
 def parse_template(template_content: str) -> tuple[list[TemplateField], str]
@@ -771,7 +771,7 @@ def parse_template(template_content: str) -> tuple[list[TemplateField], str]:
 
 </details>
 
-### ⚙️ Method `split_entries`
+### ⚙️ Method `split_entries (staticmethod)`
 
 ```python
 def split_entries(content: str, template_content: str) -> list[TemplateEntry]

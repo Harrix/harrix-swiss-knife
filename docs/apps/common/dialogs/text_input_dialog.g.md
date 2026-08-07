@@ -172,7 +172,7 @@ class TextInputDialog(QDialog):
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, parent: QWidget | None = None) -> None
+def __init__(self, parent: QWidget | None = None, *, title: str = "Add Text", description: str | None = None, placeholder: str | None = None, show_date: bool = False, default_date: QDate | None = None, initial_text: str | None = None, focus_text_on_show: bool = False, min_width: int = 600, min_height: int = 400) -> None
 ```
 
 Initialize the text input dialog.

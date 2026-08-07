@@ -9,7 +9,7 @@ lang: en
 ## 🔧 Function `build_text_diff_side_by_side`
 
 ```python
-def build_text_diff_side_by_side(before_text: str, after_text: str, default_size: QSize, show_toast: Callable[[str], None]) -> Callable[[QDialog, QVBoxLayout], None]
+def build_text_diff_side_by_side(before_text: str, after_text: str, default_size: QSize, show_toast: Callable[[str], None], *, rerun_button: bool = False, rerun_button_label: str = RERUN_BUTTON_LABEL, rerun_button_emoji: str = RERUN_BUTTON_EMOJI, remove_paragraphs_button: bool = False, result_text_holder: list[str] | None = None) -> Callable[[QDialog, QVBoxLayout], None]
 ```
 
 Return dialog layout builder for before/after diff view.

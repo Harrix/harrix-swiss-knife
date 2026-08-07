@@ -248,7 +248,7 @@ class FoodItemDialog(QDialog):
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, parent: QWidget | None = None, food_item_data: FoodItemByNameRow | FoodLogItemByNameRow | None = None) -> None
+def __init__(self, parent: QWidget | None = None, food_item_data: FoodItemByNameRow | FoodLogItemByNameRow | None = None, *, is_create: bool = False) -> None
 ```
 
 Initialize the dialog.

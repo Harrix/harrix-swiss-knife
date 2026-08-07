@@ -46,7 +46,7 @@ def apply_opaque_white(widget: QWidget) -> None:
 ## 🔧 Function `create_command_section`
 
 ```python
-def create_command_section() -> tuple[QFrame, QLabel | None, QVBoxLayout]
+def create_command_section(*, title: str | None = None) -> tuple[QFrame, QLabel | None, QVBoxLayout]
 ```
 
 Create a bordered white section card for an icon command grid.
@@ -140,7 +140,7 @@ def measure_icon_grid_height(grid: QListWidget) -> int:
 ## 🔧 Function `prepare_icon_grid`
 
 ```python
-def prepare_icon_grid(grid: QListWidget) -> None
+def prepare_icon_grid(grid: QListWidget, *, event_filter: QObject | None = None) -> None
 ```
 
 Make an icon grid frameless and non-scrolling (outer scroll owns the wheel).

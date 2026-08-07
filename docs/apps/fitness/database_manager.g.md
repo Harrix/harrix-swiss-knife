@@ -1114,7 +1114,7 @@ def __init__(self, db_filename: str) -> None:
 ### ⚙️ Method `add_exercise`
 
 ```python
-def add_exercise(self, name: str, unit: str) -> bool
+def add_exercise(self, name: str, unit: str, *, is_type_required: bool, calories_per_unit: float = 0.0) -> bool
 ```
 
 Add a new exercise to the database.
@@ -2457,7 +2457,7 @@ def is_exercise_type_required(self, exercise_id: int) -> bool:
 ### ⚙️ Method `update_exercise`
 
 ```python
-def update_exercise(self, exercise_id: int, name: str, unit: str) -> bool
+def update_exercise(self, exercise_id: int, name: str, unit: str, *, is_type_required: bool, calories_per_unit: float = 0.0) -> bool
 ```
 
 Update an existing exercise.

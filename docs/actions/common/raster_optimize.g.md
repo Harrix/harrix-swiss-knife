@@ -21,7 +21,7 @@ lang: en
 ## 🔧 Function `optimize_raster_file`
 
 ```python
-def optimize_raster_file(source: Path, output_folder: Path, project_root: Path) -> str
+def optimize_raster_file(source: Path, output_folder: Path, project_root: Path, *, quality: bool = False, max_size: int | None = None, compare_png_avif: bool = True, convert_png_to_avif: bool = False) -> str
 ```
 
 Optimize a PNG, JPG, or WEBP file using Pillow and ffmpeg.
@@ -82,7 +82,7 @@ def optimize_raster_file(
 ## 🔧 Function `process_jpg_webp_to_avif`
 
 ```python
-def process_jpg_webp_to_avif(source: Path, output_path: Path, project_root: Path) -> str
+def process_jpg_webp_to_avif(source: Path, output_path: Path, project_root: Path, *, quality: bool = False, max_size: int | None = None) -> str
 ```
 
 Convert JPG or WEBP to AVIF using ffmpeg.
@@ -109,7 +109,7 @@ def process_jpg_webp_to_avif(
 ## 🔧 Function `process_png_compare`
 
 ```python
-def process_png_compare(source: Path, output_folder: Path, project_root: Path) -> str
+def process_png_compare(source: Path, output_folder: Path, project_root: Path, *, quality: bool = False, max_size: int | None = None) -> str
 ```
 
 Optimize PNG, compare with AVIF from ffmpeg, and keep the smaller file.
@@ -175,7 +175,7 @@ def process_png_compare(
 ## 🔧 Function `process_png_to_avif`
 
 ```python
-def process_png_to_avif(source: Path, output_folder: Path, project_root: Path) -> str
+def process_png_to_avif(source: Path, output_folder: Path, project_root: Path, *, quality: bool = False, max_size: int | None = None) -> str
 ```
 
 Convert PNG to AVIF using ffmpeg.

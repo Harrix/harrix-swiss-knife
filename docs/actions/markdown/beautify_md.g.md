@@ -277,7 +277,7 @@ class OnBeautifyMd(ActionBase):
 ### ⚙️ Method `beautify_markdown_common`
 
 ```python
-def beautify_markdown_common(self: ActionBase, folder_path: str) -> None
+def beautify_markdown_common(self: ActionBase, folder_path: str, *, is_include_summaries_and_combine: bool = False, delete_generated_g_md: bool = False) -> None
 ```
 
 Perform common beautification operations on Markdown files in a folder.
@@ -431,7 +431,7 @@ def beautify_markdown_common(
 ### ⚙️ Method `execute`
 
 ```python
-def execute(self, *_args: Any, **_kwargs: Any) -> None
+def execute(self, *_args: Any, folder_path: Path | None = None, noninteractive: bool = False, prose_wrap: str = "preserve", print_width: int = 80, apply_prose_fixes: bool = True, format_code_blocks: bool = True, **_kwargs: Any) -> None
 ```
 
 Apply comprehensive beautification to all Markdown notes.

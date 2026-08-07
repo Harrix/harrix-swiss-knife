@@ -9,7 +9,7 @@ lang: en
 ## 🔧 Function `requires_database`
 
 ```python
-def requires_database() -> Callable[[Callable[Concatenate[SelfT, P], R]], Callable[Concatenate[SelfT, P], R | None]]
+def requires_database(*, is_show_warning: bool = True) -> Callable[[Callable[Concatenate[SelfT, P], R]], Callable[Concatenate[SelfT, P], R | None]]
 ```
 
 Ensure database connection is available before executing method.

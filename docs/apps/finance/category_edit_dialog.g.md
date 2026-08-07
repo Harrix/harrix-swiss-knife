@@ -178,7 +178,7 @@ class CategoryEditDialog(QDialog):
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, parent: QWidget | None = None, category_data: dict | None = None) -> None
+def __init__(self, parent: QWidget | None = None, category_data: dict | None = None, *, app_config: dict[str, Any] | None = None, bothub_state: BothubRequestState | None = None) -> None
 ```
 
 Initialize the dialog.

@@ -26,7 +26,7 @@ lang: en
 ## 🔧 Function `build_google_maps_url`
 
 ```python
-def build_google_maps_url(lat: float, lon: float) -> str
+def build_google_maps_url(lat: float, lon: float, *, zoom: int = _DEFAULT_MAP_ZOOM) -> str
 ```
 
 Return a Google Maps URL with a marker at the given coordinates.
@@ -45,7 +45,7 @@ def build_google_maps_url(lat: float, lon: float, *, zoom: int = _DEFAULT_MAP_ZO
 ## 🔧 Function `build_openstreetmap_url`
 
 ```python
-def build_openstreetmap_url(lat: float, lon: float) -> str
+def build_openstreetmap_url(lat: float, lon: float, *, zoom: int = _DEFAULT_MAP_ZOOM) -> str
 ```
 
 Return an OpenStreetMap URL with a marker at the given coordinates.
@@ -63,7 +63,7 @@ def build_openstreetmap_url(lat: float, lon: float, *, zoom: int = _DEFAULT_MAP_
 ## 🔧 Function `build_yandex_maps_url`
 
 ```python
-def build_yandex_maps_url(lat: float, lon: float) -> str
+def build_yandex_maps_url(lat: float, lon: float, *, zoom: int = _DEFAULT_MAP_ZOOM) -> str
 ```
 
 Return a Yandex Maps URL with a marker at the given coordinates.
@@ -81,7 +81,7 @@ def build_yandex_maps_url(lat: float, lon: float, *, zoom: int = _DEFAULT_MAP_ZO
 ## 🔧 Function `coordinates_differ`
 
 ```python
-def coordinates_differ(first: tuple[float, float], second: tuple[float, float]) -> bool
+def coordinates_differ(first: tuple[float, float], second: tuple[float, float], *, tolerance: float = _COORDINATE_COMPARE_TOLERANCE) -> bool
 ```
 
 Return `True` when two coordinate pairs differ beyond `tolerance`.

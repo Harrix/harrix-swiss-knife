@@ -17,13 +17,13 @@ lang: en
   - [⚙️ Method `can_continue`](#%EF%B8%8F-method-can_continue)
   - [⚙️ Method `clear`](#%EF%B8%8F-method-clear)
   - [⚙️ Method `duration_seconds`](#%EF%B8%8F-method-duration_seconds)
-  - [⚙️ Method `is_recording`](#%EF%B8%8F-method-is_recording)
-  - [⚙️ Method `list_input_devices`](#%EF%B8%8F-method-list_input_devices)
-  - [⚙️ Method `recorded_path`](#%EF%B8%8F-method-recorded_path)
-  - [⚙️ Method `recording_wav_path`](#%EF%B8%8F-method-recording_wav_path)
+  - [⚙️ Method `is_recording (property)`](#%EF%B8%8F-method-is_recording-property)
+  - [⚙️ Method `list_input_devices (staticmethod)`](#%EF%B8%8F-method-list_input_devices-staticmethod)
+  - [⚙️ Method `recorded_path (property)`](#%EF%B8%8F-method-recorded_path-property)
+  - [⚙️ Method `recording_wav_path (property)`](#%EF%B8%8F-method-recording_wav_path-property)
   - [⚙️ Method `release`](#%EF%B8%8F-method-release)
-  - [⚙️ Method `resolve_input_device`](#%EF%B8%8F-method-resolve_input_device)
-  - [⚙️ Method `save_device`](#%EF%B8%8F-method-save_device)
+  - [⚙️ Method `resolve_input_device (staticmethod)`](#%EF%B8%8F-method-resolve_input_device-staticmethod)
+  - [⚙️ Method `save_device (staticmethod)`](#%EF%B8%8F-method-save_device-staticmethod)
   - [⚙️ Method `start`](#%EF%B8%8F-method-start)
   - [⚙️ Method `stop`](#%EF%B8%8F-method-stop)
 - [🏛️ Class `StartResult`](#%EF%B8%8F-class-startresult)
@@ -396,7 +396,7 @@ def duration_seconds(self) -> float:
 
 </details>
 
-### ⚙️ Method `is_recording`
+### ⚙️ Method `is_recording (property)`
 
 ```python
 def is_recording(self) -> bool
@@ -414,7 +414,7 @@ def is_recording(self) -> bool:
 
 </details>
 
-### ⚙️ Method `list_input_devices`
+### ⚙️ Method `list_input_devices (staticmethod)`
 
 ```python
 def list_input_devices() -> list[QAudioDevice]
@@ -432,7 +432,7 @@ def list_input_devices() -> list[QAudioDevice]:
 
 </details>
 
-### ⚙️ Method `recorded_path`
+### ⚙️ Method `recorded_path (property)`
 
 ```python
 def recorded_path(self) -> str
@@ -450,7 +450,7 @@ def recorded_path(self) -> str:
 
 </details>
 
-### ⚙️ Method `recording_wav_path`
+### ⚙️ Method `recording_wav_path (property)`
 
 ```python
 def recording_wav_path(self) -> str
@@ -491,7 +491,7 @@ def release(self) -> None:
 
 </details>
 
-### ⚙️ Method `resolve_input_device`
+### ⚙️ Method `resolve_input_device (staticmethod)`
 
 ```python
 def resolve_input_device(preferred_id: str = "") -> QAudioDevice | None
@@ -523,7 +523,7 @@ def resolve_input_device(preferred_id: str = "") -> QAudioDevice | None:
 
 </details>
 
-### ⚙️ Method `save_device`
+### ⚙️ Method `save_device (staticmethod)`
 
 ```python
 def save_device(device: QAudioDevice) -> None
@@ -544,7 +544,7 @@ def save_device(device: QAudioDevice) -> None:
 ### ⚙️ Method `start`
 
 ```python
-def start(self, device: QAudioDevice) -> StartResult
+def start(self, device: QAudioDevice, *, append: bool = False) -> StartResult
 ```
 
 Start microphone capture. Returns whether start succeeded.

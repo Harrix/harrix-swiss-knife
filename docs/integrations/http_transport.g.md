@@ -44,7 +44,7 @@ def build_https_opener(proxy_url: str | None = None) -> OpenerDirector:
 ## 🔧 Function `format_urlerror_message`
 
 ```python
-def format_urlerror_message(exc: URLError) -> str
+def format_urlerror_message(exc: URLError, *, proxy_url: str | None = None) -> str
 ```
 
 Format URLError with optional hints for common school/corporate network issues.
@@ -92,7 +92,7 @@ def https_ssl_context() -> ssl.SSLContext:
 ## 🔧 Function `resolve_proxy_url`
 
 ```python
-def resolve_proxy_url() -> str | None
+def resolve_proxy_url(*, config_proxy: str | None = None, qt_proxy_url: str | None = None) -> str | None
 ```
 
 Resolve proxy URL: config, Qt system proxy, env, then urllib getproxies.

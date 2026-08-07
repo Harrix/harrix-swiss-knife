@@ -3602,7 +3602,7 @@ class MainWindow(
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self) -> None
+def __init__(self, *, hide_on_close: bool = False) -> None
 ```
 
 _No docstring provided._
@@ -4201,7 +4201,7 @@ def on_food_add_by_voice(self) -> None:
 ### ⚙️ Method `on_food_add_with_ai`
 
 ```python
-def on_food_add_with_ai(self) -> None
+def on_food_add_with_ai(self, *, initial_image_path: str | None = None, initial_image_paths: list[str] | None = None) -> None
 ```
 
 Collect text/images, call BotHub, then open food text dialog with AI result.

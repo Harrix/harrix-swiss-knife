@@ -1868,7 +1868,7 @@ class MainWindow(
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self) -> None
+def __init__(self, *, hide_on_close: bool = False) -> None
 ```
 
 _No docstring provided._
@@ -2077,7 +2077,7 @@ def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
 ### ⚙️ Method `load_process_habits_table`
 
 ```python
-def load_process_habits_table(self) -> None
+def load_process_habits_table(self, *, ignore_filter: bool = False) -> None
 ```
 
 Load process habits table as pivot table (dates as rows, habits as columns).

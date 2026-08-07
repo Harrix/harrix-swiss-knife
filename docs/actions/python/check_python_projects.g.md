@@ -163,7 +163,7 @@ def check_all_python_projects_common(self) -> None:
 ### ⚙️ Method `execute`
 
 ```python
-def execute(self, *_args: Any, **_kwargs: Any) -> None
+def execute(self, *_args: Any, noninteractive: bool = False, **_kwargs: Any) -> None
 ```
 
 Run full Python checks for each path in paths_python_projects.

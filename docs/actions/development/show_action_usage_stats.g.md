@@ -100,7 +100,7 @@ class OnShowActionUsageStats(ActionBase):
 ### ⚙️ Method `execute`
 
 ```python
-def execute(self, *args: Any, **kwargs: Any) -> None
+def execute(self, *args: Any, noninteractive: bool = False, **kwargs: Any) -> None
 ```
 
 Open usage table dialog, or print a text report when `noninteractive`.

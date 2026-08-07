@@ -13,7 +13,7 @@ lang: en
 
 - [🏛️ Class `CategoryComboBoxDelegate`](#%EF%B8%8F-class-categorycomboboxdelegate)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
-  - [⚙️ Method `categories`](#%EF%B8%8F-method-categories)
+  - [⚙️ Method `categories (property)`](#%EF%B8%8F-method-categories-property)
   - [⚙️ Method `categories (setter)`](#%EF%B8%8F-method-categories-setter)
 
 </details>
@@ -78,7 +78,7 @@ def __init__(self, parent: QObject | None = None, categories: list[str] | None =
 
 </details>
 
-### ⚙️ Method `categories`
+### ⚙️ Method `categories (property)`
 
 ```python
 def categories(self) -> list[str]

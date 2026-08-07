@@ -94,7 +94,7 @@ class MapCoordinatesExtractDialog(QDialog):
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, parent: QWidget | None) -> None
+def __init__(self, parent: QWidget | None, *, service_name: str) -> None
 ```
 
 _No docstring provided._
@@ -1511,7 +1511,7 @@ class TemplateDialog(QDialog):
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, parent: QWidget | None = None) -> None
+def __init__(self, parent: QWidget | None = None, *, fields: list[TemplateField], title: str = "Fill Template", links: list[tuple[str, str]] | None = None, image_save_dir: Path | None = None, app_config: dict[str, Any] | None = None, initial_field_values: dict[str, str] | None = None, is_edit_mode: bool = False, entry_browser_groups: list[TemplateEntryBrowserGroup] | None = None, load_entry_values: Callable[[TemplateExistingEntry], dict[str, str] | None] | None = None, resolve_image_save_dir: Callable[[TemplateExistingEntry | None], Path | None] | None = None) -> None
 ```
 
 Initialize the template dialog.

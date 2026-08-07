@@ -24,7 +24,7 @@ lang: en
 ## 🔧 Function `add_open_qsqlite`
 
 ```python
-def add_open_qsqlite(connection_name: str, db_filename: str) -> QSqlDatabase
+def add_open_qsqlite(connection_name: str, db_filename: str, *, failure_label: str = "Failed to open the database") -> QSqlDatabase
 ```
 
 Register QSQLITE, set the database file path, and open.
@@ -80,7 +80,7 @@ def close_and_remove_qsqlite(connection_name: str | None, db: QSqlDatabase | Non
 ## 🔧 Function `open_thread_scoped_qsqlite`
 
 ```python
-def open_thread_scoped_qsqlite(prefix: str, db_filename: str) -> tuple[str, QSqlDatabase]
+def open_thread_scoped_qsqlite(prefix: str, db_filename: str, *, failure_label: str = "Failed to open the database") -> tuple[str, QSqlDatabase]
 ```
 
 Build a per-thread connection name, register QSQLITE, open, return `(name, db)`.
@@ -142,7 +142,7 @@ def qsqlite_thread_scoped_connection_name(prefix: str) -> str:
 ## 🔧 Function `reconnect_thread_scoped_qsqlite`
 
 ```python
-def reconnect_thread_scoped_qsqlite() -> tuple[str, QSqlDatabase]
+def reconnect_thread_scoped_qsqlite(*, connection_name: str | None, db: QSqlDatabase | None, prefix: str, db_filename: str, failure_label: str = "Failed to reconnect to database") -> tuple[str, QSqlDatabase]
 ```
 
 Close/remove the old Qt SQL connection and open a new thread-scoped SQLite connection.

@@ -152,7 +152,7 @@ def infer_image_filename_base(paths: list[str]) -> str | None:
 ## 🔧 Function `install_url_drop_handlers`
 
 ```python
-def install_url_drop_handlers(widget: QWidget, on_drop_paths: Callable[[list[str]], None]) -> None
+def install_url_drop_handlers(widget: QWidget, on_drop_paths: Callable[[list[str]], None], *, filter_path: Callable[[str], bool] | None = None) -> None
 ```
 
 Install drag-and-drop handlers that pass local file paths to `on_drop_paths`.
@@ -192,7 +192,7 @@ def install_url_drop_handlers(
 ## 🔧 Function `resolve_date_from_image_batch`
 
 ```python
-def resolve_date_from_image_batch(extracted_dates: list[str]) -> str | None
+def resolve_date_from_image_batch(extracted_dates: list[str], *, overwrite: bool, current_is_empty: bool) -> str | None
 ```
 
 Pick a date to apply from a batch of extracted filename dates.

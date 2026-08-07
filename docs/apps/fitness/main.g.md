@@ -5911,7 +5911,7 @@ class MainWindow(
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self) -> None
+def __init__(self, *, hide_on_close: bool = False) -> None
 ```
 
 _No docstring provided._
@@ -9261,7 +9261,7 @@ def show_tables(self) -> None:
 ### ⚙️ Method `update_all`
 
 ```python
-def update_all(self) -> None
+def update_all(self, *, is_skip_date_update: bool = False, is_preserve_selections: bool = False, current_exercise: str | None = None, current_type: str | None = None) -> None
 ```
 
 Refresh tables, list view and (optionally) dates.

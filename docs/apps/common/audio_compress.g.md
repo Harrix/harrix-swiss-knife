@@ -40,7 +40,7 @@ class FfmpegNotFoundError(FileNotFoundError):
 ## 🔧 Function `audio_file_to_mono_pcm`
 
 ```python
-def audio_file_to_mono_pcm(path: Path) -> bytes | None
+def audio_file_to_mono_pcm(path: Path, *, project_root: Path) -> bytes | None
 ```
 
 Decode an audio file to mono int16 PCM for waveform display.
@@ -120,7 +120,7 @@ def is_ffmpeg_available(project_root: Path) -> bool:
 ## 🔧 Function `wav_to_m4a`
 
 ```python
-def wav_to_m4a(wav_path: Path) -> Path
+def wav_to_m4a(wav_path: Path, *, project_root: Path) -> Path
 ```
 
 Convert WAV to mono 16 kHz AAC m4a for speech transcription.
@@ -178,7 +178,7 @@ def wav_to_m4a(wav_path: Path, *, project_root: Path) -> Path:
 ## 🔧 Function `write_minimal_wav`
 
 ```python
-def write_minimal_wav(path: Path) -> None
+def write_minimal_wav(path: Path, *, duration_sec: float = 0.5, sample_rate: int = 44100) -> None
 ```
 
 Write a short silent mono WAV file (for tests).

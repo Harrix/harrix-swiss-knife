@@ -19,7 +19,7 @@ lang: en
 ## 🔧 Function `execute_qt_sql_query`
 
 ```python
-def execute_qt_sql_query() -> QSqlQuery | None
+def execute_qt_sql_query(*, ensure_connection: Callable[[], bool], create_query: Callable[[], QSqlQuery], query_text: str, params: dict[str, Any] | None = None) -> QSqlQuery | None
 ```
 
 Prepare and execute `query_text` with optional bound `params`.
@@ -79,7 +79,7 @@ def execute_qt_sql_query(
 ## 🔧 Function `execute_qt_sql_simple`
 
 ```python
-def execute_qt_sql_simple() -> bool
+def execute_qt_sql_simple(*, ensure_connection: Callable[[], bool], create_query: Callable[[], QSqlQuery], query_text: str, params: dict[str, Any] | None = None) -> bool
 ```
 
 Execute INSERT/UPDATE/DELETE and return success; clear query on success.

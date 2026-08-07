@@ -129,7 +129,7 @@ class OnInstallCli(ActionBase):
 ### ⚙️ Method `execute`
 
 ```python
-def execute(self, *args: Any, **kwargs: Any) -> None
+def execute(self, *args: Any, noninteractive: bool = False, **kwargs: Any) -> None
 ```
 
 Run `uv tool install -e` for this repository.

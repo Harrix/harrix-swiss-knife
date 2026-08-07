@@ -29,7 +29,7 @@ class OnBeautifyMdAndRegenerateGMd(ActionBase):
     """
 
     icon = "💎"
-    title = "Beautify MD and regenerate .g.md in …"
+    title = "Beautify MD and regenerate `.g.md` in …"
     bold_title = True
     cli_available = True
     cli_hint = "md beautify-regenerate-g-md"

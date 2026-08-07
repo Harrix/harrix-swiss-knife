@@ -117,7 +117,7 @@ class CategoryAddDialog(QDialog):
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, parent: QWidget | None = None) -> None
+def __init__(self, parent: QWidget | None = None, *, app_config: dict[str, Any] | None = None, bothub_state: BothubRequestState | None = None) -> None
 ```
 
 Initialize the add-category dialog.

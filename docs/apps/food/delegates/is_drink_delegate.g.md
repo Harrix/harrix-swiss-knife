@@ -266,7 +266,7 @@ def updateEditorGeometry(  # noqa: N802
 ## 🔧 Function `is_drink_to_model`
 
 ```python
-def is_drink_to_model() -> str
+def is_drink_to_model(*, checked: bool) -> str
 ```
 
 Convert checkbox state to food log model storage.

@@ -18,14 +18,14 @@ lang: en
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-1)
 - [🏛️ Class `UnsafeOrderByFragmentError`](#%EF%B8%8F-class-unsafeorderbyfragmenterror)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-2)
-  - [⚙️ Method `invalid_direction`](#%EF%B8%8F-method-invalid_direction)
-  - [⚙️ Method `too_complex`](#%EF%B8%8F-method-too_complex)
+  - [⚙️ Method `invalid_direction (classmethod)`](#%EF%B8%8F-method-invalid_direction-classmethod)
+  - [⚙️ Method `too_complex (classmethod)`](#%EF%B8%8F-method-too_complex-classmethod)
 - [🏛️ Class `UnsafeSqlFragmentError`](#%EF%B8%8F-class-unsafesqlfragmenterror)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-3)
-  - [⚙️ Method `forbidden_characters`](#%EF%B8%8F-method-forbidden_characters)
-  - [⚙️ Method `forbidden_keyword`](#%EF%B8%8F-method-forbidden_keyword)
-  - [⚙️ Method `no_tokens`](#%EF%B8%8F-method-no_tokens)
-  - [⚙️ Method `quoted_literals_not_allowed`](#%EF%B8%8F-method-quoted_literals_not_allowed)
+  - [⚙️ Method `forbidden_characters (classmethod)`](#%EF%B8%8F-method-forbidden_characters-classmethod)
+  - [⚙️ Method `forbidden_keyword (classmethod)`](#%EF%B8%8F-method-forbidden_keyword-classmethod)
+  - [⚙️ Method `no_tokens (classmethod)`](#%EF%B8%8F-method-no_tokens-classmethod)
+  - [⚙️ Method `quoted_literals_not_allowed (classmethod)`](#%EF%B8%8F-method-quoted_literals_not_allowed-classmethod)
 - [🔧 Function `validate_order_by_fragment`](#-function-validate_order_by_fragment)
 - [🔧 Function `validate_where_fragment`](#-function-validate_where_fragment)
 
@@ -175,7 +175,7 @@ def __init__(self, msg: str) -> None:
 
 </details>
 
-### ⚙️ Method `invalid_direction`
+### ⚙️ Method `invalid_direction (classmethod)`
 
 ```python
 def invalid_direction(cls) -> UnsafeOrderByFragmentError
@@ -193,7 +193,7 @@ def invalid_direction(cls) -> UnsafeOrderByFragmentError:
 
 </details>
 
-### ⚙️ Method `too_complex`
+### ⚙️ Method `too_complex (classmethod)`
 
 ```python
 def too_complex(cls) -> UnsafeOrderByFragmentError
@@ -270,7 +270,7 @@ def __init__(self, msg: str) -> None:
 
 </details>
 
-### ⚙️ Method `forbidden_characters`
+### ⚙️ Method `forbidden_characters (classmethod)`
 
 ```python
 def forbidden_characters(cls) -> UnsafeSqlFragmentError
@@ -288,7 +288,7 @@ def forbidden_characters(cls) -> UnsafeSqlFragmentError:
 
 </details>
 
-### ⚙️ Method `forbidden_keyword`
+### ⚙️ Method `forbidden_keyword (classmethod)`
 
 ```python
 def forbidden_keyword(cls) -> UnsafeSqlFragmentError
@@ -306,7 +306,7 @@ def forbidden_keyword(cls) -> UnsafeSqlFragmentError:
 
 </details>
 
-### ⚙️ Method `no_tokens`
+### ⚙️ Method `no_tokens (classmethod)`
 
 ```python
 def no_tokens(cls) -> UnsafeSqlFragmentError
@@ -324,7 +324,7 @@ def no_tokens(cls) -> UnsafeSqlFragmentError:
 
 </details>
 
-### ⚙️ Method `quoted_literals_not_allowed`
+### ⚙️ Method `quoted_literals_not_allowed (classmethod)`
 
 ```python
 def quoted_literals_not_allowed(cls) -> UnsafeSqlFragmentError

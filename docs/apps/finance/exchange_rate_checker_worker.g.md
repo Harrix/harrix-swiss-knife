@@ -189,7 +189,7 @@ class ExchangeRateCheckerWorker(QThread):
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, db_filename: str) -> None
+def __init__(self, db_filename: str, *, check_from_first_transaction: bool = True) -> None
 ```
 
 Initialize the checker worker.

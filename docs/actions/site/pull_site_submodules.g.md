@@ -103,7 +103,7 @@ class OnPullSiteSubmodules(ActionBase):
 ### ⚙️ Method `execute`
 
 ```python
-def execute(self, *_args: Any, **_kwargs: Any) -> None
+def execute(self, *_args: Any, folder_path: Path | None = None, noninteractive: bool = False, **_kwargs: Any) -> None
 ```
 
 Pull `origin main` in each submodule of the site Git repository.

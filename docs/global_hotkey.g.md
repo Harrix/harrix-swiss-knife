@@ -14,7 +14,7 @@ lang: en
 - [🏛️ Class `GlobalHotkeyManager`](#%EF%B8%8F-class-globalhotkeymanager)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `register_all`](#%EF%B8%8F-method-register_all)
-  - [⚙️ Method `registered_bindings`](#%EF%B8%8F-method-registered_bindings)
+  - [⚙️ Method `registered_bindings (property)`](#%EF%B8%8F-method-registered_bindings-property)
   - [⚙️ Method `unregister_all`](#%EF%B8%8F-method-unregister_all)
 - [🔧 Function `hotkey_string_from_event`](#-function-hotkey_string_from_event)
 - [🔧 Function `parse_hotkey_string`](#-function-parse_hotkey_string)
@@ -169,7 +169,7 @@ def register_all(self, bindings: list[ActionHotkeyBinding]) -> int:
 
 </details>
 
-### ⚙️ Method `registered_bindings`
+### ⚙️ Method `registered_bindings (property)`
 
 ```python
 def registered_bindings(self) -> list[ActionHotkeyBinding]

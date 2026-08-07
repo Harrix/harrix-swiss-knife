@@ -100,7 +100,7 @@ class TrayIcon(QSystemTrayIcon):
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, icon: QIcon, menu: QMenu, parent: QWidget | None = None) -> None
+def __init__(self, icon: QIcon, menu: QMenu, parent: QWidget | None = None, *, output_bus: ActionOutputBus | None = None) -> None
 ```
 
 Initialize the `TrayIcon` with the given icon and menu.

@@ -304,7 +304,7 @@ def on_exit(self) -> None:
 ## 🔧 Function `apply_app_window_size_and_position`
 
 ```python
-def apply_app_window_size_and_position(widget: QWidget) -> None
+def apply_app_window_size_and_position(widget: QWidget, *, standard_width: int = 1920) -> None
 ```
 
 Set widget size and position like food/finance/habits main Windows.

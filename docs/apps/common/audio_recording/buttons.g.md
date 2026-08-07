@@ -671,7 +671,7 @@ def paintEvent(self, event: QPaintEvent) -> None:  # noqa: N802, ARG002
 ### ⚙️ Method `set_recording`
 
 ```python
-def set_recording(self) -> None
+def set_recording(self, *, recording: bool) -> None
 ```
 
 Switch between record and stop appearance.

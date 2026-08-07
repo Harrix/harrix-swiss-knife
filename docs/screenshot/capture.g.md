@@ -9,7 +9,7 @@ lang: en
 ## 🔧 Function `capture_region`
 
 ```python
-def capture_region() -> QImage | None
+def capture_region(*, show_preview: bool = True, show_shutter_button: bool = True) -> QImage | None
 ```
 
 Capture a screen region with a ShareX-like workflow.

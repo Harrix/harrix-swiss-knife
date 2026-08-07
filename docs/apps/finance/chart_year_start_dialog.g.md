@@ -97,7 +97,7 @@ class ChartYearStartDialog(QDialog):
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, parent: QWidget | None = None) -> None
+def __init__(self, parent: QWidget | None = None, *, start_month: int = 1, start_day: int = 1) -> None
 ```
 
 Initialize the dialog with optional default month and day.

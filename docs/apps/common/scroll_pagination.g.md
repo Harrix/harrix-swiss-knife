@@ -85,7 +85,7 @@ class ScrollPagination(Generic[T]):
 ### ⚙️ Method `load_more`
 
 ```python
-def load_more(self) -> None
+def load_more(self, *, load_more_count: int, fetch_rows: Callable[[int, int], list[T]], append_rows: Callable[[list[T]], None]) -> None
 ```
 
 Fetch and append the next page when more rows are available.
@@ -123,7 +123,7 @@ def load_more(
 ### ⚙️ Method `record_first_page`
 
 ```python
-def record_first_page(self, row_count: int, limit: int | None) -> None
+def record_first_page(self, row_count: int, limit: int | None, *, pagination_enabled: bool = True) -> None
 ```
 
 Update state after the first page is loaded into the table.
@@ -168,7 +168,7 @@ def reset(self) -> None:
 ## 🔧 Function `is_scroll_near_bottom`
 
 ```python
-def is_scroll_near_bottom(scroll_value: int, maximum: int) -> bool
+def is_scroll_near_bottom(scroll_value: int, maximum: int, *, threshold: int = DEFAULT_SCROLL_THRESHOLD) -> bool
 ```
 
 Return whether the scroll position is within `threshold` pixels of the bottom.
@@ -186,7 +186,7 @@ def is_scroll_near_bottom(scroll_value: int, maximum: int, *, threshold: int = D
 ## 🔧 Function `on_scroll_load_more`
 
 ```python
-def on_scroll_load_more(scroll_value: int, maximum: int, load_more: Callable[[], None]) -> None
+def on_scroll_load_more(scroll_value: int, maximum: int, load_more: Callable[[], None], *, threshold: int = DEFAULT_SCROLL_THRESHOLD) -> None
 ```
 
 Call `load_more` when the user scrolls near the bottom of a view.

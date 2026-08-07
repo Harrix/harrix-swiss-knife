@@ -783,7 +783,7 @@ def parse_row(
 ### ⚙️ Method `parse_text`
 
 ```python
-def parse_text(self, text: str, db_manager: Any | None = None, default_date: str | None = None) -> list[ParsedFoodItem]
+def parse_text(self, text: str, db_manager: Any | None = None, default_date: str | None = None, *, correct_unparseable_line: Callable[[str], str | None] | None = None) -> list[ParsedFoodItem]
 ```
 
 Parse text input and convert to food items.

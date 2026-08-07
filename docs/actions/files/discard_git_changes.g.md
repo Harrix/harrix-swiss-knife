@@ -182,7 +182,7 @@ class OnDiscardGitChanges(ActionBase):
 ### ⚙️ Method `discard_git_changes_common`
 
 ```python
-def discard_git_changes_common(self) -> None
+def discard_git_changes_common(self, *, status_only: bool = False) -> None
 ```
 
 Discard or report uncommitted changes in every Git repo under `folder_path`.
@@ -222,7 +222,7 @@ def discard_git_changes_common(self, *, status_only: bool = False) -> None:
 ### ⚙️ Method `execute`
 
 ```python
-def execute(self, *_args: Any, **_kwargs: Any) -> None
+def execute(self, *_args: Any, folder_path: Path | None = None, noninteractive: bool = False, status_only: bool = False, **_kwargs: Any) -> None
 ```
 
 Discard uncommitted changes in all Git repos inside a selected folder.

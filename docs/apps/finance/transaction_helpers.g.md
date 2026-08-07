@@ -13,7 +13,7 @@ lang: en
 
 - [🏛️ Class `ChartComputeContext`](#%EF%B8%8F-class-chartcomputecontext)
   - [⚙️ Method `convert_amount`](#%EF%B8%8F-method-convert_amount)
-  - [⚙️ Method `load`](#%EF%B8%8F-method-load)
+  - [⚙️ Method `load (classmethod)`](#%EF%B8%8F-method-load-classmethod)
   - [⚙️ Method `natural_minor_to_default_major`](#%EF%B8%8F-method-natural_minor_to_default_major)
   - [⚙️ Method `transaction_amount_in_default`](#%EF%B8%8F-method-transaction_amount_in_default)
 - [🏛️ Class `TransformTransactionDataResult`](#%EF%B8%8F-class-transformtransactiondataresult)
@@ -140,7 +140,7 @@ def convert_amount(self, amount_major: float, from_currency_id: int, to_currency
 
 </details>
 
-### ⚙️ Method `load`
+### ⚙️ Method `load (classmethod)`
 
 ```python
 def load(cls, db_manager: DatabaseManager) -> ChartComputeContext
@@ -581,7 +581,7 @@ def compute_cumulative_compare_last_months(
 ## 🔧 Function `compute_cumulative_compare_last_years`
 
 ```python
-def compute_cumulative_compare_last_years(transaction_rows: list[list[Any]], db_manager: DatabaseManager | None, years_count: int, selected_category_names: set[str], category_type: int) -> tuple[list[list[tuple[int, float]]], list[str], list[str]]
+def compute_cumulative_compare_last_years(transaction_rows: list[list[Any]], db_manager: DatabaseManager | None, years_count: int, selected_category_names: set[str], category_type: int, *, year_start_month: int = 1, year_start_day: int = 1, ctx: ChartComputeContext | None = None) -> tuple[list[list[tuple[int, float]]], list[str], list[str]]
 ```
 
 Cumulative spending/income by day within each of the last N comparison years.
@@ -850,7 +850,7 @@ def compute_period_flow_by_category(
 ## 🔧 Function `compute_period_flow_compare_last_years`
 
 ```python
-def compute_period_flow_compare_last_years(transaction_rows: list[list[Any]], db_manager: DatabaseManager | None, years_count: int, selected_category_names: set[str], category_type: int, period: str) -> tuple[list[list[tuple[int, float, str]]], list[str], list[str]]
+def compute_period_flow_compare_last_years(transaction_rows: list[list[Any]], db_manager: DatabaseManager | None, years_count: int, selected_category_names: set[str], category_type: int, period: str, *, year_start_month: int = 1, year_start_day: int = 1, ctx: ChartComputeContext | None = None) -> tuple[list[list[tuple[int, float, str]]], list[str], list[str]]
 ```
 
 Per-period flow totals by period index within each of the last N fiscal years.
@@ -1063,7 +1063,7 @@ def convert_currency_amount_cached(
 ## 🔧 Function `fiscal_period_month_labels_by_index`
 
 ```python
-def fiscal_period_month_labels_by_index(date_to: date, period: str) -> dict[int, str]
+def fiscal_period_month_labels_by_index(date_to: date, period: str, *, year_start_month: int = 1, year_start_day: int = 1) -> dict[int, str]
 ```
 
 Map 1-based period index to month name for the current fiscal year through `date_to`.
@@ -1472,7 +1472,7 @@ def get_natural_cumulative_income_expense_minor_by_currency(
 ## 🔧 Function `get_natural_currency_reconciliation`
 
 ```python
-def get_natural_currency_reconciliation(transaction_rows: list[list[Any]], exchange_rows: list[list[Any]], accounts_rows: list[list[Any]], db_manager: DatabaseManager | None) -> list[dict[str, Any]]
+def get_natural_currency_reconciliation(transaction_rows: list[list[Any]], exchange_rows: list[list[Any]], accounts_rows: list[list[Any]], db_manager: DatabaseManager | None, *, currencies_by_code: dict[str, tuple[int, str, str]] | None = None, currencies_by_id: dict[int, tuple[str, str, str]] | None = None) -> list[dict[str, Any]]
 ```
 
 Compute per-currency journal vs account balances (minor units, no FX).

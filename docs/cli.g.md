@@ -93,7 +93,7 @@ def android_group() -> None:
 ## 🔧 Function `android_build`
 
 ```python
-def android_build(args: tuple[str, ...]) -> None
+def android_build(args: tuple[str, ...], *, build_all: bool) -> None
 ```
 
 Build Android APK for FOLDER (`debug`/`release`, or `android_build_variant` from config).
@@ -215,7 +215,7 @@ def dev_install_cli() -> None:
 ## 🔧 Function `dev_install_harrix_notes_explorer_hsk`
 
 ```python
-def dev_install_harrix_notes_explorer_hsk(editor: str) -> None
+def dev_install_harrix_notes_explorer_hsk(editor: str, *, with_public: bool) -> None
 ```
 
 Install HSK into EDITOR; sync public repo via OnSyncHarrixNotesExplorer first (Windows only).
@@ -252,7 +252,7 @@ def file_group() -> None:
 ## 🔧 Function `file_discard_git_changes`
 
 ```python
-def file_discard_git_changes(folder: Path) -> None
+def file_discard_git_changes(folder: Path, *, status_only: bool) -> None
 ```
 
 Discard uncommitted changes in all Git repos under FOLDER (same as tray action).
@@ -314,7 +314,7 @@ def markdown_add_from_template(template_name: str | None) -> None:
 ## 🔧 Function `markdown_beautify_md`
 
 ```python
-def markdown_beautify_md(folder: Path, prose_wrap: str, print_width: int) -> None
+def markdown_beautify_md(folder: Path, prose_wrap: str, print_width: int, *, apply_prose_fixes: bool, format_code_blocks: bool) -> None
 ```
 
 Beautify Markdown under FOLDER (same as tray action Beautify MD in …).
@@ -348,7 +348,7 @@ def markdown_beautify_md(
 ## 🔧 Function `markdown_beautify_regenerate_g_md`
 
 ```python
-def markdown_beautify_regenerate_g_md(folder: Path, prose_wrap: str, print_width: int) -> None
+def markdown_beautify_regenerate_g_md(folder: Path, prose_wrap: str, print_width: int, *, apply_prose_fixes: bool, format_code_blocks: bool) -> None
 ```
 
 Beautify Markdown under FOLDER and regenerate `g.md` (same as tray action).
@@ -382,7 +382,7 @@ def markdown_beautify_regenerate_g_md(
 ## 🔧 Function `markdown_check`
 
 ```python
-def markdown_check(folder: Path, rules: tuple[str, ...]) -> None
+def markdown_check(folder: Path, rules: tuple[str, ...], *, include_g_md: bool) -> None
 ```
 
 Check MD files in FOLDER with Harrix rules (same as tray action, all rules by default).
@@ -717,7 +717,7 @@ def python_ruff_sort(folder: Path) -> None:
 ## 🔧 Function `python_ruff_sort_docs`
 
 ```python
-def python_ruff_sort_docs(folder: Path) -> None
+def python_ruff_sort_docs(folder: Path, *, apply_prose_fixes: bool) -> None
 ```
 
 Ruff sort, ruff format, sort code, generate docs and format Markdown (same as tray action).

@@ -270,7 +270,7 @@ def check_md_common(self) -> None:
 ### ⚙️ Method `execute`
 
 ```python
-def execute(self, *_args: Any, **_kwargs: Any) -> None
+def execute(self, *_args: Any, folder_path: Path | None = None, rule_ids: set[str] | None = None, include_g_md: bool = False, noninteractive: bool = False, **_kwargs: Any) -> None
 ```
 
 Check all Markdown files in a folder for errors with Harrix rules.

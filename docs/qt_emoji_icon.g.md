@@ -20,7 +20,7 @@ lang: en
 ## 🔧 Function `apply_emoji_dialog_buttons`
 
 ```python
-def apply_emoji_dialog_buttons(buttons: QDialogButtonBox) -> None
+def apply_emoji_dialog_buttons(buttons: QDialogButtonBox, *, icon_size: int = DEFAULT_EMOJI_BUTTON_ICON_SIZE) -> None
 ```
 
 Set emoji icons on standard QDialogButtonBox buttons when present.
@@ -100,7 +100,7 @@ def create_emoji_icon(emoji: str, size: int = 64) -> QIcon:
 ## 🔧 Function `make_emoji_push_button`
 
 ```python
-def make_emoji_push_button(label: str, emoji: str) -> QPushButton
+def make_emoji_push_button(label: str, emoji: str, *, icon_size: int = DEFAULT_EMOJI_BUTTON_ICON_SIZE, parent: QWidget | None = None) -> QPushButton
 ```
 
 Create a push button with an emoji icon.

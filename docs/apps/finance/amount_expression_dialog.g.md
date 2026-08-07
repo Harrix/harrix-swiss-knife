@@ -155,7 +155,7 @@ class AmountExpressionDialog(QDialog):
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, parent: QWidget | None = None) -> None
+def __init__(self, parent: QWidget | None = None, *, initial_expression: str = "", minimum: float = 0.0, maximum: float = 999999.99) -> None
 ```
 
 Initialize the expression dialog.

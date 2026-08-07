@@ -42,7 +42,7 @@ class SystemBackdrop(IntEnum):
 ## 🔧 Function `try_apply_system_backdrop`
 
 ```python
-def try_apply_system_backdrop(window: Any) -> bool
+def try_apply_system_backdrop(window: Any, *, backdrop: SystemBackdrop = SystemBackdrop.MICA) -> bool
 ```
 
 Try to apply Windows 11 backdrop to a top-level Qt window.

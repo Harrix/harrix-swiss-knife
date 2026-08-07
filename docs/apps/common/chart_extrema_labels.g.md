@@ -65,7 +65,7 @@ class ChartExtremaLabelsConfig:
 ## 🔧 Function `annotate_chart_extrema_labels`
 
 ```python
-def annotate_chart_extrema_labels(ax: Axes, fig: Figure, x_nums: Sequence[float], y_values: Sequence[float], label_for_index: Callable[[int], str]) -> None
+def annotate_chart_extrema_labels(ax: Axes, fig: Figure, x_nums: Sequence[float], y_values: Sequence[float], label_for_index: Callable[[int], str], *, enabled: bool = True, config: ChartExtremaLabelsConfig | None = None, point_color: str = "steelblue") -> None
 ```
 
 Draw extrema labels, leader lines, and highlight rings on a line chart.

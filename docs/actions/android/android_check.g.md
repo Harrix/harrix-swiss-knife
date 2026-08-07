@@ -148,7 +148,7 @@ class OnAndroidCheck(ActionBase):
 ### ⚙️ Method `execute`
 
 ```python
-def execute(self, *_args: Any, **_kwargs: Any) -> None
+def execute(self, *_args: Any, folder_path: Path | None = None, noninteractive: bool = False, **_kwargs: Any) -> None
 ```
 
 Run qualityCheck (sync for CLI, background thread for tray).

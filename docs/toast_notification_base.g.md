@@ -14,7 +14,7 @@ lang: en
 - [🏛️ Class `ToastNotificationBase`](#%EF%B8%8F-class-toastnotificationbase)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `closeEvent`](#%EF%B8%8F-method-closeevent)
-  - [⚙️ Method `is_pinned`](#%EF%B8%8F-method-is_pinned)
+  - [⚙️ Method `is_pinned (property)`](#%EF%B8%8F-method-is_pinned-property)
   - [⚙️ Method `mouseDoubleClickEvent`](#%EF%B8%8F-method-mousedoubleclickevent)
   - [⚙️ Method `mouseMoveEvent`](#%EF%B8%8F-method-mousemoveevent)
   - [⚙️ Method `mousePressEvent`](#%EF%B8%8F-method-mousepressevent)
@@ -22,7 +22,7 @@ lang: en
   - [⚙️ Method `present`](#%EF%B8%8F-method-present)
   - [⚙️ Method `reposition_action_buttons`](#%EF%B8%8F-method-reposition_action_buttons)
   - [⚙️ Method `resizeEvent`](#%EF%B8%8F-method-resizeevent)
-  - [⚙️ Method `restack_group`](#%EF%B8%8F-method-restack_group)
+  - [⚙️ Method `restack_group (classmethod)`](#%EF%B8%8F-method-restack_group-classmethod)
   - [⚙️ Method `showEvent`](#%EF%B8%8F-method-showevent)
 - [🔧 Function `compute_toast_stack_positions`](#-function-compute_toast_stack_positions)
 - [🔧 Function `make_action_icon`](#-function-make_action_icon)
@@ -398,7 +398,7 @@ def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
 
 </details>
 
-### ⚙️ Method `is_pinned`
+### ⚙️ Method `is_pinned (property)`
 
 ```python
 def is_pinned(self) -> bool
@@ -579,10 +579,10 @@ def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802
 
 </details>
 
-### ⚙️ Method `restack_group`
+### ⚙️ Method `restack_group (classmethod)`
 
 ```python
-def restack_group(cls) -> None
+def restack_group(cls, *, pinned: bool) -> None
 ```
 
 Reposition all visible toasts in the given pin group.
@@ -645,7 +645,7 @@ def showEvent(self, event: QShowEvent) -> None:  # noqa: N802
 ## 🔧 Function `compute_toast_stack_positions`
 
 ```python
-def compute_toast_stack_positions(sizes: list[QSize]) -> list[QPoint]
+def compute_toast_stack_positions(sizes: list[QSize], *, area: QRect, pinned: bool, gap: int = STACK_GAP, margin: int = SCREEN_MARGIN) -> list[QPoint]
 ```
 
 Return top-left points for toasts ordered oldest → newest.

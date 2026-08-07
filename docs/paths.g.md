@@ -281,7 +281,7 @@ def get_temp_config_path_str() -> str:
 ## 🔧 Function `list_recent_action_output_files`
 
 ```python
-def list_recent_action_output_files(directory: Path | None = None) -> list[Path]
+def list_recent_action_output_files(directory: Path | None = None, *, limit: int = DEFAULT_RECENT_ACTION_OUTPUT_LIST_LIMIT, non_empty_only: bool = False) -> list[Path]
 ```
 
 Return up to `limit` newest `*.txt` paths under the action output dir (newest first).
@@ -334,7 +334,7 @@ def new_action_output_file_path(output_dir: Path, class_name: str) -> Path:
 ## 🔧 Function `prune_action_output_dir`
 
 ```python
-def prune_action_output_dir(directory: Path | None = None) -> None
+def prune_action_output_dir(directory: Path | None = None, *, max_files: int = DEFAULT_MAX_ACTION_OUTPUT_FILES) -> None
 ```
 
 Delete oldest `*.txt` files in the action output dir, keeping `max_files` newest by mtime.

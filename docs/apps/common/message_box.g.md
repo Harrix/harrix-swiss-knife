@@ -105,7 +105,7 @@ def critical(parent: QWidget | None, title: str, text: str) -> QMessageBox.Stand
 ## 🔧 Function `information`
 
 ```python
-def information(parent: QWidget | None, title: str, text: str) -> QMessageBox.StandardButton
+def information(parent: QWidget | None, title: str, text: str, *, stylesheet: str | None = None, rich_text: bool = False, clipboard_text: str | None = None) -> QMessageBox.StandardButton
 ```
 
 Like `QMessageBox.information` with a Copy button.

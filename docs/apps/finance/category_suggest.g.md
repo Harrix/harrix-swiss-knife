@@ -9,7 +9,7 @@ lang: en
 ## 🔧 Function `suggest_categories`
 
 ```python
-def suggest_categories(description: str, history_pairs: list[tuple[str, str]], category_names: list[str]) -> list[str]
+def suggest_categories(description: str, history_pairs: list[tuple[str, str]], category_names: list[str], *, limit: int = _DEFAULT_LIMIT, min_score: float = _DEFAULT_MIN_SCORE, min_length: int = _DEFAULT_MIN_LENGTH) -> list[str]
 ```
 
 Return up to `limit` category names suggested for `description`.

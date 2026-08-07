@@ -19,7 +19,7 @@ lang: en
 ## 🔧 Function `create_colored_table_proxy_model`
 
 ```python
-def create_colored_table_proxy_model(data: Sequence[Sequence[object]], headers: list[str]) -> QSortFilterProxyModel
+def create_colored_table_proxy_model(data: Sequence[Sequence[object]], headers: list[str], *, id_column: int = -2, color_column: int = -1) -> QSortFilterProxyModel
 ```
 
 Create a colored proxy model with ID and color columns excluded from display.
@@ -69,7 +69,7 @@ def create_colored_table_proxy_model(
 ## 🔧 Function `create_table_proxy_model`
 
 ```python
-def create_table_proxy_model(data: Sequence[Sequence[object]], headers: list[str]) -> QSortFilterProxyModel
+def create_table_proxy_model(data: Sequence[Sequence[object]], headers: list[str], *, id_column: int = 0) -> QSortFilterProxyModel
 ```
 
 Create a proxy model with row IDs stored in the vertical header.
