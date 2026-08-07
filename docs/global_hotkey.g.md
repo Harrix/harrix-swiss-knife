@@ -11,6 +11,13 @@ lang: en
 
 ## Contents
 
+- [📎 Constant `HOTKEY_ID_BASE`](#-constant-hotkey_id_base)
+- [📎 Constant `WM_HOTKEY`](#-constant-wm_hotkey)
+- [📎 Constant `MOD_ALT`](#-constant-mod_alt)
+- [📎 Constant `MOD_CONTROL`](#-constant-mod_control)
+- [📎 Constant `MOD_SHIFT`](#-constant-mod_shift)
+- [📎 Constant `MOD_WIN`](#-constant-mod_win)
+- [📎 Constant `MOD_NOREPEAT`](#-constant-mod_norepeat)
 - [🏛️ Class `GlobalHotkeyManager`](#%EF%B8%8F-class-globalhotkeymanager)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `register_all`](#%EF%B8%8F-method-register_all)
@@ -20,6 +27,62 @@ lang: en
 - [🔧 Function `parse_hotkey_string`](#-function-parse_hotkey_string)
 
 </details>
+
+## 📎 Constant `HOTKEY_ID_BASE`
+
+```python
+HOTKEY_ID_BASE = 4739915
+```
+
+_No docstring provided._
+
+## 📎 Constant `WM_HOTKEY`
+
+```python
+WM_HOTKEY = 786
+```
+
+_No docstring provided._
+
+## 📎 Constant `MOD_ALT`
+
+```python
+MOD_ALT = 1
+```
+
+_No docstring provided._
+
+## 📎 Constant `MOD_CONTROL`
+
+```python
+MOD_CONTROL = 2
+```
+
+_No docstring provided._
+
+## 📎 Constant `MOD_SHIFT`
+
+```python
+MOD_SHIFT = 4
+```
+
+_No docstring provided._
+
+## 📎 Constant `MOD_WIN`
+
+```python
+MOD_WIN = 8
+```
+
+_No docstring provided._
+
+## 📎 Constant `MOD_NOREPEAT`
+
+```python
+MOD_NOREPEAT = 16384
+```
+
+_No docstring provided._
 
 ## 🏛️ Class `GlobalHotkeyManager`
 

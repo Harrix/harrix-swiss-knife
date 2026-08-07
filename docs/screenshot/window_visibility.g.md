@@ -11,13 +11,27 @@ lang: en
 
 ## Contents
 
+- [📎 Constant `HSK_SCREENSHOT_UI_PROP`](#-constant-hsk_screenshot_ui_prop)
 - [🏛️ Class `ConcealedWindow`](#%EF%B8%8F-class-concealedwindow)
+  - [📎 Attribute `widget`](#-attribute-widget)
+  - [📎 Attribute `mode`](#-attribute-mode)
+  - [📎 Attribute `opacity`](#-attribute-opacity)
+  - [📎 Attribute `modality`](#-attribute-modality)
+  - [📎 Attribute `transparent_for_mouse`](#-attribute-transparent_for_mouse)
 - [🔧 Function `hide_app_windows`](#-function-hide_app_windows)
 - [🔧 Function `is_screenshot_ui`](#-function-is_screenshot_ui)
 - [🔧 Function `mark_screenshot_ui`](#-function-mark_screenshot_ui)
 - [🔧 Function `restore_app_windows`](#-function-restore_app_windows)
 
 </details>
+
+## 📎 Constant `HSK_SCREENSHOT_UI_PROP`
+
+```python
+HSK_SCREENSHOT_UI_PROP = 'hsk_screenshot_ui'
+```
+
+_No docstring provided._
 
 ## 🏛️ Class `ConcealedWindow`
 
@@ -41,6 +55,46 @@ class ConcealedWindow:
 ```
 
 </details>
+
+### 📎 Attribute `widget`
+
+```python
+widget: QWidget
+```
+
+_No docstring provided._
+
+### 📎 Attribute `mode`
+
+```python
+mode: ConcealMode
+```
+
+_No docstring provided._
+
+### 📎 Attribute `opacity`
+
+```python
+opacity: float = 1.0
+```
+
+_No docstring provided._
+
+### 📎 Attribute `modality`
+
+```python
+modality: Qt.WindowModality = Qt.WindowModality.NonModal
+```
+
+_No docstring provided._
+
+### 📎 Attribute `transparent_for_mouse`
+
+```python
+transparent_for_mouse: bool = False
+```
+
+_No docstring provided._
 
 ## 🔧 Function `hide_app_windows`
 

@@ -6,6 +6,16 @@ lang: en
 
 # 📄 File `chart_operations.py`
 
+<details>
+<summary>📖 Contents ⬇️</summary>
+
+## Contents
+
+- [🏛️ Class `ChartOperationsBase`](#%EF%B8%8F-class-chartoperationsbase)
+  - [📎 Attribute `max_count_points_in_charts`](#-attribute-max_count_points_in_charts)
+
+</details>
+
 ## 🏛️ Class `ChartOperationsBase`
 
 ```python
@@ -514,3 +524,11 @@ class ChartOperationsBase:
 ```
 
 </details>
+
+### 📎 Attribute `max_count_points_in_charts`
+
+```python
+max_count_points_in_charts: int
+```
+
+_No docstring provided._

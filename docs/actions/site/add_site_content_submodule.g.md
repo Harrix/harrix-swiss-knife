@@ -12,6 +12,8 @@ lang: en
 ## Contents
 
 - [🏛️ Class `OnAddSiteContentSubmodule`](#%EF%B8%8F-class-onaddsitecontentsubmodule)
+  - [📎 Attribute `cli_available`](#-attribute-cli_available)
+  - [📎 Attribute `cli_hint`](#-attribute-cli_hint)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
 
 </details>
@@ -125,6 +127,22 @@ class OnAddSiteContentSubmodule(ActionBase):
 ```
 
 </details>
+
+### 📎 Attribute `cli_available`
+
+```python
+cli_available: ClassVar[bool] = True
+```
+
+_No docstring provided._
+
+### 📎 Attribute `cli_hint`
+
+```python
+cli_hint: ClassVar[str] = 'site add-submodule'
+```
+
+_No docstring provided._
 
 ### ⚙️ Method `execute`
 

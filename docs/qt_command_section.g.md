@@ -11,6 +11,8 @@ lang: en
 
 ## Contents
 
+- [📎 Constant `COMMAND_SECTION_OBJECT_NAME`](#-constant-command_section_object_name)
+- [📎 Constant `COMMAND_SECTION_STYLE`](#-constant-command_section_style)
 - [🔧 Function `apply_opaque_white`](#-function-apply_opaque_white)
 - [🔧 Function `create_command_section`](#-function-create_command_section)
 - [🔧 Function `fit_icon_grid_height`](#-function-fit_icon_grid_height)
@@ -19,6 +21,22 @@ lang: en
 - [🔧 Function `style_transparent_icon_grid`](#-function-style_transparent_icon_grid)
 
 </details>
+
+## 📎 Constant `COMMAND_SECTION_OBJECT_NAME`
+
+```python
+COMMAND_SECTION_OBJECT_NAME = 'commandSection'
+```
+
+_No docstring provided._
+
+## 📎 Constant `COMMAND_SECTION_STYLE`
+
+```python
+COMMAND_SECTION_STYLE = f'#{COMMAND_SECTION_OBJECT_NAME} {{ background-color: #ffffff; border: 1px solid #c0c0c0; border-radius: 8px;}}#{COMMAND_SECTION_OBJECT_NAME} > QLabel {{ background: transparent; padding: 4px 8px 0px 8px;}}'
+```
+
+_No docstring provided._
 
 ## 🔧 Function `apply_opaque_white`
 

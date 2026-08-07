@@ -12,6 +12,8 @@ lang: en
 ## Contents
 
 - [🏛️ Class `PortionWeightResult`](#%EF%B8%8F-class-portionweightresult)
+  - [📎 Attribute `is_drink`](#-attribute-is_drink)
+  - [📎 Attribute `weight_g`](#-attribute-weight_g)
 - [🔧 Function `parse_portion_weight_response`](#-function-parse_portion_weight_response)
 
 </details>
@@ -35,6 +37,22 @@ class PortionWeightResult:
 ```
 
 </details>
+
+### 📎 Attribute `is_drink`
+
+```python
+is_drink: bool
+```
+
+_No docstring provided._
+
+### 📎 Attribute `weight_g`
+
+```python
+weight_g: int
+```
+
+_No docstring provided._
 
 ## 🔧 Function `parse_portion_weight_response`
 

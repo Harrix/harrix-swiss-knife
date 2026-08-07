@@ -12,8 +12,12 @@ lang: en
 ## Contents
 
 - [🏛️ Class `AutoSaveMixin`](#%EF%B8%8F-class-autosavemixin)
+  - [📎 Attribute `models`](#-attribute-models)
 - [🏛️ Class `DateMixin`](#%EF%B8%8F-class-datemixin)
+  - [📎 Attribute `db_manager`](#-attribute-db_manager)
 - [🏛️ Class `TableOperations`](#%EF%B8%8F-class-tableoperations)
+  - [📎 Attribute `table_config`](#-attribute-table_config)
+  - [📎 Attribute `models`](#-attribute-models-1)
 - [🏛️ Class `ValidationMixin`](#%EF%B8%8F-class-validationmixin)
 
 </details>
@@ -168,6 +172,14 @@ class AutoSaveMixin:
 
 </details>
 
+### 📎 Attribute `models`
+
+```python
+models: dict[str, Any]
+```
+
+_No docstring provided._
+
 ## 🏛️ Class `DateMixin`
 
 ```python
@@ -248,6 +260,14 @@ class DateMixin:
 ```
 
 </details>
+
+### 📎 Attribute `db_manager`
+
+```python
+db_manager: Any
+```
+
+_No docstring provided._
 
 ## 🏛️ Class `TableOperations`
 
@@ -416,6 +436,22 @@ class TableOperations:
 ```
 
 </details>
+
+### 📎 Attribute `table_config`
+
+```python
+table_config: dict[str, tuple[Any, str, list[str]]]
+```
+
+_No docstring provided._
+
+### 📎 Attribute `models`
+
+```python
+models: dict[str, Any]
+```
+
+_No docstring provided._
 
 ## 🏛️ Class `ValidationMixin`
 

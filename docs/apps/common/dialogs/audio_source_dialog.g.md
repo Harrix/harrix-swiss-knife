@@ -11,6 +11,7 @@ lang: en
 
 ## Contents
 
+- [📎 Constant `RECOGNIZE_BUTTON_STYLE`](#-constant-recognize_button_style)
 - [🏛️ Class `AudioFileDropWidget`](#%EF%B8%8F-class-audiofiledropwidget)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `clear_file`](#%EF%B8%8F-method-clear_file)
@@ -25,6 +26,14 @@ lang: en
   - [⚙️ Method `release_multimedia`](#%EF%B8%8F-method-release_multimedia)
 
 </details>
+
+## 📎 Constant `RECOGNIZE_BUTTON_STYLE`
+
+```python
+RECOGNIZE_BUTTON_STYLE = 'QPushButton {\n    background-color: #C1ECDD;\n}\nQPushButton:hover {\n    background-color: #D1F5E8;\n}\nQPushButton:pressed {\n    background-color: #A8E0C7;\n}'
+```
+
+_No docstring provided._
 
 ## 🏛️ Class `AudioFileDropWidget`
 

@@ -355,24 +355,46 @@ You need a line like `XXXXXXXX    device` (not `unauthorized` or `offline`). If 
 
 ## ➕ Add a new action
 
-Actions live under `src/harrix_swiss_knife/actions/`. Each menu section is a **subpackage** with one `On*` class per file:
+Actions live under `src/harrix_swiss_knife/actions/`. The package root holds only `__init__.py` and **subpackages**. Each menu section is a subpackage with **one** public `On*` class per `.py` file. Framework code and shared helpers live in `actions/common/` (not menu items).
 
-| Section         | Package                     | Import example                                              |
-| --------------- | --------------------------- | ----------------------------------------------------------- |
-| Apps            | `actions/apps/`             | `harrix_swiss_knife.actions.apps.OnFinance`                 |
-| Dev             | `actions/development/`      | `harrix_swiss_knife.actions.development.OnAboutDialog`      |
-| File operations | `actions/files/`            | `harrix_swiss_knife.actions.files.On…`                      |
-| Images          | `actions/images/`           | `harrix_swiss_knife.actions.images.On…`                     |
-| Markdown        | `actions/markdown/`         | `harrix_swiss_knife.actions.markdown.On…`                   |
-| Python          | `actions/python/`           | `harrix_swiss_knife.actions.python.On…`                     |
-| Text            | `actions/text/`             | `harrix_swiss_knife.actions.text.OnFixTextWithAI`           |
-| Quick launcher  | `actions/quick_launcher/`   | `harrix_swiss_knife.actions.quick_launcher.OnQuickLauncher` |
-| Common helpers  | `actions/common/`           | Shared bases/helpers (not menu items)                       |
+| Section         | Package                   | Import example                                              |
+| --------------- | ------------------------- | ----------------------------------------------------------- |
+| Apps            | `actions/apps/`           | `harrix_swiss_knife.actions.apps.OnFinance`                 |
+| Android         | `actions/android/`        | `harrix_swiss_knife.actions.android.OnAndroidBuild`         |
+| Dev             | `actions/development/`    | `harrix_swiss_knife.actions.development.OnAboutDialog`      |
+| File operations | `actions/files/`          | `harrix_swiss_knife.actions.files.On…`                      |
+| Images          | `actions/images/`         | `harrix_swiss_knife.actions.images.On…`                     |
+| Markdown        | `actions/markdown/`       | `harrix_swiss_knife.actions.markdown.On…`                   |
+| Python          | `actions/python/`         | `harrix_swiss_knife.actions.python.On…`                     |
+| Site            | `actions/site/`           | `harrix_swiss_knife.actions.site.OnPullSiteSubmodules`      |
+| Text            | `actions/text/`           | `harrix_swiss_knife.actions.text.OnFixTextWithAI`           |
+| VS Code         | `actions/vscode/`         | `harrix_swiss_knife.actions.vscode.OnVscodeCheck`           |
+| Quick launcher  | `actions/quick_launcher/` | `harrix_swiss_knife.actions.quick_launcher.OnQuickLauncher` |
+| Common          | `actions/common/`         | Framework + shared helpers (see below)                      |
 
-**File name:** drop the `On` prefix and use snake*case — `OnCheckFeaturedImageInFolders` → `check_featured_image_in_folders.py`. For a reserved name like `exit`, use `exit*.py`.
+**`actions/common/`** (not tray menu actions):
+
+- Framework: `base` (`ActionBase`), `dialog_service`, `dialog_geometry`, `dialog_widgets`, log/usage browsers, `text_result_dialog`, `text_diff_dialog`
+- Shared helpers used by more than one action (images, Git/Markdown commit, quick launcher wiring, site links, subprocess, …)
+
+Import the base class from common:
+
+```python
+from harrix_swiss_knife.actions.common.base import ActionBase
+```
+
+**Structure rules** (subcategory folders only, not `common/`):
+
+- One public `On*` class per file; no module-level helpers or constants.
+- Put helpers on the class (`@staticmethod` / methods); constants as class attributes / `ClassVar`.
+- Helper classes used only by that action → nested inside the `On*` class.
+- Code shared by several actions (and not in harrix-pylib) → `actions/common/`.
+
+**File name:** drop the `On` prefix and use snake_case — `OnCheckFeaturedImageInFolders` → `check_featured_image_in_folders.py`. For a reserved name like `exit`, use `exit_.py`.
+
 **Steps:**
 
-1. Create `src/harrix_swiss_knife/actions/<section>/<action_snake_case>.py` with `class On<Action>(ActionBase)` (import only what this action needs; see existing files in the same section).
+1. Create `src/harrix_swiss_knife/actions/<section>/<action_snake_case>.py` with `class On<Action>(ActionBase)` (import `ActionBase` from `harrix_swiss_knife.actions.common.base`; see existing files in the same section).
 2. Export the class from `src/harrix_swiss_knife/actions/<section>/__init__.py` (`from … import On…` and add to `__all__`).
 3. Add the class to `get_menu_structure()` in `src/harrix_swiss_knife/menu_structure.py`.
 4. Emoji icons: <https://emojidb.org/>.
@@ -390,24 +412,29 @@ Example action file:
 
 ```python
 # src/harrix_swiss_knife/actions/files/check_featured_image_in_folders.py
-"""Actions for file operations and management of directory structures."""
+"""Check for featured image files in all configured folders."""
 
 from __future__ import annotations
+
 from typing import Any
+
 import harrix_pylib as h
+
 from harrix_swiss_knife.actions.common.base import ActionBase
 
 
 class OnCheckFeaturedImageInFolders(ActionBase):
     """Check for featured image files in all configured folders.
+
     This action automatically checks all directories specified in the
     paths_with_featured_image configuration setting for the presence of
     files named `featured_image` with any extension, providing a status
     report for each directory.
+
     """
 
     icon = "✅"
-    title = "Check featured_image"
+    title = "Check featured_image in all folders"
 
     @ActionBase.handle_exceptions("checking featured image in folders")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002

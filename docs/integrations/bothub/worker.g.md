@@ -12,6 +12,9 @@ lang: en
 ## Contents
 
 - [🏛️ Class `BothubChatWorker`](#%EF%B8%8F-class-bothubchatworker)
+  - [📎 Attribute `finished_success`](#-attribute-finished_success)
+  - [📎 Attribute `finished_error`](#-attribute-finished_error)
+  - [📎 Attribute `finished_cancelled`](#-attribute-finished_cancelled)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `cancel`](#%EF%B8%8F-method-cancel)
   - [⚙️ Method `run`](#%EF%B8%8F-method-run)
@@ -142,6 +145,30 @@ class BothubChatWorker(QThread):
 ```
 
 </details>
+
+### 📎 Attribute `finished_success`
+
+```python
+finished_success: Signal = Signal(str)
+```
+
+_No docstring provided._
+
+### 📎 Attribute `finished_error`
+
+```python
+finished_error: Signal = Signal(str)
+```
+
+_No docstring provided._
+
+### 📎 Attribute `finished_cancelled`
+
+```python
+finished_cancelled: Signal = Signal()
+```
+
+_No docstring provided._
 
 ### ⚙️ Method `__init__`
 

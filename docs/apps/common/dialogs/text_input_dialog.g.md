@@ -12,6 +12,9 @@ lang: en
 ## Contents
 
 - [🏛️ Class `TextInputDialog`](#%EF%B8%8F-class-textinputdialog)
+  - [📎 Attribute `text_edit`](#-attribute-text_edit)
+  - [📎 Attribute `date_edit`](#-attribute-date_edit)
+  - [📎 Attribute `accepted_text`](#-attribute-accepted_text)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `get_date`](#%EF%B8%8F-method-get_date)
   - [⚙️ Method `get_text`](#%EF%B8%8F-method-get_text)
@@ -169,10 +172,34 @@ class TextInputDialog(QDialog):
 
 </details>
 
+### 📎 Attribute `text_edit`
+
+```python
+text_edit: QPlainTextEdit
+```
+
+_No docstring provided._
+
+### 📎 Attribute `date_edit`
+
+```python
+date_edit: QDateEdit | None
+```
+
+_No docstring provided._
+
+### 📎 Attribute `accepted_text`
+
+```python
+accepted_text: str | None
+```
+
+_No docstring provided._
+
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, parent: QWidget | None = None, *, title: str = "Add Text", description: str | None = None, placeholder: str | None = None, show_date: bool = False, default_date: QDate | None = None, initial_text: str | None = None, focus_text_on_show: bool = False, min_width: int = 600, min_height: int = 400) -> None
+def __init__(self, parent: QWidget | None = None, *, title: str = 'Add Text', description: str | None = None, placeholder: str | None = None, show_date: bool = False, default_date: QDate | None = None, initial_text: str | None = None, focus_text_on_show: bool = False, min_width: int = 600, min_height: int = 400) -> None
 ```
 
 Initialize the text input dialog.

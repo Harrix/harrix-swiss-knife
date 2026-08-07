@@ -6,6 +6,33 @@ lang: en
 
 # 📄 File `db_guard.py`
 
+<details>
+<summary>📖 Contents ⬇️</summary>
+
+## Contents
+
+- [📎 Constant `P`](#-constant-p)
+- [📎 Constant `R`](#-constant-r)
+- [🔧 Function `requires_database`](#-function-requires_database)
+
+</details>
+
+## 📎 Constant `P`
+
+```python
+P = ParamSpec('P')
+```
+
+_No docstring provided._
+
+## 📎 Constant `R`
+
+```python
+R = TypeVar('R')
+```
+
+_No docstring provided._
+
 ## 🔧 Function `requires_database`
 
 ```python

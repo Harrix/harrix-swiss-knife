@@ -11,10 +11,28 @@ lang: en
 
 ## Contents
 
+- [📎 Constant `GITHUB_USER_AGENT`](#-constant-github_user_agent)
+- [📎 Constant `ALLOWED_HTTPS_SCHEMES`](#-constant-allowed_https_schemes)
 - [🔧 Function `github_api_headers`](#-function-github_api_headers)
 - [🔧 Function `validate_https_url`](#-function-validate_https_url)
 
 </details>
+
+## 📎 Constant `GITHUB_USER_AGENT`
+
+```python
+GITHUB_USER_AGENT = 'harrix-swiss-knife'
+```
+
+_No docstring provided._
+
+## 📎 Constant `ALLOWED_HTTPS_SCHEMES`
+
+```python
+ALLOWED_HTTPS_SCHEMES = frozenset({'https'})
+```
+
+_No docstring provided._
 
 ## 🔧 Function `github_api_headers`
 

@@ -12,6 +12,10 @@ lang: en
 ## Contents
 
 - [🏛️ Class `TemplateEntry`](#%EF%B8%8F-class-templateentry)
+  - [📎 Attribute `display_title`](#-attribute-display_title)
+  - [📎 Attribute `block_text`](#-attribute-block_text)
+  - [📎 Attribute `start`](#-attribute-start)
+  - [📎 Attribute `end`](#-attribute-end)
 - [🏛️ Class `TemplateField`](#%EF%B8%8F-class-templatefield)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
 - [🏛️ Class `TemplateParser`](#%EF%B8%8F-class-templateparser)
@@ -44,6 +48,38 @@ class TemplateEntry:
 ```
 
 </details>
+
+### 📎 Attribute `display_title`
+
+```python
+display_title: str
+```
+
+_No docstring provided._
+
+### 📎 Attribute `block_text`
+
+```python
+block_text: str
+```
+
+_No docstring provided._
+
+### 📎 Attribute `start`
+
+```python
+start: int
+```
+
+_No docstring provided._
+
+### 📎 Attribute `end`
+
+```python
+end: int
+```
+
+_No docstring provided._
 
 ## 🏛️ Class `TemplateField`
 

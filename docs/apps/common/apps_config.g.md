@@ -6,6 +6,33 @@ lang: en
 
 # 📄 File `apps_config.py`
 
+<details>
+<summary>📖 Contents ⬇️</summary>
+
+## Contents
+
+- [📎 Constant `DEFAULT_INITIAL_COUNT`](#-constant-default_initial_count)
+- [📎 Constant `DEFAULT_LOAD_MORE_COUNT`](#-constant-default_load_more_count)
+- [🔧 Function `get_apps_list_limits`](#-function-get_apps_list_limits)
+
+</details>
+
+## 📎 Constant `DEFAULT_INITIAL_COUNT`
+
+```python
+DEFAULT_INITIAL_COUNT = 1000
+```
+
+_No docstring provided._
+
+## 📎 Constant `DEFAULT_LOAD_MORE_COUNT`
+
+```python
+DEFAULT_LOAD_MORE_COUNT = 500
+```
+
+_No docstring provided._
+
 ## 🔧 Function `get_apps_list_limits`
 
 ```python

@@ -12,6 +12,10 @@ lang: en
 ## Contents
 
 - [🏛️ Class `KcalLookupResult`](#%EF%B8%8F-class-kcallookupresult)
+  - [📎 Attribute `calories`](#-attribute-calories)
+  - [📎 Attribute `is_weight_mode`](#-attribute-is_weight_mode)
+  - [📎 Attribute `is_drink`](#-attribute-is_drink)
+  - [📎 Attribute `weight_g`](#-attribute-weight_g)
 - [🔧 Function `normalize_kcal_lookup_mode`](#-function-normalize_kcal_lookup_mode)
 - [🔧 Function `parse_kcal_lookup_response`](#-function-parse_kcal_lookup_response)
 
@@ -38,6 +42,38 @@ class KcalLookupResult:
 ```
 
 </details>
+
+### 📎 Attribute `calories`
+
+```python
+calories: float
+```
+
+_No docstring provided._
+
+### 📎 Attribute `is_weight_mode`
+
+```python
+is_weight_mode: bool
+```
+
+_No docstring provided._
+
+### 📎 Attribute `is_drink`
+
+```python
+is_drink: bool
+```
+
+_No docstring provided._
+
+### 📎 Attribute `weight_g`
+
+```python
+weight_g: int
+```
+
+_No docstring provided._
 
 ## 🔧 Function `normalize_kcal_lookup_mode`
 

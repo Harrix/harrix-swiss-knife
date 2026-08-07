@@ -11,7 +11,9 @@ lang: en
 
 ## Contents
 
+- [📎 Constant `SEND_TO_AI_BUTTON_STYLE`](#-constant-send_to_ai_button_style)
 - [🏛️ Class `TextImageSourceDialog`](#%EF%B8%8F-class-textimagesourcedialog)
+  - [📎 Attribute `SKIP_MANUAL`](#-attribute-skip_manual)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `eventFilter`](#%EF%B8%8F-method-eventfilter)
   - [⚙️ Method `get_image_bytes_and_mime`](#%EF%B8%8F-method-get_image_bytes_and_mime)
@@ -19,6 +21,14 @@ lang: en
   - [⚙️ Method `get_raw_text`](#%EF%B8%8F-method-get_raw_text)
 
 </details>
+
+## 📎 Constant `SEND_TO_AI_BUTTON_STYLE`
+
+```python
+SEND_TO_AI_BUTTON_STYLE = 'QPushButton {\n    background-color: #C1ECDD;\n}\nQPushButton:hover {\n    background-color: #D1F5E8;\n}\nQPushButton:pressed {\n    background-color: #A8E0C7;\n}'
+```
+
+_No docstring provided._
 
 ## 🏛️ Class `TextImageSourceDialog`
 
@@ -211,10 +221,18 @@ class TextImageSourceDialog(QDialog):
 
 </details>
 
+### 📎 Attribute `SKIP_MANUAL`
+
+```python
+SKIP_MANUAL: int = 2
+```
+
+_No docstring provided._
+
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, parent: QWidget | None = None, *, title: str = "Source input", description: str = "", placeholder: str = "", show_text: bool = True, text_required: bool = False, show_images: bool = True, images_required: bool = False, image_mode: ImagePickerMode = ImagePickerMode.MULTI, image_label: str | None = "Images (drag, paste Ctrl+V, or select files):", show_skip_manual: bool = False, skip_manual_button_text: str = "Enter Text Manually", accept_button_text: str = "OK", accept_button_emoji: str = "✅", accept_button_style: str | None = None, max_image_side: int | None = None, initial_image_paths: list[str] | None = None, initial_image_path: str | None = None) -> None
+def __init__(self, parent: QWidget | None = None, *, title: str = 'Source input', description: str = '', placeholder: str = '', show_text: bool = True, text_required: bool = False, show_images: bool = True, images_required: bool = False, image_mode: ImagePickerMode = ImagePickerMode.MULTI, image_label: str | None = 'Images (drag, paste Ctrl+V, or select files):', show_skip_manual: bool = False, skip_manual_button_text: str = 'Enter Text Manually', accept_button_text: str = 'OK', accept_button_emoji: str = '✅', accept_button_style: str | None = None, max_image_side: int | None = None, initial_image_paths: list[str] | None = None, initial_image_path: str | None = None) -> None
 ```
 
 Initialize the text/image source dialog.

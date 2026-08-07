@@ -11,14 +11,41 @@ lang: en
 
 ## Contents
 
+- [📎 Constant `ADD_NEW_ENTRY_LABEL`](#-constant-add_new_entry_label)
+- [📎 Constant `ADD_NEW_ENTRY_ROLE`](#-constant-add_new_entry_role)
 - [🏛️ Class `TemplateEntryBrowserGroup`](#%EF%B8%8F-class-templateentrybrowsergroup)
+  - [📎 Attribute `label`](#-attribute-label)
+  - [📎 Attribute `entries`](#-attribute-entries)
 - [🏛️ Class `TemplateEntryBrowserWidget`](#%EF%B8%8F-class-templateentrybrowserwidget)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `get_selected_entry`](#%EF%B8%8F-method-get_selected_entry)
   - [⚙️ Method `set_groups`](#%EF%B8%8F-method-set_groups)
 - [🏛️ Class `TemplateExistingEntry`](#%EF%B8%8F-class-templateexistingentry)
+  - [📎 Attribute `kind`](#-attribute-kind)
+  - [📎 Attribute `label`](#-attribute-label-1)
+  - [📎 Attribute `note_md`](#-attribute-note_md)
+  - [📎 Attribute `target_path`](#-attribute-target_path)
+  - [📎 Attribute `block_start`](#-attribute-block_start)
+  - [📎 Attribute `block_end`](#-attribute-block_end)
+  - [📎 Attribute `display_title`](#-attribute-display_title)
 
 </details>
+
+## 📎 Constant `ADD_NEW_ENTRY_LABEL`
+
+```python
+ADD_NEW_ENTRY_LABEL = '➕ Add new Entry'
+```
+
+_No docstring provided._
+
+## 📎 Constant `ADD_NEW_ENTRY_ROLE`
+
+```python
+ADD_NEW_ENTRY_ROLE = '__add_new_entry__'
+```
+
+_No docstring provided._
 
 ## 🏛️ Class `TemplateEntryBrowserGroup`
 
@@ -39,6 +66,22 @@ class TemplateEntryBrowserGroup:
 ```
 
 </details>
+
+### 📎 Attribute `label`
+
+```python
+label: str
+```
+
+_No docstring provided._
+
+### 📎 Attribute `entries`
+
+```python
+entries: tuple[TemplateExistingEntry, ...]
+```
+
+_No docstring provided._
 
 ## 🏛️ Class `TemplateEntryBrowserWidget`
 
@@ -235,3 +278,59 @@ class TemplateExistingEntry:
 ```
 
 </details>
+
+### 📎 Attribute `kind`
+
+```python
+kind: Literal['city_note', 'file_block']
+```
+
+_No docstring provided._
+
+### 📎 Attribute `label`
+
+```python
+label: str
+```
+
+_No docstring provided._
+
+### 📎 Attribute `note_md`
+
+```python
+note_md: str | None = None
+```
+
+_No docstring provided._
+
+### 📎 Attribute `target_path`
+
+```python
+target_path: str | None = None
+```
+
+_No docstring provided._
+
+### 📎 Attribute `block_start`
+
+```python
+block_start: int | None = None
+```
+
+_No docstring provided._
+
+### 📎 Attribute `block_end`
+
+```python
+block_end: int | None = None
+```
+
+_No docstring provided._
+
+### 📎 Attribute `display_title`
+
+```python
+display_title: str | None = None
+```
+
+_No docstring provided._

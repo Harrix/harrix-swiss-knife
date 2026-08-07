@@ -11,10 +11,19 @@ lang: en
 
 ## Contents
 
+- [📎 Constant `PROMPT_MISSING_MSG`](#-constant-prompt_missing_msg)
 - [🔧 Function `build_image_ocr_prompt`](#-function-build_image_ocr_prompt)
 - [🔧 Function `get_image_ocr_prompt_template`](#-function-get_image_ocr_prompt_template)
 
 </details>
+
+## 📎 Constant `PROMPT_MISSING_MSG`
+
+```python
+PROMPT_MISSING_MSG = 'Prompt image_ocr_to_markdown is not configured in config.json.'
+```
+
+_No docstring provided._
 
 ## 🔧 Function `build_image_ocr_prompt`
 

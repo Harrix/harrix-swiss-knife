@@ -11,6 +11,10 @@ lang: en
 
 ## Contents
 
+- [📎 Constant `CLI_EXECUTABLE`](#-constant-cli_executable)
+- [📎 Constant `CLI_MENU_SUFFIX`](#-constant-cli_menu_suffix)
+- [📎 Constant `CLI_TOOLTIP_DEFAULT`](#-constant-cli_tooltip_default)
+- [📎 Constant `COPY_CLI_MENU_PREFIX`](#-constant-copy_cli_menu_prefix)
 - [🏛️ Class `CliContextMenu`](#%EF%B8%8F-class-clicontextmenu)
   - [⚙️ Method `mouseReleaseEvent`](#%EF%B8%8F-method-mousereleaseevent)
 - [🔧 Function `build_cli_copy_command`](#-function-build_cli_copy_command)
@@ -21,6 +25,38 @@ lang: en
 - [🔧 Function `show_copy_cli_menu`](#-function-show_copy_cli_menu)
 
 </details>
+
+## 📎 Constant `CLI_EXECUTABLE`
+
+```python
+CLI_EXECUTABLE = 'hsk'
+```
+
+_No docstring provided._
+
+## 📎 Constant `CLI_MENU_SUFFIX`
+
+```python
+CLI_MENU_SUFFIX = ' ꟲᴸᴵ'
+```
+
+_No docstring provided._
+
+## 📎 Constant `CLI_TOOLTIP_DEFAULT`
+
+```python
+CLI_TOOLTIP_DEFAULT = f'Available via {CLI_EXECUTABLE} (see --help)'
+```
+
+_No docstring provided._
+
+## 📎 Constant `COPY_CLI_MENU_PREFIX`
+
+```python
+COPY_CLI_MENU_PREFIX = 'Copy CLI command: '
+```
+
+_No docstring provided._
 
 ## 🏛️ Class `CliContextMenu`
 

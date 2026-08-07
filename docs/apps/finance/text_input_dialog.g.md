@@ -11,11 +11,20 @@ lang: en
 
 ## Contents
 
+- [📎 Constant `PURCHASE_TEXT_PLACEHOLDER`](#-constant-purchase_text_placeholder)
 - [🏛️ Class `TextInputDialog`](#%EF%B8%8F-class-textinputdialog)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `get_items`](#%EF%B8%8F-method-get_items)
 
 </details>
+
+## 📎 Constant `PURCHASE_TEXT_PLACEHOLDER`
+
+```python
+PURCHASE_TEXT_PLACEHOLDER = "Enter your purchases here...\nExample:\nSugar-free Cola 'From Store'\tFood\t99 ₽\nMilk Cocktail 'Wonder'\tFood\t65 ₽"
+```
+
+_No docstring provided._
 
 ## 🏛️ Class `TextInputDialog`
 
@@ -72,7 +81,7 @@ class TextInputDialog(PurchaseTableDialog):
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, parent: QWidget | None = None, default_date: QDate | None = None, *, initial_text: str | None = None, focus_text_on_show: bool = True, currency_symbol: str = "") -> None
+def __init__(self, parent: QWidget | None = None, default_date: QDate | None = None, *, initial_text: str | None = None, focus_text_on_show: bool = True, currency_symbol: str = '') -> None
 ```
 
 Initialize the finance purchase input dialog.

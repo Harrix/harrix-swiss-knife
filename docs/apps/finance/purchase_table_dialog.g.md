@@ -388,7 +388,7 @@ class PurchaseTableDialog(QDialog):
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, parent: QWidget | None = None, *, title: str = "Add Purchases", description: str | None = None, default_date: QDate | None = None, initial_text: str | None = None, currency_symbol: str = "", text_placeholder: str = "") -> None
+def __init__(self, parent: QWidget | None = None, *, title: str = 'Add Purchases', description: str | None = None, default_date: QDate | None = None, initial_text: str | None = None, currency_symbol: str = '', text_placeholder: str = '') -> None
 ```
 
 Initialize the purchase table dialog.

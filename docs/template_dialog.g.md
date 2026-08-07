@@ -11,156 +11,31 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `MapCoordinatesExtractDialog`](#%EF%B8%8F-class-mapcoordinatesextractdialog)
-  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
-  - [⚙️ Method `get_coordinates`](#%EF%B8%8F-method-get_coordinates)
+- [📦 Re-export `TemplateField`](#-re-export-templatefield)
+- [📦 Re-export `TemplateParser`](#-re-export-templateparser)
 - [🏛️ Class `TemplateDialog`](#%EF%B8%8F-class-templatedialog)
-  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-1)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `get_field_values`](#%EF%B8%8F-method-get_field_values)
   - [⚙️ Method `get_pending_removed_image_paths`](#%EF%B8%8F-method-get_pending_removed_image_paths)
   - [⚙️ Method `get_selected_entry`](#%EF%B8%8F-method-get_selected_entry)
 
 </details>
 
-## 🏛️ Class `MapCoordinatesExtractDialog`
+## 📦 Re-export `TemplateField`
 
 ```python
-class MapCoordinatesExtractDialog(QDialog)
+from harrix_swiss_knife.template_parser import TemplateField
 ```
 
-Modal dialog to extract coordinates from a pasted map URL.
+_Re-exported symbol._
 
-<details>
-<summary>Code:</summary>
+## 📦 Re-export `TemplateParser`
 
 ```python
-class MapCoordinatesExtractDialog(QDialog):
-
-    def __init__(self, parent: QWidget | None, *, service_name: str) -> None:
-        super().__init__(parent)
-        self._coordinates: tuple[float, float] | None = None
-        self.setWindowTitle(f"Extract coordinates — {service_name}")
-        qt_modality.set_owner_window_modal(self)
-        self.setMinimumWidth(560)
-
-        layout = QVBoxLayout(self)
-
-        hint = QLabel(f"Paste a {service_name} link. Extracted coordinates appear below.")
-        hint.setWordWrap(True)
-        layout.addWidget(hint)
-
-        self._url_edit = QPlainTextEdit()
-        self._url_edit.setPlaceholderText("https://…")
-        self._url_edit.setMinimumHeight(100)
-        self._url_edit.textChanged.connect(self._update_preview)
-        layout.addWidget(self._url_edit)
-
-        self._preview_label = QLabel("Coordinates: —")
-        self._preview_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
-        layout.addWidget(self._preview_label)
-
-        buttons = QHBoxLayout()
-        buttons.addStretch()
-        cancel_button = make_emoji_push_button("Cancel", CANCEL_BUTTON_EMOJI)
-        cancel_button.clicked.connect(self.reject)
-        buttons.addWidget(cancel_button)
-        self._ok_button = make_emoji_push_button("OK", OK_BUTTON_EMOJI)
-        self._ok_button.setEnabled(False)
-        self._ok_button.setDefault(True)
-        self._ok_button.clicked.connect(self.accept)
-        self._ok_button.setStyleSheet("QPushButton { background-color: #4CAF50; color: white; }")
-        buttons.addWidget(self._ok_button)
-        layout.addLayout(buttons)
-
-    def get_coordinates(self) -> tuple[float, float] | None:
-        """Return extracted coordinates when the dialog was accepted."""
-        if self.result() == QDialog.DialogCode.Accepted:
-            return self._coordinates
-        return None
-
-    def _update_preview(self) -> None:
-        coords = parse_coordinates_from_map_url(self._url_edit.toPlainText())
-        self._coordinates = coords
-        if coords is None:
-            self._preview_label.setText("Coordinates: —")
-            self._ok_button.setEnabled(False)
-            return
-        self._preview_label.setText(f"Coordinates: {format_coordinates(coords[0], coords[1])}")
-        self._ok_button.setEnabled(True)
+from harrix_swiss_knife.template_parser import TemplateParser
 ```
 
-</details>
-
-### ⚙️ Method `__init__`
-
-```python
-def __init__(self, parent: QWidget | None, *, service_name: str) -> None
-```
-
-_No docstring provided._
-
-<details>
-<summary>Code:</summary>
-
-```python
-def __init__(self, parent: QWidget | None, *, service_name: str) -> None:
-        super().__init__(parent)
-        self._coordinates: tuple[float, float] | None = None
-        self.setWindowTitle(f"Extract coordinates — {service_name}")
-        qt_modality.set_owner_window_modal(self)
-        self.setMinimumWidth(560)
-
-        layout = QVBoxLayout(self)
-
-        hint = QLabel(f"Paste a {service_name} link. Extracted coordinates appear below.")
-        hint.setWordWrap(True)
-        layout.addWidget(hint)
-
-        self._url_edit = QPlainTextEdit()
-        self._url_edit.setPlaceholderText("https://…")
-        self._url_edit.setMinimumHeight(100)
-        self._url_edit.textChanged.connect(self._update_preview)
-        layout.addWidget(self._url_edit)
-
-        self._preview_label = QLabel("Coordinates: —")
-        self._preview_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
-        layout.addWidget(self._preview_label)
-
-        buttons = QHBoxLayout()
-        buttons.addStretch()
-        cancel_button = make_emoji_push_button("Cancel", CANCEL_BUTTON_EMOJI)
-        cancel_button.clicked.connect(self.reject)
-        buttons.addWidget(cancel_button)
-        self._ok_button = make_emoji_push_button("OK", OK_BUTTON_EMOJI)
-        self._ok_button.setEnabled(False)
-        self._ok_button.setDefault(True)
-        self._ok_button.clicked.connect(self.accept)
-        self._ok_button.setStyleSheet("QPushButton { background-color: #4CAF50; color: white; }")
-        buttons.addWidget(self._ok_button)
-        layout.addLayout(buttons)
-```
-
-</details>
-
-### ⚙️ Method `get_coordinates`
-
-```python
-def get_coordinates(self) -> tuple[float, float] | None
-```
-
-Return extracted coordinates when the dialog was accepted.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def get_coordinates(self) -> tuple[float, float] | None:
-        if self.result() == QDialog.DialogCode.Accepted:
-            return self._coordinates
-        return None
-```
-
-</details>
+_Re-exported symbol._
 
 ## 🏛️ Class `TemplateDialog`
 
@@ -1511,7 +1386,7 @@ class TemplateDialog(QDialog):
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, parent: QWidget | None = None, *, fields: list[TemplateField], title: str = "Fill Template", links: list[tuple[str, str]] | None = None, image_save_dir: Path | None = None, app_config: dict[str, Any] | None = None, initial_field_values: dict[str, str] | None = None, is_edit_mode: bool = False, entry_browser_groups: list[TemplateEntryBrowserGroup] | None = None, load_entry_values: Callable[[TemplateExistingEntry], dict[str, str] | None] | None = None, resolve_image_save_dir: Callable[[TemplateExistingEntry | None], Path | None] | None = None) -> None
+def __init__(self, parent: QWidget | None = None, *, fields: list[TemplateField], title: str = 'Fill Template', links: list[tuple[str, str]] | None = None, image_save_dir: Path | None = None, app_config: dict[str, Any] | None = None, initial_field_values: dict[str, str] | None = None, is_edit_mode: bool = False, entry_browser_groups: list[TemplateEntryBrowserGroup] | None = None, load_entry_values: Callable[[TemplateExistingEntry], dict[str, str] | None] | None = None, resolve_image_save_dir: Callable[[TemplateExistingEntry | None], Path | None] | None = None) -> None
 ```
 
 Initialize the template dialog.

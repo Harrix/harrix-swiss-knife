@@ -11,10 +11,19 @@ lang: en
 
 ## Contents
 
+- [📎 Constant `MAIN_WINDOW_ICON_GRID_KEY`](#-constant-main_window_icon_grid_key)
 - [🔧 Function `load_main_window_icon_grid`](#-function-load_main_window_icon_grid)
 - [🔧 Function `save_main_window_icon_grid`](#-function-save_main_window_icon_grid)
 
 </details>
+
+## 📎 Constant `MAIN_WINDOW_ICON_GRID_KEY`
+
+```python
+MAIN_WINDOW_ICON_GRID_KEY = 'main_window_icon_grid'
+```
+
+_No docstring provided._
 
 ## 🔧 Function `load_main_window_icon_grid`
 

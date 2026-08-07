@@ -11,6 +11,12 @@ lang: en
 
 ## Contents
 
+- [📎 Constant `BYTES_PER_KIB`](#-constant-bytes_per_kib)
+- [📎 Constant `BYTES_PER_MIB`](#-constant-bytes_per_mib)
+- [📎 Constant `LEVEL_GAIN`](#-constant-level_gain)
+- [📎 Constant `TRIM_SILENCE_THRESHOLD`](#-constant-trim_silence_threshold)
+- [📎 Constant `TRIM_SILENCE_PADDING_S`](#-constant-trim_silence_padding_s)
+- [📎 Constant `TEMP_MICROPHONE_ID_KEY`](#-constant-temp_microphone_id_key)
 - [🔧 Function `audio_device_id`](#-function-audio_device_id)
 - [🔧 Function `format_file_size`](#-function-format_file_size)
 - [🔧 Function `format_recording_duration`](#-function-format_recording_duration)
@@ -28,6 +34,54 @@ lang: en
 - [🔧 Function `write_wav`](#-function-write_wav)
 
 </details>
+
+## 📎 Constant `BYTES_PER_KIB`
+
+```python
+BYTES_PER_KIB = 1024
+```
+
+_No docstring provided._
+
+## 📎 Constant `BYTES_PER_MIB`
+
+```python
+BYTES_PER_MIB = 1024 * 1024
+```
+
+_No docstring provided._
+
+## 📎 Constant `LEVEL_GAIN`
+
+```python
+LEVEL_GAIN = 2.0
+```
+
+_No docstring provided._
+
+## 📎 Constant `TRIM_SILENCE_THRESHOLD`
+
+```python
+TRIM_SILENCE_THRESHOLD = 700
+```
+
+_No docstring provided._
+
+## 📎 Constant `TRIM_SILENCE_PADDING_S`
+
+```python
+TRIM_SILENCE_PADDING_S = 0.08
+```
+
+_No docstring provided._
+
+## 📎 Constant `TEMP_MICROPHONE_ID_KEY`
+
+```python
+TEMP_MICROPHONE_ID_KEY = 'speech_microphone_id'
+```
+
+_No docstring provided._
 
 ## 🔧 Function `audio_device_id`
 

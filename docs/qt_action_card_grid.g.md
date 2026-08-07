@@ -6,6 +6,60 @@ lang: en
 
 # 📄 File `qt_action_card_grid.py`
 
+<details>
+<summary>📖 Contents ⬇️</summary>
+
+## Contents
+
+- [📎 Constant `CARD_ICON_SIZE`](#-constant-card_icon_size)
+- [📎 Constant `CARD_SPACING`](#-constant-card_spacing)
+- [📎 Constant `CARD_GRID_CELL_WIDTH`](#-constant-card_grid_cell_width)
+- [📎 Constant `CARD_TEXT_AREA_HEIGHT`](#-constant-card_text_area_height)
+- [📎 Constant `CARD_GRID_CELL_HEIGHT`](#-constant-card_grid_cell_height)
+- [🔧 Function `configure_action_card_grid`](#-function-configure_action_card_grid)
+
+</details>
+
+## 📎 Constant `CARD_ICON_SIZE`
+
+```python
+CARD_ICON_SIZE = 64
+```
+
+_No docstring provided._
+
+## 📎 Constant `CARD_SPACING`
+
+```python
+CARD_SPACING = 8
+```
+
+_No docstring provided._
+
+## 📎 Constant `CARD_GRID_CELL_WIDTH`
+
+```python
+CARD_GRID_CELL_WIDTH = 140
+```
+
+_No docstring provided._
+
+## 📎 Constant `CARD_TEXT_AREA_HEIGHT`
+
+```python
+CARD_TEXT_AREA_HEIGHT = 36
+```
+
+_No docstring provided._
+
+## 📎 Constant `CARD_GRID_CELL_HEIGHT`
+
+```python
+CARD_GRID_CELL_HEIGHT = CARD_ICON_SIZE + CARD_TEXT_AREA_HEIGHT
+```
+
+_No docstring provided._
+
 ## 🔧 Function `configure_action_card_grid`
 
 ```python

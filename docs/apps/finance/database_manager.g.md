@@ -2551,7 +2551,7 @@ def add_account(
 ### ⚙️ Method `add_category`
 
 ```python
-def add_category(self, name: str, category_type: int, icon: str = "", name_local: str = "") -> bool
+def add_category(self, name: str, category_type: int, icon: str = '', name_local: str = '') -> bool
 ```
 
 Add a new category to the database.
@@ -2623,7 +2623,7 @@ def add_currency(self, code: str, name: str, symbol: str, subdivision: int = 100
 ### ⚙️ Method `add_currency_exchange`
 
 ```python
-def add_currency_exchange(self, currency_from_id: int, currency_to_id: int, amount_from: float, amount_to: float, exchange_rate: float, fee: float, date: str, description: str = "") -> bool
+def add_currency_exchange(self, currency_from_id: int, currency_to_id: int, amount_from: float, amount_to: float, exchange_rate: float, fee: float, date: str, description: str = '') -> bool
 ```
 
 Add a new currency exchange record.
@@ -2712,7 +2712,7 @@ def add_exchange_rate(self, currency_id: int, rate: float, date: str) -> bool:
 ### ⚙️ Method `add_standard_item`
 
 ```python
-def add_standard_item(self, name: str, category_id: int, name_en: str = "") -> bool
+def add_standard_item(self, name: str, category_id: int, name_en: str = '') -> bool
 ```
 
 Add a standard purchase/income catalog item.
@@ -2749,7 +2749,7 @@ def add_standard_item(self, name: str, category_id: int, name_en: str = "") -> b
 ### ⚙️ Method `add_transaction`
 
 ```python
-def add_transaction(self, amount: float, description: str, category_id: int, currency_id: int, date: str, tag: str = "", description_en: str = "") -> bool
+def add_transaction(self, amount: float, description: str, category_id: int, currency_id: int, date: str, tag: str = '', description_en: str = '') -> bool
 ```
 
 Add a new transaction.
@@ -5244,7 +5244,7 @@ def update_account(
 ### ⚙️ Method `update_category`
 
 ```python
-def update_category(self, category_id: int, name: str, category_type: int, icon: str = "", name_local: str = "") -> bool
+def update_category(self, category_id: int, name: str, category_type: int, icon: str = '', name_local: str = '') -> bool
 ```
 
 Update an existing category.
@@ -5329,7 +5329,7 @@ def update_currency(self, currency_id: int, code: str, name: str, symbol: str) -
 ### ⚙️ Method `update_currency_exchange_full`
 
 ```python
-def update_currency_exchange_full(self, exchange_id: int, currency_from_code: str, currency_to_code: str, amount_from: float, amount_to: float, exchange_rate: float, fee: float, date: str, description: str = "") -> bool
+def update_currency_exchange_full(self, exchange_id: int, currency_from_code: str, currency_to_code: str, amount_from: float, amount_to: float, exchange_rate: float, fee: float, date: str, description: str = '') -> bool
 ```
 
 Update full currency exchange record.
@@ -5491,7 +5491,7 @@ def update_exchange_rate(self, currency_id: int, date: str, rate: float) -> bool
 ### ⚙️ Method `update_standard_item`
 
 ```python
-def update_standard_item(self, item_id: int, name: str, category_id: int, name_en: str = "") -> bool
+def update_standard_item(self, item_id: int, name: str, category_id: int, name_en: str = '') -> bool
 ```
 
 Update a standard catalog item.
@@ -5560,7 +5560,7 @@ def update_standard_item_name_en_by_name(self, name: str, name_en: str) -> bool:
 ### ⚙️ Method `update_transaction`
 
 ```python
-def update_transaction(self, transaction_id: int, amount: float, description: str, category_id: int, currency_id: int, date: str, tag: str = "", description_en: str = "") -> bool
+def update_transaction(self, transaction_id: int, amount: float, description: str, category_id: int, currency_id: int, date: str, tag: str = '', description_en: str = '') -> bool
 ```
 
 Update an existing transaction.
@@ -5685,7 +5685,7 @@ def update_transactions_date(self, transaction_ids: list[int], date: str) -> boo
 ### ⚙️ Method `upsert_standard_item`
 
 ```python
-def upsert_standard_item(self, name: str, category_id: int, name_en: str = "") -> tuple[bool, str]
+def upsert_standard_item(self, name: str, category_id: int, name_en: str = '') -> tuple[bool, str]
 ```
 
 Insert a catalog item or update category/English when the name already exists.

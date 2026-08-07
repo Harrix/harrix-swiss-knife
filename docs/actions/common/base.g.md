@@ -11,7 +11,13 @@ lang: en
 
 ## Contents
 
+- [📎 Constant `P`](#-constant-p)
+- [📎 Constant `R`](#-constant-r)
 - [🏛️ Class `ActionBase`](#%EF%B8%8F-class-actionbase)
+  - [📎 Attribute `cli_available`](#-attribute-cli_available)
+  - [📎 Attribute `cli_hint`](#-attribute-cli_hint)
+  - [📎 Attribute `DEFAULT_ACTION_DIALOG_SIZE`](#-attribute-default_action_dialog_size)
+  - [📎 Attribute `DEFAULT_COMPACT_ACTION_DIALOG_SIZE`](#-attribute-default_compact_action_dialog_size)
   - [⚙️ Method `__call__`](#%EF%B8%8F-method-__call__)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `add_elapsed_time`](#%EF%B8%8F-method-add_elapsed_time)
@@ -20,7 +26,7 @@ lang: en
   - [⚙️ Method `create_emoji_icon`](#%EF%B8%8F-method-create_emoji_icon)
   - [⚙️ Method `display_title (property)`](#%EF%B8%8F-method-display_title-property)
   - [⚙️ Method `elapsed_mm_ss`](#%EF%B8%8F-method-elapsed_mm_ss)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
+  - [⚙️ Method `execute (abstractmethod)`](#%EF%B8%8F-method-execute-abstractmethod)
   - [⚙️ Method `get_checkbox_selection`](#%EF%B8%8F-method-get_checkbox_selection)
   - [⚙️ Method `get_choice_from_icons`](#%EF%B8%8F-method-get_choice_from_icons)
   - [⚙️ Method `get_choice_from_list`](#%EF%B8%8F-method-get_choice_from_list)
@@ -54,6 +60,22 @@ lang: en
   - [⚙️ Method `thread_after_show_result`](#%EF%B8%8F-method-thread_after_show_result)
 
 </details>
+
+## 📎 Constant `P`
+
+```python
+P = ParamSpec('P')
+```
+
+_No docstring provided._
+
+## 📎 Constant `R`
+
+```python
+R = TypeVar('R')
+```
+
+_No docstring provided._
 
 ## 🏛️ Class `ActionBase`
 
@@ -750,6 +772,38 @@ class ActionBase(ABC):
 
 </details>
 
+### 📎 Attribute `cli_available`
+
+```python
+cli_available: ClassVar[bool] = False
+```
+
+_No docstring provided._
+
+### 📎 Attribute `cli_hint`
+
+```python
+cli_hint: ClassVar[str] = ''
+```
+
+_No docstring provided._
+
+### 📎 Attribute `DEFAULT_ACTION_DIALOG_SIZE`
+
+```python
+DEFAULT_ACTION_DIALOG_SIZE: ClassVar[QSize] = QSize(1024, 768)
+```
+
+_No docstring provided._
+
+### 📎 Attribute `DEFAULT_COMPACT_ACTION_DIALOG_SIZE`
+
+```python
+DEFAULT_COMPACT_ACTION_DIALOG_SIZE: ClassVar[QSize] = QSize(520, 170)
+```
+
+_No docstring provided._
+
 ### ⚙️ Method `__call__`
 
 ```python
@@ -1019,7 +1073,7 @@ def elapsed_mm_ss(self) -> str | None:
 
 </details>
 
-### ⚙️ Method `execute`
+### ⚙️ Method `execute (abstractmethod)`
 
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> Any
@@ -1181,7 +1235,7 @@ def get_folder_with_choice_option(self, folders_list: list[str], default_path: s
 ### ⚙️ Method `get_max_image_size_option`
 
 ```python
-def get_max_image_size_option(self, title: str = "Image size limit", *, checkbox_label: str = "Limit max image size (px)", default_enabled: bool = True, default_max_size: int = 1024) -> tuple[bool, int] | None
+def get_max_image_size_option(self, title: str = 'Image size limit', *, checkbox_label: str = 'Limit max image size (px)', default_enabled: bool = True, default_max_size: int = 1024) -> tuple[bool, int] | None
 ```
 
 Dialog wrapper. Prefer `self.dialogs.get_max_image_size_option()`.
@@ -1307,7 +1361,7 @@ def get_text_input(self, title: str, label: str, default_value: str | None = Non
 ### ⚙️ Method `get_text_input_with_auto`
 
 ```python
-def get_text_input_with_auto(self, title: str, label: str, auto_generator: Callable[[], str] | None = None, auto_button_text: str = "🤖 Auto", validator: Callable[[str], str | None] | None = None) -> str | None
+def get_text_input_with_auto(self, title: str, label: str, auto_generator: Callable[[], str] | None = None, auto_button_text: str = '🤖 Auto', validator: Callable[[str], str | None] | None = None) -> str | None
 ```
 
 Dialog wrapper. Prefer `self.dialogs.get_text_input_with_auto()`.
@@ -1414,7 +1468,7 @@ def handle_error(self, error: Exception, context: str) -> None:
 ### ⚙️ Method `handle_exceptions (staticmethod)`
 
 ```python
-def handle_exceptions(context: str = "") -> Callable[[Callable[Concatenate[SelfT, P], R]], Callable[Concatenate[SelfT, P], R | None]]
+def handle_exceptions(context: str = '') -> Callable[[Callable[Concatenate[SelfT, P], R]], Callable[Concatenate[SelfT, P], R | None]]
 ```
 
 Handle exceptions automatically in action methods.
@@ -1560,7 +1614,7 @@ def resolve_description(cls) -> str:
 ### ⚙️ Method `show_about_dialog`
 
 ```python
-def show_about_dialog(self, title: str = "About", app_name: str = "Harrix Swiss Knife", version: str = "1.0.0", description: str = "", author: str = "", license_text: str = "", github: str = "") -> str | None
+def show_about_dialog(self, title: str = 'About', app_name: str = 'Harrix Swiss Knife', version: str = '1.0.0', description: str = '', author: str = '', license_text: str = '', github: str = '') -> str | None
 ```
 
 Dialog wrapper. Prefer `self.dialogs.show_about_dialog()`.
@@ -1595,7 +1649,7 @@ def show_about_dialog(
 ### ⚙️ Method `show_instructions`
 
 ```python
-def show_instructions(self, instructions: str, title: str = "Instructions") -> str | None
+def show_instructions(self, instructions: str, title: str = 'Instructions') -> str | None
 ```
 
 Dialog wrapper. Prefer `self.dialogs.show_instructions()`.
@@ -1667,7 +1721,7 @@ def show_result(self) -> str | None:
 ### ⚙️ Method `show_text_multiline`
 
 ```python
-def show_text_multiline(self, text: str, title: str = "Result", **kwargs: Any) -> str | tuple[str | None, int] | None
+def show_text_multiline(self, text: str, title: str = 'Result', **kwargs: Any) -> str | tuple[str | None, int] | None
 ```
 
 Dialog wrapper. Prefer `self.dialogs.show_text_multiline()`.
@@ -1717,7 +1771,7 @@ def show_toast(self, message: str, duration: int = 2000) -> None:
 ### ⚙️ Method `start_thread`
 
 ```python
-def start_thread(self, work_function: Callable, callback_function: Callable, message: str = "", *, cancellable: bool = False) -> None
+def start_thread(self, work_function: Callable, callback_function: Callable, message: str = '', *, cancellable: bool = False) -> None
 ```
 
 Start a worker thread with the provided work function and callback.

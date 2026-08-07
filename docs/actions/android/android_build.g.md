@@ -12,6 +12,10 @@ lang: en
 ## Contents
 
 - [🏛️ Class `OnAndroidBuild`](#%EF%B8%8F-class-onandroidbuild)
+  - [📎 Attribute `CLI_VARIANTS`](#-attribute-cli_variants)
+  - [📎 Attribute `DEFAULT_VARIANT`](#-attribute-default_variant)
+  - [📎 Attribute `CONFIG_KEY`](#-attribute-config_key)
+  - [📎 Attribute `ALL_PROJECTS_CHECKBOX_LABEL`](#-attribute-all_projects_checkbox_label)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
   - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread)
   - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after)
@@ -413,6 +417,38 @@ class OnAndroidBuild(ActionBase):
 ```
 
 </details>
+
+### 📎 Attribute `CLI_VARIANTS`
+
+```python
+CLI_VARIANTS: ClassVar[tuple[str, ...]] = ('debug', 'release')
+```
+
+_No docstring provided._
+
+### 📎 Attribute `DEFAULT_VARIANT`
+
+```python
+DEFAULT_VARIANT: ClassVar[str] = 'release'
+```
+
+_No docstring provided._
+
+### 📎 Attribute `CONFIG_KEY`
+
+```python
+CONFIG_KEY: ClassVar[str] = 'android_build_variant'
+```
+
+_No docstring provided._
+
+### 📎 Attribute `ALL_PROJECTS_CHECKBOX_LABEL`
+
+```python
+ALL_PROJECTS_CHECKBOX_LABEL: ClassVar[str] = 'Build and install all projects sequentially'
+```
+
+_No docstring provided._
 
 ### ⚙️ Method `execute`
 

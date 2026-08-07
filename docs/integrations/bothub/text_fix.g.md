@@ -11,6 +11,8 @@ lang: en
 
 ## Contents
 
+- [📎 Constant `PROMPT_MISSING_MSG`](#-constant-prompt_missing_msg)
+- [📎 Constant `CLIPBOARD_PROMPT_MISSING_MSG`](#-constant-clipboard_prompt_missing_msg)
 - [🔧 Function `build_text_fix_from_clipboard_prompt`](#-function-build_text_fix_from_clipboard_prompt)
 - [🔧 Function `build_text_fix_prompt`](#-function-build_text_fix_prompt)
 - [🔧 Function `fix_text_sync`](#-function-fix_text_sync)
@@ -18,6 +20,22 @@ lang: en
 - [🔧 Function `get_text_fix_prompt_template`](#-function-get_text_fix_prompt_template)
 
 </details>
+
+## 📎 Constant `PROMPT_MISSING_MSG`
+
+```python
+PROMPT_MISSING_MSG = 'Prompt text_fix_ru is not configured in config.json.'
+```
+
+_No docstring provided._
+
+## 📎 Constant `CLIPBOARD_PROMPT_MISSING_MSG`
+
+```python
+CLIPBOARD_PROMPT_MISSING_MSG = 'Prompt text_fix_ru_clipboard is not configured in config.json.'
+```
+
+_No docstring provided._
 
 ## 🔧 Function `build_text_fix_from_clipboard_prompt`
 

@@ -12,7 +12,16 @@ lang: en
 ## Contents
 
 - [🏛️ Class `BalanceCheckResult`](#%EF%B8%8F-class-balancecheckresult)
+  - [📎 Attribute `accounts_balance`](#-attribute-accounts_balance)
+  - [📎 Attribute `accounting_balance`](#-attribute-accounting_balance)
+  - [📎 Attribute `difference`](#-attribute-difference)
+  - [📎 Attribute `accounting_balance_latest`](#-attribute-accounting_balance_latest)
+  - [📎 Attribute `difference_latest`](#-attribute-difference_latest)
+  - [📎 Attribute `natural_rows`](#-attribute-natural_rows)
+  - [📎 Attribute `default_currency_symbol`](#-attribute-default_currency_symbol)
 - [🏛️ Class `BalanceCheckWorker`](#%EF%B8%8F-class-balancecheckworker)
+  - [📎 Attribute `check_completed`](#-attribute-check_completed)
+  - [📎 Attribute `check_failed`](#-attribute-check_failed)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `run`](#%EF%B8%8F-method-run)
 
@@ -42,6 +51,62 @@ class BalanceCheckResult:
 ```
 
 </details>
+
+### 📎 Attribute `accounts_balance`
+
+```python
+accounts_balance: float
+```
+
+_No docstring provided._
+
+### 📎 Attribute `accounting_balance`
+
+```python
+accounting_balance: float
+```
+
+_No docstring provided._
+
+### 📎 Attribute `difference`
+
+```python
+difference: float
+```
+
+_No docstring provided._
+
+### 📎 Attribute `accounting_balance_latest`
+
+```python
+accounting_balance_latest: float
+```
+
+_No docstring provided._
+
+### 📎 Attribute `difference_latest`
+
+```python
+difference_latest: float
+```
+
+_No docstring provided._
+
+### 📎 Attribute `natural_rows`
+
+```python
+natural_rows: list[dict[str, Any]]
+```
+
+_No docstring provided._
+
+### 📎 Attribute `default_currency_symbol`
+
+```python
+default_currency_symbol: str
+```
+
+_No docstring provided._
 
 ## 🏛️ Class `BalanceCheckWorker`
 
@@ -117,6 +182,22 @@ class BalanceCheckWorker(QThread):
 ```
 
 </details>
+
+### 📎 Attribute `check_completed`
+
+```python
+check_completed: Signal = Signal(object)
+```
+
+_No docstring provided._
+
+### 📎 Attribute `check_failed`
+
+```python
+check_failed: Signal = Signal(str)
+```
+
+_No docstring provided._
 
 ### ⚙️ Method `__init__`
 

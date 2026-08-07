@@ -12,6 +12,11 @@ lang: en
 ## Contents
 
 - [🏛️ Class `AppWindowMixin`](#%EF%B8%8F-class-appwindowmixin)
+  - [📎 Attribute `about_app_name`](#-attribute-about_app_name)
+  - [📎 Attribute `about_description`](#-attribute-about_description)
+  - [📎 Attribute `actionAbout`](#-attribute-actionabout)
+  - [📎 Attribute `actionExit`](#-attribute-actionexit)
+  - [📎 Attribute `db_manager`](#-attribute-db_manager)
   - [⚙️ Method `on_about`](#%EF%B8%8F-method-on_about)
   - [⚙️ Method `on_exit`](#%EF%B8%8F-method-on_exit)
 - [🔧 Function `apply_app_window_size_and_position`](#-function-apply_app_window_size_and_position)
@@ -236,6 +241,46 @@ class AppWindowMixin:
 ```
 
 </details>
+
+### 📎 Attribute `about_app_name`
+
+```python
+about_app_name: ClassVar[str] = 'Harrix Swiss Knife'
+```
+
+_No docstring provided._
+
+### 📎 Attribute `about_description`
+
+```python
+about_description: ClassVar[str] = ''
+```
+
+_No docstring provided._
+
+### 📎 Attribute `actionAbout`
+
+```python
+actionAbout: QAction
+```
+
+_No docstring provided._
+
+### 📎 Attribute `actionExit`
+
+```python
+actionExit: QAction
+```
+
+_No docstring provided._
+
+### 📎 Attribute `db_manager`
+
+```python
+db_manager: Any
+```
+
+_No docstring provided._
 
 ### ⚙️ Method `on_about`
 

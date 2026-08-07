@@ -113,7 +113,7 @@ class OnBeautifyMdAndRegenerateGMd(ActionBase):
 ### ⚙️ Method `execute`
 
 ```python
-def execute(self, *_args: Any, folder_path: Path | None = None, noninteractive: bool = False, prose_wrap: str = "preserve", print_width: int = 80, apply_prose_fixes: bool = True, format_code_blocks: bool = True, **_kwargs: Any) -> None
+def execute(self, *_args: Any, folder_path: Path | None = None, noninteractive: bool = False, prose_wrap: str = 'preserve', print_width: int = 80, apply_prose_fixes: bool = True, format_code_blocks: bool = True, **_kwargs: Any) -> None
 ```
 
 Apply comprehensive beautification to all Markdown notes.

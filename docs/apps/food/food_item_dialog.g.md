@@ -12,6 +12,17 @@ lang: en
 ## Contents
 
 - [🏛️ Class `FoodItemDialog`](#%EF%B8%8F-class-fooditemdialog)
+  - [📎 Attribute `food_item_data`](#-attribute-food_item_data)
+  - [📎 Attribute `is_create`](#-attribute-is_create)
+  - [📎 Attribute `name_edit`](#-attribute-name_edit)
+  - [📎 Attribute `name_en_edit`](#-attribute-name_en_edit)
+  - [📎 Attribute `is_drink_checkbox`](#-attribute-is_drink_checkbox)
+  - [📎 Attribute `calories_per_100g_spinbox`](#-attribute-calories_per_100g_spinbox)
+  - [📎 Attribute `default_portion_weight_spinbox`](#-attribute-default_portion_weight_spinbox)
+  - [📎 Attribute `default_portion_calories_spinbox`](#-attribute-default_portion_calories_spinbox)
+  - [📎 Attribute `delete_button`](#-attribute-delete_button)
+  - [📎 Attribute `button_box`](#-attribute-button_box)
+  - [📎 Attribute `delete_confirmed`](#-attribute-delete_confirmed)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `accept`](#%EF%B8%8F-method-accept)
   - [⚙️ Method `delete_item`](#%EF%B8%8F-method-delete_item)
@@ -244,6 +255,94 @@ class FoodItemDialog(QDialog):
 ```
 
 </details>
+
+### 📎 Attribute `food_item_data`
+
+```python
+food_item_data: FoodItemByNameRow | FoodLogItemByNameRow | None
+```
+
+_No docstring provided._
+
+### 📎 Attribute `is_create`
+
+```python
+is_create: bool
+```
+
+_No docstring provided._
+
+### 📎 Attribute `name_edit`
+
+```python
+name_edit: QLineEdit
+```
+
+_No docstring provided._
+
+### 📎 Attribute `name_en_edit`
+
+```python
+name_en_edit: QLineEdit
+```
+
+_No docstring provided._
+
+### 📎 Attribute `is_drink_checkbox`
+
+```python
+is_drink_checkbox: QCheckBox
+```
+
+_No docstring provided._
+
+### 📎 Attribute `calories_per_100g_spinbox`
+
+```python
+calories_per_100g_spinbox: QDoubleSpinBox
+```
+
+_No docstring provided._
+
+### 📎 Attribute `default_portion_weight_spinbox`
+
+```python
+default_portion_weight_spinbox: QSpinBox
+```
+
+_No docstring provided._
+
+### 📎 Attribute `default_portion_calories_spinbox`
+
+```python
+default_portion_calories_spinbox: QDoubleSpinBox
+```
+
+_No docstring provided._
+
+### 📎 Attribute `delete_button`
+
+```python
+delete_button: QPushButton
+```
+
+_No docstring provided._
+
+### 📎 Attribute `button_box`
+
+```python
+button_box: QDialogButtonBox
+```
+
+_No docstring provided._
+
+### 📎 Attribute `delete_confirmed`
+
+```python
+delete_confirmed: bool
+```
+
+_No docstring provided._
 
 ### ⚙️ Method `__init__`
 

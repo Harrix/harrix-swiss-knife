@@ -11,7 +11,27 @@ lang: en
 
 ## Contents
 
+- [📎 Constant `DESCRIBED_CARD_ICON_SIZE`](#-constant-described_card_icon_size)
+- [📎 Constant `DESCRIBED_CARD_WIDTH`](#-constant-described_card_width)
+- [📎 Constant `DESCRIBED_CARD_HEIGHT`](#-constant-described_card_height)
+- [📎 Constant `DESCRIBED_CARD_TITLE_PT`](#-constant-described_card_title_pt)
+- [📎 Constant `DESCRIBED_CARD_DESC_PT`](#-constant-described_card_desc_pt)
+- [📎 Constant `DESCRIBED_CARD_MARGIN_H`](#-constant-described_card_margin_h)
+- [📎 Constant `DESCRIBED_CARD_MARGIN_V`](#-constant-described_card_margin_v)
+- [📎 Constant `DESCRIBED_CARD_ICON_GAP`](#-constant-described_card_icon_gap)
+- [📎 Constant `DESCRIBED_CARD_TEXT_GAP`](#-constant-described_card_text_gap)
+- [📎 Constant `DESCRIBED_CARD_MIN_SCALE`](#-constant-described_card_min_scale)
 - [🏛️ Class `DescribedCardMetrics`](#%EF%B8%8F-class-describedcardmetrics)
+  - [📎 Attribute `scale`](#-attribute-scale)
+  - [📎 Attribute `width`](#-attribute-width)
+  - [📎 Attribute `height`](#-attribute-height)
+  - [📎 Attribute `icon_size`](#-attribute-icon_size)
+  - [📎 Attribute `title_pt`](#-attribute-title_pt)
+  - [📎 Attribute `desc_pt`](#-attribute-desc_pt)
+  - [📎 Attribute `margin_h`](#-attribute-margin_h)
+  - [📎 Attribute `margin_v`](#-attribute-margin_v)
+  - [📎 Attribute `icon_gap`](#-attribute-icon_gap)
+  - [📎 Attribute `text_gap`](#-attribute-text_gap)
 - [🏛️ Class `DescribedChoiceCard`](#%EF%B8%8F-class-describedchoicecard)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `apply_metrics`](#%EF%B8%8F-method-apply_metrics)
@@ -28,6 +48,86 @@ lang: en
 - [🔧 Function `sync_described_choice_card_grid`](#-function-sync_described_choice_card_grid)
 
 </details>
+
+## 📎 Constant `DESCRIBED_CARD_ICON_SIZE`
+
+```python
+DESCRIBED_CARD_ICON_SIZE = 48
+```
+
+_No docstring provided._
+
+## 📎 Constant `DESCRIBED_CARD_WIDTH`
+
+```python
+DESCRIBED_CARD_WIDTH = 320
+```
+
+_No docstring provided._
+
+## 📎 Constant `DESCRIBED_CARD_HEIGHT`
+
+```python
+DESCRIBED_CARD_HEIGHT = 104
+```
+
+_No docstring provided._
+
+## 📎 Constant `DESCRIBED_CARD_TITLE_PT`
+
+```python
+DESCRIBED_CARD_TITLE_PT = 11
+```
+
+_No docstring provided._
+
+## 📎 Constant `DESCRIBED_CARD_DESC_PT`
+
+```python
+DESCRIBED_CARD_DESC_PT = 9
+```
+
+_No docstring provided._
+
+## 📎 Constant `DESCRIBED_CARD_MARGIN_H`
+
+```python
+DESCRIBED_CARD_MARGIN_H = 12
+```
+
+_No docstring provided._
+
+## 📎 Constant `DESCRIBED_CARD_MARGIN_V`
+
+```python
+DESCRIBED_CARD_MARGIN_V = 10
+```
+
+_No docstring provided._
+
+## 📎 Constant `DESCRIBED_CARD_ICON_GAP`
+
+```python
+DESCRIBED_CARD_ICON_GAP = 12
+```
+
+_No docstring provided._
+
+## 📎 Constant `DESCRIBED_CARD_TEXT_GAP`
+
+```python
+DESCRIBED_CARD_TEXT_GAP = 4
+```
+
+_No docstring provided._
+
+## 📎 Constant `DESCRIBED_CARD_MIN_SCALE`
+
+```python
+DESCRIBED_CARD_MIN_SCALE = 0.88
+```
+
+_No docstring provided._
 
 ## 🏛️ Class `DescribedCardMetrics`
 
@@ -56,6 +156,86 @@ class DescribedCardMetrics:
 ```
 
 </details>
+
+### 📎 Attribute `scale`
+
+```python
+scale: float
+```
+
+_No docstring provided._
+
+### 📎 Attribute `width`
+
+```python
+width: int
+```
+
+_No docstring provided._
+
+### 📎 Attribute `height`
+
+```python
+height: int
+```
+
+_No docstring provided._
+
+### 📎 Attribute `icon_size`
+
+```python
+icon_size: int
+```
+
+_No docstring provided._
+
+### 📎 Attribute `title_pt`
+
+```python
+title_pt: int
+```
+
+_No docstring provided._
+
+### 📎 Attribute `desc_pt`
+
+```python
+desc_pt: int
+```
+
+_No docstring provided._
+
+### 📎 Attribute `margin_h`
+
+```python
+margin_h: int
+```
+
+_No docstring provided._
+
+### 📎 Attribute `margin_v`
+
+```python
+margin_v: int
+```
+
+_No docstring provided._
+
+### 📎 Attribute `icon_gap`
+
+```python
+icon_gap: int
+```
+
+_No docstring provided._
+
+### 📎 Attribute `text_gap`
+
+```python
+text_gap: int
+```
+
+_No docstring provided._
 
 ## 🏛️ Class `DescribedChoiceCard`
 

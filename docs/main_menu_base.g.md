@@ -11,6 +11,8 @@ lang: en
 
 ## Contents
 
+- [🏷️ Type alias `MenuSeparator`](#%EF%B8%8F-type-alias-menuseparator)
+- [🏷️ Type alias `MenuListItem`](#%EF%B8%8F-type-alias-menulistitem)
 - [🏛️ Class `MainMenuBase`](#%EF%B8%8F-class-mainmenubase)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `add_items`](#%EF%B8%8F-method-add_items)
@@ -22,6 +24,22 @@ lang: en
 - [🔧 Function `set_menu_tooltips_visible_recursive`](#-function-set_menu_tooltips_visible_recursive)
 
 </details>
+
+## 🏷️ Type alias `MenuSeparator`
+
+```python
+MenuSeparator: TypeAlias = Literal['-']
+```
+
+_No docstring provided._
+
+## 🏷️ Type alias `MenuListItem`
+
+```python
+MenuListItem: TypeAlias = type | MenuSeparator
+```
+
+_No docstring provided._
 
 ## 🏛️ Class `MainMenuBase`
 

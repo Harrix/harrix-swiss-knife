@@ -11,6 +11,11 @@ lang: en
 
 ## Contents
 
+- [📎 Constant `RECORD_BUTTON_SIZE`](#-constant-record_button_size)
+- [📎 Constant `PLAY_BUTTON_SIZE`](#-constant-play_button_size)
+- [📎 Constant `PLAY_BUTTON_GAP`](#-constant-play_button_gap)
+- [📎 Constant `RECORD_CAPTION_IDLE_STYLE`](#-constant-record_caption_idle_style)
+- [📎 Constant `RECORD_CAPTION_STOP_STYLE`](#-constant-record_caption_stop_style)
 - [🏛️ Class `ClickableLabel`](#%EF%B8%8F-class-clickablelabel)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `mousePressEvent`](#%EF%B8%8F-method-mousepressevent)
@@ -37,6 +42,46 @@ lang: en
   - [⚙️ Method `paintEvent`](#%EF%B8%8F-method-paintevent-3)
 
 </details>
+
+## 📎 Constant `RECORD_BUTTON_SIZE`
+
+```python
+RECORD_BUTTON_SIZE = 56
+```
+
+_No docstring provided._
+
+## 📎 Constant `PLAY_BUTTON_SIZE`
+
+```python
+PLAY_BUTTON_SIZE = 40
+```
+
+_No docstring provided._
+
+## 📎 Constant `PLAY_BUTTON_GAP`
+
+```python
+PLAY_BUTTON_GAP = 12
+```
+
+_No docstring provided._
+
+## 📎 Constant `RECORD_CAPTION_IDLE_STYLE`
+
+```python
+RECORD_CAPTION_IDLE_STYLE = '\n    QLabel {\n        color: #c62828;\n    }\n    QLabel:hover {\n        color: #e53935;\n    }\n'
+```
+
+_No docstring provided._
+
+## 📎 Constant `RECORD_CAPTION_STOP_STYLE`
+
+```python
+RECORD_CAPTION_STOP_STYLE = '\n    QLabel {\n        color: #1a1a1a;\n    }\n    QLabel:hover {\n        color: #333333;\n    }\n'
+```
+
+_No docstring provided._
 
 ## 🏛️ Class `ClickableLabel`
 

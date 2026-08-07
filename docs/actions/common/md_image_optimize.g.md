@@ -11,6 +11,9 @@ lang: en
 
 ## Contents
 
+- [📎 Constant `SUPPORTED_IMAGE_EXTENSIONS`](#-constant-supported_image_extensions)
+- [📎 Constant `REMOTE_IMAGE_PATTERN`](#-constant-remote_image_pattern)
+- [📎 Constant `LOCAL_IMAGE_PATTERN`](#-constant-local_image_pattern)
 - [🔧 Function `optimize_image_file`](#-function-optimize_image_file)
 - [🔧 Function `optimize_images_in_md_file`](#-function-optimize_images_in_md_file)
 - [🔧 Function `optimize_single_image_for_template`](#-function-optimize_single_image_for_template)
@@ -19,10 +22,34 @@ lang: en
 
 </details>
 
+## 📎 Constant `SUPPORTED_IMAGE_EXTENSIONS`
+
+```python
+SUPPORTED_IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.webp', '.gif', '.mp4', '.png', '.svg', '.avif']
+```
+
+_No docstring provided._
+
+## 📎 Constant `REMOTE_IMAGE_PATTERN`
+
+```python
+REMOTE_IMAGE_PATTERN = re.compile('^\\!\\[(.*?)\\]\\((http.*?)\\)$')
+```
+
+_No docstring provided._
+
+## 📎 Constant `LOCAL_IMAGE_PATTERN`
+
+```python
+LOCAL_IMAGE_PATTERN = re.compile('^\\!\\[(.*?)\\]\\((.*?)\\)$')
+```
+
+_No docstring provided._
+
 ## 🔧 Function `optimize_image_file`
 
 ```python
-def optimize_image_file(image_filename: Path, *, md_dir: Path, image_path: str, image_folder: str = "img", is_convert_png_to_avif: bool = False, is_compare_png_avif_sizes: bool = False, max_size: int | None = None, size_stats: OptimizeSizeStats | None = None) -> tuple[Path, str] | None
+def optimize_image_file(image_filename: Path, *, md_dir: Path, image_path: str, image_folder: str = 'img', is_convert_png_to_avif: bool = False, is_compare_png_avif_sizes: bool = False, max_size: int | None = None, size_stats: OptimizeSizeStats | None = None) -> tuple[Path, str] | None
 ```
 
 Optimize a local image file and copy it to the target location.
@@ -143,7 +170,7 @@ def optimize_images_in_md_file(
 ## 🔧 Function `optimize_single_image_for_template`
 
 ```python
-def optimize_single_image_for_template(image_path: str, image_save_dir: Path, max_size: int | None = None, image_folder: str = "img") -> str
+def optimize_single_image_for_template(image_path: str, image_save_dir: Path, max_size: int | None = None, image_folder: str = 'img') -> str
 ```
 
 Optimise one image for template workflows and return the new relative path.
@@ -182,7 +209,7 @@ def optimize_single_image_for_template(
 ## 🔧 Function `process_markdown_image_line`
 
 ```python
-def process_markdown_image_line(markdown_line: str, path_md: Path | str, *, filter_names: set[str] | None = None, image_folder: str = "img", is_convert_png_to_avif: bool = False, is_compare_png_avif_sizes: bool = False, max_size: int | None = None, size_stats: OptimizeSizeStats | None = None) -> str
+def process_markdown_image_line(markdown_line: str, path_md: Path | str, *, filter_names: set[str] | None = None, image_folder: str = 'img', is_convert_png_to_avif: bool = False, is_compare_png_avif_sizes: bool = False, max_size: int | None = None, size_stats: OptimizeSizeStats | None = None) -> str
 ```
 
 Process a single Markdown line and optimise any matching local image reference.
@@ -243,7 +270,7 @@ def process_markdown_image_line(
 ## 🔧 Function `transform_markdown_content`
 
 ```python
-def transform_markdown_content(markdown_text: str, path_md: Path | str, *, filter_names: set[str] | None = None, image_folder: str = "img", is_convert_png_to_avif: bool = False, is_compare_png_avif_sizes: bool = False, max_size: int | None = None, size_stats: OptimizeSizeStats | None = None) -> str
+def transform_markdown_content(markdown_text: str, path_md: Path | str, *, filter_names: set[str] | None = None, image_folder: str = 'img', is_convert_png_to_avif: bool = False, is_compare_png_avif_sizes: bool = False, max_size: int | None = None, size_stats: OptimizeSizeStats | None = None) -> str
 ```
 
 Optimise local images referenced in Markdown content, preserving YAML and code blocks.

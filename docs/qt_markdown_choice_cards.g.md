@@ -11,12 +11,57 @@ lang: en
 
 ## Contents
 
+- [📎 Constant `AI_SCREENSHOT_CARD_EMOJI`](#-constant-ai_screenshot_card_emoji)
+- [📎 Constant `AI_SCREENSHOT_TOOLTIP`](#-constant-ai_screenshot_tooltip)
+- [📎 Constant `ICON_CHOICE_ACTION_ROLE`](#-constant-icon_choice_action_role)
+- [📎 Constant `ICON_CHOICE_ACTION_SELECT`](#-constant-icon_choice_action_select)
+- [📎 Constant `ICON_CHOICE_ACTION_AI_SCREENSHOT`](#-constant-icon_choice_action_ai_screenshot)
 - [🏛️ Class `IconChoiceCard`](#%EF%B8%8F-class-iconchoicecard)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `mouseReleaseEvent`](#%EF%B8%8F-method-mousereleaseevent)
 - [🔧 Function `populate_icon_choice_cards`](#-function-populate_icon_choice_cards)
 
 </details>
+
+## 📎 Constant `AI_SCREENSHOT_CARD_EMOJI`
+
+```python
+AI_SCREENSHOT_CARD_EMOJI = '📷'
+```
+
+_No docstring provided._
+
+## 📎 Constant `AI_SCREENSHOT_TOOLTIP`
+
+```python
+AI_SCREENSHOT_TOOLTIP = 'Fill with AI from screenshot: capture region, send to BotHub, then open the filled form'
+```
+
+_No docstring provided._
+
+## 📎 Constant `ICON_CHOICE_ACTION_ROLE`
+
+```python
+ICON_CHOICE_ACTION_ROLE = int(Qt.ItemDataRole.UserRole) + 1
+```
+
+_No docstring provided._
+
+## 📎 Constant `ICON_CHOICE_ACTION_SELECT`
+
+```python
+ICON_CHOICE_ACTION_SELECT = 'select'
+```
+
+_No docstring provided._
+
+## 📎 Constant `ICON_CHOICE_ACTION_AI_SCREENSHOT`
+
+```python
+ICON_CHOICE_ACTION_AI_SCREENSHOT = 'ai_screenshot'
+```
+
+_No docstring provided._
 
 ## 🏛️ Class `IconChoiceCard`
 

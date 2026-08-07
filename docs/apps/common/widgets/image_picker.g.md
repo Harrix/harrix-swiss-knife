@@ -11,6 +11,7 @@ lang: en
 
 ## Contents
 
+- [📦 Re-export `ImagePickerMode`](#-re-export-imagepickermode)
 - [🏛️ Class `ImagePicker`](#%EF%B8%8F-class-imagepicker)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `configure_filename_row`](#%EF%B8%8F-method-configure_filename_row)
@@ -38,6 +39,14 @@ lang: en
 - [🔧 Function `save_qimage_to_temp_file`](#-function-save_qimage_to_temp_file)
 
 </details>
+
+## 📦 Re-export `ImagePickerMode`
+
+```python
+from harrix_swiss_knife.apps.common.widgets.image_picker_mode import ImagePickerMode
+```
+
+_Re-exported symbol._
 
 ## 🏛️ Class `ImagePicker`
 
@@ -913,7 +922,7 @@ class ImagePicker(QWidget):
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, parent: QWidget | None = None, *, mode: ImagePickerMode = ImagePickerMode.SINGLE, save_dir: Path | None = None, max_image_side: int | None = None, fallback_text_edit: QPlainTextEdit | None = None, on_paths: Callable[[list[str]], None] | None = None, on_double_click: Callable[[], None] | None = None, hint_text: str | None = None, extra_drop_targets: Sequence[QWidget] = (), show_label: bool = False, label_text: str = "", show_select_button: bool | None = None, show_add_button: bool | None = None, show_paste_button: bool | None = None, show_clear_button: bool | None = None, show_screenshot_button: bool | None = None) -> None
+def __init__(self, parent: QWidget | None = None, *, mode: ImagePickerMode = ImagePickerMode.SINGLE, save_dir: Path | None = None, max_image_side: int | None = None, fallback_text_edit: QPlainTextEdit | None = None, on_paths: Callable[[list[str]], None] | None = None, on_double_click: Callable[[], None] | None = None, hint_text: str | None = None, extra_drop_targets: Sequence[QWidget] = (), show_label: bool = False, label_text: str = '', show_select_button: bool | None = None, show_add_button: bool | None = None, show_paste_button: bool | None = None, show_clear_button: bool | None = None, show_screenshot_button: bool | None = None) -> None
 ```
 
 Initialize the image picker.

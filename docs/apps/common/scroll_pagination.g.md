@@ -11,7 +11,12 @@ lang: en
 
 ## Contents
 
+- [📎 Constant `T`](#-constant-t)
+- [📎 Constant `DEFAULT_SCROLL_THRESHOLD`](#-constant-default_scroll_threshold)
 - [🏛️ Class `ScrollPagination`](#%EF%B8%8F-class-scrollpagination)
+  - [📎 Attribute `loaded_count`](#-attribute-loaded_count)
+  - [📎 Attribute `has_more`](#-attribute-has_more)
+  - [📎 Attribute `loading`](#-attribute-loading)
   - [⚙️ Method `load_more`](#%EF%B8%8F-method-load_more)
   - [⚙️ Method `record_first_page`](#%EF%B8%8F-method-record_first_page)
   - [⚙️ Method `reset`](#%EF%B8%8F-method-reset)
@@ -19,6 +24,22 @@ lang: en
 - [🔧 Function `on_scroll_load_more`](#-function-on_scroll_load_more)
 
 </details>
+
+## 📎 Constant `T`
+
+```python
+T = TypeVar('T')
+```
+
+_No docstring provided._
+
+## 📎 Constant `DEFAULT_SCROLL_THRESHOLD`
+
+```python
+DEFAULT_SCROLL_THRESHOLD = 5
+```
+
+_No docstring provided._
 
 ## 🏛️ Class `ScrollPagination`
 
@@ -81,6 +102,30 @@ class ScrollPagination(Generic[T]):
 ```
 
 </details>
+
+### 📎 Attribute `loaded_count`
+
+```python
+loaded_count: int = 0
+```
+
+_No docstring provided._
+
+### 📎 Attribute `has_more`
+
+```python
+has_more: bool = False
+```
+
+_No docstring provided._
+
+### 📎 Attribute `loading`
+
+```python
+loading: bool = False
+```
+
+_No docstring provided._
 
 ### ⚙️ Method `load_more`
 

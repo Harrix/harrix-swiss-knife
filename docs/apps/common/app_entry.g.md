@@ -9,7 +9,7 @@ lang: en
 ## 🔧 Function `run_app_main`
 
 ```python
-def run_app_main(main_window_factory: Callable[[], QMainWindow], *, icon_path: str = ":/assets/logo.svg", set_tab_index_zero: bool = True) -> None
+def run_app_main(main_window_factory: Callable[[], QMainWindow], *, icon_path: str = ':/assets/logo.svg', set_tab_index_zero: bool = True) -> None
 ```
 
 Run the standard app main loop.

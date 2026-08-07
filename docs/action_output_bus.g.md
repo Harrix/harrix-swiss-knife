@@ -12,6 +12,8 @@ lang: en
 ## Contents
 
 - [🏛️ Class `ActionOutputBus`](#%EF%B8%8F-class-actionoutputbus)
+  - [📎 Attribute `active_output_changed`](#-attribute-active_output_changed)
+  - [📎 Attribute `line_appended`](#-attribute-line_appended)
   - [⚙️ Method `append_line`](#%EF%B8%8F-method-append_line)
   - [⚙️ Method `set_active_output`](#%EF%B8%8F-method-set_active_output)
 
@@ -44,6 +46,22 @@ class ActionOutputBus(QObject):
 ```
 
 </details>
+
+### 📎 Attribute `active_output_changed`
+
+```python
+active_output_changed: Signal = Signal(str)
+```
+
+_No docstring provided._
+
+### 📎 Attribute `line_appended`
+
+```python
+line_appended: Signal = Signal(str, str)
+```
+
+_No docstring provided._
 
 ### ⚙️ Method `append_line`
 

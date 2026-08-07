@@ -12,7 +12,14 @@ lang: en
 ## Contents
 
 - [🏛️ Class `ReportBuildResult`](#%EF%B8%8F-class-reportbuildresult)
+  - [📎 Attribute `report_type`](#-attribute-report_type)
+  - [📎 Attribute `headers`](#-attribute-headers)
+  - [📎 Attribute `table_rows`](#-attribute-table_rows)
+  - [📎 Attribute `monthly_rows`](#-attribute-monthly_rows)
+  - [📎 Attribute `expense_categories`](#-attribute-expense_categories)
 - [🏛️ Class `ReportBuildWorker`](#%EF%B8%8F-class-reportbuildworker)
+  - [📎 Attribute `report_completed`](#-attribute-report_completed)
+  - [📎 Attribute `report_failed`](#-attribute-report_failed)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `run`](#%EF%B8%8F-method-run)
 
@@ -40,6 +47,46 @@ class ReportBuildResult:
 ```
 
 </details>
+
+### 📎 Attribute `report_type`
+
+```python
+report_type: str
+```
+
+_No docstring provided._
+
+### 📎 Attribute `headers`
+
+```python
+headers: list[str]
+```
+
+_No docstring provided._
+
+### 📎 Attribute `table_rows`
+
+```python
+table_rows: list[list[str]] | None = None
+```
+
+_No docstring provided._
+
+### 📎 Attribute `monthly_rows`
+
+```python
+monthly_rows: list[tuple[str, float, float, dict[int, float]]] | None = None
+```
+
+_No docstring provided._
+
+### 📎 Attribute `expense_categories`
+
+```python
+expense_categories: list[tuple[int, str, str]] | None = None
+```
+
+_No docstring provided._
 
 ## 🏛️ Class `ReportBuildWorker`
 
@@ -107,6 +154,22 @@ class ReportBuildWorker(QThread):
 ```
 
 </details>
+
+### 📎 Attribute `report_completed`
+
+```python
+report_completed: Signal = Signal(object)
+```
+
+_No docstring provided._
+
+### 📎 Attribute `report_failed`
+
+```python
+report_failed: Signal = Signal(str)
+```
+
+_No docstring provided._
 
 ### ⚙️ Method `__init__`
 

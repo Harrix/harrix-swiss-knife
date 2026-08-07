@@ -12,6 +12,12 @@ lang: en
 ## Contents
 
 - [🏛️ Class `FinalizeResult`](#%EF%B8%8F-class-finalizeresult)
+  - [📎 Attribute `success`](#-attribute-success)
+  - [📎 Attribute `recorded_path`](#-attribute-recorded_path)
+  - [📎 Attribute `recording_wav_path`](#-attribute-recording_wav_path)
+  - [📎 Attribute `normalized_pcm`](#-attribute-normalized_pcm)
+  - [📎 Attribute `message`](#-attribute-message)
+  - [📎 Attribute `ffmpeg_warning`](#-attribute-ffmpeg_warning)
 - [🏛️ Class `MicrophoneRecorder`](#%EF%B8%8F-class-microphonerecorder)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `can_continue`](#%EF%B8%8F-method-can_continue)
@@ -27,6 +33,8 @@ lang: en
   - [⚙️ Method `start`](#%EF%B8%8F-method-start)
   - [⚙️ Method `stop`](#%EF%B8%8F-method-stop)
 - [🏛️ Class `StartResult`](#%EF%B8%8F-class-startresult)
+  - [📎 Attribute `success`](#-attribute-success-1)
+  - [📎 Attribute `message`](#-attribute-message-1)
 
 </details>
 
@@ -53,6 +61,54 @@ class FinalizeResult:
 ```
 
 </details>
+
+### 📎 Attribute `success`
+
+```python
+success: bool
+```
+
+_No docstring provided._
+
+### 📎 Attribute `recorded_path`
+
+```python
+recorded_path: str = ''
+```
+
+_No docstring provided._
+
+### 📎 Attribute `recording_wav_path`
+
+```python
+recording_wav_path: str = ''
+```
+
+_No docstring provided._
+
+### 📎 Attribute `normalized_pcm`
+
+```python
+normalized_pcm: bytes = b''
+```
+
+_No docstring provided._
+
+### 📎 Attribute `message`
+
+```python
+message: str = ''
+```
+
+_No docstring provided._
+
+### 📎 Attribute `ffmpeg_warning`
+
+```python
+ffmpeg_warning: str = ''
+```
+
+_No docstring provided._
 
 ## 🏛️ Class `MicrophoneRecorder`
 
@@ -494,7 +550,7 @@ def release(self) -> None:
 ### ⚙️ Method `resolve_input_device (staticmethod)`
 
 ```python
-def resolve_input_device(preferred_id: str = "") -> QAudioDevice | None
+def resolve_input_device(preferred_id: str = '') -> QAudioDevice | None
 ```
 
 Pick saved, preferred, or default microphone device.
@@ -650,3 +706,19 @@ class StartResult:
 ```
 
 </details>
+
+### 📎 Attribute `success`
+
+```python
+success: bool
+```
+
+_No docstring provided._
+
+### 📎 Attribute `message`
+
+```python
+message: str = ''
+```
+
+_No docstring provided._

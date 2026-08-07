@@ -12,6 +12,10 @@ lang: en
 ## Contents
 
 - [🏛️ Class `ActionUsageEntry`](#%EF%B8%8F-class-actionusageentry)
+  - [📎 Attribute `count`](#-attribute-count)
+  - [📎 Attribute `gui`](#-attribute-gui)
+  - [📎 Attribute `cli`](#-attribute-cli)
+  - [📎 Attribute `last_used`](#-attribute-last_used)
 - [🔧 Function `load_action_usage`](#-function-load_action_usage)
 - [🔧 Function `record_action_usage`](#-function-record_action_usage)
 
@@ -38,6 +42,38 @@ class ActionUsageEntry(TypedDict):
 ```
 
 </details>
+
+### 📎 Attribute `count`
+
+```python
+count: int
+```
+
+_No docstring provided._
+
+### 📎 Attribute `gui`
+
+```python
+gui: int
+```
+
+_No docstring provided._
+
+### 📎 Attribute `cli`
+
+```python
+cli: int
+```
+
+_No docstring provided._
+
+### 📎 Attribute `last_used`
+
+```python
+last_used: str
+```
+
+_No docstring provided._
 
 ## 🔧 Function `load_action_usage`
 

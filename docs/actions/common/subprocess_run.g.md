@@ -11,11 +11,20 @@ lang: en
 
 ## Contents
 
+- [📎 Constant `DEFAULT_SUBPROCESS_TIMEOUT`](#-constant-default_subprocess_timeout)
 - [🔧 Function `completed_process_output`](#-function-completed_process_output)
 - [🔧 Function `run_argv`](#-function-run_argv)
 - [🔧 Function `run_argv_output`](#-function-run_argv_output)
 
 </details>
+
+## 📎 Constant `DEFAULT_SUBPROCESS_TIMEOUT`
+
+```python
+DEFAULT_SUBPROCESS_TIMEOUT = 300.0
+```
+
+_No docstring provided._
 
 ## 🔧 Function `completed_process_output`
 

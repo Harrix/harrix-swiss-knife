@@ -12,6 +12,7 @@ lang: en
 ## Contents
 
 - [🏛️ Class `ToastCancellableHttpNotification`](#%EF%B8%8F-class-toastcancellablehttpnotification)
+  - [📎 Attribute `cancel_requested`](#-attribute-cancel_requested)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `closeEvent`](#%EF%B8%8F-method-closeevent)
   - [⚙️ Method `keyPressEvent`](#%EF%B8%8F-method-keypressevent)
@@ -187,10 +188,18 @@ class ToastCancellableHttpNotification(toast_countdown_notification.ToastCountdo
 
 </details>
 
+### 📎 Attribute `cancel_requested`
+
+```python
+cancel_requested: Signal = Signal()
+```
+
+_No docstring provided._
+
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, message: str = "Request in progress…", parent: QWidget | None = None) -> None
+def __init__(self, message: str = 'Request in progress…', parent: QWidget | None = None) -> None
 ```
 
 Initialize cancellable HTTP toast with countdown and close control.

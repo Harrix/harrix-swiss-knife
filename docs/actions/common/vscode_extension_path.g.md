@@ -11,12 +11,21 @@ lang: en
 
 ## Contents
 
+- [📎 Constant `EXTENSION_RELATIVE`](#-constant-extension_relative)
 - [🔧 Function `ensure_node_modules`](#-function-ensure_node_modules)
 - [🔧 Function `resolve_extension_dir`](#-function-resolve_extension_dir)
 - [🔧 Function `resolve_npm`](#-function-resolve_npm)
 - [🔧 Function `run_npm`](#-function-run_npm)
 
 </details>
+
+## 📎 Constant `EXTENSION_RELATIVE`
+
+```python
+EXTENSION_RELATIVE = Path('vscode') / 'harrix-notes-explorer-hsk'
+```
+
+_No docstring provided._
 
 ## 🔧 Function `ensure_node_modules`
 

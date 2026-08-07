@@ -12,6 +12,7 @@ lang: en
 ## Contents
 
 - [🏛️ Class `OnCheckMd`](#%EF%B8%8F-class-oncheckmd)
+  - [📎 Attribute `include_g_md`](#-attribute-include_g_md)
   - [⚙️ Method `check_md_common`](#%EF%B8%8F-method-check_md_common)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
   - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread)
@@ -232,6 +233,14 @@ class OnCheckMd(ActionBase):
 ```
 
 </details>
+
+### 📎 Attribute `include_g_md`
+
+```python
+include_g_md: bool = False
+```
+
+_No docstring provided._
 
 ### ⚙️ Method `check_md_common`
 

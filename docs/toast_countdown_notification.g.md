@@ -118,7 +118,7 @@ class ToastCountdownNotification(toast_notification_base.ToastNotificationBase):
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, message: str = "Process is running…", parent: QWidget | None = None) -> None
+def __init__(self, message: str = 'Process is running…', parent: QWidget | None = None) -> None
 ```
 
 Initialize the countdown notification with timer functionality.

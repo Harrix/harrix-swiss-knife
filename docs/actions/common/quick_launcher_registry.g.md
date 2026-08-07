@@ -41,7 +41,7 @@ def collect_quick_launcher_actions(structure: list[Any]) -> list[type[ActionBase
 ## 🔧 Function `iter_menu_actions_with_category`
 
 ```python
-def iter_menu_actions_with_category(structure: list[Any], category: str = "") -> Iterator[tuple[type[ActionBase], str]]
+def iter_menu_actions_with_category(structure: list[Any], category: str = '') -> Iterator[tuple[type[ActionBase], str]]
 ```
 
 Yield `(action_class, category_title)` from a nested menu structure.
