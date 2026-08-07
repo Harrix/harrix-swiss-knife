@@ -125,6 +125,138 @@ class ActionDialogService:
         """Create icon via injected icon factory (kept for convenience)."""
         return self._create_emoji_icon(emoji, size)
 
+    def get_android_build_selection(
+        self,
+        folders_list: list[str],
+        default_path: str,
+        *,
+        build_all_checkbox_label: str,
+        build_all_default: bool = False,
+        release_default: bool = True,
+        devices: list[tuple[str, str]],
+        default_device_id: str | None = None,
+    ) -> AndroidBuildDialogResult | None:
+        """Pick Android project folder, build options, and one install target.
+
+        `devices` entries are `(display_label, device_id)`. Cancel returns `None`.
+
+        """
+        select_folder = "📁 Select folder …"
+        display_folders = [f"📁 {folder}" for folder in folders_list]
+        full_list = [select_folder, *display_folders]
+
+        folder_list: QListWidget | None = None
+        device_list: QListWidget | None = None
+        build_all_checkbox: QCheckBox | None = None
+        release_checkbox: QCheckBox | None = None
+
+        dialog_size = QSize(
+            max(self._default_size.width() * 2, 900),
+            max(self._default_size.height(), 480),
+        )
+
+        def _build(dialog: QDialog, layout: QVBoxLayout) -> None:
+            nonlocal folder_list, device_list, build_all_checkbox, release_checkbox
+
+            columns = QHBoxLayout()
+
+            left = QVBoxLayout()
+            left.addWidget(QLabel("Folders"))
+            flw = QListWidget()
+            flw.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+            font = flw.font()
+            font.setPointSize(12)
+            flw.setFont(font)
+            for choice in full_list:
+                flw.addItem(QListWidgetItem(choice))
+            if flw.count() > 0:
+                flw.setCurrentRow(0)
+            flw.itemDoubleClicked.connect(dialog.accept)
+            left.addWidget(flw, stretch=1)
+
+            all_cb = QCheckBox(build_all_checkbox_label)
+            all_cb.setChecked(build_all_default)
+            left.addWidget(all_cb)
+
+            rel_cb = QCheckBox("Release")
+            rel_cb.setChecked(release_default)
+            left.addWidget(rel_cb)
+            columns.addLayout(left, stretch=1)
+
+            right = QVBoxLayout()
+            right.addWidget(QLabel("Install device"))
+            dlw = QListWidget()
+            dlw.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+            dlw.setFont(font)
+            dlw.setSelectionMode(QListWidget.SelectionMode.SingleSelection)
+            default_row = 0
+            for index, (label, device_id) in enumerate(devices):
+                item = QListWidgetItem(label)
+                item.setData(Qt.ItemDataRole.UserRole, device_id)
+                dlw.addItem(item)
+                if default_device_id is not None and device_id == default_device_id:
+                    default_row = index
+            if dlw.count() > 0:
+                dlw.setCurrentRow(default_row)
+            else:
+                empty = QListWidgetItem("No adb devices or AVDs found")
+                empty.setFlags(Qt.ItemFlag.NoItemFlags)
+                dlw.addItem(empty)
+            right.addWidget(dlw, stretch=1)
+            columns.addLayout(right, stretch=1)
+
+            layout.addLayout(columns, stretch=1)
+
+            buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+            self._apply_emoji_dialog_buttons(buttons)
+            buttons.accepted.connect(dialog.accept)
+            buttons.rejected.connect(dialog.reject)
+            layout.addWidget(buttons)
+
+            folder_list = flw
+            device_list = dlw
+            build_all_checkbox = all_cb
+            release_checkbox = rel_cb
+
+        result, _dialog = self._exec_standard_dialog(
+            select_folder,
+            _build,
+            stretch_row=0,
+            size=dialog_size,
+        )
+        if result != QDialog.DialogCode.Accepted:
+            return None
+        if folder_list is None or build_all_checkbox is None or release_checkbox is None or device_list is None:
+            return None
+
+        current_folder = folder_list.currentItem()
+        if current_folder is None:
+            return None
+
+        build_all = build_all_checkbox.isChecked()
+        path = self._resolve_folder_choice(
+            current_folder.text(),
+            select_folder,
+            default_path,
+            browse=not build_all,
+        )
+        if path is None:
+            return None
+
+        device_id: str | None = None
+        current_device = device_list.currentItem()
+        if current_device is not None:
+            raw_id = current_device.data(Qt.ItemDataRole.UserRole)
+            if isinstance(raw_id, str) and raw_id:
+                device_id = raw_id
+
+        return AndroidBuildDialogResult(
+            folder=path,
+            build_all=build_all,
+            release=release_checkbox.isChecked(),
+            device_id=device_id,
+        )
+
     def get_checkbox_selection(
         self,
         title: str,
@@ -1581,6 +1713,16 @@ class ActionDialogService:
 
         clean_folder_path = selected_folder.replace("📁 ", "", 1)
         return Path(clean_folder_path)
+
+
+@dataclass(frozen=True)
+class AndroidBuildDialogResult:
+    """Tray selection for Android APK build: folder, options, and install target."""
+
+    folder: Path
+    build_all: bool
+    release: bool
+    device_id: str | None
 
 
 @dataclass(frozen=True)

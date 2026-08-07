@@ -325,7 +325,7 @@ Folder arguments are optional (default: current directory) for commands that tak
 - `hsk md edit-from-template --template "Movie"` — edit existing Markdown via a markdown_templates entry
 - `hsk android format [FOLDER]` — Spotless (ktlint) format (tray uses `paths_android_projects`)
 - `hsk android check [FOLDER]` — Spotless check + Detekt + Android Lint (`qualityCheck`)
-- `hsk android build [FOLDER] [debug|release]` — build APK using `android_build_variant` in `config.json` when variant omitted (default `release`; Windows; JDK 17 + Android SDK)
+- `hsk android build [FOLDER] [debug|release]` — build APK using `android_build_variant` in `config.json` when variant omitted (default `release`; Windows; JDK 17 + Android SDK; tray also picks Release + install device/AVD)
 - `hsk android build debug` — build debug APK in `.`
 - `hsk android build release` — build release APK in `.` (debug-signed for sideload)
 - `hsk android build --all` — build/install all `paths_android_projects` sequentially

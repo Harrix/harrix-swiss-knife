@@ -5,12 +5,12 @@ from __future__ import annotations
 import subprocess
 import sys
 import time
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, ClassVar
+from typing import Any, ClassVar, Literal
 
 import harrix_pylib as h
 
-from harrix_swiss_knife.actions.common.base import ActionBase
 from harrix_swiss_knife.actions.common.android_gradle import (
     find_built_apk,
     is_android_project,
@@ -18,22 +18,25 @@ from harrix_swiss_knife.actions.common.android_gradle import (
     resolve_java_home,
     run_gradle,
 )
+from harrix_swiss_knife.actions.common.base import ActionBase
 
 
 class OnAndroidBuild(ActionBase):
     """Build an Android APK (`assembleDebug` or `assembleRelease`).
 
-    Tray uses `android_build_variant` from `config/config.json` (`debug` or
-    `release`, default `release`). The tray dialog lists folders from
-    `paths_android_projects` (or browse) and can build all listed projects
-    sequentially. CLI may pass a project folder and optional `debug`/`release`
-    to override the variant, or `--all` to build every configured project.
+    Tray dialog lists folders from `paths_android_projects` (or browse), a
+    checkbox to build all listed projects sequentially, a **Release** checkbox
+    (initial value from `android_build_variant` in `config/config.json`, default
+    `release`), and a single install target on the right: connected `adb`
+    devices plus installed AVDs. Selecting a stopped AVD starts the emulator
+    before `adb install -r`. CLI may pass a project folder and optional
+    `debug`/`release` to override the variant, or `--all` to build every
+    configured project; CLI installs on the first authorized adb device.
     Requires Windows, JDK 17, and Android SDK (`ANDROID_HOME` /
     `local.properties`). Use `install/setup-android-sdk.bat` once to install
     the toolchain. After a successful build, the result dialog can open the APK
-    folder, and the action runs `adb install -r` when a USB device is connected.
-    If the phone is still waiting for USB debugging authorization, waits for
-    confirmation.
+    folder. If the phone is still waiting for USB debugging authorization,
+    waits for confirmation.
 
     """
 
@@ -49,6 +52,8 @@ class OnAndroidBuild(ActionBase):
 
     _ADB_AUTH_POLL_INTERVAL_SEC: ClassVar[float] = 2.0
     _ADB_AUTH_TIMEOUT_SEC: ClassVar[float] = 120.0
+    _EMULATOR_BOOT_TIMEOUT_SEC: ClassVar[float] = 180.0
+    _EMULATOR_BOOT_POLL_INTERVAL_SEC: ClassVar[float] = 3.0
 
     _VARIANT_TASKS: ClassVar[dict[str, str]] = {
         "debug": "assembleDebug",
@@ -79,6 +84,7 @@ class OnAndroidBuild(ActionBase):
             )
             return
 
+        install_target: OnAndroidBuild.InstallTarget | None = None
         projects: list[Path] = []
         if build_all:
             projects = self._configured_android_projects()
@@ -90,15 +96,20 @@ class OnAndroidBuild(ActionBase):
         elif folder_path is not None:
             projects = [Path(folder_path).resolve()]
         else:
-            choice = self.dialogs.get_folder_with_choice_option(
+            targets = self._collect_install_targets()
+            default_device_id = targets[0].device_id if targets else None
+            release_default = self._config_variant_is_release()
+            choice = self.dialogs.get_android_build_selection(
                 self.config["paths_android_projects"],
                 self.config["path_github"],
-                checkbox_label=self.ALL_PROJECTS_CHECKBOX_LABEL,
+                build_all_checkbox_label=self.ALL_PROJECTS_CHECKBOX_LABEL,
+                release_default=release_default,
+                devices=[(target.label, target.device_id) for target in targets],
+                default_device_id=default_device_id,
             )
             if choice is None:
                 return
-            android_dir, selected_build_all = choice
-            if selected_build_all:
+            if choice.build_all:
                 projects = self._configured_android_projects()
                 if not projects:
                     self.add_line("❌ No valid Android projects in paths_android_projects.")
@@ -106,9 +117,11 @@ class OnAndroidBuild(ActionBase):
                         self.show_result()
                     return
             else:
-                projects = [android_dir]
+                projects = [choice.folder]
+            variant = "release" if choice.release else "debug"
+            install_target = self._target_by_device_id(targets, choice.device_id)
 
-        resolved = self._resolve_variant(variant=variant)
+        resolved = self._resolve_variant(variant=variant, source_hint="tray dialog" if not noninteractive else None)
         if resolved is None:
             if not noninteractive:
                 self.show_result()
@@ -138,9 +151,10 @@ class OnAndroidBuild(ActionBase):
         self._gradle_task = gradle_task
         self._java_home = java_home
         self._android_projects = projects
+        self._install_target = install_target
 
         if noninteractive:
-            self._run_projects_build(projects, variant_key, gradle_task, java_home)
+            self._run_projects_build(projects, variant_key, gradle_task, java_home, install_target)
             return
 
         self.folder_path = projects[0]
@@ -158,6 +172,7 @@ class OnAndroidBuild(ActionBase):
             getattr(self, "_variant_key", self.DEFAULT_VARIANT),
             getattr(self, "_gradle_task", "assembleRelease"),
             java_home,
+            getattr(self, "_install_target", None),
         )
         return None
 
@@ -167,6 +182,65 @@ class OnAndroidBuild(ActionBase):
         failed = any(isinstance(line, str) and line.strip().startswith("❌") for line in self.result_lines)
         self.show_toast(f"{self.title} {'failed' if failed else 'completed'}")
         self.show_result()
+
+    def _adb_shell_getprop(self, adb: Path, serial: str, prop: str) -> str | None:
+        """Return a trimmed `getprop` value from a device, or `None`."""
+        process = subprocess.run(
+            [str(adb), "-s", serial, "shell", "getprop", prop],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            check=False,
+        )
+        if process.returncode != 0:
+            return None
+        value = (process.stdout or "").strip()
+        return value or None
+
+    def _collect_install_targets(self) -> list[InstallTarget]:
+        """Return connected adb devices and installed AVDs for the tray list."""
+        targets: list[OnAndroidBuild.InstallTarget] = []
+        seen_avds: set[str] = set()
+        adb = self._resolve_adb()
+        if adb is not None:
+            authorized, _unauthorized = self._list_adb_device_states(adb)
+            for serial in authorized:
+                avd_name = self._emulator_avd_name(adb, serial)
+                model = self._adb_shell_getprop(adb, serial, "ro.product.model")
+                if avd_name:
+                    seen_avds.add(avd_name)
+                    label = f"{avd_name} ({serial}) — running"
+                    if model:
+                        label = f"{avd_name} / {model} ({serial}) — running"
+                    targets.append(
+                        OnAndroidBuild.InstallTarget(kind="adb", key=serial, label=label, serial=serial),
+                    )
+                else:
+                    label = f"{model} ({serial}) — connected" if model else f"{serial} — connected"
+                    targets.append(
+                        OnAndroidBuild.InstallTarget(kind="adb", key=serial, label=label, serial=serial),
+                    )
+
+        emulator = self._resolve_emulator()
+        if emulator is not None:
+            for avd_name in self._list_avd_names(emulator):
+                if avd_name in seen_avds:
+                    continue
+                targets.append(
+                    OnAndroidBuild.InstallTarget(
+                        kind="avd",
+                        key=avd_name,
+                        label=f"{avd_name} — AVD (start on install)",
+                    ),
+                )
+        return targets
+
+    def _config_variant_is_release(self) -> bool:
+        """Return whether config `android_build_variant` resolves to release."""
+        raw = self.config.get(self.CONFIG_KEY, self.DEFAULT_VARIANT)
+        key = str(raw or self.DEFAULT_VARIANT).strip().lower()
+        return key == "release"
 
     def _configured_android_projects(self) -> list[Path]:
         """Return existing Android project folders from `paths_android_projects`."""
@@ -192,20 +266,84 @@ class OnAndroidBuild(ActionBase):
             projects.append(resolved)
         return projects
 
-    def _install_apk_via_adb(self, apk_path: Path) -> None:
-        """Install the APK on the first connected adb device, if any."""
+    def _emulator_avd_name(self, adb: Path, serial: str) -> str | None:
+        """Return AVD name for an emulator serial, or `None` for physical devices."""
+        if not serial.startswith("emulator-"):
+            return None
+        process = subprocess.run(
+            [str(adb), "-s", serial, "emu", "avd", "name"],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            check=False,
+        )
+        if process.returncode != 0:
+            return None
+        for line in (process.stdout or "").splitlines():
+            stripped = line.strip()
+            if not stripped or stripped == "OK":
+                continue
+            return stripped
+        return None
+
+    def _ensure_install_serial(
+        self,
+        adb: Path,
+        target: InstallTarget | None,
+    ) -> str | None:
+        """Resolve an authorized adb serial for install, starting an AVD if needed."""
+        if target is None:
+            devices = self._wait_for_adb_device(adb)
+            if not devices:
+                return None
+            serial = devices[0]
+            if len(devices) > 1:
+                self.add_line(f"🔵 Multiple adb devices ({len(devices)}); installing on first: {serial}")
+            return serial
+
+        if target.kind == "adb":
+            serial = target.serial or target.key
+            authorized, unauthorized = self._list_adb_device_states(adb)
+            if serial in authorized:
+                return serial
+            if serial in unauthorized:
+                waited = self._wait_for_specific_adb_device(adb, serial, unauthorized_hint=True)
+                return waited
+            self.add_line(f"❌ Selected adb device not connected: {serial}")
+            return None
+
+        # Offline or selected AVD by name — find running instance or start it.
+        serial = self._find_running_avd_serial(adb, target.key)
+        if serial is not None:
+            return serial
+
+        if not self._start_avd(target.key):
+            return None
+        return self._wait_for_avd_boot(adb, target.key)
+
+    def _find_running_avd_serial(self, adb: Path, avd_name: str) -> str | None:
+        """Return adb serial of a running emulator with the given AVD name."""
+        authorized, _unauthorized = self._list_adb_device_states(adb)
+        for serial in authorized:
+            if self._emulator_avd_name(adb, serial) == avd_name:
+                return serial
+        return None
+
+    def _install_apk_via_adb(
+        self,
+        apk_path: Path,
+        target: InstallTarget | None = None,
+    ) -> None:
+        """Install the APK on the selected (or first) adb device."""
         adb = self._resolve_adb()
         if adb is None:
             self.add_line("🔵 adb not found - APK not installed (install platform-tools / setup-android-sdk).")
             return
 
-        devices = self._wait_for_adb_device(adb)
-        if not devices:
+        serial = self._ensure_install_serial(adb, target)
+        if not serial:
             return
-
-        serial = devices[0]
-        if len(devices) > 1:
-            self.add_line(f"🔵 Multiple adb devices ({len(devices)}); installing on first: {serial}")
 
         cmd = [str(adb), "-s", serial, "install", "-r", str(apk_path)]
         self.add_line(f"$ {' '.join(cmd)}")
@@ -264,6 +402,20 @@ class OnAndroidBuild(ActionBase):
                 unauthorized.append(serial)
         return authorized, unauthorized
 
+    def _list_avd_names(self, emulator: Path) -> list[str]:
+        """Return installed AVD names from ``emulator -list-avds``."""
+        process = subprocess.run(
+            [str(emulator), "-list-avds"],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            check=False,
+        )
+        if process.returncode != 0:
+            return []
+        return [line.strip() for line in (process.stdout or "").splitlines() if line.strip()]
+
     def _resolve_adb(self) -> Path | None:
         """Resolve ``adb.exe`` from Android SDK or PATH."""
         android_home = resolve_android_home()
@@ -279,11 +431,31 @@ class OnAndroidBuild(ActionBase):
                 return path
         return None
 
-    def _resolve_variant(self, *, variant: str | None) -> tuple[str, str] | None:
-        """Map CLI override or ``android_build_variant`` config to variant key and Gradle task."""
+    def _resolve_emulator(self) -> Path | None:
+        """Resolve ``emulator.exe`` from Android SDK or PATH."""
+        android_home = resolve_android_home()
+        if android_home:
+            candidate = Path(android_home) / "emulator" / "emulator.exe"
+            if candidate.is_file():
+                return candidate
+
+        which = h.dev.run_command("where emulator", is_shell=True)
+        for line in (which or "").splitlines():
+            path = Path(line.strip().strip('"'))
+            if path.is_file():
+                return path
+        return None
+
+    def _resolve_variant(
+        self,
+        *,
+        variant: str | None,
+        source_hint: str | None = None,
+    ) -> tuple[str, str] | None:
+        """Map CLI override, tray choice, or config to variant key and Gradle task."""
         if variant is not None:
             key = str(variant).strip().lower()
-            source = "CLI"
+            source = source_hint or "CLI"
         else:
             raw = self.config.get(self.CONFIG_KEY, self.DEFAULT_VARIANT)
             key = str(raw or self.DEFAULT_VARIANT).strip().lower()
@@ -304,6 +476,7 @@ class OnAndroidBuild(ActionBase):
         variant_key: str,
         gradle_task: str,
         java_home: str,
+        target: InstallTarget | None,
     ) -> bool:
         """Invoke Gradle with a resolved JDK and report the APK path or failure.
 
@@ -343,7 +516,7 @@ class OnAndroidBuild(ActionBase):
 
         self.add_line(f"✅ APK: {apk_path}")
         self.result_folder = apk_path.parent
-        self._install_apk_via_adb(apk_path)
+        self._install_apk_via_adb(apk_path, target)
         return True
 
     def _run_projects_build(
@@ -352,6 +525,7 @@ class OnAndroidBuild(ActionBase):
         variant_key: str,
         gradle_task: str,
         java_home: str,
+        target: InstallTarget | None,
     ) -> None:
         """Build and install one or more Android projects sequentially."""
         total = len(projects)
@@ -362,7 +536,7 @@ class OnAndroidBuild(ActionBase):
         for index, project in enumerate(projects, start=1):
             if total > 1:
                 self.add_line(f"\n=== [{index}/{total}] {project.name} ({project}) ===")
-            if not self._run_gradle_build(project, variant_key, gradle_task, java_home):
+            if not self._run_gradle_build(project, variant_key, gradle_task, java_home, target):
                 failed.append(project.name)
 
         if total > 1:
@@ -371,6 +545,46 @@ class OnAndroidBuild(ActionBase):
                 self.add_line(f"\n✅ All Android projects built ({passed}/{total}).")
             else:
                 self.add_line(f"\n❌ Build failed in {len(failed)} project(s): {', '.join(failed)}")
+
+    def _start_avd(self, avd_name: str) -> bool:
+        """Launch an AVD in the background. Return `False` if emulator is missing."""
+        emulator = self._resolve_emulator()
+        if emulator is None:
+            self.add_line("❌ emulator not found - cannot start AVD (install Android emulator / Android Studio).")
+            return False
+
+        cmd = [str(emulator), "-avd", avd_name]
+        self.add_line(f"🔵 Starting AVD: {avd_name}")
+        self.add_line(f"$ {' '.join(cmd)}")
+        creationflags = 0
+        if sys.platform == "win32":
+            creationflags = subprocess.CREATE_NO_WINDOW | subprocess.DETACHED_PROCESS  # type: ignore[attr-defined]
+        try:
+            subprocess.Popen(  # noqa: S603
+                cmd,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                stdin=subprocess.DEVNULL,
+                creationflags=creationflags,
+                close_fds=True,
+            )
+        except OSError as exc:
+            self.add_line(f"❌ Failed to start emulator: {exc}")
+            return False
+        return True
+
+    @staticmethod
+    def _target_by_device_id(
+        targets: list[InstallTarget],
+        device_id: str | None,
+    ) -> InstallTarget | None:
+        """Map a dialog `device_id` back to an `InstallTarget`."""
+        if device_id is None:
+            return None
+        for target in targets:
+            if target.device_id == device_id:
+                return target
+        return None
 
     def _wait_for_adb_device(self, adb: Path) -> list[str]:
         """Return authorized adb serials, waiting if the phone needs USB auth."""
@@ -403,3 +617,63 @@ class OnAndroidBuild(ActionBase):
 
         self.add_line(f"❌ Timed out waiting for USB debugging authorization ({timeout}s). APK not installed.")
         return []
+
+    def _wait_for_avd_boot(self, adb: Path, avd_name: str) -> str | None:
+        """Wait until the AVD is authorized and boot completed."""
+        timeout = int(self._EMULATOR_BOOT_TIMEOUT_SEC)
+        self.add_line(f"🔵 Waiting for AVD `{avd_name}` to boot (up to {timeout}s)…")
+        deadline = time.monotonic() + self._EMULATOR_BOOT_TIMEOUT_SEC
+        while time.monotonic() < deadline:
+            serial = self._find_running_avd_serial(adb, avd_name)
+            if serial is not None:
+                boot = self._adb_shell_getprop(adb, serial, "sys.boot_completed")
+                if boot == "1":
+                    self.add_line(f"✅ AVD `{avd_name}` ready as {serial}")
+                    return serial
+            time.sleep(self._EMULATOR_BOOT_POLL_INTERVAL_SEC)
+
+        self.add_line(f"❌ Timed out waiting for AVD `{avd_name}` ({timeout}s). APK not installed.")
+        return None
+
+    def _wait_for_specific_adb_device(
+        self,
+        adb: Path,
+        serial: str,
+        *,
+        unauthorized_hint: bool,
+    ) -> str | None:
+        """Wait until a specific serial becomes authorized."""
+        timeout = int(self._ADB_AUTH_TIMEOUT_SEC)
+        if unauthorized_hint:
+            self.add_line(
+                f"🔵 adb device unauthorized ({serial}). "
+                f"Confirm the USB debugging fingerprint on the phone "
+                f"(waiting up to {timeout}s)…"
+            )
+        deadline = time.monotonic() + self._ADB_AUTH_TIMEOUT_SEC
+        while time.monotonic() < deadline:
+            authorized, unauthorized = self._list_adb_device_states(adb)
+            if serial in authorized:
+                self.add_line(f"✅ USB debugging authorized: {serial}")
+                return serial
+            if serial not in unauthorized and serial not in authorized:
+                self.add_line(f"🔵 adb device disconnected while waiting ({serial}) - APK not installed.")
+                return None
+            time.sleep(self._ADB_AUTH_POLL_INTERVAL_SEC)
+
+        self.add_line(f"❌ Timed out waiting for USB debugging authorization ({timeout}s). APK not installed.")
+        return None
+
+    @dataclass(frozen=True)
+    class InstallTarget:
+        """One install destination: connected adb device or installed AVD."""
+
+        kind: Literal["adb", "avd"]
+        key: str
+        label: str
+        serial: str | None = None
+
+        @property
+        def device_id(self) -> str:
+            """Opaque ID stored in the tray device list (`adb:` / `avd:`)."""
+            return f"{self.kind}:{self.key}"
