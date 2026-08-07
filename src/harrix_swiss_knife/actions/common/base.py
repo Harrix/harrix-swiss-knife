@@ -115,6 +115,8 @@ class ActionBase(ABC):
         """
         self.result_lines.clear()
         self.result_folder = None
+        # Always re-read config.json so edits (e.g. personal_data) apply without restart.
+        self.invalidate_config_cache()
         self.file = new_action_output_file_path(self._action_output_dir, type(self).__name__)
         self._run_started = perf_counter()
         if self._output_bus is not None:

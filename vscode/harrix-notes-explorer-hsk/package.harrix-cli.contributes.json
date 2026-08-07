@@ -8,7 +8,6 @@
     "harrixNotesExplorerHsk.siteLink.githubUser"
   ],
   "commandIds": [
-    "harrixNotesExplorerHsk.createNote",
     "harrixNotesExplorerHsk.newDiaryNote",
     "harrixNotesExplorerHsk.newDreamNote",
     "harrixNotesExplorerHsk.newCasesNote",
@@ -36,5 +35,5 @@
     "gitNotesFolderTemplateTarget",
     "gitNotesFolderTemplateTargetWithMerged"
   ],
-  "menuFilterHint": "In contributes.menus, delete every entry whose command is in commandIds above. Many menus also reference createNote alongside non-CLI commands — remove only the CLI command blocks or split groups as needed."
+  "menuFilterHint": "In contributes.menus, delete every entry whose command is in commandIds above. Keep createNote (core, new-note.js). Remove only CLI command blocks."
 }

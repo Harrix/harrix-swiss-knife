@@ -349,5 +349,10 @@
   "start_pattern_py_projects": "python-project-",
   "vscode_workspace_articles": "D:/Dropbox/Programs/vscode_workspaces/_content__harrix-dev.code-workspace",
   "vscode_workspace_notes": "D:/Dropbox/Programs/vscode_workspaces/Notes.code-workspace",
-  "finance_standard_items_translate_names_limit": 250
+  "finance_standard_items_translate_names_limit": 250,
+  "personal_data": {
+    "enabled": true,
+    "author": "Anton Sergienko",
+    "author_email": "anton.b.sergienko@gmail.com"
+  }
 }

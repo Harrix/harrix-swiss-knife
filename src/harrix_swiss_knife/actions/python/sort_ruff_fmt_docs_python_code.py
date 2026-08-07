@@ -10,6 +10,7 @@ import harrix_pylib as h
 from harrix_swiss_knife.actions.common.base import ActionBase
 from harrix_swiss_knife.actions.common.python_project import is_python_project
 from harrix_swiss_knife.actions.markdown import OnBeautifyMd
+from harrix_swiss_knife.actions.markdown.new_markdown import OnNewMarkdown
 from harrix_swiss_knife.menu_list_markdown import update_readme_list_of_commands
 
 
@@ -151,7 +152,11 @@ class OnSortRuffFmtDocsPythonCode(ActionBase):
             # Generate Markdown documentation
             self.add_line("🔵 Generate Markdown documentation")
             domain = f"https://github.com/{self.config['github_user']}/{Path(folder_path).parts[-1]}"
-            self.add_line(h.py.generate_md_docs(folder_path, self.config["beginning_of_md_docs"], domain))
+            beginning_docs = OnNewMarkdown.apply_personal_data_to_beginning(
+                self.config["beginning_of_md_docs"],
+                self.config.get("personal_data"),
+            )
+            self.add_line(h.py.generate_md_docs(folder_path, beginning_docs, domain))
 
             # Format markdown files
             self.add_line("🔵 Format markdown files")

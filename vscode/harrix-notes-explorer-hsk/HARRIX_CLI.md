@@ -16,6 +16,7 @@ This extension can be built **with** or **without** integration to `hsk`. All CL
 - [Files (CLI layer)](#files-cli-layer)
 - [Not part of the CLI layer](#not-part-of-the-cli-layer)
 - [Public build checklist](#public-build-checklist)
+- [Core (not CLI) — New note](#core-not-cli--new-note)
 - [CLI commands (registered in `harrix-cli.js`)](#cli-commands-registered-in-harrix-clijs)
 - [Settings (CLI only)](#settings-cli-only)
 
@@ -55,9 +56,12 @@ These stay in `extension.js` for a public build:
 5. Delete this file and `package.harrix-cli.contributes.json` if you no longer need the checklist.
 6. Reload VS Code / reinstall the extension.
 
+## Core (not CLI) — New note
+
+- `harrixNotesExplorerHsk.createNote` — implemented in `new-note.js` (`@hsk-sync:new-note`); keep in public builds.
+
 ## CLI commands (registered in `harrix-cli.js`)
 
-- `harrixNotesExplorerHsk.createNote`
 - `harrixNotesExplorerHsk.newDiaryNote`
 - `harrixNotesExplorerHsk.newDreamNote`
 - `harrixNotesExplorerHsk.newCasesNote`

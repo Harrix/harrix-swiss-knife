@@ -48,6 +48,24 @@ def test_format_new_note_content_without_beginning() -> None:
     assert OnNewMarkdown._format_new_note_content("", "---\nyaml\n---") == "---\nyaml\n---\n"
 
 
+def test_apply_personal_data_strips_author_when_disabled() -> None:
+    beginning = "---\nauthor: Someone\nauthor-email: a@b.c\nlang: ru\n---\n"
+    result = OnNewMarkdown.apply_personal_data_to_beginning(beginning, {"enabled": False})
+    assert "author:" not in result
+    assert "author-email:" not in result
+    assert "lang: ru" in result
+
+
+def test_apply_personal_data_injects_author_when_enabled() -> None:
+    beginning = "---\nlang: en\n---\n"
+    result = OnNewMarkdown.apply_personal_data_to_beginning(
+        beginning, {"enabled": True, "author": "noname", "author_email": "me@example.com"}
+    )
+    assert "author: noname" in result
+    assert "author-email: me@example.com" in result
+    assert result.index("author:") < result.index("lang:")
+
+
 def test_sanitize_folder_name_removes_invalid_characters() -> None:
     assert OnNewMarkdown._sanitize_folder_name("Moscow") == "Moscow"
     assert OnNewMarkdown._sanitize_folder_name('St. "Petersburg"') == "St. _Petersburg_"

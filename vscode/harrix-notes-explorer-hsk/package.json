@@ -39,6 +39,65 @@
           "default": "hsk",
           "markdownDescription": "Command or full path to `hsk`. Use an absolute path if the CLI is not on the PATH seen by VS Code (e.g. `.venv\\\\Scripts\\\\hsk.exe`)."
         },
+        "harrixNotesExplorerHsk.newNote.beginningTemplates": {
+          "type": "array",
+          "markdownDescription": "Beginning templates for **New Note** (`@hsk-sync:new-note`). Each item: `id`, `label`, `content` (Markdown/YAML prefix).",
+          "default": [
+            {
+              "id": "beginning-of-md",
+              "label": "beginning-of-md.md",
+              "content": "---\nlang: ru\n---\n"
+            },
+            {
+              "id": "beginning-of-article",
+              "label": "beginning-of-article.md",
+              "content": "---\ndate: [DATE]\ncategories: [it]\ntags: []\nlicense: CC BY 4.0\nlicense-url: <YOUR_LICENSE_URL>\npermalink-source: <YOUR_PERMALINK_SOURCE>/[YEAR]/blob/main/[NAME]/[NAME].md\npermalink: <YOUR_SITE>/articles/[YEAR]/[NAME]/\nlang: ru\n---\n"
+            },
+            {
+              "id": "beginning-of-md-en",
+              "label": "beginning-of-md-en.md",
+              "content": "---\nlang: en\n---\n"
+            }
+          ],
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "content"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "label": {
+                "type": "string"
+              },
+              "content": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "harrixNotesExplorerHsk.newNote.defaultBeginningTemplateId": {
+          "type": "string",
+          "default": "beginning-of-md",
+          "markdownDescription": "Default beginning template `id` for **New Note** when multiple templates are configured (`@hsk-sync:new-note`)."
+        },
+        "harrixNotesExplorerHsk.personalData.enabled": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "When enabled, **New Note** injects `author` / `author-email` into YAML frontmatter (`@hsk-sync:new-note`). Off by default."
+        },
+        "harrixNotesExplorerHsk.personalData.author": {
+          "type": "string",
+          "default": "noname",
+          "markdownDescription": "Author name written into note frontmatter when `personalData.enabled` is true (`@hsk-sync:new-note`)."
+        },
+        "harrixNotesExplorerHsk.personalData.authorEmail": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Author email written into note frontmatter when `personalData.enabled` is true (`@hsk-sync:new-note`)."
+        },
         "harrixNotesExplorerHsk.optimizeImagesFolderMaxSize": {
           "type": "number",
           "default": 1024,
@@ -332,7 +391,7 @@
       },
       {
         "command": "harrixNotesExplorerHsk.createNote",
-        "title": "New Note… ꟲᴸᴵ",
+        "title": "New Note…",
         "category": "Harrix Notes HSK"
       },
       {

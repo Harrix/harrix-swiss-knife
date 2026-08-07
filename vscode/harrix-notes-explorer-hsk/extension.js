@@ -10,6 +10,8 @@ const execFileAsync = util.promisify(execFile);
 
 /** hsk integration — see harrix-cli.js and HARRIX_CLI.md */
 const harrixCli = require('./harrix-cli');
+/** @hsk-sync:new-note — in-extension New note (no CLI) */
+const { activateNewNote } = require('./new-note');
 
 function normalizeFsPath(p) {
   const resolved = path.resolve(String(p));
@@ -3989,6 +3991,15 @@ async function activate(context) {
       }
     }),
   );
+
+  activateNewNote({
+    context,
+    provider,
+    rootPath,
+    uriToFsPath,
+    isDirectoryPath,
+    isFilePath,
+  });
 
   harrixCli.activateHarrixCliIntegration({
     context,

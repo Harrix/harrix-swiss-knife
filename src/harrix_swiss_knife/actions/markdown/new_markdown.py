@@ -40,6 +40,8 @@ class OnNewMarkdown(ActionBase):
     It shows a dialog with all available new Markdown commands, allowing the user to
     select which type of Markdown file they want to create.
 
+    New note path is marked `@hsk-sync:new-note` (keep aligned with VS Code and Android).
+
     """
 
     icon = "📝"
@@ -48,6 +50,9 @@ class OnNewMarkdown(ActionBase):
     cli_available = True
     cli_hint = "md --help"
     quick_launcher = True
+
+    # Personal YAML keys controlled by config personal_data (@hsk-sync:new-note).
+    _PERSONAL_FRONTMATTER_KEYS: ClassVar[tuple[str, ...]] = ("author", "author-email")
 
     _COMMANDS: ClassVar[list[tuple[str, str, str]]] = [
         ("✏️", "Edit from template", "_execute_edit_from_template"),
@@ -60,6 +65,71 @@ class OnNewMarkdown(ActionBase):
         ("📓", "New note with images", "_execute_new_note_with_images"),
         ("❞", "New quotes", "_execute_new_quotes"),
     ]
+
+    @staticmethod
+    def apply_personal_data_to_beginning(beginning: str, personal_data: dict[str, Any] | None) -> str:
+        """Merge or strip `author` / `author-email` in YAML frontmatter.
+
+        @hsk-sync:new-note
+
+        When `personal_data.enabled` is false (default), personal keys are removed.
+        When true, keys are set from `author` / `author_email` (defaults `noname` / empty).
+
+        """
+        text = beginning or ""
+        if not text.strip():
+            return text
+
+        personal = personal_data if isinstance(personal_data, dict) else {}
+        enabled = bool(personal.get("enabled", False))
+        author = str(personal.get("author") if personal.get("author") is not None else "noname")
+        author_email = str(personal.get("author_email") if personal.get("author_email") is not None else "")
+
+        stripped = text.lstrip("\ufeff")
+        if not stripped.startswith("---"):
+            if not enabled:
+                return text
+            lines = ["---", f"author: {author}"]
+            if author_email:
+                lines.append(f"author-email: {author_email}")
+            lines.append("---")
+            return "\n".join(lines) + "\n" + stripped.lstrip("\n")
+
+        lines = stripped.splitlines()
+        # lines[0] is opening ---
+        end_idx: int | None = None
+        for i in range(1, len(lines)):
+            if lines[i].strip() == "---":
+                end_idx = i
+                break
+        if end_idx is None:
+            return text
+
+        personal_keys = set(OnNewMarkdown._PERSONAL_FRONTMATTER_KEYS)
+        body_lines: list[str] = []
+        for line in lines[1:end_idx]:
+            key = line.split(":", 1)[0].strip().lower() if ":" in line else ""
+            if key in personal_keys:
+                continue
+            body_lines.append(line)
+
+        if enabled:
+            insert_at = 0
+            for i, line in enumerate(body_lines):
+                if line.split(":", 1)[0].strip().lower() == "lang":
+                    insert_at = i
+                    break
+                insert_at = i + 1
+            personal_lines = [f"author: {author}"]
+            if author_email:
+                personal_lines.append(f"author-email: {author_email}")
+            body_lines[insert_at:insert_at] = personal_lines
+
+        rebuilt = ["---", *body_lines, "---", *lines[end_idx + 1 :]]
+        result = "\n".join(rebuilt)
+        if text.endswith("\n"):
+            result += "\n"
+        return result
 
     def build_picker_choices(self) -> tuple[list[tuple[str, str]], dict[str, tuple[str, str]]]:
         """Build sorted icon choices and dispatch map for the New Markdown picker."""
@@ -157,6 +227,18 @@ class OnNewMarkdown(ActionBase):
         """Run a single New Markdown picker command by title (for quick launcher panel)."""
         _choices, action_map = self.build_picker_choices()
         self._dispatch_picker_choice(title, action_map, ai_screenshot=ai_screenshot)
+
+    def _apply_personal_data_to_beginning(self, beginning: str) -> str:
+        """Merge or strip personal frontmatter keys per config `personal_data`.
+
+        @hsk-sync:new-note
+
+        """
+        return self.apply_personal_data_to_beginning(beginning, self.config.get("personal_data"))
+
+    def _beginning_of_md_with_personal_data(self) -> str:
+        """Return configured beginning_of_md with personal_data applied."""
+        return self._apply_personal_data_to_beginning(self.config.get("beginning_of_md") or "")
 
     @staticmethod
     def _build_entry_browser_groups(
@@ -986,7 +1068,7 @@ class OnNewMarkdown(ActionBase):
                         existing_content = f.read()
                 else:
                     target_path.parent.mkdir(parents=True, exist_ok=True)
-                    beginning_content = self.config.get("beginning_of_md", "")
+                    beginning_content = self._beginning_of_md_with_personal_data()
                     if single_file:
                         if beginning_content:
                             existing_content = (
@@ -1102,7 +1184,7 @@ class OnNewMarkdown(ActionBase):
         article_name = article_name.replace(" ", "-")
 
         now_local = datetime.now(UTC).astimezone()
-        text = self.config["beginning_of_article"].replace(
+        text = self._apply_personal_data_to_beginning(self.config["beginning_of_article"]).replace(
             "[YEAR]",
             now_local.strftime("%Y"),
         )
@@ -1121,16 +1203,17 @@ class OnNewMarkdown(ActionBase):
     def _execute_new_diary(self, *, diary_root: Path | str | None = None) -> None:
         """Create new diary entry for current date."""
         base = Path(diary_root) if diary_root is not None else Path(self.config["path_diary"])
-        result, filename = h.md.add_diary_new_dairy_in_year(base, self.config["beginning_of_md"])
+        result, filename = h.md.add_diary_new_dairy_in_year(base, self._beginning_of_md_with_personal_data())
         self._open_notes_editor(filename)
         self.add_line(result)
 
     @ActionBase.handle_exceptions("creating new cases entry")
     def _execute_new_diary_cases(self, *, cases_root: Path | str | None = None) -> None:
         """Create new cases entry for current month."""
+        beginning = self._beginning_of_md_with_personal_data()
         if cases_root is not None:
             base = Path(cases_root)
-            result, filename = h.md.add_diary_new_cases_in_year(base, self.config["beginning_of_md"])
+            result, filename = h.md.add_diary_new_cases_in_year(base, beginning)
             self._open_notes_editor(filename)
             self.add_line(result)
             return
@@ -1139,7 +1222,7 @@ class OnNewMarkdown(ActionBase):
             self.add_line("❌ path_cases is not configured in config.json.")
             self.show_result()
             return
-        result, filename = h.md.add_diary_new_cases_in_year(path_cases, self.config["beginning_of_md"])
+        result, filename = h.md.add_diary_new_cases_in_year(path_cases, beginning)
         self._open_notes_editor(filename)
         self.add_line(result)
 
@@ -1147,7 +1230,7 @@ class OnNewMarkdown(ActionBase):
     def _execute_new_diary_dream(self, *, dream_root: Path | str | None = None) -> None:
         """Create new dream journal entry for current date."""
         base = Path(dream_root) if dream_root is not None else Path(self.config["path_dream"])
-        result, filename = h.md.add_diary_new_dream_in_year(base, self.config["beginning_of_md"])
+        result, filename = h.md.add_diary_new_dream_in_year(base, self._beginning_of_md_with_personal_data())
         self._open_notes_editor(filename)
         self.add_line(result)
 
@@ -1158,7 +1241,7 @@ class OnNewMarkdown(ActionBase):
         if not path_memories:
             self.add_line("❌ Config key 'path_memories' is not set.")
             return
-        result, filename = h.md.add_diary_new_dairy_in_year(path_memories, self.config["beginning_of_md"])
+        result, filename = h.md.add_diary_new_dairy_in_year(path_memories, self._beginning_of_md_with_personal_data())
         self._open_notes_editor(filename)
         self.add_line(result)
 
@@ -1170,7 +1253,11 @@ class OnNewMarkdown(ActionBase):
         folder_path: Path | None = None,
         note_stem: str | None = None,
     ) -> None:
-        """Create new general note with user-specified filename."""
+        """Create new general note with user-specified filename.
+
+        @hsk-sync:new-note
+
+        """
         noninteractive = folder_path is not None
 
         if folder_path is not None:
@@ -1268,7 +1355,9 @@ class OnNewMarkdown(ActionBase):
             selected_template_file = display_to_template[selected_display_name]
             beginning_text = file_contents[selected_template_file]
 
-        text = beginning_text + f"\n# {heading_stem}\n\n\n"
+        # @hsk-sync:new-note — personal_data merge + heading body
+        beginning_text = self._apply_personal_data_to_beginning(beginning_text)
+        text = beginning_text.rstrip() + f"\n# {heading_stem}\n\n\n"
         filename_final = heading_stem.replace("-", "--").replace(" ", "-")
 
         result, filename = h.md.add_note(parent, filename_final, text, is_with_images=is_with_images)
@@ -1839,8 +1928,8 @@ class OnNewMarkdown(ActionBase):
         return dialog_links
 
     def _prepend_beginning_of_md(self, body: str) -> str:
-        """Prepend configured `beginning_of_md` YAML to note body."""
-        return self._format_new_note_content(body, self.config.get("beginning_of_md"))
+        """Prepend configured `beginning_of_md` YAML to note body (with personal_data)."""
+        return self._format_new_note_content(body, self._beginning_of_md_with_personal_data())
 
     def _replace_author_field_with_combobox(
         self, fields: list[TemplateField], authors_list: list[str]
@@ -2052,7 +2141,7 @@ class OnNewMarkdown(ActionBase):
 
             content = "\n".join(new_lines)
         else:
-            beginning_template = self.config["beginning_of_md"]
+            beginning_template = self._beginning_of_md_with_personal_data()
             content = f"{beginning_template}\n{header}\n\n{quotes_content}"
 
         content = content.rstrip() + "\n"

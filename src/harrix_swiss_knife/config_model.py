@@ -45,6 +45,7 @@ class AppConfig(TypedDict, total=False):
     food_calorie_thresholds: FoodCalorieThresholds
     block_drives: list[str]
     markdown_templates: dict[str, Any]
+    personal_data: PersonalDataSettings
     prompts: dict[str, str]
     show_main_window_on_startup: bool
     compact_mode: bool
@@ -75,6 +76,14 @@ class HotkeyEntry(TypedDict):
     action: str
     hotkeys: NotRequired[list[str]]
     hotkey: NotRequired[str]
+
+
+class PersonalDataSettings(TypedDict, total=False):
+    """Author/contact fields for note frontmatter (@hsk-sync:new-note)."""
+
+    enabled: bool
+    author: str
+    author_email: str
 
 
 def load_app_config(config_path: str | None = None) -> dict[str, Any]:
@@ -121,6 +130,11 @@ def validate_app_config(config: dict[str, Any]) -> list[str]:
     templates = config.get("markdown_templates")
     if templates is not None and not isinstance(templates, dict):
         msg = "Config key 'markdown_templates' must be an object."
+        raise TypeError(msg)
+
+    personal_data = config.get("personal_data")
+    if personal_data is not None and not isinstance(personal_data, dict):
+        msg = "Config key 'personal_data' must be an object."
         raise TypeError(msg)
 
     for key in _RECOMMENDED_KEYS:

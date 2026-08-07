@@ -59,19 +59,6 @@ function runHarrixCliInTerminal(cliArgs) {
   terminal.sendText(buildHarrixCliCommand(cliArgs));
 }
 
-/**
- * @param {string} baseDir
- * @param {string} rawName
- */
-function runHarrixMarkdownNewNote(baseDir, rawName) {
-  const stem = rawName.trim();
-  if (!stem) {
-    throw new Error('Empty note name');
-  }
-  const nameArg = stem.toLowerCase().endsWith('.md') ? stem.slice(0, -3) : stem;
-  runHarrixCliInTerminal(['md', 'new-note', '--folder', path.resolve(baseDir), '--name', nameArg]);
-}
-
 /** @param {string} diaryRootPath */
 function runHarrixMarkdownNewDiaryNote(diaryRootPath) {
   runHarrixCliInTerminal(['md', 'new-diary-note', '--folder', path.resolve(diaryRootPath)]);
@@ -205,7 +192,6 @@ function resolveNotesFolderContextValue(opts) {
  * @typedef {object} HarrixCliDeps
  * @property {import('vscode').ExtensionContext} context
  * @property {{ refresh: () => void, getTemplatesForFolder: (folderPath: string) => Array<{id: string, title: string}>, setTemplateTargets: (map: Map<string, Array<{id: string, title: string}>>) => void }} provider
- * @property {string} [rootPath] first workspace folder; fallback when createNote has no selection
  * @property {(uri: unknown) => string | undefined} uriToFsPath
  * @property {(fsPath: string) => boolean} isDirectoryPath
  * @property {(fsPath: string) => boolean} isFilePath
@@ -478,7 +464,7 @@ async function convertToSiteArticleLinkCommand() {
 }
 
 function activateHarrixCliIntegration(deps) {
-  const { context, provider, rootPath, uriToFsPath, isDirectoryPath, normalizeFsPath } = deps;
+  const { context, provider, uriToFsPath, isDirectoryPath, normalizeFsPath } = deps;
 
   context.subscriptions.push(
     vscode.commands.registerCommand('harrixNotesExplorerHsk.newDiaryNote', async (treeItemOrUri) => {
@@ -658,49 +644,6 @@ function activateHarrixCliIntegration(deps) {
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
         vscode.window.showErrorMessage(`Convert to site article dual link failed: ${msg}`);
-      }
-    }),
-  );
-
-  context.subscriptions.push(
-    vscode.commands.registerCommand('harrixNotesExplorerHsk.createNote', async (treeItemOrUri) => {
-      const itemUri = treeItemOrUri?.resourceUri ?? treeItemOrUri;
-      const fsPath = uriToFsPath(itemUri);
-
-      const baseDir =
-        fsPath && isDirectoryPath(fsPath)
-          ? fsPath
-          : fsPath && deps.isFilePath(fsPath)
-            ? path.dirname(fsPath)
-            : typeof rootPath === 'string' && rootPath
-              ? rootPath
-              : '';
-
-      if (!baseDir) {
-        vscode.window.showErrorMessage('Select a folder in Harrix Notes (HSK).');
-        return;
-      }
-
-      const name = await vscode.window.showInputBox({
-        title: 'New Note',
-        prompt: 'Enter note name (without extension)',
-        placeHolder: 'My-note',
-      });
-      if (!name) {
-        return;
-      }
-
-      const safeName = name.trim();
-      if (!safeName) {
-        return;
-      }
-
-      try {
-        runHarrixMarkdownNewNote(baseDir, safeName);
-        vscode.window.showInformationMessage('New Note running in Terminal.');
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : String(e);
-        vscode.window.showErrorMessage(`New Note failed: ${msg}`);
       }
     }),
   );

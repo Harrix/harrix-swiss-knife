@@ -167,7 +167,11 @@ class OnSortRuffFmtDocsPythonCode(ActionBase):
             # Generate Markdown documentation
             self.add_line("🔵 Generate Markdown documentation")
             domain = f"https://github.com/{self.config['github_user']}/{Path(folder_path).parts[-1]}"
-            self.add_line(h.py.generate_md_docs(folder_path, self.config["beginning_of_md_docs"], domain))
+            beginning_docs = OnNewMarkdown.apply_personal_data_to_beginning(
+                self.config["beginning_of_md_docs"],
+                self.config.get("personal_data"),
+            )
+            self.add_line(h.py.generate_md_docs(folder_path, beginning_docs, domain))
 
             # Format markdown files
             self.add_line("🔵 Format markdown files")
@@ -344,7 +348,11 @@ def format_and_sort_python_common(self, folder_path: str, *, is_include_docs_gen
             # Generate Markdown documentation
             self.add_line("🔵 Generate Markdown documentation")
             domain = f"https://github.com/{self.config['github_user']}/{Path(folder_path).parts[-1]}"
-            self.add_line(h.py.generate_md_docs(folder_path, self.config["beginning_of_md_docs"], domain))
+            beginning_docs = OnNewMarkdown.apply_personal_data_to_beginning(
+                self.config["beginning_of_md_docs"],
+                self.config.get("personal_data"),
+            )
+            self.add_line(h.py.generate_md_docs(folder_path, beginning_docs, domain))
 
             # Format markdown files
             self.add_line("🔵 Format markdown files")

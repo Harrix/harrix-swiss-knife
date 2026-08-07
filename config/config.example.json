@@ -2,6 +2,11 @@
   "beginning_of_article": "snippet:config/beginning-of-article.md",
   "beginning_of_md": "snippet:config/beginning-of-md.md",
   "beginning_of_md_docs": "snippet:config/beginning-of-md-en.md",
+  "personal_data": {
+    "enabled": false,
+    "author": "noname",
+    "author_email": ""
+  },
   "block_drives": [],
   "cli_commands": "snippet:config/cli-commands.md",
   "combine_for_ai_unchecked_extensions": [

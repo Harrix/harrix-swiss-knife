@@ -1,0 +1,30 @@
+---
+description: Keep @hsk-sync:new-note implementations aligned across Python, VS Code, and Android
+globs: src/harrix_swiss_knife/actions/markdown/new_markdown.py,config/beginning-of-*.md,config/config.example.json,vscode/harrix-notes-explorer-hsk/new-note.js,vscode/harrix-notes-explorer-hsk/package.json,vscode/harrix-notes-explorer-hsk/extension.js
+alwaysApply: false
+---
+
+# @hsk-sync:new-note
+
+Token `@hsk-sync:new-note` marks one logical **New note** command in three places. If behavior, beginning templates, or personal-data settings change in any implementation, update the other two to match.
+
+## Sibling implementations
+
+| Block | Path |
+|-------|------|
+| Python action | `src/harrix_swiss_knife/actions/markdown/new_markdown.py` (`OnNewMarkdown` new-note path) |
+| Beginning snippets | `config/beginning-of-*.md` + `personal_data` in `config.json` / `config.example.json` |
+| VS Code (JS) | `vscode/harrix-notes-explorer-hsk/new-note.js` + `harrixNotesExplorerHsk.newNote.*` / `personalData.*` in `package.json` |
+| Android | `D:\GitHub\harrix-notes-android` — create note + New note settings (`NotesTreeRepository`, `NotesViewerPreferences`, `SettingsScreen`, `NotesCreateNoteDialog`) |
+
+## Shared contract
+
+1. Choose a beginning template (picker when interactive; default/first otherwise).
+2. Body: beginning text + `\n# {heading}\n\n\n`.
+3. `personal_data.enabled` default **false** — omit `author` / `author-email` when off; inject configured values when on (defaults `noname` / empty).
+4. Desktop/JS filename stem: spaces → `-`, `-` → `--`; layout `{folder}/{stem}/{stem}.md`.
+5. Android may keep SAF single-file layout; **content** must match the contract.
+
+Out of scope for this sync id: Diary/Dream/Cases, rich `markdown_templates` (Coffee/Travel/…).
+
+Later synced commands use their own `@hsk-sync:<id>` + rule file using this pattern.
