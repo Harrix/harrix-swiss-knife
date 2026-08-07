@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -21,10 +22,13 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
@@ -68,7 +72,8 @@ import dev.harrix.hsk.R
 import dev.harrix.hsk.speechtotext.AudioRecorder
 import dev.harrix.hsk.speechtotext.WaveformBucket
 import dev.harrix.hsk.ui.AutoFitText
-
+import dev.harrix.hsk.ui.CompactBottomActionButton
+import dev.harrix.hsk.ui.adaptiveBottomBarWidth
 private enum class MicAction {
     Start,
     Continue,
@@ -310,17 +315,23 @@ private fun IdleContent(
             modifier = Modifier.fillMaxWidth(),
         )
         Spacer(modifier = Modifier.height(24.dp))
-        Button(
-            onClick = onRecord,
-            enabled = enabled,
+        Box(
+            modifier = Modifier.fillMaxWidth(),
+            contentAlignment = Alignment.Center,
         ) {
-            Icon(
-                imageVector = Icons.Filled.Mic,
-                contentDescription = null,
-                modifier = Modifier.size(20.dp),
-            )
-            Spacer(modifier = Modifier.size(8.dp))
-            Text(stringResource(R.string.speech_to_text_record))
+            Button(
+                onClick = onRecord,
+                enabled = enabled,
+                modifier = Modifier.adaptiveBottomBarWidth(),
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Mic,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp),
+                )
+                Spacer(modifier = Modifier.size(8.dp))
+                Text(stringResource(R.string.speech_to_text_record))
+            }
         }
     }
 }
@@ -334,48 +345,68 @@ private fun RecordingContent(
     onCancel: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(
-        modifier = modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Text(
-            text = stringResource(R.string.speech_to_text_recording),
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.error,
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = durationLabel,
-            style = MaterialTheme.typography.headlineMedium,
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-        WaveformView(
-            buckets = buckets,
-            live = live,
+    Column(modifier = modifier.fillMaxSize()) {
+        Column(
             modifier =
             Modifier
+                .weight(1f)
                 .fillMaxWidth()
-                .height(96.dp),
-        )
-        Spacer(modifier = Modifier.height(24.dp))
-        Button(onClick = onStop) {
-            Icon(
-                imageVector = Icons.Filled.Stop,
-                contentDescription = null,
-                modifier = Modifier.size(20.dp),
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Text(
+                text = stringResource(R.string.speech_to_text_recording),
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.error,
             )
-            Spacer(modifier = Modifier.size(8.dp))
-            Text(stringResource(R.string.speech_to_text_stop))
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = durationLabel,
+                style = MaterialTheme.typography.headlineMedium,
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            WaveformView(
+                buckets = buckets,
+                live = live,
+                modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .height(96.dp),
+            )
         }
         Spacer(modifier = Modifier.height(12.dp))
-        OutlinedButton(onClick = onCancel) {
-            Text(stringResource(R.string.speech_to_text_cancel_recording))
+        Box(
+            modifier = Modifier.fillMaxWidth(),
+            contentAlignment = Alignment.Center,
+        ) {
+            Column(
+                modifier = Modifier.adaptiveBottomBarWidth(),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Button(
+                    onClick = onStop,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Stop,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp),
+                    )
+                    Spacer(modifier = Modifier.size(8.dp))
+                    Text(stringResource(R.string.speech_to_text_stop))
+                }
+                OutlinedButton(
+                    onClick = onCancel,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(stringResource(R.string.speech_to_text_cancel_recording))
+                }
+            }
         }
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun RecordedContent(
     buckets: List<WaveformBucket>,
@@ -386,63 +417,73 @@ private fun RecordedContent(
     onDiscard: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(
-        modifier = modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Text(
-            text = stringResource(R.string.speech_to_text_recorded_ready),
-            style = MaterialTheme.typography.titleMedium,
-            textAlign = TextAlign.Center,
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = durationLabel,
-            style = MaterialTheme.typography.headlineMedium,
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-        WaveformView(
-            buckets = buckets,
-            live = false,
+    Column(modifier = modifier.fillMaxSize()) {
+        Column(
             modifier =
             Modifier
+                .weight(1f)
                 .fillMaxWidth()
-                .height(96.dp),
-        )
-        Spacer(modifier = Modifier.height(24.dp))
-        Button(
-            onClick = onRecognize,
-            modifier = Modifier.fillMaxWidth(),
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Text(stringResource(R.string.speech_to_text_recognize))
+            Text(
+                text = stringResource(R.string.speech_to_text_recorded_ready),
+                style = MaterialTheme.typography.titleMedium,
+                textAlign = TextAlign.Center,
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = durationLabel,
+                style = MaterialTheme.typography.headlineMedium,
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            WaveformView(
+                buckets = buckets,
+                live = false,
+                modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .height(96.dp),
+            )
         }
         Spacer(modifier = Modifier.height(12.dp))
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+        Box(
             modifier = Modifier.fillMaxWidth(),
+            contentAlignment = Alignment.Center,
         ) {
-            FilledTonalButton(onClick = onContinue) {
-                Icon(
-                    imageVector = Icons.Filled.PlayArrow,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp),
-                )
-                Spacer(modifier = Modifier.size(6.dp))
-                Text(stringResource(R.string.speech_to_text_continue))
-            }
-            OutlinedButton(onClick = onRerecord) {
-                Icon(
-                    imageVector = Icons.Filled.Refresh,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp),
-                )
-                Spacer(modifier = Modifier.size(6.dp))
-                Text(stringResource(R.string.speech_to_text_rerecord))
-            }
-            OutlinedButton(onClick = onDiscard) {
-                Text(stringResource(R.string.speech_to_text_discard_recording))
+            Column(
+                modifier = Modifier.adaptiveBottomBarWidth(),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Button(
+                    onClick = onRecognize,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(stringResource(R.string.speech_to_text_recognize))
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    CompactBottomActionButton(
+                        onClick = onContinue,
+                        icon = Icons.Filled.PlayArrow,
+                        label = stringResource(R.string.speech_to_text_continue),
+                    )
+                    CompactBottomActionButton(
+                        onClick = onRerecord,
+                        icon = Icons.Filled.Refresh,
+                        label = stringResource(R.string.speech_to_text_rerecord),
+                        outlined = true,
+                    )
+                    CompactBottomActionButton(
+                        onClick = onDiscard,
+                        icon = Icons.Filled.Delete,
+                        label = stringResource(R.string.speech_to_text_discard_recording),
+                        outlined = true,
+                    )
+                }
             }
         }
     }
@@ -566,34 +607,39 @@ private fun ResultContent(
             label = { Text(stringResource(R.string.speech_to_text_result_label)) },
         )
         Spacer(modifier = Modifier.height(12.dp))
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+        Box(
             modifier = Modifier.fillMaxWidth(),
+            contentAlignment = Alignment.Center,
         ) {
-            FilledTonalButton(onClick = onCopy) {
-                Icon(
-                    imageVector = Icons.Filled.ContentCopy,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp),
-                )
-                Spacer(modifier = Modifier.size(6.dp))
-                Text(stringResource(R.string.speech_to_text_copy))
-            }
-            OutlinedButton(onClick = onRewrite) {
-                Text(stringResource(R.string.speech_to_text_rewrite))
-            }
-            OutlinedButton(onClick = onSingleLine) {
-                Text(stringResource(R.string.speech_to_text_single_line))
-            }
-            Button(onClick = onRecordNew) {
-                Icon(
-                    imageVector = Icons.Filled.Mic,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp),
-                )
-                Spacer(modifier = Modifier.size(6.dp))
-                Text(stringResource(R.string.speech_to_text_record_new))
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.adaptiveBottomBarWidth(),
+            ) {
+                FilledTonalButton(onClick = onCopy) {
+                    Icon(
+                        imageVector = Icons.Filled.ContentCopy,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Spacer(modifier = Modifier.size(6.dp))
+                    Text(stringResource(R.string.speech_to_text_copy))
+                }
+                OutlinedButton(onClick = onRewrite) {
+                    Text(stringResource(R.string.speech_to_text_rewrite))
+                }
+                OutlinedButton(onClick = onSingleLine) {
+                    Text(stringResource(R.string.speech_to_text_single_line))
+                }
+                Button(onClick = onRecordNew) {
+                    Icon(
+                        imageVector = Icons.Filled.Mic,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Spacer(modifier = Modifier.size(6.dp))
+                    Text(stringResource(R.string.speech_to_text_record_new))
+                }
             }
         }
     }
