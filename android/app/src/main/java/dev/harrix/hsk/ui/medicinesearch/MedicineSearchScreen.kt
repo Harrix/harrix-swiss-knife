@@ -19,7 +19,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Medication
@@ -34,7 +33,6 @@ import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -55,7 +53,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import dev.harrix.hsk.R
-import dev.harrix.hsk.medicinesearch.MedicinesNoteOpener
 import dev.harrix.hsk.ui.AutoFitText
 import dev.harrix.hsk.ui.SimpleMarkdownText
 import dev.harrix.hsk.ui.adaptiveContentWidth
@@ -72,8 +69,6 @@ fun MedicineSearchScreen(
     var phase by viewModel.phase
     var queryText by viewModel.queryText
     val resultText by viewModel.resultText
-    var fileDisplayName by viewModel.fileDisplayName
-    var medicinesUri by viewModel.medicinesUri
     var hasMedicinesFile by viewModel.hasMedicinesFile
     var errorMessage by viewModel.errorMessage
     var hasApiKey by viewModel.hasApiKey
@@ -82,7 +77,6 @@ fun MedicineSearchScreen(
     val keyboard = LocalSoftwareKeyboardController.current
     val scrollState = rememberScrollState()
     val copiedMessage = stringResource(R.string.medicine_search_copied)
-    val openFailedMessage = stringResource(R.string.medicine_search_open_failed)
     val isSearching = phase == MedicineSearchPhase.Searching
     val isLoadingFile = phase == MedicineSearchPhase.LoadingFile
     val busy = isSearching || isLoadingFile
@@ -91,17 +85,6 @@ fun MedicineSearchScreen(
     fun leave() {
         viewModel.resetSession()
         onClose()
-    }
-
-    fun openMedicinesNote() {
-        val uri = medicinesUri
-        if (uri == null) {
-            return
-        }
-        val opened = MedicinesNoteOpener.open(context, uri)
-        if (!opened) {
-            Toast.makeText(context, openFailedMessage, Toast.LENGTH_SHORT).show()
-        }
     }
 
     fun askBotHub() {
@@ -229,58 +212,13 @@ fun MedicineSearchScreen(
                                 maxLines = 2,
                             )
                         }
-                    }
-                } else {
-                    Text(
-                        text =
-                        stringResource(
-                            R.string.medicine_search_file_label,
-                            fileDisplayName
-                                ?: stringResource(R.string.medicine_search_file_unnamed),
-                        ),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    FilledTonalButton(
-                        onClick = { openMedicinesNote() },
-                        enabled = !busy && medicinesUri != null,
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.OpenInNew,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp),
-                        )
-                        Spacer(modifier = Modifier.size(8.dp))
-                        AutoFitText(
-                            text = stringResource(R.string.medicine_search_open_note),
-                            maxLines = 2,
-                        )
-                    }
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        OutlinedButton(
-                            onClick = { pickMedicinesFile() },
+                        TextButton(
+                            onClick = onOpenSettings,
                             enabled = !busy,
-                            modifier = Modifier.weight(1f),
                         ) {
                             AutoFitText(
-                                text = stringResource(R.string.medicine_search_change_file),
+                                text = stringResource(R.string.medicine_search_settings),
                                 maxLines = 2,
-                                textAlign = TextAlign.Center,
-                            )
-                        }
-                        OutlinedButton(
-                            onClick = { viewModel.clearMedicinesFile() },
-                            enabled = !busy,
-                            modifier = Modifier.weight(1f),
-                        ) {
-                            AutoFitText(
-                                text = stringResource(R.string.medicine_search_clear_file),
-                                maxLines = 2,
-                                textAlign = TextAlign.Center,
                             )
                         }
                     }

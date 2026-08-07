@@ -2,6 +2,7 @@ package dev.harrix.hsk.ui.settings
 
 import android.content.Intent
 import android.net.Uri
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -83,6 +84,7 @@ import dev.harrix.hsk.gallery.GalleryPermissions
 import dev.harrix.hsk.gallery.GalleryReviewOrder
 import dev.harrix.hsk.gallery.MediaFolderPaths
 import dev.harrix.hsk.medicinesearch.MedicineSearchPreferences
+import dev.harrix.hsk.medicinesearch.MedicinesNoteOpener
 import dev.harrix.hsk.ui.AutoFitText
 import dev.harrix.hsk.ui.adaptiveContentWidth
 import dev.harrix.hsk.ui.isCompactWidth
@@ -646,10 +648,13 @@ private fun MedicineSearchSettingsSection(
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
+    var medicinesUri by remember { mutableStateOf(preferences.getMedicinesUri()) }
     var fileLabel by remember {
-        mutableStateOf(preferences.getMedicinesUri()?.let(::medicinesUriLabel))
+        mutableStateOf(medicinesUri?.let(::medicinesUriLabel))
     }
     var statusMessage by remember { mutableStateOf<String?>(null) }
+    val openFailedMessage = stringResource(R.string.medicine_search_open_failed)
+    val hasFile = medicinesUri != null
 
     val openDocument =
         rememberLauncherForActivityResult(
@@ -674,6 +679,7 @@ private fun MedicineSearchSettingsSection(
                     )
                 }
             }
+            medicinesUri = uri
             fileLabel = medicinesUriLabel(uri)
             statusMessage = context.getString(R.string.settings_medicine_search_file_saved)
         }
@@ -698,11 +704,36 @@ private fun MedicineSearchSettingsSection(
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+        Button(
+            onClick = {
+                val uri = medicinesUri ?: return@Button
+                val opened = MedicinesNoteOpener.open(context, uri)
+                if (!opened) {
+                    Toast.makeText(context, openFailedMessage, Toast.LENGTH_SHORT).show()
+                }
+            },
+            enabled = hasFile,
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp),
+        ) {
+            AutoFitText(
+                text = stringResource(R.string.medicine_search_open_note),
+                maxLines = 2,
+                textAlign = TextAlign.Center,
+            )
+        }
         SettingsFullWidthOutlinedButton(
             onClick = {
                 openDocument.launch(arrayOf("text/markdown", "text/plain", "*/*"))
             },
-            label = stringResource(R.string.settings_medicine_search_choose_file),
+            label =
+            stringResource(
+                if (hasFile) {
+                    R.string.medicine_search_change_file
+                } else {
+                    R.string.settings_medicine_search_choose_file
+                },
+            ),
         )
         SettingsFullWidthOutlinedButton(
             onClick = {
@@ -716,10 +747,11 @@ private fun MedicineSearchSettingsSection(
                         )
                     }
                 }
+                medicinesUri = null
                 fileLabel = null
                 statusMessage = context.getString(R.string.settings_medicine_search_file_cleared)
             },
-            enabled = !fileLabel.isNullOrBlank(),
+            enabled = hasFile,
             label = stringResource(R.string.settings_medicine_search_clear_file),
         )
         statusMessage?.let { message ->
