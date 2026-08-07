@@ -252,12 +252,12 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
                    (:amount, :description, :category_id, :currency_id, :date, :tag, :description_en)"""
         params = {
             "amount": self.convert_to_minor_units(amount, currency_id),
-            "description": description,
+            "description": description.strip(),
             "category_id": category_id,
             "currency_id": currency_id,
             "date": date,
             "tag": tag,
-            "description_en": description_en or None,
+            "description_en": description_en.strip() or None,
         }
         return self.execute_simple_query(query, params)
 
@@ -1651,18 +1651,26 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         """Return existing non-empty English translations keyed by description.
 
         Prefers `standard_items.name_en`, then fills gaps from `transactions.description_en`.
+        Matching is trim-tolerant so `'Молоко '` reuses the translation for `'Молоко'`.
+        Result keys are the original `descriptions` strings (exact DB values).
 
         """
         if not descriptions:
             return {}
-        placeholders = ", ".join(f":description_{index}" for index in range(len(descriptions)))
-        params = {f"description_{index}": description for index, description in enumerate(descriptions)}
-        result: dict[str, str] = {}
+
+        trimmed_forms = list({description.strip() for description in descriptions if description.strip()})
+        if not trimmed_forms:
+            return {}
+
+        placeholders = ", ".join(f":description_{index}" for index in range(len(trimmed_forms)))
+        params = {f"description_{index}": form for index, form in enumerate(trimmed_forms)}
+        by_trim: dict[str, str] = {}
+
         catalog_rows = self.get_rows(
             f"""
             SELECT name, name_en
             FROM standard_items
-            WHERE name IN ({placeholders})
+            WHERE TRIM(name) IN ({placeholders})
               AND name_en IS NOT NULL
               AND TRIM(name_en) != ''
             """,
@@ -1670,25 +1678,32 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         )
         for row in catalog_rows:
             if row[0] and row[1]:
-                result[str(row[0])] = str(row[1])
-        missing = [description for description in descriptions if description not in result]
-        if missing:
-            missing_placeholders = ", ".join(f":description_{index}" for index in range(len(missing)))
-            missing_params = {f"description_{index}": description for index, description in enumerate(missing)}
+                by_trim.setdefault(str(row[0]).strip(), str(row[1]).strip())
+
+        missing_forms = [form for form in trimmed_forms if form not in by_trim]
+        if missing_forms:
+            missing_placeholders = ", ".join(f":description_{index}" for index in range(len(missing_forms)))
+            missing_params = {f"description_{index}": form for index, form in enumerate(missing_forms)}
             rows = self.get_rows(
                 f"""
-                SELECT description, MIN(description_en)
+                SELECT TRIM(description), MIN(description_en)
                 FROM transactions
-                WHERE description IN ({missing_placeholders})
+                WHERE TRIM(description) IN ({missing_placeholders})
                   AND description_en IS NOT NULL
                   AND TRIM(description_en) != ''
-                GROUP BY description
+                GROUP BY TRIM(description)
                 """,
                 missing_params,
             )
             for row in rows:
                 if row[0] and row[1]:
-                    result[str(row[0])] = str(row[1])
+                    by_trim.setdefault(str(row[0]).strip(), str(row[1]).strip())
+
+        result: dict[str, str] = {}
+        for description in descriptions:
+            english = by_trim.get(description.strip(), "")
+            if description and english:
+                result[description] = english
         return result
 
     def set_default_currency(self, currency_code: str) -> bool:
@@ -2039,12 +2054,12 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
                    date = :date, tag = :tag, description_en = :description_en WHERE _id = :id"""
         params = {
             "amount": self.convert_to_minor_units(amount, currency_id),
-            "description": description,
+            "description": description.strip(),
             "category_id": category_id,
             "currency_id": currency_id,
             "date": date,
             "tag": tag,
-            "description_en": description_en or None,
+            "description_en": description_en.strip() or None,
             "id": transaction_id,
         }
         return self.execute_simple_query(query, params)
@@ -2057,10 +2072,10 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             """
             UPDATE transactions
             SET description_en = :description_en
-            WHERE description = :description
+            WHERE TRIM(description) = TRIM(:description)
               AND (description_en IS NULL OR TRIM(description_en) = '')
             """,
-            {"description": description, "description_en": description_en},
+            {"description": description, "description_en": description_en.strip()},
         )
 
     def update_transactions_date(self, transaction_ids: list[int], date: str) -> bool:

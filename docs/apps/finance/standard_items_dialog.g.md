@@ -155,7 +155,8 @@ class StandardItemsDialog(QDialog):
             return
 
         def on_success(response_text: str) -> None:
-            translations = parse_transaction_translate_response(response_text)
+            parsed = parse_transaction_translate_response(response_text)
+            translations = align_translations_to_descriptions(names_for_ai, parsed)
             preview = TransactionTranslatePreviewDialog(
                 self,
                 names_for_ai,

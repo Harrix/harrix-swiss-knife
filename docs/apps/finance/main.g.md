@@ -5262,7 +5262,8 @@ class MainWindow(
         filled_from_existing: int = 0,
     ) -> None:
         """Parse AI TSV, preview translations, and apply confirmed values."""
-        translations = parse_transaction_translate_response(response_text)
+        parsed = parse_transaction_translate_response(response_text)
+        translations = align_translations_to_descriptions(descriptions, parsed)
         if not translations:
             preview = response_text.strip()[:300]
             message_box.warning(

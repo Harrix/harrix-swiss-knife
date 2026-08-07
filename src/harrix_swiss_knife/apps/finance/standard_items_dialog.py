@@ -25,7 +25,10 @@ from PySide6.QtWidgets import (
 
 from harrix_swiss_knife import qt_modality
 from harrix_swiss_knife.apps.common import message_box
-from harrix_swiss_knife.apps.finance.transaction_translate_parser import parse_transaction_translate_response
+from harrix_swiss_knife.apps.finance.transaction_translate_parser import (
+    align_translations_to_descriptions,
+    parse_transaction_translate_response,
+)
 from harrix_swiss_knife.apps.finance.transaction_translate_preview_dialog import TransactionTranslatePreviewDialog
 from harrix_swiss_knife.integrations.bothub import (
     BothubRequestState,
@@ -176,7 +179,8 @@ class StandardItemsDialog(QDialog):
             return
 
         def on_success(response_text: str) -> None:
-            translations = parse_transaction_translate_response(response_text)
+            parsed = parse_transaction_translate_response(response_text)
+            translations = align_translations_to_descriptions(names_for_ai, parsed)
             preview = TransactionTranslatePreviewDialog(
                 self,
                 names_for_ai,

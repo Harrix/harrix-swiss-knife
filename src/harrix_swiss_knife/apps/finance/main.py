@@ -149,7 +149,10 @@ from harrix_swiss_knife.apps.finance.transaction_helpers import calculate_exchan
 from harrix_swiss_knife.apps.finance.transaction_helpers import (
     transform_transaction_data as transform_transaction_data_helper,
 )
-from harrix_swiss_knife.apps.finance.transaction_translate_parser import parse_transaction_translate_response
+from harrix_swiss_knife.apps.finance.transaction_translate_parser import (
+    align_translations_to_descriptions,
+    parse_transaction_translate_response,
+)
 from harrix_swiss_knife.apps.finance.transaction_translate_preview_dialog import TransactionTranslatePreviewDialog
 from harrix_swiss_knife.apps.finance.widgets import ClickableCategoryLabel
 from harrix_swiss_knife.integrations.bothub import (
@@ -5371,7 +5374,8 @@ class MainWindow(
         filled_from_existing: int = 0,
     ) -> None:
         """Parse AI TSV, preview translations, and apply confirmed values."""
-        translations = parse_transaction_translate_response(response_text)
+        parsed = parse_transaction_translate_response(response_text)
+        translations = align_translations_to_descriptions(descriptions, parsed)
         if not translations:
             preview = response_text.strip()[:300]
             message_box.warning(
