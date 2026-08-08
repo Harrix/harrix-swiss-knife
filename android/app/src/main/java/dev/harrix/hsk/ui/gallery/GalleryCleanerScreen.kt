@@ -89,6 +89,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -195,10 +196,19 @@ fun GalleryCleanerScreen(
     var unreviewedCountIgnoringDateFilter by viewModel.unreviewedCountIgnoringDateFilter
     var editImageRevision by viewModel.editImageRevision
     var pendingWritePhoto by viewModel.pendingWritePhoto
+    var isPhotoZoomed by remember { mutableStateOf(false) }
+    var zoomResetToken by remember { mutableIntStateOf(0) }
 
     fun leaveCleaner() {
         viewModel.resetSession()
         onClose()
+    }
+
+    fun resetPhotoZoom() {
+        if (!isPhotoZoomed) {
+            return
+        }
+        zoomResetToken += 1
     }
 
     fun refreshManageMediaAccess() {
@@ -527,6 +537,8 @@ fun GalleryCleanerScreen(
             menuExpanded -> menuExpanded = false
 
             isEditing -> exitEditMode()
+
+            isPhotoZoomed -> resetPhotoZoom()
 
             else -> leaveCleaner()
         }
@@ -1279,6 +1291,8 @@ fun GalleryCleanerScreen(
                                 photo = photo,
                                 resetKey = cardResetKey,
                                 imageRevision = editImageRevision,
+                                zoomResetToken = zoomResetToken,
+                                onZoomedChange = { isPhotoZoomed = it },
                                 onDelete = { deletePhoto(photo) },
                                 onKeep = { advanceAfterReview(photo) },
                                 showMetadata = false,
@@ -1336,6 +1350,8 @@ fun GalleryCleanerScreen(
                             photo = photo,
                             resetKey = cardResetKey,
                             imageRevision = editImageRevision,
+                            zoomResetToken = zoomResetToken,
+                            onZoomedChange = { isPhotoZoomed = it },
                             onDelete = { deletePhoto(photo) },
                             onKeep = { advanceAfterReview(photo) },
                             modifier = Modifier.fillMaxSize(),
@@ -1644,6 +1660,8 @@ private fun SwipeablePhotoCard(
     onKeep: () -> Unit,
     modifier: Modifier = Modifier,
     showMetadata: Boolean = true,
+    zoomResetToken: Int = 0,
+    onZoomedChange: (Boolean) -> Unit = {},
 ) {
     val density = LocalDensity.current
     val scope = rememberCoroutineScope()
@@ -1656,6 +1674,7 @@ private fun SwipeablePhotoCard(
     val dismissThreshold = with(density) { 96.dp.toPx() }
     val exitDistance = with(density) { 480.dp.toPx() }
     val isZoomed = zoomScale > 1.01f
+    val onZoomedChangeState = rememberUpdatedState(onZoomedChange)
 
     LaunchedEffect(resetKey) {
         offsetX.snapTo(0f)
@@ -1663,6 +1682,22 @@ private fun SwipeablePhotoCard(
         dragOffset = Offset.Zero
         zoomScale = PhotoMinZoom
         zoomOffset = Offset.Zero
+    }
+
+    LaunchedEffect(zoomResetToken) {
+        if (zoomResetToken == 0) {
+            return@LaunchedEffect
+        }
+        zoomScale = PhotoMinZoom
+        zoomOffset = Offset.Zero
+    }
+
+    LaunchedEffect(isZoomed) {
+        onZoomedChangeState.value(isZoomed)
+    }
+
+    DisposableEffect(Unit) {
+        onDispose { onZoomedChangeState.value(false) }
     }
 
     val displayOffset =
