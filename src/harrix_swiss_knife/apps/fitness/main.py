@@ -279,7 +279,7 @@ class MainWindow(
         QTimer.singleShot(200, self._finish_window_initialization)
 
     @requires_database()
-    def apply_filter(self) -> None:
+    def apply_filter(self, *_args: object) -> None:
         """Apply combo-box/date filters to the process table."""
         if self.db_manager is None:
             logger.error("❌ Database manager is not initialized")
