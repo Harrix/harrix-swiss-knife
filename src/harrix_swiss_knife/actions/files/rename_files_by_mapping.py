@@ -80,7 +80,7 @@ Example:
 
         Args:
 
-        -`mapping_text` (`str`): Text with `old_filename<TAB>new_filename` per line.
+        - `mapping_text` (`str`): Text with `old_filename<TAB>new_filename` per line.
 
         Returns:
 
