@@ -184,10 +184,12 @@ fun SettingsScreen(
         }
 
     fun goBack() {
-        if (page == HskSettingsPage.Hub) {
-            onClose()
-        } else {
+        // Feature settings (Medicine / Gallery) open on a detail page — Back should leave
+        // settings and return to the utility, not invent a stop on the global Hub.
+        if (section == SettingsSection.All && page != HskSettingsPage.Hub) {
             page = HskSettingsPage.Hub
+        } else {
+            onClose()
         }
     }
 
