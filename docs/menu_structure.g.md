@@ -25,6 +25,7 @@ def get_menu_structure() -> list[Any]:
             "🛠️",
             [
                 OnAboutDialog,
+                OnAddToAutostart,
                 OnCreateDesktopShortcut,
                 OnDownloadOptimizeDependencies,
                 OnUpdateNode,

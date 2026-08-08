@@ -6,6 +6,16 @@ lang: en
 
 # 📄 File `desktop_shortcut.py`
 
+<details>
+<summary>📖 Contents ⬇️</summary>
+
+## Contents
+
+- [🔧 Function `create_desktop_shortcut`](#-function-create_desktop_shortcut)
+- [🔧 Function `create_startup_shortcut`](#-function-create_startup_shortcut)
+
+</details>
+
 ## 🔧 Function `create_desktop_shortcut`
 
 ```python
@@ -26,52 +36,39 @@ Raises:
 
 ```python
 def create_desktop_shortcut(project_root: Path) -> Path:
-    if sys.platform != "win32":
-        msg = "Desktop shortcut is only supported on Windows"
-        raise OSError(msg)
+    return _create_app_shortcut(
+        project_root,
+        destination=_get_shell_folder(_CSIDL_DESKTOPDIRECTORY, "Desktop"),
+        kind="Desktop",
+    )
+```
 
-    root = project_root.resolve()
-    pyw = root / ".venv" / "Scripts" / "pythonw.exe"
-    main_py = root / "src" / "harrix_swiss_knife" / "main.py"
-    if not pyw.is_file():
-        msg = f"pythonw.exe not found: {pyw}"
-        raise OSError(msg)
-    if not main_py.is_file():
-        msg = f"main.py not found: {main_py}"
-        raise OSError(msg)
+</details>
 
-    desktop = _get_desktop_directory()
-    if not desktop.is_dir():
-        msg = f"Desktop folder not found: {desktop}"
-        raise OSError(msg)
+## 🔧 Function `create_startup_shortcut`
 
-    final_lnk = desktop / _SHORTCUT_NAME
-    staging = root / "temp" / _STAGING_NAME
-    staging.parent.mkdir(parents=True, exist_ok=True)
+```python
+def create_startup_shortcut(project_root: Path) -> Path
+```
 
-    try:
-        _write_shortcut_file(
-            staging,
-            target=pyw,
-            arguments=f'"{main_py}"',
-            working_directory=root,
-            description="Harrix Swiss Knife",
-            icon_location=_resolve_icon_location(root),
-        )
-        if final_lnk.exists():
-            final_lnk.unlink()
-        shutil.move(str(staging), str(final_lnk))
-    except Exception as e:
-        msg = f"Could not create desktop shortcut: {e}"
-        raise OSError(msg) from e
-    finally:
-        if staging.exists():
-            staging.unlink(missing_ok=True)
+Create or update the Startup-folder shortcut for Windows autostart.
 
-    if not final_lnk.is_file():
-        msg = f"Shortcut file was not created: {final_lnk}"
-        raise OSError(msg)
-    return final_lnk
+Same target/args/cwd/icon as the desktop shortcut. Returns the `.lnk` path.
+
+Raises:
+
+- `OSError`: On non-Windows platforms or when shortcut creation fails.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def create_startup_shortcut(project_root: Path) -> Path:
+    return _create_app_shortcut(
+        project_root,
+        destination=_get_shell_folder(_CSIDL_STARTUP, "Startup"),
+        kind="Startup",
+    )
 ```
 
 </details>

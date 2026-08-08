@@ -58,6 +58,7 @@ _Figure 1: Screenshot_
 
 - **Dev**
   - ℹ️ About
+  - 🚀 Add to Windows autostart
   - 🧹 Clear temp folder
   - 🔗 Create desktop shortcut
   - ⬇️ Download ffmpeg, avifenc, avifdec

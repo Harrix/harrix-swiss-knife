@@ -1,4 +1,4 @@
-"""Create Windows desktop shortcut for Harrix Swiss Knife (`install/harrix-swiss-knife.ps1` logic)."""
+"""Create Windows shortcuts for Harrix Swiss Knife (`install/harrix-swiss-knife.ps1` logic)."""
 
 from __future__ import annotations
 
@@ -11,6 +11,7 @@ from pathlib import Path
 _SHORTCUT_NAME = "Harrix Swiss Knife.lnk"
 _STAGING_NAME = ".hsk_desktop_shortcut_build.lnk"
 _CSIDL_DESKTOPDIRECTORY = 0x10
+_CSIDL_STARTUP = 0x07
 
 
 def create_desktop_shortcut(project_root: Path) -> Path:
@@ -24,8 +25,33 @@ def create_desktop_shortcut(project_root: Path) -> Path:
     - `OSError`: On non-Windows platforms or when shortcut creation fails.
 
     """
+    return _create_app_shortcut(
+        project_root,
+        destination=_get_shell_folder(_CSIDL_DESKTOPDIRECTORY, "Desktop"),
+        kind="Desktop",
+    )
+
+
+def create_startup_shortcut(project_root: Path) -> Path:
+    """Create or update the Startup-folder shortcut for Windows autostart.
+
+    Same target/args/cwd/icon as the desktop shortcut. Returns the `.lnk` path.
+
+    Raises:
+
+    - `OSError`: On non-Windows platforms or when shortcut creation fails.
+
+    """
+    return _create_app_shortcut(
+        project_root,
+        destination=_get_shell_folder(_CSIDL_STARTUP, "Startup"),
+        kind="Startup",
+    )
+
+
+def _create_app_shortcut(project_root: Path, *, destination: Path, kind: str) -> Path:
     if sys.platform != "win32":
-        msg = "Desktop shortcut is only supported on Windows"
+        msg = f"{kind} shortcut is only supported on Windows"
         raise OSError(msg)
 
     root = project_root.resolve()
@@ -38,12 +64,11 @@ def create_desktop_shortcut(project_root: Path) -> Path:
         msg = f"main.py not found: {main_py}"
         raise OSError(msg)
 
-    desktop = _get_desktop_directory()
-    if not desktop.is_dir():
-        msg = f"Desktop folder not found: {desktop}"
+    if not destination.is_dir():
+        msg = f"{kind} folder not found: {destination}"
         raise OSError(msg)
 
-    final_lnk = desktop / _SHORTCUT_NAME
+    final_lnk = destination / _SHORTCUT_NAME
     staging = root / "temp" / _STAGING_NAME
     staging.parent.mkdir(parents=True, exist_ok=True)
 
@@ -60,7 +85,7 @@ def create_desktop_shortcut(project_root: Path) -> Path:
             final_lnk.unlink()
         shutil.move(str(staging), str(final_lnk))
     except Exception as e:
-        msg = f"Could not create desktop shortcut: {e}"
+        msg = f"Could not create {kind.lower()} shortcut: {e}"
         raise OSError(msg) from e
     finally:
         if staging.exists():
@@ -72,11 +97,11 @@ def create_desktop_shortcut(project_root: Path) -> Path:
     return final_lnk
 
 
-def _get_desktop_directory() -> Path:
-    """Return the physical Desktop folder (SHGetFolderPathW, wide-char)."""
+def _get_shell_folder(csidl: int, label: str) -> Path:
+    """Return a special folder path via SHGetFolderPathW (wide-char)."""
     buf = ctypes.create_unicode_buffer(260)
-    if ctypes.windll.shell32.SHGetFolderPathW(None, _CSIDL_DESKTOPDIRECTORY, None, 0, buf) != 0:
-        msg = "Desktop folder not found"
+    if ctypes.windll.shell32.SHGetFolderPathW(None, csidl, None, 0, buf) != 0:
+        msg = f"{label} folder not found"
         raise OSError(msg)
     return Path(buf.value)
 
