@@ -31,8 +31,12 @@ lang: en
   - [⚙️ Method `get_exercise_chart_data`](#%EF%B8%8F-method-get_exercise_chart_data)
   - [⚙️ Method `get_exercise_max_values`](#%EF%B8%8F-method-get_exercise_max_values)
   - [⚙️ Method `get_exercise_name_by_id`](#%EF%B8%8F-method-get_exercise_name_by_id)
+  - [⚙️ Method `get_exercise_name_local`](#%EF%B8%8F-method-get_exercise_name_local)
+  - [⚙️ Method `get_exercise_name_local_map`](#%EF%B8%8F-method-get_exercise_name_local_map)
+  - [⚙️ Method `get_exercise_names_missing_name_local`](#%EF%B8%8F-method-get_exercise_names_missing_name_local)
   - [⚙️ Method `get_exercise_steps_records`](#%EF%B8%8F-method-get_exercise_steps_records)
   - [⚙️ Method `get_exercise_total_today`](#%EF%B8%8F-method-get_exercise_total_today)
+  - [⚙️ Method `get_exercise_type_names_missing_name_local`](#%EF%B8%8F-method-get_exercise_type_names_missing_name_local)
   - [⚙️ Method `get_exercise_types`](#%EF%B8%8F-method-get_exercise_types)
   - [⚙️ Method `get_exercise_unit`](#%EF%B8%8F-method-get_exercise_unit)
   - [⚙️ Method `get_exercises_by_frequency`](#%EF%B8%8F-method-get_exercises_by_frequency)
@@ -52,7 +56,9 @@ lang: en
   - [⚙️ Method `get_weight_chart_data`](#%EF%B8%8F-method-get_weight_chart_data)
   - [⚙️ Method `is_exercise_type_required`](#%EF%B8%8F-method-is_exercise_type_required)
   - [⚙️ Method `update_exercise`](#%EF%B8%8F-method-update_exercise)
+  - [⚙️ Method `update_exercise_name_local_by_name`](#%EF%B8%8F-method-update_exercise_name_local_by_name)
   - [⚙️ Method `update_exercise_type`](#%EF%B8%8F-method-update_exercise_type)
+  - [⚙️ Method `update_exercise_type_name_local_by_type`](#%EF%B8%8F-method-update_exercise_type_name_local_by_type)
   - [⚙️ Method `update_process_record`](#%EF%B8%8F-method-update_process_record)
   - [⚙️ Method `update_weight_record`](#%EF%B8%8F-method-update_weight_record)
 
@@ -90,8 +96,17 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         """
         super().__init__(prefix="fitness_db", db_filename=db_filename)
+        self._ensure_name_local_columns()
 
-    def add_exercise(self, name: str, unit: str, *, is_type_required: bool, calories_per_unit: float = 0.0) -> bool:
+    def add_exercise(
+        self,
+        name: str,
+        unit: str,
+        *,
+        is_type_required: bool,
+        calories_per_unit: float = 0.0,
+        name_local: str = "",
+    ) -> bool:
         """Add a new exercise to the database.
 
         Args:
@@ -100,6 +115,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         - `unit` (`str`): Unit of measurement.
         - `is_type_required` (`bool`): Whether exercise type is required.
         - `calories_per_unit` (`float`): Calories burned per unit. Defaults to `0.0`.
+        - `name_local` (`str`): Local-language exercise name. Defaults to `""`.
 
         Returns:
 
@@ -107,18 +123,25 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         """
         query = (
-            "INSERT INTO exercises (name, unit, is_type_required, calories_per_unit) "
-            "VALUES (:name, :unit, :is_type_required, :calories_per_unit)"
+            "INSERT INTO exercises (name, unit, is_type_required, calories_per_unit, name_local) "
+            "VALUES (:name, :unit, :is_type_required, :calories_per_unit, :name_local)"
         )
         params = {
             "name": name,
             "unit": unit,
             "is_type_required": 1 if is_type_required else 0,
             "calories_per_unit": calories_per_unit,
+            "name_local": name_local or None,
         }
         return self.execute_simple_query(query, params)
 
-    def add_exercise_type(self, exercise_id: int, type_name: str, calories_modifier: float = 1.0) -> bool:
+    def add_exercise_type(
+        self,
+        exercise_id: int,
+        type_name: str,
+        calories_modifier: float = 1.0,
+        name_local: str = "",
+    ) -> bool:
         """Add a new exercise type.
 
         Args:
@@ -126,15 +149,25 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         - `exercise_id` (`int`): Exercise ID.
         - `type_name` (`str`): Type name.
         - `calories_modifier` (`float`): Calories modifier for this type. Defaults to `1.0`.
+        - `name_local` (`str`): Local-language type name. Defaults to `""`.
 
         Returns:
 
         - `bool`: `True` if successful, `False` otherwise.
 
         """
-        query = "INSERT INTO types (_id_exercises, type, calories_modifier) VALUES (:ex, :tp, :calories_modifier)"
+        query = (
+            "INSERT INTO types (_id_exercises, type, calories_modifier, name_local) "
+            "VALUES (:ex, :tp, :calories_modifier, :name_local)"
+        )
         return self.execute_simple_query(
-            query, {"ex": exercise_id, "tp": type_name, "calories_modifier": calories_modifier}
+            query,
+            {
+                "ex": exercise_id,
+                "tp": type_name,
+                "calories_modifier": calories_modifier,
+                "name_local": name_local or None,
+            },
         )
 
     def add_process_record(self, exercise_id: int, type_id: int, value: str, date: str) -> bool:
@@ -267,11 +300,12 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `list[list[Any]]`: List of type records [\_id, exercise_name, type_name, calories_modifier].
+        - `list[list[Any]]`: List of type records
+          [\_id, exercise_name, type_name, calories_modifier, name_local].
 
         """
         return self.get_rows("""
-            SELECT t._id, e.name, t.type, t.calories_modifier
+            SELECT t._id, e.name, t.type, t.calories_modifier, IFNULL(t.name_local, '')
             FROM types t
             JOIN exercises e ON t._id_exercises = e._id
         """)
@@ -281,10 +315,13 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `list[list[Any]]`: List of exercise records [\_id, name, unit, is_type_required, calories_per_unit].
+        - `list[list[Any]]`: List of exercise records
+          [\_id, name, unit, is_type_required, calories_per_unit, name_local].
 
         """
-        return self.get_rows("SELECT _id, name, unit, is_type_required, calories_per_unit FROM exercises")
+        return self.get_rows(
+            "SELECT _id, name, unit, is_type_required, calories_per_unit, IFNULL(name_local, '') FROM exercises"
+        )
 
     def get_all_process_records(self) -> list[list[Any]]:
         r"""Get all process records with exercise and type names.
@@ -460,6 +497,43 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         rows = self.get_rows("SELECT name FROM exercises WHERE _id = :id", {"id": exercise_id})
         return rows[0][0] if rows else None
 
+    def get_exercise_name_local(self, exercise_name: str) -> str:
+        """Return local name for `exercise_name`, or empty string when missing."""
+        rows = self.get_rows(
+            "SELECT IFNULL(name_local, '') FROM exercises WHERE name = :name",
+            {"name": exercise_name},
+        )
+        if rows and rows[0][0]:
+            return str(rows[0][0])
+        return ""
+
+    def get_exercise_name_local_map(self) -> dict[str, str]:
+        """Return mapping of English exercise name to non-empty local name."""
+        rows = self.get_rows("SELECT name, IFNULL(name_local, '') FROM exercises")
+        result: dict[str, str] = {}
+        for row in rows:
+            if not row or row[0] is None:
+                continue
+            name = str(row[0])
+            name_local = str(row[1] or "").strip()
+            if name and name_local:
+                result[name] = name_local
+        return result
+
+    def get_exercise_names_missing_name_local(self, *, limit: int = 250) -> list[str]:
+        """Return distinct exercise names that still need a local translation."""
+        rows = self.get_rows(
+            """
+            SELECT name FROM exercises
+            WHERE name IS NOT NULL AND TRIM(name) != ''
+              AND (name_local IS NULL OR TRIM(name_local) = '')
+            ORDER BY name
+            LIMIT :limit
+            """,
+            {"limit": limit},
+        )
+        return [str(row[0]) for row in rows if row and row[0] is not None]
+
     def get_exercise_steps_records(self, exercise_id: int) -> list[tuple[str, int, str]]:
         """Get steps records grouped by date.
 
@@ -509,6 +583,20 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             except (ValueError, TypeError):
                 return 0.0
         return 0.0
+
+    def get_exercise_type_names_missing_name_local(self, *, limit: int = 250) -> list[str]:
+        """Return distinct type names that still need a local translation."""
+        rows = self.get_rows(
+            """
+            SELECT DISTINCT type FROM types
+            WHERE type IS NOT NULL AND TRIM(type) != ''
+              AND (name_local IS NULL OR TRIM(name_local) = '')
+            ORDER BY type
+            LIMIT :limit
+            """,
+            {"limit": limit},
+        )
+        return [str(row[0]) for row in rows if row and row[0] is not None]
 
     def get_exercise_types(self, exercise_id: int) -> list[str]:
         """Get all types for a specific exercise.
@@ -979,7 +1067,14 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         return bool(rows and rows[0][0] == 1)
 
     def update_exercise(
-        self, exercise_id: int, name: str, unit: str, *, is_type_required: bool, calories_per_unit: float = 0.0
+        self,
+        exercise_id: int,
+        name: str,
+        unit: str,
+        *,
+        is_type_required: bool,
+        calories_per_unit: float = 0.0,
+        name_local: str = "",
     ) -> bool:
         """Update an existing exercise.
 
@@ -990,6 +1085,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         - `unit` (`str`): Unit of measurement.
         - `is_type_required` (`bool`): Whether exercise type is required.
         - `calories_per_unit` (`float`): Calories burned per unit. Defaults to `0.0`.
+        - `name_local` (`str`): Local-language exercise name. Defaults to `""`.
 
         Returns:
 
@@ -998,7 +1094,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         """
         query = (
             "UPDATE exercises SET name = :n, unit = :u, "
-            "is_type_required = :itr, calories_per_unit = :cpu "
+            "is_type_required = :itr, calories_per_unit = :cpu, name_local = :nl "
             "WHERE _id = :id"
         )
         params = {
@@ -1006,12 +1102,45 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             "u": unit,
             "itr": 1 if is_type_required else 0,
             "cpu": calories_per_unit,
+            "nl": name_local or None,
             "id": exercise_id,
         }
         return self.execute_simple_query(query, params)
 
+    def update_exercise_name_local_by_name(self, name: str, name_local: str) -> int:
+        """Set `name_local` for all exercises matching English `name` with empty local name.
+
+        Returns:
+
+        - `int`: Number of updated rows when known, otherwise `1` on success and `0` on failure.
+
+        """
+        before = self.get_rows(
+            """
+            SELECT COUNT(*) FROM exercises
+            WHERE name = :name AND (name_local IS NULL OR TRIM(name_local) = '')
+            """,
+            {"name": name},
+        )
+        ok = self.execute_simple_query(
+            """
+            UPDATE exercises
+            SET name_local = :nl
+            WHERE name = :name AND (name_local IS NULL OR TRIM(name_local) = '')
+            """,
+            {"nl": name_local, "name": name},
+        )
+        if not ok:
+            return 0
+        return int(before[0][0]) if before and before[0] and before[0][0] is not None else 0
+
     def update_exercise_type(
-        self, type_id: int, exercise_id: int, type_name: str, calories_modifier: float = 1.0
+        self,
+        type_id: int,
+        exercise_id: int,
+        type_name: str,
+        calories_modifier: float = 1.0,
+        name_local: str = "",
     ) -> bool:
         """Update an existing exercise type.
 
@@ -1021,15 +1150,46 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         - `exercise_id` (`int`): Exercise ID.
         - `type_name` (`str`): Type name.
         - `calories_modifier` (`float`): Calories modifier for this type. Defaults to `1.0`.
+        - `name_local` (`str`): Local-language type name. Defaults to `""`.
 
         Returns:
 
         - `bool`: `True` if successful, `False` otherwise.
 
         """
-        query = "UPDATE types SET _id_exercises = :ex, type = :tp, calories_modifier = :cm WHERE _id = :id"
-        params = {"ex": exercise_id, "tp": type_name, "cm": calories_modifier, "id": type_id}
+        query = (
+            "UPDATE types SET _id_exercises = :ex, type = :tp, "
+            "calories_modifier = :cm, name_local = :nl WHERE _id = :id"
+        )
+        params = {
+            "ex": exercise_id,
+            "tp": type_name,
+            "cm": calories_modifier,
+            "nl": name_local or None,
+            "id": type_id,
+        }
         return self.execute_simple_query(query, params)
+
+    def update_exercise_type_name_local_by_type(self, type_name: str, name_local: str) -> int:
+        """Set `name_local` for all types matching English `type_name` with empty local name."""
+        before = self.get_rows(
+            """
+            SELECT COUNT(*) FROM types
+            WHERE type = :tp AND (name_local IS NULL OR TRIM(name_local) = '')
+            """,
+            {"tp": type_name},
+        )
+        ok = self.execute_simple_query(
+            """
+            UPDATE types
+            SET name_local = :nl
+            WHERE type = :tp AND (name_local IS NULL OR TRIM(name_local) = '')
+            """,
+            {"nl": name_local, "tp": type_name},
+        )
+        if not ok:
+            return 0
+        return int(before[0][0]) if before and before[0] and before[0][0] is not None else 0
 
     def update_process_record(self, record_id: int, exercise_id: int, type_id: int, value: str, date: str) -> bool:
         """Update an existing process record.
@@ -1081,6 +1241,31 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         query = "UPDATE weight SET value = :v, date = :d WHERE _id = :id"
         params = {"v": value, "d": date, "id": record_id}
         return self.execute_simple_query(query, params)
+
+    def _ensure_name_local_columns(self) -> None:
+        """Ensure `name_local` exists on `exercises` and `types`."""
+        self._ensure_table_text_column("exercises", "name_local")
+        self._ensure_table_text_column("types", "name_local")
+
+    def _ensure_table_text_column(self, table_name: str, column_name: str) -> None:
+        """Add a TEXT column when missing (`exercises` / `types` only)."""
+        allowed_tables = {"exercises", "types"}
+        allowed_columns = {"name_local"}
+        if table_name not in allowed_tables or column_name not in allowed_columns:
+            logger.error("Refusing to alter unexpected table/column: %s.%s", table_name, column_name)
+            return
+        try:
+            columns = {
+                str(row[1])
+                for row in self.get_rows(f"PRAGMA table_info({table_name})")
+                if row and len(row) > 1 and row[1] is not None
+            }
+            if column_name in columns:
+                return
+            if not self.execute_simple_query(f"ALTER TABLE {table_name} ADD COLUMN {column_name} TEXT"):
+                logger.error("Failed to add %s.%s column", table_name, column_name)
+        except Exception:
+            logger.exception("Could not ensure %s.%s column", table_name, column_name)
 ```
 
 </details>
@@ -1107,6 +1292,7 @@ Raises:
 ```python
 def __init__(self, db_filename: str) -> None:
         super().__init__(prefix="fitness_db", db_filename=db_filename)
+        self._ensure_name_local_columns()
 ```
 
 </details>
@@ -1114,7 +1300,7 @@ def __init__(self, db_filename: str) -> None:
 ### ⚙️ Method `add_exercise`
 
 ```python
-def add_exercise(self, name: str, unit: str, *, is_type_required: bool, calories_per_unit: float = 0.0) -> bool
+def add_exercise(self, name: str, unit: str, *, is_type_required: bool, calories_per_unit: float = 0.0, name_local: str = '') -> bool
 ```
 
 Add a new exercise to the database.
@@ -1125,6 +1311,7 @@ Args:
 - `unit` (`str`): Unit of measurement.
 - `is_type_required` (`bool`): Whether exercise type is required.
 - `calories_per_unit` (`float`): Calories burned per unit. Defaults to `0.0`.
+- `name_local` (`str`): Local-language exercise name. Defaults to `""`.
 
 Returns:
 
@@ -1134,16 +1321,25 @@ Returns:
 <summary>Code:</summary>
 
 ```python
-def add_exercise(self, name: str, unit: str, *, is_type_required: bool, calories_per_unit: float = 0.0) -> bool:
+def add_exercise(
+        self,
+        name: str,
+        unit: str,
+        *,
+        is_type_required: bool,
+        calories_per_unit: float = 0.0,
+        name_local: str = "",
+    ) -> bool:
         query = (
-            "INSERT INTO exercises (name, unit, is_type_required, calories_per_unit) "
-            "VALUES (:name, :unit, :is_type_required, :calories_per_unit)"
+            "INSERT INTO exercises (name, unit, is_type_required, calories_per_unit, name_local) "
+            "VALUES (:name, :unit, :is_type_required, :calories_per_unit, :name_local)"
         )
         params = {
             "name": name,
             "unit": unit,
             "is_type_required": 1 if is_type_required else 0,
             "calories_per_unit": calories_per_unit,
+            "name_local": name_local or None,
         }
         return self.execute_simple_query(query, params)
 ```
@@ -1153,7 +1349,7 @@ def add_exercise(self, name: str, unit: str, *, is_type_required: bool, calories
 ### ⚙️ Method `add_exercise_type`
 
 ```python
-def add_exercise_type(self, exercise_id: int, type_name: str, calories_modifier: float = 1.0) -> bool
+def add_exercise_type(self, exercise_id: int, type_name: str, calories_modifier: float = 1.0, name_local: str = '') -> bool
 ```
 
 Add a new exercise type.
@@ -1163,6 +1359,7 @@ Args:
 - `exercise_id` (`int`): Exercise ID.
 - `type_name` (`str`): Type name.
 - `calories_modifier` (`float`): Calories modifier for this type. Defaults to `1.0`.
+- `name_local` (`str`): Local-language type name. Defaults to `""`.
 
 Returns:
 
@@ -1172,10 +1369,25 @@ Returns:
 <summary>Code:</summary>
 
 ```python
-def add_exercise_type(self, exercise_id: int, type_name: str, calories_modifier: float = 1.0) -> bool:
-        query = "INSERT INTO types (_id_exercises, type, calories_modifier) VALUES (:ex, :tp, :calories_modifier)"
+def add_exercise_type(
+        self,
+        exercise_id: int,
+        type_name: str,
+        calories_modifier: float = 1.0,
+        name_local: str = "",
+    ) -> bool:
+        query = (
+            "INSERT INTO types (_id_exercises, type, calories_modifier, name_local) "
+            "VALUES (:ex, :tp, :calories_modifier, :name_local)"
+        )
         return self.execute_simple_query(
-            query, {"ex": exercise_id, "tp": type_name, "calories_modifier": calories_modifier}
+            query,
+            {
+                "ex": exercise_id,
+                "tp": type_name,
+                "calories_modifier": calories_modifier,
+                "name_local": name_local or None,
+            },
         )
 ```
 
@@ -1400,7 +1612,8 @@ Get all exercise types with exercise names.
 
 Returns:
 
-- `list[list[Any]]`: List of type records [\_id, exercise_name, type_name, calories_modifier].
+- `list[list[Any]]`: List of type records
+  [\_id, exercise_name, type_name, calories_modifier, name_local].
 
 <details>
 <summary>Code:</summary>
@@ -1408,7 +1621,7 @@ Returns:
 ```python
 def get_all_exercise_types(self) -> list[list[Any]]:
         return self.get_rows("""
-            SELECT t._id, e.name, t.type, t.calories_modifier
+            SELECT t._id, e.name, t.type, t.calories_modifier, IFNULL(t.name_local, '')
             FROM types t
             JOIN exercises e ON t._id_exercises = e._id
         """)
@@ -1426,14 +1639,17 @@ Get all exercises with their properties.
 
 Returns:
 
-- `list[list[Any]]`: List of exercise records [\_id, name, unit, is_type_required, calories_per_unit].
+- `list[list[Any]]`: List of exercise records
+  [\_id, name, unit, is_type_required, calories_per_unit, name_local].
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def get_all_exercises(self) -> list[list[Any]]:
-        return self.get_rows("SELECT _id, name, unit, is_type_required, calories_per_unit FROM exercises")
+        return self.get_rows(
+            "SELECT _id, name, unit, is_type_required, calories_per_unit, IFNULL(name_local, '') FROM exercises"
+        )
 ```
 
 </details>
@@ -1696,6 +1912,85 @@ def get_exercise_name_by_id(self, exercise_id: int) -> str | None:
 
 </details>
 
+### ⚙️ Method `get_exercise_name_local`
+
+```python
+def get_exercise_name_local(self, exercise_name: str) -> str
+```
+
+Return local name for `exercise_name`, or empty string when missing.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_exercise_name_local(self, exercise_name: str) -> str:
+        rows = self.get_rows(
+            "SELECT IFNULL(name_local, '') FROM exercises WHERE name = :name",
+            {"name": exercise_name},
+        )
+        if rows and rows[0][0]:
+            return str(rows[0][0])
+        return ""
+```
+
+</details>
+
+### ⚙️ Method `get_exercise_name_local_map`
+
+```python
+def get_exercise_name_local_map(self) -> dict[str, str]
+```
+
+Return mapping of English exercise name to non-empty local name.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_exercise_name_local_map(self) -> dict[str, str]:
+        rows = self.get_rows("SELECT name, IFNULL(name_local, '') FROM exercises")
+        result: dict[str, str] = {}
+        for row in rows:
+            if not row or row[0] is None:
+                continue
+            name = str(row[0])
+            name_local = str(row[1] or "").strip()
+            if name and name_local:
+                result[name] = name_local
+        return result
+```
+
+</details>
+
+### ⚙️ Method `get_exercise_names_missing_name_local`
+
+```python
+def get_exercise_names_missing_name_local(self, *, limit: int = 250) -> list[str]
+```
+
+Return distinct exercise names that still need a local translation.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_exercise_names_missing_name_local(self, *, limit: int = 250) -> list[str]:
+        rows = self.get_rows(
+            """
+            SELECT name FROM exercises
+            WHERE name IS NOT NULL AND TRIM(name) != ''
+              AND (name_local IS NULL OR TRIM(name_local) = '')
+            ORDER BY name
+            LIMIT :limit
+            """,
+            {"limit": limit},
+        )
+        return [str(row[0]) for row in rows if row and row[0] is not None]
+```
+
+</details>
+
 ### ⚙️ Method `get_exercise_steps_records`
 
 ```python
@@ -1766,6 +2061,34 @@ def get_exercise_total_today(self, exercise_id: int) -> float:
             except (ValueError, TypeError):
                 return 0.0
         return 0.0
+```
+
+</details>
+
+### ⚙️ Method `get_exercise_type_names_missing_name_local`
+
+```python
+def get_exercise_type_names_missing_name_local(self, *, limit: int = 250) -> list[str]
+```
+
+Return distinct type names that still need a local translation.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_exercise_type_names_missing_name_local(self, *, limit: int = 250) -> list[str]:
+        rows = self.get_rows(
+            """
+            SELECT DISTINCT type FROM types
+            WHERE type IS NOT NULL AND TRIM(type) != ''
+              AND (name_local IS NULL OR TRIM(name_local) = '')
+            ORDER BY type
+            LIMIT :limit
+            """,
+            {"limit": limit},
+        )
+        return [str(row[0]) for row in rows if row and row[0] is not None]
 ```
 
 </details>
@@ -2457,7 +2780,7 @@ def is_exercise_type_required(self, exercise_id: int) -> bool:
 ### ⚙️ Method `update_exercise`
 
 ```python
-def update_exercise(self, exercise_id: int, name: str, unit: str, *, is_type_required: bool, calories_per_unit: float = 0.0) -> bool
+def update_exercise(self, exercise_id: int, name: str, unit: str, *, is_type_required: bool, calories_per_unit: float = 0.0, name_local: str = '') -> bool
 ```
 
 Update an existing exercise.
@@ -2469,6 +2792,7 @@ Args:
 - `unit` (`str`): Unit of measurement.
 - `is_type_required` (`bool`): Whether exercise type is required.
 - `calories_per_unit` (`float`): Calories burned per unit. Defaults to `0.0`.
+- `name_local` (`str`): Local-language exercise name. Defaults to `""`.
 
 Returns:
 
@@ -2479,11 +2803,18 @@ Returns:
 
 ```python
 def update_exercise(
-        self, exercise_id: int, name: str, unit: str, *, is_type_required: bool, calories_per_unit: float = 0.0
+        self,
+        exercise_id: int,
+        name: str,
+        unit: str,
+        *,
+        is_type_required: bool,
+        calories_per_unit: float = 0.0,
+        name_local: str = "",
     ) -> bool:
         query = (
             "UPDATE exercises SET name = :n, unit = :u, "
-            "is_type_required = :itr, calories_per_unit = :cpu "
+            "is_type_required = :itr, calories_per_unit = :cpu, name_local = :nl "
             "WHERE _id = :id"
         )
         params = {
@@ -2491,6 +2822,7 @@ def update_exercise(
             "u": unit,
             "itr": 1 if is_type_required else 0,
             "cpu": calories_per_unit,
+            "nl": name_local or None,
             "id": exercise_id,
         }
         return self.execute_simple_query(query, params)
@@ -2498,10 +2830,49 @@ def update_exercise(
 
 </details>
 
+### ⚙️ Method `update_exercise_name_local_by_name`
+
+```python
+def update_exercise_name_local_by_name(self, name: str, name_local: str) -> int
+```
+
+Set `name_local` for all exercises matching English `name` with empty local name.
+
+Returns:
+
+- `int`: Number of updated rows when known, otherwise `1` on success and `0` on failure.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def update_exercise_name_local_by_name(self, name: str, name_local: str) -> int:
+        before = self.get_rows(
+            """
+            SELECT COUNT(*) FROM exercises
+            WHERE name = :name AND (name_local IS NULL OR TRIM(name_local) = '')
+            """,
+            {"name": name},
+        )
+        ok = self.execute_simple_query(
+            """
+            UPDATE exercises
+            SET name_local = :nl
+            WHERE name = :name AND (name_local IS NULL OR TRIM(name_local) = '')
+            """,
+            {"nl": name_local, "name": name},
+        )
+        if not ok:
+            return 0
+        return int(before[0][0]) if before and before[0] and before[0][0] is not None else 0
+```
+
+</details>
+
 ### ⚙️ Method `update_exercise_type`
 
 ```python
-def update_exercise_type(self, type_id: int, exercise_id: int, type_name: str, calories_modifier: float = 1.0) -> bool
+def update_exercise_type(self, type_id: int, exercise_id: int, type_name: str, calories_modifier: float = 1.0, name_local: str = '') -> bool
 ```
 
 Update an existing exercise type.
@@ -2512,6 +2883,7 @@ Args:
 - `exercise_id` (`int`): Exercise ID.
 - `type_name` (`str`): Type name.
 - `calories_modifier` (`float`): Calories modifier for this type. Defaults to `1.0`.
+- `name_local` (`str`): Local-language type name. Defaults to `""`.
 
 Returns:
 
@@ -2522,11 +2894,60 @@ Returns:
 
 ```python
 def update_exercise_type(
-        self, type_id: int, exercise_id: int, type_name: str, calories_modifier: float = 1.0
+        self,
+        type_id: int,
+        exercise_id: int,
+        type_name: str,
+        calories_modifier: float = 1.0,
+        name_local: str = "",
     ) -> bool:
-        query = "UPDATE types SET _id_exercises = :ex, type = :tp, calories_modifier = :cm WHERE _id = :id"
-        params = {"ex": exercise_id, "tp": type_name, "cm": calories_modifier, "id": type_id}
+        query = (
+            "UPDATE types SET _id_exercises = :ex, type = :tp, "
+            "calories_modifier = :cm, name_local = :nl WHERE _id = :id"
+        )
+        params = {
+            "ex": exercise_id,
+            "tp": type_name,
+            "cm": calories_modifier,
+            "nl": name_local or None,
+            "id": type_id,
+        }
         return self.execute_simple_query(query, params)
+```
+
+</details>
+
+### ⚙️ Method `update_exercise_type_name_local_by_type`
+
+```python
+def update_exercise_type_name_local_by_type(self, type_name: str, name_local: str) -> int
+```
+
+Set `name_local` for all types matching English `type_name` with empty local name.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def update_exercise_type_name_local_by_type(self, type_name: str, name_local: str) -> int:
+        before = self.get_rows(
+            """
+            SELECT COUNT(*) FROM types
+            WHERE type = :tp AND (name_local IS NULL OR TRIM(name_local) = '')
+            """,
+            {"tp": type_name},
+        )
+        ok = self.execute_simple_query(
+            """
+            UPDATE types
+            SET name_local = :nl
+            WHERE type = :tp AND (name_local IS NULL OR TRIM(name_local) = '')
+            """,
+            {"nl": name_local, "tp": type_name},
+        )
+        if not ok:
+            return 0
+        return int(before[0][0]) if before and before[0] and before[0][0] is not None else 0
 ```
 
 </details>

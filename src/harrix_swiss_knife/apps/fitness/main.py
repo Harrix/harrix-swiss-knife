@@ -4304,7 +4304,7 @@ class MainWindow(
             item.setData(exercise, Qt.ItemDataRole.UserRole)
             name_local = name_locals.get(exercise, "").strip()
             if name_local:
-                item.setData(NAME_LOCAL_ROLE, name_local)
+                item.setData(name_local, NAME_LOCAL_ROLE)
             self.exercises_list_model.appendRow(item)
 
     def _append_process_rows_to_model(self, model: QStandardItemModel, transformed_data: list[list]) -> None:

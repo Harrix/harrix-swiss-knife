@@ -60,6 +60,7 @@ class AutoSaveOperations(AutoSaveMixin):
         unit = model.data(model.index(row, 1)) or ""
         is_type_required_str = model.data(model.index(row, 2)) or "0"
         calories_per_unit_str = model.data(model.index(row, 3)) or "0"
+        name_local = model.data(model.index(row, 4)) or ""
 
         # Validate exercise name
         if not name.strip():
@@ -85,6 +86,7 @@ class AutoSaveOperations(AutoSaveMixin):
             unit.strip(),
             is_type_required=is_type_required,
             calories_per_unit=calories_per_unit,
+            name_local=str(name_local).strip(),
         ):
             message_box.warning(None, "Database Error", "Failed to save exercise record")
         else:
@@ -162,6 +164,7 @@ class AutoSaveOperations(AutoSaveMixin):
         exercise_name = model.data(model.index(row, 0)) or ""
         type_name = model.data(model.index(row, 1)) or ""
         calories_modifier_str = model.data(model.index(row, 2)) or "1.0"
+        name_local = model.data(model.index(row, 3)) or ""
 
         # Validate inputs
         if not exercise_name.strip():
@@ -186,7 +189,13 @@ class AutoSaveOperations(AutoSaveMixin):
             return
 
         # Update database
-        if not self.db_manager.update_exercise_type(int(row_id), ex_id, type_name.strip(), calories_modifier):
+        if not self.db_manager.update_exercise_type(
+            int(row_id),
+            ex_id,
+            type_name.strip(),
+            calories_modifier,
+            name_local=str(name_local).strip(),
+        ):
             message_box.warning(None, "Database Error", "Failed to save type record")
         else:
             # Update related UI elements

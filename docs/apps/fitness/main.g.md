@@ -46,6 +46,7 @@ lang: en
   - [⚙️ Method `on_statistics_selection_changed`](#%EF%B8%8F-method-on_statistics_selection_changed)
   - [⚙️ Method `on_tab_changed`](#%EF%B8%8F-method-on_tab_changed)
   - [⚙️ Method `on_toggle_show_all_records`](#%EF%B8%8F-method-on_toggle_show_all_records)
+  - [⚙️ Method `on_translate_with_ai`](#%EF%B8%8F-method-on_translate_with_ai)
   - [⚙️ Method `on_weight_selection_changed`](#%EF%B8%8F-method-on_weight_selection_changed)
   - [⚙️ Method `resizeEvent`](#%EF%B8%8F-method-resizeevent)
   - [⚙️ Method `set_chart_all_time`](#%EF%B8%8F-method-set_chart_all_time)
@@ -140,6 +141,7 @@ class MainWindow(
         # AVIF manager will be initialized after database is ready
         self.avif_manager: avif_manager.AvifManager | None = None
         self._exercise_media_drop: FileDropWidget | None = None
+        self._bothub_state = BothubRequestState()
 
         # Exercise list model
         self.exercises_list_model: QStandardItemModel | None = None
@@ -205,12 +207,12 @@ class MainWindow(
             "exercises": (
                 self.tableView_exercises,
                 "exercises",
-                ["Exercise", "Unit of Measurement", "Type Required", "Calories per Unit"],
+                ["Exercise", "Unit of Measurement", "Type Required", "Calories per Unit", "Local"],
             ),
             "types": (
                 self.tableView_exercise_types,
                 "types",
-                ["Exercise", "Exercise Type", "Calories Modifier"],
+                ["Exercise", "Exercise Type", "Calories Modifier", "Local"],
             ),
             "weight": (self.tableView_weight, "weight", ["Weight", "Date"]),
             "statistics": (self.tableView_statistics, "statistics", ["Exercise", "Type", "Value", "Unit", "Date"]),
@@ -437,10 +439,15 @@ class MainWindow(
         # Get checkbox value
         is_type_required = self.check_box_is_type_required.isChecked()
         media_path = self._exercise_media_drop.get_file_path() if self._exercise_media_drop else ""
+        name_local = self.lineEdit_exercise_name_local.text().strip()
 
         try:
             if self.db_manager.add_exercise(
-                exercise, unit, is_type_required=is_type_required, calories_per_unit=calories_per_unit
+                exercise,
+                unit,
+                is_type_required=is_type_required,
+                calories_per_unit=calories_per_unit,
+                name_local=name_local,
             ):
                 if media_path and not self._save_exercise_media(exercise, media_path):
                     message_box.warning(
@@ -451,10 +458,6 @@ class MainWindow(
                     )
                 if self._exercise_media_drop is not None:
                     self._exercise_media_drop.clear()
-                self.lineEdit_exercise_name.clear()
-                self.lineEdit_exercise_unit.clear()
-                self.check_box_is_type_required.setChecked(False)
-                self.doubleSpinBox_calories_per_unit.setValue(0.0)
                 self._mark_exercises_changed()
                 self.update_all()
             else:
@@ -562,8 +565,9 @@ class MainWindow(
                 return
 
             calories_modifier = self.doubleSpinBox_calories_modifier.value()
+            name_local = self.lineEdit_type_name_local.text().strip()
 
-            if self.db_manager.add_exercise_type(ex_id, type_name, calories_modifier):
+            if self.db_manager.add_exercise_type(ex_id, type_name, calories_modifier, name_local=name_local):
                 self._mark_exercises_changed()
                 self.update_all()
             else:
@@ -1393,6 +1397,7 @@ class MainWindow(
         if not index.isValid():
             # Clear the fields if nothing is selected
             self.lineEdit_exercise_name.clear()
+            self.lineEdit_exercise_name_local.clear()
             self.lineEdit_exercise_unit.clear()
             self.check_box_is_type_required.setChecked(False)
             self.doubleSpinBox_calories_per_unit.setValue(0.0)
@@ -1408,8 +1413,10 @@ class MainWindow(
         unit = model.data(model.index(row, 1)) or ""
         is_required = model.data(model.index(row, 2)) or "0"
         calories_per_unit = model.data(model.index(row, 3)) or "0"
+        name_local = model.data(model.index(row, 4)) or ""
 
         self.lineEdit_exercise_name.setText(name)
+        self.lineEdit_exercise_name_local.setText(name_local)
         self.lineEdit_exercise_unit.setText(unit)
         self.check_box_is_type_required.setChecked(is_required == "1")
 
@@ -1599,6 +1606,8 @@ class MainWindow(
         index = self.tableView_exercise_types.currentIndex()
         if not index.isValid():
             # Clear the fields if nothing is selected
+            self.lineEdit_exercise_type.clear()
+            self.lineEdit_type_name_local.clear()
             self.doubleSpinBox_calories_modifier.setValue(1.0)
             return
 
@@ -1609,7 +1618,12 @@ class MainWindow(
         if model is None:
             return
 
+        type_name = model.data(model.index(row, 1)) or ""
         calories_modifier = model.data(model.index(row, 2)) or "1.0"
+        name_local = model.data(model.index(row, 3)) or ""
+
+        self.lineEdit_exercise_type.setText(type_name)
+        self.lineEdit_type_name_local.setText(name_local)
 
         try:
             self.doubleSpinBox_calories_modifier.setValue(float(calories_modifier))
@@ -2069,6 +2083,7 @@ class MainWindow(
             preview_size=preview_size,
             current_selection=current_selection,
             avif_manager=self.avif_manager,
+            name_locals=self.db_manager.get_exercise_name_local_map() if self.db_manager else None,
         )
 
         dialog_width = max(int(self.width() * 0.95), preview_size.width())
@@ -2542,6 +2557,54 @@ class MainWindow(
         # Reload the process table with the appropriate data
         self.load_process_table()
 
+    @requires_database()
+    def on_translate_with_ai(self) -> None:
+        """Fill missing `name_local` values for exercises and types via BotHub."""
+        if self.db_manager is None:
+            logger.error("❌ Database manager is not initialized")
+            return
+
+        limit = self._fitness_names_translate_local_limit()
+        exercise_names = self.db_manager.get_exercise_names_missing_name_local(limit=limit)
+        remaining = max(limit - len(exercise_names), 0)
+        type_names = (
+            self.db_manager.get_exercise_type_names_missing_name_local(limit=remaining) if remaining > 0 else []
+        )
+        names = list(dict.fromkeys([*exercise_names, *type_names]))
+        if not names:
+            message_box.information(
+                self,
+                "Translation",
+                "All exercises and exercise types already have a local name.",
+            )
+            return
+
+        self.pushButton_translate_with_ai.setEnabled(False)
+
+        def on_success(translations: dict[str, str]) -> None:
+            if self.db_manager is None:
+                return
+            updated_exercises = 0
+            updated_types = 0
+            for name, name_local in translations.items():
+                updated_exercises += self.db_manager.update_exercise_name_local_by_name(name, name_local)
+                updated_types += self.db_manager.update_exercise_type_name_local_by_type(name, name_local)
+            self.update_all(is_preserve_selections=True)
+            message_box.information(
+                self,
+                "Translation",
+                f"Updated local names: {updated_exercises} exercise(s), {updated_types} type(s).",
+            )
+
+        request_names_local_batch_translation(
+            self,
+            app_config=self._app_config,
+            bothub_state=self._bothub_state,
+            names=names,
+            on_success=on_success,
+            on_finished=lambda: self.pushButton_translate_with_ai.setEnabled(True),
+        )
+
     def on_weight_selection_changed(self, _current: QModelIndex, _previous: QModelIndex) -> None:
         """Update form fields when weight selection changes in the table.
 
@@ -2850,7 +2913,15 @@ class MainWindow(
             light_green = QColor(240, 255, 240)  # Light green background
 
             for row in exercises_data:
-                transformed_row = [row[1], row[2], str(row[3]), f"{row[4]:.1f}", row[0], light_green]
+                transformed_row = [
+                    row[1],
+                    row[2],
+                    str(row[3]),
+                    f"{row[4]:.1f}",
+                    row[5] or "",
+                    row[0],
+                    light_green,
+                ]
                 exercises_transformed_data.append(transformed_row)
 
             self.models["exercises"] = self._create_colored_table_model(
@@ -2864,7 +2935,7 @@ class MainWindow(
             light_orange = QColor(255, 248, 220)  # Light orange background
 
             for row in types_data:
-                transformed_row = [row[1], row[2], f"{row[3]:.1f}", row[0], light_orange]
+                transformed_row = [row[1], row[2], f"{row[3]:.1f}", row[4] or "", row[0], light_orange]
                 types_transformed_data.append(transformed_row)
 
             self.models["types"] = self._create_colored_table_model(
@@ -2899,7 +2970,8 @@ class MainWindow(
             self.tableView_exercises.setColumnWidth(0, 200)  # Exercise name
             self.tableView_exercises.setColumnWidth(1, 120)  # Unit
             self.tableView_exercises.setColumnWidth(2, 100)  # Type Required
-            # Calories per Unit column will stretch automatically
+            self.tableView_exercises.setColumnWidth(3, 120)  # Calories per Unit
+            # Local column will stretch automatically
 
             # Configure exercise types table header - mixed approach: interactive + stretch last
             exercise_types_header = self.tableView_exercise_types.horizontalHeader()
@@ -2913,7 +2985,8 @@ class MainWindow(
             # Set default column widths for resizable columns
             self.tableView_exercise_types.setColumnWidth(0, 200)  # Exercise
             self.tableView_exercise_types.setColumnWidth(1, 150)  # Exercise Type
-            # Calories Modifier column will stretch automatically
+            self.tableView_exercise_types.setColumnWidth(2, 120)  # Calories Modifier
+            # Local column will stretch automatically
 
             # Connect selection change signals after models are set
             self._connect_table_selection_signals()
@@ -2970,12 +3043,14 @@ class MainWindow(
 
         # Clear the exercise addition form after updating
         self.lineEdit_exercise_name.clear()
+        self.lineEdit_exercise_name_local.clear()
         self.lineEdit_exercise_unit.clear()
         self.check_box_is_type_required.setChecked(False)
         self.doubleSpinBox_calories_per_unit.setValue(0.0)
 
         # Clear the type addition form after updating
         self.lineEdit_exercise_type.clear()
+        self.lineEdit_type_name_local.clear()
         self.doubleSpinBox_calories_modifier.setValue(1.0)
 
         # Load AVIF for the currently selected exercise
@@ -4189,6 +4264,7 @@ class MainWindow(
         if self.exercises_list_model is None:
             return
 
+        name_locals = self.db_manager.get_exercise_name_local_map() if self.db_manager else {}
         for exercise in exercise_names:
             goal_info = self._get_exercise_today_goal_info(exercise)
             display_text = f"{exercise} {goal_info}" if goal_info else exercise
@@ -4199,6 +4275,9 @@ class MainWindow(
                 item.setIcon(icon)
 
             item.setData(exercise, Qt.ItemDataRole.UserRole)
+            name_local = name_locals.get(exercise, "").strip()
+            if name_local:
+                item.setData(name_local, NAME_LOCAL_ROLE)
             self.exercises_list_model.appendRow(item)
 
     def _append_process_rows_to_model(self, model: QStandardItemModel, transformed_data: list[list]) -> None:
@@ -4354,6 +4433,9 @@ class MainWindow(
         self.pushButton_exercise_add.clicked.connect(self.on_add_exercise)
         self.pushButton_type_add.clicked.connect(self.on_add_type)
         self.pushButton_weight_add.clicked.connect(self.on_add_weight)
+        self.pushButton_translate_with_ai.clicked.connect(self.on_translate_with_ai)
+        self.pushButton_exercise_translate_local.clicked.connect(self._on_translate_exercise_name_local)
+        self.pushButton_type_translate_local.clicked.connect(self._on_translate_type_name_local)
         self._setup_exercise_media_widgets()
         # Dropdown menu for yesterday button
         yesterday_menu = QMenu(self.pushButton_yesterday)
@@ -4611,6 +4693,14 @@ class MainWindow(
         # Adjust columns after window is shown and has proper dimensions
         QTimer.singleShot(50, self._adjust_process_table_columns)
         QTimer.singleShot(55, self._update_layout_for_window_size)
+
+    def _fitness_names_translate_local_limit(self) -> int:
+        """Return max unique names per AI batch for local-name translation."""
+        raw = self._app_config.get("fitness_names_translate_local_limit", 250)
+        try:
+            return max(int(raw), 1)
+        except (TypeError, ValueError):
+            return 250
 
     def _focus_and_select_spinbox_count(self) -> None:
         """Move focus to spinBox_count and select all text.
@@ -5030,6 +5120,9 @@ class MainWindow(
         self.exercises_list_model = QStandardItemModel()
         self.listView_exercises.setModel(self.exercises_list_model)
         self.listView_exercises.setIconSize(QSize(self.icon_size, self.icon_size))
+        self.listView_exercises.setItemDelegate(
+            NameLocalListDelegate(self.listView_exercises, layout=NameLocalLayout.LIST)
+        )
 
         # Disable editing for exercises list
         self.listView_exercises.setEditTriggers(QListView.EditTrigger.NoEditTriggers)
@@ -5332,6 +5425,28 @@ class MainWindow(
         scrollbar = self.tableView_process.verticalScrollBar()
         on_scroll_load_more(value, scrollbar.maximum(), self._load_more_process)
 
+    def _on_translate_exercise_name_local(self) -> None:
+        """Translate Add Exercise name into the local-language field."""
+        request_name_local_translation(
+            self,
+            app_config=self._app_config,
+            bothub_state=self._bothub_state,
+            name_edit=self.lineEdit_exercise_name,
+            name_local_edit=self.lineEdit_exercise_name_local,
+            translate_button=self.pushButton_exercise_translate_local,
+        )
+
+    def _on_translate_type_name_local(self) -> None:
+        """Translate Add Exercise Type name into the local-language field."""
+        request_name_local_translation(
+            self,
+            app_config=self._app_config,
+            bothub_state=self._bothub_state,
+            name_edit=self.lineEdit_exercise_type,
+            name_local_edit=self.lineEdit_type_name_local,
+            translate_button=self.pushButton_type_translate_local,
+        )
+
     def _process_filter_is_active(self) -> bool:
         """Return whether any process table filter is currently applied."""
         if self.comboBox_filter_exercise.currentText().strip():
@@ -5576,6 +5691,7 @@ class MainWindow(
         self.pushButton_exercise_add.setText(f"➕ {self.pushButton_exercise_add.text()}")  # noqa: RUF001
         self.pushButton_exercises_delete.setText(f"🗑️ {self.pushButton_exercises_delete.text()}")
         self.pushButton_exercises_refresh.setText(f"🔄 {self.pushButton_exercises_refresh.text()}")
+        self.pushButton_translate_with_ai.setText(f"🤖 {self.pushButton_translate_with_ai.text()}")
         self.pushButton_type_add.setText(f"➕ {self.pushButton_type_add.text()}")  # noqa: RUF001
         self.pushButton_types_delete.setText(f"🗑️ {self.pushButton_types_delete.text()}")
         self.pushButton_types_refresh.setText(f"🔄 {self.pushButton_types_refresh.text()}")
@@ -6056,6 +6172,7 @@ def __init__(self, *, hide_on_close: bool = False) -> None:  # noqa: D107
         # AVIF manager will be initialized after database is ready
         self.avif_manager: avif_manager.AvifManager | None = None
         self._exercise_media_drop: FileDropWidget | None = None
+        self._bothub_state = BothubRequestState()
 
         # Exercise list model
         self.exercises_list_model: QStandardItemModel | None = None
@@ -6121,12 +6238,12 @@ def __init__(self, *, hide_on_close: bool = False) -> None:  # noqa: D107
             "exercises": (
                 self.tableView_exercises,
                 "exercises",
-                ["Exercise", "Unit of Measurement", "Type Required", "Calories per Unit"],
+                ["Exercise", "Unit of Measurement", "Type Required", "Calories per Unit", "Local"],
             ),
             "types": (
                 self.tableView_exercise_types,
                 "types",
-                ["Exercise", "Exercise Type", "Calories Modifier"],
+                ["Exercise", "Exercise Type", "Calories Modifier", "Local"],
             ),
             "weight": (self.tableView_weight, "weight", ["Weight", "Date"]),
             "statistics": (self.tableView_statistics, "statistics", ["Exercise", "Type", "Value", "Unit", "Date"]),
@@ -6451,10 +6568,15 @@ def on_add_exercise(self) -> None:
         # Get checkbox value
         is_type_required = self.check_box_is_type_required.isChecked()
         media_path = self._exercise_media_drop.get_file_path() if self._exercise_media_drop else ""
+        name_local = self.lineEdit_exercise_name_local.text().strip()
 
         try:
             if self.db_manager.add_exercise(
-                exercise, unit, is_type_required=is_type_required, calories_per_unit=calories_per_unit
+                exercise,
+                unit,
+                is_type_required=is_type_required,
+                calories_per_unit=calories_per_unit,
+                name_local=name_local,
             ):
                 if media_path and not self._save_exercise_media(exercise, media_path):
                     message_box.warning(
@@ -6465,10 +6587,6 @@ def on_add_exercise(self) -> None:
                     )
                 if self._exercise_media_drop is not None:
                     self._exercise_media_drop.clear()
-                self.lineEdit_exercise_name.clear()
-                self.lineEdit_exercise_unit.clear()
-                self.check_box_is_type_required.setChecked(False)
-                self.doubleSpinBox_calories_per_unit.setValue(0.0)
                 self._mark_exercises_changed()
                 self.update_all()
             else:
@@ -6602,8 +6720,9 @@ def on_add_type(self) -> None:
                 return
 
             calories_modifier = self.doubleSpinBox_calories_modifier.value()
+            name_local = self.lineEdit_type_name_local.text().strip()
 
-            if self.db_manager.add_exercise_type(ex_id, type_name, calories_modifier):
+            if self.db_manager.add_exercise_type(ex_id, type_name, calories_modifier, name_local=name_local):
                 self._mark_exercises_changed()
                 self.update_all()
             else:
@@ -7542,6 +7661,7 @@ def on_exercise_selection_changed(self, _current: QModelIndex, _previous: QModel
         if not index.isValid():
             # Clear the fields if nothing is selected
             self.lineEdit_exercise_name.clear()
+            self.lineEdit_exercise_name_local.clear()
             self.lineEdit_exercise_unit.clear()
             self.check_box_is_type_required.setChecked(False)
             self.doubleSpinBox_calories_per_unit.setValue(0.0)
@@ -7557,8 +7677,10 @@ def on_exercise_selection_changed(self, _current: QModelIndex, _previous: QModel
         unit = model.data(model.index(row, 1)) or ""
         is_required = model.data(model.index(row, 2)) or "0"
         calories_per_unit = model.data(model.index(row, 3)) or "0"
+        name_local = model.data(model.index(row, 4)) or ""
 
         self.lineEdit_exercise_name.setText(name)
+        self.lineEdit_exercise_name_local.setText(name_local)
         self.lineEdit_exercise_unit.setText(unit)
         self.check_box_is_type_required.setChecked(is_required == "1")
 
@@ -7788,6 +7910,8 @@ def on_exercise_type_selection_changed(self, _current: QModelIndex, _previous: Q
         index = self.tableView_exercise_types.currentIndex()
         if not index.isValid():
             # Clear the fields if nothing is selected
+            self.lineEdit_exercise_type.clear()
+            self.lineEdit_type_name_local.clear()
             self.doubleSpinBox_calories_modifier.setValue(1.0)
             return
 
@@ -7798,7 +7922,12 @@ def on_exercise_type_selection_changed(self, _current: QModelIndex, _previous: Q
         if model is None:
             return
 
+        type_name = model.data(model.index(row, 1)) or ""
         calories_modifier = model.data(model.index(row, 2)) or "1.0"
+        name_local = model.data(model.index(row, 3)) or ""
+
+        self.lineEdit_exercise_type.setText(type_name)
+        self.lineEdit_type_name_local.setText(name_local)
 
         try:
             self.doubleSpinBox_calories_modifier.setValue(float(calories_modifier))
@@ -8322,6 +8451,7 @@ def on_select_exercise_button_clicked(self) -> None:
             preview_size=preview_size,
             current_selection=current_selection,
             avif_manager=self.avif_manager,
+            name_locals=self.db_manager.get_exercise_name_local_map() if self.db_manager else None,
         )
 
         dialog_width = max(int(self.width() * 0.95), preview_size.width())
@@ -8872,6 +9002,67 @@ def on_toggle_show_all_records(self) -> None:
 
 </details>
 
+### ⚙️ Method `on_translate_with_ai`
+
+```python
+def on_translate_with_ai(self) -> None
+```
+
+Fill missing `name_local` values for exercises and types via BotHub.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def on_translate_with_ai(self) -> None:
+        if self.db_manager is None:
+            logger.error("❌ Database manager is not initialized")
+            return
+
+        limit = self._fitness_names_translate_local_limit()
+        exercise_names = self.db_manager.get_exercise_names_missing_name_local(limit=limit)
+        remaining = max(limit - len(exercise_names), 0)
+        type_names = (
+            self.db_manager.get_exercise_type_names_missing_name_local(limit=remaining) if remaining > 0 else []
+        )
+        names = list(dict.fromkeys([*exercise_names, *type_names]))
+        if not names:
+            message_box.information(
+                self,
+                "Translation",
+                "All exercises and exercise types already have a local name.",
+            )
+            return
+
+        self.pushButton_translate_with_ai.setEnabled(False)
+
+        def on_success(translations: dict[str, str]) -> None:
+            if self.db_manager is None:
+                return
+            updated_exercises = 0
+            updated_types = 0
+            for name, name_local in translations.items():
+                updated_exercises += self.db_manager.update_exercise_name_local_by_name(name, name_local)
+                updated_types += self.db_manager.update_exercise_type_name_local_by_type(name, name_local)
+            self.update_all(is_preserve_selections=True)
+            message_box.information(
+                self,
+                "Translation",
+                f"Updated local names: {updated_exercises} exercise(s), {updated_types} type(s).",
+            )
+
+        request_names_local_batch_translation(
+            self,
+            app_config=self._app_config,
+            bothub_state=self._bothub_state,
+            names=names,
+            on_success=on_success,
+            on_finished=lambda: self.pushButton_translate_with_ai.setEnabled(True),
+        )
+```
+
+</details>
+
 ### ⚙️ Method `on_weight_selection_changed`
 
 ```python
@@ -9349,7 +9540,15 @@ def show_tables(self) -> None:
             light_green = QColor(240, 255, 240)  # Light green background
 
             for row in exercises_data:
-                transformed_row = [row[1], row[2], str(row[3]), f"{row[4]:.1f}", row[0], light_green]
+                transformed_row = [
+                    row[1],
+                    row[2],
+                    str(row[3]),
+                    f"{row[4]:.1f}",
+                    row[5] or "",
+                    row[0],
+                    light_green,
+                ]
                 exercises_transformed_data.append(transformed_row)
 
             self.models["exercises"] = self._create_colored_table_model(
@@ -9363,7 +9562,7 @@ def show_tables(self) -> None:
             light_orange = QColor(255, 248, 220)  # Light orange background
 
             for row in types_data:
-                transformed_row = [row[1], row[2], f"{row[3]:.1f}", row[0], light_orange]
+                transformed_row = [row[1], row[2], f"{row[3]:.1f}", row[4] or "", row[0], light_orange]
                 types_transformed_data.append(transformed_row)
 
             self.models["types"] = self._create_colored_table_model(
@@ -9398,7 +9597,8 @@ def show_tables(self) -> None:
             self.tableView_exercises.setColumnWidth(0, 200)  # Exercise name
             self.tableView_exercises.setColumnWidth(1, 120)  # Unit
             self.tableView_exercises.setColumnWidth(2, 100)  # Type Required
-            # Calories per Unit column will stretch automatically
+            self.tableView_exercises.setColumnWidth(3, 120)  # Calories per Unit
+            # Local column will stretch automatically
 
             # Configure exercise types table header - mixed approach: interactive + stretch last
             exercise_types_header = self.tableView_exercise_types.horizontalHeader()
@@ -9412,7 +9612,8 @@ def show_tables(self) -> None:
             # Set default column widths for resizable columns
             self.tableView_exercise_types.setColumnWidth(0, 200)  # Exercise
             self.tableView_exercise_types.setColumnWidth(1, 150)  # Exercise Type
-            # Calories Modifier column will stretch automatically
+            self.tableView_exercise_types.setColumnWidth(2, 120)  # Calories Modifier
+            # Local column will stretch automatically
 
             # Connect selection change signals after models are set
             self._connect_table_selection_signals()
@@ -9483,12 +9684,14 @@ def update_all(
 
         # Clear the exercise addition form after updating
         self.lineEdit_exercise_name.clear()
+        self.lineEdit_exercise_name_local.clear()
         self.lineEdit_exercise_unit.clear()
         self.check_box_is_type_required.setChecked(False)
         self.doubleSpinBox_calories_per_unit.setValue(0.0)
 
         # Clear the type addition form after updating
         self.lineEdit_exercise_type.clear()
+        self.lineEdit_type_name_local.clear()
         self.doubleSpinBox_calories_modifier.setValue(1.0)
 
         # Load AVIF for the currently selected exercise

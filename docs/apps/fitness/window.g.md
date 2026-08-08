@@ -92,6 +92,12 @@ class Ui_MainWindow(object):
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_charts), QCoreApplication.translate("MainWindow", u"Charts", None))
         self.groupBox_2.setTitle(QCoreApplication.translate("MainWindow", u"Add New Exercise", None))
         self.label_5.setText(QCoreApplication.translate("MainWindow", u"Name:", None))
+        self.label_exercise_name_local.setText(QCoreApplication.translate("MainWindow", u"Local:", None))
+        self.lineEdit_exercise_name_local.setPlaceholderText(QCoreApplication.translate("MainWindow", u"Local name", None))
+#if QT_CONFIG(tooltip)
+        self.pushButton_exercise_translate_local.setToolTip(QCoreApplication.translate("MainWindow", u"Translate name to local language with AI", None))
+#endif // QT_CONFIG(tooltip)
+        self.pushButton_exercise_translate_local.setText(QCoreApplication.translate("MainWindow", u"\U0001f916", None))
         self.label_6.setText(QCoreApplication.translate("MainWindow", u"Unit of Measurement:", None))
         self.label_calories_per_unit.setText(QCoreApplication.translate("MainWindow", u"Calories per unit:", None))
         self.check_box_is_type_required.setText(QCoreApplication.translate("MainWindow", u"Type required", None))
@@ -99,8 +105,15 @@ class Ui_MainWindow(object):
         self.groupBox_7.setTitle(QCoreApplication.translate("MainWindow", u"Commands", None))
         self.pushButton_exercises_delete.setText(QCoreApplication.translate("MainWindow", u"Delete selected", None))
         self.pushButton_exercises_refresh.setText(QCoreApplication.translate("MainWindow", u"Refresh Table", None))
+        self.pushButton_translate_with_ai.setText(QCoreApplication.translate("MainWindow", u"Translate with AI", None))
         self.label_exercise_avif_2.setText(QCoreApplication.translate("MainWindow", u"No exercise selected", None))
         self.groupBox_3.setTitle(QCoreApplication.translate("MainWindow", u"Add New Exercise Type", None))
+        self.label_type_name_local.setText(QCoreApplication.translate("MainWindow", u"Local:", None))
+        self.lineEdit_type_name_local.setPlaceholderText(QCoreApplication.translate("MainWindow", u"Local name", None))
+#if QT_CONFIG(tooltip)
+        self.pushButton_type_translate_local.setToolTip(QCoreApplication.translate("MainWindow", u"Translate type name to local language with AI", None))
+#endif // QT_CONFIG(tooltip)
+        self.pushButton_type_translate_local.setText(QCoreApplication.translate("MainWindow", u"\U0001f916", None))
         self.label_calories_modifier.setText(QCoreApplication.translate("MainWindow", u"Calories modifier:", None))
         self.pushButton_type_add.setText(QCoreApplication.translate("MainWindow", u"Add", None))
         self.groupBox_8.setTitle(QCoreApplication.translate("MainWindow", u"Commands", None))
@@ -759,6 +772,29 @@ class Ui_MainWindow(object):
 
         self.verticalLayout_10.addLayout(self.horizontalLayout_17)
 
+        self.horizontalLayout_exercise_name_local = QHBoxLayout()
+        self.horizontalLayout_exercise_name_local.setObjectName(u"horizontalLayout_exercise_name_local")
+        self.label_exercise_name_local = QLabel(self.groupBox_2)
+        self.label_exercise_name_local.setObjectName(u"label_exercise_name_local")
+        self.label_exercise_name_local.setMinimumSize(QSize(111, 0))
+
+        self.horizontalLayout_exercise_name_local.addWidget(self.label_exercise_name_local)
+
+        self.lineEdit_exercise_name_local = QLineEdit(self.groupBox_2)
+        self.lineEdit_exercise_name_local.setObjectName(u"lineEdit_exercise_name_local")
+        self.lineEdit_exercise_name_local.setMinimumSize(QSize(70, 0))
+
+        self.horizontalLayout_exercise_name_local.addWidget(self.lineEdit_exercise_name_local)
+
+        self.pushButton_exercise_translate_local = QPushButton(self.groupBox_2)
+        self.pushButton_exercise_translate_local.setObjectName(u"pushButton_exercise_translate_local")
+        self.pushButton_exercise_translate_local.setMaximumSize(QSize(36, 16777215))
+
+        self.horizontalLayout_exercise_name_local.addWidget(self.pushButton_exercise_translate_local)
+
+
+        self.verticalLayout_10.addLayout(self.horizontalLayout_exercise_name_local)
+
         self.horizontalLayout_18 = QHBoxLayout()
         self.horizontalLayout_18.setObjectName(u"horizontalLayout_18")
         self.label_6 = QLabel(self.groupBox_2)
@@ -837,6 +873,11 @@ class Ui_MainWindow(object):
 
         self.verticalLayout_11.addLayout(self.horizontalLayout_20)
 
+        self.pushButton_translate_with_ai = QPushButton(self.groupBox_7)
+        self.pushButton_translate_with_ai.setObjectName(u"pushButton_translate_with_ai")
+
+        self.verticalLayout_11.addWidget(self.pushButton_translate_with_ai)
+
 
         self.verticalLayout_15.addWidget(self.groupBox_7)
 
@@ -888,6 +929,27 @@ class Ui_MainWindow(object):
         self.lineEdit_exercise_type.setObjectName(u"lineEdit_exercise_type")
 
         self.verticalLayout_14.addWidget(self.lineEdit_exercise_type)
+
+        self.horizontalLayout_type_name_local = QHBoxLayout()
+        self.horizontalLayout_type_name_local.setObjectName(u"horizontalLayout_type_name_local")
+        self.label_type_name_local = QLabel(self.groupBox_3)
+        self.label_type_name_local.setObjectName(u"label_type_name_local")
+
+        self.horizontalLayout_type_name_local.addWidget(self.label_type_name_local)
+
+        self.lineEdit_type_name_local = QLineEdit(self.groupBox_3)
+        self.lineEdit_type_name_local.setObjectName(u"lineEdit_type_name_local")
+
+        self.horizontalLayout_type_name_local.addWidget(self.lineEdit_type_name_local)
+
+        self.pushButton_type_translate_local = QPushButton(self.groupBox_3)
+        self.pushButton_type_translate_local.setObjectName(u"pushButton_type_translate_local")
+        self.pushButton_type_translate_local.setMaximumSize(QSize(36, 16777215))
+
+        self.horizontalLayout_type_name_local.addWidget(self.pushButton_type_translate_local)
+
+
+        self.verticalLayout_14.addLayout(self.horizontalLayout_type_name_local)
 
         self.horizontalLayout_calories_modifier = QHBoxLayout()
         self.horizontalLayout_calories_modifier.setObjectName(u"horizontalLayout_calories_modifier")
@@ -1314,6 +1376,12 @@ def retranslateUi(self, MainWindow):
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_charts), QCoreApplication.translate("MainWindow", u"Charts", None))
         self.groupBox_2.setTitle(QCoreApplication.translate("MainWindow", u"Add New Exercise", None))
         self.label_5.setText(QCoreApplication.translate("MainWindow", u"Name:", None))
+        self.label_exercise_name_local.setText(QCoreApplication.translate("MainWindow", u"Local:", None))
+        self.lineEdit_exercise_name_local.setPlaceholderText(QCoreApplication.translate("MainWindow", u"Local name", None))
+#if QT_CONFIG(tooltip)
+        self.pushButton_exercise_translate_local.setToolTip(QCoreApplication.translate("MainWindow", u"Translate name to local language with AI", None))
+#endif // QT_CONFIG(tooltip)
+        self.pushButton_exercise_translate_local.setText(QCoreApplication.translate("MainWindow", u"\U0001f916", None))
         self.label_6.setText(QCoreApplication.translate("MainWindow", u"Unit of Measurement:", None))
         self.label_calories_per_unit.setText(QCoreApplication.translate("MainWindow", u"Calories per unit:", None))
         self.check_box_is_type_required.setText(QCoreApplication.translate("MainWindow", u"Type required", None))
@@ -1321,8 +1389,15 @@ def retranslateUi(self, MainWindow):
         self.groupBox_7.setTitle(QCoreApplication.translate("MainWindow", u"Commands", None))
         self.pushButton_exercises_delete.setText(QCoreApplication.translate("MainWindow", u"Delete selected", None))
         self.pushButton_exercises_refresh.setText(QCoreApplication.translate("MainWindow", u"Refresh Table", None))
+        self.pushButton_translate_with_ai.setText(QCoreApplication.translate("MainWindow", u"Translate with AI", None))
         self.label_exercise_avif_2.setText(QCoreApplication.translate("MainWindow", u"No exercise selected", None))
         self.groupBox_3.setTitle(QCoreApplication.translate("MainWindow", u"Add New Exercise Type", None))
+        self.label_type_name_local.setText(QCoreApplication.translate("MainWindow", u"Local:", None))
+        self.lineEdit_type_name_local.setPlaceholderText(QCoreApplication.translate("MainWindow", u"Local name", None))
+#if QT_CONFIG(tooltip)
+        self.pushButton_type_translate_local.setToolTip(QCoreApplication.translate("MainWindow", u"Translate type name to local language with AI", None))
+#endif // QT_CONFIG(tooltip)
+        self.pushButton_type_translate_local.setText(QCoreApplication.translate("MainWindow", u"\U0001f916", None))
         self.label_calories_modifier.setText(QCoreApplication.translate("MainWindow", u"Calories modifier:", None))
         self.pushButton_type_add.setText(QCoreApplication.translate("MainWindow", u"Add", None))
         self.groupBox_8.setTitle(QCoreApplication.translate("MainWindow", u"Commands", None))
@@ -1997,6 +2072,29 @@ def setupUi(self, MainWindow):
 
         self.verticalLayout_10.addLayout(self.horizontalLayout_17)
 
+        self.horizontalLayout_exercise_name_local = QHBoxLayout()
+        self.horizontalLayout_exercise_name_local.setObjectName(u"horizontalLayout_exercise_name_local")
+        self.label_exercise_name_local = QLabel(self.groupBox_2)
+        self.label_exercise_name_local.setObjectName(u"label_exercise_name_local")
+        self.label_exercise_name_local.setMinimumSize(QSize(111, 0))
+
+        self.horizontalLayout_exercise_name_local.addWidget(self.label_exercise_name_local)
+
+        self.lineEdit_exercise_name_local = QLineEdit(self.groupBox_2)
+        self.lineEdit_exercise_name_local.setObjectName(u"lineEdit_exercise_name_local")
+        self.lineEdit_exercise_name_local.setMinimumSize(QSize(70, 0))
+
+        self.horizontalLayout_exercise_name_local.addWidget(self.lineEdit_exercise_name_local)
+
+        self.pushButton_exercise_translate_local = QPushButton(self.groupBox_2)
+        self.pushButton_exercise_translate_local.setObjectName(u"pushButton_exercise_translate_local")
+        self.pushButton_exercise_translate_local.setMaximumSize(QSize(36, 16777215))
+
+        self.horizontalLayout_exercise_name_local.addWidget(self.pushButton_exercise_translate_local)
+
+
+        self.verticalLayout_10.addLayout(self.horizontalLayout_exercise_name_local)
+
         self.horizontalLayout_18 = QHBoxLayout()
         self.horizontalLayout_18.setObjectName(u"horizontalLayout_18")
         self.label_6 = QLabel(self.groupBox_2)
@@ -2075,6 +2173,11 @@ def setupUi(self, MainWindow):
 
         self.verticalLayout_11.addLayout(self.horizontalLayout_20)
 
+        self.pushButton_translate_with_ai = QPushButton(self.groupBox_7)
+        self.pushButton_translate_with_ai.setObjectName(u"pushButton_translate_with_ai")
+
+        self.verticalLayout_11.addWidget(self.pushButton_translate_with_ai)
+
 
         self.verticalLayout_15.addWidget(self.groupBox_7)
 
@@ -2126,6 +2229,27 @@ def setupUi(self, MainWindow):
         self.lineEdit_exercise_type.setObjectName(u"lineEdit_exercise_type")
 
         self.verticalLayout_14.addWidget(self.lineEdit_exercise_type)
+
+        self.horizontalLayout_type_name_local = QHBoxLayout()
+        self.horizontalLayout_type_name_local.setObjectName(u"horizontalLayout_type_name_local")
+        self.label_type_name_local = QLabel(self.groupBox_3)
+        self.label_type_name_local.setObjectName(u"label_type_name_local")
+
+        self.horizontalLayout_type_name_local.addWidget(self.label_type_name_local)
+
+        self.lineEdit_type_name_local = QLineEdit(self.groupBox_3)
+        self.lineEdit_type_name_local.setObjectName(u"lineEdit_type_name_local")
+
+        self.horizontalLayout_type_name_local.addWidget(self.lineEdit_type_name_local)
+
+        self.pushButton_type_translate_local = QPushButton(self.groupBox_3)
+        self.pushButton_type_translate_local.setObjectName(u"pushButton_type_translate_local")
+        self.pushButton_type_translate_local.setMaximumSize(QSize(36, 16777215))
+
+        self.horizontalLayout_type_name_local.addWidget(self.pushButton_type_translate_local)
+
+
+        self.verticalLayout_14.addLayout(self.horizontalLayout_type_name_local)
 
         self.horizontalLayout_calories_modifier = QHBoxLayout()
         self.horizontalLayout_calories_modifier.setObjectName(u"horizontalLayout_calories_modifier")
