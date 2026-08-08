@@ -49,6 +49,15 @@ class NameLocalListDelegate(QStyledItemDelegate):
         super().__init__(parent)
         self._layout = layout
 
+    @staticmethod
+    def list_decoration_rect(item_rect: QRect, icon_size: QSize, *, has_icon: bool = True) -> QRect:
+        """Return the icon rectangle for a LIST-layout row (viewport/item coordinates)."""
+        if not has_icon or icon_size.width() <= 0 or icon_size.height() <= 0:
+            return QRect()
+        content = item_rect.adjusted(_LIST_EDGE_PAD, _LIST_EDGE_PAD, -_LIST_EDGE_PAD, -_LIST_EDGE_PAD)
+        icon_y = content.y() + max(0, (content.height() - icon_size.height()) // 2)
+        return QRect(content.x(), icon_y, icon_size.width(), icon_size.height())
+
     def paint(
         self,
         painter: QPainter,
@@ -111,13 +120,16 @@ class NameLocalListDelegate(QStyledItemDelegate):
 
     def _list_layout_rects(self, option: QStyleOptionViewItem) -> tuple[QRect, QRect]:
         """Compact icon + text rects for list rows (tighter than default style gaps)."""
-        content = option.rect.adjusted(_LIST_EDGE_PAD, _LIST_EDGE_PAD, -_LIST_EDGE_PAD, -_LIST_EDGE_PAD)
-        if option.icon.isNull():
+        decoration_rect = self.list_decoration_rect(
+            option.rect,
+            option.decorationSize,
+            has_icon=not option.icon.isNull(),
+        )
+        if not decoration_rect.isValid():
+            content = option.rect.adjusted(_LIST_EDGE_PAD, _LIST_EDGE_PAD, -_LIST_EDGE_PAD, -_LIST_EDGE_PAD)
             return QRect(), content
 
-        icon_size = option.decorationSize
-        icon_y = content.y() + max(0, (content.height() - icon_size.height()) // 2)
-        decoration_rect = QRect(content.x(), icon_y, icon_size.width(), icon_size.height())
+        content = option.rect.adjusted(_LIST_EDGE_PAD, _LIST_EDGE_PAD, -_LIST_EDGE_PAD, -_LIST_EDGE_PAD)
         text_x = decoration_rect.right() + _LIST_ICON_TEXT_GAP
         text_rect = QRect(text_x, content.y(), max(0, content.right() - text_x), content.height())
         return decoration_rect, text_rect

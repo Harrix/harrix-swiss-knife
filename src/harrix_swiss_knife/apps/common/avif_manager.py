@@ -34,6 +34,7 @@ class AvifLabelKey(StrEnum):
     CHARTS = "charts"
     STATISTICS = "statistics"
     DIALOG_PREVIEW = "dialog_preview"
+    LIST_HOVER = "list_hover"
 
 
 class AvifManager:
@@ -69,6 +70,7 @@ class AvifManager:
             AvifLabelKey.CHARTS: {"frames": [], "current_frame": 0, "timer": None, "exercise": None},
             AvifLabelKey.STATISTICS: {"frames": [], "current_frame": 0, "timer": None, "exercise": None},
             AvifLabelKey.DIALOG_PREVIEW: {"frames": [], "current_frame": 0, "timer": None, "exercise": None},
+            AvifLabelKey.LIST_HOVER: {"frames": [], "current_frame": 0, "timer": None, "exercise": None},
         }
         self.label_widgets: dict[AvifLabelKey, QLabel | None] = {
             AvifLabelKey.MAIN: None,
@@ -77,6 +79,7 @@ class AvifManager:
             AvifLabelKey.CHARTS: None,
             AvifLabelKey.STATISTICS: None,
             AvifLabelKey.DIALOG_PREVIEW: None,
+            AvifLabelKey.LIST_HOVER: None,
         }
 
     def delete_exercise_avif(self, exercise_name: str) -> bool:

@@ -32,7 +32,6 @@ Modal dialog for selecting an exercise via AVIF previews.
 
 ```python
 class ExerciseSelectionDialog(QDialog):
-
     def __init__(
         self,
         parent: QWidget | None,
@@ -70,6 +69,12 @@ class ExerciseSelectionDialog(QDialog):
         text_area_height = 54 if has_any_local else 36
 
         layout = QVBoxLayout(self)
+
+        self.filter_edit = QLineEdit(self)
+        self.filter_edit.setPlaceholderText("Filter exercises…")
+        self.filter_edit.setClearButtonEnabled(True)
+        self.filter_edit.textChanged.connect(self._filter_exercises)
+        layout.addWidget(self.filter_edit)
 
         self.list_widget = QListWidget(self)
         self.list_widget.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
@@ -146,6 +151,8 @@ class ExerciseSelectionDialog(QDialog):
         button_box.rejected.connect(self.reject)
         layout.addWidget(button_box)
 
+        self.filter_edit.setFocus()
+
     def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
         """Handle dialog close event — stop animation."""
         self._stop_animation()
@@ -163,6 +170,25 @@ class ExerciseSelectionDialog(QDialog):
         """Handle dialog rejection — stop animation."""
         self._stop_animation()
         super().reject()
+
+    def _filter_exercises(self, text: str) -> None:
+        """Show only tiles whose English or local name matches the query."""
+        query = text.strip()
+        for row in range(self.list_widget.count()):
+            item = self.list_widget.item(row)
+            if item is None:
+                continue
+            exercise = item.data(Qt.ItemDataRole.UserRole)
+            name = str(exercise) if exercise else ""
+            name_local = self._name_locals.get(name, "").strip()
+            matches = (not query) or text_matches_autocomplete(name, query)
+            if not matches and name_local:
+                matches = text_matches_autocomplete(name_local, query)
+            item.setHidden(not matches)
+            if not matches:
+                tile = self._tile_for_item(item)
+                if tile is not None and self._hovered_tile is tile:
+                    self._stop_animation()
 
     def _on_accept(self) -> None:
         self._stop_animation()
@@ -287,40 +313,46 @@ Args:
 
 ```python
 def __init__(
-        self,
-        parent: QWidget | None,
-        *,
-        exercises: list[str],
-        icon_provider: Callable[[str], QIcon | None],
-        preview_size: QSize,
-        current_selection: str | None,
-        avif_manager: AvifManager | None = None,
-        name_locals: dict[str, str] | None = None,
-    ) -> None:
-        super().__init__(parent)
-        self.setWindowTitle("Select Exercise")
-        qt_modality.set_owner_window_modal(self)
-        self.selected_exercise: str | None = current_selection
-        self._icon_provider = icon_provider
-        self._avif_manager = avif_manager
-        self._name_locals = name_locals or {}
-        self._preview_size = preview_size
-        self._hovered_tile: _ExercisePreviewTile | None = None
-        has_any_local = any(self._name_locals.get(name, "").strip() for name in exercises)
-        text_area_height = 54 if has_any_local else 36
+    self,
+    parent: QWidget | None,
+    *,
+    exercises: list[str],
+    icon_provider: Callable[[str], QIcon | None],
+    preview_size: QSize,
+    current_selection: str | None,
+    avif_manager: AvifManager | None = None,
+    name_locals: dict[str, str] | None = None,
+) -> None:
+    super().__init__(parent)
+    self.setWindowTitle("Select Exercise")
+    qt_modality.set_owner_window_modal(self)
+    self.selected_exercise: str | None = current_selection
+    self._icon_provider = icon_provider
+    self._avif_manager = avif_manager
+    self._name_locals = name_locals or {}
+    self._preview_size = preview_size
+    self._hovered_tile: _ExercisePreviewTile | None = None
+    has_any_local = any(self._name_locals.get(name, "").strip() for name in exercises)
+    text_area_height = 54 if has_any_local else 36
 
-        layout = QVBoxLayout(self)
+    layout = QVBoxLayout(self)
 
-        self.list_widget = QListWidget(self)
-        self.list_widget.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
-        self.list_widget.setViewMode(QListWidget.ViewMode.IconMode)
-        self.list_widget.setResizeMode(QListWidget.ResizeMode.Adjust)
-        self.list_widget.setMovement(QListWidget.Movement.Static)
-        self.list_widget.setSpacing(16)
-        self.list_widget.setUniformItemSizes(True)
-        self.list_widget.setMouseTracking(True)
-        self.list_widget.setStyleSheet(
-            """
+    self.filter_edit = QLineEdit(self)
+    self.filter_edit.setPlaceholderText("Filter exercises…")
+    self.filter_edit.setClearButtonEnabled(True)
+    self.filter_edit.textChanged.connect(self._filter_exercises)
+    layout.addWidget(self.filter_edit)
+
+    self.list_widget = QListWidget(self)
+    self.list_widget.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+    self.list_widget.setViewMode(QListWidget.ViewMode.IconMode)
+    self.list_widget.setResizeMode(QListWidget.ResizeMode.Adjust)
+    self.list_widget.setMovement(QListWidget.Movement.Static)
+    self.list_widget.setSpacing(16)
+    self.list_widget.setUniformItemSizes(True)
+    self.list_widget.setMouseTracking(True)
+    self.list_widget.setStyleSheet(
+        """
             QListWidget {
                 outline: none;
             }
@@ -346,45 +378,47 @@ def __init__(
                 border-color: #4CAF50;
             }
             """
+    )
+    layout.addWidget(self.list_widget)
+
+    for exercise in exercises:
+        item = QListWidgetItem()
+        item.setData(Qt.ItemDataRole.UserRole, exercise)
+        item.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable)
+
+        static_pixmap = self._static_pixmap_for(exercise)
+        name_local = self._name_locals.get(exercise, "").strip()
+        tile = _ExercisePreviewTile(
+            exercise_name=exercise,
+            name_local=name_local,
+            static_pixmap=static_pixmap,
+            preview_size=preview_size,
+            text_area_height=text_area_height,
         )
-        layout.addWidget(self.list_widget)
+        item.setSizeHint(tile.sizeHint())
+        self.list_widget.addItem(item)
+        self.list_widget.setItemWidget(item, tile)
 
-        for exercise in exercises:
-            item = QListWidgetItem()
-            item.setData(Qt.ItemDataRole.UserRole, exercise)
-            item.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable)
+        tile.clicked.connect(lambda row_item=item: self._on_tile_clicked(row_item))
+        tile.double_clicked.connect(lambda row_item=item: self._on_tile_double_clicked(row_item))
+        tile.hover_entered.connect(lambda row_tile=tile: self._on_tile_hover_entered(row_tile))
+        tile.hover_left.connect(lambda row_tile=tile: self._on_tile_hover_left(row_tile))
 
-            static_pixmap = self._static_pixmap_for(exercise)
-            name_local = self._name_locals.get(exercise, "").strip()
-            tile = _ExercisePreviewTile(
-                exercise_name=exercise,
-                name_local=name_local,
-                static_pixmap=static_pixmap,
-                preview_size=preview_size,
-                text_area_height=text_area_height,
-            )
-            item.setSizeHint(tile.sizeHint())
-            self.list_widget.addItem(item)
-            self.list_widget.setItemWidget(item, tile)
+        if current_selection and exercise == current_selection:
+            self.list_widget.setCurrentItem(item)
+            item.setSelected(True)
+            tile.set_selected(selected=True)
 
-            tile.clicked.connect(lambda row_item=item: self._on_tile_clicked(row_item))
-            tile.double_clicked.connect(lambda row_item=item: self._on_tile_double_clicked(row_item))
-            tile.hover_entered.connect(lambda row_tile=tile: self._on_tile_hover_entered(row_tile))
-            tile.hover_left.connect(lambda row_tile=tile: self._on_tile_hover_left(row_tile))
+    self.list_widget.itemSelectionChanged.connect(self._on_selection_changed)
+    self.list_widget.installEventFilter(self)
 
-            if current_selection and exercise == current_selection:
-                self.list_widget.setCurrentItem(item)
-                item.setSelected(True)
-                tile.set_selected(selected=True)
+    button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel, self)
+    apply_emoji_dialog_buttons(button_box)
+    button_box.accepted.connect(self._on_accept)
+    button_box.rejected.connect(self.reject)
+    layout.addWidget(button_box)
 
-        self.list_widget.itemSelectionChanged.connect(self._on_selection_changed)
-        self.list_widget.installEventFilter(self)
-
-        button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel, self)
-        apply_emoji_dialog_buttons(button_box)
-        button_box.accepted.connect(self._on_accept)
-        button_box.rejected.connect(self.reject)
-        layout.addWidget(button_box)
+    self.filter_edit.setFocus()
 ```
 
 </details>
@@ -402,8 +436,8 @@ Handle dialog close event — stop animation.
 
 ```python
 def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
-        self._stop_animation()
-        super().closeEvent(event)
+    self._stop_animation()
+    super().closeEvent(event)
 ```
 
 </details>
@@ -421,11 +455,11 @@ Handle mouse leave on the list so hover previews stop.
 
 ```python
 def eventFilter(self, obj: QObject, event: QEvent) -> bool:  # noqa: N802
-        if obj == self.list_widget and event.type() == QEvent.Type.Leave:
-            self._stop_animation()
-            return False
+    if obj == self.list_widget and event.type() == QEvent.Type.Leave:
+        self._stop_animation()
+        return False
 
-        return super().eventFilter(obj, event)
+    return super().eventFilter(obj, event)
 ```
 
 </details>
@@ -443,8 +477,8 @@ Handle dialog rejection — stop animation.
 
 ```python
 def reject(self) -> None:
-        self._stop_animation()
-        super().reject()
+    self._stop_animation()
+    super().reject()
 ```
 
 </details>

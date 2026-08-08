@@ -85,6 +85,7 @@ from harrix_swiss_knife.apps.common.exercise_media import (
 from harrix_swiss_knife.apps.common.qt_main_window import AppWindowMixin
 from harrix_swiss_knife.apps.common.scroll_pagination import ScrollPagination, on_scroll_load_more
 from harrix_swiss_knife.apps.common.table_models import create_table_proxy_model
+from harrix_swiss_knife.apps.common.widgets.exercise_list_hover_preview import ExerciseListHoverPreview
 from harrix_swiss_knife.apps.common.widgets.file_drop_widget import FileDropWidget
 from harrix_swiss_knife.apps.common.widgets.path_drop_helpers import install_url_drop_handlers
 from harrix_swiss_knife.apps.fitness import database_manager, window
@@ -176,6 +177,7 @@ class MainWindow(
 
         # Cache of exercise icons keyed by exercise name
         self._exercise_icon_cache: dict[str, tuple[float, QIcon | None]] = {}
+        self._exercise_list_hover: ExerciseListHoverPreview | None = None
 
         # Table models dictionary
         self.models: dict[str, QSortFilterProxyModel | None] = {
@@ -321,6 +323,9 @@ class MainWindow(
         # Stop animations for all labels
         if self.current_movie:
             self.current_movie.stop()
+
+        if self._exercise_list_hover is not None:
+            self._exercise_list_hover.hide_preview()
 
         if self.avif_manager:
             for label_key in self.avif_manager.avif_data:
@@ -4308,34 +4313,6 @@ class MainWindow(
                 item.setData(name_local, NAME_LOCAL_ROLE)
             self.exercises_list_model.appendRow(item)
 
-    def _filter_exercises_list(self, text: str = "") -> None:
-        """Hide exercises in `listView_exercises` that do not match the filter text.
-
-        Matches English name (`UserRole`) and optional local name (`NAME_LOCAL_ROLE`),
-        including EN/RU keyboard-layout mistakes.
-
-        Args:
-
-        - `text` (`str`): Filter query. Defaults to `""`.
-
-        """
-        if self.exercises_list_model is None:
-            return
-
-        query = text.strip()
-        for row in range(self.exercises_list_model.rowCount()):
-            item = self.exercises_list_model.item(row)
-            if item is None:
-                continue
-            name = item.data(Qt.ItemDataRole.UserRole)
-            name_text = str(name) if name else item.text()
-            name_local = item.data(NAME_LOCAL_ROLE)
-            name_local_text = str(name_local).strip() if name_local else ""
-            matches = (not query) or text_matches_autocomplete(name_text, query)
-            if not matches and name_local_text:
-                matches = text_matches_autocomplete(name_local_text, query)
-            self.listView_exercises.setRowHidden(row, not matches)
-
     def _append_process_rows_to_model(self, model: QStandardItemModel, transformed_data: list[list]) -> None:
         """Append transformed process rows to an existing source model."""
         start_row_idx: int = model.rowCount()
@@ -4361,6 +4338,26 @@ class MainWindow(
 
             model.appendRow(items)
             model.setVerticalHeaderItem(row_idx, QStandardItem(str(row_id)))
+
+    def _apply_sets_splitter_sizes(self) -> None:
+        """Restore Sets-tab splitter widths so the exercise list is not squeezed."""
+        if self._is_closing or not hasattr(self, "splitter"):
+            return
+
+        total = self.splitter.width()
+        if total <= 0:
+            total = max(self.width(), 1200)
+
+        left = max(self.frame.minimumWidth(), 350)
+        remaining = max(total - left, 0)
+        # Match previous stretch factors for middle:process ≈ 1:3
+        min_process_width = 200
+        middle = max(self.widget_middle.minimumWidth(), remaining // 4)
+        right = remaining - middle
+        if right < min_process_width:
+            right = min(min_process_width, remaining // 2)
+            middle = remaining - right
+        self.splitter.setSizes([left, middle, right])
 
     def _calculate_exercise_recommendations(
         self, _exercise_name: str, monthly_data: list, _months_count: int, _exercise_unit: str
@@ -4556,6 +4553,7 @@ class MainWindow(
         # Connect double-click signal for exercises list to open statistics tab
         self.listView_exercises.doubleClicked.connect(self._on_exercises_list_double_clicked)
         self.lineEdit_exercises_filter.textChanged.connect(self._filter_exercises_list)
+        self.lineEdit_exercises_filter.textChanged.connect(self._hide_exercise_list_hover_preview)
 
         # Load more process records when scrolling near the bottom
         self.tableView_process.verticalScrollBar().valueChanged.connect(self._on_process_scroll)
@@ -4742,6 +4740,90 @@ class MainWindow(
             return self.db_manager.get_all_process_records()
         return self.db_manager.get_limited_process_records(limit, offset)
 
+    def _filter_exercises_list(self, text: str = "") -> None:
+        """Hide exercises in `listView_exercises` that do not match the filter text.
+
+        Matches English name (`UserRole`) and optional local name (`NAME_LOCAL_ROLE`),
+        including EN/RU keyboard-layout mistakes.
+
+        Args:
+
+        - `text` (`str`): Filter query. Defaults to `""`.
+
+        """
+        if self.exercises_list_model is None:
+            return
+
+        query = text.strip()
+        for row in range(self.exercises_list_model.rowCount()):
+            item = self.exercises_list_model.item(row)
+            if item is None:
+                continue
+            name = item.data(Qt.ItemDataRole.UserRole)
+            name_text = str(name) if name else item.text()
+            name_local = item.data(NAME_LOCAL_ROLE)
+            name_local_text = str(name_local).strip() if name_local else ""
+            matches = (not query) or text_matches_autocomplete(name_text, query)
+            if not matches and name_local_text:
+                matches = text_matches_autocomplete(name_local_text, query)
+            self.listView_exercises.setRowHidden(row, not matches)
+
+    def _filter_process_by_date(self, date_value: str) -> None:
+        """Apply process table filter for a single date from a table row."""
+        date_text = date_value.strip()[:10]
+        parsed = QDate.fromString(date_text, "yyyy-MM-dd")
+        if parsed.toString("yyyy-MM-dd") != date_text:
+            message_box.warning(self, "Filter", f"Could not parse date:\n{date_value}")
+            return
+        self.dateEdit_filter_from.setDate(parsed)
+        self.dateEdit_filter_to.setDate(parsed)
+        self.checkBox_use_date_filter.setChecked(True)
+        self.apply_filter()
+
+    def _filter_process_by_exercise(self, exercise_name: str) -> None:
+        """Apply process table filter for the given exercise name."""
+        name = exercise_name.strip()
+        if not name:
+            return
+        index = self.comboBox_filter_exercise.findText(name)
+        if index < 0:
+            self.comboBox_filter_exercise.addItem(name)
+            index = self.comboBox_filter_exercise.findText(name)
+        self.comboBox_filter_exercise.setCurrentIndex(index)
+        self.update_filter_type_combobox()
+        self.comboBox_filter_type.setCurrentIndex(0)
+        self.apply_filter()
+
+    def _filter_process_by_type(self, type_name: str, *, exercise_name: str | None = None) -> None:
+        """Apply process table filter for the given exercise type.
+
+        Args:
+
+        - `type_name` (`str`): Exercise type to filter by.
+        - `exercise_name` (`str | None`): Optional exercise to set first so the type list
+          matches that exercise. Defaults to `None`.
+
+        """
+        name = type_name.strip()
+        if not name:
+            return
+
+        if exercise_name and exercise_name.strip():
+            exercise = exercise_name.strip()
+            exercise_index = self.comboBox_filter_exercise.findText(exercise)
+            if exercise_index < 0:
+                self.comboBox_filter_exercise.addItem(exercise)
+                exercise_index = self.comboBox_filter_exercise.findText(exercise)
+            self.comboBox_filter_exercise.setCurrentIndex(exercise_index)
+            self.update_filter_type_combobox()
+
+        index = self.comboBox_filter_type.findText(name)
+        if index < 0:
+            self.comboBox_filter_type.addItem(name)
+            index = self.comboBox_filter_type.findText(name)
+        self.comboBox_filter_type.setCurrentIndex(index)
+        self.apply_filter()
+
     def _finish_window_initialization(self) -> None:
         """Finish window initialization by showing the window and adjusting columns."""
         if self._is_closing:
@@ -4750,6 +4832,7 @@ class MainWindow(
         # Adjust columns after window is shown and has proper dimensions
         QTimer.singleShot(50, self._adjust_process_table_columns)
         QTimer.singleShot(55, self._update_layout_for_window_size)
+        QTimer.singleShot(60, self._apply_sets_splitter_sizes)
 
     def _fitness_names_translate_local_limit(self) -> int:
         """Return max unique names per AI batch for local-name translation."""
@@ -5101,6 +5184,11 @@ class MainWindow(
 
         return None
 
+    def _hide_exercise_list_hover_preview(self, *_args: object) -> None:
+        """Hide the enlarged exercise hover popup (e.g. when the filter changes)."""
+        if self._exercise_list_hover is not None:
+            self._exercise_list_hover.hide_preview()
+
     def _init_avif_manager(self) -> None:
         """Initialize AVIF manager after database is ready."""
         if not self.db_manager:
@@ -5193,6 +5281,11 @@ class MainWindow(
         selection_model = self.listView_exercises.selectionModel()
         if selection_model:
             selection_model.currentChanged.connect(self.on_exercise_selection_changed_list)
+
+        self._exercise_list_hover = ExerciseListHoverPreview(
+            self.listView_exercises,
+            get_avif_manager=lambda: self.avif_manager,
+        )
 
     def _init_filter_controls(self) -> None:
         """Prepare widgets on the `Filters` group box.
@@ -5770,10 +5863,14 @@ class MainWindow(
             f"🎯 {self.pushButton_exercise_goal_recommendations.text()}"
         )
 
-        # Configure splitter proportions
+        # Configure splitter proportions.
+        # Filter bar above the process table has a wide sizeHint; without explicit
+        # sizes QSplitter steals width from listView_exercises.
+        self.widget_middle.setMinimumWidth(300)
         self.splitter.setStretchFactor(0, 0)  # frame with fixed size
-        self.splitter.setStretchFactor(1, 1)  # listView gets less space
-        self.splitter.setStretchFactor(2, 3)  # tableView gets more space
+        self.splitter.setStretchFactor(1, 1)  # exercise list
+        self.splitter.setStretchFactor(2, 3)  # process filters + table
+        self._apply_sets_splitter_sizes()
 
         # Initialize calories spinboxes
         self.doubleSpinBox_calories_per_unit.setDecimals(1)
@@ -5861,23 +5958,58 @@ class MainWindow(
 
         """
         context_menu = QMenu(self)
+        index = self.tableView_process.indexAt(position)
+        model = self.tableView_process.model()
+
+        filter_by_exercise_action = None
+        filter_by_type_action = None
+        filter_by_date_action = None
+        exercise_value = ""
+        type_value = ""
+        date_value = ""
+
+        if index.isValid() and model is not None:
+            exercise_raw = model.data(model.index(index.row(), 0))
+            type_raw = model.data(model.index(index.row(), 1))
+            date_raw = model.data(model.index(index.row(), 3))
+            exercise_value = str(exercise_raw).strip() if exercise_raw is not None else ""
+            type_value = str(type_raw).strip() if type_raw is not None else ""
+            date_value = str(date_raw).strip() if date_raw is not None else ""
+
+            if exercise_value:
+                filter_by_exercise_action = context_menu.addAction("🔍 Filter by this exercise")
+            if type_value:
+                filter_by_type_action = context_menu.addAction("🔍 Filter by this type")
+            if date_value:
+                filter_by_date_action = context_menu.addAction("📅 Filter by this date")
+            if filter_by_exercise_action or filter_by_type_action or filter_by_date_action:
+                context_menu.addSeparator()
+
+        clear_filters_action = context_menu.addAction("🧹 Clear all filters")
+        apply_filter_action = context_menu.addAction("✔️ Apply filter")
+        context_menu.addSeparator()
         export_action = context_menu.addAction("📤 Export to CSV")
         context_menu.addSeparator()
         delete_action = context_menu.addAction("🗑 Delete selected row")
 
-        # Execute the context menu and get the selected action
         action = context_menu.exec_(self.tableView_process.mapToGlobal(position))
-
-        # Process the action only if it was actually selected (not None)
         if action is None:
-            # User clicked outside the menu or pressed Esc - do nothing
             return
 
-        if action == export_action:
+        if action == filter_by_exercise_action and exercise_value:
+            self._filter_process_by_exercise(exercise_value)
+        elif action == filter_by_type_action and type_value:
+            self._filter_process_by_type(type_value, exercise_name=exercise_value or None)
+        elif action == filter_by_date_action and date_value:
+            self._filter_process_by_date(date_value)
+        elif action == clear_filters_action:
+            self.clear_filter()
+        elif action == apply_filter_action:
+            self.apply_filter()
+        elif action == export_action:
             logger.debug("🔧 Context menu: Export to CSV action triggered")
             self.on_export_csv()
         elif action == delete_action:
-            # Check that a row is selected
             if self.tableView_process.currentIndex().isValid():
                 logger.debug("🔧 Context menu: Delete action triggered")
                 self.pushButton_delete.click()
