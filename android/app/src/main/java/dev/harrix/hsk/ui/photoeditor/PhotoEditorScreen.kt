@@ -257,6 +257,7 @@ fun PhotoEditorScreen(
                                 },
                                 long = result.savedAsCopy,
                             )
+                            leaveEditor()
                         },
                         onDiscard = {
                             imageRevision += 1

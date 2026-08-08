@@ -15,6 +15,7 @@ lang: en
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
 - [🏛️ Class `ShutterPanel`](#%EF%B8%8F-class-shutterpanel)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-1)
+  - [⚙️ Method `eventFilter`](#%EF%B8%8F-method-eventfilter)
   - [⚙️ Method `set_mode`](#%EF%B8%8F-method-set_mode)
 - [🔧 Function `position_panel_on_left_edge`](#-function-position_panel_on_left_edge)
 
@@ -48,8 +49,14 @@ class ArrangeModeDialog(QDialog):
         panel.set_mode("arrange")
         panel.triggered.connect(self.accept)
         panel.cancelled.connect(self.reject)
-        self.setFixedSize(panel.size())
+        panel.geometry_changed.connect(self._fit_panel)
+        self._panel = panel
+        self._fit_panel()
         self._position_on_primary_screen()
+
+    def _fit_panel(self) -> None:
+        """Keep the dialog size matched to the panel (grows when a hint is shown)."""
+        self.setFixedSize(self._panel.sizeHint())
 
     def _position_on_primary_screen(self) -> None:
         """Place the controls on the left edge, vertically centered."""
@@ -85,7 +92,9 @@ def __init__(self) -> None:
         panel.set_mode("arrange")
         panel.triggered.connect(self.accept)
         panel.cancelled.connect(self.reject)
-        self.setFixedSize(panel.size())
+        panel.geometry_changed.connect(self._fit_panel)
+        self._panel = panel
+        self._fit_panel()
         self._position_on_primary_screen()
 ```
 
@@ -103,6 +112,9 @@ Being a regular child widget (not a separate native window) guarantees that
 clicks reach the buttons even when the application has modal dialogs in
 `exec()` — the parent (overlay or arrange dialog) owns the modal input.
 
+Hover captions are drawn as an in-panel label (not `QToolTip`), so they stay
+visible above the stay-on-top screenshot overlay.
+
 <details>
 <summary>Code:</summary>
 
@@ -110,27 +122,54 @@ clicks reach the buttons even when the application has modal dialogs in
 class ShutterPanel(QWidget):
 
     cancelled = Signal()
+    geometry_changed = Signal()
     triggered = Signal()
 
     def __init__(self, parent: QWidget | None = None) -> None:
         """Create the two-button shutter panel."""
         super().__init__(parent)
-        total_height = _BUTTON_SIZE * 2 + _BUTTON_GAP
-        self.setFixedSize(_BUTTON_SIZE, total_height)
 
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(_BUTTON_GAP)
+        root = QHBoxLayout(self)
+        root.setContentsMargins(0, 0, 0, 0)
+        root.setSpacing(_HINT_GAP)
+
+        buttons = QWidget(self)
+        buttons_layout = QVBoxLayout(buttons)
+        buttons_layout.setContentsMargins(0, 0, 0, 0)
+        buttons_layout.setSpacing(_BUTTON_GAP)
 
         self._mode_button = self._make_emoji_button(_ARRANGE_EMOJI, "Arrange desktop")
         self._mode_button.clicked.connect(self.triggered.emit)
-        layout.addWidget(self._mode_button)
+        buttons_layout.addWidget(self._mode_button)
 
         close_button = self._make_emoji_button(_CLOSE_EMOJI, "Cancel screenshot")
         close_button.clicked.connect(self.cancelled.emit)
-        layout.addWidget(close_button)
+        buttons_layout.addWidget(close_button)
+
+        root.addWidget(buttons, 0, Qt.AlignmentFlag.AlignTop)
+
+        self._hint_label = QLabel(self)
+        self._hint_label.setStyleSheet(_HINT_STYLE)
+        self._hint_label.setWordWrap(True)
+        self._hint_label.setFixedWidth(_HINT_WIDTH)
+        self._hint_label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft)
+        self._hint_label.hide()
+        root.addWidget(self._hint_label, 0, Qt.AlignmentFlag.AlignVCenter)
 
         self._mode: ShutterMode = "selection"
+        self._hovered_button: QPushButton | None = None
+        self._update_size()
+
+    def eventFilter(self, watched: object, event: QEvent) -> bool:  # noqa: N802
+        """Show an in-panel caption while the pointer is over a shutter button."""
+        if isinstance(watched, QPushButton):
+            if event.type() == QEvent.Type.Enter:
+                self._hovered_button = watched
+                self._show_hint(str(watched.property("hover_hint") or watched.toolTip()))
+            elif event.type() == QEvent.Type.Leave and self._hovered_button is watched:
+                self._hovered_button = None
+                self._hide_hint()
+        return super().eventFilter(watched, event)
 
     def set_mode(self, mode: ShutterMode) -> None:
         """Update the mode button emoji for selection vs desktop-arrangement."""
@@ -139,10 +178,21 @@ class ShutterPanel(QWidget):
             # In region selection, click leaves capture to arrange other Windows.
             self._mode_button.setIcon(create_emoji_icon(_ARRANGE_EMOJI, _ICON_SIZE))
             self._mode_button.setToolTip("Arrange desktop")
+            self._mode_button.setProperty("hover_hint", "Arrange desktop")
         else:
             # In arrange mode, click returns to region capture.
             self._mode_button.setIcon(create_emoji_icon(_CAMERA_EMOJI, _ICON_SIZE))
             self._mode_button.setToolTip("Capture region")
+            self._mode_button.setProperty("hover_hint", "Capture region")
+        if self._hovered_button is self._mode_button:
+            self._show_hint(str(self._mode_button.property("hover_hint") or ""))
+
+    def _hide_hint(self) -> None:
+        if not self._hint_label.isVisible():
+            return
+        self._hint_label.hide()
+        self._hint_label.clear()
+        self._update_size()
 
     def _make_emoji_button(self, emoji: str, tooltip: str) -> QPushButton:
         button = QPushButton(self)
@@ -151,8 +201,27 @@ class ShutterPanel(QWidget):
         button.setIconSize(QSize(_ICON_SIZE, _ICON_SIZE))
         button.setCursor(Qt.CursorShape.PointingHandCursor)
         button.setToolTip(tooltip)
+        button.setProperty("hover_hint", tooltip)
         button.setStyleSheet(_BUTTON_STYLE)
+        button.setAttribute(Qt.WidgetAttribute.WA_Hover, on=True)
+        button.installEventFilter(self)
         return button
+
+    def _show_hint(self, text: str) -> None:
+        if not text:
+            self._hide_hint()
+            return
+        self._hint_label.setText(text)
+        self._hint_label.show()
+        self._update_size()
+
+    def _update_size(self) -> None:
+        total_height = _BUTTON_SIZE * 2 + _BUTTON_GAP
+        width = _BUTTON_SIZE
+        if self._hint_label.isVisible():
+            width += _HINT_GAP + _HINT_WIDTH
+        self.setFixedSize(width, total_height)
+        self.geometry_changed.emit()
 ```
 
 </details>
@@ -171,22 +240,62 @@ Create the two-button shutter panel.
 ```python
 def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
-        total_height = _BUTTON_SIZE * 2 + _BUTTON_GAP
-        self.setFixedSize(_BUTTON_SIZE, total_height)
 
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(_BUTTON_GAP)
+        root = QHBoxLayout(self)
+        root.setContentsMargins(0, 0, 0, 0)
+        root.setSpacing(_HINT_GAP)
+
+        buttons = QWidget(self)
+        buttons_layout = QVBoxLayout(buttons)
+        buttons_layout.setContentsMargins(0, 0, 0, 0)
+        buttons_layout.setSpacing(_BUTTON_GAP)
 
         self._mode_button = self._make_emoji_button(_ARRANGE_EMOJI, "Arrange desktop")
         self._mode_button.clicked.connect(self.triggered.emit)
-        layout.addWidget(self._mode_button)
+        buttons_layout.addWidget(self._mode_button)
 
         close_button = self._make_emoji_button(_CLOSE_EMOJI, "Cancel screenshot")
         close_button.clicked.connect(self.cancelled.emit)
-        layout.addWidget(close_button)
+        buttons_layout.addWidget(close_button)
+
+        root.addWidget(buttons, 0, Qt.AlignmentFlag.AlignTop)
+
+        self._hint_label = QLabel(self)
+        self._hint_label.setStyleSheet(_HINT_STYLE)
+        self._hint_label.setWordWrap(True)
+        self._hint_label.setFixedWidth(_HINT_WIDTH)
+        self._hint_label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft)
+        self._hint_label.hide()
+        root.addWidget(self._hint_label, 0, Qt.AlignmentFlag.AlignVCenter)
 
         self._mode: ShutterMode = "selection"
+        self._hovered_button: QPushButton | None = None
+        self._update_size()
+```
+
+</details>
+
+### ⚙️ Method `eventFilter`
+
+```python
+def eventFilter(self, watched: object, event: QEvent) -> bool
+```
+
+Show an in-panel caption while the pointer is over a shutter button.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def eventFilter(self, watched: object, event: QEvent) -> bool:  # noqa: N802
+        if isinstance(watched, QPushButton):
+            if event.type() == QEvent.Type.Enter:
+                self._hovered_button = watched
+                self._show_hint(str(watched.property("hover_hint") or watched.toolTip()))
+            elif event.type() == QEvent.Type.Leave and self._hovered_button is watched:
+                self._hovered_button = None
+                self._hide_hint()
+        return super().eventFilter(watched, event)
 ```
 
 </details>
@@ -209,10 +318,14 @@ def set_mode(self, mode: ShutterMode) -> None:
             # In region selection, click leaves capture to arrange other Windows.
             self._mode_button.setIcon(create_emoji_icon(_ARRANGE_EMOJI, _ICON_SIZE))
             self._mode_button.setToolTip("Arrange desktop")
+            self._mode_button.setProperty("hover_hint", "Arrange desktop")
         else:
             # In arrange mode, click returns to region capture.
             self._mode_button.setIcon(create_emoji_icon(_CAMERA_EMOJI, _ICON_SIZE))
             self._mode_button.setToolTip("Capture region")
+            self._mode_button.setProperty("hover_hint", "Capture region")
+        if self._hovered_button is self._mode_button:
+            self._show_hint(str(self._mode_button.property("hover_hint") or ""))
 ```
 
 </details>

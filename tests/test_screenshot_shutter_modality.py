@@ -133,3 +133,30 @@ def test_arrange_dialog_stays_on_top_frameless(qapp: QApplication) -> None:  # n
     assert flags & Qt.WindowType.FramelessWindowHint
     assert flags & Qt.WindowType.WindowStaysOnTopHint
     dialog.close()
+
+
+def test_shutter_panel_shows_hover_hint_caption(qapp: QApplication) -> None:  # noqa: ARG001
+    """In-panel captions must appear on hover (QToolTip is hidden under stay-on-top overlays)."""
+    from PySide6.QtCore import QEvent
+    from PySide6.QtWidgets import QLabel, QPushButton
+
+    panel = ShutterPanel()
+    panel.set_mode("selection")
+    panel.show()
+    QApplication.processEvents()
+
+    buttons = panel.findChildren(QPushButton)
+    assert buttons
+    mode_button = buttons[0]
+    QApplication.sendEvent(mode_button, QEvent(QEvent.Type.Enter))
+    QApplication.processEvents()
+
+    hint = panel.findChild(QLabel)
+    assert hint is not None
+    assert hint.isVisible()
+    assert "Arrange" in hint.text()
+
+    QApplication.sendEvent(mode_button, QEvent(QEvent.Type.Leave))
+    QApplication.processEvents()
+    assert not hint.isVisible()
+    panel.close()
