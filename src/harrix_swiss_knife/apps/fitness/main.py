@@ -4341,7 +4341,7 @@ class MainWindow(
 
     def _apply_sets_splitter_sizes(self) -> None:
         """Restore Sets-tab splitter widths so the exercise list is not squeezed."""
-        if self._is_closing or not hasattr(self, "splitter"):
+        if getattr(self, "_is_closing", False) or not hasattr(self, "splitter"):
             return
 
         total = self.splitter.width()
