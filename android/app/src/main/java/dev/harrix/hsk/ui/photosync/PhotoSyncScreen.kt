@@ -21,9 +21,11 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.QrCodeScanner
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -34,6 +36,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -50,14 +53,20 @@ import com.journeyapps.barcodescanner.ScanContract
 import com.journeyapps.barcodescanner.ScanOptions
 import dev.harrix.hsk.R
 import dev.harrix.hsk.gallery.GalleryPermissions
+import dev.harrix.hsk.photosync.PhotoSyncConnectionStatus
+import dev.harrix.hsk.photosync.PhotoSyncFormat
+import dev.harrix.hsk.photosync.PhotoSyncLifetimeStats
 import dev.harrix.hsk.photosync.PhotoSyncProgress
+import dev.harrix.hsk.photosync.PhotoSyncResult
 import dev.harrix.hsk.ui.adaptiveContentWidth
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PhotoSyncScreen(
     onClose: () -> Unit,
+    onOpenSettings: () -> Unit,
     modifier: Modifier = Modifier,
+    settingsRevision: Int = 0,
     viewModel: PhotoSyncViewModel = viewModel(),
 ) {
     val context = LocalContext.current
@@ -65,6 +74,10 @@ fun PhotoSyncScreen(
     var pasteText by remember { mutableStateOf("") }
     var hasPhotoPermission by remember {
         mutableStateOf(GalleryPermissions.hasPhotosPermission(context))
+    }
+
+    LaunchedEffect(settingsRevision) {
+        viewModel.refreshLifetimeStats()
     }
 
     val permissionLauncher =
@@ -139,6 +152,12 @@ fun PhotoSyncScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = onOpenSettings, enabled = !state.isSyncing) {
+                        Icon(
+                            imageVector = Icons.Filled.Settings,
+                            contentDescription = stringResource(R.string.photo_sync_settings),
+                        )
+                    }
                     IconButton(onClick = { launchQrScan() }, enabled = !state.isSyncing) {
                         Icon(
                             imageVector = Icons.Filled.QrCodeScanner,
@@ -197,9 +216,7 @@ fun PhotoSyncScreen(
                 modifier = Modifier.fillMaxWidth(),
             )
             OutlinedButton(
-                onClick = {
-                    viewModel.applyPairingText(pasteText)
-                },
+                onClick = { viewModel.applyPairingText(pasteText) },
                 enabled = !state.isSyncing && pasteText.isNotBlank(),
                 modifier = Modifier.fillMaxWidth(),
             ) {
@@ -234,7 +251,10 @@ fun PhotoSyncScreen(
                         }
                         viewModel.startSync()
                     },
-                    enabled = !state.isSyncing && hasPhotoPermission,
+                    enabled =
+                    !state.isSyncing &&
+                        hasPhotoPermission &&
+                        state.connectionStatus == PhotoSyncConnectionStatus.Connected,
                     modifier = Modifier.weight(1f),
                 ) {
                     Text(stringResource(R.string.photo_sync_start))
@@ -249,6 +269,13 @@ fun PhotoSyncScreen(
                 }
             }
 
+            PendingStatusBlock(
+                connectionStatus = state.connectionStatus,
+                isEstimating = state.isEstimating,
+                pendingCount = state.pendingCount,
+                pendingBytes = state.pendingBytes,
+            )
+
             state.progress?.let { progress ->
                 SyncProgressBlock(progress)
             }
@@ -258,10 +285,7 @@ fun PhotoSyncScreen(
             }
 
             state.lastResult?.let { result ->
-                Text(
-                    text = result.message,
-                    style = MaterialTheme.typography.bodyLarge,
-                )
+                ResultBlock(result)
             }
 
             state.errorMessage?.let { error ->
@@ -272,7 +296,77 @@ fun PhotoSyncScreen(
                 )
             }
 
+            HorizontalDivider(modifier = Modifier.padding(top = 8.dp))
+            LifetimeStatsBlock(stats = state.lifetime)
+
             Spacer(modifier = Modifier.height(24.dp))
+        }
+    }
+}
+
+@Composable
+private fun PendingStatusBlock(
+    connectionStatus: PhotoSyncConnectionStatus,
+    isEstimating: Boolean,
+    pendingCount: Int?,
+    pendingBytes: Long?,
+) {
+    val statusText =
+        when (connectionStatus) {
+            PhotoSyncConnectionStatus.Connected ->
+                stringResource(R.string.photo_sync_status_connected)
+
+            PhotoSyncConnectionStatus.Disconnected ->
+                stringResource(R.string.photo_sync_status_disconnected)
+
+            PhotoSyncConnectionStatus.Checking ->
+                stringResource(R.string.photo_sync_status_checking)
+
+            PhotoSyncConnectionStatus.MissingConfig ->
+                stringResource(R.string.photo_sync_status_missing_config)
+
+            PhotoSyncConnectionStatus.Unknown ->
+                stringResource(R.string.photo_sync_status_unknown)
+        }
+    val statusColor =
+        when (connectionStatus) {
+            PhotoSyncConnectionStatus.Connected -> MaterialTheme.colorScheme.primary
+            PhotoSyncConnectionStatus.Disconnected -> MaterialTheme.colorScheme.error
+            else -> MaterialTheme.colorScheme.onSurfaceVariant
+        }
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(
+            text = stringResource(R.string.photo_sync_status_label, statusText),
+            style = MaterialTheme.typography.bodyMedium,
+            color = statusColor,
+        )
+        when {
+            isEstimating -> {
+                Text(
+                    text = stringResource(R.string.photo_sync_estimating),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
+
+            pendingCount != null && pendingBytes != null -> {
+                Text(
+                    text =
+                    stringResource(
+                        R.string.photo_sync_pending_summary,
+                        pendingCount,
+                        PhotoSyncFormat.formatBytes(pendingBytes),
+                    ),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
+
+            connectionStatus == PhotoSyncConnectionStatus.Connected -> {
+                Text(
+                    text = stringResource(R.string.photo_sync_pending_unknown),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
     }
 }
@@ -313,6 +407,16 @@ private fun SyncProgressBlock(progress: PhotoSyncProgress) {
         } else {
             LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
         }
+        Text(
+            text =
+            stringResource(
+                R.string.photo_sync_session_stats,
+                PhotoSyncFormat.formatElapsed(progress.elapsedMs),
+                progress.uploadedCount,
+                PhotoSyncFormat.formatBytes(progress.uploadedBytes),
+            ),
+            style = MaterialTheme.typography.bodyMedium,
+        )
         if (progress.detail.isNotBlank()) {
             Text(
                 text = progress.detail,
@@ -320,5 +424,50 @@ private fun SyncProgressBlock(progress: PhotoSyncProgress) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
+    }
+}
+
+@Composable
+private fun ResultBlock(result: PhotoSyncResult) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(
+            text = result.message,
+            style = MaterialTheme.typography.bodyLarge,
+        )
+        Text(
+            text =
+            stringResource(
+                R.string.photo_sync_session_stats,
+                PhotoSyncFormat.formatElapsed(result.elapsedMs),
+                result.uploaded,
+                PhotoSyncFormat.formatBytes(result.uploadedBytes),
+            ),
+            style = MaterialTheme.typography.bodyMedium,
+        )
+    }
+}
+
+@Composable
+private fun LifetimeStatsBlock(stats: PhotoSyncLifetimeStats) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(
+            text = stringResource(R.string.photo_sync_lifetime_title),
+            style = MaterialTheme.typography.titleMedium,
+        )
+        Text(
+            text =
+            stringResource(
+                R.string.photo_sync_lifetime_summary,
+                stats.syncCount,
+                stats.photosUploaded,
+                PhotoSyncFormat.formatBytes(stats.bytesUploaded),
+            ),
+            style = MaterialTheme.typography.bodyMedium,
+        )
+        Text(
+            text = stringResource(R.string.photo_sync_lifetime_reset_hint),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }

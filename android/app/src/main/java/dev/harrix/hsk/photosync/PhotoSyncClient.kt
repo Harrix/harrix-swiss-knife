@@ -34,6 +34,24 @@ class PhotoSyncClient(
     private val baseUrl: String
         get() = "http://${endpoint.host}:${endpoint.port}"
 
+    fun checkHealth() {
+        val request =
+            Request
+                .Builder()
+                .url("$baseUrl/v1/health")
+                .get()
+                .build()
+        httpClient.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) {
+                throw IOException("Health check failed: HTTP ${response.code}")
+            }
+            val json = JSONObject(response.body?.string().orEmpty())
+            if (!json.optBoolean("ok", false)) {
+                throw IOException("Desktop receiver is not ready")
+            }
+        }
+    }
+
     fun handshake() {
         val body =
             JSONObject()

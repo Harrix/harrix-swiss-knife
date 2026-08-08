@@ -248,6 +248,8 @@ fun MainScreen(
             AppDestination.PhotoSync -> {
                 PhotoSyncScreen(
                     onClose = { destination = AppDestination.Home },
+                    onOpenSettings = { settingsSection = SettingsSection.PhotoSync },
+                    settingsRevision = settingsRevision,
                     modifier = Modifier.fillMaxSize(),
                 )
             }

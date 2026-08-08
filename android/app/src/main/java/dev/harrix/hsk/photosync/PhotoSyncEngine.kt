@@ -8,14 +8,31 @@ import dev.harrix.hsk.gallery.GalleryCleanerPreferences
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
+import java.io.IOException
+import java.net.ConnectException
+import java.net.SocketTimeoutException
+import java.net.UnknownHostException
 import java.security.MessageDigest
 import kotlin.coroutines.coroutineContext
+
+enum class PhotoSyncConnectionStatus {
+    Unknown,
+    Checking,
+    Connected,
+    Disconnected,
+    MissingConfig,
+}
 
 data class PhotoSyncProgress(
     val phase: String,
     val current: Int = 0,
     val total: Int = 0,
     val detail: String = "",
+    val elapsedMs: Long = 0L,
+    val uploadedCount: Int = 0,
+    val uploadedBytes: Long = 0L,
+    val pendingCount: Int = 0,
+    val pendingBytes: Long = 0L,
 )
 
 data class PhotoSyncResult(
@@ -23,7 +40,16 @@ data class PhotoSyncResult(
     val uploaded: Int,
     val skipped: Int,
     val failed: Int,
+    val uploadedBytes: Long,
+    val elapsedMs: Long,
+    val cancelled: Boolean = false,
     val message: String,
+)
+
+data class PhotoSyncPendingEstimate(
+    val pendingCount: Int,
+    val pendingBytes: Long,
+    val totalPhotos: Int,
 )
 
 class PhotoSyncEngine(
@@ -33,20 +59,60 @@ class PhotoSyncEngine(
     private val galleryPrefs = GalleryCleanerPreferences(context)
     private val hashCache = PhotoSyncHashCache(context)
 
+    fun deviceId(): String = Settings.Secure
+        .getString(context.contentResolver, Settings.Secure.ANDROID_ID)
+        ?.takeIf { it.isNotBlank() }
+        ?: "unknown"
+
+    suspend fun probeConnection(endpoint: PhotoSyncEndpoint): Boolean = withContext(Dispatchers.IO) {
+        try {
+            PhotoSyncClient(endpoint, deviceId()).checkHealth()
+            true
+        } catch (_: ConnectException) {
+            false
+        } catch (_: SocketTimeoutException) {
+            false
+        } catch (_: UnknownHostException) {
+            false
+        } catch (_: IOException) {
+            false
+        }
+    }
+
+    suspend fun estimatePending(endpoint: PhotoSyncEndpoint): PhotoSyncPendingEstimate = withContext(Dispatchers.IO) {
+        val client = PhotoSyncClient(endpoint, deviceId())
+        client.handshake()
+        val photos = gallery.loadCameraPhotos(galleryPrefs.getImagesRelativePath())
+        if (photos.isEmpty()) {
+            return@withContext PhotoSyncPendingEstimate(0, 0L, 0)
+        }
+        val items = buildManifestItems(photos) { _, _, _ -> }
+        val needed = client.requestNeeded(items).toSet()
+        val pendingBytes =
+            items
+                .filter { it.mediaId in needed }
+                .sumOf { it.sizeBytes.coerceAtLeast(0L) }
+        PhotoSyncPendingEstimate(
+            pendingCount = needed.size,
+            pendingBytes = pendingBytes,
+            totalPhotos = photos.size,
+        )
+    }
+
     suspend fun sync(
         endpoint: PhotoSyncEndpoint,
         onProgress: (PhotoSyncProgress) -> Unit,
     ): PhotoSyncResult = withContext(Dispatchers.IO) {
-        val deviceId =
-            Settings.Secure
-                .getString(context.contentResolver, Settings.Secure.ANDROID_ID)
-                ?.takeIf { it.isNotBlank() }
-                ?: "unknown"
-        val client = PhotoSyncClient(endpoint, deviceId)
-        onProgress(PhotoSyncProgress(phase = "handshake"))
+        val startedAt = System.currentTimeMillis()
+        fun elapsed(): Long = System.currentTimeMillis() - startedAt
+
+        val client = PhotoSyncClient(endpoint, deviceId())
+        onProgress(
+            PhotoSyncProgress(phase = "handshake", elapsedMs = elapsed()),
+        )
         client.handshake()
 
-        onProgress(PhotoSyncProgress(phase = "scan"))
+        onProgress(PhotoSyncProgress(phase = "scan", elapsedMs = elapsed()))
         val photos = gallery.loadCameraPhotos(galleryPrefs.getImagesRelativePath())
         if (photos.isEmpty()) {
             return@withContext PhotoSyncResult(
@@ -54,22 +120,114 @@ class PhotoSyncEngine(
                 uploaded = 0,
                 skipped = 0,
                 failed = 0,
+                uploadedBytes = 0L,
+                elapsedMs = elapsed(),
                 message = "No Camera photos found",
             )
         }
 
         val photoById = photos.associateBy { it.id.toString() }
-        val items = ArrayList<PhotoSyncClient.ManifestItem>(photos.size)
-        for ((index, photo) in photos.withIndex()) {
+        val items =
+            buildManifestItems(photos) { index, total, detail ->
+                onProgress(
+                    PhotoSyncProgress(
+                        phase = "hash",
+                        current = index,
+                        total = total,
+                        detail = detail,
+                        elapsedMs = elapsed(),
+                    ),
+                )
+            }
+
+        onProgress(
+            PhotoSyncProgress(
+                phase = "manifest",
+                total = items.size,
+                elapsedMs = elapsed(),
+            ),
+        )
+        val needed = client.requestNeeded(items).toSet()
+        val skipped = items.size - needed.size
+        val neededItems = items.filter { it.mediaId in needed }
+        val pendingBytesTotal = neededItems.sumOf { it.sizeBytes.coerceAtLeast(0L) }
+        var uploaded = 0
+        var failed = 0
+        var uploadedBytes = 0L
+
+        for ((index, item) in neededItems.withIndex()) {
             coroutineContext.ensureActive()
             onProgress(
                 PhotoSyncProgress(
-                    phase = "hash",
+                    phase = "upload",
                     current = index + 1,
-                    total = photos.size,
-                    detail = photo.displayName.orEmpty(),
+                    total = neededItems.size,
+                    detail = item.displayName.orEmpty(),
+                    elapsedMs = elapsed(),
+                    uploadedCount = uploaded,
+                    uploadedBytes = uploadedBytes,
+                    pendingCount = neededItems.size - index,
+                    pendingBytes = (pendingBytesTotal - uploadedBytes).coerceAtLeast(0L),
                 ),
             )
+            val photo = photoById[item.mediaId]
+            if (photo == null) {
+                failed += 1
+                continue
+            }
+            try {
+                val bytes = readBytes(photo)
+                val actual = sha256(bytes)
+                hashCache.put(photo.id, photo.sizeBytes, actual)
+                val uploadItem =
+                    if (actual == item.contentHash) {
+                        item
+                    } else {
+                        item.copy(contentHash = actual, sizeBytes = bytes.size.toLong())
+                    }
+                client.upload(uploadItem, bytes)
+                uploaded += 1
+                uploadedBytes += bytes.size.toLong()
+            } catch (_: java.io.IOException) {
+                failed += 1
+            } catch (_: org.json.JSONException) {
+                failed += 1
+            } catch (_: IllegalStateException) {
+                failed += 1
+            } catch (_: SecurityException) {
+                failed += 1
+            }
+        }
+
+        val elapsedMs = elapsed()
+        PhotoSyncResult(
+            totalPhotos = photos.size,
+            uploaded = uploaded,
+            skipped = skipped,
+            failed = failed,
+            uploadedBytes = uploadedBytes,
+            elapsedMs = elapsedMs,
+            cancelled = false,
+            message =
+            buildResultMessage(
+                uploaded = uploaded,
+                skipped = skipped,
+                failed = failed,
+                uploadedBytes = uploadedBytes,
+                elapsedMs = elapsedMs,
+                cancelled = false,
+            ),
+        )
+    }
+
+    private suspend fun buildManifestItems(
+        photos: List<CameraPhoto>,
+        onHashProgress: (index: Int, total: Int, detail: String) -> Unit,
+    ): List<PhotoSyncClient.ManifestItem> {
+        val items = ArrayList<PhotoSyncClient.ManifestItem>(photos.size)
+        for ((index, photo) in photos.withIndex()) {
+            coroutineContext.ensureActive()
+            onHashProgress(index + 1, photos.size, photo.displayName.orEmpty())
             val mediaId = photo.id.toString()
             val hash =
                 hashCache.get(photo.id, photo.sizeBytes)
@@ -89,58 +247,21 @@ class PhotoSyncEngine(
                     mimeType = photo.mimeType,
                 )
         }
+        return items
+    }
 
-        onProgress(PhotoSyncProgress(phase = "manifest", total = items.size))
-        val needed = client.requestNeeded(items).toSet()
-        val skipped = items.size - needed.size
-        var uploaded = 0
-        var failed = 0
-        val neededItems = items.filter { it.mediaId in needed }
-        for ((index, item) in neededItems.withIndex()) {
-            coroutineContext.ensureActive()
-            onProgress(
-                PhotoSyncProgress(
-                    phase = "upload",
-                    current = index + 1,
-                    total = neededItems.size,
-                    detail = item.displayName.orEmpty(),
-                ),
-            )
-            val photo = photoById[item.mediaId]
-            if (photo == null) {
-                failed += 1
-                continue
-            }
-            try {
-                val bytes = readBytes(photo)
-                val actual = sha256(bytes)
-                hashCache.put(photo.id, photo.sizeBytes, actual)
-                val uploadItem =
-                    if (actual == item.contentHash) {
-                        item
-                    } else {
-                        item.copy(contentHash = actual)
-                    }
-                client.upload(uploadItem, bytes)
-                uploaded += 1
-            } catch (_: java.io.IOException) {
-                failed += 1
-            } catch (_: org.json.JSONException) {
-                failed += 1
-            } catch (_: IllegalStateException) {
-                failed += 1
-            } catch (_: SecurityException) {
-                failed += 1
-            }
-        }
-
-        PhotoSyncResult(
-            totalPhotos = photos.size,
-            uploaded = uploaded,
-            skipped = skipped,
-            failed = failed,
-            message = "Done: uploaded $uploaded, skipped $skipped, failed $failed",
-        )
+    private fun buildResultMessage(
+        uploaded: Int,
+        skipped: Int,
+        failed: Int,
+        uploadedBytes: Long,
+        elapsedMs: Long,
+        cancelled: Boolean,
+    ): String {
+        val prefix = if (cancelled) "Cancelled" else "Done"
+        return "$prefix: uploaded $uploaded, skipped $skipped, failed $failed, " +
+            "${PhotoSyncFormat.formatBytes(uploadedBytes)}, " +
+            PhotoSyncFormat.formatElapsed(elapsedMs)
     }
 
     private fun readBytes(photo: CameraPhoto): ByteArray = context.contentResolver.openInputStream(photo.uri)?.use { it.readBytes() }
