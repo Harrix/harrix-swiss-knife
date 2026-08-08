@@ -1635,6 +1635,25 @@ class MainWindow(
         self.listView_categories.doItemsLayout()
         self.listView_categories.viewport().update()
 
+    def _apply_transactions_splitter_sizes(self) -> None:
+        """Restore Transactions-tab splitter widths so categories list is not squeezed."""
+        if getattr(self, "_is_closing", False) or not hasattr(self, "splitter"):
+            return
+
+        total = self.splitter.width()
+        if total <= 0:
+            total = max(self.width(), 1200)
+
+        left = max(self.frame.minimumWidth(), 380)
+        remaining = max(total - left, 0)
+        min_table_width = 400
+        middle = max(self.widget_middle.minimumWidth(), remaining // 4)
+        right = remaining - middle
+        if right < min_table_width:
+            right = min(min_table_width, remaining // 2)
+            middle = remaining - right
+        self.splitter.setSizes([left, middle, right])
+
     def _calculate_exchange_loss(
         self,
         from_currency_id: int,
@@ -5142,10 +5161,15 @@ class MainWindow(
         self.listView_categories.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.listView_categories.customContextMenuRequested.connect(self._show_categories_list_context_menu)
 
-        # Configure splitter proportions
-        self.splitter.setStretchFactor(0, 0)
-        self.splitter.setStretchFactor(1, 1)
-        self.splitter.setStretchFactor(2, 3)
+        # Configure splitter proportions.
+        # Filter bar above the transactions table has a wide sizeHint; without explicit
+        # sizes QSplitter steals width from listView_categories.
+        self.widget_middle.setMinimumWidth(220)
+        self.splitter.setStretchFactor(0, 0)  # frame with fixed size
+        self.splitter.setStretchFactor(1, 2)  # categories list
+        self.splitter.setStretchFactor(2, 3)  # transaction filters + table
+        self._apply_transactions_splitter_sizes()
+        QTimer.singleShot(60, self._apply_transactions_splitter_sizes)
 
         # Configure splitter_4 proportions (frame_exchange narrow, tableView_exchange wide)
         self.splitter_4.setStretchFactor(0, 1)  # frame_exchange gets less space
