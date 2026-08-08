@@ -83,6 +83,7 @@ _Figure 1: Screenshot_
 - **Images**
   - 📸 Open photos in image viewer
   - 📡 Photo sync listen (LAN)
+  - ⚙️ Photo sync settings
   - 🤖 Recognize text (AI)…
   - 🔤 Recognize text (OCR, local)…
   - 🚀 ★ Optimize images

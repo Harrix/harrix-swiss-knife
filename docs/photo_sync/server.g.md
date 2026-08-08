@@ -11,6 +11,7 @@ lang: en
 
 ## Contents
 
+- [🏛️ Class `PhoneConnectionInfo`](#%EF%B8%8F-class-phoneconnectioninfo)
 - [🏛️ Class `PhotoSyncServer`](#%EF%B8%8F-class-photosyncserver)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `index_for`](#%EF%B8%8F-method-index_for)
@@ -20,8 +21,32 @@ lang: en
   - [⚙️ Method `stop`](#%EF%B8%8F-method-stop)
 - [🏛️ Class `SyncStats`](#%EF%B8%8F-class-syncstats)
   - [⚙️ Method `note`](#%EF%B8%8F-method-note)
+  - [⚙️ Method `record_phone`](#%EF%B8%8F-method-record_phone)
+- [🔧 Function `get_phone_connection_info`](#-function-get_phone_connection_info)
 - [🔧 Function `get_shared_server`](#-function-get_shared_server)
+- [🔧 Function `remember_phone_activity`](#-function-remember_phone_activity)
 - [🔧 Function `set_shared_server`](#-function-set_shared_server)
+
+</details>
+
+## 🏛️ Class `PhoneConnectionInfo`
+
+```python
+class PhoneConnectionInfo
+```
+
+Last observed activity from a paired Android device.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class PhoneConnectionInfo:
+
+    device_id: str = ""
+    last_at: float | None = None
+    last_event: str = ""
+```
 
 </details>
 
@@ -150,6 +175,7 @@ class PhotoSyncServer:
                 if not device_id:
                     self._json_response(400, {"error": "device_id_required"})
                     return
+                server.stats.record_phone(device_id, "handshake")
                 server.stats.note(f"Handshake from {device_id[:12]}…")
                 server._notify()
                 self._json_response(200, {"ok": True, "protocolVersion": PROTOCOL_VERSION})
@@ -164,6 +190,7 @@ class PhotoSyncServer:
                     self._json_response(400, {"error": "invalid_manifest"})
                     return
                 index = server.index_for(device_id)
+                server.stats.record_phone(device_id, "manifest")
                 server.stats.note("Scanning photo library (including subfolders)…")
                 server._notify()
                 server.library.refresh()
@@ -193,6 +220,7 @@ class PhotoSyncServer:
                 if not device_id or not media_id or not content_hash:
                     self._json_response(400, {"error": "missing_fields"})
                     return
+                server.stats.record_phone(device_id, "upload")
                 length_header = self.headers.get("Content-Length")
                 try:
                     length = int(length_header) if length_header else 0
@@ -478,6 +506,9 @@ class SyncStats:
     uploads_bytes: int = 0
     last_message: str = ""
     log_lines: list[str] = field(default_factory=list)
+    last_phone_device_id: str = ""
+    last_phone_at: float | None = None
+    last_phone_event: str = ""
 
     def note(self, message: str) -> None:
         """Append a short status line (keeps the last `_MAX_LOG_LINES`)."""
@@ -485,6 +516,13 @@ class SyncStats:
         self.log_lines.append(message)
         if len(self.log_lines) > _MAX_LOG_LINES:
             del self.log_lines[:-_MAX_LOG_LINES]
+
+    def record_phone(self, device_id: str, event: str) -> None:
+        """Remember phone activity for the settings / status UI."""
+        self.last_phone_device_id = device_id
+        self.last_phone_at = time.time()
+        self.last_phone_event = event
+        remember_phone_activity(device_id, event)
 ```
 
 </details>
@@ -510,6 +548,51 @@ def note(self, message: str) -> None:
 
 </details>
 
+### ⚙️ Method `record_phone`
+
+```python
+def record_phone(self, device_id: str, event: str) -> None
+```
+
+Remember phone activity for the settings / status UI.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def record_phone(self, device_id: str, event: str) -> None:
+        self.last_phone_device_id = device_id
+        self.last_phone_at = time.time()
+        self.last_phone_event = event
+        remember_phone_activity(device_id, event)
+```
+
+</details>
+
+## 🔧 Function `get_phone_connection_info`
+
+```python
+def get_phone_connection_info() -> PhoneConnectionInfo
+```
+
+Return a copy of the last phone activity seen this process lifetime.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_phone_connection_info() -> PhoneConnectionInfo:
+    with _SHARED.lock:
+        phone = _SHARED.phone
+        return PhoneConnectionInfo(
+            device_id=phone.device_id,
+            last_at=phone.last_at,
+            last_event=phone.last_event,
+        )
+```
+
+</details>
+
 ## 🔧 Function `get_shared_server`
 
 ```python
@@ -525,6 +608,27 @@ Return the process-wide listener, if any.
 def get_shared_server() -> PhotoSyncServer | None:
     with _SHARED.lock:
         return _SHARED.server
+```
+
+</details>
+
+## 🔧 Function `remember_phone_activity`
+
+```python
+def remember_phone_activity(device_id: str, event: str) -> None
+```
+
+Persist last phone activity across listen stop/start in this process.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def remember_phone_activity(device_id: str, event: str) -> None:
+    with _SHARED.lock:
+        _SHARED.phone.device_id = device_id
+        _SHARED.phone.last_at = time.time()
+        _SHARED.phone.last_event = event
 ```
 
 </details>

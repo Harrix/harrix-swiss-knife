@@ -64,6 +64,7 @@ def get_menu_structure() -> list[Any]:
             "🖼️",
             [
                 OnOpenPhotosInViewer,
+                OnPhotoSyncSettings,
                 OnPhotoSyncListen,
                 OnImageToMarkdownWithOcr,
                 OnImageToMarkdownWithAI,

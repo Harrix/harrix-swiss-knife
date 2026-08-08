@@ -7,6 +7,7 @@ import json
 import logging
 import secrets
 import threading
+import time
 from dataclasses import dataclass, field
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -31,6 +32,15 @@ DEFAULT_PORT = 17865
 _MAX_LOG_LINES = 40
 _MAX_UPLOAD_BYTES = 500 * 1024 * 1024
 _MAX_JSON_BODY_BYTES = 20 * 1024 * 1024
+
+
+@dataclass
+class PhoneConnectionInfo:
+    """Last observed activity from a paired Android device."""
+
+    device_id: str = ""
+    last_at: float | None = None
+    last_event: str = ""
 
 
 class PhotoSyncServer:
@@ -147,6 +157,7 @@ class PhotoSyncServer:
                 if not device_id:
                     self._json_response(400, {"error": "device_id_required"})
                     return
+                server.stats.record_phone(device_id, "handshake")
                 server.stats.note(f"Handshake from {device_id[:12]}…")
                 server._notify()
                 self._json_response(200, {"ok": True, "protocolVersion": PROTOCOL_VERSION})
@@ -161,6 +172,7 @@ class PhotoSyncServer:
                     self._json_response(400, {"error": "invalid_manifest"})
                     return
                 index = server.index_for(device_id)
+                server.stats.record_phone(device_id, "manifest")
                 server.stats.note("Scanning photo library (including subfolders)…")
                 server._notify()
                 server.library.refresh()
@@ -190,6 +202,7 @@ class PhotoSyncServer:
                 if not device_id or not media_id or not content_hash:
                     self._json_response(400, {"error": "missing_fields"})
                     return
+                server.stats.record_phone(device_id, "upload")
                 length_header = self.headers.get("Content-Length")
                 try:
                     length = int(length_header) if length_header else 0
@@ -314,6 +327,9 @@ class SyncStats:
     uploads_bytes: int = 0
     last_message: str = ""
     log_lines: list[str] = field(default_factory=list)
+    last_phone_device_id: str = ""
+    last_phone_at: float | None = None
+    last_phone_event: str = ""
 
     def note(self, message: str) -> None:
         """Append a short status line (keeps the last `_MAX_LOG_LINES`)."""
@@ -321,6 +337,13 @@ class SyncStats:
         self.log_lines.append(message)
         if len(self.log_lines) > _MAX_LOG_LINES:
             del self.log_lines[:-_MAX_LOG_LINES]
+
+    def record_phone(self, device_id: str, event: str) -> None:
+        """Remember phone activity for the settings / status UI."""
+        self.last_phone_device_id = device_id
+        self.last_phone_at = time.time()
+        self.last_phone_event = event
+        remember_phone_activity(device_id, event)
 
 
 class _SharedServerState:
@@ -330,12 +353,32 @@ class _SharedServerState:
         """Create an empty shared holder."""
         self.lock = threading.Lock()
         self.server: PhotoSyncServer | None = None
+        self.phone = PhoneConnectionInfo()
+
+
+def get_phone_connection_info() -> PhoneConnectionInfo:
+    """Return a copy of the last phone activity seen this process lifetime."""
+    with _SHARED.lock:
+        phone = _SHARED.phone
+        return PhoneConnectionInfo(
+            device_id=phone.device_id,
+            last_at=phone.last_at,
+            last_event=phone.last_event,
+        )
 
 
 def get_shared_server() -> PhotoSyncServer | None:
     """Return the process-wide listener, if any."""
     with _SHARED.lock:
         return _SHARED.server
+
+
+def remember_phone_activity(device_id: str, event: str) -> None:
+    """Persist last phone activity across listen stop/start in this process."""
+    with _SHARED.lock:
+        _SHARED.phone.device_id = device_id
+        _SHARED.phone.last_at = time.time()
+        _SHARED.phone.last_event = event
 
 
 def set_shared_server(server: PhotoSyncServer | None) -> None:
