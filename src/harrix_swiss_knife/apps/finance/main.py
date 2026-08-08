@@ -63,6 +63,7 @@ from PySide6.QtWidgets import (
     QMenu,
     QMessageBox,
     QPushButton,
+    QSizePolicy,
     QTableView,
     QTableWidget,
     QTableWidgetItem,
@@ -378,7 +379,7 @@ class MainWindow(
         QTimer.singleShot(200, self._finish_window_initialization)
 
     @requires_database()
-    def apply_filter(self) -> None:
+    def apply_filter(self, *_args: object) -> None:
         """Apply combo-box/date filters to the transactions table."""
         if self.db_manager is None:
             logger.error("❌ Database manager is not initialized")
@@ -388,7 +389,19 @@ class MainWindow(
 
     def clear_filter(self) -> None:
         """Reset all transaction filters."""
-        self.radioButton_filter_type_all.setChecked(True)  # All
+        widgets = (
+            self.comboBox_filter_type,
+            self.comboBox_filter_category,
+            self.comboBox_filter_currency,
+            self.lineEdit_filter_description,
+            self.checkBox_use_date_filter,
+            self.dateEdit_filter_from,
+            self.dateEdit_filter_to,
+        )
+        for widget in widgets:
+            widget.blockSignals(True)  # noqa: FBT003
+
+        self.comboBox_filter_type.setCurrentIndex(0)
         self.comboBox_filter_category.setCurrentIndex(0)
         self.comboBox_filter_currency.setCurrentIndex(0)
         self.lineEdit_filter_description.clear()
@@ -398,9 +411,11 @@ class MainWindow(
         self.dateEdit_filter_from.setDate(current_date.addMonths(-1))
         self.dateEdit_filter_to.setDate(current_date)
 
-        # Load transactions table instead of all tables
+        for widget in widgets:
+            widget.blockSignals(False)  # noqa: FBT003
+
+        self._update_date_filter_controls_enabled()
         self._load_transactions_table()
-        # Reconnect auto-save signals for the updated table
         self._connect_table_auto_save_signals()
 
     def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
@@ -1322,16 +1337,20 @@ class MainWindow(
                 1
             )
 
+            self.comboBox_filter_category.blockSignals(True)  # noqa: FBT003
             self.comboBox_filter_category.clear()
             self.comboBox_filter_category.addItem("")  # All categories
             self.comboBox_filter_category.addItems(categories)
+            self.comboBox_filter_category.blockSignals(False)  # noqa: FBT003
 
             # Update currency filter
             currencies: list[str] = [row[1] for row in self.db_manager.get_all_currencies()]  # Get codes
 
+            self.comboBox_filter_currency.blockSignals(True)  # noqa: FBT003
             self.comboBox_filter_currency.clear()
             self.comboBox_filter_currency.addItem("")  # All currencies
             self.comboBox_filter_currency.addItems(currencies)
+            self.comboBox_filter_currency.blockSignals(False)  # noqa: FBT003
 
         except Exception:
             logger.exception("Error updating filter comboboxes")
@@ -1925,21 +1944,14 @@ class MainWindow(
         self.pushButton_exchange_add.clicked.connect(self.on_add_exchange)
 
         # Filter signals
-        self.pushButton_apply_filter.clicked.connect(self.apply_filter)
         self.pushButton_clear_filter.clicked.connect(self.clear_filter)
-
-        # Auto-filter signals for radio buttons
-        self.radioButton_filter_type_all.clicked.connect(self.apply_filter)
-        self.radioButton_filter_type_expense.clicked.connect(self.apply_filter)
-        self.radioButton_filter_type_income.clicked.connect(self.apply_filter)
-
-        # Auto-filter signals for combo boxes
-        self.comboBox_filter_category.currentTextChanged.connect(lambda _: self.apply_filter())
-        self.comboBox_filter_currency.currentTextChanged.connect(lambda _: self.apply_filter())
-
-        self.checkBox_use_date_filter.toggled.connect(
-            lambda enabled: self._update_date_filter_visibility(enabled=enabled)
-        )
+        self.comboBox_filter_type.currentIndexChanged.connect(self.apply_filter)
+        self.comboBox_filter_category.currentIndexChanged.connect(self.apply_filter)
+        self.comboBox_filter_currency.currentIndexChanged.connect(self.apply_filter)
+        self.lineEdit_filter_description.textChanged.connect(self.apply_filter)
+        self.dateEdit_filter_from.dateChanged.connect(self.apply_filter)
+        self.dateEdit_filter_to.dateChanged.connect(self.apply_filter)
+        self.checkBox_use_date_filter.toggled.connect(self._on_use_date_filter_toggled)
 
         # Chart date range signals
         self.pushButton_chart_last_month.clicked.connect(self.set_chart_last_month)
@@ -2767,9 +2779,10 @@ class MainWindow(
             return None
 
         transaction_type: int | None = None
-        if self.radioButton_filter_type_expense.isChecked():
+        filter_type: str = self.comboBox_filter_type.currentText().strip()
+        if filter_type == "Expense":
             transaction_type = 0
-        elif self.radioButton_filter_type_income.isChecked():
+        elif filter_type == "Income":
             transaction_type = 1
 
         category: str | None = self.comboBox_filter_category.currentText() or None
@@ -2833,10 +2846,17 @@ class MainWindow(
     def _init_filter_controls(self) -> None:
         """Initialize filter controls."""
         current_date: QDate = QDateTime.currentDateTime().date()
+        self.dateEdit_filter_from.blockSignals(True)  # noqa: FBT003
+        self.dateEdit_filter_to.blockSignals(True)  # noqa: FBT003
         self.dateEdit_filter_from.setDate(current_date.addMonths(-1))
         self.dateEdit_filter_to.setDate(current_date)
+        self.dateEdit_filter_from.blockSignals(False)  # noqa: FBT003
+        self.dateEdit_filter_to.blockSignals(False)  # noqa: FBT003
+
+        self.checkBox_use_date_filter.blockSignals(True)  # noqa: FBT003
         self.checkBox_use_date_filter.setChecked(False)
-        self._update_date_filter_visibility(enabled=False)
+        self.checkBox_use_date_filter.blockSignals(False)  # noqa: FBT003
+        self._update_date_filter_controls_enabled()
 
     def _initial_load(self) -> None:
         """Load essential data at startup (excluding exchange rates)."""
@@ -4093,6 +4113,11 @@ class MainWindow(
         """Handle successful completion."""
         self._on_exchange_update_finished_success(processed_count, total_operations, startup=False)
 
+    def _on_use_date_filter_toggled(self, *_args: object) -> None:
+        """Toggle date edit widgets and refresh the transactions table filter."""
+        self._update_date_filter_controls_enabled()
+        self.apply_filter()
+
     def _open_amount_expression_dialog(self) -> None:
         """Open expression dialog and apply the result to `doubleSpinBox_amount`."""
         dialog = AmountExpressionDialog(
@@ -4946,9 +4971,12 @@ class MainWindow(
         QWidget.setTabOrder(self.listView_categories, self.pushButton_delete)
         QWidget.setTabOrder(self.pushButton_delete, self.pushButton_show_all_records)
         QWidget.setTabOrder(self.pushButton_show_all_records, self.pushButton_refresh)
-        QWidget.setTabOrder(self.pushButton_refresh, self.pushButton_clear_filter)
-        QWidget.setTabOrder(self.pushButton_clear_filter, self.pushButton_apply_filter)
-        QWidget.setTabOrder(self.pushButton_apply_filter, self.pushButton_description_clear)
+        QWidget.setTabOrder(self.pushButton_refresh, self.comboBox_filter_type)
+        QWidget.setTabOrder(self.comboBox_filter_type, self.comboBox_filter_category)
+        QWidget.setTabOrder(self.comboBox_filter_category, self.comboBox_filter_currency)
+        QWidget.setTabOrder(self.comboBox_filter_currency, self.lineEdit_filter_description)
+        QWidget.setTabOrder(self.lineEdit_filter_description, self.pushButton_clear_filter)
+        QWidget.setTabOrder(self.pushButton_clear_filter, self.pushButton_description_clear)
 
     def _setup_transactions_table_column_widths(self) -> None:
         """Configure column resize modes for the transactions table."""
@@ -5009,8 +5037,16 @@ class MainWindow(
         self.action_standard_items.setText(f"📋 {self.action_standard_items.text()}")
         self.pushButton_delete.setText(f"🗑️ {self.pushButton_delete.text()}")
         self.pushButton_refresh.setText(f"🔄 {self.pushButton_refresh.text()}")
-        self.pushButton_clear_filter.setText(f"🧹 {self.pushButton_clear_filter.text()}")
-        self.pushButton_apply_filter.setText(f"✔️ {self.pushButton_apply_filter.text()}")
+        self.groupBox_filter.setTitle("")
+        self.groupBox_filter.setStyleSheet(
+            "QGroupBox#groupBox_filter { border: none; margin-top: 0px; padding-top: 0px; }"
+            "QGroupBox#groupBox_filter::title { height: 0px; width: 0px; padding: 0px; margin: 0px; }"
+        )
+        self.pushButton_clear_filter.setText("🧹")
+        self.pushButton_clear_filter.setToolTip("Clear filter")
+        self.pushButton_clear_filter.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        clear_h = max(self.pushButton_clear_filter.sizeHint().height(), 24)
+        self.pushButton_clear_filter.setFixedSize(clear_h, clear_h)
         self.pushButton_description_clear.setText("🧹")
         self.pushButton_show_all_records.setText("📊 Show All Records")
 
@@ -5769,7 +5805,7 @@ class MainWindow(
 
     def _transactions_filter_is_active(self) -> bool:
         """Return `True` when any transaction table filter is applied."""
-        if self.radioButton_filter_type_expense.isChecked() or self.radioButton_filter_type_income.isChecked():
+        if self.comboBox_filter_type.currentText().strip() in {"Expense", "Income"}:
             return True
         if self.comboBox_filter_category.currentText().strip():
             return True
@@ -5936,12 +5972,13 @@ class MainWindow(
         except Exception:
             logger.exception("Error updating comboboxes")
 
-    def _update_date_filter_visibility(self, *, enabled: bool) -> None:
-        """Show or hide date filter fields based on checkBox_use_date_filter."""
-        self.label_filter_date.setVisible(enabled)
-        self.dateEdit_filter_from.setVisible(enabled)
-        self.label_filter_to.setVisible(enabled)
-        self.dateEdit_filter_to.setVisible(enabled)
+    def _update_date_filter_controls_enabled(self, *_args: object) -> None:
+        """Enable date edits only while the Use date checkbox is checked."""
+        enabled = self.checkBox_use_date_filter.isChecked()
+        self.label_filter_date.setEnabled(enabled)
+        self.label_filter_to.setEnabled(enabled)
+        self.dateEdit_filter_from.setEnabled(enabled)
+        self.dateEdit_filter_to.setEnabled(enabled)
 
     @requires_database()
     def _update_finance_chart(self) -> None:
