@@ -298,6 +298,16 @@ class MainWindow(
         - Refreshes the table view
 
         """
+        widgets = (
+            self.comboBox_filter_exercise,
+            self.comboBox_filter_type,
+            self.checkBox_use_date_filter,
+            self.dateEdit_filter_from,
+            self.dateEdit_filter_to,
+        )
+        for widget in widgets:
+            widget.blockSignals(True)  # noqa: FBT003
+
         self.comboBox_filter_exercise.setCurrentIndex(0)
         self.comboBox_filter_type.setCurrentIndex(0)
         self.checkBox_use_date_filter.setChecked(False)
@@ -306,7 +316,11 @@ class MainWindow(
         self.dateEdit_filter_from.setDate(current_date.addMonths(-1))
         self.dateEdit_filter_to.setDate(current_date)
 
-        self.show_tables()
+        for widget in widgets:
+            widget.blockSignals(False)  # noqa: FBT003
+
+        self._update_date_filter_controls_enabled()
+        self.apply_filter()
 
     def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
         """Handle application close event.
@@ -3363,6 +3377,7 @@ class MainWindow(
 
         try:
             current_type = self.comboBox_filter_type.currentText()
+            self.comboBox_filter_type.blockSignals(True)  # noqa: FBT003
             self.comboBox_filter_type.clear()
             self.comboBox_filter_type.addItem("")
 
@@ -3377,8 +3392,10 @@ class MainWindow(
                 idx = self.comboBox_filter_type.findText(current_type)
                 if idx >= 0:
                     self.comboBox_filter_type.setCurrentIndex(idx)
+            self.comboBox_filter_type.blockSignals(False)  # noqa: FBT003
 
         except Exception:
+            self.comboBox_filter_type.blockSignals(False)  # noqa: FBT003
             logger.exception("Error updating filter type combobox")
 
     def update_sets_count_today(self) -> None:
@@ -4536,9 +4553,11 @@ class MainWindow(
         self.radioButton_type_of_chart_compare_last.toggled.connect(self.on_radio_button_changed)
         self.radioButton_type_of_chart_compare_same_months.toggled.connect(self.on_radio_button_changed)
 
-        # Filter signals
-        self.comboBox_filter_exercise.currentIndexChanged.connect(self.update_filter_type_combobox)
-        self.pushButton_apply_filter.clicked.connect(self.apply_filter)
+        # Filter signals — apply immediately on change (no Apply button).
+        self.comboBox_filter_exercise.currentIndexChanged.connect(self._on_filter_exercise_changed)
+        self.comboBox_filter_type.currentIndexChanged.connect(self.apply_filter)
+        self.dateEdit_filter_from.dateChanged.connect(self.apply_filter)
+        self.dateEdit_filter_to.dateChanged.connect(self.apply_filter)
         self.pushButton_clear_filter.clicked.connect(self.clear_filter)
 
         # Exercise name combobox for types
@@ -5301,11 +5320,17 @@ class MainWindow(
 
         """
         current_date = QDateTime.currentDateTime().date()
+        self.dateEdit_filter_from.blockSignals(True)  # noqa: FBT003
+        self.dateEdit_filter_to.blockSignals(True)  # noqa: FBT003
         self.dateEdit_filter_from.setDate(current_date.addMonths(-1))
         self.dateEdit_filter_to.setDate(current_date)
+        self.dateEdit_filter_from.blockSignals(False)  # noqa: FBT003
+        self.dateEdit_filter_to.blockSignals(False)  # noqa: FBT003
 
+        self.checkBox_use_date_filter.blockSignals(True)  # noqa: FBT003
         self.checkBox_use_date_filter.setChecked(False)
-        self.checkBox_use_date_filter.toggled.connect(self._update_date_filter_controls_enabled)
+        self.checkBox_use_date_filter.blockSignals(False)  # noqa: FBT003
+        self.checkBox_use_date_filter.toggled.connect(self._on_use_date_filter_toggled)
         self._update_date_filter_controls_enabled()
 
     def _init_sets_count_display(self) -> None:
@@ -5575,6 +5600,11 @@ class MainWindow(
                 # Update chart and label_chart_info
                 self._update_chart_based_on_radio_button()
 
+    def _on_filter_exercise_changed(self, *_args: object) -> None:
+        """Refresh type options and apply the process filter when exercise changes."""
+        self.update_filter_type_combobox()
+        self.apply_filter()
+
     def _on_process_scroll(self, value: int) -> None:
         """Trigger loading more process rows when scrolled near the bottom."""
         scrollbar = self.tableView_process.verticalScrollBar()
@@ -5601,6 +5631,11 @@ class MainWindow(
             name_local_edit=self.lineEdit_type_name_local,
             translate_button=self.pushButton_type_translate_local,
         )
+
+    def _on_use_date_filter_toggled(self, *_args: object) -> None:
+        """Toggle date edit widgets and refresh the process table filter."""
+        self._update_date_filter_controls_enabled()
+        self.apply_filter()
 
     def _process_filter_is_active(self) -> bool:
         """Return whether any process table filter is currently applied."""
@@ -5843,9 +5878,6 @@ class MainWindow(
         self.pushButton_clear_filter.setText("🧹")
         self.pushButton_clear_filter.setToolTip("Clear Filter")
         self.pushButton_clear_filter.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
-        self.pushButton_apply_filter.setText("✔️")
-        self.pushButton_apply_filter.setToolTip("Apply Filter")
-        self.pushButton_apply_filter.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
         self.pushButton_select_exercise.setText(f"🏋️ {self.pushButton_select_exercise.text()}")
         self.pushButton_exercise_add.setText(f"➕ {self.pushButton_exercise_add.text()}")  # noqa: RUF001
         self.pushButton_exercises_delete.setText(f"🗑️ {self.pushButton_exercises_delete.text()}")
@@ -5995,7 +6027,6 @@ class MainWindow(
                 context_menu.addSeparator()
 
         clear_filters_action = context_menu.addAction("🧹 Clear all filters")
-        apply_filter_action = context_menu.addAction("✔️ Apply filter")
         context_menu.addSeparator()
         export_action = context_menu.addAction("📤 Export to CSV")
         context_menu.addSeparator()
@@ -6013,8 +6044,6 @@ class MainWindow(
             self._filter_process_by_date(date_value)
         elif action == clear_filters_action:
             self.clear_filter()
-        elif action == apply_filter_action:
-            self.apply_filter()
         elif action == export_action:
             logger.debug("🔧 Context menu: Export to CSV action triggered")
             self.on_export_csv()

@@ -61,10 +61,6 @@ class Ui_MainWindow(object):
         self.pushButton_clear_filter.setToolTip(QCoreApplication.translate("MainWindow", u"Clear Filter", None))
 #endif // QT_CONFIG(tooltip)
         self.pushButton_clear_filter.setText(QCoreApplication.translate("MainWindow", u"\U0001f9f9", None))
-#if QT_CONFIG(tooltip)
-        self.pushButton_apply_filter.setToolTip(QCoreApplication.translate("MainWindow", u"Apply Filter", None))
-#endif // QT_CONFIG(tooltip)
-        self.pushButton_apply_filter.setText(QCoreApplication.translate("MainWindow", u"\u2714\ufe0f", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab), QCoreApplication.translate("MainWindow", u"Sets", None))
         self.label_chart_exercise.setText(QCoreApplication.translate("MainWindow", u"Exercise:", None))
         self.label_chart_type.setText(QCoreApplication.translate("MainWindow", u"Type:", None))
@@ -470,13 +466,6 @@ class Ui_MainWindow(object):
         self.pushButton_clear_filter.setSizePolicy(sizePolicy2)
 
         self.horizontalLayout_filter.addWidget(self.pushButton_clear_filter)
-
-        self.pushButton_apply_filter = QPushButton(self.groupBox_filter)
-        self.pushButton_apply_filter.setObjectName(u"pushButton_apply_filter")
-        sizePolicy2.setHeightForWidth(self.pushButton_apply_filter.sizePolicy().hasHeightForWidth())
-        self.pushButton_apply_filter.setSizePolicy(sizePolicy2)
-
-        self.horizontalLayout_filter.addWidget(self.pushButton_apply_filter)
 
 
         self.verticalLayout_process.addWidget(self.groupBox_filter)
