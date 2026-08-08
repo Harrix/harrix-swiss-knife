@@ -21,6 +21,7 @@ android/.kotlin/
 install/dependencies/
 install/install-harrix-swiss-knife.zip
 install/install-offline-harrix-swiss-knife.zip
+install/private-data*.zip
 
 ### Android ###
 android/.gradle/

@@ -9,6 +9,7 @@ Local secret files for harrix-swiss-knife. **Not committed to Git** (see root `.
 
 - [Files](#files)
 - [Setup](#setup)
+- [Transfer to another machine](#transfer-to-another-machine)
 - [Install zips and offline snapshots](#install-zips-and-offline-snapshots)
 
 </details>
@@ -33,6 +34,20 @@ Paths in `config.json` use the `snippet:api-keys/...` prefix; `harrix_pylib` loa
 3. Do not commit `api-keys/*` except files listed in `.gitignore` exceptions.
 
 Add new keys as separate `.txt` files and reference them from `config.json` with `snippet:api-keys/<filename>`.
+
+## Transfer to another machine
+
+Personal ZIP (gitignored): secrets from this folder plus exercise images from `{parent(sqlite_fitness)}/fitness_img`. Not part of the public install bundles.
+
+```text
+# Source machine (config.json with real sqlite_fitness required)
+.\install\pack-private-data.bat
+
+# Copy install\private-data-harrix-swiss-knife.zip to the new machine
+
+# Target machine: set sqlite_fitness in config.json first (or pass -FitnessImgDir)
+.\install\install-private-data.bat
+```
 
 ## Install zips and offline snapshots
 
