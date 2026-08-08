@@ -33,7 +33,10 @@ def list_lan_ipv4() -> list[str]:
     try:
         hostname = socket.gethostname()
         for info in socket.getaddrinfo(hostname, None, socket.AF_INET, socket.SOCK_STREAM):
-            ip = info[4][0]
+            sockaddr = info[4]
+            ip = sockaddr[0]
+            if not isinstance(ip, str):
+                continue
             if ip and not ip.startswith("127.") and ip not in addresses:
                 addresses.append(ip)
     except OSError:
@@ -44,7 +47,7 @@ def list_lan_ipv4() -> list[str]:
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
             sock.connect(("8.8.8.8", 80))
             ip = sock.getsockname()[0]
-            if ip and not ip.startswith("127.") and ip not in addresses:
+            if isinstance(ip, str) and ip and not ip.startswith("127.") and ip not in addresses:
                 addresses.insert(0, ip)
     except OSError:
         pass

@@ -24,10 +24,12 @@ lang: en
 def allocate_filename(photos_dir: Path, *, date_taken_epoch_ms: int, extension: str, force_copy: bool, reuse_filename: str | None = None) -> str
 ```
 
-Choose a destination filename under `photos_dir` (not the full path).
+Choose a destination path relative to `photos_dir`.
 
-- If `reuse_filename` is set (same MediaStore ID, content changed), keep it.
-- Otherwise use `yyyy-MM-dd HH.mm.ss.ext`, or `_copy` / `_copy2` / … when needed.
+- If `reuse_filename` is set (same MediaStore ID, content changed), keep it
+  even when it points into a subfolder (overwrite the sorted copy).
+- Otherwise allocate a **root-only** name `yyyy-MM-dd HH.mm.ss.ext`, or
+  `_copy` / `_copy2` / … when the root name is taken.
 
 <details>
 <summary>Code:</summary>
@@ -42,7 +44,7 @@ def allocate_filename(
     reuse_filename: str | None = None,
 ) -> str:
     if reuse_filename:
-        return reuse_filename
+        return reuse_filename.replace("\\", "/").lstrip("/")
 
     ext = extension.lstrip(".").lower() or "jpg"
     base = stem_from_date_taken_ms(date_taken_epoch_ms)
@@ -51,7 +53,7 @@ def allocate_filename(
         if not (photos_dir / candidate).exists():
             return candidate
 
-    # Collision or explicit copy: allocate _copy, _copy2, …
+    # Collision or explicit copy: allocate _copy, _copy2, … in the root folder.
     index = 1
     while True:
         suffix = "_copy" if index == 1 else f"_copy{index}"
@@ -103,7 +105,7 @@ def extension_for_mime(mime_type: str | None, display_name: str | None = None) -
             return mapped
     if display_name and "." in display_name:
         ext = display_name.rsplit(".", 1)[-1].lower()
-        if ext and ext.isalnum() and len(ext) <= 8:
+        if ext and ext.isalnum() and len(ext) <= _MAX_EXTENSION_LEN:
             return "jpg" if ext == "jpeg" else ext
     return "jpg"
 ```
@@ -116,7 +118,7 @@ def extension_for_mime(mime_type: str | None, display_name: str | None = None) -
 def stem_from_date_taken_ms(date_taken_epoch_ms: int) -> str
 ```
 
-Format capture time as `yyyy-MM-dd HH.mm.ss`.
+Format capture time as `yyyy-MM-dd HH.mm.ss` in the local timezone.
 
 <details>
 <summary>Code:</summary>
@@ -124,7 +126,8 @@ Format capture time as `yyyy-MM-dd HH.mm.ss`.
 ```python
 def stem_from_date_taken_ms(date_taken_epoch_ms: int) -> str:
     seconds = max(0, int(date_taken_epoch_ms)) / 1000.0
-    return datetime.fromtimestamp(seconds).strftime("%Y-%m-%d %H.%M.%S")
+    local = datetime.fromtimestamp(seconds, tz=UTC).astimezone()
+    return local.strftime("%Y-%m-%d %H.%M.%S")
 ```
 
 </details>

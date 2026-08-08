@@ -125,6 +125,8 @@ class OnPhotoSyncListen(ActionBase):
 
         info = QLabel(
             f"<b>Folder:</b> {server.photos_dir}<br>"
+            f"<b>Lookup:</b> all subfolders (by content hash)<br>"
+            f"<b>New files:</b> saved into this folder root only<br>"
             f"<b>Port:</b> {server.port}<br>"
             f"<b>LAN IP:</b> {', '.join(ips) if ips else 'not detected'}<br>"
             f"<b>Token:</b> <code>{server.token}</code><br>"

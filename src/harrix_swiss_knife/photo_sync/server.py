@@ -9,10 +9,12 @@ import secrets
 import threading
 from dataclasses import dataclass, field
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 from urllib.parse import parse_qs, urlparse
 
 from harrix_swiss_knife.photo_sync.index import DeviceSyncIndex
+from harrix_swiss_knife.photo_sync.library import PhotosLibrary
 from harrix_swiss_knife.photo_sync.naming import (
     allocate_filename,
     display_name_prefers_copy,
@@ -21,7 +23,6 @@ from harrix_swiss_knife.photo_sync.naming import (
 
 if TYPE_CHECKING:
     from collections.abc import Callable
-    from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
@@ -30,35 +31,6 @@ DEFAULT_PORT = 17865
 _MAX_LOG_LINES = 40
 _MAX_UPLOAD_BYTES = 500 * 1024 * 1024
 _MAX_JSON_BODY_BYTES = 20 * 1024 * 1024
-
-
-@dataclass
-class SyncStats:
-    """Runtime counters for the listening dialog."""
-
-    uploads_ok: int = 0
-    uploads_bytes: int = 0
-    last_message: str = ""
-    log_lines: list[str] = field(default_factory=list)
-
-    def note(self, message: str) -> None:
-        """Append a short status line (keeps the last `_MAX_LOG_LINES`)."""
-        self.last_message = message
-        self.log_lines.append(message)
-        if len(self.log_lines) > _MAX_LOG_LINES:
-            del self.log_lines[:-_MAX_LOG_LINES]
-
-
-class _SharedServerState:
-    """Process-wide listener holder (avoids a module-level `global` assignment)."""
-
-    def __init__(self) -> None:
-        """Create an empty shared holder."""
-        self.lock = threading.Lock()
-        self.server: PhotoSyncServer | None = None
-
-
-_SHARED = _SharedServerState()
 
 
 class PhotoSyncServer:
@@ -70,11 +42,22 @@ class PhotoSyncServer:
         self.port = port
         self.token = secrets.token_urlsafe(18)
         self.stats = SyncStats()
+        self.library = PhotosLibrary(photos_dir)
         self._httpd: ThreadingHTTPServer | None = None
         self._thread: threading.Thread | None = None
         self._indexes: dict[str, DeviceSyncIndex] = {}
         self._index_lock = threading.Lock()
         self._on_change: Callable[[], None] | None = None
+
+    def index_for(self, device_id: str) -> DeviceSyncIndex:
+        """Return (and cache) the sync index for a device."""
+        with self._index_lock:
+            existing = self._indexes.get(device_id)
+            if existing is not None:
+                return existing
+            created = DeviceSyncIndex(self.photos_dir, device_id)
+            self._indexes[device_id] = created
+            return created
 
     @property
     def is_running(self) -> bool:
@@ -115,24 +98,6 @@ class PhotoSyncServer:
             thread.join(timeout=2.0)
         self.stats.note("Stopped")
         self._notify()
-
-    def index_for(self, device_id: str) -> DeviceSyncIndex:
-        """Return (and cache) the sync index for a device."""
-        with self._index_lock:
-            existing = self._indexes.get(device_id)
-            if existing is not None:
-                return existing
-            created = DeviceSyncIndex(self.photos_dir, device_id)
-            self._indexes[device_id] = created
-            return created
-
-    def _notify(self) -> None:
-        callback = self._on_change
-        if callback is not None:
-            try:
-                callback()
-            except Exception:
-                logger.exception("Photo sync UI callback failed")
 
     def _make_handler(self) -> type[BaseHTTPRequestHandler]:
         server = self
@@ -193,7 +158,13 @@ class PhotoSyncServer:
                     self._json_response(400, {"error": "invalid_manifest"})
                     return
                 index = server.index_for(device_id)
-                needed = index.needed_media_ids(items)
+                server.stats.note("Scanning photo library (including subfolders)…")
+                server._notify()
+                server.library.refresh()
+                needed = index.needed_media_ids(
+                    items,
+                    find_existing_hash=server.library.find_relative_path,
+                )
                 server.stats.note(f"Manifest: {len(items)} items, {len(needed)} needed")
                 server._notify()
                 self._json_response(200, {"needed": needed})
@@ -236,8 +207,16 @@ class PhotoSyncServer:
                 index = server.index_for(device_id)
                 existing = index.get(media_id)
                 reuse = existing.filename if existing is not None else None
-                if reuse and not (server.photos_dir / reuse).exists():
+                if reuse and not (server.photos_dir / reuse).is_file():
                     reuse = None
+                # Already present in a sorted subfolder (race / late library hit).
+                existing_path = server.library.find_relative_path(digest)
+                if existing_path and reuse is None:
+                    index.upsert(media_id, content_hash=digest, filename=existing_path)
+                    server.stats.note(f"Skipped (already in library): {existing_path}")
+                    server._notify()
+                    self._json_response(200, {"filename": existing_path, "status": "exists"})
+                    return
                 force_copy = display_name_prefers_copy(display_name) and reuse is None
                 ext = extension_for_mime(mime_type or None, display_name or None)
                 filename = allocate_filename(
@@ -247,7 +226,11 @@ class PhotoSyncServer:
                     force_copy=force_copy,
                     reuse_filename=reuse,
                 )
-                dest = server.photos_dir / filename
+                dest = _safe_dest(server.photos_dir, filename)
+                if dest is None:
+                    self._json_response(400, {"error": "invalid_path"})
+                    return
+                dest.parent.mkdir(parents=True, exist_ok=True)
                 tmp = dest.with_suffix(dest.suffix + ".partial")
                 try:
                     tmp.write_bytes(raw)
@@ -261,6 +244,7 @@ class PhotoSyncServer:
                     return
 
                 index.upsert(media_id, content_hash=digest, filename=filename)
+                server.library.remember(filename, digest)
                 server.stats.uploads_ok += 1
                 server.stats.uploads_bytes += length
                 server.stats.note(f"Saved {filename}")
@@ -298,6 +282,40 @@ class PhotoSyncServer:
 
         return Handler
 
+    def _notify(self) -> None:
+        callback = self._on_change
+        if callback is not None:
+            try:
+                callback()
+            except Exception:
+                logger.exception("Photo sync UI callback failed")
+
+
+@dataclass
+class SyncStats:
+    """Runtime counters for the listening dialog."""
+
+    uploads_ok: int = 0
+    uploads_bytes: int = 0
+    last_message: str = ""
+    log_lines: list[str] = field(default_factory=list)
+
+    def note(self, message: str) -> None:
+        """Append a short status line (keeps the last `_MAX_LOG_LINES`)."""
+        self.last_message = message
+        self.log_lines.append(message)
+        if len(self.log_lines) > _MAX_LOG_LINES:
+            del self.log_lines[:-_MAX_LOG_LINES]
+
+
+class _SharedServerState:
+    """Process-wide listener holder (avoids a module-level `global` assignment)."""
+
+    def __init__(self) -> None:
+        """Create an empty shared holder."""
+        self.lock = threading.Lock()
+        self.server: PhotoSyncServer | None = None
+
 
 def get_shared_server() -> PhotoSyncServer | None:
     """Return the process-wide listener, if any."""
@@ -309,3 +327,20 @@ def set_shared_server(server: PhotoSyncServer | None) -> None:
     """Install or clear the process-wide listener."""
     with _SHARED.lock:
         _SHARED.server = server
+
+
+def _safe_dest(photos_dir: Path, relative_path: str) -> Path | None:
+    """Resolve `relative_path` under `photos_dir`, rejecting path escape."""
+    relative = relative_path.replace("\\", "/").lstrip("/")
+    if not relative or ".." in Path(relative).parts:
+        return None
+    root = photos_dir.resolve()
+    dest = (photos_dir / relative).resolve()
+    try:
+        dest.relative_to(root)
+    except ValueError:
+        return None
+    return dest
+
+
+_SHARED = _SharedServerState()

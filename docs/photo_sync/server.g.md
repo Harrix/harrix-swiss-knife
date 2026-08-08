@@ -40,10 +40,12 @@ Tokenized LAN HTTP server that receives photos into `photos_dir`.
 class PhotoSyncServer:
 
     def __init__(self, photos_dir: Path, port: int = DEFAULT_PORT) -> None:
+        """Create a stopped server that will write into `photos_dir`."""
         self.photos_dir = photos_dir
         self.port = port
         self.token = secrets.token_urlsafe(18)
         self.stats = SyncStats()
+        self.library = PhotosLibrary(photos_dir)
         self._httpd: ThreadingHTTPServer | None = None
         self._thread: threading.Thread | None = None
         self._indexes: dict[str, DeviceSyncIndex] = {}
@@ -76,7 +78,8 @@ class PhotoSyncServer:
         self.photos_dir.mkdir(parents=True, exist_ok=True)
         handler = self._make_handler()
         try:
-            self._httpd = ThreadingHTTPServer(("0.0.0.0", self.port), handler)
+            # Bind all interfaces so phones on LAN can connect.
+            self._httpd = ThreadingHTTPServer(("0.0.0.0", self.port), handler)  # noqa: S104
         except OSError:
             self.stats.note(f"Failed to bind port {self.port} (firewall or in use)")
             raise
@@ -105,17 +108,17 @@ class PhotoSyncServer:
         class Handler(BaseHTTPRequestHandler):
             protocol_version = "HTTP/1.1"
 
-            def log_message(self, format: str, *args: Any) -> None:  # noqa: A003
-                logger.debug("photo-sync: " + format, *args)
+            def log_message(self, format: str, *args: Any) -> None:  # noqa: A002
+                logger.debug("photo-sync: %s", format % args)
 
-            def do_GET(self) -> None:  # noqa: N802
+            def do_GET(self) -> None:
                 parsed = urlparse(self.path)
                 if parsed.path == "/v1/health":
                     self._json_response(200, {"ok": True, "protocolVersion": PROTOCOL_VERSION})
                     return
                 self._json_response(404, {"error": "not_found"})
 
-            def do_POST(self) -> None:  # noqa: N802
+            def do_POST(self) -> None:
                 parsed = urlparse(self.path)
                 body = self._read_json_body()
                 if body is None:
@@ -129,7 +132,7 @@ class PhotoSyncServer:
                     return
                 self._json_response(404, {"error": "not_found"})
 
-            def do_PUT(self) -> None:  # noqa: N802
+            def do_PUT(self) -> None:
                 parsed = urlparse(self.path)
                 if parsed.path != "/v1/upload":
                     self._json_response(404, {"error": "not_found"})
@@ -158,7 +161,13 @@ class PhotoSyncServer:
                     self._json_response(400, {"error": "invalid_manifest"})
                     return
                 index = server.index_for(device_id)
-                needed = index.needed_media_ids(items)
+                server.stats.note("Scanning photo library (including subfolders)…")
+                server._notify()
+                server.library.refresh()
+                needed = index.needed_media_ids(
+                    items,
+                    find_existing_hash=server.library.find_relative_path,
+                )
                 server.stats.note(f"Manifest: {len(items)} items, {len(needed)} needed")
                 server._notify()
                 self._json_response(200, {"needed": needed})
@@ -189,8 +198,7 @@ class PhotoSyncServer:
                 if length <= 0:
                     self._json_response(400, {"error": "empty_body"})
                     return
-                # Cap single upload at 500 MiB
-                if length > 500 * 1024 * 1024:
+                if length > _MAX_UPLOAD_BYTES:
                     self._json_response(413, {"error": "too_large"})
                     return
                 raw = self.rfile.read(length)
@@ -202,8 +210,16 @@ class PhotoSyncServer:
                 index = server.index_for(device_id)
                 existing = index.get(media_id)
                 reuse = existing.filename if existing is not None else None
-                if reuse and not (server.photos_dir / reuse).exists():
+                if reuse and not (server.photos_dir / reuse).is_file():
                     reuse = None
+                # Already present in a sorted subfolder (race / late library hit).
+                existing_path = server.library.find_relative_path(digest)
+                if existing_path and reuse is None:
+                    index.upsert(media_id, content_hash=digest, filename=existing_path)
+                    server.stats.note(f"Skipped (already in library): {existing_path}")
+                    server._notify()
+                    self._json_response(200, {"filename": existing_path, "status": "exists"})
+                    return
                 force_copy = display_name_prefers_copy(display_name) and reuse is None
                 ext = extension_for_mime(mime_type or None, display_name or None)
                 filename = allocate_filename(
@@ -213,7 +229,11 @@ class PhotoSyncServer:
                     force_copy=force_copy,
                     reuse_filename=reuse,
                 )
-                dest = server.photos_dir / filename
+                dest = _safe_dest(server.photos_dir, filename)
+                if dest is None:
+                    self._json_response(400, {"error": "invalid_path"})
+                    return
+                dest.parent.mkdir(parents=True, exist_ok=True)
                 tmp = dest.with_suffix(dest.suffix + ".partial")
                 try:
                     tmp.write_bytes(raw)
@@ -227,6 +247,7 @@ class PhotoSyncServer:
                     return
 
                 index.upsert(media_id, content_hash=digest, filename=filename)
+                server.library.remember(filename, digest)
                 server.stats.uploads_ok += 1
                 server.stats.uploads_bytes += length
                 server.stats.note(f"Saved {filename}")
@@ -244,7 +265,7 @@ class PhotoSyncServer:
                     return None
                 if length <= 0:
                     return {}
-                if length > 20 * 1024 * 1024:
+                if length > _MAX_JSON_BODY_BYTES:
                     return None
                 raw = self.rfile.read(length)
                 try:
@@ -281,7 +302,7 @@ class PhotoSyncServer:
 def __init__(self, photos_dir: Path, port: int = DEFAULT_PORT) -> None
 ```
 
-_No docstring provided._
+Create a stopped server that will write into `photos_dir`.
 
 <details>
 <summary>Code:</summary>
@@ -292,6 +313,7 @@ def __init__(self, photos_dir: Path, port: int = DEFAULT_PORT) -> None:
         self.port = port
         self.token = secrets.token_urlsafe(18)
         self.stats = SyncStats()
+        self.library = PhotosLibrary(photos_dir)
         self._httpd: ThreadingHTTPServer | None = None
         self._thread: threading.Thread | None = None
         self._indexes: dict[str, DeviceSyncIndex] = {}
@@ -379,7 +401,8 @@ def start(self) -> None:
         self.photos_dir.mkdir(parents=True, exist_ok=True)
         handler = self._make_handler()
         try:
-            self._httpd = ThreadingHTTPServer(("0.0.0.0", self.port), handler)
+            # Bind all interfaces so phones on LAN can connect.
+            self._httpd = ThreadingHTTPServer(("0.0.0.0", self.port), handler)  # noqa: S104
         except OSError:
             self.stats.note(f"Failed to bind port {self.port} (firewall or in use)")
             raise
@@ -439,11 +462,11 @@ class SyncStats:
     log_lines: list[str] = field(default_factory=list)
 
     def note(self, message: str) -> None:
-        """Append a short status line (keeps the last 40)."""
+        """Append a short status line (keeps the last `_MAX_LOG_LINES`)."""
         self.last_message = message
         self.log_lines.append(message)
-        if len(self.log_lines) > 40:
-            del self.log_lines[:-40]
+        if len(self.log_lines) > _MAX_LOG_LINES:
+            del self.log_lines[:-_MAX_LOG_LINES]
 ```
 
 </details>
@@ -454,7 +477,7 @@ class SyncStats:
 def note(self, message: str) -> None
 ```
 
-Append a short status line (keeps the last 40).
+Append a short status line (keeps the last `_MAX_LOG_LINES`).
 
 <details>
 <summary>Code:</summary>
@@ -463,8 +486,8 @@ Append a short status line (keeps the last 40).
 def note(self, message: str) -> None:
         self.last_message = message
         self.log_lines.append(message)
-        if len(self.log_lines) > 40:
-            del self.log_lines[:-40]
+        if len(self.log_lines) > _MAX_LOG_LINES:
+            del self.log_lines[:-_MAX_LOG_LINES]
 ```
 
 </details>
@@ -482,8 +505,8 @@ Return the process-wide listener, if any.
 
 ```python
 def get_shared_server() -> PhotoSyncServer | None:
-    with _shared_lock:
-        return _shared_server
+    with _SHARED.lock:
+        return _SHARED.server
 ```
 
 </details>
@@ -501,9 +524,8 @@ Install or clear the process-wide listener.
 
 ```python
 def set_shared_server(server: PhotoSyncServer | None) -> None:
-    global _shared_server
-    with _shared_lock:
-        _shared_server = server
+    with _SHARED.lock:
+        _SHARED.server = server
 ```
 
 </details>

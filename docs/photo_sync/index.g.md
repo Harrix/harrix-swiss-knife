@@ -27,7 +27,7 @@ lang: en
 class DeviceSyncIndex
 ```
 
-Thread-safe JSON index: mediaId → hash + filename.
+Thread-safe JSON index: mediaId → hash + filename (relative path).
 
 <details>
 <summary>Code:</summary>
@@ -36,6 +36,7 @@ Thread-safe JSON index: mediaId → hash + filename.
 class DeviceSyncIndex:
 
     def __init__(self, photos_dir: Path, device_id: str) -> None:
+        """Load or create the index file for `device_id` under `photos_dir`."""
         self._photos_dir = photos_dir
         self._device_id = _sanitize_device_id(device_id)
         self._path = photos_dir / ".hsk-photo-sync" / f"{self._device_id}.json"
@@ -53,9 +54,26 @@ class DeviceSyncIndex:
         with self._lock:
             return {entry.content_hash for entry in self._entries.values()}
 
-    def needed_media_ids(self, items: list[dict[str, Any]]) -> list[str]:
-        """Return mediaIds whose content hash is missing or changed."""
+    def needed_media_ids(
+        self,
+        items: list[dict[str, Any]],
+        *,
+        find_existing_hash: Callable[[str], str | None] | None = None,
+    ) -> list[str]:
+        """Return mediaIds whose content is not already present.
+
+        A photo is skipped when:
+
+        - the device index already maps `mediaId` to the same hash and the file
+          still exists (anywhere under `path_photos`, including subfolders), or
+        - `find_existing_hash` finds the same content hash anywhere in the library.
+
+        Matching library hits are recorded in the device index so later edits of
+        the same MediaStore ID can still overwrite the sorted location.
+
+        """
         needed: list[str] = []
+        dirty = False
         with self._lock:
             for item in items:
                 media_id = str(item.get("mediaId", "")).strip()
@@ -63,8 +81,24 @@ class DeviceSyncIndex:
                 if not media_id or not content_hash:
                     continue
                 existing = self._entries.get(media_id)
-                if existing is None or existing.content_hash.lower() != content_hash:
-                    needed.append(media_id)
+                if (
+                    existing is not None
+                    and existing.content_hash.lower() == content_hash
+                    and (self._photos_dir / existing.filename).is_file()
+                ):
+                    continue
+                found = find_existing_hash(content_hash) if find_existing_hash is not None else None
+                if found:
+                    changed = (
+                        existing is None or existing.content_hash.lower() != content_hash or existing.filename != found
+                    )
+                    if changed:
+                        self._entries[media_id] = IndexEntry(content_hash=content_hash, filename=found)
+                        dirty = True
+                    continue
+                needed.append(media_id)
+            if dirty:
+                self._save_unlocked()
         return needed
 
     def upsert(self, media_id: str, *, content_hash: str, filename: str) -> None:
@@ -87,7 +121,7 @@ class DeviceSyncIndex:
             if not isinstance(value, dict):
                 continue
             content_hash = str(value.get("contentHash", "")).strip()
-            filename = str(value.get("filename", "")).strip()
+            filename = str(value.get("filename", "")).strip().replace("\\", "/")
             if content_hash and filename:
                 self._entries[str(media_id)] = IndexEntry(content_hash=content_hash, filename=filename)
 
@@ -113,7 +147,7 @@ class DeviceSyncIndex:
 def __init__(self, photos_dir: Path, device_id: str) -> None
 ```
 
-_No docstring provided._
+Load or create the index file for [`device_id`](../actions/android/android_build.g.md#%EF%B8%8F-method-device_id-property) under `photos_dir`.
 
 <details>
 <summary>Code:</summary>
@@ -171,17 +205,32 @@ def known_hashes(self) -> set[str]:
 ### ⚙️ Method `needed_media_ids`
 
 ```python
-def needed_media_ids(self, items: list[dict[str, Any]]) -> list[str]
+def needed_media_ids(self, items: list[dict[str, Any]], *, find_existing_hash: Callable[[str], str | None] | None = None) -> list[str]
 ```
 
-Return mediaIds whose content hash is missing or changed.
+Return mediaIds whose content is not already present.
+
+A photo is skipped when:
+
+- the device index already maps `mediaId` to the same hash and the file
+  still exists (anywhere under `path_photos`, including subfolders), or
+- `find_existing_hash` finds the same content hash anywhere in the library.
+
+Matching library hits are recorded in the device index so later edits of
+the same MediaStore ID can still overwrite the sorted location.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def needed_media_ids(self, items: list[dict[str, Any]]) -> list[str]:
+def needed_media_ids(
+        self,
+        items: list[dict[str, Any]],
+        *,
+        find_existing_hash: Callable[[str], str | None] | None = None,
+    ) -> list[str]:
         needed: list[str] = []
+        dirty = False
         with self._lock:
             for item in items:
                 media_id = str(item.get("mediaId", "")).strip()
@@ -189,8 +238,24 @@ def needed_media_ids(self, items: list[dict[str, Any]]) -> list[str]:
                 if not media_id or not content_hash:
                     continue
                 existing = self._entries.get(media_id)
-                if existing is None or existing.content_hash.lower() != content_hash:
-                    needed.append(media_id)
+                if (
+                    existing is not None
+                    and existing.content_hash.lower() == content_hash
+                    and (self._photos_dir / existing.filename).is_file()
+                ):
+                    continue
+                found = find_existing_hash(content_hash) if find_existing_hash is not None else None
+                if found:
+                    changed = (
+                        existing is None or existing.content_hash.lower() != content_hash or existing.filename != found
+                    )
+                    if changed:
+                        self._entries[media_id] = IndexEntry(content_hash=content_hash, filename=found)
+                        dirty = True
+                    continue
+                needed.append(media_id)
+            if dirty:
+                self._save_unlocked()
         return needed
 ```
 

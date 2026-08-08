@@ -35,7 +35,7 @@ class OnPhotoSyncListen(ActionBase):
 
     icon = "📡"
     title = "Photo sync listen (LAN)"
-    description = "Receive Camera photos from Android over Wi‑Fi"
+    description = "Receive Camera photos from Android over Wi-Fi"
     cli_available = False
     _dialog: ClassVar[QDialog | None] = None
 
@@ -72,7 +72,7 @@ class OnPhotoSyncListen(ActionBase):
             port = int(port_raw)
         except (TypeError, ValueError):
             port = DEFAULT_PORT
-        if not (1 <= port <= 65535):
+        if not (1 <= port <= _MAX_TCP_PORT):
             port = DEFAULT_PORT
 
         server = PhotoSyncServer(photos_dir, port=port)
@@ -111,7 +111,7 @@ class OnPhotoSyncListen(ActionBase):
     ) -> QDialog:
         dialog = QDialog()
         dialog.setWindowTitle("Photo sync — listening")
-        dialog.setWindowFlag(Qt.WindowType.WindowStaysOnTopHint, True)
+        dialog.setWindowFlag(Qt.WindowType.WindowStaysOnTopHint, True)  # noqa: FBT003
         dialog.resize(520, 640)
         layout = QVBoxLayout(dialog)
 
@@ -121,6 +121,8 @@ class OnPhotoSyncListen(ActionBase):
 
         info = QLabel(
             f"<b>Folder:</b> {server.photos_dir}<br>"
+            f"<b>Lookup:</b> all subfolders (by content hash)<br>"
+            f"<b>New files:</b> saved into this folder root only<br>"
             f"<b>Port:</b> {server.port}<br>"
             f"<b>LAN IP:</b> {', '.join(ips) if ips else 'not detected'}<br>"
             f"<b>Token:</b> <code>{server.token}</code><br>"
@@ -241,7 +243,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
             port = int(port_raw)
         except (TypeError, ValueError):
             port = DEFAULT_PORT
-        if not (1 <= port <= 65535):
+        if not (1 <= port <= _MAX_TCP_PORT):
             port = DEFAULT_PORT
 
         server = PhotoSyncServer(photos_dir, port=port)
