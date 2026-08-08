@@ -33,6 +33,7 @@ How main and local labels are arranged in the item text area.
 
 ```python
 class NameLocalLayout(StrEnum):
+
     LIST = "list"
     ICON = "icon"
 ```
@@ -52,6 +53,7 @@ Keep style chrome (selection, borders, icon) and paint two-line text.
 
 ```python
 class NameLocalListDelegate(QStyledItemDelegate):
+
     def __init__(
         self,
         parent: QObject | None = None,
@@ -271,13 +273,13 @@ Args:
 
 ```python
 def __init__(
-    self,
-    parent: QObject | None = None,
-    *,
-    layout: NameLocalLayout = NameLocalLayout.LIST,
-) -> None:
-    super().__init__(parent)
-    self._layout = layout
+        self,
+        parent: QObject | None = None,
+        *,
+        layout: NameLocalLayout = NameLocalLayout.LIST,
+    ) -> None:
+        super().__init__(parent)
+        self._layout = layout
 ```
 
 </details>
@@ -295,11 +297,11 @@ Return the icon rectangle for a LIST-layout row (viewport/item coordinates).
 
 ```python
 def list_decoration_rect(item_rect: QRect, icon_size: QSize, *, has_icon: bool = True) -> QRect:
-    if not has_icon or icon_size.width() <= 0 or icon_size.height() <= 0:
-        return QRect()
-    content = item_rect.adjusted(_LIST_EDGE_PAD, _LIST_EDGE_PAD, -_LIST_EDGE_PAD, -_LIST_EDGE_PAD)
-    icon_y = content.y() + max(0, (content.height() - icon_size.height()) // 2)
-    return QRect(content.x(), icon_y, icon_size.width(), icon_size.height())
+        if not has_icon or icon_size.width() <= 0 or icon_size.height() <= 0:
+            return QRect()
+        content = item_rect.adjusted(_LIST_EDGE_PAD, _LIST_EDGE_PAD, -_LIST_EDGE_PAD, -_LIST_EDGE_PAD)
+        icon_y = content.y() + max(0, (content.height() - icon_size.height()) // 2)
+        return QRect(content.x(), icon_y, icon_size.width(), icon_size.height())
 ```
 
 </details>
@@ -317,41 +319,41 @@ Draw style panel and icon, then overlay one or two text lines.
 
 ```python
 def paint(
-    self,
-    painter: QPainter,
-    option: QStyleOptionViewItem,
-    index: QModelIndex | QPersistentModelIndex,
-) -> None:
-    opt = QStyleOptionViewItem(option)
-    self.initStyleOption(opt, index)
+        self,
+        painter: QPainter,
+        option: QStyleOptionViewItem,
+        index: QModelIndex | QPersistentModelIndex,
+    ) -> None:
+        opt = QStyleOptionViewItem(option)
+        self.initStyleOption(opt, index)
 
-    main_text = opt.text
-    name_local = self._name_local(index)
+        main_text = opt.text
+        name_local = self._name_local(index)
 
-    widget = option.widget
-    style = widget.style() if widget is not None else QApplication.style()
+        widget = option.widget
+        style = widget.style() if widget is not None else QApplication.style()
 
-    # Panel draws stylesheet selection/hover backgrounds and item separators.
-    style.drawPrimitive(QStyle.PrimitiveElement.PE_PanelItemViewItem, opt, painter, widget)
+        # Panel draws stylesheet selection/hover backgrounds and item separators.
+        style.drawPrimitive(QStyle.PrimitiveElement.PE_PanelItemViewItem, opt, painter, widget)
 
-    if self._layout == NameLocalLayout.LIST:
-        decoration_rect, text_rect = self._list_layout_rects(opt)
-    else:
-        decoration_rect = style.subElementRect(QStyle.SubElement.SE_ItemViewItemDecoration, opt, widget)
-        text_rect = style.subElementRect(QStyle.SubElement.SE_ItemViewItemText, opt, widget)
-        if not text_rect.isValid():
-            text_rect = option.rect.adjusted(4, 2, -4, -2)
+        if self._layout == NameLocalLayout.LIST:
+            decoration_rect, text_rect = self._list_layout_rects(opt)
+        else:
+            decoration_rect = style.subElementRect(QStyle.SubElement.SE_ItemViewItemDecoration, opt, widget)
+            text_rect = style.subElementRect(QStyle.SubElement.SE_ItemViewItemText, opt, widget)
+            if not text_rect.isValid():
+                text_rect = option.rect.adjusted(4, 2, -4, -2)
 
-    if not opt.icon.isNull() and decoration_rect.isValid():
-        mode = QIcon.Mode.Selected if opt.state & QStyle.StateFlag.State_Selected else QIcon.Mode.Normal
-        opt.icon.paint(painter, decoration_rect, Qt.AlignmentFlag.AlignCenter, mode, QIcon.State.Off)
+        if not opt.icon.isNull() and decoration_rect.isValid():
+            mode = QIcon.Mode.Selected if opt.state & QStyle.StateFlag.State_Selected else QIcon.Mode.Normal
+            opt.icon.paint(painter, decoration_rect, Qt.AlignmentFlag.AlignCenter, mode, QIcon.State.Off)
 
-    if self._layout == NameLocalLayout.LIST and opt.state & QStyle.StateFlag.State_Selected:
-        text_color = QColor("#000000")
-    else:
-        text_color = opt.palette.text().color()
+        if self._layout == NameLocalLayout.LIST and opt.state & QStyle.StateFlag.State_Selected:
+            text_color = QColor("#000000")
+        else:
+            text_color = opt.palette.text().color()
 
-    self._paint_labels(painter, opt.font, main_text, name_local, text_rect, text_color)
+        self._paint_labels(painter, opt.font, main_text, name_local, text_rect, text_color)
 ```
 
 </details>
@@ -369,25 +371,25 @@ Reserve vertical space for an optional local-name line.
 
 ```python
 def sizeHint(  # noqa: N802
-    self,
-    option: QStyleOptionViewItem,
-    index: QModelIndex | QPersistentModelIndex,
-) -> QSize:
-    opt = QStyleOptionViewItem(option)
-    self.initStyleOption(opt, index)
-    name_local = self._name_local(index)
-    main_height = QFontMetrics(opt.font).height()
-    local_height = QFontMetrics(self._local_font(opt.font)).height() if name_local else 0
-    text_height = main_height + ((_LINE_GAP + local_height) if name_local else 0)
+        self,
+        option: QStyleOptionViewItem,
+        index: QModelIndex | QPersistentModelIndex,
+    ) -> QSize:
+        opt = QStyleOptionViewItem(option)
+        self.initStyleOption(opt, index)
+        name_local = self._name_local(index)
+        main_height = QFontMetrics(opt.font).height()
+        local_height = QFontMetrics(self._local_font(opt.font)).height() if name_local else 0
+        text_height = main_height + ((_LINE_GAP + local_height) if name_local else 0)
 
-    if self._layout == NameLocalLayout.LIST:
-        icon_h = opt.decorationSize.height() if not opt.icon.isNull() else 0
-        return QSize(option.rect.width(), max(icon_h, text_height) + 2 * _LIST_EDGE_PAD)
+        if self._layout == NameLocalLayout.LIST:
+            icon_h = opt.decorationSize.height() if not opt.icon.isNull() else 0
+            return QSize(option.rect.width(), max(icon_h, text_height) + 2 * _LIST_EDGE_PAD)
 
-    hint = super().sizeHint(option, index)
-    if name_local:
-        hint.setHeight(hint.height() + local_height + _LINE_GAP)
-    return hint
+        hint = super().sizeHint(option, index)
+        if name_local:
+            hint.setHeight(hint.height() + local_height + _LINE_GAP)
+        return hint
 ```
 
 </details>

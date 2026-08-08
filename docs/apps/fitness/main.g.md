@@ -111,6 +111,7 @@ class MainWindow(
     AutoSaveOperations,
     ValidationOperations,
 ):
+
     _SAFE_TABLES: frozenset[str] = frozenset(
         {"process", "exercises", "types", "weight"},
     )
@@ -4309,6 +4310,26 @@ class MainWindow(
             model.appendRow(items)
             model.setVerticalHeaderItem(row_idx, QStandardItem(str(row_id)))
 
+    def _apply_sets_splitter_sizes(self) -> None:
+        """Restore Sets-tab splitter widths so the exercise list is not squeezed."""
+        if self._is_closing or not hasattr(self, "splitter"):
+            return
+
+        total = self.splitter.width()
+        if total <= 0:
+            total = max(self.width(), 1200)
+
+        left = max(self.frame.minimumWidth(), 350)
+        remaining = max(total - left, 0)
+        # Match previous stretch factors for middle:process ≈ 1:3
+        min_process_width = 200
+        middle = max(self.widget_middle.minimumWidth(), remaining // 4)
+        right = remaining - middle
+        if right < min_process_width:
+            right = min(min_process_width, remaining // 2)
+            middle = remaining - right
+        self.splitter.setSizes([left, middle, right])
+
     def _calculate_exercise_recommendations(
         self, _exercise_name: str, monthly_data: list, _months_count: int, _exercise_unit: str
     ) -> dict:
@@ -4782,6 +4803,7 @@ class MainWindow(
         # Adjust columns after window is shown and has proper dimensions
         QTimer.singleShot(50, self._adjust_process_table_columns)
         QTimer.singleShot(55, self._update_layout_for_window_size)
+        QTimer.singleShot(60, self._apply_sets_splitter_sizes)
 
     def _fitness_names_translate_local_limit(self) -> int:
         """Return max unique names per AI batch for local-name translation."""
@@ -5812,10 +5834,14 @@ class MainWindow(
             f"🎯 {self.pushButton_exercise_goal_recommendations.text()}"
         )
 
-        # Configure splitter proportions
+        # Configure splitter proportions.
+        # Filter bar above the process table has a wide sizeHint; without explicit
+        # sizes QSplitter steals width from listView_exercises.
+        self.widget_middle.setMinimumWidth(300)
         self.splitter.setStretchFactor(0, 0)  # frame with fixed size
         self.splitter.setStretchFactor(1, 1)  # exercise list
         self.splitter.setStretchFactor(2, 3)  # process filters + table
+        self._apply_sets_splitter_sizes()
 
         # Initialize calories spinboxes
         self.doubleSpinBox_calories_per_unit.setDecimals(1)
@@ -6285,134 +6311,134 @@ _No docstring provided._
 
 ```python
 def __init__(self, *, hide_on_close: bool = False) -> None:  # noqa: D107
-    super().__init__()
-    try_apply_system_backdrop(self, backdrop=SystemBackdrop.MICA)
-    self.setupUi(self)
-    # Install event filter for chart info label to handle double-click
-    self.label_chart_info.installEventFilter(self)
-    self._setup_ui()
+        super().__init__()
+        try_apply_system_backdrop(self, backdrop=SystemBackdrop.MICA)
+        self.setupUi(self)
+        # Install event filter for chart info label to handle double-click
+        self.label_chart_info.installEventFilter(self)
+        self._setup_ui()
 
-    # Set window icon
-    self.setWindowIcon(QIcon(":/assets/logo.svg"))
+        # Set window icon
+        self.setWindowIcon(QIcon(":/assets/logo.svg"))
 
-    self._init_hide_on_close(hide_on_close=hide_on_close)
+        self._init_hide_on_close(hide_on_close=hide_on_close)
 
-    # Initialize core attributes
-    self._is_closing = False
-    self.db_manager: database_manager.DatabaseManager | None = None
-    self._app_config: dict[str, Any] = h.dev.config_load(get_config_path_str())
-    self.progress_calculator: ExerciseProgressCalculator | None = None
-    self.current_movie: QMovie | None = None
+        # Initialize core attributes
+        self._is_closing = False
+        self.db_manager: database_manager.DatabaseManager | None = None
+        self._app_config: dict[str, Any] = h.dev.config_load(get_config_path_str())
+        self.progress_calculator: ExerciseProgressCalculator | None = None
+        self.current_movie: QMovie | None = None
 
-    # AVIF manager will be initialized after database is ready
-    self.avif_manager: avif_manager.AvifManager | None = None
-    self._exercise_media_drop: FileDropWidget | None = None
-    self._bothub_state = BothubRequestState()
+        # AVIF manager will be initialized after database is ready
+        self.avif_manager: avif_manager.AvifManager | None = None
+        self._exercise_media_drop: FileDropWidget | None = None
+        self._bothub_state = BothubRequestState()
 
-    # Exercise list model
-    self.exercises_list_model: QStandardItemModel | None = None
+        # Exercise list model
+        self.exercises_list_model: QStandardItemModel | None = None
 
-    # Cache of exercise icons keyed by exercise name
-    self._exercise_icon_cache: dict[str, tuple[float, QIcon | None]] = {}
-    self._exercise_list_hover: ExerciseListHoverPreview | None = None
+        # Cache of exercise icons keyed by exercise name
+        self._exercise_icon_cache: dict[str, tuple[float, QIcon | None]] = {}
+        self._exercise_list_hover: ExerciseListHoverPreview | None = None
 
-    # Table models dictionary
-    self.models: dict[str, QSortFilterProxyModel | None] = {
-        "process": None,
-        "exercises": None,
-        "types": None,
-        "weight": None,
-        "statistics": None,
-    }
+        # Table models dictionary
+        self.models: dict[str, QSortFilterProxyModel | None] = {
+            "process": None,
+            "exercises": None,
+            "types": None,
+            "weight": None,
+            "statistics": None,
+        }
 
-    # Process table display mode flag
-    initial_count, load_more_count = get_apps_list_limits(self._app_config)
-    self.count_records_to_show: int = initial_count
-    self.process_load_more_count: int = load_more_count
-    self.exercises_frequency_window: int = load_more_count
-    self.show_all_records = False
-    self.icon_size = 64
+        # Process table display mode flag
+        initial_count, load_more_count = get_apps_list_limits(self._app_config)
+        self.count_records_to_show: int = initial_count
+        self.process_load_more_count: int = load_more_count
+        self.exercises_frequency_window: int = load_more_count
+        self.show_all_records = False
+        self.icon_size = 64
 
-    # Process table pagination state
-    self._process_pagination = ScrollPagination()
-    self._process_date_color_map: dict[str, QColor] = {}
+        # Process table pagination state
+        self._process_pagination = ScrollPagination()
+        self._process_date_color_map: dict[str, QColor] = {}
 
-    # Store default UI metrics for responsive adjustments
-    self._default_label_exercise_avif_min_height = self.label_exercise_avif.minimumHeight()
-    self._default_label_exercise_avif_max_height = self.label_exercise_avif.maximumHeight()
-    inferred_height = max(self.label_exercise_avif.height(), self.label_exercise_avif.sizeHint().height(), 1)
-    self._default_label_exercise_avif_height = inferred_height
+        # Store default UI metrics for responsive adjustments
+        self._default_label_exercise_avif_min_height = self.label_exercise_avif.minimumHeight()
+        self._default_label_exercise_avif_max_height = self.label_exercise_avif.maximumHeight()
+        inferred_height = max(self.label_exercise_avif.height(), self.label_exercise_avif.sizeHint().height(), 1)
+        self._default_label_exercise_avif_height = inferred_height
 
-    base_font = self.label_count_sets_today.font()
-    self._default_count_sets_font = QFont(base_font)
-    self._small_count_sets_font = QFont(base_font)
-    if base_font.pointSizeF() > 0:
-        reduced_point_size = max(base_font.pointSizeF() * 0.4, 1.0)
-        self._small_count_sets_font.setPointSizeF(reduced_point_size)
-    elif base_font.pixelSize() > 0:
-        reduced_pixel_size = max(int(base_font.pixelSize() * 0.4), 1)
-        self._small_count_sets_font.setPixelSize(reduced_pixel_size)
-    self._is_small_window_layout: bool | None = None
+        base_font = self.label_count_sets_today.font()
+        self._default_count_sets_font = QFont(base_font)
+        self._small_count_sets_font = QFont(base_font)
+        if base_font.pointSizeF() > 0:
+            reduced_point_size = max(base_font.pointSizeF() * 0.4, 1.0)
+            self._small_count_sets_font.setPointSizeF(reduced_point_size)
+        elif base_font.pixelSize() > 0:
+            reduced_pixel_size = max(int(base_font.pixelSize() * 0.4), 1)
+            self._small_count_sets_font.setPixelSize(reduced_pixel_size)
+        self._is_small_window_layout: bool | None = None
 
-    # Chart configuration
-    self.max_count_points_in_charts = 40
-    self.id_steps = 39  # ID for steps exercise
+        # Chart configuration
+        self.max_count_points_in_charts = 40
+        self.id_steps = 39  # ID for steps exercise
 
-    # Statistics table mode tracking
-    self.current_statistics_mode = None  # 'records', 'last_exercises', 'check_steps'
+        # Statistics table mode tracking
+        self.current_statistics_mode = None  # 'records', 'last_exercises', 'check_steps'
 
-    # Flag to prevent recursive selection changes between list views
-    self._syncing_selection = False
+        # Flag to prevent recursive selection changes between list views
+        self._syncing_selection = False
 
-    # Table configuration mapping
-    self.table_config: dict[str, tuple[QTableView, str, list[str]]] = {
-        "process": (
-            self.tableView_process,
-            "process",
-            ["Exercise", "Exercise Type", "Quantity", "Date"],
-        ),
-        "exercises": (
-            self.tableView_exercises,
-            "exercises",
-            ["Exercise", "Unit of Measurement", "Type Required", "Calories per Unit", "Local"],
-        ),
-        "types": (
-            self.tableView_exercise_types,
-            "types",
-            ["Exercise", "Exercise Type", "Calories Modifier", "Local"],
-        ),
-        "weight": (self.tableView_weight, "weight", ["Weight", "Date"]),
-        "statistics": (self.tableView_statistics, "statistics", ["Exercise", "Type", "Value", "Unit", "Date"]),
-    }
+        # Table configuration mapping
+        self.table_config: dict[str, tuple[QTableView, str, list[str]]] = {
+            "process": (
+                self.tableView_process,
+                "process",
+                ["Exercise", "Exercise Type", "Quantity", "Date"],
+            ),
+            "exercises": (
+                self.tableView_exercises,
+                "exercises",
+                ["Exercise", "Unit of Measurement", "Type Required", "Calories per Unit", "Local"],
+            ),
+            "types": (
+                self.tableView_exercise_types,
+                "types",
+                ["Exercise", "Exercise Type", "Calories Modifier", "Local"],
+            ),
+            "weight": (self.tableView_weight, "weight", ["Weight", "Date"]),
+            "statistics": (self.tableView_statistics, "statistics", ["Exercise", "Type", "Value", "Unit", "Date"]),
+        }
 
-    # Define colors for different exercises (expanded palette)
-    self.exercise_colors = generate_pastel_qcolors(50)
+        # Define colors for different exercises (expanded palette)
+        self.exercise_colors = generate_pastel_qcolors(50)
 
-    # For charts
-    self._chart_update_timer = QTimer(self)
-    self._chart_update_timer.setSingleShot(True)
-    self._chart_update_timer.timeout.connect(self._update_chart_based_on_radio_button)
+        # For charts
+        self._chart_update_timer = QTimer(self)
+        self._chart_update_timer.setSingleShot(True)
+        self._chart_update_timer.timeout.connect(self._update_chart_based_on_radio_button)
 
-    # Initialize application
-    self._init_database()
-    self._connect_signals()
-    self._init_table_date_delegates()
-    self._init_filter_controls()
-    self._init_weight_chart_controls()
-    self._init_weight_controls()
-    self._init_exercise_chart_controls()
-    self._init_exercises_list()
-    self._init_sets_count_display()
-    self.update_all()
+        # Initialize application
+        self._init_database()
+        self._connect_signals()
+        self._init_table_date_delegates()
+        self._init_filter_controls()
+        self._init_weight_chart_controls()
+        self._init_weight_controls()
+        self._init_exercise_chart_controls()
+        self._init_exercises_list()
+        self._init_sets_count_display()
+        self.update_all()
 
-    # Load initial AVIF animations after UI is ready
-    QTimer.singleShot(100, self._load_initial_avifs)
+        # Load initial AVIF animations after UI is ready
+        QTimer.singleShot(100, self._load_initial_avifs)
 
-    # Set window size and position based on screen resolution
-    self._setup_window_size_and_position()
+        # Set window size and position based on screen resolution
+        self._setup_window_size_and_position()
 
-    # Adjust table column widths and show window after UI is fully initialized
-    QTimer.singleShot(200, self._finish_window_initialization)
+        # Adjust table column widths and show window after UI is fully initialized
+        QTimer.singleShot(200, self._finish_window_initialization)
 ```
 
 </details>
@@ -6430,11 +6456,11 @@ Apply combo-box/date filters to the process table.
 
 ```python
 def apply_filter(self) -> None:
-    if self.db_manager is None:
-        logger.error("❌ Database manager is not initialized")
-        return
+        if self.db_manager is None:
+            logger.error("❌ Database manager is not initialized")
+            return
 
-    self._load_process_page(reset=True)
+        self._load_process_page(reset=True)
 ```
 
 </details>
@@ -6459,15 +6485,15 @@ Clears all filter selections and resets date ranges to default values:
 
 ```python
 def clear_filter(self) -> None:
-    self.comboBox_filter_exercise.setCurrentIndex(0)
-    self.comboBox_filter_type.setCurrentIndex(0)
-    self.checkBox_use_date_filter.setChecked(False)
+        self.comboBox_filter_exercise.setCurrentIndex(0)
+        self.comboBox_filter_type.setCurrentIndex(0)
+        self.checkBox_use_date_filter.setChecked(False)
 
-    current_date = QDateTime.currentDateTime().date()
-    self.dateEdit_filter_from.setDate(current_date.addMonths(-1))
-    self.dateEdit_filter_to.setDate(current_date)
+        current_date = QDateTime.currentDateTime().date()
+        self.dateEdit_filter_from.setDate(current_date.addMonths(-1))
+        self.dateEdit_filter_to.setDate(current_date)
 
-    self.show_tables()
+        self.show_tables()
 ```
 
 </details>
@@ -6489,34 +6515,34 @@ Args:
 
 ```python
 def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
-    if self._hide_instead_of_close(event):
-        return
+        if self._hide_instead_of_close(event):
+            return
 
-    self._is_closing = True
+        self._is_closing = True
 
-    # Stop animations for all labels
-    if self.current_movie:
-        self.current_movie.stop()
+        # Stop animations for all labels
+        if self.current_movie:
+            self.current_movie.stop()
 
-    if self._exercise_list_hover is not None:
-        self._exercise_list_hover.hide_preview()
+        if self._exercise_list_hover is not None:
+            self._exercise_list_hover.hide_preview()
 
-    if self.avif_manager:
-        for label_key in self.avif_manager.avif_data:
-            timer = self.avif_manager.avif_data[label_key]["timer"]
-            if timer is not None and isinstance(timer, QTimer):
-                timer.stop()
+        if self.avif_manager:
+            for label_key in self.avif_manager.avif_data:
+                timer = self.avif_manager.avif_data[label_key]["timer"]
+                if timer is not None and isinstance(timer, QTimer):
+                    timer.stop()
 
-    # Dispose Models
-    self._dispose_models()
+        # Dispose Models
+        self._dispose_models()
 
-    # Close DB
-    if self.db_manager:
-        self.db_manager.close()
-        self.db_manager = None
-        self.progress_calculator = None
+        # Close DB
+        if self.db_manager:
+            self.db_manager.close()
+            self.db_manager = None
+            self.progress_calculator = None
 
-    super().closeEvent(event)
+        super().closeEvent(event)
 ```
 
 </details>
@@ -6542,47 +6568,47 @@ Raises:
 
 ```python
 def delete_record(self, table_name: str) -> None:
-    if table_name not in self._SAFE_TABLES:
-        error_message = f"Illegal table name: {table_name}"
-        raise ValueError(error_message)
+        if table_name not in self._SAFE_TABLES:
+            error_message = f"Illegal table name: {table_name}"
+            raise ValueError(error_message)
 
-    record_id = self._get_selected_row_id(table_name)
-    if record_id is None:
-        message_box.warning(self, "Error", "Select a record to delete")
-        return
+        record_id = self._get_selected_row_id(table_name)
+        if record_id is None:
+            message_box.warning(self, "Error", "Select a record to delete")
+            return
 
-    if self.db_manager is None:
-        logger.error("❌ Database manager is not initialized")
-        return
+        if self.db_manager is None:
+            logger.error("❌ Database manager is not initialized")
+            return
 
-    # Use appropriate database manager method
-    success = False
-    try:
-        if table_name == "process":
-            success = self.db_manager.delete_process_record(record_id)
-        elif table_name == "exercises":
-            exercise_name = self.db_manager.get_exercise_name_by_id(record_id)
-            success = self.db_manager.delete_exercise(record_id)
-            if success:
-                self._mark_exercises_changed()
-                if exercise_name and self.avif_manager:
-                    self.avif_manager.delete_exercise_avif(exercise_name)
-                    self._exercise_icon_cache.pop(exercise_name, None)
-        elif table_name == "types":
-            success = self.db_manager.delete_exercise_type(record_id)
-            if success:
-                self._mark_exercises_changed()
-        elif table_name == "weight":
-            success = self.db_manager.delete_weight_record(record_id)
-    except Exception as e:
-        message_box.warning(self, "Database Error", f"Failed to delete record: {e}")
-        return
+        # Use appropriate database manager method
+        success = False
+        try:
+            if table_name == "process":
+                success = self.db_manager.delete_process_record(record_id)
+            elif table_name == "exercises":
+                exercise_name = self.db_manager.get_exercise_name_by_id(record_id)
+                success = self.db_manager.delete_exercise(record_id)
+                if success:
+                    self._mark_exercises_changed()
+                    if exercise_name and self.avif_manager:
+                        self.avif_manager.delete_exercise_avif(exercise_name)
+                        self._exercise_icon_cache.pop(exercise_name, None)
+            elif table_name == "types":
+                success = self.db_manager.delete_exercise_type(record_id)
+                if success:
+                    self._mark_exercises_changed()
+            elif table_name == "weight":
+                success = self.db_manager.delete_weight_record(record_id)
+        except Exception as e:
+            message_box.warning(self, "Database Error", f"Failed to delete record: {e}")
+            return
 
-    if success:
-        self.update_all()
-        self.update_sets_count_today()
-    else:
-        message_box.warning(self, "Error", f"Deletion failed in {table_name}")
+        if success:
+            self.update_all()
+            self.update_sets_count_today()
+        else:
+            message_box.warning(self, "Error", f"Deletion failed in {table_name}")
 ```
 
 </details>
@@ -6609,13 +6635,13 @@ Returns:
 
 ```python
 def eventFilter(self, obj: QObject, event: QEvent) -> bool:  # noqa: N802
-    # Handle double-click on label_chart_info safely
-    if obj is self.label_chart_info and event.type() == QEvent.Type.MouseButtonDblClick:
-        # Call your existing handler
-        self._on_chart_info_double_clicked(cast("QMouseEvent", event))
-        return True  # event handled
+        # Handle double-click on label_chart_info safely
+        if obj is self.label_chart_info and event.type() == QEvent.Type.MouseButtonDblClick:
+            # Call your existing handler
+            self._on_chart_info_double_clicked(cast("QMouseEvent", event))
+            return True  # event handled
 
-    return super().eventFilter(obj, event)
+        return super().eventFilter(obj, event)
 ```
 
 </details>
@@ -6637,26 +6663,26 @@ Args:
 
 ```python
 def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
-    # Handle Enter key when pushButton_add is focused
-    if event.key() == Qt.Key.Key_Return or event.key() == Qt.Key.Key_Enter:
-        focused_widget = QApplication.focusWidget()
-        if focused_widget == self.pushButton_add:
-            self.pushButton_add.click()
+        # Handle Enter key when pushButton_add is focused
+        if event.key() == Qt.Key.Key_Return or event.key() == Qt.Key.Key_Enter:
+            focused_widget = QApplication.focusWidget()
+            if focused_widget == self.pushButton_add:
+                self.pushButton_add.click()
+                return
+
+        if self._handle_ctrl_c_for_tables(
+            event,
+            [
+                self.tableView_process,
+                self.tableView_exercises,
+                self.tableView_exercise_types,
+                self.tableView_weight,
+                self.tableView_statistics,
+            ],
+        ):
             return
 
-    if self._handle_ctrl_c_for_tables(
-        event,
-        [
-            self.tableView_process,
-            self.tableView_exercises,
-            self.tableView_exercise_types,
-            self.tableView_weight,
-            self.tableView_statistics,
-        ],
-    ):
-        return
-
-    super().keyPressEvent(event)
+        super().keyPressEvent(event)
 ```
 
 </details>
@@ -6674,7 +6700,7 @@ Load process table data with appropriate limit based on show_all_records flag.
 
 ```python
 def load_process_table(self) -> None:
-    self._load_process_page(reset=True)
+        self._load_process_page(reset=True)
 ```
 
 </details>
@@ -6692,46 +6718,46 @@ Insert a new exercise using database manager.
 
 ```python
 def on_add_exercise(self) -> None:
-    exercise = self.lineEdit_exercise_name.text().strip()
-    unit = self.lineEdit_exercise_unit.text().strip()
-    calories_per_unit = self.doubleSpinBox_calories_per_unit.value()
+        exercise = self.lineEdit_exercise_name.text().strip()
+        unit = self.lineEdit_exercise_unit.text().strip()
+        calories_per_unit = self.doubleSpinBox_calories_per_unit.value()
 
-    if not exercise:
-        message_box.warning(self, "Error", "Enter exercise name")
-        return
+        if not exercise:
+            message_box.warning(self, "Error", "Enter exercise name")
+            return
 
-    if self.db_manager is None:
-        logger.error("❌ Database manager is not initialized")
-        return
+        if self.db_manager is None:
+            logger.error("❌ Database manager is not initialized")
+            return
 
-    # Get checkbox value
-    is_type_required = self.check_box_is_type_required.isChecked()
-    media_path = self._exercise_media_drop.get_file_path() if self._exercise_media_drop else ""
-    name_local = self.lineEdit_exercise_name_local.text().strip()
+        # Get checkbox value
+        is_type_required = self.check_box_is_type_required.isChecked()
+        media_path = self._exercise_media_drop.get_file_path() if self._exercise_media_drop else ""
+        name_local = self.lineEdit_exercise_name_local.text().strip()
 
-    try:
-        if self.db_manager.add_exercise(
-            exercise,
-            unit,
-            is_type_required=is_type_required,
-            calories_per_unit=calories_per_unit,
-            name_local=name_local,
-        ):
-            if media_path and not self._save_exercise_media(exercise, media_path):
-                message_box.warning(
-                    self,
-                    "Exercise Added",
-                    "Exercise was added, but media could not be saved. "
-                    "Use Apply media to selected after fixing the file.",
-                )
-            if self._exercise_media_drop is not None:
-                self._exercise_media_drop.clear()
-            self._mark_exercises_changed()
-            self.update_all()
-        else:
-            message_box.warning(self, "Error", "Failed to add exercise")
-    except Exception as e:
-        message_box.warning(self, "Database Error", f"Failed to add exercise: {e}")
+        try:
+            if self.db_manager.add_exercise(
+                exercise,
+                unit,
+                is_type_required=is_type_required,
+                calories_per_unit=calories_per_unit,
+                name_local=name_local,
+            ):
+                if media_path and not self._save_exercise_media(exercise, media_path):
+                    message_box.warning(
+                        self,
+                        "Exercise Added",
+                        "Exercise was added, but media could not be saved. "
+                        "Use Apply media to selected after fixing the file.",
+                    )
+                if self._exercise_media_drop is not None:
+                    self._exercise_media_drop.clear()
+                self._mark_exercises_changed()
+                self.update_all()
+            else:
+                message_box.warning(self, "Error", "Failed to add exercise")
+        except Exception as e:
+            message_box.warning(self, "Database Error", f"Failed to add exercise: {e}")
 ```
 
 </details>
@@ -6749,78 +6775,78 @@ Insert a new process record using database manager.
 
 ```python
 def on_add_record(self) -> None:
-    exercise = self._get_current_selected_exercise()
-    if not exercise:
-        message_box.warning(self, "Error", "Please select an exercise")
-        return
-
-    if self.db_manager is None:
-        logger.error("❌ Database manager is not initialized")
-        return
-
-    try:
-        ex_id = self.db_manager.get_id("exercises", "name", exercise)
-        if ex_id is None:
-            message_box.warning(self, "Error", f"Exercise '{exercise}' not found in database")
+        exercise = self._get_current_selected_exercise()
+        if not exercise:
+            message_box.warning(self, "Error", "Please select an exercise")
             return
 
-        type_name = self.comboBox_type.currentText()
-
-        # Check if exercise type is required
-        if self.db_manager.is_exercise_type_required(ex_id) and not type_name.strip():
-            message_box.warning(self, "Error", f"Exercise type is required for '{exercise}'. Please select a type.")
+        if self.db_manager is None:
+            logger.error("❌ Database manager is not initialized")
             return
 
-        if type_name:
-            type_rows = self.db_manager.get_rows(
-                "SELECT _id FROM types WHERE type = :name AND _id_exercises = :ex_id",
-                {"name": type_name, "ex_id": ex_id},
+        try:
+            ex_id = self.db_manager.get_id("exercises", "name", exercise)
+            if ex_id is None:
+                message_box.warning(self, "Error", f"Exercise '{exercise}' not found in database")
+                return
+
+            type_name = self.comboBox_type.currentText()
+
+            # Check if exercise type is required
+            if self.db_manager.is_exercise_type_required(ex_id) and not type_name.strip():
+                message_box.warning(self, "Error", f"Exercise type is required for '{exercise}'. Please select a type.")
+                return
+
+            if type_name:
+                type_rows = self.db_manager.get_rows(
+                    "SELECT _id FROM types WHERE type = :name AND _id_exercises = :ex_id",
+                    {"name": type_name, "ex_id": ex_id},
+                )
+                type_id = type_rows[0][0] if type_rows else None
+            else:
+                type_id = -1
+
+            # Store current date before adding record
+            value = str(self.spinBox_count.value())
+            date_str = self.dateEdit.date().toString("yyyy-MM-dd")
+
+            # Get current value as float for record checking
+            current_value = float(value)
+
+            # Check for records before adding the new record
+            record_info = self._check_for_new_records(
+                ex_id, type_id if type_id is not None else -1, current_value, type_name
             )
-            type_id = type_rows[0][0] if type_rows else None
-        else:
-            type_id = -1
 
-        # Store current date before adding record
-        value = str(self.spinBox_count.value())
-        date_str = self.dateEdit.date().toString("yyyy-MM-dd")
+            # Use database manager method
+            if self.db_manager.add_process_record(ex_id, type_id or -1, value, date_str):
+                # Show congratulations if new record was set
+                if record_info:
+                    self._show_record_congratulations(exercise, record_info)
 
-        # Get current value as float for record checking
-        current_value = float(value)
+                # Check if monthly goal was achieved
+                monthly_goal_achieved, current_progress = self._check_for_monthly_goal_achievement(
+                    ex_id, current_value, date_str
+                )
+                if monthly_goal_achieved:
+                    self._show_monthly_goal_congratulations(exercise, type_name, current_progress)
 
-        # Check for records before adding the new record
-        record_info = self._check_for_new_records(
-            ex_id, type_id if type_id is not None else -1, current_value, type_name
-        )
+                # Apply date increment logic
+                self._increment_date_widget(self.dateEdit)
 
-        # Use database manager method
-        if self.db_manager.add_process_record(ex_id, type_id or -1, value, date_str):
-            # Show congratulations if new record was set
-            if record_info:
-                self._show_record_congratulations(exercise, record_info)
+                # Update UI without resetting the date
+                self.show_tables()
+                self._update_comboboxes(selected_exercise=exercise, selected_type=type_name)
+                self.update_filter_comboboxes()
+                self.update_sets_count_today()
 
-            # Check if monthly goal was achieved
-            monthly_goal_achieved, current_progress = self._check_for_monthly_goal_achievement(
-                ex_id, current_value, date_str
-            )
-            if monthly_goal_achieved:
-                self._show_monthly_goal_congratulations(exercise, type_name, current_progress)
+                # Update the exercise info to reflect today's new total
+                self.on_exercise_selection_changed_list()
+            else:
+                message_box.warning(self, "Error", "Failed to add process record")
 
-            # Apply date increment logic
-            self._increment_date_widget(self.dateEdit)
-
-            # Update UI without resetting the date
-            self.show_tables()
-            self._update_comboboxes(selected_exercise=exercise, selected_type=type_name)
-            self.update_filter_comboboxes()
-            self.update_sets_count_today()
-
-            # Update the exercise info to reflect today's new total
-            self.on_exercise_selection_changed_list()
-        else:
-            message_box.warning(self, "Error", "Failed to add process record")
-
-    except Exception as e:
-        message_box.warning(self, "Database Error", f"Failed to add record: {e}")
+        except Exception as e:
+            message_box.warning(self, "Database Error", f"Failed to add record: {e}")
 ```
 
 </details>
@@ -6838,37 +6864,37 @@ Insert a new exercise type using database manager.
 
 ```python
 def on_add_type(self) -> None:
-    exercise = self.comboBox_exercise_name.currentText()
-    if not exercise:
-        message_box.warning(self, "Error", "Select an exercise")
-        return
-
-    if self.db_manager is None:
-        logger.error("❌ Database manager is not initialized")
-        return
-
-    try:
-        ex_id = self.db_manager.get_id("exercises", "name", exercise)
-        if ex_id is None:
-            message_box.warning(self, "Error", f"Exercise '{exercise}' not found")
+        exercise = self.comboBox_exercise_name.currentText()
+        if not exercise:
+            message_box.warning(self, "Error", "Select an exercise")
             return
 
-        type_name = self.lineEdit_exercise_type.text().strip()
-        if not type_name:
-            message_box.warning(self, "Error", "Enter type name")
+        if self.db_manager is None:
+            logger.error("❌ Database manager is not initialized")
             return
 
-        calories_modifier = self.doubleSpinBox_calories_modifier.value()
-        name_local = self.lineEdit_type_name_local.text().strip()
+        try:
+            ex_id = self.db_manager.get_id("exercises", "name", exercise)
+            if ex_id is None:
+                message_box.warning(self, "Error", f"Exercise '{exercise}' not found")
+                return
 
-        if self.db_manager.add_exercise_type(ex_id, type_name, calories_modifier, name_local=name_local):
-            self._mark_exercises_changed()
-            self.update_all()
-        else:
-            message_box.warning(self, "Error", "Failed to add exercise type")
+            type_name = self.lineEdit_exercise_type.text().strip()
+            if not type_name:
+                message_box.warning(self, "Error", "Enter type name")
+                return
 
-    except Exception as e:
-        message_box.warning(self, "Database Error", f"Failed to add type: {e}")
+            calories_modifier = self.doubleSpinBox_calories_modifier.value()
+            name_local = self.lineEdit_type_name_local.text().strip()
+
+            if self.db_manager.add_exercise_type(ex_id, type_name, calories_modifier, name_local=name_local):
+                self._mark_exercises_changed()
+                self.update_all()
+            else:
+                message_box.warning(self, "Error", "Failed to add exercise type")
+
+        except Exception as e:
+            message_box.warning(self, "Database Error", f"Failed to add type: {e}")
 ```
 
 </details>
@@ -6886,37 +6912,37 @@ Insert a new weight measurement using database manager.
 
 ```python
 def on_add_weight(self) -> None:
-    weight_value = self.doubleSpinBox_weight.value()
-    weight_date = self.dateEdit_weight.date().toString("yyyy-MM-dd")
+        weight_value = self.doubleSpinBox_weight.value()
+        weight_date = self.dateEdit_weight.date().toString("yyyy-MM-dd")
 
-    # Validate the date
-    if not self._is_valid_date(weight_date):
-        message_box.warning(self, "Error", "Invalid date format")
-        return
+        # Validate the date
+        if not self._is_valid_date(weight_date):
+            message_box.warning(self, "Error", "Invalid date format")
+            return
 
-    if self.db_manager is None:
-        logger.error("❌ Database manager is not initialized")
-        return
+        if self.db_manager is None:
+            logger.error("❌ Database manager is not initialized")
+            return
 
-    try:
-        # Use database manager method
-        if self.db_manager.add_weight_record(weight_value, weight_date):
-            # Apply date increment logic
-            self._increment_date_widget(self.dateEdit_weight)
+        try:
+            # Use database manager method
+            if self.db_manager.add_weight_record(weight_value, weight_date):
+                # Apply date increment logic
+                self._increment_date_widget(self.dateEdit_weight)
 
-            # Update UI without resetting the weight value
-            self.show_tables()
+                # Update UI without resetting the weight value
+                self.show_tables()
 
-            # Update weight chart if we're on the weight tab
-            current_tab_index = self.tabWidget.currentIndex()
-            weight_tab_index = 3
-            if current_tab_index == weight_tab_index:
-                self.update_weight_chart()
-        else:
-            message_box.warning(self, "Error", "Failed to add weight record")
+                # Update weight chart if we're on the weight tab
+                current_tab_index = self.tabWidget.currentIndex()
+                weight_tab_index = 3
+                if current_tab_index == weight_tab_index:
+                    self.update_weight_chart()
+            else:
+                message_box.warning(self, "Error", "Failed to add weight record")
 
-    except Exception as e:
-        message_box.warning(self, "Database Error", f"Failed to add weight: {e}")
+        except Exception as e:
+            message_box.warning(self, "Database Error", f"Failed to add weight: {e}")
 ```
 
 </details>
@@ -6934,29 +6960,29 @@ Optimize and save media for the exercise selected in the exercises table.
 
 ```python
 def on_apply_exercise_media(self) -> None:
-    exercise_name = self._get_selected_exercise_from_table("exercises")
-    if not exercise_name:
-        message_box.warning(self, "Error", "Select an exercise in the table")
-        return
+        exercise_name = self._get_selected_exercise_from_table("exercises")
+        if not exercise_name:
+            message_box.warning(self, "Error", "Select an exercise in the table")
+            return
 
-    media_path = self._exercise_media_drop.get_file_path() if self._exercise_media_drop else ""
-    if not media_path:
-        media_path, _ = QFileDialog.getOpenFileName(
-            self,
-            "Select exercise media",
-            "",
-            MEDIA_FILE_FILTER,
-        )
-    if not media_path:
-        return
-    if not is_exercise_media_path(media_path):
-        message_box.warning(self, "Error", "Unsupported media type")
-        return
+        media_path = self._exercise_media_drop.get_file_path() if self._exercise_media_drop else ""
+        if not media_path:
+            media_path, _ = QFileDialog.getOpenFileName(
+                self,
+                "Select exercise media",
+                "",
+                MEDIA_FILE_FILTER,
+            )
+        if not media_path:
+            return
+        if not is_exercise_media_path(media_path):
+            message_box.warning(self, "Error", "Unsupported media type")
+            return
 
-    if self._save_exercise_media(exercise_name, media_path):
-        if self._exercise_media_drop is not None:
-            self._exercise_media_drop.clear()
-        message_box.information(self, "Media Saved", f"Media saved for '{exercise_name}'")
+        if self._save_exercise_media(exercise_name, media_path):
+            if self._exercise_media_drop is not None:
+                self._exercise_media_drop.clear()
+            message_box.information(self, "Media Saved", f"Media saved for '{exercise_name}'")
 ```
 
 </details>
@@ -6978,15 +7004,17 @@ Args:
 <summary>Code:</summary>
 
 ```python
-def on_chart_exercise_changed(self, current: QModelIndex | None = None, previous: QModelIndex | None = None) -> None:
-    if current is None:
-        current = QModelIndex()
-    if previous is None:
-        previous = QModelIndex()
-    self._update_charts_avif()
-    exercise_name = self._get_selected_chart_exercise()
-    if exercise_name:
-        self._sync_exercise_selection(exercise_name, source="chart")
+def on_chart_exercise_changed(
+        self, current: QModelIndex | None = None, previous: QModelIndex | None = None
+    ) -> None:
+        if current is None:
+            current = QModelIndex()
+        if previous is None:
+            previous = QModelIndex()
+        self._update_charts_avif()
+        exercise_name = self._get_selected_chart_exercise()
+        if exercise_name:
+            self._sync_exercise_selection(exercise_name, source="chart")
 ```
 
 </details>
@@ -7009,11 +7037,11 @@ Args:
 
 ```python
 def on_chart_type_changed(self, current: QModelIndex | None = None, previous: QModelIndex | None = None) -> None:
-    if current is None:
-        current = QModelIndex()
-    if previous is None:
-        previous = QModelIndex()
-    self._schedule_chart_update(50)
+        if current is None:
+            current = QModelIndex()
+        if previous is None:
+            previous = QModelIndex()
+        self._schedule_chart_update(50)
 ```
 
 </details>
@@ -7031,164 +7059,168 @@ Check for missing days and duplicate days in steps records.
 
 ```python
 def on_check_steps(self) -> None:
-    # Set current mode to check_steps
-    self.current_statistics_mode = "check_steps"
+        # Set current mode to check_steps
+        self.current_statistics_mode = "check_steps"
 
-    if self.db_manager is None:
-        logger.error("❌ Database manager is not initialized")
-        return
-
-    try:
-        # Clear any existing spans from previous statistics view
-        self.tableView_statistics.clearSpans()
-
-        # Get steps exercise ID
-        steps_exercise_id = self.id_steps
-
-        # Check if steps exercise exists using database manager
-        if not self.db_manager.check_exercise_exists(steps_exercise_id):
-            message_box.warning(
-                self, "Steps Exercise Not Found", f"Exercise with ID {steps_exercise_id} not found in database."
-            )
+        if self.db_manager is None:
+            logger.error("❌ Database manager is not initialized")
             return
 
-        steps_exercise_name = self.db_manager.get_exercise_name_by_id(steps_exercise_id)
-        if not steps_exercise_name:
-            return
+        try:
+            # Clear any existing spans from previous statistics view
+            self.tableView_statistics.clearSpans()
 
-        # Get steps records using database manager
-        steps_records = self.db_manager.get_exercise_steps_records(steps_exercise_id)
+            # Get steps exercise ID
+            steps_exercise_id = self.id_steps
 
-        if not steps_records:
-            # Show empty table with message
-            empty_data = [
-                ["No Data", "", f"No records found for exercise: {steps_exercise_name}", 0, QColor(255, 255, 255)]
-            ]
+            # Check if steps exercise exists using database manager
+            if not self.db_manager.check_exercise_exists(steps_exercise_id):
+                message_box.warning(
+                    self, "Steps Exercise Not Found", f"Exercise with ID {steps_exercise_id} not found in database."
+                )
+                return
 
-            self.models["statistics"] = self._create_colored_table_model(empty_data, ["Issue Type", "Date", "Details"])
+            steps_exercise_name = self.db_manager.get_exercise_name_by_id(steps_exercise_id)
+            if not steps_exercise_name:
+                return
+
+            # Get steps records using database manager
+            steps_records = self.db_manager.get_exercise_steps_records(steps_exercise_id)
+
+            if not steps_records:
+                # Show empty table with message
+                empty_data = [
+                    ["No Data", "", f"No records found for exercise: {steps_exercise_name}", 0, QColor(255, 255, 255)]
+                ]
+
+                self.models["statistics"] = self._create_colored_table_model(
+                    empty_data, ["Issue Type", "Date", "Details"]
+                )
+                self.tableView_statistics.setModel(self.models["statistics"])
+
+                # Update statistics AVIF
+                self._update_statistics_avif()
+                return
+
+            # Get date range: from first record to yesterday
+            first_date_str = steps_records[0][0]
+            yesterday = datetime.now(UTC).astimezone().date() - timedelta(days=1)
+
+            try:
+                first_date = datetime.fromisoformat(first_date_str).date()
+            except ValueError:
+                message_box.warning(
+                    self, "Invalid Date Format", f"Invalid date format in first record: {first_date_str}"
+                )
+                return
+
+            # Create a set of dates that have records
+            recorded_dates = {record[0] for record in steps_records}
+
+            # Find missing days
+            missing_days = []
+            current_date = first_date
+
+            while current_date <= yesterday:
+                date_str = current_date.strftime("%Y-%m-%d")
+                if date_str not in recorded_dates:
+                    missing_days.append(date_str)
+                current_date = current_date + timedelta(days=1)
+
+            # Find duplicate days (days with multiple records)
+            duplicate_days = []
+            for date_str, count, step_values in steps_records:
+                if count > 1:
+                    duplicate_days.append((date_str, count, step_values))
+
+            # Prepare table data
+            table_data = []
+
+            # Add missing days
+            for missing_date in missing_days:
+                try:
+                    date_obj = datetime.fromisoformat(missing_date).date()
+                    formatted_date = date_obj.strftime("%Y-%m-%d (%b %d)")
+
+                    # Calculate days ago
+                    days_ago = (yesterday - date_obj).days
+                    details = f"Missing record ({days_ago} days ago)"
+
+                    table_data.append(
+                        [
+                            "Missing Day",
+                            formatted_date,
+                            details,
+                            0,  # Dummy ID
+                            QColor(255, 182, 193),  # Light pink for missing days
+                        ]
+                    )
+                except ValueError:
+                    continue
+
+            # Add duplicate days
+            for date_str, count, step_values in duplicate_days:
+                try:
+                    date_obj = datetime.fromisoformat(date_str).date()
+                    formatted_date = date_obj.strftime("%Y-%m-%d (%b %d)")
+
+                    # Calculate days ago
+                    days_ago = (yesterday - date_obj).days
+                    details = f"{count} records: {step_values} ({days_ago} days ago)"
+
+                    table_data.append(
+                        [
+                            "Duplicate Day",
+                            formatted_date,
+                            details,
+                            0,  # Dummy ID
+                            QColor(255, 255, 182),  # Light yellow for duplicate days
+                        ]
+                    )
+                except ValueError:
+                    continue
+
+            # Sort by date (most recent issues first)
+            table_data.sort(key=lambda x: x[1], reverse=True)
+
+            if not table_data:
+                # No issues found
+                table_data = [
+                    [
+                        "✅ All Good",
+                        "",
+                        f"No missing or duplicate days found for {steps_exercise_name}",
+                        0,  # Dummy ID
+                        QColor(144, 238, 144),  # Light green
+                    ]
+                ]
+
+            # Create model using the standard method
+            self.models["statistics"] = self._create_colored_table_model(table_data, ["Issue Type", "Date", "Details"])
             self.tableView_statistics.setModel(self.models["statistics"])
+
+            # Connect selection signal for statistics table
+            self._connect_table_signals("statistics", self.on_statistics_selection_changed)
+
+            # Configure header with mixed approach: interactive + stretch last
+            header = self.tableView_statistics.horizontalHeader()
+            # Set first columns to interactive (resizable)
+            for i in range(header.count() - 1):
+                header.setSectionResizeMode(i, header.ResizeMode.Interactive)
+            # Set last column to stretch to fill remaining space
+            header.setSectionResizeMode(header.count() - 1, header.ResizeMode.Stretch)
+            # Set default column widths for resizable columns
+            for i in range(header.count() - 1):
+                self.tableView_statistics.setColumnWidth(i, 150)
+
+            # Disable alternating row colors since we have custom colors
+            self.tableView_statistics.setAlternatingRowColors(False)
 
             # Update statistics AVIF
             self._update_statistics_avif()
-            return
 
-        # Get date range: from first record to yesterday
-        first_date_str = steps_records[0][0]
-        yesterday = datetime.now(UTC).astimezone().date() - timedelta(days=1)
-
-        try:
-            first_date = datetime.fromisoformat(first_date_str).date()
-        except ValueError:
-            message_box.warning(self, "Invalid Date Format", f"Invalid date format in first record: {first_date_str}")
-            return
-
-        # Create a set of dates that have records
-        recorded_dates = {record[0] for record in steps_records}
-
-        # Find missing days
-        missing_days = []
-        current_date = first_date
-
-        while current_date <= yesterday:
-            date_str = current_date.strftime("%Y-%m-%d")
-            if date_str not in recorded_dates:
-                missing_days.append(date_str)
-            current_date = current_date + timedelta(days=1)
-
-        # Find duplicate days (days with multiple records)
-        duplicate_days = []
-        for date_str, count, step_values in steps_records:
-            if count > 1:
-                duplicate_days.append((date_str, count, step_values))
-
-        # Prepare table data
-        table_data = []
-
-        # Add missing days
-        for missing_date in missing_days:
-            try:
-                date_obj = datetime.fromisoformat(missing_date).date()
-                formatted_date = date_obj.strftime("%Y-%m-%d (%b %d)")
-
-                # Calculate days ago
-                days_ago = (yesterday - date_obj).days
-                details = f"Missing record ({days_ago} days ago)"
-
-                table_data.append(
-                    [
-                        "Missing Day",
-                        formatted_date,
-                        details,
-                        0,  # Dummy ID
-                        QColor(255, 182, 193),  # Light pink for missing days
-                    ]
-                )
-            except ValueError:
-                continue
-
-        # Add duplicate days
-        for date_str, count, step_values in duplicate_days:
-            try:
-                date_obj = datetime.fromisoformat(date_str).date()
-                formatted_date = date_obj.strftime("%Y-%m-%d (%b %d)")
-
-                # Calculate days ago
-                days_ago = (yesterday - date_obj).days
-                details = f"{count} records: {step_values} ({days_ago} days ago)"
-
-                table_data.append(
-                    [
-                        "Duplicate Day",
-                        formatted_date,
-                        details,
-                        0,  # Dummy ID
-                        QColor(255, 255, 182),  # Light yellow for duplicate days
-                    ]
-                )
-            except ValueError:
-                continue
-
-        # Sort by date (most recent issues first)
-        table_data.sort(key=lambda x: x[1], reverse=True)
-
-        if not table_data:
-            # No issues found
-            table_data = [
-                [
-                    "✅ All Good",
-                    "",
-                    f"No missing or duplicate days found for {steps_exercise_name}",
-                    0,  # Dummy ID
-                    QColor(144, 238, 144),  # Light green
-                ]
-            ]
-
-        # Create model using the standard method
-        self.models["statistics"] = self._create_colored_table_model(table_data, ["Issue Type", "Date", "Details"])
-        self.tableView_statistics.setModel(self.models["statistics"])
-
-        # Connect selection signal for statistics table
-        self._connect_table_signals("statistics", self.on_statistics_selection_changed)
-
-        # Configure header with mixed approach: interactive + stretch last
-        header = self.tableView_statistics.horizontalHeader()
-        # Set first columns to interactive (resizable)
-        for i in range(header.count() - 1):
-            header.setSectionResizeMode(i, header.ResizeMode.Interactive)
-        # Set last column to stretch to fill remaining space
-        header.setSectionResizeMode(header.count() - 1, header.ResizeMode.Stretch)
-        # Set default column widths for resizable columns
-        for i in range(header.count() - 1):
-            self.tableView_statistics.setColumnWidth(i, 150)
-
-        # Disable alternating row colors since we have custom colors
-        self.tableView_statistics.setAlternatingRowColors(False)
-
-        # Update statistics AVIF
-        self._update_statistics_avif()
-
-    except Exception as e:
-        message_box.warning(self, "Steps Check Error", f"Failed to check steps: {e}")
+        except Exception as e:
+            message_box.warning(self, "Steps Check Error", f"Failed to check steps: {e}")
 ```
 
 </details>
@@ -7211,256 +7243,256 @@ in different shades of blue.
 
 ```python
 def on_compare_last_months(self) -> None:
-    exercise = self._get_selected_chart_exercise()
-    exercise_type = self._get_selected_chart_type()
-    months_count = self.spinBox_compare_last.value()
-
-    if not exercise:
-        # Clear chart before showing message
-        self._clear_layout(self.verticalLayout_charts_content)
-        self._show_no_data_label(self.verticalLayout_charts_content, "Please select an exercise")
-        return
-
-    if self.db_manager is None:
-        logger.error("❌ Database manager is not initialized")
-        return
-
-    # Get exercise unit for Y-axis label
-    exercise_unit = self.db_manager.get_exercise_unit(exercise)
-
-    # Use local time for current date
-    today = datetime.now(UTC).astimezone()
-
-    monthly_data = []
-    colors = []
-    labels = []
-    max_days_in_all_months = 0
-
-    # Color palette for non-current months
-    color_palette = [
-        "blue",
-        "green",
-        "orange",
-        "purple",
-        "brown",
-        "pink",
-        "gray",
-        "olive",
-        "cyan",
-        "magenta",
-        "teal",
-        "navy",
-        "maroon",
-        "lime",
-        "indigo",
-        "coral",
-    ]
-
-    for i in range(months_count):
-        # Compute approximate month start/end
-        # Note: month stepping is approximate (30 days), kept to match original logic
-        # Calculate month i months ago
-        month_date = today.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-        for _ in range(i):
-            if month_date.month == 1:
-                month_date = month_date.replace(year=month_date.year - 1, month=12)
-            else:
-                month_date = month_date.replace(month=month_date.month - 1)
-        month_start = month_date.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-        days_in_month = calendar.monthrange(month_start.year, month_start.month)[1]
-        # Track maximum days across all months for X-axis range
-        if i == 0:
-            max_days_in_all_months = max(max_days_in_all_months, min(today.day, days_in_month))
-            month_end = today
-        else:
-            max_days_in_all_months = max(max_days_in_all_months, days_in_month)
-            last_day = days_in_month
-            month_end = month_start.replace(day=last_day, hour=23, minute=59, second=59, microsecond=999999)
-
-        # Format for DB
-        date_from = month_start.strftime("%Y-%m-%d")
-        date_to = month_end.strftime("%Y-%m-%d")
-
-        # Query data
-        rows = self.db_manager.get_exercise_chart_data(
-            exercise_name=exercise,
-            exercise_type=exercise_type if exercise_type != "All types" else None,
-            date_from=date_from,
-            date_to=date_to,
-        )
-
-        # Build cumulative data for this month
-        cumulative_data = []
-        if rows:
-            cumulative_value = 0.0
-            for date_str, value_str in rows:
-                try:
-                    date_obj = datetime.fromisoformat(date_str).replace(tzinfo=UTC)
-                    value = float(value_str)
-                    cumulative_value += value
-                    # Use day of month for X axis
-                    day_of_month = date_obj.day
-                    cumulative_data.append((day_of_month, cumulative_value))
-                except (ValueError, TypeError):
-                    continue
-
-            # Extend horizontally to the end-of-visualization day (cosmetic)
-            if cumulative_data:
-                last_day = cumulative_data[-1][0]
-                last_value = cumulative_data[-1][1]
-                # Use actual number of days in the month
-                max_day = min(today.day, days_in_month) if i == 0 else days_in_month
-                if last_day < max_day:
-                    cumulative_data.append((max_day, last_value))
-
-        # IMPORTANT: append month entry even if it is empty
-        monthly_data.append(cumulative_data)
-
-        # Build label/color for every month regardless of data presence
-        if i == 0:
-            colors.append("red")
-            labels.append(f"{month_start.strftime('%B %Y')} (Current)")
-        else:
-            color_index = (i - 1) % len(color_palette)
-            colors.append(color_palette[color_index])
-            labels.append(f"{month_start.strftime('%B %Y')}")
-
-    # In on_compare_last_months, right before the early return where 'all months are empty'
-    if all(len(d) == 0 for d in monthly_data):
-        self._clear_layout(self.verticalLayout_charts_content)
-        self._show_no_data_label(self.verticalLayout_charts_content, "No data found for the selected period")
-        # Explicitly say last N months:
+        exercise = self._get_selected_chart_exercise()
+        exercise_type = self._get_selected_chart_type()
         months_count = self.spinBox_compare_last.value()
-        self._set_no_data_info_label(f"No data for the last {months_count} months.")
-        return
 
-    # Clear existing chart
-    self._clear_layout(self.verticalLayout_charts_content)
+        if not exercise:
+            # Clear chart before showing message
+            self._clear_layout(self.verticalLayout_charts_content)
+            self._show_no_data_label(self.verticalLayout_charts_content, "Please select an exercise")
+            return
 
-    # Create matplotlib figure
-    fig = Figure(figsize=(12, 6), dpi=100)
-    canvas = FigureCanvas(fig)
-    ax = fig.add_subplot(111)
+        if self.db_manager is None:
+            logger.error("❌ Database manager is not initialized")
+            return
 
-    # Plot non-current months first
-    current_month_data = None
-    current_month_color = None
-    current_month_label = None
+        # Get exercise unit for Y-axis label
+        exercise_unit = self.db_manager.get_exercise_unit(exercise)
 
-    for i, (data, color, label) in enumerate(zip(monthly_data, colors, labels, strict=False)):
-        if not data:
-            continue
+        # Use local time for current date
+        today = datetime.now(UTC).astimezone()
 
-        x_values = [item[0] for item in data]
-        y_values = [item[1] for item in data]
+        monthly_data = []
+        colors = []
+        labels = []
+        max_days_in_all_months = 0
 
-        if i == 0:
-            # Defer current month (draw on top)
-            current_month_data = (x_values, y_values)
-            current_month_color = color
-            current_month_label = label
-            continue
+        # Color palette for non-current months
+        color_palette = [
+            "blue",
+            "green",
+            "orange",
+            "purple",
+            "brown",
+            "pink",
+            "gray",
+            "olive",
+            "cyan",
+            "magenta",
+            "teal",
+            "navy",
+            "maroon",
+            "lime",
+            "indigo",
+            "coral",
+        ]
 
-        # Plot non-current months
-        line_style = "--"
-        line_width = 2
-        max_points = 10
+        for i in range(months_count):
+            # Compute approximate month start/end
+            # Note: month stepping is approximate (30 days), kept to match original logic
+            # Calculate month i months ago
+            month_date = today.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            for _ in range(i):
+                if month_date.month == 1:
+                    month_date = month_date.replace(year=month_date.year - 1, month=12)
+                else:
+                    month_date = month_date.replace(month=month_date.month - 1)
+            month_start = month_date.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            days_in_month = calendar.monthrange(month_start.year, month_start.month)[1]
+            # Track maximum days across all months for X-axis range
+            if i == 0:
+                max_days_in_all_months = max(max_days_in_all_months, min(today.day, days_in_month))
+                month_end = today
+            else:
+                max_days_in_all_months = max(max_days_in_all_months, days_in_month)
+                last_day = days_in_month
+                month_end = month_start.replace(day=last_day, hour=23, minute=59, second=59, microsecond=999999)
 
-        ax.plot(
-            x_values,
-            y_values,
-            color=color,
-            linestyle=line_style,
-            linewidth=line_width,
-            alpha=0.8,
-            label=label,
-            marker="o" if len(x_values) <= max_points else None,
-            markersize=4,
-        )
+            # Format for DB
+            date_from = month_start.strftime("%Y-%m-%d")
+            date_to = month_end.strftime("%Y-%m-%d")
 
-        # Annotate last point
-        if x_values and y_values:
-            last_x = x_values[-1]
-            last_y = y_values[-1]
-            month_year = label.replace(" (Current)", "")
-            value_str = f"{last_y:.1f}".rstrip("0").rstrip(".")
-            label_text = f"{month_year}: {value_str}"
-
-            ax.annotate(
-                label_text,
-                (last_x, last_y),
-                textcoords="offset points",
-                xytext=(0, 10),
-                ha="center",
-                fontsize=9,
-                alpha=0.8,
-                bbox={"boxstyle": "round,pad=0.2", "facecolor": "white", "edgecolor": "none", "alpha": 0.7},
+            # Query data
+            rows = self.db_manager.get_exercise_chart_data(
+                exercise_name=exercise,
+                exercise_type=exercise_type if exercise_type != "All types" else None,
+                date_from=date_from,
+                date_to=date_to,
             )
 
-    # Plot current month last to appear on top
-    if current_month_data:
-        x_values, y_values = current_month_data
-        line_style = "-"
-        line_width = 3
-        max_points = 10
+            # Build cumulative data for this month
+            cumulative_data = []
+            if rows:
+                cumulative_value = 0.0
+                for date_str, value_str in rows:
+                    try:
+                        date_obj = datetime.fromisoformat(date_str).replace(tzinfo=UTC)
+                        value = float(value_str)
+                        cumulative_value += value
+                        # Use day of month for X axis
+                        day_of_month = date_obj.day
+                        cumulative_data.append((day_of_month, cumulative_value))
+                    except (ValueError, TypeError):
+                        continue
 
-        ax.plot(
-            x_values,
-            y_values,
-            color=current_month_color,
-            linestyle=line_style,
-            linewidth=line_width,
-            alpha=0.8,
-            label=current_month_label,
-            marker="o" if len(x_values) <= max_points else None,
-            markersize=4,
-        )
+                # Extend horizontally to the end-of-visualization day (cosmetic)
+                if cumulative_data:
+                    last_day = cumulative_data[-1][0]
+                    last_value = cumulative_data[-1][1]
+                    # Use actual number of days in the month
+                    max_day = min(today.day, days_in_month) if i == 0 else days_in_month
+                    if last_day < max_day:
+                        cumulative_data.append((max_day, last_value))
 
-        # Annotate last point for current month
-        if x_values and y_values:
-            last_x = x_values[-1]
-            last_y = y_values[-1]
-            month_year = current_month_label.replace(" (Current)", "")
-            value_str = f"{last_y:.1f}".rstrip("0").rstrip(".")
-            label_text = f"{month_year}: {value_str}"
+            # IMPORTANT: append month entry even if it is empty
+            monthly_data.append(cumulative_data)
 
-            ax.annotate(
-                label_text,
-                (last_x, last_y),
-                textcoords="offset points",
-                xytext=(0, 10),
-                ha="center",
-                fontsize=9,
+            # Build label/color for every month regardless of data presence
+            if i == 0:
+                colors.append("red")
+                labels.append(f"{month_start.strftime('%B %Y')} (Current)")
+            else:
+                color_index = (i - 1) % len(color_palette)
+                colors.append(color_palette[color_index])
+                labels.append(f"{month_start.strftime('%B %Y')}")
+
+        # In on_compare_last_months, right before the early return where 'all months are empty'
+        if all(len(d) == 0 for d in monthly_data):
+            self._clear_layout(self.verticalLayout_charts_content)
+            self._show_no_data_label(self.verticalLayout_charts_content, "No data found for the selected period")
+            # Explicitly say last N months:
+            months_count = self.spinBox_compare_last.value()
+            self._set_no_data_info_label(f"No data for the last {months_count} months.")
+            return
+
+        # Clear existing chart
+        self._clear_layout(self.verticalLayout_charts_content)
+
+        # Create matplotlib figure
+        fig = Figure(figsize=(12, 6), dpi=100)
+        canvas = FigureCanvas(fig)
+        ax = fig.add_subplot(111)
+
+        # Plot non-current months first
+        current_month_data = None
+        current_month_color = None
+        current_month_label = None
+
+        for i, (data, color, label) in enumerate(zip(monthly_data, colors, labels, strict=False)):
+            if not data:
+                continue
+
+            x_values = [item[0] for item in data]
+            y_values = [item[1] for item in data]
+
+            if i == 0:
+                # Defer current month (draw on top)
+                current_month_data = (x_values, y_values)
+                current_month_color = color
+                current_month_label = label
+                continue
+
+            # Plot non-current months
+            line_style = "--"
+            line_width = 2
+            max_points = 10
+
+            ax.plot(
+                x_values,
+                y_values,
+                color=color,
+                linestyle=line_style,
+                linewidth=line_width,
                 alpha=0.8,
-                bbox={"boxstyle": "round,pad=0.2", "facecolor": "white", "edgecolor": "none", "alpha": 0.7},
+                label=label,
+                marker="o" if len(x_values) <= max_points else None,
+                markersize=4,
             )
 
-    # Customize plot
-    ax.set_xlabel("Day of Month", fontsize=12)
-    y_label = f"Cumulative Value ({exercise_unit})" if exercise_unit else "Cumulative Value"
-    ax.set_ylabel(y_label, fontsize=12)
+            # Annotate last point
+            if x_values and y_values:
+                last_x = x_values[-1]
+                last_y = y_values[-1]
+                month_year = label.replace(" (Current)", "")
+                value_str = f"{last_y:.1f}".rstrip("0").rstrip(".")
+                label_text = f"{month_year}: {value_str}"
 
-    chart_title = f"{exercise}"
-    if exercise_type and exercise_type != "All types":
-        chart_title += f" - {exercise_type}"
-    chart_title += f" (Last {months_count} months comparison)"
-    ax.set_title(chart_title, fontsize=14, fontweight="bold")
+                ax.annotate(
+                    label_text,
+                    (last_x, last_y),
+                    textcoords="offset points",
+                    xytext=(0, 10),
+                    ha="center",
+                    fontsize=9,
+                    alpha=0.8,
+                    bbox={"boxstyle": "round,pad=0.2", "facecolor": "white", "edgecolor": "none", "alpha": 0.7},
+                )
 
-    ax.grid(visible=True, alpha=0.3)
-    ax.legend(loc="upper left", fontsize=10)
+        # Plot current month last to appear on top
+        if current_month_data:
+            x_values, y_values = current_month_data
+            line_style = "-"
+            line_width = 3
+            max_points = 10
 
-    # X axis range and ticks - use maximum days across all months
-    # Use at least 31 if we have data, otherwise use the actual max
-    max_x_limit = max_days_in_all_months if max_days_in_all_months > 0 else 31
-    ax.set_xlim(1, max_x_limit)
-    ax.set_xticks(range(1, max_x_limit + 1, 2))
+            ax.plot(
+                x_values,
+                y_values,
+                color=current_month_color,
+                linestyle=line_style,
+                linewidth=line_width,
+                alpha=0.8,
+                label=current_month_label,
+                marker="o" if len(x_values) <= max_points else None,
+                markersize=4,
+            )
 
-    fig.tight_layout()
-    self.verticalLayout_charts_content.addWidget(canvas)
-    canvas.draw()
+            # Annotate last point for current month
+            if x_values and y_values:
+                last_x = x_values[-1]
+                last_y = y_values[-1]
+                month_year = current_month_label.replace(" (Current)", "")
+                value_str = f"{last_y:.1f}".rstrip("0").rstrip(".")
+                label_text = f"{month_year}: {value_str}"
 
-    # Add recommendations based on prepared monthly_data
-    self._add_exercise_recommendations_to_label(exercise, exercise_type, monthly_data, months_count, exercise_unit)
+                ax.annotate(
+                    label_text,
+                    (last_x, last_y),
+                    textcoords="offset points",
+                    xytext=(0, 10),
+                    ha="center",
+                    fontsize=9,
+                    alpha=0.8,
+                    bbox={"boxstyle": "round,pad=0.2", "facecolor": "white", "edgecolor": "none", "alpha": 0.7},
+                )
+
+        # Customize plot
+        ax.set_xlabel("Day of Month", fontsize=12)
+        y_label = f"Cumulative Value ({exercise_unit})" if exercise_unit else "Cumulative Value"
+        ax.set_ylabel(y_label, fontsize=12)
+
+        chart_title = f"{exercise}"
+        if exercise_type and exercise_type != "All types":
+            chart_title += f" - {exercise_type}"
+        chart_title += f" (Last {months_count} months comparison)"
+        ax.set_title(chart_title, fontsize=14, fontweight="bold")
+
+        ax.grid(visible=True, alpha=0.3)
+        ax.legend(loc="upper left", fontsize=10)
+
+        # X axis range and ticks - use maximum days across all months
+        # Use at least 31 if we have data, otherwise use the actual max
+        max_x_limit = max_days_in_all_months if max_days_in_all_months > 0 else 31
+        ax.set_xlim(1, max_x_limit)
+        ax.set_xticks(range(1, max_x_limit + 1, 2))
+
+        fig.tight_layout()
+        self.verticalLayout_charts_content.addWidget(canvas)
+        canvas.draw()
+
+        # Add recommendations based on prepared monthly_data
+        self._add_exercise_recommendations_to_label(exercise, exercise_type, monthly_data, months_count, exercise_unit)
 ```
 
 </details>
@@ -7482,193 +7514,234 @@ while previous years are shown in different colors.
 
 ```python
 def on_compare_same_months(self) -> None:
-    exercise = self._get_selected_chart_exercise()
-    exercise_type = self._get_selected_chart_type()
-    years_count = self.spinBox_compare_last.value()
+        exercise = self._get_selected_chart_exercise()
+        exercise_type = self._get_selected_chart_type()
+        years_count = self.spinBox_compare_last.value()
 
-    if not exercise:
-        # Clear existing chart before showing no data message
-        self._clear_layout(self.verticalLayout_charts_content)
-        self._show_no_data_label(self.verticalLayout_charts_content, "Please select an exercise")
-        return
+        if not exercise:
+            # Clear existing chart before showing no data message
+            self._clear_layout(self.verticalLayout_charts_content)
+            self._show_no_data_label(self.verticalLayout_charts_content, "Please select an exercise")
+            return
 
-    if self.db_manager is None:
-        logger.error("❌ Database manager is not initialized")
-        return
+        if self.db_manager is None:
+            logger.error("❌ Database manager is not initialized")
+            return
 
-    # Get exercise unit for Y-axis label
-    exercise_unit = self.db_manager.get_exercise_unit(exercise)
+        # Get exercise unit for Y-axis label
+        exercise_unit = self.db_manager.get_exercise_unit(exercise)
 
-    # Get selected month and current year
-    selected_month_index = self.comboBox_compare_same_months.currentIndex()
-    selected_month_index = max(selected_month_index, 0)  # Default to January if nothing selected
+        # Get selected month and current year
+        selected_month_index = self.comboBox_compare_same_months.currentIndex()
+        selected_month_index = max(selected_month_index, 0)  # Default to January if nothing selected
 
-    today = datetime.now(UTC).astimezone()
-    selected_month = selected_month_index + 1  # Convert 0-11 to 1-12
-    current_year = today.year
+        today = datetime.now(UTC).astimezone()
+        selected_month = selected_month_index + 1  # Convert 0-11 to 1-12
+        current_year = today.year
 
-    # Get data for each year
-    yearly_data = []
-    colors = []
-    labels = []
+        # Get data for each year
+        yearly_data = []
+        colors = []
+        labels = []
 
-    # Define a color palette for different years (excluding red for current year)
-    color_palette = [
-        "blue",
-        "green",
-        "orange",
-        "purple",
-        "brown",
-        "pink",
-        "gray",
-        "olive",
-        "cyan",
-        "magenta",
-        "teal",
-        "navy",
-        "maroon",
-        "lime",
-        "indigo",
-        "coral",
-    ]
+        # Define a color palette for different years (excluding red for current year)
+        color_palette = [
+            "blue",
+            "green",
+            "orange",
+            "purple",
+            "brown",
+            "pink",
+            "gray",
+            "olive",
+            "cyan",
+            "magenta",
+            "teal",
+            "navy",
+            "maroon",
+            "lime",
+            "indigo",
+            "coral",
+        ]
 
-    for _i in range(years_count):
-        # Calculate year
-        year = current_year - _i
+        for _i in range(years_count):
+            # Calculate year
+            year = current_year - _i
 
-        # Calculate start and end of the same month for this year
-        month_start = datetime(year, selected_month, 1, tzinfo=UTC)
-        last_day = calendar.monthrange(month_start.year, month_start.month)[1]
-        month_end = month_start.replace(day=last_day, hour=23, minute=59, second=59, microsecond=999999)
+            # Calculate start and end of the same month for this year
+            month_start = datetime(year, selected_month, 1, tzinfo=UTC)
+            last_day = calendar.monthrange(month_start.year, month_start.month)[1]
+            month_end = month_start.replace(day=last_day, hour=23, minute=59, second=59, microsecond=999999)
 
-        # For current year, limit to today only if we're in the selected month or past it
-        if year == current_year:
-            # Check if the selected month has already started this year
-            if today.month >= selected_month:
-                # If we're in the selected month, limit to today
-                if today.month == selected_month:
-                    month_end = today
-            else:
-                # If the selected month hasn't started yet this year, skip this year
-                continue
-
-        # Format dates for database query
-        date_from = month_start.strftime("%Y-%m-%d")
-        date_to = month_end.strftime("%Y-%m-%d")
-
-        # Get exercise data for this month
-        rows = self.db_manager.get_exercise_chart_data(
-            exercise_name=exercise,
-            exercise_type=exercise_type if exercise_type != "All types" else None,
-            date_from=date_from,
-            date_to=date_to,
-        )
-
-        if rows:
-            # Convert to datetime objects and calculate cumulative values
-            cumulative_data = []
-            cumulative_value = 0.0
-
-            for date_str, value_str in rows:
-                try:
-                    date_obj = datetime.fromisoformat(date_str).replace(tzinfo=UTC)
-                    value = float(value_str)
-                    cumulative_value += value
-
-                    # Calculate day of month (1-31) for x-axis
-                    day_of_month = date_obj.day
-                    cumulative_data.append((day_of_month, cumulative_value))
-                except (ValueError, TypeError):
+            # For current year, limit to today only if we're in the selected month or past it
+            if year == current_year:
+                # Check if the selected month has already started this year
+                if today.month >= selected_month:
+                    # If we're in the selected month, limit to today
+                    if today.month == selected_month:
+                        month_end = today
+                else:
+                    # If the selected month hasn't started yet this year, skip this year
                     continue
 
-            if cumulative_data:
-                # Extend the line horizontally to the end of the month if needed
-                last_day = cumulative_data[-1][0] if cumulative_data else 1
-                last_value = cumulative_data[-1][1] if cumulative_data else 0.0
+            # Format dates for database query
+            date_from = month_start.strftime("%Y-%m-%d")
+            date_to = month_end.strftime("%Y-%m-%d")
 
-                # For current year, extend to today or end of month, whichever is earlier
-                max_day = min(today.day, 31) if year == current_year else 31
+            # Get exercise data for this month
+            rows = self.db_manager.get_exercise_chart_data(
+                exercise_name=exercise,
+                exercise_type=exercise_type if exercise_type != "All types" else None,
+                date_from=date_from,
+                date_to=date_to,
+            )
 
-                # Add horizontal extension if needed
-                if last_day < max_day:
-                    cumulative_data.append((max_day, last_value))
+            if rows:
+                # Convert to datetime objects and calculate cumulative values
+                cumulative_data = []
+                cumulative_value = 0.0
 
-                yearly_data.append(cumulative_data)
+                for date_str, value_str in rows:
+                    try:
+                        date_obj = datetime.fromisoformat(date_str).replace(tzinfo=UTC)
+                        value = float(value_str)
+                        cumulative_value += value
 
-                # Determine color based on whether it's current year or not
-                # Note: i represents the year offset, but we need to check if this year actually has data
-                if year == current_year:  # Current year
-                    colors.append("red")  # Current year in red
-                    labels.append(f"{month_start.strftime('%B %Y')} (Current)")
-                else:
-                    # Use different colors from palette for other years
-                    color_index = (len(yearly_data) - 2) % len(color_palette)  # -2 because current year uses red
-                    colors.append(color_palette[color_index])
-                    labels.append(f"{month_start.strftime('%B %Y')}")
+                        # Calculate day of month (1-31) for x-axis
+                        day_of_month = date_obj.day
+                        cumulative_data.append((day_of_month, cumulative_value))
+                    except (ValueError, TypeError):
+                        continue
 
-    # In on_compare_same_months, right before early return on 'not yearly_data'
-    if not yearly_data:
+                if cumulative_data:
+                    # Extend the line horizontally to the end of the month if needed
+                    last_day = cumulative_data[-1][0] if cumulative_data else 1
+                    last_value = cumulative_data[-1][1] if cumulative_data else 0.0
+
+                    # For current year, extend to today or end of month, whichever is earlier
+                    max_day = min(today.day, 31) if year == current_year else 31
+
+                    # Add horizontal extension if needed
+                    if last_day < max_day:
+                        cumulative_data.append((max_day, last_value))
+
+                    yearly_data.append(cumulative_data)
+
+                    # Determine color based on whether it's current year or not
+                    # Note: i represents the year offset, but we need to check if this year actually has data
+                    if year == current_year:  # Current year
+                        colors.append("red")  # Current year in red
+                        labels.append(f"{month_start.strftime('%B %Y')} (Current)")
+                    else:
+                        # Use different colors from palette for other years
+                        color_index = (len(yearly_data) - 2) % len(color_palette)  # -2 because current year uses red
+                        colors.append(color_palette[color_index])
+                        labels.append(f"{month_start.strftime('%B %Y')}")
+
+        # In on_compare_same_months, right before early return on 'not yearly_data'
+        if not yearly_data:
+            self._clear_layout(self.verticalLayout_charts_content)
+            self._show_no_data_label(self.verticalLayout_charts_content, "No data found for the selected period")
+            years_count = self.spinBox_compare_last.value()
+            # Tailored message for 'same months' mode:
+            selected_month_name = self.comboBox_compare_same_months.currentText()
+            self._set_no_data_info_label(f"No data for {selected_month_name.lower()} in the last {years_count} years.")
+            return
+
+        # Clear existing chart
         self._clear_layout(self.verticalLayout_charts_content)
-        self._show_no_data_label(self.verticalLayout_charts_content, "No data found for the selected period")
-        years_count = self.spinBox_compare_last.value()
-        # Tailored message for 'same months' mode:
-        selected_month_name = self.comboBox_compare_same_months.currentText()
-        self._set_no_data_info_label(f"No data for {selected_month_name.lower()} in the last {years_count} years.")
-        return
 
-    # Clear existing chart
-    self._clear_layout(self.verticalLayout_charts_content)
+        # Create matplotlib figure
+        fig = Figure(figsize=(12, 6), dpi=100)
+        canvas = FigureCanvas(fig)
+        ax = fig.add_subplot(111)
 
-    # Create matplotlib figure
-    fig = Figure(figsize=(12, 6), dpi=100)
-    canvas = FigureCanvas(fig)
-    ax = fig.add_subplot(111)
+        # Plot each year's data
+        # First, plot all non-current years (to ensure current year appears on top)
+        current_year_data = None
+        current_year_color = None
+        current_year_label = None
 
-    # Plot each year's data
-    # First, plot all non-current years (to ensure current year appears on top)
-    current_year_data = None
-    current_year_color = None
-    current_year_label = None
+        for _i, (data, color, label) in enumerate(zip(yearly_data, colors, labels, strict=False)):
+            if data:
+                x_values = [item[0] for item in data]
+                y_values = [item[1] for item in data]
 
-    for _i, (data, color, label) in enumerate(zip(yearly_data, colors, labels, strict=False)):
-        if data:
-            x_values = [item[0] for item in data]
-            y_values = [item[1] for item in data]
+                # Check if this is the current year by looking at the label
+                is_current_year = "(Current)" in label
 
-            # Check if this is the current year by looking at the label
-            is_current_year = "(Current)" in label
+                if is_current_year:
+                    # Store current year data to plot last
+                    current_year_data = (x_values, y_values)
+                    current_year_color = color
+                    current_year_label = label
+                    continue
 
-            if is_current_year:
-                # Store current year data to plot last
-                current_year_data = (x_values, y_values)
-                current_year_color = color
-                current_year_label = label
-                continue
+                # Plot non-current years first
+                line_style = "--"  # Dashed for non-current years
+                line_width = 2
+                max_points = 10
 
-            # Plot non-current years first
-            line_style = "--"  # Dashed for non-current years
-            line_width = 2
+                ax.plot(
+                    x_values,
+                    y_values,
+                    color=color,
+                    linestyle=line_style,
+                    linewidth=line_width,
+                    alpha=0.8,
+                    label=label,
+                    marker="o" if len(x_values) <= max_points else None,  # Markers only for few points
+                    markersize=4,
+                )
+
+                # Add value labels for the last point of each line
+                if x_values and y_values:
+                    last_x = x_values[-1]
+                    last_y = y_values[-1]
+
+                    # Format label with month and year and final value
+                    month_year = label.replace(" (Current)", "")  # Remove "(Current)" suffix
+                    # Format number without .0 for whole numbers
+                    value_str = f"{last_y:.1f}".rstrip("0").rstrip(".")
+                    label_text = f"{month_year}: {value_str}"
+
+                    ax.annotate(
+                        label_text,
+                        (last_x, last_y),
+                        textcoords="offset points",
+                        xytext=(0, 10),
+                        ha="center",
+                        fontsize=9,
+                        alpha=0.8,
+                        bbox={"boxstyle": "round,pad=0.2", "facecolor": "white", "edgecolor": "none", "alpha": 0.7},
+                    )
+
+        # Now plot the current year last (so it appears on top)
+        if current_year_data:
+            x_values, y_values = current_year_data
+            line_style = "-"  # Solid for current year
+            line_width = 3  # Thicker for current year
             max_points = 10
 
             ax.plot(
                 x_values,
                 y_values,
-                color=color,
+                color=current_year_color,
                 linestyle=line_style,
                 linewidth=line_width,
                 alpha=0.8,
-                label=label,
+                label=current_year_label,
                 marker="o" if len(x_values) <= max_points else None,  # Markers only for few points
                 markersize=4,
             )
 
-            # Add value labels for the last point of each line
+            # Add value labels for the last point of current year line
             if x_values and y_values:
                 last_x = x_values[-1]
                 last_y = y_values[-1]
 
                 # Format label with month and year and final value
-                month_year = label.replace(" (Current)", "")  # Remove "(Current)" suffix
+                month_year = current_year_label.replace(" (Current)", "")  # Remove "(Current)" suffix
                 # Format number without .0 for whole numbers
                 value_str = f"{last_y:.1f}".rstrip("0").rstrip(".")
                 label_text = f"{month_year}: {value_str}"
@@ -7684,73 +7757,32 @@ def on_compare_same_months(self) -> None:
                     bbox={"boxstyle": "round,pad=0.2", "facecolor": "white", "edgecolor": "none", "alpha": 0.7},
                 )
 
-    # Now plot the current year last (so it appears on top)
-    if current_year_data:
-        x_values, y_values = current_year_data
-        line_style = "-"  # Solid for current year
-        line_width = 3  # Thicker for current year
-        max_points = 10
+        # Customize plot
+        ax.set_xlabel("Day of Month", fontsize=12)
+        y_label = f"Cumulative Value ({exercise_unit})" if exercise_unit else "Cumulative Value"
+        ax.set_ylabel(y_label, fontsize=12)
 
-        ax.plot(
-            x_values,
-            y_values,
-            color=current_year_color,
-            linestyle=line_style,
-            linewidth=line_width,
-            alpha=0.8,
-            label=current_year_label,
-            marker="o" if len(x_values) <= max_points else None,  # Markers only for few points
-            markersize=4,
-        )
+        # Build title
+        selected_month_name = self.comboBox_compare_same_months.currentText()
+        chart_title = f"{exercise}"
+        if exercise_type and exercise_type != "All types":
+            chart_title += f" - {exercise_type}"
+        chart_title += f" ({selected_month_name} comparison - last {years_count} years)"
+        ax.set_title(chart_title, fontsize=14, fontweight="bold")
 
-        # Add value labels for the last point of current year line
-        if x_values and y_values:
-            last_x = x_values[-1]
-            last_y = y_values[-1]
+        ax.grid(visible=True, alpha=0.3)
+        ax.legend(loc="upper left", fontsize=10)
 
-            # Format label with month and year and final value
-            month_year = current_year_label.replace(" (Current)", "")  # Remove "(Current)" suffix
-            # Format number without .0 for whole numbers
-            value_str = f"{last_y:.1f}".rstrip("0").rstrip(".")
-            label_text = f"{month_year}: {value_str}"
+        # Set x-axis to show days 1-31
+        ax.set_xlim(1, 31)
+        ax.set_xticks(range(1, 32, 2))  # Show every other day for readability
 
-            ax.annotate(
-                label_text,
-                (last_x, last_y),
-                textcoords="offset points",
-                xytext=(0, 10),
-                ha="center",
-                fontsize=9,
-                alpha=0.8,
-                bbox={"boxstyle": "round,pad=0.2", "facecolor": "white", "edgecolor": "none", "alpha": 0.7},
-            )
+        fig.tight_layout()
+        self.verticalLayout_charts_content.addWidget(canvas)
+        canvas.draw()
 
-    # Customize plot
-    ax.set_xlabel("Day of Month", fontsize=12)
-    y_label = f"Cumulative Value ({exercise_unit})" if exercise_unit else "Cumulative Value"
-    ax.set_ylabel(y_label, fontsize=12)
-
-    # Build title
-    selected_month_name = self.comboBox_compare_same_months.currentText()
-    chart_title = f"{exercise}"
-    if exercise_type and exercise_type != "All types":
-        chart_title += f" - {exercise_type}"
-    chart_title += f" ({selected_month_name} comparison - last {years_count} years)"
-    ax.set_title(chart_title, fontsize=14, fontweight="bold")
-
-    ax.grid(visible=True, alpha=0.3)
-    ax.legend(loc="upper left", fontsize=10)
-
-    # Set x-axis to show days 1-31
-    ax.set_xlim(1, 31)
-    ax.set_xticks(range(1, 32, 2))  # Show every other day for readability
-
-    fig.tight_layout()
-    self.verticalLayout_charts_content.addWidget(canvas)
-    canvas.draw()
-
-    # Add same months recommendations to label_chart_info
-    self._add_same_months_recommendations_to_label(exercise, exercise_type, exercise_unit, yearly_data, years_count)
+        # Add same months recommendations to label_chart_info
+        self._add_same_months_recommendations_to_label(exercise, exercise_type, exercise_unit, yearly_data, years_count)
 ```
 
 </details>
@@ -7772,7 +7804,7 @@ Args:
 
 ```python
 def on_exercise_name_changed(self, _index: int = -1) -> None:
-    self._update_types_avif()
+        self._update_types_avif()
 ```
 
 </details>
@@ -7790,40 +7822,40 @@ Update form fields when exercise selection changes in the table.
 
 ```python
 def on_exercise_selection_changed(self, _current: QModelIndex, _previous: QModelIndex) -> None:
-    index = self.tableView_exercises.currentIndex()
-    if not index.isValid():
-        # Clear the fields if nothing is selected
-        self.lineEdit_exercise_name.clear()
-        self.lineEdit_exercise_name_local.clear()
-        self.lineEdit_exercise_unit.clear()
-        self.check_box_is_type_required.setChecked(False)
-        self.doubleSpinBox_calories_per_unit.setValue(0.0)
-        return
+        index = self.tableView_exercises.currentIndex()
+        if not index.isValid():
+            # Clear the fields if nothing is selected
+            self.lineEdit_exercise_name.clear()
+            self.lineEdit_exercise_name_local.clear()
+            self.lineEdit_exercise_unit.clear()
+            self.check_box_is_type_required.setChecked(False)
+            self.doubleSpinBox_calories_per_unit.setValue(0.0)
+            return
 
-    model = self.models["exercises"]
-    row = index.row()
+        model = self.models["exercises"]
+        row = index.row()
 
-    # Fill in the fields with data from the selected row
-    if model is None:
-        return
-    name = model.data(model.index(row, 0)) or ""
-    unit = model.data(model.index(row, 1)) or ""
-    is_required = model.data(model.index(row, 2)) or "0"
-    calories_per_unit = model.data(model.index(row, 3)) or "0"
-    name_local = model.data(model.index(row, 4)) or ""
+        # Fill in the fields with data from the selected row
+        if model is None:
+            return
+        name = model.data(model.index(row, 0)) or ""
+        unit = model.data(model.index(row, 1)) or ""
+        is_required = model.data(model.index(row, 2)) or "0"
+        calories_per_unit = model.data(model.index(row, 3)) or "0"
+        name_local = model.data(model.index(row, 4)) or ""
 
-    self.lineEdit_exercise_name.setText(name)
-    self.lineEdit_exercise_name_local.setText(name_local)
-    self.lineEdit_exercise_unit.setText(unit)
-    self.check_box_is_type_required.setChecked(is_required == "1")
+        self.lineEdit_exercise_name.setText(name)
+        self.lineEdit_exercise_name_local.setText(name_local)
+        self.lineEdit_exercise_unit.setText(unit)
+        self.check_box_is_type_required.setChecked(is_required == "1")
 
-    try:
-        self.doubleSpinBox_calories_per_unit.setValue(float(calories_per_unit))
-    except (ValueError, TypeError):
-        self.doubleSpinBox_calories_per_unit.setValue(0.0)
+        try:
+            self.doubleSpinBox_calories_per_unit.setValue(float(calories_per_unit))
+        except (ValueError, TypeError):
+            self.doubleSpinBox_calories_per_unit.setValue(0.0)
 
-    # Update exercises AVIF
-    self._update_exercises_avif()
+        # Update exercises AVIF
+        self._update_exercises_avif()
 ```
 
 </details>
@@ -7841,105 +7873,125 @@ Handle exercise selection change in the list view.
 
 ```python
 def on_exercise_selection_changed_list(self) -> None:
-    exercise = self._get_current_selected_exercise()
-    if not exercise:
-        self.comboBox_type.setEnabled(False)
-        self.label_exercise.setText("No exercise selected")
-        self.label_unit.setText("")
-        self.label_last_date_count_today.setText("")
-        return
-
-    # Check if database manager is available and connection is open
-    if not self._validate_database_connection():
-        logger.warning("Database manager not available or connection not open")
-        self.comboBox_type.setEnabled(False)
-        self.label_exercise.setText("Database error")
-        self.label_unit.setText("")
-        self.label_last_date_count_today.setText("")
-        return
-
-    # Update exercise name label
-    self.label_exercise.setText(exercise)
-
-    # Check if a new AVIF needs to be loaded
-    if self.avif_manager:
-        current_avif_exercise = self.avif_manager.get_current_exercise("main")
-        if current_avif_exercise != exercise:
-            self._load_exercise_avif(exercise, "main")
-
-    if self.db_manager is None:
-        logger.error("❌ Database manager is not initialized")
-        return
-
-    try:
-        ex_id = self.db_manager.get_id("exercises", "name", exercise)
-        if ex_id is None:
-            logger.info("%s", f"Exercise '{exercise}' not found in database")
+        exercise = self._get_current_selected_exercise()
+        if not exercise:
             self.comboBox_type.setEnabled(False)
+            self.label_exercise.setText("No exercise selected")
             self.label_unit.setText("")
             self.label_last_date_count_today.setText("")
             return
 
-        # Get exercise unit and display it in separate label
-        unit = self.db_manager.get_exercise_unit(exercise)
-        self.label_unit.setText(unit)
+        # Check if database manager is available and connection is open
+        if not self._validate_database_connection():
+            logger.warning("Database manager not available or connection not open")
+            self.comboBox_type.setEnabled(False)
+            self.label_exercise.setText("Database error")
+            self.label_unit.setText("")
+            self.label_last_date_count_today.setText("")
+            return
 
-        # Get last exercise date (regardless of type)
-        last_date = self.db_manager.get_last_exercise_date(ex_id)
+        # Update exercise name label
+        self.label_exercise.setText(exercise)
 
-        # Get total value for today
-        total_today = self.db_manager.get_exercise_total_today(ex_id)
+        # Check if a new AVIF needs to be loaded
+        if self.avif_manager:
+            current_avif_exercise = self.avif_manager.get_current_exercise("main")
+            if current_avif_exercise != exercise:
+                self._load_exercise_avif(exercise, "main")
 
-        # Format the date and count text for separate label
-        date_parts = []
+        if self.db_manager is None:
+            logger.error("❌ Database manager is not initialized")
+            return
 
-        if last_date:
-            try:
-                date_obj = datetime.fromisoformat(last_date).replace(tzinfo=UTC)
-                formatted_date = date_obj.strftime("%b %d, %Y")  # e.g., "Dec 13, 2025"
-                date_parts.append(f"Last: {formatted_date}")
-            except ValueError:
-                date_parts.append(f"Last: {last_date}")
-        else:
-            date_parts.append("Last: Never")
-
-        # Add today's total if it's greater than 0
-        if total_today > 0:
-            # Format total based on whether it's an integer or float
-            if total_today == int(total_today):
-                total_text = f"Today: {int(total_today)} {unit}"
-            else:
-                total_text = f"Today: {total_today:.1f} {unit}"
-            date_parts.append(total_text)
-
-        # Join parts with comma and space
-        self.label_last_date_count_today.setText(", ".join(date_parts))
-
-        # Get all types for this exercise
-        types = self.db_manager.get_exercise_types(ex_id)
-
-        # Clear and populate the combobox
-        self.comboBox_type.clear()
-        self.comboBox_type.addItem("")
-        self.comboBox_type.addItems(types)
-
-        # Enable/disable comboBox_type based on whether types are available
-        self.comboBox_type.setEnabled(len(types) > 0)
-
-        # Find the most recently used type and value for this exercise
         try:
-            last_record = self.db_manager.get_last_exercise_record(ex_id)
+            ex_id = self.db_manager.get_id("exercises", "name", exercise)
+            if ex_id is None:
+                logger.info("%s", f"Exercise '{exercise}' not found in database")
+                self.comboBox_type.setEnabled(False)
+                self.label_unit.setText("")
+                self.label_last_date_count_today.setText("")
+                return
 
-            if last_record:
-                last_type, last_value = last_record
+            # Get exercise unit and display it in separate label
+            unit = self.db_manager.get_exercise_unit(exercise)
+            self.label_unit.setText(unit)
 
-                # Find and select this type in the combobox
-                type_index = self.comboBox_type.findText(last_type)
-                if type_index >= 0:
-                    self.comboBox_type.setCurrentIndex(type_index)
+            # Get last exercise date (regardless of type)
+            last_date = self.db_manager.get_last_exercise_date(ex_id)
 
-                # Set spinBox_count value based on exercise _id
-                if ex_id == self.id_steps:  # Steps exercise - set to 0 (empty)
+            # Get total value for today
+            total_today = self.db_manager.get_exercise_total_today(ex_id)
+
+            # Format the date and count text for separate label
+            date_parts = []
+
+            if last_date:
+                try:
+                    date_obj = datetime.fromisoformat(last_date).replace(tzinfo=UTC)
+                    formatted_date = date_obj.strftime("%b %d, %Y")  # e.g., "Dec 13, 2025"
+                    date_parts.append(f"Last: {formatted_date}")
+                except ValueError:
+                    date_parts.append(f"Last: {last_date}")
+            else:
+                date_parts.append("Last: Never")
+
+            # Add today's total if it's greater than 0
+            if total_today > 0:
+                # Format total based on whether it's an integer or float
+                if total_today == int(total_today):
+                    total_text = f"Today: {int(total_today)} {unit}"
+                else:
+                    total_text = f"Today: {total_today:.1f} {unit}"
+                date_parts.append(total_text)
+
+            # Join parts with comma and space
+            self.label_last_date_count_today.setText(", ".join(date_parts))
+
+            # Get all types for this exercise
+            types = self.db_manager.get_exercise_types(ex_id)
+
+            # Clear and populate the combobox
+            self.comboBox_type.clear()
+            self.comboBox_type.addItem("")
+            self.comboBox_type.addItems(types)
+
+            # Enable/disable comboBox_type based on whether types are available
+            self.comboBox_type.setEnabled(len(types) > 0)
+
+            # Find the most recently used type and value for this exercise
+            try:
+                last_record = self.db_manager.get_last_exercise_record(ex_id)
+
+                if last_record:
+                    last_type, last_value = last_record
+
+                    # Find and select this type in the combobox
+                    type_index = self.comboBox_type.findText(last_type)
+                    if type_index >= 0:
+                        self.comboBox_type.setCurrentIndex(type_index)
+
+                    # Set spinBox_count value based on exercise _id
+                    if ex_id == self.id_steps:  # Steps exercise - set to 0 (empty)
+                        self.spinBox_count.setValue(0)
+
+                        # For Steps exercise, set date to first day without records
+                        current_date = self.dateEdit.date()
+                        today = QDate.currentDate()
+                        if current_date == today:
+                            first_empty_date = self._get_first_day_without_steps_record(ex_id)
+                            self.dateEdit.setDate(first_empty_date)
+                    else:  # Other exercises - use last value
+                        try:
+                            value = int(float(last_value))
+                            self.spinBox_count.setValue(value)
+                        except (ValueError, TypeError):
+                            # If conversion fails, keep default value
+                            logger.exception(
+                                "Could not convert last value '%s' to int for exercise '%s'",
+                                last_value,
+                                exercise,
+                            )
+                elif ex_id == self.id_steps:  # Steps exercise - set to 0 (empty)
                     self.spinBox_count.setValue(0)
 
                     # For Steps exercise, set date to first day without records
@@ -7948,43 +8000,23 @@ def on_exercise_selection_changed_list(self) -> None:
                     if current_date == today:
                         first_empty_date = self._get_first_day_without_steps_record(ex_id)
                         self.dateEdit.setDate(first_empty_date)
-                else:  # Other exercises - use last value
-                    try:
-                        value = int(float(last_value))
-                        self.spinBox_count.setValue(value)
-                    except (ValueError, TypeError):
-                        # If conversion fails, keep default value
-                        logger.exception(
-                            "Could not convert last value '%s' to int for exercise '%s'",
-                            last_value,
-                            exercise,
-                        )
-            elif ex_id == self.id_steps:  # Steps exercise - set to 0 (empty)
-                self.spinBox_count.setValue(0)
 
-                # For Steps exercise, set date to first day without records
-                current_date = self.dateEdit.date()
-                today = QDate.currentDate()
-                if current_date == today:
-                    first_empty_date = self._get_first_day_without_steps_record(ex_id)
-                    self.dateEdit.setDate(first_empty_date)
+            except Exception:
+                logger.exception("%s", f"Error getting last exercise record for '{exercise}'")
+                # Continue without setting last values
 
         except Exception:
-            logger.exception("%s", f"Error getting last exercise record for '{exercise}'")
-            # Continue without setting last values
+            logger.exception("Error in exercise selection changed")
+            self.comboBox_type.setEnabled(False)
+            self.label_unit.setText("Error loading data")
+            self.label_last_date_count_today.setText("Error loading data")
 
-    except Exception:
-        logger.exception("Error in exercise selection changed")
-        self.comboBox_type.setEnabled(False)
-        self.label_unit.setText("Error loading data")
-        self.label_last_date_count_today.setText("Error loading data")
+        if exercise:
+            # Sync selection across widgets
+            self._sync_exercise_selection(exercise, source="list")
 
-    if exercise:
-        # Sync selection across widgets
-        self._sync_exercise_selection(exercise, source="list")
-
-        # Move focus to spinBox_count and select all text
-        QTimer.singleShot(0, self._focus_and_select_spinbox_count)
+            # Move focus to spinBox_count and select all text
+            QTimer.singleShot(0, self._focus_and_select_spinbox_count)
 ```
 
 </details>
@@ -8006,23 +8038,23 @@ Args:
 
 ```python
 def on_exercise_type_changed(self, _index: int = -1) -> None:
-    # Get current exercise from list view
-    current_exercise = self._get_current_selected_exercise()
-    if not current_exercise:
-        return
+        # Get current exercise from list view
+        current_exercise = self._get_current_selected_exercise()
+        if not current_exercise:
+            return
 
-    # Update statistics exercise combobox if statistics tab is initialized
-    if hasattr(self, "_statistics_initialized"):
-        # Block signals to prevent recursive updates
-        self.comboBox_records_select_exercise.blockSignals(True)  # noqa: FBT003
+        # Update statistics exercise combobox if statistics tab is initialized
+        if hasattr(self, "_statistics_initialized"):
+            # Block signals to prevent recursive updates
+            self.comboBox_records_select_exercise.blockSignals(True)  # noqa: FBT003
 
-        # Find and select the current exercise in statistics combobox
-        index = self.comboBox_records_select_exercise.findText(current_exercise)
-        if index >= 0:
-            self.comboBox_records_select_exercise.setCurrentIndex(index)
+            # Find and select the current exercise in statistics combobox
+            index = self.comboBox_records_select_exercise.findText(current_exercise)
+            if index >= 0:
+                self.comboBox_records_select_exercise.setCurrentIndex(index)
 
-        # Unblock signals
-        self.comboBox_records_select_exercise.blockSignals(False)  # noqa: FBT003
+            # Unblock signals
+            self.comboBox_records_select_exercise.blockSignals(False)  # noqa: FBT003
 ```
 
 </details>
@@ -8040,32 +8072,32 @@ Update form fields when exercise type selection changes in the table.
 
 ```python
 def on_exercise_type_selection_changed(self, _current: QModelIndex, _previous: QModelIndex) -> None:
-    index = self.tableView_exercise_types.currentIndex()
-    if not index.isValid():
-        # Clear the fields if nothing is selected
-        self.lineEdit_exercise_type.clear()
-        self.lineEdit_type_name_local.clear()
-        self.doubleSpinBox_calories_modifier.setValue(1.0)
-        return
+        index = self.tableView_exercise_types.currentIndex()
+        if not index.isValid():
+            # Clear the fields if nothing is selected
+            self.lineEdit_exercise_type.clear()
+            self.lineEdit_type_name_local.clear()
+            self.doubleSpinBox_calories_modifier.setValue(1.0)
+            return
 
-    model = self.models["types"]
-    row = index.row()
+        model = self.models["types"]
+        row = index.row()
 
-    # Fill in the fields with data from the selected row
-    if model is None:
-        return
+        # Fill in the fields with data from the selected row
+        if model is None:
+            return
 
-    type_name = model.data(model.index(row, 1)) or ""
-    calories_modifier = model.data(model.index(row, 2)) or "1.0"
-    name_local = model.data(model.index(row, 3)) or ""
+        type_name = model.data(model.index(row, 1)) or ""
+        calories_modifier = model.data(model.index(row, 2)) or "1.0"
+        name_local = model.data(model.index(row, 3)) or ""
 
-    self.lineEdit_exercise_type.setText(type_name)
-    self.lineEdit_type_name_local.setText(name_local)
+        self.lineEdit_exercise_type.setText(type_name)
+        self.lineEdit_type_name_local.setText(name_local)
 
-    try:
-        self.doubleSpinBox_calories_modifier.setValue(float(calories_modifier))
-    except (ValueError, TypeError):
-        self.doubleSpinBox_calories_modifier.setValue(1.0)
+        try:
+            self.doubleSpinBox_calories_modifier.setValue(float(calories_modifier))
+        except (ValueError, TypeError):
+            self.doubleSpinBox_calories_modifier.setValue(1.0)
 ```
 
 </details>
@@ -8086,36 +8118,36 @@ to a CSV file with semicolon-separated values.
 
 ```python
 def on_export_csv(self) -> None:
-    filename_str, _ = QFileDialog.getSaveFileName(
-        self,
-        "Save Table",
-        "",
-        "CSV (*.csv)",
-    )
-    if not filename_str:
-        return
+        filename_str, _ = QFileDialog.getSaveFileName(
+            self,
+            "Save Table",
+            "",
+            "CSV (*.csv)",
+        )
+        if not filename_str:
+            return
 
-    process_proxy = self.models.get("process")
-    if process_proxy is None:
-        message_box.warning(self, "Error", "No data to export")
-        return
+        process_proxy = self.models.get("process")
+        if process_proxy is None:
+            message_box.warning(self, "Error", "No data to export")
+            return
 
-    try:
-        filename = Path(filename_str)
-        model = process_proxy.sourceModel()
-        with filename.open("w", encoding="utf-8") as file:
-            headers = [
-                model.headerData(col, Qt.Orientation.Horizontal, Qt.ItemDataRole.DisplayRole) or ""
-                for col in range(model.columnCount())
-            ]
-            file.write(";".join(headers) + "\n")
+        try:
+            filename = Path(filename_str)
+            model = process_proxy.sourceModel()
+            with filename.open("w", encoding="utf-8") as file:
+                headers = [
+                    model.headerData(col, Qt.Orientation.Horizontal, Qt.ItemDataRole.DisplayRole) or ""
+                    for col in range(model.columnCount())
+                ]
+                file.write(";".join(headers) + "\n")
 
-            for row in range(model.rowCount()):
-                row_values = [f'"{model.data(model.index(row, col)) or ""}"' for col in range(model.columnCount())]
-                file.write(";".join(row_values) + "\n")
+                for row in range(model.rowCount()):
+                    row_values = [f'"{model.data(model.index(row, col)) or ""}"' for col in range(model.columnCount())]
+                    file.write(";".join(row_values) + "\n")
 
-    except Exception as e:
-        message_box.warning(self, "Export Error", f"Failed to export CSV: {e}")
+        except Exception as e:
+            message_box.warning(self, "Export Error", f"Failed to export CSV: {e}")
 ```
 
 </details>
@@ -8141,41 +8173,43 @@ Args:
 
 ```python
 def on_process_selection_changed(self, current: QModelIndex, _previous: QModelIndex) -> None:
-    if not current.isValid():
-        # If no selection, keep current form state
-        return
-
-    try:
-        model = self.models["process"]
-        if not model:
+        if not current.isValid():
+            # If no selection, keep current form state
             return
 
-        row = current.row()
+        try:
+            model = self.models["process"]
+            if not model:
+                return
 
-        # Get data from the selected row
-        exercise_name = model.data(model.index(row, 0)) or ""  # Exercise column
-        type_name = model.data(model.index(row, 1)) or ""  # Type column
-        value_with_unit = model.data(model.index(row, 2)) or ""  # Quantity column (e.g., "100 times")
+            row = current.row()
 
-        # Extract numeric value from "value unit" format
-        value_str = value_with_unit.split()[0] if value_with_unit else "0"
+            # Get data from the selected row
+            exercise_name = model.data(model.index(row, 0)) or ""  # Exercise column
+            type_name = model.data(model.index(row, 1)) or ""  # Type column
+            value_with_unit = model.data(model.index(row, 2)) or ""  # Quantity column (e.g., "100 times")
 
-        # Update exercise selection in list view
-        if exercise_name:
-            self._select_exercise_in_list(exercise_name)
+            # Extract numeric value from "value unit" format
+            value_str = value_with_unit.split()[0] if value_with_unit else "0"
 
-            # This will trigger on_exercise_selection_changed_list() which updates:
-            # - label_exercise
-            # - label_unit
-            # - label_last_date_count_today
-            # - comboBox_type options
-            # - AVIF image
+            # Update exercise selection in list view
+            if exercise_name:
+                self._select_exercise_in_list(exercise_name)
 
-            # Wait for the exercise selection to complete, then update specific fields
-            QTimer.singleShot(50, lambda: self._update_form_from_process_selection(exercise_name, type_name, value_str))
+                # This will trigger on_exercise_selection_changed_list() which updates:
+                # - label_exercise
+                # - label_unit
+                # - label_last_date_count_today
+                # - comboBox_type options
+                # - AVIF image
 
-    except Exception:
-        logger.exception("Error in process selection changed")
+                # Wait for the exercise selection to complete, then update specific fields
+                QTimer.singleShot(
+                    50, lambda: self._update_form_from_process_selection(exercise_name, type_name, value_str)
+                )
+
+        except Exception:
+            logger.exception("Error in process selection changed")
 ```
 
 </details>
@@ -8193,10 +8227,10 @@ Handle radio button selection change in chart type group.
 
 ```python
 def on_radio_button_changed(self) -> None:
-    btn = self.sender()
-    if isinstance(btn, QRadioButton) and not btn.isChecked():
-        return
-    self._schedule_chart_update(50)
+        btn = self.sender()
+        if isinstance(btn, QRadioButton) and not btn.isChecked():
+            return
+        self._schedule_chart_update(50)
 ```
 
 </details>
@@ -8214,27 +8248,196 @@ Populate the statistics table view with records data using database manager.
 
 ```python
 def on_refresh_statistics(self) -> None:
-    # Set current mode to records
-    self.current_statistics_mode = "records"
+        # Set current mode to records
+        self.current_statistics_mode = "records"
 
-    if self.db_manager is None:
-        logger.error("❌ Database manager is not initialized")
-        return
+        if self.db_manager is None:
+            logger.error("❌ Database manager is not initialized")
+            return
 
-    try:
-        # Clear any existing spans before creating new view
-        self.tableView_statistics.clearSpans()
+        try:
+            # Clear any existing spans before creating new view
+            self.tableView_statistics.clearSpans()
 
-        # Get selected exercise from comboBox_records_select_exercise
-        selected_exercise = self.comboBox_records_select_exercise.currentText()
+            # Get selected exercise from comboBox_records_select_exercise
+            selected_exercise = self.comboBox_records_select_exercise.currentText()
 
-        # Get statistics data using database manager with optional filtering
-        rows = self.db_manager.get_filtered_statistics_data(exercise_name=selected_exercise or None)
+            # Get statistics data using database manager with optional filtering
+            rows = self.db_manager.get_filtered_statistics_data(exercise_name=selected_exercise or None)
 
-        if not rows:
-            # If no data, show empty table
-            empty_model = QStandardItemModel()
-            empty_model.setHorizontalHeaderLabels(
+            if not rows:
+                # If no data, show empty table
+                empty_model = QStandardItemModel()
+                empty_model.setHorizontalHeaderLabels(
+                    [
+                        "Exercise",
+                        "Type",
+                        "All-Time Value",
+                        "All-Time Unit",
+                        "All-Time Date",
+                        "Year Value",
+                        "Year Unit",
+                        "Year Date",
+                    ]
+                )
+                self.tableView_statistics.setModel(empty_model)
+                self.models["statistics"] = None  # Clear the model reference
+
+                # Set up stretching for empty table too
+                header = self.tableView_statistics.horizontalHeader()
+                header.setSectionResizeMode(0, header.ResizeMode.Stretch)  # Exercise - stretches
+                header.setSectionResizeMode(1, header.ResizeMode.Stretch)  # Type - stretches
+                header.setSectionResizeMode(2, header.ResizeMode.ResizeToContents)  # All-Time Value - compact
+                header.setSectionResizeMode(3, header.ResizeMode.ResizeToContents)  # All-Time Unit - compact
+                header.setSectionResizeMode(4, header.ResizeMode.Stretch)  # All-Time Date - stretches
+                header.setSectionResizeMode(5, header.ResizeMode.ResizeToContents)  # Year Value - compact
+                header.setSectionResizeMode(6, header.ResizeMode.ResizeToContents)  # Year Unit - compact
+                header.setSectionResizeMode(7, header.ResizeMode.Stretch)  # Year Date - stretches
+                header.setStretchLastSection(False)
+
+                # Update statistics AVIF
+                self._update_statistics_avif()
+                return
+
+            # Calculate key date boundaries relative to local time
+            local_now = datetime.now(UTC).astimezone()
+            today_date = local_now.date()
+            yesterday_date = today_date - timedelta(days=1)
+            thirty_days_ago = today_date - timedelta(days=30)
+            year_days_ago = today_date - timedelta(days=365)
+
+            today = today_date.strftime("%Y-%m-%d")
+            yesterday = yesterday_date.strftime("%Y-%m-%d")
+
+            one_year_ago = local_now - timedelta(days=365)
+            one_year_ago_str = one_year_ago.strftime("%Y-%m-%d")
+
+            # Group data by exercise and type combination
+            grouped: defaultdict[str, list[tuple]] = defaultdict(list)
+            grouped_year: defaultdict[str, list[tuple]] = defaultdict(list)
+
+            for ex_name, tp_name, val, date in rows:
+                _key = f"{ex_name} {tp_name}".strip()
+                grouped[_key].append((ex_name, tp_name, val, date))
+
+                # Add to year group if within last year
+                if date >= one_year_ago_str:
+                    grouped_year[_key].append((ex_name, tp_name, val, date))
+
+            # Prepare table data
+            table_data = []
+            span_info = []
+
+            def _decorate_record_date(date_str: str, *, include_last_year_marker: bool = True) -> str:
+                """Decorate record date with recency markers."""
+                if not date_str:
+                    return ""
+
+                if date_str == today:
+                    return f"{date_str} ← 🏆TODAY 📅"
+                if date_str == yesterday:
+                    return f"{date_str} ← 🏆YESTERDAY 📅"
+
+                try:
+                    record_date = datetime.fromisoformat(date_str).date()
+                except ValueError:
+                    return date_str
+
+                if record_date >= thirty_days_ago:
+                    return f"{date_str} ← 🏆LAST 30 DAYS 📅"
+                if include_last_year_marker and record_date >= year_days_ago:
+                    return f"{date_str} ← 🏆LAST 365 DAYS 📅"
+
+                return date_str
+
+            # Define base column colors
+            base_column_colors = [
+                QColor(240, 248, 255),  # Exercise column - Alice Blue
+                QColor(248, 255, 240),  # Type column - Honeydew
+                QColor(255, 248, 240),  # All-Time Value column - Seashell
+                QColor(255, 248, 240),  # All-Time Unit column - Seashell
+                QColor(255, 248, 240),  # All-Time Date column - Seashell
+                QColor(248, 240, 255),  # Year Value column - Lavender
+                QColor(248, 240, 255),  # Year Unit column - Lavender
+                QColor(248, 240, 255),  # Year Date column - Lavender
+            ]
+
+            current_row = 0
+
+            for exercise_group_index, (_key, entries) in enumerate(grouped.items()):
+                # Sort all-time entries: first by value (descending), then by date (descending)
+                entries.sort(key=lambda x: (x[2], x[3]), reverse=True)
+
+                # Get year entries for this group and sort the same way
+                year_entries = grouped_year.get(_key, [])
+                year_entries.sort(key=lambda x: (x[2], x[3]), reverse=True)
+
+                group_start_row = current_row
+
+                # Determine if this exercise group should be light (even) or dark (odd)
+                is_light_group = exercise_group_index % 2 == 0
+
+                # Determine how many rows we need (max of both groups, up to spinBox_record_count value)
+                record_count = self.spinBox_record_count.value()
+                max_rows = min(max(len(entries), len(year_entries)), record_count)
+
+                for i in range(max_rows):
+                    # Get all-time data if available
+                    if i < len(entries):
+                        ex_name, tp_name, val, date = entries[i]
+                        unit = self.db_manager.get_exercise_unit(ex_name)
+                        val_str = f"{val:g}"
+                        date_display = _decorate_record_date(date)
+                    else:
+                        ex_name, tp_name = entries[0][:2] if entries else ("", "")
+                        unit = ""
+                        val_str = ""
+                        date_display = ""
+
+                    # Get year data if available
+                    if i < len(year_entries):
+                        _, _, year_val, year_date = year_entries[i]
+                        year_unit = self.db_manager.get_exercise_unit(ex_name) if ex_name else ""
+                        year_val_str = f"{year_val:g}"
+                        year_date_display = _decorate_record_date(year_date, include_last_year_marker=False)
+                    else:
+                        year_val_str = ""
+                        year_unit = ""
+                        year_date_display = ""
+
+                    # For the first row of each group, include exercise and type names
+                    # For subsequent rows, use empty strings (they will be spanned)
+                    if i == 0:
+                        exercise_display = ex_name
+                        type_display = tp_name or ""
+                    else:
+                        exercise_display = ""
+                        type_display = ""
+
+                    # Add row to table data
+                    table_data.append(
+                        [
+                            exercise_display,
+                            type_display,
+                            val_str,
+                            unit,
+                            date_display,
+                            year_val_str,
+                            year_unit,
+                            year_date_display,
+                            is_light_group,  # Group brightness flag
+                        ]
+                    )
+
+                    current_row += 1
+
+                # Store span information for this group
+                if max_rows > 1:
+                    span_info.append((group_start_row, max_rows, ex_name, tp_name or ""))
+
+            # Create and populate model
+            model = QStandardItemModel()
+            model.setHorizontalHeaderLabels(
                 [
                     "Exercise",
                     "Type",
@@ -8246,297 +8449,128 @@ def on_refresh_statistics(self) -> None:
                     "Year Date",
                 ]
             )
-            self.tableView_statistics.setModel(empty_model)
-            self.models["statistics"] = None  # Clear the model reference
 
-            # Set up stretching for empty table too
+            for row_data in table_data:
+                items = []
+                is_light_group = row_data[8]  # Group brightness flag
+
+                # Create items for all columns except the brightness flag
+                for col_idx, value in enumerate(row_data[:8]):  # Only first 8 elements (exclude flag)
+                    item = QStandardItem(str(value))
+
+                    # Get base column color
+                    base_color = base_column_colors[col_idx]
+
+                    # Modify color based on exercise group brightness
+                    if is_light_group:
+                        # Light group - use base color as is
+                        final_color = base_color
+                    else:
+                        # Dark group - make color darker
+                        final_color = QColor(
+                            int(base_color.red() * 0.85), int(base_color.green() * 0.85), int(base_color.blue() * 0.85)
+                        )
+
+                    item.setBackground(QBrush(final_color))
+
+                    # For "TODAY" or "YESTERDAY" entries, make text bold
+                    if any(marker in str(value) for marker in ("TODAY", "YESTERDAY", "LAST 30 DAYS", "LAST 365 DAYS")):
+                        font = item.font()
+                        font.setBold(True)
+                        item.setFont(font)
+
+                    items.append(item)
+
+                model.appendRow(items)
+
+            # Set model to table view
+            self.tableView_statistics.setModel(model)
+            self.models["statistics"] = None  # Clear the model reference since it's not a proxy model
+
+            # Connect selection signal for statistics table
+            selection_model = self.tableView_statistics.selectionModel()
+            if selection_model:
+                selection_model.currentRowChanged.connect(self.on_statistics_selection_changed)
+
+            # Apply spans after setting the model
+            for start_row, row_count, exercise_name, type_name in span_info:
+                # Always span the Exercise column (column 0)
+                self.tableView_statistics.setSpan(start_row, 0, row_count, 1)
+
+                # Always span the Type column (column 1)
+                self.tableView_statistics.setSpan(start_row, 1, row_count, 1)
+
+                # Determine if this group is light or dark for spanned cells
+                is_light_for_span = table_data[start_row][8]
+
+                # Set the text for the spanned cells with proper background
+                exercise_item = QStandardItem(exercise_name)
+                type_item = QStandardItem(type_name)
+
+                if is_light_for_span:
+                    exercise_item.setBackground(QBrush(base_column_colors[0]))  # Light Exercise column color
+                    type_item.setBackground(QBrush(base_column_colors[1]))  # Light Type column color
+                else:
+                    # Dark versions
+                    dark_exercise_color = QColor(
+                        int(base_column_colors[0].red() * 0.85),
+                        int(base_column_colors[0].green() * 0.85),
+                        int(base_column_colors[0].blue() * 0.85),
+                    )
+                    dark_type_color = QColor(
+                        int(base_column_colors[1].red() * 0.85),
+                        int(base_column_colors[1].green() * 0.85),
+                        int(base_column_colors[1].blue() * 0.85),
+                    )
+                    exercise_item.setBackground(QBrush(dark_exercise_color))
+                    type_item.setBackground(QBrush(dark_type_color))
+
+                model.setItem(start_row, 0, exercise_item)
+                model.setItem(start_row, 1, type_item)
+
+            # Custom column width setup for statistics table
             header = self.tableView_statistics.horizontalHeader()
-            header.setSectionResizeMode(0, header.ResizeMode.Stretch)  # Exercise - stretches
-            header.setSectionResizeMode(1, header.ResizeMode.Stretch)  # Type - stretches
+
+            # Set specific resize modes for each column
+            header.setSectionResizeMode(0, header.ResizeMode.Interactive)  # Exercise - fixed width, resizable
+            header.setSectionResizeMode(1, header.ResizeMode.Interactive)  # Type - fixed width, resizable
             header.setSectionResizeMode(2, header.ResizeMode.ResizeToContents)  # All-Time Value - compact
             header.setSectionResizeMode(3, header.ResizeMode.ResizeToContents)  # All-Time Unit - compact
-            header.setSectionResizeMode(4, header.ResizeMode.Stretch)  # All-Time Date - stretches
+            header.setSectionResizeMode(4, header.ResizeMode.Interactive)  # All-Time Date - fixed width, resizable
             header.setSectionResizeMode(5, header.ResizeMode.ResizeToContents)  # Year Value - compact
             header.setSectionResizeMode(6, header.ResizeMode.ResizeToContents)  # Year Unit - compact
-            header.setSectionResizeMode(7, header.ResizeMode.Stretch)  # Year Date - stretches
-            header.setStretchLastSection(False)
+            header.setSectionResizeMode(7, header.ResizeMode.Stretch)  # Year Date - stretches to fill remaining
+
+            # Set specific widths for columns
+            self.tableView_statistics.setColumnWidth(0, 120)  # Exercise - shorter
+            self.tableView_statistics.setColumnWidth(1, 100)  # Type - shorter
+            self.tableView_statistics.setColumnWidth(2, 80)  # All-Time Value - compact
+            self.tableView_statistics.setColumnWidth(3, 60)  # All-Time Unit - compact
+            self.tableView_statistics.setColumnWidth(4, 200)  # All-Time Date - wider
+            self.tableView_statistics.setColumnWidth(5, 80)  # Year Value - compact
+            self.tableView_statistics.setColumnWidth(6, 60)  # Year Unit - compact
+            # Year Date column (7) will stretch to fill remaining space
+
+            # Disable automatic last section stretching since we set it manually
+            header.setStretchLastSection(True)
+
+            # Set minimum widths for compact columns to ensure readability
+            self.tableView_statistics.setColumnWidth(2, 80)  # All-Time Value
+            self.tableView_statistics.setColumnWidth(3, 60)  # All-Time Unit
+            self.tableView_statistics.setColumnWidth(5, 80)  # Year Value
+            self.tableView_statistics.setColumnWidth(6, 60)  # Year Unit
+
+            # Disable alternating row colors since we have custom colors
+            self.tableView_statistics.setAlternatingRowColors(False)
 
             # Update statistics AVIF
             self._update_statistics_avif()
-            return
 
-        # Calculate key date boundaries relative to local time
-        local_now = datetime.now(UTC).astimezone()
-        today_date = local_now.date()
-        yesterday_date = today_date - timedelta(days=1)
-        thirty_days_ago = today_date - timedelta(days=30)
-        year_days_ago = today_date - timedelta(days=365)
+            # Trigger initial AVIF load for first row if no selection
+            QTimer.singleShot(100, self._update_statistics_avif)
 
-        today = today_date.strftime("%Y-%m-%d")
-        yesterday = yesterday_date.strftime("%Y-%m-%d")
-
-        one_year_ago = local_now - timedelta(days=365)
-        one_year_ago_str = one_year_ago.strftime("%Y-%m-%d")
-
-        # Group data by exercise and type combination
-        grouped: defaultdict[str, list[tuple]] = defaultdict(list)
-        grouped_year: defaultdict[str, list[tuple]] = defaultdict(list)
-
-        for ex_name, tp_name, val, date in rows:
-            _key = f"{ex_name} {tp_name}".strip()
-            grouped[_key].append((ex_name, tp_name, val, date))
-
-            # Add to year group if within last year
-            if date >= one_year_ago_str:
-                grouped_year[_key].append((ex_name, tp_name, val, date))
-
-        # Prepare table data
-        table_data = []
-        span_info = []
-
-        def _decorate_record_date(date_str: str, *, include_last_year_marker: bool = True) -> str:
-            """Decorate record date with recency markers."""
-            if not date_str:
-                return ""
-
-            if date_str == today:
-                return f"{date_str} ← 🏆TODAY 📅"
-            if date_str == yesterday:
-                return f"{date_str} ← 🏆YESTERDAY 📅"
-
-            try:
-                record_date = datetime.fromisoformat(date_str).date()
-            except ValueError:
-                return date_str
-
-            if record_date >= thirty_days_ago:
-                return f"{date_str} ← 🏆LAST 30 DAYS 📅"
-            if include_last_year_marker and record_date >= year_days_ago:
-                return f"{date_str} ← 🏆LAST 365 DAYS 📅"
-
-            return date_str
-
-        # Define base column colors
-        base_column_colors = [
-            QColor(240, 248, 255),  # Exercise column - Alice Blue
-            QColor(248, 255, 240),  # Type column - Honeydew
-            QColor(255, 248, 240),  # All-Time Value column - Seashell
-            QColor(255, 248, 240),  # All-Time Unit column - Seashell
-            QColor(255, 248, 240),  # All-Time Date column - Seashell
-            QColor(248, 240, 255),  # Year Value column - Lavender
-            QColor(248, 240, 255),  # Year Unit column - Lavender
-            QColor(248, 240, 255),  # Year Date column - Lavender
-        ]
-
-        current_row = 0
-
-        for exercise_group_index, (_key, entries) in enumerate(grouped.items()):
-            # Sort all-time entries: first by value (descending), then by date (descending)
-            entries.sort(key=lambda x: (x[2], x[3]), reverse=True)
-
-            # Get year entries for this group and sort the same way
-            year_entries = grouped_year.get(_key, [])
-            year_entries.sort(key=lambda x: (x[2], x[3]), reverse=True)
-
-            group_start_row = current_row
-
-            # Determine if this exercise group should be light (even) or dark (odd)
-            is_light_group = exercise_group_index % 2 == 0
-
-            # Determine how many rows we need (max of both groups, up to spinBox_record_count value)
-            record_count = self.spinBox_record_count.value()
-            max_rows = min(max(len(entries), len(year_entries)), record_count)
-
-            for i in range(max_rows):
-                # Get all-time data if available
-                if i < len(entries):
-                    ex_name, tp_name, val, date = entries[i]
-                    unit = self.db_manager.get_exercise_unit(ex_name)
-                    val_str = f"{val:g}"
-                    date_display = _decorate_record_date(date)
-                else:
-                    ex_name, tp_name = entries[0][:2] if entries else ("", "")
-                    unit = ""
-                    val_str = ""
-                    date_display = ""
-
-                # Get year data if available
-                if i < len(year_entries):
-                    _, _, year_val, year_date = year_entries[i]
-                    year_unit = self.db_manager.get_exercise_unit(ex_name) if ex_name else ""
-                    year_val_str = f"{year_val:g}"
-                    year_date_display = _decorate_record_date(year_date, include_last_year_marker=False)
-                else:
-                    year_val_str = ""
-                    year_unit = ""
-                    year_date_display = ""
-
-                # For the first row of each group, include exercise and type names
-                # For subsequent rows, use empty strings (they will be spanned)
-                if i == 0:
-                    exercise_display = ex_name
-                    type_display = tp_name or ""
-                else:
-                    exercise_display = ""
-                    type_display = ""
-
-                # Add row to table data
-                table_data.append(
-                    [
-                        exercise_display,
-                        type_display,
-                        val_str,
-                        unit,
-                        date_display,
-                        year_val_str,
-                        year_unit,
-                        year_date_display,
-                        is_light_group,  # Group brightness flag
-                    ]
-                )
-
-                current_row += 1
-
-            # Store span information for this group
-            if max_rows > 1:
-                span_info.append((group_start_row, max_rows, ex_name, tp_name or ""))
-
-        # Create and populate model
-        model = QStandardItemModel()
-        model.setHorizontalHeaderLabels(
-            [
-                "Exercise",
-                "Type",
-                "All-Time Value",
-                "All-Time Unit",
-                "All-Time Date",
-                "Year Value",
-                "Year Unit",
-                "Year Date",
-            ]
-        )
-
-        for row_data in table_data:
-            items = []
-            is_light_group = row_data[8]  # Group brightness flag
-
-            # Create items for all columns except the brightness flag
-            for col_idx, value in enumerate(row_data[:8]):  # Only first 8 elements (exclude flag)
-                item = QStandardItem(str(value))
-
-                # Get base column color
-                base_color = base_column_colors[col_idx]
-
-                # Modify color based on exercise group brightness
-                if is_light_group:
-                    # Light group - use base color as is
-                    final_color = base_color
-                else:
-                    # Dark group - make color darker
-                    final_color = QColor(
-                        int(base_color.red() * 0.85), int(base_color.green() * 0.85), int(base_color.blue() * 0.85)
-                    )
-
-                item.setBackground(QBrush(final_color))
-
-                # For "TODAY" or "YESTERDAY" entries, make text bold
-                if any(marker in str(value) for marker in ("TODAY", "YESTERDAY", "LAST 30 DAYS", "LAST 365 DAYS")):
-                    font = item.font()
-                    font.setBold(True)
-                    item.setFont(font)
-
-                items.append(item)
-
-            model.appendRow(items)
-
-        # Set model to table view
-        self.tableView_statistics.setModel(model)
-        self.models["statistics"] = None  # Clear the model reference since it's not a proxy model
-
-        # Connect selection signal for statistics table
-        selection_model = self.tableView_statistics.selectionModel()
-        if selection_model:
-            selection_model.currentRowChanged.connect(self.on_statistics_selection_changed)
-
-        # Apply spans after setting the model
-        for start_row, row_count, exercise_name, type_name in span_info:
-            # Always span the Exercise column (column 0)
-            self.tableView_statistics.setSpan(start_row, 0, row_count, 1)
-
-            # Always span the Type column (column 1)
-            self.tableView_statistics.setSpan(start_row, 1, row_count, 1)
-
-            # Determine if this group is light or dark for spanned cells
-            is_light_for_span = table_data[start_row][8]
-
-            # Set the text for the spanned cells with proper background
-            exercise_item = QStandardItem(exercise_name)
-            type_item = QStandardItem(type_name)
-
-            if is_light_for_span:
-                exercise_item.setBackground(QBrush(base_column_colors[0]))  # Light Exercise column color
-                type_item.setBackground(QBrush(base_column_colors[1]))  # Light Type column color
-            else:
-                # Dark versions
-                dark_exercise_color = QColor(
-                    int(base_column_colors[0].red() * 0.85),
-                    int(base_column_colors[0].green() * 0.85),
-                    int(base_column_colors[0].blue() * 0.85),
-                )
-                dark_type_color = QColor(
-                    int(base_column_colors[1].red() * 0.85),
-                    int(base_column_colors[1].green() * 0.85),
-                    int(base_column_colors[1].blue() * 0.85),
-                )
-                exercise_item.setBackground(QBrush(dark_exercise_color))
-                type_item.setBackground(QBrush(dark_type_color))
-
-            model.setItem(start_row, 0, exercise_item)
-            model.setItem(start_row, 1, type_item)
-
-        # Custom column width setup for statistics table
-        header = self.tableView_statistics.horizontalHeader()
-
-        # Set specific resize modes for each column
-        header.setSectionResizeMode(0, header.ResizeMode.Interactive)  # Exercise - fixed width, resizable
-        header.setSectionResizeMode(1, header.ResizeMode.Interactive)  # Type - fixed width, resizable
-        header.setSectionResizeMode(2, header.ResizeMode.ResizeToContents)  # All-Time Value - compact
-        header.setSectionResizeMode(3, header.ResizeMode.ResizeToContents)  # All-Time Unit - compact
-        header.setSectionResizeMode(4, header.ResizeMode.Interactive)  # All-Time Date - fixed width, resizable
-        header.setSectionResizeMode(5, header.ResizeMode.ResizeToContents)  # Year Value - compact
-        header.setSectionResizeMode(6, header.ResizeMode.ResizeToContents)  # Year Unit - compact
-        header.setSectionResizeMode(7, header.ResizeMode.Stretch)  # Year Date - stretches to fill remaining
-
-        # Set specific widths for columns
-        self.tableView_statistics.setColumnWidth(0, 120)  # Exercise - shorter
-        self.tableView_statistics.setColumnWidth(1, 100)  # Type - shorter
-        self.tableView_statistics.setColumnWidth(2, 80)  # All-Time Value - compact
-        self.tableView_statistics.setColumnWidth(3, 60)  # All-Time Unit - compact
-        self.tableView_statistics.setColumnWidth(4, 200)  # All-Time Date - wider
-        self.tableView_statistics.setColumnWidth(5, 80)  # Year Value - compact
-        self.tableView_statistics.setColumnWidth(6, 60)  # Year Unit - compact
-        # Year Date column (7) will stretch to fill remaining space
-
-        # Disable automatic last section stretching since we set it manually
-        header.setStretchLastSection(True)
-
-        # Set minimum widths for compact columns to ensure readability
-        self.tableView_statistics.setColumnWidth(2, 80)  # All-Time Value
-        self.tableView_statistics.setColumnWidth(3, 60)  # All-Time Unit
-        self.tableView_statistics.setColumnWidth(5, 80)  # Year Value
-        self.tableView_statistics.setColumnWidth(6, 60)  # Year Unit
-
-        # Disable alternating row colors since we have custom colors
-        self.tableView_statistics.setAlternatingRowColors(False)
-
-        # Update statistics AVIF
-        self._update_statistics_avif()
-
-        # Trigger initial AVIF load for first row if no selection
-        QTimer.singleShot(100, self._update_statistics_avif)
-
-    except Exception as e:
-        message_box.warning(self, "Statistics Error", f"Failed to load statistics: {e}")
+        except Exception as e:
+            message_box.warning(self, "Statistics Error", f"Failed to load statistics: {e}")
 ```
 
 </details>
@@ -8554,58 +8588,58 @@ Open a modal dialog to select an exercise with AVIF previews.
 
 ```python
 def on_select_exercise_button_clicked(self) -> None:
-    if not self._validate_database_connection() or self.db_manager is None:
-        message_box.warning(self, "Database Error", "Database connection is not available.")
-        return
+        if not self._validate_database_connection() or self.db_manager is None:
+            message_box.warning(self, "Database Error", "Database connection is not available.")
+            return
 
-    try:
-        exercises = self.db_manager.get_exercises_by_frequency(500)
-    except Exception as exc:
-        message_box.warning(self, "Database Error", f"Failed to load exercises: {exc}")
-        return
+        try:
+            exercises = self.db_manager.get_exercises_by_frequency(500)
+        except Exception as exc:
+            message_box.warning(self, "Database Error", f"Failed to load exercises: {exc}")
+            return
 
-    if not exercises:
-        message_box.information(self, "No Exercises", "No exercises are available to select.")
-        return
+        if not exercises:
+            message_box.information(self, "No Exercises", "No exercises are available to select.")
+            return
 
-    label_height = self.label_exercise_avif.height()
-    preview_edge = max(0, label_height)
-    preview_edge = max(min(preview_edge, 512), 160)
-    preview_size = QSize(preview_edge, preview_edge)
+        label_height = self.label_exercise_avif.height()
+        preview_edge = max(0, label_height)
+        preview_edge = max(min(preview_edge, 512), 160)
+        preview_size = QSize(preview_edge, preview_edge)
 
-    current_selection = self._get_current_selected_exercise()
+        current_selection = self._get_current_selected_exercise()
 
-    dialog = ExerciseSelectionDialog(
-        self,
-        exercises=exercises,
-        icon_provider=lambda name: self._get_exercise_preview_icon(name, preview_size),
-        preview_size=preview_size,
-        current_selection=current_selection,
-        avif_manager=self.avif_manager,
-        name_locals=self.db_manager.get_exercise_name_local_map() if self.db_manager else None,
-    )
+        dialog = ExerciseSelectionDialog(
+            self,
+            exercises=exercises,
+            icon_provider=lambda name: self._get_exercise_preview_icon(name, preview_size),
+            preview_size=preview_size,
+            current_selection=current_selection,
+            avif_manager=self.avif_manager,
+            name_locals=self.db_manager.get_exercise_name_local_map() if self.db_manager else None,
+        )
 
-    dialog_width = max(int(self.width() * 0.95), preview_size.width())
-    dialog_height = max(int(self.height() * 0.95), preview_size.height())
-    dialog.resize(dialog_width, dialog_height)
-    dialog.setMinimumSize(preview_size)
+        dialog_width = max(int(self.width() * 0.95), preview_size.width())
+        dialog_height = max(int(self.height() * 0.95), preview_size.height())
+        dialog.resize(dialog_width, dialog_height)
+        dialog.setMinimumSize(preview_size)
 
-    if dialog.exec() == QDialog.DialogCode.Accepted and dialog.selected_exercise:
-        selected_exercise = dialog.selected_exercise
-        if not self._select_exercise_in_list(selected_exercise):
-            self._update_comboboxes(selected_exercise=selected_exercise)
+        if dialog.exec() == QDialog.DialogCode.Accepted and dialog.selected_exercise:
+            selected_exercise = dialog.selected_exercise
+            if not self._select_exercise_in_list(selected_exercise):
+                self._update_comboboxes(selected_exercise=selected_exercise)
 
-        # Programmatic selection may not emit currentChanged (e.g. same row re-selected)
-        self.on_exercise_selection_changed_list()
+            # Programmatic selection may not emit currentChanged (e.g. same row re-selected)
+            self.on_exercise_selection_changed_list()
 
-        selection_model = self.listView_exercises.selectionModel()
-        if selection_model:
-            current_index = selection_model.currentIndex()
-            if current_index.isValid():
-                self.listView_exercises.scrollTo(
-                    current_index,
-                    QAbstractItemView.ScrollHint.PositionAtCenter,
-                )
+            selection_model = self.listView_exercises.selectionModel()
+            if selection_model:
+                current_index = selection_model.currentIndex()
+                if current_index.isValid():
+                    self.listView_exercises.scrollTo(
+                        current_index,
+                        QAbstractItemView.ScrollHint.PositionAtCenter,
+                    )
 ```
 
 </details>
@@ -8627,24 +8661,156 @@ to reach previous month's goals and maximum goals over the last N months.
 
 ```python
 def on_show_exercise_goal_recommendations(self) -> None:
-    # Set current mode to exercise_goal_recommendations
-    self.current_statistics_mode = "exercise_goal_recommendations"
+        # Set current mode to exercise_goal_recommendations
+        self.current_statistics_mode = "exercise_goal_recommendations"
 
-    if self.db_manager is None:
-        logger.error("❌ Database manager is not initialized")
-        return
+        if self.db_manager is None:
+            logger.error("❌ Database manager is not initialized")
+            return
 
-    try:
-        # Clear any existing spans from previous statistics view
-        self.tableView_statistics.clearSpans()
+        try:
+            # Clear any existing spans from previous statistics view
+            self.tableView_statistics.clearSpans()
 
-        # Get all exercises from database
-        exercises_data = self.db_manager.get_all_exercises()
+            # Get all exercises from database
+            exercises_data = self.db_manager.get_all_exercises()
 
-        if not exercises_data:
-            # If no exercises, show empty table
-            empty_model = QStandardItemModel()
-            empty_model.setHorizontalHeaderLabels(
+            if not exercises_data:
+                # If no exercises, show empty table
+                empty_model = QStandardItemModel()
+                empty_model.setHorizontalHeaderLabels(
+                    [
+                        "Exercise",
+                        "Unit",
+                        "Current Progress",
+                        "Last Month Goal",
+                        "Max Goal",
+                        "Remaining to Last Month",
+                        "Remaining to Max",
+                        "Daily Needed (Last Month)",
+                        "Daily Needed (Max)",
+                    ]
+                )
+                self.tableView_statistics.setModel(empty_model)
+                self.models["statistics"] = None
+
+                # Configure header
+                header = self.tableView_statistics.horizontalHeader()
+                for i in range(header.count() - 1):
+                    header.setSectionResizeMode(i, header.ResizeMode.Interactive)
+                header.setSectionResizeMode(header.count() - 1, header.ResizeMode.Stretch)
+                for i in range(header.count() - 1):
+                    self.tableView_statistics.setColumnWidth(i, 150)
+
+                self._update_statistics_avif()
+                return
+
+            # Get months count from spinBox_compare_last
+            months_count = self.spinBox_compare_last.value()
+
+            # Generate recommendations for each exercise
+            table_data = []
+
+            for exercise_record in exercises_data:
+                # Extract exercise data from the record [_id, name, unit, is_type_required, calories_per_unit]
+                exercise_name = exercise_record[1]  # name is at index 1
+                exercise_unit = exercise_record[2]  # unit is at index 2
+                unit_text = f" {exercise_unit}" if exercise_unit else ""
+
+                try:
+                    # Get monthly data for this exercise (similar to compare_last logic)
+                    monthly_data = self._get_monthly_data_for_exercise(exercise_name, months_count)
+
+                    if not monthly_data or not any(month_data for month_data in monthly_data):
+                        # No data for this exercise
+                        table_data.append(
+                            [
+                                exercise_name,
+                                exercise_unit or "",
+                                "0",
+                                "No data",
+                                "No data",
+                                "N/A",
+                                "N/A",
+                                "N/A",
+                                "N/A",
+                                3,  # Dark red - no data
+                            ]
+                        )
+                        continue
+
+                    # Calculate goals and recommendations
+                    recommendations = self._calculate_exercise_recommendations(
+                        exercise_name, monthly_data, months_count, exercise_unit
+                    )
+
+                    # Determine exercise status for color coding
+                    # 0 = green (all goals achieved), 1 = orange (incomplete goals),
+                    # 2 = yellow (no records in current and previous month), 3 = dark red (no data)
+                    if recommendations["last_month_value"] <= 0 and recommendations["max_value"] <= 0:
+                        color_priority = 3  # Dark red - no data
+                    elif recommendations["remaining_to_last_month"] <= 0 and recommendations["remaining_to_max"] <= 0:
+                        color_priority = 0  # Green - all goals achieved
+                    else:
+                        # Check if there are records in current and previous month
+                        current_month_has_data = len(monthly_data) > 0 and len(monthly_data[0]) > 0
+                        previous_month_has_data = len(monthly_data) > 1 and len(monthly_data[1]) > 0
+
+                        # Yellow - no records in current and previous month,
+                        # Orange - incomplete goals but has recent records
+                        color_priority = 2 if not current_month_has_data and not previous_month_has_data else 1
+
+                    # Add row to table data with color information
+                    table_data.append(
+                        [
+                            exercise_name,
+                            exercise_unit or "",
+                            f"{int(recommendations['current_progress'])}{unit_text}",
+                            f"{int(recommendations['last_month_value'])}{unit_text}"
+                            if recommendations["last_month_value"] > 0
+                            else "No data",
+                            f"{int(recommendations['max_value'])}{unit_text}",
+                            f"{int(recommendations['remaining_to_last_month'])}{unit_text}"
+                            if recommendations["remaining_to_last_month"] > 0
+                            else "✅",
+                            f"{int(recommendations['remaining_to_max'])}{unit_text}"
+                            if recommendations["remaining_to_max"] > 0
+                            else "✅",
+                            f"{int(recommendations['daily_needed_last_month'])}{unit_text}"
+                            if recommendations["daily_needed_last_month"] > 0
+                            else "✅",
+                            f"{int(recommendations['daily_needed_max'])}{unit_text}"
+                            if recommendations["daily_needed_max"] > 0
+                            else "✅",
+                            color_priority,  # Add color priority as last element
+                        ]
+                    )
+
+                except Exception:
+                    logger.exception("❌ Error processing exercise %s", exercise_name)
+                    # Add error row
+                    table_data.append(
+                        [
+                            exercise_name,
+                            "Error",
+                            "Error",
+                            "Error",
+                            "Error",
+                            "Error",
+                            "Error",
+                            "Error",
+                            "Error",
+                            3,  # Dark red - error
+                        ]
+                    )
+                    continue
+
+            # Sort table data by color priority: green (0), orange (1), yellow (2), dark red (3)
+            table_data.sort(key=lambda x: x[-1])
+
+            # Create and populate model
+            model = QStandardItemModel()
+            model.setHorizontalHeaderLabels(
                 [
                     "Exercise",
                     "Unit",
@@ -8657,196 +8823,64 @@ def on_show_exercise_goal_recommendations(self) -> None:
                     "Daily Needed (Max)",
                 ]
             )
-            self.tableView_statistics.setModel(empty_model)
+
+            color_priority_green = 0
+            color_priority_orange = 1
+            color_priority_yellow = 2
+            color_priority_dark_red = 3
+
+            for row_data in table_data:
+                items = []
+                color_priority = row_data[-1]  # Get color priority from last element
+
+                # Create items for display columns only (exclude the color priority)
+                for _col_idx, value in enumerate(row_data[:-1]):  # Exclude last element (color priority)
+                    item = QStandardItem(str(value))
+
+                    # Apply color based on priority
+                    if color_priority == color_priority_green:  # Green - all goals achieved
+                        item.setBackground(QBrush(QColor(200, 255, 200)))  # Light green background
+                    elif color_priority == color_priority_orange:  # Orange - no records in current and previous month
+                        item.setBackground(QBrush(QColor(255, 255, 150)))  # Light yellow background
+                    elif color_priority == color_priority_yellow:  # Yellow - incomplete goals but has recent records
+                        item.setBackground(QBrush(QColor(255, 200, 150)))  # Light orange background
+                    elif color_priority == color_priority_dark_red:  # Dark red - no data or error
+                        item.setBackground(QBrush(QColor(255, 150, 150)))  # Dark red background
+
+                    items.append(item)
+                model.appendRow(items)
+
+            # Set model to table view
+            self.tableView_statistics.setModel(model)
             self.models["statistics"] = None
 
-            # Configure header
+            # Connect selection signal for statistics table
+            self._connect_table_signals("statistics", self.on_statistics_selection_changed)
+
+            # Configure header with mixed approach: interactive + stretch last
             header = self.tableView_statistics.horizontalHeader()
+            # Set first columns to interactive (resizable)
             for i in range(header.count() - 1):
                 header.setSectionResizeMode(i, header.ResizeMode.Interactive)
+            # Set last column to stretch to fill remaining space
             header.setSectionResizeMode(header.count() - 1, header.ResizeMode.Stretch)
+            # Set default column widths for resizable columns
             for i in range(header.count() - 1):
-                self.tableView_statistics.setColumnWidth(i, 150)
+                self.tableView_statistics.setColumnWidth(i, 120)
 
+            # Disable alternating row colors since we have custom color coding
+            self.tableView_statistics.setAlternatingRowColors(False)
+
+            # Update statistics AVIF
             self._update_statistics_avif()
-            return
 
-        # Get months count from spinBox_compare_last
-        months_count = self.spinBox_compare_last.value()
+            # Trigger initial AVIF load for first row if no selection
+            QTimer.singleShot(100, self._update_statistics_avif)
 
-        # Generate recommendations for each exercise
-        table_data = []
-
-        for exercise_record in exercises_data:
-            # Extract exercise data from the record [_id, name, unit, is_type_required, calories_per_unit]
-            exercise_name = exercise_record[1]  # name is at index 1
-            exercise_unit = exercise_record[2]  # unit is at index 2
-            unit_text = f" {exercise_unit}" if exercise_unit else ""
-
-            try:
-                # Get monthly data for this exercise (similar to compare_last logic)
-                monthly_data = self._get_monthly_data_for_exercise(exercise_name, months_count)
-
-                if not monthly_data or not any(month_data for month_data in monthly_data):
-                    # No data for this exercise
-                    table_data.append(
-                        [
-                            exercise_name,
-                            exercise_unit or "",
-                            "0",
-                            "No data",
-                            "No data",
-                            "N/A",
-                            "N/A",
-                            "N/A",
-                            "N/A",
-                            3,  # Dark red - no data
-                        ]
-                    )
-                    continue
-
-                # Calculate goals and recommendations
-                recommendations = self._calculate_exercise_recommendations(
-                    exercise_name, monthly_data, months_count, exercise_unit
-                )
-
-                # Determine exercise status for color coding
-                # 0 = green (all goals achieved), 1 = orange (incomplete goals),
-                # 2 = yellow (no records in current and previous month), 3 = dark red (no data)
-                if recommendations["last_month_value"] <= 0 and recommendations["max_value"] <= 0:
-                    color_priority = 3  # Dark red - no data
-                elif recommendations["remaining_to_last_month"] <= 0 and recommendations["remaining_to_max"] <= 0:
-                    color_priority = 0  # Green - all goals achieved
-                else:
-                    # Check if there are records in current and previous month
-                    current_month_has_data = len(monthly_data) > 0 and len(monthly_data[0]) > 0
-                    previous_month_has_data = len(monthly_data) > 1 and len(monthly_data[1]) > 0
-
-                    # Yellow - no records in current and previous month,
-                    # Orange - incomplete goals but has recent records
-                    color_priority = 2 if not current_month_has_data and not previous_month_has_data else 1
-
-                # Add row to table data with color information
-                table_data.append(
-                    [
-                        exercise_name,
-                        exercise_unit or "",
-                        f"{int(recommendations['current_progress'])}{unit_text}",
-                        f"{int(recommendations['last_month_value'])}{unit_text}"
-                        if recommendations["last_month_value"] > 0
-                        else "No data",
-                        f"{int(recommendations['max_value'])}{unit_text}",
-                        f"{int(recommendations['remaining_to_last_month'])}{unit_text}"
-                        if recommendations["remaining_to_last_month"] > 0
-                        else "✅",
-                        f"{int(recommendations['remaining_to_max'])}{unit_text}"
-                        if recommendations["remaining_to_max"] > 0
-                        else "✅",
-                        f"{int(recommendations['daily_needed_last_month'])}{unit_text}"
-                        if recommendations["daily_needed_last_month"] > 0
-                        else "✅",
-                        f"{int(recommendations['daily_needed_max'])}{unit_text}"
-                        if recommendations["daily_needed_max"] > 0
-                        else "✅",
-                        color_priority,  # Add color priority as last element
-                    ]
-                )
-
-            except Exception:
-                logger.exception("❌ Error processing exercise %s", exercise_name)
-                # Add error row
-                table_data.append(
-                    [
-                        exercise_name,
-                        "Error",
-                        "Error",
-                        "Error",
-                        "Error",
-                        "Error",
-                        "Error",
-                        "Error",
-                        "Error",
-                        3,  # Dark red - error
-                    ]
-                )
-                continue
-
-        # Sort table data by color priority: green (0), orange (1), yellow (2), dark red (3)
-        table_data.sort(key=lambda x: x[-1])
-
-        # Create and populate model
-        model = QStandardItemModel()
-        model.setHorizontalHeaderLabels(
-            [
-                "Exercise",
-                "Unit",
-                "Current Progress",
-                "Last Month Goal",
-                "Max Goal",
-                "Remaining to Last Month",
-                "Remaining to Max",
-                "Daily Needed (Last Month)",
-                "Daily Needed (Max)",
-            ]
-        )
-
-        color_priority_green = 0
-        color_priority_orange = 1
-        color_priority_yellow = 2
-        color_priority_dark_red = 3
-
-        for row_data in table_data:
-            items = []
-            color_priority = row_data[-1]  # Get color priority from last element
-
-            # Create items for display columns only (exclude the color priority)
-            for _col_idx, value in enumerate(row_data[:-1]):  # Exclude last element (color priority)
-                item = QStandardItem(str(value))
-
-                # Apply color based on priority
-                if color_priority == color_priority_green:  # Green - all goals achieved
-                    item.setBackground(QBrush(QColor(200, 255, 200)))  # Light green background
-                elif color_priority == color_priority_orange:  # Orange - no records in current and previous month
-                    item.setBackground(QBrush(QColor(255, 255, 150)))  # Light yellow background
-                elif color_priority == color_priority_yellow:  # Yellow - incomplete goals but has recent records
-                    item.setBackground(QBrush(QColor(255, 200, 150)))  # Light orange background
-                elif color_priority == color_priority_dark_red:  # Dark red - no data or error
-                    item.setBackground(QBrush(QColor(255, 150, 150)))  # Dark red background
-
-                items.append(item)
-            model.appendRow(items)
-
-        # Set model to table view
-        self.tableView_statistics.setModel(model)
-        self.models["statistics"] = None
-
-        # Connect selection signal for statistics table
-        self._connect_table_signals("statistics", self.on_statistics_selection_changed)
-
-        # Configure header with mixed approach: interactive + stretch last
-        header = self.tableView_statistics.horizontalHeader()
-        # Set first columns to interactive (resizable)
-        for i in range(header.count() - 1):
-            header.setSectionResizeMode(i, header.ResizeMode.Interactive)
-        # Set last column to stretch to fill remaining space
-        header.setSectionResizeMode(header.count() - 1, header.ResizeMode.Stretch)
-        # Set default column widths for resizable columns
-        for i in range(header.count() - 1):
-            self.tableView_statistics.setColumnWidth(i, 120)
-
-        # Disable alternating row colors since we have custom color coding
-        self.tableView_statistics.setAlternatingRowColors(False)
-
-        # Update statistics AVIF
-        self._update_statistics_avif()
-
-        # Trigger initial AVIF load for first row if no selection
-        QTimer.singleShot(100, self._update_statistics_avif)
-
-    except Exception as e:
-        message_box.warning(
-            self, "Exercise Goal Recommendations Error", f"Failed to load exercise goal recommendations: {e}"
-        )
+        except Exception as e:
+            message_box.warning(
+                self, "Exercise Goal Recommendations Error", f"Failed to load exercise goal recommendations: {e}"
+            )
 ```
 
 </details>
@@ -8864,26 +8898,114 @@ Show last execution dates for all exercises in the statistics table.
 
 ```python
 def on_show_last_exercises(self) -> None:
-    # Set current mode to last_exercises
-    self.current_statistics_mode = "last_exercises"
+        # Set current mode to last_exercises
+        self.current_statistics_mode = "last_exercises"
 
-    if self.db_manager is None:
-        logger.error("❌ Database manager is not initialized")
-        return
+        if self.db_manager is None:
+            logger.error("❌ Database manager is not initialized")
+            return
 
-    try:
-        # Clear any existing spans from previous statistics view
-        self.tableView_statistics.clearSpans()
+        try:
+            # Clear any existing spans from previous statistics view
+            self.tableView_statistics.clearSpans()
 
-        # Get last exercise dates using database manager
-        exercise_dates = self.db_manager.get_last_exercise_dates()
+            # Get last exercise dates using database manager
+            exercise_dates = self.db_manager.get_last_exercise_dates()
 
-        if not exercise_dates:
-            # If no data, show empty table
-            empty_model = QStandardItemModel()
-            empty_model.setHorizontalHeaderLabels(["Exercise", "Last Execution Date", "Days Ago"])
-            self.tableView_statistics.setModel(empty_model)
+            if not exercise_dates:
+                # If no data, show empty table
+                empty_model = QStandardItemModel()
+                empty_model.setHorizontalHeaderLabels(["Exercise", "Last Execution Date", "Days Ago"])
+                self.tableView_statistics.setModel(empty_model)
+                self.models["statistics"] = None  # Clear the model reference
+
+                # Configure header with mixed approach: interactive + stretch last
+                header = self.tableView_statistics.horizontalHeader()
+                # Set first columns to interactive (resizable)
+                for i in range(header.count() - 1):
+                    header.setSectionResizeMode(i, header.ResizeMode.Interactive)
+                # Set last column to stretch to fill remaining space
+                header.setSectionResizeMode(header.count() - 1, header.ResizeMode.Stretch)
+                # Set default column widths for resizable columns
+                for i in range(header.count() - 1):
+                    self.tableView_statistics.setColumnWidth(i, 150)
+
+                # Update statistics AVIF
+                self._update_statistics_avif()
+                return
+
+            # Calculate days ago for each exercise
+            today = datetime.now(UTC).astimezone().date()
+            table_data = []
+
+            for exercise_name, last_date_str in exercise_dates:
+                try:
+                    last_date = datetime.fromisoformat(last_date_str).date()
+                    days_ago = (today - last_date).days
+
+                    # Format the display date
+                    formatted_date = last_date.strftime("%Y-%m-%d (%b %d)")
+
+                    # Add emoji for recent activities
+                    days_in_week = 7
+                    days_in_month = 30
+                    if days_ago == 0:
+                        days_display = "Today 🔥"
+                        row_color = QColor(144, 238, 144)  # Light green for today
+                    elif days_ago == 1:
+                        days_display = "1 day ago 👍"
+                        row_color = QColor(173, 216, 230)  # Light blue for yesterday
+                    elif days_ago <= days_in_week:
+                        days_display = f"{days_ago} days ago ✅"
+                        row_color = QColor(255, 255, 224)  # Light yellow for this week
+                    elif days_ago <= days_in_month:
+                        days_display = f"{days_ago} days ago ⚠️"
+                        row_color = QColor(255, 228, 196)  # Light orange for this month
+                    else:
+                        days_display = f"{days_ago} days ago ❗"
+                        row_color = QColor(255, 192, 203)  # Light pink for longer periods
+
+                    table_data.append([exercise_name, formatted_date, days_display, row_color])
+
+                except ValueError:
+                    # Skip invalid dates
+                    continue
+
+            # Sort by days ago (ascending - most recent first)
+            table_data.sort(key=lambda x: int(x[2].split()[0]) if x[2].split()[0].isdigit() else 0)
+
+            # Create and populate model
+            model = QStandardItemModel()
+            model.setHorizontalHeaderLabels(["Exercise", "Last Execution Date", "Days Ago"])
+
+            for row_data in table_data:
+                items = []
+                row_color = row_data[3]  # Get the color from the last element
+
+                # Create items for display columns only (first 3 elements)
+                for col_idx, value in enumerate(row_data[:3]):  # Only first 3 elements (exclude color)
+                    item = QStandardItem(str(value))
+
+                    # Set background color for the item
+                    item.setBackground(QBrush(row_color))
+
+                    # Make "Today" entries bold
+                    id_col_date = 2
+                    if col_idx == id_col_date and "Today" in str(value):
+                        font = item.font()
+                        font.setBold(True)
+                        item.setFont(font)
+
+                    items.append(item)
+
+                model.appendRow(items)
+
+            # Set model to table view
+            self.tableView_statistics.setModel(model)
             self.models["statistics"] = None  # Clear the model reference
+
+            # Connect selection signal for statistics table
+            self._connect_table_signals("statistics", self.on_statistics_selection_changed)
 
             # Configure header with mixed approach: interactive + stretch last
             header = self.tableView_statistics.horizontalHeader()
@@ -8896,105 +9018,17 @@ def on_show_last_exercises(self) -> None:
             for i in range(header.count() - 1):
                 self.tableView_statistics.setColumnWidth(i, 150)
 
+            # Disable alternating row colors since we have custom colors
+            self.tableView_statistics.setAlternatingRowColors(False)
+
             # Update statistics AVIF
             self._update_statistics_avif()
-            return
 
-        # Calculate days ago for each exercise
-        today = datetime.now(UTC).astimezone().date()
-        table_data = []
+            # Trigger initial AVIF load for first row if no selection
+            QTimer.singleShot(100, self._update_statistics_avif)
 
-        for exercise_name, last_date_str in exercise_dates:
-            try:
-                last_date = datetime.fromisoformat(last_date_str).date()
-                days_ago = (today - last_date).days
-
-                # Format the display date
-                formatted_date = last_date.strftime("%Y-%m-%d (%b %d)")
-
-                # Add emoji for recent activities
-                days_in_week = 7
-                days_in_month = 30
-                if days_ago == 0:
-                    days_display = "Today 🔥"
-                    row_color = QColor(144, 238, 144)  # Light green for today
-                elif days_ago == 1:
-                    days_display = "1 day ago 👍"
-                    row_color = QColor(173, 216, 230)  # Light blue for yesterday
-                elif days_ago <= days_in_week:
-                    days_display = f"{days_ago} days ago ✅"
-                    row_color = QColor(255, 255, 224)  # Light yellow for this week
-                elif days_ago <= days_in_month:
-                    days_display = f"{days_ago} days ago ⚠️"
-                    row_color = QColor(255, 228, 196)  # Light orange for this month
-                else:
-                    days_display = f"{days_ago} days ago ❗"
-                    row_color = QColor(255, 192, 203)  # Light pink for longer periods
-
-                table_data.append([exercise_name, formatted_date, days_display, row_color])
-
-            except ValueError:
-                # Skip invalid dates
-                continue
-
-        # Sort by days ago (ascending - most recent first)
-        table_data.sort(key=lambda x: int(x[2].split()[0]) if x[2].split()[0].isdigit() else 0)
-
-        # Create and populate model
-        model = QStandardItemModel()
-        model.setHorizontalHeaderLabels(["Exercise", "Last Execution Date", "Days Ago"])
-
-        for row_data in table_data:
-            items = []
-            row_color = row_data[3]  # Get the color from the last element
-
-            # Create items for display columns only (first 3 elements)
-            for col_idx, value in enumerate(row_data[:3]):  # Only first 3 elements (exclude color)
-                item = QStandardItem(str(value))
-
-                # Set background color for the item
-                item.setBackground(QBrush(row_color))
-
-                # Make "Today" entries bold
-                id_col_date = 2
-                if col_idx == id_col_date and "Today" in str(value):
-                    font = item.font()
-                    font.setBold(True)
-                    item.setFont(font)
-
-                items.append(item)
-
-            model.appendRow(items)
-
-        # Set model to table view
-        self.tableView_statistics.setModel(model)
-        self.models["statistics"] = None  # Clear the model reference
-
-        # Connect selection signal for statistics table
-        self._connect_table_signals("statistics", self.on_statistics_selection_changed)
-
-        # Configure header with mixed approach: interactive + stretch last
-        header = self.tableView_statistics.horizontalHeader()
-        # Set first columns to interactive (resizable)
-        for i in range(header.count() - 1):
-            header.setSectionResizeMode(i, header.ResizeMode.Interactive)
-        # Set last column to stretch to fill remaining space
-        header.setSectionResizeMode(header.count() - 1, header.ResizeMode.Stretch)
-        # Set default column widths for resizable columns
-        for i in range(header.count() - 1):
-            self.tableView_statistics.setColumnWidth(i, 150)
-
-        # Disable alternating row colors since we have custom colors
-        self.tableView_statistics.setAlternatingRowColors(False)
-
-        # Update statistics AVIF
-        self._update_statistics_avif()
-
-        # Trigger initial AVIF load for first row if no selection
-        QTimer.singleShot(100, self._update_statistics_avif)
-
-    except Exception as e:
-        message_box.warning(self, "Last Exercises Error", f"Failed to load last exercises: {e}")
+        except Exception as e:
+            message_box.warning(self, "Last Exercises Error", f"Failed to load last exercises: {e}")
 ```
 
 </details>
@@ -9012,9 +9046,9 @@ Handle statistics exercise combobox selection change.
 
 ```python
 def on_statistics_exercise_combobox_changed(self, _index: int = -1) -> None:
-    exercise_name = self.comboBox_records_select_exercise.currentText().strip()
-    if exercise_name:
-        self._sync_exercise_selection(exercise_name, source="combo")
+        exercise_name = self.comboBox_records_select_exercise.currentText().strip()
+        if exercise_name:
+            self._sync_exercise_selection(exercise_name, source="combo")
 ```
 
 </details>
@@ -9037,9 +9071,9 @@ Args:
 
 ```python
 def on_statistics_selection_changed(self, _current: QModelIndex, _previous: QModelIndex) -> None:
-    # Only update AVIF if not in check_steps mode (since check_steps always shows Steps exercise)
-    if self.current_statistics_mode != "check_steps":
-        self._update_statistics_avif()
+        # Only update AVIF if not in check_steps mode (since check_steps always shows Steps exercise)
+        if self.current_statistics_mode != "check_steps":
+            self._update_statistics_avif()
 ```
 
 </details>
@@ -9061,43 +9095,43 @@ Args:
 
 ```python
 def on_tab_changed(self, index: int) -> None:
-    index_tab_charts = 1
-    index_tab_exercises = 2
-    index_tab_weight = 3
-    index_tab_statistics = 4
+        index_tab_charts = 1
+        index_tab_exercises = 2
+        index_tab_weight = 3
+        index_tab_statistics = 4
 
-    # Note: Main tab (index 0) needs no updates - data loaded on startup
-    if index == index_tab_charts:  # Exercise Chart tab
-        self.update_chart_comboboxes()
-        self._load_default_exercise_chart()
-        if not self._get_selected_chart_exercise():
-            self._select_last_executed_exercise()
-        self._update_charts_avif()
-    elif index == index_tab_exercises:  # Exercises tab
-        # Update exercises AVIF when switching to exercises tab
-        self._update_exercises_avif()
-        self._update_types_avif()
-    elif index == index_tab_weight:  # Weight tab
-        self.set_weight_all_time()
-    elif index == index_tab_statistics:  # Statistics tab
-        self._load_default_statistics()
-        # If statistics is already initialized, update with current exercise
-        if hasattr(self, "_statistics_initialized"):
-            current_exercise = self._get_current_selected_exercise()
-            if current_exercise:
-                # Block signals to prevent recursive updates
-                self.comboBox_records_select_exercise.blockSignals(True)  # noqa: FBT003
+        # Note: Main tab (index 0) needs no updates - data loaded on startup
+        if index == index_tab_charts:  # Exercise Chart tab
+            self.update_chart_comboboxes()
+            self._load_default_exercise_chart()
+            if not self._get_selected_chart_exercise():
+                self._select_last_executed_exercise()
+            self._update_charts_avif()
+        elif index == index_tab_exercises:  # Exercises tab
+            # Update exercises AVIF when switching to exercises tab
+            self._update_exercises_avif()
+            self._update_types_avif()
+        elif index == index_tab_weight:  # Weight tab
+            self.set_weight_all_time()
+        elif index == index_tab_statistics:  # Statistics tab
+            self._load_default_statistics()
+            # If statistics is already initialized, update with current exercise
+            if hasattr(self, "_statistics_initialized"):
+                current_exercise = self._get_current_selected_exercise()
+                if current_exercise:
+                    # Block signals to prevent recursive updates
+                    self.comboBox_records_select_exercise.blockSignals(True)  # noqa: FBT003
 
-                # Find and select the current exercise in statistics combobox
-                index = self.comboBox_records_select_exercise.findText(current_exercise)
-                if index >= 0:
-                    self.comboBox_records_select_exercise.setCurrentIndex(index)
+                    # Find and select the current exercise in statistics combobox
+                    index = self.comboBox_records_select_exercise.findText(current_exercise)
+                    if index >= 0:
+                        self.comboBox_records_select_exercise.setCurrentIndex(index)
 
-                # Unblock signals
-                self.comboBox_records_select_exercise.blockSignals(False)  # noqa: FBT003
+                    # Unblock signals
+                    self.comboBox_records_select_exercise.blockSignals(False)  # noqa: FBT003
 
-                # Refresh statistics with the selected exercise
-                self.on_refresh_statistics()
+                    # Refresh statistics with the selected exercise
+                    self.on_refresh_statistics()
 ```
 
 </details>
@@ -9118,17 +9152,17 @@ When `True`, shows all records from the database.
 
 ```python
 def on_toggle_show_all_records(self) -> None:
-    # Toggle the flag
-    self.show_all_records = not self.show_all_records
+        # Toggle the flag
+        self.show_all_records = not self.show_all_records
 
-    # Update button text to reflect current state
-    if self.show_all_records:
-        self.pushButton_show_all_records.setText(f"📋 Show Last {self.count_records_to_show}")
-    else:
-        self.pushButton_show_all_records.setText("📋 Show All Records")
+        # Update button text to reflect current state
+        if self.show_all_records:
+            self.pushButton_show_all_records.setText(f"📋 Show Last {self.count_records_to_show}")
+        else:
+            self.pushButton_show_all_records.setText("📋 Show All Records")
 
-    # Reload the process table with the appropriate data
-    self.load_process_table()
+        # Reload the process table with the appropriate data
+        self.load_process_table()
 ```
 
 </details>
@@ -9146,48 +9180,50 @@ Fill missing `name_local` values for exercises and types via BotHub.
 
 ```python
 def on_translate_with_ai(self) -> None:
-    if self.db_manager is None:
-        logger.error("❌ Database manager is not initialized")
-        return
-
-    limit = self._fitness_names_translate_local_limit()
-    exercise_names = self.db_manager.get_exercise_names_missing_name_local(limit=limit)
-    remaining = max(limit - len(exercise_names), 0)
-    type_names = self.db_manager.get_exercise_type_names_missing_name_local(limit=remaining) if remaining > 0 else []
-    names = list(dict.fromkeys([*exercise_names, *type_names]))
-    if not names:
-        message_box.information(
-            self,
-            "Translation",
-            "All exercises and exercise types already have a local name.",
-        )
-        return
-
-    self.pushButton_translate_with_ai.setEnabled(False)
-
-    def on_success(translations: dict[str, str]) -> None:
         if self.db_manager is None:
+            logger.error("❌ Database manager is not initialized")
             return
-        updated_exercises = 0
-        updated_types = 0
-        for name, name_local in translations.items():
-            updated_exercises += self.db_manager.update_exercise_name_local_by_name(name, name_local)
-            updated_types += self.db_manager.update_exercise_type_name_local_by_type(name, name_local)
-        self.update_all(is_preserve_selections=True)
-        message_box.information(
-            self,
-            "Translation",
-            f"Updated local names: {updated_exercises} exercise(s), {updated_types} type(s).",
-        )
 
-    request_names_local_batch_translation(
-        self,
-        app_config=self._app_config,
-        bothub_state=self._bothub_state,
-        names=names,
-        on_success=on_success,
-        on_finished=lambda: self.pushButton_translate_with_ai.setEnabled(True),
-    )
+        limit = self._fitness_names_translate_local_limit()
+        exercise_names = self.db_manager.get_exercise_names_missing_name_local(limit=limit)
+        remaining = max(limit - len(exercise_names), 0)
+        type_names = (
+            self.db_manager.get_exercise_type_names_missing_name_local(limit=remaining) if remaining > 0 else []
+        )
+        names = list(dict.fromkeys([*exercise_names, *type_names]))
+        if not names:
+            message_box.information(
+                self,
+                "Translation",
+                "All exercises and exercise types already have a local name.",
+            )
+            return
+
+        self.pushButton_translate_with_ai.setEnabled(False)
+
+        def on_success(translations: dict[str, str]) -> None:
+            if self.db_manager is None:
+                return
+            updated_exercises = 0
+            updated_types = 0
+            for name, name_local in translations.items():
+                updated_exercises += self.db_manager.update_exercise_name_local_by_name(name, name_local)
+                updated_types += self.db_manager.update_exercise_type_name_local_by_type(name, name_local)
+            self.update_all(is_preserve_selections=True)
+            message_box.information(
+                self,
+                "Translation",
+                f"Updated local names: {updated_exercises} exercise(s), {updated_types} type(s).",
+            )
+
+        request_names_local_batch_translation(
+            self,
+            app_config=self._app_config,
+            bothub_state=self._bothub_state,
+            names=names,
+            on_success=on_success,
+            on_finished=lambda: self.pushButton_translate_with_ai.setEnabled(True),
+        )
 ```
 
 </details>
@@ -9213,37 +9249,37 @@ Args:
 
 ```python
 def on_weight_selection_changed(self, _current: QModelIndex, _previous: QModelIndex) -> None:
-    index = self.tableView_weight.currentIndex()
-    if not index.isValid():
-        # Clear the fields if nothing is selected - use last weight
-        last_weight = self._get_last_weight()
-        self.doubleSpinBox_weight.setValue(last_weight)
-        self.dateEdit_weight.setDate(QDate.currentDate())
-        return
-
-    model = self.models["weight"]
-    row = index.row()
-
-    # Fill in the fields with data from the selected row
-    if model is None:
-        return
-    weight_value = model.data(model.index(row, 0)) or str(self._get_last_weight())
-    weight_date = model.data(model.index(row, 1)) or QDate.currentDate().toString("yyyy-MM-dd")
-
-    try:
-        self.doubleSpinBox_weight.setValue(float(weight_value))
-    except (ValueError, TypeError):
-        self.doubleSpinBox_weight.setValue(self._get_last_weight())
-
-    # Parse and set the date
-    try:
-        date_obj = QDate.fromString(weight_date, "yyyy-MM-dd")
-        if not date_obj.isNull():
-            self.dateEdit_weight.setDate(date_obj)
-        else:
+        index = self.tableView_weight.currentIndex()
+        if not index.isValid():
+            # Clear the fields if nothing is selected - use last weight
+            last_weight = self._get_last_weight()
+            self.doubleSpinBox_weight.setValue(last_weight)
             self.dateEdit_weight.setDate(QDate.currentDate())
-    except Exception:
-        self.dateEdit_weight.setDate(QDate.currentDate())
+            return
+
+        model = self.models["weight"]
+        row = index.row()
+
+        # Fill in the fields with data from the selected row
+        if model is None:
+            return
+        weight_value = model.data(model.index(row, 0)) or str(self._get_last_weight())
+        weight_date = model.data(model.index(row, 1)) or QDate.currentDate().toString("yyyy-MM-dd")
+
+        try:
+            self.doubleSpinBox_weight.setValue(float(weight_value))
+        except (ValueError, TypeError):
+            self.doubleSpinBox_weight.setValue(self._get_last_weight())
+
+        # Parse and set the date
+        try:
+            date_obj = QDate.fromString(weight_date, "yyyy-MM-dd")
+            if not date_obj.isNull():
+                self.dateEdit_weight.setDate(date_obj)
+            else:
+                self.dateEdit_weight.setDate(QDate.currentDate())
+        except Exception:
+            self.dateEdit_weight.setDate(QDate.currentDate())
 ```
 
 </details>
@@ -9265,12 +9301,12 @@ Args:
 
 ```python
 def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802
-    # Call parent resize event first
-    super().resizeEvent(event)
+        # Call parent resize event first
+        super().resizeEvent(event)
 
-    # Adjust process table column widths based on window size
-    self._adjust_process_table_columns()
-    self._update_layout_for_window_size()
+        # Adjust process table column widths based on window size
+        self._adjust_process_table_columns()
+        self._update_layout_for_window_size()
 ```
 
 </details>
@@ -9288,8 +9324,8 @@ Set chart date range to all available data using database manager.
 
 ```python
 def set_chart_all_time(self) -> None:
-    self._set_date_range(self.dateEdit_chart_from, self.dateEdit_chart_to, is_all_time=True)
-    self._schedule_chart_update(50)
+        self._set_date_range(self.dateEdit_chart_from, self.dateEdit_chart_to, is_all_time=True)
+        self._schedule_chart_update(50)
 ```
 
 </details>
@@ -9307,8 +9343,8 @@ Set chart date range to last month.
 
 ```python
 def set_chart_last_month(self) -> None:
-    self._set_date_range(self.dateEdit_chart_from, self.dateEdit_chart_to, months=1)
-    self._schedule_chart_update(50)
+        self._set_date_range(self.dateEdit_chart_from, self.dateEdit_chart_to, months=1)
+        self._schedule_chart_update(50)
 ```
 
 </details>
@@ -9326,8 +9362,8 @@ Set chart date range to last year.
 
 ```python
 def set_chart_last_year(self) -> None:
-    self._set_date_range(self.dateEdit_chart_from, self.dateEdit_chart_to, years=1)
-    self._schedule_chart_update(50)
+        self._set_date_range(self.dateEdit_chart_from, self.dateEdit_chart_to, years=1)
+        self._schedule_chart_update(50)
 ```
 
 </details>
@@ -9348,17 +9384,17 @@ Sets both the main date input field (QDateEdit) and the weight date input field
 
 ```python
 def set_today_date(self) -> None:
-    today_qdate = QDate.currentDate()
+        today_qdate = QDate.currentDate()
 
-    # Set the main QDateEdit to today's date
-    self.dateEdit.setDate(today_qdate)
+        # Set the main QDateEdit to today's date
+        self.dateEdit.setDate(today_qdate)
 
-    # Set the weight QDateEdit to today's date
-    self.dateEdit_weight.setDate(today_qdate)
+        # Set the weight QDateEdit to today's date
+        self.dateEdit_weight.setDate(today_qdate)
 
-    # Set the weight spinbox to the last recorded weight
-    last_weight = self._get_last_weight()
-    self.doubleSpinBox_weight.setValue(last_weight)
+        # Set the weight spinbox to the last recorded weight
+        last_weight = self._get_last_weight()
+        self.doubleSpinBox_weight.setValue(last_weight)
 ```
 
 </details>
@@ -9376,8 +9412,8 @@ Set weight chart date range to all available data using database manager.
 
 ```python
 def set_weight_all_time(self) -> None:
-    self._set_date_range(self.dateEdit_weight_from, self.dateEdit_weight_to, is_all_time=True)
-    self.update_weight_chart()
+        self._set_date_range(self.dateEdit_weight_from, self.dateEdit_weight_to, is_all_time=True)
+        self.update_weight_chart()
 ```
 
 </details>
@@ -9395,8 +9431,8 @@ Set weight chart date range to last month.
 
 ```python
 def set_weight_last_month(self) -> None:
-    self._set_date_range(self.dateEdit_weight_from, self.dateEdit_weight_to, months=1)
-    self.update_weight_chart()
+        self._set_date_range(self.dateEdit_weight_from, self.dateEdit_weight_to, months=1)
+        self.update_weight_chart()
 ```
 
 </details>
@@ -9414,8 +9450,8 @@ Set weight chart date range to last year.
 
 ```python
 def set_weight_last_year(self) -> None:
-    self._set_date_range(self.dateEdit_weight_from, self.dateEdit_weight_to, years=1)
-    self.update_weight_chart()
+        self._set_date_range(self.dateEdit_weight_from, self.dateEdit_weight_to, years=1)
+        self.update_weight_chart()
 ```
 
 </details>
@@ -9436,8 +9472,8 @@ of exercise records from the previous day.
 
 ```python
 def set_yesterday_date(self) -> None:
-    yesterday = QDate.currentDate().addDays(-1)
-    self.dateEdit.setDate(yesterday)
+        yesterday = QDate.currentDate().addDays(-1)
+        self.dateEdit.setDate(yesterday)
 ```
 
 </details>
@@ -9455,89 +9491,90 @@ Show chart of total calories using database manager.
 
 ```python
 def show_kcal_chart(self) -> None:
-    period = self.comboBox_chart_period.currentText()
-    date_from = self.dateEdit_chart_from.date().toString("yyyy-MM-dd")
-    date_to = self.dateEdit_chart_to.date().toString("yyyy-MM-dd")
-    use_max_value = self.checkBox_max_value.isChecked()  # Check if max value mode is enabled
+        period = self.comboBox_chart_period.currentText()
+        date_from = self.dateEdit_chart_from.date().toString("yyyy-MM-dd")
+        date_to = self.dateEdit_chart_to.date().toString("yyyy-MM-dd")
+        use_max_value = self.checkBox_max_value.isChecked()  # Check if max value mode is enabled
 
-    if self.db_manager is None:
-        logger.error("❌ Database manager is not initialized")
-        return
+        if self.db_manager is None:
+            logger.error("❌ Database manager is not initialized")
+            return
 
-    # Get calories data using database manager
-    rows = self.db_manager.get_kcal_chart_data(date_from, date_to)
+        # Get calories data using database manager
+        rows = self.db_manager.get_kcal_chart_data(date_from, date_to)
 
-    # Convert to datetime objects for processing
-    datetime_data = []
-    for date_str, calories in rows:
-        try:
-            date_obj = datetime.fromisoformat(date_str).replace(tzinfo=UTC)
-            datetime_data.append((date_obj, float(calories)))
-        except (ValueError, TypeError):
-            continue
+        # Convert to datetime objects for processing
+        datetime_data = []
+        for date_str, calories in rows:
+            try:
+                date_obj = datetime.fromisoformat(date_str).replace(tzinfo=UTC)
+                datetime_data.append((date_obj, float(calories)))
+            except (ValueError, TypeError):
+                continue
 
-    # Group data by period with aggregation based on checkbox
-    if use_max_value:
-        # For calories chart, we need to convert the data format for max grouping
-        # Convert from (date_str, calories) to (date_str, calories_str)
-        string_rows = [(date_str, str(calories)) for date_str, calories in rows]
-        grouped_data = self._group_data_by_period_with_max(string_rows, period, value_type="float")
-    else:
-        grouped_data = self._group_data_by_period(rows, period, value_type="float")
-
-    # In show_kcal_chart, on no grouped_data
-    if not grouped_data:
-        self._clear_layout(self.verticalLayout_charts_content)
-        self._show_no_data_label(self.verticalLayout_charts_content, "No calories data to display")
-        self._set_no_data_info_label("No data for the selected period.")
-        return
-
-    # Prepare chart data
-    chart_data = list(grouped_data.items())
-
-    # For calories chart, respect the selected date range
-    # But don't extend beyond today
-    today = datetime.now(UTC).astimezone().strftime("%Y-%m-%d")
-    chart_date_from = date_from
-    chart_date_to = min(today, date_to)
-
-    # Build chart title with aggregation type
-    aggregation_type = "Max" if use_max_value else "Total"
-    chart_title = f"Calories burned ({aggregation_type}, {period})"
-
-    # Define custom statistics formatter for calories with aggregation type
-    def format_calories_stats(values: list) -> str:
-        min_val = min(values)
-        max_val = max(values)
-        avg_val = sum(values) / len(values)
-
+        # Group data by period with aggregation based on checkbox
         if use_max_value:
-            # For max values, don't show total (it doesn't make sense)
-            return f"Min: {min_val:.1f} kcal | Max: {max_val:.1f} kcal | Avg: {avg_val:.1f} kcal"
-        # For sum values, show total
-        total_val = sum(values)
-        return (
-            f"Min: {min_val:.1f} kcal | Max: {max_val:.1f} kcal | Avg: {avg_val:.1f} kcal | Total: {total_val:.1f} kcal"
-        )
+            # For calories chart, we need to convert the data format for max grouping
+            # Convert from (date_str, calories) to (date_str, calories_str)
+            string_rows = [(date_str, str(calories)) for date_str, calories in rows]
+            grouped_data = self._group_data_by_period_with_max(string_rows, period, value_type="float")
+        else:
+            grouped_data = self._group_data_by_period(rows, period, value_type="float")
 
-    # Create chart configuration
-    chart_config = {
-        "title": chart_title,
-        "xlabel": "Date",
-        "ylabel": f"{aggregation_type} calories (kcal)",
-        "color": "orange",
-        "show_stats": True,
-        "period": period,
-        "stats_formatter": format_calories_stats,
-        "fill_zero_periods": True,  # Enable zero filling
-        "date_from": chart_date_from,  # Use selected start date
-        "date_to": chart_date_to,  # Don't go beyond today
-    }
+        # In show_kcal_chart, on no grouped_data
+        if not grouped_data:
+            self._clear_layout(self.verticalLayout_charts_content)
+            self._show_no_data_label(self.verticalLayout_charts_content, "No calories data to display")
+            self._set_no_data_info_label("No data for the selected period.")
+            return
 
-    self._create_chart(self.verticalLayout_charts_content, chart_data, chart_config)
+        # Prepare chart data
+        chart_data = list(grouped_data.items())
 
-    # Add calories recommendations to label_chart_info
-    self._add_calories_recommendations_to_label()
+        # For calories chart, respect the selected date range
+        # But don't extend beyond today
+        today = datetime.now(UTC).astimezone().strftime("%Y-%m-%d")
+        chart_date_from = date_from
+        chart_date_to = min(today, date_to)
+
+        # Build chart title with aggregation type
+        aggregation_type = "Max" if use_max_value else "Total"
+        chart_title = f"Calories burned ({aggregation_type}, {period})"
+
+        # Define custom statistics formatter for calories with aggregation type
+        def format_calories_stats(values: list) -> str:
+            min_val = min(values)
+            max_val = max(values)
+            avg_val = sum(values) / len(values)
+
+            if use_max_value:
+                # For max values, don't show total (it doesn't make sense)
+                return f"Min: {min_val:.1f} kcal | Max: {max_val:.1f} kcal | Avg: {avg_val:.1f} kcal"
+            # For sum values, show total
+            total_val = sum(values)
+            return (
+                f"Min: {min_val:.1f} kcal | Max: {max_val:.1f} kcal | "
+                f"Avg: {avg_val:.1f} kcal | Total: {total_val:.1f} kcal"
+            )
+
+        # Create chart configuration
+        chart_config = {
+            "title": chart_title,
+            "xlabel": "Date",
+            "ylabel": f"{aggregation_type} calories (kcal)",
+            "color": "orange",
+            "show_stats": True,
+            "period": period,
+            "stats_formatter": format_calories_stats,
+            "fill_zero_periods": True,  # Enable zero filling
+            "date_from": chart_date_from,  # Use selected start date
+            "date_to": chart_date_to,  # Don't go beyond today
+        }
+
+        self._create_chart(self.verticalLayout_charts_content, chart_data, chart_config)
+
+        # Add calories recommendations to label_chart_info
+        self._add_calories_recommendations_to_label()
 ```
 
 </details>
@@ -9555,87 +9592,87 @@ Show chart of total sets using database manager.
 
 ```python
 def show_sets_chart(self) -> None:
-    period = self.comboBox_chart_period.currentText()
-    date_from = self.dateEdit_chart_from.date().toString("yyyy-MM-dd")
-    date_to = self.dateEdit_chart_to.date().toString("yyyy-MM-dd")
-    use_max_value = self.checkBox_max_value.isChecked()  # Check if max value mode is enabled
+        period = self.comboBox_chart_period.currentText()
+        date_from = self.dateEdit_chart_from.date().toString("yyyy-MM-dd")
+        date_to = self.dateEdit_chart_to.date().toString("yyyy-MM-dd")
+        use_max_value = self.checkBox_max_value.isChecked()  # Check if max value mode is enabled
 
-    if self.db_manager is None:
-        logger.error("❌ Database manager is not initialized")
-        return
+        if self.db_manager is None:
+            logger.error("❌ Database manager is not initialized")
+            return
 
-    # Get sets data using database manager
-    rows = self.db_manager.get_sets_chart_data(date_from, date_to)
+        # Get sets data using database manager
+        rows = self.db_manager.get_sets_chart_data(date_from, date_to)
 
-    # Convert to datetime objects for processing
-    datetime_data = []
-    for date_str, count in rows:
-        try:
-            date_obj = datetime.fromisoformat(date_str).replace(tzinfo=UTC)
-            datetime_data.append((date_obj, int(count)))
-        except (ValueError, TypeError):
-            continue
+        # Convert to datetime objects for processing
+        datetime_data = []
+        for date_str, count in rows:
+            try:
+                date_obj = datetime.fromisoformat(date_str).replace(tzinfo=UTC)
+                datetime_data.append((date_obj, int(count)))
+            except (ValueError, TypeError):
+                continue
 
-    # Group data by period with aggregation based on checkbox
-    if use_max_value:
-        # For sets chart, we need to convert the data format for max grouping
-        # Convert from (date_str, count) to (date_str, count_str)
-        string_rows = [(date_str, str(count)) for date_str, count in rows]
-        grouped_data = self._group_data_by_period_with_max(string_rows, period, value_type="int")
-    else:
-        grouped_data = self._group_data_by_period(rows, period, value_type="int")
-
-    # In show_sets_chart, on no grouped_data
-    if not grouped_data:
-        self._clear_layout(self.verticalLayout_charts_content)
-        self._show_no_data_label(self.verticalLayout_charts_content, "No data to display")
-        self._set_no_data_info_label("No data for the selected period.")
-        return
-
-    # Prepare chart data
-    chart_data = list(grouped_data.items())
-
-    # For sets chart, respect the selected date range
-    # But don't extend beyond today
-    today = datetime.now(UTC).astimezone().strftime("%Y-%m-%d")
-    chart_date_from = date_from
-    chart_date_to = min(today, date_to)
-
-    # Build chart title with aggregation type
-    aggregation_type = "Max" if use_max_value else "Total"
-    chart_title = f"Training sets ({aggregation_type}, {period})"
-
-    # Define custom statistics formatter for sets with aggregation type
-    def format_sets_stats(values: list) -> str:
-        min_val = int(min(values))
-        max_val = int(max(values))
-        avg_val = sum(values) / len(values)
-
+        # Group data by period with aggregation based on checkbox
         if use_max_value:
-            # For max values, don't show total (it doesn't make sense)
-            return f"Min: {min_val} | Max: {max_val} | Avg: {avg_val:.1f}"
-        # For sum values, show total
-        total_val = int(sum(values))
-        return f"Min: {min_val} | Max: {max_val} | Avg: {avg_val:.1f} | Total: {total_val}"
+            # For sets chart, we need to convert the data format for max grouping
+            # Convert from (date_str, count) to (date_str, count_str)
+            string_rows = [(date_str, str(count)) for date_str, count in rows]
+            grouped_data = self._group_data_by_period_with_max(string_rows, period, value_type="int")
+        else:
+            grouped_data = self._group_data_by_period(rows, period, value_type="int")
 
-    # Create chart configuration
-    chart_config = {
-        "title": chart_title,
-        "xlabel": "Date",
-        "ylabel": f"{aggregation_type} number of sets",
-        "color": "green",
-        "show_stats": True,
-        "period": period,
-        "stats_formatter": format_sets_stats,
-        "fill_zero_periods": True,  # Enable zero filling
-        "date_from": chart_date_from,  # Use selected start date
-        "date_to": chart_date_to,  # Don't go beyond today
-    }
+        # In show_sets_chart, on no grouped_data
+        if not grouped_data:
+            self._clear_layout(self.verticalLayout_charts_content)
+            self._show_no_data_label(self.verticalLayout_charts_content, "No data to display")
+            self._set_no_data_info_label("No data for the selected period.")
+            return
 
-    self._create_chart(self.verticalLayout_charts_content, chart_data, chart_config)
+        # Prepare chart data
+        chart_data = list(grouped_data.items())
 
-    # Add sets recommendations to label_chart_info
-    self._add_sets_recommendations_to_label()
+        # For sets chart, respect the selected date range
+        # But don't extend beyond today
+        today = datetime.now(UTC).astimezone().strftime("%Y-%m-%d")
+        chart_date_from = date_from
+        chart_date_to = min(today, date_to)
+
+        # Build chart title with aggregation type
+        aggregation_type = "Max" if use_max_value else "Total"
+        chart_title = f"Training sets ({aggregation_type}, {period})"
+
+        # Define custom statistics formatter for sets with aggregation type
+        def format_sets_stats(values: list) -> str:
+            min_val = int(min(values))
+            max_val = int(max(values))
+            avg_val = sum(values) / len(values)
+
+            if use_max_value:
+                # For max values, don't show total (it doesn't make sense)
+                return f"Min: {min_val} | Max: {max_val} | Avg: {avg_val:.1f}"
+            # For sum values, show total
+            total_val = int(sum(values))
+            return f"Min: {min_val} | Max: {max_val} | Avg: {avg_val:.1f} | Total: {total_val}"
+
+        # Create chart configuration
+        chart_config = {
+            "title": chart_title,
+            "xlabel": "Date",
+            "ylabel": f"{aggregation_type} number of sets",
+            "color": "green",
+            "show_stats": True,
+            "period": period,
+            "stats_formatter": format_sets_stats,
+            "fill_zero_periods": True,  # Enable zero filling
+            "date_from": chart_date_from,  # Use selected start date
+            "date_to": chart_date_to,  # Don't go beyond today
+        }
+
+        self._create_chart(self.verticalLayout_charts_content, chart_data, chart_config)
+
+        # Add sets recommendations to label_chart_info
+        self._add_sets_recommendations_to_label()
 ```
 
 </details>
@@ -9653,106 +9690,108 @@ Populate all QTableViews using database manager methods.
 
 ```python
 def show_tables(self) -> None:
-    if not self._validate_database_connection():
-        logger.warning("Database connection not available for showing tables")
-        return
+        if not self._validate_database_connection():
+            logger.warning("Database connection not available for showing tables")
+            return
 
-    if self.db_manager is None:
-        logger.error("❌ Database manager is not initialized")
-        return
+        if self.db_manager is None:
+            logger.error("❌ Database manager is not initialized")
+            return
 
-    try:
-        # Refresh exercises table with light green background
-        exercises_data = self.db_manager.get_all_exercises()
-        exercises_transformed_data = []
-        light_green = QColor(240, 255, 240)  # Light green background
+        try:
+            # Refresh exercises table with light green background
+            exercises_data = self.db_manager.get_all_exercises()
+            exercises_transformed_data = []
+            light_green = QColor(240, 255, 240)  # Light green background
 
-        for row in exercises_data:
-            transformed_row = [
-                row[1],
-                row[2],
-                str(row[3]),
-                f"{row[4]:.1f}",
-                row[5] or "",
-                row[0],
-                light_green,
-            ]
-            exercises_transformed_data.append(transformed_row)
+            for row in exercises_data:
+                transformed_row = [
+                    row[1],
+                    row[2],
+                    str(row[3]),
+                    f"{row[4]:.1f}",
+                    row[5] or "",
+                    row[0],
+                    light_green,
+                ]
+                exercises_transformed_data.append(transformed_row)
 
-        self.models["exercises"] = self._create_colored_table_model(
-            exercises_transformed_data, self.table_config["exercises"][2]
-        )
-        self.tableView_exercises.setModel(self.models["exercises"])
+            self.models["exercises"] = self._create_colored_table_model(
+                exercises_transformed_data, self.table_config["exercises"][2]
+            )
+            self.tableView_exercises.setModel(self.models["exercises"])
 
-        # Refresh exercise types table with light orange background
-        types_data = self.db_manager.get_all_exercise_types()
-        types_transformed_data = []
-        light_orange = QColor(255, 248, 220)  # Light orange background
+            # Refresh exercise types table with light orange background
+            types_data = self.db_manager.get_all_exercise_types()
+            types_transformed_data = []
+            light_orange = QColor(255, 248, 220)  # Light orange background
 
-        for row in types_data:
-            transformed_row = [row[1], row[2], f"{row[3]:.1f}", row[4] or "", row[0], light_orange]
-            types_transformed_data.append(transformed_row)
+            for row in types_data:
+                transformed_row = [row[1], row[2], f"{row[3]:.1f}", row[4] or "", row[0], light_orange]
+                types_transformed_data.append(transformed_row)
 
-        self.models["types"] = self._create_colored_table_model(types_transformed_data, self.table_config["types"][2])
-        self.tableView_exercise_types.setModel(self.models["types"])
+            self.models["types"] = self._create_colored_table_model(
+                types_transformed_data, self.table_config["types"][2]
+            )
+            self.tableView_exercise_types.setModel(self.models["types"])
 
-        # Load process table data with appropriate limit
-        self.load_process_table()
+            # Load process table data with appropriate limit
+            self.load_process_table()
 
-        # Refresh weight table (keeping original implementation)
-        self._refresh_table("weight", self.db_manager.get_all_weight_records)
+            # Refresh weight table (keeping original implementation)
+            self._refresh_table("weight", self.db_manager.get_all_weight_records)
 
-        # Configure weight table header - mixed approach: interactive + stretch last
-        weight_header = self.tableView_weight.horizontalHeader()
-        # Set first column to interactive (resizable)
-        weight_header.setSectionResizeMode(0, weight_header.ResizeMode.Interactive)
-        # Set last column to stretch to fill remaining space
-        weight_header.setSectionResizeMode(1, weight_header.ResizeMode.Stretch)
-        # Set default width for resizable column
-        self.tableView_weight.setColumnWidth(0, 100)  # Weight
-        # Date column will stretch automatically
+            # Configure weight table header - mixed approach: interactive + stretch last
+            weight_header = self.tableView_weight.horizontalHeader()
+            # Set first column to interactive (resizable)
+            weight_header.setSectionResizeMode(0, weight_header.ResizeMode.Interactive)
+            # Set last column to stretch to fill remaining space
+            weight_header.setSectionResizeMode(1, weight_header.ResizeMode.Stretch)
+            # Set default width for resizable column
+            self.tableView_weight.setColumnWidth(0, 100)  # Weight
+            # Date column will stretch automatically
 
-        # Configure exercises table header - mixed approach: interactive + stretch last
-        exercises_header = self.tableView_exercises.horizontalHeader()
-        # Set first columns to interactive (resizable)
-        for i in range(exercises_header.count() - 1):
-            exercises_header.setSectionResizeMode(i, exercises_header.ResizeMode.Interactive)
-        # Set last column to stretch to fill remaining space
-        exercises_header.setSectionResizeMode(exercises_header.count() - 1, exercises_header.ResizeMode.Stretch)
-        # Set default column widths for resizable columns
-        self.tableView_exercises.setColumnWidth(0, 200)  # Exercise name
-        self.tableView_exercises.setColumnWidth(1, 120)  # Unit
-        self.tableView_exercises.setColumnWidth(2, 100)  # Type Required
-        self.tableView_exercises.setColumnWidth(3, 120)  # Calories per Unit
-        # Local column will stretch automatically
+            # Configure exercises table header - mixed approach: interactive + stretch last
+            exercises_header = self.tableView_exercises.horizontalHeader()
+            # Set first columns to interactive (resizable)
+            for i in range(exercises_header.count() - 1):
+                exercises_header.setSectionResizeMode(i, exercises_header.ResizeMode.Interactive)
+            # Set last column to stretch to fill remaining space
+            exercises_header.setSectionResizeMode(exercises_header.count() - 1, exercises_header.ResizeMode.Stretch)
+            # Set default column widths for resizable columns
+            self.tableView_exercises.setColumnWidth(0, 200)  # Exercise name
+            self.tableView_exercises.setColumnWidth(1, 120)  # Unit
+            self.tableView_exercises.setColumnWidth(2, 100)  # Type Required
+            self.tableView_exercises.setColumnWidth(3, 120)  # Calories per Unit
+            # Local column will stretch automatically
 
-        # Configure exercise types table header - mixed approach: interactive + stretch last
-        exercise_types_header = self.tableView_exercise_types.horizontalHeader()
-        # Set first columns to interactive (resizable)
-        for i in range(exercise_types_header.count() - 1):
-            exercise_types_header.setSectionResizeMode(i, exercise_types_header.ResizeMode.Interactive)
-        # Set last column to stretch to fill remaining space
-        exercise_types_header.setSectionResizeMode(
-            exercise_types_header.count() - 1, exercise_types_header.ResizeMode.Stretch
-        )
-        # Set default column widths for resizable columns
-        self.tableView_exercise_types.setColumnWidth(0, 200)  # Exercise
-        self.tableView_exercise_types.setColumnWidth(1, 150)  # Exercise Type
-        self.tableView_exercise_types.setColumnWidth(2, 120)  # Calories Modifier
-        # Local column will stretch automatically
+            # Configure exercise types table header - mixed approach: interactive + stretch last
+            exercise_types_header = self.tableView_exercise_types.horizontalHeader()
+            # Set first columns to interactive (resizable)
+            for i in range(exercise_types_header.count() - 1):
+                exercise_types_header.setSectionResizeMode(i, exercise_types_header.ResizeMode.Interactive)
+            # Set last column to stretch to fill remaining space
+            exercise_types_header.setSectionResizeMode(
+                exercise_types_header.count() - 1, exercise_types_header.ResizeMode.Stretch
+            )
+            # Set default column widths for resizable columns
+            self.tableView_exercise_types.setColumnWidth(0, 200)  # Exercise
+            self.tableView_exercise_types.setColumnWidth(1, 150)  # Exercise Type
+            self.tableView_exercise_types.setColumnWidth(2, 120)  # Calories Modifier
+            # Local column will stretch automatically
 
-        # Connect selection change signals after models are set
-        self._connect_table_selection_signals()
+            # Connect selection change signals after models are set
+            self._connect_table_selection_signals()
 
-        # Connect auto-save signals after all models are created
-        self._connect_table_auto_save_signals()
+            # Connect auto-save signals after all models are created
+            self._connect_table_auto_save_signals()
 
-        # Update sets count for today
-        self.update_sets_count_today()
+            # Update sets count for today
+            self.update_sets_count_today()
 
-    except Exception as e:
-        logger.exception("Error showing tables")
-        message_box.warning(self, "Database Error", f"Failed to load tables: {e}")
+        except Exception as e:
+            logger.exception("Error showing tables")
+            message_box.warning(self, "Database Error", f"Failed to load tables: {e}")
 ```
 
 </details>
@@ -9770,65 +9809,65 @@ Refresh tables, list view and (optionally) dates.
 
 ```python
 def update_all(
-    self,
-    *,
-    is_skip_date_update: bool = False,
-    is_preserve_selections: bool = False,
-    current_exercise: str | None = None,
-    current_type: str | None = None,
-) -> None:
-    if not self._validate_database_connection():
-        logger.warning("Database connection not available for update_all")
-        return
+        self,
+        *,
+        is_skip_date_update: bool = False,
+        is_preserve_selections: bool = False,
+        current_exercise: str | None = None,
+        current_type: str | None = None,
+    ) -> None:
+        if not self._validate_database_connection():
+            logger.warning("Database connection not available for update_all")
+            return
 
-    # Reset show_all_records flag to default (show limited records)
-    self.show_all_records = False
-    self.pushButton_show_all_records.setText("📋 Show All Records")
+        # Reset show_all_records flag to default (show limited records)
+        self.show_all_records = False
+        self.pushButton_show_all_records.setText("📋 Show All Records")
 
-    if is_preserve_selections and current_exercise is None:
-        current_exercise = self._get_current_selected_exercise()
-        current_type = self.comboBox_type.currentText()
+        if is_preserve_selections and current_exercise is None:
+            current_exercise = self._get_current_selected_exercise()
+            current_type = self.comboBox_type.currentText()
 
-    self.show_tables()
+        self.show_tables()
 
-    if is_preserve_selections and current_exercise:
-        self._update_comboboxes(
-            selected_exercise=current_exercise,
-            selected_type=current_type,
-        )
-    else:
-        self._update_comboboxes()
+        if is_preserve_selections and current_exercise:
+            self._update_comboboxes(
+                selected_exercise=current_exercise,
+                selected_type=current_type,
+            )
+        else:
+            self._update_comboboxes()
 
-    if not is_skip_date_update:
-        self.set_today_date()
+        if not is_skip_date_update:
+            self.set_today_date()
 
-    self.update_filter_comboboxes()
+        self.update_filter_comboboxes()
 
-    # Update statistics exercise combobox if statistics tab is initialized
-    if hasattr(self, "_statistics_initialized"):
-        self.update_statistics_exercise_combobox()
+        # Update statistics exercise combobox if statistics tab is initialized
+        if hasattr(self, "_statistics_initialized"):
+            self.update_statistics_exercise_combobox()
 
-    # Clear the exercise addition form after updating
-    self.lineEdit_exercise_name.clear()
-    self.lineEdit_exercise_name_local.clear()
-    self.lineEdit_exercise_unit.clear()
-    self.check_box_is_type_required.setChecked(False)
-    self.doubleSpinBox_calories_per_unit.setValue(0.0)
+        # Clear the exercise addition form after updating
+        self.lineEdit_exercise_name.clear()
+        self.lineEdit_exercise_name_local.clear()
+        self.lineEdit_exercise_unit.clear()
+        self.check_box_is_type_required.setChecked(False)
+        self.doubleSpinBox_calories_per_unit.setValue(0.0)
 
-    # Clear the type addition form after updating
-    self.lineEdit_exercise_type.clear()
-    self.lineEdit_type_name_local.clear()
-    self.doubleSpinBox_calories_modifier.setValue(1.0)
+        # Clear the type addition form after updating
+        self.lineEdit_exercise_type.clear()
+        self.lineEdit_type_name_local.clear()
+        self.doubleSpinBox_calories_modifier.setValue(1.0)
 
-    # Load AVIF for the currently selected exercise
-    current_exercise_name = self._get_current_selected_exercise()
-    if isinstance(current_exercise_name, str):
-        self._load_exercise_avif(current_exercise_name, "main")
+        # Load AVIF for the currently selected exercise
+        current_exercise_name = self._get_current_selected_exercise()
+        if isinstance(current_exercise_name, str):
+            self._load_exercise_avif(current_exercise_name, "main")
 
-    # Update other AVIFs
-    self._update_exercises_avif()
-    self._update_types_avif()
-    self._update_charts_avif()
+        # Update other AVIFs
+        self._update_exercises_avif()
+        self._update_types_avif()
+        self._update_charts_avif()
 ```
 
 </details>
@@ -9846,52 +9885,52 @@ Update exercise and type list views for charts.
 
 ```python
 def update_chart_comboboxes(self) -> None:
-    if self.db_manager is None:
-        logger.error("❌ Database manager is not initialized")
-        return
+        if self.db_manager is None:
+            logger.error("❌ Database manager is not initialized")
+            return
 
-    try:
-        previous_exercise = self._get_selected_chart_exercise()
-        # Update exercise list view - sort by last execution date
-        exercises = self.db_manager.get_exercises_by_last_execution()
+        try:
+            previous_exercise = self._get_selected_chart_exercise()
+            # Update exercise list view - sort by last execution date
+            exercises = self.db_manager.get_exercises_by_last_execution()
 
-        # Create model for exercise list view
-        exercise_model = QStandardItemModel()
-        if exercises:
-            for exercise in exercises:
-                # Get today's goal info for this exercise
-                goal_info = self._get_exercise_today_goal_info(exercise)
+            # Create model for exercise list view
+            exercise_model = QStandardItemModel()
+            if exercises:
+                for exercise in exercises:
+                    # Get today's goal info for this exercise
+                    goal_info = self._get_exercise_today_goal_info(exercise)
 
-                # Create display text with goal info if available
-                display_text = f"{exercise} {goal_info}" if goal_info else exercise
-                item = QStandardItem(display_text)
+                    # Create display text with goal info if available
+                    display_text = f"{exercise} {goal_info}" if goal_info else exercise
+                    item = QStandardItem(display_text)
 
-                # Store original exercise name in item data for later retrieval
-                item.setData(exercise, Qt.UserRole)
-                exercise_model.appendRow(item)
+                    # Store original exercise name in item data for later retrieval
+                    item.setData(exercise, Qt.UserRole)
+                    exercise_model.appendRow(item)
 
-        self.listView_chart_exercise.setModel(exercise_model)
+            self.listView_chart_exercise.setModel(exercise_model)
 
-        # Connect signals after setting model (disconnect first to avoid duplicates)
-        selection_model = self.listView_chart_exercise.selectionModel()
-        if selection_model:
-            with contextlib.suppress(TypeError):
-                selection_model.currentChanged.disconnect()
-            selection_model.currentChanged.connect(self.update_chart_type_listview)
-            selection_model.currentChanged.connect(self.on_chart_exercise_changed)
+            # Connect signals after setting model (disconnect first to avoid duplicates)
+            selection_model = self.listView_chart_exercise.selectionModel()
+            if selection_model:
+                with contextlib.suppress(TypeError):
+                    selection_model.currentChanged.disconnect()
+                selection_model.currentChanged.connect(self.update_chart_type_listview)
+                selection_model.currentChanged.connect(self.on_chart_exercise_changed)
 
-        # Restore previous selection if possible, otherwise select the first item
-        if previous_exercise:
-            if not self._select_exercise_in_chart_list(previous_exercise) and exercise_model.rowCount() > 0:
+            # Restore previous selection if possible, otherwise select the first item
+            if previous_exercise:
+                if not self._select_exercise_in_chart_list(previous_exercise) and exercise_model.rowCount() > 0:
+                    self.listView_chart_exercise.setCurrentIndex(exercise_model.index(0, 0))
+            elif exercise_model.rowCount() > 0:
                 self.listView_chart_exercise.setCurrentIndex(exercise_model.index(0, 0))
-        elif exercise_model.rowCount() > 0:
-            self.listView_chart_exercise.setCurrentIndex(exercise_model.index(0, 0))
 
-        # Update type list view
-        self.update_chart_type_listview()
+            # Update type list view
+            self.update_chart_type_listview()
 
-    except Exception:
-        logger.exception("Error updating chart list views")
+        except Exception:
+            logger.exception("Error updating chart list views")
 ```
 
 </details>
@@ -9913,50 +9952,52 @@ Args:
 <summary>Code:</summary>
 
 ```python
-def update_chart_type_listview(self, current: QModelIndex | None = None, previous: QModelIndex | None = None) -> None:
-    # Avoid mutable or function call defaults; set to None and handle inside
-    if current is None:
-        current = QModelIndex()
-    if previous is None:
-        previous = QModelIndex()
+def update_chart_type_listview(
+        self, current: QModelIndex | None = None, previous: QModelIndex | None = None
+    ) -> None:
+        # Avoid mutable or function call defaults; set to None and handle inside
+        if current is None:
+            current = QModelIndex()
+        if previous is None:
+            previous = QModelIndex()
 
-    if self.db_manager is None:
-        logger.error("❌ Database manager is not initialized")
-        return
+        if self.db_manager is None:
+            logger.error("❌ Database manager is not initialized")
+            return
 
-    try:
-        # Create model for type list view
-        type_model = QStandardItemModel()
+        try:
+            # Create model for type list view
+            type_model = QStandardItemModel()
 
-        # Add "All types" option
-        all_types_item = QStandardItem("All types")
-        type_model.appendRow(all_types_item)
+            # Add "All types" option
+            all_types_item = QStandardItem("All types")
+            type_model.appendRow(all_types_item)
 
-        # Get selected exercise from list view
-        exercise = self._get_selected_chart_exercise()
-        if exercise:
-            ex_id = self.db_manager.get_id("exercises", "name", exercise)
-            if ex_id is not None:
-                types = self.db_manager.get_exercise_types(ex_id)
-                for type_name in types:
-                    item = QStandardItem(type_name)
-                    type_model.appendRow(item)
+            # Get selected exercise from list view
+            exercise = self._get_selected_chart_exercise()
+            if exercise:
+                ex_id = self.db_manager.get_id("exercises", "name", exercise)
+                if ex_id is not None:
+                    types = self.db_manager.get_exercise_types(ex_id)
+                    for type_name in types:
+                        item = QStandardItem(type_name)
+                        type_model.appendRow(item)
 
-        self.listView_chart_type.setModel(type_model)
+            self.listView_chart_type.setModel(type_model)
 
-        # Connect signals after setting model
-        selection_model = self.listView_chart_type.selectionModel()
-        if selection_model:
-            with contextlib.suppress(TypeError):
-                selection_model.currentChanged.disconnect()
-            selection_model.currentChanged.connect(self.on_chart_type_changed)
+            # Connect signals after setting model
+            selection_model = self.listView_chart_type.selectionModel()
+            if selection_model:
+                with contextlib.suppress(TypeError):
+                    selection_model.currentChanged.disconnect()
+                selection_model.currentChanged.connect(self.on_chart_type_changed)
 
-        # Select first item by default (All types)
-        if type_model.rowCount() > 0:
-            self.listView_chart_type.setCurrentIndex(type_model.index(0, 0))
+            # Select first item by default (All types)
+            if type_model.rowCount() > 0:
+                self.listView_chart_type.setCurrentIndex(type_model.index(0, 0))
 
-    except Exception:
-        logger.exception("Error updating chart type list view")
+        except Exception:
+            logger.exception("Error updating chart type list view")
 ```
 
 </details>
@@ -9974,110 +10015,110 @@ Update the exercise chart using database manager.
 
 ```python
 def update_exercise_chart(self) -> None:
-    exercise = self._get_selected_chart_exercise()
-    exercise_type = self._get_selected_chart_type()
-    period = self.comboBox_chart_period.currentText()
-    date_from = self.dateEdit_chart_from.date().toString("yyyy-MM-dd")
-    date_to = self.dateEdit_chart_to.date().toString("yyyy-MM-dd")
-    use_max_value = self.checkBox_max_value.isChecked()  # Check if max value mode is enabled
+        exercise = self._get_selected_chart_exercise()
+        exercise_type = self._get_selected_chart_type()
+        period = self.comboBox_chart_period.currentText()
+        date_from = self.dateEdit_chart_from.date().toString("yyyy-MM-dd")
+        date_to = self.dateEdit_chart_to.date().toString("yyyy-MM-dd")
+        use_max_value = self.checkBox_max_value.isChecked()  # Check if max value mode is enabled
 
-    if not exercise:
-        # Clear existing chart before showing no data message
-        self._clear_layout(self.verticalLayout_charts_content)
-        self._show_no_data_label(self.verticalLayout_charts_content, "Please select an exercise")
-        return
+        if not exercise:
+            # Clear existing chart before showing no data message
+            self._clear_layout(self.verticalLayout_charts_content)
+            self._show_no_data_label(self.verticalLayout_charts_content, "Please select an exercise")
+            return
 
-    if self.db_manager is None:
-        logger.error("❌ Database manager is not initialized")
-        return
+        if self.db_manager is None:
+            logger.error("❌ Database manager is not initialized")
+            return
 
-    # Get exercise unit for Y-axis label
-    exercise_unit = self.db_manager.get_exercise_unit(exercise)
+        # Get exercise unit for Y-axis label
+        exercise_unit = self.db_manager.get_exercise_unit(exercise)
 
-    # Get chart data using database manager
-    rows = self.db_manager.get_exercise_chart_data(
-        exercise_name=exercise,
-        exercise_type=exercise_type if exercise_type != "All types" else None,
-        date_from=date_from,
-        date_to=date_to,
-    )
+        # Get chart data using database manager
+        rows = self.db_manager.get_exercise_chart_data(
+            exercise_name=exercise,
+            exercise_type=exercise_type if exercise_type != "All types" else None,
+            date_from=date_from,
+            date_to=date_to,
+        )
 
-    # Convert to datetime objects for processing
-    datetime_data = []
-    for date_str, value_str in rows:
-        try:
-            date_obj = datetime.fromisoformat(date_str).replace(tzinfo=UTC)
-            value = float(value_str)
-            datetime_data.append((date_obj, value))
-        except (ValueError, TypeError):
-            continue
+        # Convert to datetime objects for processing
+        datetime_data = []
+        for date_str, value_str in rows:
+            try:
+                date_obj = datetime.fromisoformat(date_str).replace(tzinfo=UTC)
+                value = float(value_str)
+                datetime_data.append((date_obj, value))
+            except (ValueError, TypeError):
+                continue
 
-    # In update_exercise_chart, before every 'return' that indicates no data:
-    if not datetime_data:
-        self._clear_layout(self.verticalLayout_charts_content)
-        self._show_no_data_label(self.verticalLayout_charts_content, "No data found for the selected filters")
-        self._set_no_data_info_label("No data for the selected period.")
-        return
+        # In update_exercise_chart, before every 'return' that indicates no data:
+        if not datetime_data:
+            self._clear_layout(self.verticalLayout_charts_content)
+            self._show_no_data_label(self.verticalLayout_charts_content, "No data found for the selected filters")
+            self._set_no_data_info_label("No data for the selected period.")
+            return
 
-    # Group data by period with aggregation based on checkbox
-    if use_max_value:
-        grouped_data = self._group_data_by_period_with_max(rows, period, value_type="float")
-    else:
-        grouped_data = self._group_data_by_period(rows, period, value_type="float")
-
-    if not grouped_data:
-        # Clear existing chart before showing no data message
-        self._clear_layout(self.verticalLayout_charts_content)
-        self._show_no_data_label(self.verticalLayout_charts_content, "No data found for the selected period")
-        return
-
-    # Prepare chart data
-    chart_data = list(grouped_data.items())
-
-    # For exercise chart, respect the selected date range
-    # But don't extend beyond today
-    today = datetime.now(UTC).astimezone().strftime("%Y-%m-%d")
-    chart_date_from = date_from
-    chart_date_to = min(today, date_to)
-
-    # Build chart title with aggregation type
-    aggregation_type = "Max" if use_max_value else "Total"
-    chart_title = f"{exercise}"
-    if exercise_type and exercise_type != "All types":
-        chart_title += f" - {exercise_type}"
-    chart_title += f" ({aggregation_type}, {period})"
-
-    # Define custom statistics formatter for exercise with aggregation type
-    def format_exercise_stats(values: list) -> str:
-        min_val = min(values)
-        max_val = max(values)
-        avg_val = sum(values) / len(values)
-
+        # Group data by period with aggregation based on checkbox
         if use_max_value:
-            # For max values, don't show total (it doesn't make sense)
-            return f"Min: {min_val:.1f} | Max: {max_val:.1f} | Avg: {avg_val:.1f}"
-        # For sum values, show total
-        total_val = sum(values)
-        return f"Min: {min_val:.1f} | Max: {max_val:.1f} | Avg: {avg_val:.1f} | Total: {total_val:.1f}"
+            grouped_data = self._group_data_by_period_with_max(rows, period, value_type="float")
+        else:
+            grouped_data = self._group_data_by_period(rows, period, value_type="float")
 
-    # Create chart configuration
-    chart_config = {
-        "title": chart_title,
-        "xlabel": "Date",
-        "ylabel": f"{aggregation_type} value ({exercise_unit})" if exercise_unit else f"{aggregation_type} value",
-        "color": "blue",
-        "show_stats": True,
-        "period": period,
-        "stats_formatter": format_exercise_stats,
-        "fill_zero_periods": True,  # Enable zero filling
-        "date_from": chart_date_from,  # Use selected start date
-        "date_to": chart_date_to,  # Don't go beyond today
-    }
+        if not grouped_data:
+            # Clear existing chart before showing no data message
+            self._clear_layout(self.verticalLayout_charts_content)
+            self._show_no_data_label(self.verticalLayout_charts_content, "No data found for the selected period")
+            return
 
-    self._create_chart(self.verticalLayout_charts_content, chart_data, chart_config)
+        # Prepare chart data
+        chart_data = list(grouped_data.items())
 
-    # Add exercise recommendations to label_chart_info using the same method as compare_last
-    self._add_exercise_recommendations_to_label_for_standard_chart(exercise, exercise_type, exercise_unit)
+        # For exercise chart, respect the selected date range
+        # But don't extend beyond today
+        today = datetime.now(UTC).astimezone().strftime("%Y-%m-%d")
+        chart_date_from = date_from
+        chart_date_to = min(today, date_to)
+
+        # Build chart title with aggregation type
+        aggregation_type = "Max" if use_max_value else "Total"
+        chart_title = f"{exercise}"
+        if exercise_type and exercise_type != "All types":
+            chart_title += f" - {exercise_type}"
+        chart_title += f" ({aggregation_type}, {period})"
+
+        # Define custom statistics formatter for exercise with aggregation type
+        def format_exercise_stats(values: list) -> str:
+            min_val = min(values)
+            max_val = max(values)
+            avg_val = sum(values) / len(values)
+
+            if use_max_value:
+                # For max values, don't show total (it doesn't make sense)
+                return f"Min: {min_val:.1f} | Max: {max_val:.1f} | Avg: {avg_val:.1f}"
+            # For sum values, show total
+            total_val = sum(values)
+            return f"Min: {min_val:.1f} | Max: {max_val:.1f} | Avg: {avg_val:.1f} | Total: {total_val:.1f}"
+
+        # Create chart configuration
+        chart_config = {
+            "title": chart_title,
+            "xlabel": "Date",
+            "ylabel": f"{aggregation_type} value ({exercise_unit})" if exercise_unit else f"{aggregation_type} value",
+            "color": "blue",
+            "show_stats": True,
+            "period": period,
+            "stats_formatter": format_exercise_stats,
+            "fill_zero_periods": True,  # Enable zero filling
+            "date_from": chart_date_from,  # Use selected start date
+            "date_to": chart_date_to,  # Don't go beyond today
+        }
+
+        self._create_chart(self.verticalLayout_charts_content, chart_data, chart_config)
+
+        # Add exercise recommendations to label_chart_info using the same method as compare_last
+        self._add_exercise_recommendations_to_label_for_standard_chart(exercise, exercise_type, exercise_unit)
 ```
 
 </details>
@@ -10099,28 +10140,28 @@ selections.
 
 ```python
 def update_filter_comboboxes(self) -> None:
-    if self.db_manager is None:
-        logger.error("❌ Database manager is not initialized")
-        return
+        if self.db_manager is None:
+            logger.error("❌ Database manager is not initialized")
+            return
 
-    try:
-        current_exercise = self.comboBox_filter_exercise.currentText()
+        try:
+            current_exercise = self.comboBox_filter_exercise.currentText()
 
-        self.comboBox_filter_exercise.blockSignals(True)  # noqa: FBT003
-        self.comboBox_filter_exercise.clear()
-        self.comboBox_filter_exercise.addItem("")  # all exercises
-        exercises = self.db_manager.get_exercises_by_frequency(500)
-        self.comboBox_filter_exercise.addItems(exercises)
-        if current_exercise:
-            idx = self.comboBox_filter_exercise.findText(current_exercise)
-            if idx >= 0:
-                self.comboBox_filter_exercise.setCurrentIndex(idx)
-        self.comboBox_filter_exercise.blockSignals(False)  # noqa: FBT003
+            self.comboBox_filter_exercise.blockSignals(True)  # noqa: FBT003
+            self.comboBox_filter_exercise.clear()
+            self.comboBox_filter_exercise.addItem("")  # all exercises
+            exercises = self.db_manager.get_exercises_by_frequency(500)
+            self.comboBox_filter_exercise.addItems(exercises)
+            if current_exercise:
+                idx = self.comboBox_filter_exercise.findText(current_exercise)
+                if idx >= 0:
+                    self.comboBox_filter_exercise.setCurrentIndex(idx)
+            self.comboBox_filter_exercise.blockSignals(False)  # noqa: FBT003
 
-        self.update_filter_type_combobox()
+            self.update_filter_type_combobox()
 
-    except Exception:
-        logger.exception("Error updating filter comboboxes")
+        except Exception:
+            logger.exception("Error updating filter comboboxes")
 ```
 
 </details>
@@ -10146,29 +10187,29 @@ Args:
 
 ```python
 def update_filter_type_combobox(self, _index: int = -1) -> None:
-    if self.db_manager is None:
-        logger.error("❌ Database manager is not initialized")
-        return
+        if self.db_manager is None:
+            logger.error("❌ Database manager is not initialized")
+            return
 
-    try:
-        current_type = self.comboBox_filter_type.currentText()
-        self.comboBox_filter_type.clear()
-        self.comboBox_filter_type.addItem("")
+        try:
+            current_type = self.comboBox_filter_type.currentText()
+            self.comboBox_filter_type.clear()
+            self.comboBox_filter_type.addItem("")
 
-        exercise = self.comboBox_filter_exercise.currentText()
-        if exercise:
-            ex_id = self.db_manager.get_id("exercises", "name", exercise)
-            if ex_id is not None:
-                types = self.db_manager.get_exercise_types(ex_id)
-                self.comboBox_filter_type.addItems(types)
+            exercise = self.comboBox_filter_exercise.currentText()
+            if exercise:
+                ex_id = self.db_manager.get_id("exercises", "name", exercise)
+                if ex_id is not None:
+                    types = self.db_manager.get_exercise_types(ex_id)
+                    self.comboBox_filter_type.addItems(types)
 
-        if current_type:
-            idx = self.comboBox_filter_type.findText(current_type)
-            if idx >= 0:
-                self.comboBox_filter_type.setCurrentIndex(idx)
+            if current_type:
+                idx = self.comboBox_filter_type.findText(current_type)
+                if idx >= 0:
+                    self.comboBox_filter_type.setCurrentIndex(idx)
 
-    except Exception:
-        logger.exception("Error updating filter type combobox")
+        except Exception:
+            logger.exception("Error updating filter type combobox")
 ```
 
 </details>
@@ -10186,20 +10227,20 @@ Update the label showing count of sets done today.
 
 ```python
 def update_sets_count_today(self) -> None:
-    if self.db_manager is None:
-        logger.error("❌ Database manager is not initialized")
-        return
+        if self.db_manager is None:
+            logger.error("❌ Database manager is not initialized")
+            return
 
-    if not self._validate_database_connection():
-        self.label_count_sets_today.setText("0")
-        return
+        if not self._validate_database_connection():
+            self.label_count_sets_today.setText("0")
+            return
 
-    try:
-        count = self.db_manager.get_sets_count_today()
-        self.label_count_sets_today.setText(str(count))
-    except Exception:
-        logger.exception("Error getting sets count for today")
-        self.label_count_sets_today.setText("0")
+        try:
+            count = self.db_manager.get_sets_count_today()
+            self.label_count_sets_today.setText(str(count))
+        except Exception:
+            logger.exception("Error getting sets count for today")
+            self.label_count_sets_today.setText("0")
 ```
 
 </details>
@@ -10221,36 +10262,36 @@ Args:
 
 ```python
 def update_statistics_exercise_combobox(self, _index: int = -1) -> None:
-    if self.db_manager is None:
-        logger.error("❌ Database manager is not initialized")
-        return
+        if self.db_manager is None:
+            logger.error("❌ Database manager is not initialized")
+            return
 
-    try:
-        # Get exercises sorted by frequency
-        exercises = self.db_manager.get_exercises_by_frequency(500)
+        try:
+            # Get exercises sorted by frequency
+            exercises = self.db_manager.get_exercises_by_frequency(500)
 
-        # Block signals during update
-        self.comboBox_records_select_exercise.blockSignals(True)  # noqa: FBT003
+            # Block signals during update
+            self.comboBox_records_select_exercise.blockSignals(True)  # noqa: FBT003
 
-        # Store current selection
-        current_exercise = self.comboBox_records_select_exercise.currentText()
+            # Store current selection
+            current_exercise = self.comboBox_records_select_exercise.currentText()
 
-        # Clear and populate combobox
-        self.comboBox_records_select_exercise.clear()
-        self.comboBox_records_select_exercise.addItem("")  # Empty option for all exercises
-        self.comboBox_records_select_exercise.addItems(exercises)
+            # Clear and populate combobox
+            self.comboBox_records_select_exercise.clear()
+            self.comboBox_records_select_exercise.addItem("")  # Empty option for all exercises
+            self.comboBox_records_select_exercise.addItems(exercises)
 
-        # Restore selection if it still exists
-        if current_exercise:
-            index = self.comboBox_records_select_exercise.findText(current_exercise)
-            if index >= 0:
-                self.comboBox_records_select_exercise.setCurrentIndex(index)
+            # Restore selection if it still exists
+            if current_exercise:
+                index = self.comboBox_records_select_exercise.findText(current_exercise)
+                if index >= 0:
+                    self.comboBox_records_select_exercise.setCurrentIndex(index)
 
-        # Unblock signals
-        self.comboBox_records_select_exercise.blockSignals(False)  # noqa: FBT003
+            # Unblock signals
+            self.comboBox_records_select_exercise.blockSignals(False)  # noqa: FBT003
 
-    except Exception:
-        logger.exception("Error updating statistics exercise combobox")
+        except Exception:
+            logger.exception("Error updating statistics exercise combobox")
 ```
 
 </details>
@@ -10268,158 +10309,158 @@ Update the weight chart using database manager.
 
 ```python
 def update_weight_chart(self) -> None:
-    if self.db_manager is None:
-        logger.error("❌ Database manager is not initialized")
-        return
+        if self.db_manager is None:
+            logger.error("❌ Database manager is not initialized")
+            return
 
-    date_from = self.dateEdit_weight_from.date().toString("yyyy-MM-dd")
-    date_to = self.dateEdit_weight_to.date().toString("yyyy-MM-dd")
+        date_from = self.dateEdit_weight_from.date().toString("yyyy-MM-dd")
+        date_to = self.dateEdit_weight_to.date().toString("yyyy-MM-dd")
 
-    # Get weight data using database manager
-    rows = self.db_manager.get_weight_chart_data(date_from, date_to)
+        # Get weight data using database manager
+        rows = self.db_manager.get_weight_chart_data(date_from, date_to)
 
-    if not rows:
-        self._show_no_data_label(
-            self.verticalLayout_weight_chart_content, "No weight data found for the selected period"
-        )
-        return
+        if not rows:
+            self._show_no_data_label(
+                self.verticalLayout_weight_chart_content, "No weight data found for the selected period"
+            )
+            return
 
-    # Parse data - convert to datetime objects for chart
-    chart_data = [(datetime.fromisoformat(row[1]).replace(tzinfo=UTC), row[0]) for row in rows]
+        # Parse data - convert to datetime objects for chart
+        chart_data = [(datetime.fromisoformat(row[1]).replace(tzinfo=UTC), row[0]) for row in rows]
 
-    # Define custom statistics formatter for weight
-    def format_weight_stats(values: list) -> str:
-        min_weight = min(values)
-        max_weight = max(values)
-        avg_weight = sum(values) / len(values)
-        weight_change = values[-1] - values[0] if len(values) > 1 else 0
+        # Define custom statistics formatter for weight
+        def format_weight_stats(values: list) -> str:
+            min_weight = min(values)
+            max_weight = max(values)
+            avg_weight = sum(values) / len(values)
+            weight_change = values[-1] - values[0] if len(values) > 1 else 0
 
-        return (
-            f"Min: {min_weight:.1f} kg | Max: {max_weight:.1f} kg | "
-            f"Avg: {avg_weight:.1f} kg | Change: {weight_change:+.1f} kg"
-        )
-
-    # Create chart configuration
-    chart_config = {
-        "title": "Weight Progress",
-        "xlabel": "Date",
-        "ylabel": "Weight (kg)",
-        "color": "blue",
-        "show_stats": True,
-        "stats_unit": "kg",
-        "period": "Days",  # Weight chart always shows days
-        "stats_formatter": format_weight_stats,
-    }
-
-    # Clear existing chart and create new one
-    self._clear_layout(self.verticalLayout_weight_chart_content)
-
-    # Create matplotlib figure with custom Y-axis formatting
-    fig = Figure(figsize=(12, 6), dpi=100)
-    canvas = FigureCanvas(fig)
-    ax = fig.add_subplot(111)
-
-    # Extract data
-    x_values = [item[0] for item in chart_data]
-    y_values = [item[1] for item in chart_data]
-
-    # Plot data
-    self._plot_data(ax, x_values, y_values, str(chart_config.get("color", "b")), period="Days")
-
-    # Add horizontal line for current weight (last weight value)
-    if y_values:
-        current_weight = y_values[-1]
-        ax.axhline(y=current_weight, color="red", linestyle="-", linewidth=1, alpha=0.7)
-
-        # Find all intersection points with the horizontal line
-        tolerance = 0.01  # 0.01 kg tolerance for exact matches
-        intersections = []  # List of (x_date, y_weight) tuples for all intersections
-
-        # 1. Find exact matches (points where weight equals current weight within tolerance)
-        for x_date, y_weight in zip(x_values, y_values, strict=True):
-            if abs(y_weight - current_weight) <= tolerance:
-                intersections.append((x_date, y_weight))
-
-        # 2. Find intersections between consecutive data points
-        # where the line segment crosses the horizontal line
-        for i in range(len(x_values) - 1):
-            y1 = y_values[i]
-            y2 = y_values[i + 1]
-            x1 = x_values[i]
-            x2 = x_values[i + 1]
-
-            # Check if the line segment crosses the horizontal line
-            # (one point above, one below, or vice versa)
-            # Calculate intersection point using linear interpolation
-            # Skip if already added as exact match (within tolerance)
-            if (
-                (y1 - current_weight) * (y2 - current_weight) < 0
-                and abs(y1 - current_weight) > tolerance
-                and abs(y2 - current_weight) > tolerance
-            ):
-                # Linear interpolation: t = (current_weight - y1) / (y2 - y1)
-                t = (current_weight - y1) / (y2 - y1)
-                # Interpolate date using timedelta (datetime + timedelta * float works)
-                intersection_date = x1 + (x2 - x1) * t
-                intersections.append((intersection_date, current_weight))
-        # Filter intersections to show only one point per 5-day window
-        filtered_intersections = []
-        if intersections:
-            # Sort intersections by date
-            sorted_intersections = sorted(intersections, key=lambda x: x[0])
-
-            # Start with the first point
-            filtered_intersections.append(sorted_intersections[0])
-            last_date = sorted_intersections[0][0]
-
-            # Keep only points that are at least min_interval days apart
-            min_interval = timedelta(days=30)
-            for x_date, y_weight in sorted_intersections[1:]:
-                if x_date - last_date >= min_interval:
-                    filtered_intersections.append((x_date, y_weight))
-                    last_date = x_date
-
-        # Annotate filtered intersection points
-        for x_date, y_weight in filtered_intersections:
-            # Format date as YYYY-MM-DD
-            date_str = x_date.strftime("%Y-%m-%d")
-            # Annotate the intersection point using date2num for consistency
-            ax.annotate(
-                date_str,
-                (date2num(x_date), y_weight),
-                textcoords="offset points",
-                xytext=(0, -15),  # Position text below the point
-                ha="right",
-                va="top",
-                fontsize=8,
-                alpha=0.8,
-                color="red",
-                rotation=90,  # Vertical text
+            return (
+                f"Min: {min_weight:.1f} kg | Max: {max_weight:.1f} kg | "
+                f"Avg: {avg_weight:.1f} kg | Change: {weight_change:+.1f} kg"
             )
 
-    # Customize plot
-    ax.set_xlabel(str(chart_config.get("xlabel", "X")), fontsize=12)
-    ax.set_ylabel(str(chart_config.get("ylabel", "Y")), fontsize=12)
-    ax.set_title(str(chart_config.get("title", "Chart")), fontsize=14, fontweight="bold")
-    ax.grid(visible=True, alpha=0.3)
+        # Create chart configuration
+        chart_config = {
+            "title": "Weight Progress",
+            "xlabel": "Date",
+            "ylabel": "Weight (kg)",
+            "color": "blue",
+            "show_stats": True,
+            "stats_unit": "kg",
+            "period": "Days",  # Weight chart always shows days
+            "stats_formatter": format_weight_stats,
+        }
 
-    # Add more detailed Y-axis grid for weight chart
-    ax.yaxis.set_major_locator(MultipleLocator(1))  # Major divisions every 1 kg
-    ax.yaxis.set_minor_locator(MultipleLocator(0.5))  # Minor divisions every 0.5 kg
-    ax.grid(visible=True, which="major", alpha=0.3)  # Major grid
-    ax.grid(visible=True, which="minor", alpha=0.1)  # Minor grid (more transparent)
+        # Clear existing chart and create new one
+        self._clear_layout(self.verticalLayout_weight_chart_content)
 
-    # Format x-axis dates
-    self._format_chart_x_axis(ax, x_values, "Days")
+        # Create matplotlib figure with custom Y-axis formatting
+        fig = Figure(figsize=(12, 6), dpi=100)
+        canvas = FigureCanvas(fig)
+        ax = fig.add_subplot(111)
 
-    # Add statistics
-    if len(y_values) > 1:
-        stats_text = format_weight_stats(y_values)
-        self._add_stats_box(ax, stats_text)
+        # Extract data
+        x_values = [item[0] for item in chart_data]
+        y_values = [item[1] for item in chart_data]
 
-    fig.tight_layout()
-    self.verticalLayout_weight_chart_content.addWidget(canvas)
-    canvas.draw()
+        # Plot data
+        self._plot_data(ax, x_values, y_values, str(chart_config.get("color", "b")), period="Days")
+
+        # Add horizontal line for current weight (last weight value)
+        if y_values:
+            current_weight = y_values[-1]
+            ax.axhline(y=current_weight, color="red", linestyle="-", linewidth=1, alpha=0.7)
+
+            # Find all intersection points with the horizontal line
+            tolerance = 0.01  # 0.01 kg tolerance for exact matches
+            intersections = []  # List of (x_date, y_weight) tuples for all intersections
+
+            # 1. Find exact matches (points where weight equals current weight within tolerance)
+            for x_date, y_weight in zip(x_values, y_values, strict=True):
+                if abs(y_weight - current_weight) <= tolerance:
+                    intersections.append((x_date, y_weight))
+
+            # 2. Find intersections between consecutive data points
+            # where the line segment crosses the horizontal line
+            for i in range(len(x_values) - 1):
+                y1 = y_values[i]
+                y2 = y_values[i + 1]
+                x1 = x_values[i]
+                x2 = x_values[i + 1]
+
+                # Check if the line segment crosses the horizontal line
+                # (one point above, one below, or vice versa)
+                # Calculate intersection point using linear interpolation
+                # Skip if already added as exact match (within tolerance)
+                if (
+                    (y1 - current_weight) * (y2 - current_weight) < 0
+                    and abs(y1 - current_weight) > tolerance
+                    and abs(y2 - current_weight) > tolerance
+                ):
+                    # Linear interpolation: t = (current_weight - y1) / (y2 - y1)
+                    t = (current_weight - y1) / (y2 - y1)
+                    # Interpolate date using timedelta (datetime + timedelta * float works)
+                    intersection_date = x1 + (x2 - x1) * t
+                    intersections.append((intersection_date, current_weight))
+            # Filter intersections to show only one point per 5-day window
+            filtered_intersections = []
+            if intersections:
+                # Sort intersections by date
+                sorted_intersections = sorted(intersections, key=lambda x: x[0])
+
+                # Start with the first point
+                filtered_intersections.append(sorted_intersections[0])
+                last_date = sorted_intersections[0][0]
+
+                # Keep only points that are at least min_interval days apart
+                min_interval = timedelta(days=30)
+                for x_date, y_weight in sorted_intersections[1:]:
+                    if x_date - last_date >= min_interval:
+                        filtered_intersections.append((x_date, y_weight))
+                        last_date = x_date
+
+            # Annotate filtered intersection points
+            for x_date, y_weight in filtered_intersections:
+                # Format date as YYYY-MM-DD
+                date_str = x_date.strftime("%Y-%m-%d")
+                # Annotate the intersection point using date2num for consistency
+                ax.annotate(
+                    date_str,
+                    (date2num(x_date), y_weight),
+                    textcoords="offset points",
+                    xytext=(0, -15),  # Position text below the point
+                    ha="right",
+                    va="top",
+                    fontsize=8,
+                    alpha=0.8,
+                    color="red",
+                    rotation=90,  # Vertical text
+                )
+
+        # Customize plot
+        ax.set_xlabel(str(chart_config.get("xlabel", "X")), fontsize=12)
+        ax.set_ylabel(str(chart_config.get("ylabel", "Y")), fontsize=12)
+        ax.set_title(str(chart_config.get("title", "Chart")), fontsize=14, fontweight="bold")
+        ax.grid(visible=True, alpha=0.3)
+
+        # Add more detailed Y-axis grid for weight chart
+        ax.yaxis.set_major_locator(MultipleLocator(1))  # Major divisions every 1 kg
+        ax.yaxis.set_minor_locator(MultipleLocator(0.5))  # Minor divisions every 0.5 kg
+        ax.grid(visible=True, which="major", alpha=0.3)  # Major grid
+        ax.grid(visible=True, which="minor", alpha=0.1)  # Minor grid (more transparent)
+
+        # Format x-axis dates
+        self._format_chart_x_axis(ax, x_values, "Days")
+
+        # Add statistics
+        if len(y_values) > 1:
+            stats_text = format_weight_stats(y_values)
+            self._add_stats_box(ax, stats_text)
+
+        fig.tight_layout()
+        self.verticalLayout_weight_chart_content.addWidget(canvas)
+        canvas.draw()
 ```
 
 </details>

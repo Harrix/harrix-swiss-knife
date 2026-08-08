@@ -37,6 +37,7 @@ Known keys for AVIF label slots.
 
 ```python
 class AvifLabelKey(StrEnum):
+
     MAIN = "main"
     EXERCISES = "exercises"
     TYPES = "types"
@@ -73,6 +74,7 @@ Attributes:
 
 ```python
 class AvifManager:
+
     def __init__(self, avif_dir: Path | str) -> None:
         """Initialize the AVIF manager.
 
@@ -413,25 +415,25 @@ Args:
 
 ```python
 def __init__(self, avif_dir: Path | str) -> None:
-    self.avif_dir = Path(avif_dir)
-    self.avif_data: dict[AvifLabelKey, dict] = {
-        AvifLabelKey.MAIN: {"frames": [], "current_frame": 0, "timer": None, "exercise": None},
-        AvifLabelKey.EXERCISES: {"frames": [], "current_frame": 0, "timer": None, "exercise": None},
-        AvifLabelKey.TYPES: {"frames": [], "current_frame": 0, "timer": None, "exercise": None},
-        AvifLabelKey.CHARTS: {"frames": [], "current_frame": 0, "timer": None, "exercise": None},
-        AvifLabelKey.STATISTICS: {"frames": [], "current_frame": 0, "timer": None, "exercise": None},
-        AvifLabelKey.DIALOG_PREVIEW: {"frames": [], "current_frame": 0, "timer": None, "exercise": None},
-        AvifLabelKey.LIST_HOVER: {"frames": [], "current_frame": 0, "timer": None, "exercise": None},
-    }
-    self.label_widgets: dict[AvifLabelKey, QLabel | None] = {
-        AvifLabelKey.MAIN: None,
-        AvifLabelKey.EXERCISES: None,
-        AvifLabelKey.TYPES: None,
-        AvifLabelKey.CHARTS: None,
-        AvifLabelKey.STATISTICS: None,
-        AvifLabelKey.DIALOG_PREVIEW: None,
-        AvifLabelKey.LIST_HOVER: None,
-    }
+        self.avif_dir = Path(avif_dir)
+        self.avif_data: dict[AvifLabelKey, dict] = {
+            AvifLabelKey.MAIN: {"frames": [], "current_frame": 0, "timer": None, "exercise": None},
+            AvifLabelKey.EXERCISES: {"frames": [], "current_frame": 0, "timer": None, "exercise": None},
+            AvifLabelKey.TYPES: {"frames": [], "current_frame": 0, "timer": None, "exercise": None},
+            AvifLabelKey.CHARTS: {"frames": [], "current_frame": 0, "timer": None, "exercise": None},
+            AvifLabelKey.STATISTICS: {"frames": [], "current_frame": 0, "timer": None, "exercise": None},
+            AvifLabelKey.DIALOG_PREVIEW: {"frames": [], "current_frame": 0, "timer": None, "exercise": None},
+            AvifLabelKey.LIST_HOVER: {"frames": [], "current_frame": 0, "timer": None, "exercise": None},
+        }
+        self.label_widgets: dict[AvifLabelKey, QLabel | None] = {
+            AvifLabelKey.MAIN: None,
+            AvifLabelKey.EXERCISES: None,
+            AvifLabelKey.TYPES: None,
+            AvifLabelKey.CHARTS: None,
+            AvifLabelKey.STATISTICS: None,
+            AvifLabelKey.DIALOG_PREVIEW: None,
+            AvifLabelKey.LIST_HOVER: None,
+        }
 ```
 
 </details>
@@ -457,15 +459,15 @@ Returns:
 
 ```python
 def delete_exercise_avif(self, exercise_name: str) -> bool:
-    avif_path = self.get_exercise_avif_path(exercise_name)
-    if avif_path is None:
-        return False
-    try:
-        avif_path.unlink()
-    except OSError:
-        logger.exception("Failed to delete exercise AVIF %s", avif_path)
-        return False
-    return True
+        avif_path = self.get_exercise_avif_path(exercise_name)
+        if avif_path is None:
+            return False
+        try:
+            avif_path.unlink()
+        except OSError:
+            logger.exception("Failed to delete exercise AVIF %s", avif_path)
+            return False
+        return True
 ```
 
 </details>
@@ -491,8 +493,8 @@ Returns:
 
 ```python
 def get_current_exercise(self, label_key: str | AvifLabelKey) -> str | None:
-    key = self._normalize_label_key(label_key)
-    return self.avif_data.get(key, {}).get("exercise")
+        key = self._normalize_label_key(label_key)
+        return self.avif_data.get(key, {}).get("exercise")
 ```
 
 </details>
@@ -518,11 +520,11 @@ Returns:
 
 ```python
 def get_exercise_avif_path(self, exercise_name: str) -> Path | None:
-    if not exercise_name:
-        return None
+        if not exercise_name:
+            return None
 
-    avif_path = self.avif_dir / f"{exercise_name}.avif"
-    return avif_path if avif_path.exists() else None
+        avif_path = self.avif_dir / f"{exercise_name}.avif"
+        return avif_path if avif_path.exists() else None
 ```
 
 </details>
@@ -548,7 +550,7 @@ Returns:
 
 ```python
 def load_avif_pixmap(self, avif_path: Path) -> QPixmap | None:
-    return load_image_pixmap(avif_path)
+        return load_image_pixmap(avif_path)
 ```
 
 </details>
@@ -573,121 +575,121 @@ Args:
 
 ```python
 def load_exercise_avif(
-    self,
-    exercise_name: str,
-    label_widget: QLabel,
-    label_key: str | AvifLabelKey = AvifLabelKey.MAIN,
-) -> None:
-    key = self._normalize_label_key(label_key)
-    # Get reference to data dict for this label (create if doesn't exist)
-    if key not in self.avif_data:
-        self.avif_data[key] = {"frames": [], "current_frame": 0, "timer": None, "exercise": None}
-    data = self.avif_data[key]
+        self,
+        exercise_name: str,
+        label_widget: QLabel,
+        label_key: str | AvifLabelKey = AvifLabelKey.MAIN,
+    ) -> None:
+        key = self._normalize_label_key(label_key)
+        # Get reference to data dict for this label (create if doesn't exist)
+        if key not in self.avif_data:
+            self.avif_data[key] = {"frames": [], "current_frame": 0, "timer": None, "exercise": None}
+        data = self.avif_data[key]
 
-    # Stop current animation if exists
-    timer = data["timer"]
-    if timer is not None and isinstance(timer, QTimer):
-        timer.stop()
-        data["timer"] = None
+        # Stop current animation if exists
+        timer = data["timer"]
+        if timer is not None and isinstance(timer, QTimer):
+            timer.stop()
+            data["timer"] = None
 
-    data["frames"] = []
-    data["current_frame"] = 0
-    data["exercise"] = exercise_name
+        data["frames"] = []
+        data["current_frame"] = 0
+        data["exercise"] = exercise_name
 
-    # Clear label and reset alignment
-    # Store label widget for this key (create dict entry if needed)
-    if key not in self.label_widgets:
-        self.label_widgets[key] = None
-    self.label_widgets[key] = label_widget
+        # Clear label and reset alignment
+        # Store label widget for this key (create dict entry if needed)
+        if key not in self.label_widgets:
+            self.label_widgets[key] = None
+        self.label_widgets[key] = label_widget
 
-    label_widget.clear()
-    label_widget.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        label_widget.clear()
+        label_widget.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-    if not exercise_name:
-        label_widget.setText("No exercise selected")
-        return
-
-    # Get path to AVIF
-    avif_path = self.get_exercise_avif_path(exercise_name)
-
-    if avif_path is None:
-        label_widget.setText(f"No AVIF found for:\n{exercise_name}")
-        return
-
-    try:
-        # Try Qt native first
-        pixmap = QPixmap(str(avif_path))
-
-        if not pixmap.isNull():
-            label_size = label_widget.size()
-            scaled_pixmap = pixmap.scaled(
-                label_size, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation
-            )
-            label_widget.setPixmap(scaled_pixmap)
+        if not exercise_name:
+            label_widget.setText("No exercise selected")
             return
 
-        # Fallback to Pillow with AVIF plugin for animation
+        # Get path to AVIF
+        avif_path = self.get_exercise_avif_path(exercise_name)
+
+        if avif_path is None:
+            label_widget.setText(f"No AVIF found for:\n{exercise_name}")
+            return
+
         try:
-            import pillow_avif  # noqa: F401, PLC0415
+            # Try Qt native first
+            pixmap = QPixmap(str(avif_path))
 
-            # Open with Pillow (ensure file handle closed on exceptions)
-            with Image.open(avif_path) as pil_image:
-                # Handle animated AVIF
-                if getattr(pil_image, "is_animated", False):
-                    # Extract all frames
-                    frames: list[QPixmap] = []
-                    label_size = label_widget.size()
+            if not pixmap.isNull():
+                label_size = label_widget.size()
+                scaled_pixmap = pixmap.scaled(
+                    label_size, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation
+                )
+                label_widget.setPixmap(scaled_pixmap)
+                return
 
-                    for frame_index in range(getattr(pil_image, "n_frames", 1)):
-                        pil_image.seek(frame_index)
+            # Fallback to Pillow with AVIF plugin for animation
+            try:
+                import pillow_avif  # noqa: F401, PLC0415
 
-                        # Create a copy of the frame
-                        frame = pil_image.copy()
+                # Open with Pillow (ensure file handle closed on exceptions)
+                with Image.open(avif_path) as pil_image:
+                    # Handle animated AVIF
+                    if getattr(pil_image, "is_animated", False):
+                        # Extract all frames
+                        frames: list[QPixmap] = []
+                        label_size = label_widget.size()
+
+                        for frame_index in range(getattr(pil_image, "n_frames", 1)):
+                            pil_image.seek(frame_index)
+
+                            # Create a copy of the frame
+                            frame = pil_image.copy()
+                            scaled_pixmap = self._pil_frame_to_pixmap(frame, label_size=label_size)
+                            if scaled_pixmap is not None and not scaled_pixmap.isNull():
+                                frames.append(scaled_pixmap)
+
+                        if frames:
+                            # Store frames in data dict
+                            data["frames"] = frames
+
+                            # Show first frame
+                            label_widget.setPixmap(frames[0])
+
+                            # Start animation timer
+                            new_timer = QTimer()
+                            new_timer.timeout.connect(lambda: self._next_avif_frame(key))
+                            data["timer"] = new_timer
+
+                            # Get frame duration (default 100ms if not available)
+                            try:
+                                duration = pil_image.info.get("duration", 100)
+                            except Exception:
+                                duration = 100
+
+                            new_timer.start(duration)
+                            return
+                    else:
+                        # Static image
+                        frame = pil_image
+                        label_size = label_widget.size()
                         scaled_pixmap = self._pil_frame_to_pixmap(frame, label_size=label_size)
                         if scaled_pixmap is not None and not scaled_pixmap.isNull():
-                            frames.append(scaled_pixmap)
+                            label_widget.setPixmap(scaled_pixmap)
+                            return
 
-                    if frames:
-                        # Store frames in data dict
-                        data["frames"] = frames
+            except ImportError as import_error:
+                logger.warning("AVIF plugin import error: %s", import_error)
+                label_widget.setText(f"AVIF plugin not available:\n{exercise_name}")
+                return
+            except Exception:
+                logger.exception("Pillow error while loading AVIF %s", avif_path)
 
-                        # Show first frame
-                        label_widget.setPixmap(frames[0])
+            label_widget.setText(f"Cannot load AVIF:\n{exercise_name}")
 
-                        # Start animation timer
-                        new_timer = QTimer()
-                        new_timer.timeout.connect(lambda: self._next_avif_frame(key))
-                        data["timer"] = new_timer
-
-                        # Get frame duration (default 100ms if not available)
-                        try:
-                            duration = pil_image.info.get("duration", 100)
-                        except Exception:
-                            duration = 100
-
-                        new_timer.start(duration)
-                        return
-                else:
-                    # Static image
-                    frame = pil_image
-                    label_size = label_widget.size()
-                    scaled_pixmap = self._pil_frame_to_pixmap(frame, label_size=label_size)
-                    if scaled_pixmap is not None and not scaled_pixmap.isNull():
-                        label_widget.setPixmap(scaled_pixmap)
-                        return
-
-        except ImportError as import_error:
-            logger.warning("AVIF plugin import error: %s", import_error)
-            label_widget.setText(f"AVIF plugin not available:\n{exercise_name}")
-            return
-        except Exception:
-            logger.exception("Pillow error while loading AVIF %s", avif_path)
-
-        label_widget.setText(f"Cannot load AVIF:\n{exercise_name}")
-
-    except Exception as e:
-        logger.exception("Error loading AVIF %s", avif_path)
-        label_widget.setText(f"Error loading AVIF:\n{exercise_name}\n{e}")
+        except Exception as e:
+            logger.exception("Error loading AVIF %s", avif_path)
+            label_widget.setText(f"Error loading AVIF:\n{exercise_name}\n{e}")
 ```
 
 </details>
@@ -714,24 +716,24 @@ Returns:
 
 ```python
 def rename_exercise_avif(self, old_name: str, new_name: str) -> bool:
-    old = old_name.strip()
-    new = new_name.strip()
-    if not old or not new or old == new:
-        return False
+        old = old_name.strip()
+        new = new_name.strip()
+        if not old or not new or old == new:
+            return False
 
-    source = self.get_exercise_avif_path(old)
-    if source is None:
-        return False
+        source = self.get_exercise_avif_path(old)
+        if source is None:
+            return False
 
-    destination = self.avif_dir / f"{new}.avif"
-    try:
-        if destination.exists() and destination != source:
-            destination.unlink()
-        source.rename(destination)
-    except OSError:
-        logger.exception("Failed to rename exercise AVIF %s -> %s", source, destination)
-        return False
-    return True
+        destination = self.avif_dir / f"{new}.avif"
+        try:
+            if destination.exists() and destination != source:
+                destination.unlink()
+            source.rename(destination)
+        except OSError:
+            logger.exception("Failed to rename exercise AVIF %s -> %s", source, destination)
+            return False
+        return True
 ```
 
 </details>
