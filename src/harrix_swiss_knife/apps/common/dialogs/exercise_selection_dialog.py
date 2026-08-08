@@ -201,26 +201,25 @@ class ExerciseSelectionDialog(QDialog):
         option = QStyleOptionViewItem()
         option.initFrom(self.list_widget)
         option.rect = item_rect
-        option.iconSize = icon_size
+        option.decorationSize = icon_size
+        option.features |= QStyleOptionViewItem.ViewItemFeature.HasDecoration
         item_icon = item.icon()
         if not item_icon.isNull():
-            option.features |= QStyleOptionViewItem.ViewItemFeature.HasDecoration
             option.icon = item_icon
+        if item.text():
+            option.features |= QStyleOptionViewItem.ViewItemFeature.HasDisplay
+            option.text = item.text()
 
         decoration = self.list_widget.style().subElementRect(
             QStyle.SubElement.SE_ItemViewItemDecoration,
             option,
             self.list_widget,
         )
+        if decoration.isValid() and decoration.width() > 0 and decoration.height() > 0:
+            return decoration
 
-        if decoration.width() > 0:
-            icon_x = item_rect.x() + decoration.x() - 1
-        else:
-            icon_x = item_rect.x() + max(0, (item_rect.width() - icon_size.width()) // 2) - 1
-
-        # Icon-mode draws the pixmap at the top content inset, not at decoration.y()
+        icon_x = item_rect.x() + max(0, (item_rect.width() - icon_size.width()) // 2)
         icon_y = item_rect.y() + self._item_padding_top_px + self._item_border_px
-
         return QRect(icon_x, icon_y, icon_size.width(), icon_size.height())
 
     def _on_accept(self) -> None:

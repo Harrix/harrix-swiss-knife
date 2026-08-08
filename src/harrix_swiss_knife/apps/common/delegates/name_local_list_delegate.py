@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 
 from PySide6.QtCore import QObject, QRect, QSize, Qt
 from PySide6.QtGui import QColor, QFont, QFontMetrics, QIcon
-from PySide6.QtWidgets import QStyle, QStyledItemDelegate, QStyleOptionViewItem
+from PySide6.QtWidgets import QApplication, QStyle, QStyledItemDelegate, QStyleOptionViewItem
 
 if TYPE_CHECKING:
     from PySide6.QtCore import QModelIndex, QPersistentModelIndex
@@ -17,19 +17,20 @@ NAME_LOCAL_ROLE = Qt.ItemDataRole.UserRole + 1
 _NAME_LOCAL_COLOR = QColor("#888888")
 _NAME_LOCAL_FONT_SCALE = 0.85
 _NAME_LOCAL_MIN_POINT_SIZE = 7.0
-_TEXT_PADDING_X = 6
 _LINE_GAP = 1
+_LIST_EDGE_PAD = 4
+_LIST_ICON_TEXT_GAP = 8
 
 
 class NameLocalLayout(StrEnum):
-    """How main and local labels are arranged relative to the decoration."""
+    """How main and local labels are arranged in the item text area."""
 
     LIST = "list"
     ICON = "icon"
 
 
 class NameLocalListDelegate(QStyledItemDelegate):
-    """Paint `DisplayRole` on the first line and `NAME_LOCAL_ROLE` below in gray."""
+    """Keep style chrome (selection, borders, icon) and paint two-line text."""
 
     def __init__(
         self,
@@ -41,8 +42,8 @@ class NameLocalListDelegate(QStyledItemDelegate):
 
         Args:
 
-        - `layout` (`NameLocalLayout`): `LIST` places text beside the icon; `ICON` places
-          text under the icon (centered).
+        - `layout` (`NameLocalLayout`): `LIST` left-aligns text beside the icon; `ICON`
+          centers text under the icon.
 
         """
         super().__init__(parent)
@@ -54,33 +55,37 @@ class NameLocalListDelegate(QStyledItemDelegate):
         option: QStyleOptionViewItem,
         index: QModelIndex | QPersistentModelIndex,
     ) -> None:
-        """Paint decoration plus one or two text lines."""
+        """Draw style panel and icon, then overlay one or two text lines."""
         opt = QStyleOptionViewItem(option)
         self.initStyleOption(opt, index)
 
-        painter.save()
-        if self._layout == NameLocalLayout.LIST:
-            if opt.state & QStyle.StateFlag.State_Selected:
-                painter.fillRect(option.rect, opt.palette.highlight())
-                text_color = opt.palette.highlightedText().color()
-            elif opt.state & QStyle.StateFlag.State_MouseOver:
-                painter.fillRect(option.rect, opt.palette.alternateBase())
-                text_color = opt.palette.text().color()
-            else:
-                painter.fillRect(option.rect, opt.palette.base())
-                text_color = opt.palette.text().color()
-        else:
-            # Icon grids keep selection chrome in the view stylesheet (border only).
-            text_color = opt.palette.text().color()
+        main_text = opt.text
+        name_local = self._name_local(index)
 
-        decoration_rect = self._decoration_rect(opt)
+        widget = option.widget
+        style = widget.style() if widget is not None else QApplication.style()
+
+        # Panel draws stylesheet selection/hover backgrounds and item separators.
+        style.drawPrimitive(QStyle.PrimitiveElement.PE_PanelItemViewItem, opt, painter, widget)
+
+        if self._layout == NameLocalLayout.LIST:
+            decoration_rect, text_rect = self._list_layout_rects(opt)
+        else:
+            decoration_rect = style.subElementRect(QStyle.SubElement.SE_ItemViewItemDecoration, opt, widget)
+            text_rect = style.subElementRect(QStyle.SubElement.SE_ItemViewItemText, opt, widget)
+            if not text_rect.isValid():
+                text_rect = option.rect.adjusted(4, 2, -4, -2)
+
         if not opt.icon.isNull() and decoration_rect.isValid():
             mode = QIcon.Mode.Selected if opt.state & QStyle.StateFlag.State_Selected else QIcon.Mode.Normal
             opt.icon.paint(painter, decoration_rect, Qt.AlignmentFlag.AlignCenter, mode, QIcon.State.Off)
 
-        text_rect = self._text_rect(opt, decoration_rect)
-        self._paint_labels(painter, opt, index, text_rect, text_color)
-        painter.restore()
+        if self._layout == NameLocalLayout.LIST and opt.state & QStyle.StateFlag.State_Selected:
+            text_color = QColor("#000000")
+        else:
+            text_color = opt.palette.text().color()
+
+        self._paint_labels(painter, opt.font, main_text, name_local, text_rect, text_color)
 
     def sizeHint(  # noqa: N802
         self,
@@ -88,33 +93,34 @@ class NameLocalListDelegate(QStyledItemDelegate):
         index: QModelIndex | QPersistentModelIndex,
     ) -> QSize:
         """Reserve vertical space for an optional local-name line."""
-        hint = super().sizeHint(option, index)
-        name_local = self._name_local(index)
-        if not name_local:
-            return hint
-
         opt = QStyleOptionViewItem(option)
         self.initStyleOption(opt, index)
-        local_height = QFontMetrics(self._local_font(opt.font)).height()
+        name_local = self._name_local(index)
+        main_height = QFontMetrics(opt.font).height()
+        local_height = QFontMetrics(self._local_font(opt.font)).height() if name_local else 0
+        text_height = main_height + ((_LINE_GAP + local_height) if name_local else 0)
+
         if self._layout == NameLocalLayout.LIST:
-            main_height = QFontMetrics(opt.font).height()
-            needed = max(opt.decorationSize.height(), main_height + local_height + _LINE_GAP + 4)
-            hint.setHeight(max(hint.height(), needed))
-        else:
+            icon_h = opt.decorationSize.height() if not opt.icon.isNull() else 0
+            return QSize(option.rect.width(), max(icon_h, text_height) + 2 * _LIST_EDGE_PAD)
+
+        hint = super().sizeHint(option, index)
+        if name_local:
             hint.setHeight(hint.height() + local_height + _LINE_GAP)
         return hint
 
-    def _decoration_rect(self, option: QStyleOptionViewItem) -> QRect:
+    def _list_layout_rects(self, option: QStyleOptionViewItem) -> tuple[QRect, QRect]:
+        """Compact icon + text rects for list rows (tighter than default style gaps)."""
+        content = option.rect.adjusted(_LIST_EDGE_PAD, _LIST_EDGE_PAD, -_LIST_EDGE_PAD, -_LIST_EDGE_PAD)
         if option.icon.isNull():
-            return QRect()
-        size = option.decorationSize
-        if self._layout == NameLocalLayout.ICON:
-            x = option.rect.x() + max(0, (option.rect.width() - size.width()) // 2)
-            y = option.rect.y() + 4
-            return QRect(x, y, size.width(), size.height())
-        x = option.rect.x() + 4
-        y = option.rect.y() + max(0, (option.rect.height() - size.height()) // 2)
-        return QRect(x, y, size.width(), size.height())
+            return QRect(), content
+
+        icon_size = option.decorationSize
+        icon_y = content.y() + max(0, (content.height() - icon_size.height()) // 2)
+        decoration_rect = QRect(content.x(), icon_y, icon_size.width(), icon_size.height())
+        text_x = decoration_rect.right() + _LIST_ICON_TEXT_GAP
+        text_rect = QRect(text_x, content.y(), max(0, content.right() - text_x), content.height())
+        return decoration_rect, text_rect
 
     def _local_font(self, base_font: QFont) -> QFont:
         local_font = QFont(base_font)
@@ -134,27 +140,28 @@ class NameLocalListDelegate(QStyledItemDelegate):
     def _paint_labels(
         self,
         painter: QPainter,
-        option: QStyleOptionViewItem,
-        index: QModelIndex | QPersistentModelIndex,
+        font: QFont,
+        main_text: str,
+        name_local: str | None,
         text_rect: QRect,
         text_color: QColor,
     ) -> None:
-        main_text = option.text
-        name_local = self._name_local(index)
-        main_metrics = QFontMetrics(option.font)
+        main_metrics = QFontMetrics(font)
+        painter.save()
 
         if not name_local:
             painter.setPen(text_color)
-            painter.setFont(option.font)
+            painter.setFont(font)
             flags = (
                 Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop | Qt.TextFlag.TextSingleLine
                 if self._layout == NameLocalLayout.ICON
                 else Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft | Qt.TextFlag.TextSingleLine
             )
             painter.drawText(text_rect, int(flags), main_text)
+            painter.restore()
             return
 
-        local_font = self._local_font(option.font)
+        local_font = self._local_font(font)
         local_metrics = QFontMetrics(local_font)
         main_height = main_metrics.height()
         local_height = local_metrics.height()
@@ -169,7 +176,7 @@ class NameLocalListDelegate(QStyledItemDelegate):
             )
             center_flags = int(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop | Qt.TextFlag.TextSingleLine)
             painter.setPen(text_color)
-            painter.setFont(option.font)
+            painter.setFont(font)
             painter.drawText(
                 main_rect,
                 center_flags,
@@ -182,6 +189,7 @@ class NameLocalListDelegate(QStyledItemDelegate):
                 center_flags,
                 local_metrics.elidedText(name_local, Qt.TextElideMode.ElideRight, local_rect.width()),
             )
+            painter.restore()
             return
 
         total_height = main_height + _LINE_GAP + local_height
@@ -195,7 +203,7 @@ class NameLocalListDelegate(QStyledItemDelegate):
         )
         left_flags = int(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter | Qt.TextFlag.TextSingleLine)
         painter.setPen(text_color)
-        painter.setFont(option.font)
+        painter.setFont(font)
         painter.drawText(
             main_rect,
             left_flags,
@@ -208,19 +216,4 @@ class NameLocalListDelegate(QStyledItemDelegate):
             left_flags,
             local_metrics.elidedText(name_local, Qt.TextElideMode.ElideRight, local_rect.width()),
         )
-
-    def _text_rect(self, option: QStyleOptionViewItem, decoration_rect: QRect) -> QRect:
-        if self._layout == NameLocalLayout.ICON:
-            y = decoration_rect.bottom() + 4 if decoration_rect.isValid() else option.rect.y() + 4
-            return QRect(
-                option.rect.x() + _TEXT_PADDING_X,
-                y,
-                max(0, option.rect.width() - 2 * _TEXT_PADDING_X),
-                max(0, option.rect.bottom() - y),
-            )
-        x = (
-            decoration_rect.right() + _TEXT_PADDING_X
-            if decoration_rect.isValid()
-            else option.rect.x() + _TEXT_PADDING_X
-        )
-        return QRect(x, option.rect.y(), max(0, option.rect.right() - x - 4), option.rect.height())
+        painter.restore()
