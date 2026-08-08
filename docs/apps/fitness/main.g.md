@@ -296,7 +296,8 @@ class MainWindow(
             self.current_movie.stop()
 
         if self._exercise_list_hover is not None:
-            self._exercise_list_hover.hide_preview()
+            self._exercise_list_hover.detach()
+            self._exercise_list_hover = None
 
         if self.avif_manager:
             for label_key in self.avif_manager.avif_data:
@@ -4321,9 +4322,9 @@ class MainWindow(
 
         left = max(self.frame.minimumWidth(), 350)
         remaining = max(total - left, 0)
-        # Match previous stretch factors for middle:process ≈ 1:3
+        # Give the exercise list a larger share than process (≈ 1:2).
         min_process_width = 200
-        middle = max(self.widget_middle.minimumWidth(), remaining // 4)
+        middle = max(self.widget_middle.minimumWidth(), remaining // 3)
         right = remaining - middle
         if right < min_process_width:
             right = min(min_process_width, remaining // 2)
@@ -5256,6 +5257,7 @@ class MainWindow(
         self._exercise_list_hover = ExerciseListHoverPreview(
             self.listView_exercises,
             get_avif_manager=lambda: self.avif_manager,
+            parent=self,
         )
 
     def _init_filter_controls(self) -> None:
@@ -5273,6 +5275,8 @@ class MainWindow(
         self.dateEdit_filter_to.setDate(current_date)
 
         self.checkBox_use_date_filter.setChecked(False)
+        self.checkBox_use_date_filter.toggled.connect(self._update_date_filter_controls_enabled)
+        self._update_date_filter_controls_enabled()
 
     def _init_sets_count_display(self) -> None:
         """Initialize the sets count display."""
@@ -5806,8 +5810,12 @@ class MainWindow(
         self.pushButton_refresh.setText(f"🔄 {self.pushButton_refresh.text()}")
         self.pushButton_show_all_records.setText(f"📋 {self.pushButton_show_all_records.text()}")
         self.pushButton_export_csv.setText(f"📤 {self.pushButton_export_csv.text()}")
-        self.pushButton_clear_filter.setText(f"🧹 {self.pushButton_clear_filter.text()}")
-        self.pushButton_apply_filter.setText(f"✔️ {self.pushButton_apply_filter.text()}")
+        self.pushButton_clear_filter.setText("🧹")
+        self.pushButton_clear_filter.setToolTip("Clear Filter")
+        self.pushButton_clear_filter.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        self.pushButton_apply_filter.setText("✔️")
+        self.pushButton_apply_filter.setToolTip("Apply Filter")
+        self.pushButton_apply_filter.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
         self.pushButton_select_exercise.setText(f"🏋️ {self.pushButton_select_exercise.text()}")
         self.pushButton_exercise_add.setText(f"➕ {self.pushButton_exercise_add.text()}")  # noqa: RUF001
         self.pushButton_exercises_delete.setText(f"🗑️ {self.pushButton_exercises_delete.text()}")
@@ -5837,9 +5845,9 @@ class MainWindow(
         # Configure splitter proportions.
         # Filter bar above the process table has a wide sizeHint; without explicit
         # sizes QSplitter steals width from listView_exercises.
-        self.widget_middle.setMinimumWidth(300)
+        self.widget_middle.setMinimumWidth(340)
         self.splitter.setStretchFactor(0, 0)  # frame with fixed size
-        self.splitter.setStretchFactor(1, 1)  # exercise list
+        self.splitter.setStretchFactor(1, 2)  # exercise list
         self.splitter.setStretchFactor(2, 3)  # process filters + table
         self._apply_sets_splitter_sizes()
 
@@ -6190,6 +6198,14 @@ class MainWindow(
         except Exception:
             logger.exception("Error updating comboboxes")
 
+    def _update_date_filter_controls_enabled(self, *_args: object) -> None:
+        """Enable date edits only while the Use date checkbox is checked."""
+        enabled = self.checkBox_use_date_filter.isChecked()
+        self.label_filter_date.setEnabled(enabled)
+        self.label_filter_to.setEnabled(enabled)
+        self.dateEdit_filter_from.setEnabled(enabled)
+        self.dateEdit_filter_to.setEnabled(enabled)
+
     def _update_exercises_avif(self) -> None:
         """Update AVIF for exercises table selection."""
         exercise_name = self._get_selected_exercise_from_table("exercises")
@@ -6525,7 +6541,8 @@ def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
             self.current_movie.stop()
 
         if self._exercise_list_hover is not None:
-            self._exercise_list_hover.hide_preview()
+            self._exercise_list_hover.detach()
+            self._exercise_list_hover = None
 
         if self.avif_manager:
             for label_key in self.avif_manager.avif_data:

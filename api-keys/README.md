@@ -39,6 +39,8 @@ Add new keys as separate `.txt` files and reference them from `config.json` with
 
 Personal ZIP (gitignored): secrets from this folder plus exercise images from `{parent(sqlite_fitness)}/fitness_img`. Not part of the public install bundles.
 
+Commands:
+
 ```text
 # Source machine (config.json with real sqlite_fitness required)
 .\install\pack-private-data.bat

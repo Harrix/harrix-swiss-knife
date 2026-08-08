@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, cast
 from PySide6.QtCore import QEvent, QObject, QPoint, QSize, Qt, QTimer
 from PySide6.QtGui import QCursor, QGuiApplication, QMouseEvent
 from PySide6.QtWidgets import QFrame, QLabel, QListView, QVBoxLayout
+from shiboken6 import isValid
 
 from harrix_swiss_knife.apps.common.avif_manager import AvifLabelKey
 from harrix_swiss_knife.apps.common.delegates.name_local_list_delegate import NameLocalListDelegate
@@ -39,15 +40,18 @@ class ExerciseListHoverPreview(QObject):
         - `list_view` (`QListView`): Exercise list that paints icons on the left.
         - `get_avif_manager` (`Callable`): Returns the current `AvifManager` (may be `None`).
         - `preview_size` (`QSize | None`): Popup size. Defaults to `_PREVIEW_EDGE` square.
-        - `parent` (`QObject | None`): Qt parent. Defaults to `list_view`.
+        - `parent` (`QObject | None`): Qt parent. Prefer a longer-lived owner than `list_view`.
 
         """
-        super().__init__(parent or list_view)
+        # Prefer an owner that outlives the list (e.g. main window) so teardown is ordered.
+        super().__init__(parent if parent is not None else list_view)
         self._list_view = list_view
+        self._viewport = list_view.viewport()
         self._get_avif_manager = get_avif_manager
         self._preview_size = preview_size or QSize(_PREVIEW_EDGE, _PREVIEW_EDGE)
         self._pending_exercise: str | None = None
         self._shown_exercise: str | None = None
+        self._detached = False
 
         self._timer = QTimer(self)
         self._timer.setSingleShot(True)
@@ -80,24 +84,46 @@ class ExerciseListHoverPreview(QObject):
         popup_layout.addWidget(self._label)
 
         self._list_view.setMouseTracking(True)
-        viewport = self._list_view.viewport()
-        viewport.setMouseTracking(True)
-        viewport.installEventFilter(self)
+        self._viewport.setMouseTracking(True)
+        self._viewport.installEventFilter(self)
         self._list_view.installEventFilter(self)
+        self._list_view.destroyed.connect(self.detach)
+        self._viewport.destroyed.connect(self.detach)
         scroll = self._list_view.verticalScrollBar()
         if scroll is not None:
             scroll.valueChanged.connect(self.hide_preview)
 
+    def detach(self, *_args: object) -> None:
+        """Remove filters and hide popup; safe during widget teardown."""
+        if self._detached:
+            return
+        self._detached = True
+        self._timer.stop()
+        self._pending_exercise = None
+        self._shown_exercise = None
+        self._stop_animation()
+        if isValid(self._popup):
+            self._popup.hide()
+            self._popup.close()
+
+        if isValid(self._viewport):
+            self._viewport.removeEventFilter(self)
+        if isValid(self._list_view):
+            self._list_view.removeEventFilter(self)
+
     def eventFilter(self, obj: QObject, event: QEvent) -> bool:  # noqa: N802
         """Track icon hover, dwell delay, and leave/scroll hide."""
-        viewport = self._list_view.viewport()
-        event_type = event.type()
+        if self._detached or not self._list_alive():
+            return False
 
-        if obj is viewport and event_type == QEvent.Type.MouseMove:
+        event_type = event.type()
+        viewport = self._viewport if isValid(self._viewport) else None
+
+        if viewport is not None and obj is viewport and event_type == QEvent.Type.MouseMove:
             self._on_mouse_move(cast("QMouseEvent", event).position().toPoint())
             return False
 
-        if obj is viewport and event_type in {QEvent.Type.Leave, QEvent.Type.Wheel}:
+        if viewport is not None and obj is viewport and event_type in {QEvent.Type.Leave, QEvent.Type.Wheel}:
             self.hide_preview()
             return False
 
@@ -109,13 +135,18 @@ class ExerciseListHoverPreview(QObject):
 
     def hide_preview(self) -> None:
         """Stop animation and hide the popup."""
+        if self._detached:
+            return
         self._timer.stop()
         self._pending_exercise = None
         self._shown_exercise = None
         self._stop_animation()
-        self._popup.hide()
+        if isValid(self._popup):
+            self._popup.hide()
 
     def _exercise_at_icon(self, pos: QPoint) -> str | None:
+        if not self._list_alive():
+            return None
         index = self._list_view.indexAt(pos)
         if not index.isValid():
             return None
@@ -140,7 +171,12 @@ class ExerciseListHoverPreview(QObject):
         name = str(exercise).strip()
         return name or None
 
+    def _list_alive(self) -> bool:
+        return isValid(self._list_view) and isValid(self._viewport)
+
     def _move_popup_to_cursor(self) -> None:
+        if not isValid(self._popup):
+            return
         global_pos = QCursor.pos() + _CURSOR_OFFSET
         screen = QGuiApplication.screenAt(QCursor.pos()) or QGuiApplication.primaryScreen()
         if screen is not None:
@@ -154,12 +190,16 @@ class ExerciseListHoverPreview(QObject):
         self._popup.move(global_pos)
 
     def _on_mouse_move(self, pos: QPoint) -> None:
+        if not self._list_alive():
+            self.detach()
+            return
+
         exercise = self._exercise_at_icon(pos)
         if exercise is None:
             self.hide_preview()
             return
 
-        if exercise == self._shown_exercise and self._popup.isVisible():
+        if exercise == self._shown_exercise and isValid(self._popup) and self._popup.isVisible():
             self._move_popup_to_cursor()
             return
 
@@ -168,15 +208,18 @@ class ExerciseListHoverPreview(QObject):
 
         self._timer.stop()
         self._stop_animation()
-        self._popup.hide()
+        if isValid(self._popup):
+            self._popup.hide()
         self._shown_exercise = None
         self._pending_exercise = exercise
         self._timer.start(_HOVER_DELAY_MS)
 
     def _show_preview(self) -> None:
+        if self._detached or not self._list_alive():
+            return
         exercise = self._pending_exercise
         manager = self._get_avif_manager()
-        if not exercise or manager is None:
+        if not exercise or manager is None or not isValid(self._popup) or not isValid(self._label):
             return
         if manager.get_exercise_avif_path(exercise) is None:
             return
@@ -203,4 +246,5 @@ class ExerciseListHoverPreview(QObject):
         data["frames"] = []
         data["current_frame"] = 0
         data["exercise"] = None
-        self._label.clear()
+        if isValid(self._label):
+            self._label.clear()

@@ -543,15 +543,33 @@
                </item>
                <item>
                 <widget class="QPushButton" name="pushButton_clear_filter">
-                 <property name="text">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="toolTip">
                   <string>Clear Filter</string>
+                 </property>
+                 <property name="text">
+                  <string>🧹</string>
                  </property>
                 </widget>
                </item>
                <item>
                 <widget class="QPushButton" name="pushButton_apply_filter">
-                 <property name="text">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="toolTip">
                   <string>Apply Filter</string>
+                 </property>
+                 <property name="text">
+                  <string>✔️</string>
                  </property>
                 </widget>
                </item>

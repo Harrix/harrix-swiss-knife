@@ -89,7 +89,7 @@ Scripts live in `install\`. To refresh installer payloads and produce the distri
 
 After step 5, pick up the two zip files from `install\` for distribution.
 
-Personal private-data transfer (`install\pack-private-data.bat` / `install\install-private-data.bat`) packs only `api-keys` secrets and `fitness_img` into `install\private-data-harrix-swiss-knife.zip`. It is **not** part of the public online/offline install zip pipeline above. See [`api-keys/README.md`](api-keys/README.md#transfer-to-another-machine).
+Personal private-data transfer (`install\pack-private-data.bat` / `install\install-private-data.bat`) packs only `api-keys` secrets and `fitness_img` into `install\private-data-harrix-swiss-knife.zip`. It is **not** part of the public online/offline install zip pipeline above. See `api-keys/README.md` (section Transfer to another machine).
 
 ## VS Code extension: Harrix Notes Explorer (HSK)
 
