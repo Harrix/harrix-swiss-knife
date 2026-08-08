@@ -13,19 +13,26 @@ object EditableImageLoader {
         context: Context,
         uri: Uri,
     ): CameraPhoto? {
+        val resolvedUri = MediaStoreImageUri.resolve(context, uri)
         val resolver = context.contentResolver
-        val mimeType = resolver.getType(uri)?.takeIf { it.startsWith("image/") }
-        if (mimeType == null && !looksLikeImageUri(uri)) {
+        val mimeType =
+            resolver.getType(resolvedUri)?.takeIf { it.startsWith("image/") }
+                ?: resolver.getType(uri)?.takeIf { it.startsWith("image/") }
+        if (mimeType == null && !looksLikeImageUri(resolvedUri) && !looksLikeImageUri(uri)) {
             // Still try: some providers omit MIME; decoder will fail later if wrong.
         }
-        val displayName = queryDisplayName(resolver, uri)
-        val sizeBytes = querySizeBytes(resolver, uri)
-        val mediaId = queryMediaStoreId(resolver, uri)
-        val dateTakenMs = queryDateTakenMs(resolver, uri)
+        val displayName =
+            queryDisplayName(resolver, resolvedUri) ?: queryDisplayName(resolver, uri)
+        val sizeBytes =
+            querySizeBytes(resolver, resolvedUri).takeIf { it > 0L }
+                ?: querySizeBytes(resolver, uri)
+        val mediaId =
+            queryMediaStoreId(resolver, resolvedUri) ?: queryMediaStoreId(resolver, uri)
+        val dateTakenMs = queryDateTakenMs(resolver, resolvedUri)
         val dateAddedSec = (dateTakenMs / 1000L).coerceAtLeast(0L)
         return CameraPhoto(
-            id = mediaId ?: uriToStableId(uri),
-            uri = uri,
+            id = mediaId ?: uriToStableId(resolvedUri),
+            uri = resolvedUri,
             displayName = displayName,
             dateAddedEpochSec = dateAddedSec,
             dateTakenEpochMs = dateTakenMs,

@@ -161,7 +161,7 @@ fun PhotoEditorScreen(
                     EditablePhotoHost(
                         photo = photo,
                         imageRevision = imageRevision,
-                        allowSaveCopyFallback = true,
+                        allowSaveCopyFallback = false,
                         showSaveCopyButton = true,
                         repository = repository,
                         onSave = { result ->

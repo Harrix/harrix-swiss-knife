@@ -13,6 +13,7 @@ import java.util.Locale
 
 /**
  * Inserts an edited image copy into MediaStore, preferring the source photo's folder.
+ * Display name uses a `_copy` suffix before the extension.
  */
 class PhotoEditCopyStore(
     private val context: Context,
@@ -77,13 +78,22 @@ class PhotoEditCopyStore(
         stem: String,
         extension: String,
     ): String {
-        val editStem =
-            if (stem.endsWith("_edit", ignoreCase = true)) {
-                stem
-            } else {
-                "${stem}_edit"
+        val baseStem =
+            when {
+                stem.endsWith("_copy", ignoreCase = true) -> stem
+
+                stem.endsWith("_edit", ignoreCase = true) ->
+                    stem.dropLast(5).ifBlank { stem }
+
+                else -> stem
             }
-        return "$editStem.$extension"
+        val copyStem =
+            if (baseStem.endsWith("_copy", ignoreCase = true)) {
+                baseStem
+            } else {
+                "${baseStem}_copy"
+            }
+        return "$copyStem.$extension"
     }
 
     private fun querySourceMediaLocation(uri: Uri): SourceMediaLocation? {

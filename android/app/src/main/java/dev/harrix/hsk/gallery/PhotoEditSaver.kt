@@ -185,25 +185,26 @@ class PhotoEditSaver(
          */
         existingUndo: PendingEditUndo? = null,
     ): SaveResult {
+        val targetUri = MediaStoreImageUri.resolve(context, uri)
         val encoded =
-            renderEditedBytes(uri, mimeType, rotationDegrees, crop, perspectiveQuad)
+            renderEditedBytes(targetUri, mimeType, rotationDegrees, crop, perspectiveQuad)
                 ?: return SaveResult.Failed
 
         val reuseBackup =
             existingUndo != null &&
                 existingUndo.photoId == photoId &&
-                existingUndo.uri == uri &&
+                existingUndo.uri == targetUri &&
                 existingUndo.backupFile.isFile
         var backupCreated = false
         if (!reuseBackup) {
-            when (backupOriginal(uri, photoId)) {
+            when (backupOriginal(targetUri, photoId)) {
                 BackupResult.NeedsWritePermission -> return SaveResult.NeedsWritePermission
                 BackupResult.Failed -> return SaveResult.Failed
                 BackupResult.Success -> backupCreated = true
             }
         }
 
-        return when (val written = writeBytes(uri, encoded)) {
+        return when (val written = writeBytes(targetUri, encoded)) {
             is SaveResult.Success -> written.copy(backupCreated = backupCreated || reuseBackup)
 
             else -> {
@@ -217,7 +218,7 @@ class PhotoEditSaver(
 
     /**
      * Writes the edited image as a new file next to [sourceUri] when its MediaStore
-     * folder is known; otherwise falls back to Pictures/HSK.
+     * folder is known (`*_copy`); otherwise falls back to Pictures/HSK.
      */
     fun saveAsCopy(
         sourceUri: Uri,
@@ -227,12 +228,13 @@ class PhotoEditSaver(
         perspectiveQuad: NormalizedPerspectiveQuad? = null,
         displayName: String? = null,
     ): CopyResult {
+        val source = MediaStoreImageUri.resolve(context, sourceUri)
         val encoded =
-            renderEditedBytes(sourceUri, mimeType, rotationDegrees, crop, perspectiveQuad)
+            renderEditedBytes(source, mimeType, rotationDegrees, crop, perspectiveQuad)
                 ?: return CopyResult.Failed
         val written =
             PhotoEditCopyStore(context).writeCopy(
-                sourceUri = sourceUri,
+                sourceUri = source,
                 encoded = encoded,
                 mimeType = resolvedOutputMime(mimeType),
                 displayName = displayName,
