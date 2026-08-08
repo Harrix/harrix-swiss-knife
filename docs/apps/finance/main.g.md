@@ -272,6 +272,7 @@ class MainWindow(
     @requires_database()
     def apply_filter(self, *_args: object) -> None:
         """Apply combo-box/date filters to the transactions table."""
+        self._update_clear_filter_button_visibility()
         if self.db_manager is None:
             logger.error("❌ Database manager is not initialized")
             return
@@ -307,6 +308,7 @@ class MainWindow(
 
         self._description_filter_timer.stop()
         self._update_date_filter_controls_enabled()
+        self._update_clear_filter_button_visibility()
         self._load_transactions_table()
         self._connect_table_auto_save_signals()
 
@@ -4568,6 +4570,7 @@ class MainWindow(
 
     def _schedule_description_filter(self, *_args: object) -> None:
         """Restart debounce timer so description filter runs after typing pauses."""
+        self._update_clear_filter_button_visibility()
         self._description_filter_timer.start()
 
     def _select_category_by_id(self, category_id: int) -> None:
@@ -4966,6 +4969,7 @@ class MainWindow(
         self.pushButton_clear_filter.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
         clear_h = max(self.pushButton_clear_filter.sizeHint().height(), 24)
         self.pushButton_clear_filter.setFixedSize(clear_h, clear_h)
+        self._update_clear_filter_button_visibility()
         self.pushButton_description_clear.setText("🧹")
         self.pushButton_show_all_records.setText("📊 Show All Records")
 
@@ -5817,6 +5821,10 @@ class MainWindow(
         except Exception:
             logger.exception("Error updating autocomplete data")
 
+    def _update_clear_filter_button_visibility(self) -> None:
+        """Show the clear-filter button only while a transaction filter is active."""
+        self.pushButton_clear_filter.setVisible(self._transactions_filter_is_active())
+
     @requires_database()
     def _update_comboboxes(self) -> None:
         """Update all comboboxes with current data."""
@@ -6238,6 +6246,7 @@ Apply combo-box/date filters to the transactions table.
 
 ```python
 def apply_filter(self, *_args: object) -> None:
+        self._update_clear_filter_button_visibility()
         if self.db_manager is None:
             logger.error("❌ Database manager is not initialized")
             return
@@ -6287,6 +6296,7 @@ def clear_filter(self) -> None:
 
         self._description_filter_timer.stop()
         self._update_date_filter_controls_enabled()
+        self._update_clear_filter_button_visibility()
         self._load_transactions_table()
         self._connect_table_auto_save_signals()
 ```

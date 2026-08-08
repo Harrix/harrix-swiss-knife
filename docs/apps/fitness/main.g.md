@@ -249,6 +249,7 @@ class MainWindow(
     @requires_database()
     def apply_filter(self, *_args: object) -> None:
         """Apply combo-box/date filters to the process table."""
+        self._update_clear_filter_button_visibility()
         if self.db_manager is None:
             logger.error("❌ Database manager is not initialized")
             return
@@ -288,6 +289,7 @@ class MainWindow(
             widget.blockSignals(False)  # noqa: FBT003
 
         self._update_date_filter_controls_enabled()
+        self._update_clear_filter_button_visibility()
         self.apply_filter()
 
     def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
@@ -5734,6 +5736,7 @@ class MainWindow(
         self.pushButton_clear_filter.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
         clear_h = max(self.pushButton_clear_filter.sizeHint().height(), 24)
         self.pushButton_clear_filter.setFixedSize(clear_h, clear_h)
+        self._update_clear_filter_button_visibility()
         self.pushButton_select_exercise.setText(f"🏋️ {self.pushButton_select_exercise.text()}")
         self.pushButton_exercise_add.setText(f"➕ {self.pushButton_exercise_add.text()}")  # noqa: RUF001
         self.pushButton_exercises_delete.setText(f"🗑️ {self.pushButton_exercises_delete.text()}")
@@ -6032,6 +6035,10 @@ class MainWindow(
         exercise_name = self._get_selected_chart_exercise()
         if exercise_name:
             self._load_exercise_avif(exercise_name, "charts")
+
+    def _update_clear_filter_button_visibility(self) -> None:
+        """Show the clear-filter button only while a process filter is active."""
+        self.pushButton_clear_filter.setVisible(self._process_filter_is_active())
 
     def _update_comboboxes(
         self,
@@ -6371,6 +6378,7 @@ Apply combo-box/date filters to the process table.
 
 ```python
 def apply_filter(self, *_args: object) -> None:
+        self._update_clear_filter_button_visibility()
         if self.db_manager is None:
             logger.error("❌ Database manager is not initialized")
             return
@@ -6422,6 +6430,7 @@ def clear_filter(self) -> None:
             widget.blockSignals(False)  # noqa: FBT003
 
         self._update_date_filter_controls_enabled()
+        self._update_clear_filter_button_visibility()
         self.apply_filter()
 ```
 
