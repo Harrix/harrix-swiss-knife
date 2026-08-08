@@ -164,7 +164,7 @@ class MainWindow(
         self.process_load_more_count: int = load_more_count
         self.exercises_frequency_window: int = load_more_count
         self.show_all_records = False
-        self.icon_size = 40
+        self.icon_size = 64
 
         # Process table pagination state
         self._process_pagination = ScrollPagination()
@@ -6195,7 +6195,7 @@ def __init__(self, *, hide_on_close: bool = False) -> None:  # noqa: D107
         self.process_load_more_count: int = load_more_count
         self.exercises_frequency_window: int = load_more_count
         self.show_all_records = False
-        self.icon_size = 40
+        self.icon_size = 64
 
         # Process table pagination state
         self._process_pagination = ScrollPagination()

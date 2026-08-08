@@ -65,20 +65,9 @@ class ExerciseSelectionDialog(QDialog):
         self._avif_manager = avif_manager
         self._name_locals = name_locals or {}
         self._preview_size = preview_size
-        self._item_border_px = 2
-        self._item_padding_top_px = 10
-        self._item_padding_side_px = 8
-        self._item_padding_bottom_px = 6
+        self._hovered_tile: _ExercisePreviewTile | None = None
         has_any_local = any(self._name_locals.get(name, "").strip() for name in exercises)
-        self._text_area_height = 54 if has_any_local else 36
-        self._current_hovered_item: QListWidgetItem | None = None
-        self._animation_label: QLabel | None = None
-        horizontal_inset = 2 * (self._item_padding_side_px + self._item_border_px)
-        vertical_inset = self._item_padding_top_px + self._item_padding_bottom_px + 2 * self._item_border_px
-        self._grid_size = QSize(
-            preview_size.width() + horizontal_inset,
-            preview_size.height() + self._text_area_height + vertical_inset,
-        )
+        text_area_height = 54 if has_any_local else 36
 
         layout = QVBoxLayout(self)
 
@@ -88,75 +77,67 @@ class ExerciseSelectionDialog(QDialog):
         self.list_widget.setResizeMode(QListWidget.ResizeMode.Adjust)
         self.list_widget.setMovement(QListWidget.Movement.Static)
         self.list_widget.setSpacing(16)
-        self.list_widget.setIconSize(preview_size)
-        self.list_widget.setGridSize(self._grid_size)
-        self.list_widget.setWordWrap(True)
         self.list_widget.setUniformItemSizes(True)
         self.list_widget.setMouseTracking(True)
-        self.list_widget.setItemDelegate(NameLocalListDelegate(self.list_widget, layout=NameLocalLayout.ICON))
-
-        list_palette = self.list_widget.palette()
-        text_color = list_palette.color(QPalette.ColorRole.Text)
-        text_color_name = text_color.name()
-        list_palette.setColor(QPalette.ColorRole.Highlight, QColor(0, 0, 0, 0))
-        list_palette.setColor(QPalette.ColorRole.HighlightedText, text_color)
-        self.list_widget.setPalette(list_palette)
-
         self.list_widget.setStyleSheet(
-            f"""
-            QListWidget {{
+            """
+            QListWidget {
                 outline: none;
-            }}
-            QListWidget::item {{
-                padding: {self._item_padding_top_px}px {self._item_padding_side_px}px
-                    {self._item_padding_bottom_px}px {self._item_padding_side_px}px;
-                border: {self._item_border_px}px solid transparent;
+            }
+            QListWidget::item {
+                border: none;
+                background: transparent;
+                padding: 0px;
+                margin: 0px;
+            }
+            QListWidget::item:selected {
+                background: transparent;
+            }
+            QFrame#exercisePreviewTile {
+                border: 2px solid transparent;
                 border-radius: 4px;
                 background: transparent;
-                color: {text_color_name};
-                selection-background-color: transparent;
-                selection-color: {text_color_name};
-            }}
-            QListWidget::item:hover {{
+            }
+            QFrame#exercisePreviewTile:hover {
                 border-color: #0078d4;
-                background: transparent;
-                color: {text_color_name};
-            }}
-            QListWidget::item:selected,
-            QListWidget::item:selected:hover,
-            QListWidget::item:selected:focus,
-            QListWidget::item:selected:active {{
+            }
+            QFrame#exercisePreviewTile[selected="true"],
+            QFrame#exercisePreviewTile[selected="true"]:hover {
                 border-color: #4CAF50;
-                background: transparent;
-                color: {text_color_name};
-                selection-background-color: transparent;
-                selection-color: {text_color_name};
-            }}
+            }
             """
         )
         layout.addWidget(self.list_widget)
 
         for exercise in exercises:
-            item = QListWidgetItem(exercise, self.list_widget)
+            item = QListWidgetItem()
             item.setData(Qt.ItemDataRole.UserRole, exercise)
-            name_local = self._name_locals.get(exercise, "").strip()
-            if name_local:
-                item.setData(NAME_LOCAL_ROLE, name_local)
-            item.setSizeHint(self._grid_size)
-            item.setTextAlignment(Qt.AlignmentFlag.AlignHCenter)
+            item.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable)
 
-            icon = self._icon_provider(exercise)
-            if icon is not None and not icon.isNull():
-                item.setIcon(icon)
+            static_pixmap = self._static_pixmap_for(exercise)
+            name_local = self._name_locals.get(exercise, "").strip()
+            tile = _ExercisePreviewTile(
+                exercise_name=exercise,
+                name_local=name_local,
+                static_pixmap=static_pixmap,
+                preview_size=preview_size,
+                text_area_height=text_area_height,
+            )
+            item.setSizeHint(tile.sizeHint())
+            self.list_widget.addItem(item)
+            self.list_widget.setItemWidget(item, tile)
+
+            tile.clicked.connect(lambda row_item=item: self._on_tile_clicked(row_item))
+            tile.double_clicked.connect(lambda row_item=item: self._on_tile_double_clicked(row_item))
+            tile.hover_entered.connect(lambda row_tile=tile: self._on_tile_hover_entered(row_tile))
+            tile.hover_left.connect(lambda row_tile=tile: self._on_tile_hover_left(row_tile))
 
             if current_selection and exercise == current_selection:
                 self.list_widget.setCurrentItem(item)
                 item.setSelected(True)
+                tile.set_selected(selected=True)
 
-        self.list_widget.itemClicked.connect(self._on_item_clicked)
         self.list_widget.itemSelectionChanged.connect(self._on_selection_changed)
-        self.list_widget.itemDoubleClicked.connect(self._on_item_double_clicked)
-        self.list_widget.itemEntered.connect(self._on_item_entered)
         self.list_widget.installEventFilter(self)
 
         button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel, self)
@@ -183,39 +164,6 @@ class ExerciseSelectionDialog(QDialog):
         self._stop_animation()
         super().reject()
 
-    def _icon_rect_for_item(self, item: QListWidgetItem) -> QRect:
-        """Return the icon preview rectangle in viewport coordinates."""
-        index = self.list_widget.indexFromItem(item)
-        if not index.isValid():
-            return QRect()
-
-        icon_size = self.list_widget.iconSize()
-        item_rect = self.list_widget.visualRect(index)
-
-        option = QStyleOptionViewItem()
-        option.initFrom(self.list_widget)
-        option.rect = item_rect
-        option.decorationSize = icon_size
-        option.features |= QStyleOptionViewItem.ViewItemFeature.HasDecoration
-        item_icon = item.icon()
-        if not item_icon.isNull():
-            option.icon = item_icon
-        if item.text():
-            option.features |= QStyleOptionViewItem.ViewItemFeature.HasDisplay
-            option.text = item.text()
-
-        decoration = self.list_widget.style().subElementRect(
-            QStyle.SubElement.SE_ItemViewItemDecoration,
-            option,
-            self.list_widget,
-        )
-        if decoration.isValid() and decoration.width() > 0 and decoration.height() > 0:
-            return decoration
-
-        icon_x = item_rect.x() + max(0, (item_rect.width() - icon_size.width()) // 2)
-        icon_y = item_rect.y() + self._item_padding_top_px + self._item_border_px
-        return QRect(icon_x, icon_y, icon_size.width(), icon_size.height())
-
     def _on_accept(self) -> None:
         self._stop_animation()
         item = self.list_widget.currentItem()
@@ -234,62 +182,77 @@ class ExerciseSelectionDialog(QDialog):
         else:
             self.reject()
 
-    def _on_item_clicked(self, item: QListWidgetItem) -> None:
+    def _on_selection_changed(self) -> None:
+        current = self.list_widget.currentItem()
+        for row in range(self.list_widget.count()):
+            item = self.list_widget.item(row)
+            tile = self._tile_for_item(item)
+            if tile is not None and item is not None:
+                tile.set_selected(selected=item is current and item.isSelected())
+        self._update_selected_from_item(current)
+
+    def _on_tile_clicked(self, item: QListWidgetItem) -> None:
         self.list_widget.setCurrentItem(item)
+        item.setSelected(True)
         self._update_selected_from_item(item)
 
-    def _on_item_double_clicked(self, item: QListWidgetItem) -> None:
+    def _on_tile_double_clicked(self, item: QListWidgetItem) -> None:
         self._stop_animation()
         self.list_widget.setCurrentItem(item)
+        item.setSelected(True)
         self._update_selected_from_item(item)
         self.accept()
 
-    def _on_item_entered(self, item: QListWidgetItem) -> None:
-        """Start AVIF animation when the pointer enters a row."""
+    def _on_tile_hover_entered(self, tile: _ExercisePreviewTile) -> None:
+        """Play animation inside the same QLabel that shows the still preview."""
         if not self._avif_manager:
             return
 
-        exercise_name = item.data(Qt.ItemDataRole.UserRole)
-        if not exercise_name:
-            return
-
-        if self._current_hovered_item is not None and self._current_hovered_item != item:
+        if self._hovered_tile is not None and self._hovered_tile is not tile:
             self._stop_animation()
 
-        self._current_hovered_item = item
+        self._hovered_tile = tile
+        # Geometry is fixed on the label; no overlay positioning.
+        self._avif_manager.load_exercise_avif(
+            tile.exercise_name,
+            tile.preview_label,
+            AvifLabelKey.DIALOG_PREVIEW,
+        )
 
-        icon_rect = self._icon_rect_for_item(item)
+    def _on_tile_hover_left(self, tile: _ExercisePreviewTile) -> None:
+        if self._hovered_tile is tile:
+            self._stop_animation()
 
-        if self._animation_label is None:
-            self._animation_label = QLabel(self.list_widget.viewport())
-            self._animation_label.setScaledContents(False)
-            self._animation_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            self._animation_label.setStyleSheet("background-color: white;")
-            self._animation_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, on=True)
-
-        self._animation_label.setGeometry(icon_rect)
-        self._avif_manager.load_exercise_avif(exercise_name, self._animation_label, AvifLabelKey.DIALOG_PREVIEW)
-
-        self._animation_label.show()
-
-    def _on_selection_changed(self) -> None:
-        self._update_selected_from_item(self.list_widget.currentItem())
+    def _static_pixmap_for(self, exercise_name: str) -> QPixmap | None:
+        icon = self._icon_provider(exercise_name)
+        if icon is None or icon.isNull():
+            return None
+        pixmap = icon.pixmap(self._preview_size)
+        return None if pixmap.isNull() else pixmap
 
     def _stop_animation(self) -> None:
-        """Stop AVIF animation and hide the overlay label."""
-        if self._animation_label and self._animation_label.isVisible():
-            if self._avif_manager:
-                data = self._avif_manager.avif_data.get(AvifLabelKey.DIALOG_PREVIEW)
-                if data:
-                    timer = data.get("timer")
-                    if timer is not None:
-                        timer.stop()
-                        data["timer"] = None
-                    data["frames"] = []
-                    data["current_frame"] = 0
+        """Stop AVIF animation and restore the still preview in the hovered tile."""
+        tile = self._hovered_tile
+        if self._avif_manager:
+            data = self._avif_manager.avif_data.get(AvifLabelKey.DIALOG_PREVIEW)
+            if data:
+                timer = data.get("timer")
+                if timer is not None:
+                    timer.stop()
+                    data["timer"] = None
+                data["frames"] = []
+                data["current_frame"] = 0
+                data["exercise"] = None
 
-            self._animation_label.hide()
-            self._current_hovered_item = None
+        if tile is not None:
+            tile.restore_static_pixmap()
+        self._hovered_tile = None
+
+    def _tile_for_item(self, item: QListWidgetItem | None) -> _ExercisePreviewTile | None:
+        if item is None:
+            return None
+        widget = self.list_widget.itemWidget(item)
+        return widget if isinstance(widget, _ExercisePreviewTile) else None
 
     def _update_selected_from_item(self, item: QListWidgetItem | None) -> None:
         if item is None:
@@ -342,20 +305,9 @@ def __init__(
         self._avif_manager = avif_manager
         self._name_locals = name_locals or {}
         self._preview_size = preview_size
-        self._item_border_px = 2
-        self._item_padding_top_px = 10
-        self._item_padding_side_px = 8
-        self._item_padding_bottom_px = 6
+        self._hovered_tile: _ExercisePreviewTile | None = None
         has_any_local = any(self._name_locals.get(name, "").strip() for name in exercises)
-        self._text_area_height = 54 if has_any_local else 36
-        self._current_hovered_item: QListWidgetItem | None = None
-        self._animation_label: QLabel | None = None
-        horizontal_inset = 2 * (self._item_padding_side_px + self._item_border_px)
-        vertical_inset = self._item_padding_top_px + self._item_padding_bottom_px + 2 * self._item_border_px
-        self._grid_size = QSize(
-            preview_size.width() + horizontal_inset,
-            preview_size.height() + self._text_area_height + vertical_inset,
-        )
+        text_area_height = 54 if has_any_local else 36
 
         layout = QVBoxLayout(self)
 
@@ -365,75 +317,67 @@ def __init__(
         self.list_widget.setResizeMode(QListWidget.ResizeMode.Adjust)
         self.list_widget.setMovement(QListWidget.Movement.Static)
         self.list_widget.setSpacing(16)
-        self.list_widget.setIconSize(preview_size)
-        self.list_widget.setGridSize(self._grid_size)
-        self.list_widget.setWordWrap(True)
         self.list_widget.setUniformItemSizes(True)
         self.list_widget.setMouseTracking(True)
-        self.list_widget.setItemDelegate(NameLocalListDelegate(self.list_widget, layout=NameLocalLayout.ICON))
-
-        list_palette = self.list_widget.palette()
-        text_color = list_palette.color(QPalette.ColorRole.Text)
-        text_color_name = text_color.name()
-        list_palette.setColor(QPalette.ColorRole.Highlight, QColor(0, 0, 0, 0))
-        list_palette.setColor(QPalette.ColorRole.HighlightedText, text_color)
-        self.list_widget.setPalette(list_palette)
-
         self.list_widget.setStyleSheet(
-            f"""
-            QListWidget {{
+            """
+            QListWidget {
                 outline: none;
-            }}
-            QListWidget::item {{
-                padding: {self._item_padding_top_px}px {self._item_padding_side_px}px
-                    {self._item_padding_bottom_px}px {self._item_padding_side_px}px;
-                border: {self._item_border_px}px solid transparent;
+            }
+            QListWidget::item {
+                border: none;
+                background: transparent;
+                padding: 0px;
+                margin: 0px;
+            }
+            QListWidget::item:selected {
+                background: transparent;
+            }
+            QFrame#exercisePreviewTile {
+                border: 2px solid transparent;
                 border-radius: 4px;
                 background: transparent;
-                color: {text_color_name};
-                selection-background-color: transparent;
-                selection-color: {text_color_name};
-            }}
-            QListWidget::item:hover {{
+            }
+            QFrame#exercisePreviewTile:hover {
                 border-color: #0078d4;
-                background: transparent;
-                color: {text_color_name};
-            }}
-            QListWidget::item:selected,
-            QListWidget::item:selected:hover,
-            QListWidget::item:selected:focus,
-            QListWidget::item:selected:active {{
+            }
+            QFrame#exercisePreviewTile[selected="true"],
+            QFrame#exercisePreviewTile[selected="true"]:hover {
                 border-color: #4CAF50;
-                background: transparent;
-                color: {text_color_name};
-                selection-background-color: transparent;
-                selection-color: {text_color_name};
-            }}
+            }
             """
         )
         layout.addWidget(self.list_widget)
 
         for exercise in exercises:
-            item = QListWidgetItem(exercise, self.list_widget)
+            item = QListWidgetItem()
             item.setData(Qt.ItemDataRole.UserRole, exercise)
-            name_local = self._name_locals.get(exercise, "").strip()
-            if name_local:
-                item.setData(NAME_LOCAL_ROLE, name_local)
-            item.setSizeHint(self._grid_size)
-            item.setTextAlignment(Qt.AlignmentFlag.AlignHCenter)
+            item.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable)
 
-            icon = self._icon_provider(exercise)
-            if icon is not None and not icon.isNull():
-                item.setIcon(icon)
+            static_pixmap = self._static_pixmap_for(exercise)
+            name_local = self._name_locals.get(exercise, "").strip()
+            tile = _ExercisePreviewTile(
+                exercise_name=exercise,
+                name_local=name_local,
+                static_pixmap=static_pixmap,
+                preview_size=preview_size,
+                text_area_height=text_area_height,
+            )
+            item.setSizeHint(tile.sizeHint())
+            self.list_widget.addItem(item)
+            self.list_widget.setItemWidget(item, tile)
+
+            tile.clicked.connect(lambda row_item=item: self._on_tile_clicked(row_item))
+            tile.double_clicked.connect(lambda row_item=item: self._on_tile_double_clicked(row_item))
+            tile.hover_entered.connect(lambda row_tile=tile: self._on_tile_hover_entered(row_tile))
+            tile.hover_left.connect(lambda row_tile=tile: self._on_tile_hover_left(row_tile))
 
             if current_selection and exercise == current_selection:
                 self.list_widget.setCurrentItem(item)
                 item.setSelected(True)
+                tile.set_selected(selected=True)
 
-        self.list_widget.itemClicked.connect(self._on_item_clicked)
         self.list_widget.itemSelectionChanged.connect(self._on_selection_changed)
-        self.list_widget.itemDoubleClicked.connect(self._on_item_double_clicked)
-        self.list_widget.itemEntered.connect(self._on_item_entered)
         self.list_widget.installEventFilter(self)
 
         button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel, self)

@@ -102,6 +102,7 @@ from harrix_swiss_knife.apps.fitness.name_local_translate import (
 )
 from harrix_swiss_knife.apps.fitness.progress_calculator import ExerciseProgressCalculator
 from harrix_swiss_knife.integrations.bothub import BothubRequestState
+from harrix_swiss_knife.keyboard_layout_search import text_matches_autocomplete
 from harrix_swiss_knife.paths import get_config_path_str
 from harrix_swiss_knife.win11_backdrop import SystemBackdrop, try_apply_system_backdrop
 
@@ -4307,6 +4308,34 @@ class MainWindow(
                 item.setData(name_local, NAME_LOCAL_ROLE)
             self.exercises_list_model.appendRow(item)
 
+    def _filter_exercises_list(self, text: str = "") -> None:
+        """Hide exercises in `listView_exercises` that do not match the filter text.
+
+        Matches English name (`UserRole`) and optional local name (`NAME_LOCAL_ROLE`),
+        including EN/RU keyboard-layout mistakes.
+
+        Args:
+
+        - `text` (`str`): Filter query. Defaults to `""`.
+
+        """
+        if self.exercises_list_model is None:
+            return
+
+        query = text.strip()
+        for row in range(self.exercises_list_model.rowCount()):
+            item = self.exercises_list_model.item(row)
+            if item is None:
+                continue
+            name = item.data(Qt.ItemDataRole.UserRole)
+            name_text = str(name) if name else item.text()
+            name_local = item.data(NAME_LOCAL_ROLE)
+            name_local_text = str(name_local).strip() if name_local else ""
+            matches = (not query) or text_matches_autocomplete(name_text, query)
+            if not matches and name_local_text:
+                matches = text_matches_autocomplete(name_local_text, query)
+            self.listView_exercises.setRowHidden(row, not matches)
+
     def _append_process_rows_to_model(self, model: QStandardItemModel, transformed_data: list[list]) -> None:
         """Append transformed process rows to an existing source model."""
         start_row_idx: int = model.rowCount()
@@ -4526,6 +4555,7 @@ class MainWindow(
 
         # Connect double-click signal for exercises list to open statistics tab
         self.listView_exercises.doubleClicked.connect(self._on_exercises_list_double_clicked)
+        self.lineEdit_exercises_filter.textChanged.connect(self._filter_exercises_list)
 
         # Load more process records when scrolling near the bottom
         self.tableView_process.verticalScrollBar().valueChanged.connect(self._on_process_scroll)
@@ -6023,6 +6053,7 @@ class MainWindow(
             if self.exercises_list_model is not None:
                 self.exercises_list_model.clear()
                 self._append_exercises_to_list_view(exercises)
+                self._filter_exercises_list(self.lineEdit_exercises_filter.text())
 
             # Unblock signals
             if selection_model:

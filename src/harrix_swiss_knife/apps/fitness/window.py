@@ -331,6 +331,12 @@ class Ui_MainWindow(object):
 
         self.verticalLayout.addWidget(self.pushButton_select_exercise)
 
+        self.lineEdit_exercises_filter = QLineEdit(self.widget_middle)
+        self.lineEdit_exercises_filter.setObjectName(u"lineEdit_exercises_filter")
+        self.lineEdit_exercises_filter.setClearButtonEnabled(True)
+
+        self.verticalLayout.addWidget(self.lineEdit_exercises_filter)
+
         self.listView_exercises = QListView(self.widget_middle)
         self.listView_exercises.setObjectName(u"listView_exercises")
         self.listView_exercises.setMaximumSize(QSize(16777215, 16777215))
@@ -1213,6 +1219,7 @@ class Ui_MainWindow(object):
         self.label_count_sets_today.setText(QCoreApplication.translate("MainWindow", u"Text", None))
         self.label_7.setText(QCoreApplication.translate("MainWindow", u"Exercise:", None))
         self.pushButton_select_exercise.setText(QCoreApplication.translate("MainWindow", u"Select Exercise", None))
+        self.lineEdit_exercises_filter.setPlaceholderText(QCoreApplication.translate("MainWindow", u"Filter exercises\u2026", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab), QCoreApplication.translate("MainWindow", u"Sets", None))
         self.label_chart_exercise.setText(QCoreApplication.translate("MainWindow", u"Exercise:", None))
         self.label_chart_type.setText(QCoreApplication.translate("MainWindow", u"Type:", None))
