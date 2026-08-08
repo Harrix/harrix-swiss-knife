@@ -61,6 +61,7 @@ class Ui_MainWindow(object):
         self.label_yesterday_expense.setText(QCoreApplication.translate("MainWindow", u"0.00\u20bd", None))
         self.label_categories.setText(QCoreApplication.translate("MainWindow", u"Categories:", None))
         self.groupBox_filter.setTitle("")
+        self.label_filter_description.setText(QCoreApplication.translate("MainWindow", u"Description:", None))
         self.label_filter_type.setText(QCoreApplication.translate("MainWindow", u"Type:", None))
         self.comboBox_filter_type.setItemText(0, QCoreApplication.translate("MainWindow", u"All", None))
         self.comboBox_filter_type.setItemText(1, QCoreApplication.translate("MainWindow", u"Expense", None))
@@ -68,16 +69,15 @@ class Ui_MainWindow(object):
 
         self.label_filter_category.setText(QCoreApplication.translate("MainWindow", u"Category:", None))
         self.label_filter_currency.setText(QCoreApplication.translate("MainWindow", u"Currency:", None))
-        self.label_filter_description.setText(QCoreApplication.translate("MainWindow", u"Description:", None))
-#if QT_CONFIG(tooltip)
-        self.pushButton_clear_filter.setToolTip(QCoreApplication.translate("MainWindow", u"Clear filter", None))
-#endif // QT_CONFIG(tooltip)
-        self.pushButton_clear_filter.setText(QCoreApplication.translate("MainWindow", u"\U0001f9f9", None))
         self.label_filter_date.setText(QCoreApplication.translate("MainWindow", u"Date:", None))
         self.dateEdit_filter_from.setDisplayFormat(QCoreApplication.translate("MainWindow", u"yyyy-MM-dd", None))
         self.label_filter_to.setText(QCoreApplication.translate("MainWindow", u"to", None))
         self.dateEdit_filter_to.setDisplayFormat(QCoreApplication.translate("MainWindow", u"yyyy-MM-dd", None))
         self.checkBox_use_date_filter.setText(QCoreApplication.translate("MainWindow", u"Use date", None))
+#if QT_CONFIG(tooltip)
+        self.pushButton_clear_filter.setToolTip(QCoreApplication.translate("MainWindow", u"Clear filter", None))
+#endif // QT_CONFIG(tooltip)
+        self.pushButton_clear_filter.setText(QCoreApplication.translate("MainWindow", u"\U0001f9f9", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_transactions), QCoreApplication.translate("MainWindow", u"Transactions", None))
         self.groupBox_add_account.setTitle(QCoreApplication.translate("MainWindow", u"Add New Account", None))
         self.label_account_name.setText(QCoreApplication.translate("MainWindow", u"Name:", None))
@@ -484,128 +484,115 @@ class Ui_MainWindow(object):
         self.groupBox_filter = QGroupBox(self.widget_transactions)
         self.groupBox_filter.setObjectName(u"groupBox_filter")
         self.groupBox_filter.setFlat(True)
-        self.verticalLayout_filter = QVBoxLayout(self.groupBox_filter)
-        self.verticalLayout_filter.setSpacing(4)
-        self.verticalLayout_filter.setObjectName(u"verticalLayout_filter")
-        self.verticalLayout_filter.setContentsMargins(4, 2, 4, 2)
-        self.horizontalLayout_filter_row1 = QHBoxLayout()
-        self.horizontalLayout_filter_row1.setSpacing(6)
-        self.horizontalLayout_filter_row1.setObjectName(u"horizontalLayout_filter_row1")
+        self.horizontalLayout_filter = QHBoxLayout(self.groupBox_filter)
+        self.horizontalLayout_filter.setSpacing(6)
+        self.horizontalLayout_filter.setObjectName(u"horizontalLayout_filter")
+        self.horizontalLayout_filter.setContentsMargins(4, 2, 4, 2)
+        self.label_filter_description = QLabel(self.groupBox_filter)
+        self.label_filter_description.setObjectName(u"label_filter_description")
+
+        self.horizontalLayout_filter.addWidget(self.label_filter_description)
+
+        self.lineEdit_filter_description = QLineEdit(self.groupBox_filter)
+        self.lineEdit_filter_description.setObjectName(u"lineEdit_filter_description")
+        sizePolicy = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        sizePolicy.setHorizontalStretch(3)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.lineEdit_filter_description.sizePolicy().hasHeightForWidth())
+        self.lineEdit_filter_description.setSizePolicy(sizePolicy)
+        self.lineEdit_filter_description.setMinimumSize(QSize(80, 0))
+
+        self.horizontalLayout_filter.addWidget(self.lineEdit_filter_description)
+
         self.label_filter_type = QLabel(self.groupBox_filter)
         self.label_filter_type.setObjectName(u"label_filter_type")
 
-        self.horizontalLayout_filter_row1.addWidget(self.label_filter_type)
+        self.horizontalLayout_filter.addWidget(self.label_filter_type)
 
         self.comboBox_filter_type = QComboBox(self.groupBox_filter)
         self.comboBox_filter_type.addItem("")
         self.comboBox_filter_type.addItem("")
         self.comboBox_filter_type.addItem("")
         self.comboBox_filter_type.setObjectName(u"comboBox_filter_type")
-        sizePolicy = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        sizePolicy.setHorizontalStretch(1)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.comboBox_filter_type.sizePolicy().hasHeightForWidth())
-        self.comboBox_filter_type.setSizePolicy(sizePolicy)
-        self.comboBox_filter_type.setMinimumSize(QSize(80, 0))
+        sizePolicy1 = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        sizePolicy1.setHorizontalStretch(1)
+        sizePolicy1.setVerticalStretch(0)
+        sizePolicy1.setHeightForWidth(self.comboBox_filter_type.sizePolicy().hasHeightForWidth())
+        self.comboBox_filter_type.setSizePolicy(sizePolicy1)
+        self.comboBox_filter_type.setMinimumSize(QSize(70, 0))
 
-        self.horizontalLayout_filter_row1.addWidget(self.comboBox_filter_type)
+        self.horizontalLayout_filter.addWidget(self.comboBox_filter_type)
 
         self.label_filter_category = QLabel(self.groupBox_filter)
         self.label_filter_category.setObjectName(u"label_filter_category")
 
-        self.horizontalLayout_filter_row1.addWidget(self.label_filter_category)
+        self.horizontalLayout_filter.addWidget(self.label_filter_category)
 
         self.comboBox_filter_category = QComboBox(self.groupBox_filter)
         self.comboBox_filter_category.setObjectName(u"comboBox_filter_category")
-        sizePolicy1 = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        sizePolicy1.setHorizontalStretch(2)
-        sizePolicy1.setVerticalStretch(0)
-        sizePolicy1.setHeightForWidth(self.comboBox_filter_category.sizePolicy().hasHeightForWidth())
-        self.comboBox_filter_category.setSizePolicy(sizePolicy1)
-        self.comboBox_filter_category.setMinimumSize(QSize(100, 0))
+        sizePolicy2 = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        sizePolicy2.setHorizontalStretch(2)
+        sizePolicy2.setVerticalStretch(0)
+        sizePolicy2.setHeightForWidth(self.comboBox_filter_category.sizePolicy().hasHeightForWidth())
+        self.comboBox_filter_category.setSizePolicy(sizePolicy2)
+        self.comboBox_filter_category.setMinimumSize(QSize(80, 0))
 
-        self.horizontalLayout_filter_row1.addWidget(self.comboBox_filter_category)
+        self.horizontalLayout_filter.addWidget(self.comboBox_filter_category)
 
         self.label_filter_currency = QLabel(self.groupBox_filter)
         self.label_filter_currency.setObjectName(u"label_filter_currency")
 
-        self.horizontalLayout_filter_row1.addWidget(self.label_filter_currency)
+        self.horizontalLayout_filter.addWidget(self.label_filter_currency)
 
         self.comboBox_filter_currency = QComboBox(self.groupBox_filter)
         self.comboBox_filter_currency.setObjectName(u"comboBox_filter_currency")
-        sizePolicy.setHeightForWidth(self.comboBox_filter_currency.sizePolicy().hasHeightForWidth())
-        self.comboBox_filter_currency.setSizePolicy(sizePolicy)
-        self.comboBox_filter_currency.setMinimumSize(QSize(70, 0))
+        sizePolicy1.setHeightForWidth(self.comboBox_filter_currency.sizePolicy().hasHeightForWidth())
+        self.comboBox_filter_currency.setSizePolicy(sizePolicy1)
+        self.comboBox_filter_currency.setMinimumSize(QSize(55, 0))
 
-        self.horizontalLayout_filter_row1.addWidget(self.comboBox_filter_currency)
+        self.horizontalLayout_filter.addWidget(self.comboBox_filter_currency)
 
-        self.label_filter_description = QLabel(self.groupBox_filter)
-        self.label_filter_description.setObjectName(u"label_filter_description")
-
-        self.horizontalLayout_filter_row1.addWidget(self.label_filter_description)
-
-        self.lineEdit_filter_description = QLineEdit(self.groupBox_filter)
-        self.lineEdit_filter_description.setObjectName(u"lineEdit_filter_description")
-        sizePolicy1.setHeightForWidth(self.lineEdit_filter_description.sizePolicy().hasHeightForWidth())
-        self.lineEdit_filter_description.setSizePolicy(sizePolicy1)
-        self.lineEdit_filter_description.setMinimumSize(QSize(100, 0))
-
-        self.horizontalLayout_filter_row1.addWidget(self.lineEdit_filter_description)
-
-        self.pushButton_clear_filter = QPushButton(self.groupBox_filter)
-        self.pushButton_clear_filter.setObjectName(u"pushButton_clear_filter")
-        sizePolicy2 = QSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
-        sizePolicy2.setHorizontalStretch(0)
-        sizePolicy2.setVerticalStretch(0)
-        sizePolicy2.setHeightForWidth(self.pushButton_clear_filter.sizePolicy().hasHeightForWidth())
-        self.pushButton_clear_filter.setSizePolicy(sizePolicy2)
-        self.pushButton_clear_filter.setMaximumSize(QSize(32, 16777215))
-
-        self.horizontalLayout_filter_row1.addWidget(self.pushButton_clear_filter)
-
-
-        self.verticalLayout_filter.addLayout(self.horizontalLayout_filter_row1)
-
-        self.horizontalLayout_filter_row2 = QHBoxLayout()
-        self.horizontalLayout_filter_row2.setSpacing(6)
-        self.horizontalLayout_filter_row2.setObjectName(u"horizontalLayout_filter_row2")
         self.label_filter_date = QLabel(self.groupBox_filter)
         self.label_filter_date.setObjectName(u"label_filter_date")
 
-        self.horizontalLayout_filter_row2.addWidget(self.label_filter_date)
+        self.horizontalLayout_filter.addWidget(self.label_filter_date)
 
         self.dateEdit_filter_from = QDateEdit(self.groupBox_filter)
         self.dateEdit_filter_from.setObjectName(u"dateEdit_filter_from")
-        self.dateEdit_filter_from.setMinimumSize(QSize(105, 0))
+        self.dateEdit_filter_from.setMinimumSize(QSize(100, 0))
         self.dateEdit_filter_from.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
         self.dateEdit_filter_from.setCalendarPopup(True)
 
-        self.horizontalLayout_filter_row2.addWidget(self.dateEdit_filter_from)
+        self.horizontalLayout_filter.addWidget(self.dateEdit_filter_from)
 
         self.label_filter_to = QLabel(self.groupBox_filter)
         self.label_filter_to.setObjectName(u"label_filter_to")
 
-        self.horizontalLayout_filter_row2.addWidget(self.label_filter_to)
+        self.horizontalLayout_filter.addWidget(self.label_filter_to)
 
         self.dateEdit_filter_to = QDateEdit(self.groupBox_filter)
         self.dateEdit_filter_to.setObjectName(u"dateEdit_filter_to")
-        self.dateEdit_filter_to.setMinimumSize(QSize(105, 0))
+        self.dateEdit_filter_to.setMinimumSize(QSize(100, 0))
         self.dateEdit_filter_to.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
         self.dateEdit_filter_to.setCalendarPopup(True)
 
-        self.horizontalLayout_filter_row2.addWidget(self.dateEdit_filter_to)
+        self.horizontalLayout_filter.addWidget(self.dateEdit_filter_to)
 
         self.checkBox_use_date_filter = QCheckBox(self.groupBox_filter)
         self.checkBox_use_date_filter.setObjectName(u"checkBox_use_date_filter")
 
-        self.horizontalLayout_filter_row2.addWidget(self.checkBox_use_date_filter)
+        self.horizontalLayout_filter.addWidget(self.checkBox_use_date_filter)
 
-        self.horizontalSpacer_filter_row2 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+        self.pushButton_clear_filter = QPushButton(self.groupBox_filter)
+        self.pushButton_clear_filter.setObjectName(u"pushButton_clear_filter")
+        sizePolicy3 = QSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        sizePolicy3.setHorizontalStretch(0)
+        sizePolicy3.setVerticalStretch(0)
+        sizePolicy3.setHeightForWidth(self.pushButton_clear_filter.sizePolicy().hasHeightForWidth())
+        self.pushButton_clear_filter.setSizePolicy(sizePolicy3)
+        self.pushButton_clear_filter.setMaximumSize(QSize(32, 16777215))
 
-        self.horizontalLayout_filter_row2.addItem(self.horizontalSpacer_filter_row2)
-
-
-        self.verticalLayout_filter.addLayout(self.horizontalLayout_filter_row2)
+        self.horizontalLayout_filter.addWidget(self.pushButton_clear_filter)
 
 
         self.verticalLayout_transactions.addWidget(self.groupBox_filter)
@@ -1859,6 +1846,7 @@ def retranslateUi(self, MainWindow):
         self.label_yesterday_expense.setText(QCoreApplication.translate("MainWindow", u"0.00\u20bd", None))
         self.label_categories.setText(QCoreApplication.translate("MainWindow", u"Categories:", None))
         self.groupBox_filter.setTitle("")
+        self.label_filter_description.setText(QCoreApplication.translate("MainWindow", u"Description:", None))
         self.label_filter_type.setText(QCoreApplication.translate("MainWindow", u"Type:", None))
         self.comboBox_filter_type.setItemText(0, QCoreApplication.translate("MainWindow", u"All", None))
         self.comboBox_filter_type.setItemText(1, QCoreApplication.translate("MainWindow", u"Expense", None))
@@ -1866,16 +1854,15 @@ def retranslateUi(self, MainWindow):
 
         self.label_filter_category.setText(QCoreApplication.translate("MainWindow", u"Category:", None))
         self.label_filter_currency.setText(QCoreApplication.translate("MainWindow", u"Currency:", None))
-        self.label_filter_description.setText(QCoreApplication.translate("MainWindow", u"Description:", None))
-#if QT_CONFIG(tooltip)
-        self.pushButton_clear_filter.setToolTip(QCoreApplication.translate("MainWindow", u"Clear filter", None))
-#endif // QT_CONFIG(tooltip)
-        self.pushButton_clear_filter.setText(QCoreApplication.translate("MainWindow", u"\U0001f9f9", None))
         self.label_filter_date.setText(QCoreApplication.translate("MainWindow", u"Date:", None))
         self.dateEdit_filter_from.setDisplayFormat(QCoreApplication.translate("MainWindow", u"yyyy-MM-dd", None))
         self.label_filter_to.setText(QCoreApplication.translate("MainWindow", u"to", None))
         self.dateEdit_filter_to.setDisplayFormat(QCoreApplication.translate("MainWindow", u"yyyy-MM-dd", None))
         self.checkBox_use_date_filter.setText(QCoreApplication.translate("MainWindow", u"Use date", None))
+#if QT_CONFIG(tooltip)
+        self.pushButton_clear_filter.setToolTip(QCoreApplication.translate("MainWindow", u"Clear filter", None))
+#endif // QT_CONFIG(tooltip)
+        self.pushButton_clear_filter.setText(QCoreApplication.translate("MainWindow", u"\U0001f9f9", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_transactions), QCoreApplication.translate("MainWindow", u"Transactions", None))
         self.groupBox_add_account.setTitle(QCoreApplication.translate("MainWindow", u"Add New Account", None))
         self.label_account_name.setText(QCoreApplication.translate("MainWindow", u"Name:", None))
@@ -2298,128 +2285,115 @@ def setupUi(self, MainWindow):
         self.groupBox_filter = QGroupBox(self.widget_transactions)
         self.groupBox_filter.setObjectName(u"groupBox_filter")
         self.groupBox_filter.setFlat(True)
-        self.verticalLayout_filter = QVBoxLayout(self.groupBox_filter)
-        self.verticalLayout_filter.setSpacing(4)
-        self.verticalLayout_filter.setObjectName(u"verticalLayout_filter")
-        self.verticalLayout_filter.setContentsMargins(4, 2, 4, 2)
-        self.horizontalLayout_filter_row1 = QHBoxLayout()
-        self.horizontalLayout_filter_row1.setSpacing(6)
-        self.horizontalLayout_filter_row1.setObjectName(u"horizontalLayout_filter_row1")
+        self.horizontalLayout_filter = QHBoxLayout(self.groupBox_filter)
+        self.horizontalLayout_filter.setSpacing(6)
+        self.horizontalLayout_filter.setObjectName(u"horizontalLayout_filter")
+        self.horizontalLayout_filter.setContentsMargins(4, 2, 4, 2)
+        self.label_filter_description = QLabel(self.groupBox_filter)
+        self.label_filter_description.setObjectName(u"label_filter_description")
+
+        self.horizontalLayout_filter.addWidget(self.label_filter_description)
+
+        self.lineEdit_filter_description = QLineEdit(self.groupBox_filter)
+        self.lineEdit_filter_description.setObjectName(u"lineEdit_filter_description")
+        sizePolicy = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        sizePolicy.setHorizontalStretch(3)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.lineEdit_filter_description.sizePolicy().hasHeightForWidth())
+        self.lineEdit_filter_description.setSizePolicy(sizePolicy)
+        self.lineEdit_filter_description.setMinimumSize(QSize(80, 0))
+
+        self.horizontalLayout_filter.addWidget(self.lineEdit_filter_description)
+
         self.label_filter_type = QLabel(self.groupBox_filter)
         self.label_filter_type.setObjectName(u"label_filter_type")
 
-        self.horizontalLayout_filter_row1.addWidget(self.label_filter_type)
+        self.horizontalLayout_filter.addWidget(self.label_filter_type)
 
         self.comboBox_filter_type = QComboBox(self.groupBox_filter)
         self.comboBox_filter_type.addItem("")
         self.comboBox_filter_type.addItem("")
         self.comboBox_filter_type.addItem("")
         self.comboBox_filter_type.setObjectName(u"comboBox_filter_type")
-        sizePolicy = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        sizePolicy.setHorizontalStretch(1)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.comboBox_filter_type.sizePolicy().hasHeightForWidth())
-        self.comboBox_filter_type.setSizePolicy(sizePolicy)
-        self.comboBox_filter_type.setMinimumSize(QSize(80, 0))
+        sizePolicy1 = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        sizePolicy1.setHorizontalStretch(1)
+        sizePolicy1.setVerticalStretch(0)
+        sizePolicy1.setHeightForWidth(self.comboBox_filter_type.sizePolicy().hasHeightForWidth())
+        self.comboBox_filter_type.setSizePolicy(sizePolicy1)
+        self.comboBox_filter_type.setMinimumSize(QSize(70, 0))
 
-        self.horizontalLayout_filter_row1.addWidget(self.comboBox_filter_type)
+        self.horizontalLayout_filter.addWidget(self.comboBox_filter_type)
 
         self.label_filter_category = QLabel(self.groupBox_filter)
         self.label_filter_category.setObjectName(u"label_filter_category")
 
-        self.horizontalLayout_filter_row1.addWidget(self.label_filter_category)
+        self.horizontalLayout_filter.addWidget(self.label_filter_category)
 
         self.comboBox_filter_category = QComboBox(self.groupBox_filter)
         self.comboBox_filter_category.setObjectName(u"comboBox_filter_category")
-        sizePolicy1 = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        sizePolicy1.setHorizontalStretch(2)
-        sizePolicy1.setVerticalStretch(0)
-        sizePolicy1.setHeightForWidth(self.comboBox_filter_category.sizePolicy().hasHeightForWidth())
-        self.comboBox_filter_category.setSizePolicy(sizePolicy1)
-        self.comboBox_filter_category.setMinimumSize(QSize(100, 0))
+        sizePolicy2 = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        sizePolicy2.setHorizontalStretch(2)
+        sizePolicy2.setVerticalStretch(0)
+        sizePolicy2.setHeightForWidth(self.comboBox_filter_category.sizePolicy().hasHeightForWidth())
+        self.comboBox_filter_category.setSizePolicy(sizePolicy2)
+        self.comboBox_filter_category.setMinimumSize(QSize(80, 0))
 
-        self.horizontalLayout_filter_row1.addWidget(self.comboBox_filter_category)
+        self.horizontalLayout_filter.addWidget(self.comboBox_filter_category)
 
         self.label_filter_currency = QLabel(self.groupBox_filter)
         self.label_filter_currency.setObjectName(u"label_filter_currency")
 
-        self.horizontalLayout_filter_row1.addWidget(self.label_filter_currency)
+        self.horizontalLayout_filter.addWidget(self.label_filter_currency)
 
         self.comboBox_filter_currency = QComboBox(self.groupBox_filter)
         self.comboBox_filter_currency.setObjectName(u"comboBox_filter_currency")
-        sizePolicy.setHeightForWidth(self.comboBox_filter_currency.sizePolicy().hasHeightForWidth())
-        self.comboBox_filter_currency.setSizePolicy(sizePolicy)
-        self.comboBox_filter_currency.setMinimumSize(QSize(70, 0))
+        sizePolicy1.setHeightForWidth(self.comboBox_filter_currency.sizePolicy().hasHeightForWidth())
+        self.comboBox_filter_currency.setSizePolicy(sizePolicy1)
+        self.comboBox_filter_currency.setMinimumSize(QSize(55, 0))
 
-        self.horizontalLayout_filter_row1.addWidget(self.comboBox_filter_currency)
+        self.horizontalLayout_filter.addWidget(self.comboBox_filter_currency)
 
-        self.label_filter_description = QLabel(self.groupBox_filter)
-        self.label_filter_description.setObjectName(u"label_filter_description")
-
-        self.horizontalLayout_filter_row1.addWidget(self.label_filter_description)
-
-        self.lineEdit_filter_description = QLineEdit(self.groupBox_filter)
-        self.lineEdit_filter_description.setObjectName(u"lineEdit_filter_description")
-        sizePolicy1.setHeightForWidth(self.lineEdit_filter_description.sizePolicy().hasHeightForWidth())
-        self.lineEdit_filter_description.setSizePolicy(sizePolicy1)
-        self.lineEdit_filter_description.setMinimumSize(QSize(100, 0))
-
-        self.horizontalLayout_filter_row1.addWidget(self.lineEdit_filter_description)
-
-        self.pushButton_clear_filter = QPushButton(self.groupBox_filter)
-        self.pushButton_clear_filter.setObjectName(u"pushButton_clear_filter")
-        sizePolicy2 = QSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
-        sizePolicy2.setHorizontalStretch(0)
-        sizePolicy2.setVerticalStretch(0)
-        sizePolicy2.setHeightForWidth(self.pushButton_clear_filter.sizePolicy().hasHeightForWidth())
-        self.pushButton_clear_filter.setSizePolicy(sizePolicy2)
-        self.pushButton_clear_filter.setMaximumSize(QSize(32, 16777215))
-
-        self.horizontalLayout_filter_row1.addWidget(self.pushButton_clear_filter)
-
-
-        self.verticalLayout_filter.addLayout(self.horizontalLayout_filter_row1)
-
-        self.horizontalLayout_filter_row2 = QHBoxLayout()
-        self.horizontalLayout_filter_row2.setSpacing(6)
-        self.horizontalLayout_filter_row2.setObjectName(u"horizontalLayout_filter_row2")
         self.label_filter_date = QLabel(self.groupBox_filter)
         self.label_filter_date.setObjectName(u"label_filter_date")
 
-        self.horizontalLayout_filter_row2.addWidget(self.label_filter_date)
+        self.horizontalLayout_filter.addWidget(self.label_filter_date)
 
         self.dateEdit_filter_from = QDateEdit(self.groupBox_filter)
         self.dateEdit_filter_from.setObjectName(u"dateEdit_filter_from")
-        self.dateEdit_filter_from.setMinimumSize(QSize(105, 0))
+        self.dateEdit_filter_from.setMinimumSize(QSize(100, 0))
         self.dateEdit_filter_from.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
         self.dateEdit_filter_from.setCalendarPopup(True)
 
-        self.horizontalLayout_filter_row2.addWidget(self.dateEdit_filter_from)
+        self.horizontalLayout_filter.addWidget(self.dateEdit_filter_from)
 
         self.label_filter_to = QLabel(self.groupBox_filter)
         self.label_filter_to.setObjectName(u"label_filter_to")
 
-        self.horizontalLayout_filter_row2.addWidget(self.label_filter_to)
+        self.horizontalLayout_filter.addWidget(self.label_filter_to)
 
         self.dateEdit_filter_to = QDateEdit(self.groupBox_filter)
         self.dateEdit_filter_to.setObjectName(u"dateEdit_filter_to")
-        self.dateEdit_filter_to.setMinimumSize(QSize(105, 0))
+        self.dateEdit_filter_to.setMinimumSize(QSize(100, 0))
         self.dateEdit_filter_to.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
         self.dateEdit_filter_to.setCalendarPopup(True)
 
-        self.horizontalLayout_filter_row2.addWidget(self.dateEdit_filter_to)
+        self.horizontalLayout_filter.addWidget(self.dateEdit_filter_to)
 
         self.checkBox_use_date_filter = QCheckBox(self.groupBox_filter)
         self.checkBox_use_date_filter.setObjectName(u"checkBox_use_date_filter")
 
-        self.horizontalLayout_filter_row2.addWidget(self.checkBox_use_date_filter)
+        self.horizontalLayout_filter.addWidget(self.checkBox_use_date_filter)
 
-        self.horizontalSpacer_filter_row2 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+        self.pushButton_clear_filter = QPushButton(self.groupBox_filter)
+        self.pushButton_clear_filter.setObjectName(u"pushButton_clear_filter")
+        sizePolicy3 = QSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        sizePolicy3.setHorizontalStretch(0)
+        sizePolicy3.setVerticalStretch(0)
+        sizePolicy3.setHeightForWidth(self.pushButton_clear_filter.sizePolicy().hasHeightForWidth())
+        self.pushButton_clear_filter.setSizePolicy(sizePolicy3)
+        self.pushButton_clear_filter.setMaximumSize(QSize(32, 16777215))
 
-        self.horizontalLayout_filter_row2.addItem(self.horizontalSpacer_filter_row2)
-
-
-        self.verticalLayout_filter.addLayout(self.horizontalLayout_filter_row2)
+        self.horizontalLayout_filter.addWidget(self.pushButton_clear_filter)
 
 
         self.verticalLayout_transactions.addWidget(self.groupBox_filter)

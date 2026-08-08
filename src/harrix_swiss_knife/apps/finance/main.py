@@ -4971,11 +4971,14 @@ class MainWindow(
         QWidget.setTabOrder(self.listView_categories, self.pushButton_delete)
         QWidget.setTabOrder(self.pushButton_delete, self.pushButton_show_all_records)
         QWidget.setTabOrder(self.pushButton_show_all_records, self.pushButton_refresh)
-        QWidget.setTabOrder(self.pushButton_refresh, self.comboBox_filter_type)
+        QWidget.setTabOrder(self.pushButton_refresh, self.lineEdit_filter_description)
+        QWidget.setTabOrder(self.lineEdit_filter_description, self.comboBox_filter_type)
         QWidget.setTabOrder(self.comboBox_filter_type, self.comboBox_filter_category)
         QWidget.setTabOrder(self.comboBox_filter_category, self.comboBox_filter_currency)
-        QWidget.setTabOrder(self.comboBox_filter_currency, self.lineEdit_filter_description)
-        QWidget.setTabOrder(self.lineEdit_filter_description, self.pushButton_clear_filter)
+        QWidget.setTabOrder(self.comboBox_filter_currency, self.dateEdit_filter_from)
+        QWidget.setTabOrder(self.dateEdit_filter_from, self.dateEdit_filter_to)
+        QWidget.setTabOrder(self.dateEdit_filter_to, self.checkBox_use_date_filter)
+        QWidget.setTabOrder(self.checkBox_use_date_filter, self.pushButton_clear_filter)
         QWidget.setTabOrder(self.pushButton_clear_filter, self.pushButton_description_clear)
 
     def _setup_transactions_table_column_widths(self) -> None:
