@@ -192,6 +192,11 @@
     <string name="photo_editor_open_photo">Otevřít fotografii</string>
     <string name="photo_editor_empty_title">Neotevřená fotka</string>
     <string name="photo_editor_empty_message">Vyberte fotografii, kterou chcete oříznout a narovnat, nebo Sdílejte obrázek s touto aplikací.</string>
+    <string name="photo_editor_permission_title">Je vyžadován přístup k fotkám</string>
+    <string name="photo_editor_permission_message">Povolte přístup k fotkám pro procházení galerie Fotoaparátu a úpravu fotek.</string>
+    <string name="photo_editor_permission_grant">Udělit přístup</string>
+    <string name="photo_editor_gallery_loading">Prosím čekejte, fotky se načítají…</string>
+    <string name="photo_editor_gallery_empty">Nebyly nalezeny žádné fotky z Fotoaparátu. Otevřete fotku odjinud tlačítkem nahoře.</string>
     <string name="photo_editor_open_failed">Nelze otevřít fotografii</string>
     <string name="photo_editor_saved">Foto uloženo</string>
     <string name="photo_editor_saved_as_copy">Uloženo jako kopie v %1$s</string>

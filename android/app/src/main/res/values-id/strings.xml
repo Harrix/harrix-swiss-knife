@@ -192,6 +192,11 @@
     <string name="photo_editor_open_photo">Buka foto</string>
     <string name="photo_editor_empty_title">Tidak ada foto yang dibuka</string>
     <string name="photo_editor_empty_message">Pilih foto untuk dipotong dan diluruskan, atau bagikan gambar dengan aplikasi ini.</string>
+    <string name="photo_editor_permission_title">Akses foto diperlukan</string>
+    <string name="photo_editor_permission_message">Izinkan akses ke foto untuk menelusuri galeri Kamera dan mengedit foto.</string>
+    <string name="photo_editor_permission_grant">Berikan akses</string>
+    <string name="photo_editor_gallery_loading">Harap tunggu, foto sedang dimuat…</string>
+    <string name="photo_editor_gallery_empty">Tidak ada foto Kamera. Buka foto dari tempat lain dengan tombol di atas.</string>
     <string name="photo_editor_open_failed">Tidak dapat membuka foto</string>
     <string name="photo_editor_saved">Foto disimpan</string>
     <string name="photo_editor_saved_as_copy">Disimpan sebagai salinan di %1$s</string>

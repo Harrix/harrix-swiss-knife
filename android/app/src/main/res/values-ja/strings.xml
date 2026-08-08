@@ -192,6 +192,11 @@
     <string name="photo_editor_open_photo">写真を開く</string>
     <string name="photo_editor_empty_title">写真が開かれていません</string>
     <string name="photo_editor_empty_message">切り抜きと傾き補正する写真を選ぶか、このアプリに画像を共有してください。</string>
+    <string name="photo_editor_permission_title">写真へのアクセスが必要です</string>
+    <string name="photo_editor_permission_message">カメラギャラリーを閲覧して写真を編集するには、写真へのアクセスを許可してください。</string>
+    <string name="photo_editor_permission_grant">アクセスを許可</string>
+    <string name="photo_editor_gallery_loading">お待ちください。写真を読み込んでいます…</string>
+    <string name="photo_editor_gallery_empty">カメラの写真が見つかりません。上のボタンで別の場所から写真を開いてください。</string>
     <string name="photo_editor_open_failed">写真を開けませんでした</string>
     <string name="photo_editor_saved">写真を保存しました</string>
     <string name="photo_editor_saved_as_copy">%1$s にコピーとして保存しました</string>

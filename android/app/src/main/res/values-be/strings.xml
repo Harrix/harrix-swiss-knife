@@ -192,6 +192,11 @@
     <string name="photo_editor_open_photo">Адкрыць фота</string>
     <string name="photo_editor_empty_title">Фатаграфія не адкрыта</string>
     <string name="photo_editor_empty_message">Выберыце фатаграфію для абрэзкі і выпроствання або Падзяліцеся малюнкам з дапамогай гэтага прыкладання.</string>
+    <string name="photo_editor_permission_title">Патрэбны доступ да фатаграфій</string>
+    <string name="photo_editor_permission_message">Дазвольце доступ да фатаграфій, каб праглядаць галерэю камеры і рэдагаваць здымкі.</string>
+    <string name="photo_editor_permission_grant">Даць доступ</string>
+    <string name="photo_editor_gallery_loading">Калі ласка, пачакайце, фатаграфіі загружаюцца…</string>
+    <string name="photo_editor_gallery_empty">Фатаграфіі з камеры не знойдзены. Адкрыйце фота з іншага месца кнопкай зверху.</string>
     <string name="photo_editor_open_failed">Не атрымалася адкрыць фатаграфію</string>
     <string name="photo_editor_saved">Фота захавана</string>
     <string name="photo_editor_saved_as_copy">Захавана як копія ў %1$s</string>

@@ -192,6 +192,11 @@
     <string name="photo_editor_open_photo">Fotoğrafı aç</string>
     <string name="photo_editor_empty_title">Açık fotoğraf yok</string>
     <string name="photo_editor_empty_message">Kırpmak ve düzeltmek için bir fotoğraf seçin veya bu uygulamayla bir görseli paylaşın.</string>
+    <string name="photo_editor_permission_title">Fotoğraf erişimi gerekli</string>
+    <string name="photo_editor_permission_message">Kamera galerisine göz atmak ve fotoğrafları düzenlemek için fotoğraflara erişime izin verin.</string>
+    <string name="photo_editor_permission_grant">Erişim ver</string>
+    <string name="photo_editor_gallery_loading">Lütfen bekleyin, fotoğraflar yükleniyor…</string>
+    <string name="photo_editor_gallery_empty">Kamera fotoğrafı bulunamadı. Yukarıdaki düğmeyle başka bir yerden fotoğraf açın.</string>
     <string name="photo_editor_open_failed">Fotoğraf açılamadı</string>
     <string name="photo_editor_saved">Fotoğraf kaydedildi</string>
     <string name="photo_editor_saved_as_copy">%1$s içinde kopya olarak kaydedildi</string>

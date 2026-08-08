@@ -192,6 +192,11 @@
     <string name="photo_editor_open_photo">Відкрити фото</string>
     <string name="photo_editor_empty_title">Фотографія не відкрита</string>
     <string name="photo_editor_empty_message">Виберіть фотографію для обрізання та випрямлення або Поділіться зображенням за допомогою цієї програми.</string>
+    <string name="photo_editor_permission_title">Потрібен доступ до фотографій</string>
+    <string name="photo_editor_permission_message">Дозвольте доступ до фотографій, щоб переглядати галерею камери та редагувати знімки.</string>
+    <string name="photo_editor_permission_grant">Надати доступ</string>
+    <string name="photo_editor_gallery_loading">Зачекайте, фотографії завантажуються…</string>
+    <string name="photo_editor_gallery_empty">Фотографії з камери не знайдено. Відкрийте фото з іншого місця кнопкою зверху.</string>
     <string name="photo_editor_open_failed">Не вдалося відкрити фотографію</string>
     <string name="photo_editor_saved">Фото збережено</string>
     <string name="photo_editor_saved_as_copy">Збережено як копію в %1$s</string>

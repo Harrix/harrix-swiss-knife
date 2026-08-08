@@ -192,6 +192,11 @@
     <string name="photo_editor_open_photo">Отвори фотографију</string>
     <string name="photo_editor_empty_title">Фотографија није отворена</string>
     <string name="photo_editor_empty_message">Изаберите фотографију за обрезивање и исправљање или делите слику помоћу ове апликације.</string>
+    <string name="photo_editor_permission_title">Потребан је приступ фотографијама</string>
+    <string name="photo_editor_permission_message">Дозволите приступ фотографијама да бисте прегледали галерију Камере и уређивали фотографије.</string>
+    <string name="photo_editor_permission_grant">Дозволи приступ</string>
+    <string name="photo_editor_gallery_loading">Сачекајте, фотографије се учитавају…</string>
+    <string name="photo_editor_gallery_empty">Фотографије са Камере нису пронађене. Отворите фотографију са другог места дугметом изнад.</string>
     <string name="photo_editor_open_failed">Отварање фотографије није успело</string>
     <string name="photo_editor_saved">Фотографија је сачувана</string>
     <string name="photo_editor_saved_as_copy">Сачувано као копија у %1$s</string>

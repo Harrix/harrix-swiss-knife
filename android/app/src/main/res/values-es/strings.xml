@@ -192,6 +192,11 @@
     <string name="photo_editor_open_photo">Abrir foto</string>
     <string name="photo_editor_empty_title">No hay foto abierta</string>
     <string name="photo_editor_empty_message">Elige una foto para recortar y enderezar, o comparte una imagen con esta app.</string>
+    <string name="photo_editor_permission_title">Se necesita acceso a las fotos</string>
+    <string name="photo_editor_permission_message">Permite el acceso a las fotos para explorar la galería de Cámara y editar fotos.</string>
+    <string name="photo_editor_permission_grant">Conceder acceso</string>
+    <string name="photo_editor_gallery_loading">Espera, se están cargando las fotos…</string>
+    <string name="photo_editor_gallery_empty">No se encontraron fotos de Cámara. Abre una foto de otro lugar con el botón de arriba.</string>
     <string name="photo_editor_open_failed">No se pudo abrir la foto</string>
     <string name="photo_editor_saved">Foto guardada</string>
     <string name="photo_editor_saved_as_copy">Guardada como copia en %1$s</string>

@@ -192,6 +192,11 @@
     <string name="photo_editor_open_photo">Otwórz zdjęcie</string>
     <string name="photo_editor_empty_title">Brak otwartego zdjęcia</string>
     <string name="photo_editor_empty_message">Wybierz zdjęcie do przycięcia i wyprostowania lub udostępnij zdjęcie za pomocą tej aplikacji.</string>
+    <string name="photo_editor_permission_title">Wymagany dostęp do zdjęć</string>
+    <string name="photo_editor_permission_message">Zezwól na dostęp do zdjęć, aby przeglądać galerię Aparatu i edytować zdjęcia.</string>
+    <string name="photo_editor_permission_grant">Udziel dostępu</string>
+    <string name="photo_editor_gallery_loading">Proszę czekać, zdjęcia są ładowane…</string>
+    <string name="photo_editor_gallery_empty">Nie znaleziono zdjęć z Aparatu. Otwórz zdjęcie z innego miejsca przyciskiem u góry.</string>
     <string name="photo_editor_open_failed">Nie można otworzyć zdjęcia</string>
     <string name="photo_editor_saved">Zdjęcie zapisane</string>
     <string name="photo_editor_saved_as_copy">Zapisane jako kopia w %1$s</string>

@@ -192,6 +192,11 @@
     <string name="photo_editor_open_photo">فتح صورة</string>
     <string name="photo_editor_empty_title">لا توجد صورة مفتوحة</string>
     <string name="photo_editor_empty_message">اختيار صورة لاقتصاص وتصويب ، أو مشاركة صورة مع هذا التطبيق.</string>
+    <string name="photo_editor_permission_title">يلزم الوصول إلى الصور</string>
+    <string name="photo_editor_permission_message">اسمح بالوصول إلى الصور لتصفح معرض الكاميرا وتحرير الصور.</string>
+    <string name="photo_editor_permission_grant">منح الوصول</string>
+    <string name="photo_editor_gallery_loading">يرجى الانتظار، جارٍ تحميل الصور…</string>
+    <string name="photo_editor_gallery_empty">لم يتم العثور على صور الكاميرا. افتح صورة من مكان آخر بالزر أعلاه.</string>
     <string name="photo_editor_open_failed">لا يمكن فتح الصورة</string>
     <string name="photo_editor_saved">تم حفظ الصورة</string>
     <string name="photo_editor_saved_as_copy">حُفظت كنسخة في %1$s</string>

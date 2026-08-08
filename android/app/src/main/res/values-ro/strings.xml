@@ -192,6 +192,11 @@
     <string name="photo_editor_open_photo">Deschide fotografia</string>
     <string name="photo_editor_empty_title">Nicio fotografie deschisă</string>
     <string name="photo_editor_empty_message">Alegeți o fotografie pentru a decupa și îndrepta sau partajați o imagine cu această aplicație.</string>
+    <string name="photo_editor_permission_title">Este necesar accesul la fotografii</string>
+    <string name="photo_editor_permission_message">Permiteți accesul la fotografii pentru a răsfoi galeria Cameră și a edita fotografii.</string>
+    <string name="photo_editor_permission_grant">Acordă acces</string>
+    <string name="photo_editor_gallery_loading">Așteptați, fotografiile se încarcă…</string>
+    <string name="photo_editor_gallery_empty">Nu s-au găsit fotografii Cameră. Deschideți o fotografie din altă parte cu butonul de sus.</string>
     <string name="photo_editor_open_failed">Nu s-a putut deschide fotografia</string>
     <string name="photo_editor_saved">Fotografie salvată</string>
     <string name="photo_editor_saved_as_copy">Salvat ca o copie în %1$s</string>

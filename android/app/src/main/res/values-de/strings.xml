@@ -192,6 +192,11 @@
     <string name="photo_editor_open_photo">Foto öffnen</string>
     <string name="photo_editor_empty_title">Kein Foto geöffnet</string>
     <string name="photo_editor_empty_message">Wählen Sie ein Foto zum Zuschneiden und Ausrichten, oder teilen Sie ein Bild mit dieser App.</string>
+    <string name="photo_editor_permission_title">Fotozugriff erforderlich</string>
+    <string name="photo_editor_permission_message">Erlauben Sie den Zugriff auf Fotos, um die Kameragalerie zu durchsuchen und Fotos zu bearbeiten.</string>
+    <string name="photo_editor_permission_grant">Zugriff erlauben</string>
+    <string name="photo_editor_gallery_loading">Bitte warten, Fotos werden geladen…</string>
+    <string name="photo_editor_gallery_empty">Keine Kamerafotos gefunden. Öffnen Sie ein Foto von anderswo über die Schaltfläche oben.</string>
     <string name="photo_editor_open_failed">Foto konnte nicht geöffnet werden</string>
     <string name="photo_editor_saved">Foto gespeichert</string>
     <string name="photo_editor_saved_as_copy">Als Kopie in %1$s gespeichert</string>

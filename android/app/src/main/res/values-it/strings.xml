@@ -192,6 +192,11 @@
     <string name="photo_editor_open_photo">Apri foto</string>
     <string name="photo_editor_empty_title">Nessuna foto aperta</string>
     <string name="photo_editor_empty_message">Scegli una foto da ritagliare e raddrizzare, oppure condividi un\'immagine con questa app.</string>
+    <string name="photo_editor_permission_title">Accesso alle foto necessario</string>
+    <string name="photo_editor_permission_message">Consenti l\'accesso alle foto per sfogliare la galleria Fotocamera e modificare le foto.</string>
+    <string name="photo_editor_permission_grant">Concedi accesso</string>
+    <string name="photo_editor_gallery_loading">Attendere, caricamento foto…</string>
+    <string name="photo_editor_gallery_empty">Nessuna foto della Fotocamera trovata. Apri una foto da altrove con il pulsante in alto.</string>
     <string name="photo_editor_open_failed">Impossibile aprire la foto</string>
     <string name="photo_editor_saved">Foto salvata</string>
     <string name="photo_editor_saved_as_copy">Salvata come copia in %1$s</string>

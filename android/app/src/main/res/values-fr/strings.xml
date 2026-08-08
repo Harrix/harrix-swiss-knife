@@ -192,6 +192,11 @@
     <string name="photo_editor_open_photo">Ouvrir une photo</string>
     <string name="photo_editor_empty_title">Aucune photo ouverte</string>
     <string name="photo_editor_empty_message">Choisissez une photo à recadrer et redresser, ou partagez une image avec cette application.</string>
+    <string name="photo_editor_permission_title">Accès aux photos requis</string>
+    <string name="photo_editor_permission_message">Autorisez l\'accès aux photos pour parcourir la galerie Appareil photo et modifier des photos.</string>
+    <string name="photo_editor_permission_grant">Autoriser l\'accès</string>
+    <string name="photo_editor_gallery_loading">Veuillez patienter, chargement des photos…</string>
+    <string name="photo_editor_gallery_empty">Aucune photo Appareil photo trouvée. Ouvrez une photo ailleurs avec le bouton ci-dessus.</string>
     <string name="photo_editor_open_failed">Impossible d\'ouvrir la photo</string>
     <string name="photo_editor_saved">Photo enregistrée</string>
     <string name="photo_editor_saved_as_copy">Enregistrée en copie dans %1$s</string>

@@ -192,6 +192,11 @@
     <string name="photo_editor_open_photo">사진 열기</string>
     <string name="photo_editor_empty_title">사진 없음</string>
     <string name="photo_editor_empty_message">자르기 및 똑 바르게,또는이 응용 프로그램과 함께 이미지를 공유 할 사진을 선택합니다.</string>
+    <string name="photo_editor_permission_title">사진 접근 권한 필요</string>
+    <string name="photo_editor_permission_message">카메라 갤러리를 살펴보고 사진을 편집하려면 사진 접근을 허용하세요.</string>
+    <string name="photo_editor_permission_grant">권한 허용</string>
+    <string name="photo_editor_gallery_loading">잠시만 기다려 주세요. 사진을 불러오는 중…</string>
+    <string name="photo_editor_gallery_empty">카메라 사진이 없습니다. 위 버튼으로 다른 곳에서 사진을 여세요.</string>
     <string name="photo_editor_open_failed">사진을 열 수 없습니다</string>
     <string name="photo_editor_saved">사진이 저장됨</string>
     <string name="photo_editor_saved_as_copy">%1$s에 사본으로 저장됨</string>

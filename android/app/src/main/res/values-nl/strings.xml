@@ -192,6 +192,11 @@
     <string name="photo_editor_open_photo">Foto openen</string>
     <string name="photo_editor_empty_title">Geen foto geopend</string>
     <string name="photo_editor_empty_message">Kies een foto om bij te snijden en recht te maken, of deel een afbeelding met deze app.</string>
+    <string name="photo_editor_permission_title">Toegang tot foto\'s nodig</string>
+    <string name="photo_editor_permission_message">Geef toegang tot foto\'s om de Cameragalerij te bekijken en foto\'s te bewerken.</string>
+    <string name="photo_editor_permission_grant">Toegang verlenen</string>
+    <string name="photo_editor_gallery_loading">Even geduld, foto\'s worden geladen…</string>
+    <string name="photo_editor_gallery_empty">Geen Camerafoto\'s gevonden. Open een foto van elders met de knop hierboven.</string>
     <string name="photo_editor_open_failed">Kon foto niet openen</string>
     <string name="photo_editor_saved">Foto opgeslagen</string>
     <string name="photo_editor_saved_as_copy">Opgeslagen als kopie in %1$s</string>

@@ -192,6 +192,11 @@
     <string name="photo_editor_open_photo">打开照片</string>
     <string name="photo_editor_empty_title">未打开照片</string>
     <string name="photo_editor_empty_message">选择要裁剪和校正的照片，或将图片分享到此应用。</string>
+    <string name="photo_editor_permission_title">需要照片访问权限</string>
+    <string name="photo_editor_permission_message">请允许访问照片，以便浏览相机图库并编辑照片。</string>
+    <string name="photo_editor_permission_grant">授予权限</string>
+    <string name="photo_editor_gallery_loading">请稍候，正在加载照片…</string>
+    <string name="photo_editor_gallery_empty">未找到相机照片。请使用上方按钮从其他位置打开照片。</string>
     <string name="photo_editor_open_failed">无法打开照片</string>
     <string name="photo_editor_saved">照片已保存</string>
     <string name="photo_editor_saved_as_copy">已另存为副本到 %1$s</string>
