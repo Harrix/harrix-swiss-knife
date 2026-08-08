@@ -1436,21 +1436,23 @@ private fun resolveCropOneFingerAction(
     return OneFingerAction.Crop(CropDragMode.Move)
 }
 
+/**
+ * Perspective: only corner handles reshape the quad. Swipes inside or outside the frame
+ * pan the view (same as zoomed pan) so the frame is not dragged as a whole.
+ */
 private fun resolvePerspectiveOneFingerAction(
     localPoint: Offset,
     cornersPx: List<Offset>,
     slop: Float,
     cornersVisible: Boolean,
 ): OneFingerAction {
-    val cornerHit = hitTestPerspectiveCornerOnly(localPoint, cornersPx, slop)
-    if (cornerHit != null) {
-        return OneFingerAction.Perspective(cornerHit)
+    if (cornersVisible) {
+        val cornerHit = hitTestPerspectiveCornerOnly(localPoint, cornersPx, slop)
+        if (cornerHit != null) {
+            return OneFingerAction.Perspective(cornerHit)
+        }
     }
-    val inside = pointInConvexQuad(localPoint, cornersPx)
-    if (!inside || !cornersVisible) {
-        return OneFingerAction.PanView
-    }
-    return OneFingerAction.Perspective(PerspectiveDragMode.Move)
+    return OneFingerAction.PanView
 }
 
 private fun hitTestCropCornerOnly(
