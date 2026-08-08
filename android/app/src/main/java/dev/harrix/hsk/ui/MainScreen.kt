@@ -231,6 +231,7 @@ fun MainScreen(
                     },
                     initialUri = photoEditorInitialUri,
                     onInitialUriConsume = { photoEditorInitialUri = null },
+                    settingsRevision = settingsRevision,
                     modifier = Modifier.fillMaxSize(),
                 )
             }

@@ -192,6 +192,11 @@
     <string name="photo_editor_open_photo">Open photo</string>
     <string name="photo_editor_empty_title">No photo open</string>
     <string name="photo_editor_empty_message">Choose a photo to crop and straighten, or share an image with this app.</string>
+    <string name="photo_editor_permission_title">Photos access needed</string>
+    <string name="photo_editor_permission_message">Allow access to photos to browse the Camera gallery and edit photos.</string>
+    <string name="photo_editor_permission_grant">Grant access</string>
+    <string name="photo_editor_gallery_loading">Please wait, photos are loading…</string>
+    <string name="photo_editor_gallery_empty">No Camera photos found. Open a photo from elsewhere with the button above.</string>
     <string name="photo_editor_open_failed">Could not open photo</string>
     <string name="photo_editor_saved">Photo saved</string>
     <string name="photo_editor_saved_as_copy">Saved as a copy in %1$s</string>

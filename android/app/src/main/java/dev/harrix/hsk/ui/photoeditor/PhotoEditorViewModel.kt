@@ -21,16 +21,27 @@ class PhotoEditorViewModel(
 
     val currentPhoto = mutableStateOf<CameraPhoto?>(null)
     val imageRevision = mutableIntStateOf(0)
-    val isLoading = mutableStateOf(false)
+    val isOpeningPhoto = mutableStateOf(false)
+    val galleryPhotos = mutableStateOf<List<CameraPhoto>>(emptyList())
+    val isGalleryLoading = mutableStateOf(false)
+    var galleryInitialized = false
+    var gridFirstVisibleIndex = 0
+    var gridFirstVisibleOffset = 0
+    var appliedSettingsRevision = -1
 
     /** Last inbound URI applied so the same share is not re-opened after consume. */
     var lastAppliedIncomingUri: String? = null
         private set
 
+    fun openGalleryPhoto(photo: CameraPhoto) {
+        currentPhoto.value = photo
+        imageRevision.intValue = 0
+    }
+
     fun loadFromUri(uri: Uri): Boolean {
-        isLoading.value = true
+        isOpeningPhoto.value = true
         val photo = EditableImageLoader.load(getApplication(), uri)
-        isLoading.value = false
+        isOpeningPhoto.value = false
         if (photo == null) {
             return false
         }
@@ -51,20 +62,39 @@ class PhotoEditorViewModel(
         photo: CameraPhoto,
         sizeBytes: Long,
     ) {
-        currentPhoto.value = photo.copy(sizeBytes = sizeBytes)
+        val updated = photo.copy(sizeBytes = sizeBytes)
+        currentPhoto.value = updated
+        galleryPhotos.value =
+            galleryPhotos.value.map { item ->
+                if (item.id == updated.id) {
+                    updated
+                } else {
+                    item
+                }
+            }
         imageRevision.intValue += 1
     }
 
     fun clearPhoto() {
         currentPhoto.value = null
         imageRevision.intValue = 0
-        isLoading.value = false
+        isOpeningPhoto.value = false
     }
 
     fun resetSession() {
         photoEditSaver.clearAllEditBackups()
         clearPhoto()
+        galleryPhotos.value = emptyList()
+        isGalleryLoading.value = false
+        galleryInitialized = false
+        gridFirstVisibleIndex = 0
+        gridFirstVisibleOffset = 0
+        appliedSettingsRevision = -1
         lastAppliedIncomingUri = null
+    }
+
+    fun markSettingsApplied(revision: Int) {
+        appliedSettingsRevision = revision
     }
 
     override fun onCleared() {

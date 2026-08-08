@@ -192,6 +192,11 @@
     <string name="photo_editor_open_photo">Открыть фото</string>
     <string name="photo_editor_empty_title">Фото не открыто</string>
     <string name="photo_editor_empty_message">Выберите фото для обрезки и выравнивания или поделитесь изображением с этим приложением.</string>
+    <string name="photo_editor_permission_title">Нужен доступ к фотографиям</string>
+    <string name="photo_editor_permission_message">Разрешите доступ к фотографиям, чтобы просматривать галерею камеры и редактировать снимки.</string>
+    <string name="photo_editor_permission_grant">Предоставить доступ</string>
+    <string name="photo_editor_gallery_loading">Пожалуйста, подождите, фотографии загружаются…</string>
+    <string name="photo_editor_gallery_empty">Фотографии с камеры не найдены. Откройте фото из другого места кнопкой сверху.</string>
     <string name="photo_editor_open_failed">Не удалось открыть фото</string>
     <string name="photo_editor_saved">Фото сохранено</string>
     <string name="photo_editor_saved_as_copy">Сохранено как копия в %1$s</string>

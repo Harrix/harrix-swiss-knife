@@ -1,24 +1,32 @@
 package dev.harrix.hsk.ui.photoeditor
 
 import android.net.Uri
+import android.text.format.DateFormat
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Crop
 import androidx.compose.material.icons.filled.Photo
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -32,18 +40,39 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import coil.size.Size
 import dev.harrix.hsk.R
+import dev.harrix.hsk.gallery.CameraGalleryRepository
+import dev.harrix.hsk.gallery.CameraPhoto
+import dev.harrix.hsk.gallery.GalleryCleanerPreferences
+import dev.harrix.hsk.gallery.GalleryPermissions
 import dev.harrix.hsk.ui.AutoFitText
 import dev.harrix.hsk.ui.gallery.EditablePhotoHost
+import dev.harrix.hsk.ui.videoGridColumnCount
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.util.Date
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -52,17 +81,31 @@ fun PhotoEditorScreen(
     modifier: Modifier = Modifier,
     initialUri: Uri? = null,
     onInitialUriConsume: () -> Unit = {},
+    settingsRevision: Int = 0,
     viewModel: PhotoEditorViewModel = viewModel(),
 ) {
     var currentPhoto by viewModel.currentPhoto
     var imageRevision by viewModel.imageRevision
-    var isLoading by viewModel.isLoading
+    var isOpeningPhoto by viewModel.isOpeningPhoto
+    var galleryPhotos by viewModel.galleryPhotos
+    var isGalleryLoading by viewModel.isGalleryLoading
     val repository = viewModel.repository
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val preferences = remember { GalleryCleanerPreferences(context.applicationContext) }
     val openFailedMessage = stringResource(R.string.photo_editor_open_failed)
     val savedMessage = stringResource(R.string.photo_editor_saved)
     val savedAsCopyFallbackFolder = "Pictures/HSK"
     val onInitialUriConsumeState = rememberUpdatedState(onInitialUriConsume)
+
+    var hasPermission by remember {
+        mutableStateOf(GalleryPermissions.hasPhotosPermission(context))
+    }
+    val gridState =
+        rememberLazyGridState(
+            initialFirstVisibleItemIndex = viewModel.gridFirstVisibleIndex,
+            initialFirstVisibleItemScrollOffset = viewModel.gridFirstVisibleOffset,
+        )
 
     fun showToast(
         message: String,
@@ -85,12 +128,57 @@ fun PhotoEditorScreen(
             }
         }
 
+    val permissionLauncher =
+        rememberLauncherForActivityResult(
+            ActivityResultContracts.RequestPermission(),
+        ) { granted ->
+            hasPermission = granted
+        }
+
+    fun reloadGallery() {
+        if (!hasPermission) {
+            galleryPhotos = emptyList()
+            isGalleryLoading = false
+            return
+        }
+        isGalleryLoading = true
+        scope.launch {
+            val loaded =
+                withContext(Dispatchers.IO) {
+                    repository.loadCameraPhotos(preferences.getImagesRelativePath())
+                }
+            galleryPhotos = loaded
+            isGalleryLoading = false
+            viewModel.galleryInitialized = true
+            viewModel.markSettingsApplied(settingsRevision)
+        }
+    }
+
     LaunchedEffect(initialUri) {
         val uri = initialUri ?: return@LaunchedEffect
         if (!viewModel.applyIncomingUri(uri)) {
             showToast(openFailedMessage)
         }
         onInitialUriConsumeState.value()
+    }
+
+    LaunchedEffect(hasPermission, settingsRevision) {
+        val needsReload =
+            !viewModel.galleryInitialized ||
+                viewModel.appliedSettingsRevision != settingsRevision
+        if (needsReload) {
+            reloadGallery()
+        }
+    }
+
+    LaunchedEffect(gridState) {
+        snapshotFlow {
+            gridState.firstVisibleItemIndex to gridState.firstVisibleItemScrollOffset
+        }.distinctUntilChanged()
+            .collect { (index, offset) ->
+                viewModel.gridFirstVisibleIndex = index
+                viewModel.gridFirstVisibleOffset = offset
+            }
     }
 
     fun leaveEditor() {
@@ -132,14 +220,11 @@ fun PhotoEditorScreen(
                     }
                 },
                 actions = {
-                    if (currentPhoto != null) {
-                        IconButton(onClick = { openPicker() }) {
-                            Icon(
-                                imageVector = Icons.Filled.Photo,
-                                contentDescription =
-                                stringResource(R.string.photo_editor_open_photo),
-                            )
-                        }
+                    IconButton(onClick = { openPicker() }) {
+                        Icon(
+                            imageVector = Icons.Filled.Photo,
+                            contentDescription = stringResource(R.string.photo_editor_open_photo),
+                        )
                     }
                 },
             )
@@ -152,7 +237,7 @@ fun PhotoEditorScreen(
                 .fillMaxSize(),
         ) {
             when {
-                isLoading -> {
+                isOpeningPhoto -> {
                     CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
                 }
 
@@ -166,6 +251,9 @@ fun PhotoEditorScreen(
                         repository = repository,
                         onSave = { result ->
                             viewModel.applySaved(result.photo, result.sizeBytes)
+                            if (result.savedAsCopy) {
+                                reloadGallery()
+                            }
                             showToast(
                                 message =
                                 if (result.savedAsCopy) {
@@ -180,7 +268,6 @@ fun PhotoEditorScreen(
                             )
                         },
                         onDiscard = {
-                            // Remount editor with a clean crop/rotation state.
                             imageRevision += 1
                         },
                         onError = { message -> showToast(message, long = true) },
@@ -188,37 +275,65 @@ fun PhotoEditorScreen(
                     )
                 }
 
-                else -> {
+                !hasPermission -> {
+                    PhotoEditorPermissionPane(
+                        onGrant = {
+                            permissionLauncher.launch(GalleryPermissions.requiredPermission())
+                        },
+                    )
+                }
+
+                isGalleryLoading || !viewModel.galleryInitialized -> {
+                    Column(
+                        modifier = Modifier.align(Alignment.Center),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        CircularProgressIndicator()
+                        Spacer(modifier = Modifier.height(16.dp))
+                        AutoFitText(
+                            text = stringResource(R.string.photo_editor_gallery_loading),
+                            maxLines = 1,
+                        )
+                    }
+                }
+
+                galleryPhotos.isEmpty() -> {
                     Column(
                         modifier =
                         Modifier
-                            .fillMaxSize()
+                            .align(Alignment.Center)
                             .padding(24.dp),
-                        verticalArrangement = Arrangement.Center,
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
-                        Icon(
-                            imageVector = Icons.Filled.Crop,
-                            contentDescription = null,
-                            modifier = Modifier.size(56.dp),
-                            tint = MaterialTheme.colorScheme.primary,
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
                         Text(
-                            text = stringResource(R.string.photo_editor_empty_title),
-                            style = MaterialTheme.typography.titleMedium,
+                            text = stringResource(R.string.photo_editor_gallery_empty),
+                            style = MaterialTheme.typography.bodyLarge,
                             textAlign = TextAlign.Center,
                         )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = stringResource(R.string.photo_editor_empty_message),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            textAlign = TextAlign.Center,
-                        )
-                        Spacer(modifier = Modifier.height(24.dp))
+                        Spacer(modifier = Modifier.height(20.dp))
                         Button(onClick = { openPicker() }) {
-                            AutoFitText(text = stringResource(R.string.photo_editor_open_photo), maxLines = 2)
+                            AutoFitText(
+                                text = stringResource(R.string.photo_editor_open_photo),
+                                maxLines = 2,
+                            )
+                        }
+                    }
+                }
+
+                else -> {
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(videoGridColumnCount()),
+                        state = gridState,
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        items(galleryPhotos, key = { it.id }) { photo ->
+                            PhotoEditorGalleryItem(
+                                photo = photo,
+                                onClick = { viewModel.openGalleryPhoto(photo) },
+                            )
                         }
                     }
                 }
@@ -226,3 +341,118 @@ fun PhotoEditorScreen(
         }
     }
 }
+
+@Composable
+private fun PhotoEditorPermissionPane(
+    onGrant: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier =
+        modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(
+            text = stringResource(R.string.photo_editor_permission_title),
+            style = MaterialTheme.typography.titleMedium,
+            textAlign = TextAlign.Center,
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = stringResource(R.string.photo_editor_permission_message),
+            style = MaterialTheme.typography.bodyMedium,
+            textAlign = TextAlign.Center,
+        )
+        Spacer(modifier = Modifier.height(20.dp))
+        Button(
+            onClick = onGrant,
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp),
+        ) {
+            AutoFitText(
+                text = stringResource(R.string.photo_editor_permission_grant),
+                maxLines = 2,
+            )
+        }
+    }
+}
+
+@Composable
+private fun PhotoEditorGalleryItem(
+    photo: CameraPhoto,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val context = LocalContext.current
+    val dateLabel =
+        remember(photo.dateTakenEpochMs, photo.dateAddedEpochSec) {
+            val epochMs =
+                if (photo.dateTakenEpochMs > 0L) {
+                    photo.dateTakenEpochMs
+                } else {
+                    photo.dateAddedEpochSec * 1000L
+                }
+            DateFormat.getMediumDateFormat(context).format(Date(epochMs))
+        }
+    val sizeLabel =
+        remember(photo.sizeBytes) {
+            CameraGalleryRepository.formatFileSize(photo.sizeBytes)
+        }
+    val itemShape = MaterialTheme.shapes.medium
+
+    Box(
+        modifier =
+        modifier
+            .aspectRatio(1f)
+            .clip(itemShape)
+            .clickable(onClick = onClick),
+    ) {
+        AsyncImage(
+            model =
+            ImageRequest
+                .Builder(context)
+                .data(photo.uri)
+                .size(Size(THUMBNAIL_SIZE_PX, THUMBNAIL_SIZE_PX))
+                .crossfade(true)
+                .build(),
+            contentDescription = photo.displayName,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxSize(),
+        )
+        Box(
+            modifier =
+            Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .background(
+                    Brush.verticalGradient(
+                        colors =
+                        listOf(
+                            Color.Transparent,
+                            Color.Black.copy(alpha = 0.72f),
+                        ),
+                    ),
+                )
+                .padding(horizontal = 6.dp, vertical = 6.dp),
+        ) {
+            Column {
+                AutoFitText(
+                    text = dateLabel,
+                    color = Color.White,
+                    style = MaterialTheme.typography.labelSmall,
+                    maxLines = 1,
+                )
+                AutoFitText(
+                    text = sizeLabel,
+                    color = Color.White.copy(alpha = 0.9f),
+                    style = MaterialTheme.typography.labelSmall,
+                    maxLines = 1,
+                )
+            }
+        }
+    }
+}
+
+private const val THUMBNAIL_SIZE_PX = 512

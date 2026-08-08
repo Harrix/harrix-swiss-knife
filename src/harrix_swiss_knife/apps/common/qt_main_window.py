@@ -224,7 +224,14 @@ class AppWindowMixin:
         if not isinstance(tab_widget, QTabWidget):
             return
 
-        old_bar = main_window.menuBar()
+        # UI files name the bar `menuBar`, which shadows `QMainWindow.menuBar()`.
+        menu_bar = getattr(main_window, "menuBar", None)
+        if isinstance(menu_bar, QMenuBar):
+            old_bar = menu_bar
+        elif callable(menu_bar):
+            old_bar = menu_bar()
+        else:
+            return
         if old_bar is None:
             return
 
