@@ -436,6 +436,29 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         rows = self.get_rows("SELECT name FROM exercises WHERE _id = :id", {"id": exercise_id})
         return rows[0][0] if rows else None
 
+    def get_exercise_name_local(self, exercise_name: str) -> str:
+        """Return local name for `exercise_name`, or empty string when missing."""
+        rows = self.get_rows(
+            "SELECT IFNULL(name_local, '') FROM exercises WHERE name = :name",
+            {"name": exercise_name},
+        )
+        if rows and rows[0][0]:
+            return str(rows[0][0])
+        return ""
+
+    def get_exercise_name_local_map(self) -> dict[str, str]:
+        """Return mapping of English exercise name to non-empty local name."""
+        rows = self.get_rows("SELECT name, IFNULL(name_local, '') FROM exercises")
+        result: dict[str, str] = {}
+        for row in rows:
+            if not row or row[0] is None:
+                continue
+            name = str(row[0])
+            name_local = str(row[1] or "").strip()
+            if name and name_local:
+                result[name] = name_local
+        return result
+
     def get_exercise_names_missing_name_local(self, *, limit: int = 250) -> list[str]:
         """Return distinct exercise names that still need a local translation."""
         rows = self.get_rows(

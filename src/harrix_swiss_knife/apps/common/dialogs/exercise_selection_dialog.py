@@ -21,6 +21,11 @@ from PySide6.QtWidgets import (
 
 from harrix_swiss_knife import qt_modality
 from harrix_swiss_knife.apps.common.avif_manager import AvifLabelKey
+from harrix_swiss_knife.apps.common.delegates.name_local_list_delegate import (
+    NAME_LOCAL_ROLE,
+    NameLocalLayout,
+    NameLocalListDelegate,
+)
 from harrix_swiss_knife.qt_emoji_icon import apply_emoji_dialog_buttons
 
 if TYPE_CHECKING:
@@ -43,6 +48,7 @@ class ExerciseSelectionDialog(QDialog):
         preview_size: QSize,
         current_selection: str | None,
         avif_manager: AvifManager | None = None,
+        name_locals: dict[str, str] | None = None,
     ) -> None:
         """Initialize the ExerciseSelectionDialog.
 
@@ -54,6 +60,7 @@ class ExerciseSelectionDialog(QDialog):
         - `preview_size` (`QSize`): Size for icon previews.
         - `current_selection` (`str | None`): Currently selected exercise, if any.
         - `avif_manager` (`AvifManager | None`): AVIF manager for loading animations. Defaults to `None`.
+        - `name_locals` (`dict[str, str] | None`): Optional English→local name map.
 
         """
         super().__init__(parent)
@@ -62,12 +69,14 @@ class ExerciseSelectionDialog(QDialog):
         self.selected_exercise: str | None = current_selection
         self._icon_provider = icon_provider
         self._avif_manager = avif_manager
+        self._name_locals = name_locals or {}
         self._preview_size = preview_size
         self._item_border_px = 2
         self._item_padding_top_px = 10
         self._item_padding_side_px = 8
         self._item_padding_bottom_px = 6
-        self._text_area_height = 36
+        has_any_local = any(self._name_locals.get(name, "").strip() for name in exercises)
+        self._text_area_height = 54 if has_any_local else 36
         self._current_hovered_item: QListWidgetItem | None = None
         self._animation_label: QLabel | None = None
         horizontal_inset = 2 * (self._item_padding_side_px + self._item_border_px)
@@ -90,6 +99,7 @@ class ExerciseSelectionDialog(QDialog):
         self.list_widget.setWordWrap(True)
         self.list_widget.setUniformItemSizes(True)
         self.list_widget.setMouseTracking(True)
+        self.list_widget.setItemDelegate(NameLocalListDelegate(self.list_widget, layout=NameLocalLayout.ICON))
 
         list_palette = self.list_widget.palette()
         text_color = list_palette.color(QPalette.ColorRole.Text)
@@ -135,6 +145,9 @@ class ExerciseSelectionDialog(QDialog):
         for exercise in exercises:
             item = QListWidgetItem(exercise, self.list_widget)
             item.setData(Qt.ItemDataRole.UserRole, exercise)
+            name_local = self._name_locals.get(exercise, "").strip()
+            if name_local:
+                item.setData(NAME_LOCAL_ROLE, name_local)
             item.setSizeHint(self._grid_size)
             item.setTextAlignment(Qt.AlignmentFlag.AlignHCenter)
 

@@ -70,6 +70,11 @@ from harrix_swiss_knife.apps.common.apps_config import get_apps_list_limits
 from harrix_swiss_knife.apps.common.chart_colors import generate_pastel_qcolors
 from harrix_swiss_knife.apps.common.db_init import init_tracker_database
 from harrix_swiss_knife.apps.common.delegates import DateDelegate
+from harrix_swiss_knife.apps.common.delegates.name_local_list_delegate import (
+    NAME_LOCAL_ROLE,
+    NameLocalLayout,
+    NameLocalListDelegate,
+)
 from harrix_swiss_knife.apps.common.dialogs.exercise_selection_dialog import ExerciseSelectionDialog
 from harrix_swiss_knife.apps.common.exercise_media import (
     EXERCISE_MEDIA_EXTENSIONS,
@@ -2105,6 +2110,7 @@ class MainWindow(
             preview_size=preview_size,
             current_selection=current_selection,
             avif_manager=self.avif_manager,
+            name_locals=self.db_manager.get_exercise_name_local_map() if self.db_manager else None,
         )
 
         dialog_width = max(int(self.width() * 0.95), preview_size.width())
@@ -4285,6 +4291,7 @@ class MainWindow(
         if self.exercises_list_model is None:
             return
 
+        name_locals = self.db_manager.get_exercise_name_local_map() if self.db_manager else {}
         for exercise in exercise_names:
             goal_info = self._get_exercise_today_goal_info(exercise)
             display_text = f"{exercise} {goal_info}" if goal_info else exercise
@@ -4295,6 +4302,9 @@ class MainWindow(
                 item.setIcon(icon)
 
             item.setData(exercise, Qt.ItemDataRole.UserRole)
+            name_local = name_locals.get(exercise, "").strip()
+            if name_local:
+                item.setData(NAME_LOCAL_ROLE, name_local)
             self.exercises_list_model.appendRow(item)
 
     def _append_process_rows_to_model(self, model: QStandardItemModel, transformed_data: list[list]) -> None:
@@ -5137,6 +5147,9 @@ class MainWindow(
         self.exercises_list_model = QStandardItemModel()
         self.listView_exercises.setModel(self.exercises_list_model)
         self.listView_exercises.setIconSize(QSize(self.icon_size, self.icon_size))
+        self.listView_exercises.setItemDelegate(
+            NameLocalListDelegate(self.listView_exercises, layout=NameLocalLayout.LIST)
+        )
 
         # Disable editing for exercises list
         self.listView_exercises.setEditTriggers(QListView.EditTrigger.NoEditTriggers)
