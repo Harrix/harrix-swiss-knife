@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Literal
 
-from PySide6.QtCore import QEvent, QSize, Qt, Signal
+from PySide6.QtCore import QEvent, QObject, QSize, Qt, Signal
 from PySide6.QtWidgets import (
     QApplication,
     QDialog,
@@ -151,7 +151,7 @@ class ShutterPanel(QWidget):
         self._hovered_button: QPushButton | None = None
         self._update_size()
 
-    def eventFilter(self, watched: object, event: QEvent) -> bool:  # noqa: N802
+    def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
         """Show an in-panel caption while the pointer is over a shutter button."""
         if isinstance(watched, QPushButton):
             if event.type() == QEvent.Type.Enter:

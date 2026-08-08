@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 import pytest
-from PySide6.QtCore import QPointF, Qt
+from PySide6.QtCore import QEvent, QPointF, Qt
 from PySide6.QtGui import QKeyEvent, QMouseEvent, QPixmap
-from PySide6.QtWidgets import QApplication, QDialog
+from PySide6.QtWidgets import QApplication, QDialog, QLabel, QPushButton
 
 from harrix_swiss_knife.screenshot.region_overlay import RESULT_TOGGLE_ARRANGE, RegionOverlay
 from harrix_swiss_knife.screenshot.shutter_button import ArrangeModeDialog, ShutterPanel
@@ -137,9 +137,6 @@ def test_arrange_dialog_stays_on_top_frameless(qapp: QApplication) -> None:  # n
 
 def test_shutter_panel_shows_hover_hint_caption(qapp: QApplication) -> None:  # noqa: ARG001
     """In-panel captions must appear on hover (QToolTip is hidden under stay-on-top overlays)."""
-    from PySide6.QtCore import QEvent
-    from PySide6.QtWidgets import QLabel, QPushButton
-
     panel = ShutterPanel()
     panel.set_mode("selection")
     panel.show()

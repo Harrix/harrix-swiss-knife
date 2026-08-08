@@ -160,7 +160,7 @@ class ShutterPanel(QWidget):
         self._hovered_button: QPushButton | None = None
         self._update_size()
 
-    def eventFilter(self, watched: object, event: QEvent) -> bool:  # noqa: N802
+    def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
         """Show an in-panel caption while the pointer is over a shutter button."""
         if isinstance(watched, QPushButton):
             if event.type() == QEvent.Type.Enter:
@@ -278,7 +278,7 @@ def __init__(self, parent: QWidget | None = None) -> None:
 ### ⚙️ Method `eventFilter`
 
 ```python
-def eventFilter(self, watched: object, event: QEvent) -> bool
+def eventFilter(self, watched: QObject, event: QEvent) -> bool
 ```
 
 Show an in-panel caption while the pointer is over a shutter button.
@@ -287,7 +287,7 @@ Show an in-panel caption while the pointer is over a shutter button.
 <summary>Code:</summary>
 
 ```python
-def eventFilter(self, watched: object, event: QEvent) -> bool:  # noqa: N802
+def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
         if isinstance(watched, QPushButton):
             if event.type() == QEvent.Type.Enter:
                 self._hovered_button = watched
