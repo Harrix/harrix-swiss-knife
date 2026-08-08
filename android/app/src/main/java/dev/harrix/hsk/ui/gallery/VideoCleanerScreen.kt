@@ -679,9 +679,9 @@ fun VideoCleanerScreen(
                             Modifier
                                 .weight(1f)
                                 .fillMaxWidth(),
-                            contentPadding = PaddingValues(8.dp),
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            verticalArrangement = Arrangement.spacedBy(6.dp),
+                            contentPadding = PaddingValues(0.dp),
+                            horizontalArrangement = Arrangement.spacedBy(1.dp),
+                            verticalArrangement = Arrangement.spacedBy(1.dp),
                         ) {
                             items(sortedVideos, key = { it.id }) { video ->
                                 val selected = video.id in selectedIds
@@ -919,15 +919,13 @@ private fun VideoGalleryItem(
         }
 
     val colorScheme = MaterialTheme.colorScheme
-    val itemShape = MaterialTheme.shapes.medium
     Box(
         modifier =
         modifier
             .aspectRatio(1f)
-            .clip(itemShape)
             .then(
                 if (selected) {
-                    Modifier.border(3.dp, colorScheme.primary, itemShape)
+                    Modifier.border(3.dp, colorScheme.primary)
                 } else {
                     Modifier
                 },

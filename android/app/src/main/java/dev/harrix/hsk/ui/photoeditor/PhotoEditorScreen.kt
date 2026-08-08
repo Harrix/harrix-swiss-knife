@@ -47,7 +47,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -331,9 +330,9 @@ fun PhotoEditorScreen(
                                         columns = GridCells.Fixed(videoGridColumnCount()),
                                         state = gridState,
                                         modifier = Modifier.fillMaxSize(),
-                                        contentPadding = PaddingValues(8.dp),
-                                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                                        contentPadding = PaddingValues(0.dp),
+                                        horizontalArrangement = Arrangement.spacedBy(1.dp),
+                                        verticalArrangement = Arrangement.spacedBy(1.dp),
                                     ) {
                                         items(galleryPhotos, key = { it.id }) { photo ->
                                             PhotoEditorGalleryItem(
@@ -415,14 +414,12 @@ private fun PhotoEditorGalleryItem(
         remember(photo.sizeBytes) {
             CameraGalleryRepository.formatFileSize(photo.sizeBytes)
         }
-    val itemShape = MaterialTheme.shapes.medium
     val cacheKey = "${photo.uri}-$thumbRevision-${photo.sizeBytes}"
 
     Box(
         modifier =
         modifier
             .aspectRatio(1f)
-            .clip(itemShape)
             .clickable(onClick = onClick),
     ) {
         AsyncImage(
