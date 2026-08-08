@@ -73,6 +73,7 @@ class PhotoSyncServer:
         if self.is_running:
             return
         self.photos_dir.mkdir(parents=True, exist_ok=True)
+        removed_partials = _cleanup_partial_files(self.photos_dir)
         handler = self._make_handler()
         try:
             # Bind all interfaces so phones on LAN can connect.
@@ -82,6 +83,8 @@ class PhotoSyncServer:
             raise
         self._thread = threading.Thread(target=self._httpd.serve_forever, name="photo-sync-http", daemon=True)
         self._thread.start()
+        if removed_partials:
+            self.stats.note(f"Removed {removed_partials} incomplete .partial file(s)")
         self.stats.note(f"Listening on port {self.port}")
         self._notify()
 
@@ -198,7 +201,18 @@ class PhotoSyncServer:
                 if length > _MAX_UPLOAD_BYTES:
                     self._json_response(413, {"error": "too_large"})
                     return
-                raw = self.rfile.read(length)
+                try:
+                    raw = self.rfile.read(length)
+                except (ConnectionError, BrokenPipeError, TimeoutError, OSError) as exc:
+                    server.stats.note(f"Upload interrupted: {exc}")
+                    server._notify()
+                    return
+                if len(raw) != length:
+                    # Incomplete body: do not index; phone will retry next sync.
+                    server.stats.note(f"Incomplete upload for mediaId={media_id} ({len(raw)}/{length})")
+                    server._notify()
+                    self._json_response(400, {"error": "incomplete_body"})
+                    return
                 digest = hashlib.sha256(raw).hexdigest()
                 if digest != content_hash:
                     self._json_response(400, {"error": "hash_mismatch", "expected": content_hash, "actual": digest})
@@ -243,6 +257,7 @@ class PhotoSyncServer:
                     self._json_response(500, {"error": "write_failed"})
                     return
 
+                # Index only after the final file is in place (never for .partial).
                 index.upsert(media_id, content_hash=digest, filename=filename)
                 server.library.remember(filename, digest)
                 server.stats.uploads_ok += 1
@@ -327,6 +342,22 @@ def set_shared_server(server: PhotoSyncServer | None) -> None:
     """Install or clear the process-wide listener."""
     with _SHARED.lock:
         _SHARED.server = server
+
+
+def _cleanup_partial_files(photos_dir: Path) -> int:
+    """Delete leftover `*.partial` files from interrupted uploads."""
+    if not photos_dir.is_dir():
+        return 0
+    removed = 0
+    for path in photos_dir.rglob("*.partial"):
+        if not path.is_file():
+            continue
+        try:
+            path.unlink()
+            removed += 1
+        except OSError:
+            continue
+    return removed
 
 
 def _safe_dest(photos_dir: Path, relative_path: str) -> Path | None:

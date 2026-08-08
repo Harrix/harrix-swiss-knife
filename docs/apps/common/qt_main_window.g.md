@@ -207,9 +207,9 @@ class AppWindowMixin:
     def _place_menu_bar_on_tab_row(self) -> None:
         """Put the main menu on the same row as tabs (left of the tab bar).
 
-        Moves menus from the `QMainWindow` menu bar into a compact `QMenuBar`
-        set as the `QTabWidget` top-left corner widget, then collapses the
-        original menu bar row so it no longer consumes vertical space.
+        Moves menus from the `QMainWindow` menu bar into a bold compact
+        `QMenuBar` with a vertical separator, set as the `QTabWidget`
+        top-left corner widget, then collapses the original menu bar row.
 
         """
         main_window = cast("QMainWindow", self)
@@ -228,7 +228,7 @@ class AppWindowMixin:
         if old_bar is None:
             return
 
-        corner_bar = QMenuBar(tab_widget)
+        corner_bar = QMenuBar()
         corner_bar.setNativeMenuBar(False)
         corner_bar.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Preferred)
         corner_bar.setStyleSheet(
@@ -237,6 +237,7 @@ class AppWindowMixin:
                 spacing: 0px;
                 padding: 0px 2px;
                 font-size: 9pt;
+                font-weight: 700;
             }
             QMenuBar::item {
                 padding: 2px 8px;
@@ -250,7 +251,20 @@ class AppWindowMixin:
             old_bar.removeAction(action)
             corner_bar.addAction(action)
 
-        tab_widget.setCornerWidget(corner_bar, Qt.Corner.TopLeftCorner)
+        # Bold menu + vertical rule so it reads as chrome, not another tab.
+        corner = QWidget(tab_widget)
+        corner_layout = QHBoxLayout(corner)
+        corner_layout.setContentsMargins(0, 0, 8, 0)
+        corner_layout.setSpacing(4)
+        corner_layout.addWidget(corner_bar)
+
+        separator = QFrame(corner)
+        separator.setFrameShape(QFrame.Shape.VLine)
+        separator.setFrameShadow(QFrame.Shadow.Sunken)
+        separator.setFixedWidth(6)
+        corner_layout.addWidget(separator)
+
+        tab_widget.setCornerWidget(corner, Qt.Corner.TopLeftCorner)
 
         # Keep the original bar as the QMainWindow menuBar (do not replace/delete it),
         # but collapse the reserved row.
