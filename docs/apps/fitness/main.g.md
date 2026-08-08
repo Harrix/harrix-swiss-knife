@@ -30,7 +30,6 @@ lang: en
   - [⚙️ Method `on_check_steps`](#%EF%B8%8F-method-on_check_steps)
   - [⚙️ Method `on_compare_last_months`](#%EF%B8%8F-method-on_compare_last_months)
   - [⚙️ Method `on_compare_same_months`](#%EF%B8%8F-method-on_compare_same_months)
-  - [⚙️ Method `on_exercise_name_changed`](#%EF%B8%8F-method-on_exercise_name_changed)
   - [⚙️ Method `on_exercise_selection_changed`](#%EF%B8%8F-method-on_exercise_selection_changed)
   - [⚙️ Method `on_exercise_selection_changed_list`](#%EF%B8%8F-method-on_exercise_selection_changed_list)
   - [⚙️ Method `on_exercise_type_changed`](#%EF%B8%8F-method-on_exercise_type_changed)
@@ -140,7 +139,6 @@ class MainWindow(
 
         # AVIF manager will be initialized after database is ready
         self.avif_manager: avif_manager.AvifManager | None = None
-        self._exercise_media_drop: FileDropWidget | None = None
         self._bothub_state = BothubRequestState()
 
         # Exercise list model
@@ -442,23 +440,18 @@ class MainWindow(
 
     @requires_database()
     def on_add_exercise(self) -> None:
-        """Insert a new exercise using database manager."""
-        exercise = self.lineEdit_exercise_name.text().strip()
-        unit = self.lineEdit_exercise_unit.text().strip()
-        calories_per_unit = self.doubleSpinBox_calories_per_unit.value()
-
-        if not exercise:
-            message_box.warning(self, "Error", "Enter exercise name")
-            return
-
+        """Open modal dialog and insert a new exercise using database manager."""
         if self.db_manager is None:
             logger.error("❌ Database manager is not initialized")
             return
 
-        # Get checkbox value
-        is_type_required = self.check_box_is_type_required.isChecked()
-        media_path = self._exercise_media_drop.get_file_path() if self._exercise_media_drop else ""
-        name_local = self.lineEdit_exercise_name_local.text().strip()
+        dialog = ExerciseAddDialog(self, app_config=self._app_config, bothub_state=self._bothub_state)
+        if dialog.exec() != dialog.DialogCode.Accepted:
+            return
+        result = dialog.get_result()
+        if result is None:
+            return
+        exercise, unit, is_type_required, calories_per_unit, name_local, media_path = result
 
         try:
             if self.db_manager.add_exercise(
@@ -475,8 +468,6 @@ class MainWindow(
                         "Exercise was added, but media could not be saved. "
                         "Use Apply media to selected after fixing the file.",
                     )
-                if self._exercise_media_drop is not None:
-                    self._exercise_media_drop.clear()
                 self._mark_exercises_changed()
                 self.update_all()
             else:
@@ -562,29 +553,38 @@ class MainWindow(
 
     @requires_database()
     def on_add_type(self) -> None:
-        """Insert a new exercise type using database manager."""
-        exercise = self.comboBox_exercise_name.currentText()
-        if not exercise:
-            message_box.warning(self, "Error", "Select an exercise")
-            return
-
+        """Open modal dialog and insert a new exercise type using database manager."""
         if self.db_manager is None:
             logger.error("❌ Database manager is not initialized")
             return
+
+        exercises = self._demote_steps_from_first(
+            self.db_manager.get_exercises_by_frequency(self.exercises_frequency_window)
+        )
+        if not exercises:
+            message_box.warning(self, "Error", "No exercises available")
+            return
+
+        selected_exercise = self._get_selected_exercise_from_table("types") or ""
+        dialog = ExerciseTypeAddDialog(
+            self,
+            exercises=exercises,
+            selected_exercise=selected_exercise,
+            app_config=self._app_config,
+            bothub_state=self._bothub_state,
+        )
+        if dialog.exec() != dialog.DialogCode.Accepted:
+            return
+        result = dialog.get_result()
+        if result is None:
+            return
+        exercise, type_name, calories_modifier, name_local = result
 
         try:
             ex_id = self.db_manager.get_id("exercises", "name", exercise)
             if ex_id is None:
                 message_box.warning(self, "Error", f"Exercise '{exercise}' not found")
                 return
-
-            type_name = self.lineEdit_exercise_type.text().strip()
-            if not type_name:
-                message_box.warning(self, "Error", "Enter type name")
-                return
-
-            calories_modifier = self.doubleSpinBox_calories_modifier.value()
-            name_local = self.lineEdit_type_name_local.text().strip()
 
             if self.db_manager.add_exercise_type(ex_id, type_name, calories_modifier, name_local=name_local):
                 self._mark_exercises_changed()
@@ -638,14 +638,12 @@ class MainWindow(
             message_box.warning(self, "Error", "Select an exercise in the table")
             return
 
-        media_path = self._exercise_media_drop.get_file_path() if self._exercise_media_drop else ""
-        if not media_path:
-            media_path, _ = QFileDialog.getOpenFileName(
-                self,
-                "Select exercise media",
-                "",
-                MEDIA_FILE_FILTER,
-            )
+        media_path, _ = QFileDialog.getOpenFileName(
+            self,
+            "Select exercise media",
+            "",
+            MEDIA_FILE_FILTER,
+        )
         if not media_path:
             return
         if not is_exercise_media_path(media_path):
@@ -653,8 +651,6 @@ class MainWindow(
             return
 
         if self._save_exercise_media(exercise_name, media_path):
-            if self._exercise_media_drop is not None:
-                self._exercise_media_drop.clear()
             message_box.information(self, "Media Saved", f"Media saved for '{exercise_name}'")
 
     @requires_database()
@@ -1400,51 +1396,8 @@ class MainWindow(
         # Add same months recommendations to label_chart_info
         self._add_same_months_recommendations_to_label(exercise, exercise_type, exercise_unit, yearly_data, years_count)
 
-    def on_exercise_name_changed(self, _index: int = -1) -> None:
-        """Handle exercise name combobox selection change.
-
-        Args:
-
-        - `_index` (`int`): Index from Qt signal (ignored, but required for signal compatibility). Defaults to `-1`.
-
-        """
-        self._update_types_avif()
-
     def on_exercise_selection_changed(self, _current: QModelIndex, _previous: QModelIndex) -> None:
-        """Update form fields when exercise selection changes in the table."""
-        index = self.tableView_exercises.currentIndex()
-        if not index.isValid():
-            # Clear the fields if nothing is selected
-            self.lineEdit_exercise_name.clear()
-            self.lineEdit_exercise_name_local.clear()
-            self.lineEdit_exercise_unit.clear()
-            self.check_box_is_type_required.setChecked(False)
-            self.doubleSpinBox_calories_per_unit.setValue(0.0)
-            return
-
-        model = self.models["exercises"]
-        row = index.row()
-
-        # Fill in the fields with data from the selected row
-        if model is None:
-            return
-        name = model.data(model.index(row, 0)) or ""
-        unit = model.data(model.index(row, 1)) or ""
-        is_required = model.data(model.index(row, 2)) or "0"
-        calories_per_unit = model.data(model.index(row, 3)) or "0"
-        name_local = model.data(model.index(row, 4)) or ""
-
-        self.lineEdit_exercise_name.setText(name)
-        self.lineEdit_exercise_name_local.setText(name_local)
-        self.lineEdit_exercise_unit.setText(unit)
-        self.check_box_is_type_required.setChecked(is_required == "1")
-
-        try:
-            self.doubleSpinBox_calories_per_unit.setValue(float(calories_per_unit))
-        except (ValueError, TypeError):
-            self.doubleSpinBox_calories_per_unit.setValue(0.0)
-
-        # Update exercises AVIF
+        """Update AVIF preview when exercise selection changes in the table."""
         self._update_exercises_avif()
 
     def on_exercise_selection_changed_list(self) -> None:
@@ -1621,33 +1574,8 @@ class MainWindow(
             self.comboBox_records_select_exercise.blockSignals(False)  # noqa: FBT003
 
     def on_exercise_type_selection_changed(self, _current: QModelIndex, _previous: QModelIndex) -> None:
-        """Update form fields when exercise type selection changes in the table."""
-        index = self.tableView_exercise_types.currentIndex()
-        if not index.isValid():
-            # Clear the fields if nothing is selected
-            self.lineEdit_exercise_type.clear()
-            self.lineEdit_type_name_local.clear()
-            self.doubleSpinBox_calories_modifier.setValue(1.0)
-            return
-
-        model = self.models["types"]
-        row = index.row()
-
-        # Fill in the fields with data from the selected row
-        if model is None:
-            return
-
-        type_name = model.data(model.index(row, 1)) or ""
-        calories_modifier = model.data(model.index(row, 2)) or "1.0"
-        name_local = model.data(model.index(row, 3)) or ""
-
-        self.lineEdit_exercise_type.setText(type_name)
-        self.lineEdit_type_name_local.setText(name_local)
-
-        try:
-            self.doubleSpinBox_calories_modifier.setValue(float(calories_modifier))
-        except (ValueError, TypeError):
-            self.doubleSpinBox_calories_modifier.setValue(1.0)
+        """Update AVIF preview when exercise type selection changes in the table."""
+        self._update_types_avif()
 
     def on_export_csv(self) -> None:
         """Save current `process` view to a CSV file (semicolon-separated).
@@ -3060,18 +2988,6 @@ class MainWindow(
         if hasattr(self, "_statistics_initialized"):
             self.update_statistics_exercise_combobox()
 
-        # Clear the exercise addition form after updating
-        self.lineEdit_exercise_name.clear()
-        self.lineEdit_exercise_name_local.clear()
-        self.lineEdit_exercise_unit.clear()
-        self.check_box_is_type_required.setChecked(False)
-        self.doubleSpinBox_calories_per_unit.setValue(0.0)
-
-        # Clear the type addition form after updating
-        self.lineEdit_exercise_type.clear()
-        self.lineEdit_type_name_local.clear()
-        self.doubleSpinBox_calories_modifier.setValue(1.0)
-
         # Load AVIF for the currently selected exercise
         current_exercise_name = self._get_current_selected_exercise()
         if isinstance(current_exercise_name, str):
@@ -4476,8 +4392,6 @@ class MainWindow(
         self.pushButton_type_add.clicked.connect(self.on_add_type)
         self.pushButton_weight_add.clicked.connect(self.on_add_weight)
         self.pushButton_translate_with_ai.clicked.connect(self.on_translate_with_ai)
-        self.pushButton_exercise_translate_local.clicked.connect(self._on_translate_exercise_name_local)
-        self.pushButton_type_translate_local.clicked.connect(self._on_translate_type_name_local)
         self._setup_exercise_media_widgets()
         # Dropdown menu for yesterday button
         yesterday_menu = QMenu(self.pushButton_yesterday)
@@ -4529,9 +4443,6 @@ class MainWindow(
         self.dateEdit_filter_from.dateChanged.connect(self.apply_filter)
         self.dateEdit_filter_to.dateChanged.connect(self.apply_filter)
         self.pushButton_clear_filter.clicked.connect(self.clear_filter)
-
-        # Exercise name combobox for types
-        self.comboBox_exercise_name.currentIndexChanged.connect(self.on_exercise_name_changed)
 
         # Exercise type combobox for statistics sync
         self.comboBox_type.currentIndexChanged.connect(self.on_exercise_type_changed)
@@ -5580,28 +5491,6 @@ class MainWindow(
         scrollbar = self.tableView_process.verticalScrollBar()
         on_scroll_load_more(value, scrollbar.maximum(), self._load_more_process)
 
-    def _on_translate_exercise_name_local(self) -> None:
-        """Translate Add Exercise name into the local-language field."""
-        request_name_local_translation(
-            self,
-            app_config=self._app_config,
-            bothub_state=self._bothub_state,
-            name_edit=self.lineEdit_exercise_name,
-            name_local_edit=self.lineEdit_exercise_name_local,
-            translate_button=self.pushButton_exercise_translate_local,
-        )
-
-    def _on_translate_type_name_local(self) -> None:
-        """Translate Add Exercise Type name into the local-language field."""
-        request_name_local_translation(
-            self,
-            app_config=self._app_config,
-            bothub_state=self._bothub_state,
-            name_edit=self.lineEdit_exercise_type,
-            name_local_edit=self.lineEdit_type_name_local,
-            translate_button=self.pushButton_type_translate_local,
-        )
-
     def _on_use_date_filter_toggled(self, *_args: object) -> None:
         """Toggle date edit widgets and refresh the process table filter."""
         self._update_date_filter_controls_enabled()
@@ -5805,18 +5694,7 @@ class MainWindow(
         self.dateEdit.setDate(today)
 
     def _setup_exercise_media_widgets(self) -> None:
-        """Add media drop zone and apply button for exercise AVIF files."""
-        self._exercise_media_drop = FileDropWidget(
-            self.groupBox_2,
-            name_filter=MEDIA_FILE_FILTER,
-            allowed_extensions=EXERCISE_MEDIA_EXTENSIONS,
-            hint_text="Drag and drop video/image (mp4, avif, gif, png, jpeg…)",
-            dialog_title="Select exercise media",
-            path_filter=is_exercise_media_path,
-        )
-        insert_index = max(self.verticalLayout_10.count() - 1, 0)
-        self.verticalLayout_10.insertWidget(insert_index, self._exercise_media_drop)
-
+        """Add apply-media button and preview drop handlers for exercise AVIF files."""
         self.pushButton_exercise_media_apply = QPushButton("🖼️ Apply media to selected", self.groupBox_7)
         self.pushButton_exercise_media_apply.clicked.connect(self.on_apply_exercise_media)
         self.verticalLayout_11.addWidget(self.pushButton_exercise_media_apply)
@@ -5889,17 +5767,6 @@ class MainWindow(
         self.splitter.setStretchFactor(1, 2)  # exercise list
         self.splitter.setStretchFactor(2, 3)  # process filters + table
         self._apply_sets_splitter_sizes()
-
-        # Initialize calories spinboxes
-        self.doubleSpinBox_calories_per_unit.setDecimals(1)
-        self.doubleSpinBox_calories_per_unit.setMinimum(0.0)
-        self.doubleSpinBox_calories_per_unit.setMaximum(999.9)
-        self.doubleSpinBox_calories_per_unit.setValue(0.0)
-
-        self.doubleSpinBox_calories_modifier.setDecimals(1)
-        self.doubleSpinBox_calories_modifier.setMinimum(0.1)
-        self.doubleSpinBox_calories_modifier.setMaximum(10.0)
-        self.doubleSpinBox_calories_modifier.setValue(1.0)
 
     def _show_exercise_types_context_menu(self, position: QPoint) -> None:
         """Show context menu for exercise types table.
@@ -6206,10 +6073,6 @@ class MainWindow(
             if selection_model:
                 selection_model.blockSignals(False)  # noqa: FBT003
 
-            # Update comboBox_exercise_name for adding types
-            self.comboBox_exercise_name.clear()
-            self.comboBox_exercise_name.addItems(exercises)
-
             if selected_exercise and selected_exercise in exercises:
                 # Select the exercise in the list view
                 self._select_exercise_in_list(selected_exercise)
@@ -6342,9 +6205,9 @@ class MainWindow(
                 self._load_exercise_avif(exercise_name, "statistics")
 
     def _update_types_avif(self) -> None:
-        """Update AVIF for types combobox selection."""
-        exercise_name = self.comboBox_exercise_name.currentText()
-        if exercise_name:
+        """Update AVIF for types table selection."""
+        exercise_name = self._get_selected_exercise_from_table("types")
+        if isinstance(exercise_name, str):
             self._load_exercise_avif(exercise_name, "types")
 ```
 
@@ -6384,7 +6247,6 @@ def __init__(self, *, hide_on_close: bool = False) -> None:  # noqa: D107
 
         # AVIF manager will be initialized after database is ready
         self.avif_manager: avif_manager.AvifManager | None = None
-        self._exercise_media_drop: FileDropWidget | None = None
         self._bothub_state = BothubRequestState()
 
         # Exercise list model
@@ -6778,29 +6640,24 @@ def load_process_table(self) -> None:
 def on_add_exercise(self) -> None
 ```
 
-Insert a new exercise using database manager.
+Open modal dialog and insert a new exercise using database manager.
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def on_add_exercise(self) -> None:
-        exercise = self.lineEdit_exercise_name.text().strip()
-        unit = self.lineEdit_exercise_unit.text().strip()
-        calories_per_unit = self.doubleSpinBox_calories_per_unit.value()
-
-        if not exercise:
-            message_box.warning(self, "Error", "Enter exercise name")
-            return
-
         if self.db_manager is None:
             logger.error("❌ Database manager is not initialized")
             return
 
-        # Get checkbox value
-        is_type_required = self.check_box_is_type_required.isChecked()
-        media_path = self._exercise_media_drop.get_file_path() if self._exercise_media_drop else ""
-        name_local = self.lineEdit_exercise_name_local.text().strip()
+        dialog = ExerciseAddDialog(self, app_config=self._app_config, bothub_state=self._bothub_state)
+        if dialog.exec() != dialog.DialogCode.Accepted:
+            return
+        result = dialog.get_result()
+        if result is None:
+            return
+        exercise, unit, is_type_required, calories_per_unit, name_local, media_path = result
 
         try:
             if self.db_manager.add_exercise(
@@ -6817,8 +6674,6 @@ def on_add_exercise(self) -> None:
                         "Exercise was added, but media could not be saved. "
                         "Use Apply media to selected after fixing the file.",
                     )
-                if self._exercise_media_drop is not None:
-                    self._exercise_media_drop.clear()
                 self._mark_exercises_changed()
                 self.update_all()
             else:
@@ -6924,35 +6779,44 @@ def on_add_record(self) -> None:
 def on_add_type(self) -> None
 ```
 
-Insert a new exercise type using database manager.
+Open modal dialog and insert a new exercise type using database manager.
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def on_add_type(self) -> None:
-        exercise = self.comboBox_exercise_name.currentText()
-        if not exercise:
-            message_box.warning(self, "Error", "Select an exercise")
-            return
-
         if self.db_manager is None:
             logger.error("❌ Database manager is not initialized")
             return
+
+        exercises = self._demote_steps_from_first(
+            self.db_manager.get_exercises_by_frequency(self.exercises_frequency_window)
+        )
+        if not exercises:
+            message_box.warning(self, "Error", "No exercises available")
+            return
+
+        selected_exercise = self._get_selected_exercise_from_table("types") or ""
+        dialog = ExerciseTypeAddDialog(
+            self,
+            exercises=exercises,
+            selected_exercise=selected_exercise,
+            app_config=self._app_config,
+            bothub_state=self._bothub_state,
+        )
+        if dialog.exec() != dialog.DialogCode.Accepted:
+            return
+        result = dialog.get_result()
+        if result is None:
+            return
+        exercise, type_name, calories_modifier, name_local = result
 
         try:
             ex_id = self.db_manager.get_id("exercises", "name", exercise)
             if ex_id is None:
                 message_box.warning(self, "Error", f"Exercise '{exercise}' not found")
                 return
-
-            type_name = self.lineEdit_exercise_type.text().strip()
-            if not type_name:
-                message_box.warning(self, "Error", "Enter type name")
-                return
-
-            calories_modifier = self.doubleSpinBox_calories_modifier.value()
-            name_local = self.lineEdit_type_name_local.text().strip()
 
             if self.db_manager.add_exercise_type(ex_id, type_name, calories_modifier, name_local=name_local):
                 self._mark_exercises_changed()
@@ -7032,14 +6896,12 @@ def on_apply_exercise_media(self) -> None:
             message_box.warning(self, "Error", "Select an exercise in the table")
             return
 
-        media_path = self._exercise_media_drop.get_file_path() if self._exercise_media_drop else ""
-        if not media_path:
-            media_path, _ = QFileDialog.getOpenFileName(
-                self,
-                "Select exercise media",
-                "",
-                MEDIA_FILE_FILTER,
-            )
+        media_path, _ = QFileDialog.getOpenFileName(
+            self,
+            "Select exercise media",
+            "",
+            MEDIA_FILE_FILTER,
+        )
         if not media_path:
             return
         if not is_exercise_media_path(media_path):
@@ -7047,8 +6909,6 @@ def on_apply_exercise_media(self) -> None:
             return
 
         if self._save_exercise_media(exercise_name, media_path):
-            if self._exercise_media_drop is not None:
-                self._exercise_media_drop.clear()
             message_box.information(self, "Media Saved", f"Media saved for '{exercise_name}'")
 ```
 
@@ -7854,74 +7714,19 @@ def on_compare_same_months(self) -> None:
 
 </details>
 
-### ⚙️ Method `on_exercise_name_changed`
-
-```python
-def on_exercise_name_changed(self, _index: int = -1) -> None
-```
-
-Handle exercise name combobox selection change.
-
-Args:
-
-- `_index` (`int`): Index from Qt signal (ignored, but required for signal compatibility). Defaults to `-1`.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def on_exercise_name_changed(self, _index: int = -1) -> None:
-        self._update_types_avif()
-```
-
-</details>
-
 ### ⚙️ Method `on_exercise_selection_changed`
 
 ```python
 def on_exercise_selection_changed(self, _current: QModelIndex, _previous: QModelIndex) -> None
 ```
 
-Update form fields when exercise selection changes in the table.
+Update AVIF preview when exercise selection changes in the table.
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def on_exercise_selection_changed(self, _current: QModelIndex, _previous: QModelIndex) -> None:
-        index = self.tableView_exercises.currentIndex()
-        if not index.isValid():
-            # Clear the fields if nothing is selected
-            self.lineEdit_exercise_name.clear()
-            self.lineEdit_exercise_name_local.clear()
-            self.lineEdit_exercise_unit.clear()
-            self.check_box_is_type_required.setChecked(False)
-            self.doubleSpinBox_calories_per_unit.setValue(0.0)
-            return
-
-        model = self.models["exercises"]
-        row = index.row()
-
-        # Fill in the fields with data from the selected row
-        if model is None:
-            return
-        name = model.data(model.index(row, 0)) or ""
-        unit = model.data(model.index(row, 1)) or ""
-        is_required = model.data(model.index(row, 2)) or "0"
-        calories_per_unit = model.data(model.index(row, 3)) or "0"
-        name_local = model.data(model.index(row, 4)) or ""
-
-        self.lineEdit_exercise_name.setText(name)
-        self.lineEdit_exercise_name_local.setText(name_local)
-        self.lineEdit_exercise_unit.setText(unit)
-        self.check_box_is_type_required.setChecked(is_required == "1")
-
-        try:
-            self.doubleSpinBox_calories_per_unit.setValue(float(calories_per_unit))
-        except (ValueError, TypeError):
-            self.doubleSpinBox_calories_per_unit.setValue(0.0)
-
-        # Update exercises AVIF
         self._update_exercises_avif()
 ```
 
@@ -8132,39 +7937,14 @@ def on_exercise_type_changed(self, _index: int = -1) -> None:
 def on_exercise_type_selection_changed(self, _current: QModelIndex, _previous: QModelIndex) -> None
 ```
 
-Update form fields when exercise type selection changes in the table.
+Update AVIF preview when exercise type selection changes in the table.
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def on_exercise_type_selection_changed(self, _current: QModelIndex, _previous: QModelIndex) -> None:
-        index = self.tableView_exercise_types.currentIndex()
-        if not index.isValid():
-            # Clear the fields if nothing is selected
-            self.lineEdit_exercise_type.clear()
-            self.lineEdit_type_name_local.clear()
-            self.doubleSpinBox_calories_modifier.setValue(1.0)
-            return
-
-        model = self.models["types"]
-        row = index.row()
-
-        # Fill in the fields with data from the selected row
-        if model is None:
-            return
-
-        type_name = model.data(model.index(row, 1)) or ""
-        calories_modifier = model.data(model.index(row, 2)) or "1.0"
-        name_local = model.data(model.index(row, 3)) or ""
-
-        self.lineEdit_exercise_type.setText(type_name)
-        self.lineEdit_type_name_local.setText(name_local)
-
-        try:
-            self.doubleSpinBox_calories_modifier.setValue(float(calories_modifier))
-        except (ValueError, TypeError):
-            self.doubleSpinBox_calories_modifier.setValue(1.0)
+        self._update_types_avif()
 ```
 
 </details>
@@ -9913,18 +9693,6 @@ def update_all(
         # Update statistics exercise combobox if statistics tab is initialized
         if hasattr(self, "_statistics_initialized"):
             self.update_statistics_exercise_combobox()
-
-        # Clear the exercise addition form after updating
-        self.lineEdit_exercise_name.clear()
-        self.lineEdit_exercise_name_local.clear()
-        self.lineEdit_exercise_unit.clear()
-        self.check_box_is_type_required.setChecked(False)
-        self.doubleSpinBox_calories_per_unit.setValue(0.0)
-
-        # Clear the type addition form after updating
-        self.lineEdit_exercise_type.clear()
-        self.lineEdit_type_name_local.clear()
-        self.doubleSpinBox_calories_modifier.setValue(1.0)
 
         # Load AVIF for the currently selected exercise
         current_exercise_name = self._get_current_selected_exercise()

@@ -88,33 +88,14 @@ class Ui_MainWindow(object):
         self.label_exercise_avif_4.setText(QCoreApplication.translate("MainWindow", u"No exercise selected", None))
         self.label_chart_info.setText("")
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_charts), QCoreApplication.translate("MainWindow", u"Charts", None))
-        self.groupBox_2.setTitle(QCoreApplication.translate("MainWindow", u"Add New Exercise", None))
-        self.label_5.setText(QCoreApplication.translate("MainWindow", u"Name:", None))
-        self.label_exercise_name_local.setText(QCoreApplication.translate("MainWindow", u"Local:", None))
-        self.lineEdit_exercise_name_local.setPlaceholderText(QCoreApplication.translate("MainWindow", u"Local name", None))
-#if QT_CONFIG(tooltip)
-        self.pushButton_exercise_translate_local.setToolTip(QCoreApplication.translate("MainWindow", u"Translate name to local language with AI", None))
-#endif // QT_CONFIG(tooltip)
-        self.pushButton_exercise_translate_local.setText(QCoreApplication.translate("MainWindow", u"\U0001f916", None))
-        self.label_6.setText(QCoreApplication.translate("MainWindow", u"Unit of Measurement:", None))
-        self.label_calories_per_unit.setText(QCoreApplication.translate("MainWindow", u"Calories per unit:", None))
-        self.check_box_is_type_required.setText(QCoreApplication.translate("MainWindow", u"Type required", None))
-        self.pushButton_exercise_add.setText(QCoreApplication.translate("MainWindow", u"Add", None))
         self.groupBox_7.setTitle(QCoreApplication.translate("MainWindow", u"Commands", None))
+        self.pushButton_exercise_add.setText(QCoreApplication.translate("MainWindow", u"Add Exercise", None))
         self.pushButton_exercises_delete.setText(QCoreApplication.translate("MainWindow", u"Delete selected", None))
         self.pushButton_exercises_refresh.setText(QCoreApplication.translate("MainWindow", u"Refresh Table", None))
         self.pushButton_translate_with_ai.setText(QCoreApplication.translate("MainWindow", u"Translate with AI", None))
         self.label_exercise_avif_2.setText(QCoreApplication.translate("MainWindow", u"No exercise selected", None))
-        self.groupBox_3.setTitle(QCoreApplication.translate("MainWindow", u"Add New Exercise Type", None))
-        self.label_type_name_local.setText(QCoreApplication.translate("MainWindow", u"Local:", None))
-        self.lineEdit_type_name_local.setPlaceholderText(QCoreApplication.translate("MainWindow", u"Local name", None))
-#if QT_CONFIG(tooltip)
-        self.pushButton_type_translate_local.setToolTip(QCoreApplication.translate("MainWindow", u"Translate type name to local language with AI", None))
-#endif // QT_CONFIG(tooltip)
-        self.pushButton_type_translate_local.setText(QCoreApplication.translate("MainWindow", u"\U0001f916", None))
-        self.label_calories_modifier.setText(QCoreApplication.translate("MainWindow", u"Calories modifier:", None))
-        self.pushButton_type_add.setText(QCoreApplication.translate("MainWindow", u"Add", None))
         self.groupBox_8.setTitle(QCoreApplication.translate("MainWindow", u"Commands", None))
+        self.pushButton_type_add.setText(QCoreApplication.translate("MainWindow", u"Add Exercise Type", None))
         self.pushButton_types_delete.setText(QCoreApplication.translate("MainWindow", u"Delete selected", None))
         self.pushButton_types_refresh.setText(QCoreApplication.translate("MainWindow", u"Refresh Table", None))
         self.label_exercise_avif_3.setText(QCoreApplication.translate("MainWindow", u"No exercise selected", None))
@@ -749,113 +730,15 @@ class Ui_MainWindow(object):
         self.frame_2.setFrameShadow(QFrame.Shadow.Raised)
         self.verticalLayout_15 = QVBoxLayout(self.frame_2)
         self.verticalLayout_15.setObjectName(u"verticalLayout_15")
-        self.groupBox_2 = QGroupBox(self.frame_2)
-        self.groupBox_2.setObjectName(u"groupBox_2")
-        self.verticalLayout_10 = QVBoxLayout(self.groupBox_2)
-        self.verticalLayout_10.setObjectName(u"verticalLayout_10")
-        self.horizontalLayout_17 = QHBoxLayout()
-        self.horizontalLayout_17.setObjectName(u"horizontalLayout_17")
-        self.label_5 = QLabel(self.groupBox_2)
-        self.label_5.setObjectName(u"label_5")
-        self.label_5.setMinimumSize(QSize(111, 0))
-
-        self.horizontalLayout_17.addWidget(self.label_5)
-
-        self.lineEdit_exercise_name = QLineEdit(self.groupBox_2)
-        self.lineEdit_exercise_name.setObjectName(u"lineEdit_exercise_name")
-        self.lineEdit_exercise_name.setMinimumSize(QSize(70, 0))
-
-        self.horizontalLayout_17.addWidget(self.lineEdit_exercise_name)
-
-
-        self.verticalLayout_10.addLayout(self.horizontalLayout_17)
-
-        self.horizontalLayout_exercise_name_local = QHBoxLayout()
-        self.horizontalLayout_exercise_name_local.setObjectName(u"horizontalLayout_exercise_name_local")
-        self.label_exercise_name_local = QLabel(self.groupBox_2)
-        self.label_exercise_name_local.setObjectName(u"label_exercise_name_local")
-        self.label_exercise_name_local.setMinimumSize(QSize(111, 0))
-
-        self.horizontalLayout_exercise_name_local.addWidget(self.label_exercise_name_local)
-
-        self.lineEdit_exercise_name_local = QLineEdit(self.groupBox_2)
-        self.lineEdit_exercise_name_local.setObjectName(u"lineEdit_exercise_name_local")
-        self.lineEdit_exercise_name_local.setMinimumSize(QSize(70, 0))
-
-        self.horizontalLayout_exercise_name_local.addWidget(self.lineEdit_exercise_name_local)
-
-        self.pushButton_exercise_translate_local = QPushButton(self.groupBox_2)
-        self.pushButton_exercise_translate_local.setObjectName(u"pushButton_exercise_translate_local")
-        self.pushButton_exercise_translate_local.setMaximumSize(QSize(36, 16777215))
-
-        self.horizontalLayout_exercise_name_local.addWidget(self.pushButton_exercise_translate_local)
-
-
-        self.verticalLayout_10.addLayout(self.horizontalLayout_exercise_name_local)
-
-        self.horizontalLayout_18 = QHBoxLayout()
-        self.horizontalLayout_18.setObjectName(u"horizontalLayout_18")
-        self.label_6 = QLabel(self.groupBox_2)
-        self.label_6.setObjectName(u"label_6")
-        self.label_6.setMinimumSize(QSize(111, 0))
-
-        self.horizontalLayout_18.addWidget(self.label_6)
-
-        self.lineEdit_exercise_unit = QLineEdit(self.groupBox_2)
-        self.lineEdit_exercise_unit.setObjectName(u"lineEdit_exercise_unit")
-        self.lineEdit_exercise_unit.setMinimumSize(QSize(70, 0))
-
-        self.horizontalLayout_18.addWidget(self.lineEdit_exercise_unit)
-
-
-        self.verticalLayout_10.addLayout(self.horizontalLayout_18)
-
-        self.horizontalLayout_calories_per_unit = QHBoxLayout()
-        self.horizontalLayout_calories_per_unit.setObjectName(u"horizontalLayout_calories_per_unit")
-        self.label_calories_per_unit = QLabel(self.groupBox_2)
-        self.label_calories_per_unit.setObjectName(u"label_calories_per_unit")
-        self.label_calories_per_unit.setMinimumSize(QSize(111, 0))
-
-        self.horizontalLayout_calories_per_unit.addWidget(self.label_calories_per_unit)
-
-        self.doubleSpinBox_calories_per_unit = QDoubleSpinBox(self.groupBox_2)
-        self.doubleSpinBox_calories_per_unit.setObjectName(u"doubleSpinBox_calories_per_unit")
-        self.doubleSpinBox_calories_per_unit.setMinimumSize(QSize(70, 0))
-        self.doubleSpinBox_calories_per_unit.setDecimals(2)
-        self.doubleSpinBox_calories_per_unit.setMaximum(999.990000000000009)
-        self.doubleSpinBox_calories_per_unit.setValue(0.000000000000000)
-
-        self.horizontalLayout_calories_per_unit.addWidget(self.doubleSpinBox_calories_per_unit)
-
-
-        self.verticalLayout_10.addLayout(self.horizontalLayout_calories_per_unit)
-
-        self.check_box_is_type_required = QCheckBox(self.groupBox_2)
-        self.check_box_is_type_required.setObjectName(u"check_box_is_type_required")
-
-        self.verticalLayout_10.addWidget(self.check_box_is_type_required)
-
-        self.horizontalLayout_19 = QHBoxLayout()
-        self.horizontalLayout_19.setObjectName(u"horizontalLayout_19")
-        self.horizontalSpacer_4 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
-
-        self.horizontalLayout_19.addItem(self.horizontalSpacer_4)
-
-        self.pushButton_exercise_add = QPushButton(self.groupBox_2)
-        self.pushButton_exercise_add.setObjectName(u"pushButton_exercise_add")
-
-        self.horizontalLayout_19.addWidget(self.pushButton_exercise_add)
-
-
-        self.verticalLayout_10.addLayout(self.horizontalLayout_19)
-
-
-        self.verticalLayout_15.addWidget(self.groupBox_2)
-
         self.groupBox_7 = QGroupBox(self.frame_2)
         self.groupBox_7.setObjectName(u"groupBox_7")
         self.verticalLayout_11 = QVBoxLayout(self.groupBox_7)
         self.verticalLayout_11.setObjectName(u"verticalLayout_11")
+        self.pushButton_exercise_add = QPushButton(self.groupBox_7)
+        self.pushButton_exercise_add.setObjectName(u"pushButton_exercise_add")
+
+        self.verticalLayout_11.addWidget(self.pushButton_exercise_add)
+
         self.horizontalLayout_20 = QHBoxLayout()
         self.horizontalLayout_20.setObjectName(u"horizontalLayout_20")
         self.pushButton_exercises_delete = QPushButton(self.groupBox_7)
@@ -914,82 +797,15 @@ class Ui_MainWindow(object):
         self.frame_3.setFrameShadow(QFrame.Shadow.Raised)
         self.verticalLayout_12 = QVBoxLayout(self.frame_3)
         self.verticalLayout_12.setObjectName(u"verticalLayout_12")
-        self.groupBox_3 = QGroupBox(self.frame_3)
-        self.groupBox_3.setObjectName(u"groupBox_3")
-        self.verticalLayout_14 = QVBoxLayout(self.groupBox_3)
-        self.verticalLayout_14.setObjectName(u"verticalLayout_14")
-        self.comboBox_exercise_name = QComboBox(self.groupBox_3)
-        self.comboBox_exercise_name.setObjectName(u"comboBox_exercise_name")
-
-        self.verticalLayout_14.addWidget(self.comboBox_exercise_name)
-
-        self.lineEdit_exercise_type = QLineEdit(self.groupBox_3)
-        self.lineEdit_exercise_type.setObjectName(u"lineEdit_exercise_type")
-
-        self.verticalLayout_14.addWidget(self.lineEdit_exercise_type)
-
-        self.horizontalLayout_type_name_local = QHBoxLayout()
-        self.horizontalLayout_type_name_local.setObjectName(u"horizontalLayout_type_name_local")
-        self.label_type_name_local = QLabel(self.groupBox_3)
-        self.label_type_name_local.setObjectName(u"label_type_name_local")
-
-        self.horizontalLayout_type_name_local.addWidget(self.label_type_name_local)
-
-        self.lineEdit_type_name_local = QLineEdit(self.groupBox_3)
-        self.lineEdit_type_name_local.setObjectName(u"lineEdit_type_name_local")
-
-        self.horizontalLayout_type_name_local.addWidget(self.lineEdit_type_name_local)
-
-        self.pushButton_type_translate_local = QPushButton(self.groupBox_3)
-        self.pushButton_type_translate_local.setObjectName(u"pushButton_type_translate_local")
-        self.pushButton_type_translate_local.setMaximumSize(QSize(36, 16777215))
-
-        self.horizontalLayout_type_name_local.addWidget(self.pushButton_type_translate_local)
-
-
-        self.verticalLayout_14.addLayout(self.horizontalLayout_type_name_local)
-
-        self.horizontalLayout_calories_modifier = QHBoxLayout()
-        self.horizontalLayout_calories_modifier.setObjectName(u"horizontalLayout_calories_modifier")
-        self.label_calories_modifier = QLabel(self.groupBox_3)
-        self.label_calories_modifier.setObjectName(u"label_calories_modifier")
-
-        self.horizontalLayout_calories_modifier.addWidget(self.label_calories_modifier)
-
-        self.doubleSpinBox_calories_modifier = QDoubleSpinBox(self.groupBox_3)
-        self.doubleSpinBox_calories_modifier.setObjectName(u"doubleSpinBox_calories_modifier")
-        self.doubleSpinBox_calories_modifier.setDecimals(2)
-        self.doubleSpinBox_calories_modifier.setMinimum(0.010000000000000)
-        self.doubleSpinBox_calories_modifier.setMaximum(10.000000000000000)
-        self.doubleSpinBox_calories_modifier.setSingleStep(0.100000000000000)
-        self.doubleSpinBox_calories_modifier.setValue(1.000000000000000)
-
-        self.horizontalLayout_calories_modifier.addWidget(self.doubleSpinBox_calories_modifier)
-
-
-        self.verticalLayout_14.addLayout(self.horizontalLayout_calories_modifier)
-
-        self.horizontalLayout_22 = QHBoxLayout()
-        self.horizontalLayout_22.setObjectName(u"horizontalLayout_22")
-        self.horizontalSpacer_5 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
-
-        self.horizontalLayout_22.addItem(self.horizontalSpacer_5)
-
-        self.pushButton_type_add = QPushButton(self.groupBox_3)
-        self.pushButton_type_add.setObjectName(u"pushButton_type_add")
-
-        self.horizontalLayout_22.addWidget(self.pushButton_type_add)
-
-
-        self.verticalLayout_14.addLayout(self.horizontalLayout_22)
-
-
-        self.verticalLayout_12.addWidget(self.groupBox_3)
-
         self.groupBox_8 = QGroupBox(self.frame_3)
         self.groupBox_8.setObjectName(u"groupBox_8")
         self.verticalLayout_13 = QVBoxLayout(self.groupBox_8)
         self.verticalLayout_13.setObjectName(u"verticalLayout_13")
+        self.pushButton_type_add = QPushButton(self.groupBox_8)
+        self.pushButton_type_add.setObjectName(u"pushButton_type_add")
+
+        self.verticalLayout_13.addWidget(self.pushButton_type_add)
+
         self.horizontalLayout_21 = QHBoxLayout()
         self.horizontalLayout_21.setObjectName(u"horizontalLayout_21")
         self.pushButton_types_delete = QPushButton(self.groupBox_8)

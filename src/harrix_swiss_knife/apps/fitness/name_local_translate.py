@@ -54,21 +54,32 @@ def request_name_local_translation(
     name_local_edit: QLineEdit,
     translate_button: QPushButton,
 ) -> None:
-    """Translate one name into the local language via BotHub and fill `name_local_edit`."""
+    """Translate between English name and local name via BotHub.
+
+    Prefer English → local when `name_edit` is filled. If English is empty and
+    local is filled, translate local → English into `name_edit`.
+
+    """
     name = name_edit.text().strip()
-    if not name:
-        message_box.warning(parent, "Translation", "Enter name first")
+    name_local = name_local_edit.text().strip()
+    local_language = get_apps_local_language_display_name(app_config)
+
+    if name:
+        prompt_key = "fitness_name_translate_local"
+        prompt_vars = {"NAME": name, "LOCAL_LANGUAGE": local_language}
+        target_edit = name_local_edit
+        toast_message = "Translating name…"
+    elif name_local:
+        prompt_key = "fitness_name_translate_from_local"
+        prompt_vars = {"NAME_LOCAL": name_local, "LOCAL_LANGUAGE": local_language}
+        target_edit = name_edit
+        toast_message = "Translating local name…"
+    else:
+        message_box.warning(parent, "Translation", "Enter English name or local name first")
         return
 
     try:
-        prompt_text = build_prompt(
-            app_config,
-            "fitness_name_translate_local",
-            {
-                "NAME": name,
-                "LOCAL_LANGUAGE": get_apps_local_language_display_name(app_config),
-            },
-        )
+        prompt_text = build_prompt(app_config, prompt_key, prompt_vars)
     except ValueError as exc:
         show_bothub_prompt_build_error(parent, exc)
         return
@@ -81,7 +92,7 @@ def request_name_local_translation(
         if not translated:
             message_box.warning(parent, "Translation", "BotHub returned an empty translation")
             return
-        name_local_edit.setText(translated)
+        target_edit.setText(translated)
 
     def on_error(error_message: str) -> None:
         translate_button.setEnabled(True)
@@ -95,7 +106,7 @@ def request_name_local_translation(
         app_config,
         prompt_text,
         on_success,
-        toast_message="Translating name…",
+        toast_message=toast_message,
         is_busy=lambda: bothub_state.worker is not None,
         state=bothub_state,
         on_error=on_error,

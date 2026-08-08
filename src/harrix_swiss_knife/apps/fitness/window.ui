@@ -978,187 +978,18 @@
               </property>
               <layout class="QVBoxLayout" name="verticalLayout_15">
                <item>
-                <widget class="QGroupBox" name="groupBox_2">
-                 <property name="title">
-                  <string>Add New Exercise</string>
-                 </property>
-                 <layout class="QVBoxLayout" name="verticalLayout_10">
-                  <item>
-                   <layout class="QHBoxLayout" name="horizontalLayout_17">
-                    <item>
-                     <widget class="QLabel" name="label_5">
-                      <property name="minimumSize">
-                       <size>
-                        <width>111</width>
-                        <height>0</height>
-                       </size>
-                      </property>
-                      <property name="text">
-                       <string>Name:</string>
-                      </property>
-                     </widget>
-                    </item>
-                    <item>
-                     <widget class="QLineEdit" name="lineEdit_exercise_name">
-                      <property name="minimumSize">
-                       <size>
-                        <width>70</width>
-                        <height>0</height>
-                       </size>
-                      </property>
-                     </widget>
-                    </item>
-                   </layout>
-                  </item>
-                  <item>
-                   <layout class="QHBoxLayout" name="horizontalLayout_exercise_name_local">
-                    <item>
-                     <widget class="QLabel" name="label_exercise_name_local">
-                      <property name="minimumSize">
-                       <size>
-                        <width>111</width>
-                        <height>0</height>
-                       </size>
-                      </property>
-                      <property name="text">
-                       <string>Local:</string>
-                      </property>
-                     </widget>
-                    </item>
-                    <item>
-                     <widget class="QLineEdit" name="lineEdit_exercise_name_local">
-                      <property name="minimumSize">
-                       <size>
-                        <width>70</width>
-                        <height>0</height>
-                       </size>
-                      </property>
-                      <property name="placeholderText">
-                       <string>Local name</string>
-                      </property>
-                     </widget>
-                    </item>
-                    <item>
-                     <widget class="QPushButton" name="pushButton_exercise_translate_local">
-                      <property name="toolTip">
-                       <string>Translate name to local language with AI</string>
-                      </property>
-                      <property name="text">
-                       <string>🤖</string>
-                      </property>
-                      <property name="maximumSize">
-                       <size>
-                        <width>36</width>
-                        <height>16777215</height>
-                       </size>
-                      </property>
-                     </widget>
-                    </item>
-                   </layout>
-                  </item>
-                  <item>
-                   <layout class="QHBoxLayout" name="horizontalLayout_18">
-                    <item>
-                     <widget class="QLabel" name="label_6">
-                      <property name="minimumSize">
-                       <size>
-                        <width>111</width>
-                        <height>0</height>
-                       </size>
-                      </property>
-                      <property name="text">
-                       <string>Unit of Measurement:</string>
-                      </property>
-                     </widget>
-                    </item>
-                    <item>
-                     <widget class="QLineEdit" name="lineEdit_exercise_unit">
-                      <property name="minimumSize">
-                       <size>
-                        <width>70</width>
-                        <height>0</height>
-                       </size>
-                      </property>
-                     </widget>
-                    </item>
-                   </layout>
-                  </item>
-                  <item>
-                   <layout class="QHBoxLayout" name="horizontalLayout_calories_per_unit">
-                    <item>
-                     <widget class="QLabel" name="label_calories_per_unit">
-                      <property name="minimumSize">
-                       <size>
-                        <width>111</width>
-                        <height>0</height>
-                       </size>
-                      </property>
-                      <property name="text">
-                       <string>Calories per unit:</string>
-                      </property>
-                     </widget>
-                    </item>
-                    <item>
-                     <widget class="QDoubleSpinBox" name="doubleSpinBox_calories_per_unit">
-                      <property name="minimumSize">
-                       <size>
-                        <width>70</width>
-                        <height>0</height>
-                       </size>
-                      </property>
-                      <property name="decimals">
-                       <number>2</number>
-                      </property>
-                      <property name="maximum">
-                       <double>999.990000000000009</double>
-                      </property>
-                      <property name="value">
-                       <double>0.000000000000000</double>
-                      </property>
-                     </widget>
-                    </item>
-                   </layout>
-                  </item>
-                  <item>
-                   <widget class="QCheckBox" name="check_box_is_type_required">
-                    <property name="text">
-                     <string>Type required</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item>
-                   <layout class="QHBoxLayout" name="horizontalLayout_19">
-                    <item>
-                     <spacer name="horizontalSpacer_4">
-                      <property name="orientation">
-                       <enum>Qt::Orientation::Horizontal</enum>
-                      </property>
-                      <property name="sizeHint" stdset="0">
-                       <size>
-                        <width>40</width>
-                        <height>20</height>
-                       </size>
-                      </property>
-                     </spacer>
-                    </item>
-                    <item>
-                     <widget class="QPushButton" name="pushButton_exercise_add">
-                      <property name="text">
-                       <string>Add</string>
-                      </property>
-                     </widget>
-                    </item>
-                   </layout>
-                  </item>
-                 </layout>
-                </widget>
-               </item>
-               <item>
                 <widget class="QGroupBox" name="groupBox_7">
                  <property name="title">
                   <string>Commands</string>
                  </property>
                  <layout class="QVBoxLayout" name="verticalLayout_11">
+                  <item>
+                   <widget class="QPushButton" name="pushButton_exercise_add">
+                    <property name="text">
+                     <string>Add Exercise</string>
+                    </property>
+                   </widget>
+                  </item>
                   <item>
                    <layout class="QHBoxLayout" name="horizontalLayout_20">
                     <item>
@@ -1254,114 +1085,18 @@
               </property>
               <layout class="QVBoxLayout" name="verticalLayout_12">
                <item>
-                <widget class="QGroupBox" name="groupBox_3">
-                 <property name="title">
-                  <string>Add New Exercise Type</string>
-                 </property>
-                 <layout class="QVBoxLayout" name="verticalLayout_14">
-                  <item>
-                   <widget class="QComboBox" name="comboBox_exercise_name"/>
-                  </item>
-                  <item>
-                   <widget class="QLineEdit" name="lineEdit_exercise_type"/>
-                  </item>
-                  <item>
-                   <layout class="QHBoxLayout" name="horizontalLayout_type_name_local">
-                    <item>
-                     <widget class="QLabel" name="label_type_name_local">
-                      <property name="text">
-                       <string>Local:</string>
-                      </property>
-                     </widget>
-                    </item>
-                    <item>
-                     <widget class="QLineEdit" name="lineEdit_type_name_local">
-                      <property name="placeholderText">
-                       <string>Local name</string>
-                      </property>
-                     </widget>
-                    </item>
-                    <item>
-                     <widget class="QPushButton" name="pushButton_type_translate_local">
-                      <property name="toolTip">
-                       <string>Translate type name to local language with AI</string>
-                      </property>
-                      <property name="text">
-                       <string>🤖</string>
-                      </property>
-                      <property name="maximumSize">
-                       <size>
-                        <width>36</width>
-                        <height>16777215</height>
-                       </size>
-                      </property>
-                     </widget>
-                    </item>
-                   </layout>
-                  </item>
-                  <item>
-                   <layout class="QHBoxLayout" name="horizontalLayout_calories_modifier">
-                    <item>
-                     <widget class="QLabel" name="label_calories_modifier">
-                      <property name="text">
-                       <string>Calories modifier:</string>
-                      </property>
-                     </widget>
-                    </item>
-                    <item>
-                     <widget class="QDoubleSpinBox" name="doubleSpinBox_calories_modifier">
-                      <property name="decimals">
-                       <number>2</number>
-                      </property>
-                      <property name="minimum">
-                       <double>0.010000000000000</double>
-                      </property>
-                      <property name="maximum">
-                       <double>10.000000000000000</double>
-                      </property>
-                      <property name="singleStep">
-                       <double>0.100000000000000</double>
-                      </property>
-                      <property name="value">
-                       <double>1.000000000000000</double>
-                      </property>
-                     </widget>
-                    </item>
-                   </layout>
-                  </item>
-                  <item>
-                   <layout class="QHBoxLayout" name="horizontalLayout_22">
-                    <item>
-                     <spacer name="horizontalSpacer_5">
-                      <property name="orientation">
-                       <enum>Qt::Orientation::Horizontal</enum>
-                      </property>
-                      <property name="sizeHint" stdset="0">
-                       <size>
-                        <width>40</width>
-                        <height>20</height>
-                       </size>
-                      </property>
-                     </spacer>
-                    </item>
-                    <item>
-                     <widget class="QPushButton" name="pushButton_type_add">
-                      <property name="text">
-                       <string>Add</string>
-                      </property>
-                     </widget>
-                    </item>
-                   </layout>
-                  </item>
-                 </layout>
-                </widget>
-               </item>
-               <item>
                 <widget class="QGroupBox" name="groupBox_8">
                  <property name="title">
                   <string>Commands</string>
                  </property>
                  <layout class="QVBoxLayout" name="verticalLayout_13">
+                  <item>
+                   <widget class="QPushButton" name="pushButton_type_add">
+                    <property name="text">
+                     <string>Add Exercise Type</string>
+                    </property>
+                   </widget>
+                  </item>
                   <item>
                    <layout class="QHBoxLayout" name="horizontalLayout_21">
                     <item>
