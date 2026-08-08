@@ -27,7 +27,6 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Photo
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -89,6 +88,7 @@ fun PhotoEditorScreen(
     var isOpeningPhoto by viewModel.isOpeningPhoto
     var galleryPhotos by viewModel.galleryPhotos
     var isGalleryLoading by viewModel.isGalleryLoading
+    val galleryThumbRevisions by viewModel.galleryThumbRevisions
     val repository = viewModel.repository
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -219,14 +219,6 @@ fun PhotoEditorScreen(
                         )
                     }
                 },
-                actions = {
-                    IconButton(onClick = { openPicker() }) {
-                        Icon(
-                            imageVector = Icons.Filled.Photo,
-                            contentDescription = stringResource(R.string.photo_editor_open_photo),
-                        )
-                    }
-                },
             )
         },
     ) { innerPadding ->
@@ -275,65 +267,87 @@ fun PhotoEditorScreen(
                     )
                 }
 
-                !hasPermission -> {
-                    PhotoEditorPermissionPane(
-                        onGrant = {
-                            permissionLauncher.launch(GalleryPermissions.requiredPermission())
-                        },
-                    )
-                }
-
-                isGalleryLoading || !viewModel.galleryInitialized -> {
-                    Column(
-                        modifier = Modifier.align(Alignment.Center),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                    ) {
-                        CircularProgressIndicator()
-                        Spacer(modifier = Modifier.height(16.dp))
-                        AutoFitText(
-                            text = stringResource(R.string.photo_editor_gallery_loading),
-                            maxLines = 1,
-                        )
-                    }
-                }
-
-                galleryPhotos.isEmpty() -> {
-                    Column(
-                        modifier =
-                        Modifier
-                            .align(Alignment.Center)
-                            .padding(24.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                    ) {
-                        Text(
-                            text = stringResource(R.string.photo_editor_gallery_empty),
-                            style = MaterialTheme.typography.bodyLarge,
-                            textAlign = TextAlign.Center,
-                        )
-                        Spacer(modifier = Modifier.height(20.dp))
-                        Button(onClick = { openPicker() }) {
+                else -> {
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        Button(
+                            onClick = { openPicker() },
+                            modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 8.dp),
+                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp),
+                        ) {
                             AutoFitText(
                                 text = stringResource(R.string.photo_editor_open_photo),
                                 maxLines = 2,
                             )
                         }
-                    }
-                }
+                        Box(
+                            modifier =
+                            Modifier
+                                .weight(1f)
+                                .fillMaxWidth(),
+                        ) {
+                            when {
+                                !hasPermission -> {
+                                    PhotoEditorPermissionPane(
+                                        onGrant = {
+                                            permissionLauncher.launch(
+                                                GalleryPermissions.requiredPermission(),
+                                            )
+                                        },
+                                    )
+                                }
 
-                else -> {
-                    LazyVerticalGrid(
-                        columns = GridCells.Fixed(videoGridColumnCount()),
-                        state = gridState,
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        verticalArrangement = Arrangement.spacedBy(6.dp),
-                    ) {
-                        items(galleryPhotos, key = { it.id }) { photo ->
-                            PhotoEditorGalleryItem(
-                                photo = photo,
-                                onClick = { viewModel.openGalleryPhoto(photo) },
-                            )
+                                isGalleryLoading || !viewModel.galleryInitialized -> {
+                                    Column(
+                                        modifier = Modifier.align(Alignment.Center),
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                    ) {
+                                        CircularProgressIndicator()
+                                        Spacer(modifier = Modifier.height(16.dp))
+                                        AutoFitText(
+                                            text =
+                                            stringResource(R.string.photo_editor_gallery_loading),
+                                            maxLines = 1,
+                                        )
+                                    }
+                                }
+
+                                galleryPhotos.isEmpty() -> {
+                                    Text(
+                                        text = stringResource(R.string.photo_editor_gallery_empty),
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        textAlign = TextAlign.Center,
+                                        modifier =
+                                        Modifier
+                                            .align(Alignment.Center)
+                                            .padding(24.dp),
+                                    )
+                                }
+
+                                else -> {
+                                    LazyVerticalGrid(
+                                        columns = GridCells.Fixed(videoGridColumnCount()),
+                                        state = gridState,
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentPadding = PaddingValues(8.dp),
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                                    ) {
+                                        items(galleryPhotos, key = { it.id }) { photo ->
+                                            PhotoEditorGalleryItem(
+                                                photo = photo,
+                                                thumbRevision =
+                                                galleryThumbRevisions[photo.id] ?: 0,
+                                                onClick = {
+                                                    viewModel.openGalleryPhoto(photo)
+                                                },
+                                            )
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -382,6 +396,7 @@ private fun PhotoEditorPermissionPane(
 @Composable
 private fun PhotoEditorGalleryItem(
     photo: CameraPhoto,
+    thumbRevision: Int,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -401,6 +416,7 @@ private fun PhotoEditorGalleryItem(
             CameraGalleryRepository.formatFileSize(photo.sizeBytes)
         }
     val itemShape = MaterialTheme.shapes.medium
+    val cacheKey = "${photo.uri}-$thumbRevision-${photo.sizeBytes}"
 
     Box(
         modifier =
@@ -414,6 +430,8 @@ private fun PhotoEditorGalleryItem(
             ImageRequest
                 .Builder(context)
                 .data(photo.uri)
+                .memoryCacheKey(cacheKey)
+                .diskCacheKey(cacheKey)
                 .size(Size(THUMBNAIL_SIZE_PX, THUMBNAIL_SIZE_PX))
                 .crossfade(true)
                 .build(),

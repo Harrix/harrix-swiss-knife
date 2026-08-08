@@ -24,6 +24,9 @@ class PhotoEditorViewModel(
     val isOpeningPhoto = mutableStateOf(false)
     val galleryPhotos = mutableStateOf<List<CameraPhoto>>(emptyList())
     val isGalleryLoading = mutableStateOf(false)
+
+    /** Bumps Coil cache keys so overwritten gallery thumbs reload. */
+    val galleryThumbRevisions = mutableStateOf<Map<Long, Int>>(emptyMap())
     var galleryInitialized = false
     var gridFirstVisibleIndex = 0
     var gridFirstVisibleOffset = 0
@@ -72,6 +75,9 @@ class PhotoEditorViewModel(
                     item
                 }
             }
+        val revisions = galleryThumbRevisions.value.toMutableMap()
+        revisions[updated.id] = (revisions[updated.id] ?: 0) + 1
+        galleryThumbRevisions.value = revisions
         imageRevision.intValue += 1
     }
 
@@ -86,6 +92,7 @@ class PhotoEditorViewModel(
         clearPhoto()
         galleryPhotos.value = emptyList()
         isGalleryLoading.value = false
+        galleryThumbRevisions.value = emptyMap()
         galleryInitialized = false
         gridFirstVisibleIndex = 0
         gridFirstVisibleOffset = 0
