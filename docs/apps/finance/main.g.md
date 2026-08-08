@@ -163,6 +163,10 @@ class MainWindow(
         self._category_suggest_timer.setSingleShot(True)
         self._category_suggest_timer.setInterval(700)
         self._category_suggest_timer.timeout.connect(self._run_category_suggestions)
+        self._description_filter_timer = QTimer(self)
+        self._description_filter_timer.setSingleShot(True)
+        self._description_filter_timer.setInterval(400)
+        self._description_filter_timer.timeout.connect(self.apply_filter)
         self._suppress_category_suggest: bool = False
         self._category_suggest_delegate = CategorySuggestDelegate(self.listView_categories)
         self._category_suggest_delegate.use_clicked.connect(self._select_category_by_name)
@@ -301,6 +305,7 @@ class MainWindow(
         for widget in widgets:
             widget.blockSignals(False)  # noqa: FBT003
 
+        self._description_filter_timer.stop()
         self._update_date_filter_controls_enabled()
         self._load_transactions_table()
         self._connect_table_auto_save_signals()
@@ -1854,7 +1859,7 @@ class MainWindow(
         self.comboBox_filter_type.currentIndexChanged.connect(self.apply_filter)
         self.comboBox_filter_category.currentIndexChanged.connect(self.apply_filter)
         self.comboBox_filter_currency.currentIndexChanged.connect(self.apply_filter)
-        self.lineEdit_filter_description.textChanged.connect(self.apply_filter)
+        self.lineEdit_filter_description.textChanged.connect(self._schedule_description_filter)
         self.dateEdit_filter_from.dateChanged.connect(self.apply_filter)
         self.dateEdit_filter_to.dateChanged.connect(self.apply_filter)
         self.checkBox_use_date_filter.toggled.connect(self._on_use_date_filter_toggled)
@@ -4561,6 +4566,10 @@ class MainWindow(
         header = table_view.horizontalHeader()
         return [table_view.columnWidth(i) for i in range(header.count())]
 
+    def _schedule_description_filter(self, *_args: object) -> None:
+        """Restart debounce timer so description filter runs after typing pauses."""
+        self._description_filter_timer.start()
+
     def _select_category_by_id(self, category_id: int) -> None:
         """Select category in listView_categories by database ID.
 
@@ -6106,6 +6115,10 @@ def __init__(self, *, hide_on_close: bool = False) -> None:
         self._category_suggest_timer.setSingleShot(True)
         self._category_suggest_timer.setInterval(700)
         self._category_suggest_timer.timeout.connect(self._run_category_suggestions)
+        self._description_filter_timer = QTimer(self)
+        self._description_filter_timer.setSingleShot(True)
+        self._description_filter_timer.setInterval(400)
+        self._description_filter_timer.timeout.connect(self.apply_filter)
         self._suppress_category_suggest: bool = False
         self._category_suggest_delegate = CategorySuggestDelegate(self.listView_categories)
         self._category_suggest_delegate.use_clicked.connect(self._select_category_by_name)
@@ -6271,6 +6284,7 @@ def clear_filter(self) -> None:
         for widget in widgets:
             widget.blockSignals(False)  # noqa: FBT003
 
+        self._description_filter_timer.stop()
         self._update_date_filter_controls_enabled()
         self._load_transactions_table()
         self._connect_table_auto_save_signals()
