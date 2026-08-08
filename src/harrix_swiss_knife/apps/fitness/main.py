@@ -5875,9 +5875,16 @@ class MainWindow(
         self.pushButton_refresh.setText(f"🔄 {self.pushButton_refresh.text()}")
         self.pushButton_show_all_records.setText(f"📋 {self.pushButton_show_all_records.text()}")
         self.pushButton_export_csv.setText(f"📤 {self.pushButton_export_csv.text()}")
+        self.groupBox_filter.setTitle("")
+        self.groupBox_filter.setStyleSheet(
+            "QGroupBox#groupBox_filter { border: none; margin-top: 0px; padding-top: 0px; }"
+            "QGroupBox#groupBox_filter::title { height: 0px; width: 0px; padding: 0px; margin: 0px; }"
+        )
         self.pushButton_clear_filter.setText("🧹")
-        self.pushButton_clear_filter.setToolTip("Clear Filter")
+        self.pushButton_clear_filter.setToolTip("Clear filter")
         self.pushButton_clear_filter.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        clear_h = max(self.pushButton_clear_filter.sizeHint().height(), 24)
+        self.pushButton_clear_filter.setFixedSize(clear_h, clear_h)
         self.pushButton_select_exercise.setText(f"🏋️ {self.pushButton_select_exercise.text()}")
         self.pushButton_exercise_add.setText(f"➕ {self.pushButton_exercise_add.text()}")  # noqa: RUF001
         self.pushButton_exercises_delete.setText(f"🗑️ {self.pushButton_exercises_delete.text()}")

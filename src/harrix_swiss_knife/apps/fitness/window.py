@@ -49,7 +49,7 @@ class Ui_MainWindow(object):
         self.label_7.setText(QCoreApplication.translate("MainWindow", u"Exercise:", None))
         self.pushButton_select_exercise.setText(QCoreApplication.translate("MainWindow", u"Select Exercise", None))
         self.lineEdit_exercises_filter.setPlaceholderText(QCoreApplication.translate("MainWindow", u"Filter exercises\u2026", None))
-        self.groupBox_filter.setTitle(QCoreApplication.translate("MainWindow", u"Filter", None))
+        self.groupBox_filter.setTitle("")
         self.label_filter_exercise.setText(QCoreApplication.translate("MainWindow", u"Exercise:", None))
         self.label_filter_type.setText(QCoreApplication.translate("MainWindow", u"Type:", None))
         self.label_filter_date.setText(QCoreApplication.translate("MainWindow", u"Date:", None))
@@ -58,7 +58,7 @@ class Ui_MainWindow(object):
         self.dateEdit_filter_to.setDisplayFormat(QCoreApplication.translate("MainWindow", u"yyyy-MM-dd", None))
         self.checkBox_use_date_filter.setText(QCoreApplication.translate("MainWindow", u"Use date", None))
 #if QT_CONFIG(tooltip)
-        self.pushButton_clear_filter.setToolTip(QCoreApplication.translate("MainWindow", u"Clear Filter", None))
+        self.pushButton_clear_filter.setToolTip(QCoreApplication.translate("MainWindow", u"Clear filter", None))
 #endif // QT_CONFIG(tooltip)
         self.pushButton_clear_filter.setText(QCoreApplication.translate("MainWindow", u"\U0001f9f9", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab), QCoreApplication.translate("MainWindow", u"Sets", None))
@@ -464,6 +464,7 @@ class Ui_MainWindow(object):
         sizePolicy2.setVerticalStretch(0)
         sizePolicy2.setHeightForWidth(self.pushButton_clear_filter.sizePolicy().hasHeightForWidth())
         self.pushButton_clear_filter.setSizePolicy(sizePolicy2)
+        self.pushButton_clear_filter.setMaximumSize(QSize(32, 16777215))
 
         self.horizontalLayout_filter.addWidget(self.pushButton_clear_filter)
 

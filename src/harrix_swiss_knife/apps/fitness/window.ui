@@ -415,7 +415,7 @@
             <item>
              <widget class="QGroupBox" name="groupBox_filter">
               <property name="title">
-               <string>Filter</string>
+               <string/>
               </property>
               <property name="flat">
                <bool>true</bool>
@@ -549,8 +549,14 @@
                    <verstretch>0</verstretch>
                   </sizepolicy>
                  </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>32</width>
+                   <height>16777215</height>
+                  </size>
+                 </property>
                  <property name="toolTip">
-                  <string>Clear Filter</string>
+                  <string>Clear filter</string>
                  </property>
                  <property name="text">
                   <string>🧹</string>
