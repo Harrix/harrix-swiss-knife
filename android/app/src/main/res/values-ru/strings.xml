@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding='utf-8'?>
+﻿<?xml version='1.0' encoding='utf-8'?>
 <resources>
     <string name="app_name">Harrix Swiss Knife</string>
     <string name="nav_open">Открыть навигацию</string>
@@ -107,6 +107,7 @@
     <string name="nav_drawer_gallery_cleaner">Gallery Cleaner</string>
     <string name="nav_drawer_video_cleaner">Video Cleaner</string>
     <string name="nav_drawer_photo_editor">Photo Editor</string>
+    <string name="nav_drawer_photo_sync">Синхронизация фото</string>
     <string name="nav_drawer_speech_to_text">Speech to Text with AI</string>
     <string name="nav_drawer_medicine_search">Поиск по лекарствам</string>
     <string name="nav_drawer_about">О программе</string>
@@ -122,6 +123,27 @@
     <string name="gallery_cleaner_card_description">Просмотр фотографий с камеры. Проведите пальцем по экрану или коснитесь, чтобы удалить или сохранить.</string>
     <string name="video_cleaner_card_description">Список видео с камеры по дате и удаление выбранных.</string>
     <string name="photo_editor_card_description">Обрезка и выравнивание фото. Откройте из приложения или поделитесь изображением сюда.</string>
+    <string name="photo_sync_card_description">Отправка фото из папки камеры на компьютер по той же сети Wi-Fi.</string>
+    <string name="photo_sync_title">Синхронизация фото</string>
+    <string name="photo_sync_close">Закрыть синхронизацию фото</string>
+    <string name="photo_sync_intro">Запустите Photo sync listen на компьютере, затем отсканируйте QR-код или введите хост, порт и токен.</string>
+    <string name="photo_sync_host">IP / хост компьютера</string>
+    <string name="photo_sync_port">Порт</string>
+    <string name="photo_sync_token">Токен</string>
+    <string name="photo_sync_paste_uri">URI сопряжения</string>
+    <string name="photo_sync_apply_uri">Применить URI</string>
+    <string name="photo_sync_scan_qr">Сканировать QR</string>
+    <string name="photo_sync_scan_prompt">Отсканируйте QR из окна Photo sync на компьютере</string>
+    <string name="photo_sync_camera_permission_denied">Для сканирования QR нужен доступ к камере</string>
+    <string name="photo_sync_need_photos_permission">Для синхронизации папки камеры нужен доступ к фото.</string>
+    <string name="photo_sync_grant_photos">Разрешить доступ к фото</string>
+    <string name="photo_sync_start">Синхронизировать</string>
+    <string name="photo_sync_cancel">Отмена</string>
+    <string name="photo_sync_phase_handshake">Подключение…</string>
+    <string name="photo_sync_phase_scan">Сканирование папки камеры…</string>
+    <string name="photo_sync_phase_hash">Хеширование %1$d / %2$d</string>
+    <string name="photo_sync_phase_manifest">Сравнение с компьютером…</string>
+    <string name="photo_sync_phase_upload">Загрузка %1$d / %2$d</string>
     <string name="speech_to_text_card_description">Запись речи, распознавание через AI, затем правка или рерайт текста.</string>
     <string name="medicine_search_card_description">Спросите о симптомах — BotHub подскажет по вашему Markdown-списку или что купить.</string>
     <string name="medicine_search_title">Поиск по лекарствам</string>

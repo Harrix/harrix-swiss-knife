@@ -1,4 +1,4 @@
-<?xml version="1.0" ?>
+﻿<?xml version="1.0" ?>
 <resources>
     <string name="app_name">Harrix Swiss Knife</string>
     <string name="nav_open">Abrir navegação</string>
@@ -107,6 +107,7 @@
     <string name="nav_drawer_gallery_cleaner">Gallery Cleaner</string>
     <string name="nav_drawer_video_cleaner">Video Cleaner</string>
     <string name="nav_drawer_photo_editor">Photo Editor</string>
+    <string name="nav_drawer_photo_sync">Photo Sync</string>
     <string name="nav_drawer_speech_to_text">Speech to Text with AI</string>
     <string name="nav_drawer_medicine_search">Medicine Search</string>
     <string name="nav_drawer_about">Sobre o aplicativo</string>
@@ -122,6 +123,27 @@
     <string name="gallery_cleaner_card_description">Revise as fotos da câmera. Deslize ou toque para descartar ou manter.</string>
     <string name="video_cleaner_card_description">Liste os vídeos da câmera por data e descarte os selecionados.</string>
     <string name="photo_editor_card_description">Recorte e endireite uma foto. Abra pelo app ou compartilhe uma imagem aqui.</string>
+    <string name="photo_sync_card_description">Send Camera photos to the desktop app over the same Wi-Fi network.</string>
+    <string name="photo_sync_title">Photo Sync</string>
+    <string name="photo_sync_close">Close Photo Sync</string>
+    <string name="photo_sync_intro">Start Photo sync listen on the computer, then scan the QR code or enter host, port, and token.</string>
+    <string name="photo_sync_host">Desktop IP / host</string>
+    <string name="photo_sync_port">Port</string>
+    <string name="photo_sync_token">Token</string>
+    <string name="photo_sync_paste_uri">Pairing URI</string>
+    <string name="photo_sync_apply_uri">Apply pairing URI</string>
+    <string name="photo_sync_scan_qr">Scan QR</string>
+    <string name="photo_sync_scan_prompt">Scan the QR from the desktop Photo sync dialog</string>
+    <string name="photo_sync_camera_permission_denied">Camera permission is required to scan the QR code</string>
+    <string name="photo_sync_need_photos_permission">Photo access is required to sync the Camera folder.</string>
+    <string name="photo_sync_grant_photos">Grant photo access</string>
+    <string name="photo_sync_start">Sync now</string>
+    <string name="photo_sync_cancel">Cancel</string>
+    <string name="photo_sync_phase_handshake">Connecting…</string>
+    <string name="photo_sync_phase_scan">Scanning Camera folder…</string>
+    <string name="photo_sync_phase_hash">Hashing %1$d / %2$d</string>
+    <string name="photo_sync_phase_manifest">Comparing with desktop…</string>
+    <string name="photo_sync_phase_upload">Uploading %1$d / %2$d</string>
     <string name="speech_to_text_card_description">Record speech, recognize with AI, then fix or rewrite the text.</string>
     <string name="medicine_search_card_description">Ask about symptoms; BotHub suggests medicines from your Markdown list or what to buy.</string>
     <string name="medicine_search_title">Medicine Search</string>

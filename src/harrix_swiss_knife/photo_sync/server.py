@@ -1,0 +1,311 @@
+"""HTTP receiver for LAN photo sync."""
+
+from __future__ import annotations
+
+import hashlib
+import json
+import logging
+import secrets
+import threading
+from dataclasses import dataclass, field
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from typing import TYPE_CHECKING, Any
+from urllib.parse import parse_qs, urlparse
+
+from harrix_swiss_knife.photo_sync.index import DeviceSyncIndex
+from harrix_swiss_knife.photo_sync.naming import (
+    allocate_filename,
+    display_name_prefers_copy,
+    extension_for_mime,
+)
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+    from pathlib import Path
+
+logger = logging.getLogger(__name__)
+
+PROTOCOL_VERSION = 1
+DEFAULT_PORT = 17865
+_MAX_LOG_LINES = 40
+_MAX_UPLOAD_BYTES = 500 * 1024 * 1024
+_MAX_JSON_BODY_BYTES = 20 * 1024 * 1024
+
+
+@dataclass
+class SyncStats:
+    """Runtime counters for the listening dialog."""
+
+    uploads_ok: int = 0
+    uploads_bytes: int = 0
+    last_message: str = ""
+    log_lines: list[str] = field(default_factory=list)
+
+    def note(self, message: str) -> None:
+        """Append a short status line (keeps the last `_MAX_LOG_LINES`)."""
+        self.last_message = message
+        self.log_lines.append(message)
+        if len(self.log_lines) > _MAX_LOG_LINES:
+            del self.log_lines[:-_MAX_LOG_LINES]
+
+
+class _SharedServerState:
+    """Process-wide listener holder (avoids a module-level `global` assignment)."""
+
+    def __init__(self) -> None:
+        """Create an empty shared holder."""
+        self.lock = threading.Lock()
+        self.server: PhotoSyncServer | None = None
+
+
+_SHARED = _SharedServerState()
+
+
+class PhotoSyncServer:
+    """Tokenized LAN HTTP server that receives photos into `photos_dir`."""
+
+    def __init__(self, photos_dir: Path, port: int = DEFAULT_PORT) -> None:
+        """Create a stopped server that will write into `photos_dir`."""
+        self.photos_dir = photos_dir
+        self.port = port
+        self.token = secrets.token_urlsafe(18)
+        self.stats = SyncStats()
+        self._httpd: ThreadingHTTPServer | None = None
+        self._thread: threading.Thread | None = None
+        self._indexes: dict[str, DeviceSyncIndex] = {}
+        self._index_lock = threading.Lock()
+        self._on_change: Callable[[], None] | None = None
+
+    @property
+    def is_running(self) -> bool:
+        """Whether the listener thread is active."""
+        return self._thread is not None and self._thread.is_alive()
+
+    def set_on_change(self, callback: Callable[[], None] | None) -> None:
+        """Register a UI refresh callback invoked after status updates."""
+        self._on_change = callback
+
+    def start(self) -> None:
+        """Bind and start serving in a daemon thread."""
+        if self.is_running:
+            return
+        self.photos_dir.mkdir(parents=True, exist_ok=True)
+        handler = self._make_handler()
+        try:
+            # Bind all interfaces so phones on LAN can connect.
+            self._httpd = ThreadingHTTPServer(("0.0.0.0", self.port), handler)  # noqa: S104
+        except OSError:
+            self.stats.note(f"Failed to bind port {self.port} (firewall or in use)")
+            raise
+        self._thread = threading.Thread(target=self._httpd.serve_forever, name="photo-sync-http", daemon=True)
+        self._thread.start()
+        self.stats.note(f"Listening on port {self.port}")
+        self._notify()
+
+    def stop(self) -> None:
+        """Stop the HTTP server."""
+        httpd = self._httpd
+        self._httpd = None
+        if httpd is not None:
+            httpd.shutdown()
+            httpd.server_close()
+        thread = self._thread
+        self._thread = None
+        if thread is not None and thread.is_alive():
+            thread.join(timeout=2.0)
+        self.stats.note("Stopped")
+        self._notify()
+
+    def index_for(self, device_id: str) -> DeviceSyncIndex:
+        """Return (and cache) the sync index for a device."""
+        with self._index_lock:
+            existing = self._indexes.get(device_id)
+            if existing is not None:
+                return existing
+            created = DeviceSyncIndex(self.photos_dir, device_id)
+            self._indexes[device_id] = created
+            return created
+
+    def _notify(self) -> None:
+        callback = self._on_change
+        if callback is not None:
+            try:
+                callback()
+            except Exception:
+                logger.exception("Photo sync UI callback failed")
+
+    def _make_handler(self) -> type[BaseHTTPRequestHandler]:
+        server = self
+
+        class Handler(BaseHTTPRequestHandler):
+            protocol_version = "HTTP/1.1"
+
+            def log_message(self, format: str, *args: Any) -> None:  # noqa: A002
+                logger.debug("photo-sync: %s", format % args)
+
+            def do_GET(self) -> None:
+                parsed = urlparse(self.path)
+                if parsed.path == "/v1/health":
+                    self._json_response(200, {"ok": True, "protocolVersion": PROTOCOL_VERSION})
+                    return
+                self._json_response(404, {"error": "not_found"})
+
+            def do_POST(self) -> None:
+                parsed = urlparse(self.path)
+                body = self._read_json_body()
+                if body is None:
+                    self._json_response(400, {"error": "invalid_json"})
+                    return
+                if parsed.path == "/v1/handshake":
+                    self._handle_handshake(body)
+                    return
+                if parsed.path == "/v1/manifest":
+                    self._handle_manifest(body)
+                    return
+                self._json_response(404, {"error": "not_found"})
+
+            def do_PUT(self) -> None:
+                parsed = urlparse(self.path)
+                if parsed.path != "/v1/upload":
+                    self._json_response(404, {"error": "not_found"})
+                    return
+                self._handle_upload(parsed)
+
+            def _handle_handshake(self, body: dict[str, Any]) -> None:
+                if not self._authorized(body.get("token")):
+                    self._json_response(401, {"error": "unauthorized"})
+                    return
+                device_id = str(body.get("deviceId", "")).strip()
+                if not device_id:
+                    self._json_response(400, {"error": "device_id_required"})
+                    return
+                server.stats.note(f"Handshake from {device_id[:12]}…")
+                server._notify()
+                self._json_response(200, {"ok": True, "protocolVersion": PROTOCOL_VERSION})
+
+            def _handle_manifest(self, body: dict[str, Any]) -> None:
+                if not self._authorized(body.get("token")):
+                    self._json_response(401, {"error": "unauthorized"})
+                    return
+                device_id = str(body.get("deviceId", "")).strip()
+                items = body.get("items")
+                if not device_id or not isinstance(items, list):
+                    self._json_response(400, {"error": "invalid_manifest"})
+                    return
+                index = server.index_for(device_id)
+                needed = index.needed_media_ids(items)
+                server.stats.note(f"Manifest: {len(items)} items, {len(needed)} needed")
+                server._notify()
+                self._json_response(200, {"needed": needed})
+
+            def _handle_upload(self, parsed: Any) -> None:
+                query = parse_qs(parsed.query)
+                token = (query.get("token") or [""])[0]
+                if not self._authorized(token):
+                    self._json_response(401, {"error": "unauthorized"})
+                    return
+                device_id = (query.get("deviceId") or [""])[0].strip()
+                media_id = (query.get("mediaId") or [""])[0].strip()
+                content_hash = (query.get("contentHash") or [""])[0].strip().lower()
+                display_name = (query.get("displayName") or [""])[0]
+                mime_type = (query.get("mimeType") or [""])[0]
+                try:
+                    date_taken = int((query.get("dateTaken") or ["0"])[0])
+                except ValueError:
+                    date_taken = 0
+                if not device_id or not media_id or not content_hash:
+                    self._json_response(400, {"error": "missing_fields"})
+                    return
+                length_header = self.headers.get("Content-Length")
+                try:
+                    length = int(length_header) if length_header else 0
+                except ValueError:
+                    length = 0
+                if length <= 0:
+                    self._json_response(400, {"error": "empty_body"})
+                    return
+                if length > _MAX_UPLOAD_BYTES:
+                    self._json_response(413, {"error": "too_large"})
+                    return
+                raw = self.rfile.read(length)
+                digest = hashlib.sha256(raw).hexdigest()
+                if digest != content_hash:
+                    self._json_response(400, {"error": "hash_mismatch", "expected": content_hash, "actual": digest})
+                    return
+
+                index = server.index_for(device_id)
+                existing = index.get(media_id)
+                reuse = existing.filename if existing is not None else None
+                if reuse and not (server.photos_dir / reuse).exists():
+                    reuse = None
+                force_copy = display_name_prefers_copy(display_name) and reuse is None
+                ext = extension_for_mime(mime_type or None, display_name or None)
+                filename = allocate_filename(
+                    server.photos_dir,
+                    date_taken_epoch_ms=date_taken,
+                    extension=ext,
+                    force_copy=force_copy,
+                    reuse_filename=reuse,
+                )
+                dest = server.photos_dir / filename
+                tmp = dest.with_suffix(dest.suffix + ".partial")
+                try:
+                    tmp.write_bytes(raw)
+                    tmp.replace(dest)
+                except OSError as exc:
+                    if tmp.exists():
+                        tmp.unlink(missing_ok=True)
+                    server.stats.note(f"Write failed: {exc}")
+                    server._notify()
+                    self._json_response(500, {"error": "write_failed"})
+                    return
+
+                index.upsert(media_id, content_hash=digest, filename=filename)
+                server.stats.uploads_ok += 1
+                server.stats.uploads_bytes += length
+                server.stats.note(f"Saved {filename}")
+                server._notify()
+                self._json_response(200, {"filename": filename, "status": "saved"})
+
+            def _authorized(self, token: Any) -> bool:
+                return isinstance(token, str) and secrets.compare_digest(token, server.token)
+
+            def _read_json_body(self) -> dict[str, Any] | None:
+                length_header = self.headers.get("Content-Length")
+                try:
+                    length = int(length_header) if length_header else 0
+                except ValueError:
+                    return None
+                if length <= 0:
+                    return {}
+                if length > _MAX_JSON_BODY_BYTES:
+                    return None
+                raw = self.rfile.read(length)
+                try:
+                    data = json.loads(raw.decode("utf-8"))
+                except (UnicodeDecodeError, json.JSONDecodeError):
+                    return None
+                return data if isinstance(data, dict) else None
+
+            def _json_response(self, status: int, payload: dict[str, Any]) -> None:
+                body = json.dumps(payload).encode("utf-8")
+                self.send_response(status)
+                self.send_header("Content-Type", "application/json; charset=utf-8")
+                self.send_header("Content-Length", str(len(body)))
+                self.send_header("Connection", "close")
+                self.end_headers()
+                self.wfile.write(body)
+
+        return Handler
+
+
+def get_shared_server() -> PhotoSyncServer | None:
+    """Return the process-wide listener, if any."""
+    with _SHARED.lock:
+        return _SHARED.server
+
+
+def set_shared_server(server: PhotoSyncServer | None) -> None:
+    """Install or clear the process-wide listener."""
+    with _SHARED.lock:
+        _SHARED.server = server

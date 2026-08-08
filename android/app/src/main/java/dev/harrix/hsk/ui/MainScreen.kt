@@ -34,6 +34,7 @@ import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material.icons.filled.VideoLibrary
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.DropdownMenu
@@ -78,6 +79,7 @@ import dev.harrix.hsk.ui.gallery.GalleryCleanerScreen
 import dev.harrix.hsk.ui.gallery.VideoCleanerScreen
 import dev.harrix.hsk.ui.medicinesearch.MedicineSearchScreen
 import dev.harrix.hsk.ui.photoeditor.PhotoEditorScreen
+import dev.harrix.hsk.ui.photosync.PhotoSyncScreen
 import dev.harrix.hsk.ui.settings.SettingsScreen
 import dev.harrix.hsk.ui.settings.SettingsSection
 import dev.harrix.hsk.ui.speechtotext.SpeechToTextScreen
@@ -102,6 +104,7 @@ private enum class AppDestination {
     GalleryCleaner,
     VideoCleaner,
     PhotoEditor,
+    PhotoSync,
     SpeechToText,
     MedicineSearch,
 }
@@ -187,6 +190,12 @@ fun MainScreen(
                 destination = AppDestination.PhotoEditor,
             ),
             UtilityCardItem(
+                titleRes = R.string.nav_drawer_photo_sync,
+                descriptionRes = R.string.photo_sync_card_description,
+                icon = Icons.Filled.Sync,
+                destination = AppDestination.PhotoSync,
+            ),
+            UtilityCardItem(
                 titleRes = R.string.nav_drawer_speech_to_text,
                 descriptionRes = R.string.speech_to_text_card_description,
                 icon = Icons.Filled.Mic,
@@ -232,6 +241,13 @@ fun MainScreen(
                     initialUri = photoEditorInitialUri,
                     onInitialUriConsume = { photoEditorInitialUri = null },
                     settingsRevision = settingsRevision,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
+
+            AppDestination.PhotoSync -> {
+                PhotoSyncScreen(
+                    onClose = { destination = AppDestination.Home },
                     modifier = Modifier.fillMaxSize(),
                 )
             }
@@ -578,6 +594,12 @@ private fun AppNavigationDrawerContent(
             selected = selected == AppDestination.PhotoEditor,
             onClick = { onNavigate(AppDestination.PhotoEditor) },
             icon = Icons.Filled.Crop,
+        )
+        DrawerNavItem(
+            label = stringResource(R.string.nav_drawer_photo_sync),
+            selected = selected == AppDestination.PhotoSync,
+            onClick = { onNavigate(AppDestination.PhotoSync) },
+            icon = Icons.Filled.Sync,
         )
         DrawerNavItem(
             label = stringResource(R.string.nav_drawer_speech_to_text),

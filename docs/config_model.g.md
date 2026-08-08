@@ -71,6 +71,8 @@ class AppConfig(TypedDict, total=False):
     show_main_window_on_startup: bool
     compact_mode: bool
     android_build_variant: str
+    path_photos: str
+    photo_sync_port: int
 ```
 
 </details>
