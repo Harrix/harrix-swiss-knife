@@ -52,13 +52,15 @@
   },
   "apps": {
     "initial_count": 1000,
-    "load_more_count": 500
+    "load_more_count": 500,
+    "local_language": "ru"
   },
   "android_build_variant": "release",
   "optimize_images_folder_max_size": 1024,
   "food_log_translate_names_limit": 250,
   "finance_transactions_translate_descriptions_limit": 250,
   "finance_standard_items_translate_names_limit": 250,
+  "fitness_names_translate_local_limit": 250,
   "github_user": "Harrix",
   "harrix_notes_explorer_publisher": "harrix",
   "markdown_templates": {
@@ -233,6 +235,8 @@
     "finance_category_translate_local": "snippet:config/prompts/finance-category-translate-local.md",
     "finance_transactions_translate_descriptions": "snippet:config/prompts/finance-transactions-translate-descriptions.md",
     "finance_standard_items_translate_names": "snippet:config/prompts/finance-standard-items-translate-names.md",
+    "fitness_name_translate_local": "snippet:config/prompts/fitness-name-translate-local.md",
+    "fitness_names_translate_local": "snippet:config/prompts/fitness-names-translate-local.md",
     "food_log_to_tsv": "snippet:config/prompts/food-log-to-tsv.md",
     "food_voice_log_to_tsv": "snippet:config/prompts/food-voice-log-to-tsv.md",
     "food_kcal_lookup": "snippet:config/prompts/food-kcal-lookup.md",

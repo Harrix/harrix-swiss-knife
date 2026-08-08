@@ -4,6 +4,7 @@ CREATE TABLE "exercises" (
 	"unit"	TEXT,
 	"is_type_required"	INTEGER NOT NULL DEFAULT 0,
 	calories_per_unit REAL DEFAULT 0,
+	"name_local"	TEXT,
 	PRIMARY KEY("_id" AUTOINCREMENT)
 );
 
@@ -19,7 +20,8 @@ CREATE TABLE `types` (
 	`_id`	INTEGER PRIMARY KEY AUTOINCREMENT,
 	`_id_exercises`	INTEGER NOT NULL,
 	`type`	TEXT NOT NULL,
-	calories_modifier REAL DEFAULT 1.0
+	calories_modifier REAL DEFAULT 1.0,
+	`name_local`	TEXT
 );
 
 CREATE TABLE `weight` (

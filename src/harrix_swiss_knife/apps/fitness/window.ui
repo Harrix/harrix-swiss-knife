@@ -993,6 +993,52 @@
                    </layout>
                   </item>
                   <item>
+                   <layout class="QHBoxLayout" name="horizontalLayout_exercise_name_local">
+                    <item>
+                     <widget class="QLabel" name="label_exercise_name_local">
+                      <property name="minimumSize">
+                       <size>
+                        <width>111</width>
+                        <height>0</height>
+                       </size>
+                      </property>
+                      <property name="text">
+                       <string>Local:</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="QLineEdit" name="lineEdit_exercise_name_local">
+                      <property name="minimumSize">
+                       <size>
+                        <width>70</width>
+                        <height>0</height>
+                       </size>
+                      </property>
+                      <property name="placeholderText">
+                       <string>Local name</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="QPushButton" name="pushButton_exercise_translate_local">
+                      <property name="toolTip">
+                       <string>Translate name to local language with AI</string>
+                      </property>
+                      <property name="text">
+                       <string>🤖</string>
+                      </property>
+                      <property name="maximumSize">
+                       <size>
+                        <width>36</width>
+                        <height>16777215</height>
+                       </size>
+                      </property>
+                     </widget>
+                    </item>
+                   </layout>
+                  </item>
+                  <item>
                    <layout class="QHBoxLayout" name="horizontalLayout_18">
                     <item>
                      <widget class="QLabel" name="label_6">
@@ -1113,6 +1159,13 @@
                     </item>
                    </layout>
                   </item>
+                  <item>
+                   <widget class="QPushButton" name="pushButton_translate_with_ai">
+                    <property name="text">
+                     <string>Translate with AI</string>
+                    </property>
+                   </widget>
+                  </item>
                  </layout>
                 </widget>
                </item>
@@ -1193,6 +1246,40 @@
                   </item>
                   <item>
                    <widget class="QLineEdit" name="lineEdit_exercise_type"/>
+                  </item>
+                  <item>
+                   <layout class="QHBoxLayout" name="horizontalLayout_type_name_local">
+                    <item>
+                     <widget class="QLabel" name="label_type_name_local">
+                      <property name="text">
+                       <string>Local:</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="QLineEdit" name="lineEdit_type_name_local">
+                      <property name="placeholderText">
+                       <string>Local name</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="QPushButton" name="pushButton_type_translate_local">
+                      <property name="toolTip">
+                       <string>Translate type name to local language with AI</string>
+                      </property>
+                      <property name="text">
+                       <string>🤖</string>
+                      </property>
+                      <property name="maximumSize">
+                       <size>
+                        <width>36</width>
+                        <height>16777215</height>
+                       </size>
+                      </property>
+                     </widget>
+                    </item>
+                   </layout>
                   </item>
                   <item>
                    <layout class="QHBoxLayout" name="horizontalLayout_calories_modifier">

@@ -54,7 +54,8 @@
   },
   "apps": {
     "initial_count": 1000,
-    "load_more_count": 500
+    "load_more_count": 500,
+    "local_language": "ru"
   },
   "android_build_variant": "release",
   "optimize_images_folder_max_size": 1024,
@@ -337,7 +338,9 @@
     "text_rewrite_ru": "snippet:config/prompts/text-rewrite-ru.md",
     "image_ocr_to_markdown": "snippet:config/prompts/image-ocr-to-markdown.md",
     "markdown_template_fields_from_source": "snippet:config/prompts/markdown-template-fields-from-source.md",
-    "finance_standard_items_translate_names": "snippet:config/prompts/finance-standard-items-translate-names.md"
+    "finance_standard_items_translate_names": "snippet:config/prompts/finance-standard-items-translate-names.md",
+    "fitness_name_translate_local": "snippet:config/prompts/fitness-name-translate-local.md",
+    "fitness_names_translate_local": "snippet:config/prompts/fitness-names-translate-local.md"
   },
   "pypi_token": "snippet:api-keys/pypi-token.txt",
   "show_main_window_on_startup": false,
@@ -354,5 +357,6 @@
     "enabled": true,
     "author": "Anton Sergienko",
     "author_email": "anton.b.sergienko@gmail.com"
-  }
+  },
+  "fitness_names_translate_local_limit": 250
 }
