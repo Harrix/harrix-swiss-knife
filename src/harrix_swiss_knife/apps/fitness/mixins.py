@@ -77,15 +77,24 @@ class AutoSaveOperations(AutoSaveMixin):
             return
 
         # Update database
+        old_name = self.db_manager.get_exercise_name_by_id(int(row_id))
+        new_name = name.strip()
         if not self.db_manager.update_exercise(
             int(row_id),
-            name.strip(),
+            new_name,
             unit.strip(),
             is_type_required=is_type_required,
             calories_per_unit=calories_per_unit,
         ):
             message_box.warning(None, "Database Error", "Failed to save exercise record")
         else:
+            avif_mgr = getattr(self, "avif_manager", None)
+            icon_cache = getattr(self, "_exercise_icon_cache", None)
+            if avif_mgr is not None and isinstance(old_name, str) and old_name and old_name != new_name:
+                avif_mgr.rename_exercise_avif(old_name, new_name)
+                if isinstance(icon_cache, dict):
+                    icon_cache.pop(old_name, None)
+                    icon_cache.pop(new_name, None)
             # Update related UI elements
             self._update_comboboxes()
             self.update_filter_comboboxes()

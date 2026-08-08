@@ -14,10 +14,12 @@ lang: en
 - [🏛️ Class `AvifLabelKey`](#%EF%B8%8F-class-aviflabelkey)
 - [🏛️ Class `AvifManager`](#%EF%B8%8F-class-avifmanager)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
+  - [⚙️ Method `delete_exercise_avif`](#%EF%B8%8F-method-delete_exercise_avif)
   - [⚙️ Method `get_current_exercise`](#%EF%B8%8F-method-get_current_exercise)
   - [⚙️ Method `get_exercise_avif_path`](#%EF%B8%8F-method-get_exercise_avif_path)
   - [⚙️ Method `load_avif_pixmap`](#%EF%B8%8F-method-load_avif_pixmap)
   - [⚙️ Method `load_exercise_avif`](#%EF%B8%8F-method-load_exercise_avif)
+  - [⚙️ Method `rename_exercise_avif`](#%EF%B8%8F-method-rename_exercise_avif)
 - [🔧 Function `load_image_pixmap`](#-function-load_image_pixmap)
 
 </details>
@@ -97,6 +99,28 @@ class AvifManager:
             AvifLabelKey.STATISTICS: None,
             AvifLabelKey.DIALOG_PREVIEW: None,
         }
+
+    def delete_exercise_avif(self, exercise_name: str) -> bool:
+        """Delete `fitness_img/{exercise_name}.avif` when it exists.
+
+        Args:
+
+        - `exercise_name` (`str`): Exercise name matching the AVIF stem.
+
+        Returns:
+
+        - `bool`: `True` when a file was removed, `False` otherwise.
+
+        """
+        avif_path = self.get_exercise_avif_path(exercise_name)
+        if avif_path is None:
+            return False
+        try:
+            avif_path.unlink()
+        except OSError:
+            logger.exception("Failed to delete exercise AVIF %s", avif_path)
+            return False
+        return True
 
     def get_current_exercise(self, label_key: str | AvifLabelKey) -> str | None:
         """Get the current exercise name for a label key.
@@ -272,6 +296,38 @@ class AvifManager:
             logger.exception("Error loading AVIF %s", avif_path)
             label_widget.setText(f"Error loading AVIF:\n{exercise_name}\n{e}")
 
+    def rename_exercise_avif(self, old_name: str, new_name: str) -> bool:
+        """Rename `fitness_img/{old_name}.avif` to match a renamed exercise.
+
+        Args:
+
+        - `old_name` (`str`): Previous exercise name.
+        - `new_name` (`str`): New exercise name.
+
+        Returns:
+
+        - `bool`: `True` when a file was renamed, `False` otherwise.
+
+        """
+        old = old_name.strip()
+        new = new_name.strip()
+        if not old or not new or old == new:
+            return False
+
+        source = self.get_exercise_avif_path(old)
+        if source is None:
+            return False
+
+        destination = self.avif_dir / f"{new}.avif"
+        try:
+            if destination.exists() and destination != source:
+                destination.unlink()
+            source.rename(destination)
+        except OSError:
+            logger.exception("Failed to rename exercise AVIF %s -> %s", source, destination)
+            return False
+        return True
+
     def _next_avif_frame(self, label_key: str | AvifLabelKey) -> None:
         """Show next frame in AVIF animation for specific label.
 
@@ -373,6 +429,40 @@ def __init__(self, avif_dir: Path | str) -> None:
             AvifLabelKey.STATISTICS: None,
             AvifLabelKey.DIALOG_PREVIEW: None,
         }
+```
+
+</details>
+
+### ⚙️ Method `delete_exercise_avif`
+
+```python
+def delete_exercise_avif(self, exercise_name: str) -> bool
+```
+
+Delete `fitness_img/{exercise_name}.avif` when it exists.
+
+Args:
+
+- `exercise_name` (`str`): Exercise name matching the AVIF stem.
+
+Returns:
+
+- `bool`: `True` when a file was removed, `False` otherwise.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def delete_exercise_avif(self, exercise_name: str) -> bool:
+        avif_path = self.get_exercise_avif_path(exercise_name)
+        if avif_path is None:
+            return False
+        try:
+            avif_path.unlink()
+        except OSError:
+            logger.exception("Failed to delete exercise AVIF %s", avif_path)
+            return False
+        return True
 ```
 
 </details>
@@ -595,6 +685,50 @@ def load_exercise_avif(
         except Exception as e:
             logger.exception("Error loading AVIF %s", avif_path)
             label_widget.setText(f"Error loading AVIF:\n{exercise_name}\n{e}")
+```
+
+</details>
+
+### ⚙️ Method `rename_exercise_avif`
+
+```python
+def rename_exercise_avif(self, old_name: str, new_name: str) -> bool
+```
+
+Rename `fitness_img/{old_name}.avif` to match a renamed exercise.
+
+Args:
+
+- `old_name` (`str`): Previous exercise name.
+- `new_name` (`str`): New exercise name.
+
+Returns:
+
+- `bool`: `True` when a file was renamed, `False` otherwise.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def rename_exercise_avif(self, old_name: str, new_name: str) -> bool:
+        old = old_name.strip()
+        new = new_name.strip()
+        if not old or not new or old == new:
+            return False
+
+        source = self.get_exercise_avif_path(old)
+        if source is None:
+            return False
+
+        destination = self.avif_dir / f"{new}.avif"
+        try:
+            if destination.exists() and destination != source:
+                destination.unlink()
+            source.rename(destination)
+        except OSError:
+            logger.exception("Failed to rename exercise AVIF %s -> %s", source, destination)
+            return False
+        return True
 ```
 
 </details>

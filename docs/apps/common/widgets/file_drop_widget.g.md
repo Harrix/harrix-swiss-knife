@@ -13,6 +13,7 @@ lang: en
 
 - [🏛️ Class `FileDropWidget`](#%EF%B8%8F-class-filedropwidget)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
+  - [⚙️ Method `clear`](#%EF%B8%8F-method-clear)
   - [⚙️ Method `get_file_path`](#%EF%B8%8F-method-get_file_path)
   - [⚙️ Method `set_file_path`](#%EF%B8%8F-method-set_file_path)
 - [🏛️ Class `FilesListWidget`](#%EF%B8%8F-class-fileslistwidget)
@@ -36,43 +37,96 @@ Widget for single file selection with drag and drop support.
 ```python
 class FileDropWidget(QWidget):
 
-    def __init__(self, parent: QWidget | None = None) -> None:
-        """Initialize single-file drop widget."""
+    file_changed = Signal()
+
+    def __init__(
+        self,
+        parent: QWidget | None = None,
+        *,
+        name_filter: str = "All files (*)",
+        allowed_extensions: frozenset[str] | None = None,
+        hint_text: str = "Drag and drop file here or click button",
+        dialog_title: str = "Select file",
+        path_filter: Callable[[str], bool] | None = None,
+    ) -> None:
+        """Initialize single-file drop widget.
+
+        Args:
+
+        - `name_filter` (`str`): Qt file dialog filter string.
+        - `allowed_extensions` (`frozenset[str] | None`): Lowercase extensions with a leading
+          dot. When set, dropped/browsed files outside this set are ignored.
+        - `hint_text` (`str`): Placeholder text when no file is selected.
+        - `dialog_title` (`str`): Title for the browse dialog.
+        - `path_filter` (`Callable[[str], bool] | None`): Optional extra path validator.
+
+        """
         super().__init__(parent)
         self.file_path = ""
+        self._name_filter = name_filter
+        self._allowed_extensions = allowed_extensions
+        self._hint_text = hint_text
+        self._dialog_title = dialog_title
+        self._path_filter = path_filter
         self._setup_ui()
+
+    def clear(self) -> None:
+        """Clear the selected file."""
+        self._clear_file()
 
     def get_file_path(self) -> str:
         """Return selected file path."""
         return self.file_path
 
     def set_file_path(self, path: str) -> None:
-        """Set file path when the file exists."""
-        if path and Path(path).exists():
+        """Set file path when the file exists and passes filters."""
+        if path and Path(path).exists() and self._is_allowed_path(path):
             self._set_file(path)
 
     def _browse_file(self) -> None:
-        file_path, _ = QFileDialog.getOpenFileName(self, "Select file", "", "All files (*)")
-        if file_path:
+        file_path, _ = QFileDialog.getOpenFileName(self, self._dialog_title, "", self._name_filter)
+        if file_path and self._is_allowed_path(file_path):
             self._set_file(file_path)
 
     def _clear_file(self) -> None:
+        changed = bool(self.file_path)
         self.file_path = ""
-        self.file_label.setText("Drag and drop file here or click button")
+        self.file_label.setText(self._hint_text)
         self.file_label.setStyleSheet(_EMPTY_DROP_STYLE)
+        if changed:
+            self.file_changed.emit()
+
+    def _is_allowed_path(self, file_path: str) -> bool:
+        path = Path(file_path)
+        if self._allowed_extensions is not None and path.suffix.lower() not in self._allowed_extensions:
+            return False
+        return self._path_filter is None or self._path_filter(file_path)
+
+    def _on_drop_paths(self, paths: list[str]) -> None:
+        if not paths:
+            return
+        if self._is_allowed_path(paths[0]):
+            self._set_file(paths[0])
 
     def _set_file(self, file_path: str) -> None:
         self.file_path = file_path
         self.file_label.setText(f"File: {Path(file_path).name}")
         self.file_label.setStyleSheet(_SELECTED_DROP_STYLE)
+        self.file_changed.emit()
 
     def _setup_ui(self) -> None:
         layout = QVBoxLayout()
-        self.file_label = QLabel("Drag and drop file here or click button")
+        layout.setContentsMargins(0, 0, 0, 0)
+        self.file_label = QLabel(self._hint_text)
         self.file_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.file_label.setStyleSheet(_EMPTY_DROP_STYLE)
         self.file_label.setMinimumHeight(60)
-        install_url_drop_handlers(self.file_label, lambda paths: self._set_file(paths[0]))
+        self.file_label.setWordWrap(True)
+        install_url_drop_handlers(
+            self.file_label,
+            self._on_drop_paths,
+            filter_path=self._is_allowed_path if self._allowed_extensions or self._path_filter else None,
+        )
 
         button_layout = QHBoxLayout()
         self.browse_button = make_emoji_push_button("Select File", "📁")
@@ -92,19 +146,60 @@ class FileDropWidget(QWidget):
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, parent: QWidget | None = None) -> None
+def __init__(self, parent: QWidget | None = None, *, name_filter: str = 'All files (*)', allowed_extensions: frozenset[str] | None = None, hint_text: str = 'Drag and drop file here or click button', dialog_title: str = 'Select file', path_filter: Callable[[str], bool] | None = None) -> None
 ```
 
 Initialize single-file drop widget.
+
+Args:
+
+- `name_filter` (`str`): Qt file dialog filter string.
+- `allowed_extensions` (`frozenset[str] | None`): Lowercase extensions with a leading
+  dot. When set, dropped/browsed files outside this set are ignored.
+- `hint_text` (`str`): Placeholder text when no file is selected.
+- `dialog_title` (`str`): Title for the browse dialog.
+- `path_filter` (`Callable[[str], bool] | None`): Optional extra path validator.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def __init__(self, parent: QWidget | None = None) -> None:
+def __init__(
+        self,
+        parent: QWidget | None = None,
+        *,
+        name_filter: str = "All files (*)",
+        allowed_extensions: frozenset[str] | None = None,
+        hint_text: str = "Drag and drop file here or click button",
+        dialog_title: str = "Select file",
+        path_filter: Callable[[str], bool] | None = None,
+    ) -> None:
         super().__init__(parent)
         self.file_path = ""
+        self._name_filter = name_filter
+        self._allowed_extensions = allowed_extensions
+        self._hint_text = hint_text
+        self._dialog_title = dialog_title
+        self._path_filter = path_filter
         self._setup_ui()
+```
+
+</details>
+
+### ⚙️ Method `clear`
+
+```python
+def clear(self) -> None
+```
+
+Clear the selected file.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def clear(self) -> None:
+        self._clear_file()
 ```
 
 </details>
@@ -133,14 +228,14 @@ def get_file_path(self) -> str:
 def set_file_path(self, path: str) -> None
 ```
 
-Set file path when the file exists.
+Set file path when the file exists and passes filters.
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def set_file_path(self, path: str) -> None:
-        if path and Path(path).exists():
+        if path and Path(path).exists() and self._is_allowed_path(path):
             self._set_file(path)
 ```
 

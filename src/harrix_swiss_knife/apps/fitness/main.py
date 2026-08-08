@@ -58,6 +58,7 @@ from PySide6.QtWidgets import (
     QListView,
     QMainWindow,
     QMenu,
+    QPushButton,
     QRadioButton,
     QTableView,
 )
@@ -70,9 +71,17 @@ from harrix_swiss_knife.apps.common.chart_colors import generate_pastel_qcolors
 from harrix_swiss_knife.apps.common.db_init import init_tracker_database
 from harrix_swiss_knife.apps.common.delegates import DateDelegate
 from harrix_swiss_knife.apps.common.dialogs.exercise_selection_dialog import ExerciseSelectionDialog
+from harrix_swiss_knife.apps.common.exercise_media import (
+    EXERCISE_MEDIA_EXTENSIONS,
+    MEDIA_FILE_FILTER,
+    is_exercise_media_path,
+    save_exercise_avif,
+)
 from harrix_swiss_knife.apps.common.qt_main_window import AppWindowMixin
 from harrix_swiss_knife.apps.common.scroll_pagination import ScrollPagination, on_scroll_load_more
 from harrix_swiss_knife.apps.common.table_models import create_table_proxy_model
+from harrix_swiss_knife.apps.common.widgets.file_drop_widget import FileDropWidget
+from harrix_swiss_knife.apps.common.widgets.path_drop_helpers import install_url_drop_handlers
 from harrix_swiss_knife.apps.fitness import database_manager, window
 from harrix_swiss_knife.apps.fitness.mixins import (
     AutoSaveOperations,
@@ -148,6 +157,7 @@ class MainWindow(
 
         # AVIF manager will be initialized after database is ready
         self.avif_manager: avif_manager.AvifManager | None = None
+        self._exercise_media_drop: FileDropWidget | None = None
 
         # Exercise list model
         self.exercises_list_model: QStandardItemModel | None = None
@@ -349,9 +359,13 @@ class MainWindow(
             if table_name == "process":
                 success = self.db_manager.delete_process_record(record_id)
             elif table_name == "exercises":
+                exercise_name = self.db_manager.get_exercise_name_by_id(record_id)
                 success = self.db_manager.delete_exercise(record_id)
                 if success:
                     self._mark_exercises_changed()
+                    if exercise_name and self.avif_manager:
+                        self.avif_manager.delete_exercise_avif(exercise_name)
+                        self._exercise_icon_cache.pop(exercise_name, None)
             elif table_name == "types":
                 success = self.db_manager.delete_exercise_type(record_id)
                 if success:
@@ -440,11 +454,21 @@ class MainWindow(
 
         # Get checkbox value
         is_type_required = self.check_box_is_type_required.isChecked()
+        media_path = self._exercise_media_drop.get_file_path() if self._exercise_media_drop else ""
 
         try:
             if self.db_manager.add_exercise(
                 exercise, unit, is_type_required=is_type_required, calories_per_unit=calories_per_unit
             ):
+                if media_path and not self._save_exercise_media(exercise, media_path):
+                    message_box.warning(
+                        self,
+                        "Exercise Added",
+                        "Exercise was added, but media could not be saved. "
+                        "Use Apply media to selected after fixing the file.",
+                    )
+                if self._exercise_media_drop is not None:
+                    self._exercise_media_drop.clear()
                 self._mark_exercises_changed()
                 self.update_all()
             else:
@@ -596,6 +620,33 @@ class MainWindow(
 
         except Exception as e:
             message_box.warning(self, "Database Error", f"Failed to add weight: {e}")
+
+    @requires_database()
+    def on_apply_exercise_media(self) -> None:
+        """Optimize and save media for the exercise selected in the exercises table."""
+        exercise_name = self._get_selected_exercise_from_table("exercises")
+        if not exercise_name:
+            message_box.warning(self, "Error", "Select an exercise in the table")
+            return
+
+        media_path = self._exercise_media_drop.get_file_path() if self._exercise_media_drop else ""
+        if not media_path:
+            media_path, _ = QFileDialog.getOpenFileName(
+                self,
+                "Select exercise media",
+                "",
+                MEDIA_FILE_FILTER,
+            )
+        if not media_path:
+            return
+        if not is_exercise_media_path(media_path):
+            message_box.warning(self, "Error", "Unsupported media type")
+            return
+
+        if self._save_exercise_media(exercise_name, media_path):
+            if self._exercise_media_drop is not None:
+                self._exercise_media_drop.clear()
+            message_box.information(self, "Media Saved", f"Media saved for '{exercise_name}'")
 
     @requires_database()
     def on_chart_exercise_changed(
@@ -4317,6 +4368,7 @@ class MainWindow(
         self.pushButton_exercise_add.clicked.connect(self.on_add_exercise)
         self.pushButton_type_add.clicked.connect(self.on_add_type)
         self.pushButton_weight_add.clicked.connect(self.on_add_weight)
+        self._setup_exercise_media_widgets()
         # Dropdown menu for yesterday button
         yesterday_menu = QMenu(self.pushButton_yesterday)
         today_action = yesterday_menu.addAction("📅 Today's date")
@@ -5237,6 +5289,17 @@ class MainWindow(
             # Optional: Show a brief notification (you can remove this if not needed)
             # You could add a toast notification here if you have one
 
+    def _on_exercise_preview_media_dropped(self, paths: list[str]) -> None:
+        """Save dropped media for the exercise selected in the exercises table."""
+        if not paths:
+            return
+        exercise_name = self._get_selected_exercise_from_table("exercises")
+        if not exercise_name:
+            message_box.warning(self, "Error", "Select an exercise in the table")
+            return
+        if self._save_exercise_media(exercise_name, paths[0]):
+            message_box.information(self, "Media Saved", f"Media saved for '{exercise_name}'")
+
     def _on_exercises_list_double_clicked(self, index: QModelIndex) -> None:
         """Handle double-click on exercises list to open Exercise Chart tab.
 
@@ -5295,6 +5358,25 @@ class MainWindow(
         """Reset pagination counters and color map for process table."""
         self._process_pagination.reset()
         self._process_date_color_map = {}
+
+    def _save_exercise_media(self, exercise_name: str, source_path: str) -> bool:
+        """Optimize media to AVIF and refresh UI for `exercise_name`."""
+        if not self.avif_manager:
+            message_box.warning(self, "Error", "AVIF manager is not initialized")
+            return False
+        try:
+            save_exercise_avif(source_path, exercise_name, self.avif_manager.avif_dir)
+        except (FileNotFoundError, OSError, RuntimeError, ValueError) as error:
+            message_box.warning(self, "Media Error", f"Failed to save exercise media:\n{error}")
+            return False
+
+        self._exercise_icon_cache.pop(exercise_name, None)
+        for label_key in ("main", "exercises", "types", "charts", "statistics"):
+            if self.avif_manager.get_current_exercise(label_key) == exercise_name:
+                self._load_exercise_avif(exercise_name, label_key)
+        self._update_exercises_avif()
+        self._update_list_view_exercise_icon(exercise_name)
+        return True
 
     def _schedule_chart_update(self, delay_ms: int = 50) -> None:
         """Schedule a chart update with the specified delay.
@@ -5460,6 +5542,29 @@ class MainWindow(
         """Set today's date in the main date field."""
         today = QDate.currentDate()
         self.dateEdit.setDate(today)
+
+    def _setup_exercise_media_widgets(self) -> None:
+        """Add media drop zone and apply button for exercise AVIF files."""
+        self._exercise_media_drop = FileDropWidget(
+            self.groupBox_2,
+            name_filter=MEDIA_FILE_FILTER,
+            allowed_extensions=EXERCISE_MEDIA_EXTENSIONS,
+            hint_text="Drag and drop video/image (mp4, avif, gif, png, jpeg…)",
+            dialog_title="Select exercise media",
+            path_filter=is_exercise_media_path,
+        )
+        insert_index = max(self.verticalLayout_10.count() - 1, 0)
+        self.verticalLayout_10.insertWidget(insert_index, self._exercise_media_drop)
+
+        self.pushButton_exercise_media_apply = QPushButton("🖼️ Apply media to selected", self.groupBox_7)
+        self.pushButton_exercise_media_apply.clicked.connect(self.on_apply_exercise_media)
+        self.verticalLayout_11.addWidget(self.pushButton_exercise_media_apply)
+
+        install_url_drop_handlers(
+            self.label_exercise_avif_2,
+            self._on_exercise_preview_media_dropped,
+            filter_path=is_exercise_media_path,
+        )
 
     def _setup_process_table_header(self) -> None:
         """Configure process table header and column widths."""
@@ -5885,6 +5990,18 @@ class MainWindow(
             current_exercise = self.avif_manager.get_current_exercise("main")
             if isinstance(current_exercise, str):
                 self._load_exercise_avif(current_exercise, "main")
+
+    def _update_list_view_exercise_icon(self, exercise_name: str) -> None:
+        """Refresh the icon for one exercise in the main exercises list view."""
+        if not self.exercises_list_model or not exercise_name:
+            return
+        icon = self._get_exercise_icon(exercise_name)
+        for row in range(self.exercises_list_model.rowCount()):
+            item = self.exercises_list_model.item(row)
+            if item is not None and item.text() == exercise_name:
+                if icon is not None:
+                    item.setIcon(icon)
+                break
 
     def _update_statistics_avif(self) -> None:
         """Update AVIF for statistics table based on current mode."""
