@@ -64,9 +64,12 @@ class PhotoSyncEngine(
         ?.takeIf { it.isNotBlank() }
         ?: "unknown"
 
+    /**
+     * True only when the desktop receiver answers a real handshake (host reachable + token OK).
+     */
     suspend fun probeConnection(endpoint: PhotoSyncEndpoint): Boolean = withContext(Dispatchers.IO) {
         try {
-            PhotoSyncClient(endpoint, deviceId()).checkHealth()
+            PhotoSyncClient(endpoint, deviceId()).handshake()
             true
         } catch (_: ConnectException) {
             false

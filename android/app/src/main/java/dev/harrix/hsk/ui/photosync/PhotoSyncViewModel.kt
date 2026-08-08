@@ -38,7 +38,11 @@ data class PhotoSyncUiState(
     val lastResult: PhotoSyncResult? = null,
     val lifetime: PhotoSyncLifetimeStats = PhotoSyncLifetimeStats(),
     val errorMessage: String? = null,
-)
+) {
+    /** Sync is allowed only while the desktop receiver accepts this session token. */
+    val isDesktopReady: Boolean
+        get() = connectionStatus == PhotoSyncConnectionStatus.Connected && !isSyncing
+}
 
 class PhotoSyncViewModel(
     application: Application,
@@ -121,7 +125,7 @@ class PhotoSyncViewModel(
     }
 
     fun startSync() {
-        if (_uiState.value.isSyncing) {
+        if (!_uiState.value.isDesktopReady) {
             return
         }
         val endpoint = currentEndpoint() ?: return

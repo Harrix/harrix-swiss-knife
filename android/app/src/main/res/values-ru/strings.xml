@@ -146,8 +146,8 @@
     <string name="photo_sync_phase_upload">Загрузка %1$d / %2$d</string>
     <string name="photo_sync_settings">Настройки синхронизации фото</string>
     <string name="photo_sync_status_label">Сеть: %1$s</string>
-    <string name="photo_sync_status_connected">подключено к компьютеру в этой Wi-Fi сети</string>
-    <string name="photo_sync_status_disconnected">компьютер недоступен (та же Wi-Fi? слушает ли программа?)</string>
+    <string name="photo_sync_status_connected">компьютер готов принимать фото</string>
+    <string name="photo_sync_status_disconnected">компьютер не готов (та же Wi-Fi? запущен Photo sync listen? верный токен?)</string>
     <string name="photo_sync_status_checking">проверка…</string>
     <string name="photo_sync_status_missing_config">введите хост, порт и токен</string>
     <string name="photo_sync_status_unknown">неизвестно</string>

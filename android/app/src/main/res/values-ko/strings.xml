@@ -146,8 +146,8 @@
     <string name="photo_sync_phase_upload">Uploading %1$d / %2$d</string>
     <string name="photo_sync_settings">Photo Sync settings</string>
     <string name="photo_sync_status_label">Network: %1$s</string>
-    <string name="photo_sync_status_connected">connected to desktop on this Wi-Fi</string>
-    <string name="photo_sync_status_disconnected">desktop not reachable (same Wi-Fi? listen running?)</string>
+    <string name="photo_sync_status_connected">desktop is ready to receive photos</string>
+    <string name="photo_sync_status_disconnected">desktop not ready (same Wi-Fi? Photo sync listen running? token OK?)</string>
     <string name="photo_sync_status_checking">checking…</string>
     <string name="photo_sync_status_missing_config">enter host, port, and token</string>
     <string name="photo_sync_status_unknown">unknown</string>

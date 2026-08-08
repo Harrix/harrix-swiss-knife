@@ -251,10 +251,7 @@ fun PhotoSyncScreen(
                         }
                         viewModel.startSync()
                     },
-                    enabled =
-                    !state.isSyncing &&
-                        hasPhotoPermission &&
-                        state.connectionStatus == PhotoSyncConnectionStatus.Connected,
+                    enabled = hasPhotoPermission && state.isDesktopReady,
                     modifier = Modifier.weight(1f),
                 ) {
                     Text(stringResource(R.string.photo_sync_start))
