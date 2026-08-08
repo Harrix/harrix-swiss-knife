@@ -238,6 +238,7 @@
     "fitness_name_translate_local": "snippet:config/prompts/fitness-name-translate-local.md",
     "fitness_name_translate_from_local": "snippet:config/prompts/fitness-name-translate-from-local.md",
     "fitness_names_translate_local": "snippet:config/prompts/fitness-names-translate-local.md",
+    "fitness_exercise_fill": "snippet:config/prompts/fitness-exercise-fill.md",
     "food_log_to_tsv": "snippet:config/prompts/food-log-to-tsv.md",
     "food_voice_log_to_tsv": "snippet:config/prompts/food-voice-log-to-tsv.md",
     "food_kcal_lookup": "snippet:config/prompts/food-kcal-lookup.md",

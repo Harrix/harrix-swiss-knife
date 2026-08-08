@@ -64,11 +64,6 @@ class ExerciseAddDialog(QDialog):
         self._name_local_edit = QLineEdit(form_group)
         self._name_local_edit.setPlaceholderText("Local name")
         name_local_row.addWidget(self._name_local_edit, 1)
-        self._translate_button = make_emoji_push_button("", "🤖")
-        self._translate_button.setToolTip("Translate English → local, or local → English when Name is empty")
-        self._translate_button.setFixedWidth(36)
-        self._translate_button.clicked.connect(self._on_translate_clicked)
-        name_local_row.addWidget(self._translate_button)
         form_layout.addLayout(name_local_row)
 
         unit_row = QHBoxLayout()
@@ -105,6 +100,10 @@ class ExerciseAddDialog(QDialog):
 
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         apply_emoji_dialog_buttons(buttons)
+        self._fill_button = make_emoji_push_button("Fill with AI", "🤖")
+        self._fill_button.setToolTip("Fill English/local names, unit, and calories per unit from the entered name")
+        self._fill_button.clicked.connect(self._on_fill_clicked)
+        buttons.addButton(self._fill_button, QDialogButtonBox.ButtonRole.ActionRole)
         buttons.accepted.connect(self._on_accept)
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
@@ -130,14 +129,16 @@ class ExerciseAddDialog(QDialog):
         )
         self.accept()
 
-    def _on_translate_clicked(self) -> None:
-        request_name_local_translation(
+    def _on_fill_clicked(self) -> None:
+        request_exercise_fill(
             self,
             app_config=self._app_config,
             bothub_state=self._bothub_state,
             name_edit=self._name_edit,
             name_local_edit=self._name_local_edit,
-            translate_button=self._translate_button,
+            unit_edit=self._unit_edit,
+            calories_spin=self._calories_spin,
+            fill_button=self._fill_button,
         )
 ```
 
@@ -187,11 +188,6 @@ def __init__(
         self._name_local_edit = QLineEdit(form_group)
         self._name_local_edit.setPlaceholderText("Local name")
         name_local_row.addWidget(self._name_local_edit, 1)
-        self._translate_button = make_emoji_push_button("", "🤖")
-        self._translate_button.setToolTip("Translate English → local, or local → English when Name is empty")
-        self._translate_button.setFixedWidth(36)
-        self._translate_button.clicked.connect(self._on_translate_clicked)
-        name_local_row.addWidget(self._translate_button)
         form_layout.addLayout(name_local_row)
 
         unit_row = QHBoxLayout()
@@ -228,6 +224,10 @@ def __init__(
 
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         apply_emoji_dialog_buttons(buttons)
+        self._fill_button = make_emoji_push_button("Fill with AI", "🤖")
+        self._fill_button.setToolTip("Fill English/local names, unit, and calories per unit from the entered name")
+        self._fill_button.clicked.connect(self._on_fill_clicked)
+        buttons.addButton(self._fill_button, QDialogButtonBox.ButtonRole.ActionRole)
         buttons.accepted.connect(self._on_accept)
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)

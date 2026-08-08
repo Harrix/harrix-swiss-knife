@@ -341,7 +341,8 @@
     "finance_standard_items_translate_names": "snippet:config/prompts/finance-standard-items-translate-names.md",
     "fitness_name_translate_local": "snippet:config/prompts/fitness-name-translate-local.md",
     "fitness_names_translate_local": "snippet:config/prompts/fitness-names-translate-local.md",
-    "fitness_name_translate_from_local": "snippet:config/prompts/fitness-name-translate-from-local.md"
+    "fitness_name_translate_from_local": "snippet:config/prompts/fitness-name-translate-from-local.md",
+    "fitness_exercise_fill": "snippet:config/prompts/fitness-exercise-fill.md"
   },
   "pypi_token": "snippet:api-keys/pypi-token.txt",
   "show_main_window_on_startup": false,
