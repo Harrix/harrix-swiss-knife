@@ -4941,6 +4941,7 @@ class MainWindow(
 
     def _setup_ui(self) -> None:
         """Set up additional UI elements."""
+        self._place_menu_bar_on_tab_row()
         self._setup_status_bar()
         self._apply_exit_about_menu_emojis()
 

@@ -1631,6 +1631,7 @@ class MainWindow(
 
     def _setup_ui(self) -> None:
         """Set up additional UI elements after basic initialization (habits only)."""
+        self._place_menu_bar_on_tab_row()
         self._apply_exit_about_menu_emojis()
 
         self.pushButton_habits_delete.setText(f"🗑️ {self.pushButton_habits_delete.text()}")

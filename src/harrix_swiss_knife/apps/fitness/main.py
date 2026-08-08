@@ -5744,6 +5744,7 @@ class MainWindow(
 
     def _setup_ui(self) -> None:
         """Set up additional UI elements after basic initialization."""
+        self._place_menu_bar_on_tab_row()
         self._apply_exit_about_menu_emojis()
 
         # Set emoji for buttons

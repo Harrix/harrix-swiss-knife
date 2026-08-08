@@ -204,6 +204,52 @@ class AppWindowMixin:
         if not hide_on_close:
             self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)  # type: ignore[attr-defined]
 
+    def _place_menu_bar_on_tab_row(self) -> None:
+        """Put the main menu on the same row as tabs (left of the tab bar).
+
+        Moves menus from the `QMainWindow` menu bar into a compact `QMenuBar`
+        set as the `QTabWidget` top-left corner widget, then collapses the
+        original menu bar row so it no longer consumes vertical space.
+
+        """
+        main_window = cast("QMainWindow", self)
+        tab_widget = getattr(self, "tabWidget", None)
+        if not isinstance(tab_widget, QTabWidget):
+            return
+
+        old_bar = main_window.menuBar()
+        if old_bar is None:
+            return
+
+        corner_bar = QMenuBar(tab_widget)
+        corner_bar.setNativeMenuBar(False)
+        corner_bar.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Preferred)
+        corner_bar.setStyleSheet(
+            """
+            QMenuBar {
+                spacing: 0px;
+                padding: 0px 2px;
+                font-size: 9pt;
+            }
+            QMenuBar::item {
+                padding: 2px 8px;
+                margin: 0px;
+                background: transparent;
+            }
+            """,
+        )
+
+        for action in list(old_bar.actions()):
+            old_bar.removeAction(action)
+            corner_bar.addAction(action)
+
+        tab_widget.setCornerWidget(corner_bar, Qt.Corner.TopLeftCorner)
+
+        # Keep the original bar as the QMainWindow menuBar (do not replace/delete it),
+        # but collapse the reserved row.
+        old_bar.hide()
+        old_bar.setFixedHeight(0)
+
     def _setup_window_size_and_position(self, *, standard_width: int = 1920) -> None:
         """Set window size and position based on screen resolution and characteristics.
 

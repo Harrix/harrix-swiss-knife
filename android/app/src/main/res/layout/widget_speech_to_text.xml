@@ -4,18 +4,14 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@android:color/transparent"
-    android:contentDescription="@string/speech_to_text_widget_label"
-    android:padding="2dp">
+    android:contentDescription="@string/speech_to_text_widget_label">
 
-    <!-- Fixed square size so oval background stays a circle (not stretched to the cell). -->
+    <!-- Sized at runtime to min(cellWidth, cellHeight) so the circle fills the 1×1 cell. -->
     <ImageView
         android:id="@+id/widget_speech_icon"
-        android:layout_width="40dp"
-        android:layout_height="40dp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
         android:layout_gravity="center"
-        android:background="@drawable/widget_speech_to_text_background"
         android:contentDescription="@string/speech_to_text_widget_label"
-        android:padding="8dp"
-        android:scaleType="fitCenter"
-        android:src="@drawable/ic_widget_mic" />
+        android:scaleType="fitCenter" />
 </FrameLayout>
