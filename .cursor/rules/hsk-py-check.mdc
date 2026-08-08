@@ -4,10 +4,16 @@ alwaysApply: true
 
 # hsk py check
 
-After completing code changes, before each `hsk py check` run `hsk py ruff-sort-docs` first.
+After completing code changes, run this cycle from the project root (with venv active):
 
-Run `hsk py ruff`, then `hsk py ruff-sort-docs`, then `hsk py check` and fix until it passes.
-Repeat this cycle up to **3 times maximum**. If it still fails after 3 iterations, stop and report the remaining errors.
+1. `hsk py ruff-sort-docs`
+2. `hsk py check`
+
+There is no `hsk py ruff` command. Use `hsk py ruff-sort` only when docs generation is not needed; prefer `ruff-sort-docs` before `check`.
+
+If `hsk` fails with `Access is denied` on `hsk.exe` (often because the app is running from the same venv), close the app or run the equivalent checks via `python -m` (`ruff`, `ty`, `pytest`) and still report that the full `hsk py check` could not complete.
+
+Fix until `hsk py check` passes. Repeat this cycle up to **3 times maximum**. If it still fails after 3 iterations, stop and report the remaining errors.
 
 Do not finish while `hsk py check` still fails, unless the failure is environmental and cannot be fixed in code.
 

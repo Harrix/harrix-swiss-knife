@@ -38,7 +38,7 @@ class ExerciseListHoverPreview(QObject):
 
         - `list_view` (`QListView`): Exercise list that paints icons on the left.
         - `get_avif_manager` (`Callable`): Returns the current `AvifManager` (may be `None`).
-        - `preview_size` (`QSize | None`): Popup size. Defaults to 280×280.
+        - `preview_size` (`QSize | None`): Popup size. Defaults to `_PREVIEW_EDGE` square.
         - `parent` (`QObject | None`): Qt parent. Defaults to `list_view`.
 
         """
