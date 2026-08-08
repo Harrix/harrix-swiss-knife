@@ -1167,6 +1167,7 @@ fun PhotoCropEditor(
                         enabled = !isSaving,
                         outlined = true,
                     )
+                    Spacer(modifier = Modifier.weight(1f))
                     if (onSaveCopy != null && !isPerspective) {
                         EditToolbarIconButton(
                             onClick = onSaveCopy,
@@ -1180,7 +1181,6 @@ fun PhotoCropEditor(
                         Button(
                             onClick = onSave,
                             enabled = !isSaving,
-                            modifier = Modifier.weight(1f),
                         ) {
                             Icon(
                                 imageVector = Icons.Filled.Done,
