@@ -41,8 +41,10 @@ import androidx.compose.ui.unit.dp
 import dev.harrix.hsk.R
 import dev.harrix.hsk.ui.AutoFitText
 import dev.harrix.hsk.ui.adaptiveContentWidth
+import dev.harrix.hsk.ui.theme.hskScaffoldContainerColor
 import dev.harrix.hsk.ui.theme.hskScaffoldContentWindowInsets
 import dev.harrix.hsk.ui.theme.hskTopAppBarColors
+import dev.harrix.hsk.ui.theme.hskTopAppBarWindowInsets
 
 private const val GithubUrl = "https://github.com/harrix/harrix-swiss-knife"
 
@@ -76,6 +78,7 @@ fun AboutScreen(
 
     Scaffold(
         modifier = modifier,
+        containerColor = hskScaffoldContainerColor(),
         contentWindowInsets = hskScaffoldContentWindowInsets(),
         topBar = {
             TopAppBar(
@@ -86,6 +89,7 @@ fun AboutScreen(
                     )
                 },
                 colors = hskTopAppBarColors(),
+                windowInsets = hskTopAppBarWindowInsets(),
                 navigationIcon = {
                     IconButton(onClick = onClose) {
                         Icon(

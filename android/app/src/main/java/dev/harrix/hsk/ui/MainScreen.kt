@@ -82,8 +82,10 @@ import dev.harrix.hsk.ui.speechtotext.SpeechToTextScreen
 import dev.harrix.hsk.ui.theme.AppLanguage
 import dev.harrix.hsk.ui.theme.HskAndroidTheme
 import dev.harrix.hsk.ui.theme.ThemeMode
+import dev.harrix.hsk.ui.theme.hskScaffoldContainerColor
 import dev.harrix.hsk.ui.theme.hskScaffoldContentWindowInsets
 import dev.harrix.hsk.ui.theme.hskTopAppBarColors
+import dev.harrix.hsk.ui.theme.hskTopAppBarWindowInsets
 import kotlinx.coroutines.launch
 
 private val UtilityCardMinHeight = 104.dp
@@ -284,6 +286,7 @@ fun MainScreen(
                     },
                 ) {
                     Scaffold(
+                        containerColor = hskScaffoldContainerColor(),
                         contentWindowInsets = hskScaffoldContentWindowInsets(),
                         topBar = {
                             TopAppBar(
@@ -296,6 +299,7 @@ fun MainScreen(
                                     )
                                 },
                                 colors = hskTopAppBarColors(),
+                                windowInsets = hskTopAppBarWindowInsets(),
                                 navigationIcon = {
                                     IconButton(
                                         onClick = {

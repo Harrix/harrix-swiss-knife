@@ -1,8 +1,10 @@
 package dev.harrix.hsk
 
 import android.content.Intent
+import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
@@ -25,7 +27,18 @@ class MainActivity : AppCompatActivity() {
         val preferences = AppPreferences(this)
         preferences.loadAppLanguage().apply()
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
+        enableEdgeToEdge(
+            statusBarStyle =
+            SystemBarStyle.auto(
+                lightScrim = Color.TRANSPARENT,
+                darkScrim = Color.TRANSPARENT,
+            ),
+            navigationBarStyle =
+            SystemBarStyle.auto(
+                lightScrim = Color.TRANSPARENT,
+                darkScrim = Color.TRANSPARENT,
+            ),
+        )
         PhotoEditorShareShortcuts.publish(this)
         consumeIncomingIntent(intent)
         setContent {

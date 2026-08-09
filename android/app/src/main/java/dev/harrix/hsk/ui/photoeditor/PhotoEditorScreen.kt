@@ -63,8 +63,10 @@ import dev.harrix.hsk.gallery.GalleryCleanerPreferences
 import dev.harrix.hsk.gallery.GalleryPermissions
 import dev.harrix.hsk.ui.AutoFitText
 import dev.harrix.hsk.ui.gallery.EditablePhotoHost
+import dev.harrix.hsk.ui.theme.hskScaffoldContainerColor
 import dev.harrix.hsk.ui.theme.hskScaffoldContentWindowInsets
 import dev.harrix.hsk.ui.theme.hskTopAppBarColors
+import dev.harrix.hsk.ui.theme.hskTopAppBarWindowInsets
 import dev.harrix.hsk.ui.videoGridColumnCount
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -201,6 +203,7 @@ fun PhotoEditorScreen(
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
+        containerColor = hskScaffoldContainerColor(),
         contentWindowInsets = hskScaffoldContentWindowInsets(),
         topBar = {
             TopAppBar(
@@ -211,6 +214,7 @@ fun PhotoEditorScreen(
                     )
                 },
                 colors = hskTopAppBarColors(),
+                windowInsets = hskTopAppBarWindowInsets(),
                 navigationIcon = {
                     IconButton(onClick = { leaveEditor() }) {
                         Icon(

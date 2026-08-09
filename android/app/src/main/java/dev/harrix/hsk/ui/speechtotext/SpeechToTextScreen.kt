@@ -72,8 +72,10 @@ import dev.harrix.hsk.speechtotext.WaveformBucket
 import dev.harrix.hsk.ui.AutoFitText
 import dev.harrix.hsk.ui.CompactBottomActionButton
 import dev.harrix.hsk.ui.adaptiveBottomBarWidth
+import dev.harrix.hsk.ui.theme.hskScaffoldContainerColor
 import dev.harrix.hsk.ui.theme.hskScaffoldContentWindowInsets
 import dev.harrix.hsk.ui.theme.hskTopAppBarColors
+import dev.harrix.hsk.ui.theme.hskTopAppBarWindowInsets
 private enum class MicAction {
     Start,
     Continue,
@@ -186,6 +188,7 @@ fun SpeechToTextScreen(
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
+        containerColor = hskScaffoldContainerColor(),
         contentWindowInsets = hskScaffoldContentWindowInsets(),
         topBar = {
             TopAppBar(
@@ -196,6 +199,7 @@ fun SpeechToTextScreen(
                     )
                 },
                 colors = hskTopAppBarColors(),
+                windowInsets = hskTopAppBarWindowInsets(),
                 navigationIcon = {
                     IconButton(
                         onClick = { leave() },

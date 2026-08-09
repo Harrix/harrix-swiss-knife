@@ -917,7 +917,9 @@ fun GalleryCleanerScreen(
         modifier.windowInsetsPadding(
             WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal),
         ),
-        contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Vertical),
+        containerColor = MaterialTheme.colorScheme.surface,
+        // Leave status bars to the custom Surface below (same idea as hskScaffoldContentWindowInsets).
+        contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom),
         topBar = {
             Column {
                 // Custom bar: default TopAppBar clips a two-line title on compact phones.

@@ -88,8 +88,10 @@ import dev.harrix.hsk.ui.adaptiveContentWidth
 import dev.harrix.hsk.ui.isCompactWidth
 import dev.harrix.hsk.ui.theme.AppLanguage
 import dev.harrix.hsk.ui.theme.ThemeMode
+import dev.harrix.hsk.ui.theme.hskScaffoldContainerColor
 import dev.harrix.hsk.ui.theme.hskScaffoldContentWindowInsets
 import dev.harrix.hsk.ui.theme.hskTopAppBarColors
+import dev.harrix.hsk.ui.theme.hskTopAppBarWindowInsets
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -197,6 +199,7 @@ fun SettingsScreen(
 
     Scaffold(
         modifier = modifier,
+        containerColor = hskScaffoldContainerColor(),
         contentWindowInsets = hskScaffoldContentWindowInsets(),
         topBar = {
             TopAppBar(
@@ -207,6 +210,7 @@ fun SettingsScreen(
                     )
                 },
                 colors = hskTopAppBarColors(),
+                windowInsets = hskTopAppBarWindowInsets(),
                 navigationIcon = {
                     IconButton(onClick = { goBack() }) {
                         Icon(

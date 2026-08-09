@@ -57,8 +57,10 @@ import dev.harrix.hsk.R
 import dev.harrix.hsk.ui.AutoFitText
 import dev.harrix.hsk.ui.SimpleMarkdownText
 import dev.harrix.hsk.ui.adaptiveContentWidth
+import dev.harrix.hsk.ui.theme.hskScaffoldContainerColor
 import dev.harrix.hsk.ui.theme.hskScaffoldContentWindowInsets
 import dev.harrix.hsk.ui.theme.hskTopAppBarColors
+import dev.harrix.hsk.ui.theme.hskTopAppBarWindowInsets
 import kotlinx.coroutines.delay
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -133,6 +135,7 @@ fun MedicineSearchScreen(
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
+        containerColor = hskScaffoldContainerColor(),
         contentWindowInsets = hskScaffoldContentWindowInsets(),
         topBar = {
             TopAppBar(
@@ -143,6 +146,7 @@ fun MedicineSearchScreen(
                     )
                 },
                 colors = hskTopAppBarColors(),
+                windowInsets = hskTopAppBarWindowInsets(),
                 navigationIcon = {
                     IconButton(onClick = { leave() }) {
                         Icon(

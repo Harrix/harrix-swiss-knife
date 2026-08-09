@@ -125,8 +125,10 @@ import dev.harrix.hsk.ui.adaptiveBottomBarWidth
 import dev.harrix.hsk.ui.isCompactWidth
 import dev.harrix.hsk.ui.isTablet
 import dev.harrix.hsk.ui.performLightActionHaptic
+import dev.harrix.hsk.ui.theme.hskScaffoldContainerColor
 import dev.harrix.hsk.ui.theme.hskScaffoldContentWindowInsets
 import dev.harrix.hsk.ui.theme.hskTopAppBarColors
+import dev.harrix.hsk.ui.theme.hskTopAppBarWindowInsets
 import dev.harrix.hsk.ui.videoGridColumnCount
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -458,6 +460,7 @@ fun VideoCleanerScreen(
 
     Scaffold(
         modifier = modifier,
+        containerColor = hskScaffoldContainerColor(),
         contentWindowInsets = hskScaffoldContentWindowInsets(),
         topBar = {
             TopAppBar(
@@ -483,6 +486,7 @@ fun VideoCleanerScreen(
                     }
                 },
                 colors = hskTopAppBarColors(),
+                windowInsets = hskTopAppBarWindowInsets(),
                 navigationIcon = {
                     IconButton(onClick = { leaveCleaner() }) {
                         Icon(
