@@ -127,7 +127,10 @@ class ActionDialogService:
             flw.setFont(font)
             for choice in full_list:
                 flw.addItem(QListWidgetItem(choice))
-            if flw.count() > 0:
+            # Prefer the first configured project; fall back to "Select folder …".
+            if flw.count() > 1:
+                flw.setCurrentRow(1)
+            elif flw.count() > 0:
                 flw.setCurrentRow(0)
             flw.itemDoubleClicked.connect(dialog.accept)
             left.addWidget(flw, stretch=1)
@@ -156,6 +159,7 @@ class ActionDialogService:
                     default_row = index
             if dlw.count() > 0:
                 dlw.setCurrentRow(default_row)
+                dlw.itemDoubleClicked.connect(dialog.accept)
             else:
                 empty = QListWidgetItem("No adb devices or AVDs found")
                 empty.setFlags(Qt.ItemFlag.NoItemFlags)
@@ -1778,7 +1782,10 @@ def get_android_build_selection(
             flw.setFont(font)
             for choice in full_list:
                 flw.addItem(QListWidgetItem(choice))
-            if flw.count() > 0:
+            # Prefer the first configured project; fall back to "Select folder …".
+            if flw.count() > 1:
+                flw.setCurrentRow(1)
+            elif flw.count() > 0:
                 flw.setCurrentRow(0)
             flw.itemDoubleClicked.connect(dialog.accept)
             left.addWidget(flw, stretch=1)
@@ -1807,6 +1814,7 @@ def get_android_build_selection(
                     default_row = index
             if dlw.count() > 0:
                 dlw.setCurrentRow(default_row)
+                dlw.itemDoubleClicked.connect(dialog.accept)
             else:
                 empty = QListWidgetItem("No adb devices or AVDs found")
                 empty.setFlags(Qt.ItemFlag.NoItemFlags)
