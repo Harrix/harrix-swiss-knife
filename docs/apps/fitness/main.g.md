@@ -370,6 +370,14 @@ class MainWindow(
                 success = self.db_manager.delete_process_record(record_id)
             elif table_name == "exercises":
                 exercise_name = self.db_manager.get_exercise_name_by_id(record_id)
+                display_name = exercise_name or f"#{record_id}"
+                process_count = self.db_manager.count_process_records_for_exercise(record_id)
+                if process_count > 0 and not self._confirm_delete_with_process_records(
+                    "exercise",
+                    display_name,
+                    process_count,
+                ):
+                    return
                 success = self.db_manager.delete_exercise(record_id)
                 if success:
                     self._mark_exercises_changed()
@@ -377,6 +385,14 @@ class MainWindow(
                         self.avif_manager.delete_exercise_avif(exercise_name)
                         self._exercise_icon_cache.pop(exercise_name, None)
             elif table_name == "types":
+                type_name = self.db_manager.get_exercise_type_name_by_id(record_id) or f"#{record_id}"
+                process_count = self.db_manager.count_process_records_for_type(record_id)
+                if process_count > 0 and not self._confirm_delete_with_process_records(
+                    "exercise type",
+                    type_name,
+                    process_count,
+                ):
+                    return
                 success = self.db_manager.delete_exercise_type(record_id)
                 if success:
                     self._mark_exercises_changed()
@@ -4375,6 +4391,34 @@ class MainWindow(
         if toast is not None:
             toast.close()
 
+    def _confirm_delete_with_process_records(self, subject: str, name: str, process_count: int) -> bool:
+        """Ask whether to delete an item that still has completed exercise records.
+
+        Args:
+
+        - `subject` (`str`): Human-readable item kind (`exercise` or `exercise type`).
+        - `name` (`str`): Display name of the item being deleted.
+        - `process_count` (`int`): Number of related process records.
+
+        Returns:
+
+        - `bool`: `True` if the user confirmed deletion.
+
+        """
+        record_word = "record" if process_count == 1 else "records"
+        reply = message_box.question(
+            self,
+            "Confirm Delete",
+            (
+                f'"{name}" has {process_count} completed exercise {record_word} '
+                f"in the process table.\n\n"
+                f"Delete this {subject} and the related {record_word}?"
+            ),
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        return reply == QMessageBox.StandardButton.Yes
+
     def _connect_signals(self) -> None:
         """Wire Qt widgets to their Python slots.
 
@@ -6797,6 +6841,14 @@ def delete_record(self, table_name: str) -> None:
                 success = self.db_manager.delete_process_record(record_id)
             elif table_name == "exercises":
                 exercise_name = self.db_manager.get_exercise_name_by_id(record_id)
+                display_name = exercise_name or f"#{record_id}"
+                process_count = self.db_manager.count_process_records_for_exercise(record_id)
+                if process_count > 0 and not self._confirm_delete_with_process_records(
+                    "exercise",
+                    display_name,
+                    process_count,
+                ):
+                    return
                 success = self.db_manager.delete_exercise(record_id)
                 if success:
                     self._mark_exercises_changed()
@@ -6804,6 +6856,14 @@ def delete_record(self, table_name: str) -> None:
                         self.avif_manager.delete_exercise_avif(exercise_name)
                         self._exercise_icon_cache.pop(exercise_name, None)
             elif table_name == "types":
+                type_name = self.db_manager.get_exercise_type_name_by_id(record_id) or f"#{record_id}"
+                process_count = self.db_manager.count_process_records_for_type(record_id)
+                if process_count > 0 and not self._confirm_delete_with_process_records(
+                    "exercise type",
+                    type_name,
+                    process_count,
+                ):
+                    return
                 success = self.db_manager.delete_exercise_type(record_id)
                 if success:
                     self._mark_exercises_changed()

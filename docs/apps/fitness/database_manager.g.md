@@ -18,9 +18,14 @@ lang: en
   - [⚙️ Method `add_process_record`](#%EF%B8%8F-method-add_process_record)
   - [⚙️ Method `add_weight_record`](#%EF%B8%8F-method-add_weight_record)
   - [⚙️ Method `check_exercise_exists`](#%EF%B8%8F-method-check_exercise_exists)
+  - [⚙️ Method `count_process_records_for_exercise`](#%EF%B8%8F-method-count_process_records_for_exercise)
+  - [⚙️ Method `count_process_records_for_type`](#%EF%B8%8F-method-count_process_records_for_type)
   - [⚙️ Method `delete_exercise`](#%EF%B8%8F-method-delete_exercise)
   - [⚙️ Method `delete_exercise_type`](#%EF%B8%8F-method-delete_exercise_type)
   - [⚙️ Method `delete_process_record`](#%EF%B8%8F-method-delete_process_record)
+  - [⚙️ Method `delete_process_records_for_exercise`](#%EF%B8%8F-method-delete_process_records_for_exercise)
+  - [⚙️ Method `delete_process_records_for_type`](#%EF%B8%8F-method-delete_process_records_for_type)
+  - [⚙️ Method `delete_types_for_exercise`](#%EF%B8%8F-method-delete_types_for_exercise)
   - [⚙️ Method `delete_weight_record`](#%EF%B8%8F-method-delete_weight_record)
   - [⚙️ Method `get_all_exercise_types`](#%EF%B8%8F-method-get_all_exercise_types)
   - [⚙️ Method `get_all_exercises`](#%EF%B8%8F-method-get_all_exercises)
@@ -36,6 +41,7 @@ lang: en
   - [⚙️ Method `get_exercise_names_missing_name_local`](#%EF%B8%8F-method-get_exercise_names_missing_name_local)
   - [⚙️ Method `get_exercise_steps_records`](#%EF%B8%8F-method-get_exercise_steps_records)
   - [⚙️ Method `get_exercise_total_today`](#%EF%B8%8F-method-get_exercise_total_today)
+  - [⚙️ Method `get_exercise_type_name_by_id`](#%EF%B8%8F-method-get_exercise_type_name_by_id)
   - [⚙️ Method `get_exercise_type_names_missing_name_local`](#%EF%B8%8F-method-get_exercise_type_names_missing_name_local)
   - [⚙️ Method `get_exercise_types`](#%EF%B8%8F-method-get_exercise_types)
   - [⚙️ Method `get_exercise_unit`](#%EF%B8%8F-method-get_exercise_unit)
@@ -235,8 +241,44 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         rows = self.get_rows("SELECT 1 FROM exercises WHERE _id = :id LIMIT 1", {"id": exercise_id})
         return len(rows) > 0
 
+    def count_process_records_for_exercise(self, exercise_id: int) -> int:
+        """Count completed exercise records linked to an exercise.
+
+        Args:
+
+        - `exercise_id` (`int`): Exercise ID.
+
+        Returns:
+
+        - `int`: Number of related `process` rows.
+
+        """
+        rows = self.get_rows(
+            "SELECT COUNT(*) FROM process WHERE _id_exercises = :id",
+            {"id": exercise_id},
+        )
+        return int(rows[0][0]) if rows and rows[0][0] is not None else 0
+
+    def count_process_records_for_type(self, type_id: int) -> int:
+        """Count completed exercise records linked to an exercise type.
+
+        Args:
+
+        - `type_id` (`int`): Type ID.
+
+        Returns:
+
+        - `int`: Number of related `process` rows.
+
+        """
+        rows = self.get_rows(
+            "SELECT COUNT(*) FROM process WHERE _id_types = :id",
+            {"id": type_id},
+        )
+        return int(rows[0][0]) if rows and rows[0][0] is not None else 0
+
     def delete_exercise(self, exercise_id: int) -> bool:
-        """Delete an exercise from the database.
+        """Delete an exercise and related process records and types.
 
         Args:
 
@@ -247,11 +289,14 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         - `bool`: `True` if successful, `False` otherwise.
 
         """
-        query = "DELETE FROM exercises WHERE _id = :id"
-        return self.execute_simple_query(query, {"id": exercise_id})
+        if not self.delete_process_records_for_exercise(exercise_id):
+            return False
+        if not self.delete_types_for_exercise(exercise_id):
+            return False
+        return self.execute_simple_query("DELETE FROM exercises WHERE _id = :id", {"id": exercise_id})
 
     def delete_exercise_type(self, type_id: int) -> bool:
-        """Delete an exercise type.
+        """Delete an exercise type and related process records.
 
         Args:
 
@@ -262,8 +307,9 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         - `bool`: `True` if successful, `False` otherwise.
 
         """
-        query = "DELETE FROM types WHERE _id = :id"
-        return self.execute_simple_query(query, {"id": type_id})
+        if not self.delete_process_records_for_type(type_id):
+            return False
+        return self.execute_simple_query("DELETE FROM types WHERE _id = :id", {"id": type_id})
 
     def delete_process_record(self, record_id: int) -> bool:
         """Delete a process record.
@@ -279,6 +325,57 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         """
         query = "DELETE FROM process WHERE _id = :id"
         return self.execute_simple_query(query, {"id": record_id})
+
+    def delete_process_records_for_exercise(self, exercise_id: int) -> bool:
+        """Delete all process records for an exercise.
+
+        Args:
+
+        - `exercise_id` (`int`): Exercise ID.
+
+        Returns:
+
+        - `bool`: `True` if successful, `False` otherwise.
+
+        """
+        return self.execute_simple_query(
+            "DELETE FROM process WHERE _id_exercises = :id",
+            {"id": exercise_id},
+        )
+
+    def delete_process_records_for_type(self, type_id: int) -> bool:
+        """Delete all process records for an exercise type.
+
+        Args:
+
+        - `type_id` (`int`): Type ID.
+
+        Returns:
+
+        - `bool`: `True` if successful, `False` otherwise.
+
+        """
+        return self.execute_simple_query(
+            "DELETE FROM process WHERE _id_types = :id",
+            {"id": type_id},
+        )
+
+    def delete_types_for_exercise(self, exercise_id: int) -> bool:
+        """Delete all types for an exercise.
+
+        Args:
+
+        - `exercise_id` (`int`): Exercise ID.
+
+        Returns:
+
+        - `bool`: `True` if successful, `False` otherwise.
+
+        """
+        return self.execute_simple_query(
+            "DELETE FROM types WHERE _id_exercises = :id",
+            {"id": exercise_id},
+        )
 
     def delete_weight_record(self, record_id: int) -> bool:
         """Delete a weight record.
@@ -583,6 +680,21 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             except (ValueError, TypeError):
                 return 0.0
         return 0.0
+
+    def get_exercise_type_name_by_id(self, type_id: int) -> str | None:
+        """Get exercise type name by ID.
+
+        Args:
+
+        - `type_id` (`int`): Type ID.
+
+        Returns:
+
+        - `str | None`: Type name or `None` if not found.
+
+        """
+        rows = self.get_rows("SELECT type FROM types WHERE _id = :id", {"id": type_id})
+        return rows[0][0] if rows else None
 
     def get_exercise_type_names_missing_name_local(self, *, limit: int = 250) -> list[str]:
         """Return distinct type names that still need a local translation."""
@@ -1494,13 +1606,73 @@ def check_exercise_exists(self, exercise_id: int) -> bool:
 
 </details>
 
+### ⚙️ Method `count_process_records_for_exercise`
+
+```python
+def count_process_records_for_exercise(self, exercise_id: int) -> int
+```
+
+Count completed exercise records linked to an exercise.
+
+Args:
+
+- `exercise_id` (`int`): Exercise ID.
+
+Returns:
+
+- `int`: Number of related `process` rows.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def count_process_records_for_exercise(self, exercise_id: int) -> int:
+        rows = self.get_rows(
+            "SELECT COUNT(*) FROM process WHERE _id_exercises = :id",
+            {"id": exercise_id},
+        )
+        return int(rows[0][0]) if rows and rows[0][0] is not None else 0
+```
+
+</details>
+
+### ⚙️ Method `count_process_records_for_type`
+
+```python
+def count_process_records_for_type(self, type_id: int) -> int
+```
+
+Count completed exercise records linked to an exercise type.
+
+Args:
+
+- `type_id` (`int`): Type ID.
+
+Returns:
+
+- `int`: Number of related `process` rows.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def count_process_records_for_type(self, type_id: int) -> int:
+        rows = self.get_rows(
+            "SELECT COUNT(*) FROM process WHERE _id_types = :id",
+            {"id": type_id},
+        )
+        return int(rows[0][0]) if rows and rows[0][0] is not None else 0
+```
+
+</details>
+
 ### ⚙️ Method `delete_exercise`
 
 ```python
 def delete_exercise(self, exercise_id: int) -> bool
 ```
 
-Delete an exercise from the database.
+Delete an exercise and related process records and types.
 
 Args:
 
@@ -1515,8 +1687,11 @@ Returns:
 
 ```python
 def delete_exercise(self, exercise_id: int) -> bool:
-        query = "DELETE FROM exercises WHERE _id = :id"
-        return self.execute_simple_query(query, {"id": exercise_id})
+        if not self.delete_process_records_for_exercise(exercise_id):
+            return False
+        if not self.delete_types_for_exercise(exercise_id):
+            return False
+        return self.execute_simple_query("DELETE FROM exercises WHERE _id = :id", {"id": exercise_id})
 ```
 
 </details>
@@ -1527,7 +1702,7 @@ def delete_exercise(self, exercise_id: int) -> bool:
 def delete_exercise_type(self, type_id: int) -> bool
 ```
 
-Delete an exercise type.
+Delete an exercise type and related process records.
 
 Args:
 
@@ -1542,8 +1717,9 @@ Returns:
 
 ```python
 def delete_exercise_type(self, type_id: int) -> bool:
-        query = "DELETE FROM types WHERE _id = :id"
-        return self.execute_simple_query(query, {"id": type_id})
+        if not self.delete_process_records_for_type(type_id):
+            return False
+        return self.execute_simple_query("DELETE FROM types WHERE _id = :id", {"id": type_id})
 ```
 
 </details>
@@ -1571,6 +1747,93 @@ Returns:
 def delete_process_record(self, record_id: int) -> bool:
         query = "DELETE FROM process WHERE _id = :id"
         return self.execute_simple_query(query, {"id": record_id})
+```
+
+</details>
+
+### ⚙️ Method `delete_process_records_for_exercise`
+
+```python
+def delete_process_records_for_exercise(self, exercise_id: int) -> bool
+```
+
+Delete all process records for an exercise.
+
+Args:
+
+- `exercise_id` (`int`): Exercise ID.
+
+Returns:
+
+- `bool`: `True` if successful, `False` otherwise.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def delete_process_records_for_exercise(self, exercise_id: int) -> bool:
+        return self.execute_simple_query(
+            "DELETE FROM process WHERE _id_exercises = :id",
+            {"id": exercise_id},
+        )
+```
+
+</details>
+
+### ⚙️ Method `delete_process_records_for_type`
+
+```python
+def delete_process_records_for_type(self, type_id: int) -> bool
+```
+
+Delete all process records for an exercise type.
+
+Args:
+
+- `type_id` (`int`): Type ID.
+
+Returns:
+
+- `bool`: `True` if successful, `False` otherwise.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def delete_process_records_for_type(self, type_id: int) -> bool:
+        return self.execute_simple_query(
+            "DELETE FROM process WHERE _id_types = :id",
+            {"id": type_id},
+        )
+```
+
+</details>
+
+### ⚙️ Method `delete_types_for_exercise`
+
+```python
+def delete_types_for_exercise(self, exercise_id: int) -> bool
+```
+
+Delete all types for an exercise.
+
+Args:
+
+- `exercise_id` (`int`): Exercise ID.
+
+Returns:
+
+- `bool`: `True` if successful, `False` otherwise.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def delete_types_for_exercise(self, exercise_id: int) -> bool:
+        return self.execute_simple_query(
+            "DELETE FROM types WHERE _id_exercises = :id",
+            {"id": exercise_id},
+        )
 ```
 
 </details>
@@ -2061,6 +2324,33 @@ def get_exercise_total_today(self, exercise_id: int) -> float:
             except (ValueError, TypeError):
                 return 0.0
         return 0.0
+```
+
+</details>
+
+### ⚙️ Method `get_exercise_type_name_by_id`
+
+```python
+def get_exercise_type_name_by_id(self, type_id: int) -> str | None
+```
+
+Get exercise type name by ID.
+
+Args:
+
+- `type_id` (`int`): Type ID.
+
+Returns:
+
+- `str | None`: Type name or `None` if not found.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_exercise_type_name_by_id(self, type_id: int) -> str | None:
+        rows = self.get_rows("SELECT type FROM types WHERE _id = :id", {"id": type_id})
+        return rows[0][0] if rows else None
 ```
 
 </details>

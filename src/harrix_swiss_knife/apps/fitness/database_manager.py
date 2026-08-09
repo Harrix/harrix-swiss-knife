@@ -174,8 +174,44 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         rows = self.get_rows("SELECT 1 FROM exercises WHERE _id = :id LIMIT 1", {"id": exercise_id})
         return len(rows) > 0
 
+    def count_process_records_for_exercise(self, exercise_id: int) -> int:
+        """Count completed exercise records linked to an exercise.
+
+        Args:
+
+        - `exercise_id` (`int`): Exercise ID.
+
+        Returns:
+
+        - `int`: Number of related `process` rows.
+
+        """
+        rows = self.get_rows(
+            "SELECT COUNT(*) FROM process WHERE _id_exercises = :id",
+            {"id": exercise_id},
+        )
+        return int(rows[0][0]) if rows and rows[0][0] is not None else 0
+
+    def count_process_records_for_type(self, type_id: int) -> int:
+        """Count completed exercise records linked to an exercise type.
+
+        Args:
+
+        - `type_id` (`int`): Type ID.
+
+        Returns:
+
+        - `int`: Number of related `process` rows.
+
+        """
+        rows = self.get_rows(
+            "SELECT COUNT(*) FROM process WHERE _id_types = :id",
+            {"id": type_id},
+        )
+        return int(rows[0][0]) if rows and rows[0][0] is not None else 0
+
     def delete_exercise(self, exercise_id: int) -> bool:
-        """Delete an exercise from the database.
+        """Delete an exercise and related process records and types.
 
         Args:
 
@@ -186,11 +222,14 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         - `bool`: `True` if successful, `False` otherwise.
 
         """
-        query = "DELETE FROM exercises WHERE _id = :id"
-        return self.execute_simple_query(query, {"id": exercise_id})
+        if not self.delete_process_records_for_exercise(exercise_id):
+            return False
+        if not self.delete_types_for_exercise(exercise_id):
+            return False
+        return self.execute_simple_query("DELETE FROM exercises WHERE _id = :id", {"id": exercise_id})
 
     def delete_exercise_type(self, type_id: int) -> bool:
-        """Delete an exercise type.
+        """Delete an exercise type and related process records.
 
         Args:
 
@@ -201,8 +240,9 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         - `bool`: `True` if successful, `False` otherwise.
 
         """
-        query = "DELETE FROM types WHERE _id = :id"
-        return self.execute_simple_query(query, {"id": type_id})
+        if not self.delete_process_records_for_type(type_id):
+            return False
+        return self.execute_simple_query("DELETE FROM types WHERE _id = :id", {"id": type_id})
 
     def delete_process_record(self, record_id: int) -> bool:
         """Delete a process record.
@@ -218,6 +258,57 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         """
         query = "DELETE FROM process WHERE _id = :id"
         return self.execute_simple_query(query, {"id": record_id})
+
+    def delete_process_records_for_exercise(self, exercise_id: int) -> bool:
+        """Delete all process records for an exercise.
+
+        Args:
+
+        - `exercise_id` (`int`): Exercise ID.
+
+        Returns:
+
+        - `bool`: `True` if successful, `False` otherwise.
+
+        """
+        return self.execute_simple_query(
+            "DELETE FROM process WHERE _id_exercises = :id",
+            {"id": exercise_id},
+        )
+
+    def delete_process_records_for_type(self, type_id: int) -> bool:
+        """Delete all process records for an exercise type.
+
+        Args:
+
+        - `type_id` (`int`): Type ID.
+
+        Returns:
+
+        - `bool`: `True` if successful, `False` otherwise.
+
+        """
+        return self.execute_simple_query(
+            "DELETE FROM process WHERE _id_types = :id",
+            {"id": type_id},
+        )
+
+    def delete_types_for_exercise(self, exercise_id: int) -> bool:
+        """Delete all types for an exercise.
+
+        Args:
+
+        - `exercise_id` (`int`): Exercise ID.
+
+        Returns:
+
+        - `bool`: `True` if successful, `False` otherwise.
+
+        """
+        return self.execute_simple_query(
+            "DELETE FROM types WHERE _id_exercises = :id",
+            {"id": exercise_id},
+        )
 
     def delete_weight_record(self, record_id: int) -> bool:
         """Delete a weight record.
@@ -522,6 +613,21 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             except (ValueError, TypeError):
                 return 0.0
         return 0.0
+
+    def get_exercise_type_name_by_id(self, type_id: int) -> str | None:
+        """Get exercise type name by ID.
+
+        Args:
+
+        - `type_id` (`int`): Type ID.
+
+        Returns:
+
+        - `str | None`: Type name or `None` if not found.
+
+        """
+        rows = self.get_rows("SELECT type FROM types WHERE _id = :id", {"id": type_id})
+        return rows[0][0] if rows else None
 
     def get_exercise_type_names_missing_name_local(self, *, limit: int = 250) -> list[str]:
         """Return distinct type names that still need a local translation."""
