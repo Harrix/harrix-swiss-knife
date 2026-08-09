@@ -32,8 +32,9 @@ _MAX_TCP_PORT = 65535
 class OnPhotoSyncListen(ActionBase):
     """Listen on LAN for one-way Camera photo sync from the Android app.
 
-    Starts a local HTTP receiver that writes into `path_photos`. Shows IP, PIN
-    (token), and a QR pairing URI. Run again while listening to stop the server.
+    Starts a local HTTP receiver that writes into `path_photos`. Shows a QR code
+    (host, port, token, confirm code) and a large confirmation number for the
+    phone to select. Run again while listening to stop the server.
 
     """
 
@@ -93,15 +94,19 @@ class OnPhotoSyncListen(ActionBase):
         set_shared_server(server)
         ips = list_lan_ipv4()
         host = ips[0] if ips else "127.0.0.1"
-        uri = pairing_uri(host=host, port=port, token=server.token)
+        uri = pairing_uri(
+            host=host,
+            port=port,
+            token=server.token,
+            confirm_code=server.confirm_code,
+        )
         self.add_line(f"Photo sync listening on port {port}")
         self.add_line(f"LAN IP: {', '.join(ips) if ips else '(none detected)'}")
-        self.add_line(f"Token: {server.token}")
-        self.add_line(f"Pairing URI: {uri}")
+        self.add_line(f"Confirm code: {server.confirm_code}")
         self.add_line(f"Saving to: {photos_dir}")
         self.show_toast("Photo sync listening")
 
-        dialog = self._build_dialog(server, ips=ips, host=host, uri=uri)
+        dialog = self._build_dialog(server, ips=ips, uri=uri)
         OnPhotoSyncListen._dialog = dialog
         dialog.show()
 
@@ -110,27 +115,31 @@ class OnPhotoSyncListen(ActionBase):
         server: PhotoSyncServer,
         *,
         ips: list[str],
-        host: str,
         uri: str,
     ) -> QDialog:
         dialog = QDialog()
         dialog.setWindowTitle("Photo sync — listening")
         dialog.setWindowFlag(Qt.WindowType.WindowStaysOnTopHint, True)  # noqa: FBT003
-        dialog.resize(520, 640)
+        dialog.resize(520, 700)
         layout = QVBoxLayout(dialog)
 
-        title = QLabel("Waiting for Android Photo Sync")
+        title = QLabel("Scan this QR on the phone")
         title.setStyleSheet("font-size: 16px; font-weight: 600;")
         layout.addWidget(title)
 
+        hint = QLabel("Then on the phone choose the same confirmation number shown below.")
+        hint.setWordWrap(True)
+        layout.addWidget(hint)
+
+        code_label = QLabel(server.confirm_code)
+        code_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        code_label.setStyleSheet("font-size: 56px; font-weight: 700; letter-spacing: 4px;")
+        layout.addWidget(code_label)
+
         info = QLabel(
             f"<b>Folder:</b> {server.photos_dir}<br>"
-            f"<b>Lookup:</b> all subfolders (by content hash)<br>"
-            f"<b>New files:</b> saved into this folder root only<br>"
-            f"<b>Port:</b> {server.port}<br>"
             f"<b>LAN IP:</b> {', '.join(ips) if ips else 'not detected'}<br>"
-            f"<b>Token:</b> <code>{server.token}</code><br>"
-            f"<b>Primary host:</b> {host}"
+            f"<b>Port:</b> {server.port}"
         )
         info.setTextFormat(Qt.TextFormat.RichText)
         info.setWordWrap(True)
@@ -145,14 +154,9 @@ class OnPhotoSyncListen(ActionBase):
         qr_label.setPixmap(pixmap)
         layout.addWidget(qr_label)
 
-        uri_label = QLabel(uri)
-        uri_label.setWordWrap(True)
-        uri_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
-        layout.addWidget(uri_label)
-
         log = QTextEdit()
         log.setReadOnly(True)
-        log.setMinimumHeight(140)
+        log.setMinimumHeight(120)
         layout.addWidget(log)
 
         buttons = QHBoxLayout()

@@ -12,6 +12,7 @@ lang: en
 ## Contents
 
 - [🔧 Function `list_lan_ipv4`](#-function-list_lan_ipv4)
+- [🔧 Function `new_confirm_code`](#-function-new_confirm_code)
 - [🔧 Function `pairing_uri`](#-function-pairing_uri)
 
 </details>
@@ -57,20 +58,38 @@ def list_lan_ipv4() -> list[str]:
 
 </details>
 
-## 🔧 Function `pairing_uri`
+## 🔧 Function `new_confirm_code`
 
 ```python
-def pairing_uri(*, host: str, port: int, token: str) -> str
+def new_confirm_code() -> str
 ```
 
-Build the QR / paste pairing URI.
+Return a two-digit confirmation code shown next to the QR (10-99).
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def pairing_uri(*, host: str, port: int, token: str) -> str:
-    return f"hsk-photo-sync://{host}:{port}?token={token}"
+def new_confirm_code() -> str:
+    return f"{secrets.randbelow(90) + 10}"
+```
+
+</details>
+
+## 🔧 Function `pairing_uri`
+
+```python
+def pairing_uri(*, host: str, port: int, token: str, confirm_code: str) -> str
+```
+
+Build the QR pairing URI (host, port, token, and confirm code).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def pairing_uri(*, host: str, port: int, token: str, confirm_code: str) -> str:
+    return f"hsk-photo-sync://{host}:{port}?token={token}&code={confirm_code}"
 ```
 
 </details>

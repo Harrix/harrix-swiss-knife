@@ -9,32 +9,44 @@ class PhotoSyncPreferences(
 
     fun getHost(): String = prefs.getString(KEY_HOST, "")?.trim().orEmpty()
 
-    fun setHost(value: String) {
-        prefs.edit().putString(KEY_HOST, value.trim()).apply()
-    }
-
     fun getPort(): Int = prefs.getInt(KEY_PORT, DEFAULT_PORT)
-
-    fun setPort(value: Int) {
-        prefs.edit().putInt(KEY_PORT, value.coerceIn(1, 65535)).apply()
-    }
 
     fun getToken(): String = prefs.getString(KEY_TOKEN, "")?.trim().orEmpty()
 
-    fun setToken(value: String) {
-        prefs.edit().putString(KEY_TOKEN, value.trim()).apply()
+    fun getConfirmCode(): String = prefs.getString(KEY_CONFIRM_CODE, "")?.trim().orEmpty()
+
+    fun getEndpoint(): PhotoSyncEndpoint? {
+        val host = getHost()
+        val token = getToken()
+        val confirmCode = getConfirmCode()
+        if (host.isEmpty() || token.isEmpty() || !PhotoSyncPairing.isConfirmCode(confirmCode)) {
+            return null
+        }
+        return PhotoSyncEndpoint(
+            host = host,
+            port = getPort(),
+            token = token,
+            confirmCode = confirmCode,
+        )
     }
 
-    fun saveConnection(
-        host: String,
-        port: Int,
-        token: String,
-    ) {
+    fun saveConnection(endpoint: PhotoSyncEndpoint) {
         prefs
             .edit()
-            .putString(KEY_HOST, host.trim())
-            .putInt(KEY_PORT, port.coerceIn(1, 65535))
-            .putString(KEY_TOKEN, token.trim())
+            .putString(KEY_HOST, endpoint.host.trim())
+            .putInt(KEY_PORT, endpoint.port.coerceIn(1, 65535))
+            .putString(KEY_TOKEN, endpoint.token.trim())
+            .putString(KEY_CONFIRM_CODE, endpoint.confirmCode.trim())
+            .apply()
+    }
+
+    fun clearConnection() {
+        prefs
+            .edit()
+            .remove(KEY_HOST)
+            .remove(KEY_PORT)
+            .remove(KEY_TOKEN)
+            .remove(KEY_CONFIRM_CODE)
             .apply()
     }
 
@@ -44,5 +56,6 @@ class PhotoSyncPreferences(
         private const val KEY_HOST = "host"
         private const val KEY_PORT = "port"
         private const val KEY_TOKEN = "token"
+        private const val KEY_CONFIRM_CODE = "confirm_code"
     }
 }

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import secrets
 import socket
 
 
@@ -33,6 +34,11 @@ def list_lan_ipv4() -> list[str]:
     return addresses
 
 
-def pairing_uri(*, host: str, port: int, token: str) -> str:
-    """Build the QR / paste pairing URI."""
-    return f"hsk-photo-sync://{host}:{port}?token={token}"
+def new_confirm_code() -> str:
+    """Return a two-digit confirmation code shown next to the QR (10-99)."""
+    return f"{secrets.randbelow(90) + 10}"
+
+
+def pairing_uri(*, host: str, port: int, token: str, confirm_code: str) -> str:
+    """Build the QR pairing URI (host, port, token, and confirm code)."""
+    return f"hsk-photo-sync://{host}:{port}?token={token}&code={confirm_code}"

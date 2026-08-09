@@ -56,6 +56,7 @@ class PhotoSyncClient(
         val body =
             JSONObject()
                 .put("token", endpoint.token)
+                .put("confirmCode", endpoint.confirmCode)
                 .put("deviceId", deviceId)
                 .toString()
                 .toRequestBody(JSON_MEDIA)

@@ -31,7 +31,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -71,7 +70,6 @@ fun PhotoSyncScreen(
 ) {
     val context = LocalContext.current
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    var pasteText by remember { mutableStateOf("") }
     var hasPhotoPermission by remember {
         mutableStateOf(GalleryPermissions.hasPhotosPermission(context))
     }
@@ -101,7 +99,7 @@ fun PhotoSyncScreen(
         rememberLauncherForActivityResult(ScanContract()) { result ->
             val contents = result.contents
             if (!contents.isNullOrBlank()) {
-                viewModel.applyPairingText(contents)
+                viewModel.beginPairingFromQr(contents)
             }
         }
 
@@ -124,10 +122,16 @@ fun PhotoSyncScreen(
     }
 
     BackHandler(enabled = true) {
-        if (state.isSyncing) {
-            viewModel.cancelSync()
+        when {
+            state.pendingConfirm != null -> viewModel.cancelPendingConfirm()
+
+            state.isSyncing -> {
+                viewModel.cancelSync()
+                onClose()
+            }
+
+            else -> onClose()
         }
-        onClose()
     }
 
     Scaffold(
@@ -139,10 +143,16 @@ fun PhotoSyncScreen(
                 navigationIcon = {
                     IconButton(
                         onClick = {
-                            if (state.isSyncing) {
-                                viewModel.cancelSync()
+                            when {
+                                state.pendingConfirm != null -> viewModel.cancelPendingConfirm()
+
+                                else -> {
+                                    if (state.isSyncing) {
+                                        viewModel.cancelSync()
+                                    }
+                                    onClose()
+                                }
                             }
-                            onClose()
                         },
                     ) {
                         Icon(
@@ -158,7 +168,10 @@ fun PhotoSyncScreen(
                             contentDescription = stringResource(R.string.photo_sync_settings),
                         )
                     }
-                    IconButton(onClick = { launchQrScan() }, enabled = !state.isSyncing) {
+                    IconButton(
+                        onClick = { launchQrScan() },
+                        enabled = !state.isSyncing && state.pendingConfirm == null,
+                    ) {
                         Icon(
                             imageVector = Icons.Filled.QrCodeScanner,
                             contentDescription = stringResource(R.string.photo_sync_scan_qr),
@@ -178,111 +191,107 @@ fun PhotoSyncScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text(
-                text = stringResource(R.string.photo_sync_intro),
-                style = MaterialTheme.typography.bodyMedium,
-            )
-
-            OutlinedTextField(
-                value = state.host,
-                onValueChange = viewModel::onHostChange,
-                label = { Text(stringResource(R.string.photo_sync_host)) },
-                singleLine = true,
-                enabled = !state.isSyncing,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            OutlinedTextField(
-                value = state.portText,
-                onValueChange = viewModel::onPortChange,
-                label = { Text(stringResource(R.string.photo_sync_port)) },
-                singleLine = true,
-                enabled = !state.isSyncing,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            OutlinedTextField(
-                value = state.token,
-                onValueChange = viewModel::onTokenChange,
-                label = { Text(stringResource(R.string.photo_sync_token)) },
-                singleLine = true,
-                enabled = !state.isSyncing,
-                modifier = Modifier.fillMaxWidth(),
-            )
-
-            OutlinedTextField(
-                value = pasteText,
-                onValueChange = { pasteText = it },
-                label = { Text(stringResource(R.string.photo_sync_paste_uri)) },
-                enabled = !state.isSyncing,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            OutlinedButton(
-                onClick = { viewModel.applyPairingText(pasteText) },
-                enabled = !state.isSyncing && pasteText.isNotBlank(),
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text(stringResource(R.string.photo_sync_apply_uri))
-            }
-
-            if (!hasPhotoPermission) {
-                Text(
-                    text = stringResource(R.string.photo_sync_need_photos_permission),
-                    color = MaterialTheme.colorScheme.error,
+            val pending = state.pendingConfirm
+            if (pending != null) {
+                ConfirmCodeBlock(
+                    choices = pending.choices,
+                    onChoice = viewModel::confirmPairingChoice,
+                    onCancel = viewModel::cancelPendingConfirm,
                 )
+            } else {
+                Text(
+                    text = stringResource(R.string.photo_sync_intro),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+
                 Button(
-                    onClick = {
-                        permissionLauncher.launch(GalleryPermissions.requiredPermission())
-                    },
+                    onClick = { launchQrScan() },
+                    enabled = !state.isSyncing,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Text(stringResource(R.string.photo_sync_grant_photos))
+                    Text(stringResource(R.string.photo_sync_scan_qr))
                 }
-            }
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Button(
-                    onClick = {
-                        if (!hasPhotoPermission) {
-                            permissionLauncher.launch(GalleryPermissions.requiredPermission())
-                            return@Button
-                        }
-                        viewModel.startSync()
-                    },
-                    enabled = hasPhotoPermission && state.isDesktopReady,
-                    modifier = Modifier.weight(1f),
-                ) {
-                    Text(stringResource(R.string.photo_sync_start))
-                }
-                if (state.isSyncing) {
+                if (state.isPaired) {
+                    Text(
+                        text =
+                        stringResource(
+                            R.string.photo_sync_paired_with,
+                            state.pairedHost,
+                            state.pairedPort,
+                        ),
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
                     OutlinedButton(
-                        onClick = viewModel::cancelSync,
-                        modifier = Modifier.weight(1f),
+                        onClick = viewModel::forgetDesktop,
+                        enabled = !state.isSyncing,
+                        modifier = Modifier.fillMaxWidth(),
                     ) {
-                        Text(stringResource(R.string.photo_sync_cancel))
+                        Text(stringResource(R.string.photo_sync_forget_desktop))
                     }
                 }
-            }
 
-            PendingStatusBlock(
-                connectionStatus = state.connectionStatus,
-                isEstimating = state.isEstimating,
-                pendingCount = state.pendingCount,
-                pendingBytes = state.pendingBytes,
-            )
+                if (!hasPhotoPermission) {
+                    Text(
+                        text = stringResource(R.string.photo_sync_need_photos_permission),
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                    Button(
+                        onClick = {
+                            permissionLauncher.launch(GalleryPermissions.requiredPermission())
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(stringResource(R.string.photo_sync_grant_photos))
+                    }
+                }
 
-            state.progress?.let { progress ->
-                SyncProgressBlock(progress)
-            }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Button(
+                        onClick = {
+                            if (!hasPhotoPermission) {
+                                permissionLauncher.launch(GalleryPermissions.requiredPermission())
+                                return@Button
+                            }
+                            viewModel.startSync()
+                        },
+                        enabled = hasPhotoPermission && state.isDesktopReady,
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        Text(stringResource(R.string.photo_sync_start))
+                    }
+                    if (state.isSyncing) {
+                        OutlinedButton(
+                            onClick = viewModel::cancelSync,
+                            modifier = Modifier.weight(1f),
+                        ) {
+                            Text(stringResource(R.string.photo_sync_cancel))
+                        }
+                    }
+                }
 
-            if (state.isSyncing && state.progress == null) {
-                CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
-            }
+                PendingStatusBlock(
+                    connectionStatus = state.connectionStatus,
+                    isEstimating = state.isEstimating,
+                    pendingCount = state.pendingCount,
+                    pendingBytes = state.pendingBytes,
+                )
 
-            state.lastResult?.let { result ->
-                ResultBlock(result)
+                state.progress?.let { progress ->
+                    SyncProgressBlock(progress)
+                }
+
+                if (state.isSyncing && state.progress == null) {
+                    CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
+                }
+
+                state.lastResult?.let { result ->
+                    ResultBlock(result)
+                }
             }
 
             state.errorMessage?.let { error ->
@@ -293,10 +302,57 @@ fun PhotoSyncScreen(
                 )
             }
 
-            HorizontalDivider(modifier = Modifier.padding(top = 8.dp))
-            LifetimeStatsBlock(stats = state.lifetime)
+            if (state.pendingConfirm == null) {
+                HorizontalDivider(modifier = Modifier.padding(top = 8.dp))
+                LifetimeStatsBlock(stats = state.lifetime)
+            }
 
             Spacer(modifier = Modifier.height(24.dp))
+        }
+    }
+}
+
+@Composable
+private fun ConfirmCodeBlock(
+    choices: List<String>,
+    onChoice: (String) -> Unit,
+    onCancel: () -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text(
+            text = stringResource(R.string.photo_sync_confirm_title),
+            style = MaterialTheme.typography.titleMedium,
+        )
+        Text(
+            text = stringResource(R.string.photo_sync_confirm_hint),
+            style = MaterialTheme.typography.bodyMedium,
+        )
+        choices.chunked(2).forEach { row ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                row.forEach { code ->
+                    Button(
+                        onClick = { onChoice(code) },
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        Text(
+                            text = code,
+                            style = MaterialTheme.typography.headlineMedium,
+                        )
+                    }
+                }
+                if (row.size == 1) {
+                    Spacer(modifier = Modifier.weight(1f))
+                }
+            }
+        }
+        OutlinedButton(
+            onClick = onCancel,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text(stringResource(R.string.photo_sync_confirm_cancel))
         }
     }
 }

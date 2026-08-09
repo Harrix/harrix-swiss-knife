@@ -69,6 +69,8 @@ class PhotoSyncServer:
         self.photos_dir = photos_dir
         self.port = port
         self.token = secrets.token_urlsafe(18)
+        # Shown on the PC next to the QR; phone must pick the matching number.
+        self.confirm_code = new_confirm_code()
         self.stats = SyncStats()
         self.library = PhotosLibrary(photos_dir)
         self._httpd: ThreadingHTTPServer | None = None
@@ -170,6 +172,9 @@ class PhotoSyncServer:
             def _handle_handshake(self, body: dict[str, Any]) -> None:
                 if not self._authorized(body.get("token")):
                     self._json_response(401, {"error": "unauthorized"})
+                    return
+                if not self._confirm_ok(body.get("confirmCode")):
+                    self._json_response(403, {"error": "confirm_code_mismatch"})
                     return
                 device_id = str(body.get("deviceId", "")).strip()
                 if not device_id:
@@ -300,6 +305,11 @@ class PhotoSyncServer:
             def _authorized(self, token: Any) -> bool:
                 return isinstance(token, str) and secrets.compare_digest(token, server.token)
 
+            def _confirm_ok(self, confirm_code: Any) -> bool:
+                if not isinstance(confirm_code, str):
+                    return False
+                return secrets.compare_digest(confirm_code.strip(), server.confirm_code)
+
             def _read_json_body(self) -> dict[str, Any] | None:
                 length_header = self.headers.get("Content-Length")
                 try:
@@ -355,6 +365,8 @@ def __init__(self, photos_dir: Path, port: int = DEFAULT_PORT) -> None:
         self.photos_dir = photos_dir
         self.port = port
         self.token = secrets.token_urlsafe(18)
+        # Shown on the PC next to the QR; phone must pick the matching number.
+        self.confirm_code = new_confirm_code()
         self.stats = SyncStats()
         self.library = PhotosLibrary(photos_dir)
         self._httpd: ThreadingHTTPServer | None = None

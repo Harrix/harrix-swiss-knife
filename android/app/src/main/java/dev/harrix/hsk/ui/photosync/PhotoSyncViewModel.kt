@@ -25,10 +25,16 @@ import kotlinx.coroutines.launch
 import org.json.JSONException
 import java.io.IOException
 
+data class PhotoSyncPendingConfirm(
+    val endpoint: PhotoSyncEndpoint,
+    val choices: List<String>,
+)
+
 data class PhotoSyncUiState(
-    val host: String = "",
-    val portText: String = PhotoSyncPreferences.DEFAULT_PORT.toString(),
-    val token: String = "",
+    val pairedHost: String = "",
+    val pairedPort: Int = PhotoSyncPreferences.DEFAULT_PORT,
+    val isPaired: Boolean = false,
+    val pendingConfirm: PhotoSyncPendingConfirm? = null,
     val isSyncing: Boolean = false,
     val isEstimating: Boolean = false,
     val connectionStatus: PhotoSyncConnectionStatus = PhotoSyncConnectionStatus.Unknown,
@@ -41,7 +47,7 @@ data class PhotoSyncUiState(
 ) {
     /** Sync is allowed only while the desktop receiver accepts this session token. */
     val isDesktopReady: Boolean
-        get() = connectionStatus == PhotoSyncConnectionStatus.Connected && !isSyncing
+        get() = isPaired && connectionStatus == PhotoSyncConnectionStatus.Connected && !isSyncing
 }
 
 class PhotoSyncViewModel(
@@ -54,11 +60,8 @@ class PhotoSyncViewModel(
     private val _uiState =
         MutableStateFlow(
             PhotoSyncUiState(
-                host = prefs.getHost(),
-                portText = prefs.getPort().toString(),
-                token = prefs.getToken(),
                 lifetime = statsStore.load(),
-            ),
+            ).withSavedEndpoint(prefs.getEndpoint()),
         )
     val uiState: StateFlow<PhotoSyncUiState> = _uiState.asStateFlow()
 
@@ -66,58 +69,77 @@ class PhotoSyncViewModel(
     private var monitorJob: Job? = null
     private var estimateJob: Job? = null
     private var wasConnected: Boolean = false
+    private var savedEndpoint: PhotoSyncEndpoint? = prefs.getEndpoint()
 
     init {
         startMonitoring()
     }
 
-    fun onHostChange(value: String) {
-        _uiState.update {
-            it.copy(host = value, errorMessage = null, pendingCount = null, pendingBytes = null)
-        }
-        persistConnection()
-        scheduleEstimateRefresh()
-    }
-
-    fun onPortChange(value: String) {
-        _uiState.update {
-            it.copy(
-                portText = value.filter { ch -> ch.isDigit() },
-                errorMessage = null,
-                pendingCount = null,
-                pendingBytes = null,
-            )
-        }
-        persistConnection()
-        scheduleEstimateRefresh()
-    }
-
-    fun onTokenChange(value: String) {
-        _uiState.update {
-            it.copy(token = value, errorMessage = null, pendingCount = null, pendingBytes = null)
-        }
-        persistConnection()
-        scheduleEstimateRefresh()
-    }
-
-    fun applyPairingText(raw: String) {
+    fun beginPairingFromQr(raw: String) {
         val parsed = PhotoSyncPairing.parse(raw)
         if (parsed == null) {
-            _uiState.update { it.copy(errorMessage = "Could not parse pairing data") }
+            _uiState.update {
+                it.copy(errorMessage = "Could not read QR. Use Photo sync listen on the computer.")
+            }
             return
         }
         _uiState.update {
             it.copy(
-                host = parsed.host,
-                portText = parsed.port.toString(),
-                token = parsed.token.ifEmpty { it.token },
+                pendingConfirm =
+                PhotoSyncPendingConfirm(
+                    endpoint = parsed,
+                    choices = PhotoSyncPairing.buildConfirmChoices(parsed.confirmCode),
+                ),
                 errorMessage = null,
-                pendingCount = null,
-                pendingBytes = null,
+                lastResult = null,
             )
         }
-        persistConnection()
+    }
+
+    fun confirmPairingChoice(choice: String) {
+        val pending = _uiState.value.pendingConfirm ?: return
+        if (choice.trim() != pending.endpoint.confirmCode) {
+            _uiState.update {
+                it.copy(errorMessage = "Wrong number. Pick the code shown on the computer.")
+            }
+            return
+        }
+        prefs.saveConnection(pending.endpoint)
+        savedEndpoint = pending.endpoint
+        _uiState.update {
+            it
+                .withSavedEndpoint(pending.endpoint)
+                .copy(
+                    pendingConfirm = null,
+                    errorMessage = null,
+                    pendingCount = null,
+                    pendingBytes = null,
+                )
+        }
         scheduleEstimateRefresh(immediate = true)
+    }
+
+    fun cancelPendingConfirm() {
+        _uiState.update { it.copy(pendingConfirm = null, errorMessage = null) }
+    }
+
+    fun forgetDesktop() {
+        prefs.clearConnection()
+        savedEndpoint = null
+        wasConnected = false
+        _uiState.update {
+            it.copy(
+                pairedHost = "",
+                pairedPort = PhotoSyncPreferences.DEFAULT_PORT,
+                isPaired = false,
+                pendingConfirm = null,
+                connectionStatus = PhotoSyncConnectionStatus.MissingConfig,
+                pendingCount = null,
+                pendingBytes = null,
+                errorMessage = null,
+                lastResult = null,
+            )
+        }
     }
 
     fun refreshLifetimeStats() {
@@ -129,7 +151,6 @@ class PhotoSyncViewModel(
             return
         }
         val endpoint = currentEndpoint() ?: return
-        persistConnection()
         syncJob?.cancel()
         estimateJob?.cancel()
         syncJob =
@@ -199,7 +220,7 @@ class PhotoSyncViewModel(
         monitorJob =
             viewModelScope.launch {
                 while (isActive) {
-                    if (!_uiState.value.isSyncing) {
+                    if (!_uiState.value.isSyncing && _uiState.value.pendingConfirm == null) {
                         probeConnectionOnly()
                     }
                     delay(MONITOR_INTERVAL_MS)
@@ -319,30 +340,29 @@ class PhotoSyncViewModel(
         val endpoint = endpointOrNull()
         if (endpoint == null) {
             _uiState.update {
-                it.copy(errorMessage = "Enter host, port, and token from the desktop app")
+                it.copy(errorMessage = "Scan the QR code from Photo sync listen on the computer")
             }
         }
         return endpoint
     }
 
-    private fun endpointOrNull(): PhotoSyncEndpoint? {
-        val state = _uiState.value
-        val host = state.host.trim()
-        val token = state.token.trim()
-        val port = state.portText.toIntOrNull()
-        if (host.isEmpty() || token.isEmpty() || port == null) {
-            return null
-        }
-        return PhotoSyncEndpoint(host = host, port = port, token = token)
-    }
-
-    private fun persistConnection() {
-        val state = _uiState.value
-        val port = state.portText.toIntOrNull() ?: PhotoSyncPreferences.DEFAULT_PORT
-        prefs.saveConnection(state.host, port, state.token)
-    }
+    private fun endpointOrNull(): PhotoSyncEndpoint? = savedEndpoint
 
     companion object {
         private const val MONITOR_INTERVAL_MS = 8_000L
     }
+}
+
+private fun PhotoSyncUiState.withSavedEndpoint(endpoint: PhotoSyncEndpoint?): PhotoSyncUiState = if (endpoint == null) {
+    copy(
+        pairedHost = "",
+        pairedPort = PhotoSyncPreferences.DEFAULT_PORT,
+        isPaired = false,
+    )
+} else {
+    copy(
+        pairedHost = endpoint.host,
+        pairedPort = endpoint.port,
+        isPaired = true,
+    )
 }
