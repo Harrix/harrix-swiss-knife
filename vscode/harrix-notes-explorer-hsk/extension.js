@@ -899,7 +899,7 @@ function escapeMarkdownLinkPath(mdPath) {
 
 /**
  * Drop into a Markdown editor: copy into note folders when needed, then insert
- * `![](img/…)` / `[file](files/…)` relative to the target `.md`.
+ * `![](img/…)` / `` [`file`](files/…) `` relative to the target `.md`.
  * @param {NotesProvider | null | undefined} notesProvider
  */
 function createMarkdownRelativeLinkDropProvider(notesProvider) {
@@ -1441,7 +1441,7 @@ function formatDroppedMarkdownSnippet(destPath, noteDir, settings) {
   if (settings.imageExtensions.has(ext)) {
     return `![](${rel})`;
   }
-  return `[${path.basename(destPath)}](${rel})`;
+  return `[\`${path.basename(destPath)}\`](${rel})`;
 }
 
 /**
