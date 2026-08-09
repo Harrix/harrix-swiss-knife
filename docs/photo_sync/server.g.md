@@ -116,7 +116,14 @@ class PhotoSyncServer:
         if removed_partials:
             self.stats.note(f"Removed {removed_partials} incomplete .partial file(s)")
         self.stats.note(f"Listening on port {self.port}")
+        self.stats.note("Indexing photo library in background…")
         self._notify()
+
+        def _on_library_warm() -> None:
+            self.stats.note(f"Photo library ready ({self.library.unique_hash_count} unique hashes)")
+            self._notify()
+
+        self.library.warm_in_background(on_done=_on_library_warm)
 
     def stop(self) -> None:
         """Stop the HTTP server."""
@@ -196,9 +203,10 @@ class PhotoSyncServer:
                     return
                 index = server.index_for(device_id)
                 server.stats.record_phone(device_id, "manifest")
-                server.stats.note("Scanning photo library (including subfolders)…")
+                server.stats.note("Checking photo library for existing files…")
                 server._notify()
-                server.library.refresh()
+                # Prefer a recent/warm index; full rescan of Dropbox can exceed phone timeouts.
+                server.library.ensure_fresh()
                 needed = index.needed_media_ids(
                     items,
                     find_existing_hash=server.library.find_relative_path,
@@ -467,7 +475,14 @@ def start(self) -> None:
         if removed_partials:
             self.stats.note(f"Removed {removed_partials} incomplete .partial file(s)")
         self.stats.note(f"Listening on port {self.port}")
+        self.stats.note("Indexing photo library in background…")
         self._notify()
+
+        def _on_library_warm() -> None:
+            self.stats.note(f"Photo library ready ({self.library.unique_hash_count} unique hashes)")
+            self._notify()
+
+        self.library.warm_in_background(on_done=_on_library_warm)
 ```
 
 </details>

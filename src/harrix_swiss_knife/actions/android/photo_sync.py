@@ -79,7 +79,7 @@ class OnPhotoSync(ActionBase):
         dialog = QDialog()
         dialog.setWindowTitle("Photo sync")
         dialog.setWindowFlag(Qt.WindowType.WindowStaysOnTopHint, True)  # noqa: FBT003
-        dialog.resize(760, 960)
+        dialog.resize(980, 720)
         root = QVBoxLayout(dialog)
 
         tabs = QTabWidget()
@@ -106,39 +106,48 @@ class OnPhotoSync(ActionBase):
         listen_row.addWidget(stop_btn)
         listen_layout.addLayout(listen_row)
 
+        columns = QHBoxLayout()
+        left = QVBoxLayout()
+        right = QVBoxLayout()
+
         code_label = QLabel("—")
         code_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         code_label.setStyleSheet("font-size: 56px; font-weight: 700; letter-spacing: 4px;")
-        listen_layout.addWidget(code_label)
+        left.addWidget(code_label)
 
         ip_row = QHBoxLayout()
         ip_combo = QComboBox()
         ip_combo.setMinimumWidth(180)
         ip_row.addWidget(QLabel("QR host IP:"))
         ip_row.addWidget(ip_combo, stretch=1)
-        listen_layout.addLayout(ip_row)
+        left.addLayout(ip_row)
 
         ip_warning = QLabel()
         ip_warning.setWordWrap(True)
         ip_warning.setStyleSheet("color: #a60;")
-        listen_layout.addWidget(ip_warning)
+        left.addWidget(ip_warning)
 
         qr_label = QLabel()
         qr_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         qr_label.setMinimumSize(self._QR_MIN_PX, self._QR_MIN_PX)
         qr_label.setStyleSheet("background: white; border: 1px solid #ccc;")
-        listen_layout.addWidget(qr_label, stretch=0, alignment=Qt.AlignmentFlag.AlignHCenter)
+        left.addWidget(qr_label, stretch=0, alignment=Qt.AlignmentFlag.AlignHCenter)
+        left.addStretch(1)
 
         status = QLabel()
         status.setWordWrap(True)
         status.setTextFormat(Qt.TextFormat.RichText)
         status.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
-        listen_layout.addWidget(status)
+        right.addWidget(status)
 
         log = QTextEdit()
         log.setReadOnly(True)
-        log.setMaximumHeight(110)
-        listen_layout.addWidget(log)
+        log.setMinimumWidth(320)
+        right.addWidget(log, stretch=1)
+
+        columns.addLayout(left, stretch=0)
+        columns.addLayout(right, stretch=1)
+        listen_layout.addLayout(columns, stretch=1)
 
         listen_scroll = QScrollArea()
         listen_scroll.setWidgetResizable(True)

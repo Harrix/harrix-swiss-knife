@@ -18,8 +18,10 @@ class PhotoSyncClient(
         OkHttpClient
             .Builder()
             .connectTimeout(15, TimeUnit.SECONDS)
-            .readTimeout(120, TimeUnit.SECONDS)
-            .writeTimeout(120, TimeUnit.SECONDS)
+            // Manifest can wait while the desktop indexes a large Dropbox folder.
+            .readTimeout(300, TimeUnit.SECONDS)
+            .writeTimeout(300, TimeUnit.SECONDS)
+            .callTimeout(360, TimeUnit.SECONDS)
             .build(),
 ) {
     data class ManifestItem(

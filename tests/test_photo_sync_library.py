@@ -48,3 +48,13 @@ def test_needed_requests_upload_when_hash_missing(tmp_path: Path) -> None:
         find_existing_hash=library.find_relative_path,
     )
     assert needed == ["7"]
+
+
+def test_ensure_fresh_reuses_recent_index(tmp_path: Path) -> None:
+    digest = _write_jpg(tmp_path / "a.jpg", b"fresh-check")
+    library = PhotosLibrary(tmp_path)
+    library.refresh()
+    assert library.unique_hash_count == 1
+    # Second call within max_age should not clear the index.
+    library.ensure_fresh(max_age_sec=60.0)
+    assert library.find_relative_path(digest) == "a.jpg"

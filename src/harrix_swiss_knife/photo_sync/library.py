@@ -4,11 +4,16 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 import threading
+import time
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
     from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 _IMAGE_SUFFIXES = frozenset(
     {
@@ -26,6 +31,14 @@ _IMAGE_SUFFIXES = frozenset(
 )
 _SYNC_META_DIR = ".hsk-photo-sync"
 _CHUNK_SIZE = 1024 * 1024
+# Windows: cloud placeholders (Dropbox / OneDrive) — reading them can hang or hydrate.
+_FILE_ATTRIBUTE_OFFLINE = 0x1000
+_FILE_ATTRIBUTE_RECALL_ON_OPEN = 0x40000
+_FILE_ATTRIBUTE_RECALL_ON_DATA_ACCESS = 0x400000
+_CLOUD_PLACEHOLDER_ATTRS = (
+    _FILE_ATTRIBUTE_OFFLINE | _FILE_ATTRIBUTE_RECALL_ON_OPEN | _FILE_ATTRIBUTE_RECALL_ON_DATA_ACCESS
+)
+_DEFAULT_MAX_AGE_SEC = 120.0
 
 
 class PhotosLibrary:
@@ -43,7 +56,15 @@ class PhotosLibrary:
         self._lock = threading.Lock()
         self._by_hash: dict[str, str] = {}
         self._file_cache: dict[str, dict[str, Any]] = {}
+        self._last_refresh_at: float | None = None
         self._load_cache()
+
+    def ensure_fresh(self, *, max_age_sec: float = _DEFAULT_MAX_AGE_SEC) -> None:
+        """Refresh only when the index is missing or older than `max_age_sec`."""
+        with self._lock:
+            if self._last_refresh_at is not None and (time.monotonic() - self._last_refresh_at) < max_age_sec:
+                return
+            self._refresh_unlocked()
 
     def find_relative_path(self, content_hash: str) -> str | None:
         """Return a relative path (POSIX-ish) for `content_hash`, if any."""
@@ -51,7 +72,7 @@ class PhotosLibrary:
         if not key:
             return None
         with self._lock:
-            if not self._by_hash:
+            if not self._by_hash and self._last_refresh_at is None:
                 self._refresh_unlocked()
             return self._by_hash.get(key)
 
@@ -80,6 +101,28 @@ class PhotosLibrary:
             self._by_hash[digest] = rel
             self._save_cache_unlocked()
 
+    @property
+    def unique_hash_count(self) -> int:
+        """Number of distinct content hashes currently indexed."""
+        with self._lock:
+            return len(self._by_hash)
+
+    def warm_in_background(self, *, on_done: Callable[[], None] | None = None) -> None:
+        """Start a daemon scan so the first phone manifest is less likely to time out."""
+
+        def run() -> None:
+            try:
+                self.refresh()
+            except Exception:
+                logger.exception("Photo library background scan failed")
+            if on_done is not None:
+                try:
+                    on_done()
+                except Exception:
+                    logger.exception("Photo library warm callback failed")
+
+        threading.Thread(target=run, name="photo-sync-library-warm", daemon=True).start()
+
     def _load_cache(self) -> None:
         if not self._cache_path.is_file():
             return
@@ -91,33 +134,40 @@ class PhotosLibrary:
         if not isinstance(files, dict):
             return
         loaded: dict[str, dict[str, Any]] = {}
+        by_hash: dict[str, str] = {}
         for rel, value in files.items():
             if not isinstance(value, dict):
                 continue
             digest = str(value.get("hash", "")).strip().lower()
             if not digest:
                 continue
-            loaded[_normalize_rel(str(rel))] = {
+            norm = _normalize_rel(str(rel))
+            loaded[norm] = {
                 "size": value.get("size"),
                 "mtime_ns": value.get("mtime_ns"),
                 "hash": digest,
             }
+            by_hash.setdefault(digest, norm)
         self._file_cache = loaded
+        self._by_hash = by_hash
+        # Treat disk cache as a starting point; still refresh soon, but lookups work immediately.
+        if by_hash:
+            self._last_refresh_at = time.monotonic()
 
     def _refresh_unlocked(self) -> None:
         photos_dir = self._photos_dir
         if not photos_dir.is_dir():
             self._by_hash = {}
             self._file_cache = {}
+            self._last_refresh_at = time.monotonic()
             return
 
         next_cache: dict[str, dict[str, Any]] = {}
         by_hash: dict[str, str] = {}
-        candidates = sorted(
-            (path for path in photos_dir.rglob("*") if path.is_file()),
-            key=lambda item: item.as_posix().lower(),
-        )
-        for path in candidates:
+        skipped_cloud = 0
+        for path in photos_dir.rglob("*"):
+            if not path.is_file():
+                continue
             if path.suffix.lower() not in _IMAGE_SUFFIXES:
                 continue
             if path.name.endswith(".partial"):
@@ -133,6 +183,9 @@ class PhotosLibrary:
                 stat = path.stat()
             except OSError:
                 continue
+            if _is_cloud_placeholder(stat):
+                skipped_cloud += 1
+                continue
             mtime_ns = getattr(stat, "st_mtime_ns", int(stat.st_mtime * 1_000_000_000))
             size = stat.st_size
             cached = self._file_cache.get(rel)
@@ -144,14 +197,20 @@ class PhotosLibrary:
             ):
                 digest = str(cached["hash"]).lower()
             else:
-                digest = _sha256_file(path)
+                try:
+                    digest = _sha256_file(path)
+                except OSError:
+                    continue
             next_cache[rel] = {"size": size, "mtime_ns": mtime_ns, "hash": digest}
-            # Prefer the first path in sorted order when duplicates share a hash.
+            # Prefer the first path when duplicates share a hash.
             by_hash.setdefault(digest, rel)
 
         self._file_cache = next_cache
         self._by_hash = by_hash
+        self._last_refresh_at = time.monotonic()
         self._save_cache_unlocked()
+        if skipped_cloud:
+            logger.info("Photo library scan skipped %s cloud-only placeholder file(s)", skipped_cloud)
 
     def _save_cache_unlocked(self) -> None:
         self._cache_path.parent.mkdir(parents=True, exist_ok=True)
@@ -159,6 +218,14 @@ class PhotosLibrary:
         tmp = self._cache_path.with_suffix(".tmp")
         tmp.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         tmp.replace(self._cache_path)
+
+
+def _is_cloud_placeholder(stat: Any) -> bool:
+    """Return `True` for Windows cloud placeholders that must not be opened for hashing."""
+    attrs = getattr(stat, "st_file_attributes", 0)
+    if not isinstance(attrs, int) or attrs == 0:
+        return False
+    return bool(attrs & _CLOUD_PLACEHOLDER_ATTRS)
 
 
 def _normalize_rel(relative_path: str) -> str:
