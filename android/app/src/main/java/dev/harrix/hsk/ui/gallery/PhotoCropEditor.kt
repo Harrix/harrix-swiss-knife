@@ -24,12 +24,13 @@ import androidx.compose.material.icons.filled.Crop
 import androidx.compose.material.icons.filled.CropFree
 import androidx.compose.material.icons.filled.CropRotate
 import androidx.compose.material.icons.filled.Done
-import androidx.compose.material.icons.filled.FileCopy
 import androidx.compose.material.icons.filled.FitScreen
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.RestartAlt
 import androidx.compose.material.icons.filled.Rotate90DegreesCcw
 import androidx.compose.material.icons.filled.Rotate90DegreesCw
+import androidx.compose.material.icons.filled.Save
+import androidx.compose.material.icons.filled.SaveAs
 import androidx.compose.material.icons.filled.Transform
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -1134,7 +1135,7 @@ fun PhotoCropEditor(
                             )
                             if (onSaveCopy != null) {
                                 EditOverflowMenuItem(
-                                    icon = Icons.Filled.FileCopy,
+                                    icon = Icons.Filled.SaveAs,
                                     label = saveCopyLabel,
                                     enabled = !isSaving,
                                     onClick = {
@@ -1144,7 +1145,12 @@ fun PhotoCropEditor(
                                 )
                             }
                             EditOverflowMenuItem(
-                                icon = Icons.Filled.Done,
+                                icon =
+                                if (isPerspective) {
+                                    Icons.Filled.Done
+                                } else {
+                                    Icons.Filled.Save
+                                },
                                 label = primaryActionLabel,
                                 enabled = !isSaving,
                                 onClick = {
@@ -1171,7 +1177,7 @@ fun PhotoCropEditor(
                     if (onSaveCopy != null && !isPerspective) {
                         EditToolbarIconButton(
                             onClick = onSaveCopy,
-                            icon = Icons.Filled.FileCopy,
+                            icon = Icons.Filled.SaveAs,
                             label = saveCopyLabel,
                             enabled = !isSaving,
                             outlined = true,
@@ -1197,7 +1203,7 @@ fun PhotoCropEditor(
                     } else {
                         EditToolbarIconButton(
                             onClick = onSave,
-                            icon = Icons.Filled.Done,
+                            icon = Icons.Filled.Save,
                             label = saveLabel,
                             enabled = !isSaving,
                             filled = true,
