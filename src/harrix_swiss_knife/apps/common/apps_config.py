@@ -7,6 +7,7 @@ from typing import Any
 DEFAULT_INITIAL_COUNT = 1000
 DEFAULT_LOAD_MORE_COUNT = 500
 DEFAULT_LOCAL_LANGUAGE = "ru"
+DEFAULT_FITNESS_IMAGE_MAX_SIZE = 330
 
 _LANGUAGE_DISPLAY_NAMES: dict[str, str] = {
     "ru": "Russian",
@@ -22,6 +23,20 @@ _LANGUAGE_DISPLAY_NAMES: dict[str, str] = {
     "ja": "Japanese",
     "ko": "Korean",
 }
+
+
+def get_apps_fitness_image_max_size(config: dict[str, Any]) -> int:
+    """Return max exercise image width/height in pixels from `apps.fitness_image_max_size`.
+
+    Larger media is scaled down so neither side exceeds this value (default `330`).
+
+    """
+    apps = config.get("apps") or {}
+    raw = apps.get("fitness_image_max_size", DEFAULT_FITNESS_IMAGE_MAX_SIZE)
+    try:
+        return max(int(raw), 1)
+    except (TypeError, ValueError):
+        return DEFAULT_FITNESS_IMAGE_MAX_SIZE
 
 
 def get_apps_list_limits(config: dict[str, Any]) -> tuple[int, int]:

@@ -1,4 +1,4 @@
-"""Dialog for adding a new fitness exercise type."""
+"""Dialog for adding or editing a fitness exercise type."""
 
 from __future__ import annotations
 
@@ -25,7 +25,7 @@ from harrix_swiss_knife.qt_emoji_icon import apply_emoji_dialog_buttons, make_em
 
 
 class ExerciseTypeAddDialog(QDialog):
-    """Modal dialog to enter a new exercise type for a selected exercise."""
+    """Modal dialog to enter a new exercise type or edit an existing one."""
 
     def __init__(
         self,
@@ -35,14 +35,24 @@ class ExerciseTypeAddDialog(QDialog):
         selected_exercise: str = "",
         app_config: dict[str, Any] | None = None,
         bothub_state: BothubRequestState | None = None,
+        initial: dict[str, Any] | None = None,
     ) -> None:
-        """Initialize the add-exercise-type dialog."""
+        """Initialize the add/edit exercise-type dialog.
+
+        Args:
+
+        - `initial` (`dict[str, Any] | None`): Existing type fields for edit mode
+          (`exercise_name`, `type_name`, `calories_modifier`, `name_local`).
+
+        """
         super().__init__(parent)
         self._app_config = app_config or {}
         self._bothub_state = bothub_state or BothubRequestState()
+        self._initial = initial or {}
+        self._editing = bool(self._initial)
         self._result: tuple[str, str, float, str] | None = None
 
-        self.setWindowTitle("Add New Exercise Type")
+        self.setWindowTitle("Edit Exercise Type" if self._editing else "Add New Exercise Type")
         qt_modality.set_owner_window_modal(self)
         self.setMinimumWidth(420)
 
@@ -54,10 +64,6 @@ class ExerciseTypeAddDialog(QDialog):
         exercise_row.addWidget(QLabel("Exercise:", form_group))
         self._exercise_combo = QComboBox(form_group)
         self._exercise_combo.addItems(exercises)
-        if selected_exercise:
-            index = self._exercise_combo.findText(selected_exercise)
-            if index >= 0:
-                self._exercise_combo.setCurrentIndex(index)
         exercise_row.addWidget(self._exercise_combo, 1)
         form_layout.addLayout(exercise_row)
 
@@ -98,6 +104,7 @@ class ExerciseTypeAddDialog(QDialog):
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
 
+        self._populate_initial(selected_exercise=selected_exercise)
         self._type_edit.setFocus()
 
     def get_result(self) -> tuple[str, str, float, str] | None:
@@ -130,3 +137,18 @@ class ExerciseTypeAddDialog(QDialog):
             name_local_edit=self._name_local_edit,
             translate_button=self._translate_button,
         )
+
+    def _populate_initial(self, *, selected_exercise: str) -> None:
+        exercise_to_select = str(self._initial.get("exercise_name") or selected_exercise or "")
+        if exercise_to_select:
+            index = self._exercise_combo.findText(exercise_to_select)
+            if index >= 0:
+                self._exercise_combo.setCurrentIndex(index)
+        if not self._initial:
+            return
+        self._type_edit.setText(str(self._initial.get("type_name") or ""))
+        self._name_local_edit.setText(str(self._initial.get("name_local") or ""))
+        try:
+            self._modifier_spin.setValue(float(self._initial.get("calories_modifier") or 1.0))
+        except (TypeError, ValueError):
+            self._modifier_spin.setValue(1.0)

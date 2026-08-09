@@ -4,11 +4,15 @@
   on inline table editors (so popup delegates don't see through to the row).
 - `iter_stripped_non_empty_lines`: iterate over lines of text yielding only
   the non-empty stripped variants.
+- `reveal_in_file_explorer`: open the OS file manager and select a file.
 
 """
 
 from __future__ import annotations
 
+import subprocess
+import sys
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -106,6 +110,36 @@ def iter_stripped_non_empty_lines(text: str) -> Iterator[str]:
         stripped = raw_line.strip()
         if stripped:
             yield stripped
+
+
+def reveal_in_file_explorer(path: Path | str) -> None:
+    """Open the system file manager with `path` selected when possible.
+
+    Raises:
+
+    - `FileNotFoundError`: When `path` does not exist.
+    - `OSError`: When the file manager cannot be started.
+
+    """
+    target = Path(path).resolve()
+    if not target.exists():
+        msg = f"Path not found: {target}"
+        raise FileNotFoundError(msg)
+
+    if sys.platform == "win32":
+        # Trailing comma after /select is required by explorer.exe.
+        subprocess.run(
+            ["explorer", "/select,", str(target)],  # noqa: S607
+            check=False,
+        )
+        return
+
+    if sys.platform == "darwin":
+        subprocess.run(["open", "-R", str(target)], check=False)  # noqa: S607
+        return
+
+    folder = target if target.is_dir() else target.parent
+    subprocess.run(["xdg-open", str(folder)], check=False)  # noqa: S607
 
 
 def _active_table_editor(view: QAbstractItemView) -> QWidget | None:

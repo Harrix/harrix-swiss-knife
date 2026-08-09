@@ -140,6 +140,9 @@ class MainWindow(
         # AVIF manager will be initialized after database is ready
         self.avif_manager: avif_manager.AvifManager | None = None
         self._bothub_state = BothubRequestState()
+        self._exercise_media_worker: ExerciseMediaSaveWorker | None = None
+        self._exercise_media_toast: toast_countdown_notification.ToastCountdownNotification | None = None
+        self._exercise_media_success_message: str | None = None
 
         # Exercise list model
         self.exercises_list_model: QStandardItemModel | None = None
@@ -304,6 +307,10 @@ class MainWindow(
             return
 
         self._is_closing = True
+        self._close_exercise_media_toast()
+        worker = self._exercise_media_worker
+        if worker is not None and worker.isRunning():
+            worker.wait(3000)
 
         # Stop animations for all labels
         if self.current_movie:
@@ -463,15 +470,14 @@ class MainWindow(
                 calories_per_unit=calories_per_unit,
                 name_local=name_local,
             ):
-                if media_path and not self._save_exercise_media(exercise, media_path):
-                    message_box.warning(
-                        self,
-                        "Exercise Added",
-                        "Exercise was added, but media could not be saved. "
-                        "Use Apply media to selected after fixing the file.",
-                    )
                 self._mark_exercises_changed()
                 self.update_all()
+                if media_path:
+                    self._start_exercise_media_save(
+                        exercise,
+                        media_path,
+                        success_message=f"Media saved for '{exercise}'",
+                    )
             else:
                 message_box.warning(self, "Error", "Failed to add exercise")
         except Exception as e:
@@ -652,8 +658,11 @@ class MainWindow(
             message_box.warning(self, "Error", "Unsupported media type")
             return
 
-        if self._save_exercise_media(exercise_name, media_path):
-            message_box.information(self, "Media Saved", f"Media saved for '{exercise_name}'")
+        self._start_exercise_media_save(
+            exercise_name,
+            media_path,
+            success_message=f"Media saved for '{exercise_name}'",
+        )
 
     @requires_database()
     def on_chart_exercise_changed(
@@ -2877,6 +2886,7 @@ class MainWindow(
                 exercises_transformed_data, self.table_config["exercises"][2]
             )
             self.tableView_exercises.setModel(self.models["exercises"])
+            self.tableView_exercises.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
 
             # Refresh exercise types table with light orange background
             types_data = self.db_manager.get_all_exercise_types()
@@ -2891,6 +2901,7 @@ class MainWindow(
                 types_transformed_data, self.table_config["types"][2]
             )
             self.tableView_exercise_types.setModel(self.models["types"])
+            self.tableView_exercise_types.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
 
             # Load process table data with appropriate limit
             self.load_process_table()
@@ -4353,6 +4364,17 @@ class MainWindow(
 
         return self.progress_calculator.check_for_new_records(ex_id, type_id, current_value, type_name)
 
+    def _cleanup_exercise_media_worker(self) -> None:
+        """Drop finished exercise-media worker reference."""
+        self._exercise_media_worker = None
+
+    def _close_exercise_media_toast(self) -> None:
+        """Close the exercise-media conversion toast if present."""
+        toast = self._exercise_media_toast
+        self._exercise_media_toast = None
+        if toast is not None:
+            toast.close()
+
     def _connect_signals(self) -> None:
         """Wire Qt widgets to their Python slots.
 
@@ -4476,10 +4498,16 @@ class MainWindow(
         # Add context menu for exercises table
         self.tableView_exercises.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.tableView_exercises.customContextMenuRequested.connect(self._show_exercises_context_menu)
+        with contextlib.suppress(TypeError, RuntimeError):
+            self.tableView_exercises.doubleClicked.disconnect(self._on_exercises_table_double_clicked)
+        self.tableView_exercises.doubleClicked.connect(self._on_exercises_table_double_clicked)
 
         # Add context menu for exercise types table
         self.tableView_exercise_types.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.tableView_exercise_types.customContextMenuRequested.connect(self._show_exercise_types_context_menu)
+        with contextlib.suppress(TypeError, RuntimeError):
+            self.tableView_exercise_types.doubleClicked.disconnect(self._on_exercise_types_table_double_clicked)
+        self.tableView_exercise_types.doubleClicked.connect(self._on_exercise_types_table_double_clicked)
 
         # Add context menu for weight table
         self.tableView_weight.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
@@ -5431,6 +5459,25 @@ class MainWindow(
             # Optional: Show a brief notification (you can remove this if not needed)
             # You could add a toast notification here if you have one
 
+    def _on_exercise_media_save_completed(self, exercise_name: str, _target_path: str) -> None:
+        """Refresh previews after background media conversion succeeds."""
+        self._close_exercise_media_toast()
+        self._refresh_exercise_media_ui(exercise_name)
+        success_message = self._exercise_media_success_message
+        self._exercise_media_success_message = None
+        if success_message:
+            message_box.information(self, "Media Saved", success_message)
+
+    def _on_exercise_media_save_failed(self, exercise_name: str, error_message: str) -> None:
+        """Show conversion failure after background media save."""
+        self._close_exercise_media_toast()
+        self._exercise_media_success_message = None
+        message_box.warning(
+            self,
+            "Media Error",
+            f"Failed to save media for '{exercise_name}':\n{error_message}",
+        )
+
     def _on_exercise_preview_media_dropped(self, paths: list[str]) -> None:
         """Save dropped media for the exercise selected in the exercises table."""
         if not paths:
@@ -5439,8 +5486,17 @@ class MainWindow(
         if not exercise_name:
             message_box.warning(self, "Error", "Select an exercise in the table")
             return
-        if self._save_exercise_media(exercise_name, paths[0]):
-            message_box.information(self, "Media Saved", f"Media saved for '{exercise_name}'")
+        self._start_exercise_media_save(
+            exercise_name,
+            paths[0],
+            success_message=f"Media saved for '{exercise_name}'",
+        )
+
+    def _on_exercise_types_table_double_clicked(self, index: QModelIndex) -> None:
+        """Open exercise-type edit dialog on double-click."""
+        if not index.isValid():
+            return
+        self._open_exercise_type_edit_dialog()
 
     def _on_exercises_list_double_clicked(self, index: QModelIndex) -> None:
         """Handle double-click on exercises list to open Exercise Chart tab.
@@ -5483,6 +5539,12 @@ class MainWindow(
                 # Update chart and label_chart_info
                 self._update_chart_based_on_radio_button()
 
+    def _on_exercises_table_double_clicked(self, index: QModelIndex) -> None:
+        """Open exercise edit dialog on double-click."""
+        if not index.isValid():
+            return
+        self._open_exercise_edit_dialog()
+
     def _on_filter_exercise_changed(self, *_args: object) -> None:
         """Refresh type options and apply the process filter when exercise changes."""
         self.update_filter_type_combobox()
@@ -5498,6 +5560,150 @@ class MainWindow(
         self._update_date_filter_controls_enabled()
         self.apply_filter()
 
+    @requires_database()
+    def _open_exercise_edit_dialog(self) -> None:
+        """Edit the selected exercise via modal dialog."""
+        if self.db_manager is None:
+            return
+        record_id = self._get_selected_row_id("exercises")
+        if record_id is None:
+            message_box.warning(self, "Error", "Select an exercise to edit")
+            return
+
+        model = self.models.get("exercises")
+        index = self.tableView_exercises.currentIndex()
+        if model is None or not index.isValid():
+            message_box.warning(self, "Error", "Select an exercise to edit")
+            return
+
+        row = index.row()
+        old_name = str(model.data(model.index(row, 0)) or "").strip()
+        unit = str(model.data(model.index(row, 1)) or "")
+        is_type_required = str(model.data(model.index(row, 2)) or "0") == "1"
+        try:
+            calories = float(model.data(model.index(row, 3)) or 0.0)
+        except (TypeError, ValueError):
+            calories = 0.0
+        name_local = str(model.data(model.index(row, 4)) or "")
+
+        dialog = ExerciseAddDialog(
+            self,
+            app_config=self._app_config,
+            bothub_state=self._bothub_state,
+            initial={
+                "name": old_name,
+                "unit": unit,
+                "is_type_required": is_type_required,
+                "calories_per_unit": calories,
+                "name_local": name_local,
+            },
+        )
+        if dialog.exec() != dialog.DialogCode.Accepted:
+            return
+        result = dialog.get_result()
+        if result is None:
+            return
+        new_name, new_unit, new_type_required, new_calories, new_name_local, media_path = result
+
+        try:
+            if not self.db_manager.update_exercise(
+                record_id,
+                new_name,
+                new_unit,
+                is_type_required=new_type_required,
+                calories_per_unit=new_calories,
+                name_local=new_name_local,
+            ):
+                message_box.warning(self, "Database Error", "Failed to save exercise")
+                return
+        except Exception as e:
+            message_box.warning(self, "Database Error", f"Failed to save exercise: {e}")
+            return
+
+        if self.avif_manager is not None and old_name and old_name != new_name:
+            self.avif_manager.rename_exercise_avif(old_name, new_name)
+            self._exercise_icon_cache.pop(old_name, None)
+            self._exercise_icon_cache.pop(new_name, None)
+
+        self._mark_exercises_changed()
+        self.update_all()
+        if media_path:
+            self._start_exercise_media_save(
+                new_name,
+                media_path,
+                success_message=f"Media saved for '{new_name}'",
+            )
+
+    @requires_database()
+    def _open_exercise_type_edit_dialog(self) -> None:
+        """Edit the selected exercise type via modal dialog."""
+        if self.db_manager is None:
+            return
+        record_id = self._get_selected_row_id("types")
+        if record_id is None:
+            message_box.warning(self, "Error", "Select an exercise type to edit")
+            return
+
+        model = self.models.get("types")
+        index = self.tableView_exercise_types.currentIndex()
+        if model is None or not index.isValid():
+            message_box.warning(self, "Error", "Select an exercise type to edit")
+            return
+
+        row = index.row()
+        exercise_name = str(model.data(model.index(row, 0)) or "").strip()
+        type_name = str(model.data(model.index(row, 1)) or "").strip()
+        try:
+            calories_modifier = float(model.data(model.index(row, 2)) or 1.0)
+        except (TypeError, ValueError):
+            calories_modifier = 1.0
+        name_local = str(model.data(model.index(row, 3)) or "")
+
+        exercises = self.db_manager.get_exercises_by_frequency(self.exercises_frequency_window)
+        if exercise_name and exercise_name not in exercises:
+            exercises = [exercise_name, *exercises]
+
+        dialog = ExerciseTypeAddDialog(
+            self,
+            exercises=exercises,
+            selected_exercise=exercise_name,
+            app_config=self._app_config,
+            bothub_state=self._bothub_state,
+            initial={
+                "exercise_name": exercise_name,
+                "type_name": type_name,
+                "calories_modifier": calories_modifier,
+                "name_local": name_local,
+            },
+        )
+        if dialog.exec() != dialog.DialogCode.Accepted:
+            return
+        result = dialog.get_result()
+        if result is None:
+            return
+        new_exercise, new_type_name, new_modifier, new_name_local = result
+        ex_id = self.db_manager.get_id("exercises", "name", new_exercise)
+        if ex_id is None:
+            message_box.warning(self, "Error", f"Exercise '{new_exercise}' not found")
+            return
+
+        try:
+            if not self.db_manager.update_exercise_type(
+                record_id,
+                ex_id,
+                new_type_name,
+                new_modifier,
+                name_local=new_name_local,
+            ):
+                message_box.warning(self, "Database Error", "Failed to save exercise type")
+                return
+        except Exception as e:
+            message_box.warning(self, "Database Error", f"Failed to save exercise type: {e}")
+            return
+
+        self._mark_exercises_changed()
+        self.update_all()
+
     def _process_filter_is_active(self) -> bool:
         """Return whether any process table filter is currently applied."""
         if self.comboBox_filter_exercise.currentText().strip():
@@ -5506,29 +5712,38 @@ class MainWindow(
             return True
         return self.checkBox_use_date_filter.isChecked()
 
-    def _reset_process_pagination_state(self) -> None:
-        """Reset pagination counters and color map for process table."""
-        self._process_pagination.reset()
-        self._process_date_color_map = {}
-
-    def _save_exercise_media(self, exercise_name: str, source_path: str) -> bool:
-        """Optimize media to AVIF and refresh UI for `exercise_name`."""
+    def _refresh_exercise_media_ui(self, exercise_name: str) -> None:
+        """Reload labels/icons after AVIF for `exercise_name` changed."""
         if not self.avif_manager:
-            message_box.warning(self, "Error", "AVIF manager is not initialized")
-            return False
-        try:
-            save_exercise_avif(source_path, exercise_name, self.avif_manager.avif_dir)
-        except (FileNotFoundError, OSError, RuntimeError, ValueError) as error:
-            message_box.warning(self, "Media Error", f"Failed to save exercise media:\n{error}")
-            return False
-
+            return
         self._exercise_icon_cache.pop(exercise_name, None)
         for label_key in ("main", "exercises", "types", "charts", "statistics"):
             if self.avif_manager.get_current_exercise(label_key) == exercise_name:
                 self._load_exercise_avif(exercise_name, label_key)
         self._update_exercises_avif()
         self._update_list_view_exercise_icon(exercise_name)
-        return True
+
+    def _reset_process_pagination_state(self) -> None:
+        """Reset pagination counters and color map for process table."""
+        self._process_pagination.reset()
+        self._process_date_color_map = {}
+
+    def _reveal_exercise_media_in_explorer(self, exercise_name: str) -> None:
+        """Open File Explorer with the exercise AVIF selected."""
+        if not exercise_name:
+            message_box.warning(self, "Error", "Select a record with an exercise name")
+            return
+        if not self.avif_manager:
+            message_box.warning(self, "Error", "AVIF manager is not initialized")
+            return
+        avif_path = self.avif_manager.get_exercise_avif_path(exercise_name)
+        if avif_path is None:
+            message_box.warning(self, "Error", f"No media file found for '{exercise_name}'")
+            return
+        try:
+            reveal_in_file_explorer(avif_path)
+        except (FileNotFoundError, OSError) as error:
+            message_box.warning(self, "Error", f"Could not open File Explorer:\n{error}")
 
     def _schedule_chart_update(self, delay_ms: int = 50) -> None:
         """Schedule a chart update with the specified delay.
@@ -5780,19 +5995,27 @@ class MainWindow(
         - `position` (`QPoint`): Position where context menu should appear.
 
         """
+        index = self.tableView_exercise_types.indexAt(position)
+        if index.isValid():
+            self.tableView_exercise_types.setCurrentIndex(index)
+
         context_menu = QMenu(self)
+        edit_action = context_menu.addAction("✏️ Edit")
+        delete_action = context_menu.addAction("🗑️ Delete")
+        reveal_action = context_menu.addAction("📂 Reveal in File Explorer")
         export_action = context_menu.addAction("📤 Export to CSV")
 
-        # Execute the context menu and get the selected action
         action = context_menu.exec_(self.tableView_exercise_types.mapToGlobal(position))
-
-        # Process the action only if it was actually selected (not None)
         if action is None:
-            # User clicked outside the menu or pressed Esc - do nothing
             return
-
-        if action == export_action:
-            logger.debug("🔧 Context menu: Export to CSV action triggered")
+        if action == edit_action:
+            self._open_exercise_type_edit_dialog()
+        elif action == delete_action:
+            self.delete_record("types")
+        elif action == reveal_action:
+            exercise_name = self._get_selected_exercise_from_table("types")
+            self._reveal_exercise_media_in_explorer(exercise_name or "")
+        elif action == export_action:
             self.on_export_csv()
 
     def _show_exercises_context_menu(self, position: QPoint) -> None:
@@ -5803,19 +6026,27 @@ class MainWindow(
         - `position` (`QPoint`): Position where context menu should appear.
 
         """
+        index = self.tableView_exercises.indexAt(position)
+        if index.isValid():
+            self.tableView_exercises.setCurrentIndex(index)
+
         context_menu = QMenu(self)
+        edit_action = context_menu.addAction("✏️ Edit")
+        delete_action = context_menu.addAction("🗑️ Delete")
+        reveal_action = context_menu.addAction("📂 Reveal in File Explorer")
         export_action = context_menu.addAction("📤 Export to CSV")
 
-        # Execute the context menu and get the selected action
         action = context_menu.exec_(self.tableView_exercises.mapToGlobal(position))
-
-        # Process the action only if it was actually selected (not None)
         if action is None:
-            # User clicked outside the menu or pressed Esc - do nothing
             return
-
-        if action == export_action:
-            logger.debug("🔧 Context menu: Export to CSV action triggered")
+        if action == edit_action:
+            self._open_exercise_edit_dialog()
+        elif action == delete_action:
+            self.delete_record("exercises")
+        elif action == reveal_action:
+            exercise_name = self._get_selected_exercise_from_table("exercises")
+            self._reveal_exercise_media_in_explorer(exercise_name or "")
+        elif action == export_action:
             self.on_export_csv()
 
     def _show_monthly_goal_congratulations(self, exercise: str, type_name: str, current_value: float) -> None:
@@ -5966,6 +6197,42 @@ class MainWindow(
         if action == export_action:
             logger.debug("🔧 Context menu: Export to CSV action triggered")
             self.on_export_csv()
+
+    def _start_exercise_media_save(
+        self,
+        exercise_name: str,
+        source_path: str,
+        *,
+        success_message: str | None = None,
+    ) -> None:
+        """Convert exercise media in a worker thread and show a countdown toast."""
+        if not self.avif_manager:
+            message_box.warning(self, "Error", "AVIF manager is not initialized")
+            return
+        worker = self._exercise_media_worker
+        if worker is not None and worker.isRunning():
+            message_box.warning(self, "Please Wait", "Media conversion is already in progress")
+            return
+
+        self._exercise_media_success_message = success_message
+        self._exercise_media_toast = toast_countdown_notification.ToastCountdownNotification(
+            f"Converting media for '{exercise_name}'…",
+        )
+        self._exercise_media_toast.start_countdown()
+
+        max_size = get_apps_fitness_image_max_size(self._app_config)
+        self._exercise_media_worker = ExerciseMediaSaveWorker(
+            source_path,
+            exercise_name,
+            self.avif_manager.avif_dir,
+            max_size=max_size,
+            project_root=get_project_root(),
+            parent=self,
+        )
+        self._exercise_media_worker.save_completed.connect(self._on_exercise_media_save_completed)
+        self._exercise_media_worker.save_failed.connect(self._on_exercise_media_save_failed)
+        self._exercise_media_worker.finished.connect(self._cleanup_exercise_media_worker)
+        self._exercise_media_worker.start()
 
     def _subtract_one_day_from_main(self) -> None:
         """Subtract one day from the current date in main date field."""
@@ -6256,6 +6523,9 @@ def __init__(self, *, hide_on_close: bool = False) -> None:  # noqa: D107
         # AVIF manager will be initialized after database is ready
         self.avif_manager: avif_manager.AvifManager | None = None
         self._bothub_state = BothubRequestState()
+        self._exercise_media_worker: ExerciseMediaSaveWorker | None = None
+        self._exercise_media_toast: toast_countdown_notification.ToastCountdownNotification | None = None
+        self._exercise_media_success_message: str | None = None
 
         # Exercise list model
         self.exercises_list_model: QStandardItemModel | None = None
@@ -6457,6 +6727,10 @@ def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
             return
 
         self._is_closing = True
+        self._close_exercise_media_toast()
+        worker = self._exercise_media_worker
+        if worker is not None and worker.isRunning():
+            worker.wait(3000)
 
         # Stop animations for all labels
         if self.current_movie:
@@ -6677,15 +6951,14 @@ def on_add_exercise(self) -> None:
                 calories_per_unit=calories_per_unit,
                 name_local=name_local,
             ):
-                if media_path and not self._save_exercise_media(exercise, media_path):
-                    message_box.warning(
-                        self,
-                        "Exercise Added",
-                        "Exercise was added, but media could not be saved. "
-                        "Use Apply media to selected after fixing the file.",
-                    )
                 self._mark_exercises_changed()
                 self.update_all()
+                if media_path:
+                    self._start_exercise_media_save(
+                        exercise,
+                        media_path,
+                        success_message=f"Media saved for '{exercise}'",
+                    )
             else:
                 message_box.warning(self, "Error", "Failed to add exercise")
         except Exception as e:
@@ -6918,8 +7191,11 @@ def on_apply_exercise_media(self) -> None:
             message_box.warning(self, "Error", "Unsupported media type")
             return
 
-        if self._save_exercise_media(exercise_name, media_path):
-            message_box.information(self, "Media Saved", f"Media saved for '{exercise_name}'")
+        self._start_exercise_media_save(
+            exercise_name,
+            media_path,
+            success_message=f"Media saved for '{exercise_name}'",
+        )
 ```
 
 </details>
@@ -9577,6 +9853,7 @@ def show_tables(self) -> None:
                 exercises_transformed_data, self.table_config["exercises"][2]
             )
             self.tableView_exercises.setModel(self.models["exercises"])
+            self.tableView_exercises.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
 
             # Refresh exercise types table with light orange background
             types_data = self.db_manager.get_all_exercise_types()
@@ -9591,6 +9868,7 @@ def show_tables(self) -> None:
                 types_transformed_data, self.table_config["types"][2]
             )
             self.tableView_exercise_types.setModel(self.models["types"])
+            self.tableView_exercise_types.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
 
             # Load process table data with appropriate limit
             self.load_process_table()

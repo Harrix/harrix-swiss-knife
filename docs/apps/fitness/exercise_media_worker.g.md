@@ -1,0 +1,132 @@
+---
+author: Anton Sergienko
+author-email: anton.b.sergienko@gmail.com
+lang: en
+---
+
+# 📄 File `exercise_media_worker.py`
+
+<details>
+<summary>📖 Contents ⬇️</summary>
+
+## Contents
+
+- [🏛️ Class `ExerciseMediaSaveWorker`](#%EF%B8%8F-class-exercisemediasaveworker)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
+  - [⚙️ Method `run`](#%EF%B8%8F-method-run)
+
+</details>
+
+## 🏛️ Class `ExerciseMediaSaveWorker`
+
+```python
+class ExerciseMediaSaveWorker(QThread)
+```
+
+Optimize and store exercise media off the UI thread.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class ExerciseMediaSaveWorker(QThread):
+
+    save_completed = Signal(str, str)  # exercise_name, target_path
+    save_failed = Signal(str, str)  # exercise_name, error_message
+
+    def __init__(
+        self,
+        source_path: str,
+        exercise_name: str,
+        avif_dir: Path | str,
+        *,
+        max_size: int | None = None,
+        project_root: Path | None = None,
+        parent: QObject | None = None,
+    ) -> None:
+        """Store conversion parameters for `run()`."""
+        super().__init__(parent)
+        self._source_path = source_path
+        self._exercise_name = exercise_name
+        self._avif_dir = Path(avif_dir)
+        self._max_size = max_size
+        self._project_root = project_root
+
+    def run(self) -> None:
+        """Convert media and emit success or failure."""
+        try:
+            target = save_exercise_avif(
+                self._source_path,
+                self._exercise_name,
+                self._avif_dir,
+                project_root=self._project_root,
+                max_size=self._max_size,
+            )
+        except Exception as error:
+            self.save_failed.emit(self._exercise_name, str(error))
+            return
+        self.save_completed.emit(self._exercise_name, str(target))
+```
+
+</details>
+
+### ⚙️ Method `__init__`
+
+```python
+def __init__(self, source_path: str, exercise_name: str, avif_dir: Path | str, *, max_size: int | None = None, project_root: Path | None = None, parent: QObject | None = None) -> None
+```
+
+Store conversion parameters for `run()`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def __init__(
+        self,
+        source_path: str,
+        exercise_name: str,
+        avif_dir: Path | str,
+        *,
+        max_size: int | None = None,
+        project_root: Path | None = None,
+        parent: QObject | None = None,
+    ) -> None:
+        super().__init__(parent)
+        self._source_path = source_path
+        self._exercise_name = exercise_name
+        self._avif_dir = Path(avif_dir)
+        self._max_size = max_size
+        self._project_root = project_root
+```
+
+</details>
+
+### ⚙️ Method `run`
+
+```python
+def run(self) -> None
+```
+
+Convert media and emit success or failure.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def run(self) -> None:
+        try:
+            target = save_exercise_avif(
+                self._source_path,
+                self._exercise_name,
+                self._avif_dir,
+                project_root=self._project_root,
+                max_size=self._max_size,
+            )
+        except Exception as error:
+            self.save_failed.emit(self._exercise_name, str(error))
+            return
+        self.save_completed.emit(self._exercise_name, str(target))
+```
+
+</details>

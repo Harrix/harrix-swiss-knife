@@ -23,7 +23,7 @@ lang: en
 class ExerciseAddDialog(QDialog)
 ```
 
-Modal dialog to enter a new exercise and optional media.
+Modal dialog to enter a new exercise or edit an existing one.
 
 <details>
 <summary>Code:</summary>
@@ -37,14 +37,24 @@ class ExerciseAddDialog(QDialog):
         *,
         app_config: dict[str, Any] | None = None,
         bothub_state: BothubRequestState | None = None,
+        initial: dict[str, Any] | None = None,
     ) -> None:
-        """Initialize the add-exercise dialog."""
+        """Initialize the add/edit exercise dialog.
+
+        Args:
+
+        - `initial` (`dict[str, Any] | None`): Existing exercise fields for edit mode
+          (`name`, `unit`, `is_type_required`, `calories_per_unit`, `name_local`).
+
+        """
         super().__init__(parent)
         self._app_config = app_config or {}
         self._bothub_state = bothub_state or BothubRequestState()
+        self._initial = initial or {}
+        self._editing = bool(self._initial)
         self._result: tuple[str, str, bool, float, str, str] | None = None
 
-        self.setWindowTitle("Add New Exercise")
+        self.setWindowTitle("Edit Exercise" if self._editing else "Add New Exercise")
         qt_modality.set_owner_window_modal(self)
         self.setMinimumWidth(460)
 
@@ -86,11 +96,16 @@ class ExerciseAddDialog(QDialog):
         self._type_required_check = QCheckBox("Type is required", form_group)
         form_layout.addWidget(self._type_required_check)
 
+        media_hint = (
+            "Optional: drag and drop new video/image to replace media"
+            if self._editing
+            else "Drag and drop video/image (mp4, avif, gif, png, jpeg…)"
+        )
         self._media_drop = FileDropWidget(
             form_group,
             name_filter=MEDIA_FILE_FILTER,
             allowed_extensions=EXERCISE_MEDIA_EXTENSIONS,
-            hint_text="Drag and drop video/image (mp4, avif, gif, png, jpeg…)",
+            hint_text=media_hint,
             dialog_title="Select exercise media",
             path_filter=is_exercise_media_path,
         )
@@ -108,6 +123,7 @@ class ExerciseAddDialog(QDialog):
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
 
+        self._populate_initial()
         self._name_edit.setFocus()
 
     def get_result(self) -> tuple[str, str, bool, float, str, str] | None:
@@ -140,6 +156,18 @@ class ExerciseAddDialog(QDialog):
             calories_spin=self._calories_spin,
             fill_button=self._fill_button,
         )
+
+    def _populate_initial(self) -> None:
+        if not self._initial:
+            return
+        self._name_edit.setText(str(self._initial.get("name") or ""))
+        self._name_local_edit.setText(str(self._initial.get("name_local") or ""))
+        self._unit_edit.setText(str(self._initial.get("unit") or ""))
+        try:
+            self._calories_spin.setValue(float(self._initial.get("calories_per_unit") or 0.0))
+        except (TypeError, ValueError):
+            self._calories_spin.setValue(0.0)
+        self._type_required_check.setChecked(bool(self._initial.get("is_type_required")))
 ```
 
 </details>
@@ -147,10 +175,15 @@ class ExerciseAddDialog(QDialog):
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, parent: QWidget | None = None, *, app_config: dict[str, Any] | None = None, bothub_state: BothubRequestState | None = None) -> None
+def __init__(self, parent: QWidget | None = None, *, app_config: dict[str, Any] | None = None, bothub_state: BothubRequestState | None = None, initial: dict[str, Any] | None = None) -> None
 ```
 
-Initialize the add-exercise dialog.
+Initialize the add/edit exercise dialog.
+
+Args:
+
+- `initial` (`dict[str, Any] | None`): Existing exercise fields for edit mode
+  (`name`, `unit`, `is_type_required`, `calories_per_unit`, `name_local`).
 
 <details>
 <summary>Code:</summary>
@@ -162,13 +195,16 @@ def __init__(
         *,
         app_config: dict[str, Any] | None = None,
         bothub_state: BothubRequestState | None = None,
+        initial: dict[str, Any] | None = None,
     ) -> None:
         super().__init__(parent)
         self._app_config = app_config or {}
         self._bothub_state = bothub_state or BothubRequestState()
+        self._initial = initial or {}
+        self._editing = bool(self._initial)
         self._result: tuple[str, str, bool, float, str, str] | None = None
 
-        self.setWindowTitle("Add New Exercise")
+        self.setWindowTitle("Edit Exercise" if self._editing else "Add New Exercise")
         qt_modality.set_owner_window_modal(self)
         self.setMinimumWidth(460)
 
@@ -210,11 +246,16 @@ def __init__(
         self._type_required_check = QCheckBox("Type is required", form_group)
         form_layout.addWidget(self._type_required_check)
 
+        media_hint = (
+            "Optional: drag and drop new video/image to replace media"
+            if self._editing
+            else "Drag and drop video/image (mp4, avif, gif, png, jpeg…)"
+        )
         self._media_drop = FileDropWidget(
             form_group,
             name_filter=MEDIA_FILE_FILTER,
             allowed_extensions=EXERCISE_MEDIA_EXTENSIONS,
-            hint_text="Drag and drop video/image (mp4, avif, gif, png, jpeg…)",
+            hint_text=media_hint,
             dialog_title="Select exercise media",
             path_filter=is_exercise_media_path,
         )
@@ -232,6 +273,7 @@ def __init__(
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
 
+        self._populate_initial()
         self._name_edit.setFocus()
 ```
 

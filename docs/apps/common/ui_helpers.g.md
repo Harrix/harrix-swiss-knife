@@ -16,6 +16,7 @@ lang: en
 - [🔧 Function `commit_table_editor_if_open`](#-function-commit_table_editor_if_open)
 - [🔧 Function `enumerate_stripped_non_empty_lines`](#-function-enumerate_stripped_non_empty_lines)
 - [🔧 Function `iter_stripped_non_empty_lines`](#-function-iter_stripped_non_empty_lines)
+- [🔧 Function `reveal_in_file_explorer`](#-function-reveal_in_file_explorer)
 
 </details>
 
@@ -159,6 +160,47 @@ def iter_stripped_non_empty_lines(text: str) -> Iterator[str]:
         stripped = raw_line.strip()
         if stripped:
             yield stripped
+```
+
+</details>
+
+## 🔧 Function `reveal_in_file_explorer`
+
+```python
+def reveal_in_file_explorer(path: Path | str) -> None
+```
+
+Open the system file manager with `path` selected when possible.
+
+Raises:
+
+- `FileNotFoundError`: When `path` does not exist.
+- `OSError`: When the file manager cannot be started.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def reveal_in_file_explorer(path: Path | str) -> None:
+    target = Path(path).resolve()
+    if not target.exists():
+        msg = f"Path not found: {target}"
+        raise FileNotFoundError(msg)
+
+    if sys.platform == "win32":
+        # Trailing comma after /select is required by explorer.exe.
+        subprocess.run(
+            ["explorer", "/select,", str(target)],  # noqa: S607
+            check=False,
+        )
+        return
+
+    if sys.platform == "darwin":
+        subprocess.run(["open", "-R", str(target)], check=False)  # noqa: S607
+        return
+
+    folder = target if target.is_dir() else target.parent
+    subprocess.run(["xdg-open", str(folder)], check=False)  # noqa: S607
 ```
 
 </details>

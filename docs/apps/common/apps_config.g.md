@@ -11,9 +11,35 @@ lang: en
 
 ## Contents
 
+- [🔧 Function `get_apps_fitness_image_max_size`](#-function-get_apps_fitness_image_max_size)
 - [🔧 Function `get_apps_list_limits`](#-function-get_apps_list_limits)
 - [🔧 Function `get_apps_local_language`](#-function-get_apps_local_language)
 - [🔧 Function `get_apps_local_language_display_name`](#-function-get_apps_local_language_display_name)
+
+</details>
+
+## 🔧 Function `get_apps_fitness_image_max_size`
+
+```python
+def get_apps_fitness_image_max_size(config: dict[str, Any]) -> int
+```
+
+Return max exercise image width/height in pixels from `apps.fitness_image_max_size`.
+
+Larger media is scaled down so neither side exceeds this value (default `330`).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_apps_fitness_image_max_size(config: dict[str, Any]) -> int:
+    apps = config.get("apps") or {}
+    raw = apps.get("fitness_image_max_size", DEFAULT_FITNESS_IMAGE_MAX_SIZE)
+    try:
+        return max(int(raw), 1)
+    except (TypeError, ValueError):
+        return DEFAULT_FITNESS_IMAGE_MAX_SIZE
+```
 
 </details>
 
