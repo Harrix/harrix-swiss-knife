@@ -55,15 +55,19 @@ class OnPhotoSync(ActionBase):
             OnPhotoSync._dialog.activateWindow()
             return
 
-        dialog = self._build_dialog()
+        # Show feedback before Dropbox/library work can block the UI thread.
+        self.show_toast("Starting Photo sync… Indexing may take a while.", duration=8000)
+        dialog, start_listen = self._build_dialog()
         OnPhotoSync._dialog = dialog
         dialog.show()
+        # Defer listen start so the window paints before library cache load.
+        QTimer.singleShot(0, start_listen)
 
-    def _build_dialog(self) -> QDialog:
+    def _build_dialog(self) -> tuple[QDialog, Any]:  # Any: nested start_listen callback
         dialog = QDialog()
         dialog.setWindowTitle("Photo sync")
         dialog.setWindowFlag(Qt.WindowType.WindowStaysOnTopHint, True)  # noqa: FBT003
-        dialog.resize(980, 720)
+        dialog.resize(980, 900)
         root = QVBoxLayout(dialog)
 
         tabs = QTabWidget()
@@ -259,7 +263,10 @@ class OnPhotoSync(ActionBase):
                 qr_label.setFixedSize(self._QR_MIN_PX, self._QR_MIN_PX)
                 ip_warning.clear()
 
+        library_ready_toast_shown = False
+
         def refresh_status() -> None:
+            nonlocal library_ready_toast_shown
             server = get_shared_server()
             listening = server is not None and server.is_running
             if listening != stop_btn.isEnabled():
@@ -277,12 +284,19 @@ class OnPhotoSync(ActionBase):
                     f"Uploads: {server.stats.uploads_ok} | "
                     f"{server.stats.last_message}"
                 )
+                if (
+                    not library_ready_toast_shown
+                    and server.stats.last_message.startswith("Photo library ready")
+                ):
+                    library_ready_toast_shown = True
+                    self.show_toast(server.stats.last_message, duration=4000)
             else:
                 if not listening:
                     log.clear()
                 dialog.setWindowTitle("Photo sync")
 
         def start_listen() -> None:
+            nonlocal library_ready_toast_shown
             photos_dir = save_folder(quiet=True)
             if photos_dir is None:
                 return
@@ -291,6 +305,7 @@ class OnPhotoSync(ActionBase):
                 refresh_ip_combo()
                 refresh_status()
                 return
+            self.show_toast("Indexing photo library… This can take a while.", duration=8000)
             server = PhotoSyncServer(photos_dir, port=DEFAULT_PORT)
             try:
                 server.start()
@@ -303,9 +318,10 @@ class OnPhotoSync(ActionBase):
                 )
                 return
             set_shared_server(server)
+            library_ready_toast_shown = False
             self.add_line(f"Photo sync listening on port {DEFAULT_PORT}")
             self.add_line(f"Confirm code: {server.confirm_code}")
-            self.show_toast("Photo sync listening")
+            self.show_toast("Photo sync listening. Indexing continues in background…", duration=5000)
             refresh_ip_combo(keep_selection=False)
             refresh_status()
 
@@ -334,8 +350,6 @@ class OnPhotoSync(ActionBase):
         refresh_ip_combo(keep_selection=False)
         update_pairing_ui()
         refresh_status()
-        # Open ready to pair: start the LAN receiver unless it is already running.
-        start_listen()
 
         def on_finished() -> None:
             timer.stop()
@@ -343,7 +357,7 @@ class OnPhotoSync(ActionBase):
                 OnPhotoSync._dialog = None
 
         dialog.finished.connect(on_finished)
-        return dialog
+        return dialog, start_listen
 
     def _configured_folder_display(self) -> str:
         raw = (self.config.get(self.CONFIG_FOLDER_KEY) or "").strip()
@@ -436,9 +450,13 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
             OnPhotoSync._dialog.activateWindow()
             return
 
-        dialog = self._build_dialog()
+        # Show feedback before Dropbox/library work can block the UI thread.
+        self.show_toast("Starting Photo sync… Indexing may take a while.", duration=8000)
+        dialog, start_listen = self._build_dialog()
         OnPhotoSync._dialog = dialog
         dialog.show()
+        # Defer listen start so the window paints before library cache load.
+        QTimer.singleShot(0, start_listen)
 ```
 
 </details>
