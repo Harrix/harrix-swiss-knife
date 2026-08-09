@@ -69,6 +69,7 @@ _Figure 1: Screenshot_
   - 📱 Build Android APK in … ꟲᴸᴵ
   - 🔬 Check Android code in … ꟲᴸᴵ
   - ✨ Format Android code in … ꟲᴸᴵ
+  - ⚙️ Photo sync settings
 - **VS Code**
   - 🔬 Check VS Code extension ꟲᴸᴵ
   - ✨ Format VS Code extension ꟲᴸᴵ
@@ -77,7 +78,6 @@ _Figure 1: Screenshot_
 - **Images**
   - 📸 Open photos in image viewer
   - 📡 Photo sync listen (LAN)
-  - ⚙️ Photo sync settings
   - 🤖 Recognize text (AI)…
   - 🔤 Recognize text (OCR, local)…
   - 🚀 ★ Optimize images
