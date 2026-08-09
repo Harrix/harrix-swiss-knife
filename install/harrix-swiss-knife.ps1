@@ -5,7 +5,8 @@
 
 .DESCRIPTION
     Installs prerequisites (winget), clones sibling repos under InstallRoot,
-    runs uv sync, downloads ffmpeg/avif tools, and uv tool install -e.
+    runs uv sync, downloads ffmpeg/avif tools, uv tool install -e,
+    creates a desktop shortcut, and adds the app to Windows autostart.
 
 .PARAMETER InstallRoot
     Parent folder for harrix-pylib, harrix-pyssg, harrix-swiss-knife (siblings).
@@ -1457,33 +1458,36 @@ function Repair-PythonwLauncher {
     Add-Outcome -Category "installed" -Message "Repaired pythonw.exe launcher (uv #19226 workaround)"
 }
 
-function New-DesktopShortcut {
+function New-AppShortcut {
     param(
-        [string] $ProjectRoot
+        [string] $ProjectRoot,
+        [ValidateSet("Desktop", "Startup")]
+        [string] $FolderKind
     )
 
-    $desktop = [Environment]::GetFolderPath("Desktop")
-    if (-not $desktop -or -not (Test-Path -LiteralPath $desktop)) {
-        Write-Host "    Desktop folder not found; skip shortcut" -ForegroundColor DarkGray
-        Add-Outcome -Category "skipped" -Message "Desktop shortcut skipped (Desktop folder not found)"
+    $folder = [Environment]::GetFolderPath($FolderKind)
+    $label = $FolderKind.ToLowerInvariant()
+    if (-not $folder -or -not (Test-Path -LiteralPath $folder)) {
+        Write-Host "    $FolderKind folder not found; skip $label shortcut" -ForegroundColor DarkGray
+        Add-Outcome -Category "skipped" -Message "$FolderKind shortcut skipped ($FolderKind folder not found)"
         return
     }
 
     $pyw = Join-Path $ProjectRoot ".venv\Scripts\pythonw.exe"
     $mainPy = Join-Path $ProjectRoot "src\harrix_swiss_knife\main.py"
     if (-not (Test-Path -LiteralPath $pyw)) {
-        Write-Host "    pythonw.exe not found ($pyw); skip shortcut" -ForegroundColor Yellow
-        Add-Outcome -Category "skipped" -Message "Desktop shortcut skipped (pythonw.exe not found)"
+        Write-Host "    pythonw.exe not found ($pyw); skip $label shortcut" -ForegroundColor Yellow
+        Add-Outcome -Category "skipped" -Message "$FolderKind shortcut skipped (pythonw.exe not found)"
         return
     }
     if (-not (Test-Path -LiteralPath $mainPy)) {
-        Write-Host "    main.py not found ($mainPy); skip shortcut" -ForegroundColor Yellow
-        Add-Outcome -Category "skipped" -Message "Desktop shortcut skipped (main.py not found)"
+        Write-Host "    main.py not found ($mainPy); skip $label shortcut" -ForegroundColor Yellow
+        Add-Outcome -Category "skipped" -Message "$FolderKind shortcut skipped (main.py not found)"
         return
     }
 
     try {
-        $lnkPath = Join-Path $desktop "Harrix Swiss Knife.lnk"
+        $lnkPath = Join-Path $folder "Harrix Swiss Knife.lnk"
         $wsh = New-Object -ComObject WScript.Shell
         $lnk = $wsh.CreateShortcut($lnkPath)
         $lnk.TargetPath = $pyw
@@ -1504,12 +1508,26 @@ function New-DesktopShortcut {
         }
         $lnk.Save()
         Write-Host "    Shortcut created: $lnkPath"
-        Add-Outcome -Category "installed" -Message "Desktop shortcut created ($lnkPath)"
+        Add-Outcome -Category "installed" -Message "$FolderKind shortcut created ($lnkPath)"
     }
     catch {
-        Write-Warning "    Could not create desktop shortcut: $($_.Exception.Message)"
-        Add-Outcome -Category "skipped" -Message "Desktop shortcut failed: $($_.Exception.Message)"
+        Write-Warning "    Could not create $label shortcut: $($_.Exception.Message)"
+        Add-Outcome -Category "skipped" -Message "$FolderKind shortcut failed: $($_.Exception.Message)"
     }
+}
+
+function New-DesktopShortcut {
+    param(
+        [string] $ProjectRoot
+    )
+    New-AppShortcut -ProjectRoot $ProjectRoot -FolderKind Desktop
+}
+
+function New-StartupShortcut {
+    param(
+        [string] $ProjectRoot
+    )
+    New-AppShortcut -ProjectRoot $ProjectRoot -FolderKind Startup
 }
 
 try {
@@ -1900,6 +1918,9 @@ try {
 
     Write-Step "Desktop shortcut"
     New-DesktopShortcut -ProjectRoot $hsk
+
+    Write-Step "Windows autostart (Startup folder)"
+    New-StartupShortcut -ProjectRoot $hsk
 
     # Download large binaries at the very end so a failure doesn't block installation.
     if (-not $SkipBinaries) {
