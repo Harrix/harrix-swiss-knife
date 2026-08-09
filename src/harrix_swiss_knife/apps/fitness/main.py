@@ -4532,15 +4532,11 @@ class MainWindow(
         # Add context menu for exercises table
         self.tableView_exercises.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.tableView_exercises.customContextMenuRequested.connect(self._show_exercises_context_menu)
-        with contextlib.suppress(TypeError, RuntimeError):
-            self.tableView_exercises.doubleClicked.disconnect(self._on_exercises_table_double_clicked)
         self.tableView_exercises.doubleClicked.connect(self._on_exercises_table_double_clicked)
 
         # Add context menu for exercise types table
         self.tableView_exercise_types.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.tableView_exercise_types.customContextMenuRequested.connect(self._show_exercise_types_context_menu)
-        with contextlib.suppress(TypeError, RuntimeError):
-            self.tableView_exercise_types.doubleClicked.disconnect(self._on_exercise_types_table_double_clicked)
         self.tableView_exercise_types.doubleClicked.connect(self._on_exercise_types_table_double_clicked)
 
         # Add context menu for weight table
