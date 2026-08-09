@@ -193,7 +193,6 @@ dependencies {
     implementation(libs.coil.compose)
     implementation(libs.androidx.exifinterface)
     implementation(libs.okhttp)
-    implementation(libs.zxing.android.embedded)
     debugImplementation(libs.androidx.compose.ui.tooling)
     detektPlugins(libs.detekt.compose.rules)
 }

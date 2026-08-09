@@ -9,13 +9,11 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
@@ -34,7 +32,6 @@ import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material.icons.filled.VideoLibrary
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.DropdownMenu
@@ -79,13 +76,14 @@ import dev.harrix.hsk.ui.gallery.GalleryCleanerScreen
 import dev.harrix.hsk.ui.gallery.VideoCleanerScreen
 import dev.harrix.hsk.ui.medicinesearch.MedicineSearchScreen
 import dev.harrix.hsk.ui.photoeditor.PhotoEditorScreen
-import dev.harrix.hsk.ui.photosync.PhotoSyncScreen
 import dev.harrix.hsk.ui.settings.SettingsScreen
 import dev.harrix.hsk.ui.settings.SettingsSection
 import dev.harrix.hsk.ui.speechtotext.SpeechToTextScreen
 import dev.harrix.hsk.ui.theme.AppLanguage
 import dev.harrix.hsk.ui.theme.HskAndroidTheme
 import dev.harrix.hsk.ui.theme.ThemeMode
+import dev.harrix.hsk.ui.theme.hskScaffoldContentWindowInsets
+import dev.harrix.hsk.ui.theme.hskTopAppBarColors
 import kotlinx.coroutines.launch
 
 private val UtilityCardMinHeight = 104.dp
@@ -104,7 +102,6 @@ private enum class AppDestination {
     GalleryCleaner,
     VideoCleaner,
     PhotoEditor,
-    PhotoSync,
     SpeechToText,
     MedicineSearch,
 }
@@ -190,12 +187,6 @@ fun MainScreen(
                 destination = AppDestination.PhotoEditor,
             ),
             UtilityCardItem(
-                titleRes = R.string.nav_drawer_photo_sync,
-                descriptionRes = R.string.photo_sync_card_description,
-                icon = Icons.Filled.Sync,
-                destination = AppDestination.PhotoSync,
-            ),
-            UtilityCardItem(
                 titleRes = R.string.nav_drawer_speech_to_text,
                 descriptionRes = R.string.speech_to_text_card_description,
                 icon = Icons.Filled.Mic,
@@ -240,15 +231,6 @@ fun MainScreen(
                     },
                     initialUri = photoEditorInitialUri,
                     onInitialUriConsume = { photoEditorInitialUri = null },
-                    settingsRevision = settingsRevision,
-                    modifier = Modifier.fillMaxSize(),
-                )
-            }
-
-            AppDestination.PhotoSync -> {
-                PhotoSyncScreen(
-                    onClose = { destination = AppDestination.Home },
-                    onOpenSettings = { settingsSection = SettingsSection.PhotoSync },
                     settingsRevision = settingsRevision,
                     modifier = Modifier.fillMaxSize(),
                 )
@@ -302,7 +284,7 @@ fun MainScreen(
                     },
                 ) {
                     Scaffold(
-                        contentWindowInsets = WindowInsets.safeDrawing,
+                        contentWindowInsets = hskScaffoldContentWindowInsets(),
                         topBar = {
                             TopAppBar(
                                 title = {
@@ -313,6 +295,7 @@ fun MainScreen(
                                         modifier = Modifier.fillMaxWidth(),
                                     )
                                 },
+                                colors = hskTopAppBarColors(),
                                 navigationIcon = {
                                     IconButton(
                                         onClick = {
@@ -596,12 +579,6 @@ private fun AppNavigationDrawerContent(
             selected = selected == AppDestination.PhotoEditor,
             onClick = { onNavigate(AppDestination.PhotoEditor) },
             icon = Icons.Filled.Crop,
-        )
-        DrawerNavItem(
-            label = stringResource(R.string.nav_drawer_photo_sync),
-            selected = selected == AppDestination.PhotoSync,
-            onClick = { onNavigate(AppDestination.PhotoSync) },
-            icon = Icons.Filled.Sync,
         )
         DrawerNavItem(
             label = stringResource(R.string.nav_drawer_speech_to_text),

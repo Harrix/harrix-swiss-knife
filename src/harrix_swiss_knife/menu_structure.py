@@ -7,7 +7,6 @@ from typing import Any
 from harrix_swiss_knife.actions.android.android_build import OnAndroidBuild
 from harrix_swiss_knife.actions.android.android_check import OnAndroidCheck
 from harrix_swiss_knife.actions.android.android_format import OnAndroidFormat
-from harrix_swiss_knife.actions.android.photo_sync import OnPhotoSync
 from harrix_swiss_knife.actions.apps.finance import OnFinance
 from harrix_swiss_knife.actions.apps.fitness import OnFitness
 from harrix_swiss_knife.actions.apps.food import OnFood
@@ -142,7 +141,6 @@ def get_menu_structure() -> list[Any]:
                 OnAndroidFormat,
                 OnAndroidCheck,
                 OnAndroidBuild,
-                OnPhotoSync,
             ],
         ),
         (

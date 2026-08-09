@@ -72,10 +72,6 @@ class AppConfig(TypedDict, total=False):
     compact_mode: bool
     android_build_variant: str
     path_photos: str
-    photo_sync_port: int
-    photo_sync_auto_listen: bool
-    photo_sync_token: str
-    photo_sync_confirm_code: str
 ```
 
 </details>

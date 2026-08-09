@@ -69,7 +69,6 @@ _Figure 1: Screenshot_
   - 📱 Build Android APK in … ꟲᴸᴵ
   - 🔬 Check Android code in … ꟲᴸᴵ
   - ✨ Format Android code in … ꟲᴸᴵ
-  - 📡 Photo sync
 - **VS Code**
   - 🔬 Check VS Code extension ꟲᴸᴵ
   - ✨ Format VS Code extension ꟲᴸᴵ

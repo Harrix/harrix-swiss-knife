@@ -21,7 +21,6 @@ lang: en
   - [⚙️ Method `on_add_food_log`](#%EF%B8%8F-method-on_add_food_log)
   - [⚙️ Method `on_check_problematic_records`](#%EF%B8%8F-method-on_check_problematic_records)
   - [⚙️ Method `on_clear_food_manual_name`](#%EF%B8%8F-method-on_clear_food_manual_name)
-  - [⚙️ Method `on_favorite_food_item_selection_changed`](#%EF%B8%8F-method-on_favorite_food_item_selection_changed)
   - [⚙️ Method `on_food_add_by_voice`](#%EF%B8%8F-method-on_food_add_by_voice)
   - [⚙️ Method `on_food_add_with_ai`](#%EF%B8%8F-method-on_food_add_with_ai)
   - [⚙️ Method `on_food_item_double_clicked`](#%EF%B8%8F-method-on_food_item_double_clicked)
@@ -73,8 +72,6 @@ Attributes:
   table, mapping table names to tuples of (table view widget, model key, column headers).
 - `food_items_list_model` (`QStandardItemModel | None`): Model for the food items list view.
   Defaults to `None` until initialized.
-- `favorite_food_items_list_model` (`QStandardItemModel | None`): Model for the favorite food items list view.
-  Defaults to `None` until initialized.
 
 <details>
 <summary>Code:</summary>
@@ -115,9 +112,6 @@ class MainWindow(
 
         # Food items list model
         self.food_items_list_model: QStandardItemModel | None = None
-
-        # Favorite food items list model
-        self.favorite_food_items_list_model: QStandardItemModel | None = None
 
         # Table models dictionary
         self.models: dict[str, QSortFilterProxyModel | None] = {
@@ -177,7 +171,6 @@ class MainWindow(
         self._connect_signals()
         self._init_food_log_table_delegates()
         self._init_food_items_list()
-        self._init_favorite_food_items_list()
         self.set_today_date()  # Set current date in dateEdit_food
         self.update_food_data()
         self._setup_window_size_and_position()
@@ -468,32 +461,6 @@ class MainWindow(
         # Move focus back to the cleared field
         self.lineEdit_food_manual_name.setFocus()
 
-    def on_favorite_food_item_selection_changed(self, current: QModelIndex, _previous: QModelIndex) -> None:
-        """Handle favorite food item selection change in the list view.
-
-        Args:
-
-        - `current` (`QModelIndex`): Current selected index.
-        - `_previous` (`QModelIndex`): Previously selected index.
-
-        """
-        if not current.isValid():
-            return
-
-        # Clear selection in main food items list to avoid conflicts
-        main_selection_model = self.listView_food_items.selectionModel()
-        if main_selection_model:
-            main_selection_model.blockSignals(True)  # noqa: FBT003
-            main_selection_model.clearSelection()
-            main_selection_model.blockSignals(False)  # noqa: FBT003
-
-        # Get food item from favorite list
-        if self.favorite_food_items_list_model:
-            item = self.favorite_food_items_list_model.itemFromIndex(current)
-            if item:
-                food_name = extract_food_name_from_display(item.text())
-                self._process_food_item_selection(food_name)
-
     def on_food_add_by_voice(self) -> None:
         """Record speech, transcribe via BotHub, convert to food log TSV, then open preview dialog."""
         recording_dialog = SimpleRecordingDialog(self)
@@ -605,7 +572,7 @@ class MainWindow(
         if self._food_item_dialog_open:
             return
 
-        food_item, _source_list = self._get_current_selected_food_item()
+        food_item = self._get_current_selected_food_item()
         if not food_item:
             return
 
@@ -869,7 +836,7 @@ class MainWindow(
         self._start_bothub_worker(prompt_text, on_success)
 
     def on_main_food_item_selection_changed(self, current: QModelIndex, _previous: QModelIndex) -> None:
-        """Handle main food item selection change in the list view.
+        """Handle food item selection change in the list view.
 
         Args:
 
@@ -880,14 +847,6 @@ class MainWindow(
         if not current.isValid():
             return
 
-        # Clear selection in favorite food items list to avoid conflicts
-        favorite_selection_model = self.listView_favorite_food_items.selectionModel()
-        if favorite_selection_model:
-            favorite_selection_model.blockSignals(True)  # noqa: FBT003
-            favorite_selection_model.clearSelection()
-            favorite_selection_model.blockSignals(False)  # noqa: FBT003
-
-        # Get food item from main list
         if self.food_items_list_model:
             item = self.food_items_list_model.itemFromIndex(current)
             if item:
@@ -1113,8 +1072,7 @@ class MainWindow(
 
         # Update food items list
         self._update_food_items_list()
-        self._update_favorite_food_items_list()
-        self._update_autocomplete_data()  # Add this line
+        self._update_autocomplete_data()
         self.update_food_calories_today()
         self.show_tables()
 
@@ -1475,21 +1433,11 @@ class MainWindow(
 
     def _connect_table_selection_signals(self) -> None:
         """Connect selection change signals for all tables."""
-        # Connect food items list selection with separate handlers
         selection_model = self.listView_food_items.selectionModel()
         if selection_model:
             selection_model.currentChanged.connect(self.on_main_food_item_selection_changed)
 
-        # Connect favorite food items list selection with separate handler
-        selection_model = self.listView_favorite_food_items.selectionModel()
-        if selection_model:
-            selection_model.currentChanged.connect(self.on_favorite_food_item_selection_changed)
-
-        # Connect food items list double click
         self.listView_food_items.doubleClicked.connect(self.on_food_item_double_clicked)
-
-        # Connect favorite food items list double click
-        self.listView_favorite_food_items.doubleClicked.connect(self.on_food_item_double_clicked)
 
         # Connect food log table cell click
         self.tableView_food_log.clicked.connect(self.on_food_log_table_cell_clicked)
@@ -1992,12 +1940,6 @@ class MainWindow(
             self.food_items_list_model.deleteLater()
         self.food_items_list_model = None
 
-        # favorite food items list-view
-        self.listView_favorite_food_items.setModel(None)
-        if self.favorite_food_items_list_model is not None:
-            self.favorite_food_items_list_model.deleteLater()
-        self.favorite_food_items_list_model = None
-
         # Dispose autocomplete completer
         if hasattr(self, "food_completer") and self.food_completer is not None:
             self.food_completer.deleteLater()
@@ -2012,7 +1954,7 @@ class MainWindow(
             self.food_completer_source_model = None
 
     def _filter_food_items(self, text: str) -> None:
-        """Filter food items lists based on input text.
+        """Filter food items list based on input text.
 
         Args:
 
@@ -2020,21 +1962,9 @@ class MainWindow(
 
         """
         if not text:
-            # If text is empty, show all items
             self._show_all_food_items()
             return
 
-        # Filter favorite food items
-        if self.favorite_food_items_list_model:
-            for i in range(self.favorite_food_items_list_model.rowCount()):
-                item = self.favorite_food_items_list_model.item(i)
-                if item:
-                    self.listView_favorite_food_items.setRowHidden(
-                        i,
-                        not text_matches_autocomplete(item.text(), text),
-                    )
-
-        # Filter main food items
         if self.food_items_list_model:
             for i in range(self.food_items_list_model.rowCount()):
                 item = self.food_items_list_model.item(i)
@@ -2096,61 +2026,23 @@ class MainWindow(
             limit = 1000
         return max(1, limit)
 
-    def _get_current_selected_food_item(self) -> tuple[str | None, str]:
-        """Get the currently selected food item from either list view.
+    def _get_current_selected_food_item(self) -> str | None:
+        """Get the currently selected food item name from the list view.
 
         Returns:
 
-        - `tuple[str | None, str]`: Tuple of (food_name, source_list) where source_list is either `main` or `favorite`.
+        - `str | None`: Selected food name, or `None` if nothing is selected.
 
         """
-        # Check which widget currently has focus or was last clicked
-        focused_widget = QApplication.focusWidget()
-
-        # Check favorite food items list first if it has focus
-        if focused_widget == self.listView_favorite_food_items:
-            selection_model = self.listView_favorite_food_items.selectionModel()
-            if selection_model and self.favorite_food_items_list_model:
-                current_index = selection_model.currentIndex()
-                if current_index.isValid():
-                    item = self.favorite_food_items_list_model.itemFromIndex(current_index)
-                    if item:
-                        food_name = extract_food_name_from_display(item.text())
-                        return food_name, "favorite"
-
-        # Check main food items list if it has focus
-        elif focused_widget == self.listView_food_items:
-            selection_model = self.listView_food_items.selectionModel()
-            if selection_model and self.food_items_list_model:
-                current_index = selection_model.currentIndex()
-                if current_index.isValid():
-                    item = self.food_items_list_model.itemFromIndex(current_index)
-                    if item:
-                        food_name = extract_food_name_from_display(item.text())
-                        return food_name, "main"
-
-        # Fallback: check both lists for current selection
-        # Check favorite food items list first
-        selection_model = self.listView_favorite_food_items.selectionModel()
-        if selection_model and self.favorite_food_items_list_model:
-            current_index = selection_model.currentIndex()
-            if current_index.isValid():
-                item = self.favorite_food_items_list_model.itemFromIndex(current_index)
-                if item:
-                    food_name = extract_food_name_from_display(item.text())
-                    return food_name, "favorite"
-
-        # Check main food items list if nothing selected in favorite list
         selection_model = self.listView_food_items.selectionModel()
         if selection_model and self.food_items_list_model:
             current_index = selection_model.currentIndex()
             if current_index.isValid():
                 item = self.food_items_list_model.itemFromIndex(current_index)
                 if item:
-                    food_name = extract_food_name_from_display(item.text())
-                    return food_name, "main"
+                    return extract_food_name_from_display(item.text())
 
-        return None, ""
+        return None
 
     def _init_database(self) -> None:
         """Open the SQLite file from app config (create from `recover.sql` if missing)."""
@@ -2165,16 +2057,6 @@ class MainWindow(
             has_required_tables=lambda dm: dm.table_exists("food_log"),
             missing_table_label="food_log table",
         )
-
-    def _init_favorite_food_items_list(self) -> None:
-        """Initialize the favorite food items list view with a model and connect signals."""
-        self.favorite_food_items_list_model = QStandardItemModel()
-        self.listView_favorite_food_items.setModel(self.favorite_food_items_list_model)
-
-        # Connect selection change signal after model is set
-        selection_model = self.listView_favorite_food_items.selectionModel()
-        if selection_model:
-            selection_model.currentChanged.connect(self.on_favorite_food_item_selection_changed)
 
     def _init_food_items_list(self) -> None:
         """Initialize the food items list view with a model and connect signals."""
@@ -2770,13 +2652,7 @@ class MainWindow(
         QWidget.setTabOrder(self.pushButton_food_add, self.pushButton_food_manual_name_clear)
 
     def _show_all_food_items(self) -> None:
-        """Show all food items in both lists (remove filtering)."""
-        # Show all favorite food items
-        if self.favorite_food_items_list_model:
-            for i in range(self.favorite_food_items_list_model.rowCount()):
-                self.listView_favorite_food_items.setRowHidden(i, False)  # noqa: FBT003
-
-        # Show all main food items
+        """Show all food items in the list (remove filtering)."""
         if self.food_items_list_model:
             for i in range(self.food_items_list_model.rowCount()):
                 self.listView_food_items.setRowHidden(i, False)  # noqa: FBT003
@@ -3293,47 +3169,6 @@ class MainWindow(
             logger.exception("Error updating drinks chart")
             message_box.warning(self, "Chart Error", f"Failed to create drinks chart: {e}")
 
-    def _update_favorite_food_items_list(self) -> None:
-        """Refresh favorite food items list view with popular items from database."""
-        if not self._validate_database_connection():
-            logger.warning("Database manager not available or connection not open")
-            return
-
-        if self.db_manager is None:
-            logger.error("❌ Database manager is not initialized")
-            return
-
-        try:
-            # Get popular food items with calories data (top 22)
-            popular_food_items_data = self.db_manager.get_popular_food_items_with_calories(500)[:22]
-
-            # Block signals during model update
-            selection_model = self.listView_favorite_food_items.selectionModel()
-            if selection_model:
-                selection_model.blockSignals(True)  # noqa: FBT003
-
-            # Update favorite food items list model
-            if self.favorite_food_items_list_model is not None:
-                self.favorite_food_items_list_model.clear()
-                for food_item_row in popular_food_items_data:
-                    food_name = food_item_row[1]  # name is at index 1
-                    calories_per_100g = food_item_row[4]
-                    default_portion_calories = food_item_row[6]
-
-                    # Format display name with calories info
-                    display_name = format_food_name_with_calories(
-                        food_name, calories_per_100g, default_portion_calories
-                    )
-                    item = QStandardItem(display_name)
-                    self.favorite_food_items_list_model.appendRow(item)
-
-            # Unblock signals
-            if selection_model:
-                selection_model.blockSignals(False)  # noqa: FBT003
-
-        except Exception:
-            logger.exception("Error updating favorite food items list")
-
     def _update_food_calories_chart(self) -> None:
         """Update the food calories chart with data from database."""
         if not self._validate_database_connection():
@@ -3613,9 +3448,6 @@ def __init__(self, *, hide_on_close: bool = False) -> None:  # noqa: D107
         # Food items list model
         self.food_items_list_model: QStandardItemModel | None = None
 
-        # Favorite food items list model
-        self.favorite_food_items_list_model: QStandardItemModel | None = None
-
         # Table models dictionary
         self.models: dict[str, QSortFilterProxyModel | None] = {
             "food_log": None,
@@ -3674,7 +3506,6 @@ def __init__(self, *, hide_on_close: bool = False) -> None:  # noqa: D107
         self._connect_signals()
         self._init_food_log_table_delegates()
         self._init_food_items_list()
-        self._init_favorite_food_items_list()
         self.set_today_date()  # Set current date in dateEdit_food
         self.update_food_data()
         self._setup_window_size_and_position()
@@ -4071,44 +3902,6 @@ def on_clear_food_manual_name(self) -> None:
 
 </details>
 
-### ⚙️ Method `on_favorite_food_item_selection_changed`
-
-```python
-def on_favorite_food_item_selection_changed(self, current: QModelIndex, _previous: QModelIndex) -> None
-```
-
-Handle favorite food item selection change in the list view.
-
-Args:
-
-- `current` (`QModelIndex`): Current selected index.
-- `_previous` (`QModelIndex`): Previously selected index.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def on_favorite_food_item_selection_changed(self, current: QModelIndex, _previous: QModelIndex) -> None:
-        if not current.isValid():
-            return
-
-        # Clear selection in main food items list to avoid conflicts
-        main_selection_model = self.listView_food_items.selectionModel()
-        if main_selection_model:
-            main_selection_model.blockSignals(True)  # noqa: FBT003
-            main_selection_model.clearSelection()
-            main_selection_model.blockSignals(False)  # noqa: FBT003
-
-        # Get food item from favorite list
-        if self.favorite_food_items_list_model:
-            item = self.favorite_food_items_list_model.itemFromIndex(current)
-            if item:
-                food_name = extract_food_name_from_display(item.text())
-                self._process_food_item_selection(food_name)
-```
-
-</details>
-
 ### ⚙️ Method `on_food_add_by_voice`
 
 ```python
@@ -4256,7 +4049,7 @@ def on_food_item_double_clicked(self, _index: QModelIndex) -> None:
         if self._food_item_dialog_open:
             return
 
-        food_item, _source_list = self._get_current_selected_food_item()
+        food_item = self._get_current_selected_food_item()
         if not food_item:
             return
 
@@ -4666,7 +4459,7 @@ def on_kcal_with_ai(self) -> None:
 def on_main_food_item_selection_changed(self, current: QModelIndex, _previous: QModelIndex) -> None
 ```
 
-Handle main food item selection change in the list view.
+Handle food item selection change in the list view.
 
 Args:
 
@@ -4681,14 +4474,6 @@ def on_main_food_item_selection_changed(self, current: QModelIndex, _previous: Q
         if not current.isValid():
             return
 
-        # Clear selection in favorite food items list to avoid conflicts
-        favorite_selection_model = self.listView_favorite_food_items.selectionModel()
-        if favorite_selection_model:
-            favorite_selection_model.blockSignals(True)  # noqa: FBT003
-            favorite_selection_model.clearSelection()
-            favorite_selection_model.blockSignals(False)  # noqa: FBT003
-
-        # Get food item from main list
         if self.food_items_list_model:
             item = self.food_items_list_model.itemFromIndex(current)
             if item:
@@ -5047,8 +4832,7 @@ def update_food_data(self) -> None:
 
         # Update food items list
         self._update_food_items_list()
-        self._update_favorite_food_items_list()
-        self._update_autocomplete_data()  # Add this line
+        self._update_autocomplete_data()
         self.update_food_calories_today()
         self.show_tables()
 ```

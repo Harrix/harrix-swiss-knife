@@ -56,7 +56,6 @@ class Ui_MainWindow(object):
         self.groupBox_food_today.setTitle(QCoreApplication.translate("MainWindow", u"Today", None))
         self.label_food_today.setText(QCoreApplication.translate("MainWindow", u"0", None))
         self.label_food_items.setText(QCoreApplication.translate("MainWindow", u"Food Items:", None))
-        self.label_favorite_food_items.setText(QCoreApplication.translate("MainWindow", u"Food Favorite Items:", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_food), QCoreApplication.translate("MainWindow", u"Food", None))
         self.label.setText(QCoreApplication.translate("MainWindow", u"Kcal per day:", None))
         self.label_food_stats_from.setText(QCoreApplication.translate("MainWindow", u"From:", None))
@@ -380,32 +379,6 @@ class Ui_MainWindow(object):
 "                                }")
 
         self.verticalLayout_food_middle.addWidget(self.listView_food_items)
-
-        self.label_favorite_food_items = QLabel(self.widget_food_middle)
-        self.label_favorite_food_items.setObjectName(u"label_favorite_food_items")
-
-        self.verticalLayout_food_middle.addWidget(self.label_favorite_food_items)
-
-        self.listView_favorite_food_items = QListView(self.widget_food_middle)
-        self.listView_favorite_food_items.setObjectName(u"listView_favorite_food_items")
-        self.listView_favorite_food_items.setStyleSheet(u"QListView {\n"
-"                                border: 2px solid #2196F3;\n"
-"                                border-radius: 4px;\n"
-"                                background-color: white;\n"
-"                                }\n"
-"                                QListView::item {\n"
-"                                padding: 4px;\n"
-"                                border-bottom: 1px solid #e0e0e0;\n"
-"                                }\n"
-"                                QListView::item:selected {\n"
-"                                background-color: #e3f2fd;\n"
-"                                color: black;\n"
-"                                }\n"
-"                                QListView::item:hover {\n"
-"                                background-color: #bbdefb;\n"
-"                                }")
-
-        self.verticalLayout_food_middle.addWidget(self.listView_favorite_food_items)
 
         self.splitter_food.addWidget(self.widget_food_middle)
         self.tableView_food_log = QTableView(self.splitter_food)

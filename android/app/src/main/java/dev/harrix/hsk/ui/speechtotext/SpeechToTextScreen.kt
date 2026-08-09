@@ -15,12 +15,10 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -74,6 +72,8 @@ import dev.harrix.hsk.speechtotext.WaveformBucket
 import dev.harrix.hsk.ui.AutoFitText
 import dev.harrix.hsk.ui.CompactBottomActionButton
 import dev.harrix.hsk.ui.adaptiveBottomBarWidth
+import dev.harrix.hsk.ui.theme.hskScaffoldContentWindowInsets
+import dev.harrix.hsk.ui.theme.hskTopAppBarColors
 private enum class MicAction {
     Start,
     Continue,
@@ -186,7 +186,7 @@ fun SpeechToTextScreen(
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
-        contentWindowInsets = WindowInsets.safeDrawing,
+        contentWindowInsets = hskScaffoldContentWindowInsets(),
         topBar = {
             TopAppBar(
                 title = {
@@ -195,6 +195,7 @@ fun SpeechToTextScreen(
                         maxLines = 1,
                     )
                 },
+                colors = hskTopAppBarColors(),
                 navigationIcon = {
                     IconButton(
                         onClick = { leave() },

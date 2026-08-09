@@ -9,12 +9,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -59,6 +57,8 @@ import dev.harrix.hsk.R
 import dev.harrix.hsk.ui.AutoFitText
 import dev.harrix.hsk.ui.SimpleMarkdownText
 import dev.harrix.hsk.ui.adaptiveContentWidth
+import dev.harrix.hsk.ui.theme.hskScaffoldContentWindowInsets
+import dev.harrix.hsk.ui.theme.hskTopAppBarColors
 import kotlinx.coroutines.delay
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -133,7 +133,7 @@ fun MedicineSearchScreen(
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
-        contentWindowInsets = WindowInsets.safeDrawing,
+        contentWindowInsets = hskScaffoldContentWindowInsets(),
         topBar = {
             TopAppBar(
                 title = {
@@ -142,6 +142,7 @@ fun MedicineSearchScreen(
                         maxLines = 1,
                     )
                 },
+                colors = hskTopAppBarColors(),
                 navigationIcon = {
                     IconButton(onClick = { leave() }) {
                         Icon(

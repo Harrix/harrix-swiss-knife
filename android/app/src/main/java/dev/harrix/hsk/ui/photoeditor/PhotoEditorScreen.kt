@@ -14,13 +14,11 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -65,6 +63,8 @@ import dev.harrix.hsk.gallery.GalleryCleanerPreferences
 import dev.harrix.hsk.gallery.GalleryPermissions
 import dev.harrix.hsk.ui.AutoFitText
 import dev.harrix.hsk.ui.gallery.EditablePhotoHost
+import dev.harrix.hsk.ui.theme.hskScaffoldContentWindowInsets
+import dev.harrix.hsk.ui.theme.hskTopAppBarColors
 import dev.harrix.hsk.ui.videoGridColumnCount
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -201,7 +201,7 @@ fun PhotoEditorScreen(
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
-        contentWindowInsets = WindowInsets.safeDrawing,
+        contentWindowInsets = hskScaffoldContentWindowInsets(),
         topBar = {
             TopAppBar(
                 title = {
@@ -210,6 +210,7 @@ fun PhotoEditorScreen(
                         maxLines = 1,
                     )
                 },
+                colors = hskTopAppBarColors(),
                 navigationIcon = {
                     IconButton(onClick = { leaveEditor() }) {
                         Icon(

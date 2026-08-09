@@ -15,12 +15,10 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -29,7 +27,6 @@ import androidx.compose.material.icons.filled.Medication
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.filled.Security
-import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -86,13 +83,13 @@ import dev.harrix.hsk.gallery.GalleryReviewOrder
 import dev.harrix.hsk.gallery.MediaFolderPaths
 import dev.harrix.hsk.medicinesearch.MedicineSearchPreferences
 import dev.harrix.hsk.medicinesearch.MedicinesNoteOpener
-import dev.harrix.hsk.photosync.PhotoSyncFormat
-import dev.harrix.hsk.photosync.PhotoSyncStatsStore
 import dev.harrix.hsk.ui.AutoFitText
 import dev.harrix.hsk.ui.adaptiveContentWidth
 import dev.harrix.hsk.ui.isCompactWidth
 import dev.harrix.hsk.ui.theme.AppLanguage
 import dev.harrix.hsk.ui.theme.ThemeMode
+import dev.harrix.hsk.ui.theme.hskScaffoldContentWindowInsets
+import dev.harrix.hsk.ui.theme.hskTopAppBarColors
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -106,7 +103,6 @@ enum class SettingsSection {
     GalleryCleaner,
     VideoCleaner,
     MedicineSearch,
-    PhotoSync,
 }
 
 /**
@@ -118,7 +114,6 @@ private enum class HskSettingsPage {
     General,
     Gallery,
     MedicineSearch,
-    PhotoSync,
     Other,
 }
 
@@ -161,7 +156,6 @@ fun SettingsScreen(
     val appPreferences = remember { AppPreferences(context.applicationContext) }
     val galleryPreferences = remember { GalleryCleanerPreferences(context.applicationContext) }
     val medicinePreferences = remember { MedicineSearchPreferences(context.applicationContext) }
-    val photoSyncStatsStore = remember { PhotoSyncStatsStore(context.applicationContext) }
     var settingsEpoch by rememberSaveable { mutableIntStateOf(0) }
     var resetMessage by rememberSaveable { mutableStateOf<String?>(null) }
     var page by rememberSaveable(section) {
@@ -171,7 +165,6 @@ fun SettingsScreen(
                 SettingsSection.GalleryCleaner -> HskSettingsPage.Gallery
                 SettingsSection.VideoCleaner -> HskSettingsPage.Hub
                 SettingsSection.MedicineSearch -> HskSettingsPage.MedicineSearch
-                SettingsSection.PhotoSync -> HskSettingsPage.PhotoSync
             },
         )
     }
@@ -186,8 +179,6 @@ fun SettingsScreen(
 
             HskSettingsPage.MedicineSearch ->
                 stringResource(R.string.settings_medicine_search_title)
-
-            HskSettingsPage.PhotoSync -> stringResource(R.string.settings_photo_sync_title)
 
             HskSettingsPage.Other -> stringResource(R.string.settings_other_title)
         }
@@ -206,7 +197,7 @@ fun SettingsScreen(
 
     Scaffold(
         modifier = modifier,
-        contentWindowInsets = WindowInsets.safeDrawing,
+        contentWindowInsets = hskScaffoldContentWindowInsets(),
         topBar = {
             TopAppBar(
                 title = {
@@ -215,6 +206,7 @@ fun SettingsScreen(
                         maxLines = 1,
                     )
                 },
+                colors = hskTopAppBarColors(),
                 navigationIcon = {
                     IconButton(onClick = { goBack() }) {
                         Icon(
@@ -254,12 +246,6 @@ fun SettingsScreen(
                         summary = stringResource(R.string.settings_medicine_search_summary),
                         icon = Icons.Filled.Medication,
                         onClick = { page = HskSettingsPage.MedicineSearch },
-                    )
-                    SettingsHubRow(
-                        title = stringResource(R.string.settings_photo_sync_title),
-                        summary = stringResource(R.string.settings_photo_sync_summary),
-                        icon = Icons.Filled.Sync,
-                        onClick = { page = HskSettingsPage.PhotoSync },
                     )
                     SettingsCategoryHeader(text = stringResource(R.string.settings_category_essential))
                     key(settingsEpoch) {
@@ -309,21 +295,6 @@ fun SettingsScreen(
                     key(settingsEpoch) {
                         MedicineSearchSettingsSection(
                             preferences = medicinePreferences,
-                        )
-                    }
-                    if (onOpenAllSettings != null && section != SettingsSection.All) {
-                        TextButton(onClick = onOpenAllSettings) {
-                            AutoFitText(text = stringResource(R.string.settings_open_all), maxLines = 2)
-                        }
-                    }
-                }
-            }
-
-            HskSettingsPage.PhotoSync -> {
-                SettingsDetailPane(innerPadding = innerPadding) {
-                    key(settingsEpoch) {
-                        PhotoSyncSettingsSection(
-                            statsStore = photoSyncStatsStore,
                         )
                     }
                     if (onOpenAllSettings != null && section != SettingsSection.All) {
@@ -667,51 +638,6 @@ private fun GeneralSettingsSection(modifier: Modifier = Modifier) {
         manageMediaTipMessage?.let { message ->
             Text(
                 text = message,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-    }
-}
-
-@Composable
-private fun PhotoSyncSettingsSection(
-    statsStore: PhotoSyncStatsStore,
-    modifier: Modifier = Modifier,
-) {
-    var stats by remember { mutableStateOf(statsStore.load()) }
-    var resetDone by remember { mutableStateOf(false) }
-    Column(
-        modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        SettingsSectionHeader(text = stringResource(R.string.settings_photo_sync_stats))
-        Text(
-            text =
-            stringResource(
-                R.string.photo_sync_lifetime_summary,
-                stats.syncCount,
-                stats.photosUploaded,
-                PhotoSyncFormat.formatBytes(stats.bytesUploaded),
-            ),
-            style = MaterialTheme.typography.bodyMedium,
-        )
-        Text(
-            text = stringResource(R.string.settings_photo_sync_reset_hint),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        SettingsFullWidthOutlinedButton(
-            onClick = {
-                statsStore.reset()
-                stats = statsStore.load()
-                resetDone = true
-            },
-            label = stringResource(R.string.settings_photo_sync_reset_stats),
-        )
-        if (resetDone) {
-            Text(
-                text = stringResource(R.string.settings_photo_sync_reset_done),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
