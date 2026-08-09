@@ -214,6 +214,15 @@ def run_tray_application(log: logging.Logger, *, main_menu_cls: type[MainMenuBas
             log.info("Showing main window on startup")
             tray_icon.ensure_main_window().show_window()
 
+        def start_photo_sync_auto_listen() -> None:
+            try:
+                maybe_start_auto_listen(config)
+            except Exception:
+                log.exception("Photo sync auto-listen failed to start")
+
+        # Defer so the tray/menu paint before Dropbox library warm-up work.
+        QTimer.singleShot(0, start_photo_sync_auto_listen)
+
     QTimer.singleShot(0, finish_startup)
     QTimer.singleShot(0, prune_action_output_dir)
 

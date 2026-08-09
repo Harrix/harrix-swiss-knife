@@ -195,6 +195,9 @@
   "path_last_note_folder": "<YOUR_LAST_NOTE_FOLDER>",
   "path_notes": "<YOUR_NOTES_FOLDER>",
   "path_photos": "<YOUR_PHOTOS_FOLDER>",
+  "photo_sync_auto_listen": true,
+  "photo_sync_token": "",
+  "photo_sync_confirm_code": "",
   "path_quotes": "<YOUR_QUOTES_FOLDER>",
   "path_totalcmd_ini": "<YOUR_TOTALCMD_WINCMD_INI>",
   "paths_combine_for_ai": [

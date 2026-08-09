@@ -28,6 +28,7 @@ from harrix_swiss_knife.global_hotkey import GlobalHotkeyManager
 from harrix_swiss_knife.main_menu_base import set_menu_tooltips_visible_recursive
 from harrix_swiss_knife.menu_structure import get_menu_structure
 from harrix_swiss_knife.paths import get_config_path_str, prune_action_output_dir
+from harrix_swiss_knife.photo_sync.auto_listen import maybe_start_auto_listen
 from harrix_swiss_knife.tray_icon import TrayIcon
 
 if TYPE_CHECKING:
@@ -181,6 +182,15 @@ def run_tray_application(log: logging.Logger, *, main_menu_cls: type[MainMenuBas
         if show_main_window:
             log.info("Showing main window on startup")
             tray_icon.ensure_main_window().show_window()
+
+        def start_photo_sync_auto_listen() -> None:
+            try:
+                maybe_start_auto_listen(config)
+            except Exception:
+                log.exception("Photo sync auto-listen failed to start")
+
+        # Defer so the tray/menu paint before Dropbox library warm-up work.
+        QTimer.singleShot(0, start_photo_sync_auto_listen)
 
     QTimer.singleShot(0, finish_startup)
     QTimer.singleShot(0, prune_action_output_dir)

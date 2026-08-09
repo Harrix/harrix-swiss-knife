@@ -55,8 +55,10 @@ class OnPhotoSync(ActionBase):
             OnPhotoSync._dialog.activateWindow()
             return
 
-        # Paint toast before any dialog work so the user sees feedback immediately.
-        self.show_toast("Starting Photo sync… Indexing may take a while.", duration=12000)
+        already_listening = (server := get_shared_server()) is not None and server.is_running
+        if not already_listening:
+            # Paint toast before any dialog work so the user sees feedback immediately.
+            self.show_toast("Starting Photo sync… Indexing may take a while.", duration=12000)
         app = QApplication.instance()
         if app is not None:
             app.processEvents()
@@ -307,6 +309,7 @@ class OnPhotoSync(ActionBase):
                 return
             existing = get_shared_server()
             if existing is not None and existing.is_running:
+                attach_progress(existing)
                 refresh_ip_combo()
                 refresh_status()
                 return
@@ -315,32 +318,36 @@ class OnPhotoSync(ActionBase):
             app = QApplication.instance()
             if app is not None:
                 app.processEvents()
-            server = PhotoSyncServer(photos_dir, port=DEFAULT_PORT)
-            try:
-                server.start()
-            except OSError as exc:
+            credentials = load_saved_credentials(dict(self.config))
+            token = credentials[0] if credentials is not None else None
+            confirm_code = credentials[1] if credentials is not None else None
+            started = start_shared_listener(
+                photos_dir,
+                token=token,
+                confirm_code=confirm_code,
+                persist=True,
+            )
+            if not started:
                 QMessageBox.warning(
                     dialog,
                     "Photo sync",
-                    f"Cannot listen on port {DEFAULT_PORT}:\n{exc}\n\n"
+                    f"Cannot listen on port {DEFAULT_PORT}.\n\n"
                     "Check Windows Firewall or free the port.",
                 )
                 return
-            set_shared_server(server)
+            server = get_shared_server()
             library_ready_toast_shown = False
             self.add_line(f"Photo sync listening on port {DEFAULT_PORT}")
-            self.add_line(f"Confirm code: {server.confirm_code}")
+            if server is not None:
+                self.add_line(f"Confirm code: {server.confirm_code}")
             self.show_toast("Photo sync listening. Indexing continues in background…", duration=5000)
             refresh_ip_combo(keep_selection=False)
             refresh_status()
 
         def stop_listen(*, quiet: bool = False) -> None:
             server = get_shared_server()
-            was_running = False
-            if server is not None and server.is_running:
-                server.stop()
-                was_running = True
-            set_shared_server(None)
+            was_running = server is not None and server.is_running
+            stop_shared_listener()
             if quiet:
                 return
             if was_running:
@@ -367,8 +374,9 @@ class OnPhotoSync(ActionBase):
 
         def on_finished() -> None:
             timer.stop()
-            # Closing the window ends the session: phone can no longer sync.
-            stop_listen(quiet=True)
+            # Auto-listen keeps the server running after the dialog closes.
+            if not is_auto_listen_enabled(dict(self.config)):
+                stop_listen(quiet=True)
             if OnPhotoSync._dialog is dialog:
                 OnPhotoSync._dialog = None
 
@@ -466,8 +474,10 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
             OnPhotoSync._dialog.activateWindow()
             return
 
-        # Paint toast before any dialog work so the user sees feedback immediately.
-        self.show_toast("Starting Photo sync… Indexing may take a while.", duration=12000)
+        already_listening = (server := get_shared_server()) is not None and server.is_running
+        if not already_listening:
+            # Paint toast before any dialog work so the user sees feedback immediately.
+            self.show_toast("Starting Photo sync… Indexing may take a while.", duration=12000)
         app = QApplication.instance()
         if app is not None:
             app.processEvents()

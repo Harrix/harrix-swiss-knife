@@ -20,8 +20,12 @@ lang: en
   - [⚙️ Method `start`](#%EF%B8%8F-method-start)
   - [⚙️ Method `stop`](#%EF%B8%8F-method-stop)
 - [🏛️ Class `SyncStats`](#%EF%B8%8F-class-syncstats)
+  - [⚙️ Method `begin_session`](#%EF%B8%8F-method-begin_session)
+  - [⚙️ Method `end_session`](#%EF%B8%8F-method-end_session)
   - [⚙️ Method `note`](#%EF%B8%8F-method-note)
   - [⚙️ Method `record_phone`](#%EF%B8%8F-method-record_phone)
+  - [⚙️ Method `record_session_item`](#%EF%B8%8F-method-record_session_item)
+  - [⚙️ Method `session_in_progress (property)`](#%EF%B8%8F-method-session_in_progress-property)
 - [🔧 Function `get_phone_connection_info`](#-function-get_phone_connection_info)
 - [🔧 Function `get_shared_server`](#-function-get_shared_server)
 - [🔧 Function `remember_phone_activity`](#-function-remember_phone_activity)
@@ -64,13 +68,27 @@ Tokenized LAN HTTP server that receives photos into `photos_dir`.
 ```python
 class PhotoSyncServer:
 
-    def __init__(self, photos_dir: Path, port: int = DEFAULT_PORT) -> None:
-        """Create a stopped server that will write into `photos_dir`."""
+    def __init__(
+        self,
+        photos_dir: Path,
+        port: int = DEFAULT_PORT,
+        *,
+        token: str | None = None,
+        confirm_code: str | None = None,
+    ) -> None:
+        """Create a stopped server that will write into `photos_dir`.
+
+        When `token` / `confirm_code` are provided (and non-empty), they are reused
+        so a phone that already paired can reconnect after an app restart.
+
+        """
         self.photos_dir = photos_dir
         self.port = port
-        self.token = secrets.token_urlsafe(18)
+        cleaned_token = (token or "").strip()
+        cleaned_code = (confirm_code or "").strip()
+        self.token = cleaned_token or secrets.token_urlsafe(18)
         # Shown on the PC next to the QR; phone must pick the matching number.
-        self.confirm_code = new_confirm_code()
+        self.confirm_code = cleaned_code or new_confirm_code()
         self.stats = SyncStats()
         self.library = PhotosLibrary(photos_dir)
         self._httpd: ThreadingHTTPServer | None = None
@@ -211,6 +229,7 @@ class PhotoSyncServer:
                     items,
                     find_existing_hash=server.library.find_relative_path,
                 )
+                server.stats.begin_session(len(needed))
                 server.stats.note(f"Manifest: {len(items)} items, {len(needed)} needed")
                 server._notify()
                 self._json_response(200, {"needed": needed})
@@ -272,6 +291,7 @@ class PhotoSyncServer:
                 if existing_path and reuse is None:
                     index.upsert(media_id, content_hash=digest, filename=existing_path)
                     server.stats.note(f"Skipped (already in library): {existing_path}")
+                    server.stats.record_session_item()
                     server._notify()
                     self._json_response(200, {"filename": existing_path, "status": "exists"})
                     return
@@ -308,6 +328,7 @@ class PhotoSyncServer:
                 server.library.remember(filename, digest)
                 server.stats.uploads_ok += 1
                 server.stats.uploads_bytes += length
+                server.stats.record_session_item()
                 server._notify()
                 self._json_response(200, {"filename": filename, "status": "saved"})
 
@@ -361,21 +382,33 @@ class PhotoSyncServer:
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, photos_dir: Path, port: int = DEFAULT_PORT) -> None
+def __init__(self, photos_dir: Path, port: int = DEFAULT_PORT, *, token: str | None = None, confirm_code: str | None = None) -> None
 ```
 
 Create a stopped server that will write into `photos_dir`.
+
+When `token` / `confirm_code` are provided (and non-empty), they are reused
+so a phone that already paired can reconnect after an app restart.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def __init__(self, photos_dir: Path, port: int = DEFAULT_PORT) -> None:
+def __init__(
+        self,
+        photos_dir: Path,
+        port: int = DEFAULT_PORT,
+        *,
+        token: str | None = None,
+        confirm_code: str | None = None,
+    ) -> None:
         self.photos_dir = photos_dir
         self.port = port
-        self.token = secrets.token_urlsafe(18)
+        cleaned_token = (token or "").strip()
+        cleaned_code = (confirm_code or "").strip()
+        self.token = cleaned_token or secrets.token_urlsafe(18)
         # Shown on the PC next to the QR; phone must pick the matching number.
-        self.confirm_code = new_confirm_code()
+        self.confirm_code = cleaned_code or new_confirm_code()
         self.stats = SyncStats()
         self.library = PhotosLibrary(photos_dir)
         self._httpd: ThreadingHTTPServer | None = None
@@ -522,7 +555,7 @@ def stop(self) -> None:
 class SyncStats
 ```
 
-Runtime counters for the listening dialog.
+Runtime counters for the listening dialog and transfer toast.
 
 <details>
 <summary>Code:</summary>
@@ -537,6 +570,20 @@ class SyncStats:
     last_phone_device_id: str = ""
     last_phone_at: float | None = None
     last_phone_event: str = ""
+    session_total: int = 0
+    session_done: int = 0
+    session_active: bool = False
+
+    def begin_session(self, total: int) -> None:
+        """Start a transfer session from a manifest `needed` count."""
+        count = max(0, int(total))
+        self.session_total = count
+        self.session_done = 0
+        self.session_active = count > 0
+
+    def end_session(self) -> None:
+        """Mark the current transfer session as inactive."""
+        self.session_active = False
 
     def note(self, message: str) -> None:
         """Append a short status line (keeps the last `_MAX_LOG_LINES`)."""
@@ -551,6 +598,58 @@ class SyncStats:
         self.last_phone_at = time.time()
         self.last_phone_event = event
         remember_phone_activity(device_id, event)
+
+    def record_session_item(self) -> None:
+        """Count one finished upload (or library hit) toward the open session."""
+        if self.session_total <= 0:
+            return
+        self.session_done = min(self.session_done + 1, self.session_total)
+        if self.session_done >= self.session_total:
+            self.session_active = False
+
+    @property
+    def session_in_progress(self) -> bool:
+        """`True` while a transfer batch has remaining items (or just started)."""
+        return self.session_total > 0 and self.session_done < self.session_total
+```
+
+</details>
+
+### ⚙️ Method `begin_session`
+
+```python
+def begin_session(self, total: int) -> None
+```
+
+Start a transfer session from a manifest `needed` count.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def begin_session(self, total: int) -> None:
+        count = max(0, int(total))
+        self.session_total = count
+        self.session_done = 0
+        self.session_active = count > 0
+```
+
+</details>
+
+### ⚙️ Method `end_session`
+
+```python
+def end_session(self) -> None
+```
+
+Mark the current transfer session as inactive.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def end_session(self) -> None:
+        self.session_active = False
 ```
 
 </details>
@@ -593,6 +692,46 @@ def record_phone(self, device_id: str, event: str) -> None:
         self.last_phone_at = time.time()
         self.last_phone_event = event
         remember_phone_activity(device_id, event)
+```
+
+</details>
+
+### ⚙️ Method `record_session_item`
+
+```python
+def record_session_item(self) -> None
+```
+
+Count one finished upload (or library hit) toward the open session.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def record_session_item(self) -> None:
+        if self.session_total <= 0:
+            return
+        self.session_done = min(self.session_done + 1, self.session_total)
+        if self.session_done >= self.session_total:
+            self.session_active = False
+```
+
+</details>
+
+### ⚙️ Method `session_in_progress (property)`
+
+```python
+def session_in_progress(self) -> bool
+```
+
+`True` while a transfer batch has remaining items (or just started).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def session_in_progress(self) -> bool:
+        return self.session_total > 0 and self.session_done < self.session_total
 ```
 
 </details>
