@@ -126,7 +126,8 @@
     <string name="photo_sync_card_description">Send Camera photos to the desktop app over the same Wi-Fi network.</string>
     <string name="photo_sync_title">Photo Sync</string>
     <string name="photo_sync_close">Close Photo Sync</string>
-    <string name="photo_sync_intro">Start Photo sync listen on the computer, scan the QR code, then choose the confirmation number shown on the computer.</string>
+        <string name="photo_sync_intro">Start Photo sync on the computer, scan the QR code, then choose the confirmation number shown on the computer.</string>
+    <string name="photo_sync_network_hint">Use the same Wi-Fi network on phone and computer. Turn VPN off - it often blocks local LAN connections.</string>
     <string name="photo_sync_scan_qr">Scan QR</string>
     <string name="photo_sync_scan_prompt">Scan the QR from the desktop Photo sync dialog</string>
     <string name="photo_sync_confirm_title">Confirm pairing</string>

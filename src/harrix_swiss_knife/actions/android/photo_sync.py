@@ -1,4 +1,4 @@
-"""LAN Photo Sync: folder/port settings, listen, QR pairing, and phone status."""
+"""LAN Photo Sync: listen UI, QR pairing, folder settings, phone status."""
 
 from __future__ import annotations
 
@@ -18,9 +18,11 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QMessageBox,
     QPushButton,
-    QSpinBox,
+    QScrollArea,
+    QTabWidget,
     QTextEdit,
     QVBoxLayout,
+    QWidget,
 )
 
 from harrix_swiss_knife.actions.common.base import ActionBase
@@ -40,30 +42,30 @@ from harrix_swiss_knife.photo_sync.server import (
 
 
 class OnPhotoSync(ActionBase):
-    """Photo Sync settings, LAN listener, QR pairing, and phone connection status.
+    """Photo Sync listen UI with QR pairing; folder path lives on a Settings tab.
 
-    Configures `path_photos` / `photo_sync_port`, starts the receiver, and shows the
-    QR + confirmation number for the Android app.
+    Uses a fixed listen port (`DEFAULT_PORT`). The port is embedded in the QR, so
+    neither desktop nor phone needs a port field.
 
     """
 
     icon = "📡"
     title = "Photo sync"
-    description = "LAN Photo Sync: folder, listen, QR pairing, phone status"
+    description = "LAN Photo Sync: listen, QR pairing, phone status"
     cli_available = False
     _dialog: ClassVar[QDialog | None] = None
 
     CONFIG_FOLDER_KEY = "path_photos"
-    CONFIG_PORT_KEY = "photo_sync_port"
-    _MAX_TCP_PORT = 65535
     _PHONE_ACTIVE_SECONDS = 45
     _SECONDS_PER_MINUTE = 60
     _DEVICE_ID_SHORT_LEN = 16
     _DEVICE_ID_PREFIX_LEN = 12
+    _QR_BOX_SIZE = 12
+    _QR_MIN_PX = 360
 
     @ActionBase.handle_exceptions("photo sync")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Open the combined Photo Sync dialog."""
+        """Open the Photo Sync dialog."""
         if OnPhotoSync._dialog is not None:
             OnPhotoSync._dialog.raise_()
             OnPhotoSync._dialog.activateWindow()
@@ -77,78 +79,99 @@ class OnPhotoSync(ActionBase):
         dialog = QDialog()
         dialog.setWindowTitle("Photo sync")
         dialog.setWindowFlag(Qt.WindowType.WindowStaysOnTopHint, True)  # noqa: FBT003
-        dialog.resize(560, 780)
-        layout = QVBoxLayout(dialog)
+        dialog.resize(560, 820)
+        root = QVBoxLayout(dialog)
+
+        tabs = QTabWidget()
+        root.addWidget(tabs, stretch=1)
+
+        listen_page = QWidget()
+        listen_layout = QVBoxLayout(listen_page)
 
         title = QLabel("Photo Sync")
         title.setStyleSheet("font-size: 16px; font-weight: 600;")
-        layout.addWidget(title)
+        listen_layout.addWidget(title)
 
         hint = QLabel(
-            "Save the photos folder, start listening, then scan the QR on the phone "
-            "and choose the confirmation number shown here."
+            "Start listening, scan the QR on the phone, then choose the confirmation "
+            "number shown below. Both devices must be on the same Wi-Fi (VPN off)."
         )
         hint.setWordWrap(True)
-        layout.addWidget(hint)
-
-        form = QFormLayout()
-        folder_edit = QLineEdit((self.config.get(self.CONFIG_FOLDER_KEY) or "").strip())
-        folder_row = QHBoxLayout()
-        folder_row.addWidget(folder_edit, stretch=1)
-        browse_btn = QPushButton("Browse…")
-        folder_row.addWidget(browse_btn)
-        form.addRow("Photos folder:", folder_row)
-
-        port_spin = QSpinBox()
-        port_spin.setRange(1, self._MAX_TCP_PORT)
-        port_spin.setValue(self._configured_port())
-        form.addRow("Listen port:", port_spin)
-        layout.addLayout(form)
+        listen_layout.addWidget(hint)
 
         listen_row = QHBoxLayout()
         start_btn = QPushButton("Start listening")
         stop_btn = QPushButton("Stop listening")
-        save_btn = QPushButton("Save settings")
         listen_row.addWidget(start_btn)
         listen_row.addWidget(stop_btn)
-        listen_row.addWidget(save_btn)
-        layout.addLayout(listen_row)
+        listen_layout.addLayout(listen_row)
 
         code_label = QLabel("—")
         code_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         code_label.setStyleSheet("font-size: 56px; font-weight: 700; letter-spacing: 4px;")
-        layout.addWidget(code_label)
+        listen_layout.addWidget(code_label)
 
         ip_row = QHBoxLayout()
         ip_combo = QComboBox()
         ip_combo.setMinimumWidth(180)
         ip_row.addWidget(QLabel("QR host IP:"))
         ip_row.addWidget(ip_combo, stretch=1)
-        layout.addLayout(ip_row)
+        listen_layout.addLayout(ip_row)
 
         ip_warning = QLabel()
         ip_warning.setWordWrap(True)
         ip_warning.setStyleSheet("color: #a60;")
-        layout.addWidget(ip_warning)
+        listen_layout.addWidget(ip_warning)
 
         qr_label = QLabel()
         qr_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        qr_label.setMinimumHeight(220)
-        layout.addWidget(qr_label)
+        qr_label.setMinimumSize(self._QR_MIN_PX, self._QR_MIN_PX)
+        qr_label.setStyleSheet("background: white; border: 1px solid #ccc;")
+        listen_layout.addWidget(qr_label, stretch=0, alignment=Qt.AlignmentFlag.AlignHCenter)
 
         status = QLabel()
         status.setWordWrap(True)
         status.setTextFormat(Qt.TextFormat.RichText)
         status.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
-        layout.addWidget(status)
+        listen_layout.addWidget(status)
 
         log = QTextEdit()
         log.setReadOnly(True)
-        log.setMinimumHeight(100)
-        layout.addWidget(log, stretch=1)
+        log.setMaximumHeight(110)
+        listen_layout.addWidget(log)
+
+        listen_scroll = QScrollArea()
+        listen_scroll.setWidgetResizable(True)
+        listen_scroll.setFrameShape(QScrollArea.Shape.NoFrame)
+        listen_scroll.setWidget(listen_page)
+        tabs.addTab(listen_scroll, "Listen")
+
+        settings_page = QWidget()
+        settings_layout = QVBoxLayout(settings_page)
+        settings_hint = QLabel(
+            "Photos folder for incoming Camera sync. New files go into the folder root; "
+            f"existing files are matched by hash in all subfolders. Listen port is fixed "
+            f"({DEFAULT_PORT}) and sent inside the QR code."
+        )
+        settings_hint.setWordWrap(True)
+        settings_layout.addWidget(settings_hint)
+
+        form = QFormLayout()
+        folder_edit = QLineEdit(self._configured_folder_display())
+        folder_row = QHBoxLayout()
+        folder_row.addWidget(folder_edit, stretch=1)
+        browse_btn = QPushButton("Browse…")
+        folder_row.addWidget(browse_btn)
+        form.addRow("Photos folder:", folder_row)
+        settings_layout.addLayout(form)
+
+        save_btn = QPushButton("Save folder")
+        settings_layout.addWidget(save_btn)
+        settings_layout.addStretch(1)
+        tabs.addTab(settings_page, "Settings")
 
         close_btn = QPushButton("Close")
-        layout.addWidget(close_btn)
+        root.addWidget(close_btn)
 
         def browse() -> None:
             chosen = self.dialogs.get_existing_directory(
@@ -156,12 +179,13 @@ class OnPhotoSync(ActionBase):
                 folder_edit.text().strip() or str(Path.home()),
             )
             if chosen is not None:
-                folder_edit.setText(str(chosen))
+                folder_edit.setText(self._path_for_config(chosen))
 
-        def save_settings(*, quiet: bool = False) -> Path | None:
+        def save_folder(*, quiet: bool = False) -> Path | None:
             folder = folder_edit.text().strip().strip("\"'")
             if not folder:
                 QMessageBox.warning(dialog, "Photo sync", "Photos folder cannot be empty.")
+                tabs.setCurrentIndex(1)
                 return None
             path = Path(folder).expanduser()
             if not path.exists():
@@ -169,21 +193,20 @@ class OnPhotoSync(ActionBase):
                     path.mkdir(parents=True, exist_ok=True)
                 except OSError as exc:
                     QMessageBox.warning(dialog, "Photo sync", f"Cannot create folder:\n{exc}")
+                    tabs.setCurrentIndex(1)
                     return None
             if not path.is_dir():
                 QMessageBox.warning(dialog, "Photo sync", "Selected path is not a folder.")
+                tabs.setCurrentIndex(1)
                 return None
-            resolved = str(path.resolve())
-            port = int(port_spin.value())
-            self._save_config_value(self.CONFIG_FOLDER_KEY, resolved)
-            self._save_config_value(self.CONFIG_PORT_KEY, port)
+            stored = self._path_for_config(path.resolve())
+            self._save_config_value(self.CONFIG_FOLDER_KEY, stored)
             self.invalidate_config_cache()
-            folder_edit.setText(resolved)
+            folder_edit.setText(stored)
             if not quiet:
-                self.add_line(f"Photo sync folder: {resolved}")
-                self.add_line(f"Photo sync port: {port}")
-                self.show_toast("Photo sync settings saved")
-            return Path(resolved)
+                self.add_line(f"Photo sync folder: {stored}")
+                self.show_toast("Photo sync folder saved")
+            return Path(stored)
 
         def refresh_ip_combo(*, keep_selection: bool = True) -> None:
             current = ip_combo.currentText().strip()
@@ -214,10 +237,21 @@ class OnPhotoSync(ActionBase):
                     token=server.token,
                     confirm_code=server.confirm_code,
                 )
-                png = make_qr_png_bytes(uri)
+                png = make_qr_png_bytes(uri, box_size=self._QR_BOX_SIZE)
                 pixmap = QPixmap()
                 pixmap.loadFromData(png)
+                if (
+                    pixmap.width() < self._QR_MIN_PX
+                    or pixmap.height() < self._QR_MIN_PX
+                ):
+                    pixmap = pixmap.scaled(
+                        self._QR_MIN_PX,
+                        self._QR_MIN_PX,
+                        Qt.AspectRatioMode.KeepAspectRatio,
+                        Qt.TransformationMode.SmoothTransformation,
+                    )
                 qr_label.setPixmap(pixmap)
+                qr_label.setFixedSize(pixmap.size())
                 if is_likely_virtual_lan_ip(host):
                     ip_warning.setText(
                         "This IP looks like a VirtualBox/VM adapter. "
@@ -229,6 +263,7 @@ class OnPhotoSync(ActionBase):
             else:
                 code_label.setText("—")
                 qr_label.clear()
+                qr_label.setFixedSize(self._QR_MIN_PX, self._QR_MIN_PX)
                 ip_warning.clear()
 
         def refresh_status() -> None:
@@ -239,7 +274,6 @@ class OnPhotoSync(ActionBase):
             status.setText(
                 self._status_html(
                     folder_edit.text().strip(),
-                    int(port_spin.value()),
                     qr_host=ip_combo.currentText().strip(),
                 )
             )
@@ -256,7 +290,7 @@ class OnPhotoSync(ActionBase):
                 dialog.setWindowTitle("Photo sync")
 
         def start_listen() -> None:
-            photos_dir = save_settings(quiet=True)
+            photos_dir = save_folder(quiet=True)
             if photos_dir is None:
                 return
             existing = get_shared_server()
@@ -264,20 +298,19 @@ class OnPhotoSync(ActionBase):
                 refresh_ip_combo()
                 refresh_status()
                 return
-            port = int(port_spin.value())
-            server = PhotoSyncServer(photos_dir, port=port)
+            server = PhotoSyncServer(photos_dir, port=DEFAULT_PORT)
             try:
                 server.start()
             except OSError as exc:
                 QMessageBox.warning(
                     dialog,
                     "Photo sync",
-                    f"Cannot listen on port {port}:\n{exc}\n\n"
-                    "Check Windows Firewall or choose another port.",
+                    f"Cannot listen on port {DEFAULT_PORT}:\n{exc}\n\n"
+                    "Check Windows Firewall or free the port.",
                 )
                 return
             set_shared_server(server)
-            self.add_line(f"Photo sync listening on port {port}")
+            self.add_line(f"Photo sync listening on port {DEFAULT_PORT}")
             self.add_line(f"Confirm code: {server.confirm_code}")
             self.show_toast("Photo sync listening")
             refresh_ip_combo(keep_selection=False)
@@ -294,7 +327,7 @@ class OnPhotoSync(ActionBase):
             refresh_status()
 
         browse_btn.clicked.connect(browse)
-        save_btn.clicked.connect(lambda: save_settings(quiet=False))
+        save_btn.clicked.connect(lambda: save_folder(quiet=False))
         start_btn.clicked.connect(start_listen)
         stop_btn.clicked.connect(stop_listen)
         close_btn.clicked.connect(dialog.close)
@@ -317,15 +350,11 @@ class OnPhotoSync(ActionBase):
         dialog.finished.connect(on_finished)
         return dialog
 
-    def _configured_port(self) -> int:
-        port_raw = self.config.get(self.CONFIG_PORT_KEY, DEFAULT_PORT)
-        try:
-            port_value = int(port_raw)
-        except (TypeError, ValueError):
-            return DEFAULT_PORT
-        if not (1 <= port_value <= self._MAX_TCP_PORT):
-            return DEFAULT_PORT
-        return port_value
+    def _configured_folder_display(self) -> str:
+        raw = (self.config.get(self.CONFIG_FOLDER_KEY) or "").strip()
+        if not raw:
+            return ""
+        return self._path_for_config(Path(raw))
 
     @classmethod
     def _format_age(cls, seconds: float) -> str:
@@ -338,6 +367,11 @@ class OnPhotoSync(ActionBase):
             return f"{minutes}m {sec}s"
         hours, minutes = divmod(minutes, unit)
         return f"{hours}h {minutes}m"
+
+    @staticmethod
+    def _path_for_config(path: Path | str) -> str:
+        """Store Windows paths with forward slashes in `config.json`."""
+        return Path(path).expanduser().resolve().as_posix()
 
     @classmethod
     def _phone_status_html(cls, device_id: str, last_at: float | None, last_event: str) -> str:
@@ -363,25 +397,24 @@ class OnPhotoSync(ActionBase):
         )
 
     @classmethod
-    def _status_html(cls, configured_folder: str, configured_port: int, *, qr_host: str) -> str:
+    def _status_html(cls, configured_folder: str, *, qr_host: str) -> str:
         server = get_shared_server()
         listening = server is not None and server.is_running
         ips = list_lan_ipv4()
         ip_text = ", ".join(ips) if ips else "not detected"
         if listening and server is not None:
             listen_line = (
-                f"<b>Listener:</b> running on port {server.port}<br>"
-                f"<b>Active folder:</b> {server.photos_dir}<br>"
+                f"<b>Listener:</b> running (port {server.port})<br>"
+                f"<b>Folder:</b> {server.photos_dir.as_posix()}<br>"
                 f"<b>QR host:</b> {qr_host or '—'}<br>"
-                f"<b>Session uploads:</b> {server.stats.uploads_ok} "
-                f"({server.stats.uploads_bytes} bytes)<br>"
-                f"<b>Last server message:</b> {server.stats.last_message or '—'}"
+                f"<b>Uploads:</b> {server.stats.uploads_ok} "
+                f"({server.stats.uploads_bytes} bytes) — "
+                f"{server.stats.last_message or '—'}"
             )
         else:
             listen_line = (
                 f"<b>Listener:</b> stopped<br>"
-                f"<b>Configured folder:</b> {configured_folder or '(not set)'}<br>"
-                f"<b>Configured port:</b> {configured_port}"
+                f"<b>Folder:</b> {configured_folder or '(set in Settings tab)'}"
             )
         phone = get_phone_connection_info()
         phone_line = cls._phone_status_html(phone.device_id, phone.last_at, phone.last_event)

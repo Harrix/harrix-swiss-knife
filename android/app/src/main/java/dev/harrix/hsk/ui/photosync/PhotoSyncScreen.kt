@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.rememberScrollState
@@ -23,6 +24,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -42,6 +44,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -58,6 +61,7 @@ import dev.harrix.hsk.photosync.PhotoSyncLifetimeStats
 import dev.harrix.hsk.photosync.PhotoSyncProgress
 import dev.harrix.hsk.photosync.PhotoSyncResult
 import dev.harrix.hsk.ui.adaptiveContentWidth
+import dev.harrix.hsk.ui.theme.GreenKeep
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -203,6 +207,11 @@ fun PhotoSyncScreen(
                     text = stringResource(R.string.photo_sync_intro),
                     style = MaterialTheme.typography.bodyMedium,
                 )
+                Text(
+                    text = stringResource(R.string.photo_sync_network_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
 
                 Button(
                     onClick = { launchQrScan() },
@@ -246,31 +255,44 @@ fun PhotoSyncScreen(
                     }
                 }
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Button(
-                        onClick = {
-                            if (!hasPhotoPermission) {
-                                permissionLauncher.launch(GalleryPermissions.requiredPermission())
-                                return@Button
-                            }
-                            viewModel.startSync()
-                        },
-                        enabled = hasPhotoPermission && state.isDesktopReady,
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        Text(stringResource(R.string.photo_sync_start))
-                    }
-                    if (state.isSyncing) {
-                        OutlinedButton(
-                            onClick = viewModel::cancelSync,
-                            modifier = Modifier.weight(1f),
-                        ) {
-                            Text(stringResource(R.string.photo_sync_cancel))
+                Button(
+                    onClick = {
+                        if (!hasPhotoPermission) {
+                            permissionLauncher.launch(GalleryPermissions.requiredPermission())
+                            return@Button
                         }
+                        viewModel.startSync()
+                    },
+                    enabled = hasPhotoPermission && state.isDesktopReady,
+                    modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 64.dp),
+                    colors =
+                    ButtonDefaults.buttonColors(
+                        containerColor = GreenKeep,
+                        contentColor = Color.White,
+                        disabledContainerColor = GreenKeep.copy(alpha = 0.38f),
+                        disabledContentColor = Color.White.copy(alpha = 0.7f),
+                    ),
+                ) {
+                    Text(
+                        text = stringResource(R.string.photo_sync_start),
+                        style = MaterialTheme.typography.titleLarge,
+                    )
+                }
+                if (state.isSyncing) {
+                    OutlinedButton(
+                        onClick = viewModel::cancelSync,
+                        modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = 48.dp),
+                    ) {
+                        Text(
+                            text = stringResource(R.string.photo_sync_cancel),
+                            style = MaterialTheme.typography.titleMedium,
+                        )
                     }
                 }
 

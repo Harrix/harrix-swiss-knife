@@ -126,7 +126,8 @@
     <string name="photo_sync_card_description">Отправка фото из папки камеры на компьютер по той же сети Wi-Fi.</string>
     <string name="photo_sync_title">Синхронизация фото</string>
     <string name="photo_sync_close">Закрыть синхронизацию фото</string>
-    <string name="photo_sync_intro">Запустите Photo sync listen на компьютере, отсканируйте QR-код и выберите число подтверждения с экрана компьютера.</string>
+    <string name="photo_sync_intro">Запустите Photo sync на компьютере, отсканируйте QR-код и выберите число подтверждения с экрана компьютера.</string>
+    <string name="photo_sync_network_hint">Телефон и компьютер должны быть в одной сети Wi-Fi. Отключите VPN - он часто мешает локальным подключениям.</string>
     <string name="photo_sync_scan_qr">Сканировать QR</string>
     <string name="photo_sync_scan_prompt">Отсканируйте QR из окна Photo sync на компьютере</string>
     <string name="photo_sync_confirm_title">Подтверждение сопряжения</string>
