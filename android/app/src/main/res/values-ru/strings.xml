@@ -140,6 +140,7 @@
     <string name="photo_sync_grant_photos">Разрешить доступ к фото</string>
     <string name="photo_sync_start">Синхронизировать</string>
     <string name="photo_sync_cancel">Отмена</string>
+    <string name="photo_sync_desktop_gone">Photo sync на компьютере остановлен. Откройте Photo sync на ПК и при необходимости снова отсканируйте QR.</string>
     <string name="photo_sync_phase_handshake">Подключение…</string>
     <string name="photo_sync_phase_scan">Сканирование папки камеры…</string>
     <string name="photo_sync_phase_hash">Хеширование %1$d / %2$d</string>

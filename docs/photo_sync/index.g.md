@@ -126,7 +126,6 @@ class DeviceSyncIndex:
                 self._entries[str(media_id)] = IndexEntry(content_hash=content_hash, filename=filename)
 
     def _save_unlocked(self) -> None:
-        self._path.parent.mkdir(parents=True, exist_ok=True)
         payload = {
             "deviceId": self._device_id,
             "items": {
@@ -134,9 +133,10 @@ class DeviceSyncIndex:
                 for media_id, entry in sorted(self._entries.items())
             },
         }
-        tmp = self._path.with_suffix(".tmp")
-        tmp.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-        tmp.replace(self._path)
+        write_text_replacing(
+            self._path,
+            json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
+        )
 ```
 
 </details>

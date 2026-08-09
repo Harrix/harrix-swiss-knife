@@ -140,6 +140,7 @@
     <string name="photo_sync_grant_photos">Grant photo access</string>
     <string name="photo_sync_start">Sync now</string>
     <string name="photo_sync_cancel">Cancel</string>
+    <string name="photo_sync_desktop_gone">Desktop Photo sync stopped. Open Photo sync on the computer and scan the QR again if needed.</string>
     <string name="photo_sync_phase_handshake">Connecting…</string>
     <string name="photo_sync_phase_scan">Scanning Camera folder…</string>
     <string name="photo_sync_phase_hash">Hashing %1$d / %2$d</string>

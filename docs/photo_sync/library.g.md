@@ -219,11 +219,11 @@ class PhotosLibrary:
             logger.info("Photo library scan skipped %s cloud-only placeholder file(s)", skipped_cloud)
 
     def _save_cache_unlocked(self) -> None:
-        self._cache_path.parent.mkdir(parents=True, exist_ok=True)
         payload = {"files": dict(sorted(self._file_cache.items()))}
-        tmp = self._cache_path.with_suffix(".tmp")
-        tmp.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-        tmp.replace(self._cache_path)
+        write_text_replacing(
+            self._cache_path,
+            json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
+        )
 ```
 
 </details>

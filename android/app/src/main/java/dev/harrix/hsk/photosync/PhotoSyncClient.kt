@@ -1,15 +1,21 @@
 package dev.harrix.hsk.photosync
 
+import kotlinx.coroutines.suspendCancellableCoroutine
+import okhttp3.Call
+import okhttp3.Callback
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.Response
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.IOException
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import java.util.concurrent.TimeUnit
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 
 class PhotoSyncClient(
     private val endpoint: PhotoSyncEndpoint,
@@ -17,10 +23,10 @@ class PhotoSyncClient(
     private val httpClient: OkHttpClient =
         OkHttpClient
             .Builder()
-            .connectTimeout(15, TimeUnit.SECONDS)
+            .connectTimeout(10, TimeUnit.SECONDS)
             // Manifest can wait while the desktop indexes a large Dropbox folder.
             .readTimeout(300, TimeUnit.SECONDS)
-            .writeTimeout(300, TimeUnit.SECONDS)
+            .writeTimeout(120, TimeUnit.SECONDS)
             .callTimeout(360, TimeUnit.SECONDS)
             .build(),
 ) {
@@ -36,14 +42,14 @@ class PhotoSyncClient(
     private val baseUrl: String
         get() = "http://${endpoint.host}:${endpoint.port}"
 
-    fun checkHealth() {
+    suspend fun checkHealth() {
         val request =
             Request
                 .Builder()
                 .url("$baseUrl/v1/health")
                 .get()
                 .build()
-        httpClient.newCall(request).execute().use { response ->
+        execute(request).use { response ->
             if (!response.isSuccessful) {
                 throw IOException("Health check failed: HTTP ${response.code}")
             }
@@ -54,7 +60,7 @@ class PhotoSyncClient(
         }
     }
 
-    fun handshake() {
+    suspend fun handshake() {
         val body =
             JSONObject()
                 .put("token", endpoint.token)
@@ -68,7 +74,7 @@ class PhotoSyncClient(
                 .url("$baseUrl/v1/handshake")
                 .post(body)
                 .build()
-        httpClient.newCall(request).execute().use { response ->
+        execute(request).use { response ->
             if (!response.isSuccessful) {
                 throw IOException("Handshake failed: HTTP ${response.code}")
             }
@@ -79,7 +85,7 @@ class PhotoSyncClient(
         }
     }
 
-    fun requestNeeded(items: List<ManifestItem>): List<String> {
+    suspend fun requestNeeded(items: List<ManifestItem>): List<String> {
         val array = JSONArray()
         for (item in items) {
             array.put(
@@ -105,7 +111,7 @@ class PhotoSyncClient(
                 .url("$baseUrl/v1/manifest")
                 .post(body)
                 .build()
-        httpClient.newCall(request).execute().use { response ->
+        execute(request).use { response ->
             if (!response.isSuccessful) {
                 throw IOException("Manifest failed: HTTP ${response.code}")
             }
@@ -119,7 +125,7 @@ class PhotoSyncClient(
         }
     }
 
-    fun upload(
+    suspend fun upload(
         item: ManifestItem,
         bytes: ByteArray,
     ): String {
@@ -140,13 +146,45 @@ class PhotoSyncClient(
                 .put(bytes.toRequestBody(OCTET_MEDIA))
                 .header("Content-Type", "application/octet-stream")
                 .build()
-        httpClient.newCall(request).execute().use { response ->
+        execute(request).use { response ->
             val bodyText = response.body?.string().orEmpty()
             if (!response.isSuccessful) {
                 throw IOException("Upload failed: HTTP ${response.code} $bodyText")
             }
             return JSONObject(bodyText).optString("filename", item.mediaId)
         }
+    }
+
+    private suspend fun execute(request: Request): Response = suspendCancellableCoroutine { continuation ->
+        val call = httpClient.newCall(request)
+        continuation.invokeOnCancellation { call.cancel() }
+        call.enqueue(
+            object : Callback {
+                override fun onFailure(
+                    call: Call,
+                    e: IOException,
+                ) {
+                    if (continuation.isActive) {
+                        if (call.isCanceled()) {
+                            continuation.cancel()
+                        } else {
+                            continuation.resumeWithException(e)
+                        }
+                    }
+                }
+
+                override fun onResponse(
+                    call: Call,
+                    response: Response,
+                ) {
+                    if (continuation.isActive) {
+                        continuation.resume(response)
+                    } else {
+                        response.close()
+                    }
+                }
+            },
+        )
     }
 
     private fun enc(value: String): String = URLEncoder.encode(value, StandardCharsets.UTF_8.name())

@@ -5,13 +5,11 @@ import android.provider.Settings
 import dev.harrix.hsk.gallery.CameraGalleryRepository
 import dev.harrix.hsk.gallery.CameraPhoto
 import dev.harrix.hsk.gallery.GalleryCleanerPreferences
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
 import java.io.IOException
-import java.net.ConnectException
-import java.net.SocketTimeoutException
-import java.net.UnknownHostException
 import java.security.MessageDigest
 import kotlin.coroutines.coroutineContext
 
@@ -67,19 +65,13 @@ class PhotoSyncEngine(
     /**
      * True only when the desktop receiver answers a real handshake (host reachable + token OK).
      */
-    suspend fun probeConnection(endpoint: PhotoSyncEndpoint): Boolean = withContext(Dispatchers.IO) {
-        try {
-            PhotoSyncClient(endpoint, deviceId()).handshake()
-            true
-        } catch (_: ConnectException) {
-            false
-        } catch (_: SocketTimeoutException) {
-            false
-        } catch (_: UnknownHostException) {
-            false
-        } catch (_: IOException) {
-            false
-        }
+    suspend fun probeConnection(endpoint: PhotoSyncEndpoint): Boolean = try {
+        PhotoSyncClient(endpoint, deviceId()).handshake()
+        true
+    } catch (error: CancellationException) {
+        throw error
+    } catch (_: IOException) {
+        false
     }
 
     suspend fun estimatePending(endpoint: PhotoSyncEndpoint): PhotoSyncPendingEstimate = withContext(Dispatchers.IO) {
@@ -113,7 +105,11 @@ class PhotoSyncEngine(
         onProgress(
             PhotoSyncProgress(phase = "handshake", elapsedMs = elapsed()),
         )
-        client.handshake()
+        try {
+            client.handshake()
+        } catch (error: IOException) {
+            throw mapDesktopFailure(error)
+        }
 
         onProgress(PhotoSyncProgress(phase = "scan", elapsedMs = elapsed()))
         val photos = gallery.loadCameraPhotos(galleryPrefs.getImagesRelativePath())
@@ -150,7 +146,12 @@ class PhotoSyncEngine(
                 elapsedMs = elapsed(),
             ),
         )
-        val needed = client.requestNeeded(items).toSet()
+        val needed =
+            try {
+                client.requestNeeded(items).toSet()
+            } catch (error: IOException) {
+                throw mapDesktopFailure(error)
+            }
         val skipped = items.size - needed.size
         val neededItems = items.filter { it.mediaId in needed }
         val pendingBytesTotal = neededItems.sumOf { it.sizeBytes.coerceAtLeast(0L) }
@@ -191,7 +192,12 @@ class PhotoSyncEngine(
                 client.upload(uploadItem, bytes)
                 uploaded += 1
                 uploadedBytes += bytes.size.toLong()
-            } catch (_: java.io.IOException) {
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: IOException) {
+                if (PhotoSyncNetwork.isDesktopUnavailable(error)) {
+                    throw PhotoSyncDesktopGoneException()
+                }
                 failed += 1
             } catch (_: org.json.JSONException) {
                 failed += 1
@@ -251,6 +257,12 @@ class PhotoSyncEngine(
                 )
         }
         return items
+    }
+
+    private fun mapDesktopFailure(error: IOException): IOException = if (PhotoSyncNetwork.isDesktopUnavailable(error)) {
+        PhotoSyncDesktopGoneException()
+    } else {
+        error
     }
 
     private fun buildResultMessage(

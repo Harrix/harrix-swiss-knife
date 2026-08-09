@@ -211,7 +211,7 @@ Optional parameters: `-InstallRoot "D:\GitHub"`, `-SkipPrerequisites`, `-SkipBin
 
 On a **very fresh** Windows image, **winget** may be missing until you install **Microsoft App Installer** from the Microsoft Store (or otherwise install WinGet). If the deploy window closes too quickly, run `install.bat` again: the elevated PowerShell window waits for Enter after an error, and the `.bat` ends with `pause` so you can read the launcher output.
 
-The script installs Git and uv via **winget** when missing (plus VS Code if no editor is found), installs managed CPython with **`uv python install`** (pin from `.python-version`), clones **harrix-pylib**, **harrix-pyssg**, and **harrix-swiss-knife** as siblings, runs `uv sync` in each, downloads **ffmpeg** / **libavif** executables into the project root, and runs `uv tool install -e`. Install the bundled **Harrix Notes Explorer (HSK)** VS Code extension from the tray app (**Dev** → **Install or update Harrix Notes Explorer (HSK) extension**) when you want it in a specific editor.
+The script installs Git and uv via **winget** when missing (plus VS Code if no editor is found), installs managed CPython with **`uv python install`** (pin from `.python-version`), clones **harrix-pylib**, **harrix-pyssg**, and **harrix-swiss-knife** as siblings, runs `uv sync` in each, downloads **ffmpeg** / **libavif** executables into the project root, runs `uv tool install -e`, creates a desktop shortcut, and adds the app to Windows autostart (Startup folder). Install the bundled **Harrix Notes Explorer (HSK)** VS Code extension from the tray app (**Dev** → **Install or update Harrix Notes Explorer (HSK) extension**) when you want it in a specific editor.
 
 ### Installation steps (manual)
 

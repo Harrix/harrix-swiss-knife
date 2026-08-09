@@ -351,20 +351,25 @@ class OnPhotoSync(ActionBase):
             refresh_ip_combo(keep_selection=False)
             refresh_status()
 
-        def stop_listen() -> None:
+        def stop_listen(*, quiet: bool = False) -> None:
             server = get_shared_server()
+            was_running = False
             if server is not None and server.is_running:
                 server.stop()
+                was_running = True
             set_shared_server(None)
-            self.add_line("Photo sync listener stopped.")
-            self.show_toast("Photo sync stopped")
+            if quiet:
+                return
+            if was_running:
+                self.add_line("Photo sync listener stopped.")
+                self.show_toast("Photo sync stopped")
             update_pairing_ui()
             refresh_status()
 
         browse_btn.clicked.connect(browse)
         save_btn.clicked.connect(lambda: save_folder(quiet=False))
         start_btn.clicked.connect(start_listen)
-        stop_btn.clicked.connect(stop_listen)
+        stop_btn.clicked.connect(lambda: stop_listen(quiet=False))
         close_btn.clicked.connect(dialog.close)
         ip_combo.currentTextChanged.connect(lambda _text: update_pairing_ui())
 
@@ -379,6 +384,8 @@ class OnPhotoSync(ActionBase):
 
         def on_finished() -> None:
             timer.stop()
+            # Closing the window ends the session: phone can no longer sync.
+            stop_listen(quiet=True)
             if OnPhotoSync._dialog is dialog:
                 OnPhotoSync._dialog = None
 

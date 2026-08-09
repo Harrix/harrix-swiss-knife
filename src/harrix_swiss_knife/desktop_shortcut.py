@@ -7,7 +7,7 @@ import shutil
 import sys
 from pathlib import Path
 
-# Mirrors New-DesktopShortcut in install/harrix-swiss-knife.ps1
+# Mirrors New-AppShortcut in install/harrix-swiss-knife.ps1
 _SHORTCUT_NAME = "Harrix Swiss Knife.lnk"
 _STAGING_NAME = ".hsk_desktop_shortcut_build.lnk"
 _CSIDL_DESKTOPDIRECTORY = 0x10

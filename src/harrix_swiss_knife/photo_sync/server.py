@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 from urllib.parse import parse_qs, urlparse
 
+from harrix_swiss_knife.photo_sync.durable_io import write_bytes_replacing
 from harrix_swiss_knife.photo_sync.index import DeviceSyncIndex
 from harrix_swiss_knife.photo_sync.lan import new_confirm_code
 from harrix_swiss_knife.photo_sync.library import PhotosLibrary
@@ -271,25 +272,26 @@ class PhotoSyncServer:
                 if dest is None:
                     self._json_response(400, {"error": "invalid_path"})
                     return
-                dest.parent.mkdir(parents=True, exist_ok=True)
-                tmp = dest.with_suffix(dest.suffix + ".partial")
                 try:
-                    tmp.write_bytes(raw)
-                    tmp.replace(dest)
+                    write_bytes_replacing(dest, raw, tmp_suffix=".partial")
                 except OSError as exc:
-                    if tmp.exists():
-                        tmp.unlink(missing_ok=True)
                     server.stats.note(f"Write failed: {exc}")
                     server._notify()
                     self._json_response(500, {"error": "write_failed"})
                     return
 
                 # Index only after the final file is in place (never for .partial).
-                index.upsert(media_id, content_hash=digest, filename=filename)
+                try:
+                    index.upsert(media_id, content_hash=digest, filename=filename)
+                except OSError as exc:
+                    # Photo is already on disk; still report success so the phone
+                    # does not re-upload under a `_copy` name on the next sync.
+                    server.stats.note(f"Saved {filename}; index update failed: {exc}")
+                else:
+                    server.stats.note(f"Saved {filename}")
                 server.library.remember(filename, digest)
                 server.stats.uploads_ok += 1
                 server.stats.uploads_bytes += length
-                server.stats.note(f"Saved {filename}")
                 server._notify()
                 self._json_response(200, {"filename": filename, "status": "saved"})
 

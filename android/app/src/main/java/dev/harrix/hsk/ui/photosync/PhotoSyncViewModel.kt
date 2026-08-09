@@ -3,7 +3,9 @@ package dev.harrix.hsk.ui.photosync
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import dev.harrix.hsk.R
 import dev.harrix.hsk.photosync.PhotoSyncConnectionStatus
+import dev.harrix.hsk.photosync.PhotoSyncDesktopGoneException
 import dev.harrix.hsk.photosync.PhotoSyncEndpoint
 import dev.harrix.hsk.photosync.PhotoSyncEngine
 import dev.harrix.hsk.photosync.PhotoSyncFormat
@@ -69,6 +71,7 @@ class PhotoSyncViewModel(
     private var monitorJob: Job? = null
     private var estimateJob: Job? = null
     private var wasConnected: Boolean = false
+    private var abortSyncBecauseDesktopGone: Boolean = false
     private var savedEndpoint: PhotoSyncEndpoint? = prefs.getEndpoint()
 
     init {
@@ -171,22 +174,29 @@ class PhotoSyncViewModel(
                         }
                     finishSession(result)
                 } catch (_: CancellationException) {
-                    val progress = _uiState.value.progress
-                    val result =
-                        PhotoSyncResult(
-                            totalPhotos = progress?.total ?: 0,
-                            uploaded = progress?.uploadedCount ?: 0,
-                            skipped = 0,
-                            failed = 0,
-                            uploadedBytes = progress?.uploadedBytes ?: 0L,
-                            elapsedMs = progress?.elapsedMs ?: 0L,
-                            cancelled = true,
-                            message =
-                            "Cancelled: uploaded ${progress?.uploadedCount ?: 0}, " +
-                                "${PhotoSyncFormat.formatBytes(progress?.uploadedBytes ?: 0L)}, " +
-                                PhotoSyncFormat.formatElapsed(progress?.elapsedMs ?: 0L),
-                        )
-                    finishSession(result)
+                    if (abortSyncBecauseDesktopGone) {
+                        abortSyncBecauseDesktopGone = false
+                        failSync(desktopGoneError())
+                    } else {
+                        val progress = _uiState.value.progress
+                        val result =
+                            PhotoSyncResult(
+                                totalPhotos = progress?.total ?: 0,
+                                uploaded = progress?.uploadedCount ?: 0,
+                                skipped = 0,
+                                failed = 0,
+                                uploadedBytes = progress?.uploadedBytes ?: 0L,
+                                elapsedMs = progress?.elapsedMs ?: 0L,
+                                cancelled = true,
+                                message =
+                                "Cancelled: uploaded ${progress?.uploadedCount ?: 0}, " +
+                                    "${PhotoSyncFormat.formatBytes(progress?.uploadedBytes ?: 0L)}, " +
+                                    PhotoSyncFormat.formatElapsed(progress?.elapsedMs ?: 0L),
+                            )
+                        finishSession(result)
+                    }
+                } catch (error: PhotoSyncDesktopGoneException) {
+                    failSync(desktopGoneError(error))
                 } catch (error: IOException) {
                     failSync(error)
                 } catch (error: JSONException) {
@@ -198,6 +208,7 @@ class PhotoSyncViewModel(
     }
 
     fun cancelSync() {
+        abortSyncBecauseDesktopGone = false
         syncJob?.cancel()
     }
 
@@ -220,13 +231,39 @@ class PhotoSyncViewModel(
         monitorJob =
             viewModelScope.launch {
                 while (isActive) {
-                    if (!_uiState.value.isSyncing && _uiState.value.pendingConfirm == null) {
-                        probeConnectionOnly()
+                    if (_uiState.value.pendingConfirm == null) {
+                        if (_uiState.value.isSyncing) {
+                            watchDesktopDuringSync()
+                        } else {
+                            probeConnectionOnly()
+                        }
                     }
-                    delay(MONITOR_INTERVAL_MS)
+                    val intervalMs =
+                        if (_uiState.value.isSyncing) {
+                            SYNC_MONITOR_INTERVAL_MS
+                        } else {
+                            MONITOR_INTERVAL_MS
+                        }
+                    delay(intervalMs)
                 }
             }
         scheduleEstimateRefresh(immediate = true)
+    }
+
+    private suspend fun watchDesktopDuringSync() {
+        val endpoint = endpointOrNull() ?: return
+        val connected = engine.probeConnection(endpoint)
+        if (connected) {
+            wasConnected = true
+            _uiState.update { it.copy(connectionStatus = PhotoSyncConnectionStatus.Connected) }
+            return
+        }
+        wasConnected = false
+        _uiState.update { it.copy(connectionStatus = PhotoSyncConnectionStatus.Disconnected) }
+        if (_uiState.value.isSyncing) {
+            abortSyncBecauseDesktopGone = true
+            syncJob?.cancel()
+        }
     }
 
     private fun scheduleEstimateRefresh(immediate: Boolean = false) {
@@ -320,16 +357,34 @@ class PhotoSyncViewModel(
         }
     }
 
+    private fun desktopGoneError(cause: Throwable? = null): PhotoSyncDesktopGoneException = PhotoSyncDesktopGoneException(
+        getApplication<Application>().getString(R.string.photo_sync_desktop_gone),
+    ).also { error ->
+        if (cause != null) {
+            error.initCause(cause)
+        }
+    }
+
     private fun failSync(error: Throwable) {
         val progress = _uiState.value.progress
         if (progress != null && progress.uploadedCount > 0) {
             statsStore.recordSession(progress.uploadedCount, progress.uploadedBytes)
+        }
+        val desktopGone = error is PhotoSyncDesktopGoneException
+        if (desktopGone) {
+            wasConnected = false
         }
         _uiState.update {
             it.copy(
                 isSyncing = false,
                 progress = null,
                 lifetime = statsStore.load(),
+                connectionStatus =
+                if (desktopGone) {
+                    PhotoSyncConnectionStatus.Disconnected
+                } else {
+                    it.connectionStatus
+                },
                 errorMessage = error.message ?: error.toString(),
             )
         }
@@ -350,6 +405,7 @@ class PhotoSyncViewModel(
 
     companion object {
         private const val MONITOR_INTERVAL_MS = 8_000L
+        private const val SYNC_MONITOR_INTERVAL_MS = 2_500L
     }
 }
 
