@@ -3,11 +3,11 @@
 from harrix_swiss_knife.actions.android.android_build import OnAndroidBuild
 from harrix_swiss_knife.actions.android.android_check import OnAndroidCheck
 from harrix_swiss_knife.actions.android.android_format import OnAndroidFormat
-from harrix_swiss_knife.actions.android.photo_sync_settings import OnPhotoSyncSettings
+from harrix_swiss_knife.actions.android.photo_sync import OnPhotoSync
 
 __all__ = [
     "OnAndroidBuild",
     "OnAndroidCheck",
     "OnAndroidFormat",
-    "OnPhotoSyncSettings",
+    "OnPhotoSync",
 ]

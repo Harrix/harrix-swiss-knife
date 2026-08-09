@@ -7,7 +7,7 @@ from typing import Any
 from harrix_swiss_knife.actions.android.android_build import OnAndroidBuild
 from harrix_swiss_knife.actions.android.android_check import OnAndroidCheck
 from harrix_swiss_knife.actions.android.android_format import OnAndroidFormat
-from harrix_swiss_knife.actions.android.photo_sync_settings import OnPhotoSyncSettings
+from harrix_swiss_knife.actions.android.photo_sync import OnPhotoSync
 from harrix_swiss_knife.actions.apps.finance import OnFinance
 from harrix_swiss_knife.actions.apps.fitness import OnFitness
 from harrix_swiss_knife.actions.apps.food import OnFood
@@ -67,7 +67,6 @@ from harrix_swiss_knife.actions.images.optimize_dialog_replace import OnOptimize
 from harrix_swiss_knife.actions.images.optimize_quality import OnOptimizeQuality
 from harrix_swiss_knife.actions.images.optimize_resize import OnOptimizeResize
 from harrix_swiss_knife.actions.images.optimize_single_image import OnOptimizeSingleImage
-from harrix_swiss_knife.actions.images.photo_sync_listen import OnPhotoSyncListen
 from harrix_swiss_knife.actions.images.screenshot_region import OnScreenshotRegion
 from harrix_swiss_knife.actions.markdown.append_yaml_tag import OnAppendYamlTag
 from harrix_swiss_knife.actions.markdown.beautify_md import OnBeautifyMd
@@ -143,7 +142,7 @@ def get_menu_structure() -> list[Any]:
                 OnAndroidFormat,
                 OnAndroidCheck,
                 OnAndroidBuild,
-                OnPhotoSyncSettings,
+                OnPhotoSync,
             ],
         ),
         (
@@ -161,7 +160,6 @@ def get_menu_structure() -> list[Any]:
             "🖼️",
             [
                 OnOpenPhotosInViewer,
-                OnPhotoSyncListen,
                 OnImageToMarkdownWithOcr,
                 OnImageToMarkdownWithAI,
                 "-",

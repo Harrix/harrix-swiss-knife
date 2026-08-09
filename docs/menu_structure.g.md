@@ -47,7 +47,7 @@ def get_menu_structure() -> list[Any]:
                 OnAndroidFormat,
                 OnAndroidCheck,
                 OnAndroidBuild,
-                OnPhotoSyncSettings,
+                OnPhotoSync,
             ],
         ),
         (
@@ -65,7 +65,6 @@ def get_menu_structure() -> list[Any]:
             "🖼️",
             [
                 OnOpenPhotosInViewer,
-                OnPhotoSyncListen,
                 OnImageToMarkdownWithOcr,
                 OnImageToMarkdownWithAI,
                 "-",
