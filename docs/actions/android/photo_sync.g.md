@@ -63,7 +63,7 @@ class OnPhotoSync(ActionBase):
         dialog = QDialog()
         dialog.setWindowTitle("Photo sync")
         dialog.setWindowFlag(Qt.WindowType.WindowStaysOnTopHint, True)  # noqa: FBT003
-        dialog.resize(560, 820)
+        dialog.resize(760, 960)
         root = QVBoxLayout(dialog)
 
         tabs = QTabWidget()
@@ -325,6 +325,8 @@ class OnPhotoSync(ActionBase):
         refresh_ip_combo(keep_selection=False)
         update_pairing_ui()
         refresh_status()
+        # Open ready to pair: start the LAN receiver unless it is already running.
+        start_listen()
 
         def on_finished() -> None:
             timer.stop()
