@@ -55,7 +55,8 @@
   "apps": {
     "initial_count": 1000,
     "load_more_count": 500,
-    "local_language": "ru"
+    "local_language": "ru",
+    "fitness_image_max_size": 330
   },
   "android_build_variant": "release",
   "optimize_images_folder_max_size": 1024,
