@@ -58,3 +58,14 @@ def test_ensure_fresh_reuses_recent_index(tmp_path: Path) -> None:
     # Second call within max_age should not clear the index.
     library.ensure_fresh(max_age_sec=60.0)
     assert library.find_relative_path(digest) == "a.jpg"
+
+
+def test_library_init_does_not_load_disk_cache(tmp_path: Path) -> None:
+    digest = _write_jpg(tmp_path / "cached.jpg", b"from-disk-cache")
+    writer = PhotosLibrary(tmp_path)
+    writer.refresh()
+    assert writer.find_relative_path(digest) == "cached.jpg"
+    # New instance must stay empty until first lookup/refresh (UI must not block on init).
+    lazy = PhotosLibrary(tmp_path)
+    assert lazy.unique_hash_count == 0
+    assert lazy.find_relative_path(digest) == "cached.jpg"

@@ -10,6 +10,7 @@ from typing import Any, ClassVar
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import (
+    QApplication,
     QComboBox,
     QDialog,
     QFormLayout,
@@ -71,13 +72,18 @@ class OnPhotoSync(ActionBase):
             OnPhotoSync._dialog.activateWindow()
             return
 
-        # Show feedback before Dropbox/library work can block the UI thread.
-        self.show_toast("Starting Photo sync… Indexing may take a while.", duration=8000)
+        # Paint toast before any dialog work so the user sees feedback immediately.
+        self.show_toast("Starting Photo sync… Indexing may take a while.", duration=12000)
+        app = QApplication.instance()
+        if app is not None:
+            app.processEvents()
         dialog, start_listen = self._build_dialog()
         OnPhotoSync._dialog = dialog
         dialog.show()
-        # Defer listen start so the window paints before library cache load.
-        QTimer.singleShot(0, start_listen)
+        if app is not None:
+            app.processEvents()
+        # Defer listen start so toast + window paint before server setup.
+        QTimer.singleShot(50, start_listen)
 
     def _build_dialog(self) -> tuple[QDialog, Any]:  # Any: nested start_listen callback
         dialog = QDialog()
@@ -321,7 +327,11 @@ class OnPhotoSync(ActionBase):
                 refresh_ip_combo()
                 refresh_status()
                 return
-            self.show_toast("Indexing photo library… This can take a while.", duration=8000)
+            self.show_toast("Indexing photo library… This can take a while.", duration=12000)
+            self.add_line("Starting listener; photo library indexes in background…")
+            app = QApplication.instance()
+            if app is not None:
+                app.processEvents()
             server = PhotoSyncServer(photos_dir, port=DEFAULT_PORT)
             try:
                 server.start()

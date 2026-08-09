@@ -40,18 +40,25 @@ only used to detect content that already exists anywhere in the tree.
 class PhotosLibrary:
 
     def __init__(self, photos_dir: Path) -> None:
-        """Create a library scanner for `photos_dir`."""
+        """Create a library scanner for `photos_dir`.
+
+        Disk cache is not loaded here: on cloud folders (Dropbox) that I/O can
+        block the UI thread for a long time. Load happens lazily off the UI path
+        via `refresh` / `ensure_fresh` / first lookup.
+
+        """
         self._photos_dir = photos_dir
         self._cache_path = photos_dir / _SYNC_META_DIR / "library-hashes.json"
         self._lock = threading.Lock()
         self._by_hash: dict[str, str] = {}
         self._file_cache: dict[str, dict[str, Any]] = {}
         self._last_refresh_at: float | None = None
-        self._load_cache()
+        self._disk_cache_loaded = False
 
     def ensure_fresh(self, *, max_age_sec: float = _DEFAULT_MAX_AGE_SEC) -> None:
         """Refresh only when the index is missing or older than `max_age_sec`."""
         with self._lock:
+            self._ensure_disk_cache_loaded_unlocked()
             if self._last_refresh_at is not None and (time.monotonic() - self._last_refresh_at) < max_age_sec:
                 return
             self._refresh_unlocked()
@@ -62,6 +69,7 @@ class PhotosLibrary:
         if not key:
             return None
         with self._lock:
+            self._ensure_disk_cache_loaded_unlocked()
             if not self._by_hash and self._last_refresh_at is None:
                 self._refresh_unlocked()
             return self._by_hash.get(key)
@@ -69,6 +77,7 @@ class PhotosLibrary:
     def refresh(self) -> None:
         """Rescan the tree and refresh hash → relative-path mappings."""
         with self._lock:
+            self._ensure_disk_cache_loaded_unlocked()
             self._refresh_unlocked()
 
     def remember(self, relative_path: str, content_hash: str) -> None:
@@ -112,6 +121,13 @@ class PhotosLibrary:
                     logger.exception("Photo library warm callback failed")
 
         threading.Thread(target=run, name="photo-sync-library-warm", daemon=True).start()
+
+    def _ensure_disk_cache_loaded_unlocked(self) -> None:
+        """Load `library-hashes.json` once. Caller must hold `_lock`."""
+        if self._disk_cache_loaded:
+            return
+        self._load_cache()
+        self._disk_cache_loaded = True
 
     def _load_cache(self) -> None:
         if not self._cache_path.is_file():
@@ -220,6 +236,10 @@ def __init__(self, photos_dir: Path) -> None
 
 Create a library scanner for `photos_dir`.
 
+Disk cache is not loaded here: on cloud folders (Dropbox) that I/O can
+block the UI thread for a long time. Load happens lazily off the UI path
+via [`refresh`](#%EF%B8%8F-method-refresh) / [`ensure_fresh`](#%EF%B8%8F-method-ensure_fresh) / first lookup.
+
 <details>
 <summary>Code:</summary>
 
@@ -231,7 +251,7 @@ def __init__(self, photos_dir: Path) -> None:
         self._by_hash: dict[str, str] = {}
         self._file_cache: dict[str, dict[str, Any]] = {}
         self._last_refresh_at: float | None = None
-        self._load_cache()
+        self._disk_cache_loaded = False
 ```
 
 </details>
@@ -250,6 +270,7 @@ Refresh only when the index is missing or older than `max_age_sec`.
 ```python
 def ensure_fresh(self, *, max_age_sec: float = _DEFAULT_MAX_AGE_SEC) -> None:
         with self._lock:
+            self._ensure_disk_cache_loaded_unlocked()
             if self._last_refresh_at is not None and (time.monotonic() - self._last_refresh_at) < max_age_sec:
                 return
             self._refresh_unlocked()
@@ -274,6 +295,7 @@ def find_relative_path(self, content_hash: str) -> str | None:
         if not key:
             return None
         with self._lock:
+            self._ensure_disk_cache_loaded_unlocked()
             if not self._by_hash and self._last_refresh_at is None:
                 self._refresh_unlocked()
             return self._by_hash.get(key)
@@ -295,6 +317,7 @@ Rescan the tree and refresh hash → relative-path mappings.
 ```python
 def refresh(self) -> None:
         with self._lock:
+            self._ensure_disk_cache_loaded_unlocked()
             self._refresh_unlocked()
 ```
 
