@@ -313,6 +313,7 @@
     <string name="video_cleaner_sort_size_asc">Величина (најмања прва)</string>
     <string name="video_cleaner_play">Пусти</string>
     <string name="video_cleaner_share">Подели</string>
+    <string name="video_cleaner_more_actions">Još radnji</string>
     <string name="video_cleaner_share_failed">Подели видео записа није успело</string>
     <string name="video_cleaner_play_close">Затвори репродукцију</string>
 </resources>

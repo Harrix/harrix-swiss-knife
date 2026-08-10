@@ -313,6 +313,7 @@
     <string name="video_cleaner_sort_size_asc">Dimensiune (mai întâi cea mai mică)</string>
     <string name="video_cleaner_play">Joacă</string>
     <string name="video_cleaner_share">Share</string>
+    <string name="video_cleaner_more_actions">Mai multe acțiuni</string>
     <string name="video_cleaner_share_failed">Nu s-a putut partaja videoclipul</string>
     <string name="video_cleaner_play_close">Închide redarea</string>
 </resources>

@@ -313,6 +313,7 @@
     <string name="video_cleaner_sort_size_asc">Розмір (найменший перший)</string>
     <string name="video_cleaner_play">Відтворити</string>
     <string name="video_cleaner_share">Поділитися</string>
+    <string name="video_cleaner_more_actions">Інші дії</string>
     <string name="video_cleaner_share_failed">Не вдалося поділитися відео</string>
     <string name="video_cleaner_play_close">Закрити відтворення</string>
 </resources>

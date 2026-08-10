@@ -313,6 +313,7 @@
     <string name="video_cleaner_sort_size_asc">الحجم (الأصغر أولا)</string>
     <string name="video_cleaner_play">لعب</string>
     <string name="video_cleaner_share">حصة</string>
+    <string name="video_cleaner_more_actions">المزيد من الإجراءات</string>
     <string name="video_cleaner_share_failed">تعذر مشاركة الفيديو</string>
     <string name="video_cleaner_play_close">إغلاق التشغيل</string>
 </resources>

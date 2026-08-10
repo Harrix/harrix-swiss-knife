@@ -313,6 +313,7 @@
     <string name="video_cleaner_sort_size_asc">Tamaño (el más pequeño primero)</string>
     <string name="video_cleaner_play">Jugar</string>
     <string name="video_cleaner_share">Compartir</string>
+    <string name="video_cleaner_more_actions">Más acciones</string>
     <string name="video_cleaner_share_failed">No se pudo compartir el video</string>
     <string name="video_cleaner_play_close">Cerrar reproducción</string>
 </resources>

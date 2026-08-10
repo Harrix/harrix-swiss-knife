@@ -313,6 +313,7 @@
     <string name="video_cleaner_sort_size_asc">Größe (Kleinste zuerst)</string>
     <string name="video_cleaner_play">Spielen</string>
     <string name="video_cleaner_share">Aktie</string>
+    <string name="video_cleaner_more_actions">Weitere Aktionen</string>
     <string name="video_cleaner_share_failed">Video konnte nicht geteilt werden</string>
     <string name="video_cleaner_play_close">Schließen Sie die Wiedergabe</string>
 </resources>

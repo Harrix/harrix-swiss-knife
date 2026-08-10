@@ -313,6 +313,7 @@
     <string name="video_cleaner_sort_size_asc">尺寸（最小的在前）</string>
     <string name="video_cleaner_play">玩</string>
     <string name="video_cleaner_share">分享</string>
+    <string name="video_cleaner_more_actions">更多操作</string>
     <string name="video_cleaner_share_failed">无法分享视频</string>
     <string name="video_cleaner_play_close">关闭播放</string>
 </resources>

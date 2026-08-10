@@ -313,6 +313,7 @@
     <string name="video_cleaner_sort_size_asc">Kích thước (nhỏ nhất đầu tiên)</string>
     <string name="video_cleaner_play">Chơi</string>
     <string name="video_cleaner_share">Chia sẻ</string>
+    <string name="video_cleaner_more_actions">Thêm thao tác</string>
     <string name="video_cleaner_share_failed">Không thể chia sẻ video</string>
     <string name="video_cleaner_play_close">Đóng phát lại</string>
 </resources>

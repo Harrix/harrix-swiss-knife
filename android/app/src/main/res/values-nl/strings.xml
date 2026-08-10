@@ -313,6 +313,7 @@
     <string name="video_cleaner_sort_size_asc">Grootte (kleinste eerst)</string>
     <string name="video_cleaner_play">Spelen</string>
     <string name="video_cleaner_share">Gedeeld</string>
+    <string name="video_cleaner_more_actions">Meer acties</string>
     <string name="video_cleaner_share_failed">Kon video niet delen</string>
     <string name="video_cleaner_play_close">Afspelen sluiten</string>
 </resources>

@@ -313,6 +313,7 @@
     <string name="video_cleaner_sort_size_asc">Ukuran (terkecil pertama)</string>
     <string name="video_cleaner_play">Mainkan</string>
     <string name="video_cleaner_share">Bagikan</string>
+    <string name="video_cleaner_more_actions">Tindakan lainnya</string>
     <string name="video_cleaner_share_failed">Tidak dapat membagikan video</string>
     <string name="video_cleaner_play_close">Tutup pemutaran</string>
 </resources>

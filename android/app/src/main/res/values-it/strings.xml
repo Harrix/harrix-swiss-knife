@@ -313,6 +313,7 @@
     <string name="video_cleaner_sort_size_asc">Dimensioni (prima la più piccola)</string>
     <string name="video_cleaner_play">Giocare</string>
     <string name="video_cleaner_share">Condividere</string>
+    <string name="video_cleaner_more_actions">Altre azioni</string>
     <string name="video_cleaner_share_failed">Impossibile condividere il video</string>
     <string name="video_cleaner_play_close">Chiudi la riproduzione</string>
 </resources>

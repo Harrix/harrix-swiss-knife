@@ -313,6 +313,7 @@
     <string name="video_cleaner_sort_size_asc">Boyut (önce en küçük)</string>
     <string name="video_cleaner_play">Oyna</string>
     <string name="video_cleaner_share">Paylaş</string>
+    <string name="video_cleaner_more_actions">Diğer işlemler</string>
     <string name="video_cleaner_share_failed">Video paylaşılamadı</string>
     <string name="video_cleaner_play_close">Oynatmayı kapat</string>
 </resources>

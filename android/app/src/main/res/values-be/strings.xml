@@ -313,6 +313,7 @@
     <string name="video_cleaner_sort_size_asc">Памер (самы маленькі першы)</string>
     <string name="video_cleaner_play">Прайграць</string>
     <string name="video_cleaner_share">Падзяліцца</string>
+    <string name="video_cleaner_more_actions">Яшчэ</string>
     <string name="video_cleaner_share_failed">Не атрымалася падзяліцца відэа</string>
     <string name="video_cleaner_play_close">Зачыніць прайграванне</string>
 </resources>

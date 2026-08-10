@@ -313,6 +313,7 @@
     <string name="video_cleaner_sort_size_asc">サイズ（小さい順）</string>
     <string name="video_cleaner_play">遊ぶ</string>
     <string name="video_cleaner_share">共有</string>
+    <string name="video_cleaner_more_actions">その他</string>
     <string name="video_cleaner_share_failed">ビデオを共有できませんでした</string>
     <string name="video_cleaner_play_close">再生を閉じる</string>
 </resources>

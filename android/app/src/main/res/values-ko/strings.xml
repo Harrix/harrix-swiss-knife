@@ -313,6 +313,7 @@
     <string name="video_cleaner_sort_size_asc">크기(가장 작은 첫 번째)</string>
     <string name="video_cleaner_play">재생</string>
     <string name="video_cleaner_share">공유</string>
+    <string name="video_cleaner_more_actions">추가 작업</string>
     <string name="video_cleaner_share_failed">비디오를 공유 할 수 없습니다</string>
     <string name="video_cleaner_play_close">재생 닫기</string>
 </resources>

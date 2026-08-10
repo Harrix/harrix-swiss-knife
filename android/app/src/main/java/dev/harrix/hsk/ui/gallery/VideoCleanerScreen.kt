@@ -19,11 +19,10 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -146,7 +145,7 @@ enum class VideoSort(
     SIZE_ASC(R.string.video_cleaner_sort_size_asc, Icons.Filled.ArrowUpward),
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun VideoCleanerScreen(
     onClose: () -> Unit,
@@ -679,13 +678,20 @@ fun VideoCleanerScreen(
                                 )
                             }
                         }
+                        val sortedVideoIds = remember(sortedVideos) { sortedVideos.map { it.id } }
                         LazyVerticalGrid(
                             columns = GridCells.Fixed(videoGridColumnCount()),
                             state = gridState,
                             modifier =
                             Modifier
                                 .weight(1f)
-                                .fillMaxWidth(),
+                                .fillMaxWidth()
+                                .lazyGridDragSelect(
+                                    lazyGridState = gridState,
+                                    itemIds = sortedVideoIds,
+                                    selectedIds = selectedIds,
+                                    onSelectedIdsChange = { selectedIds = it },
+                                ),
                             contentPadding = PaddingValues(0.dp),
                             horizontalArrangement = Arrangement.spacedBy(1.dp),
                             verticalArrangement = Arrangement.spacedBy(1.dp),
@@ -902,7 +908,6 @@ private fun VideoCleanerBottomBar(
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun VideoGalleryItem(
     video: CameraVideo,
@@ -937,10 +942,7 @@ private fun VideoGalleryItem(
                     Modifier
                 },
             )
-            .combinedClickable(
-                onClick = onToggle,
-                onLongClick = { menuExpanded = true },
-            ),
+            .clickable(onClick = onToggle),
     ) {
         VideoThumbnail(
             uri = video.uri,
@@ -975,6 +977,60 @@ private fun VideoGalleryItem(
                 )
             }
         }
+        Box(modifier = Modifier.align(Alignment.TopStart)) {
+            CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 24.dp) {
+                IconButton(
+                    onClick = { menuExpanded = true },
+                    modifier = Modifier.size(32.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.MoreVert,
+                        contentDescription = stringResource(R.string.video_cleaner_more_actions),
+                        tint = Color.White,
+                        modifier =
+                        Modifier
+                            .size(20.dp)
+                            .background(Color.Black.copy(alpha = 0.45f), CircleShape)
+                            .padding(2.dp),
+                    )
+                }
+            }
+            DropdownMenu(
+                expanded = menuExpanded,
+                onDismissRequest = { menuExpanded = false },
+            ) {
+                DropdownMenuItem(
+                    text = {
+                        AutoFitText(text = stringResource(R.string.video_cleaner_play), maxLines = 2)
+                    },
+                    onClick = {
+                        menuExpanded = false
+                        onPlay()
+                    },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Filled.PlayArrow,
+                            contentDescription = null,
+                        )
+                    },
+                )
+                DropdownMenuItem(
+                    text = {
+                        AutoFitText(text = stringResource(R.string.video_cleaner_share), maxLines = 2)
+                    },
+                    onClick = {
+                        menuExpanded = false
+                        onShare()
+                    },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Filled.Share,
+                            contentDescription = null,
+                        )
+                    },
+                )
+            }
+        }
         if (selected) {
             Icon(
                 imageVector = Icons.Filled.CheckCircle,
@@ -986,37 +1042,6 @@ private fun VideoGalleryItem(
                     .padding(6.dp)
                     .size(22.dp)
                     .background(colorScheme.onPrimary, CircleShape),
-            )
-        }
-        DropdownMenu(
-            expanded = menuExpanded,
-            onDismissRequest = { menuExpanded = false },
-        ) {
-            DropdownMenuItem(
-                text = { AutoFitText(text = stringResource(R.string.video_cleaner_play), maxLines = 2) },
-                onClick = {
-                    menuExpanded = false
-                    onPlay()
-                },
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Filled.PlayArrow,
-                        contentDescription = null,
-                    )
-                },
-            )
-            DropdownMenuItem(
-                text = { AutoFitText(text = stringResource(R.string.video_cleaner_share), maxLines = 2) },
-                onClick = {
-                    menuExpanded = false
-                    onShare()
-                },
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Filled.Share,
-                        contentDescription = null,
-                    )
-                },
             )
         }
     }

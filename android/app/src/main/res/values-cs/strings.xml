@@ -313,6 +313,7 @@
     <string name="video_cleaner_sort_size_asc">Velikost (nejmenší první)</string>
     <string name="video_cleaner_play">Hrát</string>
     <string name="video_cleaner_share">Podíl</string>
+    <string name="video_cleaner_more_actions">Další akce</string>
     <string name="video_cleaner_share_failed">Nelze sdílet video</string>
     <string name="video_cleaner_play_close">Zavřít přehrávání</string>
 </resources>
