@@ -58,6 +58,7 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -86,13 +87,17 @@ import dev.harrix.hsk.R
 import dev.harrix.hsk.gallery.CameraPhoto
 import dev.harrix.hsk.gallery.NormalizedCropRect
 import dev.harrix.hsk.gallery.NormalizedPerspectiveQuad
+import dev.harrix.hsk.gallery.PerspectiveQuadDetector
 import dev.harrix.hsk.gallery.PhotoEditSaver
 import dev.harrix.hsk.ui.AutoFitText
 import dev.harrix.hsk.ui.OverflowTextTooltipBox
 import dev.harrix.hsk.ui.adaptiveBottomBarWidth
 import dev.harrix.hsk.ui.isCompactHeight
 import dev.harrix.hsk.ui.isCompactWidth
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlin.math.abs
 import kotlin.math.hypot
 import kotlin.math.max
@@ -168,6 +173,7 @@ fun PhotoCropEditor(
 ) {
     val context = LocalContext.current
     val density = LocalDensity.current
+    val scope = rememberCoroutineScope()
     val photoEditSaver = remember { PhotoEditSaver(context.applicationContext) }
     var imageWidth by remember(photo.id, imageRevision) { mutableIntStateOf(0) }
     var imageHeight by remember(photo.id, imageRevision) { mutableIntStateOf(0) }
@@ -226,11 +232,30 @@ fun PhotoCropEditor(
             lockedAspect = null
             containCropInImage = false
             trimSuggestion = null
-            onPerspectiveQuadChange(
+            val fallback =
                 PhotoEditSaver.clampPerspectiveQuad(
                     NormalizedPerspectiveQuad.fromRect(cropRect),
-                ),
-            )
+                )
+            onPerspectiveQuadChange(fallback)
+            val detectUri = photo.uri
+            val detectWidth = imageWidth
+            val detectHeight = imageHeight
+            val detectRotation = rotationDegrees
+            scope.launch {
+                val detected =
+                    withContext(Dispatchers.Default) {
+                        PerspectiveQuadDetector.detect(
+                            context = context.applicationContext,
+                            uri = detectUri,
+                            imageWidth = detectWidth,
+                            imageHeight = detectHeight,
+                            rotationDegrees = detectRotation,
+                        )
+                    }
+                if (detected != null && perspectiveQuadState.value != null) {
+                    onPerspectiveQuadChangeState.value(detected)
+                }
+            }
         } else {
             onCropRectChange(currentQuad.boundingRect())
             onPerspectiveQuadChange(null)
