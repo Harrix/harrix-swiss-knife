@@ -141,6 +141,7 @@ class MainWindow(
 
         # Initialize application
         self._init_database()
+        self._habit_dashboard.set_database(self.db_manager)
         self._connect_signals()
         self._init_habits_table_delegates()
         self._init_habits_filter_list()
@@ -723,6 +724,7 @@ class MainWindow(
         # Refresh process_habits table without filter
         self.refresh_process_habits_table()
         self.update_habits_filter_combobox()
+        self._refresh_habit_dashboard()
 
     @requires_database()
     def refresh_process_habits_table(self) -> None:
@@ -832,6 +834,7 @@ class MainWindow(
         self.show_tables()
         self.update_habits_filter_combobox()
         self.update_habits_year_combobox()
+        self._refresh_habit_dashboard()
 
     @requires_database(is_show_warning=False)
     @requires_database(is_show_warning=False)
@@ -1545,6 +1548,20 @@ class MainWindow(
         # Optional: Show a brief notification (you can remove this if not needed)
         # You could add a toast notification here if you have one
 
+    # Add to MainWindow class (near other small helpers)
+
+    def _on_dashboard_data_changed(self) -> None:
+        """Refresh table views after check-ins or habit edits on the dashboard."""
+        if self._is_closing or not self._validate_database_connection():
+            return
+        self.show_tables()
+        self.update_habits_filter_combobox()
+        self.update_habits_year_combobox()
+
+    def _on_dashboard_open_table_view(self) -> None:
+        """Switch from Dashboard tab to the classic Habits table tab."""
+        self.tabWidget.setCurrentWidget(self.tab_sets_of_habits)
+
     def _on_process_habits_table_clicked(self, index: QModelIndex) -> None:
         """Handle click on process habits table.
 
@@ -1582,6 +1599,12 @@ class MainWindow(
                     self.tableView_process_habits.setCurrentIndex(habit_proxy_index)
                     self.tableView_process_habits.edit(habit_proxy_index)
                 break
+
+    def _refresh_habit_dashboard(self) -> None:
+        """Reload Habitify-like dashboard from the current database."""
+        dashboard = getattr(self, "_habit_dashboard", None)
+        if dashboard is not None:
+            dashboard.set_database(self.db_manager)
 
     def _release_habit_heatmap_display(self) -> None:
         """Remove heatmap label widget before window destruction."""
@@ -1627,12 +1650,15 @@ class MainWindow(
         self.tableView_habits.setModel(model)
         self._connect_table_auto_save_signal("habits")
 
-    # Add to MainWindow class (near other small helpers)
-
     def _setup_ui(self) -> None:
         """Set up additional UI elements after basic initialization (habits only)."""
         self._place_menu_bar_on_tab_row()
         self._apply_exit_about_menu_emojis()
+
+        self._habit_dashboard = HabitDashboardWidget(self)
+        self.verticalLayout_dashboard.addWidget(self._habit_dashboard)
+        self._habit_dashboard.data_changed.connect(self._on_dashboard_data_changed)
+        self._habit_dashboard.open_table_view.connect(self._on_dashboard_open_table_view)
 
         self.pushButton_habits_delete.setText(f"🗑️ {self.pushButton_habits_delete.text()}")
         self.pushButton_habits_refresh.setText(f"🔄 {self.pushButton_habits_refresh.text()}")
@@ -1938,6 +1964,7 @@ def __init__(self, *, hide_on_close: bool = False) -> None:  # noqa: D107  (inhe
 
         # Initialize application
         self._init_database()
+        self._habit_dashboard.set_database(self.db_manager)
         self._connect_signals()
         self._init_habits_table_delegates()
         self._init_habits_filter_list()
@@ -2681,6 +2708,7 @@ def refresh_habits_and_process_habits(self) -> None:
         # Refresh process_habits table without filter
         self.refresh_process_habits_table()
         self.update_habits_filter_combobox()
+        self._refresh_habit_dashboard()
 ```
 
 </details>
@@ -2841,6 +2869,7 @@ def update_all(
         self.show_tables()
         self.update_habits_filter_combobox()
         self.update_habits_year_combobox()
+        self._refresh_habit_dashboard()
 ```
 
 </details>

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from datetime import UTC, date, datetime, timedelta
 from typing import Any
 
 from harrix_swiss_knife.apps.common.qt_database_manager_base import QtSqliteDatabaseManagerBase
@@ -79,6 +80,22 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         if not result:
             logger.error("%s", f"Failed to add process habit record: habit_id={habit_id}, value={value}, date={date}")
         return result
+
+    def count_habit_checkins_between(self, habit_id: int, date_from: str, date_to: str) -> int:
+        """Count days with value > 0 for a habit in an inclusive date range."""
+        rows = self.get_rows(
+            """
+            SELECT COUNT(*)
+            FROM process_habits
+            WHERE _id_habit = :habit_id
+              AND date BETWEEN :date_from AND :date_to
+              AND value > 0
+            """,
+            {"habit_id": habit_id, "date_from": date_from, "date_to": date_to},
+        )
+        if rows and rows[0][0] is not None:
+            return int(rows[0][0])
+        return 0
 
     def delete_habit(self, habit_id: int) -> bool:
         """Delete a habit from the database.
@@ -220,6 +237,16 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         return self.get_rows(query_text, params)
 
+    def get_habit_by_id(self, habit_id: int) -> list[Any] | None:
+        """Return one habit row ``[_id, name, is_bool, is_archived]`` or ``None``."""
+        rows = self.get_rows(
+            "SELECT _id, name, is_bool, is_archived FROM habits WHERE _id = :id",
+            {"id": habit_id},
+        )
+        if rows:
+            return list(rows[0])
+        return None
+
     def get_habit_calendar_data(
         self,
         habit_name: str,
@@ -257,6 +284,71 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         rows = self.get_rows(query, params)
         return [(row[0], int(row[1])) for row in rows]
+
+    def get_habit_done_dates_between(self, habit_id: int, date_from: str, date_to: str) -> list[str]:
+        """Return ISO dates with value > 0 for a habit in an inclusive range."""
+        rows = self.get_rows(
+            """
+            SELECT date
+            FROM process_habits
+            WHERE _id_habit = :habit_id
+              AND date BETWEEN :date_from AND :date_to
+              AND value > 0
+            ORDER BY date ASC
+            """,
+            {"habit_id": habit_id, "date_from": date_from, "date_to": date_to},
+        )
+        return [str(row[0]) for row in rows if row and row[0]]
+
+    def get_habit_streak(self, habit_id: int) -> int:
+        """Return consecutive completed days ending at today or yesterday.
+
+        If today is not completed yet, the streak may still continue from yesterday.
+        A gap of one or more missed days resets the streak to zero.
+
+        """
+        rows = self.get_rows(
+            """
+            SELECT date
+            FROM process_habits
+            WHERE _id_habit = :habit_id AND value > 0 AND date IS NOT NULL
+            ORDER BY date DESC
+            """,
+            {"habit_id": habit_id},
+        )
+        done: set[date] = set()
+        for row in rows:
+            parsed = _parse_iso_date(str(row[0]) if row and row[0] else "")
+            if parsed is not None:
+                done.add(parsed)
+
+        if not done:
+            return 0
+
+        today = datetime.now(UTC).astimezone().date()
+        cursor = today if today in done else today - timedelta(days=1)
+        if cursor not in done:
+            return 0
+
+        streak = 0
+        while cursor in done:
+            streak += 1
+            cursor -= timedelta(days=1)
+        return streak
+
+    def get_habit_total_checkins(self, habit_id: int) -> int:
+        """Count distinct days with value > 0 for a habit (all time)."""
+        rows = self.get_rows(
+            """
+            SELECT COUNT(DISTINCT date)
+            FROM process_habits
+            WHERE _id_habit = :habit_id AND value > 0 AND date IS NOT NULL
+            """,
+            {"habit_id": habit_id},
+        )
+        if rows and rows[0][0] is not None:
+            return int(rows[0][0])
+        return 0
 
     def get_habits(self, *, include_archived: bool = False) -> list[list[Any]]:
         """Get habits with optional inclusion of archived ones."""
@@ -307,10 +399,56 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             {"limit": limit},
         )
 
+    def is_habit_done_on_date(self, habit_id: int, date_str: str) -> bool:
+        """Return whether habit has value > 0 on ``date_str`` (YYYY-MM-DD)."""
+        rows = self.get_rows(
+            """
+            SELECT value FROM process_habits
+            WHERE _id_habit = :habit_id AND date = :date
+            LIMIT 1
+            """,
+            {"habit_id": habit_id, "date": date_str},
+        )
+        if not rows or rows[0][0] is None:
+            return False
+        try:
+            return int(rows[0][0]) > 0
+        except (TypeError, ValueError):
+            return False
+
     def set_habit_archived(self, habit_id: int, *, is_archived: bool) -> bool:
         """Archive/unarchive a habit by ID."""
         query = "UPDATE habits SET is_archived = :v WHERE _id = :id"
         return self.execute_simple_query(query, {"v": 1 if is_archived else 0, "id": habit_id})
+
+    def toggle_habit_checkin(self, habit_id: int, date_str: str) -> bool:
+        """Toggle completion for habit on a date.
+
+        If a record with value > 0 exists, delete it (unchecked).
+        If a record with value <= 0 exists, set value to 1.
+        If no record exists, insert value 1.
+
+        """
+        rows = self.get_rows(
+            """
+            SELECT _id, value FROM process_habits
+            WHERE _id_habit = :habit_id AND date = :date
+            ORDER BY _id DESC LIMIT 1
+            """,
+            {"habit_id": habit_id, "date": date_str},
+        )
+        if not rows:
+            return self.add_process_habit_record(habit_id, 1, date_str)
+
+        record_id = int(rows[0][0])
+        try:
+            value = int(rows[0][1])
+        except (TypeError, ValueError):
+            value = 0
+
+        if value > 0:
+            return self.delete_process_habit_record(record_id)
+        return self.update_process_habit_record(record_id, habit_id, 1, date_str)
 
     def update_habit(
         self,
@@ -374,3 +512,11 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             "id": record_id,
         }
         return self.execute_simple_query(query, params)
+
+
+def _parse_iso_date(value: str) -> date | None:
+    """Parse ``YYYY-MM-DD`` into a ``date``, or return ``None``."""
+    try:
+        return date.fromisoformat(value)
+    except (TypeError, ValueError):
+        return None

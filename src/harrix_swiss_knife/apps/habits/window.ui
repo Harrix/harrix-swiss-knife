@@ -20,6 +20,25 @@
       <property name="currentIndex">
        <number>0</number>
       </property>
+      <widget class="QWidget" name="tab_dashboard">
+       <attribute name="title">
+        <string>Dashboard</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="verticalLayout_dashboard">
+        <property name="leftMargin">
+         <number>0</number>
+        </property>
+        <property name="topMargin">
+         <number>0</number>
+        </property>
+        <property name="rightMargin">
+         <number>0</number>
+        </property>
+        <property name="bottomMargin">
+         <number>0</number>
+        </property>
+       </layout>
+      </widget>
       <widget class="QWidget" name="tab_sets_of_habits">
        <attribute name="title">
         <string>Habits</string>
