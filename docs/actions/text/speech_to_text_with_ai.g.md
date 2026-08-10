@@ -39,7 +39,7 @@ class OnSpeechToTextWithAI(ActionBase):
     @ActionBase.handle_exceptions("converting speech to text with AI")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Collect audio, transcribe it to text, fix the transcript, and show the result."""
-        dialog = AudioSourceDialog()
+        dialog = SimpleRecordingDialog()
         if dialog.exec() != dialog.DialogCode.Accepted:
             dialog.release_multimedia()
             return
@@ -148,7 +148,7 @@ Collect audio, transcribe it to text, fix the transcript, and show the result.
 
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        dialog = AudioSourceDialog()
+        dialog = SimpleRecordingDialog()
         if dialog.exec() != dialog.DialogCode.Accepted:
             dialog.release_multimedia()
             return

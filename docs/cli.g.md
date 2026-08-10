@@ -46,6 +46,7 @@ lang: en
 - [🔧 Function `site_add_submodule`](#-function-site_add_submodule)
 - [🔧 Function `site_fix_article_links`](#-function-site_fix_article_links)
 - [🔧 Function `site_pull_submodules`](#-function-site_pull_submodules)
+- [🔧 Function `site_slice_html_template`](#-function-site_slice_html_template)
 - [🔧 Function `text_group`](#-function-text_group)
 - [🔧 Function `text_fix_text_with_ai`](#-function-text_fix_text_with_ai)
 - [🔧 Function `vscode_group`](#-function-vscode_group)
@@ -806,6 +807,31 @@ Pull `origin main` in each submodule (`path_site_repo` or FOLDER).
 def site_pull_submodules(folder: Path | None) -> None:
     action = OnPullSiteSubmodules()
     action(folder_path=folder, noninteractive=True)
+    _finish_timed_action(action)
+```
+
+</details>
+
+## 🔧 Function `site_slice_html_template`
+
+```python
+def site_slice_html_template(dist_folder: Path, theme_folder: Path, source_html: str) -> None
+```
+
+Slice built HTML template DIST_FOLDER into THEME_FOLDER for pyssg.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def site_slice_html_template(dist_folder: Path, theme_folder: Path, source_html: str) -> None:
+    action = OnSliceHtmlTemplate()
+    action(
+        folder_path=dist_folder,
+        output_path=theme_folder,
+        source_html=source_html,
+        noninteractive=True,
+    )
     _finish_timed_action(action)
 ```
 

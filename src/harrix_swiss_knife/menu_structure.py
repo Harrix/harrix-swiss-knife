@@ -98,6 +98,7 @@ from harrix_swiss_knife.actions.site import (
     OnAddSiteContentSubmodule,
     OnFixSiteArticleLinkTitles,
     OnPullSiteSubmodules,
+    OnSliceHtmlTemplate,
 )
 from harrix_swiss_knife.actions.text.fix_text_with_ai import OnFixTextWithAI
 from harrix_swiss_knife.actions.text.fix_text_with_ai_from_clipboard import OnFixTextWithAIFromClipboard
@@ -234,6 +235,7 @@ def get_menu_structure() -> list[Any]:
                 OnAddSiteContentSubmodule,
                 OnFixSiteArticleLinkTitles,
                 OnPullSiteSubmodules,
+                OnSliceHtmlTemplate,
             ],
         ),
         (

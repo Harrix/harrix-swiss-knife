@@ -60,11 +60,16 @@ class OnGenerateStaticSite(ActionBase):
 
         choice_type, choice_data = site_map[selected_choice]
 
+        self.theme_dir: Path | None = None
+
         if choice_type == "site":
             # Use configured site
             site = paths_sites[choice_data]
             self.md_folder = Path(site["input"])
             self.html_folder = Path(site["output"])
+            theme = site.get("theme")
+            if theme:
+                self.theme_dir = Path(theme)
         elif choice_type == "manual":
             # Request folders manually
             self.md_folder = self.dialogs.get_existing_directory(
@@ -81,6 +86,16 @@ class OnGenerateStaticSite(ActionBase):
             if not self.html_folder:
                 return
 
+            default_theme = self.config.get("path_html_theme")
+            if default_theme and Path(default_theme).is_dir():
+                use_theme = self.dialogs.get_yes_no_question(
+                    "Use HTML theme?",
+                    f"Assemble full pages with theme from:\n{default_theme}",
+                    default_yes=True,
+                )
+                if use_theme:
+                    self.theme_dir = Path(default_theme)
+
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
     @ActionBase.handle_exceptions("generating static site thread")
@@ -92,10 +107,12 @@ class OnGenerateStaticSite(ActionBase):
         self.add_line("🔵 Starting site generation")
         self.add_line(f"📁 Markdown folder: {self.md_folder}")
         self.add_line(f"📁 HTML output folder: {self.html_folder}")
+        if self.theme_dir is not None:
+            self.add_line(f"🎨 Theme folder: {self.theme_dir}")
         self.add_line("")
 
         try:
-            sg = hsg.StaticSiteGenerator(self.md_folder)
+            sg = hsg.StaticSiteGenerator(self.md_folder, theme_dir=self.theme_dir)
             sg.generate_site(self.html_folder)
             self.add_line("✅ Site generation completed successfully")
             self.add_line(f"📊 Generated {len(sg.articles)} articles")

@@ -32,6 +32,7 @@ from harrix_swiss_knife.actions.site import (
     OnAddSiteContentSubmodule,
     OnFixSiteArticleLinkTitles,
     OnPullSiteSubmodules,
+    OnSliceHtmlTemplate,
 )
 from harrix_swiss_knife.actions.text import OnFixTextWithAI
 from harrix_swiss_knife.actions.vscode import (
@@ -632,6 +633,33 @@ def site_pull_submodules(folder: Path | None) -> None:
     """Pull `origin main` in each submodule (`path_site_repo` or FOLDER)."""
     action = OnPullSiteSubmodules()
     action(folder_path=folder, noninteractive=True)
+    _finish_timed_action(action)
+
+
+@site_group.command("slice-html-template")
+@click.argument(
+    "dist_folder",
+    type=click.Path(exists=True, file_okay=False, path_type=Path),
+)
+@click.argument(
+    "theme_folder",
+    type=click.Path(file_okay=False, path_type=Path),
+)
+@click.option(
+    "--source-html",
+    default="article.html",
+    show_default=True,
+    help="Built HTML page used as the article shell.",
+)
+def site_slice_html_template(dist_folder: Path, theme_folder: Path, source_html: str) -> None:
+    """Slice built HTML template DIST_FOLDER into THEME_FOLDER for pyssg."""
+    action = OnSliceHtmlTemplate()
+    action(
+        folder_path=dist_folder,
+        output_path=theme_folder,
+        source_html=source_html,
+        noninteractive=True,
+    )
     _finish_timed_action(action)
 
 

@@ -215,9 +215,12 @@
   "paths_sites": [
     {
       "input": "<YOUR_SITE_CONTENT>",
-      "output": "<YOUR_SITE_OUTPUT>"
+      "output": "<YOUR_SITE_OUTPUT>",
+      "theme": "<YOUR_SLICED_HTML_THEME>"
     }
   ],
+  "path_html_template_dist": "<YOUR_GITHUB_FOLDER>/Harrix-HTML-Template/dist",
+  "path_html_theme": "<YOUR_SLICED_HTML_THEME>",
   "path_site_repo": "<YOUR_SITE_GIT_REPO>",
   "site_name": "harrix.dev",
   "github_user": "Harrix",

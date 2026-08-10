@@ -267,7 +267,7 @@ class HabitDashboardWidget(QWidget):
         menu = QMenu(self)
         act_archive = menu.addAction("Archive habit")
         act_delete = menu.addAction("Delete habit")
-        chosen = menu.exec(self._detail_more.mapToGlobal(self._detail_more.rect().bottomLeft()))
+        chosen = menu.exec_(self._detail_more.mapToGlobal(self._detail_more.rect().bottomLeft()))
         habit_id = self._selected_habit_id
         if chosen == act_archive:
             if self._db.set_habit_archived(habit_id, is_archived=True):
@@ -320,7 +320,7 @@ class HabitDashboardWidget(QWidget):
         menu = QMenu(self)
         act_refresh = menu.addAction("Refresh")
         act_tables = menu.addAction("Open table view")
-        chosen = menu.exec(self._btn_more.mapToGlobal(self._btn_more.rect().bottomLeft()))
+        chosen = menu.exec_(self._btn_more.mapToGlobal(self._btn_more.rect().bottomLeft()))
         if chosen == act_refresh:
             self.refresh()
         elif chosen == act_tables:
