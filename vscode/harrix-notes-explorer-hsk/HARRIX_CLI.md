@@ -35,7 +35,7 @@ This extension can be built **with** or **without** integration to `hsk`. All CL
 These stay in `extension.js` for a public build:
 
 - Git discard commands (`discardGitChangesInFolder`, `discardGitChangesInNote`) — use `git` directly
-- `addFolderInNote`, `addFileInNote` — local filesystem only
+- `addFolderInNote`, `addFileInNote`, `createFolder` — local filesystem only
 - `openMergedNote`, merged `*.g.md` tree rules — file open only (beautify/regenerate is CLI)
 - Note titles, preview copy, drag-and-drop, folder expansion, etc.
 

@@ -4197,6 +4197,50 @@ async function activate(context) {
   );
 
   context.subscriptions.push(
+    vscode.commands.registerCommand('harrixNotesExplorerHsk.createFolder', async (treeItemOrUri) => {
+      const folderUri = folderUriFromTreeArg(treeItemOrUri);
+      const baseDir =
+        treeItemOrUri && typeof treeItemOrUri.dirPath === 'string' && treeItemOrUri.dirPath
+          ? treeItemOrUri.dirPath
+          : folderUri?.fsPath;
+      if (!baseDir || !isDirectoryPath(baseDir)) {
+        vscode.window.showErrorMessage('Select a folder in Harrix Notes (HSK).');
+        return;
+      }
+
+      const name = await vscode.window.showInputBox({
+        title: 'New Folder',
+        prompt: 'Folder name',
+        placeHolder: 'Folder',
+      });
+      if (!name) {
+        return;
+      }
+
+      const safeName = sanitizeEntryName(name);
+      if (!safeName) {
+        vscode.window.showErrorMessage('Invalid folder name.');
+        return;
+      }
+
+      const dest = path.join(baseDir, safeName);
+      if (pathExists(dest)) {
+        vscode.window.showErrorMessage(`Already exists: ${safeName}`);
+        return;
+      }
+
+      try {
+        fs.mkdirSync(dest);
+        provider.refresh();
+        vscode.window.setStatusBarMessage(`Created folder ${safeName}`, 2000);
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        vscode.window.showErrorMessage(`New Folder failed: ${msg}`);
+      }
+    }),
+  );
+
+  context.subscriptions.push(
     vscode.commands.registerCommand('harrixNotesExplorerHsk.addFolderInNote', async (treeItemOrUri) => {
       const noteDir = noteDirFromTreeArg(treeItemOrUri);
       if (!noteDir || !isDirectoryPath(noteDir)) {

@@ -395,6 +395,11 @@
         "category": "Harrix Notes HSK"
       },
       {
+        "command": "harrixNotesExplorerHsk.createFolder",
+        "title": "New Folder…",
+        "category": "Harrix Notes HSK"
+      },
+      {
         "command": "harrixNotesExplorerHsk.addFolderInNote",
         "title": "Add Folder in Note…",
         "category": "Harrix Notes HSK"
@@ -671,6 +676,11 @@
           "command": "harrixNotesExplorerHsk.addFromTemplate",
           "when": "view == harrixNotesExplorerHsk && (viewItem == notesFolderTemplateTargetWithMerged || viewItem == gitNotesFolderTemplateTargetWithMerged)",
           "group": "1_create@4"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.createFolder",
+          "when": "view == harrixNotesExplorerHsk && (viewItem == notesFolder || viewItem == notesFolderWithMerged || viewItem == notesFolderDiary || viewItem == notesFolderWithMergedDiary || viewItem == notesFolderDreams || viewItem == notesFolderWithMergedDreams || viewItem == notesFolderCases || viewItem == notesFolderWithMergedCases || viewItem == notesFolderTemplateTarget || viewItem == notesFolderTemplateTargetWithMerged || viewItem == gitNotesFolder || viewItem == gitNotesFolderWithMerged || viewItem == gitNotesFolderDiary || viewItem == gitNotesFolderWithMergedDiary || viewItem == gitNotesFolderDreams || viewItem == gitNotesFolderWithMergedDreams || viewItem == gitNotesFolderCases || viewItem == gitNotesFolderWithMergedCases || viewItem == gitNotesFolderTemplateTarget || viewItem == gitNotesFolderTemplateTargetWithMerged || viewItem == noteAssetFolder)",
+          "group": "1_create@2"
         },
         {
           "command": "harrixNotesExplorerHsk.createNote",
