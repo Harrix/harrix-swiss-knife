@@ -383,6 +383,22 @@ class PhotoEditSaver(
         crop = crop,
     ).suggestedCrop
 
+    /**
+     * Largest axis-aligned rectangle that stays entirely inside the photo on the
+     * square canvas (accounts for letterbox and [rotationDegrees]).
+     */
+    fun photoInscribedBounds(
+        imageWidth: Int,
+        imageHeight: Int,
+        rotationDegrees: Float,
+    ): NormalizedCropRect {
+        val geometry =
+            photoGeometry(imageWidth, imageHeight, rotationDegrees)
+                ?: return imageContentCrop(imageWidth, imageHeight)
+        return maxAreaInscribedCrop(geometry)
+            ?: imageContentCrop(imageWidth, imageHeight)
+    }
+
     private data class PhotoGeometry(
         val halfWidth: Float,
         val halfHeight: Float,
@@ -1007,6 +1023,63 @@ class PhotoEditSaver(
             return clampCropRectFree(
                 NormalizedCropRect(left, top, left + width, top + height),
             )
+        }
+
+        /**
+         * Keep [rect] inside [bounds], preserving size when possible (for drag moves).
+         * If [imageAspect] is set, the result keeps that aspect ratio.
+         */
+        fun clampCropRectInsideBounds(
+            rect: NormalizedCropRect,
+            bounds: NormalizedCropRect,
+            imageAspect: Float? = null,
+            minNormalizedSide: Float = 0.06f,
+        ): NormalizedCropRect {
+            val bw = bounds.width.coerceAtLeast(minNormalizedSide)
+            val bh = bounds.height.coerceAtLeast(minNormalizedSide)
+            if (imageAspect == null) {
+                val width = rect.width.coerceIn(minNormalizedSide, bw)
+                val height = rect.height.coerceIn(minNormalizedSide, bh)
+                val left =
+                    rect.left.coerceIn(
+                        bounds.left,
+                        (bounds.right - width).coerceAtLeast(bounds.left),
+                    )
+                val top =
+                    rect.top.coerceIn(
+                        bounds.top,
+                        (bounds.bottom - height).coerceAtLeast(bounds.top),
+                    )
+                return NormalizedCropRect(left, top, left + width, top + height)
+            }
+
+            val aspect = imageAspect.coerceAtLeast(1e-6f)
+            var width = rect.width.coerceAtLeast(minNormalizedSide)
+            var height = width / aspect
+            if (height < minNormalizedSide) {
+                height = minNormalizedSide
+                width = height * aspect
+            }
+            if (width > bw || height > bh) {
+                if (bw / bh > aspect) {
+                    height = bh
+                    width = height * aspect
+                } else {
+                    width = bw
+                    height = width / aspect
+                }
+            }
+            val left =
+                rect.left.coerceIn(
+                    bounds.left,
+                    (bounds.right - width).coerceAtLeast(bounds.left),
+                )
+            val top =
+                rect.top.coerceIn(
+                    bounds.top,
+                    (bounds.bottom - height).coerceAtLeast(bounds.top),
+                )
+            return NormalizedCropRect(left, top, left + width, top + height)
         }
 
         /**

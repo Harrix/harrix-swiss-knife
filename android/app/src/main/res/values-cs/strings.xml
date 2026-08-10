@@ -278,6 +278,10 @@
     <string name="gallery_cleaner_edit_rotate_ccw">Otočit o 90° doleva</string>
     <string name="gallery_cleaner_edit_rotate_cw">Otočit o 90° doprava</string>
     <string name="gallery_cleaner_edit_reset_rotation">Resetovat otočení</string>
+    <string name="gallery_cleaner_edit_lock_rotation">Zamknout otočení</string>
+    <string name="gallery_cleaner_edit_unlock_rotation">Povolit otočení</string>
+    <string name="gallery_cleaner_edit_contain_crop">Držet rámeček ve fotce</string>
+    <string name="gallery_cleaner_edit_allow_crop_outside">Povolit rámeček mimo fotku</string>
     <string name="gallery_cleaner_edit_more">More edit actions</string>
     <string name="video_cleaner_title">Video Cleaner</string>
     <string name="video_cleaner_close">Exit Video Cleaner</string>

@@ -2,21 +2,21 @@
 
 from __future__ import annotations
 
+import re
 import shutil
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from pathlib import Path
 
 import harrix_pylib as h
 
 from harrix_swiss_knife.actions.common.raster_optimize import RASTER_EXTENSIONS, optimize_raster_file
 
-if TYPE_CHECKING:
-    from pathlib import Path
-
 TOOL_EXTENSIONS = h.img.EXE_RASTER_EXTENSIONS
 SUPPORTED_EXTENSIONS = frozenset({".svg", *TOOL_EXTENSIONS, *RASTER_EXTENSIONS})
 _OUTPUT_EXTENSION_ORDER = (".avif", ".png", ".svg", ".jpg", ".jpeg", ".webp", ".gif", ".mp4")
 _BYTES_PER_UNIT = 1024
+# Cursor canvas exports: canvas_01.png, canvas_02.png, …
+_CANVAS_NUMBERED_STEM = re.compile(r"^canvas_\d+$", re.IGNORECASE)
 
 
 @dataclass(slots=True)
@@ -76,6 +76,15 @@ def format_byte_size(num_bytes: int) -> str:
     return f"{value:.2f} GB"
 
 
+def is_canvas_numbered_image(path: Path | str) -> bool:
+    """Return whether `path` is a numbered canvas export that must not be optimized.
+
+    Matches stems like `canvas_01`, `canvas_2`, `canvas_03` (any extension).
+
+    """
+    return bool(_CANVAS_NUMBERED_STEM.fullmatch(Path(path).stem))
+
+
 def optimize_image_file(
     source: Path,
     output_folder: Path,
@@ -87,6 +96,8 @@ def optimize_image_file(
     convert_png_to_avif: bool = False,
 ) -> str | None:
     """Optimize a single supported image file."""
+    if is_canvas_numbered_image(source):
+        return f"⏭️ Skipped {source.name} (canvas_NN image is not optimized)."
     ext = source.suffix.lower()
     if ext == ".svg":
         return h.svg_opt.SvgOptimizer().optimize_file(source, output_folder / source.name)
@@ -164,6 +175,9 @@ def optimize_images_in_folder(
 
     for file in sorted(images_folder.iterdir()):
         if not file.is_file():
+            continue
+        if is_canvas_numbered_image(file):
+            lines.append(f"⏭️ Skipped {file.name} (canvas_NN image is not optimized).")
             continue
         before_size = file.stat().st_size
         try:

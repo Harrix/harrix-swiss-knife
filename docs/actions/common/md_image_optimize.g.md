@@ -52,6 +52,9 @@ def optimize_image_file(
     if ext not in SUPPORTED_IMAGE_EXTENSIONS:
         return None
 
+    if is_canvas_numbered_image(image_filename):
+        return None
+
     if _is_already_optimized(image_filename, ext, max_size=max_size):
         return None
 

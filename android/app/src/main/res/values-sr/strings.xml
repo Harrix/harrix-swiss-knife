@@ -278,6 +278,10 @@
     <string name="gallery_cleaner_edit_rotate_ccw">Окрени 90° улево</string>
     <string name="gallery_cleaner_edit_rotate_cw">Окрени 90° удесно</string>
     <string name="gallery_cleaner_edit_reset_rotation">Ресетуј ротацију</string>
+    <string name="gallery_cleaner_edit_lock_rotation">Zaključaj rotaciju</string>
+    <string name="gallery_cleaner_edit_unlock_rotation">Dozvoli rotaciju</string>
+    <string name="gallery_cleaner_edit_contain_crop">Drži okvir unutar fotografije</string>
+    <string name="gallery_cleaner_edit_allow_crop_outside">Dozvoli okvir van fotografije</string>
     <string name="gallery_cleaner_edit_more">More edit actions</string>
     <string name="video_cleaner_title">Video Cleaner</string>
     <string name="video_cleaner_close">Одјавите се из програма Video Cleaner</string>

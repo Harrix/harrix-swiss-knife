@@ -278,6 +278,10 @@
     <string name="gallery_cleaner_edit_rotate_ccw">Павярнуць на 90° налева</string>
     <string name="gallery_cleaner_edit_rotate_cw">Павярнуць на 90° направа</string>
     <string name="gallery_cleaner_edit_reset_rotation">Скінуць паварот</string>
+    <string name="gallery_cleaner_edit_lock_rotation">Забараніць паварот</string>
+    <string name="gallery_cleaner_edit_unlock_rotation">Дазволіць паварот</string>
+    <string name="gallery_cleaner_edit_contain_crop">Не выходзіць за межы фота</string>
+    <string name="gallery_cleaner_edit_allow_crop_outside">Дазволіць рамцы выходзіць за фота</string>
     <string name="gallery_cleaner_edit_more">Іншыя дзеянні рэдактара</string>
     <string name="video_cleaner_title">Video Cleaner</string>
     <string name="video_cleaner_close">Выйдзіце з праграмы Video Cleaner</string>

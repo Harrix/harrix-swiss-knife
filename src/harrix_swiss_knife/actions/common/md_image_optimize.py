@@ -10,7 +10,11 @@ from tempfile import TemporaryDirectory
 import harrix_pylib as h
 from PIL import Image
 
-from harrix_swiss_knife.actions.common.image_optimize import OptimizeSizeStats, optimize_images_in_folder
+from harrix_swiss_knife.actions.common.image_optimize import (
+    OptimizeSizeStats,
+    is_canvas_numbered_image,
+    optimize_images_in_folder,
+)
 
 SUPPORTED_IMAGE_EXTENSIONS = [".jpg", ".jpeg", ".webp", ".gif", ".mp4", ".png", ".svg", ".avif"]
 REMOTE_IMAGE_PATTERN = re.compile(r"^\!\[(.*?)\]\((http.*?)\)$")
@@ -39,6 +43,9 @@ def optimize_image_file(
     """
     ext = image_filename.suffix.lower()
     if ext not in SUPPORTED_IMAGE_EXTENSIONS:
+        return None
+
+    if is_canvas_numbered_image(image_filename):
         return None
 
     if _is_already_optimized(image_filename, ext, max_size=max_size):

@@ -16,6 +16,7 @@ lang: en
   - [⚙️ Method `format_summary`](#%EF%B8%8F-method-format_summary)
 - [🔧 Function `find_optimized_output`](#-function-find_optimized_output)
 - [🔧 Function `format_byte_size`](#-function-format_byte_size)
+- [🔧 Function `is_canvas_numbered_image`](#-function-is_canvas_numbered_image)
 - [🔧 Function `optimize_image_file`](#-function-optimize_image_file)
 - [🔧 Function `optimize_images_in_folder`](#-function-optimize_images_in_folder)
 
@@ -171,6 +172,26 @@ def format_byte_size(num_bytes: int) -> str:
 
 </details>
 
+## 🔧 Function `is_canvas_numbered_image`
+
+```python
+def is_canvas_numbered_image(path: Path | str) -> bool
+```
+
+Return whether `path` is a numbered canvas export that must not be optimized.
+
+Matches stems like `canvas_01`, `canvas_2`, `canvas_03` (any extension).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def is_canvas_numbered_image(path: Path | str) -> bool:
+    return bool(_CANVAS_NUMBERED_STEM.fullmatch(Path(path).stem))
+```
+
+</details>
+
 ## 🔧 Function `optimize_image_file`
 
 ```python
@@ -193,6 +214,8 @@ def optimize_image_file(
     compare_png_avif: bool = True,
     convert_png_to_avif: bool = False,
 ) -> str | None:
+    if is_canvas_numbered_image(source):
+        return f"⏭️ Skipped {source.name} (canvas_NN image is not optimized)."
     ext = source.suffix.lower()
     if ext == ".svg":
         return h.svg_opt.SvgOptimizer().optimize_file(source, output_folder / source.name)
@@ -281,6 +304,9 @@ def optimize_images_in_folder(
 
     for file in sorted(images_folder.iterdir()):
         if not file.is_file():
+            continue
+        if is_canvas_numbered_image(file):
+            lines.append(f"⏭️ Skipped {file.name} (canvas_NN image is not optimized).")
             continue
         before_size = file.stat().st_size
         try:

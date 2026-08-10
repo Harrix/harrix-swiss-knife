@@ -278,6 +278,10 @@
     <string name="gallery_cleaner_edit_rotate_ccw">Obróć o 90° w lewo</string>
     <string name="gallery_cleaner_edit_rotate_cw">Obróć o 90° w prawo</string>
     <string name="gallery_cleaner_edit_reset_rotation">Zresetuj obrót</string>
+    <string name="gallery_cleaner_edit_lock_rotation">Zablokuj obrót</string>
+    <string name="gallery_cleaner_edit_unlock_rotation">Zezwól na obrót</string>
+    <string name="gallery_cleaner_edit_contain_crop">Trzymaj ramkę w zdjęciu</string>
+    <string name="gallery_cleaner_edit_allow_crop_outside">Zezwól na ramkę poza zdjęciem</string>
     <string name="gallery_cleaner_edit_more">More edit actions</string>
     <string name="video_cleaner_title">Video Cleaner</string>
     <string name="video_cleaner_close">Wyjdź Video Cleaner</string>
