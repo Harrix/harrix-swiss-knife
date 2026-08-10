@@ -283,6 +283,11 @@
     <string name="gallery_cleaner_edit_contain_crop">Manter moldura dentro da foto</string>
     <string name="gallery_cleaner_edit_allow_crop_outside">Permitir moldura fora da foto</string>
     <string name="gallery_cleaner_edit_more">More edit actions</string>
+    <string name="photo_file_details_title">Detalhes do arquivo</string>
+    <string name="photo_file_details_path_format">/Armazenamento interno/%1$s</string>
+    <string name="photo_file_details_mode_landscape">Paisagem</string>
+    <string name="photo_file_details_mode_portrait">Retrato</string>
+    <string name="photo_file_details_mode_night">Noite</string>
     <string name="video_cleaner_title">Video Cleaner</string>
     <string name="video_cleaner_close">Sair Video Cleaner</string>
     <string name="video_cleaner_settings">Configurações</string>

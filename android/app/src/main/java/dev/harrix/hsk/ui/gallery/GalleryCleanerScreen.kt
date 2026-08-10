@@ -1941,62 +1941,34 @@ private fun PhotoMetaInfo(
 ) {
     val dateLabel =
         remember(photo.dateTakenEpochMs) {
-            DateFormat
-                .getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT)
-                .format(Date(photo.dateTakenEpochMs))
+            galleryPhotoDateTimeLabel(photo)
         }
-    val sizeLabel =
-        remember(photo.sizeBytes) {
-            CameraGalleryRepository.formatFileSize(photo.sizeBytes)
-        }
-    val nameLabel =
-        photo.displayName?.takeIf { it.isNotBlank() }
-            ?: stringResource(R.string.gallery_cleaner_untitled)
-    val textAlign = if (endAligned) TextAlign.End else TextAlign.Start
-    Column(
+    PhotoFileDetailsPanel(
+        photo = photo,
+        dateLabel = dateLabel,
+        compact = compact,
+        endAligned = endAligned,
         modifier =
-        modifier.padding(
-            horizontal = if (endAligned) 0.dp else 16.dp,
-            vertical = if (compact) 6.dp else 10.dp,
-        ),
-        horizontalAlignment = if (endAligned) Alignment.End else Alignment.Start,
-        verticalArrangement = Arrangement.spacedBy(2.dp),
-    ) {
-        if (compact) {
-            AutoFitText(
-                text = "$dateLabel · $sizeLabel",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                textAlign = textAlign,
-                modifier = if (endAligned) Modifier.fillMaxWidth() else Modifier,
+        modifier
+            .then(
+                if (compact) {
+                    Modifier
+                } else {
+                    Modifier.heightIn(max = 220.dp)
+                },
             )
-        } else {
-            AutoFitText(
-                text = nameLabel,
-                style = MaterialTheme.typography.titleSmall,
-                maxLines = 1,
-                textAlign = textAlign,
-                modifier = if (endAligned) Modifier.fillMaxWidth() else Modifier,
+            .then(
+                if (compact) {
+                    Modifier
+                } else {
+                    Modifier.verticalScroll(rememberScrollState())
+                },
             )
-            AutoFitText(
-                text = dateLabel,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                textAlign = textAlign,
-                modifier = if (endAligned) Modifier.fillMaxWidth() else Modifier,
-            )
-            AutoFitText(
-                text = sizeLabel,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                textAlign = textAlign,
-                modifier = if (endAligned) Modifier.fillMaxWidth() else Modifier,
-            )
-        }
-    }
+            .padding(
+                horizontal = if (endAligned) 0.dp else 16.dp,
+                vertical = if (compact) 6.dp else 10.dp,
+            ),
+    )
 }
 
 private fun clampZoomOffset(

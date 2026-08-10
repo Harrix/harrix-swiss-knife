@@ -283,6 +283,11 @@
     <string name="gallery_cleaner_edit_contain_crop">Jaga bingkai di dalam foto</string>
     <string name="gallery_cleaner_edit_allow_crop_outside">Izinkan bingkai di luar foto</string>
     <string name="gallery_cleaner_edit_more">More edit actions</string>
+    <string name="photo_file_details_title">Detail file</string>
+    <string name="photo_file_details_path_format">/Penyimpanan internal/%1$s</string>
+    <string name="photo_file_details_mode_landscape">Lanskap</string>
+    <string name="photo_file_details_mode_portrait">Potret</string>
+    <string name="photo_file_details_mode_night">Malam</string>
     <string name="video_cleaner_title">Video Cleaner</string>
     <string name="video_cleaner_close">Keluar Video Cleaner</string>
     <string name="video_cleaner_settings">Pengaturan</string>

@@ -283,6 +283,11 @@
     <string name="gallery_cleaner_edit_contain_crop">Rahmen im Foto halten</string>
     <string name="gallery_cleaner_edit_allow_crop_outside">Rahmen außerhalb erlauben</string>
     <string name="gallery_cleaner_edit_more">More edit actions</string>
+    <string name="photo_file_details_title">Dateidetails</string>
+    <string name="photo_file_details_path_format">/Interner Speicher/%1$s</string>
+    <string name="photo_file_details_mode_landscape">Landschaft</string>
+    <string name="photo_file_details_mode_portrait">Porträt</string>
+    <string name="photo_file_details_mode_night">Nacht</string>
     <string name="video_cleaner_title">Video Cleaner</string>
     <string name="video_cleaner_close">Beenden Sie Video Cleaner</string>
     <string name="video_cleaner_settings">Einstellungen</string>

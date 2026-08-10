@@ -26,6 +26,7 @@ import androidx.compose.material.icons.filled.CropRotate
 import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.FilterCenterFocus
 import androidx.compose.material.icons.filled.FitScreen
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.RestartAlt
 import androidx.compose.material.icons.filled.Rotate90DegreesCcw
@@ -38,14 +39,17 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedIconButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
@@ -145,6 +149,7 @@ private fun nearAspect(
 private fun isThreeFourFamily(aspect: Float): Boolean = nearAspect(aspect, AspectThreeFour) ||
     nearAspect(aspect, 1f / AspectThreeFour)
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PhotoCropEditor(
     photo: CameraPhoto,
@@ -186,6 +191,7 @@ fun PhotoCropEditor(
     val rotationLockedState = rememberUpdatedState(rotationLocked)
     var containCropInImage by remember(photo.id, imageRevision) { mutableStateOf(false) }
     val containCropInImageState = rememberUpdatedState(containCropInImage)
+    var showFileDetails by remember { mutableStateOf(false) }
     var viewScale by remember(photo.id, imageRevision) { mutableFloatStateOf(1f) }
     var viewOffset by remember(photo.id, imageRevision) { mutableStateOf(Offset.Zero) }
     val viewScaleState = rememberUpdatedState(viewScale)
@@ -913,6 +919,12 @@ fun PhotoCropEditor(
                         .padding(12.dp),
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
+                    EditToolbarIconButton(
+                        onClick = { showFileDetails = true },
+                        icon = Icons.Filled.Info,
+                        label = stringResource(R.string.photo_file_details_title),
+                        tonal = true,
+                    )
                     if (!isPerspective) {
                         EditToolbarIconButton(
                             onClick = { rotationLocked = !rotationLocked },
@@ -1329,6 +1341,33 @@ fun PhotoCropEditor(
                         )
                     }
                 }
+            }
+        }
+    }
+
+    if (showFileDetails) {
+        val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        ModalBottomSheet(
+            onDismissRequest = { showFileDetails = false },
+            sheetState = sheetState,
+        ) {
+            Column(
+                modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 8.dp)
+                    .padding(bottom = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Text(
+                    text = stringResource(R.string.photo_file_details_title),
+                    style = MaterialTheme.typography.titleLarge,
+                )
+                PhotoFileDetailsPanel(
+                    photo = photo,
+                    dateLabel = galleryPhotoDateTimeLabel(photo),
+                    modifier = Modifier.fillMaxWidth(),
+                )
             }
         }
     }

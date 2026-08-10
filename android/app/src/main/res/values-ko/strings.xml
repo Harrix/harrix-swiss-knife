@@ -283,6 +283,11 @@
     <string name="gallery_cleaner_edit_contain_crop">프레임을 사진 안에 유지</string>
     <string name="gallery_cleaner_edit_allow_crop_outside">프레임이 사진 밖으로 나가도록 허용</string>
     <string name="gallery_cleaner_edit_more">More edit actions</string>
+    <string name="photo_file_details_title">파일 정보</string>
+    <string name="photo_file_details_path_format">/내부 저장소/%1$s</string>
+    <string name="photo_file_details_mode_landscape">풍경</string>
+    <string name="photo_file_details_mode_portrait">인물</string>
+    <string name="photo_file_details_mode_night">야간</string>
     <string name="video_cleaner_title">Video Cleaner</string>
     <string name="video_cleaner_close">출구 Video Cleaner</string>
     <string name="video_cleaner_settings">설정</string>

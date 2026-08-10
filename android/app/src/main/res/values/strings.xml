@@ -283,6 +283,11 @@
     <string name="gallery_cleaner_edit_contain_crop">Keep frame inside photo</string>
     <string name="gallery_cleaner_edit_allow_crop_outside">Allow frame outside photo</string>
     <string name="gallery_cleaner_edit_more">More edit actions</string>
+    <string name="photo_file_details_title">File details</string>
+    <string name="photo_file_details_path_format">/Internal storage/%1$s</string>
+    <string name="photo_file_details_mode_landscape">Landscape</string>
+    <string name="photo_file_details_mode_portrait">Portrait</string>
+    <string name="photo_file_details_mode_night">Night</string>
     <string name="video_cleaner_title">Video Cleaner</string>
     <string name="video_cleaner_close">Exit Video Cleaner</string>
     <string name="video_cleaner_settings">Settings</string>

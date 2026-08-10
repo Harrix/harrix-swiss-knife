@@ -283,6 +283,11 @@
     <string name="gallery_cleaner_edit_contain_crop">Držet rámeček ve fotce</string>
     <string name="gallery_cleaner_edit_allow_crop_outside">Povolit rámeček mimo fotku</string>
     <string name="gallery_cleaner_edit_more">More edit actions</string>
+    <string name="photo_file_details_title">Podrobnosti souboru</string>
+    <string name="photo_file_details_path_format">/Interní úložiště/%1$s</string>
+    <string name="photo_file_details_mode_landscape">Krajina</string>
+    <string name="photo_file_details_mode_portrait">Portrét</string>
+    <string name="photo_file_details_mode_night">Noc</string>
     <string name="video_cleaner_title">Video Cleaner</string>
     <string name="video_cleaner_close">Exit Video Cleaner</string>
     <string name="video_cleaner_settings">Nastavení</string>

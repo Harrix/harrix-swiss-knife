@@ -283,6 +283,11 @@
     <string name="gallery_cleaner_edit_contain_crop">枠を写真内に保つ</string>
     <string name="gallery_cleaner_edit_allow_crop_outside">枠の写真外を許可</string>
     <string name="gallery_cleaner_edit_more">More edit actions</string>
+    <string name="photo_file_details_title">ファイルの詳細</string>
+    <string name="photo_file_details_path_format">/内部ストレージ/%1$s</string>
+    <string name="photo_file_details_mode_landscape">風景</string>
+    <string name="photo_file_details_mode_portrait">ポートレート</string>
+    <string name="photo_file_details_mode_night">夜景</string>
     <string name="video_cleaner_title">Video Cleaner</string>
     <string name="video_cleaner_close">Video Cleaner を終了します</string>
     <string name="video_cleaner_settings">設定</string>

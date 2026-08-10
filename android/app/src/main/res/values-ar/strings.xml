@@ -283,6 +283,11 @@
     <string name="gallery_cleaner_edit_contain_crop">إبقاء الإطار داخل الصورة</string>
     <string name="gallery_cleaner_edit_allow_crop_outside">السماح للإطار خارج الصورة</string>
     <string name="gallery_cleaner_edit_more">More edit actions</string>
+    <string name="photo_file_details_title">تفاصيل الملف</string>
+    <string name="photo_file_details_path_format">/التخزين الداخلي/%1$s</string>
+    <string name="photo_file_details_mode_landscape">منظر طبيعي</string>
+    <string name="photo_file_details_mode_portrait">صورة شخصية</string>
+    <string name="photo_file_details_mode_night">ليل</string>
     <string name="video_cleaner_title">Video Cleaner</string>
     <string name="video_cleaner_close">خروج Video Cleaner</string>
     <string name="video_cleaner_settings">الإعدادات</string>

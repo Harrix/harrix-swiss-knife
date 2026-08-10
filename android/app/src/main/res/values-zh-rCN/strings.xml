@@ -283,6 +283,11 @@
     <string name="gallery_cleaner_edit_contain_crop">将框限制在照片内</string>
     <string name="gallery_cleaner_edit_allow_crop_outside">允许框超出照片</string>
     <string name="gallery_cleaner_edit_more">More edit actions</string>
+    <string name="photo_file_details_title">文件详情</string>
+    <string name="photo_file_details_path_format">/内部存储/%1$s</string>
+    <string name="photo_file_details_mode_landscape">风景</string>
+    <string name="photo_file_details_mode_portrait">人像</string>
+    <string name="photo_file_details_mode_night">夜景</string>
     <string name="video_cleaner_title">Video Cleaner</string>
     <string name="video_cleaner_close">退出Video Cleaner</string>
     <string name="video_cleaner_settings">设置</string>

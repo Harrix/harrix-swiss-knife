@@ -283,6 +283,11 @@
     <string name="gallery_cleaner_edit_contain_crop">Çerçeveyi fotoğraf içinde tut</string>
     <string name="gallery_cleaner_edit_allow_crop_outside">Çerçevenin dışarı çıkmasına izin ver</string>
     <string name="gallery_cleaner_edit_more">More edit actions</string>
+    <string name="photo_file_details_title">Dosya ayrıntıları</string>
+    <string name="photo_file_details_path_format">/Dahili depolama/%1$s</string>
+    <string name="photo_file_details_mode_landscape">Manzara</string>
+    <string name="photo_file_details_mode_portrait">Portre</string>
+    <string name="photo_file_details_mode_night">Gece</string>
     <string name="video_cleaner_title">Video Cleaner</string>
     <string name="video_cleaner_close">Video Cleaner</string>
     <string name="video_cleaner_settings">Ayarlar</string>

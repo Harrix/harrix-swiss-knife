@@ -283,6 +283,11 @@
     <string name="gallery_cleaner_edit_contain_crop">Mantieni riquadro nella foto</string>
     <string name="gallery_cleaner_edit_allow_crop_outside">Consenti riquadro fuori foto</string>
     <string name="gallery_cleaner_edit_more">More edit actions</string>
+    <string name="photo_file_details_title">Dettagli file</string>
+    <string name="photo_file_details_path_format">/Archiviazione interna/%1$s</string>
+    <string name="photo_file_details_mode_landscape">Paesaggio</string>
+    <string name="photo_file_details_mode_portrait">Ritratto</string>
+    <string name="photo_file_details_mode_night">Notte</string>
     <string name="video_cleaner_title">Video Cleaner</string>
     <string name="video_cleaner_close">Esci Video Cleaner</string>
     <string name="video_cleaner_settings">Impostazioni</string>

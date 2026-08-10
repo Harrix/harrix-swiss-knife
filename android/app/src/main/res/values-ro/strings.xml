@@ -283,6 +283,11 @@
     <string name="gallery_cleaner_edit_contain_crop">Păstrează cadrul în foto</string>
     <string name="gallery_cleaner_edit_allow_crop_outside">Permite cadrul în afara foto</string>
     <string name="gallery_cleaner_edit_more">More edit actions</string>
+    <string name="photo_file_details_title">Detalii fișier</string>
+    <string name="photo_file_details_path_format">/Stocare internă/%1$s</string>
+    <string name="photo_file_details_mode_landscape">Peisaj</string>
+    <string name="photo_file_details_mode_portrait">Portret</string>
+    <string name="photo_file_details_mode_night">Noapte</string>
     <string name="video_cleaner_title">Video Cleaner</string>
     <string name="video_cleaner_close">Ieșire Video Cleaner</string>
     <string name="video_cleaner_settings">Setări</string>

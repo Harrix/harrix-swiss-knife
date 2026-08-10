@@ -283,6 +283,11 @@
     <string name="gallery_cleaner_edit_contain_crop">Не выходзіць за межы фота</string>
     <string name="gallery_cleaner_edit_allow_crop_outside">Дазволіць рамцы выходзіць за фота</string>
     <string name="gallery_cleaner_edit_more">Іншыя дзеянні рэдактара</string>
+    <string name="photo_file_details_title">Звесткі пра файл</string>
+    <string name="photo_file_details_path_format">/Унутранае сховішча/%1$s</string>
+    <string name="photo_file_details_mode_landscape">Пейзаж</string>
+    <string name="photo_file_details_mode_portrait">Партрэт</string>
+    <string name="photo_file_details_mode_night">Ноч</string>
     <string name="video_cleaner_title">Video Cleaner</string>
     <string name="video_cleaner_close">Выйдзіце з праграмы Video Cleaner</string>
     <string name="video_cleaner_settings">Налады</string>

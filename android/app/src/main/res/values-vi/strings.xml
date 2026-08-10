@@ -283,6 +283,11 @@
     <string name="gallery_cleaner_edit_contain_crop">Giữ khung trong ảnh</string>
     <string name="gallery_cleaner_edit_allow_crop_outside">Cho phép khung ra ngoài ảnh</string>
     <string name="gallery_cleaner_edit_more">More edit actions</string>
+    <string name="photo_file_details_title">Chi tiết tệp</string>
+    <string name="photo_file_details_path_format">/Bộ nhớ trong/%1$s</string>
+    <string name="photo_file_details_mode_landscape">Phong cảnh</string>
+    <string name="photo_file_details_mode_portrait">Chân dung</string>
+    <string name="photo_file_details_mode_night">Đêm</string>
     <string name="video_cleaner_title">Video Cleaner</string>
     <string name="video_cleaner_close">Lối ra Video Cleaner</string>
     <string name="video_cleaner_settings">Cài đặt</string>
