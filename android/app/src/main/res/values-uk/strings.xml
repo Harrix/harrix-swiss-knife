@@ -288,6 +288,8 @@
     <string name="photo_file_details_mode_landscape">Пейзаж</string>
     <string name="photo_file_details_mode_portrait">Портрет</string>
     <string name="photo_file_details_mode_night">Ніч</string>
+    <string name="photo_file_details_map">Місце на Google Картах</string>
+    <string name="photo_file_details_open_map">Відкрити в Google Картах</string>
     <string name="video_cleaner_title">Video Cleaner</string>
     <string name="video_cleaner_close">Вийдіть із програми Video Cleaner</string>
     <string name="video_cleaner_settings">Налаштування</string>

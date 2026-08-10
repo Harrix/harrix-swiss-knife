@@ -10,6 +10,8 @@ import androidx.exifinterface.media.ExifInterface
 import java.util.Locale
 import kotlin.math.roundToInt
 
+private const val GoogleMapsSearchUrl = "https://www.google.com/maps/search/?api=1&query=%s,%s"
+
 enum class PhotoCaptureMode {
     Landscape,
     Portrait,
@@ -32,7 +34,19 @@ data class PhotoFileDetails(
     val apertureLabel: String?,
     val shutterLabel: String?,
     val locationLabel: String?,
+    val latitude: Double?,
+    val longitude: Double?,
 ) {
+    val hasMapLocation: Boolean
+        get() = latitude != null && longitude != null
+
+    /** Google Maps search URL with a pin at the capture coordinates. */
+    fun googleMapsUri(): Uri? {
+        val lat = latitude ?: return null
+        val lng = longitude ?: return null
+        return Uri.parse(String.format(Locale.US, GoogleMapsSearchUrl, lat, lng))
+    }
+
     val resolutionLabel: String?
         get() {
             val w = width ?: return null
@@ -113,6 +127,8 @@ object PhotoFileDetailsLoader {
             apertureLabel = exif.apertureLabel,
             shutterLabel = exif.shutterLabel,
             locationLabel = locationLabel,
+            latitude = exif.latitude,
+            longitude = exif.longitude,
         )
     }
 

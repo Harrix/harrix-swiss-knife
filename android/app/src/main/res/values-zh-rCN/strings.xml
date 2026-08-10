@@ -288,6 +288,8 @@
     <string name="photo_file_details_mode_landscape">风景</string>
     <string name="photo_file_details_mode_portrait">人像</string>
     <string name="photo_file_details_mode_night">夜景</string>
+    <string name="photo_file_details_map">Google 地图上的位置</string>
+    <string name="photo_file_details_open_map">在 Google 地图中打开</string>
     <string name="video_cleaner_title">Video Cleaner</string>
     <string name="video_cleaner_close">退出Video Cleaner</string>
     <string name="video_cleaner_settings">设置</string>

@@ -288,6 +288,8 @@
     <string name="photo_file_details_mode_landscape">Phong cảnh</string>
     <string name="photo_file_details_mode_portrait">Chân dung</string>
     <string name="photo_file_details_mode_night">Đêm</string>
+    <string name="photo_file_details_map">Vị trí trên Google Maps</string>
+    <string name="photo_file_details_open_map">Mở trong Google Maps</string>
     <string name="video_cleaner_title">Video Cleaner</string>
     <string name="video_cleaner_close">Lối ra Video Cleaner</string>
     <string name="video_cleaner_settings">Cài đặt</string>

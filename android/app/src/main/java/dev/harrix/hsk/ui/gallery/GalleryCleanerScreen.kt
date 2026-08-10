@@ -56,6 +56,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.FilterAlt
 import androidx.compose.material.icons.filled.FilterAltOff
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.MoreVert
@@ -184,6 +185,7 @@ fun GalleryCleanerScreen(
     var undoStack by viewModel.undoStack
     var cardResetKey by viewModel.cardResetKey
     var menuExpanded by remember { mutableStateOf(false) }
+    var showPhotoDetails by remember { mutableStateOf(false) }
     var showDateFilterDialog by remember { mutableStateOf(false) }
     var dateFilter by viewModel.dateFilter
     var unreviewedOnlyMode by viewModel.unreviewedOnlyMode
@@ -525,6 +527,8 @@ fun GalleryCleanerScreen(
 
     BackHandler {
         when {
+            showPhotoDetails -> showPhotoDetails = false
+
             showDateFilterDialog -> {
                 showDateFilterDialog = false
                 if (hasPermission && !showIntro) {
@@ -793,6 +797,19 @@ fun GalleryCleanerScreen(
         )
     }
 
+    val detailsPhoto = currentPhoto
+    LaunchedEffect(detailsPhoto, showPhotoDetails) {
+        if (showPhotoDetails && detailsPhoto == null) {
+            showPhotoDetails = false
+        }
+    }
+    if (showPhotoDetails && detailsPhoto != null) {
+        PhotoFileDetailsSheet(
+            photo = detailsPhoto,
+            onDismissRequest = { showPhotoDetails = false },
+        )
+    }
+
     if (showStatsDialog) {
         var statsTick by remember { mutableIntStateOf(0) }
         val reviewedTotal = remember(statsTick) { preferences.reviewedPhotoCount() }
@@ -1029,6 +1046,26 @@ fun GalleryCleanerScreen(
                                         },
                                     )
                                     if (currentPhoto != null) {
+                                        DropdownMenuItem(
+                                            text = {
+                                                AutoFitText(
+                                                    text = stringResource(
+                                                        R.string.photo_file_details_title,
+                                                    ),
+                                                    maxLines = 2,
+                                                )
+                                            },
+                                            leadingIcon = {
+                                                Icon(
+                                                    imageVector = Icons.Filled.Info,
+                                                    contentDescription = null,
+                                                )
+                                            },
+                                            onClick = {
+                                                menuExpanded = false
+                                                showPhotoDetails = true
+                                            },
+                                        )
                                         DropdownMenuItem(
                                             text = {
                                                 AutoFitText(
@@ -1941,34 +1978,62 @@ private fun PhotoMetaInfo(
 ) {
     val dateLabel =
         remember(photo.dateTakenEpochMs) {
-            galleryPhotoDateTimeLabel(photo)
+            DateFormat
+                .getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT)
+                .format(Date(photo.dateTakenEpochMs))
         }
-    PhotoFileDetailsPanel(
-        photo = photo,
-        dateLabel = dateLabel,
-        compact = compact,
-        endAligned = endAligned,
+    val sizeLabel =
+        remember(photo.sizeBytes) {
+            CameraGalleryRepository.formatFileSize(photo.sizeBytes)
+        }
+    val nameLabel =
+        photo.displayName?.takeIf { it.isNotBlank() }
+            ?: stringResource(R.string.gallery_cleaner_untitled)
+    val textAlign = if (endAligned) TextAlign.End else TextAlign.Start
+    Column(
         modifier =
-        modifier
-            .then(
-                if (compact) {
-                    Modifier
-                } else {
-                    Modifier.heightIn(max = 220.dp)
-                },
+        modifier.padding(
+            horizontal = if (endAligned) 0.dp else 16.dp,
+            vertical = if (compact) 6.dp else 10.dp,
+        ),
+        horizontalAlignment = if (endAligned) Alignment.End else Alignment.Start,
+        verticalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
+        if (compact) {
+            AutoFitText(
+                text = "$dateLabel · $sizeLabel",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                textAlign = textAlign,
+                modifier = if (endAligned) Modifier.fillMaxWidth() else Modifier,
             )
-            .then(
-                if (compact) {
-                    Modifier
-                } else {
-                    Modifier.verticalScroll(rememberScrollState())
-                },
+        } else {
+            AutoFitText(
+                text = nameLabel,
+                style = MaterialTheme.typography.titleSmall,
+                maxLines = 1,
+                textAlign = textAlign,
+                modifier = if (endAligned) Modifier.fillMaxWidth() else Modifier,
             )
-            .padding(
-                horizontal = if (endAligned) 0.dp else 16.dp,
-                vertical = if (compact) 6.dp else 10.dp,
-            ),
-    )
+            AutoFitText(
+                text = dateLabel,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                textAlign = textAlign,
+                modifier = if (endAligned) Modifier.fillMaxWidth() else Modifier,
+            )
+            AutoFitText(
+                text = sizeLabel,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                textAlign = textAlign,
+                modifier = if (endAligned) Modifier.fillMaxWidth() else Modifier,
+            )
+        }
+    }
 }
 
 private fun clampZoomOffset(

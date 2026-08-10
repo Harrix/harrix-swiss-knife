@@ -1,5 +1,6 @@
 package dev.harrix.hsk.ui.gallery
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.awaitEachGesture
@@ -38,17 +39,14 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedIconButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
@@ -154,7 +152,6 @@ private fun nearAspect(
 private fun isThreeFourFamily(aspect: Float): Boolean = nearAspect(aspect, AspectThreeFour) ||
     nearAspect(aspect, 1f / AspectThreeFour)
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PhotoCropEditor(
     photo: CameraPhoto,
@@ -223,12 +220,20 @@ fun PhotoCropEditor(
         trimSuggestion = null
     }
 
+    fun exitPerspectiveMode() {
+        val currentQuad = perspectiveQuad ?: return
+        showFileDetails = false
+        onCropRectChange(currentQuad.boundingRect())
+        onPerspectiveQuadChange(null)
+    }
+
     fun togglePerspectiveMode() {
         if (isSaving || imageWidth <= 0) {
             return
         }
         val currentQuad = perspectiveQuad
         if (currentQuad == null) {
+            showFileDetails = false
             lockedAspect = null
             containCropInImage = false
             trimSuggestion = null
@@ -257,8 +262,21 @@ fun PhotoCropEditor(
                 }
             }
         } else {
-            onCropRectChange(currentQuad.boundingRect())
-            onPerspectiveQuadChange(null)
+            exitPerspectiveMode()
+        }
+    }
+
+    BackHandler(enabled = showFileDetails) {
+        showFileDetails = false
+    }
+
+    BackHandler(enabled = isPerspective && !isSaving && !showFileDetails) {
+        exitPerspectiveMode()
+    }
+
+    LaunchedEffect(isPerspective) {
+        if (isPerspective) {
+            showFileDetails = false
         }
     }
 
@@ -936,7 +954,12 @@ fun PhotoCropEditor(
                 )
             }
 
-            if (!isSaving && workspace.width > 0f && imageWidth > 0) {
+            val showCropChrome =
+                !isSaving &&
+                    !isPerspective &&
+                    workspace.width > 0f &&
+                    imageWidth > 0
+            if (showCropChrome) {
                 Row(
                     modifier =
                     Modifier
@@ -945,41 +968,33 @@ fun PhotoCropEditor(
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
                     EditToolbarIconButton(
-                        onClick = { showFileDetails = true },
-                        icon = Icons.Filled.Info,
-                        label = stringResource(R.string.photo_file_details_title),
+                        onClick = { rotationLocked = !rotationLocked },
+                        icon = Icons.Filled.ScreenLockRotation,
+                        label =
+                        stringResource(
+                            if (rotationLocked) {
+                                R.string.gallery_cleaner_edit_unlock_rotation
+                            } else {
+                                R.string.gallery_cleaner_edit_lock_rotation
+                            },
+                        ),
+                        selected = rotationLocked,
                         tonal = true,
                     )
-                    if (!isPerspective) {
-                        EditToolbarIconButton(
-                            onClick = { rotationLocked = !rotationLocked },
-                            icon = Icons.Filled.ScreenLockRotation,
-                            label =
-                            stringResource(
-                                if (rotationLocked) {
-                                    R.string.gallery_cleaner_edit_unlock_rotation
-                                } else {
-                                    R.string.gallery_cleaner_edit_lock_rotation
-                                },
-                            ),
-                            selected = rotationLocked,
-                            tonal = true,
-                        )
-                        EditToolbarIconButton(
-                            onClick = { toggleContainCropInImage() },
-                            icon = Icons.Filled.FilterCenterFocus,
-                            label =
-                            stringResource(
-                                if (containCropInImage) {
-                                    R.string.gallery_cleaner_edit_allow_crop_outside
-                                } else {
-                                    R.string.gallery_cleaner_edit_contain_crop
-                                },
-                            ),
-                            selected = containCropInImage,
-                            tonal = true,
-                        )
-                    }
+                    EditToolbarIconButton(
+                        onClick = { toggleContainCropInImage() },
+                        icon = Icons.Filled.FilterCenterFocus,
+                        label =
+                        stringResource(
+                            if (containCropInImage) {
+                                R.string.gallery_cleaner_edit_allow_crop_outside
+                            } else {
+                                R.string.gallery_cleaner_edit_contain_crop
+                            },
+                        ),
+                        selected = containCropInImage,
+                        tonal = true,
+                    )
                 }
                 Row(
                     modifier =
@@ -996,7 +1011,7 @@ fun PhotoCropEditor(
                             tonal = true,
                         )
                     }
-                    if (isViewTransformed && !isPerspective) {
+                    if (isViewTransformed) {
                         EditToolbarIconButton(
                             onClick = {
                                 val visible =
@@ -1048,6 +1063,7 @@ fun PhotoCropEditor(
         val applyPerspectiveLabel =
             stringResource(R.string.gallery_cleaner_edit_perspective_apply)
         val moreLabel = stringResource(R.string.gallery_cleaner_edit_more)
+        val fileDetailsLabel = stringResource(R.string.photo_file_details_title)
         val locked = lockedAspect
         val threeFourSelected = locked != null && isThreeFourFamily(locked)
         val freeAspectSelected = lockedAspect == null && !isPerspective
@@ -1056,7 +1072,6 @@ fun PhotoCropEditor(
         val canRotate = !isSaving && !isPerspective && !rotationLocked
         val canResetRotation = canRotate && abs(displayDegrees) >= 0.5f
         val canFitFrame = isViewTransformed && !isPerspective && imageWidth > 0
-        val primaryActionLabel = if (isPerspective) applyPerspectiveLabel else saveLabel
         var moreMenuExpanded by remember { mutableStateOf(false) }
 
         fun applyFitFrame() {
@@ -1140,15 +1155,7 @@ fun PhotoCropEditor(
                         enabled = canTogglePerspective,
                         selected = isPerspective,
                     )
-                    if (isPerspective) {
-                        EditToolbarIconButton(
-                            onClick = onSave,
-                            icon = Icons.Filled.Done,
-                            label = applyPerspectiveLabel,
-                            enabled = !isSaving,
-                            filled = true,
-                        )
-                    } else {
+                    if (!isPerspective) {
                         EditToolbarIconButton(
                             onClick = { onRotationDegreesChange(rotationDegrees - 90f) },
                             icon = Icons.Filled.Rotate90DegreesCcw,
@@ -1179,6 +1186,16 @@ fun PhotoCropEditor(
                             expanded = moreMenuExpanded,
                             onDismissRequest = { moreMenuExpanded = false },
                         ) {
+                            EditOverflowMenuItem(
+                                icon = Icons.Filled.Info,
+                                label = fileDetailsLabel,
+                                enabled = !isPerspective,
+                                onClick = {
+                                    moreMenuExpanded = false
+                                    showFileDetails = true
+                                },
+                            )
+                            HorizontalDivider()
                             EditOverflowMenuItem(
                                 icon = Icons.Filled.CropRotate,
                                 label = aspectRotateLabel,
@@ -1221,17 +1238,6 @@ fun PhotoCropEditor(
                                     togglePerspectiveMode()
                                 },
                             )
-                            if (isPerspective) {
-                                EditOverflowMenuItem(
-                                    icon = Icons.Filled.Done,
-                                    label = applyPerspectiveLabel,
-                                    enabled = !isSaving,
-                                    onClick = {
-                                        moreMenuExpanded = false
-                                        onSave()
-                                    },
-                                )
-                            }
                             HorizontalDivider()
                             EditOverflowMenuItem(
                                 icon = Icons.Filled.Rotate90DegreesCcw,
@@ -1289,7 +1295,7 @@ fun PhotoCropEditor(
                                     onDiscard()
                                 },
                             )
-                            if (onSaveCopy != null) {
+                            if (onSaveCopy != null && !isPerspective) {
                                 EditOverflowMenuItem(
                                     icon = HskIcons.SaveCopy,
                                     label = saveCopyLabel,
@@ -1307,7 +1313,7 @@ fun PhotoCropEditor(
                                 } else {
                                     Icons.Filled.Save
                                 },
-                                label = primaryActionLabel,
+                                label = if (isPerspective) applyPerspectiveLabel else saveLabel,
                                 enabled = !isSaving,
                                 onClick = {
                                     moreMenuExpanded = false
@@ -1370,31 +1376,11 @@ fun PhotoCropEditor(
         }
     }
 
-    if (showFileDetails) {
-        val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-        ModalBottomSheet(
+    if (showFileDetails && !isPerspective) {
+        PhotoFileDetailsSheet(
+            photo = photo,
             onDismissRequest = { showFileDetails = false },
-            sheetState = sheetState,
-        ) {
-            Column(
-                modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 8.dp)
-                    .padding(bottom = 24.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Text(
-                    text = stringResource(R.string.photo_file_details_title),
-                    style = MaterialTheme.typography.titleLarge,
-                )
-                PhotoFileDetailsPanel(
-                    photo = photo,
-                    dateLabel = galleryPhotoDateTimeLabel(photo),
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
-        }
+        )
     }
 }
 

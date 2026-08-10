@@ -288,6 +288,8 @@
     <string name="photo_file_details_mode_landscape">Krajobraz</string>
     <string name="photo_file_details_mode_portrait">Portret</string>
     <string name="photo_file_details_mode_night">Noc</string>
+    <string name="photo_file_details_map">Lokalizacja w Google Maps</string>
+    <string name="photo_file_details_open_map">Otwórz w Google Maps</string>
     <string name="video_cleaner_title">Video Cleaner</string>
     <string name="video_cleaner_close">Wyjdź Video Cleaner</string>
     <string name="video_cleaner_settings">Ustawienia</string>

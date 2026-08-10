@@ -288,6 +288,8 @@
     <string name="photo_file_details_mode_landscape">Lanskap</string>
     <string name="photo_file_details_mode_portrait">Potret</string>
     <string name="photo_file_details_mode_night">Malam</string>
+    <string name="photo_file_details_map">Lokasi di Google Maps</string>
+    <string name="photo_file_details_open_map">Buka di Google Maps</string>
     <string name="video_cleaner_title">Video Cleaner</string>
     <string name="video_cleaner_close">Keluar Video Cleaner</string>
     <string name="video_cleaner_settings">Pengaturan</string>

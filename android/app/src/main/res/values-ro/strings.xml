@@ -288,6 +288,8 @@
     <string name="photo_file_details_mode_landscape">Peisaj</string>
     <string name="photo_file_details_mode_portrait">Portret</string>
     <string name="photo_file_details_mode_night">Noapte</string>
+    <string name="photo_file_details_map">Locație pe Google Maps</string>
+    <string name="photo_file_details_open_map">Deschide în Google Maps</string>
     <string name="video_cleaner_title">Video Cleaner</string>
     <string name="video_cleaner_close">Ieșire Video Cleaner</string>
     <string name="video_cleaner_settings">Setări</string>

@@ -288,6 +288,8 @@
     <string name="photo_file_details_mode_landscape">풍경</string>
     <string name="photo_file_details_mode_portrait">인물</string>
     <string name="photo_file_details_mode_night">야간</string>
+    <string name="photo_file_details_map">Google 지도의 위치</string>
+    <string name="photo_file_details_open_map">Google 지도에서 열기</string>
     <string name="video_cleaner_title">Video Cleaner</string>
     <string name="video_cleaner_close">출구 Video Cleaner</string>
     <string name="video_cleaner_settings">설정</string>

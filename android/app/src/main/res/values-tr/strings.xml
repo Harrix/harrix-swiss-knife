@@ -288,6 +288,8 @@
     <string name="photo_file_details_mode_landscape">Manzara</string>
     <string name="photo_file_details_mode_portrait">Portre</string>
     <string name="photo_file_details_mode_night">Gece</string>
+    <string name="photo_file_details_map">Google Haritalar konumu</string>
+    <string name="photo_file_details_open_map">Google Haritalarda aç</string>
     <string name="video_cleaner_title">Video Cleaner</string>
     <string name="video_cleaner_close">Video Cleaner</string>
     <string name="video_cleaner_settings">Ayarlar</string>

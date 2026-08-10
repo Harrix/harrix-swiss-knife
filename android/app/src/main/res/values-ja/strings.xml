@@ -288,6 +288,8 @@
     <string name="photo_file_details_mode_landscape">風景</string>
     <string name="photo_file_details_mode_portrait">ポートレート</string>
     <string name="photo_file_details_mode_night">夜景</string>
+    <string name="photo_file_details_map">Google マップの位置情報</string>
+    <string name="photo_file_details_open_map">Google マップで開く</string>
     <string name="video_cleaner_title">Video Cleaner</string>
     <string name="video_cleaner_close">Video Cleaner を終了します</string>
     <string name="video_cleaner_settings">設定</string>
