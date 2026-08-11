@@ -179,6 +179,8 @@
     <string name="speech_to_text_result_label">Result</string>
     <string name="speech_to_text_copy">Copy</string>
     <string name="speech_to_text_copied">Copied to clipboard</string>
+    <string name="speech_to_text_share">Chia sẻ</string>
+    <string name="speech_to_text_share_failed">Không có ứng dụng để chia sẻ văn bản</string>
     <string name="speech_to_text_rewrite">Rewrite with AI</string>
     <string name="speech_to_text_single_line">To single line</string>
     <string name="speech_to_text_record_new">Record new</string>

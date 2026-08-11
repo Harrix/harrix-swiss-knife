@@ -1,6 +1,8 @@
 package dev.harrix.hsk.ui.speechtotext
 
 import android.Manifest
+import android.content.ActivityNotFoundException
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
@@ -30,6 +32,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -105,6 +108,8 @@ fun SpeechToTextScreen(
     val context = LocalContext.current
     val clipboard = LocalClipboardManager.current
     val copiedMessage = stringResource(R.string.speech_to_text_copied)
+    val shareFailedMessage = stringResource(R.string.speech_to_text_share_failed)
+    val shareChooserTitle = stringResource(R.string.speech_to_text_share)
 
     var pendingMicAction by remember { mutableStateOf<MicAction?>(null) }
     var pendingOpenAutoStart by remember { mutableStateOf(true) }
@@ -117,6 +122,23 @@ fun SpeechToTextScreen(
 
     fun showToast(message: String) {
         Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+    }
+
+    fun shareResultText(text: String) {
+        val payload = text.trim()
+        if (payload.isEmpty()) {
+            return
+        }
+        val shareIntent =
+            Intent(Intent.ACTION_SEND).apply {
+                type = "text/plain"
+                putExtra(Intent.EXTRA_TEXT, payload)
+            }
+        try {
+            context.startActivity(Intent.createChooser(shareIntent, shareChooserTitle))
+        } catch (_: ActivityNotFoundException) {
+            showToast(shareFailedMessage)
+        }
     }
 
     val permissionLauncher =
@@ -289,6 +311,7 @@ fun SpeechToTextScreen(
                             clipboard.setText(AnnotatedString(resultText))
                             showToast(copiedMessage)
                         },
+                        onShare = { shareResultText(resultText) },
                         onRewrite = { viewModel.rewrite() },
                         onRecordNew = { startOrRequestMic(MicAction.Start) },
                         onSingleLine = { viewModel.collapseToSingleLine() },
@@ -596,6 +619,7 @@ private fun ResultContent(
     text: String,
     onTextChange: (String) -> Unit,
     onCopy: () -> Unit,
+    onShare: () -> Unit,
     onRewrite: () -> Unit,
     onRecordNew: () -> Unit,
     onSingleLine: () -> Unit,
@@ -645,6 +669,18 @@ private fun ResultContent(
                     )
                     Spacer(modifier = Modifier.size(6.dp))
                     Text(stringResource(R.string.speech_to_text_record_new))
+                }
+                FilledTonalButton(
+                    onClick = onShare,
+                    enabled = text.isNotBlank(),
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Share,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Spacer(modifier = Modifier.size(6.dp))
+                    Text(stringResource(R.string.speech_to_text_share))
                 }
             }
         }

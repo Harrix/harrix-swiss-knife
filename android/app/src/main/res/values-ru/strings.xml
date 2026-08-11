@@ -179,6 +179,8 @@
     <string name="speech_to_text_result_label">Результат</string>
     <string name="speech_to_text_copy">Копировать</string>
     <string name="speech_to_text_copied">Скопировано в буфер обмена</string>
+    <string name="speech_to_text_share">Поделиться</string>
+    <string name="speech_to_text_share_failed">Нет приложения для отправки текста</string>
     <string name="speech_to_text_rewrite">Рерайт с AI</string>
     <string name="speech_to_text_single_line">В одну строку</string>
     <string name="speech_to_text_record_new">Новая запись</string>
