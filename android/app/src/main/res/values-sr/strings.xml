@@ -256,8 +256,7 @@
     <string name="gallery_cleaner_undo_failed">Враћање фотографије није успело</string>
     <string name="gallery_cleaner_share">Подели</string>
     <string name="gallery_cleaner_share_failed">Није могуће делити фотографију</string>
-    <string name="gallery_cleaner_action_crop">Исеци</string>
-    <string name="gallery_cleaner_action_rotate">Исправити</string>
+    <string name="gallery_cleaner_action_edit">Измени</string>
     <string name="gallery_cleaner_edit_save">Сачувај</string>
     <string name="gallery_cleaner_edit_discard">Одбаци</string>
     <string name="gallery_cleaner_edit_save_failed">Није могуће сачувати фотографију</string>

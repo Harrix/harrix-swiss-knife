@@ -256,8 +256,7 @@
     <string name="gallery_cleaner_undo_failed">Không thể khôi phục ảnh</string>
     <string name="gallery_cleaner_share">Chia sẻ</string>
     <string name="gallery_cleaner_share_failed">Không thể chia sẻ ảnh</string>
-    <string name="gallery_cleaner_action_crop">Cắt</string>
-    <string name="gallery_cleaner_action_rotate">Làm thẳng</string>
+    <string name="gallery_cleaner_action_edit">Chỉnh sửa</string>
     <string name="gallery_cleaner_edit_save">Lưu</string>
     <string name="gallery_cleaner_edit_discard">Hủy</string>
     <string name="gallery_cleaner_edit_save_failed">Không thể lưu ảnh</string>

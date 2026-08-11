@@ -256,8 +256,7 @@
     <string name="gallery_cleaner_undo_failed">Kon foto niet herstellen</string>
     <string name="gallery_cleaner_share">Gedeeld</string>
     <string name="gallery_cleaner_share_failed">Kon foto niet delen</string>
-    <string name="gallery_cleaner_action_crop">Bijsnijden</string>
-    <string name="gallery_cleaner_action_rotate">Rechtzetten</string>
+    <string name="gallery_cleaner_action_edit">Bewerken</string>
     <string name="gallery_cleaner_edit_save">Opslaan</string>
     <string name="gallery_cleaner_edit_discard">Verwerpen</string>
     <string name="gallery_cleaner_edit_save_failed">Kon foto niet opslaan</string>

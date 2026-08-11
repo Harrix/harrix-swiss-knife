@@ -256,8 +256,7 @@
     <string name="gallery_cleaner_undo_failed">Impossibile ripristinare la foto</string>
     <string name="gallery_cleaner_share">Condividere</string>
     <string name="gallery_cleaner_share_failed">Impossibile condividere la foto</string>
-    <string name="gallery_cleaner_action_crop">Ritaglia</string>
-    <string name="gallery_cleaner_action_rotate">Raddrizza</string>
+    <string name="gallery_cleaner_action_edit">Modifica</string>
     <string name="gallery_cleaner_edit_save">Salva</string>
     <string name="gallery_cleaner_edit_discard">Annulla</string>
     <string name="gallery_cleaner_edit_save_failed">Impossibile salvare la foto</string>

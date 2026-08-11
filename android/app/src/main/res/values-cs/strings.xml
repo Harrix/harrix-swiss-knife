@@ -256,8 +256,7 @@
     <string name="gallery_cleaner_undo_failed">Nelze obnovit fotografii</string>
     <string name="gallery_cleaner_share">Podíl</string>
     <string name="gallery_cleaner_share_failed">Nelze sdílet fotografii</string>
-    <string name="gallery_cleaner_action_crop">Oříznout</string>
-    <string name="gallery_cleaner_action_rotate">Narovnat</string>
+    <string name="gallery_cleaner_action_edit">Upravit</string>
     <string name="gallery_cleaner_edit_save">Uložit</string>
     <string name="gallery_cleaner_edit_discard">Zrušit</string>
     <string name="gallery_cleaner_edit_save_failed">Nelze uložit fotografii</string>

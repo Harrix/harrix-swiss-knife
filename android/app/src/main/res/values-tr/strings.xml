@@ -256,8 +256,7 @@
     <string name="gallery_cleaner_undo_failed">Fotoğraf geri yüklenemedi</string>
     <string name="gallery_cleaner_share">Paylaş</string>
     <string name="gallery_cleaner_share_failed">Fotoğraf paylaşılamadı</string>
-    <string name="gallery_cleaner_action_crop">Kırp</string>
-    <string name="gallery_cleaner_action_rotate">Düzelt</string>
+    <string name="gallery_cleaner_action_edit">Düzenle</string>
     <string name="gallery_cleaner_edit_save">Kaydet</string>
     <string name="gallery_cleaner_edit_discard">Vazgeç</string>
     <string name="gallery_cleaner_edit_save_failed">Fotoğraf kaydedilemedi</string>

@@ -256,8 +256,7 @@
     <string name="gallery_cleaner_undo_failed">No se pudo restaurar la foto</string>
     <string name="gallery_cleaner_share">Compartir</string>
     <string name="gallery_cleaner_share_failed">No se pudo compartir la foto</string>
-    <string name="gallery_cleaner_action_crop">Recortar</string>
-    <string name="gallery_cleaner_action_rotate">Enderezar</string>
+    <string name="gallery_cleaner_action_edit">Editar</string>
     <string name="gallery_cleaner_edit_save">Guardar</string>
     <string name="gallery_cleaner_edit_discard">Descartar</string>
     <string name="gallery_cleaner_edit_save_failed">No se pudo guardar la foto</string>

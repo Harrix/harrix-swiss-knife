@@ -256,8 +256,7 @@
     <string name="gallery_cleaner_undo_failed">Tidak dapat memulihkan foto</string>
     <string name="gallery_cleaner_share">Bagikan</string>
     <string name="gallery_cleaner_share_failed">Tidak dapat berbagi foto</string>
-    <string name="gallery_cleaner_action_crop">Pangkas</string>
-    <string name="gallery_cleaner_action_rotate">Luruskan</string>
+    <string name="gallery_cleaner_action_edit">Edit</string>
     <string name="gallery_cleaner_edit_save">Simpan</string>
     <string name="gallery_cleaner_edit_discard">Buang</string>
     <string name="gallery_cleaner_edit_save_failed">Tidak dapat menyimpan foto</string>

@@ -256,8 +256,7 @@
     <string name="gallery_cleaner_undo_failed">Nie można przywrócić zdjęcia</string>
     <string name="gallery_cleaner_share">Share</string>
     <string name="gallery_cleaner_share_failed">Nie można udostępnić zdjęcia</string>
-    <string name="gallery_cleaner_action_crop">Przytnij</string>
-    <string name="gallery_cleaner_action_rotate">Wyprostuj</string>
+    <string name="gallery_cleaner_action_edit">Edytuj</string>
     <string name="gallery_cleaner_edit_save">Zapisz</string>
     <string name="gallery_cleaner_edit_discard">Odrzuć</string>
     <string name="gallery_cleaner_edit_save_failed">Nie można zapisać zdjęcia</string>

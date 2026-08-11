@@ -256,8 +256,7 @@
     <string name="gallery_cleaner_undo_failed">사진을 복원 할 수 없습니다</string>
     <string name="gallery_cleaner_share">공유</string>
     <string name="gallery_cleaner_share_failed">사진을 공유 할 수 없습니다</string>
-    <string name="gallery_cleaner_action_crop">자르기</string>
-    <string name="gallery_cleaner_action_rotate">수평 맞추기</string>
+    <string name="gallery_cleaner_action_edit">편집</string>
     <string name="gallery_cleaner_edit_save">저장</string>
     <string name="gallery_cleaner_edit_discard">취소</string>
     <string name="gallery_cleaner_edit_save_failed">사진을 저장할 수 없습니다</string>

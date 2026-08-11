@@ -47,11 +47,10 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.RotateRight
 import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Crop
+import androidx.compose.material.icons.filled.CropRotate
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.FilterAlt
@@ -1193,8 +1192,7 @@ fun GalleryCleanerScreen(
                         canEditPhoto = canEditPhoto,
                         canUndo = canUndo,
                         isSavingEdit = false,
-                        onCrop = { enterEditMode() },
-                        onRotate = { enterEditMode() },
+                        onEdit = { enterEditMode() },
                         onShare = { currentPhoto?.let { sharePhoto(it) } },
                         onUndo = { undoLastAction() },
                     )
@@ -1356,8 +1354,7 @@ fun GalleryCleanerScreen(
                                         canEditPhoto = canEditPhoto,
                                         canUndo = canUndo,
                                         isSavingEdit = false,
-                                        onCrop = { enterEditMode() },
-                                        onRotate = { enterEditMode() },
+                                        onEdit = { enterEditMode() },
                                         onShare = { sharePhoto(photo) },
                                         onUndo = { undoLastAction() },
                                         compact = true,
@@ -1484,8 +1481,7 @@ private fun PhotoSecondaryActionsRow(
     canEditPhoto: Boolean,
     canUndo: Boolean,
     isSavingEdit: Boolean,
-    onCrop: () -> Unit,
-    onRotate: () -> Unit,
+    onEdit: () -> Unit,
     onShare: () -> Unit,
     onUndo: () -> Unit,
     modifier: Modifier = Modifier,
@@ -1540,23 +1536,13 @@ private fun PhotoSecondaryActionsRow(
         }
         if (canEditPhoto && !isEditing) {
             IconButton(
-                onClick = onCrop,
+                onClick = onEdit,
                 enabled = !isSavingEdit,
             ) {
                 Icon(
-                    imageVector = Icons.Filled.Crop,
+                    imageVector = Icons.Filled.CropRotate,
                     contentDescription =
-                    stringResource(R.string.gallery_cleaner_action_crop),
-                )
-            }
-            IconButton(
-                onClick = onRotate,
-                enabled = !isSavingEdit,
-            ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.RotateRight,
-                    contentDescription =
-                    stringResource(R.string.gallery_cleaner_action_rotate),
+                    stringResource(R.string.gallery_cleaner_action_edit),
                 )
             }
             IconButton(onClick = onShare) {

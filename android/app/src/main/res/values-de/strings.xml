@@ -256,8 +256,7 @@
     <string name="gallery_cleaner_undo_failed">Foto konnte nicht wiederhergestellt werden</string>
     <string name="gallery_cleaner_share">Aktie</string>
     <string name="gallery_cleaner_share_failed">Foto konnte nicht geteilt werden</string>
-    <string name="gallery_cleaner_action_crop">Zuschneiden</string>
-    <string name="gallery_cleaner_action_rotate">Begradigen</string>
+    <string name="gallery_cleaner_action_edit">Bearbeiten</string>
     <string name="gallery_cleaner_edit_save">Speichern</string>
     <string name="gallery_cleaner_edit_discard">Verwerfen</string>
     <string name="gallery_cleaner_edit_save_failed">Foto konnte nicht gespeichert werden</string>

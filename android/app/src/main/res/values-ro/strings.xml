@@ -256,8 +256,7 @@
     <string name="gallery_cleaner_undo_failed">Nu s-a putut restabili fotografia</string>
     <string name="gallery_cleaner_share">Share</string>
     <string name="gallery_cleaner_share_failed">Nu s-a putut partaja fotografia</string>
-    <string name="gallery_cleaner_action_crop">Decupează</string>
-    <string name="gallery_cleaner_action_rotate">Îndreaptă</string>
+    <string name="gallery_cleaner_action_edit">Editează</string>
     <string name="gallery_cleaner_edit_save">Salvează</string>
     <string name="gallery_cleaner_edit_discard">Anulează</string>
     <string name="gallery_cleaner_edit_save_failed">Nu s-a putut salva fotografia</string>

@@ -256,8 +256,7 @@
     <string name="gallery_cleaner_undo_failed">写真を復元できませんでした</string>
     <string name="gallery_cleaner_share">共有</string>
     <string name="gallery_cleaner_share_failed">写真を共有できませんでした</string>
-    <string name="gallery_cleaner_action_crop">切り抜き</string>
-    <string name="gallery_cleaner_action_rotate">水平補正</string>
+    <string name="gallery_cleaner_action_edit">編集</string>
     <string name="gallery_cleaner_edit_save">保存</string>
     <string name="gallery_cleaner_edit_discard">破棄</string>
     <string name="gallery_cleaner_edit_save_failed">写真を保存できませんでした</string>

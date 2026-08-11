@@ -256,8 +256,7 @@
     <string name="gallery_cleaner_undo_failed">Не ўдалося аднавіць фатаграфію</string>
     <string name="gallery_cleaner_share">Падзяліцца</string>
     <string name="gallery_cleaner_share_failed">Не атрымалася падзяліцца фатаграфіяй</string>
-    <string name="gallery_cleaner_action_crop">Абрэзаць</string>
-    <string name="gallery_cleaner_action_rotate">Выраўнаваць</string>
+    <string name="gallery_cleaner_action_edit">Рэдагаваць</string>
     <string name="gallery_cleaner_edit_save">Захаваць</string>
     <string name="gallery_cleaner_edit_discard">Адхіліць</string>
     <string name="gallery_cleaner_edit_save_failed">Не ўдалося захаваць фатаграфію</string>

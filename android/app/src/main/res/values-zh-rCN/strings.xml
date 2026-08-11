@@ -256,8 +256,7 @@
     <string name="gallery_cleaner_undo_failed">无法恢复照片</string>
     <string name="gallery_cleaner_share">分享</string>
     <string name="gallery_cleaner_share_failed">无法分享照片</string>
-    <string name="gallery_cleaner_action_crop">裁剪</string>
-    <string name="gallery_cleaner_action_rotate">拉直</string>
+    <string name="gallery_cleaner_action_edit">编辑</string>
     <string name="gallery_cleaner_edit_save">保存</string>
     <string name="gallery_cleaner_edit_discard">放弃</string>
     <string name="gallery_cleaner_edit_save_failed">无法保存照片</string>

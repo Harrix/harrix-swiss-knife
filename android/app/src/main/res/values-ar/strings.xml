@@ -256,8 +256,7 @@
     <string name="gallery_cleaner_undo_failed">تعذر استعادة الصورة</string>
     <string name="gallery_cleaner_share">حصة</string>
     <string name="gallery_cleaner_share_failed">تعذر مشاركة الصورة</string>
-    <string name="gallery_cleaner_action_crop">قص</string>
-    <string name="gallery_cleaner_action_rotate">تقويم</string>
+    <string name="gallery_cleaner_action_edit">تعديل</string>
     <string name="gallery_cleaner_edit_save">حفظ</string>
     <string name="gallery_cleaner_edit_discard">تجاهل</string>
     <string name="gallery_cleaner_edit_save_failed">تعذر حفظ الصورة</string>
