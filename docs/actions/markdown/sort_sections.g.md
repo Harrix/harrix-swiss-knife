@@ -71,7 +71,10 @@ class OnSortSections(ActionBase):
         """Execute code in a separate thread. For performing long-running operations."""
         if self.filename is None:
             return
+        # Alphabetical / heading-date sort (always for this menu action)
         self.add_line(h.md.sort_sections(self.filename))
+        # Date-field list sort when YAML has sort-list-by-date: true
+        self.add_line(h.md.sort_list_by_date(self.filename, is_sort_from_yaml=True))
 
     @ActionBase.handle_exceptions("sorting sections thread completion")
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
@@ -123,7 +126,10 @@ Execute code in a separate thread. For performing long-running operations.
 def in_thread(self) -> str | None:
         if self.filename is None:
             return
+        # Alphabetical / heading-date sort (always for this menu action)
         self.add_line(h.md.sort_sections(self.filename))
+        # Date-field list sort when YAML has sort-list-by-date: true
+        self.add_line(h.md.sort_list_by_date(self.filename, is_sort_from_yaml=True))
 ```
 
 </details>

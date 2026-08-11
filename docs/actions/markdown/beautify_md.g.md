@@ -81,6 +81,8 @@ class OnBeautifyMd(ActionBase):
 
         - The method preserves the exact execution order of operations for consistency.
         - All operations are logged using `self.add_line()` for user feedback.
+        - Section sorting uses YAML `sort-section: true`; list-entry date sorting uses
+          YAML `sort-list-by-date: true` (fields `Date watching` / `Date reading` / `Date`).
         - If `is_include_summaries_and_combine` is `True`, the method first deletes all
           `*.g.md` files, generates summaries, formats Markdown (including
           `*.include.g.md`), then combines files so included tables keep formatting.
@@ -113,6 +115,17 @@ class OnBeautifyMd(ActionBase):
                 folder_path,
                 ".md",
                 lambda filename: h.md.sort_sections(filename, is_sort_section_from_yaml=True),
+                skip_file=skip_generated_g_md,
+            )
+        )
+
+        # Sort list entries (movies/books/events) by date fields when YAML asks
+        self.add_line("🔵 Sort list entries by date (YAML-controlled)")
+        self.add_line(
+            h.file.apply_func(
+                folder_path,
+                ".md",
+                lambda filename: h.md.sort_list_by_date(filename, is_sort_from_yaml=True),
                 skip_file=skip_generated_g_md,
             )
         )
@@ -305,6 +318,8 @@ Note:
 
 - The method preserves the exact execution order of operations for consistency.
 - All operations are logged using `self.add_line()` for user feedback.
+- Section sorting uses YAML `sort-section: true`; list-entry date sorting uses
+  YAML `sort-list-by-date: true` (fields `Date watching` / `Date reading` / `Date`).
 - If `is_include_summaries_and_combine` is `True`, the method first deletes all
   `*.g.md` files, generates summaries, formats Markdown (including
   `*.include.g.md`), then combines files so included tables keep formatting.
@@ -347,6 +362,17 @@ def beautify_markdown_common(
                 folder_path,
                 ".md",
                 lambda filename: h.md.sort_sections(filename, is_sort_section_from_yaml=True),
+                skip_file=skip_generated_g_md,
+            )
+        )
+
+        # Sort list entries (movies/books/events) by date fields when YAML asks
+        self.add_line("🔵 Sort list entries by date (YAML-controlled)")
+        self.add_line(
+            h.file.apply_func(
+                folder_path,
+                ".md",
+                lambda filename: h.md.sort_list_by_date(filename, is_sort_from_yaml=True),
                 skip_file=skip_generated_g_md,
             )
         )
