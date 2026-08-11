@@ -273,9 +273,6 @@
     <string name="gallery_cleaner_edit_perspective">Perspektywa</string>
     <string name="gallery_cleaner_edit_perspective_short">Persp.</string>
     <string name="gallery_cleaner_edit_perspective_apply">Apply perspective</string>
-    <string name="gallery_cleaner_edit_straighten">Wypoziomuj horyzont</string>
-    <string name="gallery_cleaner_edit_straighten_apply">Zastosuj wypoziomowanie</string>
-    <string name="gallery_cleaner_edit_straighten_failed">Nie udało się wypoziomować: przechylenie nieznalezione lub zbyt duże</string>
     <string name="gallery_cleaner_edit_fit_frame">Dopasuj do ramki</string>
     <string name="gallery_cleaner_edit_fit_frame_short">Dopasuj</string>
     <string name="gallery_cleaner_edit_trim_empty">Przytnij puste krawędzie</string>

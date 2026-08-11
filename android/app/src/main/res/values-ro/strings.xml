@@ -273,9 +273,6 @@
     <string name="gallery_cleaner_edit_perspective">Perspectivă</string>
     <string name="gallery_cleaner_edit_perspective_short">Persp.</string>
     <string name="gallery_cleaner_edit_perspective_apply">Apply perspective</string>
-    <string name="gallery_cleaner_edit_straighten">Indreaptă orizontul</string>
-    <string name="gallery_cleaner_edit_straighten_apply">Aplică îndreptarea</string>
-    <string name="gallery_cleaner_edit_straighten_failed">Nu s-a putut îndrepta: înclinarea nu a fost găsită sau e prea mare</string>
     <string name="gallery_cleaner_edit_fit_frame">Potrivește în cadru</string>
     <string name="gallery_cleaner_edit_fit_frame_short">Potrivește</string>
     <string name="gallery_cleaner_edit_trim_empty">Taie marginile goale</string>

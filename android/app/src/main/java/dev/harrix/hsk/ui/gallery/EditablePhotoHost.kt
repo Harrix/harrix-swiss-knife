@@ -41,7 +41,7 @@ data class EditablePhotoSaveResult(
 )
 
 /**
- * Shared crop/straighten editor with overwrite → write-request → optional copy fallback.
+ * Shared crop/rotate editor with overwrite → write-request → optional copy fallback.
  */
 @Composable
 fun EditablePhotoHost(

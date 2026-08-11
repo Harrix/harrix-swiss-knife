@@ -273,9 +273,6 @@
     <string name="gallery_cleaner_edit_perspective">Perspektiva</string>
     <string name="gallery_cleaner_edit_perspective_short">Persp.</string>
     <string name="gallery_cleaner_edit_perspective_apply">Apply perspective</string>
-    <string name="gallery_cleaner_edit_straighten">Zarovnat horizont</string>
-    <string name="gallery_cleaner_edit_straighten_apply">Použít zarovnání</string>
-    <string name="gallery_cleaner_edit_straighten_failed">Nepodařilo se zarovnat: sklon nenalezen nebo je příliš velký</string>
     <string name="gallery_cleaner_edit_fit_frame">Přizpůsobit rámečku</string>
     <string name="gallery_cleaner_edit_fit_frame_short">Přizpůsobit</string>
     <string name="gallery_cleaner_edit_trim_empty">Oříznout prázdné okraje</string>

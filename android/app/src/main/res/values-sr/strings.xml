@@ -273,9 +273,6 @@
     <string name="gallery_cleaner_edit_perspective">Перспектива</string>
     <string name="gallery_cleaner_edit_perspective_short">Персп.</string>
     <string name="gallery_cleaner_edit_perspective_apply">Apply perspective</string>
-    <string name="gallery_cleaner_edit_straighten">Исправи хоризонт</string>
-    <string name="gallery_cleaner_edit_straighten_apply">Примени исправљање</string>
-    <string name="gallery_cleaner_edit_straighten_failed">Није могуће исправити: нагиб није пронађен или је превелик</string>
     <string name="gallery_cleaner_edit_fit_frame">Уклопи у оквир</string>
     <string name="gallery_cleaner_edit_fit_frame_short">Уклопи</string>
     <string name="gallery_cleaner_edit_trim_empty">Одсеци празне ивице</string>

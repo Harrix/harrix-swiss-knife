@@ -273,9 +273,6 @@
     <string name="gallery_cleaner_edit_perspective">Перспектива</string>
     <string name="gallery_cleaner_edit_perspective_short">Персп.</string>
     <string name="gallery_cleaner_edit_perspective_apply">Застосувати перспективу</string>
-    <string name="gallery_cleaner_edit_straighten">Вирівняти горизонт</string>
-    <string name="gallery_cleaner_edit_straighten_apply">Застосувати вирівнювання</string>
-    <string name="gallery_cleaner_edit_straighten_failed">Не вдалося вирівняти: кут не знайдено або занадто великий</string>
     <string name="gallery_cleaner_edit_fit_frame">Умістити в рамку</string>
     <string name="gallery_cleaner_edit_fit_frame_short">Умістити</string>
     <string name="gallery_cleaner_edit_trim_empty">Обрізати порожні краї</string>
