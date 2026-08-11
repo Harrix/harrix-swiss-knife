@@ -191,6 +191,7 @@
     <string name="photo_editor_share_label">Harrix Photo Editor</string>
     <string name="photo_editor_title">Photo Editor</string>
     <string name="photo_editor_close">Вийти з Photo Editor</string>
+    <string name="photo_editor_back_to_gallery">Назад до галереї</string>
     <string name="photo_editor_open_photo">Відкрити фото</string>
     <string name="photo_editor_empty_title">Фотографія не відкрита</string>
     <string name="photo_editor_empty_message">Виберіть фотографію для обрізання та випрямлення або Поділіться зображенням за допомогою цієї програми.</string>

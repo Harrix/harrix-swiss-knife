@@ -191,6 +191,7 @@
     <string name="photo_editor_share_label">Harrix Photo Editor</string>
     <string name="photo_editor_title">Photo Editor</string>
     <string name="photo_editor_close">Wyjdź z Photo Editor</string>
+    <string name="photo_editor_back_to_gallery">Wróć do galerii</string>
     <string name="photo_editor_open_photo">Otwórz zdjęcie</string>
     <string name="photo_editor_empty_title">Brak otwartego zdjęcia</string>
     <string name="photo_editor_empty_message">Wybierz zdjęcie do przycięcia i wyprostowania lub udostępnij zdjęcie za pomocą tej aplikacji.</string>

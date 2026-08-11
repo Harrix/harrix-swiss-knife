@@ -191,6 +191,7 @@
     <string name="photo_editor_share_label">Harrix Photo Editor</string>
     <string name="photo_editor_title">Photo Editor</string>
     <string name="photo_editor_close">Photo Editor\'dan çık</string>
+    <string name="photo_editor_back_to_gallery">Galeriye dön</string>
     <string name="photo_editor_open_photo">Fotoğrafı aç</string>
     <string name="photo_editor_empty_title">Açık fotoğraf yok</string>
     <string name="photo_editor_empty_message">Kırpmak ve düzeltmek için bir fotoğraf seçin veya bu uygulamayla bir görseli paylaşın.</string>

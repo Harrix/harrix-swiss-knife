@@ -191,6 +191,7 @@
     <string name="photo_editor_share_label">Harrix Photo Editor</string>
     <string name="photo_editor_title">Photo Editor</string>
     <string name="photo_editor_close">Ieși din Photo Editor</string>
+    <string name="photo_editor_back_to_gallery">Înapoi la galerie</string>
     <string name="photo_editor_open_photo">Deschide fotografia</string>
     <string name="photo_editor_empty_title">Nicio fotografie deschisă</string>
     <string name="photo_editor_empty_message">Alegeți o fotografie pentru a decupa și îndrepta sau partajați o imagine cu această aplicație.</string>

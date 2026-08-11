@@ -191,6 +191,7 @@
     <string name="photo_editor_share_label">Harrix Photo Editor</string>
     <string name="photo_editor_title">Photo Editor</string>
     <string name="photo_editor_close">Photo Editor 종료</string>
+    <string name="photo_editor_back_to_gallery">갤러리로 돌아가기</string>
     <string name="photo_editor_open_photo">사진 열기</string>
     <string name="photo_editor_empty_title">사진 없음</string>
     <string name="photo_editor_empty_message">자르기 및 똑 바르게,또는이 응용 프로그램과 함께 이미지를 공유 할 사진을 선택합니다.</string>

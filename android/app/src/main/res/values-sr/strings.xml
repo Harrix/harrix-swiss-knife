@@ -191,6 +191,7 @@
     <string name="photo_editor_share_label">Harrix Photo Editor</string>
     <string name="photo_editor_title">Photo Editor</string>
     <string name="photo_editor_close">Изађи из Photo Editor</string>
+    <string name="photo_editor_back_to_gallery">Назад на галерију</string>
     <string name="photo_editor_open_photo">Отвори фотографију</string>
     <string name="photo_editor_empty_title">Фотографија није отворена</string>
     <string name="photo_editor_empty_message">Изаберите фотографију за обрезивање и исправљање или делите слику помоћу ове апликације.</string>

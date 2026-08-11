@@ -191,6 +191,7 @@
     <string name="photo_editor_share_label">Harrix Photo Editor</string>
     <string name="photo_editor_title">Photo Editor</string>
     <string name="photo_editor_close">Photo Editor を終了</string>
+    <string name="photo_editor_back_to_gallery">ギャラリーに戻る</string>
     <string name="photo_editor_open_photo">写真を開く</string>
     <string name="photo_editor_empty_title">写真が開かれていません</string>
     <string name="photo_editor_empty_message">切り抜きと傾き補正する写真を選ぶか、このアプリに画像を共有してください。</string>

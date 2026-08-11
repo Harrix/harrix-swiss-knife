@@ -191,6 +191,7 @@
     <string name="photo_editor_share_label">Harrix Photo Editor</string>
     <string name="photo_editor_title">Photo Editor</string>
     <string name="photo_editor_close">Quitter Photo Editor</string>
+    <string name="photo_editor_back_to_gallery">Retour à la galerie</string>
     <string name="photo_editor_open_photo">Ouvrir une photo</string>
     <string name="photo_editor_empty_title">Aucune photo ouverte</string>
     <string name="photo_editor_empty_message">Choisissez une photo à recadrer et redresser, ou partagez une image avec cette application.</string>

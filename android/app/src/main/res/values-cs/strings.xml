@@ -191,6 +191,7 @@
     <string name="photo_editor_share_label">Harrix Photo Editor</string>
     <string name="photo_editor_title">Photo Editor</string>
     <string name="photo_editor_close">Ukončit Photo Editor</string>
+    <string name="photo_editor_back_to_gallery">Zpět do galerie</string>
     <string name="photo_editor_open_photo">Otevřít fotografii</string>
     <string name="photo_editor_empty_title">Neotevřená fotka</string>
     <string name="photo_editor_empty_message">Vyberte fotografii, kterou chcete oříznout a narovnat, nebo Sdílejte obrázek s touto aplikací.</string>

@@ -24,6 +24,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -218,10 +219,31 @@ fun PhotoEditorScreen(
                 colors = hskTopAppBarColors(),
                 windowInsets = hskTopAppBarWindowInsets(),
                 navigationIcon = {
-                    IconButton(onClick = { leaveEditor() }) {
+                    val editing = currentPhoto != null
+                    IconButton(
+                        onClick = {
+                            if (editing) {
+                                viewModel.clearPhoto()
+                            } else {
+                                leaveEditor()
+                            }
+                        },
+                    ) {
                         Icon(
-                            imageVector = Icons.Filled.Close,
-                            contentDescription = stringResource(R.string.photo_editor_close),
+                            imageVector =
+                            if (editing) {
+                                Icons.AutoMirrored.Filled.ArrowBack
+                            } else {
+                                Icons.Filled.Close
+                            },
+                            contentDescription =
+                            stringResource(
+                                if (editing) {
+                                    R.string.photo_editor_back_to_gallery
+                                } else {
+                                    R.string.photo_editor_close
+                                },
+                            ),
                         )
                     }
                 },

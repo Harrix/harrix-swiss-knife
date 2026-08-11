@@ -191,6 +191,7 @@
     <string name="photo_editor_share_label">Harrix Photo Editor</string>
     <string name="photo_editor_title">Photo Editor</string>
     <string name="photo_editor_close">Thoát Photo Editor</string>
+    <string name="photo_editor_back_to_gallery">Quay lại thư viện</string>
     <string name="photo_editor_open_photo">Mở ảnh</string>
     <string name="photo_editor_empty_title">Không mở ảnh</string>
     <string name="photo_editor_empty_message">Chọn ảnh để cắt và làm thẳng hoặc chia sẻ hình ảnh với ứng dụng này.</string>

@@ -191,6 +191,7 @@
     <string name="photo_editor_share_label">Harrix Photo Editor</string>
     <string name="photo_editor_title">Photo Editor</string>
     <string name="photo_editor_close">Photo Editor afsluiten</string>
+    <string name="photo_editor_back_to_gallery">Terug naar galerij</string>
     <string name="photo_editor_open_photo">Foto openen</string>
     <string name="photo_editor_empty_title">Geen foto geopend</string>
     <string name="photo_editor_empty_message">Kies een foto om bij te snijden en recht te maken, of deel een afbeelding met deze app.</string>

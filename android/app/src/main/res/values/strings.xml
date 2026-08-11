@@ -191,6 +191,7 @@
     <string name="photo_editor_share_label">Harrix Photo Editor</string>
     <string name="photo_editor_title">Photo Editor</string>
     <string name="photo_editor_close">Exit Photo Editor</string>
+    <string name="photo_editor_back_to_gallery">Back to gallery</string>
     <string name="photo_editor_open_photo">Open photo</string>
     <string name="photo_editor_empty_title">No photo open</string>
     <string name="photo_editor_empty_message">Choose a photo to crop and straighten, or share an image with this app.</string>

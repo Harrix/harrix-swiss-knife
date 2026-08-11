@@ -191,6 +191,7 @@
     <string name="photo_editor_share_label">Harrix Photo Editor</string>
     <string name="photo_editor_title">Photo Editor</string>
     <string name="photo_editor_close">Keluar dari Photo Editor</string>
+    <string name="photo_editor_back_to_gallery">Kembali ke galeri</string>
     <string name="photo_editor_open_photo">Buka foto</string>
     <string name="photo_editor_empty_title">Tidak ada foto yang dibuka</string>
     <string name="photo_editor_empty_message">Pilih foto untuk dipotong dan diluruskan, atau bagikan gambar dengan aplikasi ini.</string>

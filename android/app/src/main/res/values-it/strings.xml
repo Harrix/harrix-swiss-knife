@@ -191,6 +191,7 @@
     <string name="photo_editor_share_label">Harrix Photo Editor</string>
     <string name="photo_editor_title">Photo Editor</string>
     <string name="photo_editor_close">Esci da Photo Editor</string>
+    <string name="photo_editor_back_to_gallery">Torna alla galleria</string>
     <string name="photo_editor_open_photo">Apri foto</string>
     <string name="photo_editor_empty_title">Nessuna foto aperta</string>
     <string name="photo_editor_empty_message">Scegli una foto da ritagliare e raddrizzare, oppure condividi un\'immagine con questa app.</string>

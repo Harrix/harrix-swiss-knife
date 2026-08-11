@@ -191,6 +191,7 @@
     <string name="photo_editor_share_label">Harrix Photo Editor</string>
     <string name="photo_editor_title">Photo Editor</string>
     <string name="photo_editor_close">退出 Photo Editor</string>
+    <string name="photo_editor_back_to_gallery">返回图库</string>
     <string name="photo_editor_open_photo">打开照片</string>
     <string name="photo_editor_empty_title">未打开照片</string>
     <string name="photo_editor_empty_message">选择要裁剪和校正的照片，或将图片分享到此应用。</string>
