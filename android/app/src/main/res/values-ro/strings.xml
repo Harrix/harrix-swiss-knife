@@ -279,6 +279,10 @@
     <string name="gallery_cleaner_edit_rotate_ccw">Rotește 90° la stânga</string>
     <string name="gallery_cleaner_edit_rotate_cw">Rotește 90° la dreapta</string>
     <string name="gallery_cleaner_edit_reset_rotation">Resetează rotația</string>
+    <string name="gallery_cleaner_edit_lock_rotation">Blochează rotația</string>
+    <string name="gallery_cleaner_edit_unlock_rotation">Permite rotația</string>
+    <string name="gallery_cleaner_edit_contain_crop">Păstrează cadrul în foto</string>
+    <string name="gallery_cleaner_edit_allow_crop_outside">Permite cadrul în afara foto</string>
     <string name="gallery_cleaner_edit_more">More edit actions</string>
     <string name="photo_file_details_title">Detalii fișier</string>
     <string name="photo_file_details_path_format">/Stocare internă/%1$s</string>
@@ -287,6 +291,11 @@
     <string name="photo_file_details_mode_night">Noapte</string>
     <string name="photo_file_details_map">Locație pe Google Maps</string>
     <string name="photo_file_details_open_map">Deschide în Google Maps</string>
+    <string name="photo_file_details_copy_date">Copiază data</string>
+    <string name="photo_file_details_copy_device">Copiază dispozitivul</string>
+    <string name="photo_file_details_copy_stats">Copiază info fișier</string>
+    <string name="photo_file_details_copy_settings">Copiază setările camerei</string>
+    <string name="photo_file_details_copy_location">Copiază locația</string>
     <string name="photo_file_details_copy_name">Copiază numele fișierului</string>
     <string name="photo_file_details_copy_path">Copiază calea</string>
     <string name="photo_file_details_copy_coordinates">Copiază coordonatele</string>

@@ -279,6 +279,10 @@
     <string name="gallery_cleaner_edit_rotate_ccw">Повернути на 90° вліво</string>
     <string name="gallery_cleaner_edit_rotate_cw">Повернути на 90° вправо</string>
     <string name="gallery_cleaner_edit_reset_rotation">Скинути поворот</string>
+    <string name="gallery_cleaner_edit_lock_rotation">Заборонити поворот</string>
+    <string name="gallery_cleaner_edit_unlock_rotation">Дозволити поворот</string>
+    <string name="gallery_cleaner_edit_contain_crop">Не виходити за межі фото</string>
+    <string name="gallery_cleaner_edit_allow_crop_outside">Дозволити рамці виходити за фото</string>
     <string name="gallery_cleaner_edit_more">Інші дії редактора</string>
     <string name="photo_file_details_title">Відомості про файл</string>
     <string name="photo_file_details_path_format">/Внутрішнє сховище/%1$s</string>
@@ -287,6 +291,11 @@
     <string name="photo_file_details_mode_night">Ніч</string>
     <string name="photo_file_details_map">Місце на Google Картах</string>
     <string name="photo_file_details_open_map">Відкрити в Google Картах</string>
+    <string name="photo_file_details_copy_date">Копіювати дату</string>
+    <string name="photo_file_details_copy_device">Копіювати пристрій</string>
+    <string name="photo_file_details_copy_stats">Копіювати відомості про файл</string>
+    <string name="photo_file_details_copy_settings">Копіювати налаштування камери</string>
+    <string name="photo_file_details_copy_location">Копіювати місце</string>
     <string name="photo_file_details_copy_name">Копіювати назву файлу</string>
     <string name="photo_file_details_copy_path">Копіювати шлях</string>
     <string name="photo_file_details_copy_coordinates">Копіювати координати</string>

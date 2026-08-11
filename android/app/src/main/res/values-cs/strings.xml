@@ -279,6 +279,10 @@
     <string name="gallery_cleaner_edit_rotate_ccw">Otočit o 90° doleva</string>
     <string name="gallery_cleaner_edit_rotate_cw">Otočit o 90° doprava</string>
     <string name="gallery_cleaner_edit_reset_rotation">Resetovat otočení</string>
+    <string name="gallery_cleaner_edit_lock_rotation">Zamknout otočení</string>
+    <string name="gallery_cleaner_edit_unlock_rotation">Povolit otočení</string>
+    <string name="gallery_cleaner_edit_contain_crop">Držet rámeček ve fotce</string>
+    <string name="gallery_cleaner_edit_allow_crop_outside">Povolit rámeček mimo fotku</string>
     <string name="gallery_cleaner_edit_more">More edit actions</string>
     <string name="photo_file_details_title">Podrobnosti souboru</string>
     <string name="photo_file_details_path_format">/Interní úložiště/%1$s</string>
@@ -287,6 +291,11 @@
     <string name="photo_file_details_mode_night">Noc</string>
     <string name="photo_file_details_map">Poloha na Mapách Google</string>
     <string name="photo_file_details_open_map">Otevřít v Mapách Google</string>
+    <string name="photo_file_details_copy_date">Kopírovat datum</string>
+    <string name="photo_file_details_copy_device">Kopírovat zařízení</string>
+    <string name="photo_file_details_copy_stats">Kopírovat info o souboru</string>
+    <string name="photo_file_details_copy_settings">Kopírovat nastavení fotoaparátu</string>
+    <string name="photo_file_details_copy_location">Kopírovat místo</string>
     <string name="photo_file_details_copy_name">Kopírovat název souboru</string>
     <string name="photo_file_details_copy_path">Kopírovat cestu</string>
     <string name="photo_file_details_copy_coordinates">Kopírovat souřadnice</string>

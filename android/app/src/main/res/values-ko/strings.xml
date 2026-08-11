@@ -279,6 +279,10 @@
     <string name="gallery_cleaner_edit_rotate_ccw">왼쪽으로 90° 회전</string>
     <string name="gallery_cleaner_edit_rotate_cw">오른쪽으로 90° 회전</string>
     <string name="gallery_cleaner_edit_reset_rotation">회전 초기화</string>
+    <string name="gallery_cleaner_edit_lock_rotation">회전 잠금</string>
+    <string name="gallery_cleaner_edit_unlock_rotation">회전 허용</string>
+    <string name="gallery_cleaner_edit_contain_crop">프레임을 사진 안에 유지</string>
+    <string name="gallery_cleaner_edit_allow_crop_outside">프레임이 사진 밖으로 나가도록 허용</string>
     <string name="gallery_cleaner_edit_more">More edit actions</string>
     <string name="photo_file_details_title">파일 정보</string>
     <string name="photo_file_details_path_format">/내부 저장소/%1$s</string>
@@ -287,6 +291,11 @@
     <string name="photo_file_details_mode_night">야간</string>
     <string name="photo_file_details_map">Google 지도의 위치</string>
     <string name="photo_file_details_open_map">Google 지도에서 열기</string>
+    <string name="photo_file_details_copy_date">날짜 복사</string>
+    <string name="photo_file_details_copy_device">기기 복사</string>
+    <string name="photo_file_details_copy_stats">파일 정보 복사</string>
+    <string name="photo_file_details_copy_settings">카메라 설정 복사</string>
+    <string name="photo_file_details_copy_location">위치 복사</string>
     <string name="photo_file_details_copy_name">파일 이름 복사</string>
     <string name="photo_file_details_copy_path">경로 복사</string>
     <string name="photo_file_details_copy_coordinates">좌표 복사</string>

@@ -279,6 +279,10 @@
     <string name="gallery_cleaner_edit_rotate_ccw">Xoay 90° sang trái</string>
     <string name="gallery_cleaner_edit_rotate_cw">Xoay 90° sang phải</string>
     <string name="gallery_cleaner_edit_reset_rotation">Đặt lại xoay</string>
+    <string name="gallery_cleaner_edit_lock_rotation">Khóa xoay</string>
+    <string name="gallery_cleaner_edit_unlock_rotation">Cho phép xoay</string>
+    <string name="gallery_cleaner_edit_contain_crop">Giữ khung trong ảnh</string>
+    <string name="gallery_cleaner_edit_allow_crop_outside">Cho phép khung ra ngoài ảnh</string>
     <string name="gallery_cleaner_edit_more">More edit actions</string>
     <string name="photo_file_details_title">Chi tiết tệp</string>
     <string name="photo_file_details_path_format">/Bộ nhớ trong/%1$s</string>
@@ -287,6 +291,11 @@
     <string name="photo_file_details_mode_night">Đêm</string>
     <string name="photo_file_details_map">Vị trí trên Google Maps</string>
     <string name="photo_file_details_open_map">Mở trong Google Maps</string>
+    <string name="photo_file_details_copy_date">Sao chép ngày</string>
+    <string name="photo_file_details_copy_device">Sao chép thiết bị</string>
+    <string name="photo_file_details_copy_stats">Sao chép thông tin tệp</string>
+    <string name="photo_file_details_copy_settings">Sao chép cài đặt máy ảnh</string>
+    <string name="photo_file_details_copy_location">Sao chép vị trí</string>
     <string name="photo_file_details_copy_name">Sao chép tên tệp</string>
     <string name="photo_file_details_copy_path">Sao chép đường dẫn</string>
     <string name="photo_file_details_copy_coordinates">Sao chép tọa độ</string>

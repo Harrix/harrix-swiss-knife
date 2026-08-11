@@ -279,6 +279,10 @@
     <string name="gallery_cleaner_edit_rotate_ccw">Павярнуць на 90° налева</string>
     <string name="gallery_cleaner_edit_rotate_cw">Павярнуць на 90° направа</string>
     <string name="gallery_cleaner_edit_reset_rotation">Скінуць паварот</string>
+    <string name="gallery_cleaner_edit_lock_rotation">Забараніць паварот</string>
+    <string name="gallery_cleaner_edit_unlock_rotation">Дазволіць паварот</string>
+    <string name="gallery_cleaner_edit_contain_crop">Не выходзіць за межы фота</string>
+    <string name="gallery_cleaner_edit_allow_crop_outside">Дазволіць рамцы выходзіць за фота</string>
     <string name="gallery_cleaner_edit_more">Іншыя дзеянні рэдактара</string>
     <string name="photo_file_details_title">Звесткі пра файл</string>
     <string name="photo_file_details_path_format">/Унутранае сховішча/%1$s</string>
@@ -287,6 +291,11 @@
     <string name="photo_file_details_mode_night">Ноч</string>
     <string name="photo_file_details_map">Месца на Google Картах</string>
     <string name="photo_file_details_open_map">Адкрыць у Google Картах</string>
+    <string name="photo_file_details_copy_date">Капіраваць дату</string>
+    <string name="photo_file_details_copy_device">Капіраваць прыладу</string>
+    <string name="photo_file_details_copy_stats">Капіраваць звесткі пра файл</string>
+    <string name="photo_file_details_copy_settings">Капіраваць налады камеры</string>
+    <string name="photo_file_details_copy_location">Капіраваць месца</string>
     <string name="photo_file_details_copy_name">Капіраваць імя файла</string>
     <string name="photo_file_details_copy_path">Капіраваць шлях</string>
     <string name="photo_file_details_copy_coordinates">Капіраваць каардынаты</string>

@@ -279,6 +279,10 @@
     <string name="gallery_cleaner_edit_rotate_ccw">Окрени 90° улево</string>
     <string name="gallery_cleaner_edit_rotate_cw">Окрени 90° удесно</string>
     <string name="gallery_cleaner_edit_reset_rotation">Ресетуј ротацију</string>
+    <string name="gallery_cleaner_edit_lock_rotation">Zaključaj rotaciju</string>
+    <string name="gallery_cleaner_edit_unlock_rotation">Dozvoli rotaciju</string>
+    <string name="gallery_cleaner_edit_contain_crop">Drži okvir unutar fotografije</string>
+    <string name="gallery_cleaner_edit_allow_crop_outside">Dozvoli okvir van fotografije</string>
     <string name="gallery_cleaner_edit_more">More edit actions</string>
     <string name="photo_file_details_title">Detalji datoteke</string>
     <string name="photo_file_details_path_format">/Interna memorija/%1$s</string>
@@ -287,6 +291,11 @@
     <string name="photo_file_details_mode_night">Noć</string>
     <string name="photo_file_details_map">Lokacija na Google Mapama</string>
     <string name="photo_file_details_open_map">Otvori u Google Mapama</string>
+    <string name="photo_file_details_copy_date">Копирај датум</string>
+    <string name="photo_file_details_copy_device">Копирај уређај</string>
+    <string name="photo_file_details_copy_stats">Копирај податке о датотеци</string>
+    <string name="photo_file_details_copy_settings">Копирај подешавања камере</string>
+    <string name="photo_file_details_copy_location">Копирај локацију</string>
     <string name="photo_file_details_copy_name">Копирај име датотеке</string>
     <string name="photo_file_details_copy_path">Копирај путању</string>
     <string name="photo_file_details_copy_coordinates">Копирај координате</string>

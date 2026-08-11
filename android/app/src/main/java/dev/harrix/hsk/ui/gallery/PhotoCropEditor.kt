@@ -25,6 +25,7 @@ import androidx.compose.material.icons.filled.Crop
 import androidx.compose.material.icons.filled.CropFree
 import androidx.compose.material.icons.filled.CropRotate
 import androidx.compose.material.icons.filled.Done
+import androidx.compose.material.icons.filled.FilterCenterFocus
 import androidx.compose.material.icons.filled.FitScreen
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.MoreVert
@@ -33,6 +34,7 @@ import androidx.compose.material.icons.filled.Rotate90DegreesCcw
 import androidx.compose.material.icons.filled.Rotate90DegreesCw
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.SaveAs
+import androidx.compose.material.icons.filled.ScreenLockRotation
 import androidx.compose.material.icons.filled.Transform
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -188,6 +190,10 @@ fun PhotoCropEditor(
     /** `null` = free aspect; otherwise width/height lock for the crop frame. */
     var lockedAspect by remember(photo.id, imageRevision) { mutableStateOf<Float?>(null) }
     val lockedAspectState = rememberUpdatedState(lockedAspect)
+    var rotationLocked by remember(photo.id, imageRevision) { mutableStateOf(false) }
+    var containCropInImage by remember(photo.id, imageRevision) { mutableStateOf(false) }
+    val rotationLockedState = rememberUpdatedState(rotationLocked)
+    val containCropInImageState = rememberUpdatedState(containCropInImage)
     var showFileDetails by remember { mutableStateOf(false) }
     var viewScale by remember(photo.id, imageRevision) { mutableFloatStateOf(1f) }
     var viewOffset by remember(photo.id, imageRevision) { mutableStateOf(Offset.Zero) }
@@ -229,6 +235,7 @@ fun PhotoCropEditor(
         if (currentQuad == null) {
             showFileDetails = false
             lockedAspect = null
+            containCropInImage = false
             trimSuggestion = null
             val fallback =
                 PhotoEditSaver.clampPerspectiveQuad(
@@ -327,13 +334,65 @@ fun PhotoCropEditor(
     val showThreeFourChip =
         imageWidth > 0 && imageHeight > 0 && !nearAspect(originalAspect, AspectThreeFour)
 
+    fun photoCropBounds(): NormalizedCropRect = photoEditSaver.photoInscribedBounds(
+        imageWidth = imageWidth,
+        imageHeight = imageHeight,
+        rotationDegrees = rotationDegrees,
+    )
+
+    fun clampCropIfContained(rect: NormalizedCropRect): NormalizedCropRect {
+        if (!containCropInImage || imageWidth <= 0 || imageHeight <= 0) {
+            return rect
+        }
+        return PhotoEditSaver.clampCropRectInsideBounds(
+            rect = rect,
+            bounds = photoCropBounds(),
+            imageAspect = lockedAspect,
+        )
+    }
+
+    fun toggleContainCropInImage() {
+        if (isPerspective || isSaving) {
+            return
+        }
+        val enabling = !containCropInImage
+        containCropInImage = enabling
+        if (enabling && imageWidth > 0 && imageHeight > 0) {
+            onCropRectChange(clampCropIfContained(cropRect))
+        }
+    }
+
+    // After discrete rotation (±90 / reset), keep the frame inside the photo when
+    // contain-mode is on. Skip while a pinch-rotate gesture is active (isRotatingHint).
+    LaunchedEffect(
+        containCropInImage,
+        rotationDegrees,
+        imageWidth,
+        imageHeight,
+        isPerspective,
+        isRotatingHint,
+    ) {
+        if (!containCropInImage || isPerspective || isRotatingHint) {
+            return@LaunchedEffect
+        }
+        if (imageWidth <= 0 || imageHeight <= 0) {
+            return@LaunchedEffect
+        }
+        val clamped = clampCropIfContained(cropRect)
+        if (clamped != cropRect) {
+            onCropRectChangeState.value(clamped)
+        }
+    }
+
     fun applyLockedAspect(aspect: Float) {
         if (imageWidth <= 0 || imageHeight <= 0) {
             return
         }
         lockedAspect = aspect
         val base = PhotoEditSaver.imageContentCrop(imageWidth, imageHeight)
-        onCropRectChange(PhotoEditSaver.fitCropToAspect(base, aspect))
+        onCropRectChange(
+            clampCropIfContained(PhotoEditSaver.fitCropToAspect(base, aspect)),
+        )
     }
 
     fun rotateCropAspect90() {
@@ -341,7 +400,7 @@ fun PhotoCropEditor(
             return
         }
         val swapped = PhotoEditSaver.swapCropDimensions(cropRect)
-        onCropRectChange(swapped)
+        onCropRectChange(clampCropIfContained(swapped))
         val currentLock = lockedAspect
         if (currentLock != null) {
             lockedAspect = 1f / currentLock.coerceAtLeast(1e-6f)
@@ -602,14 +661,31 @@ fun PhotoCropEditor(
 
                                 fun finalizeCrop(rect: NormalizedCropRect): NormalizedCropRect {
                                     val aspectLock = lockedAspectState.value
-                                    return if (aspectLock == null) {
-                                        PhotoEditSaver.clampCropRectFree(rect)
-                                    } else {
-                                        PhotoEditSaver.clampCropRect(
-                                            rect = rect,
-                                            imageAspect = aspectLock,
-                                        )
+                                    val workspaceClamped =
+                                        if (aspectLock == null) {
+                                            PhotoEditSaver.clampCropRectFree(rect)
+                                        } else {
+                                            PhotoEditSaver.clampCropRect(
+                                                rect = rect,
+                                                imageAspect = aspectLock,
+                                            )
+                                        }
+                                    if (!containCropInImageState.value ||
+                                        imageWidth <= 0 ||
+                                        imageHeight <= 0
+                                    ) {
+                                        return workspaceClamped
                                     }
+                                    return PhotoEditSaver.clampCropRectInsideBounds(
+                                        rect = workspaceClamped,
+                                        bounds =
+                                        photoEditSaver.photoInscribedBounds(
+                                            imageWidth = imageWidth,
+                                            imageHeight = imageHeight,
+                                            rotationDegrees = rotationState.value,
+                                        ),
+                                        imageAspect = aspectLock,
+                                    )
                                 }
 
                                 while (gestureActive) {
@@ -625,7 +701,8 @@ fun PhotoCropEditor(
                                         val panChange = event.calculatePan()
                                         // Keep current rotation while adjusting a perspective quad.
                                         if (rotationDelta != 0f &&
-                                            perspectiveQuadState.value == null
+                                            perspectiveQuadState.value == null &&
+                                            !rotationLockedState.value
                                         ) {
                                             isRotatingHint = true
                                             onRotationDegreesChangeState.value(
@@ -835,6 +912,15 @@ fun PhotoCropEditor(
                                         }
                                     }
                                 }
+                                val shouldReclampAfterPinch =
+                                    multiTouch &&
+                                        containCropInImageState.value &&
+                                        perspectiveQuadState.value == null
+                                if (shouldReclampAfterPinch && imageWidth > 0 && imageHeight > 0) {
+                                    onCropRectChangeState.value(
+                                        finalizeCrop(cropRectState.value),
+                                    )
+                                }
                                 isRotatingHint = false
                             }
                         },
@@ -880,6 +966,47 @@ fun PhotoCropEditor(
                 )
             }
 
+            val workspaceReady = workspace.width > 0f && imageWidth > 0
+            val showCropModeToggles = !isSaving && workspaceReady && !isPerspective
+            if (showCropModeToggles) {
+                Row(
+                    modifier =
+                    Modifier
+                        .align(Alignment.TopStart)
+                        .padding(12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    EditToolbarIconButton(
+                        onClick = { rotationLocked = !rotationLocked },
+                        icon = Icons.Filled.ScreenLockRotation,
+                        label =
+                        stringResource(
+                            if (rotationLocked) {
+                                R.string.gallery_cleaner_edit_unlock_rotation
+                            } else {
+                                R.string.gallery_cleaner_edit_lock_rotation
+                            },
+                        ),
+                        selected = rotationLocked,
+                        tonal = true,
+                    )
+                    EditToolbarIconButton(
+                        onClick = { toggleContainCropInImage() },
+                        icon = Icons.Filled.FilterCenterFocus,
+                        label =
+                        stringResource(
+                            if (containCropInImage) {
+                                R.string.gallery_cleaner_edit_allow_crop_outside
+                            } else {
+                                R.string.gallery_cleaner_edit_contain_crop
+                            },
+                        ),
+                        selected = containCropInImage,
+                        tonal = true,
+                    )
+                }
+            }
+
             if (!isSaving && workspace.width > 0f && imageWidth > 0) {
                 Row(
                     modifier =
@@ -908,9 +1035,11 @@ fun PhotoCropEditor(
                                         offset = viewOffset,
                                     )
                                 onCropRectChange(
-                                    PhotoEditSaver.fitCropIntoBounds(
-                                        rect = cropRect,
-                                        bounds = visible,
+                                    clampCropIfContained(
+                                        PhotoEditSaver.fitCropIntoBounds(
+                                            rect = cropRect,
+                                            bounds = visible,
+                                        ),
                                     ),
                                 )
                             },
@@ -952,7 +1081,7 @@ fun PhotoCropEditor(
         val freeAspectSelected = lockedAspect == null && !isPerspective
         val canEditAspect = !isSaving && imageWidth > 0 && !isPerspective
         val canTogglePerspective = !isSaving && imageWidth > 0
-        val canRotate = !isSaving && !isPerspective
+        val canRotate = !isSaving && !isPerspective && !rotationLocked
         val canResetRotation = canRotate && abs(displayDegrees) >= 0.5f
         val canFitFrame = isViewTransformed && !isPerspective && imageWidth > 0
         var moreMenuExpanded by remember { mutableStateOf(false) }
@@ -970,9 +1099,11 @@ fun PhotoCropEditor(
                     offset = viewOffset,
                 )
             onCropRectChange(
-                PhotoEditSaver.fitCropIntoBounds(
-                    rect = cropRect,
-                    bounds = visible,
+                clampCropIfContained(
+                    PhotoEditSaver.fitCropIntoBounds(
+                        rect = cropRect,
+                        bounds = visible,
+                    ),
                 ),
             )
         }

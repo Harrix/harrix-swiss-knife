@@ -279,6 +279,10 @@
     <string name="gallery_cleaner_edit_rotate_ccw">向左旋转 90°</string>
     <string name="gallery_cleaner_edit_rotate_cw">向右旋转 90°</string>
     <string name="gallery_cleaner_edit_reset_rotation">重置旋转</string>
+    <string name="gallery_cleaner_edit_lock_rotation">锁定旋转</string>
+    <string name="gallery_cleaner_edit_unlock_rotation">允许旋转</string>
+    <string name="gallery_cleaner_edit_contain_crop">将框限制在照片内</string>
+    <string name="gallery_cleaner_edit_allow_crop_outside">允许框超出照片</string>
     <string name="gallery_cleaner_edit_more">More edit actions</string>
     <string name="photo_file_details_title">文件详情</string>
     <string name="photo_file_details_path_format">/内部存储/%1$s</string>
@@ -287,6 +291,11 @@
     <string name="photo_file_details_mode_night">夜景</string>
     <string name="photo_file_details_map">Google 地图上的位置</string>
     <string name="photo_file_details_open_map">在 Google 地图中打开</string>
+    <string name="photo_file_details_copy_date">复制日期</string>
+    <string name="photo_file_details_copy_device">复制设备</string>
+    <string name="photo_file_details_copy_stats">复制文件信息</string>
+    <string name="photo_file_details_copy_settings">复制相机设置</string>
+    <string name="photo_file_details_copy_location">复制位置</string>
     <string name="photo_file_details_copy_name">复制文件名</string>
     <string name="photo_file_details_copy_path">复制路径</string>
     <string name="photo_file_details_copy_coordinates">复制坐标</string>

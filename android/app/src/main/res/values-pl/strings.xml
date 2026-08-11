@@ -279,6 +279,10 @@
     <string name="gallery_cleaner_edit_rotate_ccw">Obróć o 90° w lewo</string>
     <string name="gallery_cleaner_edit_rotate_cw">Obróć o 90° w prawo</string>
     <string name="gallery_cleaner_edit_reset_rotation">Zresetuj obrót</string>
+    <string name="gallery_cleaner_edit_lock_rotation">Zablokuj obrót</string>
+    <string name="gallery_cleaner_edit_unlock_rotation">Zezwól na obrót</string>
+    <string name="gallery_cleaner_edit_contain_crop">Trzymaj ramkę w zdjęciu</string>
+    <string name="gallery_cleaner_edit_allow_crop_outside">Zezwól na ramkę poza zdjęciem</string>
     <string name="gallery_cleaner_edit_more">More edit actions</string>
     <string name="photo_file_details_title">Szczegóły pliku</string>
     <string name="photo_file_details_path_format">/Pamięć wewnętrzna/%1$s</string>
@@ -287,6 +291,11 @@
     <string name="photo_file_details_mode_night">Noc</string>
     <string name="photo_file_details_map">Lokalizacja w Google Maps</string>
     <string name="photo_file_details_open_map">Otwórz w Google Maps</string>
+    <string name="photo_file_details_copy_date">Kopiuj datę</string>
+    <string name="photo_file_details_copy_device">Kopiuj urządzenie</string>
+    <string name="photo_file_details_copy_stats">Kopiuj info o pliku</string>
+    <string name="photo_file_details_copy_settings">Kopiuj ustawienia aparatu</string>
+    <string name="photo_file_details_copy_location">Kopiuj lokalizację</string>
     <string name="photo_file_details_copy_name">Kopiuj nazwę pliku</string>
     <string name="photo_file_details_copy_path">Kopiuj ścieżkę</string>
     <string name="photo_file_details_copy_coordinates">Kopiuj współrzędne</string>

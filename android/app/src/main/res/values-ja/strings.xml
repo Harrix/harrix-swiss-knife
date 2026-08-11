@@ -279,6 +279,10 @@
     <string name="gallery_cleaner_edit_rotate_ccw">左に90°回転</string>
     <string name="gallery_cleaner_edit_rotate_cw">右に90°回転</string>
     <string name="gallery_cleaner_edit_reset_rotation">回転をリセット</string>
+    <string name="gallery_cleaner_edit_lock_rotation">回転をロック</string>
+    <string name="gallery_cleaner_edit_unlock_rotation">回転を許可</string>
+    <string name="gallery_cleaner_edit_contain_crop">枠を写真内に保つ</string>
+    <string name="gallery_cleaner_edit_allow_crop_outside">枠の写真外を許可</string>
     <string name="gallery_cleaner_edit_more">More edit actions</string>
     <string name="photo_file_details_title">ファイルの詳細</string>
     <string name="photo_file_details_path_format">/内部ストレージ/%1$s</string>
@@ -287,6 +291,11 @@
     <string name="photo_file_details_mode_night">夜景</string>
     <string name="photo_file_details_map">Google マップの位置情報</string>
     <string name="photo_file_details_open_map">Google マップで開く</string>
+    <string name="photo_file_details_copy_date">日付をコピー</string>
+    <string name="photo_file_details_copy_device">端末をコピー</string>
+    <string name="photo_file_details_copy_stats">ファイル情報をコピー</string>
+    <string name="photo_file_details_copy_settings">カメラ設定をコピー</string>
+    <string name="photo_file_details_copy_location">場所をコピー</string>
     <string name="photo_file_details_copy_name">ファイル名をコピー</string>
     <string name="photo_file_details_copy_path">パスをコピー</string>
     <string name="photo_file_details_copy_coordinates">座標をコピー</string>

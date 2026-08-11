@@ -279,6 +279,10 @@
     <string name="gallery_cleaner_edit_rotate_ccw">Putar 90° ke kiri</string>
     <string name="gallery_cleaner_edit_rotate_cw">Putar 90° ke kanan</string>
     <string name="gallery_cleaner_edit_reset_rotation">Atur ulang rotasi</string>
+    <string name="gallery_cleaner_edit_lock_rotation">Kunci rotasi</string>
+    <string name="gallery_cleaner_edit_unlock_rotation">Izinkan rotasi</string>
+    <string name="gallery_cleaner_edit_contain_crop">Jaga bingkai di dalam foto</string>
+    <string name="gallery_cleaner_edit_allow_crop_outside">Izinkan bingkai di luar foto</string>
     <string name="gallery_cleaner_edit_more">More edit actions</string>
     <string name="photo_file_details_title">Detail file</string>
     <string name="photo_file_details_path_format">/Penyimpanan internal/%1$s</string>
@@ -287,6 +291,11 @@
     <string name="photo_file_details_mode_night">Malam</string>
     <string name="photo_file_details_map">Lokasi di Google Maps</string>
     <string name="photo_file_details_open_map">Buka di Google Maps</string>
+    <string name="photo_file_details_copy_date">Salin tanggal</string>
+    <string name="photo_file_details_copy_device">Salin perangkat</string>
+    <string name="photo_file_details_copy_stats">Salin info file</string>
+    <string name="photo_file_details_copy_settings">Salin pengaturan kamera</string>
+    <string name="photo_file_details_copy_location">Salin lokasi</string>
     <string name="photo_file_details_copy_name">Salin nama file</string>
     <string name="photo_file_details_copy_path">Salin jalur</string>
     <string name="photo_file_details_copy_coordinates">Salin koordinat</string>

@@ -340,13 +340,6 @@
           <widget class="QWidget" name="widget_middle">
            <layout class="QVBoxLayout" name="verticalLayout">
             <item>
-             <widget class="QLabel" name="label_7">
-              <property name="text">
-               <string>Exercise:</string>
-              </property>
-             </widget>
-            </item>
-            <item>
              <widget class="QPushButton" name="pushButton_select_exercise">
               <property name="text">
                <string>Select Exercise</string>
@@ -927,8 +920,8 @@
                 <rect>
                  <x>0</x>
                  <y>0</y>
-                 <width>1779</width>
-                 <height>978</height>
+                 <width>96</width>
+                 <height>26</height>
                 </rect>
                </property>
                <layout class="QVBoxLayout" name="verticalLayout_charts_content"/>
@@ -1391,8 +1384,8 @@
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>2028</width>
-               <height>1038</height>
+               <width>96</width>
+               <height>26</height>
               </rect>
              </property>
              <layout class="QVBoxLayout" name="verticalLayout_weight_chart_content"/>

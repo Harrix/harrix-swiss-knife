@@ -54,29 +54,6 @@ data class PhotoFileDetails(
         return Uri.parse(String.format(Locale.US, GoogleMapsSearchUrl, lat, lng))
     }
 
-    /**
-     * Static map preview URL with a red pin (OpenStreetMap tiles; opens in Google Maps on tap).
-     */
-    fun staticMapPreviewUrl(
-        widthPx: Int = 640,
-        heightPx: Int = 360,
-    ): String? {
-        val lat = latitude ?: return null
-        val lng = longitude ?: return null
-        val w = widthPx.coerceIn(120, 1280)
-        val h = heightPx.coerceIn(120, 1280)
-        return String.format(
-            Locale.US,
-            "https://staticmap.openstreetmap.de/staticmap.php?center=%f,%f&zoom=15&size=%dx%d&markers=%f,%f,red-pushpin",
-            lat,
-            lng,
-            w,
-            h,
-            lat,
-            lng,
-        )
-    }
-
     val resolutionLabel: String?
         get() {
             val w = width ?: return null

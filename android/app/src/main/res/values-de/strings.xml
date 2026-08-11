@@ -279,6 +279,10 @@
     <string name="gallery_cleaner_edit_rotate_ccw">90° nach links drehen</string>
     <string name="gallery_cleaner_edit_rotate_cw">90° nach rechts drehen</string>
     <string name="gallery_cleaner_edit_reset_rotation">Drehung zurücksetzen</string>
+    <string name="gallery_cleaner_edit_lock_rotation">Drehung sperren</string>
+    <string name="gallery_cleaner_edit_unlock_rotation">Drehung erlauben</string>
+    <string name="gallery_cleaner_edit_contain_crop">Rahmen im Foto halten</string>
+    <string name="gallery_cleaner_edit_allow_crop_outside">Rahmen außerhalb erlauben</string>
     <string name="gallery_cleaner_edit_more">More edit actions</string>
     <string name="photo_file_details_title">Dateidetails</string>
     <string name="photo_file_details_path_format">/Interner Speicher/%1$s</string>
@@ -287,6 +291,11 @@
     <string name="photo_file_details_mode_night">Nacht</string>
     <string name="photo_file_details_map">Standort in Google Maps</string>
     <string name="photo_file_details_open_map">In Google Maps öffnen</string>
+    <string name="photo_file_details_copy_date">Datum kopieren</string>
+    <string name="photo_file_details_copy_device">Gerät kopieren</string>
+    <string name="photo_file_details_copy_stats">Dateiinfo kopieren</string>
+    <string name="photo_file_details_copy_settings">Kamereeinstellungen kopieren</string>
+    <string name="photo_file_details_copy_location">Ort kopieren</string>
     <string name="photo_file_details_copy_name">Dateiname kopieren</string>
     <string name="photo_file_details_copy_path">Pfad kopieren</string>
     <string name="photo_file_details_copy_coordinates">Koordinaten kopieren</string>

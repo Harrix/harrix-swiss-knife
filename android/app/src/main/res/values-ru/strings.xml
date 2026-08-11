@@ -279,6 +279,10 @@
     <string name="gallery_cleaner_edit_rotate_ccw">Повернуть на 90° влево</string>
     <string name="gallery_cleaner_edit_rotate_cw">Повернуть на 90° вправо</string>
     <string name="gallery_cleaner_edit_reset_rotation">Сбросить поворот</string>
+    <string name="gallery_cleaner_edit_lock_rotation">Запретить поворот</string>
+    <string name="gallery_cleaner_edit_unlock_rotation">Разрешить поворот</string>
+    <string name="gallery_cleaner_edit_contain_crop">Не выходить за границы фото</string>
+    <string name="gallery_cleaner_edit_allow_crop_outside">Разрешить рамке выходить за фото</string>
     <string name="gallery_cleaner_edit_more">Другие действия редактора</string>
     <string name="photo_file_details_title">Сведения о файле</string>
     <string name="photo_file_details_path_format">/Внутреннее хранилище/%1$s</string>
@@ -287,6 +291,11 @@
     <string name="photo_file_details_mode_night">Ночь</string>
     <string name="photo_file_details_map">Место на Google Картах</string>
     <string name="photo_file_details_open_map">Открыть в Google Картах</string>
+    <string name="photo_file_details_copy_date">Копировать дату</string>
+    <string name="photo_file_details_copy_device">Копировать устройство</string>
+    <string name="photo_file_details_copy_stats">Копировать сведения о файле</string>
+    <string name="photo_file_details_copy_settings">Копировать настройки камеры</string>
+    <string name="photo_file_details_copy_location">Копировать место</string>
     <string name="photo_file_details_copy_name">Копировать имя файла</string>
     <string name="photo_file_details_copy_path">Копировать путь</string>
     <string name="photo_file_details_copy_coordinates">Копировать координаты</string>

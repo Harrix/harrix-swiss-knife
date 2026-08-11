@@ -279,6 +279,10 @@
     <string name="gallery_cleaner_edit_rotate_ccw">90° sola döndür</string>
     <string name="gallery_cleaner_edit_rotate_cw">90° sağa döndür</string>
     <string name="gallery_cleaner_edit_reset_rotation">Döndürmeyi sıfırla</string>
+    <string name="gallery_cleaner_edit_lock_rotation">Döndürmeyi kilitle</string>
+    <string name="gallery_cleaner_edit_unlock_rotation">Döndürmeye izin ver</string>
+    <string name="gallery_cleaner_edit_contain_crop">Çerçeveyi fotoğraf içinde tut</string>
+    <string name="gallery_cleaner_edit_allow_crop_outside">Çerçevenin dışarı çıkmasına izin ver</string>
     <string name="gallery_cleaner_edit_more">More edit actions</string>
     <string name="photo_file_details_title">Dosya ayrıntıları</string>
     <string name="photo_file_details_path_format">/Dahili depolama/%1$s</string>
@@ -287,6 +291,11 @@
     <string name="photo_file_details_mode_night">Gece</string>
     <string name="photo_file_details_map">Google Haritalar konumu</string>
     <string name="photo_file_details_open_map">Google Haritalarda aç</string>
+    <string name="photo_file_details_copy_date">Tarihi kopyala</string>
+    <string name="photo_file_details_copy_device">Cihazı kopyala</string>
+    <string name="photo_file_details_copy_stats">Dosya bilgisini kopyala</string>
+    <string name="photo_file_details_copy_settings">Kamera ayarlarını kopyala</string>
+    <string name="photo_file_details_copy_location">Konumu kopyala</string>
     <string name="photo_file_details_copy_name">Dosya adını kopyala</string>
     <string name="photo_file_details_copy_path">Yolu kopyala</string>
     <string name="photo_file_details_copy_coordinates">Koordinatları kopyala</string>

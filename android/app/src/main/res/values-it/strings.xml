@@ -279,6 +279,10 @@
     <string name="gallery_cleaner_edit_rotate_ccw">Ruota di 90° a sinistra</string>
     <string name="gallery_cleaner_edit_rotate_cw">Ruota di 90° a destra</string>
     <string name="gallery_cleaner_edit_reset_rotation">Reimposta rotazione</string>
+    <string name="gallery_cleaner_edit_lock_rotation">Blocca rotazione</string>
+    <string name="gallery_cleaner_edit_unlock_rotation">Consenti rotazione</string>
+    <string name="gallery_cleaner_edit_contain_crop">Mantieni riquadro nella foto</string>
+    <string name="gallery_cleaner_edit_allow_crop_outside">Consenti riquadro fuori foto</string>
     <string name="gallery_cleaner_edit_more">More edit actions</string>
     <string name="photo_file_details_title">Dettagli file</string>
     <string name="photo_file_details_path_format">/Archiviazione interna/%1$s</string>
@@ -287,6 +291,11 @@
     <string name="photo_file_details_mode_night">Notte</string>
     <string name="photo_file_details_map">Posizione su Google Maps</string>
     <string name="photo_file_details_open_map">Apri in Google Maps</string>
+    <string name="photo_file_details_copy_date">Copia data</string>
+    <string name="photo_file_details_copy_device">Copia dispositivo</string>
+    <string name="photo_file_details_copy_stats">Copia info file</string>
+    <string name="photo_file_details_copy_settings">Copia impostazioni fotocamera</string>
+    <string name="photo_file_details_copy_location">Copia posizione</string>
     <string name="photo_file_details_copy_name">Copia nome file</string>
     <string name="photo_file_details_copy_path">Copia percorso</string>
     <string name="photo_file_details_copy_coordinates">Copia coordinate</string>
