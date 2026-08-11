@@ -54,6 +54,7 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Deselect
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.SelectAll
@@ -179,6 +180,7 @@ fun VideoCleanerScreen(
     var sort by viewModel.sort
     var sortMenuExpanded by remember { mutableStateOf(false) }
     var playingVideo by viewModel.playingVideo
+    var detailsVideo by remember { mutableStateOf<CameraVideo?>(null) }
     var sessionDeletedCount by viewModel.sessionDeletedCount
     var sessionFreedBytes by viewModel.sessionFreedBytes
     var showStatsDialog by viewModel.showStatsDialog
@@ -207,6 +209,7 @@ fun VideoCleanerScreen(
 
     BackHandler {
         when {
+            detailsVideo != null -> detailsVideo = null
             showStatsDialog -> showStatsDialog = false
             playingVideo != null -> playingVideo = null
             sortMenuExpanded -> sortMenuExpanded = false
@@ -438,6 +441,13 @@ fun VideoCleanerScreen(
         VideoPlaybackDialog(
             video = video,
             onDismiss = { playingVideo = null },
+        )
+    }
+
+    detailsVideo?.let { video ->
+        VideoFileDetailsSheet(
+            video = video,
+            onDismissRequest = { detailsVideo = null },
         )
     }
 
@@ -701,6 +711,7 @@ fun VideoCleanerScreen(
                                     selected = video.id in selectedIds,
                                     onPlay = { playingVideo = video },
                                     onShare = { shareVideo(video) },
+                                    onFileDetails = { detailsVideo = video },
                                 )
                             }
                         }
@@ -904,6 +915,7 @@ private fun VideoGalleryItem(
     selected: Boolean,
     onPlay: () -> Unit,
     onShare: () -> Unit,
+    onFileDetails: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -1014,6 +1026,24 @@ private fun VideoGalleryItem(
                     leadingIcon = {
                         Icon(
                             imageVector = Icons.Filled.Share,
+                            contentDescription = null,
+                        )
+                    },
+                )
+                DropdownMenuItem(
+                    text = {
+                        AutoFitText(
+                            text = stringResource(R.string.photo_file_details_title),
+                            maxLines = 2,
+                        )
+                    },
+                    onClick = {
+                        menuExpanded = false
+                        onFileDetails()
+                    },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Filled.Info,
                             contentDescription = null,
                         )
                     },
