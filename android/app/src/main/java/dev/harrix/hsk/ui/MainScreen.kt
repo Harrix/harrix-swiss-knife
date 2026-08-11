@@ -139,7 +139,6 @@ fun MainScreen(
     var showAbout by rememberSaveable { mutableStateOf(false) }
     var homeMenuExpanded by remember { mutableStateOf(false) }
     var photoEditorInitialUri by remember { mutableStateOf<Uri?>(null) }
-    var autoStartSpeechRecording by remember { mutableStateOf(false) }
     val onPendingImageUriConsumeState = rememberUpdatedState(onPendingImageUriConsume)
     val onPendingOpenSpeechToTextConsumeState =
         rememberUpdatedState(onPendingOpenSpeechToTextConsume)
@@ -157,7 +156,6 @@ fun MainScreen(
         if (!pendingOpenSpeechToText) {
             return@LaunchedEffect
         }
-        autoStartSpeechRecording = true
         destination = AppDestination.SpeechToText
         showAbout = false
         settingsSection = null
@@ -241,8 +239,6 @@ fun MainScreen(
             AppDestination.SpeechToText -> {
                 SpeechToTextScreen(
                     onClose = { destination = AppDestination.Home },
-                    autoStartRecording = autoStartSpeechRecording,
-                    onAutoStartRecordingConsume = { autoStartSpeechRecording = false },
                     modifier = Modifier.fillMaxSize(),
                 )
             }

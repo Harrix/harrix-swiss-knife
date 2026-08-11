@@ -163,8 +163,8 @@
     <string name="speech_to_text_widget_label">Speech to Text</string>
     <string name="speech_to_text_widget_description">Open Speech to Text with AI</string>
     <string name="speech_to_text_close">Exit Speech to Text</string>
-    <string name="speech_to_text_idle_message">Tap Record, speak, then stop. The app will recognize speech, fix the text, and show the result.</string>
-    <string name="speech_to_text_record">Record</string>
+    <string name="speech_to_text_idle_message">녹음이 자동으로 시작됩니다. 말한 뒤 중지하세요. 인식 전에 이어 녹음하거나 다시 녹음할 수 있습니다.</string>
+    <string name="speech_to_text_starting">녹음 시작 중…</string>
     <string name="speech_to_text_stop">Stop</string>
     <string name="speech_to_text_cancel_recording">Cancel</string>
     <string name="speech_to_text_recording">Recording…</string>

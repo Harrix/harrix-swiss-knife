@@ -163,8 +163,8 @@
     <string name="speech_to_text_widget_label">Speech to Text</string>
     <string name="speech_to_text_widget_description">Открыть Speech to Text with AI</string>
     <string name="speech_to_text_close">Exit Speech to Text</string>
-    <string name="speech_to_text_idle_message">Націсніце «Запіс», гаварыце, потым «Стоп». Можна працягнуць або перазапісаць перад распазнаваннем.</string>
-    <string name="speech_to_text_record">Record</string>
+    <string name="speech_to_text_idle_message">Запіс пачынаецца адразу. Гаварыце, потым націсніце «Стоп». Можна працягнуць або перазапісаць перад распазнаваннем.</string>
+    <string name="speech_to_text_starting">Запуск запісу…</string>
     <string name="speech_to_text_stop">Stop</string>
     <string name="speech_to_text_cancel_recording">Cancel</string>
     <string name="speech_to_text_recording">Recording…</string>

@@ -50,7 +50,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -94,8 +93,6 @@ private val WaveformOutline = Color(0xFF81C784)
 fun SpeechToTextScreen(
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
-    autoStartRecording: Boolean = false,
-    onAutoStartRecordingConsume: () -> Unit = {},
     viewModel: SpeechToTextViewModel = viewModel(),
 ) {
     var phase by viewModel.phase
@@ -108,9 +105,10 @@ fun SpeechToTextScreen(
     val context = LocalContext.current
     val clipboard = LocalClipboardManager.current
     val copiedMessage = stringResource(R.string.speech_to_text_copied)
-    val onAutoStartRecordingConsumeState = rememberUpdatedState(onAutoStartRecordingConsume)
 
     var pendingMicAction by remember { mutableStateOf<MicAction?>(null) }
+    var pendingOpenAutoStart by remember { mutableStateOf(true) }
+    var openAutoStartRequested by remember { mutableStateOf(false) }
 
     fun leave() {
         viewModel.resetSession()
@@ -134,6 +132,7 @@ fun SpeechToTextScreen(
                     MicAction.Start, null -> viewModel.startRecording()
                 }
             } else {
+                pendingOpenAutoStart = false
                 viewModel.errorMessage.value =
                     context.getString(R.string.speech_to_text_permission_denied)
             }
@@ -159,9 +158,9 @@ fun SpeechToTextScreen(
 
     BackHandler {
         when (phase) {
-            SpeechToTextPhase.Recording -> viewModel.cancelRecording()
-
-            SpeechToTextPhase.Recorded -> viewModel.discardRecording()
+            SpeechToTextPhase.Recording,
+            SpeechToTextPhase.Recorded,
+            -> leave()
 
             SpeechToTextPhase.Recognizing,
             SpeechToTextPhase.Fixing,
@@ -172,12 +171,25 @@ fun SpeechToTextScreen(
         }
     }
 
-    LaunchedEffect(autoStartRecording) {
-        if (!autoStartRecording) {
+    // Start capture once when the utility opens.
+    val canAutoStartRecording =
+        pendingOpenAutoStart &&
+            !openAutoStartRequested &&
+            phase == SpeechToTextPhase.Idle &&
+            hasApiKey &&
+            errorMessage == null
+    LaunchedEffect(canAutoStartRecording) {
+        if (!canAutoStartRecording) {
             return@LaunchedEffect
         }
-        onAutoStartRecordingConsumeState.value()
+        openAutoStartRequested = true
         startOrRequestMic(MicAction.Start)
+    }
+
+    LaunchedEffect(phase) {
+        if (phase != SpeechToTextPhase.Idle) {
+            pendingOpenAutoStart = false
+        }
     }
 
     LaunchedEffect(infoMessage) {
@@ -237,8 +249,7 @@ fun SpeechToTextScreen(
             when (phase) {
                 SpeechToTextPhase.Idle -> {
                     IdleContent(
-                        onRecord = { startOrRequestMic(MicAction.Start) },
-                        enabled = hasApiKey,
+                        starting = hasApiKey && errorMessage == null && pendingOpenAutoStart,
                     )
                 }
 
@@ -248,7 +259,7 @@ fun SpeechToTextScreen(
                         durationLabel = AudioRecorder.formatDuration(recordingDurationSeconds),
                         live = true,
                         onStop = { viewModel.stopRecording() },
-                        onCancel = { viewModel.cancelRecording() },
+                        onCancel = { leave() },
                     )
                 }
 
@@ -259,7 +270,7 @@ fun SpeechToTextScreen(
                         onContinue = { startOrRequestMic(MicAction.Continue) },
                         onRerecord = { startOrRequestMic(MicAction.Rerecord) },
                         onRecognize = { viewModel.recognizeRecording() },
-                        onDiscard = { viewModel.discardRecording() },
+                        onDiscard = { leave() },
                     )
                 }
 
@@ -303,8 +314,7 @@ fun SpeechToTextScreen(
 
 @Composable
 private fun IdleContent(
-    onRecord: () -> Unit,
-    enabled: Boolean,
+    starting: Boolean,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -319,24 +329,15 @@ private fun IdleContent(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.fillMaxWidth(),
         )
-        Spacer(modifier = Modifier.height(24.dp))
-        Box(
-            modifier = Modifier.fillMaxWidth(),
-            contentAlignment = Alignment.Center,
-        ) {
-            Button(
-                onClick = onRecord,
-                enabled = enabled,
-                modifier = Modifier.adaptiveBottomBarWidth(),
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.Mic,
-                    contentDescription = null,
-                    modifier = Modifier.size(20.dp),
-                )
-                Spacer(modifier = Modifier.size(8.dp))
-                Text(stringResource(R.string.speech_to_text_record))
-            }
+        if (starting) {
+            Spacer(modifier = Modifier.height(24.dp))
+            CircularProgressIndicator()
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(
+                text = stringResource(R.string.speech_to_text_starting),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }

@@ -163,8 +163,8 @@
     <string name="speech_to_text_widget_label">Speech to Text</string>
     <string name="speech_to_text_widget_description">Open Speech to Text with AI</string>
     <string name="speech_to_text_close">Exit Speech to Text</string>
-    <string name="speech_to_text_idle_message">Tap Record, speak, then stop. The app will recognize speech, fix the text, and show the result.</string>
-    <string name="speech_to_text_record">Record</string>
+    <string name="speech_to_text_idle_message">Nahrávání se spustí automaticky. Mluvte a pak zastavte. Před rozpoznáním můžete pokračovat nebo nahrát znovu.</string>
+    <string name="speech_to_text_starting">Spouštění nahrávání…</string>
     <string name="speech_to_text_stop">Stop</string>
     <string name="speech_to_text_cancel_recording">Cancel</string>
     <string name="speech_to_text_recording">Recording…</string>
