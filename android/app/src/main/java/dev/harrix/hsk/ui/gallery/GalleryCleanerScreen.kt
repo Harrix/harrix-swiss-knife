@@ -1496,43 +1496,14 @@ private fun PhotoSecondaryActionsRow(
         modifier
             .fillMaxWidth()
             .padding(
-                start = if (compact) 0.dp else 16.dp,
-                end = if (compact) 0.dp else 4.dp,
+                start = if (compact) 0.dp else 4.dp,
+                end = if (compact) 0.dp else 16.dp,
                 top = 0.dp,
                 bottom = if (compact) 0.dp else 4.dp,
             ),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        // Keep action icons pinned to the start edge; filter label uses remaining end space.
-        if (canEditPhoto && !isEditing) {
-            IconButton(
-                onClick = onEdit,
-                enabled = !isSavingEdit,
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.CropRotate,
-                    contentDescription =
-                    stringResource(R.string.gallery_cleaner_action_edit),
-                )
-            }
-            IconButton(onClick = onShare) {
-                Icon(
-                    imageVector = Icons.Filled.Share,
-                    contentDescription =
-                    stringResource(R.string.gallery_cleaner_share),
-                )
-            }
-        }
-        if (!isEditing && canUndo) {
-            IconButton(onClick = onUndo) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.Undo,
-                    contentDescription =
-                    stringResource(R.string.gallery_cleaner_undo_delete),
-                )
-            }
-        }
-        Spacer(modifier = Modifier.weight(1f))
+        // Filter label uses start space; action icons stay pinned to the end edge.
         if (!isEditing && dateFilter.enabled) {
             val dateFormat =
                 remember {
@@ -1563,8 +1534,37 @@ private fun PhotoSecondaryActionsRow(
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = if (compact) 1 else 2,
-                textAlign = TextAlign.End,
+                textAlign = TextAlign.Start,
             )
+        }
+        Spacer(modifier = Modifier.weight(1f))
+        if (canEditPhoto && !isEditing) {
+            IconButton(
+                onClick = onEdit,
+                enabled = !isSavingEdit,
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.CropRotate,
+                    contentDescription =
+                    stringResource(R.string.gallery_cleaner_action_edit),
+                )
+            }
+            IconButton(onClick = onShare) {
+                Icon(
+                    imageVector = Icons.Filled.Share,
+                    contentDescription =
+                    stringResource(R.string.gallery_cleaner_share),
+                )
+            }
+        }
+        if (!isEditing && canUndo) {
+            IconButton(onClick = onUndo) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.Undo,
+                    contentDescription =
+                    stringResource(R.string.gallery_cleaner_undo_delete),
+                )
+            }
         }
     }
 }
