@@ -1503,41 +1503,7 @@ private fun PhotoSecondaryActionsRow(
             ),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        if (!isEditing && dateFilter.enabled) {
-            val dateFormat =
-                remember {
-                    DateFormat.getDateInstance(DateFormat.SHORT)
-                }
-            val startLabel =
-                dateFormat.format(Date(dateFilter.startEpochSecInclusive * 1000L))
-            val endLabel =
-                dateFormat.format(Date(dateFilter.endEpochSecInclusive * 1000L))
-            val sameDay =
-                dateFilter.fromYear() == dateFilter.toYear() &&
-                    dateFilter.fromMonth() == dateFilter.toMonth() &&
-                    dateFilter.fromDay() == dateFilter.toDay()
-            AutoFitText(
-                text =
-                if (sameDay) {
-                    stringResource(
-                        R.string.gallery_cleaner_date_filter_active_day,
-                        startLabel,
-                    )
-                } else {
-                    stringResource(
-                        R.string.gallery_cleaner_date_filter_active,
-                        startLabel,
-                        endLabel,
-                    )
-                },
-                modifier = Modifier.weight(1f),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = if (compact) 1 else 2,
-            )
-        } else {
-            Spacer(modifier = Modifier.weight(1f))
-        }
+        // Keep action icons pinned to the start edge; filter label uses remaining end space.
         if (canEditPhoto && !isEditing) {
             IconButton(
                 onClick = onEdit,
@@ -1565,6 +1531,40 @@ private fun PhotoSecondaryActionsRow(
                     stringResource(R.string.gallery_cleaner_undo_delete),
                 )
             }
+        }
+        Spacer(modifier = Modifier.weight(1f))
+        if (!isEditing && dateFilter.enabled) {
+            val dateFormat =
+                remember {
+                    DateFormat.getDateInstance(DateFormat.SHORT)
+                }
+            val startLabel =
+                dateFormat.format(Date(dateFilter.startEpochSecInclusive * 1000L))
+            val endLabel =
+                dateFormat.format(Date(dateFilter.endEpochSecInclusive * 1000L))
+            val sameDay =
+                dateFilter.fromYear() == dateFilter.toYear() &&
+                    dateFilter.fromMonth() == dateFilter.toMonth() &&
+                    dateFilter.fromDay() == dateFilter.toDay()
+            AutoFitText(
+                text =
+                if (sameDay) {
+                    stringResource(
+                        R.string.gallery_cleaner_date_filter_active_day,
+                        startLabel,
+                    )
+                } else {
+                    stringResource(
+                        R.string.gallery_cleaner_date_filter_active,
+                        startLabel,
+                        endLabel,
+                    )
+                },
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = if (compact) 1 else 2,
+                textAlign = TextAlign.End,
+            )
         }
     }
 }
