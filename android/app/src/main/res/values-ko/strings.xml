@@ -273,6 +273,9 @@
     <string name="gallery_cleaner_edit_perspective">원근</string>
     <string name="gallery_cleaner_edit_perspective_short">원근</string>
     <string name="gallery_cleaner_edit_perspective_apply">Apply perspective</string>
+    <string name="gallery_cleaner_edit_straighten">수평 맞추기</string>
+    <string name="gallery_cleaner_edit_straighten_apply">수평 맞추기 적용</string>
+    <string name="gallery_cleaner_edit_straighten_failed">맞출 수 없음: 기울기를 찾지 못했거나 너무 큼</string>
     <string name="gallery_cleaner_edit_fit_frame">프레임에 맞추기</string>
     <string name="gallery_cleaner_edit_fit_frame_short">맞추기</string>
     <string name="gallery_cleaner_edit_trim_empty">빈 여백 자르기</string>

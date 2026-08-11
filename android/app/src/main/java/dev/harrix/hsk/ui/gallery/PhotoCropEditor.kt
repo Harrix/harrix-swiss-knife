@@ -1,5 +1,6 @@
 package dev.harrix.hsk.ui.gallery
 
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -36,6 +37,7 @@ import androidx.compose.material.icons.filled.Rotate90DegreesCw
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.SaveAs
 import androidx.compose.material.icons.filled.ScreenLockRotation
+import androidx.compose.material.icons.filled.Straighten
 import androidx.compose.material.icons.filled.Transform
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -84,6 +86,7 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import dev.harrix.hsk.R
 import dev.harrix.hsk.gallery.CameraPhoto
+import dev.harrix.hsk.gallery.HorizonDetector
 import dev.harrix.hsk.gallery.NormalizedCropRect
 import dev.harrix.hsk.gallery.NormalizedPerspectiveQuad
 import dev.harrix.hsk.gallery.PerspectiveQuadDetector
@@ -141,6 +144,14 @@ private sealed class OneFingerAction {
 /** Accent color for the perspective frame (distinct from the white AABB crop). */
 private val PerspectiveFrameColor = Color(0xFFFFB74D)
 
+/** Accent color for auto-horizon straighten preview frame. */
+private val StraightenFrameColor = Color(0xFF4DD0E1)
+
+private data class StraightenSnapshot(
+    val rotationDegrees: Float,
+    val cropRect: NormalizedCropRect,
+)
+
 /** Locked crop aspect relative to the square workspace, or free resize. */
 private const val AspectThreeFour = 3f / 4f
 private const val AspectMatchEpsilon = 0.02f
@@ -187,6 +198,11 @@ fun PhotoCropEditor(
     var isRotatingHint by remember { mutableStateOf(false) }
     var didInitCrop by remember(photo.id, imageRevision) { mutableStateOf(false) }
     val isPerspective = perspectiveQuad != null
+    var isStraightenMode by remember(photo.id, imageRevision) { mutableStateOf(false) }
+    var straightenSnapshot by remember(photo.id, imageRevision) {
+        mutableStateOf<StraightenSnapshot?>(null)
+    }
+    val isSpecialEditMode = isPerspective || isStraightenMode
 
     /** `null` = free aspect; otherwise width/height lock for the crop frame. */
     var lockedAspect by remember(photo.id, imageRevision) { mutableStateOf<Float?>(null) }
@@ -197,6 +213,7 @@ fun PhotoCropEditor(
     val rotationLockedState = rememberUpdatedState(rotationLocked)
     val containCropInImageState = rememberUpdatedState(containCropInImage)
     val cropMoveLockedState = rememberUpdatedState(cropMoveLocked)
+    val isStraightenModeState = rememberUpdatedState(isStraightenMode)
     var showFileDetails by remember { mutableStateOf(false) }
     var viewScale by remember(photo.id, imageRevision) { mutableFloatStateOf(1f) }
     var viewOffset by remember(photo.id, imageRevision) { mutableStateOf(Offset.Zero) }
@@ -208,19 +225,34 @@ fun PhotoCropEditor(
     var trimSuggestion by remember(photo.id, imageRevision) {
         mutableStateOf<NormalizedCropRect?>(null)
     }
-    val showTrimBars = trimSuggestion != null && !isPerspective
+    val showTrimBars = trimSuggestion != null && !isSpecialEditMode
     val isViewTransformed =
         abs(viewScale - 1f) > CropViewZoomEpsilon ||
             hypot(viewOffset.x.toDouble(), viewOffset.y.toDouble()) > 1.0
+    val straightenFailedMessage = stringResource(R.string.gallery_cleaner_edit_straighten_failed)
 
     fun trimEmptyZones() {
         val suggestion = trimSuggestion ?: return
-        if (isSaving || isPerspective) {
+        if (isSaving || isSpecialEditMode) {
             return
         }
         lockedAspect = null
         onCropRectChange(suggestion)
         trimSuggestion = null
+    }
+
+    fun exitStraightenMode(restoreSnapshot: Boolean) {
+        if (!isStraightenMode) {
+            return
+        }
+        val snapshot = straightenSnapshot
+        if (restoreSnapshot && snapshot != null) {
+            onRotationDegreesChange(snapshot.rotationDegrees)
+            onCropRectChange(snapshot.cropRect)
+        }
+        straightenSnapshot = null
+        isStraightenMode = false
+        showFileDetails = false
     }
 
     fun exitPerspectiveMode() {
@@ -230,12 +262,70 @@ fun PhotoCropEditor(
         onPerspectiveQuadChange(null)
     }
 
+    fun toggleStraightenMode() {
+        if (isSaving || imageWidth <= 0 || imageHeight <= 0) {
+            return
+        }
+        if (isStraightenMode) {
+            exitStraightenMode(restoreSnapshot = true)
+            return
+        }
+        if (isPerspective) {
+            exitPerspectiveMode()
+        }
+        showFileDetails = false
+        lockedAspect = null
+        containCropInImage = false
+        trimSuggestion = null
+        val snapshot =
+            StraightenSnapshot(
+                rotationDegrees = rotationDegrees,
+                cropRect = cropRect,
+            )
+        straightenSnapshot = snapshot
+        isStraightenMode = true
+        val detectUri = photo.uri
+        val detectRotation = rotationDegrees
+        val detectWidth = imageWidth
+        val detectHeight = imageHeight
+        scope.launch {
+            val delta =
+                withContext(Dispatchers.Default) {
+                    HorizonDetector.detectDeltaDegrees(
+                        context = context.applicationContext,
+                        uri = detectUri,
+                        currentRotationDegrees = detectRotation,
+                    )
+                }
+            if (!isStraightenMode) {
+                return@launch
+            }
+            if (delta == null) {
+                Toast.makeText(context, straightenFailedMessage, Toast.LENGTH_SHORT).show()
+                exitStraightenMode(restoreSnapshot = true)
+                return@launch
+            }
+            val newRotation = detectRotation + delta
+            onRotationDegreesChangeState.value(newRotation)
+            onCropRectChangeState.value(
+                photoEditSaver.photoInscribedBounds(
+                    imageWidth = detectWidth,
+                    imageHeight = detectHeight,
+                    rotationDegrees = newRotation,
+                ),
+            )
+        }
+    }
+
     fun togglePerspectiveMode() {
         if (isSaving || imageWidth <= 0) {
             return
         }
         val currentQuad = perspectiveQuad
         if (currentQuad == null) {
+            if (isStraightenMode) {
+                exitStraightenMode(restoreSnapshot = true)
+            }
             showFileDetails = false
             lockedAspect = null
             containCropInImage = false
@@ -273,12 +363,16 @@ fun PhotoCropEditor(
         showFileDetails = false
     }
 
+    BackHandler(enabled = isStraightenMode && !isSaving && !showFileDetails) {
+        exitStraightenMode(restoreSnapshot = true)
+    }
+
     BackHandler(enabled = isPerspective && !isSaving && !showFileDetails) {
         exitPerspectiveMode()
     }
 
-    LaunchedEffect(isPerspective) {
-        if (isPerspective) {
+    LaunchedEffect(isPerspective, isStraightenMode) {
+        if (isPerspective || isStraightenMode) {
             showFileDetails = false
         }
     }
@@ -297,11 +391,13 @@ fun PhotoCropEditor(
         rotationDegrees,
         cropRect,
         perspectiveQuad,
+        isStraightenMode,
         imageWidth,
         imageHeight,
         didInitCrop,
     ) {
-        if (!didInitCrop || isSaving || perspectiveQuad != null) {
+        val skipTrimAnalysis = !didInitCrop || isSaving || isSpecialEditMode
+        if (skipTrimAnalysis) {
             trimSuggestion = null
             return@LaunchedEffect
         }
@@ -375,7 +471,7 @@ fun PhotoCropEditor(
         isPerspective,
         isRotatingHint,
     ) {
-        if (!containCropInImage || isPerspective || isRotatingHint) {
+        if (!containCropInImage || isSpecialEditMode || isRotatingHint) {
             return@LaunchedEffect
         }
         if (imageWidth <= 0 || imageHeight <= 0) {
@@ -568,13 +664,19 @@ fun PhotoCropEditor(
                                     addRect(cropPx)
                                 }
                             drawPath(dimPath, Color.Black.copy(alpha = 0.55f))
+                            val frameColor =
+                                if (isStraightenMode) {
+                                    StraightenFrameColor
+                                } else {
+                                    Color.White
+                                }
                             drawRect(
-                                color = Color.White,
+                                color = frameColor,
                                 topLeft = Offset(cropPx.left, cropPx.top),
                                 size = Size(cropPx.width, cropPx.height),
                                 style = Stroke(width = cropStroke),
                             )
-                            val guideColor = Color.White.copy(alpha = 0.7f)
+                            val guideColor = frameColor.copy(alpha = 0.7f)
                             val thirdW = cropPx.width / 3f
                             val thirdH = cropPx.height / 3f
                             for (i in 1..2) {
@@ -616,7 +718,7 @@ fun PhotoCropEditor(
                                 )
                             corners.forEach { corner ->
                                 drawRect(
-                                    color = Color.White.copy(alpha = 0.55f),
+                                    color = frameColor.copy(alpha = 0.55f),
                                     topLeft = Offset(corner.x - handle / 2f, corner.y - handle / 2f),
                                     size = Size(handle, handle),
                                 )
@@ -702,11 +804,13 @@ fun PhotoCropEditor(
                                         val rotationDelta = event.calculateRotation()
                                         val zoomChange = event.calculateZoom()
                                         val panChange = event.calculatePan()
-                                        // Keep current rotation while adjusting a perspective quad.
-                                        if (rotationDelta != 0f &&
+                                        // Keep current rotation while adjusting a perspective quad
+                                        // or while auto-straighten preview is active.
+                                        val rotationAllowed =
                                             perspectiveQuadState.value == null &&
-                                            !rotationLockedState.value
-                                        ) {
+                                                !isStraightenModeState.value &&
+                                                !rotationLockedState.value
+                                        if (rotationDelta != 0f && rotationAllowed) {
                                             isRotatingHint = true
                                             onRotationDegreesChangeState.value(
                                                 rotationState.value + rotationDelta,
@@ -971,7 +1075,7 @@ fun PhotoCropEditor(
             }
 
             val workspaceReady = workspace.width > 0f && imageWidth > 0
-            val showCropModeToggles = !isSaving && workspaceReady && !isPerspective
+            val showCropModeToggles = !isSaving && workspaceReady && !isSpecialEditMode
             if (showCropModeToggles) {
                 Row(
                     modifier =
@@ -1041,7 +1145,7 @@ fun PhotoCropEditor(
                             tonal = true,
                         )
                     }
-                    if (isViewTransformed && !isPerspective) {
+                    if (isViewTransformed && !isSpecialEditMode) {
                         EditToolbarIconButton(
                             onClick = {
                                 val visible =
@@ -1082,6 +1186,7 @@ fun PhotoCropEditor(
         val aspectThreeFourLabel = stringResource(R.string.gallery_cleaner_edit_aspect_3_4)
         val aspectFreeLabel = stringResource(R.string.gallery_cleaner_edit_aspect_free)
         val perspectiveLabel = stringResource(R.string.gallery_cleaner_edit_perspective)
+        val straightenLabel = stringResource(R.string.gallery_cleaner_edit_straighten)
         val rotateCcwLabel = stringResource(R.string.gallery_cleaner_edit_rotate_ccw)
         val resetRotationLabel = stringResource(R.string.gallery_cleaner_edit_reset_rotation)
         val rotateCwLabel = stringResource(R.string.gallery_cleaner_edit_rotate_cw)
@@ -1092,16 +1197,19 @@ fun PhotoCropEditor(
         val saveLabel = stringResource(R.string.gallery_cleaner_edit_save)
         val applyPerspectiveLabel =
             stringResource(R.string.gallery_cleaner_edit_perspective_apply)
+        val applyStraightenLabel =
+            stringResource(R.string.gallery_cleaner_edit_straighten_apply)
         val moreLabel = stringResource(R.string.gallery_cleaner_edit_more)
         val fileDetailsLabel = stringResource(R.string.photo_file_details_title)
         val locked = lockedAspect
         val threeFourSelected = locked != null && isThreeFourFamily(locked)
-        val freeAspectSelected = lockedAspect == null && !isPerspective
-        val canEditAspect = !isSaving && imageWidth > 0 && !isPerspective
-        val canTogglePerspective = !isSaving && imageWidth > 0
-        val canRotate = !isSaving && !isPerspective && !rotationLocked
+        val freeAspectSelected = lockedAspect == null && !isSpecialEditMode
+        val canEditAspect = !isSaving && imageWidth > 0 && !isSpecialEditMode
+        val canTogglePerspective = !isSaving && imageWidth > 0 && !isStraightenMode
+        val canToggleStraighten = !isSaving && imageWidth > 0 && !isPerspective
+        val canRotate = !isSaving && !isSpecialEditMode && !rotationLocked
         val canResetRotation = canRotate && abs(displayDegrees) >= 0.5f
-        val canFitFrame = isViewTransformed && !isPerspective && imageWidth > 0
+        val canFitFrame = isViewTransformed && !isSpecialEditMode && imageWidth > 0
         var moreMenuExpanded by remember { mutableStateOf(false) }
 
         fun applyFitFrame() {
@@ -1148,7 +1256,7 @@ fun PhotoCropEditor(
                     horizontalArrangement = Arrangement.SpaceEvenly,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    if (!isPerspective) {
+                    if (!isSpecialEditMode) {
                         EditToolbarIconButton(
                             onClick = { rotateCropAspect90() },
                             icon = Icons.Filled.CropRotate,
@@ -1185,7 +1293,14 @@ fun PhotoCropEditor(
                         enabled = canTogglePerspective,
                         selected = isPerspective,
                     )
-                    if (!isPerspective) {
+                    EditToolbarIconButton(
+                        onClick = { toggleStraightenMode() },
+                        icon = Icons.Filled.Straighten,
+                        label = straightenLabel,
+                        enabled = canToggleStraighten,
+                        selected = isStraightenMode,
+                    )
+                    if (!isSpecialEditMode) {
                         EditToolbarIconButton(
                             onClick = { onRotationDegreesChange(rotationDegrees - 90f) },
                             icon = Icons.Filled.Rotate90DegreesCcw,
@@ -1258,6 +1373,15 @@ fun PhotoCropEditor(
                                     togglePerspectiveMode()
                                 },
                             )
+                            EditOverflowMenuItem(
+                                icon = Icons.Filled.Straighten,
+                                label = straightenLabel,
+                                enabled = canToggleStraighten,
+                                onClick = {
+                                    moreMenuExpanded = false
+                                    toggleStraightenMode()
+                                },
+                            )
                             HorizontalDivider()
                             EditOverflowMenuItem(
                                 icon = Icons.Filled.Rotate90DegreesCcw,
@@ -1315,7 +1439,7 @@ fun PhotoCropEditor(
                                     onDiscard()
                                 },
                             )
-                            if (onSaveCopy != null && !isPerspective) {
+                            if (onSaveCopy != null && !isSpecialEditMode) {
                                 EditOverflowMenuItem(
                                     icon = Icons.Filled.SaveAs,
                                     label = saveCopyLabel,
@@ -1329,7 +1453,7 @@ fun PhotoCropEditor(
                             EditOverflowMenuItem(
                                 icon = Icons.Filled.Info,
                                 label = fileDetailsLabel,
-                                enabled = !isPerspective,
+                                enabled = !isSpecialEditMode,
                                 onClick = {
                                     moreMenuExpanded = false
                                     showFileDetails = true
@@ -1337,15 +1461,23 @@ fun PhotoCropEditor(
                             )
                             EditOverflowMenuItem(
                                 icon =
-                                if (isPerspective) {
+                                if (isSpecialEditMode) {
                                     Icons.Filled.Done
                                 } else {
                                     Icons.Filled.Save
                                 },
-                                label = if (isPerspective) applyPerspectiveLabel else saveLabel,
+                                label =
+                                when {
+                                    isPerspective -> applyPerspectiveLabel
+                                    isStraightenMode -> applyStraightenLabel
+                                    else -> saveLabel
+                                },
                                 enabled = !isSaving,
                                 onClick = {
                                     moreMenuExpanded = false
+                                    if (isStraightenMode) {
+                                        exitStraightenMode(restoreSnapshot = false)
+                                    }
                                     onSave()
                                 },
                             )
@@ -1365,7 +1497,7 @@ fun PhotoCropEditor(
                         outlined = true,
                     )
                     Spacer(modifier = Modifier.weight(1f))
-                    if (onSaveCopy != null && !isPerspective) {
+                    if (onSaveCopy != null && !isSpecialEditMode) {
                         EditToolbarIconButton(
                             onClick = onSaveCopy,
                             icon = Icons.Filled.SaveAs,
@@ -1374,9 +1506,14 @@ fun PhotoCropEditor(
                             outlined = true,
                         )
                     }
-                    if (isPerspective) {
+                    if (isSpecialEditMode) {
                         Button(
-                            onClick = onSave,
+                            onClick = {
+                                if (isStraightenMode) {
+                                    exitStraightenMode(restoreSnapshot = false)
+                                }
+                                onSave()
+                            },
                             enabled = !isSaving,
                         ) {
                             Icon(
@@ -1386,7 +1523,12 @@ fun PhotoCropEditor(
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             AutoFitText(
-                                text = applyPerspectiveLabel,
+                                text =
+                                if (isPerspective) {
+                                    applyPerspectiveLabel
+                                } else {
+                                    applyStraightenLabel
+                                },
                                 maxLines = 2,
                                 textAlign = TextAlign.Center,
                             )
@@ -1405,7 +1547,7 @@ fun PhotoCropEditor(
         }
     }
 
-    if (showFileDetails && !isPerspective) {
+    if (showFileDetails && !isSpecialEditMode) {
         PhotoFileDetailsSheet(
             photo = photo,
             onDismissRequest = { showFileDetails = false },

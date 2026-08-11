@@ -273,6 +273,9 @@
     <string name="gallery_cleaner_edit_perspective">Перспектыва</string>
     <string name="gallery_cleaner_edit_perspective_short">Персп.</string>
     <string name="gallery_cleaner_edit_perspective_apply">Ужыць перспектыву</string>
+    <string name="gallery_cleaner_edit_straighten">Выраўнаваць гарызонт</string>
+    <string name="gallery_cleaner_edit_straighten_apply">Ужыць выраўноўванне</string>
+    <string name="gallery_cleaner_edit_straighten_failed">Не ўдалося выраўнаваць: кут не знойдзены або занадта вялікі</string>
     <string name="gallery_cleaner_edit_fit_frame">Упісаць у рамку</string>
     <string name="gallery_cleaner_edit_fit_frame_short">Упісаць</string>
     <string name="gallery_cleaner_edit_trim_empty">Абрэзаць пустыя краі</string>

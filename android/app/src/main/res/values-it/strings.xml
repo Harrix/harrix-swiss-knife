@@ -273,6 +273,9 @@
     <string name="gallery_cleaner_edit_perspective">Prospettiva</string>
     <string name="gallery_cleaner_edit_perspective_short">Prosp.</string>
     <string name="gallery_cleaner_edit_perspective_apply">Apply perspective</string>
+    <string name="gallery_cleaner_edit_straighten">Raddrizza orizzonte</string>
+    <string name="gallery_cleaner_edit_straighten_apply">Applica raddrizzamento</string>
+    <string name="gallery_cleaner_edit_straighten_failed">Impossibile raddrizzare: inclinazione non trovata o troppo grande</string>
     <string name="gallery_cleaner_edit_fit_frame">Adatta al riquadro</string>
     <string name="gallery_cleaner_edit_fit_frame_short">Adatta</string>
     <string name="gallery_cleaner_edit_trim_empty">Taglia i bordi vuoti</string>

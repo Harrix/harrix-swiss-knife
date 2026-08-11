@@ -273,6 +273,9 @@
     <string name="gallery_cleaner_edit_perspective">Perspective</string>
     <string name="gallery_cleaner_edit_perspective_short">Persp</string>
     <string name="gallery_cleaner_edit_perspective_apply">Apply perspective</string>
+    <string name="gallery_cleaner_edit_straighten">Straighten horizon</string>
+    <string name="gallery_cleaner_edit_straighten_apply">Apply straighten</string>
+    <string name="gallery_cleaner_edit_straighten_failed">Could not straighten: tilt not found or too large</string>
     <string name="gallery_cleaner_edit_fit_frame">Fit frame</string>
     <string name="gallery_cleaner_edit_fit_frame_short">Fit</string>
     <string name="gallery_cleaner_edit_trim_empty">Trim empty edges</string>
