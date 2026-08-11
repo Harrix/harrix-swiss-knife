@@ -292,6 +292,7 @@
     <string name="photo_file_details_mode_night">Nuit</string>
     <string name="photo_file_details_map">Lieu sur Google Maps</string>
     <string name="photo_file_details_open_map">Ouvrir dans Google Maps</string>
+    <string name="photo_file_details_no_coordinates">Aucune coordonnée n\'a été trouvée dans cette photo</string>
     <string name="photo_file_details_copy_date">Copier la date</string>
     <string name="photo_file_details_copy_device">Copier l\'appareil</string>
     <string name="photo_file_details_copy_stats">Copier les infos fichier</string>

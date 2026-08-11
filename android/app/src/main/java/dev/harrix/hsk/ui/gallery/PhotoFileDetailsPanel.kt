@@ -240,14 +240,43 @@ fun PhotoFileDetailsPanel(
                 modifier = Modifier.padding(top = 2.dp),
             )
         }
-        if (showMap && details != null && details.hasMapLocation) {
-            PhotoLocationMapPreview(
-                details = details,
-                modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(top = 8.dp),
-            )
+        if (showMap && details != null) {
+            if (details.hasMapLocation) {
+                PhotoLocationMapPreview(
+                    details = details,
+                    modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp),
+                )
+            } else {
+                Column(
+                    modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                    horizontalAlignment = horizontal,
+                ) {
+                    Text(
+                        text = stringResource(R.string.photo_file_details_map),
+                        style =
+                        MaterialTheme.typography.titleSmall.copy(
+                            fontWeight = FontWeight.SemiBold,
+                        ),
+                        color = MaterialTheme.colorScheme.onSurface,
+                        textAlign = textAlign,
+                        modifier = if (endAligned) Modifier.fillMaxWidth() else Modifier,
+                    )
+                    Text(
+                        text = stringResource(R.string.photo_file_details_no_coordinates),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = textAlign,
+                        modifier = if (endAligned) Modifier.fillMaxWidth() else Modifier,
+                    )
+                }
+            }
         }
     }
 }

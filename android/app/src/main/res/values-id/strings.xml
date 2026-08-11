@@ -292,6 +292,7 @@
     <string name="photo_file_details_mode_night">Malam</string>
     <string name="photo_file_details_map">Lokasi di Google Maps</string>
     <string name="photo_file_details_open_map">Buka di Google Maps</string>
+    <string name="photo_file_details_no_coordinates">Koordinat tidak ditemukan di foto ini</string>
     <string name="photo_file_details_copy_date">Salin tanggal</string>
     <string name="photo_file_details_copy_device">Salin perangkat</string>
     <string name="photo_file_details_copy_stats">Salin info file</string>

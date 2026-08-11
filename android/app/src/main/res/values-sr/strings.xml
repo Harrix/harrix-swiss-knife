@@ -292,6 +292,7 @@
     <string name="photo_file_details_mode_night">Noć</string>
     <string name="photo_file_details_map">Lokacija na Google Mapama</string>
     <string name="photo_file_details_open_map">Otvori u Google Mapama</string>
+    <string name="photo_file_details_no_coordinates">Координате нису пронађене на овој фотографији</string>
     <string name="photo_file_details_copy_date">Копирај датум</string>
     <string name="photo_file_details_copy_device">Копирај уређај</string>
     <string name="photo_file_details_copy_stats">Копирај податке о датотеци</string>

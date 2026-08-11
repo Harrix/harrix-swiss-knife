@@ -292,6 +292,7 @@
     <string name="photo_file_details_mode_night">夜景</string>
     <string name="photo_file_details_map">Google 地图上的位置</string>
     <string name="photo_file_details_open_map">在 Google 地图中打开</string>
+    <string name="photo_file_details_no_coordinates">未在此照片中找到坐标</string>
     <string name="photo_file_details_copy_date">复制日期</string>
     <string name="photo_file_details_copy_device">复制设备</string>
     <string name="photo_file_details_copy_stats">复制文件信息</string>

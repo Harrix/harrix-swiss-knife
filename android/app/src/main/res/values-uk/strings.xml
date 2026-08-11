@@ -292,6 +292,7 @@
     <string name="photo_file_details_mode_night">Ніч</string>
     <string name="photo_file_details_map">Місце на Google Картах</string>
     <string name="photo_file_details_open_map">Відкрити в Google Картах</string>
+    <string name="photo_file_details_no_coordinates">Координати не вдалося знайти у фотографії</string>
     <string name="photo_file_details_copy_date">Копіювати дату</string>
     <string name="photo_file_details_copy_device">Копіювати пристрій</string>
     <string name="photo_file_details_copy_stats">Копіювати відомості про файл</string>

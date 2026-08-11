@@ -292,6 +292,7 @@
     <string name="photo_file_details_mode_night">Gece</string>
     <string name="photo_file_details_map">Google Haritalar konumu</string>
     <string name="photo_file_details_open_map">Google Haritalarda aç</string>
+    <string name="photo_file_details_no_coordinates">Bu fotoğrafta koordinat bulunamadı</string>
     <string name="photo_file_details_copy_date">Tarihi kopyala</string>
     <string name="photo_file_details_copy_device">Cihazı kopyala</string>
     <string name="photo_file_details_copy_stats">Dosya bilgisini kopyala</string>

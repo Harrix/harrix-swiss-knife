@@ -22,12 +22,11 @@ import androidx.compose.ui.unit.round
 import androidx.compose.ui.unit.toIntRect
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
-import kotlin.math.max
-import kotlin.math.min
 
 /**
- * Google Photos–style multi-select: long-press an item, then drag across the grid.
- * Near the top/bottom edges the grid auto-scrolls while selection continues under the finger.
+ * Gallery-style multi-select: long-press an item, then drag across the grid.
+ * Each time the finger enters a cell (including returning to the start cell), that
+ * item toggles. Near the top/bottom edges the grid auto-scrolls while selection continues.
  */
 @Composable
 fun Modifier.lazyGridDragSelect(
@@ -40,7 +39,6 @@ fun Modifier.lazyGridDragSelect(
     val autoScrollThresholdPx = with(LocalDensity.current) { 56.dp.toPx() }
     var autoScrollSpeed by remember { mutableFloatStateOf(0f) }
     var lastDragPosition by remember { mutableStateOf<Offset?>(null) }
-    var dragInitialIndex by remember { mutableStateOf<Int?>(null) }
     var dragCurrentIndex by remember { mutableStateOf<Int?>(null) }
 
     val itemIdsState = rememberUpdatedState(itemIds)
@@ -48,18 +46,17 @@ fun Modifier.lazyGridDragSelect(
     val onSelectedIdsChangeState = rememberUpdatedState(onSelectedIdsChange)
 
     fun applySelectionAt(position: Offset) {
-        val initialIndex = dragInitialIndex ?: return
+        val previousIndex = dragCurrentIndex ?: return
         val ids = itemIdsState.value
         val hitIndex = lazyGridState.itemIndexAtOffset(position, ids) ?: return
-        if (hitIndex == dragCurrentIndex) {
+        if (hitIndex == previousIndex) {
             return
         }
         onSelectedIdsChangeState.value(
-            selectedIdsState.value.withDragRange(
+            selectedIdsState.value.toggleDragPath(
                 itemIds = ids,
-                pointerIndex = hitIndex,
-                previousIndex = dragCurrentIndex,
-                initialIndex = initialIndex,
+                fromIndex = previousIndex,
+                toIndex = hitIndex,
             ),
         )
         dragCurrentIndex = hitIndex
@@ -85,27 +82,22 @@ fun Modifier.lazyGridDragSelect(
                         ?: return@detectDragGesturesAfterLongPress
                 val hitId = ids[hitIndex]
                 haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                dragInitialIndex = hitIndex
                 dragCurrentIndex = hitIndex
                 lastDragPosition = offset
-                if (hitId !in selectedIdsState.value) {
-                    onSelectedIdsChangeState.value(selectedIdsState.value + hitId)
-                }
+                onSelectedIdsChangeState.value(selectedIdsState.value.toggleId(hitId))
             },
             onDragCancel = {
                 autoScrollSpeed = 0f
-                dragInitialIndex = null
                 dragCurrentIndex = null
                 lastDragPosition = null
             },
             onDragEnd = {
                 autoScrollSpeed = 0f
-                dragInitialIndex = null
                 dragCurrentIndex = null
                 lastDragPosition = null
             },
             onDrag = { change, _ ->
-                if (dragInitialIndex == null) {
+                if (dragCurrentIndex == null) {
                     return@detectDragGesturesAfterLongPress
                 }
                 lastDragPosition = change.position
@@ -142,27 +134,36 @@ private fun LazyGridState.itemIndexAtOffset(
     return index.takeIf { it >= 0 }
 }
 
-private fun Set<Long>.withDragRange(
+private fun Set<Long>.toggleId(id: Long): Set<Long> = if (id in this) {
+    this - id
+} else {
+    this + id
+}
+
+/**
+ * Toggle every item the finger newly enters while moving from [fromIndex] to [toIndex]
+ * (the cell being left is not toggled again).
+ */
+private fun Set<Long>.toggleDragPath(
     itemIds: List<Long>,
-    pointerIndex: Int?,
-    previousIndex: Int?,
-    initialIndex: Int?,
+    fromIndex: Int,
+    toIndex: Int,
 ): Set<Long> {
-    if (pointerIndex == null || previousIndex == null || initialIndex == null) {
+    if (itemIds.isEmpty() || fromIndex == toIndex) {
         return this
     }
-    if (itemIds.isEmpty()) {
+    if (fromIndex !in itemIds.indices || toIndex !in itemIds.indices) {
         return this
     }
-
-    fun rangeIds(
-        from: Int,
-        to: Int,
-    ): Set<Long> {
-        val start = min(from, to).coerceIn(0, itemIds.lastIndex)
-        val end = max(from, to).coerceIn(0, itemIds.lastIndex)
-        return itemIds.subList(start, end + 1).toSet()
+    val step = if (toIndex > fromIndex) 1 else -1
+    var result = this
+    var index = fromIndex + step
+    while (true) {
+        result = result.toggleId(itemIds[index])
+        if (index == toIndex) {
+            break
+        }
+        index += step
     }
-
-    return this - rangeIds(initialIndex, previousIndex) + rangeIds(initialIndex, pointerIndex)
+    return result
 }

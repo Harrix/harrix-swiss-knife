@@ -292,6 +292,7 @@
     <string name="photo_file_details_mode_night">Noc</string>
     <string name="photo_file_details_map">Poloha na Mapách Google</string>
     <string name="photo_file_details_open_map">Otevřít v Mapách Google</string>
+    <string name="photo_file_details_no_coordinates">V této fotografii nebyly nalezeny souřadnice</string>
     <string name="photo_file_details_copy_date">Kopírovat datum</string>
     <string name="photo_file_details_copy_device">Kopírovat zařízení</string>
     <string name="photo_file_details_copy_stats">Kopírovat info o souboru</string>

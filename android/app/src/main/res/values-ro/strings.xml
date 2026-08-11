@@ -292,6 +292,7 @@
     <string name="photo_file_details_mode_night">Noapte</string>
     <string name="photo_file_details_map">Locație pe Google Maps</string>
     <string name="photo_file_details_open_map">Deschide în Google Maps</string>
+    <string name="photo_file_details_no_coordinates">Nu s-au găsit coordonate în această fotografie</string>
     <string name="photo_file_details_copy_date">Copiază data</string>
     <string name="photo_file_details_copy_device">Copiază dispozitivul</string>
     <string name="photo_file_details_copy_stats">Copiază info fișier</string>

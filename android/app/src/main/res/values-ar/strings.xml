@@ -292,6 +292,7 @@
     <string name="photo_file_details_mode_night">ليل</string>
     <string name="photo_file_details_map">الموقع على خرائط Google</string>
     <string name="photo_file_details_open_map">فتح في خرائط Google</string>
+    <string name="photo_file_details_no_coordinates">تعذّر العثور على الإحداثيات في هذه الصورة</string>
     <string name="photo_file_details_copy_date">نسخ التاريخ</string>
     <string name="photo_file_details_copy_device">نسخ الجهاز</string>
     <string name="photo_file_details_copy_stats">نسخ معلومات الملف</string>

@@ -292,6 +292,7 @@
     <string name="photo_file_details_mode_night">Đêm</string>
     <string name="photo_file_details_map">Vị trí trên Google Maps</string>
     <string name="photo_file_details_open_map">Mở trong Google Maps</string>
+    <string name="photo_file_details_no_coordinates">Không tìm thấy tọa độ trong ảnh này</string>
     <string name="photo_file_details_copy_date">Sao chép ngày</string>
     <string name="photo_file_details_copy_device">Sao chép thiết bị</string>
     <string name="photo_file_details_copy_stats">Sao chép thông tin tệp</string>
