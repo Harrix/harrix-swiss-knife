@@ -254,7 +254,10 @@ fun MedicineSearchScreen(
                         Text(stringResource(R.string.medicine_search_query_label))
                     },
                     placeholder = {
-                        Text(stringResource(R.string.medicine_search_query_hint))
+                        Text(
+                            text = stringResource(R.string.medicine_search_query_hint),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     },
                 )
 
