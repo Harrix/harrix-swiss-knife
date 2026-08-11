@@ -13,8 +13,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -26,6 +24,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ShortText
+import androidx.compose.material.icons.filled.AutoFixHigh
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
@@ -38,7 +38,6 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -91,7 +90,7 @@ private val WaveformFill = Color(0xC84CAF50)
 private val WaveformLiveFill = Color(0xD266BB6A)
 private val WaveformOutline = Color(0xFF81C784)
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SpeechToTextScreen(
     onClose: () -> Unit,
@@ -613,7 +612,6 @@ private fun BusyContent(
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ResultContent(
     text: String,
@@ -641,27 +639,14 @@ private fun ResultContent(
             modifier = Modifier.fillMaxWidth(),
             contentAlignment = Alignment.Center,
         ) {
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+            Column(
                 modifier = Modifier.adaptiveBottomBarWidth(),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                FilledTonalButton(onClick = onCopy) {
-                    Icon(
-                        imageVector = Icons.Filled.ContentCopy,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp),
-                    )
-                    Spacer(modifier = Modifier.size(6.dp))
-                    Text(stringResource(R.string.speech_to_text_copy))
-                }
-                OutlinedButton(onClick = onRewrite) {
-                    Text(stringResource(R.string.speech_to_text_rewrite))
-                }
-                OutlinedButton(onClick = onSingleLine) {
-                    Text(stringResource(R.string.speech_to_text_single_line))
-                }
-                Button(onClick = onRecordNew) {
+                Button(
+                    onClick = onRecordNew,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
                     Icon(
                         imageVector = Icons.Filled.Mic,
                         contentDescription = null,
@@ -670,17 +655,39 @@ private fun ResultContent(
                     Spacer(modifier = Modifier.size(6.dp))
                     Text(stringResource(R.string.speech_to_text_record_new))
                 }
-                FilledTonalButton(
-                    onClick = onShare,
-                    enabled = text.isNotBlank(),
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    Icon(
-                        imageVector = Icons.Filled.Share,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp),
+                    CompactBottomActionButton(
+                        onClick = onCopy,
+                        icon = Icons.Filled.ContentCopy,
+                        label = stringResource(R.string.speech_to_text_copy),
                     )
-                    Spacer(modifier = Modifier.size(6.dp))
-                    Text(stringResource(R.string.speech_to_text_share))
+                    CompactBottomActionButton(
+                        onClick = onShare,
+                        icon = Icons.Filled.Share,
+                        label = stringResource(R.string.speech_to_text_share),
+                        enabled = text.isNotBlank(),
+                        outlined = true,
+                    )
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    CompactBottomActionButton(
+                        onClick = onRewrite,
+                        icon = Icons.Filled.AutoFixHigh,
+                        label = stringResource(R.string.speech_to_text_rewrite),
+                        outlined = true,
+                    )
+                    CompactBottomActionButton(
+                        onClick = onSingleLine,
+                        icon = Icons.AutoMirrored.Filled.ShortText,
+                        label = stringResource(R.string.speech_to_text_single_line),
+                        outlined = true,
+                    )
                 }
             }
         }
