@@ -459,10 +459,12 @@ fun GalleryCleanerScreen(
 
     val permissionLauncher =
         rememberLauncherForActivityResult(
-            ActivityResultContracts.RequestPermission(),
-        ) { granted ->
-            hasPermission = granted
-            if (granted) {
+            ActivityResultContracts.RequestMultiplePermissions(),
+        ) { result ->
+            hasPermission =
+                result[GalleryPermissions.requiredPermission()] == true ||
+                GalleryPermissions.hasPhotosPermission(context)
+            if (hasPermission) {
                 reloadPhotos()
             }
         }
@@ -1235,7 +1237,7 @@ fun GalleryCleanerScreen(
                 !hasPermission -> {
                     PermissionRequestContent(
                         onGrantClick = {
-                            permissionLauncher.launch(GalleryPermissions.requiredPermission())
+                            permissionLauncher.launch(GalleryPermissions.photoPermissionsToRequest())
                         },
                     )
                 }

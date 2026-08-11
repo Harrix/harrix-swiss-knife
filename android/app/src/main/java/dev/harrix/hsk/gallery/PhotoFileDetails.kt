@@ -7,6 +7,7 @@ import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
 import androidx.exifinterface.media.ExifInterface
+import java.io.InputStream
 import java.util.Locale
 import kotlin.math.roundToInt
 
@@ -307,7 +308,7 @@ object PhotoFileDetailsLoader {
                 longitude = null,
             )
         return try {
-            context.contentResolver.openInputStream(uri)?.use { input ->
+            openExifInputStream(context, uri)?.use { input ->
                 val exif = ExifInterface(input)
                 val width =
                     exif
@@ -350,6 +351,34 @@ object PhotoFileDetailsLoader {
             } ?: empty
         } catch (_: Exception) {
             empty
+        }
+    }
+
+    /**
+     * On API 29+ GPS EXIF is redacted unless [MediaStore.setRequireOriginal] is used with
+     * [android.Manifest.permission.ACCESS_MEDIA_LOCATION].
+     */
+    private fun openExifInputStream(
+        context: Context,
+        uri: Uri,
+    ): InputStream? {
+        val resolver = context.contentResolver
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            try {
+                val originalUri = MediaStore.setRequireOriginal(uri)
+                resolver.openInputStream(originalUri)?.let { return it }
+            } catch (_: SecurityException) {
+                // Missing ACCESS_MEDIA_LOCATION — fall back to redacted stream.
+            } catch (_: UnsupportedOperationException) {
+                // URI does not support require-original.
+            } catch (_: Exception) {
+                // Fall through to the regular stream.
+            }
+        }
+        return try {
+            resolver.openInputStream(uri)
+        } catch (_: Exception) {
+            null
         }
     }
 

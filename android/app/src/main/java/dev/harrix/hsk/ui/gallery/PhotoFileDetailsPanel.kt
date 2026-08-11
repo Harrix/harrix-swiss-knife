@@ -3,6 +3,8 @@ package dev.harrix.hsk.ui.gallery
 import android.content.Intent
 import android.graphics.Bitmap
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -33,6 +35,7 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -54,6 +57,7 @@ import androidx.compose.ui.unit.dp
 import dev.harrix.hsk.R
 import dev.harrix.hsk.gallery.CameraGalleryRepository
 import dev.harrix.hsk.gallery.CameraPhoto
+import dev.harrix.hsk.gallery.GalleryPermissions
 import dev.harrix.hsk.gallery.OsmStaticMapPreview
 import dev.harrix.hsk.gallery.PhotoCaptureMode
 import dev.harrix.hsk.gallery.PhotoFileDetails
@@ -64,12 +68,15 @@ import java.text.DateFormat
 import java.util.Date
 
 @Composable
-fun rememberPhotoFileDetails(photo: CameraPhoto): PhotoFileDetails? {
+fun rememberPhotoFileDetails(
+    photo: CameraPhoto,
+    reloadToken: Int = 0,
+): PhotoFileDetails? {
     val context = LocalContext.current
-    var details by remember(photo.id, photo.uri, photo.sizeBytes) {
+    var details by remember(photo.id, photo.uri, photo.sizeBytes, reloadToken) {
         mutableStateOf<PhotoFileDetails?>(null)
     }
-    LaunchedEffect(photo.id, photo.uri, photo.sizeBytes) {
+    LaunchedEffect(photo.id, photo.uri, photo.sizeBytes, reloadToken) {
         details =
             withContext(Dispatchers.IO) {
                 PhotoFileDetailsLoader.load(context, photo)
@@ -252,7 +259,24 @@ fun PhotoFileDetailsSheet(
     photo: CameraPhoto,
     onDismissRequest: () -> Unit,
 ) {
+    val context = LocalContext.current
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    var detailsReloadToken by remember(photo.id) { mutableIntStateOf(0) }
+    val mediaLocationPermission = remember { GalleryPermissions.mediaLocationPermissionOrNull() }
+    val mediaLocationLauncher =
+        rememberLauncherForActivityResult(
+            ActivityResultContracts.RequestPermission(),
+        ) {
+            detailsReloadToken += 1
+        }
+
+    LaunchedEffect(photo.id, mediaLocationPermission) {
+        val permission = mediaLocationPermission ?: return@LaunchedEffect
+        if (!GalleryPermissions.hasMediaLocationPermission(context)) {
+            mediaLocationLauncher.launch(permission)
+        }
+    }
+
     ModalBottomSheet(
         onDismissRequest = onDismissRequest,
         sheetState = sheetState,
@@ -274,6 +298,7 @@ fun PhotoFileDetailsSheet(
                 photo = photo,
                 dateLabel = galleryPhotoDateTimeLabel(photo),
                 showMap = true,
+                details = rememberPhotoFileDetails(photo, reloadToken = detailsReloadToken),
                 modifier = Modifier.fillMaxWidth(),
             )
         }

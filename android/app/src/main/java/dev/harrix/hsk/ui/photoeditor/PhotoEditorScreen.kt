@@ -131,9 +131,11 @@ fun PhotoEditorScreen(
 
     val permissionLauncher =
         rememberLauncherForActivityResult(
-            ActivityResultContracts.RequestPermission(),
-        ) { granted ->
-            hasPermission = granted
+            ActivityResultContracts.RequestMultiplePermissions(),
+        ) { result ->
+            hasPermission =
+                result[GalleryPermissions.requiredPermission()] == true ||
+                GalleryPermissions.hasPhotosPermission(context)
         }
 
     fun reloadGallery() {
@@ -298,7 +300,7 @@ fun PhotoEditorScreen(
                                     PhotoEditorPermissionPane(
                                         onGrant = {
                                             permissionLauncher.launch(
-                                                GalleryPermissions.requiredPermission(),
+                                                GalleryPermissions.photoPermissionsToRequest(),
                                             )
                                         },
                                     )

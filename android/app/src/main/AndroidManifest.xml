@@ -6,6 +6,8 @@
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
     <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
+    <!-- Required on API 29+ to read unredacted GPS EXIF for File details map. -->
+    <uses-permission android:name="android.permission.ACCESS_MEDIA_LOCATION" />
     <uses-permission android:name="android.permission.MANAGE_MEDIA" />
     <uses-permission
         android:name="android.permission.WRITE_EXTERNAL_STORAGE"

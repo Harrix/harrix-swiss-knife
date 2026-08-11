@@ -23,10 +23,28 @@ object GalleryPermissions {
         Manifest.permission.READ_EXTERNAL_STORAGE
     }
 
+    /** API 29+: needed to read unredacted GPS EXIF (File details map). */
+    fun mediaLocationPermissionOrNull(): String? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        Manifest.permission.ACCESS_MEDIA_LOCATION
+    } else {
+        null
+    }
+
+    fun photoPermissionsToRequest(): Array<String> = buildList {
+        add(requiredPermission())
+        mediaLocationPermissionOrNull()?.let(::add)
+    }.toTypedArray()
+
     fun hasPhotosPermission(context: Context): Boolean = ContextCompat.checkSelfPermission(
         context,
         requiredPermission(),
     ) == PackageManager.PERMISSION_GRANTED
+
+    fun hasMediaLocationPermission(context: Context): Boolean {
+        val permission = mediaLocationPermissionOrNull() ?: return true
+        return ContextCompat.checkSelfPermission(context, permission) ==
+            PackageManager.PERMISSION_GRANTED
+    }
 
     fun hasVideosPermission(context: Context): Boolean = ContextCompat.checkSelfPermission(
         context,
