@@ -22,7 +22,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -697,18 +696,9 @@ fun VideoCleanerScreen(
                             verticalArrangement = Arrangement.spacedBy(1.dp),
                         ) {
                             items(sortedVideos, key = { it.id }) { video ->
-                                val selected = video.id in selectedIds
                                 VideoGalleryItem(
                                     video = video,
-                                    selected = selected,
-                                    onToggle = {
-                                        selectedIds =
-                                            if (selected) {
-                                                selectedIds - video.id
-                                            } else {
-                                                selectedIds + video.id
-                                            }
-                                    },
+                                    selected = video.id in selectedIds,
                                     onPlay = { playingVideo = video },
                                     onShare = { shareVideo(video) },
                                 )
@@ -912,7 +902,6 @@ private fun VideoCleanerBottomBar(
 private fun VideoGalleryItem(
     video: CameraVideo,
     selected: Boolean,
-    onToggle: () -> Unit,
     onPlay: () -> Unit,
     onShare: () -> Unit,
     modifier: Modifier = Modifier,
@@ -931,6 +920,7 @@ private fun VideoGalleryItem(
         }
 
     val colorScheme = MaterialTheme.colorScheme
+    // Selection taps/long-press are handled by [lazyGridDragSelect] on the grid.
     Box(
         modifier =
         modifier
@@ -941,8 +931,7 @@ private fun VideoGalleryItem(
                 } else {
                     Modifier
                 },
-            )
-            .clickable(onClick = onToggle),
+            ),
     ) {
         VideoThumbnail(
             uri = video.uri,
