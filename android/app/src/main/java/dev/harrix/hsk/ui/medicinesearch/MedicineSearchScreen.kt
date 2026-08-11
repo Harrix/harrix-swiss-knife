@@ -32,6 +32,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -240,6 +241,7 @@ fun MedicineSearchScreen(
                     }
                 }
 
+                val hintColor = MaterialTheme.colorScheme.outlineVariant
                 OutlinedTextField(
                     value = queryText,
                     onValueChange = { viewModel.onQueryChange(it) },
@@ -256,9 +258,15 @@ fun MedicineSearchScreen(
                     placeholder = {
                         Text(
                             text = stringResource(R.string.medicine_search_query_hint),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = hintColor,
                         )
                     },
+                    colors =
+                    OutlinedTextFieldDefaults.colors(
+                        focusedPlaceholderColor = hintColor,
+                        unfocusedPlaceholderColor = hintColor,
+                        disabledPlaceholderColor = hintColor.copy(alpha = 0.7f),
+                    ),
                 )
 
                 Button(
