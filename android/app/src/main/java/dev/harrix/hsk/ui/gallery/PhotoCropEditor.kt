@@ -46,10 +46,12 @@ import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedIconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
@@ -79,6 +81,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
@@ -107,6 +110,40 @@ import coil.size.Size as CoilSize
 private const val CropViewMinZoom = 0.5f
 private const val CropViewMaxZoom = 5f
 private const val CropViewZoomEpsilon = 0.02f
+
+private val EditToolbarButtonSize = 48.dp
+private val EditToolbarButtonMinSize = 32.dp
+private val EditToolbarSpacing = 4.dp
+private val EditToolbarMinSpacing = 0.dp
+
+/** Shrinks every toolbar button (and gaps) uniformly when the row is too narrow. */
+private fun editToolbarFitMetrics(
+    availableWidth: Dp,
+    buttonCount: Int,
+): Pair<Dp, Dp> {
+    if (buttonCount <= 0) {
+        return EditToolbarButtonSize to EditToolbarSpacing
+    }
+    val preferredTotal =
+        EditToolbarButtonSize * buttonCount + EditToolbarSpacing * (buttonCount - 1)
+    if (availableWidth >= preferredTotal) {
+        return EditToolbarButtonSize to EditToolbarSpacing
+    }
+    val scale =
+        (availableWidth / preferredTotal).coerceAtLeast(
+            EditToolbarButtonMinSize / EditToolbarButtonSize,
+        )
+    val buttonSize =
+        (EditToolbarButtonSize * scale).coerceAtLeast(EditToolbarButtonMinSize)
+    val remaining = availableWidth - buttonSize * buttonCount
+    val spacing =
+        if (buttonCount > 1) {
+            (remaining / (buttonCount - 1)).coerceAtLeast(EditToolbarMinSpacing)
+        } else {
+            EditToolbarMinSpacing
+        }
+    return buttonSize to spacing
+}
 
 private enum class CropDragMode {
     Move,
@@ -1144,217 +1181,250 @@ fun PhotoCropEditor(
                     ),
                 verticalArrangement = Arrangement.spacedBy(if (compactChrome) 2.dp else 4.dp),
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    if (!isPerspective) {
-                        EditToolbarIconButton(
-                            onClick = { rotateCropAspect90() },
-                            icon = Icons.Filled.CropRotate,
-                            label = aspectRotateLabel,
-                            enabled = canEditAspect,
-                        )
-                        if (showThreeFourChip) {
-                            EditToolbarIconButton(
-                                onClick = {
-                                    if (threeFourSelected) {
-                                        applyLockedAspect(originalAspect)
-                                    } else {
-                                        applyLockedAspect(AspectThreeFour)
-                                    }
-                                },
-                                icon = Icons.Filled.Crop,
-                                label = aspectThreeFourLabel,
-                                enabled = canEditAspect,
-                                selected = threeFourSelected,
+                val toolButtonCount =
+                    when {
+                        isPerspective -> 2
+                        showThreeFourChip -> 8
+                        else -> 7
+                    }
+                BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                    val (toolButtonSize, toolSpacing) =
+                        remember(maxWidth, toolButtonCount) {
+                            editToolbarFitMetrics(maxWidth, toolButtonCount)
+                        }
+                    val toolsArrangement =
+                        if (toolButtonSize >= EditToolbarButtonSize) {
+                            Arrangement.SpaceEvenly
+                        } else {
+                            Arrangement.spacedBy(
+                                toolSpacing,
+                                Alignment.CenterHorizontally,
                             )
                         }
-                        EditToolbarIconButton(
-                            onClick = { toggleFreeAspect() },
-                            icon = Icons.Filled.CropFree,
-                            label = aspectFreeLabel,
-                            enabled = canEditAspect,
-                            selected = freeAspectSelected,
-                        )
-                    }
-                    EditToolbarIconButton(
-                        onClick = { togglePerspectiveMode() },
-                        icon = Icons.Filled.Transform,
-                        label = perspectiveLabel,
-                        enabled = canTogglePerspective,
-                        selected = isPerspective,
-                    )
-                    if (!isPerspective) {
-                        EditToolbarIconButton(
-                            onClick = { onRotationDegreesChange(rotationDegrees - 90f) },
-                            icon = Icons.Filled.Rotate90DegreesCcw,
-                            label = rotateCcwLabel,
-                            enabled = canRotate,
-                        )
-                        EditToolbarIconButton(
-                            onClick = { onRotationDegreesChange(0f) },
-                            icon = Icons.Filled.RestartAlt,
-                            label = resetRotationLabel,
-                            enabled = canResetRotation,
-                        )
-                        EditToolbarIconButton(
-                            onClick = { onRotationDegreesChange(rotationDegrees + 90f) },
-                            icon = Icons.Filled.Rotate90DegreesCw,
-                            label = rotateCwLabel,
-                            enabled = canRotate,
-                        )
-                    }
-                    Box {
-                        EditToolbarIconButton(
-                            onClick = { moreMenuExpanded = true },
-                            icon = Icons.Filled.MoreVert,
-                            label = moreLabel,
-                            enabled = !isSaving,
-                        )
-                        DropdownMenu(
-                            expanded = moreMenuExpanded,
-                            onDismissRequest = { moreMenuExpanded = false },
+                    CompositionLocalProvider(
+                        LocalMinimumInteractiveComponentSize provides toolButtonSize,
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = toolsArrangement,
+                            verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            EditOverflowMenuItem(
-                                icon = Icons.Filled.CropRotate,
-                                label = aspectRotateLabel,
-                                enabled = canEditAspect,
-                                onClick = {
-                                    moreMenuExpanded = false
-                                    rotateCropAspect90()
-                                },
-                            )
-                            if (showThreeFourChip) {
-                                EditOverflowMenuItem(
-                                    icon = Icons.Filled.Crop,
-                                    label = aspectThreeFourLabel,
+                            if (!isPerspective) {
+                                EditToolbarIconButton(
+                                    onClick = { rotateCropAspect90() },
+                                    icon = Icons.Filled.CropRotate,
+                                    label = aspectRotateLabel,
                                     enabled = canEditAspect,
-                                    onClick = {
-                                        moreMenuExpanded = false
-                                        if (threeFourSelected) {
-                                            applyLockedAspect(originalAspect)
-                                        } else {
-                                            applyLockedAspect(AspectThreeFour)
-                                        }
-                                    },
+                                    buttonSize = toolButtonSize,
+                                )
+                                if (showThreeFourChip) {
+                                    EditToolbarIconButton(
+                                        onClick = {
+                                            if (threeFourSelected) {
+                                                applyLockedAspect(originalAspect)
+                                            } else {
+                                                applyLockedAspect(AspectThreeFour)
+                                            }
+                                        },
+                                        icon = Icons.Filled.Crop,
+                                        label = aspectThreeFourLabel,
+                                        enabled = canEditAspect,
+                                        selected = threeFourSelected,
+                                        buttonSize = toolButtonSize,
+                                    )
+                                }
+                                EditToolbarIconButton(
+                                    onClick = { toggleFreeAspect() },
+                                    icon = Icons.Filled.CropFree,
+                                    label = aspectFreeLabel,
+                                    enabled = canEditAspect,
+                                    selected = freeAspectSelected,
+                                    buttonSize = toolButtonSize,
                                 )
                             }
-                            EditOverflowMenuItem(
-                                icon = Icons.Filled.CropFree,
-                                label = aspectFreeLabel,
-                                enabled = canEditAspect,
-                                onClick = {
-                                    moreMenuExpanded = false
-                                    toggleFreeAspect()
-                                },
-                            )
-                            EditOverflowMenuItem(
+                            EditToolbarIconButton(
+                                onClick = { togglePerspectiveMode() },
                                 icon = Icons.Filled.Transform,
                                 label = perspectiveLabel,
                                 enabled = canTogglePerspective,
-                                onClick = {
-                                    moreMenuExpanded = false
-                                    togglePerspectiveMode()
-                                },
+                                selected = isPerspective,
+                                buttonSize = toolButtonSize,
                             )
-                            HorizontalDivider()
-                            EditOverflowMenuItem(
-                                icon = Icons.Filled.Rotate90DegreesCcw,
-                                label = rotateCcwLabel,
-                                enabled = canRotate,
-                                onClick = {
-                                    moreMenuExpanded = false
-                                    onRotationDegreesChange(rotationDegrees - 90f)
-                                },
-                            )
-                            EditOverflowMenuItem(
-                                icon = Icons.Filled.RestartAlt,
-                                label = resetRotationLabel,
-                                enabled = canResetRotation,
-                                onClick = {
-                                    moreMenuExpanded = false
-                                    onRotationDegreesChange(0f)
-                                },
-                            )
-                            EditOverflowMenuItem(
-                                icon = Icons.Filled.Rotate90DegreesCw,
-                                label = rotateCwLabel,
-                                enabled = canRotate,
-                                onClick = {
-                                    moreMenuExpanded = false
-                                    onRotationDegreesChange(rotationDegrees + 90f)
-                                },
-                            )
-                            HorizontalDivider()
-                            EditOverflowMenuItem(
-                                icon = Icons.Filled.Crop,
-                                label = trimEmptyLabel,
-                                enabled = showTrimBars && !isSaving,
-                                onClick = {
-                                    moreMenuExpanded = false
-                                    trimEmptyZones()
-                                },
-                            )
-                            EditOverflowMenuItem(
-                                icon = Icons.Filled.FitScreen,
-                                label = fitFrameLabel,
-                                enabled = canFitFrame && !isSaving,
-                                onClick = {
-                                    moreMenuExpanded = false
-                                    applyFitFrame()
-                                },
-                            )
-                            HorizontalDivider()
-                            EditOverflowMenuItem(
-                                icon = Icons.Filled.Close,
-                                label = discardLabel,
-                                enabled = !isSaving,
-                                onClick = {
-                                    moreMenuExpanded = false
-                                    onDiscard()
-                                },
-                            )
-                            if (onSaveCopy != null && !isPerspective) {
-                                EditOverflowMenuItem(
-                                    icon = Icons.Filled.SaveAs,
-                                    label = saveCopyLabel,
-                                    enabled = !isSaving,
-                                    onClick = {
-                                        moreMenuExpanded = false
-                                        onSaveCopy()
-                                    },
+                            if (!isPerspective) {
+                                EditToolbarIconButton(
+                                    onClick = { onRotationDegreesChange(rotationDegrees - 90f) },
+                                    icon = Icons.Filled.Rotate90DegreesCcw,
+                                    label = rotateCcwLabel,
+                                    enabled = canRotate,
+                                    buttonSize = toolButtonSize,
+                                )
+                                EditToolbarIconButton(
+                                    onClick = { onRotationDegreesChange(0f) },
+                                    icon = Icons.Filled.RestartAlt,
+                                    label = resetRotationLabel,
+                                    enabled = canResetRotation,
+                                    buttonSize = toolButtonSize,
+                                )
+                                EditToolbarIconButton(
+                                    onClick = { onRotationDegreesChange(rotationDegrees + 90f) },
+                                    icon = Icons.Filled.Rotate90DegreesCw,
+                                    label = rotateCwLabel,
+                                    enabled = canRotate,
+                                    buttonSize = toolButtonSize,
                                 )
                             }
-                            EditOverflowMenuItem(
-                                icon = Icons.Filled.Info,
-                                label = fileDetailsLabel,
-                                enabled = !isPerspective,
-                                onClick = {
-                                    moreMenuExpanded = false
-                                    showFileDetails = true
-                                },
-                            )
-                            EditOverflowMenuItem(
-                                icon =
-                                if (isPerspective) {
-                                    Icons.Filled.Done
-                                } else {
-                                    Icons.Filled.Save
-                                },
-                                label =
-                                if (isPerspective) {
-                                    applyPerspectiveLabel
-                                } else {
-                                    saveLabel
-                                },
-                                enabled = !isSaving,
-                                onClick = {
-                                    moreMenuExpanded = false
-                                    onSave()
-                                },
-                            )
+                            Box {
+                                EditToolbarIconButton(
+                                    onClick = { moreMenuExpanded = true },
+                                    icon = Icons.Filled.MoreVert,
+                                    label = moreLabel,
+                                    enabled = !isSaving,
+                                    buttonSize = toolButtonSize,
+                                )
+                                DropdownMenu(
+                                    expanded = moreMenuExpanded,
+                                    onDismissRequest = { moreMenuExpanded = false },
+                                ) {
+                                    EditOverflowMenuItem(
+                                        icon = Icons.Filled.CropRotate,
+                                        label = aspectRotateLabel,
+                                        enabled = canEditAspect,
+                                        onClick = {
+                                            moreMenuExpanded = false
+                                            rotateCropAspect90()
+                                        },
+                                    )
+                                    if (showThreeFourChip) {
+                                        EditOverflowMenuItem(
+                                            icon = Icons.Filled.Crop,
+                                            label = aspectThreeFourLabel,
+                                            enabled = canEditAspect,
+                                            onClick = {
+                                                moreMenuExpanded = false
+                                                if (threeFourSelected) {
+                                                    applyLockedAspect(originalAspect)
+                                                } else {
+                                                    applyLockedAspect(AspectThreeFour)
+                                                }
+                                            },
+                                        )
+                                    }
+                                    EditOverflowMenuItem(
+                                        icon = Icons.Filled.CropFree,
+                                        label = aspectFreeLabel,
+                                        enabled = canEditAspect,
+                                        onClick = {
+                                            moreMenuExpanded = false
+                                            toggleFreeAspect()
+                                        },
+                                    )
+                                    EditOverflowMenuItem(
+                                        icon = Icons.Filled.Transform,
+                                        label = perspectiveLabel,
+                                        enabled = canTogglePerspective,
+                                        onClick = {
+                                            moreMenuExpanded = false
+                                            togglePerspectiveMode()
+                                        },
+                                    )
+                                    HorizontalDivider()
+                                    EditOverflowMenuItem(
+                                        icon = Icons.Filled.Rotate90DegreesCcw,
+                                        label = rotateCcwLabel,
+                                        enabled = canRotate,
+                                        onClick = {
+                                            moreMenuExpanded = false
+                                            onRotationDegreesChange(rotationDegrees - 90f)
+                                        },
+                                    )
+                                    EditOverflowMenuItem(
+                                        icon = Icons.Filled.RestartAlt,
+                                        label = resetRotationLabel,
+                                        enabled = canResetRotation,
+                                        onClick = {
+                                            moreMenuExpanded = false
+                                            onRotationDegreesChange(0f)
+                                        },
+                                    )
+                                    EditOverflowMenuItem(
+                                        icon = Icons.Filled.Rotate90DegreesCw,
+                                        label = rotateCwLabel,
+                                        enabled = canRotate,
+                                        onClick = {
+                                            moreMenuExpanded = false
+                                            onRotationDegreesChange(rotationDegrees + 90f)
+                                        },
+                                    )
+                                    HorizontalDivider()
+                                    EditOverflowMenuItem(
+                                        icon = Icons.Filled.Crop,
+                                        label = trimEmptyLabel,
+                                        enabled = showTrimBars && !isSaving,
+                                        onClick = {
+                                            moreMenuExpanded = false
+                                            trimEmptyZones()
+                                        },
+                                    )
+                                    EditOverflowMenuItem(
+                                        icon = Icons.Filled.FitScreen,
+                                        label = fitFrameLabel,
+                                        enabled = canFitFrame && !isSaving,
+                                        onClick = {
+                                            moreMenuExpanded = false
+                                            applyFitFrame()
+                                        },
+                                    )
+                                    HorizontalDivider()
+                                    EditOverflowMenuItem(
+                                        icon = Icons.Filled.Close,
+                                        label = discardLabel,
+                                        enabled = !isSaving,
+                                        onClick = {
+                                            moreMenuExpanded = false
+                                            onDiscard()
+                                        },
+                                    )
+                                    if (onSaveCopy != null && !isPerspective) {
+                                        EditOverflowMenuItem(
+                                            icon = Icons.Filled.SaveAs,
+                                            label = saveCopyLabel,
+                                            enabled = !isSaving,
+                                            onClick = {
+                                                moreMenuExpanded = false
+                                                onSaveCopy()
+                                            },
+                                        )
+                                    }
+                                    EditOverflowMenuItem(
+                                        icon = Icons.Filled.Info,
+                                        label = fileDetailsLabel,
+                                        enabled = !isPerspective,
+                                        onClick = {
+                                            moreMenuExpanded = false
+                                            showFileDetails = true
+                                        },
+                                    )
+                                    EditOverflowMenuItem(
+                                        icon =
+                                        if (isPerspective) {
+                                            Icons.Filled.Done
+                                        } else {
+                                            Icons.Filled.Save
+                                        },
+                                        label =
+                                        if (isPerspective) {
+                                            applyPerspectiveLabel
+                                        } else {
+                                            saveLabel
+                                        },
+                                        enabled = !isSaving,
+                                        onClick = {
+                                            moreMenuExpanded = false
+                                            onSave()
+                                        },
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -1429,12 +1499,16 @@ private fun EditToolbarIconButton(
     tonal: Boolean = false,
     outlined: Boolean = false,
     filled: Boolean = false,
+    buttonSize: Dp = EditToolbarButtonSize,
 ) {
+    val iconSize = buttonSize * 0.5f
     OverflowTextTooltipBox(text = label, enabled = true) {
+        val buttonModifier = Modifier.size(buttonSize)
         val iconContent: @Composable () -> Unit = {
             Icon(
                 imageVector = icon,
                 contentDescription = label,
+                modifier = Modifier.size(iconSize),
             )
         }
         when {
@@ -1442,6 +1516,7 @@ private fun EditToolbarIconButton(
             filled || selected ->
                 FilledIconButton(
                     onClick = onClick,
+                    modifier = buttonModifier,
                     enabled = enabled,
                     content = iconContent,
                 )
@@ -1449,6 +1524,7 @@ private fun EditToolbarIconButton(
             tonal ->
                 FilledTonalIconButton(
                     onClick = onClick,
+                    modifier = buttonModifier,
                     enabled = enabled,
                     content = iconContent,
                 )
@@ -1456,6 +1532,7 @@ private fun EditToolbarIconButton(
             outlined ->
                 OutlinedIconButton(
                     onClick = onClick,
+                    modifier = buttonModifier,
                     enabled = enabled,
                     content = iconContent,
                 )
@@ -1463,6 +1540,7 @@ private fun EditToolbarIconButton(
             else ->
                 IconButton(
                     onClick = onClick,
+                    modifier = buttonModifier,
                     enabled = enabled,
                     content = iconContent,
                 )
