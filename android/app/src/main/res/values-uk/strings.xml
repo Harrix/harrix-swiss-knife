@@ -284,6 +284,8 @@
     <string name="gallery_cleaner_edit_unlock_rotation">Дозволити поворот</string>
     <string name="gallery_cleaner_edit_contain_crop">Не виходити за межі фото</string>
     <string name="gallery_cleaner_edit_allow_crop_outside">Дозволити рамці виходити за фото</string>
+    <string name="gallery_cleaner_edit_lock_crop_move">Заборонити переміщення рамки</string>
+    <string name="gallery_cleaner_edit_unlock_crop_move">Дозволити переміщення рамки</string>
     <string name="gallery_cleaner_edit_more">Інші дії редактора</string>
     <string name="photo_file_details_title">Відомості про файл</string>
     <string name="photo_file_details_path_format">/Внутрішнє сховище/%1$s</string>

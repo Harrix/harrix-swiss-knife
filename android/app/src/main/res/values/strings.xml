@@ -284,6 +284,8 @@
     <string name="gallery_cleaner_edit_unlock_rotation">Allow rotation</string>
     <string name="gallery_cleaner_edit_contain_crop">Keep frame inside photo</string>
     <string name="gallery_cleaner_edit_allow_crop_outside">Allow frame outside photo</string>
+    <string name="gallery_cleaner_edit_lock_crop_move">Lock frame move</string>
+    <string name="gallery_cleaner_edit_unlock_crop_move">Allow frame move</string>
     <string name="gallery_cleaner_edit_more">More edit actions</string>
     <string name="photo_file_details_title">File details</string>
     <string name="photo_file_details_path_format">/Internal storage/%1$s</string>

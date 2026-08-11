@@ -29,6 +29,7 @@ import androidx.compose.material.icons.filled.FilterCenterFocus
 import androidx.compose.material.icons.filled.FitScreen
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.OpenWith
 import androidx.compose.material.icons.filled.RestartAlt
 import androidx.compose.material.icons.filled.Rotate90DegreesCcw
 import androidx.compose.material.icons.filled.Rotate90DegreesCw
@@ -192,8 +193,10 @@ fun PhotoCropEditor(
     val lockedAspectState = rememberUpdatedState(lockedAspect)
     var rotationLocked by remember(photo.id, imageRevision) { mutableStateOf(false) }
     var containCropInImage by remember(photo.id, imageRevision) { mutableStateOf(false) }
+    var cropMoveLocked by remember(photo.id, imageRevision) { mutableStateOf(false) }
     val rotationLockedState = rememberUpdatedState(rotationLocked)
     val containCropInImageState = rememberUpdatedState(containCropInImage)
+    val cropMoveLockedState = rememberUpdatedState(cropMoveLocked)
     var showFileDetails by remember { mutableStateOf(false) }
     var viewScale by remember(photo.id, imageRevision) { mutableFloatStateOf(1f) }
     var viewOffset by remember(photo.id, imageRevision) { mutableStateOf(Offset.Zero) }
@@ -800,6 +803,7 @@ fun PhotoCropEditor(
                                                         cropPx = currentCropPx,
                                                         slop = hitSlop,
                                                         cornersVisible = cornersVisible,
+                                                        allowMove = !cropMoveLockedState.value,
                                                     )
                                                 }
                                         } else {
@@ -1002,6 +1006,20 @@ fun PhotoCropEditor(
                             },
                         ),
                         selected = containCropInImage,
+                        tonal = true,
+                    )
+                    EditToolbarIconButton(
+                        onClick = { cropMoveLocked = !cropMoveLocked },
+                        icon = Icons.Filled.OpenWith,
+                        label =
+                        stringResource(
+                            if (cropMoveLocked) {
+                                R.string.gallery_cleaner_edit_unlock_crop_move
+                            } else {
+                                R.string.gallery_cleaner_edit_lock_crop_move
+                            },
+                        ),
+                        selected = cropMoveLocked,
                         tonal = true,
                     )
                 }
@@ -1414,14 +1432,15 @@ private fun EditToolbarIconButton(
             )
         }
         when {
-            filled ->
+            // Selected toggles use a solid filled button so on/off is obvious on the photo.
+            filled || selected ->
                 FilledIconButton(
                     onClick = onClick,
                     enabled = enabled,
                     content = iconContent,
                 )
 
-            selected || tonal ->
+            tonal ->
                 FilledTonalIconButton(
                     onClick = onClick,
                     enabled = enabled,
@@ -1608,6 +1627,7 @@ private fun resolveCropOneFingerAction(
     cropPx: Rect,
     slop: Float,
     cornersVisible: Boolean,
+    allowMove: Boolean = true,
 ): OneFingerAction {
     val cornerHit = hitTestCropCornerOnly(localPoint, cropPx, slop)
     if (cornerHit != null) {
@@ -1616,7 +1636,7 @@ private fun resolveCropOneFingerAction(
     val inside =
         localPoint.x in cropPx.left..cropPx.right &&
             localPoint.y in cropPx.top..cropPx.bottom
-    if (!inside || !cornersVisible) {
+    if (!inside || !cornersVisible || !allowMove) {
         return OneFingerAction.PanView
     }
     return OneFingerAction.Crop(CropDragMode.Move)

@@ -284,6 +284,8 @@
     <string name="gallery_cleaner_edit_unlock_rotation">Zezwól na obrót</string>
     <string name="gallery_cleaner_edit_contain_crop">Trzymaj ramkę w zdjęciu</string>
     <string name="gallery_cleaner_edit_allow_crop_outside">Zezwól na ramkę poza zdjęciem</string>
+    <string name="gallery_cleaner_edit_lock_crop_move">Zablokuj przesuwanie ramki</string>
+    <string name="gallery_cleaner_edit_unlock_crop_move">Zezwól na przesuwanie ramki</string>
     <string name="gallery_cleaner_edit_more">More edit actions</string>
     <string name="photo_file_details_title">Szczegóły pliku</string>
     <string name="photo_file_details_path_format">/Pamięć wewnętrzna/%1$s</string>

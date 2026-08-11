@@ -284,6 +284,8 @@
     <string name="gallery_cleaner_edit_unlock_rotation">Consenti rotazione</string>
     <string name="gallery_cleaner_edit_contain_crop">Mantieni riquadro nella foto</string>
     <string name="gallery_cleaner_edit_allow_crop_outside">Consenti riquadro fuori foto</string>
+    <string name="gallery_cleaner_edit_lock_crop_move">Blocca spostamento riquadro</string>
+    <string name="gallery_cleaner_edit_unlock_crop_move">Consenti spostamento riquadro</string>
     <string name="gallery_cleaner_edit_more">More edit actions</string>
     <string name="photo_file_details_title">Dettagli file</string>
     <string name="photo_file_details_path_format">/Archiviazione interna/%1$s</string>

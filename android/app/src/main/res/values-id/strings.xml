@@ -284,6 +284,8 @@
     <string name="gallery_cleaner_edit_unlock_rotation">Izinkan rotasi</string>
     <string name="gallery_cleaner_edit_contain_crop">Jaga bingkai di dalam foto</string>
     <string name="gallery_cleaner_edit_allow_crop_outside">Izinkan bingkai di luar foto</string>
+    <string name="gallery_cleaner_edit_lock_crop_move">Kunci geser bingkai</string>
+    <string name="gallery_cleaner_edit_unlock_crop_move">Izinkan geser bingkai</string>
     <string name="gallery_cleaner_edit_more">More edit actions</string>
     <string name="photo_file_details_title">Detail file</string>
     <string name="photo_file_details_path_format">/Penyimpanan internal/%1$s</string>

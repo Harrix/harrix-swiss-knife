@@ -284,6 +284,8 @@
     <string name="gallery_cleaner_edit_unlock_rotation">Rotatie toestaan</string>
     <string name="gallery_cleaner_edit_contain_crop">Kader binnen foto houden</string>
     <string name="gallery_cleaner_edit_allow_crop_outside">Kader buiten foto toestaan</string>
+    <string name="gallery_cleaner_edit_lock_crop_move">Kader verplaatsen vergrendelen</string>
+    <string name="gallery_cleaner_edit_unlock_crop_move">Kader verplaatsen toestaan</string>
     <string name="gallery_cleaner_edit_more">More edit actions</string>
     <string name="photo_file_details_title">Bestandsgegevens</string>
     <string name="photo_file_details_path_format">/Interne opslag/%1$s</string>

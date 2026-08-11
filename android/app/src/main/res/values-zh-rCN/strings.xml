@@ -284,6 +284,8 @@
     <string name="gallery_cleaner_edit_unlock_rotation">允许旋转</string>
     <string name="gallery_cleaner_edit_contain_crop">将框限制在照片内</string>
     <string name="gallery_cleaner_edit_allow_crop_outside">允许框超出照片</string>
+    <string name="gallery_cleaner_edit_lock_crop_move">锁定框架移动</string>
+    <string name="gallery_cleaner_edit_unlock_crop_move">允许框架移动</string>
     <string name="gallery_cleaner_edit_more">More edit actions</string>
     <string name="photo_file_details_title">文件详情</string>
     <string name="photo_file_details_path_format">/内部存储/%1$s</string>
