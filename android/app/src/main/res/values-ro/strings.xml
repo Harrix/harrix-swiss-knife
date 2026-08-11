@@ -279,10 +279,6 @@
     <string name="gallery_cleaner_edit_rotate_ccw">Rotește 90° la stânga</string>
     <string name="gallery_cleaner_edit_rotate_cw">Rotește 90° la dreapta</string>
     <string name="gallery_cleaner_edit_reset_rotation">Resetează rotația</string>
-    <string name="gallery_cleaner_edit_lock_rotation">Blochează rotația</string>
-    <string name="gallery_cleaner_edit_unlock_rotation">Permite rotația</string>
-    <string name="gallery_cleaner_edit_contain_crop">Păstrează cadrul în foto</string>
-    <string name="gallery_cleaner_edit_allow_crop_outside">Permite cadrul în afara foto</string>
     <string name="gallery_cleaner_edit_more">More edit actions</string>
     <string name="photo_file_details_title">Detalii fișier</string>
     <string name="photo_file_details_path_format">/Stocare internă/%1$s</string>

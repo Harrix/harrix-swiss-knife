@@ -279,10 +279,6 @@
     <string name="gallery_cleaner_edit_rotate_ccw">Pivoter de 90° à gauche</string>
     <string name="gallery_cleaner_edit_rotate_cw">Pivoter de 90° à droite</string>
     <string name="gallery_cleaner_edit_reset_rotation">Réinitialiser la rotation</string>
-    <string name="gallery_cleaner_edit_lock_rotation">Verrouiller la rotation</string>
-    <string name="gallery_cleaner_edit_unlock_rotation">Autoriser la rotation</string>
-    <string name="gallery_cleaner_edit_contain_crop">Garder le cadre dans la photo</string>
-    <string name="gallery_cleaner_edit_allow_crop_outside">Autoriser le cadre hors photo</string>
     <string name="gallery_cleaner_edit_more">More edit actions</string>
     <string name="photo_file_details_title">Détails du fichier</string>
     <string name="photo_file_details_path_format">/Stockage interne/%1$s</string>

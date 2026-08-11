@@ -279,10 +279,6 @@
     <string name="gallery_cleaner_edit_rotate_ccw">左に90°回転</string>
     <string name="gallery_cleaner_edit_rotate_cw">右に90°回転</string>
     <string name="gallery_cleaner_edit_reset_rotation">回転をリセット</string>
-    <string name="gallery_cleaner_edit_lock_rotation">回転をロック</string>
-    <string name="gallery_cleaner_edit_unlock_rotation">回転を許可</string>
-    <string name="gallery_cleaner_edit_contain_crop">枠を写真内に保つ</string>
-    <string name="gallery_cleaner_edit_allow_crop_outside">枠の写真外を許可</string>
     <string name="gallery_cleaner_edit_more">More edit actions</string>
     <string name="photo_file_details_title">ファイルの詳細</string>
     <string name="photo_file_details_path_format">/内部ストレージ/%1$s</string>

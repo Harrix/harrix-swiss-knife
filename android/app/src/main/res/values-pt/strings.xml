@@ -279,10 +279,6 @@
     <string name="gallery_cleaner_edit_rotate_ccw">Girar 90° para a esquerda</string>
     <string name="gallery_cleaner_edit_rotate_cw">Girar 90° para a direita</string>
     <string name="gallery_cleaner_edit_reset_rotation">Redefinir rotação</string>
-    <string name="gallery_cleaner_edit_lock_rotation">Bloquear rotação</string>
-    <string name="gallery_cleaner_edit_unlock_rotation">Permitir rotação</string>
-    <string name="gallery_cleaner_edit_contain_crop">Manter moldura dentro da foto</string>
-    <string name="gallery_cleaner_edit_allow_crop_outside">Permitir moldura fora da foto</string>
     <string name="gallery_cleaner_edit_more">More edit actions</string>
     <string name="photo_file_details_title">Detalhes do arquivo</string>
     <string name="photo_file_details_path_format">/Armazenamento interno/%1$s</string>

@@ -279,10 +279,6 @@
     <string name="gallery_cleaner_edit_rotate_ccw">Повернути на 90° вліво</string>
     <string name="gallery_cleaner_edit_rotate_cw">Повернути на 90° вправо</string>
     <string name="gallery_cleaner_edit_reset_rotation">Скинути поворот</string>
-    <string name="gallery_cleaner_edit_lock_rotation">Заборонити поворот</string>
-    <string name="gallery_cleaner_edit_unlock_rotation">Дозволити поворот</string>
-    <string name="gallery_cleaner_edit_contain_crop">Не виходити за межі фото</string>
-    <string name="gallery_cleaner_edit_allow_crop_outside">Дозволити рамці виходити за фото</string>
     <string name="gallery_cleaner_edit_more">Інші дії редактора</string>
     <string name="photo_file_details_title">Відомості про файл</string>
     <string name="photo_file_details_path_format">/Внутрішнє сховище/%1$s</string>

@@ -279,10 +279,6 @@
     <string name="gallery_cleaner_edit_rotate_ccw">向左旋转 90°</string>
     <string name="gallery_cleaner_edit_rotate_cw">向右旋转 90°</string>
     <string name="gallery_cleaner_edit_reset_rotation">重置旋转</string>
-    <string name="gallery_cleaner_edit_lock_rotation">锁定旋转</string>
-    <string name="gallery_cleaner_edit_unlock_rotation">允许旋转</string>
-    <string name="gallery_cleaner_edit_contain_crop">将框限制在照片内</string>
-    <string name="gallery_cleaner_edit_allow_crop_outside">允许框超出照片</string>
     <string name="gallery_cleaner_edit_more">More edit actions</string>
     <string name="photo_file_details_title">文件详情</string>
     <string name="photo_file_details_path_format">/内部存储/%1$s</string>
