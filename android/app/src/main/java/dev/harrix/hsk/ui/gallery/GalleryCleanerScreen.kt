@@ -1496,8 +1496,10 @@ private fun PhotoSecondaryActionsRow(
         modifier
             .fillMaxWidth()
             .padding(
-                start = if (compact) 0.dp else 4.dp,
-                end = if (compact) 0.dp else 16.dp,
+                // Match [PhotoMetaInfo] horizontal inset so the date filter lines up with
+                // the file name / meta under the photo.
+                start = if (compact) 0.dp else 16.dp,
+                end = if (compact) 0.dp else 4.dp,
                 top = 0.dp,
                 bottom = if (compact) 0.dp else 4.dp,
             ),
