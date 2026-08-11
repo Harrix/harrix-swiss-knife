@@ -33,6 +33,7 @@ import androidx.compose.material.icons.filled.RestartAlt
 import androidx.compose.material.icons.filled.Rotate90DegreesCcw
 import androidx.compose.material.icons.filled.Rotate90DegreesCw
 import androidx.compose.material.icons.filled.Save
+import androidx.compose.material.icons.filled.SaveAs
 import androidx.compose.material.icons.filled.ScreenLockRotation
 import androidx.compose.material.icons.filled.Transform
 import androidx.compose.material3.Button
@@ -91,7 +92,6 @@ import dev.harrix.hsk.ui.OverflowTextTooltipBox
 import dev.harrix.hsk.ui.adaptiveBottomBarWidth
 import dev.harrix.hsk.ui.isCompactHeight
 import dev.harrix.hsk.ui.isCompactWidth
-import dev.harrix.hsk.ui.theme.HskIcons
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -1297,7 +1297,7 @@ fun PhotoCropEditor(
                             )
                             if (onSaveCopy != null && !isPerspective) {
                                 EditOverflowMenuItem(
-                                    icon = HskIcons.SaveCopy,
+                                    icon = Icons.Filled.SaveAs,
                                     label = saveCopyLabel,
                                     enabled = !isSaving,
                                     onClick = {
@@ -1339,7 +1339,7 @@ fun PhotoCropEditor(
                     if (onSaveCopy != null && !isPerspective) {
                         EditToolbarIconButton(
                             onClick = onSaveCopy,
-                            icon = HskIcons.SaveCopy,
+                            icon = Icons.Filled.SaveAs,
                             label = saveCopyLabel,
                             enabled = !isSaving,
                             outlined = true,
