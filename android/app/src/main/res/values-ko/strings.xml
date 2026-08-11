@@ -291,6 +291,10 @@
     <string name="photo_file_details_mode_night">야간</string>
     <string name="photo_file_details_map">Google 지도의 위치</string>
     <string name="photo_file_details_open_map">Google 지도에서 열기</string>
+    <string name="photo_file_details_copy_name">파일 이름 복사</string>
+    <string name="photo_file_details_copy_path">경로 복사</string>
+    <string name="photo_file_details_copy_coordinates">좌표 복사</string>
+    <string name="photo_file_details_copied">복사됨</string>
     <string name="video_cleaner_title">Video Cleaner</string>
     <string name="video_cleaner_close">출구 Video Cleaner</string>
     <string name="video_cleaner_settings">설정</string>

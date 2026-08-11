@@ -291,6 +291,10 @@
     <string name="photo_file_details_mode_night">Nacht</string>
     <string name="photo_file_details_map">Locatie op Google Maps</string>
     <string name="photo_file_details_open_map">Openen in Google Maps</string>
+    <string name="photo_file_details_copy_name">Bestandsnaam kopiëren</string>
+    <string name="photo_file_details_copy_path">Pad kopiëren</string>
+    <string name="photo_file_details_copy_coordinates">Coördinaten kopiëren</string>
+    <string name="photo_file_details_copied">Gekopieerd</string>
     <string name="video_cleaner_title">Video Cleaner</string>
     <string name="video_cleaner_close">Afsluiten Video Cleaner</string>
     <string name="video_cleaner_settings">Instelling</string>

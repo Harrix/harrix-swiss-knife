@@ -291,6 +291,10 @@
     <string name="photo_file_details_mode_night">Noapte</string>
     <string name="photo_file_details_map">Locație pe Google Maps</string>
     <string name="photo_file_details_open_map">Deschide în Google Maps</string>
+    <string name="photo_file_details_copy_name">Copiază numele fișierului</string>
+    <string name="photo_file_details_copy_path">Copiază calea</string>
+    <string name="photo_file_details_copy_coordinates">Copiază coordonatele</string>
+    <string name="photo_file_details_copied">Copiat</string>
     <string name="video_cleaner_title">Video Cleaner</string>
     <string name="video_cleaner_close">Ieșire Video Cleaner</string>
     <string name="video_cleaner_settings">Setări</string>

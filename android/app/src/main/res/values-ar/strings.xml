@@ -291,6 +291,10 @@
     <string name="photo_file_details_mode_night">ليل</string>
     <string name="photo_file_details_map">الموقع على خرائط Google</string>
     <string name="photo_file_details_open_map">فتح في خرائط Google</string>
+    <string name="photo_file_details_copy_name">نسخ اسم الملف</string>
+    <string name="photo_file_details_copy_path">نسخ المسار</string>
+    <string name="photo_file_details_copy_coordinates">نسخ الإحداثيات</string>
+    <string name="photo_file_details_copied">تم النسخ</string>
     <string name="video_cleaner_title">Video Cleaner</string>
     <string name="video_cleaner_close">خروج Video Cleaner</string>
     <string name="video_cleaner_settings">الإعدادات</string>

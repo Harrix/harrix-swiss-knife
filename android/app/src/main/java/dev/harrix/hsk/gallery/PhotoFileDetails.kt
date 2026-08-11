@@ -40,11 +40,41 @@ data class PhotoFileDetails(
     val hasMapLocation: Boolean
         get() = latitude != null && longitude != null
 
+    /** `48.858370, 2.294481` style coordinates line. */
+    fun coordinatesLabel(): String? {
+        val lat = latitude ?: return null
+        val lng = longitude ?: return null
+        return String.format(Locale.US, "%.6f, %.6f", lat, lng)
+    }
+
     /** Google Maps search URL with a pin at the capture coordinates. */
     fun googleMapsUri(): Uri? {
         val lat = latitude ?: return null
         val lng = longitude ?: return null
         return Uri.parse(String.format(Locale.US, GoogleMapsSearchUrl, lat, lng))
+    }
+
+    /**
+     * Static map preview URL with a red pin (OpenStreetMap tiles; opens in Google Maps on tap).
+     */
+    fun staticMapPreviewUrl(
+        widthPx: Int = 640,
+        heightPx: Int = 360,
+    ): String? {
+        val lat = latitude ?: return null
+        val lng = longitude ?: return null
+        val w = widthPx.coerceIn(120, 1280)
+        val h = heightPx.coerceIn(120, 1280)
+        return String.format(
+            Locale.US,
+            "https://staticmap.openstreetmap.de/staticmap.php?center=%f,%f&zoom=15&size=%dx%d&markers=%f,%f,red-pushpin",
+            lat,
+            lng,
+            w,
+            h,
+            lat,
+            lng,
+        )
     }
 
     val resolutionLabel: String?
@@ -109,8 +139,9 @@ object PhotoFileDetailsLoader {
         val width = media.width ?: exif.width
         val height = media.height ?: exif.height
         val megapixels = megapixelsOrNull(width, height)
-
-        val locationLabel = locationLabelOrNull(appContext, exif.latitude, exif.longitude)
+        val latitude = exif.latitude ?: media.latitude
+        val longitude = exif.longitude ?: media.longitude
+        val locationLabel = locationLabelOrNull(appContext, latitude, longitude)
 
         return PhotoFileDetails(
             displayName = media.displayName ?: photo.displayName,
@@ -127,8 +158,8 @@ object PhotoFileDetailsLoader {
             apertureLabel = exif.apertureLabel,
             shutterLabel = exif.shutterLabel,
             locationLabel = locationLabel,
-            latitude = exif.latitude,
-            longitude = exif.longitude,
+            latitude = latitude,
+            longitude = longitude,
         )
     }
 
@@ -138,6 +169,8 @@ object PhotoFileDetailsLoader {
         val sizeBytes: Long,
         val width: Int?,
         val height: Int?,
+        val latitude: Double?,
+        val longitude: Double?,
     )
 
     private data class ExifFields(
@@ -176,6 +209,10 @@ object PhotoFileDetailsLoader {
         add(MediaStore.MediaColumns.SIZE)
         add(MediaStore.MediaColumns.WIDTH)
         add(MediaStore.MediaColumns.HEIGHT)
+        @Suppress("DEPRECATION")
+        add(MediaStore.Images.ImageColumns.LATITUDE)
+        @Suppress("DEPRECATION")
+        add(MediaStore.Images.ImageColumns.LONGITUDE)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             add(MediaStore.MediaColumns.RELATIVE_PATH)
         } else {
@@ -184,7 +221,7 @@ object PhotoFileDetailsLoader {
         }
     }.toTypedArray()
 
-    private fun emptyMediaStoreFields(): MediaStoreFields = MediaStoreFields(null, null, 0L, null, null)
+    private fun emptyMediaStoreFields(): MediaStoreFields = MediaStoreFields(null, null, 0L, null, null, null, null)
 
     private fun readMediaStoreFields(cursor: Cursor): MediaStoreFields {
         fun col(name: String): Int = cursor.getColumnIndex(name)
@@ -204,12 +241,31 @@ object PhotoFileDetailsLoader {
             col(MediaStore.MediaColumns.HEIGHT).takeIf { it >= 0 }?.let {
                 cursor.getInt(it).takeIf { value -> value > 0 }
             }
+
+        @Suppress("DEPRECATION")
+        val latitude =
+            col(MediaStore.Images.ImageColumns.LATITUDE).takeIf { it >= 0 }?.let { index ->
+                cursor.getDouble(index).takeUnless { value -> value.isNaN() }
+            }
+
+        @Suppress("DEPRECATION")
+        val longitude =
+            col(MediaStore.Images.ImageColumns.LONGITUDE).takeIf { it >= 0 }?.let { index ->
+                cursor.getDouble(index).takeUnless { value -> value.isNaN() }
+            }
+        // MediaStore may return 0,0 when GPS is missing — treat that as absent.
+        val hasGps =
+            latitude != null &&
+                longitude != null &&
+                !(latitude == 0.0 && longitude == 0.0)
         return MediaStoreFields(
             displayName = name,
             relativePath = readRelativePath(cursor, ::col),
             sizeBytes = size.coerceAtLeast(0L),
             width = width,
             height = height,
+            latitude = latitude.takeIf { hasGps },
+            longitude = longitude.takeIf { hasGps },
         )
     }
 
@@ -251,8 +307,8 @@ object PhotoFileDetailsLoader {
         if (latitude == null || longitude == null) {
             return null
         }
+        // Coordinates are shown as their own row; keep this for a human address only.
         return reverseGeocode(context, latitude, longitude)
-            ?: String.format(Locale.US, "%.5f, %.5f", latitude, longitude)
     }
 
     private fun readExif(

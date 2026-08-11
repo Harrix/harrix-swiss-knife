@@ -291,6 +291,10 @@
     <string name="photo_file_details_mode_night">Night</string>
     <string name="photo_file_details_map">Location on Google Maps</string>
     <string name="photo_file_details_open_map">Open in Google Maps</string>
+    <string name="photo_file_details_copy_name">Copy file name</string>
+    <string name="photo_file_details_copy_path">Copy path</string>
+    <string name="photo_file_details_copy_coordinates">Copy coordinates</string>
+    <string name="photo_file_details_copied">Copied</string>
     <string name="video_cleaner_title">Video Cleaner</string>
     <string name="video_cleaner_close">Exit Video Cleaner</string>
     <string name="video_cleaner_settings">Settings</string>

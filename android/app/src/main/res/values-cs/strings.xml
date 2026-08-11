@@ -291,6 +291,10 @@
     <string name="photo_file_details_mode_night">Noc</string>
     <string name="photo_file_details_map">Poloha na Mapách Google</string>
     <string name="photo_file_details_open_map">Otevřít v Mapách Google</string>
+    <string name="photo_file_details_copy_name">Kopírovat název souboru</string>
+    <string name="photo_file_details_copy_path">Kopírovat cestu</string>
+    <string name="photo_file_details_copy_coordinates">Kopírovat souřadnice</string>
+    <string name="photo_file_details_copied">Zkopírováno</string>
     <string name="video_cleaner_title">Video Cleaner</string>
     <string name="video_cleaner_close">Exit Video Cleaner</string>
     <string name="video_cleaner_settings">Nastavení</string>

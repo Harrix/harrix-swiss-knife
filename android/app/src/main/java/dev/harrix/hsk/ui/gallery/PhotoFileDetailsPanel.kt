@@ -1,10 +1,7 @@
 package dev.harrix.hsk.ui.gallery
 
-import android.annotation.SuppressLint
 import android.content.Intent
-import android.view.MotionEvent
-import android.webkit.WebView
-import android.webkit.WebViewClient
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -15,13 +12,17 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Map
+import androidx.compose.material.icons.filled.Place
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
@@ -35,13 +36,19 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.viewinterop.AndroidView
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import dev.harrix.hsk.R
 import dev.harrix.hsk.gallery.CameraGalleryRepository
 import dev.harrix.hsk.gallery.CameraPhoto
@@ -52,7 +59,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.text.DateFormat
 import java.util.Date
-import java.util.Locale
 
 @Composable
 fun rememberPhotoFileDetails(photo: CameraPhoto): PhotoFileDetails? {
@@ -83,7 +89,10 @@ fun PhotoFileDetailsPanel(
     showMap: Boolean = false,
     details: PhotoFileDetails? = rememberPhotoFileDetails(photo),
 ) {
+    val context = LocalContext.current
+    val clipboard = LocalClipboardManager.current
     val untitled = stringResource(R.string.gallery_cleaner_untitled)
+    val copiedMessage = stringResource(R.string.photo_file_details_copied)
     val nameLabel =
         details?.displayName?.takeIf { it.isNotBlank() }
             ?: photo.displayName?.takeIf { it.isNotBlank() }
@@ -100,6 +109,7 @@ fun PhotoFileDetailsPanel(
         details?.fileStatsLine(CameraGalleryRepository::formatFileSize)
             ?: sizeFallback
     val settingsLine = details?.cameraSettingsLine()
+    val coordinatesLabel = details?.coordinatesLabel()
     val modeLabel =
         when (details?.captureMode) {
             PhotoCaptureMode.Landscape -> stringResource(R.string.photo_file_details_mode_landscape)
@@ -109,6 +119,11 @@ fun PhotoFileDetailsPanel(
         }
     val textAlign = if (endAligned) TextAlign.End else TextAlign.Start
     val horizontal = if (endAligned) Alignment.End else Alignment.Start
+
+    fun copyText(value: String) {
+        clipboard.setText(AnnotatedString(value))
+        Toast.makeText(context, copiedMessage, Toast.LENGTH_SHORT).show()
+    }
 
     if (compact) {
         Text(
@@ -137,24 +152,23 @@ fun PhotoFileDetailsPanel(
             textAlign = textAlign,
             modifier = if (endAligned) Modifier.fillMaxWidth() else Modifier,
         )
-        Text(
+        CopyableDetailRow(
             text = nameLabel,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            textAlign = textAlign,
-            modifier = if (endAligned) Modifier.fillMaxWidth() else Modifier,
+            copyLabel = stringResource(R.string.photo_file_details_copy_name),
+            onCopy = { copyText(nameLabel) },
+            textStyle = MaterialTheme.typography.bodyMedium,
+            textColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            endAligned = endAligned,
         )
         if (pathLabel != null) {
-            Text(
+            CopyableDetailRow(
                 text = pathLabel,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-                textAlign = textAlign,
-                modifier = if (endAligned) Modifier.fillMaxWidth() else Modifier,
+                copyLabel = stringResource(R.string.photo_file_details_copy_path),
+                onCopy = { copyText(pathLabel) },
+                textStyle = MaterialTheme.typography.bodySmall,
+                textColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                endAligned = endAligned,
+                maxLines = 3,
             )
         }
 
@@ -235,6 +249,17 @@ fun PhotoFileDetailsPanel(
                     .then(if (endAligned) Modifier.fillMaxWidth() else Modifier),
             )
         }
+        if (coordinatesLabel != null) {
+            CopyableDetailRow(
+                text = coordinatesLabel,
+                copyLabel = stringResource(R.string.photo_file_details_copy_coordinates),
+                onCopy = { copyText(coordinatesLabel) },
+                textStyle = MaterialTheme.typography.bodyMedium,
+                textColor = MaterialTheme.colorScheme.onSurface,
+                endAligned = endAligned,
+                modifier = Modifier.padding(top = 2.dp),
+            )
+        }
         if (showMap && details != null && details.hasMapLocation) {
             PhotoLocationMapPreview(
                 details = details,
@@ -283,25 +308,60 @@ fun PhotoFileDetailsSheet(
 }
 
 @Composable
+private fun CopyableDetailRow(
+    text: String,
+    copyLabel: String,
+    onCopy: () -> Unit,
+    textStyle: TextStyle,
+    textColor: Color,
+    endAligned: Boolean,
+    modifier: Modifier = Modifier,
+    maxLines: Int = 2,
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement =
+        if (endAligned) {
+            Arrangement.spacedBy(4.dp, Alignment.End)
+        } else {
+            Arrangement.spacedBy(4.dp)
+        },
+    ) {
+        Text(
+            text = text,
+            style = textStyle,
+            color = textColor,
+            maxLines = maxLines,
+            overflow = TextOverflow.Ellipsis,
+            textAlign = if (endAligned) TextAlign.End else TextAlign.Start,
+            modifier = Modifier.weight(1f),
+        )
+        IconButton(
+            onClick = onCopy,
+            modifier = Modifier.size(36.dp),
+        ) {
+            Icon(
+                imageVector = Icons.Filled.ContentCopy,
+                contentDescription = copyLabel,
+                modifier = Modifier.size(18.dp),
+                tint = MaterialTheme.colorScheme.primary,
+            )
+        }
+    }
+}
+
+@Composable
 private fun PhotoLocationMapPreview(
     details: PhotoFileDetails,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
     val mapsUri = details.googleMapsUri() ?: return
-    val latitude = details.latitude ?: return
-    val longitude = details.longitude ?: return
+    val previewUrl = details.staticMapPreviewUrl() ?: return
     val mapLabel = stringResource(R.string.photo_file_details_map)
     val openMapLabel = stringResource(R.string.photo_file_details_open_map)
-    val embedUrl =
-        remember(latitude, longitude) {
-            String.format(
-                Locale.US,
-                "https://www.google.com/maps?q=%f,%f&z=15&output=embed",
-                latitude,
-                longitude,
-            )
-        }
+    var imageFailed by remember(previewUrl) { mutableStateOf(false) }
 
     fun openMaps() {
         runCatching {
@@ -324,26 +384,45 @@ private fun PhotoLocationMapPreview(
                 .fillMaxWidth()
                 .height(180.dp)
                 .clip(RoundedCornerShape(12.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant),
+                .background(MaterialTheme.colorScheme.surfaceVariant)
+                .clickable(onClickLabel = openMapLabel) { openMaps() },
         ) {
-            AndroidView(
-                factory = { viewContext ->
-                    createMapsWebView(viewContext, embedUrl)
-                },
-                update = { webView ->
-                    if (webView.url != embedUrl) {
-                        webView.loadUrl(embedUrl)
-                    }
-                },
-                modifier = Modifier.fillMaxSize(),
-            )
-            // Capture taps so the map opens in the browser with a pin.
-            Box(
-                modifier =
-                Modifier
-                    .fillMaxSize()
-                    .clickable(onClickLabel = openMapLabel) { openMaps() },
-            )
+            if (!imageFailed) {
+                AsyncImage(
+                    model =
+                    ImageRequest
+                        .Builder(context)
+                        .data(previewUrl)
+                        .crossfade(true)
+                        .build(),
+                    contentDescription = mapLabel,
+                    contentScale = ContentScale.Crop,
+                    onError = { imageFailed = true },
+                    modifier = Modifier.fillMaxSize(),
+                )
+            } else {
+                Column(
+                    modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Place,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(40.dp),
+                    )
+                    Text(
+                        text = details.coordinatesLabel().orEmpty(),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 8.dp),
+                    )
+                }
+            }
             Row(
                 modifier =
                 Modifier
@@ -370,19 +449,6 @@ private fun PhotoLocationMapPreview(
             }
         }
     }
-}
-
-@SuppressLint("SetJavaScriptEnabled")
-private fun createMapsWebView(
-    context: android.content.Context,
-    embedUrl: String,
-): WebView = WebView(context).apply {
-    settings.javaScriptEnabled = true
-    settings.domStorageEnabled = true
-    // Preview only; taps are handled by the Compose overlay.
-    setOnTouchListener { _, event -> event.action == MotionEvent.ACTION_MOVE }
-    webViewClient = WebViewClient()
-    loadUrl(embedUrl)
 }
 
 /** Date/time label matching Gallery Cleaner’s current formatting. */

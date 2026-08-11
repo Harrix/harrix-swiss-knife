@@ -291,6 +291,10 @@
     <string name="photo_file_details_mode_night">Ночь</string>
     <string name="photo_file_details_map">Место на Google Картах</string>
     <string name="photo_file_details_open_map">Открыть в Google Картах</string>
+    <string name="photo_file_details_copy_name">Копировать имя файла</string>
+    <string name="photo_file_details_copy_path">Копировать путь</string>
+    <string name="photo_file_details_copy_coordinates">Копировать координаты</string>
+    <string name="photo_file_details_copied">Скопировано</string>
     <string name="video_cleaner_title">Video Cleaner</string>
     <string name="video_cleaner_close">Выход Video Cleaner</string>
     <string name="video_cleaner_settings">Настройки</string>

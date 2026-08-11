@@ -1187,16 +1187,6 @@ fun PhotoCropEditor(
                             onDismissRequest = { moreMenuExpanded = false },
                         ) {
                             EditOverflowMenuItem(
-                                icon = Icons.Filled.Info,
-                                label = fileDetailsLabel,
-                                enabled = !isPerspective,
-                                onClick = {
-                                    moreMenuExpanded = false
-                                    showFileDetails = true
-                                },
-                            )
-                            HorizontalDivider()
-                            EditOverflowMenuItem(
                                 icon = Icons.Filled.CropRotate,
                                 label = aspectRotateLabel,
                                 enabled = canEditAspect,
@@ -1306,6 +1296,15 @@ fun PhotoCropEditor(
                                     },
                                 )
                             }
+                            EditOverflowMenuItem(
+                                icon = Icons.Filled.Info,
+                                label = fileDetailsLabel,
+                                enabled = !isPerspective,
+                                onClick = {
+                                    moreMenuExpanded = false
+                                    showFileDetails = true
+                                },
+                            )
                             EditOverflowMenuItem(
                                 icon =
                                 if (isPerspective) {

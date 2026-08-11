@@ -291,6 +291,10 @@
     <string name="photo_file_details_mode_night">Noć</string>
     <string name="photo_file_details_map">Lokacija na Google Mapama</string>
     <string name="photo_file_details_open_map">Otvori u Google Mapama</string>
+    <string name="photo_file_details_copy_name">Копирај име датотеке</string>
+    <string name="photo_file_details_copy_path">Копирај путању</string>
+    <string name="photo_file_details_copy_coordinates">Копирај координате</string>
+    <string name="photo_file_details_copied">Копирано</string>
     <string name="video_cleaner_title">Video Cleaner</string>
     <string name="video_cleaner_close">Одјавите се из програма Video Cleaner</string>
     <string name="video_cleaner_settings">Подешавања</string>

@@ -291,6 +291,10 @@
     <string name="photo_file_details_mode_night">Malam</string>
     <string name="photo_file_details_map">Lokasi di Google Maps</string>
     <string name="photo_file_details_open_map">Buka di Google Maps</string>
+    <string name="photo_file_details_copy_name">Salin nama file</string>
+    <string name="photo_file_details_copy_path">Salin jalur</string>
+    <string name="photo_file_details_copy_coordinates">Salin koordinat</string>
+    <string name="photo_file_details_copied">Disalin</string>
     <string name="video_cleaner_title">Video Cleaner</string>
     <string name="video_cleaner_close">Keluar Video Cleaner</string>
     <string name="video_cleaner_settings">Pengaturan</string>

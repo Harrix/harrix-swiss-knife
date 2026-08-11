@@ -1049,26 +1049,6 @@ fun GalleryCleanerScreen(
                                             text = {
                                                 AutoFitText(
                                                     text = stringResource(
-                                                        R.string.photo_file_details_title,
-                                                    ),
-                                                    maxLines = 2,
-                                                )
-                                            },
-                                            leadingIcon = {
-                                                Icon(
-                                                    imageVector = Icons.Filled.Info,
-                                                    contentDescription = null,
-                                                )
-                                            },
-                                            onClick = {
-                                                menuExpanded = false
-                                                showPhotoDetails = true
-                                            },
-                                        )
-                                        DropdownMenuItem(
-                                            text = {
-                                                AutoFitText(
-                                                    text = stringResource(
                                                         R.string.gallery_cleaner_filter_shoot_day,
                                                     ),
                                                     maxLines = 2,
@@ -1165,6 +1145,28 @@ fun GalleryCleanerScreen(
                                             showStatsDialog = true
                                         },
                                     )
+                                    if (currentPhoto != null) {
+                                        DropdownMenuItem(
+                                            text = {
+                                                AutoFitText(
+                                                    text = stringResource(
+                                                        R.string.photo_file_details_title,
+                                                    ),
+                                                    maxLines = 2,
+                                                )
+                                            },
+                                            leadingIcon = {
+                                                Icon(
+                                                    imageVector = Icons.Filled.Info,
+                                                    contentDescription = null,
+                                                )
+                                            },
+                                            onClick = {
+                                                menuExpanded = false
+                                                showPhotoDetails = true
+                                            },
+                                        )
+                                    }
                                     DropdownMenuItem(
                                         text = {
                                             AutoFitText(text = stringResource(R.string.gallery_cleaner_settings), maxLines = 2)
