@@ -84,9 +84,7 @@ class OnGenerateStaticSite(ActionBase):
             site = paths_sites[choice_data]
             self.md_folder = Path(site["input"])
             self.html_folder = Path(site["output"])
-            theme = site.get("theme")
-            if theme:
-                self.theme_dir = Path(theme)
+            self.theme_dir = self._resolve_theme_dir(site.get("theme"))
         elif choice_type == "manual":
             # Request folders manually
             self.md_folder = self.dialogs.get_existing_directory(
@@ -103,15 +101,22 @@ class OnGenerateStaticSite(ActionBase):
             if not self.html_folder:
                 return
 
-            default_theme = self.config.get("path_html_theme")
-            if default_theme and Path(default_theme).is_dir():
-                use_theme = self.dialogs.get_yes_no_question(
-                    "Use HTML theme?",
-                    f"Assemble full pages with theme from:\n{default_theme}",
-                    default_yes=True,
-                )
-                if use_theme:
-                    self.theme_dir = Path(default_theme)
+            self.theme_dir = self._resolve_theme_dir(None)
+
+        if self.theme_dir is None:
+            continue_without_theme = self.dialogs.get_yes_no_question(
+                "No HTML theme",
+                "Theme folder is not set or missing.\n\n"
+                "Without a sliced theme, pages will be body HTML fragments "
+                "(no header/footer/CSS).\n\n"
+                "Slice a template with `hsk site slice-html-template`, set "
+                "`paths_sites[].theme` or `path_html_theme` in config.json, "
+                "then retry.\n\n"
+                "Continue with fragments only?",
+                default_yes=False,
+            )
+            if not continue_without_theme:
+                return
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
@@ -144,6 +149,21 @@ class OnGenerateStaticSite(ActionBase):
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
         self.show_toast(f"{self.title} completed")
         self.show_result()
+
+    def _resolve_theme_dir(self, theme_value: Any) -> Path | None:
+        """Resolve sliced theme directory from site config or global config."""
+        candidates: list[Path] = []
+        if theme_value:
+            candidates.append(Path(str(theme_value)))
+        default_theme = self.config.get("path_html_theme")
+        if default_theme:
+            candidates.append(Path(str(default_theme)))
+
+        for candidate in candidates:
+            theme_dir = candidate.expanduser().resolve()
+            if (theme_dir / "parts" / "main.html").is_file():
+                return theme_dir
+        return None
 ```
 
 </details>
@@ -198,9 +218,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
             site = paths_sites[choice_data]
             self.md_folder = Path(site["input"])
             self.html_folder = Path(site["output"])
-            theme = site.get("theme")
-            if theme:
-                self.theme_dir = Path(theme)
+            self.theme_dir = self._resolve_theme_dir(site.get("theme"))
         elif choice_type == "manual":
             # Request folders manually
             self.md_folder = self.dialogs.get_existing_directory(
@@ -217,15 +235,22 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
             if not self.html_folder:
                 return
 
-            default_theme = self.config.get("path_html_theme")
-            if default_theme and Path(default_theme).is_dir():
-                use_theme = self.dialogs.get_yes_no_question(
-                    "Use HTML theme?",
-                    f"Assemble full pages with theme from:\n{default_theme}",
-                    default_yes=True,
-                )
-                if use_theme:
-                    self.theme_dir = Path(default_theme)
+            self.theme_dir = self._resolve_theme_dir(None)
+
+        if self.theme_dir is None:
+            continue_without_theme = self.dialogs.get_yes_no_question(
+                "No HTML theme",
+                "Theme folder is not set or missing.\n\n"
+                "Without a sliced theme, pages will be body HTML fragments "
+                "(no header/footer/CSS).\n\n"
+                "Slice a template with `hsk site slice-html-template`, set "
+                "`paths_sites[].theme` or `path_html_theme` in config.json, "
+                "then retry.\n\n"
+                "Continue with fragments only?",
+                default_yes=False,
+            )
+            if not continue_without_theme:
+                return
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
 ```

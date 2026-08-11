@@ -294,7 +294,8 @@
   "paths_sites": [
     {
       "input": "D:/GitHub/_content__harrix-dev",
-      "output": "D:/temp"
+      "output": "D:/temp",
+      "theme": "D:/GitHub/Harrix-HTML-Template/theme"
     }
   ],
   "path_site_repo": "D:/GitHub/harrix.dev",
@@ -361,5 +362,7 @@
     "author": "Anton Sergienko",
     "author_email": "anton.b.sergienko@gmail.com"
   },
-  "fitness_names_translate_local_limit": 250
+  "fitness_names_translate_local_limit": 250,
+  "path_html_theme": "D:/GitHub/Harrix-HTML-Template/theme",
+  "path_html_template_dist": "D:/GitHub/Harrix-HTML-Template/dist"
 }
