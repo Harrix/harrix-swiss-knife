@@ -14,6 +14,9 @@ import android.os.Build
 import android.provider.Settings
 import android.text.format.DateFormat
 import android.util.Size
+import android.view.ViewGroup
+import android.widget.FrameLayout
+import android.widget.MediaController
 import android.widget.VideoView
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -1127,20 +1130,42 @@ private fun VideoPlaybackDialog(
         ) {
             AndroidView(
                 factory = { context ->
-                    VideoView(context).apply {
-                        setVideoURI(video.uri)
-                        setOnPreparedListener { player ->
-                            player.isLooping = true
-                            start()
+                    val container =
+                        FrameLayout(context).apply {
+                            layoutParams =
+                                ViewGroup.LayoutParams(
+                                    ViewGroup.LayoutParams.MATCH_PARENT,
+                                    ViewGroup.LayoutParams.MATCH_PARENT,
+                                )
                         }
+                    val videoView =
+                        VideoView(context).apply {
+                            layoutParams =
+                                FrameLayout.LayoutParams(
+                                    FrameLayout.LayoutParams.MATCH_PARENT,
+                                    FrameLayout.LayoutParams.MATCH_PARENT,
+                                )
+                        }
+                    val controller =
+                        MediaController(context).apply {
+                            setAnchorView(container)
+                        }
+                    videoView.setMediaController(controller)
+                    videoView.setVideoURI(video.uri)
+                    videoView.setOnPreparedListener {
+                        videoView.start()
+                        controller.show()
                     }
+                    container.addView(videoView)
+                    container.tag = videoView
+                    container
                 },
                 modifier =
                 Modifier
                     .fillMaxSize()
                     .align(Alignment.Center),
                 onRelease = { view ->
-                    view.stopPlayback()
+                    (view.tag as? VideoView)?.stopPlayback()
                 },
             )
             IconButton(
