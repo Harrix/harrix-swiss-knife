@@ -60,7 +60,8 @@ def find_icon_source_file(
     1. Note `files/` (beautify-md destination for `.ai` / `.pdf` / …)
     2. Note root
     3. Note `img/`
-    4. External AI repo (`path_vector_icons_ai`), including nested `src/`
+    4. External AI dump (`path_vector_icons_ai`): flat files in `src/` or the root itself
+       (no per-icon subfolders)
 
     """
     stems = candidate_source_stems(family_id, svg_path)
@@ -83,7 +84,12 @@ def resolve_external_ai_root(raw: str | Path | None) -> Path | None:
 
 
 def source_search_directories(note_dir: Path, external_ai_root: Path | None = None) -> list[Path]:
-    """Return existing directories to search for source masters."""
+    """Return existing directories to search for source masters.
+
+    External AI sources are treated as a flat dump: either `…/src/*.ai` or
+    `path_vector_icons_ai/*.ai` when the config path already points at `src`.
+
+    """
     dirs: list[Path] = []
 
     def add(path: Path) -> None:

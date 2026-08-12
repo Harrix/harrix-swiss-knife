@@ -65,7 +65,8 @@ Search order:
 1. Note `files/` (beautify-md destination for `.ai` / `.pdf` / …)
 2. Note root
 3. Note `img/`
-4. External AI repo (`path_vector_icons_ai`), including nested `src/`
+4. External AI dump (`path_vector_icons_ai`): flat files in `src/` or the root itself
+   (no per-icon subfolders)
 
 <details>
 <summary>Code:</summary>
@@ -119,6 +120,9 @@ def source_search_directories(note_dir: Path, external_ai_root: Path | None = No
 ```
 
 Return existing directories to search for source masters.
+
+External AI sources are treated as a flat dump: either `…/src/*.ai` or
+`path_vector_icons_ai/*.ai` when the config path already points at `src`.
 
 <details>
 <summary>Code:</summary>
