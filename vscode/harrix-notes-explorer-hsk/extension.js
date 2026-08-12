@@ -12,6 +12,8 @@ const execFileAsync = util.promisify(execFile);
 const harrixCli = require('./harrix-cli');
 /** @hsk-sync:new-note — in-extension New note (no CLI) */
 const { activateNewNote } = require('./new-note');
+/** @hsk-sync:note-meta — title/date resolution (keep synced with pyssg + Android) */
+const noteMeta = require('./note-meta');
 
 function normalizeFsPath(p) {
   const resolved = path.resolve(String(p));
@@ -440,48 +442,7 @@ function getShowNoteFileNameBesideTitle() {
  * @param {string} filePath
  */
 function noteStemFromPath(filePath) {
-  const base = path.basename(filePath);
-  if (base.toLowerCase().endsWith('.g.md')) {
-    return base.slice(0, -5);
-  }
-  return base.replace(/\.md$/i, '');
-}
-
-/**
- * @param {string} value
- */
-function unquoteYamlScalar(value) {
-  let v = String(value ?? '').trim();
-  if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) {
-    v = v.slice(1, -1);
-  }
-  return v.trim();
-}
-
-/**
- * @param {string} text
- */
-function stripHtmlComments(text) {
-  return String(text ?? '')
-    .replace(/<!--[\s\S]*?-->/g, '')
-    .trim();
-}
-
-/**
- * @param {string} fmText
- */
-function titleFromFrontmatterBlock(fmText) {
-  for (const line of fmText.split(/\r?\n/)) {
-    const m = /^title\s*:\s*(.*)$/i.exec(line);
-    if (!m) {
-      continue;
-    }
-    const title = unquoteYamlScalar(m[1]);
-    if (title) {
-      return title;
-    }
-  }
-  return '';
+  return noteMeta.noteStemFromName(filePath);
 }
 
 /**
@@ -489,34 +450,7 @@ function titleFromFrontmatterBlock(fmText) {
  * @param {string} value
  */
 function isNoteTreeEmojiIcon(value) {
-  const v = String(value ?? '').trim();
-  if (!v || [...v].length > 8) {
-    return false;
-  }
-  if (/^https?:\/\//i.test(v) || /[\\/]/.test(v)) {
-    return false;
-  }
-  if (/\.(png|jpe?g|gif|svg|webp|avif|ico)$/i.test(v)) {
-    return false;
-  }
-  return true;
-}
-
-/**
- * @param {string} fmText
- */
-function iconFromFrontmatterBlock(fmText) {
-  for (const line of fmText.split(/\r?\n/)) {
-    const m = /^icon\s*:\s*(.*)$/i.exec(line);
-    if (!m) {
-      continue;
-    }
-    const icon = unquoteYamlScalar(m[1]);
-    if (icon && isNoteTreeEmojiIcon(icon)) {
-      return icon;
-    }
-  }
-  return '';
+  return noteMeta.isNoteTreeEmojiIcon(value);
 }
 
 /**
@@ -537,53 +471,11 @@ function noteIconPathFromEmoji(emoji) {
 }
 
 /**
- * @param {string} body
- */
-function firstH1AfterFrontmatter(body) {
-  const lines = body.split(/\r?\n/);
-  let inFence = false;
-  for (const rawLine of lines) {
-    const line = rawLine.trim();
-    if (!line) {
-      continue;
-    }
-    if (line.startsWith('```')) {
-      inFence = !inFence;
-      continue;
-    }
-    if (inFence) {
-      continue;
-    }
-    if (line.startsWith('<!--') && line.includes('-->')) {
-      continue;
-    }
-    const h1 = /^#\s+(.+)$/.exec(line);
-    if (h1 && !line.startsWith('##')) {
-      return h1[1].trim();
-    }
-  }
-  return '';
-}
-
-/**
  * @param {string} text
  * @returns {{ title: string, icon: string }}
  */
 function extractNoteMetaFromMarkdown(text) {
-  let src = String(text ?? '');
-  if (src.charCodeAt(0) === 0xfeff) {
-    src = src.slice(1);
-  }
-  const fmMatch = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/.exec(src);
-  let title = '';
-  let icon = '';
-  if (fmMatch) {
-    title = titleFromFrontmatterBlock(fmMatch[1]) || firstH1AfterFrontmatter(src.slice(fmMatch[0].length));
-    icon = iconFromFrontmatterBlock(fmMatch[1]);
-  } else {
-    title = firstH1AfterFrontmatter(src);
-  }
-  return { title: stripHtmlComments(title), icon };
+  return noteMeta.extractNoteMetaFromMarkdown(text);
 }
 
 /** Caches note tree labels/icons by file path and mtime. Content is read off the tree UI thread. */
@@ -689,9 +581,7 @@ class NoteTitleCache {
       fs.closeSync(fd);
       const text = buf.slice(0, read).toString('utf8');
       const meta = extractNoteMetaFromMarkdown(text);
-      if (meta.title) {
-        label = meta.title;
-      }
+      label = noteMeta.resolveNoteTitle(text, { fileStem: stem });
       if (meta.icon) {
         icon = meta.icon;
       }
