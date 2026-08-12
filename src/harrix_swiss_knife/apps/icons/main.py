@@ -39,6 +39,7 @@ from harrix_swiss_knife.apps.icons.settings import (
 from harrix_swiss_knife.apps.icons.thumb_cache import (
     DEFAULT_THUMB_SIZE,
     ThumbnailCache,
+    default_cache_dir,
     placeholder_pixmap,
     start_thumbnail_refresh,
 )
@@ -194,6 +195,8 @@ class MainWindow(QMainWindow, AppWindowMixin):
         file_menu = self.menuBar().addMenu("&File")
         refresh_action = file_menu.addAction("Refresh catalog")
         refresh_action.triggered.connect(self._on_refresh_catalog)
+        open_cache_action = file_menu.addAction("Open thumbs cache")
+        open_cache_action.triggered.connect(self._on_open_thumbs_cache)
         file_menu.addSeparator()
         exit_action = file_menu.addAction("E&xit")
         exit_action.triggered.connect(self.close)
@@ -248,6 +251,12 @@ class MainWindow(QMainWindow, AppWindowMixin):
     def _on_icon_size_changed(self, value: int) -> None:
         self._apply_icon_size(value)
         self._icon_size_save_timer.start()
+
+    def _on_open_thumbs_cache(self) -> None:
+        path = default_cache_dir()
+        path.mkdir(parents=True, exist_ok=True)
+        h.file.open_file_or_folder(path)
+        self.statusBar().showMessage(f"Opened `{path}`")
 
     def _on_refresh_catalog(self) -> None:
         if self._repo_root is None:
