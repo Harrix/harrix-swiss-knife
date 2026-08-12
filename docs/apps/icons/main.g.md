@@ -176,12 +176,24 @@ class MainWindow(QMainWindow, AppWindowMixin):
         refresh_action.triggered.connect(self._on_refresh_catalog)
         open_cache_action = file_menu.addAction("📂 Open thumbs cache")
         open_cache_action.triggered.connect(self._on_open_thumbs_cache)
+        cache_stats_action = file_menu.addAction("📊 Cache statistics")
+        cache_stats_action.triggered.connect(self._on_cache_statistics)
         file_menu.addSeparator()
         self.actionExit = file_menu.addAction("E&xit")
         help_menu = self.menuBar().addMenu("&Help")
         self.actionAbout = help_menu.addAction("&About")
         self._connect_exit_about_actions()
         self._apply_exit_about_menu_emojis()
+
+    @staticmethod
+    def _format_byte_size(total_bytes: int) -> str:
+        kib = 1024
+        mib = kib * kib
+        if total_bytes >= mib:
+            return f"{total_bytes / mib:.2f} MB"
+        if total_bytes >= kib:
+            return f"{total_bytes / kib:.1f} KB"
+        return f"{total_bytes} B"
 
     def _load_from_config(self) -> None:
         config: dict[str, Any] = h.dev.config_load(get_config_path_str())
@@ -211,6 +223,29 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._populate_categories()
         self._apply_filters()
         self._start_thumb_refresh()
+
+    def _on_cache_statistics(self) -> None:
+        stats = self._thumb_cache.stats(self._catalog)
+        total_bytes = int(stats["total_bytes"])
+        size_text = self._format_byte_size(total_bytes)
+        lines = [
+            f"Cache folder: {stats['cache_dir']}",
+            f"PNG files: {stats['png_files']}",
+            f"Total size: {size_text} ({total_bytes} bytes)",
+            f"Meta entries: {stats['meta_entries']}",
+            f"Thumb size: {stats['thumb_size']} px",
+            f"Format version: {stats['format_version']}",
+        ]
+        if int(stats["catalog_icons"]) > 0:
+            lines.extend(
+                [
+                    f"Catalog icons: {stats['catalog_icons']}",
+                    f"Fresh: {stats['fresh']}",
+                    f"Stale: {stats['stale']}",
+                    f"Missing: {stats['missing']}",
+                ],
+            )
+        message_box.information(self, "Cache statistics", "\n".join(lines))
 
     def _on_category_changed(self, text: str) -> None:
         self._current_category = None if text == ALL_CATEGORIES or not text else text

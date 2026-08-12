@@ -83,6 +83,43 @@ class ThumbnailCache:
         """Persist thumbnail metadata to disk."""
         self._meta_path().write_text(json.dumps(self._meta, indent=2) + "\n", encoding="utf-8")
 
+    def stats(self, catalog: IconCatalog | None = None) -> dict[str, int | str]:
+        """Collect thumbnail cache statistics for UI display."""
+        png_files = [path for path in self.cache_dir.glob("*.png") if path.is_file()]
+        total_bytes = 0
+        for path in png_files:
+            try:
+                total_bytes += path.stat().st_size
+            except OSError:
+                continue
+
+        fresh = 0
+        stale = 0
+        missing = 0
+        catalog_icons = 0
+        if catalog is not None:
+            catalog_icons = len(catalog.icons)
+            for family in catalog.icons:
+                if self.is_fresh(family):
+                    fresh += 1
+                elif self.thumb_path(family.id).is_file():
+                    stale += 1
+                else:
+                    missing += 1
+
+        return {
+            "cache_dir": str(self.cache_dir),
+            "png_files": len(png_files),
+            "total_bytes": total_bytes,
+            "meta_entries": len(self._meta),
+            "thumb_size": self.size,
+            "format_version": THUMB_FORMAT_VERSION,
+            "catalog_icons": catalog_icons,
+            "fresh": fresh,
+            "stale": stale,
+            "missing": missing,
+        }
+
     def thumb_path(self, family_id: str) -> Path:
         """Return PNG path for a family ID (safe filename)."""
         safe = family_id.replace("/", "_").replace("\\", "_")
