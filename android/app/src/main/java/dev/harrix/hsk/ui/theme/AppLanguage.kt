@@ -44,12 +44,53 @@ enum class AppLanguage(
     }
 
     fun apply() {
-        AppCompatDelegate.setApplicationLocales(toLocaleList())
+        val next = toLocaleList()
+        if (next == AppCompatDelegate.getApplicationLocales()) {
+            return
+        }
+        AppCompatDelegate.setApplicationLocales(next)
     }
 
     companion object {
         val Default: AppLanguage = System
 
         fun fromStorage(value: String?): AppLanguage = entries.firstOrNull { it.name.equals(value, ignoreCase = true) } ?: Default
+
+        /**
+         * Language currently applied by AppCompat / the system per-app locale APIs.
+         * Empty locale list means follow the device language ([System]).
+         */
+        fun fromApplicationLocales(): AppLanguage {
+            val locales = AppCompatDelegate.getApplicationLocales()
+            if (locales.isEmpty) {
+                return System
+            }
+            val tag = locales[0]?.toLanguageTag()?.replace('_', '-') ?: return System
+            return entries
+                .filter { !it.languageTag.isNullOrBlank() }
+                .sortedByDescending { it.languageTag!!.length }
+                .firstOrNull { languageTagMatches(tag, it.languageTag!!) }
+                ?: System
+        }
+
+        /**
+         * In-app SharedPreferences and AppCompat `autoStoreLocales` can diverge (picker shows
+         * one language while resources stay on the device locale). Prefer the stored picker
+         * choice and re-apply it when they disagree.
+         */
+        fun reconcileStoredPreference(stored: AppLanguage) {
+            if (stored != fromApplicationLocales()) {
+                stored.apply()
+            }
+        }
+
+        private fun languageTagMatches(
+            actual: String,
+            wanted: String,
+        ): Boolean {
+            val a = actual.replace('_', '-')
+            val w = wanted.replace('_', '-')
+            return a.equals(w, ignoreCase = true) || a.startsWith("$w-", ignoreCase = true)
+        }
     }
 }
