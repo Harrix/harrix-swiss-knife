@@ -385,11 +385,16 @@ class MainWindow(
                 calories_per_100g = 0  # Required by database schema (NOT NULL)
                 portion_calories = calories if calories > 0 else None
 
+            # Reuse an existing English translation for the same food name, if any.
+            known_translations = self.db_manager.lookup_existing_name_en_for_names([food_name])
+            name_en = known_translations.get(food_name)
+
             # Use database manager method
             if self.db_manager.add_food_log_record(
                 date=food_date,
                 calories_per_100g=calories_per_100g,
                 name=food_name,
+                name_en=name_en,
                 weight=weight,
                 portion_calories=portion_calories,
                 is_drink=is_drink,
@@ -3962,11 +3967,16 @@ def on_add_food_log(self) -> None:
                 calories_per_100g = 0  # Required by database schema (NOT NULL)
                 portion_calories = calories if calories > 0 else None
 
+            # Reuse an existing English translation for the same food name, if any.
+            known_translations = self.db_manager.lookup_existing_name_en_for_names([food_name])
+            name_en = known_translations.get(food_name)
+
             # Use database manager method
             if self.db_manager.add_food_log_record(
                 date=food_date,
                 calories_per_100g=calories_per_100g,
                 name=food_name,
+                name_en=name_en,
                 weight=weight,
                 portion_calories=portion_calories,
                 is_drink=is_drink,

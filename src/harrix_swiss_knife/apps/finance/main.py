@@ -871,9 +871,21 @@ class MainWindow(
 
             def add_db(data: Any) -> bool:
                 amount, description, cat_id, currency_id, date, tag = data
+                description_en = ""
+                if self.db_manager is not None:
+                    known = self.db_manager.lookup_existing_description_en_for_descriptions([description])
+                    description_en = known.get(description, "")
                 return bool(
                     self.db_manager
-                    and self.db_manager.add_transaction(amount, description, cat_id, currency_id, date, tag)
+                    and self.db_manager.add_transaction(
+                        amount,
+                        description,
+                        cat_id,
+                        currency_id,
+                        date,
+                        tag,
+                        description_en=description_en,
+                    )
                 )
 
             def on_success(data: Any) -> None:
