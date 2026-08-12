@@ -157,7 +157,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self.search_edit.textChanged.connect(self._apply_filters)
         toolbar.addWidget(self.search_edit, stretch=1)
 
-        self.refresh_btn = QPushButton("Refresh catalog")
+        self.refresh_btn = QPushButton("🔄 Refresh catalog")
         self.refresh_btn.clicked.connect(self._on_refresh_catalog)
         toolbar.addWidget(self.refresh_btn)
         root.addLayout(toolbar)
@@ -193,16 +193,16 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self.statusBar().showMessage("Ready")
 
         file_menu = self.menuBar().addMenu("&File")
-        refresh_action = file_menu.addAction("Refresh catalog")
+        refresh_action = file_menu.addAction("🔄 Refresh catalog")
         refresh_action.triggered.connect(self._on_refresh_catalog)
-        open_cache_action = file_menu.addAction("Open thumbs cache")
+        open_cache_action = file_menu.addAction("📂 Open thumbs cache")
         open_cache_action.triggered.connect(self._on_open_thumbs_cache)
         file_menu.addSeparator()
-        exit_action = file_menu.addAction("E&xit")
-        exit_action.triggered.connect(self.close)
+        self.actionExit = file_menu.addAction("E&xit")
         help_menu = self.menuBar().addMenu("&Help")
-        about_action = help_menu.addAction("&About")
-        about_action.triggered.connect(self.on_about)
+        self.actionAbout = help_menu.addAction("&About")
+        self._connect_exit_about_actions()
+        self._apply_exit_about_menu_emojis()
 
     def _load_from_config(self) -> None:
         config: dict[str, Any] = h.dev.config_load(get_config_path_str())

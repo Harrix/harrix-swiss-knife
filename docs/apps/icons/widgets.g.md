@@ -136,7 +136,7 @@ class DraggableIconList(QListWidget):
         if not isinstance(path, str) or not path:
             return
         menu = QMenu(self)
-        copy_action = menu.addAction("Copy path")
+        copy_action = menu.addAction("📋 Copy path")
         chosen = menu.exec_(self.mapToGlobal(pos))
         if chosen is copy_action:
             QApplication.clipboard().setText(path)
