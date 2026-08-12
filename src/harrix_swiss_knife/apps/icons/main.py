@@ -57,7 +57,13 @@ from harrix_swiss_knife.apps.icons.thumb_cache import (
     placeholder_pixmap,
     start_thumbnail_refresh,
 )
-from harrix_swiss_knife.apps.icons.widgets import DraggableIconList, VariantsPanel
+from harrix_swiss_knife.apps.icons.widgets import (
+    ROLE_SUBTITLE,
+    ROLE_SVG_PATH,
+    DraggableIconList,
+    VariantsPanel,
+    family_display_filename,
+)
 from harrix_swiss_knife.paths import get_config_path_str
 from harrix_swiss_knife.win11_backdrop import SystemBackdrop, try_apply_system_backdrop
 
@@ -130,7 +136,8 @@ class MainWindow(QMainWindow, AppWindowMixin):
             if featured is None and family.variants:
                 featured = family.variants[0].absolute_path(self._repo_root, family.folder)
             if featured is not None:
-                item.setData(Qt.ItemDataRole.UserRole + 1, str(featured))
+                item.setData(ROLE_SVG_PATH, str(featured))
+                item.setData(ROLE_SUBTITLE, family_display_filename(family, featured))
         self.count_label.setText(f"{len(families)} icons")
         self.statusBar().showMessage(f"Showing {len(families)} / {len(self._catalog.icons)}")
         self._restore_or_clear_selection(families)
@@ -192,7 +199,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         center_layout.setContentsMargins(0, 0, 0, 0)
         self.count_label = QLabel("")
         center_layout.addWidget(self.count_label)
-        self.icon_list = DraggableIconList(icon_size=self._icon_size)
+        self.icon_list = DraggableIconList(icon_size=self._icon_size, dual_line_labels=True)
         self.icon_list.family_selected.connect(self._on_family_selected)
         self._wire_icon_list_actions(self.icon_list)
         center_layout.addWidget(self.icon_list)

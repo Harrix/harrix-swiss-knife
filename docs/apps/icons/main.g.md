@@ -92,7 +92,8 @@ class MainWindow(QMainWindow, AppWindowMixin):
             if featured is None and family.variants:
                 featured = family.variants[0].absolute_path(self._repo_root, family.folder)
             if featured is not None:
-                item.setData(Qt.ItemDataRole.UserRole + 1, str(featured))
+                item.setData(ROLE_SVG_PATH, str(featured))
+                item.setData(ROLE_SUBTITLE, family_display_filename(family, featured))
         self.count_label.setText(f"{len(families)} icons")
         self.statusBar().showMessage(f"Showing {len(families)} / {len(self._catalog.icons)}")
         self._restore_or_clear_selection(families)
@@ -154,7 +155,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         center_layout.setContentsMargins(0, 0, 0, 0)
         self.count_label = QLabel("")
         center_layout.addWidget(self.count_label)
-        self.icon_list = DraggableIconList(icon_size=self._icon_size)
+        self.icon_list = DraggableIconList(icon_size=self._icon_size, dual_line_labels=True)
         self.icon_list.family_selected.connect(self._on_family_selected)
         self._wire_icon_list_actions(self.icon_list)
         center_layout.addWidget(self.icon_list)

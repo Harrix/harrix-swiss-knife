@@ -5,13 +5,16 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from PySide6.QtCore import QMimeData, QPoint, QSize, Qt, QUrl, Signal
-from PySide6.QtGui import QDrag, QIcon, QPixmap
+from PySide6.QtCore import QMimeData, QModelIndex, QPersistentModelIndex, QPoint, QRect, QSize, Qt, QUrl, Signal
+from PySide6.QtGui import QColor, QDrag, QFont, QIcon, QPainter, QPixmap
 from PySide6.QtWidgets import (
     QLabel,
     QListWidget,
     QListWidgetItem,
     QMenu,
+    QStyle,
+    QStyledItemDelegate,
+    QStyleOptionViewItem,
     QVBoxLayout,
     QWidget,
 )
@@ -26,6 +29,9 @@ if TYPE_CHECKING:
     from harrix_swiss_knife.apps.icons.catalog import IconFamily
 
 VARIANT_THUMB_SIZE = 112
+ROLE_SVG_PATH = int(Qt.ItemDataRole.UserRole) + 1
+ROLE_SUBTITLE = int(Qt.ItemDataRole.UserRole) + 2
+LABEL_EXTRA_HEIGHT = 56
 
 
 class DraggableIconList(QListWidget):
@@ -47,11 +53,13 @@ class DraggableIconList(QListWidget):
         *,
         icon_size: int = DEFAULT_THUMB_SIZE,
         emit_family_selection: bool = True,
+        dual_line_labels: bool = False,
     ) -> None:
         """Configure icon mode and drag-only outward behavior."""
         super().__init__(parent)
         self._icon_size = icon_size
         self._emit_family_selection = emit_family_selection
+        self._dual_line_labels = dual_line_labels
         self.setViewMode(QListWidget.ViewMode.IconMode)
         self.setResizeMode(QListWidget.ResizeMode.Adjust)
         self.setMovement(QListWidget.Movement.Static)
@@ -59,12 +67,14 @@ class DraggableIconList(QListWidget):
         self.setWordWrap(True)
         self.setSpacing(8)
         self.setIconSize(QSize(icon_size, icon_size))
-        self.setGridSize(QSize(icon_size + 24, icon_size + 48))
+        self.setGridSize(self._grid_size_for(icon_size))
         self.setSelectionMode(QListWidget.SelectionMode.SingleSelection)
         self.setDragEnabled(True)
         self.setDragDropMode(QListWidget.DragDropMode.DragOnly)
         self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.customContextMenuRequested.connect(self._on_context_menu)
+        if dual_line_labels:
+            self.setItemDelegate(IconLabelDelegate(self))
         if emit_family_selection:
             self.currentItemChanged.connect(self._on_current_item_changed)
 
@@ -72,7 +82,7 @@ class DraggableIconList(QListWidget):
         """Update icon and grid sizes used by the list."""
         self._icon_size = icon_size
         self.setIconSize(QSize(icon_size, icon_size))
-        self.setGridSize(QSize(icon_size + 24, icon_size + 48))
+        self.setGridSize(self._grid_size_for(icon_size))
 
     def set_family_items(
         self,
@@ -88,8 +98,9 @@ class DraggableIconList(QListWidget):
             pixmap = pixmaps.get(family.id) or placeholder
             item = QListWidgetItem(QIcon(pixmap), family.title)
             item.setData(Qt.ItemDataRole.UserRole, family)
+            item.setData(ROLE_SUBTITLE, family_display_filename(family))
             item.setToolTip(f"{family.id}\n{', '.join(family.tags)}")
-            item.setSizeHint(QSize(self._icon_size + 16, self._icon_size + 40))
+            item.setSizeHint(QSize(self._icon_size + 16, self._icon_size + LABEL_EXTRA_HEIGHT))
             self.addItem(item)
         self.blockSignals(False)  # noqa: FBT003
         if self._emit_family_selection:
@@ -100,7 +111,7 @@ class DraggableIconList(QListWidget):
         item = self.currentItem()
         if item is None:
             return
-        svg_path = item.data(Qt.ItemDataRole.UserRole + 1)
+        svg_path = item.data(ROLE_SVG_PATH)
         if not isinstance(svg_path, str) or not svg_path:
             return
         path = Path(svg_path)
@@ -127,12 +138,16 @@ class DraggableIconList(QListWidget):
                 item.setIcon(QIcon(pixmap))
                 break
 
+    def _grid_size_for(self, icon_size: int) -> QSize:
+        label_h = LABEL_EXTRA_HEIGHT if self._dual_line_labels else 48
+        return QSize(icon_size + 24, icon_size + label_h)
+
     def _on_context_menu(self, pos: QPoint) -> None:
         item = self.itemAt(pos)
         if item is None:
             return
         family = item.data(Qt.ItemDataRole.UserRole)
-        path = item.data(Qt.ItemDataRole.UserRole + 1)
+        path = item.data(ROLE_SVG_PATH)
         if family is None or not isinstance(path, str) or not path:
             return
         self.setCurrentItem(item)
@@ -180,6 +195,95 @@ class DraggableIconList(QListWidget):
             self.family_selected.emit(None)
 
 
+class IconLabelDelegate(QStyledItemDelegate):
+    """Draw title plus a smaller filename under icon-mode items."""
+
+    def paint(
+        self,
+        painter: QPainter,
+        option: QStyleOptionViewItem,
+        index: QModelIndex | QPersistentModelIndex,
+    ) -> None:
+        """Paint icon decoration and two-line label."""
+        opt = QStyleOptionViewItem(option)
+        self.initStyleOption(opt, index)
+        title = opt.text
+        subtitle = index.data(ROLE_SUBTITLE)
+        subtitle_text = subtitle if isinstance(subtitle, str) else ""
+        opt.text = ""
+
+        widget = opt.widget
+        style = widget.style() if widget is not None else None
+        if style is not None:
+            style.drawControl(QStyle.ControlElement.CE_ItemViewItem, opt, painter, widget)
+
+        text_rect = (
+            style.subElementRect(QStyle.SubElement.SE_ItemViewItemText, opt, widget) if style is not None else opt.rect
+        )
+        if not text_rect.isValid():
+            text_rect = QRect(
+                opt.rect.left(),
+                opt.rect.bottom() - LABEL_EXTRA_HEIGHT,
+                opt.rect.width(),
+                LABEL_EXTRA_HEIGHT,
+            )
+
+        painter.save()
+        if opt.state & QStyle.StateFlag.State_Selected:
+            painter.setPen(opt.palette.color(opt.palette.ColorRole.HighlightedText))
+        else:
+            painter.setPen(opt.palette.color(opt.palette.ColorRole.Text))
+
+        title_font = QFont(opt.font)
+        subtitle_font = QFont(opt.font)
+        subtitle_font.setPointSizeF(max(8.0, title_font.pointSizeF() * 0.85))
+        subtitle_font.setBold(False)
+
+        painter.setFont(title_font)
+        title_height = painter.fontMetrics().height()
+        title_rect = QRect(text_rect.left(), text_rect.top(), text_rect.width(), title_height)
+        painter.drawText(
+            title_rect,
+            int(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop | Qt.TextFlag.TextWordWrap),
+            title,
+        )
+
+        if subtitle_text:
+            if opt.state & QStyle.StateFlag.State_Selected:
+                muted = opt.palette.color(opt.palette.ColorRole.HighlightedText)
+                muted.setAlpha(200)
+            else:
+                muted = opt.palette.color(opt.palette.ColorRole.PlaceholderText)
+                if not muted.isValid() or muted.alpha() == 0:
+                    muted = QColor(opt.palette.color(opt.palette.ColorRole.Text))
+                    muted.setAlpha(160)
+            painter.setPen(muted)
+            painter.setFont(subtitle_font)
+            subtitle_rect = QRect(
+                text_rect.left(),
+                title_rect.bottom() + 1,
+                text_rect.width(),
+                text_rect.bottom() - title_rect.bottom(),
+            )
+            painter.drawText(
+                subtitle_rect,
+                int(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop | Qt.TextFlag.TextWordWrap),
+                subtitle_text,
+            )
+        painter.restore()
+
+    def sizeHint(  # noqa: N802
+        self,
+        option: QStyleOptionViewItem,
+        index: QModelIndex | QPersistentModelIndex,
+    ) -> QSize:
+        """Keep room for icon plus two text lines."""
+        base = super().sizeHint(option, index)
+        icon_h = option.decorationSize.height() if option.decorationSize.isValid() else DEFAULT_THUMB_SIZE
+        width = max(base.width(), icon_h + 16)
+        return QSize(width, icon_h + LABEL_EXTRA_HEIGHT)
+
+
 class VariantsPanel(QWidget):
     """Right-side panel showing SVG variants for the selected icon family."""
 
@@ -225,7 +329,7 @@ class VariantsPanel(QWidget):
             pixmap = self._preview(path, self._thumb_size)
             item = QListWidgetItem(QIcon(pixmap), variant.name)
             item.setData(Qt.ItemDataRole.UserRole, family)
-            item.setData(Qt.ItemDataRole.UserRole + 1, str(path))
+            item.setData(ROLE_SVG_PATH, str(path))
             item.setToolTip(str(path))
             self.list.addItem(item)
 
@@ -235,3 +339,12 @@ class VariantsPanel(QWidget):
         if image is None:
             return placeholder_pixmap(size)
         return QPixmap.fromImage(image)
+
+
+def family_display_filename(family: IconFamily, svg_path: Path | None = None) -> str:
+    """Return the filename shown under the family title in the main grid."""
+    if svg_path is not None and svg_path.name.casefold() != "featured-image.svg":
+        return svg_path.name
+    if family.variants:
+        return Path(family.variants[0].file).name
+    return f"{family.id}.svg"
