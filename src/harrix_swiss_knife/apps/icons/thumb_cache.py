@@ -20,9 +20,11 @@ logger = logging.getLogger(__name__)
 DEFAULT_THUMB_SIZE = 160
 META_FILENAME = "meta.json"
 # Bump when thumbnail raster style changes (forces cache refresh).
-THUMB_FORMAT_VERSION = 3
+THUMB_FORMAT_VERSION = 4
 PREVIEW_BACKGROUND = QColor(180, 180, 180)
 PREVIEW_CORNER_RADIUS_RATIO = 0.12
+# Keep white icons inset from the gray tile edges.
+PREVIEW_ICON_INSET_RATIO = 0.1
 
 
 class ThumbnailCache:
@@ -167,6 +169,7 @@ def render_svg_to_image(svg_path: Path, size: int) -> QImage | None:
     """Rasterize an SVG into a square image.
 
     White variants (`*_white_*`) get a rounded gray backdrop so they stay visible.
+    The icon itself is inset so it does not touch the gray tile edges.
 
     """
     if not svg_path.is_file():
@@ -180,7 +183,11 @@ def render_svg_to_image(svg_path: Path, size: int) -> QImage | None:
     painter.setRenderHint(QPainter.RenderHint.Antialiasing, on=True)
     if svg_needs_contrast_background(svg_path):
         _paint_rounded_preview_background(painter, size)
-    renderer.render(painter)
+        inset = max(2.0, size * PREVIEW_ICON_INSET_RATIO)
+        icon_size = size - 2 * inset
+        renderer.render(painter, QRectF(inset, inset, icon_size, icon_size))
+    else:
+        renderer.render(painter)
     painter.end()
     return image
 

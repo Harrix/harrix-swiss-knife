@@ -17,6 +17,7 @@ lang: en
 - [🏛️ Class `IconFamily`](#%EF%B8%8F-class-iconfamily)
   - [⚙️ Method `featured_path`](#%EF%B8%8F-method-featured_path)
   - [⚙️ Method `matches`](#%EF%B8%8F-method-matches)
+  - [⚙️ Method `note_path`](#%EF%B8%8F-method-note_path)
 - [🏛️ Class `IconVariant`](#%EF%B8%8F-class-iconvariant)
   - [⚙️ Method `absolute_path`](#%EF%B8%8F-method-absolute_path)
 - [🔧 Function `load_catalog`](#-function-load_catalog)
@@ -146,6 +147,11 @@ class IconFamily:
     def matches(self, query: str) -> bool:
         """Return whether the family matches query (case/layout tolerant)."""
         return text_matches_autocomplete(self.search_blob, query)
+
+    def note_path(self, repo_root: Path) -> Path | None:
+        """Return absolute path to the family Markdown note when present."""
+        path = repo_root / self.folder / f"{self.id}.md"
+        return path if path.is_file() else None
 ```
 
 </details>
@@ -185,6 +191,25 @@ Return whether the family matches query (case/layout tolerant).
 ```python
 def matches(self, query: str) -> bool:
         return text_matches_autocomplete(self.search_blob, query)
+```
+
+</details>
+
+### ⚙️ Method `note_path`
+
+```python
+def note_path(self, repo_root: Path) -> Path | None
+```
+
+Return absolute path to the family Markdown note when present.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def note_path(self, repo_root: Path) -> Path | None:
+        path = repo_root / self.folder / f"{self.id}.md"
+        return path if path.is_file() else None
 ```
 
 </details>

@@ -70,6 +70,11 @@ class IconFamily:
         """Return whether the family matches query (case/layout tolerant)."""
         return text_matches_autocomplete(self.search_blob, query)
 
+    def note_path(self, repo_root: Path) -> Path | None:
+        """Return absolute path to the family Markdown note when present."""
+        path = repo_root / self.folder / f"{self.id}.md"
+        return path if path.is_file() else None
+
 
 @dataclass(frozen=True, slots=True)
 class IconVariant:

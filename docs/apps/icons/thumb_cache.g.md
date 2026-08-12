@@ -445,6 +445,7 @@ def render_svg_to_image(svg_path: Path, size: int) -> QImage | None
 Rasterize an SVG into a square image.
 
 White variants (`*_white_*`) get a rounded gray backdrop so they stay visible.
+The icon itself is inset so it does not touch the gray tile edges.
 
 <details>
 <summary>Code:</summary>
@@ -462,7 +463,11 @@ def render_svg_to_image(svg_path: Path, size: int) -> QImage | None:
     painter.setRenderHint(QPainter.RenderHint.Antialiasing, on=True)
     if svg_needs_contrast_background(svg_path):
         _paint_rounded_preview_background(painter, size)
-    renderer.render(painter)
+        inset = max(2.0, size * PREVIEW_ICON_INSET_RATIO)
+        icon_size = size - 2 * inset
+        renderer.render(painter, QRectF(inset, inset, icon_size, icon_size))
+    else:
+        renderer.render(painter)
     painter.end()
     return image
 ```

@@ -8,7 +8,6 @@ from typing import TYPE_CHECKING
 from PySide6.QtCore import QMimeData, QPoint, QSize, Qt, QUrl, Signal
 from PySide6.QtGui import QDrag, QIcon, QPixmap
 from PySide6.QtWidgets import (
-    QApplication,
     QLabel,
     QListWidget,
     QListWidgetItem,
@@ -33,7 +32,10 @@ class DraggableIconList(QListWidget):
     """Icon grid/list that drags the underlying SVG file URL outward."""
 
     family_selected = Signal(object)  # IconFamily | None
-    copy_path_requested = Signal(str)
+    reveal_requested = Signal(str)
+    details_requested = Signal(object, str)  # IconFamily, svg_path
+    copy_requested = Signal(str)
+    open_note_requested = Signal(object)  # IconFamily
 
     def __init__(
         self,
@@ -125,15 +127,26 @@ class DraggableIconList(QListWidget):
         item = self.itemAt(pos)
         if item is None:
             return
+        family = item.data(Qt.ItemDataRole.UserRole)
         path = item.data(Qt.ItemDataRole.UserRole + 1)
-        if not isinstance(path, str) or not path:
+        if family is None or not isinstance(path, str) or not path:
             return
+        self.setCurrentItem(item)
+
         menu = QMenu(self)
-        copy_action = menu.addAction("📋 Copy path")
+        reveal_action = menu.addAction("📂 Reveal in File Explorer")
+        details_action = menu.addAction("ℹ️ Icon details")  # noqa: RUF001
+        copy_action = menu.addAction("📋 Copy")
+        open_note_action = menu.addAction("📝 Open note in editor")
         chosen = menu.exec_(self.mapToGlobal(pos))
-        if chosen is copy_action:
-            QApplication.clipboard().setText(path)
-            self.copy_path_requested.emit(path)
+        if chosen is reveal_action:
+            self.reveal_requested.emit(path)
+        elif chosen is details_action:
+            self.details_requested.emit(family, path)
+        elif chosen is copy_action:
+            self.copy_requested.emit(path)
+        elif chosen is open_note_action:
+            self.open_note_requested.emit(family)
 
     def _on_current_item_changed(
         self,

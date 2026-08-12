@@ -8,9 +8,10 @@ from pathlib import Path
 from typing import Any
 
 import harrix_pylib as h
-from PySide6.QtCore import Qt, QTimer
+from PySide6.QtCore import QMimeData, Qt, QTimer, QUrl
 from PySide6.QtGui import QCloseEvent, QIcon, QPixmap
 from PySide6.QtWidgets import (
+    QApplication,
     QHBoxLayout,
     QLabel,
     QLineEdit,
@@ -27,8 +28,11 @@ from PySide6.QtWidgets import (
 )
 
 from harrix_swiss_knife import resources_rc  # noqa: F401
+from harrix_swiss_knife.actions.common.open_in_editor import open_in_editor
+from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.app_entry import run_app_main
 from harrix_swiss_knife.apps.common.qt_main_window import AppWindowMixin
+from harrix_swiss_knife.apps.common.ui_helpers import reveal_in_file_explorer
 from harrix_swiss_knife.apps.icons.catalog import IconCatalog, IconFamily, load_catalog, rebuild_catalog
 from harrix_swiss_knife.apps.icons.settings import (
     ICON_SIZE_MAX,
@@ -176,11 +180,13 @@ class MainWindow(QMainWindow, AppWindowMixin):
         center_layout.addWidget(self.count_label)
         self.icon_list = DraggableIconList(icon_size=self._icon_size)
         self.icon_list.family_selected.connect(self._on_family_selected)
+        self._wire_icon_list_actions(self.icon_list)
         center_layout.addWidget(self.icon_list)
         splitter.addWidget(center)
 
         self.variants_panel = VariantsPanel(thumb_size=self._variant_thumb_size(self._icon_size))
         self.variants_panel.setMinimumWidth(220)
+        self._wire_icon_list_actions(self.variants_panel.list)
         splitter.addWidget(self.variants_panel)
 
         splitter.setStretchFactor(0, 0)
@@ -237,6 +243,24 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._current_category = None if text == ALL_CATEGORIES or not text else text
         self._apply_filters()
 
+    def _on_copy_svg(self, svg_path: str) -> None:
+        path = Path(svg_path)
+        if not path.is_file():
+            QMessageBox.warning(self, "Vector Icons", f"File not found:\n{path}")
+            return
+        mime = QMimeData()
+        mime.setUrls([QUrl.fromLocalFile(str(path.resolve()))])
+        try:
+            mime.setText(path.read_text(encoding="utf-8"))
+        except OSError:
+            mime.setText(str(path.resolve()))
+        clipboard = QApplication.clipboard()
+        if clipboard is None:
+            QMessageBox.warning(self, "Vector Icons", "Clipboard is not available.")
+            return
+        clipboard.setMimeData(mime)
+        self.statusBar().showMessage(f"Copied `{path.name}`")
+
     def _on_family_selected(self, family: object) -> None:
         if family is None:
             self._selected_family_id = None
@@ -248,9 +272,58 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self.variants_panel.show_family(family, self._repo_root)
         self.statusBar().showMessage(f"{family.id}: {len(family.variants)} variants")
 
+    def _on_icon_details(self, family: object, svg_path: str) -> None:
+        if not isinstance(family, IconFamily):
+            return
+        note = family.note_path(self._repo_root) if self._repo_root is not None else None
+        variants = "\n".join(f"  - {variant.name} ({variant.file})" for variant in family.variants) or "  —"
+        text = "\n".join(
+            [
+                f"ID: {family.id}",
+                f"Title: {family.title}",
+                f"Categories: {', '.join(family.categories) or '—'}",
+                f"Tags: {', '.join(family.tags) or '—'}",
+                f"Folder: {family.folder}",
+                f"Note: {note if note is not None else '—'}",
+                f"Featured: {family.featured or '—'}",
+                f"Featured hash: {family.featured_hash or '—'}",
+                f"Selected SVG: {svg_path}",
+                f"Variants ({len(family.variants)}):",
+                variants,
+            ],
+        )
+        message_box.information(self, "Icon details", text)
+
     def _on_icon_size_changed(self, value: int) -> None:
         self._apply_icon_size(value)
         self._icon_size_save_timer.start()
+
+    def _on_open_note_in_editor(self, family: object) -> None:
+        if not isinstance(family, IconFamily):
+            return
+        if self._repo_root is None:
+            QMessageBox.warning(self, "Vector Icons", "Icons repository is not loaded.")
+            return
+        note_path = family.note_path(self._repo_root)
+        if note_path is None:
+            QMessageBox.warning(self, "Vector Icons", f"Markdown note not found for `{family.id}`.")
+            return
+        config: dict[str, Any] = h.dev.config_load(get_config_path_str())
+        editor = str(config.get("editor-notes") or "").strip()
+        if not editor or editor.startswith("<"):
+            QMessageBox.warning(
+                self,
+                "Vector Icons",
+                "Set `editor-notes` in config.json (for example `code-insiders`).",
+            )
+            return
+        workspace = str(config.get("path_vector_icons") or self._repo_root).strip() or str(self._repo_root)
+        try:
+            open_in_editor(editor, workspace, note_path)
+        except (OSError, ValueError) as exc:
+            QMessageBox.critical(self, "Vector Icons", f"Failed to open note in editor:\n{exc}")
+            return
+        self.statusBar().showMessage(f"Opened `{note_path.name}` in {editor}")
 
     def _on_open_thumbs_cache(self) -> None:
         path = default_cache_dir()
@@ -271,6 +344,15 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._populate_categories()
         self._apply_filters()
         self._start_thumb_refresh()
+
+    def _on_reveal_in_explorer(self, svg_path: str) -> None:
+        path = Path(svg_path)
+        try:
+            reveal_in_file_explorer(path)
+        except (OSError, FileNotFoundError) as exc:
+            QMessageBox.warning(self, "Vector Icons", str(exc))
+            return
+        self.statusBar().showMessage(f"Revealed `{path.name}`")
 
     def _on_thumb_finished(self, updated: int) -> None:
         total = len(self._catalog.icons) if self._catalog else 0
@@ -346,6 +428,12 @@ class MainWindow(QMainWindow, AppWindowMixin):
     @staticmethod
     def _variant_thumb_size(icon_size: int) -> int:
         return max(ICON_SIZE_MIN, min(icon_size, (icon_size * 3) // 4 or icon_size))
+
+    def _wire_icon_list_actions(self, icon_list: DraggableIconList) -> None:
+        icon_list.reveal_requested.connect(self._on_reveal_in_explorer)
+        icon_list.details_requested.connect(self._on_icon_details)
+        icon_list.copy_requested.connect(self._on_copy_svg)
+        icon_list.open_note_requested.connect(self._on_open_note_in_editor)
 
 
 def main() -> None:
