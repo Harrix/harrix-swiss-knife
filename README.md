@@ -151,6 +151,7 @@ _Figure 1: Screenshot_
 - 🏃🏻 Fitness tracker
 - 🍔 Food tracker
 - ✅ Habit tracker
+- 🎨 Vector Icons
 - ⚡ Quick launcher…
 - × Exit
 

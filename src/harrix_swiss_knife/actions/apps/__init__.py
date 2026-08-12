@@ -4,10 +4,12 @@ from harrix_swiss_knife.actions.apps.finance import OnFinance
 from harrix_swiss_knife.actions.apps.fitness import OnFitness
 from harrix_swiss_knife.actions.apps.food import OnFood
 from harrix_swiss_knife.actions.apps.habits import OnHabits
+from harrix_swiss_knife.actions.apps.icons import OnIcons
 
 __all__ = [
     "OnFinance",
     "OnFitness",
     "OnFood",
     "OnHabits",
+    "OnIcons",
 ]

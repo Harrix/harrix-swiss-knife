@@ -197,6 +197,7 @@
   "path_photos": "<YOUR_PHOTOS_FOLDER>",
   "path_quotes": "<YOUR_QUOTES_FOLDER>",
   "path_totalcmd_ini": "<YOUR_TOTALCMD_WINCMD_INI>",
+  "path_vector_icons": "<YOUR_GITHUB_FOLDER>/Harrix-Vector-Icons",
   "paths_combine_for_ai": [
     {
       "base_folder": "<YOUR_GITHUB_FOLDER>/harrix-swiss-knife",

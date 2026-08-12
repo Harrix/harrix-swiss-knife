@@ -364,5 +364,6 @@
   },
   "fitness_names_translate_local_limit": 250,
   "path_html_theme": "D:/GitHub/Harrix-HTML-Template/theme",
-  "path_html_template_dist": "D:/GitHub/Harrix-HTML-Template/dist"
+  "path_html_template_dist": "D:/GitHub/Harrix-HTML-Template/dist",
+  "path_vector_icons": "D:/GitHub/Harrix-Vector-Icons"
 }
