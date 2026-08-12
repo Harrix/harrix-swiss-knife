@@ -94,6 +94,7 @@ class ScreenshotPreviewDialog(QDialog):
         self.accept()
 
         def run() -> None:
+            # Local import: actions.images.__init__ pulls screenshot_region -> this package.
             from harrix_swiss_knife.actions.images.image_to_markdown_with_ai import (  # noqa: PLC0415
                 OnImageToMarkdownWithAI,
             )
@@ -109,6 +110,7 @@ class ScreenshotPreviewDialog(QDialog):
         self.accept()
 
         def run() -> None:
+            # Local import: actions.images.__init__ pulls screenshot_region -> this package.
             from harrix_swiss_knife.actions.images.image_to_markdown_with_ocr import (  # noqa: PLC0415
                 OnImageToMarkdownWithOcr,
             )
