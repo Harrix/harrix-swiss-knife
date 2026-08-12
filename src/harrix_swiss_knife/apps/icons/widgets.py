@@ -9,8 +9,6 @@ from PySide6.QtCore import QMimeData, QPoint, QSize, Qt, QUrl, Signal
 from PySide6.QtGui import QDrag, QIcon, QPixmap
 from PySide6.QtWidgets import (
     QApplication,
-    QDialog,
-    QDialogButtonBox,
     QLabel,
     QListWidget,
     QListWidgetItem,
@@ -24,17 +22,26 @@ from harrix_swiss_knife.apps.icons.thumb_cache import DEFAULT_THUMB_SIZE, render
 if TYPE_CHECKING:
     from harrix_swiss_knife.apps.icons.catalog import IconFamily
 
+VARIANT_THUMB_SIZE = 112
+
 
 class DraggableIconList(QListWidget):
     """Icon grid/list that drags the underlying SVG file URL outward."""
 
-    family_activated = Signal(object)  # IconFamily
+    family_selected = Signal(object)  # IconFamily | None
     copy_path_requested = Signal(str)
 
-    def __init__(self, parent: QWidget | None = None, *, icon_size: int = DEFAULT_THUMB_SIZE) -> None:
+    def __init__(
+        self,
+        parent: QWidget | None = None,
+        *,
+        icon_size: int = DEFAULT_THUMB_SIZE,
+        emit_family_selection: bool = True,
+    ) -> None:
         """Configure icon mode and drag-only outward behavior."""
         super().__init__(parent)
         self._icon_size = icon_size
+        self._emit_family_selection = emit_family_selection
         self.setViewMode(QListWidget.ViewMode.IconMode)
         self.setResizeMode(QListWidget.ResizeMode.Adjust)
         self.setMovement(QListWidget.Movement.Static)
@@ -48,8 +55,8 @@ class DraggableIconList(QListWidget):
         self.setDragDropMode(QListWidget.DragDropMode.DragOnly)
         self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.customContextMenuRequested.connect(self._on_context_menu)
-        self.itemDoubleClicked.connect(self._on_item_activated)
-        self.itemActivated.connect(self._on_item_activated)
+        if emit_family_selection:
+            self.currentItemChanged.connect(self._on_current_item_changed)
 
     def set_family_items(
         self,
@@ -59,6 +66,7 @@ class DraggableIconList(QListWidget):
         placeholder: QPixmap,
     ) -> None:
         """Rebuild the grid from filtered families and available thumbnails."""
+        self.blockSignals(True)  # noqa: FBT003
         self.clear()
         for family in families:
             pixmap = pixmaps.get(family.id) or placeholder
@@ -67,6 +75,9 @@ class DraggableIconList(QListWidget):
             item.setToolTip(f"{family.id}\n{', '.join(family.tags)}")
             item.setSizeHint(QSize(self._icon_size + 16, self._icon_size + 40))
             self.addItem(item)
+        self.blockSignals(False)  # noqa: FBT003
+        if self._emit_family_selection:
+            self.family_selected.emit(None)
 
     def startDrag(self, supported_actions: Qt.DropAction) -> None:  # noqa: ARG002, N802
         """Start an OS file drag for the selected SVG path."""
@@ -114,54 +125,64 @@ class DraggableIconList(QListWidget):
             QApplication.clipboard().setText(path)
             self.copy_path_requested.emit(path)
 
-    def _on_item_activated(self, item: QListWidgetItem) -> None:
-        family = item.data(Qt.ItemDataRole.UserRole)
-        if family is not None and hasattr(family, "variants"):
-            # Only emit for family grid items (variants dialog stores path in UserRole+1 only)
-            if item.data(Qt.ItemDataRole.UserRole + 2) == "variant":
-                return
-            self.family_activated.emit(family)
-
-
-class VariantsDialog(QDialog):
-    """Dialog listing SVG variants for one icon family with drag support."""
-
-    def __init__(
+    def _on_current_item_changed(
         self,
-        family: IconFamily,
-        repo_root: Path,
-        parent: QWidget | None = None,
-        *,
-        thumb_size: int = 128,
+        current: QListWidgetItem | None,
+        _previous: QListWidgetItem | None,
     ) -> None:
-        """Build a list of variants with rendered previews."""
-        super().__init__(parent)
-        self.setWindowTitle(f"{family.title} — variants")
-        self.resize(640, 480)
-        layout = QVBoxLayout(self)
-        header = QLabel(f"{family.id}\nCategories: {', '.join(family.categories)}")
-        header.setWordWrap(True)
-        layout.addWidget(header)
+        if current is None:
+            self.family_selected.emit(None)
+            return
+        family = current.data(Qt.ItemDataRole.UserRole)
+        if family is not None and hasattr(family, "variants"):
+            self.family_selected.emit(family)
+        else:
+            self.family_selected.emit(None)
 
-        self.list = DraggableIconList(icon_size=thumb_size)
+
+class VariantsPanel(QWidget):
+    """Right-side panel showing SVG variants for the selected icon family."""
+
+    def __init__(self, parent: QWidget | None = None, *, thumb_size: int = VARIANT_THUMB_SIZE) -> None:
+        """Build header + draggable variants list."""
+        super().__init__(parent)
+        self._thumb_size = thumb_size
+        self._repo_root: Path | None = None
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        self.header = QLabel("Select an icon to see variants")
+        self.header.setWordWrap(True)
+        layout.addWidget(self.header)
+
+        self.list = DraggableIconList(icon_size=thumb_size, emit_family_selection=False)
         layout.addWidget(self.list)
 
+    def clear_variants(self) -> None:
+        """Clear the variants list and reset the header."""
+        self.list.clear()
+        self.header.setText("Select an icon to see variants")
+
+    def show_family(self, family: IconFamily | None, repo_root: Path | None) -> None:
+        """Populate the panel with variants of `family`."""
+        self._repo_root = repo_root
+        self.list.clear()
+        if family is None or repo_root is None:
+            self.header.setText("Select an icon to see variants")
+            return
+
+        tags = ", ".join(family.tags) if family.tags else "—"
+        self.header.setText(
+            f"{family.title}\n{family.id}\nCategories: {', '.join(family.categories)}\nTags: {tags}",
+        )
         for variant in family.variants:
             path = variant.absolute_path(repo_root, family.folder)
-            pixmap = self._preview(path, thumb_size)
+            pixmap = self._preview(path, self._thumb_size)
             item = QListWidgetItem(QIcon(pixmap), variant.name)
             item.setData(Qt.ItemDataRole.UserRole, family)
             item.setData(Qt.ItemDataRole.UserRole + 1, str(path))
-            item.setData(Qt.ItemDataRole.UserRole + 2, "variant")
             item.setToolTip(str(path))
             self.list.addItem(item)
-
-        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
-        close_btn = buttons.button(QDialogButtonBox.StandardButton.Close)
-        if close_btn is not None:
-            close_btn.clicked.connect(self.accept)
-        buttons.rejected.connect(self.reject)
-        layout.addWidget(buttons)
 
     @staticmethod
     def _preview(path: Path, size: int) -> QPixmap:

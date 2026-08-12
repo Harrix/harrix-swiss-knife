@@ -34,7 +34,7 @@ from harrix_swiss_knife.apps.icons.thumb_cache import (
     placeholder_pixmap,
     start_thumbnail_refresh,
 )
-from harrix_swiss_knife.apps.icons.widgets import DraggableIconList, VariantsDialog
+from harrix_swiss_knife.apps.icons.widgets import DraggableIconList, VariantsPanel
 from harrix_swiss_knife.paths import get_config_path_str
 from harrix_swiss_knife.win11_backdrop import SystemBackdrop, try_apply_system_backdrop
 
@@ -65,6 +65,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._thumb_thread = None
         self._thumb_worker = None
         self._current_category: str | None = None
+        self._selected_family_id: str | None = None
 
         self._build_ui()
         self._load_from_config()
@@ -80,12 +81,12 @@ class MainWindow(QMainWindow, AppWindowMixin):
     def _apply_filters(self) -> None:
         if self._catalog is None or self._repo_root is None:
             self.icon_list.clear()
+            self.variants_panel.clear_variants()
             self.count_label.setText("0 icons")
             return
         query = self.search_edit.text()
         families = self._catalog.filter_icons(category=self._current_category, query=query)
         self.icon_list.set_family_items(families, pixmaps=self._pixmaps, placeholder=self._placeholder)
-        # Attach featured SVG paths for drag-out
         for index in range(self.icon_list.count()):
             item = self.icon_list.item(index)
             if item is None:
@@ -100,6 +101,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
                 item.setData(Qt.ItemDataRole.UserRole + 1, str(featured))
         self.count_label.setText(f"{len(families)} icons")
         self.statusBar().showMessage(f"Showing {len(families)} / {len(self._catalog.icons)}")
+        self._restore_or_clear_selection(families)
 
     def _build_ui(self) -> None:
         central = QWidget(self)
@@ -119,26 +121,34 @@ class MainWindow(QMainWindow, AppWindowMixin):
 
         splitter = QSplitter(Qt.Orientation.Horizontal)
         self.category_list = QListWidget()
-        self.category_list.setMaximumWidth(220)
+        self.category_list.setMinimumWidth(160)
+        self.category_list.setMaximumWidth(260)
         self.category_list.currentTextChanged.connect(self._on_category_changed)
         splitter.addWidget(self.category_list)
 
-        right = QWidget()
-        right_layout = QVBoxLayout(right)
-        right_layout.setContentsMargins(0, 0, 0, 0)
+        center = QWidget()
+        center_layout = QVBoxLayout(center)
+        center_layout.setContentsMargins(0, 0, 0, 0)
         self.count_label = QLabel("")
-        right_layout.addWidget(self.count_label)
+        center_layout.addWidget(self.count_label)
         self.icon_list = DraggableIconList(icon_size=DEFAULT_THUMB_SIZE)
-        self.icon_list.family_activated.connect(self._on_family_activated)
-        right_layout.addWidget(self.icon_list)
-        splitter.addWidget(right)
+        self.icon_list.family_selected.connect(self._on_family_selected)
+        center_layout.addWidget(self.icon_list)
+        splitter.addWidget(center)
+
+        self.variants_panel = VariantsPanel()
+        self.variants_panel.setMinimumWidth(220)
+        splitter.addWidget(self.variants_panel)
+
+        splitter.setStretchFactor(0, 0)
         splitter.setStretchFactor(1, 1)
+        splitter.setStretchFactor(2, 0)
+        splitter.setSizes([200, 900, 320])
         root.addWidget(splitter)
 
         self.setStatusBar(QStatusBar())
         self.statusBar().showMessage("Ready")
 
-        # Simple menu
         file_menu = self.menuBar().addMenu("&File")
         refresh_action = file_menu.addAction("Refresh catalog")
         refresh_action.triggered.connect(self._on_refresh_catalog)
@@ -182,11 +192,16 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._current_category = None if text == ALL_CATEGORIES or not text else text
         self._apply_filters()
 
-    def _on_family_activated(self, family: object) -> None:
+    def _on_family_selected(self, family: object) -> None:
+        if family is None:
+            self._selected_family_id = None
+            self.variants_panel.clear_variants()
+            return
         if not isinstance(family, IconFamily) or self._repo_root is None:
             return
-        dialog = VariantsDialog(family, self._repo_root, self)
-        dialog.exec()
+        self._selected_family_id = family.id
+        self.variants_panel.show_family(family, self._repo_root)
+        self.statusBar().showMessage(f"{family.id}: {len(family.variants)} variants")
 
     def _on_refresh_catalog(self) -> None:
         if self._repo_root is None:
@@ -232,6 +247,21 @@ class MainWindow(QMainWindow, AppWindowMixin):
             pixmap = self._thumb_cache.load_pixmap(family.id)
             if pixmap is not None:
                 self._pixmaps[family.id] = pixmap
+
+    def _restore_or_clear_selection(self, families: list[IconFamily]) -> None:
+        """Keep selection if the family is still visible; otherwise clear variants."""
+        if self._selected_family_id is None:
+            self.variants_panel.clear_variants()
+            return
+        for index, family in enumerate(families):
+            if family.id != self._selected_family_id:
+                continue
+            item = self.icon_list.item(index)
+            if item is not None:
+                self.icon_list.setCurrentItem(item)
+            return
+        self._selected_family_id = None
+        self.variants_panel.clear_variants()
 
     def _start_thumb_refresh(self) -> None:
         if self._catalog is None:
