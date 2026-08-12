@@ -2,7 +2,6 @@ package dev.harrix.hsk.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
@@ -171,8 +170,8 @@ fun Modifier.adaptiveContentWidth(): Modifier = this
     .widthIn(max = AdaptiveContentMaxWidth)
 
 /**
- * Full-width primary action (e.g. Video Cleaner delete): on narrow phones stacks icon
- * above label; long labels shrink (then ellipsis) instead of wrapping.
+ * Full-width primary action (e.g. Video Cleaner delete): icon and label on one row;
+ * long labels shrink (then ellipsis) instead of wrapping or stacking.
  */
 @Composable
 fun CompactWideActionButton(
@@ -183,7 +182,6 @@ fun CompactWideActionButton(
     enabled: Boolean = true,
     colors: ButtonColors = ButtonDefaults.buttonColors(),
 ) {
-    val compact = isCompactWidth()
     var labelOverflows by remember(label) { mutableStateOf(false) }
     OverflowTextTooltipBox(text = label, enabled = labelOverflows) {
         Button(
@@ -191,57 +189,31 @@ fun CompactWideActionButton(
             enabled = enabled,
             modifier = modifier
                 .fillMaxWidth()
-                .heightIn(min = if (compact) 64.dp else 56.dp),
+                .heightIn(min = 56.dp),
             shape = ActionButtonShape,
-            contentPadding =
-            PaddingValues(
-                horizontal = if (compact) 12.dp else 16.dp,
-                vertical = 10.dp,
-            ),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp),
             colors = colors,
         ) {
-            if (compact) {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(2.dp),
-                ) {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = null,
-                        modifier = Modifier.size(20.dp),
-                    )
-                    AutoFitText(
-                        text = label,
-                        style = MaterialTheme.typography.labelLarge,
-                        maxLines = 1,
-                        textAlign = TextAlign.Center,
-                        enableOverflowTooltip = false,
-                        onOverflowChange = { labelOverflows = it },
-                    )
-                }
-            } else {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center,
-                ) {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp),
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    AutoFitText(
-                        text = label,
-                        modifier = Modifier.weight(1f, fill = false),
-                        style = MaterialTheme.typography.labelLarge,
-                        maxLines = 1,
-                        textAlign = TextAlign.Center,
-                        enableOverflowTooltip = false,
-                        onOverflowChange = { labelOverflows = it },
-                    )
-                }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center,
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp),
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                AutoFitText(
+                    text = label,
+                    modifier = Modifier.weight(1f, fill = false),
+                    style = MaterialTheme.typography.labelLarge,
+                    maxLines = 1,
+                    textAlign = TextAlign.Center,
+                    enableOverflowTooltip = false,
+                    onOverflowChange = { labelOverflows = it },
+                )
             }
         }
     }
