@@ -35,7 +35,6 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.VideoLibrary
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -71,6 +70,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import dev.harrix.hsk.R
+import dev.harrix.hsk.ui.HskDropdownMenuItem
 import dev.harrix.hsk.ui.about.AboutScreen
 import dev.harrix.hsk.ui.gallery.GalleryCleanerScreen
 import dev.harrix.hsk.ui.gallery.VideoCleanerScreen
@@ -328,14 +328,14 @@ fun MainScreen(
                                                 homeMenuExpanded = false
                                             },
                                         ) {
-                                            DropdownMenuItem(
+                                            HskDropdownMenuItem(
                                                 text = {
                                                     AutoFitText(
                                                         text =
                                                         stringResource(
                                                             R.string.nav_settings,
                                                         ),
-                                                        maxLines = 2,
+                                                        maxLines = 1,
                                                     )
                                                 },
                                                 leadingIcon = {

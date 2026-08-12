@@ -69,7 +69,6 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -127,6 +126,7 @@ import dev.harrix.hsk.gallery.PendingEditUndo
 import dev.harrix.hsk.gallery.PhotoEditSaver
 import dev.harrix.hsk.ui.AutoFitText
 import dev.harrix.hsk.ui.CompactBottomActionButton
+import dev.harrix.hsk.ui.HskDropdownMenuItem
 import dev.harrix.hsk.ui.adaptiveBottomBarWidth
 import dev.harrix.hsk.ui.isCompactHeight
 import dev.harrix.hsk.ui.isCompactWidth
@@ -1039,13 +1039,13 @@ fun GalleryCleanerScreen(
                                     expanded = menuExpanded,
                                     onDismissRequest = { menuExpanded = false },
                                 ) {
-                                    DropdownMenuItem(
+                                    HskDropdownMenuItem(
                                         text = {
                                             AutoFitText(
                                                 text = stringResource(
                                                     R.string.gallery_cleaner_date_filter,
                                                 ),
-                                                maxLines = 2,
+                                                maxLines = 1,
                                             )
                                         },
                                         leadingIcon = {
@@ -1060,13 +1060,13 @@ fun GalleryCleanerScreen(
                                         },
                                     )
                                     if (currentPhoto != null) {
-                                        DropdownMenuItem(
+                                        HskDropdownMenuItem(
                                             text = {
                                                 AutoFitText(
                                                     text = stringResource(
                                                         R.string.gallery_cleaner_filter_shoot_day,
                                                     ),
-                                                    maxLines = 2,
+                                                    maxLines = 1,
                                                 )
                                             },
                                             leadingIcon = {
@@ -1085,13 +1085,13 @@ fun GalleryCleanerScreen(
                                         )
                                     }
                                     if (dateFilter.enabled) {
-                                        DropdownMenuItem(
+                                        HskDropdownMenuItem(
                                             text = {
                                                 AutoFitText(
                                                     text = stringResource(
                                                         R.string.gallery_cleaner_clear_date_filter,
                                                     ),
-                                                    maxLines = 2,
+                                                    maxLines = 1,
                                                 )
                                             },
                                             leadingIcon = {
@@ -1111,7 +1111,7 @@ fun GalleryCleanerScreen(
                                             },
                                         )
                                     }
-                                    DropdownMenuItem(
+                                    HskDropdownMenuItem(
                                         text = {
                                             AutoFitText(
                                                 text = stringResource(
@@ -1121,7 +1121,7 @@ fun GalleryCleanerScreen(
                                                         R.string.gallery_cleaner_enable_unreviewed_only
                                                     },
                                                 ),
-                                                maxLines = 2,
+                                                maxLines = 1,
                                             )
                                         },
                                         leadingIcon = {
@@ -1145,9 +1145,9 @@ fun GalleryCleanerScreen(
                                             }
                                         },
                                     )
-                                    DropdownMenuItem(
+                                    HskDropdownMenuItem(
                                         text = {
-                                            AutoFitText(text = stringResource(R.string.gallery_cleaner_stats), maxLines = 2)
+                                            AutoFitText(text = stringResource(R.string.gallery_cleaner_stats), maxLines = 1)
                                         },
                                         leadingIcon = {
                                             Icon(
@@ -1161,13 +1161,13 @@ fun GalleryCleanerScreen(
                                         },
                                     )
                                     if (currentPhoto != null) {
-                                        DropdownMenuItem(
+                                        HskDropdownMenuItem(
                                             text = {
                                                 AutoFitText(
                                                     text = stringResource(
                                                         R.string.photo_file_details_title,
                                                     ),
-                                                    maxLines = 2,
+                                                    maxLines = 1,
                                                 )
                                             },
                                             leadingIcon = {
@@ -1182,9 +1182,9 @@ fun GalleryCleanerScreen(
                                             },
                                         )
                                     }
-                                    DropdownMenuItem(
+                                    HskDropdownMenuItem(
                                         text = {
-                                            AutoFitText(text = stringResource(R.string.gallery_cleaner_settings), maxLines = 2)
+                                            AutoFitText(text = stringResource(R.string.gallery_cleaner_settings), maxLines = 1)
                                         },
                                         leadingIcon = {
                                             Icon(

@@ -68,7 +68,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -120,6 +119,7 @@ import dev.harrix.hsk.gallery.GalleryPermissions
 import dev.harrix.hsk.gallery.VideoCleanerPreferences
 import dev.harrix.hsk.ui.AutoFitText
 import dev.harrix.hsk.ui.CompactWideActionButton
+import dev.harrix.hsk.ui.HskDropdownMenuItem
 import dev.harrix.hsk.ui.OverflowTextTooltipBox
 import dev.harrix.hsk.ui.adaptiveBottomBarWidth
 import dev.harrix.hsk.ui.isCompactWidth
@@ -513,8 +513,8 @@ fun VideoCleanerScreen(
                             onDismissRequest = { sortMenuExpanded = false },
                         ) {
                             VideoSort.entries.forEach { option ->
-                                DropdownMenuItem(
-                                    text = { AutoFitText(text = stringResource(option.labelRes), maxLines = 2) },
+                                HskDropdownMenuItem(
+                                    text = { AutoFitText(text = stringResource(option.labelRes), maxLines = 1) },
                                     leadingIcon = {
                                         Icon(
                                             imageVector = option.icon,
@@ -528,9 +528,9 @@ fun VideoCleanerScreen(
                                 )
                             }
                             HorizontalDivider()
-                            DropdownMenuItem(
+                            HskDropdownMenuItem(
                                 text = {
-                                    AutoFitText(text = stringResource(R.string.video_cleaner_stats), maxLines = 2)
+                                    AutoFitText(text = stringResource(R.string.video_cleaner_stats), maxLines = 1)
                                 },
                                 leadingIcon = {
                                     Icon(
@@ -543,9 +543,9 @@ fun VideoCleanerScreen(
                                     showStatsDialog = true
                                 },
                             )
-                            DropdownMenuItem(
+                            HskDropdownMenuItem(
                                 text = {
-                                    AutoFitText(text = stringResource(R.string.video_cleaner_settings), maxLines = 2)
+                                    AutoFitText(text = stringResource(R.string.video_cleaner_settings), maxLines = 1)
                                 },
                                 leadingIcon = {
                                     Icon(
@@ -751,7 +751,7 @@ private fun VideoSelectionTextButton(
             AutoFitText(
                 text = label,
                 modifier = Modifier.weight(1f, fill = false),
-                maxLines = 2,
+                maxLines = 1,
                 textAlign = TextAlign.Center,
                 style = LocalTextStyle.current,
                 enableOverflowTooltip = false,
@@ -907,9 +907,9 @@ private fun VideoGalleryItem(
                 expanded = menuExpanded,
                 onDismissRequest = { menuExpanded = false },
             ) {
-                DropdownMenuItem(
+                HskDropdownMenuItem(
                     text = {
-                        AutoFitText(text = stringResource(R.string.video_cleaner_play), maxLines = 2)
+                        AutoFitText(text = stringResource(R.string.video_cleaner_play), maxLines = 1)
                     },
                     onClick = {
                         menuExpanded = false
@@ -922,9 +922,9 @@ private fun VideoGalleryItem(
                         )
                     },
                 )
-                DropdownMenuItem(
+                HskDropdownMenuItem(
                     text = {
-                        AutoFitText(text = stringResource(R.string.video_cleaner_share), maxLines = 2)
+                        AutoFitText(text = stringResource(R.string.video_cleaner_share), maxLines = 1)
                     },
                     onClick = {
                         menuExpanded = false
@@ -937,11 +937,11 @@ private fun VideoGalleryItem(
                         )
                     },
                 )
-                DropdownMenuItem(
+                HskDropdownMenuItem(
                     text = {
                         AutoFitText(
                             text = stringResource(R.string.photo_file_details_title),
-                            maxLines = 2,
+                            maxLines = 1,
                         )
                     },
                     onClick = {

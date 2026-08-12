@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.Button
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
@@ -36,6 +35,7 @@ import androidx.compose.ui.unit.dp
 import dev.harrix.hsk.R
 import dev.harrix.hsk.gallery.GalleryDateFilter
 import dev.harrix.hsk.ui.AutoFitText
+import dev.harrix.hsk.ui.HskDropdownMenuItem
 import java.text.DateFormatSymbols
 import java.util.Calendar
 
@@ -458,11 +458,11 @@ private fun SimpleDropdownField(
             onDismissRequest = { expanded = false },
         ) {
             options.forEachIndexed { index, option ->
-                DropdownMenuItem(
+                HskDropdownMenuItem(
                     text = {
                         AutoFitText(
                             text = option,
-                            maxLines = 2,
+                            maxLines = 1,
                         )
                     },
                     onClick = {

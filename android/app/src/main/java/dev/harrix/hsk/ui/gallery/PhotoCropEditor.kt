@@ -40,7 +40,6 @@ import androidx.compose.material.icons.filled.Transform
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.HorizontalDivider
@@ -80,7 +79,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
@@ -93,6 +91,7 @@ import dev.harrix.hsk.gallery.NormalizedPerspectiveQuad
 import dev.harrix.hsk.gallery.PerspectiveQuadDetector
 import dev.harrix.hsk.gallery.PhotoEditSaver
 import dev.harrix.hsk.ui.AutoFitText
+import dev.harrix.hsk.ui.HskDropdownMenuItem
 import dev.harrix.hsk.ui.OverflowTextTooltipBox
 import dev.harrix.hsk.ui.adaptiveBottomBarWidth
 import dev.harrix.hsk.ui.isCompactHeight
@@ -1580,12 +1579,11 @@ private fun EditOverflowMenuItem(
     onClick: () -> Unit,
     enabled: Boolean = true,
 ) {
-    DropdownMenuItem(
+    HskDropdownMenuItem(
         text = {
-            Text(
+            AutoFitText(
                 text = label,
-                maxLines = Int.MAX_VALUE,
-                overflow = TextOverflow.Clip,
+                maxLines = 1,
             )
         },
         onClick = onClick,

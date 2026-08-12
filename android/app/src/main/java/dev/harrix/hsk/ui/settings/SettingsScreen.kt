@@ -30,7 +30,6 @@ import androidx.compose.material.icons.filled.Security
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
@@ -84,6 +83,7 @@ import dev.harrix.hsk.gallery.MediaFolderPaths
 import dev.harrix.hsk.medicinesearch.MedicineSearchPreferences
 import dev.harrix.hsk.medicinesearch.MedicinesNoteOpener
 import dev.harrix.hsk.ui.AutoFitText
+import dev.harrix.hsk.ui.HskDropdownMenuItem
 import dev.harrix.hsk.ui.adaptiveContentWidth
 import dev.harrix.hsk.ui.isCompactWidth
 import dev.harrix.hsk.ui.theme.AppLanguage
@@ -485,11 +485,11 @@ private fun EssentialSettingsSection(
                         } else {
                             language.nativeLabel
                         }
-                    DropdownMenuItem(
+                    HskDropdownMenuItem(
                         text = {
                             AutoFitText(
                                 text = optionLabel,
-                                maxLines = 2,
+                                maxLines = 1,
                             )
                         },
                         onClick = {
@@ -1568,11 +1568,11 @@ private fun SimpleDropdownField(
             onDismissRequest = { expanded = false },
         ) {
             options.forEachIndexed { index, option ->
-                DropdownMenuItem(
+                HskDropdownMenuItem(
                     text = {
                         AutoFitText(
                             text = option,
-                            maxLines = 2,
+                            maxLines = 1,
                         )
                     },
                     onClick = {
