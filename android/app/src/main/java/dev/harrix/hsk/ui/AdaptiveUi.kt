@@ -79,7 +79,7 @@ fun videoGridColumnCount(): Int {
 
 /**
  * Bottom-bar action: icon and label on one row. Short labels (Delete / Skip / Keep)
- * fit on narrow phones; longer translations wrap up to two lines, then shrink/ellipsis.
+ * fit on narrow phones; longer translations shrink (then ellipsis) instead of wrapping.
  * Grows evenly in a [RowScope].
  */
 @Composable
@@ -114,7 +114,7 @@ fun RowScope.CompactBottomActionButton(
                 text = label,
                 modifier = Modifier.weight(1f, fill = false),
                 style = MaterialTheme.typography.labelLarge,
-                maxLines = 2,
+                maxLines = 1,
                 textAlign = TextAlign.Center,
                 enableOverflowTooltip = false,
                 onOverflowChange = { labelOverflows = it },
@@ -172,7 +172,7 @@ fun Modifier.adaptiveContentWidth(): Modifier = this
 
 /**
  * Full-width primary action (e.g. Video Cleaner delete): on narrow phones stacks icon
- * above label; long labels wrap up to two lines, then shrink/ellipsis.
+ * above label; long labels shrink (then ellipsis) instead of wrapping.
  */
 @Composable
 fun CompactWideActionButton(
@@ -214,7 +214,7 @@ fun CompactWideActionButton(
                     AutoFitText(
                         text = label,
                         style = MaterialTheme.typography.labelLarge,
-                        maxLines = 2,
+                        maxLines = 1,
                         textAlign = TextAlign.Center,
                         enableOverflowTooltip = false,
                         onOverflowChange = { labelOverflows = it },
@@ -236,7 +236,7 @@ fun CompactWideActionButton(
                         text = label,
                         modifier = Modifier.weight(1f, fill = false),
                         style = MaterialTheme.typography.labelLarge,
-                        maxLines = 2,
+                        maxLines = 1,
                         textAlign = TextAlign.Center,
                         enableOverflowTooltip = false,
                         onOverflowChange = { labelOverflows = it },
