@@ -43,6 +43,7 @@ class DraggableIconList(QListWidget):
     reveal_requested = Signal(str)
     details_requested = Signal(object, str)  # IconFamily, svg_path
     copy_requested = Signal(str)
+    copy_path_requested = Signal(str)
     open_note_requested = Signal(object)  # IconFamily
     reveal_source_requested = Signal(object, str)  # IconFamily, svg_path
     open_source_requested = Signal(object, str)  # IconFamily, svg_path
@@ -147,6 +148,7 @@ class DraggableIconList(QListWidget):
         reveal_action = menu.addAction("📂 Reveal in File Explorer")
         details_action = menu.addAction("ℹ️ Icon details")  # noqa: RUF001
         copy_action = menu.addAction("📋 Copy")
+        copy_path_action = menu.addAction("📋 Copy path")
         open_note_action = menu.addAction("📝 Open note in editor")
         menu.addSeparator()
         reveal_source_action = menu.addAction("📂 Reveal source in File Explorer")
@@ -158,6 +160,8 @@ class DraggableIconList(QListWidget):
             self.details_requested.emit(family, path)
         elif chosen is copy_action:
             self.copy_requested.emit(path)
+        elif chosen is copy_path_action:
+            self.copy_path_requested.emit(path)
         elif chosen is open_note_action:
             self.open_note_requested.emit(family)
         elif chosen is reveal_source_action:

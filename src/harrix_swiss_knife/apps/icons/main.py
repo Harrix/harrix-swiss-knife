@@ -250,6 +250,15 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._current_category = None if text == ALL_CATEGORIES or not text else text
         self._apply_filters()
 
+    def _on_copy_path(self, svg_path: str) -> None:
+        path = str(Path(svg_path).resolve())
+        clipboard = QApplication.clipboard()
+        if clipboard is None:
+            QMessageBox.warning(self, "Vector Icons", "Clipboard is not available.")
+            return
+        clipboard.setText(path)
+        self.statusBar().showMessage(f"Copied path `{path}`")
+
     def _on_copy_svg(self, svg_path: str) -> None:
         path = Path(svg_path)
         if not path.is_file():
@@ -513,6 +522,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         icon_list.reveal_requested.connect(self._on_reveal_in_explorer)
         icon_list.details_requested.connect(self._on_icon_details)
         icon_list.copy_requested.connect(self._on_copy_svg)
+        icon_list.copy_path_requested.connect(self._on_copy_path)
         icon_list.open_note_requested.connect(self._on_open_note_in_editor)
         icon_list.reveal_source_requested.connect(self._on_reveal_source)
         icon_list.open_source_requested.connect(self._on_open_source)
