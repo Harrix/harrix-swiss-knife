@@ -49,6 +49,7 @@ from PySide6.QtGui import (
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QApplication,
+    QCheckBox,
     QComboBox,
     QCompleter,
     QDateEdit,
@@ -1483,35 +1484,27 @@ class MainWindow(
             self.label_yesterday_expense.setText("0.00₽")
 
     def _add_average_salary_series_controls(self) -> None:
-        """Add On/Off comboboxes under the Average Salary chart for each series."""
+        """Add compact series checkboxes under the Average Salary chart."""
         row = QWidget()
+        row.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
         layout = QHBoxLayout(row)
-        layout.setContentsMargins(8, 4, 8, 8)
+        layout.setContentsMargins(8, 2, 8, 4)
+        layout.setSpacing(16)
 
-        monthly_label = QLabel("Average Monthly Income:")
-        monthly_combo = QComboBox()
-        monthly_combo.addItem("On")
-        monthly_combo.addItem("Off")
-        monthly_combo.setCurrentIndex(0 if self._average_salary_show_monthly else 1)
+        monthly_check = QCheckBox("Average Monthly Income")
+        monthly_check.setChecked(self._average_salary_show_monthly)
+        annual_check = QCheckBox("Annual Income")
+        annual_check.setChecked(self._average_salary_show_annual)
 
-        annual_label = QLabel("Annual Income:")
-        annual_combo = QComboBox()
-        annual_combo.addItem("On")
-        annual_combo.addItem("Off")
-        annual_combo.setCurrentIndex(0 if self._average_salary_show_annual else 1)
-
-        layout.addWidget(monthly_label)
-        layout.addWidget(monthly_combo)
-        layout.addSpacing(24)
-        layout.addWidget(annual_label)
-        layout.addWidget(annual_combo)
+        layout.addWidget(monthly_check)
+        layout.addWidget(annual_check)
         layout.addStretch(1)
 
-        monthly_combo.currentIndexChanged.connect(self._on_average_salary_series_controls_changed)
-        annual_combo.currentIndexChanged.connect(self._on_average_salary_series_controls_changed)
-        self._average_salary_monthly_combo = monthly_combo
-        self._average_salary_annual_combo = annual_combo
-        self.verticalLayout_charts_content.addWidget(row)
+        monthly_check.toggled.connect(self._on_average_salary_series_controls_changed)
+        annual_check.toggled.connect(self._on_average_salary_series_controls_changed)
+        self._average_salary_monthly_check = monthly_check
+        self._average_salary_annual_check = annual_check
+        self.verticalLayout_charts_content.addWidget(row, 0)
 
     def _add_chart_canvas(self, fig: Figure) -> None:
         canvas = FigureCanvas(fig)
@@ -3626,14 +3619,14 @@ class MainWindow(
         QTimer.singleShot(100, self._focus_amount_and_select_text)
 
     def _on_average_salary_series_controls_changed(self, *_args: object) -> None:
-        """Redraw Average Salary chart when series On/Off comboboxes change."""
-        monthly_combo = getattr(self, "_average_salary_monthly_combo", None)
-        annual_combo = getattr(self, "_average_salary_annual_combo", None)
+        """Redraw Average Salary chart when series checkboxes change."""
+        monthly_check = getattr(self, "_average_salary_monthly_check", None)
+        annual_check = getattr(self, "_average_salary_annual_check", None)
         year_rows = self._average_salary_year_rows
-        if monthly_combo is None or annual_combo is None or year_rows is None:
+        if monthly_check is None or annual_check is None or year_rows is None:
             return
-        self._average_salary_show_monthly = monthly_combo.currentIndex() == 0
-        self._average_salary_show_annual = annual_combo.currentIndex() == 0
+        self._average_salary_show_monthly = monthly_check.isChecked()
+        self._average_salary_show_annual = annual_check.isChecked()
         self._clear_layout(self.verticalLayout_charts_content)
         self._draw_average_salary_by_year_chart(
             year_rows,
