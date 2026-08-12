@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 import os
@@ -9,8 +10,16 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from PySide6.QtCore import QObject, QRectF, Qt, QThread, Signal
-from PySide6.QtGui import QColor, QImage, QPainter, QPainterPath, QPixmap
-from PySide6.QtSvg import QSvgRenderer
+from PySide6.QtGui import QImage, QPainter, QPainterPath, QPixmap
+
+from harrix_swiss_knife.apps.icons.vector_render import (
+    PREVIEW_BACKGROUND,
+    PREVIEW_CORNER_RADIUS_RATIO,
+    PREVIEW_ICON_INSET_RATIO,
+    render_icon_to_image,
+    render_svg_to_image,
+    svg_needs_contrast_background,
+)
 
 if TYPE_CHECKING:
     from harrix_swiss_knife.apps.icons.catalog import IconCatalog, IconFamily
@@ -20,11 +29,24 @@ logger = logging.getLogger(__name__)
 DEFAULT_THUMB_SIZE = 160
 META_FILENAME = "meta.json"
 # Bump when thumbnail raster style changes (forces cache refresh).
-THUMB_FORMAT_VERSION = 4
-PREVIEW_BACKGROUND = QColor(180, 180, 180)
-PREVIEW_CORNER_RADIUS_RATIO = 0.12
-# Keep white icons inset from the gray tile edges.
-PREVIEW_ICON_INSET_RATIO = 0.1
+THUMB_FORMAT_VERSION = 5
+
+# Re-export preview constants used by tests / callers.
+__all__ = [
+    "DEFAULT_THUMB_SIZE",
+    "PREVIEW_BACKGROUND",
+    "PREVIEW_CORNER_RADIUS_RATIO",
+    "PREVIEW_ICON_INSET_RATIO",
+    "THUMB_FORMAT_VERSION",
+    "ThumbnailCache",
+    "ThumbnailWorker",
+    "default_cache_dir",
+    "placeholder_pixmap",
+    "render_icon_to_image",
+    "render_svg_to_image",
+    "start_thumbnail_refresh",
+    "svg_needs_contrast_background",
+]
 
 
 class ThumbnailCache:
@@ -59,13 +81,13 @@ class ThumbnailCache:
         return None if pixmap.isNull() else pixmap
 
     def render_and_store(self, family: IconFamily, repo_root: Path) -> QPixmap | None:
-        """Render featured SVG to PNG cache and return the pixmap."""
-        svg_path = family.featured_path(repo_root)
-        if svg_path is None and family.variants:
-            svg_path = family.variants[0].absolute_path(repo_root, family.folder)
-        if svg_path is None:
+        """Render featured icon to PNG cache and return the pixmap."""
+        icon_path = family.featured_path(repo_root)
+        if icon_path is None and family.variants:
+            icon_path = family.variants[0].absolute_path(repo_root, family.folder)
+        if icon_path is None:
             return None
-        image = render_svg_to_image(svg_path, self.size)
+        image = render_icon_to_image(icon_path, self.size)
         if image is None:
             return None
         out = self.thumb_path(family.id)
@@ -180,6 +202,17 @@ class ThumbnailWorker(QObject):
         self.finished.emit(updated)
 
 
+def cache_dir_for_root(repo_root: Path | None = None) -> Path:
+    """Return thumbnail cache directory, optionally namespaced by folder path."""
+    base = default_cache_dir()
+    if repo_root is None:
+        return base
+    digest = hashlib.sha256(str(repo_root.resolve()).encode("utf-8")).hexdigest()[:12]
+    path = base / digest
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+
 def default_cache_dir() -> Path:
     """Return the per-user thumbnail cache directory."""
     local_app_data = os.environ.get("LOCALAPPDATA")
@@ -197,36 +230,12 @@ def placeholder_pixmap(size: int = DEFAULT_THUMB_SIZE) -> QPixmap:
     image.fill(Qt.GlobalColor.transparent)
     painter = QPainter(image)
     painter.setRenderHint(QPainter.RenderHint.Antialiasing, on=True)
-    _paint_rounded_preview_background(painter, size)
+    radius = max(4.0, size * PREVIEW_CORNER_RADIUS_RATIO)
+    path = QPainterPath()
+    path.addRoundedRect(QRectF(0, 0, size, size), radius, radius)
+    painter.fillPath(path, PREVIEW_BACKGROUND)
     painter.end()
     return QPixmap.fromImage(image)
-
-
-def render_svg_to_image(svg_path: Path, size: int) -> QImage | None:
-    """Rasterize an SVG into a square image.
-
-    White variants (`*_white_*`) get a rounded gray backdrop so they stay visible.
-    The icon itself is inset so it does not touch the gray tile edges.
-
-    """
-    if not svg_path.is_file():
-        return None
-    renderer = QSvgRenderer(str(svg_path))
-    if not renderer.isValid():
-        return None
-    image = QImage(size, size, QImage.Format.Format_ARGB32_Premultiplied)
-    image.fill(Qt.GlobalColor.transparent)
-    painter = QPainter(image)
-    painter.setRenderHint(QPainter.RenderHint.Antialiasing, on=True)
-    if svg_needs_contrast_background(svg_path):
-        _paint_rounded_preview_background(painter, size)
-        inset = max(2.0, size * PREVIEW_ICON_INSET_RATIO)
-        icon_size = size - 2 * inset
-        renderer.render(painter, QRectF(inset, inset, icon_size, icon_size))
-    else:
-        renderer.render(painter)
-    painter.end()
-    return image
 
 
 def start_thumbnail_refresh(
@@ -249,16 +258,3 @@ def start_thumbnail_refresh(
     thread.finished.connect(worker.deleteLater)
     thread.start()
     return thread, worker
-
-
-def svg_needs_contrast_background(svg_path: Path) -> bool:
-    """Return whether the SVG is a white-fill variant that needs a gray tile."""
-    return "_white" in svg_path.stem.casefold()
-
-
-def _paint_rounded_preview_background(painter: QPainter, size: int) -> None:
-    """Fill a rounded rectangle used behind white icons."""
-    radius = max(4.0, size * PREVIEW_CORNER_RADIUS_RATIO)
-    path = QPainterPath()
-    path.addRoundedRect(QRectF(0, 0, size, size), radius, radius)
-    painter.fillPath(path, PREVIEW_BACKGROUND)

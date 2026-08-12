@@ -716,7 +716,7 @@ class VariantsPanel(QWidget):
 
     @staticmethod
     def _preview(path: Path, size: int) -> QPixmap:
-        image = render_svg_to_image(path, size)
+        image = render_icon_to_image(path, size)
         if image is None:
             return placeholder_pixmap(size)
         return QPixmap.fromImage(image)

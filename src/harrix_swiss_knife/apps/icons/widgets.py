@@ -19,11 +19,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from harrix_swiss_knife.apps.icons.thumb_cache import (
-    DEFAULT_THUMB_SIZE,
-    placeholder_pixmap,
-    render_svg_to_image,
-)
+from harrix_swiss_knife.apps.icons.thumb_cache import DEFAULT_THUMB_SIZE, placeholder_pixmap, render_icon_to_image
 
 if TYPE_CHECKING:
     from harrix_swiss_knife.apps.icons.catalog import IconFamily
@@ -366,7 +362,7 @@ class VariantsPanel(QWidget):
 
     @staticmethod
     def _preview(path: Path, size: int) -> QPixmap:
-        image = render_svg_to_image(path, size)
+        image = render_icon_to_image(path, size)
         if image is None:
             return placeholder_pixmap(size)
         return QPixmap.fromImage(image)

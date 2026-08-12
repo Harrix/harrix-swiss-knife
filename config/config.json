@@ -1,11 +1,23 @@
 {
+  "android_build_variant": "release",
+  "apps": {
+    "fitness_image_max_size": 330,
+    "initial_count": 1000,
+    "load_more_count": 500,
+    "local_language": "ru"
+  },
   "beginning_of_article": "snippet:config/beginning-of-article.md",
   "beginning_of_md": "snippet:config/beginning-of-md.md",
   "beginning_of_md_docs": "snippet:config/beginning-of-md-en.md",
-  "block_drives": [
-    "E",
-    "F"
-  ],
+  "block_drives": ["E", "F"],
+  "bothub": {
+    "base_url": "https://bothub.chat/api/v2/openai/v1",
+    "max_image_side": 1600,
+    "model": "gpt-5.4",
+    "proxy": "",
+    "speech_model": "gemini-3.1-flash-lite-preview"
+  },
+  "bothub_api_key": "snippet:api-keys/bothub-api-key.txt",
   "cli_commands": "snippet:config/cli-commands.md",
   "combine_for_ai_unchecked_extensions": [
     "svg",
@@ -30,40 +42,29 @@
     "purgecss.config.js"
   ],
   "compact_mode": false,
-  "hotkeys": [
-    {
-      "action": "OnQuickLauncher",
-      "hotkeys": [
-        "Ctrl+Shift+F1"
-      ]
-    },
-    {
-      "action": "OnScreenshotRegion",
-      "hotkeys": [
-        "Ctrl+Shift+F2"
-      ]
-    }
-  ],
-  "quick_launcher_markdown_in_panel": true,
   "editor": "cursor",
   "editor-notes": "code-insiders",
+  "finance_standard_items_translate_names_limit": 250,
+  "finance_transactions_translate_descriptions_limit": 250,
+  "fitness_names_translate_local_limit": 250,
   "food_calorie_thresholds": {
     "low": 1800,
     "medium_high": 2500,
     "medium_low": 2100
   },
-  "apps": {
-    "initial_count": 1000,
-    "load_more_count": 500,
-    "local_language": "ru",
-    "fitness_image_max_size": 330
-  },
-  "android_build_variant": "release",
-  "optimize_images_folder_max_size": 1024,
   "food_log_translate_names_limit": 250,
-  "finance_transactions_translate_descriptions_limit": 250,
   "github_user": "Harrix",
   "harrix_notes_explorer_publisher": "harrix",
+  "hotkeys": [
+    {
+      "action": "OnQuickLauncher",
+      "hotkeys": ["Ctrl+Shift+F1"]
+    },
+    {
+      "action": "OnScreenshotRegion",
+      "hotkeys": ["Ctrl+Shift+F2"]
+    }
+  ],
   "markdown_templates": {
     "☕ Coffee": {
       "commit_message_template": "☕ Add coffee note \"{Title}\" in {City}",
@@ -181,31 +182,35 @@
     "snippet:config/beginning-of-article.md",
     "snippet:config/beginning-of-md-en.md"
   ],
-  "npm_packages": [
-    "npm-check-updates",
-    "prettier"
-  ],
+  "npm_packages": ["npm-check-updates", "prettier"],
+  "optimize_images_folder_max_size": 1024,
   "path_3d": "D:/Downloads",
   "path_articles": "D:/GitHub/_content__harrix-dev/harrix.dev-articles-2025",
   "path_books": "D:/Dropbox/Books",
   "path_cases": "D:/Dropbox/Notes/Notes-Lists/Cases",
   "path_diary": "D:/Dropbox/Notes/Notes-Diaries/Diary",
   "path_dream": "D:/Dropbox/Notes/Notes-Diaries/Dreams",
-  "path_memories": "D:/Dropbox/Notes/Notes-Diaries/Memories",
   "path_github": "D:/GitHub",
   "path_harrix_notes_explorer": "D:/GitHub/harrix-notes-explorer",
+  "path_html_template_dist": "D:/GitHub/Harrix-HTML-Template/dist",
+  "path_html_theme": "D:/GitHub/Harrix-HTML-Template/theme",
   "path_image_viewer": "C:/Program Files/XnViewMP/xnviewmp.exe",
   "path_last_note_folder": "D:\\Downloads\\Материалы",
+  "path_memories": "D:/Dropbox/Notes/Notes-Diaries/Memories",
   "path_notes": "D:/Dropbox/Notes",
   "path_photos": "D:/Dropbox/Camera_Uploads_2",
   "path_quotes": "D:/Dropbox/Notes/Notes-Lists/Quotes",
+  "path_site_repo": "D:/GitHub/harrix.dev",
   "path_totalcmd_ini": "C:/TCTitan36/Wincmd.ini",
+  "path_vector_icons": "D:/GitHub/Harrix-Vector-Icons",
+  "path_vector_icons_ai": "D:/GitHub/Harrix-Vector-Icons-ai",
+  "path_vector_icons_pinned": ["D:/GitHub/Harrix-Vector-Icons", "D:/GitHub/Harrix-Vector-Icons-ai/src"],
+  "path_vector_icons_source_app": "C:/Program Files/Adobe/Adobe Illustrator 2026/Support Files/Contents/Windows/Illustrator.exe",
+  "paths_android_projects": ["D:/GitHub/harrix-swiss-knife/android", "D:/GitHub/harrix-notes-android"],
   "paths_combine_for_ai": [
     {
       "base_folder": "D:/GitHub/harrix-swiss-knife",
-      "files": [
-        "D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/**/*.py"
-      ],
+      "files": ["D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/**/*.py"],
       "name": "harrix-swiss-knife"
     },
     {
@@ -234,9 +239,7 @@
     },
     {
       "base_folder": "D:/GitHub/harrix-swiss-knife",
-      "files": [
-        "D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/apps/**/*.py"
-      ],
+      "files": ["D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/apps/**/*.py"],
       "name": "harrix-swiss-knife - all Python files in apps"
     }
   ],
@@ -269,23 +272,9 @@
     "D:/Dropbox/Notes/Notes-Lists/Books",
     "D:/Dropbox/Notes/Notes-Lists/Books-of-nonfiction"
   ],
-  "paths_android_projects": [
-    "D:/GitHub/harrix-swiss-knife/android",
-    "D:/GitHub/harrix-notes-android"
-  ],
-  "paths_python_libraries": [
-    "D:/GitHub/harrix-pylib",
-    "D:/GitHub/harrix-pyssg"
-  ],
-  "paths_python_project_creation": [
-    "C:/Users/sergi/OneDrive/Projects/Python",
-    "D:/GitHub"
-  ],
-  "paths_python_projects": [
-    "D:/GitHub/harrix-swiss-knife",
-    "D:/GitHub/harrix-pylib",
-    "D:/GitHub/harrix-pyssg"
-  ],
+  "paths_python_libraries": ["D:/GitHub/harrix-pylib", "D:/GitHub/harrix-pyssg"],
+  "paths_python_project_creation": ["C:/Users/sergi/OneDrive/Projects/Python", "D:/GitHub"],
+  "paths_python_projects": ["D:/GitHub/harrix-swiss-knife", "D:/GitHub/harrix-pylib", "D:/GitHub/harrix-pyssg"],
   "paths_quotes": [
     "D:/Dropbox/Notes/Notes-Lists/Quotes/Fiction",
     "D:/Dropbox/Notes/Notes-Lists/Quotes/Religion",
@@ -298,9 +287,6 @@
       "theme": "D:/GitHub/Harrix-HTML-Template/theme"
     }
   ],
-  "path_site_repo": "D:/GitHub/harrix.dev",
-  "site_name": "harrix.dev",
-  "site_default_language": "ru",
   "paths_with_featured_image": [
     "D:/Dropbox/IT/3D printer/Models/Print",
     "D:/Dropbox/IT/3D printer/Models/Printed",
@@ -318,54 +304,43 @@
     "D:/Dropbox/IT/3D printer/Models - Science/Printed",
     "D:/Dropbox/IT/3D printer/Models - Science/Unprinted"
   ],
-  "bothub": {
-    "base_url": "https://bothub.chat/api/v2/openai/v1",
-    "model": "gpt-5.4",
-    "speech_model": "gemini-3.1-flash-lite-preview",
-    "max_image_side": 1600,
-    "proxy": ""
+  "personal_data": {
+    "author": "Anton Sergienko",
+    "author_email": "anton.b.sergienko@gmail.com",
+    "enabled": true
   },
-  "bothub_api_key": "snippet:api-keys/bothub-api-key.txt",
   "prompts": {
-    "finance_purchases_to_tsv": "snippet:config/prompts/finance-purchases-to-tsv.md",
     "finance_category_translate_local": "snippet:config/prompts/finance-category-translate-local.md",
-    "finance_transactions_translate_descriptions": "snippet:config/prompts/finance-transactions-translate-descriptions.md",
-    "food_log_to_tsv": "snippet:config/prompts/food-log-to-tsv.md",
-    "food_voice_log_to_tsv": "snippet:config/prompts/food-voice-log-to-tsv.md",
-    "food_kcal_lookup": "snippet:config/prompts/food-kcal-lookup.md",
-    "food_portion_weight_from_calories": "snippet:config/prompts/food-portion-weight-from-calories.md",
-    "food_log_translate_names": "snippet:config/prompts/food-log-translate-names.md",
-    "text_fix_ru": "snippet:config/prompts/text-fix-ru.md",
-    "text_fix_ru_clipboard": "snippet:config/prompts/text-fix-ru-clipboard.md",
-    "text_rewrite_ru": "snippet:config/prompts/text-rewrite-ru.md",
-    "image_ocr_to_markdown": "snippet:config/prompts/image-ocr-to-markdown.md",
-    "markdown_template_fields_from_source": "snippet:config/prompts/markdown-template-fields-from-source.md",
+    "finance_purchases_to_tsv": "snippet:config/prompts/finance-purchases-to-tsv.md",
     "finance_standard_items_translate_names": "snippet:config/prompts/finance-standard-items-translate-names.md",
+    "finance_transactions_translate_descriptions": "snippet:config/prompts/finance-transactions-translate-descriptions.md",
+    "fitness_exercise_fill": "snippet:config/prompts/fitness-exercise-fill.md",
+    "fitness_name_translate_from_local": "snippet:config/prompts/fitness-name-translate-from-local.md",
     "fitness_name_translate_local": "snippet:config/prompts/fitness-name-translate-local.md",
     "fitness_names_translate_local": "snippet:config/prompts/fitness-names-translate-local.md",
-    "fitness_name_translate_from_local": "snippet:config/prompts/fitness-name-translate-from-local.md",
-    "fitness_exercise_fill": "snippet:config/prompts/fitness-exercise-fill.md"
+    "food_kcal_lookup": "snippet:config/prompts/food-kcal-lookup.md",
+    "food_log_to_tsv": "snippet:config/prompts/food-log-to-tsv.md",
+    "food_log_translate_names": "snippet:config/prompts/food-log-translate-names.md",
+    "food_portion_weight_from_calories": "snippet:config/prompts/food-portion-weight-from-calories.md",
+    "food_voice_log_to_tsv": "snippet:config/prompts/food-voice-log-to-tsv.md",
+    "image_ocr_to_markdown": "snippet:config/prompts/image-ocr-to-markdown.md",
+    "markdown_template_fields_from_source": "snippet:config/prompts/markdown-template-fields-from-source.md",
+    "text_fix_ru": "snippet:config/prompts/text-fix-ru.md",
+    "text_fix_ru_clipboard": "snippet:config/prompts/text-fix-ru-clipboard.md",
+    "text_rewrite_ru": "snippet:config/prompts/text-rewrite-ru.md"
   },
   "pypi_token": "snippet:api-keys/pypi-token.txt",
+  "quick_launcher_markdown_in_panel": true,
   "show_main_window_on_startup": false,
+  "site_default_language": "ru",
+  "site_name": "harrix.dev",
   "sqlite_finance": "D:/Dropbox/Databases/finance.db",
   "sqlite_fitness": "D:/Dropbox/Databases/fitness.db",
   "sqlite_food": "D:/Dropbox/Databases/food.db",
   "sqlite_habits": "D:/Dropbox/Databases/habits.db",
   "start_pattern_jupyter_notebooks": "jupyter-notebook-",
   "start_pattern_py_projects": "python-project-",
+  "vector_icons_recent_folders_max": 12,
   "vscode_workspace_articles": "D:/Dropbox/Programs/vscode_workspaces/_content__harrix-dev.code-workspace",
-  "vscode_workspace_notes": "D:/Dropbox/Programs/vscode_workspaces/Notes.code-workspace",
-  "finance_standard_items_translate_names_limit": 250,
-  "personal_data": {
-    "enabled": true,
-    "author": "Anton Sergienko",
-    "author_email": "anton.b.sergienko@gmail.com"
-  },
-  "fitness_names_translate_local_limit": 250,
-  "path_html_theme": "D:/GitHub/Harrix-HTML-Template/theme",
-  "path_html_template_dist": "D:/GitHub/Harrix-HTML-Template/dist",
-  "path_vector_icons": "D:/GitHub/Harrix-Vector-Icons",
-  "path_vector_icons_ai": "D:/GitHub/Harrix-Vector-Icons-ai",
-  "path_vector_icons_source_app": "C:/Program Files/Adobe/Adobe Illustrator 2026/Support Files/Contents/Windows/Illustrator.exe"
+  "vscode_workspace_notes": "D:/Dropbox/Programs/vscode_workspaces/Notes.code-workspace"
 }

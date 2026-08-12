@@ -20,8 +20,12 @@ lang: en
   - [⚙️ Method `note_path`](#%EF%B8%8F-method-note_path)
 - [🏛️ Class `IconVariant`](#%EF%B8%8F-class-iconvariant)
   - [⚙️ Method `absolute_path`](#%EF%B8%8F-method-absolute_path)
+- [🔧 Function `is_note_icons_repo`](#-function-is_note_icons_repo)
 - [🔧 Function `load_catalog`](#-function-load_catalog)
+- [🔧 Function `open_icons_folder`](#-function-open_icons_folder)
 - [🔧 Function `rebuild_catalog`](#-function-rebuild_catalog)
+- [🔧 Function `resolve_icons_root`](#-function-resolve_icons_root)
+- [🔧 Function `scan_flat_folder`](#-function-scan_flat_folder)
 
 </details>
 
@@ -31,7 +35,7 @@ lang: en
 class IconCatalog
 ```
 
-In-memory icon catalog loaded from `catalog.json`.
+In-memory icon catalog loaded from `catalog.json` or a flat folder scan.
 
 <details>
 <summary>Code:</summary>
@@ -43,6 +47,7 @@ class IconCatalog:
     generated_at: str
     icons: list[IconFamily]
     repo_root: Path
+    kind: CatalogKind = "note"
 
     def categories(self) -> list[str]:
         """Return sorted unique category names."""
@@ -119,7 +124,7 @@ def filter_icons(self, *, category: str | None = None, query: str = "") -> list[
 class IconFamily
 ```
 
-One searchable icon family (note-folder).
+One searchable icon family (note-folder or flat-file group).
 
 <details>
 <summary>Code:</summary>
@@ -138,10 +143,10 @@ class IconFamily:
     search_blob: str = ""
 
     def featured_path(self, repo_root: Path) -> Path | None:
-        """Return absolute path to featured SVG when present."""
+        """Return absolute path to featured icon file when present."""
         if not self.featured:
             return None
-        path = repo_root / self.folder / self.featured
+        path = _join_repo_path(repo_root, self.folder, self.featured)
         return path if path.is_file() else None
 
     def matches(self, query: str) -> bool:
@@ -150,7 +155,7 @@ class IconFamily:
 
     def note_path(self, repo_root: Path) -> Path | None:
         """Return absolute path to the family Markdown note when present."""
-        path = repo_root / self.folder / f"{self.id}.md"
+        path = _join_repo_path(repo_root, self.folder, f"{self.id}.md")
         return path if path.is_file() else None
 ```
 
@@ -162,7 +167,7 @@ class IconFamily:
 def featured_path(self, repo_root: Path) -> Path | None
 ```
 
-Return absolute path to featured SVG when present.
+Return absolute path to featured icon file when present.
 
 <details>
 <summary>Code:</summary>
@@ -171,7 +176,7 @@ Return absolute path to featured SVG when present.
 def featured_path(self, repo_root: Path) -> Path | None:
         if not self.featured:
             return None
-        path = repo_root / self.folder / self.featured
+        path = _join_repo_path(repo_root, self.folder, self.featured)
         return path if path.is_file() else None
 ```
 
@@ -208,7 +213,7 @@ Return absolute path to the family Markdown note when present.
 
 ```python
 def note_path(self, repo_root: Path) -> Path | None:
-        path = repo_root / self.folder / f"{self.id}.md"
+        path = _join_repo_path(repo_root, self.folder, f"{self.id}.md")
         return path if path.is_file() else None
 ```
 
@@ -220,7 +225,7 @@ def note_path(self, repo_root: Path) -> Path | None:
 class IconVariant
 ```
 
-One SVG file belonging to an icon family.
+One icon file belonging to an icon family.
 
 <details>
 <summary>Code:</summary>
@@ -234,7 +239,7 @@ class IconVariant:
 
     def absolute_path(self, repo_root: Path, folder: str) -> Path:
         """Resolve the variant path under the icons repo root."""
-        return repo_root / folder / self.file
+        return _join_repo_path(repo_root, folder, self.file)
 ```
 
 </details>
@@ -252,7 +257,43 @@ Resolve the variant path under the icons repo root.
 
 ```python
 def absolute_path(self, repo_root: Path, folder: str) -> Path:
-        return repo_root / folder / self.file
+        return _join_repo_path(repo_root, folder, self.file)
+```
+
+</details>
+
+## 🔧 Function `is_note_icons_repo`
+
+```python
+def is_note_icons_repo(root: Path) -> bool
+```
+
+Return whether `root` looks like a Harrix-Vector-Icons note-folder repo.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def is_note_icons_repo(root: Path) -> bool:
+    if (root / "catalog.json").is_file() and (root / "icons").is_dir():
+        return True
+    icons_dir = root / "icons"
+    if not icons_dir.is_dir():
+        return False
+    try:
+        children = list(icons_dir.iterdir())
+    except OSError:
+        return False
+    for child in children:
+        if not child.is_dir():
+            continue
+        if (
+            (child / "featured-image.svg").is_file()
+            or (child / f"{child.name}.md").is_file()
+            or (child / "img").is_dir()
+        ):
+            return True
+    return False
 ```
 
 </details>
@@ -281,7 +322,34 @@ def load_catalog(repo_root: Path) -> IconCatalog:
         generated_at=str(raw.get("generated_at") or ""),
         icons=icons,
         repo_root=repo_root,
+        kind="note",
     )
+```
+
+</details>
+
+## 🔧 Function `open_icons_folder`
+
+```python
+def open_icons_folder(path: Path) -> IconCatalog
+```
+
+Open a note-folder repo or a flat icon dump (SVG/AI/PDF/EPS).
+
+Does not write `catalog.json` into flat dumps. For AI-style repos that keep
+files under `src/`, that subdirectory is used when the chosen root is empty.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def open_icons_folder(path: Path) -> IconCatalog:
+    root = resolve_icons_root(path)
+    if is_note_icons_repo(root):
+        if not (root / "catalog.json").is_file() and (root / "icons").is_dir():
+            return rebuild_catalog(root)
+        return load_catalog(root)
+    return scan_flat_folder(root)
 ```
 
 </details>
@@ -346,7 +414,104 @@ def rebuild_catalog(repo_root: Path) -> IconCatalog:
     }
     out = repo_root / "catalog.json"
     out.write_text(json.dumps(catalog_data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    return load_catalog(repo_root)
+    catalog = load_catalog(repo_root)
+    catalog.kind = "note"
+    return catalog
+```
+
+</details>
+
+## 🔧 Function `resolve_icons_root`
+
+```python
+def resolve_icons_root(path: Path) -> Path
+```
+
+Normalize a user-chosen folder to the directory that actually holds icons.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def resolve_icons_root(path: Path) -> Path:
+    root = path.expanduser().resolve()
+    if not root.is_dir():
+        msg = f"Folder not found: {root}"
+        raise FileNotFoundError(msg)
+    if is_note_icons_repo(root):
+        return root
+    if _count_flat_icon_files(root) > 0:
+        return root
+    src = root / "src"
+    if src.is_dir() and _count_flat_icon_files(src) > 0:
+        return src
+    return root
+```
+
+</details>
+
+## 🔧 Function `scan_flat_folder`
+
+```python
+def scan_flat_folder(root: Path) -> IconCatalog
+```
+
+Build an in-memory catalog from loose icon files (no `catalog.json` write).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def scan_flat_folder(root: Path) -> IconCatalog:
+    files = _iter_flat_icon_files(root)
+    if not files:
+        msg = f"No SVG/AI/PDF/EPS icons found in {root}"
+        raise FileNotFoundError(msg)
+
+    groups: dict[str, list[Path]] = {}
+    for path in files:
+        key = _flat_family_id(path)
+        groups.setdefault(key, []).append(path)
+
+    icons: list[IconFamily] = []
+    for family_id in sorted(groups, key=str.casefold):
+        members = sorted(groups[family_id], key=lambda item: item.as_posix().casefold())
+        featured_path = _pick_featured_file(members)
+        rel_featured = _relative_to_root(featured_path, root)
+        parent = Path(rel_featured).parent
+        folder = "" if str(parent) in {"", "."} else str(parent).replace("\\", "/")
+        featured_rel = Path(rel_featured).name
+        variants: list[IconVariant] = []
+        for member in members:
+            rel = _relative_to_root(member, root)
+            variant_file = str(Path(rel).relative_to(folder)).replace("\\", "/") if folder else Path(rel).name
+            variants.append(
+                IconVariant(
+                    file=variant_file,
+                    name=member.stem,
+                    hash=_file_sha256(member),
+                ),
+            )
+        family = IconFamily(
+            id=family_id,
+            title=_title_from_id(family_id),
+            categories=[_category_from_id(family_id)],
+            tags=[],
+            folder=folder,
+            featured=featured_rel,
+            featured_hash=_file_sha256(featured_path),
+            variants=variants,
+        )
+        family.search_blob = _build_search_blob(family)
+        icons.append(family)
+
+    return IconCatalog(
+        version=1,
+        generated_at=datetime.now(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
+        icons=icons,
+        repo_root=root,
+        kind="flat",
+    )
 ```
 
 </details>

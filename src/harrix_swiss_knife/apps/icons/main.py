@@ -14,6 +14,7 @@ from PySide6.QtGui import QCloseEvent, QIcon, QPixmap
 from PySide6.QtWidgets import (
     QApplication,
     QComboBox,
+    QFileDialog,
     QHBoxLayout,
     QLabel,
     QLineEdit,
@@ -39,12 +40,16 @@ from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.app_entry import run_app_main
 from harrix_swiss_knife.apps.common.qt_main_window import AppWindowMixin
 from harrix_swiss_knife.apps.common.ui_helpers import reveal_in_file_explorer
-from harrix_swiss_knife.apps.icons.catalog import IconCatalog, IconFamily, load_catalog, rebuild_catalog
+from harrix_swiss_knife.apps.icons.catalog import IconCatalog, IconFamily, open_icons_folder, rebuild_catalog
 from harrix_swiss_knife.apps.icons.settings import (
     ICON_SIZE_MAX,
     ICON_SIZE_MIN,
     load_category_icons,
     load_icon_size,
+    load_pinned_folders,
+    load_recent_folders,
+    pin_folder,
+    remember_recent_folder,
     save_icon_size,
     set_category_icon,
 )
@@ -57,9 +62,10 @@ from harrix_swiss_knife.apps.icons.source_resolve import (
 from harrix_swiss_knife.apps.icons.thumb_cache import (
     DEFAULT_THUMB_SIZE,
     ThumbnailCache,
+    cache_dir_for_root,
     default_cache_dir,
     placeholder_pixmap,
-    render_svg_to_image,
+    render_icon_to_image,
     start_thumbnail_refresh,
 )
 from harrix_swiss_knife.apps.icons.variant_view import (
@@ -84,7 +90,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
     """Browse Harrix Vector Icons with search, categories, cache, and drag-out."""
 
     about_app_name = "Vector Icons"
-    about_description = "Browse and drag SVG icon families from Harrix-Vector-Icons."
+    about_description = "Browse and drag SVG/AI/PDF/EPS icon folders (Harrix-Vector-Icons or flat dumps)."
 
     def __init__(self, *, hide_on_close: bool = False) -> None:
         """Build the browser UI and load catalog from config path."""
@@ -175,6 +181,13 @@ class MainWindow(QMainWindow, AppWindowMixin):
         root = QVBoxLayout(central)
 
         toolbar = QHBoxLayout()
+        toolbar.addWidget(QLabel("Folder"))
+        self.folder_combo = QComboBox()
+        self.folder_combo.setMinimumWidth(220)
+        self.folder_combo.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        self.folder_combo.currentIndexChanged.connect(self._on_folder_combo_changed)
+        toolbar.addWidget(self.folder_combo, stretch=1)
+
         toolbar.addWidget(QLabel("Icon size"))
         self.size_slider = QSlider(Qt.Orientation.Horizontal)
         self.size_slider.setRange(ICON_SIZE_MIN, ICON_SIZE_MAX)
@@ -241,6 +254,13 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self.statusBar().showMessage("Ready")
 
         file_menu = self.menuBar().addMenu("&File")
+        open_folder_action = file_menu.addAction("📂 Open folder…")
+        open_folder_action.triggered.connect(self._on_open_folder)
+        pin_action = file_menu.addAction("📌 Pin current folder")
+        pin_action.triggered.connect(self._on_pin_current_folder)
+        self._pinned_menu = file_menu.addMenu("📌 Pinned folders")
+        self._recent_menu = file_menu.addMenu("🕒 Recent folders")
+        file_menu.addSeparator()
         refresh_action = file_menu.addAction("🔄 Refresh catalog")
         refresh_action.triggered.connect(self._on_refresh_catalog)
         open_cache_action = file_menu.addAction("📂 Open thumbs cache")
@@ -253,6 +273,8 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self.actionAbout = help_menu.addAction("&About")
         self._connect_exit_about_actions()
         self._apply_exit_about_menu_emojis()
+        self._rebuild_folder_menus()
+        self._sync_folder_combo()
 
     def _category_family_id(self, category: str) -> str | None:
         if self._catalog is None:
@@ -286,6 +308,13 @@ class MainWindow(QMainWindow, AppWindowMixin):
         if toast is not None:
             toast.close()
 
+    def _folder_label(self, path: Path) -> str:
+        try:
+            resolved = path.resolve()
+        except OSError:
+            resolved = path
+        return f"{resolved.name} — {resolved}"
+
     @staticmethod
     def _format_byte_size(total_bytes: int) -> str:
         kib = 1024
@@ -298,32 +327,30 @@ class MainWindow(QMainWindow, AppWindowMixin):
 
     def _load_from_config(self) -> None:
         config: dict[str, Any] = h.dev.config_load(get_config_path_str())
+        candidates: list[Path] = []
+        recent = load_recent_folders()
+        if recent:
+            candidates.append(recent[0])
+        for pinned in load_pinned_folders():
+            if pinned not in candidates:
+                candidates.append(pinned)
         raw = str(config.get("path_vector_icons") or "").strip()
-        if not raw or raw.startswith("<"):
-            QMessageBox.warning(
-                self,
-                "Vector Icons",
-                "Set `path_vector_icons` in config.json to the Harrix-Vector-Icons repository root.",
-            )
-            self.statusBar().showMessage("path_vector_icons is not configured")
-            return
-        repo = Path(raw)
-        if not repo.is_dir():
-            QMessageBox.warning(self, "Vector Icons", f"Folder not found:\n{repo}")
-            return
-        self._repo_root = repo
-        try:
-            if not (repo / "catalog.json").is_file() and (repo / "icons").is_dir():
-                self._catalog = rebuild_catalog(repo)
-            else:
-                self._catalog = load_catalog(repo)
-        except (OSError, ValueError, TypeError, json.JSONDecodeError) as exc:
-            QMessageBox.critical(self, "Vector Icons", f"Failed to load catalog:\n{exc}")
-            return
-        self._prime_pixmaps_from_cache()
-        self._populate_categories()
-        self._apply_filters()
-        self._start_thumb_refresh()
+        if raw and not raw.startswith("<"):
+            default_path = Path(raw)
+            if default_path not in candidates:
+                candidates.append(default_path)
+        for path in candidates:
+            if path.is_dir():
+                self._open_folder(path, remember=False)
+                return
+        QMessageBox.warning(
+            self,
+            "Vector Icons",
+            "Set `path_vector_icons` or `path_vector_icons_pinned` in config.json,\nor use File → Open folder…",
+        )
+        self.statusBar().showMessage("No icon folder configured")
+        self._sync_folder_combo()
+        self._rebuild_folder_menus()
 
     def _on_cache_statistics(self) -> None:
         stats = self._thumb_cache.stats(self._catalog)
@@ -390,6 +417,22 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self.variants_panel.show_family(family, self._repo_root)
         self.statusBar().showMessage(f"{family.id}: {len(family.variants)} variants")
 
+    def _on_folder_combo_changed(self, index: int) -> None:
+        if index < 0:
+            return
+        raw = self.folder_combo.itemData(index)
+        if not raw:
+            return
+        path = Path(str(raw))
+        if self._repo_root is not None:
+            try:
+                if path.resolve() == self._repo_root.resolve():
+                    return
+            except OSError:
+                if path == self._repo_root:
+                    return
+        self._open_folder(path)
+
     def _on_icon_details(self, family: object, svg_path: str) -> None:
         if not isinstance(family, IconFamily):
             return
@@ -417,6 +460,13 @@ class MainWindow(QMainWindow, AppWindowMixin):
     def _on_icon_size_changed(self, value: int) -> None:
         self._apply_icon_size(value)
         self._icon_size_save_timer.start()
+
+    def _on_open_folder(self) -> None:
+        start = str(self._repo_root) if self._repo_root is not None else ""
+        chosen = QFileDialog.getExistingDirectory(self, "Open icons folder", start)
+        if not chosen:
+            return
+        self._open_folder(Path(chosen))
 
     def _on_open_note_in_editor(self, family: object) -> None:
         if not isinstance(family, IconFamily):
@@ -477,15 +527,32 @@ class MainWindow(QMainWindow, AppWindowMixin):
         h.file.open_file_or_folder(path)
         self.statusBar().showMessage(f"Opened `{path}`")
 
+    def _on_pin_current_folder(self) -> None:
+        if self._repo_root is None:
+            QMessageBox.warning(self, "Vector Icons", "No folder is open.")
+            return
+        pin_folder(self._repo_root)
+        self._sync_folder_combo()
+        self._rebuild_folder_menus()
+        self.statusBar().showMessage(f"Pinned `{self._repo_root}`")
+
     def _on_refresh_catalog(self) -> None:
         if self._repo_root is None:
             self._load_from_config()
             return
+        root = self._repo_root
         try:
-            self._catalog = rebuild_catalog(self._repo_root)
-        except OSError as exc:
-            QMessageBox.critical(self, "Vector Icons", f"Failed to rebuild catalog:\n{exc}")
+            if self._catalog is not None and self._catalog.kind == "flat":
+                catalog = open_icons_folder(root)
+            else:
+                catalog = rebuild_catalog(root)
+        except (OSError, ValueError, TypeError, json.JSONDecodeError) as exc:
+            QMessageBox.critical(self, "Vector Icons", f"Failed to refresh catalog:\n{exc}")
             return
+        self._catalog = catalog
+        self._repo_root = catalog.repo_root
+        self._variant_pixmaps.clear()
+        self._thumb_cache = ThumbnailCache(cache_dir=cache_dir_for_root(catalog.repo_root), size=DEFAULT_THUMB_SIZE)
         self._prime_pixmaps_from_cache()
         self._populate_categories()
         self._apply_filters()
@@ -542,6 +609,33 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._variant_view_mode = str(mode) if mode else MODE_FEATURED
         self._apply_filters()
 
+    def _open_folder(self, path: Path, *, remember: bool = True) -> None:
+        """Load a note-folder repo or flat icon dump and refresh the UI."""
+        try:
+            catalog = open_icons_folder(path)
+        except (OSError, ValueError, TypeError, json.JSONDecodeError) as exc:
+            QMessageBox.critical(self, "Vector Icons", f"Failed to open folder:\n{exc}")
+            return
+        self._stop_thumb_refresh()
+        self._close_variant_progress_toast()
+        self._repo_root = catalog.repo_root
+        self._catalog = catalog
+        self._selected_family_id = None
+        self._current_category = None
+        self._variant_pixmaps.clear()
+        self._thumb_cache = ThumbnailCache(cache_dir=cache_dir_for_root(catalog.repo_root), size=DEFAULT_THUMB_SIZE)
+        if remember:
+            remember_recent_folder(catalog.repo_root)
+        self.setWindowTitle(f"Vector Icons — {catalog.repo_root.name}")
+        self._prime_pixmaps_from_cache()
+        self._populate_categories()
+        self._apply_filters()
+        self._start_thumb_refresh()
+        self._sync_folder_combo()
+        self._rebuild_folder_menus()
+        kind = "flat dump" if catalog.kind == "flat" else "note repo"
+        self.statusBar().showMessage(f"Opened {kind}: {catalog.repo_root} ({len(catalog.icons)} icons)")
+
     def _persist_icon_size(self) -> None:
         self._icon_size_save_timer.stop()
         save_icon_size(self.size_slider.value())
@@ -589,7 +683,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         try:
             for index, svg_path in enumerate(pending, start=1):
                 key = str(svg_path)
-                image = render_svg_to_image(svg_path, self._icon_size)
+                image = render_icon_to_image(svg_path, self._icon_size)
                 if image is not None:
                     pixmap = QPixmap.fromImage(image)
                     self._variant_pixmaps[key] = pixmap
@@ -629,6 +723,28 @@ class MainWindow(QMainWindow, AppWindowMixin):
             if pixmap is not None:
                 self._pixmaps[family.id] = pixmap
 
+    def _rebuild_folder_menus(self) -> None:
+        if not hasattr(self, "_pinned_menu"):
+            return
+        self._pinned_menu.clear()
+        pinned = load_pinned_folders()
+        if not pinned:
+            empty = self._pinned_menu.addAction("(none in config.json)")
+            empty.setEnabled(False)
+        else:
+            for path in pinned:
+                action = self._pinned_menu.addAction(self._folder_label(path))
+                action.triggered.connect(lambda _checked=False, target=path: self._open_folder(target))
+        self._recent_menu.clear()
+        recent = load_recent_folders()
+        if not recent:
+            empty_recent = self._recent_menu.addAction("(empty)")
+            empty_recent.setEnabled(False)
+        else:
+            for path in recent:
+                action = self._recent_menu.addAction(self._folder_label(path))
+                action.triggered.connect(lambda _checked=False, target=path: self._open_folder(target))
+
     def _refresh_category_icons(self) -> None:
         for index in range(self.category_list.count()):
             item = self.category_list.item(index)
@@ -643,13 +759,19 @@ class MainWindow(QMainWindow, AppWindowMixin):
     def _resolve_source_file(self, family: object, svg_path: str) -> Path | None:
         if not isinstance(family, IconFamily) or self._repo_root is None:
             return None
+        selected = Path(svg_path)
+        if selected.is_file() and selected.suffix.casefold() in {".ai", ".pdf", ".eps"}:
+            return selected
+        featured = family.featured_path(self._repo_root)
+        if featured is not None and featured.suffix.casefold() in {".ai", ".pdf", ".eps"}:
+            return featured
         config: dict[str, Any] = h.dev.config_load(get_config_path_str())
         ai_root = resolve_external_ai_root(config.get("path_vector_icons_ai"))
-        note_dir = self._repo_root / family.folder
+        note_dir = self._repo_root / family.folder if family.folder else self._repo_root
         return find_icon_source_file(
             family_id=family.id,
             note_dir=note_dir,
-            svg_path=Path(svg_path),
+            svg_path=selected if selected.is_file() else None,
             external_ai_root=ai_root,
         )
 
@@ -688,6 +810,45 @@ class MainWindow(QMainWindow, AppWindowMixin):
             self._thumb_thread.wait(3000)
         self._thumb_thread = None
         self._thumb_worker = None
+
+    def _sync_folder_combo(self) -> None:
+        if not hasattr(self, "folder_combo"):
+            return
+        self.folder_combo.blockSignals(True)  # noqa: FBT003
+        self.folder_combo.clear()
+        pinned = load_pinned_folders()
+        seen: set[str] = set()
+        current_key = ""
+        if self._repo_root is not None:
+            try:
+                current_key = str(self._repo_root.resolve())
+            except OSError:
+                current_key = str(self._repo_root)
+        for path in pinned:
+            try:
+                key = str(path.resolve())
+            except OSError:
+                key = str(path)
+            if key in seen:
+                continue
+            seen.add(key)
+            self.folder_combo.addItem(path.name, str(path))
+        if self._repo_root is not None and current_key not in seen:
+            self.folder_combo.insertItem(0, f"{self._repo_root.name} (current)", str(self._repo_root))
+        # Select current folder when present.
+        selected = -1
+        for index in range(self.folder_combo.count()):
+            raw = str(self.folder_combo.itemData(index) or "")
+            try:
+                key = str(Path(raw).resolve()) if raw else ""
+            except OSError:
+                key = raw
+            if key == current_key:
+                selected = index
+                break
+        if selected >= 0:
+            self.folder_combo.setCurrentIndex(selected)
+        self.folder_combo.blockSignals(False)  # noqa: FBT003
 
     def _target_category_for_icon(self, family: IconFamily) -> str | None:
         if self._current_category and self._current_category in family.categories:

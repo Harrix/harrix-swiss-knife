@@ -75,6 +75,8 @@ class AppConfig(TypedDict, total=False):
     path_vector_icons: NotRequired[str]
     path_vector_icons_ai: NotRequired[str]
     path_vector_icons_source_app: NotRequired[str]
+    path_vector_icons_pinned: NotRequired[list[str]]
+    vector_icons_recent_folders_max: NotRequired[int]
 ```
 
 </details>

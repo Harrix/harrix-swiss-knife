@@ -11,6 +11,8 @@ lang: en
 
 ## Contents
 
+- [📎 Constant `DEFAULT_THUMB_SIZE`](#-constant-default_thumb_size)
+- [📎 Constant `THUMB_FORMAT_VERSION`](#-constant-thumb_format_version)
 - [🏛️ Class `ThumbnailCache`](#%EF%B8%8F-class-thumbnailcache)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `is_fresh`](#%EF%B8%8F-method-is_fresh)
@@ -25,11 +27,25 @@ lang: en
   - [⚙️ Method `run`](#%EF%B8%8F-method-run)
 - [🔧 Function `default_cache_dir`](#-function-default_cache_dir)
 - [🔧 Function `placeholder_pixmap`](#-function-placeholder_pixmap)
-- [🔧 Function `render_svg_to_image`](#-function-render_svg_to_image)
 - [🔧 Function `start_thumbnail_refresh`](#-function-start_thumbnail_refresh)
-- [🔧 Function `svg_needs_contrast_background`](#-function-svg_needs_contrast_background)
 
 </details>
+
+## 📎 Constant `DEFAULT_THUMB_SIZE`
+
+```python
+DEFAULT_THUMB_SIZE = 160
+```
+
+_No docstring provided._
+
+## 📎 Constant `THUMB_FORMAT_VERSION`
+
+```python
+THUMB_FORMAT_VERSION = 5
+```
+
+_No docstring provided._
 
 ## 🏛️ Class `ThumbnailCache`
 
@@ -74,13 +90,13 @@ class ThumbnailCache:
         return None if pixmap.isNull() else pixmap
 
     def render_and_store(self, family: IconFamily, repo_root: Path) -> QPixmap | None:
-        """Render featured SVG to PNG cache and return the pixmap."""
-        svg_path = family.featured_path(repo_root)
-        if svg_path is None and family.variants:
-            svg_path = family.variants[0].absolute_path(repo_root, family.folder)
-        if svg_path is None:
+        """Render featured icon to PNG cache and return the pixmap."""
+        icon_path = family.featured_path(repo_root)
+        if icon_path is None and family.variants:
+            icon_path = family.variants[0].absolute_path(repo_root, family.folder)
+        if icon_path is None:
             return None
-        image = render_svg_to_image(svg_path, self.size)
+        image = render_icon_to_image(icon_path, self.size)
         if image is None:
             return None
         out = self.thumb_path(family.id)
@@ -234,19 +250,19 @@ def load_pixmap(self, family_id: str) -> QPixmap | None:
 def render_and_store(self, family: IconFamily, repo_root: Path) -> QPixmap | None
 ```
 
-Render featured SVG to PNG cache and return the pixmap.
+Render featured icon to PNG cache and return the pixmap.
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def render_and_store(self, family: IconFamily, repo_root: Path) -> QPixmap | None:
-        svg_path = family.featured_path(repo_root)
-        if svg_path is None and family.variants:
-            svg_path = family.variants[0].absolute_path(repo_root, family.folder)
-        if svg_path is None:
+        icon_path = family.featured_path(repo_root)
+        if icon_path is None and family.variants:
+            icon_path = family.variants[0].absolute_path(repo_root, family.folder)
+        if icon_path is None:
             return None
-        image = render_svg_to_image(svg_path, self.size)
+        image = render_icon_to_image(icon_path, self.size)
         if image is None:
             return None
         out = self.thumb_path(family.id)
@@ -518,47 +534,12 @@ def placeholder_pixmap(size: int = DEFAULT_THUMB_SIZE) -> QPixmap:
     image.fill(Qt.GlobalColor.transparent)
     painter = QPainter(image)
     painter.setRenderHint(QPainter.RenderHint.Antialiasing, on=True)
-    _paint_rounded_preview_background(painter, size)
+    radius = max(4.0, size * PREVIEW_CORNER_RADIUS_RATIO)
+    path = QPainterPath()
+    path.addRoundedRect(QRectF(0, 0, size, size), radius, radius)
+    painter.fillPath(path, PREVIEW_BACKGROUND)
     painter.end()
     return QPixmap.fromImage(image)
-```
-
-</details>
-
-## 🔧 Function `render_svg_to_image`
-
-```python
-def render_svg_to_image(svg_path: Path, size: int) -> QImage | None
-```
-
-Rasterize an SVG into a square image.
-
-White variants (`*_white_*`) get a rounded gray backdrop so they stay visible.
-The icon itself is inset so it does not touch the gray tile edges.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def render_svg_to_image(svg_path: Path, size: int) -> QImage | None:
-    if not svg_path.is_file():
-        return None
-    renderer = QSvgRenderer(str(svg_path))
-    if not renderer.isValid():
-        return None
-    image = QImage(size, size, QImage.Format.Format_ARGB32_Premultiplied)
-    image.fill(Qt.GlobalColor.transparent)
-    painter = QPainter(image)
-    painter.setRenderHint(QPainter.RenderHint.Antialiasing, on=True)
-    if svg_needs_contrast_background(svg_path):
-        _paint_rounded_preview_background(painter, size)
-        inset = max(2.0, size * PREVIEW_ICON_INSET_RATIO)
-        icon_size = size - 2 * inset
-        renderer.render(painter, QRectF(inset, inset, icon_size, icon_size))
-    else:
-        renderer.render(painter)
-    painter.end()
-    return image
 ```
 
 </details>
@@ -594,24 +575,6 @@ def start_thumbnail_refresh(
     thread.finished.connect(worker.deleteLater)
     thread.start()
     return thread, worker
-```
-
-</details>
-
-## 🔧 Function `svg_needs_contrast_background`
-
-```python
-def svg_needs_contrast_background(svg_path: Path) -> bool
-```
-
-Return whether the SVG is a white-fill variant that needs a gray tile.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def svg_needs_contrast_background(svg_path: Path) -> bool:
-    return "_white" in svg_path.stem.casefold()
 ```
 
 </details>
