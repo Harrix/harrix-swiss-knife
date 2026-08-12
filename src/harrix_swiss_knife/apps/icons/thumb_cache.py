@@ -19,6 +19,9 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_THUMB_SIZE = 160
 META_FILENAME = "meta.json"
+# Bump when thumbnail raster style changes (forces cache refresh).
+THUMB_FORMAT_VERSION = 2
+PREVIEW_BACKGROUND = Qt.GlobalColor.lightGray
 
 
 class ThumbnailCache:
@@ -33,12 +36,16 @@ class ThumbnailCache:
         self._load_meta()
 
     def is_fresh(self, family: IconFamily) -> bool:
-        """Return whether the cached thumb matches the featured hash and size."""
+        """Return whether the cached thumb matches the featured hash, size, and format."""
         entry = self._meta.get(family.id)
         path = self.thumb_path(family.id)
         if not entry or not path.is_file():
             return False
-        return entry.get("hash") == family.featured_hash and int(entry.get("size") or 0) == self.size
+        return (
+            entry.get("hash") == family.featured_hash
+            and int(entry.get("size") or 0) == self.size
+            and int(entry.get("format") or 0) == THUMB_FORMAT_VERSION
+        )
 
     def load_pixmap(self, family_id: str) -> QPixmap | None:
         """Load a cached PNG as pixmap when present."""
@@ -62,7 +69,11 @@ class ThumbnailCache:
         if not image.save(str(out)):
             logger.warning("Failed to save thumbnail for %s", family.id)
             return None
-        self._meta[family.id] = {"hash": family.featured_hash, "size": self.size}
+        self._meta[family.id] = {
+            "hash": family.featured_hash,
+            "size": self.size,
+            "format": THUMB_FORMAT_VERSION,
+        }
         return QPixmap.fromImage(image)
 
     def save_meta(self) -> None:
@@ -143,19 +154,23 @@ def default_cache_dir() -> Path:
 def placeholder_pixmap(size: int = DEFAULT_THUMB_SIZE) -> QPixmap:
     """Return a light placeholder tile used before thumbs exist."""
     image = QImage(size, size, QImage.Format.Format_ARGB32_Premultiplied)
-    image.fill(Qt.GlobalColor.lightGray)
+    image.fill(PREVIEW_BACKGROUND)
     return QPixmap.fromImage(image)
 
 
 def render_svg_to_image(svg_path: Path, size: int) -> QImage | None:
-    """Rasterize an SVG into a square ARGB image."""
+    """Rasterize an SVG into a square image on a gray background.
+
+    Gray fill keeps white-filled icons visible against the window chrome.
+
+    """
     if not svg_path.is_file():
         return None
     renderer = QSvgRenderer(str(svg_path))
     if not renderer.isValid():
         return None
     image = QImage(size, size, QImage.Format.Format_ARGB32_Premultiplied)
-    image.fill(Qt.GlobalColor.transparent)
+    image.fill(PREVIEW_BACKGROUND)
     painter = QPainter(image)
     painter.setRenderHint(QPainter.RenderHint.Antialiasing, on=True)
     renderer.render(painter)

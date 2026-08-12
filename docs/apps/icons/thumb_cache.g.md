@@ -52,12 +52,16 @@ class ThumbnailCache:
         self._load_meta()
 
     def is_fresh(self, family: IconFamily) -> bool:
-        """Return whether the cached thumb matches the featured hash and size."""
+        """Return whether the cached thumb matches the featured hash, size, and format."""
         entry = self._meta.get(family.id)
         path = self.thumb_path(family.id)
         if not entry or not path.is_file():
             return False
-        return entry.get("hash") == family.featured_hash and int(entry.get("size") or 0) == self.size
+        return (
+            entry.get("hash") == family.featured_hash
+            and int(entry.get("size") or 0) == self.size
+            and int(entry.get("format") or 0) == THUMB_FORMAT_VERSION
+        )
 
     def load_pixmap(self, family_id: str) -> QPixmap | None:
         """Load a cached PNG as pixmap when present."""
@@ -81,7 +85,11 @@ class ThumbnailCache:
         if not image.save(str(out)):
             logger.warning("Failed to save thumbnail for %s", family.id)
             return None
-        self._meta[family.id] = {"hash": family.featured_hash, "size": self.size}
+        self._meta[family.id] = {
+            "hash": family.featured_hash,
+            "size": self.size,
+            "format": THUMB_FORMAT_VERSION,
+        }
         return QPixmap.fromImage(image)
 
     def save_meta(self) -> None:
@@ -139,7 +147,7 @@ def __init__(self, cache_dir: Path | None = None, *, size: int = DEFAULT_THUMB_S
 def is_fresh(self, family: IconFamily) -> bool
 ```
 
-Return whether the cached thumb matches the featured hash and size.
+Return whether the cached thumb matches the featured hash, size, and format.
 
 <details>
 <summary>Code:</summary>
@@ -150,7 +158,11 @@ def is_fresh(self, family: IconFamily) -> bool:
         path = self.thumb_path(family.id)
         if not entry or not path.is_file():
             return False
-        return entry.get("hash") == family.featured_hash and int(entry.get("size") or 0) == self.size
+        return (
+            entry.get("hash") == family.featured_hash
+            and int(entry.get("size") or 0) == self.size
+            and int(entry.get("format") or 0) == THUMB_FORMAT_VERSION
+        )
 ```
 
 </details>
@@ -202,7 +214,11 @@ def render_and_store(self, family: IconFamily, repo_root: Path) -> QPixmap | Non
         if not image.save(str(out)):
             logger.warning("Failed to save thumbnail for %s", family.id)
             return None
-        self._meta[family.id] = {"hash": family.featured_hash, "size": self.size}
+        self._meta[family.id] = {
+            "hash": family.featured_hash,
+            "size": self.size,
+            "format": THUMB_FORMAT_VERSION,
+        }
         return QPixmap.fromImage(image)
 ```
 
@@ -409,7 +425,7 @@ Return a light placeholder tile used before thumbs exist.
 ```python
 def placeholder_pixmap(size: int = DEFAULT_THUMB_SIZE) -> QPixmap:
     image = QImage(size, size, QImage.Format.Format_ARGB32_Premultiplied)
-    image.fill(Qt.GlobalColor.lightGray)
+    image.fill(PREVIEW_BACKGROUND)
     return QPixmap.fromImage(image)
 ```
 
@@ -421,7 +437,9 @@ def placeholder_pixmap(size: int = DEFAULT_THUMB_SIZE) -> QPixmap:
 def render_svg_to_image(svg_path: Path, size: int) -> QImage | None
 ```
 
-Rasterize an SVG into a square ARGB image.
+Rasterize an SVG into a square image on a gray background.
+
+Gray fill keeps white-filled icons visible against the window chrome.
 
 <details>
 <summary>Code:</summary>
@@ -434,7 +452,7 @@ def render_svg_to_image(svg_path: Path, size: int) -> QImage | None:
     if not renderer.isValid():
         return None
     image = QImage(size, size, QImage.Format.Format_ARGB32_Premultiplied)
-    image.fill(Qt.GlobalColor.transparent)
+    image.fill(PREVIEW_BACKGROUND)
     painter = QPainter(image)
     painter.setRenderHint(QPainter.RenderHint.Antialiasing, on=True)
     renderer.render(painter)

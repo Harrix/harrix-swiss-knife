@@ -379,9 +379,7 @@ class VariantsPanel(QWidget):
     def _preview(path: Path, size: int) -> QPixmap:
         image = render_svg_to_image(path, size)
         if image is None:
-            pixmap = QPixmap(size, size)
-            pixmap.fill(Qt.GlobalColor.lightGray)
-            return pixmap
+            return placeholder_pixmap(size)
         return QPixmap.fromImage(image)
 ```
 
