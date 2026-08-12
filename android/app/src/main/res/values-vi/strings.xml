@@ -33,6 +33,9 @@
     <string name="settings_reset">Đặt lại cài đặt</string>
     <string name="settings_reset_hint">Khôi phục chủ đề, ngôn ngữ và Gallery Cleaner tùy chọn để mặc định. Lịch sử được xem xét được lưu giữ.</string>
     <string name="settings_reset_done">Cài đặt được khôi phục về mặc định</string>
+    <string name="confirm_type_yes_hint">Type yes to confirm. This cannot be undone from here.</string>
+    <string name="confirm_type_yes_label">Confirmation</string>
+    <string name="confirm_cancel">Cancel</string>
     <string name="settings_permissions_title">Quyền</string>
     <string name="settings_permissions_summary">Hình ảnh, video, quản lý phương tiện truyền thông</string>
     <string name="settings_photos_access_granted">Hình ảnh truy cập: cấp</string>
@@ -72,6 +75,7 @@
     <string name="settings_gallery_unreviewed_only">Chỉ hiển thị hình ảnh chưa được xem xét</string>
     <string name="settings_gallery_unreviewed_only_hint">Trong chế độ Này, Hãy Giữ và Xóa đánh dấu ảnh là đã xem xét. Bỏ qua hiển thị một bức ảnh khác mà không đánh dấu nó, vì vậy nó có thể xuất hiện lại. Xem lại hình ảnh ở ẩn cho đến khi bạn thiết lập lại lịch sử.</string>
     <string name="settings_gallery_clear_reviewed">Đặt lại lịch sử đã xem xét</string>
+    <string name="settings_gallery_clear_reviewed_hint">Clears reviewed history so those photos can appear again during review.</string>
     <string name="settings_gallery_clear_reviewed_done">Xem lại lịch sử xóa (%1$d)</string>
     <string name="settings_gallery_reviewed_count">Xem lại hình ảnh: %1$d</string>
     <string name="settings_gallery_collect_stats">Thu thập số liệu thống kê</string>
@@ -157,6 +161,7 @@
     <string name="settings_medicine_search_file_current">Current: %1$s</string>
     <string name="settings_medicine_search_choose_file">Choose Markdown file</string>
     <string name="settings_medicine_search_clear_file">Clear medicines file</string>
+    <string name="settings_medicine_search_clear_file_hint">Removes the selected medicines note from the app. The file on disk is not deleted.</string>
     <string name="settings_medicine_search_file_saved">Medicines file saved</string>
     <string name="settings_medicine_search_file_cleared">Medicines file cleared</string>
     <string name="speech_to_text_title">Speech to Text with AI</string>
@@ -327,6 +332,7 @@
     <string name="video_cleaner_stats_deleted">Đã xóa (mọi lúc): %1$d</string>
     <string name="video_cleaner_stats_freed">Giải phóng không gian (mọi thời đại): %1$s</string>
     <string name="video_cleaner_stats_ok">OK</string>
+    <string name="video_cleaner_stats_reset">Reset statistics</string>
     <string name="video_cleaner_delete_failed">Không thể xóa các video đã chọn</string>
     <string name="video_cleaner_untitled">Video không có tiêu đề</string>
     <string name="video_cleaner_select_all">Chọn tất cả</string>

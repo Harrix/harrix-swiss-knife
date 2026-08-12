@@ -21,6 +21,9 @@
     <string name="settings_reset">設定をリセット</string>
     <string name="settings_reset_hint">テーマ、言語、Gallery Cleaner のオプションを復元します。レビュー履歴は保持されます。</string>
     <string name="settings_reset_done">設定を復元しました</string>
+    <string name="confirm_type_yes_hint">Type yes to confirm. This cannot be undone from here.</string>
+    <string name="confirm_type_yes_label">Confirmation</string>
+    <string name="confirm_cancel">Cancel</string>
     <string name="settings_appearance_title">外観</string>
     <string name="settings_appearance_summary">テーマと言語</string>
     <string name="settings_language_title">言語</string>
@@ -72,6 +75,7 @@
     <string name="settings_gallery_unreviewed_only">まだレビューされていない写真のみを表示</string>
     <string name="settings_gallery_unreviewed_only_hint">このモードでは、「保持」および「削除」により写真にレビュー済みのマークが付けられます。スキップすると、マークを付けずに別の写真が表示されるため、再度表示される可能性があります。レビュー済みの写真は、履歴をリセットするまで非表示のままです。</string>
     <string name="settings_gallery_clear_reviewed">レビュー履歴をリセット</string>
+    <string name="settings_gallery_clear_reviewed_hint">Clears reviewed history so those photos can appear again during review.</string>
     <string name="settings_gallery_clear_reviewed_done">レビュー履歴がクリアされました (%1$d)</string>
     <string name="settings_gallery_reviewed_count">レビューした写真: %1$d</string>
     <string name="settings_gallery_reset_stats">統計をリセット</string>
@@ -157,6 +161,7 @@
     <string name="settings_medicine_search_file_current">Current: %1$s</string>
     <string name="settings_medicine_search_choose_file">Choose Markdown file</string>
     <string name="settings_medicine_search_clear_file">Clear medicines file</string>
+    <string name="settings_medicine_search_clear_file_hint">Removes the selected medicines note from the app. The file on disk is not deleted.</string>
     <string name="settings_medicine_search_file_saved">Medicines file saved</string>
     <string name="settings_medicine_search_file_cleared">Medicines file cleared</string>
     <string name="speech_to_text_title">Speech to Text with AI</string>
@@ -327,6 +332,7 @@
     <string name="video_cleaner_stats_deleted">削除済み (常に): %1$d</string>
     <string name="video_cleaner_stats_freed">解放されたスペース (常時): %1$s</string>
     <string name="video_cleaner_stats_ok">OK</string>
+    <string name="video_cleaner_stats_reset">Reset statistics</string>
     <string name="video_cleaner_delete_failed">選択した動画を削除できませんでした</string>
     <string name="video_cleaner_untitled">無題のビデオ</string>
     <string name="video_cleaner_select_all">すべて選択</string>

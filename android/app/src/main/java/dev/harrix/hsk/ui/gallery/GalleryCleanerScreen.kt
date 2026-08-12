@@ -127,6 +127,7 @@ import dev.harrix.hsk.gallery.PhotoEditSaver
 import dev.harrix.hsk.ui.AutoFitText
 import dev.harrix.hsk.ui.CompactBottomActionButton
 import dev.harrix.hsk.ui.HskDropdownMenuItem
+import dev.harrix.hsk.ui.TypeYesConfirmDialog
 import dev.harrix.hsk.ui.adaptiveBottomBarWidth
 import dev.harrix.hsk.ui.isCompactHeight
 import dev.harrix.hsk.ui.isCompactWidth
@@ -830,6 +831,7 @@ fun GalleryCleanerScreen(
 
     if (showStatsDialog) {
         var statsTick by remember { mutableIntStateOf(0) }
+        var showResetStatsConfirm by remember { mutableStateOf(false) }
         val reviewedTotal = remember(statsTick) { preferences.reviewedPhotoCount() }
         val lifetimeDeleted = remember(statsTick) { preferences.totalDeletedCount() }
         val lifetimeFreed = remember(statsTick) { preferences.totalFreedBytes() }
@@ -883,12 +885,7 @@ fun GalleryCleanerScreen(
             },
             dismissButton = {
                 TextButton(
-                    onClick = {
-                        preferences.clearLifetimeDeleteStats()
-                        sessionDeletedCount = 0
-                        sessionFreedBytes = 0L
-                        statsTick += 1
-                    },
+                    onClick = { showResetStatsConfirm = true },
                     enabled = canResetStats,
                 ) {
                     AutoFitText(text = stringResource(R.string.gallery_cleaner_stats_reset), maxLines = 2)
@@ -900,6 +897,21 @@ fun GalleryCleanerScreen(
                 }
             },
         )
+        if (showResetStatsConfirm) {
+            TypeYesConfirmDialog(
+                title = stringResource(R.string.gallery_cleaner_stats_reset),
+                message = stringResource(R.string.settings_gallery_reset_stats_hint),
+                confirmLabel = stringResource(R.string.gallery_cleaner_stats_reset),
+                onConfirm = {
+                    preferences.clearLifetimeDeleteStats()
+                    sessionDeletedCount = 0
+                    sessionFreedBytes = 0L
+                    statsTick += 1
+                    showResetStatsConfirm = false
+                },
+                onDismissRequest = { showResetStatsConfirm = false },
+            )
+        }
     }
 
     if (showIntro) {

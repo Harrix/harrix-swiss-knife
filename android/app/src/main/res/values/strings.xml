@@ -33,6 +33,10 @@
     <string name="settings_reset">Reset settings</string>
     <string name="settings_reset_hint">Restore theme, language, and Gallery Cleaner options to defaults. Reviewed history is kept.</string>
     <string name="settings_reset_done">Settings restored to defaults</string>
+    <string name="confirm_type_yes_hint">Type yes to confirm. This cannot be undone from here.</string>
+    <string name="confirm_type_yes_label">Confirmation</string>
+    <string name="confirm_cancel">Cancel</string>
+    <string name="confirm_type_yes_word" translatable="false">yes</string>
     <string name="settings_permissions_title">Permissions</string>
     <string name="settings_permissions_summary">Photos, videos, media management</string>
     <string name="settings_photos_access_granted">Photos access: granted</string>
@@ -72,6 +76,7 @@
     <string name="settings_gallery_unreviewed_only">Show only photos not reviewed yet</string>
     <string name="settings_gallery_unreviewed_only_hint">In this mode Keep and Delete mark a photo as reviewed. Skip shows another photo without marking it, so it can appear again. Reviewed photos stay hidden until you reset the history.</string>
     <string name="settings_gallery_clear_reviewed">Reset reviewed history</string>
+    <string name="settings_gallery_clear_reviewed_hint">Clears reviewed history so those photos can appear again during review.</string>
     <string name="settings_gallery_clear_reviewed_done">Reviewed history cleared (%1$d)</string>
     <string name="settings_gallery_reviewed_count">Reviewed photos: %1$d</string>
     <string name="settings_gallery_collect_stats">Collect statistics</string>
@@ -157,8 +162,9 @@
     <string name="settings_medicine_search_file_current">Current: %1$s</string>
     <string name="settings_medicine_search_choose_file">Choose Markdown file</string>
     <string name="settings_medicine_search_clear_file">Clear medicines file</string>
-    <string name="settings_medicine_search_file_saved">Medicines file saved</string>
+    <string name="settings_medicine_search_clear_file_hint">Removes the selected medicines note from the app. The file on disk is not deleted.</string>
     <string name="settings_medicine_search_file_cleared">Medicines file cleared</string>
+    <string name="settings_medicine_search_file_saved">Medicines file saved</string>
     <string name="speech_to_text_title">Speech to Text with AI</string>
     <string name="speech_to_text_widget_label">Speech to Text</string>
     <string name="speech_to_text_widget_description">Open Speech to Text with AI</string>
@@ -327,6 +333,7 @@
     <string name="video_cleaner_stats_deleted">Deleted (all time): %1$d</string>
     <string name="video_cleaner_stats_freed">Space freed (all time): %1$s</string>
     <string name="video_cleaner_stats_ok">OK</string>
+    <string name="video_cleaner_stats_reset">Reset statistics</string>
     <string name="video_cleaner_delete_failed">Could not delete selected videos</string>
     <string name="video_cleaner_untitled">Untitled video</string>
     <string name="video_cleaner_select_all">Select all</string>

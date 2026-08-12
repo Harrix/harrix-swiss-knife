@@ -21,6 +21,9 @@
     <string name="settings_reset">Сбросить настройки</string>
     <string name="settings_reset_hint">Восстанавливает тему, язык и параметры Gallery Cleaner. История просмотров сохраняется.</string>
     <string name="settings_reset_done">Настройки восстановлены</string>
+    <string name="confirm_type_yes_hint">Введите yes для подтверждения. Это действие нельзя отменить здесь.</string>
+    <string name="confirm_type_yes_label">Подтверждение</string>
+    <string name="confirm_cancel">Отмена</string>
     <string name="settings_appearance_title">Оформление</string>
     <string name="settings_appearance_summary">Тема и язык</string>
     <string name="settings_language_title">Язык</string>
@@ -72,6 +75,7 @@
     <string name="settings_gallery_unreviewed_only">Показать только фотографии, еще не проверенные</string>
     <string name="settings_gallery_unreviewed_only_hint">В этом режиме «Сохранить» и «Удалить» помечают фотографию как проверенную. Пропустить показывает другую фотографию, не отмечая ее, чтобы она могла появиться снова. Отредактированные фотографии остаются скрытыми до тех пор, пока вы не сбросите историю.</string>
     <string name="settings_gallery_clear_reviewed">Сбросить историю просмотров</string>
+    <string name="settings_gallery_clear_reviewed_hint">Очищает историю просмотров, чтобы эти фото снова могли появляться при проверке.</string>
     <string name="settings_gallery_clear_reviewed_done">Просмотренная история очищена (%1$d)</string>
     <string name="settings_gallery_reviewed_count">Просмотренные фотографии: %1$d</string>
     <string name="settings_gallery_collect_stats">Собирать статистику</string>
@@ -157,8 +161,9 @@
     <string name="settings_medicine_search_file_current">Сейчас: %1$s</string>
     <string name="settings_medicine_search_choose_file">Выбрать Markdown-файл</string>
     <string name="settings_medicine_search_clear_file">Очистить файл с лекарствами</string>
-    <string name="settings_medicine_search_file_saved">Файл с лекарствами сохранён</string>
+    <string name="settings_medicine_search_clear_file_hint">Убирает выбранную заметку с лекарствами из приложения. Файл на диске не удаляется.</string>
     <string name="settings_medicine_search_file_cleared">Файл с лекарствами очищен</string>
+    <string name="settings_medicine_search_file_saved">Файл с лекарствами сохранён</string>
     <string name="speech_to_text_title">Speech to Text with AI</string>
     <string name="speech_to_text_widget_label">Speech to Text</string>
     <string name="speech_to_text_widget_description">Открыть Speech to Text with AI</string>
@@ -327,6 +332,7 @@
     <string name="video_cleaner_stats_deleted">Удалено (всегда): %1$d.</string>
     <string name="video_cleaner_stats_freed">Свободно место (за все время): %1$s</string>
     <string name="video_cleaner_stats_ok">ОК</string>
+    <string name="video_cleaner_stats_reset">Сбросить статистику</string>
     <string name="video_cleaner_delete_failed">Не удалось удалить выбранные видео.</string>
     <string name="video_cleaner_untitled">Видео без названия</string>
     <string name="video_cleaner_select_all">Выбрать все</string>

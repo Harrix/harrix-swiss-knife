@@ -84,6 +84,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -121,6 +122,7 @@ import dev.harrix.hsk.ui.AutoFitText
 import dev.harrix.hsk.ui.CompactWideActionButton
 import dev.harrix.hsk.ui.HskDropdownMenuItem
 import dev.harrix.hsk.ui.OverflowTextTooltipBox
+import dev.harrix.hsk.ui.TypeYesConfirmDialog
 import dev.harrix.hsk.ui.adaptiveBottomBarWidth
 import dev.harrix.hsk.ui.isCompactWidth
 import dev.harrix.hsk.ui.performLightActionHaptic
@@ -360,6 +362,11 @@ fun VideoCleanerScreen(
     val totalBytes = remember(videos) { videos.sumOf { it.sizeBytes } }
 
     if (showStatsDialog) {
+        var statsTick by remember { mutableIntStateOf(0) }
+        var showResetStatsConfirm by remember { mutableStateOf(false) }
+        val lifetimeDeleted = remember(statsTick) { videoPreferences.totalDeletedCount() }
+        val lifetimeFreed = remember(statsTick) { videoPreferences.totalFreedBytes() }
+        val canResetStats = lifetimeDeleted > 0 || lifetimeFreed > 0L
         AlertDialog(
             onDismissRequest = { showStatsDialog = false },
             title = { AutoFitText(text = stringResource(R.string.video_cleaner_stats_title), maxLines = 2) },
@@ -396,19 +403,25 @@ fun VideoCleanerScreen(
                     AutoFitText(
                         text = stringResource(
                             R.string.video_cleaner_stats_deleted,
-                            videoPreferences.totalDeletedCount(),
+                            lifetimeDeleted,
                         ),
                         maxLines = 1,
                     )
                     AutoFitText(
                         text = stringResource(
                             R.string.video_cleaner_stats_freed,
-                            CameraGalleryRepository.formatFileSize(
-                                videoPreferences.totalFreedBytes(),
-                            ),
+                            CameraGalleryRepository.formatFileSize(lifetimeFreed),
                         ),
                         maxLines = 1,
                     )
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showResetStatsConfirm = true },
+                    enabled = canResetStats,
+                ) {
+                    AutoFitText(text = stringResource(R.string.video_cleaner_stats_reset), maxLines = 2)
                 }
             },
             confirmButton = {
@@ -417,6 +430,21 @@ fun VideoCleanerScreen(
                 }
             },
         )
+        if (showResetStatsConfirm) {
+            TypeYesConfirmDialog(
+                title = stringResource(R.string.video_cleaner_stats_reset),
+                message = stringResource(R.string.settings_video_reset_stats_hint),
+                confirmLabel = stringResource(R.string.video_cleaner_stats_reset),
+                onConfirm = {
+                    videoPreferences.clearLifetimeDeleteStats()
+                    sessionDeletedCount = 0
+                    sessionFreedBytes = 0L
+                    statsTick += 1
+                    showResetStatsConfirm = false
+                },
+                onDismissRequest = { showResetStatsConfirm = false },
+            )
+        }
     }
 
     if (showManageMediaPrompt) {

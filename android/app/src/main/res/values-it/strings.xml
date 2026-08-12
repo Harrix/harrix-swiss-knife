@@ -21,6 +21,9 @@
     <string name="settings_reset">Ripristina impostazioni</string>
     <string name="settings_reset_hint">Ripristina tema, lingua e opzioni Gallery Cleaner. La cronologia viene conservata.</string>
     <string name="settings_reset_done">Impostazioni ripristinate</string>
+    <string name="confirm_type_yes_hint">Type yes to confirm. This cannot be undone from here.</string>
+    <string name="confirm_type_yes_label">Confirmation</string>
+    <string name="confirm_cancel">Cancel</string>
     <string name="settings_appearance_title">Aspetto</string>
     <string name="settings_appearance_summary">Tema e lingua</string>
     <string name="settings_language_title">Lingua</string>
@@ -72,6 +75,7 @@
     <string name="settings_gallery_unreviewed_only">Mostra solo le foto non ancora recensite</string>
     <string name="settings_gallery_unreviewed_only_hint">In questa modalità Conserva ed Elimina contrassegna una foto come rivista. Salta mostra un\'altra foto senza contrassegnarla, in modo che possa apparire di nuovo. Le foto riviste rimangono nascoste finché non reimposti la cronologia.</string>
     <string name="settings_gallery_clear_reviewed">Reimposta la cronologia rivista</string>
+    <string name="settings_gallery_clear_reviewed_hint">Clears reviewed history so those photos can appear again during review.</string>
     <string name="settings_gallery_clear_reviewed_done">Cronologia revisionata cancellata (%1$d)</string>
     <string name="settings_gallery_reviewed_count">Foto riviste: %1$d</string>
     <string name="settings_gallery_reset_stats">Reimposta le statistiche</string>
@@ -157,6 +161,7 @@
     <string name="settings_medicine_search_file_current">Current: %1$s</string>
     <string name="settings_medicine_search_choose_file">Choose Markdown file</string>
     <string name="settings_medicine_search_clear_file">Clear medicines file</string>
+    <string name="settings_medicine_search_clear_file_hint">Removes the selected medicines note from the app. The file on disk is not deleted.</string>
     <string name="settings_medicine_search_file_saved">Medicines file saved</string>
     <string name="settings_medicine_search_file_cleared">Medicines file cleared</string>
     <string name="speech_to_text_title">Speech to Text with AI</string>
@@ -327,6 +332,7 @@
     <string name="video_cleaner_stats_deleted">Eliminato (da sempre): %1$d</string>
     <string name="video_cleaner_stats_freed">Spazio liberato (tutto il tempo): %1$s</string>
     <string name="video_cleaner_stats_ok">OK</string>
+    <string name="video_cleaner_stats_reset">Reset statistics</string>
     <string name="video_cleaner_delete_failed">Impossibile eliminare i video selezionati</string>
     <string name="video_cleaner_untitled">Video senza titolo</string>
     <string name="video_cleaner_select_all">Seleziona tutto</string>

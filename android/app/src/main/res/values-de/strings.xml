@@ -21,6 +21,9 @@
     <string name="settings_reset">Einstellungen zurücksetzen</string>
     <string name="settings_reset_hint">Stellt Thema, Sprache und Gallery-Cleaner-Optionen wieder her. Der Verlauf bleibt erhalten.</string>
     <string name="settings_reset_done">Einstellungen wiederhergestellt</string>
+    <string name="confirm_type_yes_hint">Type yes to confirm. This cannot be undone from here.</string>
+    <string name="confirm_type_yes_label">Confirmation</string>
+    <string name="confirm_cancel">Cancel</string>
     <string name="settings_appearance_title">Aussehen</string>
     <string name="settings_appearance_summary">Design und Sprache</string>
     <string name="settings_language_title">Sprache</string>
@@ -72,6 +75,7 @@
     <string name="settings_gallery_unreviewed_only">Nur Fotos anzeigen, die noch nicht bewertet wurden</string>
     <string name="settings_gallery_unreviewed_only_hint">Markieren Sie in diesem Modus „Behalten“ und „Löschen“ ein Foto als überprüft. Überspringen zeigt ein weiteres Foto an, ohne es zu markieren, damit es erneut angezeigt werden kann. Überprüfte Fotos bleiben verborgen, bis Sie den Verlauf zurücksetzen.</string>
     <string name="settings_gallery_clear_reviewed">Überprüften Verlauf zurücksetzen</string>
+    <string name="settings_gallery_clear_reviewed_hint">Clears reviewed history so those photos can appear again during review.</string>
     <string name="settings_gallery_clear_reviewed_done">Überprüfter Verlauf gelöscht (%1$d)</string>
     <string name="settings_gallery_reviewed_count">Bewertete Fotos: %1$d</string>
     <string name="settings_gallery_reset_stats">Statistiken zurücksetzen</string>
@@ -157,6 +161,7 @@
     <string name="settings_medicine_search_file_current">Current: %1$s</string>
     <string name="settings_medicine_search_choose_file">Choose Markdown file</string>
     <string name="settings_medicine_search_clear_file">Clear medicines file</string>
+    <string name="settings_medicine_search_clear_file_hint">Removes the selected medicines note from the app. The file on disk is not deleted.</string>
     <string name="settings_medicine_search_file_saved">Medicines file saved</string>
     <string name="settings_medicine_search_file_cleared">Medicines file cleared</string>
     <string name="speech_to_text_title">Speech to Text with AI</string>
@@ -327,6 +332,7 @@
     <string name="video_cleaner_stats_deleted">Gelöscht (alle Zeiten): %1$d</string>
     <string name="video_cleaner_stats_freed">Freier Speicherplatz (jederzeit): %1$s</string>
     <string name="video_cleaner_stats_ok">OK</string>
+    <string name="video_cleaner_stats_reset">Reset statistics</string>
     <string name="video_cleaner_delete_failed">Ausgewählte Videos konnten nicht gelöscht werden</string>
     <string name="video_cleaner_untitled">Video ohne Titel</string>
     <string name="video_cleaner_select_all">Alles auswählen</string>

@@ -33,6 +33,9 @@
     <string name="settings_reset">Setel ulang pengaturan</string>
     <string name="settings_reset_hint">Mengembalikan tema, bahasa, dan Gallery Cleaner opsi ke default. Riwayat yang ditinjau disimpan.</string>
     <string name="settings_reset_done">Pengaturan dikembalikan ke default</string>
+    <string name="confirm_type_yes_hint">Type yes to confirm. This cannot be undone from here.</string>
+    <string name="confirm_type_yes_label">Confirmation</string>
+    <string name="confirm_cancel">Cancel</string>
     <string name="settings_permissions_title">Izin</string>
     <string name="settings_permissions_summary">Foto, video, manajemen media</string>
     <string name="settings_photos_access_granted">Akses foto: diberikan</string>
@@ -72,6 +75,7 @@
     <string name="settings_gallery_unreviewed_only">Hanya menampilkan foto yang belum diulas</string>
     <string name="settings_gallery_unreviewed_only_hint">Dalam mode ini Simpan dan Hapus tandai foto sebagai ditinjau. Lewati menampilkan foto lain tanpa menandainya, sehingga dapat muncul kembali. Foto yang ditinjau tetap disembunyikan hingga Anda mengatur ulang histori.</string>
     <string name="settings_gallery_clear_reviewed">Setel ulang riwayat yang ditinjau</string>
+    <string name="settings_gallery_clear_reviewed_hint">Clears reviewed history so those photos can appear again during review.</string>
     <string name="settings_gallery_clear_reviewed_done">Riwayat yang ditinjau dihapus (%1$d)</string>
     <string name="settings_gallery_reviewed_count">Foto yang ditinjau: %1$d</string>
     <string name="settings_gallery_collect_stats">Kumpulkan statistik</string>
@@ -157,6 +161,7 @@
     <string name="settings_medicine_search_file_current">Current: %1$s</string>
     <string name="settings_medicine_search_choose_file">Choose Markdown file</string>
     <string name="settings_medicine_search_clear_file">Clear medicines file</string>
+    <string name="settings_medicine_search_clear_file_hint">Removes the selected medicines note from the app. The file on disk is not deleted.</string>
     <string name="settings_medicine_search_file_saved">Medicines file saved</string>
     <string name="settings_medicine_search_file_cleared">Medicines file cleared</string>
     <string name="speech_to_text_title">Speech to Text with AI</string>
@@ -327,6 +332,7 @@
     <string name="video_cleaner_stats_deleted">Dihapus (sepanjang waktu): %1$d</string>
     <string name="video_cleaner_stats_freed">Ruang bebas (sepanjang waktu): %1$s</string>
     <string name="video_cleaner_stats_ok">OK</string>
+    <string name="video_cleaner_stats_reset">Reset statistics</string>
     <string name="video_cleaner_delete_failed">Tidak dapat menghapus video yang dipilih</string>
     <string name="video_cleaner_untitled">Video tanpa judul</string>
     <string name="video_cleaner_select_all">Pilih semua</string>

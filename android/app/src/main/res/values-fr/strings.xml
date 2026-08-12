@@ -21,6 +21,9 @@
     <string name="settings_reset">Réinitialiser les paramètres</string>
     <string name="settings_reset_hint">Restaure le thème, la langue et les options Gallery Cleaner. L\'historique est conservé.</string>
     <string name="settings_reset_done">Paramètres restaurés</string>
+    <string name="confirm_type_yes_hint">Type yes to confirm. This cannot be undone from here.</string>
+    <string name="confirm_type_yes_label">Confirmation</string>
+    <string name="confirm_cancel">Cancel</string>
     <string name="settings_appearance_title">Apparence</string>
     <string name="settings_appearance_summary">Thème et langue</string>
     <string name="settings_language_title">Langue</string>
@@ -72,6 +75,7 @@
     <string name="settings_gallery_unreviewed_only">Afficher uniquement les photos non encore examinées</string>
     <string name="settings_gallery_unreviewed_only_hint">Dans ce mode Conserver et Supprimer, marquez une photo comme révisée. Skip affiche une autre photo sans la marquer, afin qu\'elle puisse réapparaître. Les photos examinées restent masquées jusqu\'à ce que vous réinitialisiez l\'historique.</string>
     <string name="settings_gallery_clear_reviewed">Réinitialiser l\'historique consulté</string>
+    <string name="settings_gallery_clear_reviewed_hint">Clears reviewed history so those photos can appear again during review.</string>
     <string name="settings_gallery_clear_reviewed_done">Historique révisé effacé (%1$d)</string>
     <string name="settings_gallery_reviewed_count">Photos révisées : %1$d</string>
     <string name="settings_gallery_reset_stats">Réinitialiser les statistiques</string>
@@ -157,6 +161,7 @@
     <string name="settings_medicine_search_file_current">Current: %1$s</string>
     <string name="settings_medicine_search_choose_file">Choose Markdown file</string>
     <string name="settings_medicine_search_clear_file">Clear medicines file</string>
+    <string name="settings_medicine_search_clear_file_hint">Removes the selected medicines note from the app. The file on disk is not deleted.</string>
     <string name="settings_medicine_search_file_saved">Medicines file saved</string>
     <string name="settings_medicine_search_file_cleared">Medicines file cleared</string>
     <string name="speech_to_text_title">Speech to Text with AI</string>
@@ -327,6 +332,7 @@
     <string name="video_cleaner_stats_deleted">Supprimé (tous les temps) : %1$d</string>
     <string name="video_cleaner_stats_freed">Espace libéré (toujours) : %1$s</string>
     <string name="video_cleaner_stats_ok">OK</string>
+    <string name="video_cleaner_stats_reset">Reset statistics</string>
     <string name="video_cleaner_delete_failed">Impossible de supprimer les vidéos sélectionnées</string>
     <string name="video_cleaner_untitled">Vidéo sans titre</string>
     <string name="video_cleaner_select_all">Tout sélectionner</string>

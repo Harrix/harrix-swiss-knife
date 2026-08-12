@@ -33,6 +33,9 @@
     <string name="settings_reset">설정 재설정</string>
     <string name="settings_reset_hint">테마,언어 및 복원 Gallery Cleaner 기본값 옵션. 검토 된 역사가 유지됩니다.</string>
     <string name="settings_reset_done">기본값으로 복원된 설정</string>
+    <string name="confirm_type_yes_hint">Type yes to confirm. This cannot be undone from here.</string>
+    <string name="confirm_type_yes_label">Confirmation</string>
+    <string name="confirm_cancel">Cancel</string>
     <string name="settings_permissions_title">권한</string>
     <string name="settings_permissions_summary">사진,비디오,미디어 관리</string>
     <string name="settings_photos_access_granted">사진 액세스:부여</string>
@@ -72,6 +75,7 @@
     <string name="settings_gallery_unreviewed_only">아직 검토되지 않은 사진 만 표시</string>
     <string name="settings_gallery_unreviewed_only_hint">이 모드에서 유지 및 삭제 검토로 사진을 표시합니다. 건너 뛰기는 표시하지 않고 다른 사진을 보여 주므로 다시 나타날 수 있습니다. 검토 된 사진은 기록을 재설정 할 때까지 숨겨져 있습니다.</string>
     <string name="settings_gallery_clear_reviewed">검토 기록 재설정</string>
+    <string name="settings_gallery_clear_reviewed_hint">Clears reviewed history so those photos can appear again during review.</string>
     <string name="settings_gallery_clear_reviewed_done">검토 된 기록 삭제(%1$d)</string>
     <string name="settings_gallery_reviewed_count">검토 된 사진: %1$d</string>
     <string name="settings_gallery_collect_stats">통계 수집</string>
@@ -157,6 +161,7 @@
     <string name="settings_medicine_search_file_current">Current: %1$s</string>
     <string name="settings_medicine_search_choose_file">Choose Markdown file</string>
     <string name="settings_medicine_search_clear_file">Clear medicines file</string>
+    <string name="settings_medicine_search_clear_file_hint">Removes the selected medicines note from the app. The file on disk is not deleted.</string>
     <string name="settings_medicine_search_file_saved">Medicines file saved</string>
     <string name="settings_medicine_search_file_cleared">Medicines file cleared</string>
     <string name="speech_to_text_title">Speech to Text with AI</string>
@@ -327,6 +332,7 @@
     <string name="video_cleaner_stats_deleted">삭제(모든 시간): %1$d</string>
     <string name="video_cleaner_stats_freed">공간 해방(모든 시간): %1$s</string>
     <string name="video_cleaner_stats_ok">확인</string>
+    <string name="video_cleaner_stats_reset">Reset statistics</string>
     <string name="video_cleaner_delete_failed">선택한 동영상을 삭제할 수 없습니다</string>
     <string name="video_cleaner_untitled">제목 없음 비디오</string>
     <string name="video_cleaner_select_all">모두 선택</string>

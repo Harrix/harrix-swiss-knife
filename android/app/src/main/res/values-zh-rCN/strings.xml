@@ -21,6 +21,9 @@
     <string name="settings_reset">重置设置</string>
     <string name="settings_reset_hint">恢复主题、语言和 Gallery Cleaner 选项。已审阅历史会保留。</string>
     <string name="settings_reset_done">设置已恢复</string>
+    <string name="confirm_type_yes_hint">Type yes to confirm. This cannot be undone from here.</string>
+    <string name="confirm_type_yes_label">Confirmation</string>
+    <string name="confirm_cancel">Cancel</string>
     <string name="settings_appearance_title">外貌</string>
     <string name="settings_appearance_summary">主题和语言</string>
     <string name="settings_language_title">语言</string>
@@ -72,6 +75,7 @@
     <string name="settings_gallery_unreviewed_only">仅显示尚未审核的照片</string>
     <string name="settings_gallery_unreviewed_only_hint">在此模式下，保留和删除将照片标记为已审阅。跳过显示另一张照片而不对其进行标记，因此它可以再次出现。在您重置历史记录之前，已查看的照片将保持隐藏状态。</string>
     <string name="settings_gallery_clear_reviewed">重置已审核历史记录</string>
+    <string name="settings_gallery_clear_reviewed_hint">Clears reviewed history so those photos can appear again during review.</string>
     <string name="settings_gallery_clear_reviewed_done">已审核的历史记录已清除 (%1$d)</string>
     <string name="settings_gallery_reviewed_count">已审核照片：%1$d</string>
     <string name="settings_gallery_reset_stats">重置统计</string>
@@ -157,6 +161,7 @@
     <string name="settings_medicine_search_file_current">Current: %1$s</string>
     <string name="settings_medicine_search_choose_file">Choose Markdown file</string>
     <string name="settings_medicine_search_clear_file">Clear medicines file</string>
+    <string name="settings_medicine_search_clear_file_hint">Removes the selected medicines note from the app. The file on disk is not deleted.</string>
     <string name="settings_medicine_search_file_saved">Medicines file saved</string>
     <string name="settings_medicine_search_file_cleared">Medicines file cleared</string>
     <string name="speech_to_text_title">Speech to Text with AI</string>
@@ -327,6 +332,7 @@
     <string name="video_cleaner_stats_deleted">已删除（所有时间）：%1$d</string>
     <string name="video_cleaner_stats_freed">释放空间（所有时间）：%1$s</string>
     <string name="video_cleaner_stats_ok">确定</string>
+    <string name="video_cleaner_stats_reset">Reset statistics</string>
     <string name="video_cleaner_delete_failed">无法删除选定的视频</string>
     <string name="video_cleaner_untitled">无标题视频</string>
     <string name="video_cleaner_select_all">选择全部</string>

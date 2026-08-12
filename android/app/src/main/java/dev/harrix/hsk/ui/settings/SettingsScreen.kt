@@ -84,6 +84,7 @@ import dev.harrix.hsk.medicinesearch.MedicineSearchPreferences
 import dev.harrix.hsk.medicinesearch.MedicinesNoteOpener
 import dev.harrix.hsk.ui.AutoFitText
 import dev.harrix.hsk.ui.HskDropdownMenuItem
+import dev.harrix.hsk.ui.TypeYesConfirmDialog
 import dev.harrix.hsk.ui.adaptiveContentWidth
 import dev.harrix.hsk.ui.isCompactWidth
 import dev.harrix.hsk.ui.theme.AppLanguage
@@ -160,6 +161,7 @@ fun SettingsScreen(
     val medicinePreferences = remember { MedicineSearchPreferences(context.applicationContext) }
     var settingsEpoch by rememberSaveable { mutableIntStateOf(0) }
     var resetMessage by rememberSaveable { mutableStateOf<String?>(null) }
+    var showResetSettingsConfirm by rememberSaveable { mutableStateOf(false) }
     var page by rememberSaveable(section) {
         mutableStateOf(
             when (section) {
@@ -317,15 +319,7 @@ fun SettingsScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     SettingsFullWidthOutlinedButton(
-                        onClick = {
-                            appPreferences.resetAppearanceToDefaults()
-                            galleryPreferences.resetSettingsToDefaults()
-                            medicinePreferences.resetSettingsToDefaults()
-                            onThemeModeChange(ThemeMode.System)
-                            onAppLanguageChange(AppLanguage.System)
-                            settingsEpoch += 1
-                            resetMessage = context.getString(R.string.settings_reset_done)
-                        },
+                        onClick = { showResetSettingsConfirm = true },
                         label = stringResource(R.string.settings_reset),
                     )
                     resetMessage?.let { message ->
@@ -338,6 +332,24 @@ fun SettingsScreen(
                 }
             }
         }
+    }
+    if (showResetSettingsConfirm) {
+        TypeYesConfirmDialog(
+            title = stringResource(R.string.settings_reset),
+            message = stringResource(R.string.settings_reset_hint),
+            confirmLabel = stringResource(R.string.settings_reset),
+            onConfirm = {
+                appPreferences.resetAppearanceToDefaults()
+                galleryPreferences.resetSettingsToDefaults()
+                medicinePreferences.resetSettingsToDefaults()
+                onThemeModeChange(ThemeMode.System)
+                onAppLanguageChange(AppLanguage.System)
+                settingsEpoch += 1
+                resetMessage = context.getString(R.string.settings_reset_done)
+                showResetSettingsConfirm = false
+            },
+            onDismissRequest = { showResetSettingsConfirm = false },
+        )
     }
 }
 
@@ -660,6 +672,7 @@ private fun MedicineSearchSettingsSection(
         mutableStateOf(medicinesUri?.let(::medicinesUriLabel))
     }
     var statusMessage by remember { mutableStateOf<String?>(null) }
+    var showClearFileConfirm by remember { mutableStateOf(false) }
     val openFailedMessage = stringResource(R.string.medicine_search_open_failed)
     val hasFile = medicinesUri != null
 
@@ -743,7 +756,24 @@ private fun MedicineSearchSettingsSection(
             ),
         )
         SettingsFullWidthOutlinedButton(
-            onClick = {
+            onClick = { showClearFileConfirm = true },
+            enabled = hasFile,
+            label = stringResource(R.string.settings_medicine_search_clear_file),
+        )
+        statusMessage?.let { message ->
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+    if (showClearFileConfirm) {
+        TypeYesConfirmDialog(
+            title = stringResource(R.string.settings_medicine_search_clear_file),
+            message = stringResource(R.string.settings_medicine_search_clear_file_hint),
+            confirmLabel = stringResource(R.string.settings_medicine_search_clear_file),
+            onConfirm = {
                 val previous = preferences.getMedicinesUri()
                 preferences.clearMedicinesUri()
                 if (previous != null) {
@@ -757,17 +787,10 @@ private fun MedicineSearchSettingsSection(
                 medicinesUri = null
                 fileLabel = null
                 statusMessage = context.getString(R.string.settings_medicine_search_file_cleared)
+                showClearFileConfirm = false
             },
-            enabled = hasFile,
-            label = stringResource(R.string.settings_medicine_search_clear_file),
+            onDismissRequest = { showClearFileConfirm = false },
         )
-        statusMessage?.let { message ->
-            Text(
-                text = message,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
     }
 }
 
@@ -792,6 +815,7 @@ private fun GalleryCleanerSettingsSection(
     var folderMessage by remember { mutableStateOf<String?>(null) }
     var reviewedCount by remember { mutableIntStateOf(preferences.reviewedPhotoCount()) }
     var clearMessage by remember { mutableStateOf<String?>(null) }
+    var showClearReviewedConfirm by remember { mutableStateOf(false) }
     var introEnabled by remember { mutableStateOf(preferences.shouldShowIntro()) }
     var introMessage by remember { mutableStateOf<String?>(null) }
     var statsState by remember { mutableStateOf<GalleryStatsDialogState?>(null) }
@@ -1143,13 +1167,7 @@ private fun GalleryCleanerSettingsSection(
             label = stringResource(R.string.settings_gallery_collect_stats),
         )
         SettingsFullWidthOutlinedButton(
-            onClick = {
-                val cleared = preferences.reviewedPhotoCount()
-                preferences.clearReviewedPhotos()
-                reviewedCount = 0
-                clearMessage =
-                    context.getString(R.string.settings_gallery_clear_reviewed_done, cleared)
-            },
+            onClick = { showClearReviewedConfirm = true },
             enabled = reviewedCount > 0,
             label = stringResource(R.string.settings_gallery_clear_reviewed),
         )
@@ -1198,6 +1216,22 @@ private fun GalleryCleanerSettingsSection(
         verticalArrangement = Arrangement.spacedBy(12.dp),
         content = body,
     )
+    if (showClearReviewedConfirm) {
+        TypeYesConfirmDialog(
+            title = stringResource(R.string.settings_gallery_clear_reviewed),
+            message = stringResource(R.string.settings_gallery_clear_reviewed_hint),
+            confirmLabel = stringResource(R.string.settings_gallery_clear_reviewed),
+            onConfirm = {
+                val cleared = preferences.reviewedPhotoCount()
+                preferences.clearReviewedPhotos()
+                reviewedCount = 0
+                clearMessage =
+                    context.getString(R.string.settings_gallery_clear_reviewed_done, cleared)
+                showClearReviewedConfirm = false
+            },
+            onDismissRequest = { showClearReviewedConfirm = false },
+        )
+    }
 }
 
 @Composable
