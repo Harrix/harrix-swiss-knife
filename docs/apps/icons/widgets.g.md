@@ -484,10 +484,8 @@ class IconLabelDelegate(QStyledItemDelegate):
             )
 
         painter.save()
-        if opt.state & QStyle.StateFlag.State_Selected:
-            painter.setPen(opt.palette.color(opt.palette.ColorRole.HighlightedText))
-        else:
-            painter.setPen(opt.palette.color(opt.palette.ColorRole.Text))
+        # Keep label colors unchanged on selection (highlight is only the tile chrome).
+        painter.setPen(opt.palette.color(opt.palette.ColorRole.Text))
 
         title_font = QFont(opt.font)
         subtitle_font = QFont(opt.font)
@@ -504,14 +502,10 @@ class IconLabelDelegate(QStyledItemDelegate):
         )
 
         if subtitle_text:
-            if opt.state & QStyle.StateFlag.State_Selected:
-                muted = opt.palette.color(opt.palette.ColorRole.HighlightedText)
-                muted.setAlpha(200)
-            else:
-                muted = opt.palette.color(opt.palette.ColorRole.PlaceholderText)
-                if not muted.isValid() or muted.alpha() == 0:
-                    muted = QColor(opt.palette.color(opt.palette.ColorRole.Text))
-                    muted.setAlpha(160)
+            muted = opt.palette.color(opt.palette.ColorRole.PlaceholderText)
+            if not muted.isValid() or muted.alpha() == 0:
+                muted = QColor(opt.palette.color(opt.palette.ColorRole.Text))
+                muted.setAlpha(160)
             painter.setPen(muted)
             painter.setFont(subtitle_font)
             subtitle_rect = QRect(
@@ -583,10 +577,8 @@ def paint(
             )
 
         painter.save()
-        if opt.state & QStyle.StateFlag.State_Selected:
-            painter.setPen(opt.palette.color(opt.palette.ColorRole.HighlightedText))
-        else:
-            painter.setPen(opt.palette.color(opt.palette.ColorRole.Text))
+        # Keep label colors unchanged on selection (highlight is only the tile chrome).
+        painter.setPen(opt.palette.color(opt.palette.ColorRole.Text))
 
         title_font = QFont(opt.font)
         subtitle_font = QFont(opt.font)
@@ -603,14 +595,10 @@ def paint(
         )
 
         if subtitle_text:
-            if opt.state & QStyle.StateFlag.State_Selected:
-                muted = opt.palette.color(opt.palette.ColorRole.HighlightedText)
-                muted.setAlpha(200)
-            else:
-                muted = opt.palette.color(opt.palette.ColorRole.PlaceholderText)
-                if not muted.isValid() or muted.alpha() == 0:
-                    muted = QColor(opt.palette.color(opt.palette.ColorRole.Text))
-                    muted.setAlpha(160)
+            muted = opt.palette.color(opt.palette.ColorRole.PlaceholderText)
+            if not muted.isValid() or muted.alpha() == 0:
+                muted = QColor(opt.palette.color(opt.palette.ColorRole.Text))
+                muted.setAlpha(160)
             painter.setPen(muted)
             painter.setFont(subtitle_font)
             subtitle_rect = QRect(
