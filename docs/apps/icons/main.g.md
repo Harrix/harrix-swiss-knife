@@ -55,6 +55,8 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._selected_family_id: str | None = None
         self._category_icons = load_category_icons()
         self._default_category_family_ids: dict[str, str] = {}
+        self._variant_view_mode = load_variant_view_mode()
+        self._variant_pixmaps: dict[str, QPixmap] = {}
         self._icon_size_save_timer = QTimer(self)
         self._icon_size_save_timer.setSingleShot(True)
         self._icon_size_save_timer.setInterval(300)
@@ -80,28 +82,29 @@ class MainWindow(QMainWindow, AppWindowMixin):
             return
         query = self.search_edit.text()
         families = self._catalog.filter_icons(category=self._current_category, query=query)
-        self.icon_list.set_family_items(families, pixmaps=self._pixmaps, placeholder=self._placeholder)
-        for index in range(self.icon_list.count()):
-            item = self.icon_list.item(index)
-            if item is None:
-                continue
-            family = item.data(Qt.ItemDataRole.UserRole)
-            if not isinstance(family, IconFamily):
-                continue
-            featured = family.featured_path(self._repo_root)
-            if featured is None and family.variants:
-                featured = family.variants[0].absolute_path(self._repo_root, family.folder)
-            if featured is not None:
-                item.setData(ROLE_SVG_PATH, str(featured))
-                item.setData(ROLE_SUBTITLE, family_display_filename(family, featured))
-        self.count_label.setText(f"{len(families)} icons")
-        self.statusBar().showMessage(f"Showing {len(families)} / {len(self._catalog.icons)}")
-        self._restore_or_clear_selection(families)
+        entries = build_grid_entries(families, repo_root=self._repo_root, mode=self._variant_view_mode)
+        pixmaps_by_path = self._pixmaps_for_entries(entries)
+        self.icon_list.set_grid_entries(
+            entries,
+            pixmaps_by_path=pixmaps_by_path,
+            placeholder=self._placeholder,
+        )
+        matched = sum(1 for entry in entries if not entry.is_fallback)
+        fallback = sum(1 for entry in entries if entry.is_fallback)
+        if fallback:
+            self.count_label.setText(f"{len(entries)} tiles ({matched} match, {fallback} fallback)")
+        else:
+            self.count_label.setText(f"{len(entries)} tiles / {len(families)} families")
+        self.statusBar().showMessage(
+            f"Showing {len(entries)} tiles ({len(families)} families) / {len(self._catalog.icons)}",
+        )
+        self._restore_or_clear_selection([entry.family for entry in entries])
 
     def _apply_icon_size(self, size: int) -> None:
         """Apply display size to grids without writing config."""
         self._icon_size = size
         self._placeholder = placeholder_pixmap(size)
+        self._variant_pixmaps.clear()
         self.icon_list.set_display_icon_size(size)
         self.variants_panel.set_thumb_size(self._variant_thumb_size(size))
         self.size_value_label.setText(str(size))
@@ -131,6 +134,16 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self.size_value_label = QLabel(str(self._icon_size))
         self.size_value_label.setMinimumWidth(28)
         toolbar.addWidget(self.size_value_label)
+
+        toolbar.addWidget(QLabel("View"))
+        self.variant_view_combo = QComboBox()
+        self.variant_view_combo.setMinimumWidth(220)
+        for mode_id, label in VARIANT_VIEW_MODES:
+            self.variant_view_combo.addItem(label, mode_id)
+        index = self.variant_view_combo.findData(self._variant_view_mode)
+        self.variant_view_combo.setCurrentIndex(max(index, 0))
+        self.variant_view_combo.currentIndexChanged.connect(self._on_variant_view_changed)
+        toolbar.addWidget(self.variant_view_combo)
 
         self.search_edit = QLineEdit()
         self.search_edit.setPlaceholderText("Search icons (title, tags, id)…")
@@ -466,9 +479,41 @@ class MainWindow(QMainWindow, AppWindowMixin):
         if family_id in self._category_icons.values() or family_id in self._default_category_family_ids.values():
             self._refresh_category_icons()
 
+    def _on_variant_view_changed(self, _index: int) -> None:
+        mode = self.variant_view_combo.currentData()
+        self._variant_view_mode = str(mode) if mode else MODE_FEATURED
+        save_variant_view_mode(self._variant_view_mode)
+        self._apply_filters()
+
     def _persist_icon_size(self) -> None:
         self._icon_size_save_timer.stop()
         save_icon_size(self.size_slider.value())
+
+    def _pixmaps_for_entries(self, entries: list[GridEntry]) -> dict[str, QPixmap]:
+        result: dict[str, QPixmap] = {}
+        for entry in entries:
+            key = str(entry.svg_path)
+            if key in result:
+                continue
+            featured = entry.family.featured_path(self._repo_root) if self._repo_root is not None else None
+            if self._variant_view_mode == MODE_FEATURED or (
+                featured is not None and entry.svg_path.resolve() == featured.resolve()
+            ):
+                cached = self._pixmaps.get(entry.family.id)
+                if cached is not None and not cached.isNull():
+                    result[key] = cached
+                    continue
+            session = self._variant_pixmaps.get(key)
+            if session is not None and not session.isNull():
+                result[key] = session
+                continue
+            image = render_svg_to_image(entry.svg_path, self._icon_size)
+            if image is None:
+                continue
+            pixmap = QPixmap.fromImage(image)
+            self._variant_pixmaps[key] = pixmap
+            result[key] = pixmap
+        return result
 
     def _populate_categories(self) -> None:
         self.category_list.blockSignals(True)  # noqa: FBT003
@@ -630,6 +675,8 @@ def __init__(self, *, hide_on_close: bool = False) -> None:
         self._selected_family_id: str | None = None
         self._category_icons = load_category_icons()
         self._default_category_family_ids: dict[str, str] = {}
+        self._variant_view_mode = load_variant_view_mode()
+        self._variant_pixmaps: dict[str, QPixmap] = {}
         self._icon_size_save_timer = QTimer(self)
         self._icon_size_save_timer.setSingleShot(True)
         self._icon_size_save_timer.setInterval(300)

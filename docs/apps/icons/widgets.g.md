@@ -15,6 +15,7 @@ lang: en
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `set_display_icon_size`](#%EF%B8%8F-method-set_display_icon_size)
   - [⚙️ Method `set_family_items`](#%EF%B8%8F-method-set_family_items)
+  - [⚙️ Method `set_grid_entries`](#%EF%B8%8F-method-set_grid_entries)
   - [⚙️ Method `startDrag`](#%EF%B8%8F-method-startdrag)
   - [⚙️ Method `update_family_pixmap`](#%EF%B8%8F-method-update_family_pixmap)
 - [🏛️ Class `IconLabelDelegate`](#%EF%B8%8F-class-iconlabeldelegate)
@@ -106,6 +107,36 @@ class DraggableIconList(QListWidget):
             item.setData(Qt.ItemDataRole.UserRole, family)
             item.setData(ROLE_SUBTITLE, family_display_filename(family))
             item.setToolTip(f"{family.id}\n{', '.join(family.tags)}")
+            item.setSizeHint(QSize(self._icon_size + 16, self._icon_size + LABEL_EXTRA_HEIGHT))
+            self.addItem(item)
+        self.blockSignals(False)  # noqa: FBT003
+        if self._emit_family_selection:
+            self.family_selected.emit(None)
+
+    def set_grid_entries(
+        self,
+        entries: list[GridEntry],
+        *,
+        pixmaps_by_path: dict[str, QPixmap],
+        placeholder: QPixmap,
+    ) -> None:
+        """Rebuild the grid from variant-view entries and path→pixmap map."""
+        self.blockSignals(True)  # noqa: FBT003
+        self.clear()
+        for entry in entries:
+            key = str(entry.svg_path)
+            pixmap = pixmaps_by_path.get(key) or placeholder
+            title = entry.family.title
+            if entry.is_fallback:
+                title = f"{entry.family.title} (no match)"
+            item = QListWidgetItem(QIcon(pixmap), title)
+            item.setData(Qt.ItemDataRole.UserRole, entry.family)
+            item.setData(ROLE_SVG_PATH, key)
+            item.setData(ROLE_SUBTITLE, family_display_filename(entry.family, entry.svg_path))
+            tip = f"{entry.family.id}\n{entry.svg_path.name}"
+            if entry.is_fallback:
+                tip = f"{tip}\nFallback: family has no selected variant kind"
+            item.setToolTip(tip)
             item.setSizeHint(QSize(self._icon_size + 16, self._icon_size + LABEL_EXTRA_HEIGHT))
             self.addItem(item)
         self.blockSignals(False)  # noqa: FBT003
@@ -295,6 +326,50 @@ def set_family_items(
             item.setData(Qt.ItemDataRole.UserRole, family)
             item.setData(ROLE_SUBTITLE, family_display_filename(family))
             item.setToolTip(f"{family.id}\n{', '.join(family.tags)}")
+            item.setSizeHint(QSize(self._icon_size + 16, self._icon_size + LABEL_EXTRA_HEIGHT))
+            self.addItem(item)
+        self.blockSignals(False)  # noqa: FBT003
+        if self._emit_family_selection:
+            self.family_selected.emit(None)
+```
+
+</details>
+
+### ⚙️ Method `set_grid_entries`
+
+```python
+def set_grid_entries(self, entries: list[GridEntry], *, pixmaps_by_path: dict[str, QPixmap], placeholder: QPixmap) -> None
+```
+
+Rebuild the grid from variant-view entries and path→pixmap map.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def set_grid_entries(
+        self,
+        entries: list[GridEntry],
+        *,
+        pixmaps_by_path: dict[str, QPixmap],
+        placeholder: QPixmap,
+    ) -> None:
+        self.blockSignals(True)  # noqa: FBT003
+        self.clear()
+        for entry in entries:
+            key = str(entry.svg_path)
+            pixmap = pixmaps_by_path.get(key) or placeholder
+            title = entry.family.title
+            if entry.is_fallback:
+                title = f"{entry.family.title} (no match)"
+            item = QListWidgetItem(QIcon(pixmap), title)
+            item.setData(Qt.ItemDataRole.UserRole, entry.family)
+            item.setData(ROLE_SVG_PATH, key)
+            item.setData(ROLE_SUBTITLE, family_display_filename(entry.family, entry.svg_path))
+            tip = f"{entry.family.id}\n{entry.svg_path.name}"
+            if entry.is_fallback:
+                tip = f"{tip}\nFallback: family has no selected variant kind"
+            item.setToolTip(tip)
             item.setSizeHint(QSize(self._icon_size + 16, self._icon_size + LABEL_EXTRA_HEIGHT))
             self.addItem(item)
         self.blockSignals(False)  # noqa: FBT003
