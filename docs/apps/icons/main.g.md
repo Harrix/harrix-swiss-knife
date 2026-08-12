@@ -58,6 +58,9 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._variant_view_mode = MODE_FEATURED
         self._variant_pixmaps: dict[str, QPixmap] = {}
         self._variant_progress_toast: toast_progress_notification.ToastProgressNotification | None = None
+        self._thumb_progress_toast: toast_progress_notification.ToastProgressNotification | None = None
+        self._thumb_refresh_done = 0
+        self._thumb_refresh_total = 0
         self._icon_size_save_timer = QTimer(self)
         self._icon_size_save_timer.setSingleShot(True)
         self._icon_size_save_timer.setInterval(300)
@@ -244,6 +247,12 @@ class MainWindow(QMainWindow, AppWindowMixin):
                 Qt.TransformationMode.SmoothTransformation,
             ),
         )
+
+    def _close_thumb_progress_toast(self) -> None:
+        toast = self._thumb_progress_toast
+        self._thumb_progress_toast = None
+        if toast is not None:
+            toast.close()
 
     def _close_variant_progress_toast(self) -> None:
         toast = self._variant_progress_toast
@@ -547,11 +556,18 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self.statusBar().showMessage(f"Category `{category}` icon set to `{family.id}`")
 
     def _on_thumb_finished(self, updated: int) -> None:
+        toast = self._thumb_progress_toast
+        if toast is not None:
+            toast.set_progress(updated, self._thumb_refresh_total)
+        self._close_thumb_progress_toast()
         total = len(self._catalog.icons) if self._catalog else 0
         self.statusBar().showMessage(f"Thumbnails ready ({updated} updated, {total} total)")
         self._refresh_category_icons()
 
     def _on_thumb_progress(self, family_id: str, thumb_path: str) -> None:
+        self._thumb_refresh_done += 1
+        if self._thumb_progress_toast is not None:
+            self._thumb_progress_toast.set_progress(self._thumb_refresh_done, self._thumb_refresh_total)
         pixmap = QPixmap(thumb_path)
         if pixmap.isNull():
             return
@@ -750,6 +766,15 @@ class MainWindow(QMainWindow, AppWindowMixin):
         if self._catalog is None:
             return
         self._stop_thumb_refresh()
+        self._thumb_refresh_done = 0
+        self._thumb_refresh_total = sum(not self._thumb_cache.is_fresh(family) for family in self._catalog.icons)
+        if self._thumb_refresh_total:
+            self._thumb_progress_toast = toast_progress_notification.ToastProgressNotification(
+                "Refreshing icon thumbnails…",
+                total=self._thumb_refresh_total,
+                parent=self,
+            )
+            self._thumb_progress_toast.start_countdown()
         self.statusBar().showMessage("Refreshing thumbnails in background…")
         self._thumb_thread, self._thumb_worker = start_thumbnail_refresh(
             self._catalog,
@@ -766,6 +791,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
             self._thumb_thread.wait(3000)
         self._thumb_thread = None
         self._thumb_worker = None
+        self._close_thumb_progress_toast()
 
     def _sync_folder_combo(self) -> None:
         if not hasattr(self, "folder_combo"):
@@ -883,6 +909,9 @@ def __init__(self, *, hide_on_close: bool = False) -> None:
         self._variant_view_mode = MODE_FEATURED
         self._variant_pixmaps: dict[str, QPixmap] = {}
         self._variant_progress_toast: toast_progress_notification.ToastProgressNotification | None = None
+        self._thumb_progress_toast: toast_progress_notification.ToastProgressNotification | None = None
+        self._thumb_refresh_done = 0
+        self._thumb_refresh_total = 0
         self._icon_size_save_timer = QTimer(self)
         self._icon_size_save_timer.setSingleShot(True)
         self._icon_size_save_timer.setInterval(300)
