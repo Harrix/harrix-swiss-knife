@@ -161,6 +161,7 @@ class Ui_MainWindow(object):
         self.radioButton_type_of_chart_compare_last.setText(QCoreApplication.translate("MainWindow", u"Compare last months", None))
         self.radioButton_type_of_chart_compare_same_months.setText(QCoreApplication.translate("MainWindow", u"Compare same months", None))
         self.radioButton_type_of_chart_compare_last_years.setText(QCoreApplication.translate("MainWindow", u"Compare last years", None))
+        self.radioButton_type_of_chart_average_salary.setText(QCoreApplication.translate("MainWindow", u"Average Salary by Year", None))
         self.label_3.setText(QCoreApplication.translate("MainWindow", u"Categories:", None))
         self.pushButton_select_all.setText(QCoreApplication.translate("MainWindow", u"Select All", None))
         self.pushButton_select_deselect_all.setText(QCoreApplication.translate("MainWindow", u"Deselect All", None))
@@ -188,6 +189,7 @@ class Ui_MainWindow(object):
         self.comboBox_report_type.setItemText(2, QCoreApplication.translate("MainWindow", u"Currency Analysis", None))
         self.comboBox_report_type.setItemText(3, QCoreApplication.translate("MainWindow", u"Account Balances", None))
         self.comboBox_report_type.setItemText(4, QCoreApplication.translate("MainWindow", u"Income vs Expenses", None))
+        self.comboBox_report_type.setItemText(5, QCoreApplication.translate("MainWindow", u"Average Salary by Year", None))
 
         self.pushButton_generate_report.setText(QCoreApplication.translate("MainWindow", u"Generate Report", None))
         self.groupBox_summary.setTitle(QCoreApplication.translate("MainWindow", u"Quick Summary", None))
@@ -1530,6 +1532,11 @@ class Ui_MainWindow(object):
 
         self.verticalLayout_23.addWidget(self.radioButton_type_of_chart_compare_last_years)
 
+        self.radioButton_type_of_chart_average_salary = QRadioButton(self.groupBox_type_of_charts)
+        self.radioButton_type_of_chart_average_salary.setObjectName(u"radioButton_type_of_chart_average_salary")
+
+        self.verticalLayout_23.addWidget(self.radioButton_type_of_chart_average_salary)
+
 
         self.verticalLayout_24.addWidget(self.groupBox_type_of_charts)
 
@@ -1718,6 +1725,7 @@ class Ui_MainWindow(object):
         self.verticalLayout_19 = QVBoxLayout(self.groupBox_10)
         self.verticalLayout_19.setObjectName(u"verticalLayout_19")
         self.comboBox_report_type = QComboBox(self.groupBox_10)
+        self.comboBox_report_type.addItem("")
         self.comboBox_report_type.addItem("")
         self.comboBox_report_type.addItem("")
         self.comboBox_report_type.addItem("")
@@ -1946,6 +1954,7 @@ def retranslateUi(self, MainWindow):
         self.radioButton_type_of_chart_compare_last.setText(QCoreApplication.translate("MainWindow", u"Compare last months", None))
         self.radioButton_type_of_chart_compare_same_months.setText(QCoreApplication.translate("MainWindow", u"Compare same months", None))
         self.radioButton_type_of_chart_compare_last_years.setText(QCoreApplication.translate("MainWindow", u"Compare last years", None))
+        self.radioButton_type_of_chart_average_salary.setText(QCoreApplication.translate("MainWindow", u"Average Salary by Year", None))
         self.label_3.setText(QCoreApplication.translate("MainWindow", u"Categories:", None))
         self.pushButton_select_all.setText(QCoreApplication.translate("MainWindow", u"Select All", None))
         self.pushButton_select_deselect_all.setText(QCoreApplication.translate("MainWindow", u"Deselect All", None))
@@ -1973,6 +1982,7 @@ def retranslateUi(self, MainWindow):
         self.comboBox_report_type.setItemText(2, QCoreApplication.translate("MainWindow", u"Currency Analysis", None))
         self.comboBox_report_type.setItemText(3, QCoreApplication.translate("MainWindow", u"Account Balances", None))
         self.comboBox_report_type.setItemText(4, QCoreApplication.translate("MainWindow", u"Income vs Expenses", None))
+        self.comboBox_report_type.setItemText(5, QCoreApplication.translate("MainWindow", u"Average Salary by Year", None))
 
         self.pushButton_generate_report.setText(QCoreApplication.translate("MainWindow", u"Generate Report", None))
         self.groupBox_summary.setTitle(QCoreApplication.translate("MainWindow", u"Quick Summary", None))
@@ -3331,6 +3341,11 @@ def setupUi(self, MainWindow):
 
         self.verticalLayout_23.addWidget(self.radioButton_type_of_chart_compare_last_years)
 
+        self.radioButton_type_of_chart_average_salary = QRadioButton(self.groupBox_type_of_charts)
+        self.radioButton_type_of_chart_average_salary.setObjectName(u"radioButton_type_of_chart_average_salary")
+
+        self.verticalLayout_23.addWidget(self.radioButton_type_of_chart_average_salary)
+
 
         self.verticalLayout_24.addWidget(self.groupBox_type_of_charts)
 
@@ -3519,6 +3534,7 @@ def setupUi(self, MainWindow):
         self.verticalLayout_19 = QVBoxLayout(self.groupBox_10)
         self.verticalLayout_19.setObjectName(u"verticalLayout_19")
         self.comboBox_report_type = QComboBox(self.groupBox_10)
+        self.comboBox_report_type.addItem("")
         self.comboBox_report_type.addItem("")
         self.comboBox_report_type.addItem("")
         self.comboBox_report_type.addItem("")

@@ -58,18 +58,29 @@ class ReportBuildWorker(QThread):
     report_completed: Signal = Signal(object)  # ReportBuildResult
     report_failed: Signal = Signal(str)
 
-    def __init__(self, db_filename: str, report_type: str) -> None:
+    def __init__(
+        self,
+        db_filename: str,
+        report_type: str,
+        *,
+        year_start_month: int = 1,
+        year_start_day: int = 1,
+    ) -> None:
         """Initialize the worker.
 
         Args:
 
         - `db_filename` (`str`): Path to the finance SQLite database file.
         - `report_type` (`str`): Value from the report type combobox.
+        - `year_start_month` (`int`): Fiscal year start month (1-12).
+        - `year_start_day` (`int`): Fiscal year start day.
 
         """
         super().__init__()
         self.db_filename = db_filename
         self.report_type = report_type
+        self.year_start_month = year_start_month
+        self.year_start_day = year_start_day
 
     def run(self) -> None:
         """Compute report data for the selected report type."""
@@ -97,6 +108,13 @@ class ReportBuildWorker(QThread):
             elif report_type == "Income vs Expenses":
                 headers, report_data = get_income_vs_expenses_report_data(ctx)
                 result = ReportBuildResult(report_type=report_type, headers=headers, table_rows=report_data)
+            elif report_type == "Average Salary by Year":
+                headers, report_data = get_average_salary_by_year_report_data(
+                    ctx,
+                    year_start_month=self.year_start_month,
+                    year_start_day=self.year_start_day,
+                )
+                result = ReportBuildResult(report_type=report_type, headers=headers, table_rows=report_data)
             else:
                 self.report_failed.emit(f"Unknown report type: {report_type}")
                 return
@@ -111,7 +129,7 @@ class ReportBuildWorker(QThread):
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, db_filename: str, report_type: str) -> None
+def __init__(self, db_filename: str, report_type: str, *, year_start_month: int = 1, year_start_day: int = 1) -> None
 ```
 
 Initialize the worker.
@@ -120,15 +138,26 @@ Args:
 
 - `db_filename` (`str`): Path to the finance SQLite database file.
 - `report_type` (`str`): Value from the report type combobox.
+- `year_start_month` (`int`): Fiscal year start month (1-12).
+- `year_start_day` (`int`): Fiscal year start day.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def __init__(self, db_filename: str, report_type: str) -> None:
+def __init__(
+        self,
+        db_filename: str,
+        report_type: str,
+        *,
+        year_start_month: int = 1,
+        year_start_day: int = 1,
+    ) -> None:
         super().__init__()
         self.db_filename = db_filename
         self.report_type = report_type
+        self.year_start_month = year_start_month
+        self.year_start_day = year_start_day
 ```
 
 </details>
@@ -169,6 +198,13 @@ def run(self) -> None:
                 result = ReportBuildResult(report_type=report_type, headers=headers, table_rows=report_data)
             elif report_type == "Income vs Expenses":
                 headers, report_data = get_income_vs_expenses_report_data(ctx)
+                result = ReportBuildResult(report_type=report_type, headers=headers, table_rows=report_data)
+            elif report_type == "Average Salary by Year":
+                headers, report_data = get_average_salary_by_year_report_data(
+                    ctx,
+                    year_start_month=self.year_start_month,
+                    year_start_day=self.year_start_day,
+                )
                 result = ReportBuildResult(report_type=report_type, headers=headers, table_rows=report_data)
             else:
                 self.report_failed.emit(f"Unknown report type: {report_type}")

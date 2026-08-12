@@ -3,6 +3,7 @@
 Public API (all in this module except where noted):
 
 - calculate_daily_expenses — expenses per calendar day in target currency (transactions only)
+- compute_average_salary_by_year — income by fiscal year as (label, average monthly, annual)
 - get_accounting_balance — total income minus expenses from transactions and exchanges
 - get_balance_difference — (accounting_balance, accounts_balance, difference)
 - get_natural_currency_reconciliation — per-currency journal vs accounts (minor units, no FX)
@@ -32,6 +33,8 @@ if TYPE_CHECKING:
 
 
 logger = logging.getLogger(__name__)
+
+_MONTHS_PER_YEAR = 12
 
 
 @dataclass(frozen=True, slots=True)
@@ -277,6 +280,61 @@ def calculate_exchange_loss_in_source_currency(
     except Exception:
         logger.exception("Error calculating exchange loss in source currency")
     return 0.0
+
+
+def compute_average_salary_by_year(
+    db_manager: DatabaseManager,
+    currency_id: int,
+    *,
+    year_start_month: int = 1,
+    year_start_day: int = 1,
+) -> list[tuple[str, float, float]]:
+    """Return income by fiscal year as `(label, average_monthly, annual)`.
+
+    Average monthly is annual income divided by 12. All income categories
+    (`type = 1`) are converted to `currency_id` using transaction-date rates.
+    Years are oldest-first. The current incomplete year still uses `/ 12`.
+
+    """
+    earliest_str = db_manager.get_earliest_transaction_date()
+    if not earliest_str:
+        return []
+
+    today = datetime.now(UTC).astimezone().date()
+    earliest = date.fromisoformat(str(earliest_str)[:10])
+    calendar_year_start = year_start_month == 1 and year_start_day == 1
+    first_start = _fiscal_year_start_containing(
+        earliest,
+        start_month=year_start_month,
+        start_day=year_start_day,
+    )
+    current_start = _fiscal_year_start_containing(
+        today,
+        start_month=year_start_month,
+        start_day=year_start_day,
+    )
+
+    rows: list[tuple[str, float, float]] = []
+    fiscal_start = first_start
+    while fiscal_start <= current_start:
+        fiscal_end = _fiscal_year_end(fiscal_start)
+        date_to = min(fiscal_end, today)
+        income, _expenses = db_manager.get_income_vs_expenses_in_currency(
+            currency_id,
+            fiscal_start.isoformat(),
+            date_to.isoformat(),
+        )
+        label = _format_compare_year_label(
+            fiscal_start,
+            fiscal_end,
+            is_current=fiscal_start == current_start,
+            calendar_year_start=calendar_year_start,
+        )
+        average_monthly = income / _MONTHS_PER_YEAR
+        rows.append((label, average_monthly, income))
+        fiscal_start = _add_calendar_years(fiscal_start, 1)
+
+    return rows
 
 
 def compute_balance_series(

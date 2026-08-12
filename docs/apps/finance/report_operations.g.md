@@ -43,6 +43,14 @@ class ReportOperations:
 
         report_type: str = self.comboBox_report_type.currentText()
 
+        year_start_month = 1
+        year_start_day = 1
+        if report_type == "Average Salary by Year":
+            if not self._prompt_compare_last_years_start():
+                return
+            year_start_month = self._compare_last_years_start_month
+            year_start_day = self._compare_last_years_start_day
+
         try:
             db_filename = _require_db_filename_for_worker(self.db_manager)
         except DbFilenameUnavailableForWorkerThreadError:
@@ -55,7 +63,12 @@ class ReportOperations:
         if refresh_summary:
             self._refresh_summary_if_needed()
 
-        self._report_build_worker = ReportBuildWorker(db_filename, report_type)
+        self._report_build_worker = ReportBuildWorker(
+            db_filename,
+            report_type,
+            year_start_month=year_start_month,
+            year_start_day=year_start_day,
+        )
         self._report_build_worker.report_completed.connect(self._on_report_build_completed)
         self._report_build_worker.report_failed.connect(self._on_report_build_failed)
         self._report_build_worker.finished.connect(self._cleanup_report_build_worker)
@@ -74,6 +87,15 @@ class ReportOperations:
             if row_data[0] == "TOTAL":
                 for item in items:
                     item.setBackground(QBrush(QColor(255, 255, 0)))
+            model.appendRow(items)
+        self._set_reports_model_and_stretch(model)
+
+    def _apply_average_salary_by_year_report(self, headers: list[str], report_data: list[list[str]]) -> None:
+        """Bind average salary by year report data to the reports table."""
+        model: QStandardItemModel = QStandardItemModel()
+        model.setHorizontalHeaderLabels(headers)
+        for row_data in report_data:
+            items = [QStandardItem(str(value)) for value in row_data]
             model.appendRow(items)
         self._set_reports_model_and_stretch(model)
 
@@ -212,6 +234,8 @@ class ReportOperations:
             self._apply_account_balances_report(result.headers, result.table_rows or [])
         elif report_type == "Income vs Expenses":
             self._apply_income_vs_expenses_report(result.headers, result.table_rows or [])
+        elif report_type == "Average Salary by Year":
+            self._apply_average_salary_by_year_report(result.headers, result.table_rows or [])
 
     def _cleanup_report_build_worker(self) -> None:
         """Release the report build worker after the thread finishes."""
@@ -275,6 +299,14 @@ def on_generate_report(self, *, refresh_summary: bool = False) -> None:
 
         report_type: str = self.comboBox_report_type.currentText()
 
+        year_start_month = 1
+        year_start_day = 1
+        if report_type == "Average Salary by Year":
+            if not self._prompt_compare_last_years_start():
+                return
+            year_start_month = self._compare_last_years_start_month
+            year_start_day = self._compare_last_years_start_day
+
         try:
             db_filename = _require_db_filename_for_worker(self.db_manager)
         except DbFilenameUnavailableForWorkerThreadError:
@@ -287,7 +319,12 @@ def on_generate_report(self, *, refresh_summary: bool = False) -> None:
         if refresh_summary:
             self._refresh_summary_if_needed()
 
-        self._report_build_worker = ReportBuildWorker(db_filename, report_type)
+        self._report_build_worker = ReportBuildWorker(
+            db_filename,
+            report_type,
+            year_start_month=year_start_month,
+            year_start_day=year_start_day,
+        )
         self._report_build_worker.report_completed.connect(self._on_report_build_completed)
         self._report_build_worker.report_failed.connect(self._on_report_build_failed)
         self._report_build_worker.finished.connect(self._cleanup_report_build_worker)

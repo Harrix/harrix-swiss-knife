@@ -12,6 +12,7 @@ lang: en
 ## Contents
 
 - [🔧 Function `get_account_balances_report_data`](#-function-get_account_balances_report_data)
+- [🔧 Function `get_average_salary_by_year_report_data`](#-function-get_average_salary_by_year_report_data)
 - [🔧 Function `get_category_analysis_report_data`](#-function-get_category_analysis_report_data)
 - [🔧 Function `get_category_analysis_report_data_legacy`](#-function-get_category_analysis_report_data_legacy)
 - [🔧 Function `get_currency_analysis_report_data`](#-function-get_currency_analysis_report_data)
@@ -55,6 +56,45 @@ def get_account_balances_report_data(
 
     report_data.append(["TOTAL", f"{total_balance:.2f} {currency_code}"])
     return ["Account", "Balance"], report_data
+```
+
+</details>
+
+## 🔧 Function `get_average_salary_by_year_report_data`
+
+```python
+def get_average_salary_by_year_report_data(ctx: ReportBuildContext, *, year_start_month: int = 1, year_start_day: int = 1) -> tuple[list[str], list[list[str]]]
+```
+
+Build average monthly and annual income by fiscal year.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_average_salary_by_year_report_data(
+    ctx: ReportBuildContext,
+    *,
+    year_start_month: int = 1,
+    year_start_day: int = 1,
+) -> tuple[list[str], list[list[str]]]:
+    db_manager = ctx.db_manager
+    currency_code: str = db_manager.get_default_currency()
+    year_rows = compute_average_salary_by_year(
+        db_manager,
+        ctx.currency_id,
+        year_start_month=year_start_month,
+        year_start_day=year_start_day,
+    )
+    report_data: list[list[str]] = [
+        [
+            label,
+            f"{average_monthly:.2f} {currency_code}",
+            f"{annual:.2f} {currency_code}",
+        ]
+        for label, average_monthly, annual in year_rows
+    ]
+    return ["Year", "Average Monthly Income", "Annual Income"], report_data
 ```
 
 </details>

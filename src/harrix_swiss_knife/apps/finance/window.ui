@@ -2207,6 +2207,13 @@
                  </property>
                 </widget>
                </item>
+               <item>
+                <widget class="QRadioButton" name="radioButton_type_of_chart_average_salary">
+                 <property name="text">
+                  <string>Average Salary by Year</string>
+                 </property>
+                </widget>
+               </item>
               </layout>
              </widget>
             </item>
@@ -2517,6 +2524,11 @@
                  <item>
                   <property name="text">
                    <string>Income vs Expenses</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>Average Salary by Year</string>
                   </property>
                  </item>
                 </widget>

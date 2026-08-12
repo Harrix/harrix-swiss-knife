@@ -21,6 +21,7 @@ lang: en
 - [🔧 Function `calculate_exchange_loss`](#-function-calculate_exchange_loss)
 - [🔧 Function `calculate_exchange_loss_cached`](#-function-calculate_exchange_loss_cached)
 - [🔧 Function `calculate_exchange_loss_in_source_currency`](#-function-calculate_exchange_loss_in_source_currency)
+- [🔧 Function `compute_average_salary_by_year`](#-function-compute_average_salary_by_year)
 - [🔧 Function `compute_balance_series`](#-function-compute_balance_series)
 - [🔧 Function `compute_cumulative_compare_last_months`](#-function-compute_cumulative_compare_last_months)
 - [🔧 Function `compute_cumulative_compare_last_years`](#-function-compute_cumulative_compare_last_years)
@@ -454,6 +455,72 @@ def calculate_exchange_loss_in_source_currency(
     except Exception:
         logger.exception("Error calculating exchange loss in source currency")
     return 0.0
+```
+
+</details>
+
+## 🔧 Function `compute_average_salary_by_year`
+
+```python
+def compute_average_salary_by_year(db_manager: DatabaseManager, currency_id: int, *, year_start_month: int = 1, year_start_day: int = 1) -> list[tuple[str, float, float]]
+```
+
+Return income by fiscal year as `(label, average_monthly, annual)`.
+
+Average monthly is annual income divided by 12. All income categories
+(`type = 1`) are converted to `currency_id` using transaction-date rates.
+Years are oldest-first. The current incomplete year still uses `/ 12`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def compute_average_salary_by_year(
+    db_manager: DatabaseManager,
+    currency_id: int,
+    *,
+    year_start_month: int = 1,
+    year_start_day: int = 1,
+) -> list[tuple[str, float, float]]:
+    earliest_str = db_manager.get_earliest_transaction_date()
+    if not earliest_str:
+        return []
+
+    today = datetime.now(UTC).astimezone().date()
+    earliest = date.fromisoformat(str(earliest_str)[:10])
+    calendar_year_start = year_start_month == 1 and year_start_day == 1
+    first_start = _fiscal_year_start_containing(
+        earliest,
+        start_month=year_start_month,
+        start_day=year_start_day,
+    )
+    current_start = _fiscal_year_start_containing(
+        today,
+        start_month=year_start_month,
+        start_day=year_start_day,
+    )
+
+    rows: list[tuple[str, float, float]] = []
+    fiscal_start = first_start
+    while fiscal_start <= current_start:
+        fiscal_end = _fiscal_year_end(fiscal_start)
+        date_to = min(fiscal_end, today)
+        income, _expenses = db_manager.get_income_vs_expenses_in_currency(
+            currency_id,
+            fiscal_start.isoformat(),
+            date_to.isoformat(),
+        )
+        label = _format_compare_year_label(
+            fiscal_start,
+            fiscal_end,
+            is_current=fiscal_start == current_start,
+            calendar_year_start=calendar_year_start,
+        )
+        average_monthly = income / _MONTHS_PER_YEAR
+        rows.append((label, average_monthly, income))
+        fiscal_start = _add_calendar_years(fiscal_start, 1)
+
+    return rows
 ```
 
 </details>

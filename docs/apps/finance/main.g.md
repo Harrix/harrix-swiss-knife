@@ -2097,6 +2097,62 @@ class MainWindow(
                 model.deleteLater()
             self.models[key] = None
 
+    def _draw_average_salary_by_year_chart(
+        self,
+        year_rows: list[tuple[str, float, float]],
+        currency_symbol: str,
+        *,
+        year_start_month: int,
+        year_start_day: int,
+    ) -> None:
+        """Draw average monthly income (and annual income) by fiscal year."""
+        fig = Figure(figsize=(12, 6), dpi=100)
+        ax = fig.add_subplot(111)
+        labels = [label for label, _average, _annual in year_rows]
+        averages = [average for _label, average, _annual in year_rows]
+        annuals = [annual for _label, _average, annual in year_rows]
+        x_positions = list(range(len(labels)))
+        bar_width = 0.38
+        average_bars = ax.bar(
+            [x - bar_width / 2 for x in x_positions],
+            averages,
+            width=bar_width,
+            color="forestgreen",
+            label="Average Monthly Income",
+        )
+        annual_bars = ax.bar(
+            [x + bar_width / 2 for x in x_positions],
+            annuals,
+            width=bar_width,
+            color="steelblue",
+            label="Annual Income",
+        )
+        ax.set_xticks(x_positions)
+        ax.set_xticklabels(labels, rotation=45, ha="right")
+        ax.set_xlabel("Year", fontsize=12)
+        ax.set_ylabel(f"Amount ({currency_symbol})", fontsize=12)
+        if year_start_month == 1 and year_start_day == 1:
+            title = "Average Salary by Year"
+        else:
+            title = f"Average Salary by Year (from {year_start_day:02d}.{year_start_month:02d})"
+        ax.set_title(title, fontsize=14, fontweight="bold")
+        ax.grid(visible=True, axis="y", alpha=0.3)
+        ax.legend(loc="upper left", fontsize=9)
+        for bars in (average_bars, annual_bars):
+            for bar in bars:
+                height = bar.get_height()
+                ax.annotate(
+                    f"{height:,.0f}",
+                    xy=(bar.get_x() + bar.get_width() / 2, height),
+                    xytext=(0, 3),
+                    textcoords="offset points",
+                    ha="center",
+                    va="bottom",
+                    fontsize=8,
+                )
+        fig.tight_layout()
+        self._add_chart_canvas(fig)
+
     def _draw_balance_chart(
         self,
         series: list[tuple[str, float]],
@@ -5933,6 +5989,7 @@ class MainWindow(
         if (
             self.radioButton_type_of_chart_compare_last_years.isChecked()
             or self.radioButton_expense_and_income_compare_last_years.isChecked()
+            or self.radioButton_type_of_chart_average_salary.isChecked()
         ) and not self._prompt_compare_last_years_start():
             return
 
@@ -5950,6 +6007,29 @@ class MainWindow(
             transaction_rows = self.db_manager.get_all_transactions()
             exchange_rows = self.db_manager.get_all_currency_exchanges()
             chart_ctx = ChartComputeContext.load(self.db_manager)
+
+            if self.radioButton_type_of_chart_average_salary.isChecked():
+                year_start_month = self._compare_last_years_start_month
+                year_start_day = self._compare_last_years_start_day
+                year_rows = compute_average_salary_by_year(
+                    self.db_manager,
+                    self.db_manager.get_default_currency_id(),
+                    year_start_month=year_start_month,
+                    year_start_day=year_start_day,
+                )
+                if not year_rows:
+                    self._show_no_data_label(
+                        self.verticalLayout_charts_content,
+                        "No data found for the selected period",
+                    )
+                    return
+                self._draw_average_salary_by_year_chart(
+                    year_rows,
+                    currency_symbol,
+                    year_start_month=year_start_month,
+                    year_start_day=year_start_day,
+                )
+                return
 
             if self.radioButton_type_of_chart_balance.isChecked():
                 period_end_dates = iter_period_end_dates(date_from, date_to, period)
