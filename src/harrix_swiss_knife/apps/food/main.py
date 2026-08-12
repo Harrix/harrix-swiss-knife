@@ -15,7 +15,16 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
 import harrix_pylib as h
-from PySide6.QtCore import QDate, QDateTime, QModelIndex, QPoint, QSortFilterProxyModel, Qt, QTimer
+from PySide6.QtCore import (
+    QDate,
+    QDateTime,
+    QModelIndex,
+    QPoint,
+    QRegularExpression,
+    QSortFilterProxyModel,
+    Qt,
+    QTimer,
+)
 from PySide6.QtGui import QBrush, QCloseEvent, QColor, QIcon, QKeyEvent, QResizeEvent, QStandardItem, QStandardItemModel
 from PySide6.QtWidgets import (
     QApplication,
@@ -24,6 +33,7 @@ from PySide6.QtWidgets import (
     QDateEdit,
     QDialog,
     QDialogButtonBox,
+    QFileDialog,
     QHBoxLayout,
     QInputDialog,
     QLabel,
@@ -512,6 +522,39 @@ class MainWindow(
         self._update_add_button_appearance()
         # Move focus back to the cleared field
         self.lineEdit_food_manual_name.setFocus()
+
+    def on_export_csv(self) -> None:
+        """Save current food log view to a CSV file (semicolon-separated)."""
+        filename_str, _ = QFileDialog.getSaveFileName(
+            self,
+            "Save Table",
+            "",
+            "CSV (*.csv)",
+        )
+        if not filename_str:
+            return
+
+        food_log_proxy = self.models.get("food_log")
+        if food_log_proxy is None:
+            message_box.warning(self, "Error", "No data to export")
+            return
+
+        try:
+            filename = Path(filename_str)
+            model = food_log_proxy.sourceModel()
+            with filename.open("w", encoding="utf-8") as file:
+                headers = [
+                    model.headerData(col, Qt.Orientation.Horizontal, Qt.ItemDataRole.DisplayRole) or ""
+                    for col in range(model.columnCount())
+                ]
+                file.write(";".join(headers) + "\n")
+
+                for row in range(model.rowCount()):
+                    row_values = [f'"{model.data(model.index(row, col)) or ""}"' for col in range(model.columnCount())]
+                    file.write(";".join(row_values) + "\n")
+
+        except Exception as e:
+            message_box.warning(self, "Export Error", f"Failed to export CSV: {e}")
 
     def on_food_add_by_voice(self) -> None:
         """Record speech, transcribe via BotHub, convert to food log TSV, then open preview dialog."""
@@ -1354,6 +1397,14 @@ class MainWindow(
         self.update_calories_calculation()
         self._update_add_button_appearance()
 
+    def _clear_food_log_table_filter(self) -> None:
+        """Clear client-side filter on the food log table proxy."""
+        proxy = self.models.get("food_log")
+        if proxy is None:
+            return
+        proxy.setFilterRegularExpression(QRegularExpression())
+        proxy.setFilterKeyColumn(-1)
+
     def _commit_food_translate_translations(
         self,
         translations: dict[str, str],
@@ -1904,37 +1955,19 @@ class MainWindow(
         return create_table_proxy_model(data, headers, id_column=id_column)
 
     @requires_database()
-    def _delete_selected_food_log_rows(self, unique_rows: set[int]) -> None:
+    def _delete_selected_food_log_rows(self, record_ids: list[int]) -> None:
         """Delete multiple selected rows from food log table.
 
         Args:
 
-        - `unique_rows` (`set[int]`): Set of row indices to delete.
+        - `record_ids` (`list[int]`): Database IDs of food log rows to delete.
 
         """
         if self.db_manager is None:
             logger.error("❌ Database manager is not initialized")
             return
 
-        # Get row IDs from vertical header
-        proxy_model = self.models["food_log"]
-        if proxy_model is None:
-            return
-        source_model = proxy_model.sourceModel()
-        if not isinstance(source_model, QStandardItemModel):
-            return
-
-        row_ids = []
-        for row in unique_rows:
-            row_id_item = source_model.verticalHeaderItem(row)
-            if row_id_item:
-                try:
-                    row_id = int(row_id_item.text())
-                    row_ids.append(row_id)
-                except (ValueError, TypeError):
-                    pass
-
-        if not row_ids:
+        if not record_ids:
             message_box.warning(self, "Error", "No valid rows to delete")
             return
 
@@ -1942,7 +1975,7 @@ class MainWindow(
         reply = message_box.question(
             self,
             "Confirm Deletion",
-            f"Are you sure you want to delete {len(row_ids)} selected row(s)?",
+            f"Are you sure you want to delete {len(record_ids)} selected row(s)?",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No,
         )
@@ -1954,7 +1987,7 @@ class MainWindow(
         success_count = 0
         failed_count = 0
 
-        for row_id in row_ids:
+        for row_id in record_ids:
             try:
                 if self.db_manager.delete_food_log_record(row_id):
                     success_count += 1
@@ -2025,6 +2058,20 @@ class MainWindow(
                         i,
                         not text_matches_autocomplete(item.text(), text),
                     )
+
+    def _filter_food_log_by_column(self, column: int, value: str) -> None:
+        """Apply exact-match filter on one food log table column (loaded rows only)."""
+        proxy = self.models.get("food_log")
+        if proxy is None:
+            return
+        text = value.strip()
+        if not text:
+            return
+        proxy.setFilterKeyColumn(column)
+        proxy.setFilterCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
+        proxy.setFilterRegularExpression(
+            QRegularExpression(f"^{QRegularExpression.escape(text)}$"),
+        )
 
     def _finish_window_initialization(self) -> None:
         """Finish window initialization by showing the window and adjusting columns."""
@@ -2641,6 +2688,39 @@ class MainWindow(
         else:
             message_box.warning(self, "Date", "Could not update date for one or more food log records.")
 
+    def _set_date_from_table(self, date_value: str) -> None:
+        """Set the date from a food log row into `dateEdit_food`."""
+        try:
+            date_obj = QDate.fromString(date_value.strip()[:10], "yyyy-MM-dd")
+            if not date_obj.isNull():
+                self.dateEdit_food.setDate(date_obj)
+            else:
+                logger.error("%s", f"❌ Invalid date format: {date_value}")
+        except Exception:
+            logger.exception("❌ Error setting date from table")
+
+    def _set_date_from_table_minus_one_day(self, date_value: str) -> None:
+        """Set `dateEdit_food` to the food log row date minus one day."""
+        try:
+            date_obj = QDate.fromString(date_value.strip()[:10], "yyyy-MM-dd")
+            if not date_obj.isNull():
+                self.dateEdit_food.setDate(date_obj.addDays(-1))
+            else:
+                logger.error("%s", f"❌ Invalid date format: {date_value}")
+        except Exception:
+            logger.exception("❌ Error setting date from table - 1 day")
+
+    def _set_date_from_table_plus_one_day(self, date_value: str) -> None:
+        """Set `dateEdit_food` to the food log row date plus one day."""
+        try:
+            date_obj = QDate.fromString(date_value.strip()[:10], "yyyy-MM-dd")
+            if not date_obj.isNull():
+                self.dateEdit_food.setDate(date_obj.addDays(1))
+            else:
+                logger.error("%s", f"❌ Invalid date format: {date_value}")
+        except Exception:
+            logger.exception("❌ Error setting date from table + 1 day")
+
     def _set_today_date_in_food(self) -> None:
         """Set today's date in the food date field."""
         today = QDate.currentDate()
@@ -2765,6 +2845,7 @@ class MainWindow(
         selected_indexes = selection_model.selectedIndexes() if selection_model else []
         unique_rows = {index.row() for index in selected_indexes}
         multiple_rows_selected = len(unique_rows) > 1
+        selected_food_log_ids = self._get_selected_row_ids("food_log")
 
         # Calculate total calories from selected rows
         total_calories = 0.0
@@ -2784,6 +2865,38 @@ class MainWindow(
                                 pass
 
         context_menu = QMenu(self)
+        index = self.tableView_food_log.currentIndex()
+        model = self.tableView_food_log.model()
+
+        filter_by_name_action = None
+        filter_by_date_action = None
+        set_date_action = None
+        set_date_plus_one_action = None
+        set_date_minus_one_action = None
+        name_value = ""
+        date_value = ""
+
+        if not multiple_rows_selected and index.isValid() and model is not None:
+            name_raw = model.data(model.index(index.row(), 0))
+            date_raw = model.data(model.index(index.row(), 6))
+            name_value = str(name_raw).strip() if name_raw is not None else ""
+            date_value = str(date_raw).strip() if date_raw is not None else ""
+
+            if name_value:
+                filter_by_name_action = context_menu.addAction("🔍 Filter by this name")
+            if date_value:
+                filter_by_date_action = context_menu.addAction("📅 Filter by this date")
+            if filter_by_name_action or filter_by_date_action:
+                context_menu.addSeparator()
+
+            if date_value:
+                set_date_action = context_menu.addAction("📅 Set this date in main field")
+                set_date_plus_one_action = context_menu.addAction("📅 Set this date + 1 day in main field")
+                set_date_minus_one_action = context_menu.addAction("📅 Set this date - 1 day in main field")
+                context_menu.addSeparator()
+
+        clear_filters_action = context_menu.addAction("🧹 Clear all filters")
+        context_menu.addSeparator()
 
         # Add food item actions only if single row is selected
         add_food_item_action = None
@@ -2815,9 +2928,11 @@ class MainWindow(
         bulk_date_action = None
         ids_for_date_change: list[int] = []
         if multiple_rows_selected:
-            ids_for_date_change = self._get_selected_row_ids("food_log")
+            ids_for_date_change = list(selected_food_log_ids)
             if len(ids_for_date_change) > 1:
                 bulk_date_action = context_menu.addAction("✍️ Set date for all selected rows…")
+
+        export_action = context_menu.addAction("📤 Export to CSV")
 
         # Add total calories info at the bottom if multiple rows selected
         if multiple_rows_selected:
@@ -2837,7 +2952,19 @@ class MainWindow(
         self.tableView_food_log.customContextMenuRequested.disconnect()
 
         try:
-            if action == add_food_item_action:
+            if action == filter_by_name_action and name_value:
+                self._filter_food_log_by_column(0, name_value)
+            elif action == filter_by_date_action and date_value:
+                self._filter_food_log_by_column(6, date_value.strip()[:10])
+            elif action == clear_filters_action:
+                self._clear_food_log_table_filter()
+            elif action == set_date_action and date_value:
+                self._set_date_from_table(date_value)
+            elif action == set_date_plus_one_action and date_value:
+                self._set_date_from_table_plus_one_day(date_value)
+            elif action == set_date_minus_one_action and date_value:
+                self._set_date_from_table_minus_one_day(date_value)
+            elif action == add_food_item_action:
                 self._add_food_item_from_log_record(include_weight=True)
             elif action == add_food_item_no_weight_action:
                 self._add_food_item_from_log_record(include_weight=False)
@@ -2848,11 +2975,13 @@ class MainWindow(
             elif action == delete_action:
                 # Perform the deletion
                 if multiple_rows_selected:
-                    self._delete_selected_food_log_rows(unique_rows)
+                    self._delete_selected_food_log_rows(selected_food_log_ids)
                 else:
                     self.delete_record("food_log")
             elif bulk_date_action is not None and action == bulk_date_action:
                 self._set_date_for_selected_food_log_records(ids_for_date_change)
+            elif action == export_action:
+                self.on_export_csv()
         finally:
             # Reconnect the context menu signal after a short delay
             QTimer.singleShot(100, self._reconnect_context_menu)

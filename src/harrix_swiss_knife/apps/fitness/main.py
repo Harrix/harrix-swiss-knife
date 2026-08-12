@@ -4702,6 +4702,57 @@ class MainWindow(
         """
         return create_table_proxy_model(data, headers, id_column=id_column)
 
+    @requires_database()
+    def _delete_selected_process_rows(self, record_ids: list[int]) -> None:
+        """Delete multiple selected rows from the process table.
+
+        Args:
+
+        - `record_ids` (`list[int]`): Database IDs of process rows to delete.
+
+        """
+        if self.db_manager is None:
+            logger.error("❌ Database manager is not initialized")
+            return
+
+        if not record_ids:
+            message_box.warning(self, "Error", "No valid rows to delete")
+            return
+
+        reply = message_box.question(
+            self,
+            "Confirm Deletion",
+            f"Are you sure you want to delete {len(record_ids)} selected row(s)?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if reply != QMessageBox.StandardButton.Yes:
+            return
+
+        success_count = 0
+        failed_count = 0
+        for row_id in record_ids:
+            try:
+                if self.db_manager.delete_process_record(row_id):
+                    success_count += 1
+                else:
+                    failed_count += 1
+            except Exception:
+                logger.exception("Error deleting process row %s", row_id)
+                failed_count += 1
+
+        if failed_count == 0:
+            message_box.information(self, "Success", f"Successfully deleted {success_count} row(s)")
+        else:
+            message_box.warning(
+                self,
+                "Partial Success",
+                f"Deleted {success_count} row(s), failed to delete {failed_count} row(s)",
+            )
+
+        self.update_all()
+        self.update_sets_count_today()
+
     def _demote_steps_from_first(self, exercises: list[str]) -> list[str]:
         """Move Steps off index 0 so auto-selection does not override dateEdit.
 
@@ -5999,6 +6050,39 @@ class MainWindow(
         else:
             message_box.warning(self, "Date", "Could not update date for one or more process records.")
 
+    def _set_date_from_table(self, date_value: str) -> None:
+        """Set the date from a process row into the main `dateEdit` field."""
+        try:
+            date_obj = QDate.fromString(date_value.strip()[:10], "yyyy-MM-dd")
+            if not date_obj.isNull():
+                self.dateEdit.setDate(date_obj)
+            else:
+                logger.error("%s", f"❌ Invalid date format: {date_value}")
+        except Exception:
+            logger.exception("❌ Error setting date from table")
+
+    def _set_date_from_table_minus_one_day(self, date_value: str) -> None:
+        """Set main `dateEdit` to the process row date minus one day."""
+        try:
+            date_obj = QDate.fromString(date_value.strip()[:10], "yyyy-MM-dd")
+            if not date_obj.isNull():
+                self.dateEdit.setDate(date_obj.addDays(-1))
+            else:
+                logger.error("%s", f"❌ Invalid date format: {date_value}")
+        except Exception:
+            logger.exception("❌ Error setting date from table - 1 day")
+
+    def _set_date_from_table_plus_one_day(self, date_value: str) -> None:
+        """Set main `dateEdit` to the process row date plus one day."""
+        try:
+            date_obj = QDate.fromString(date_value.strip()[:10], "yyyy-MM-dd")
+            if not date_obj.isNull():
+                self.dateEdit.setDate(date_obj.addDays(1))
+            else:
+                logger.error("%s", f"❌ Invalid date format: {date_value}")
+        except Exception:
+            logger.exception("❌ Error setting date from table + 1 day")
+
     # Add to MainWindow class (near other small helpers)
     def _set_no_data_info_label(self, text: str | None = None) -> None:
         """Set a unified `no data` message into label_chart_info.
@@ -6204,6 +6288,9 @@ class MainWindow(
         filter_by_exercise_action = None
         filter_by_type_action = None
         filter_by_date_action = None
+        set_date_action = None
+        set_date_plus_one_action = None
+        set_date_minus_one_action = None
         exercise_value = ""
         type_value = ""
         date_value = ""
@@ -6223,6 +6310,12 @@ class MainWindow(
             if date_value:
                 filter_by_date_action = context_menu.addAction("📅 Filter by this date")
             if filter_by_exercise_action or filter_by_type_action or filter_by_date_action:
+                context_menu.addSeparator()
+
+            if date_value:
+                set_date_action = context_menu.addAction("📅 Set this date in main field")
+                set_date_plus_one_action = context_menu.addAction("📅 Set this date + 1 day in main field")
+                set_date_minus_one_action = context_menu.addAction("📅 Set this date - 1 day in main field")
                 context_menu.addSeparator()
 
         clear_filters_action = context_menu.addAction("🧹 Clear all filters")
@@ -6250,13 +6343,21 @@ class MainWindow(
             self._filter_process_by_type(type_value, exercise_name=exercise_value or None)
         elif action == filter_by_date_action and date_value:
             self._filter_process_by_date(date_value)
+        elif action == set_date_action and date_value:
+            self._set_date_from_table(date_value)
+        elif action == set_date_plus_one_action and date_value:
+            self._set_date_from_table_plus_one_day(date_value)
+        elif action == set_date_minus_one_action and date_value:
+            self._set_date_from_table_minus_one_day(date_value)
         elif action == clear_filters_action:
             self.clear_filter()
         elif action == export_action:
             logger.debug("🔧 Context menu: Export to CSV action triggered")
             self.on_export_csv()
         elif action == delete_action:
-            if self.tableView_process.currentIndex().isValid():
+            if len(selected_process_ids) > 1:
+                self._delete_selected_process_rows(selected_process_ids)
+            elif self.tableView_process.currentIndex().isValid():
                 logger.debug("🔧 Context menu: Delete action triggered")
                 self.pushButton_delete.click()
             else:
