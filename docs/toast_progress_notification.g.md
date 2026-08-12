@@ -51,13 +51,22 @@ class ToastProgressNotification(toast_countdown_notification.ToastCountdownNotif
         self._total = max(0, total)
         super().__init__(message, parent)
 
-        self.progress_bar = QProgressBar(self)
+        self._progress_container = QWidget(self)
+        self.progress_bar = QProgressBar(self._progress_container)
         self.progress_bar.setTextVisible(True)
         self.progress_bar.setFormat("%v / %m")
         self.progress_bar.setMinimumWidth(220)
+        self.progress_bar.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        container_layout = QVBoxLayout(self._progress_container)
+        container_layout.setContentsMargins(0, 0, 0, 0)
+        container_layout.setSpacing(0)
+        container_layout.addWidget(self.progress_bar)
+
         layout = self.layout()
         if isinstance(layout, QVBoxLayout):
-            layout.addWidget(self.progress_bar)
+            layout.setSpacing(0)
+            layout.addWidget(self._progress_container)
 
         self._apply_progress_style(compact=False)
         self.set_progress(0, self._total)
@@ -108,62 +117,69 @@ class ToastProgressNotification(toast_countdown_notification.ToastCountdownNotif
             self._refresh_label_text()
 
     def _apply_progress_style(self, *, compact: bool) -> None:
-        """Style the progress bar to continue the toast chrome."""
-        if not hasattr(self, "progress_bar"):
-            return
-        if compact:
-            self.progress_bar.setStyleSheet(
-                "QProgressBar {"
-                "background-color: rgba(40, 40, 40, 230);"
-                "color: white;"
-                "border: none;"
-                "border-radius: 0px 0px 8px 8px;"
-                "padding: 2px 12px 8px 12px;"
-                "text-align: center;"
-                "font-size: 9pt;"
-                "font-weight: bold;"
-                "min-height: 10px;"
-                "max-height: 18px;"
-                "}"
-                "QProgressBar::chunk {"
-                "background-color: rgba(90, 170, 255, 220);"
-                "border-radius: 3px;"
-                "}",
-            )
-            self.label.setStyleSheet(
-                "background-color: rgba(40, 40, 40, 230);"
-                "color: white;"
-                "padding: 8px 12px 4px 12px;"
-                "border-radius: 8px 8px 0px 0px;"
-                "font-size: 10pt;"
-                "font-weight: bold;",
-            )
+        """Style the progress chrome: rounded track with vertically centered text."""
+        if not hasattr(self, "progress_bar") or not hasattr(self, "_progress_container"):
             return
 
+        if compact:
+            radius = 8
+            bar_radius = 5
+            bar_height = 16
+            h_pad = 12
+            top_pad = 2
+            bottom_pad = 8
+            font_size = "9pt"
+            label_padding = "8px 12px 4px 12px"
+        else:
+            radius = 10
+            bar_radius = 6
+            bar_height = 22
+            h_pad = 20
+            top_pad = 4
+            bottom_pad = 14
+            font_size = "11pt"
+            label_padding = "15px 20px 6px 20px"
+
+        self._progress_container.setStyleSheet(
+            "background-color: rgba(40, 40, 40, 230);"
+            "border-top-left-radius: 0px;"
+            "border-top-right-radius: 0px;"
+            f"border-bottom-left-radius: {radius}px;"
+            f"border-bottom-right-radius: {radius}px;",
+        )
+        container_layout = self._progress_container.layout()
+        if isinstance(container_layout, QVBoxLayout):
+            container_layout.setContentsMargins(h_pad, top_pad, h_pad, bottom_pad)
+            container_layout.setAlignment(self.progress_bar, Qt.AlignmentFlag.AlignVCenter)
+
+        self.progress_bar.setFixedHeight(bar_height)
         self.progress_bar.setStyleSheet(
             "QProgressBar {"
-            "background-color: rgba(40, 40, 40, 230);"
+            "background-color: rgba(70, 70, 70, 255);"
             "color: white;"
             "border: none;"
-            "border-radius: 0px 0px 10px 10px;"
-            "padding: 4px 20px 14px 20px;"
+            f"border-radius: {bar_radius}px;"
+            "padding: 0px;"
+            "margin: 0px;"
             "text-align: center;"
-            "font-size: 11pt;"
+            f"font-size: {font_size};"
             "font-weight: bold;"
-            "min-height: 14px;"
-            "max-height: 24px;"
             "}"
             "QProgressBar::chunk {"
             "background-color: rgba(90, 170, 255, 220);"
-            "border-radius: 4px;"
+            f"border-radius: {bar_radius}px;"
+            "margin: 0px;"
             "}",
         )
         self.label.setStyleSheet(
             "background-color: rgba(40, 40, 40, 230);"
             "color: white;"
-            "padding: 15px 20px 6px 20px;"
-            "border-radius: 10px 10px 0px 0px;"
-            "font-size: 16pt;"
+            f"padding: {label_padding};"
+            f"border-top-left-radius: {radius}px;"
+            f"border-top-right-radius: {radius}px;"
+            "border-bottom-left-radius: 0px;"
+            "border-bottom-right-radius: 0px;"
+            f"font-size: {'10pt' if compact else '16pt'};"
             "font-weight: bold;",
         )
 
@@ -213,13 +229,22 @@ def __init__(
         self._total = max(0, total)
         super().__init__(message, parent)
 
-        self.progress_bar = QProgressBar(self)
+        self._progress_container = QWidget(self)
+        self.progress_bar = QProgressBar(self._progress_container)
         self.progress_bar.setTextVisible(True)
         self.progress_bar.setFormat("%v / %m")
         self.progress_bar.setMinimumWidth(220)
+        self.progress_bar.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        container_layout = QVBoxLayout(self._progress_container)
+        container_layout.setContentsMargins(0, 0, 0, 0)
+        container_layout.setSpacing(0)
+        container_layout.addWidget(self.progress_bar)
+
         layout = self.layout()
         if isinstance(layout, QVBoxLayout):
-            layout.addWidget(self.progress_bar)
+            layout.setSpacing(0)
+            layout.addWidget(self._progress_container)
 
         self._apply_progress_style(compact=False)
         self.set_progress(0, self._total)
