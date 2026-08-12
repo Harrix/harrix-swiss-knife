@@ -28,7 +28,11 @@ if TYPE_CHECKING:
 VARIANT_THUMB_SIZE = 112
 ROLE_SVG_PATH = int(Qt.ItemDataRole.UserRole) + 1
 ROLE_SUBTITLE = int(Qt.ItemDataRole.UserRole) + 2
+ROLE_FALLBACK = int(Qt.ItemDataRole.UserRole) + 3
 LABEL_EXTRA_HEIGHT = 56
+FALLBACK_ICON_OPACITY = 0.38
+FALLBACK_TITLE_ALPHA = 120
+FALLBACK_SUBTITLE_ALPHA = 90
 
 
 class DraggableIconList(QListWidget):
@@ -119,10 +123,12 @@ class DraggableIconList(QListWidget):
             title = entry.family.title
             if entry.is_fallback:
                 title = f"{entry.family.title} (no match)"
+                pixmap = _muted_pixmap(pixmap, FALLBACK_ICON_OPACITY)
             item = QListWidgetItem(QIcon(pixmap), title)
             item.setData(Qt.ItemDataRole.UserRole, entry.family)
             item.setData(ROLE_SVG_PATH, key)
             item.setData(ROLE_SUBTITLE, family_display_filename(entry.family, entry.svg_path))
+            item.setData(ROLE_FALLBACK, entry.is_fallback)
             tip = f"{entry.family.id}\n{entry.svg_path.name}"
             if entry.is_fallback:
                 tip = f"{tip}\nFallback: family has no selected variant kind"
@@ -162,7 +168,10 @@ class DraggableIconList(QListWidget):
                 continue
             family = item.data(Qt.ItemDataRole.UserRole)
             if getattr(family, "id", None) == family_id:
-                item.setIcon(QIcon(pixmap))
+                icon_pixmap = pixmap
+                if bool(item.data(ROLE_FALLBACK)):
+                    icon_pixmap = _muted_pixmap(pixmap, FALLBACK_ICON_OPACITY)
+                item.setIcon(QIcon(icon_pixmap))
                 break
 
     def _grid_size_for(self, icon_size: int) -> QSize:
@@ -255,9 +264,13 @@ class IconLabelDelegate(QStyledItemDelegate):
                 LABEL_EXTRA_HEIGHT,
             )
 
+        is_fallback = bool(index.data(ROLE_FALLBACK))
         painter.save()
         # Keep label colors unchanged on selection (highlight is only the tile chrome).
-        painter.setPen(opt.palette.color(opt.palette.ColorRole.Text))
+        title_color = QColor(opt.palette.color(opt.palette.ColorRole.Text))
+        if is_fallback:
+            title_color.setAlpha(FALLBACK_TITLE_ALPHA)
+        painter.setPen(title_color)
 
         title_font = QFont(opt.font)
         subtitle_font = QFont(opt.font)
@@ -278,6 +291,9 @@ class IconLabelDelegate(QStyledItemDelegate):
             if not muted.isValid() or muted.alpha() == 0:
                 muted = QColor(opt.palette.color(opt.palette.ColorRole.Text))
                 muted.setAlpha(160)
+            if is_fallback:
+                muted = QColor(muted)
+                muted.setAlpha(FALLBACK_SUBTITLE_ALPHA)
             painter.setPen(muted)
             painter.setFont(subtitle_font)
             subtitle_rect = QRect(
@@ -369,3 +385,17 @@ def family_display_filename(family: IconFamily, svg_path: Path | None = None) ->
     if family.variants:
         return Path(family.variants[0].file).name
     return f"{family.id}.svg"
+
+
+def _muted_pixmap(pixmap: QPixmap, opacity: float) -> QPixmap:
+    """Return a copy of `pixmap` drawn with reduced opacity."""
+    if pixmap.isNull():
+        return pixmap
+    result = QPixmap(pixmap.size())
+    result.setDevicePixelRatio(pixmap.devicePixelRatio())
+    result.fill(Qt.GlobalColor.transparent)
+    painter = QPainter(result)
+    painter.setOpacity(max(0.0, min(1.0, opacity)))
+    painter.drawPixmap(0, 0, pixmap)
+    painter.end()
+    return result
