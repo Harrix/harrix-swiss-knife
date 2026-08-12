@@ -308,12 +308,25 @@ class MainWindow(QMainWindow, AppWindowMixin):
         if toast is not None:
             toast.close()
 
+    @staticmethod
+    def _folder_display_name(path: Path) -> str:
+        r"""Short label for folder combo/menus; `src` shows parent\src."""
+        try:
+            resolved = path.resolve()
+        except OSError:
+            resolved = path
+        name = resolved.name
+        parent_name = resolved.parent.name
+        if name.casefold() == "src" and parent_name:
+            return str(Path(parent_name) / name)
+        return name
+
     def _folder_label(self, path: Path) -> str:
         try:
             resolved = path.resolve()
         except OSError:
             resolved = path
-        return f"{resolved.name} — {resolved}"
+        return f"{self._folder_display_name(resolved)} — {resolved}"
 
     @staticmethod
     def _format_byte_size(total_bytes: int) -> str:
@@ -832,9 +845,10 @@ class MainWindow(QMainWindow, AppWindowMixin):
             if key in seen:
                 continue
             seen.add(key)
-            self.folder_combo.addItem(path.name, str(path))
+            self.folder_combo.addItem(self._folder_display_name(path), str(path))
         if self._repo_root is not None and current_key not in seen:
-            self.folder_combo.insertItem(0, f"{self._repo_root.name} (current)", str(self._repo_root))
+            label = f"{self._folder_display_name(self._repo_root)} (current)"
+            self.folder_combo.insertItem(0, label, str(self._repo_root))
         # Select current folder when present.
         selected = -1
         for index in range(self.folder_combo.count()):
