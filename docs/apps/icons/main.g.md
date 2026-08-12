@@ -53,6 +53,8 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._thumb_worker = None
         self._current_category: str | None = None
         self._selected_family_id: str | None = None
+        self._category_icons = load_category_icons()
+        self._default_category_family_ids: dict[str, str] = {}
         self._icon_size_save_timer = QTimer(self)
         self._icon_size_save_timer.setSingleShot(True)
         self._icon_size_save_timer.setInterval(300)
@@ -143,6 +145,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self.category_list = QListWidget()
         self.category_list.setMinimumWidth(160)
         self.category_list.setMaximumWidth(260)
+        self.category_list.setIconSize(QSize(CATEGORY_LIST_ICON_SIZE, CATEGORY_LIST_ICON_SIZE))
         self.category_list.currentTextChanged.connect(self._on_category_changed)
         splitter.addWidget(self.category_list)
 
@@ -184,6 +187,32 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self.actionAbout = help_menu.addAction("&About")
         self._connect_exit_about_actions()
         self._apply_exit_about_menu_emojis()
+
+    def _category_family_id(self, category: str) -> str | None:
+        if self._catalog is None:
+            return None
+        assigned = self._category_icons.get(category)
+        if assigned:
+            for family in self._catalog.icons:
+                if family.id == assigned and category in family.categories:
+                    return assigned
+        return self._default_category_family_ids.get(category)
+
+    def _category_pixmap_icon(self, category: str) -> QIcon:
+        family_id = self._category_family_id(category)
+        if family_id is None:
+            return QIcon()
+        pixmap = self._pixmaps.get(family_id)
+        if pixmap is None or pixmap.isNull():
+            return QIcon(self._placeholder)
+        return QIcon(
+            pixmap.scaled(
+                CATEGORY_LIST_ICON_SIZE,
+                CATEGORY_LIST_ICON_SIZE,
+                Qt.AspectRatioMode.KeepAspectRatio,
+                Qt.TransformationMode.SmoothTransformation,
+            ),
+        )
 
     @staticmethod
     def _format_byte_size(total_bytes: int) -> str:
@@ -411,9 +440,21 @@ class MainWindow(QMainWindow, AppWindowMixin):
             return
         self.statusBar().showMessage(f"Revealed source `{source.name}`")
 
+    def _on_set_as_category_icon(self, family: object) -> None:
+        if not isinstance(family, IconFamily):
+            return
+        category = self._target_category_for_icon(family)
+        if category is None:
+            QMessageBox.warning(self, "Vector Icons", "Icon has no category to assign.")
+            return
+        self._category_icons = set_category_icon(category, family.id)
+        self._refresh_category_icons()
+        self.statusBar().showMessage(f"Category `{category}` icon set to `{family.id}`")
+
     def _on_thumb_finished(self, updated: int) -> None:
         total = len(self._catalog.icons) if self._catalog else 0
         self.statusBar().showMessage(f"Thumbnails ready ({updated} updated, {total} total)")
+        self._refresh_category_icons()
 
     def _on_thumb_progress(self, family_id: str, thumb_path: str) -> None:
         pixmap = QPixmap(thumb_path)
@@ -421,6 +462,8 @@ class MainWindow(QMainWindow, AppWindowMixin):
             return
         self._pixmaps[family_id] = pixmap
         self.icon_list.update_family_pixmap(family_id, pixmap)
+        if family_id in self._category_icons.values() or family_id in self._default_category_family_ids.values():
+            self._refresh_category_icons()
 
     def _persist_icon_size(self) -> None:
         self._icon_size_save_timer.stop()
@@ -429,10 +472,17 @@ class MainWindow(QMainWindow, AppWindowMixin):
     def _populate_categories(self) -> None:
         self.category_list.blockSignals(True)  # noqa: FBT003
         self.category_list.clear()
-        self.category_list.addItem(ALL_CATEGORIES)
+        self._default_category_family_ids.clear()
+        all_item = QListWidgetItem(QIcon(":/assets/logo.svg"), ALL_CATEGORIES)
+        self.category_list.addItem(all_item)
         if self._catalog is not None:
             for name in self._catalog.categories():
-                self.category_list.addItem(name)
+                families = self._catalog.filter_icons(category=name)
+                if families:
+                    self._default_category_family_ids[name] = families[0].id
+                item = QListWidgetItem(name)
+                item.setIcon(self._category_pixmap_icon(name))
+                self.category_list.addItem(item)
         self.category_list.setCurrentRow(0)
         self.category_list.blockSignals(False)  # noqa: FBT003
         self._current_category = None
@@ -445,6 +495,17 @@ class MainWindow(QMainWindow, AppWindowMixin):
             pixmap = self._thumb_cache.load_pixmap(family.id)
             if pixmap is not None:
                 self._pixmaps[family.id] = pixmap
+
+    def _refresh_category_icons(self) -> None:
+        for index in range(self.category_list.count()):
+            item = self.category_list.item(index)
+            if item is None:
+                continue
+            name = item.text()
+            if name == ALL_CATEGORIES:
+                item.setIcon(QIcon(":/assets/logo.svg"))
+                continue
+            item.setIcon(self._category_pixmap_icon(name))
 
     def _resolve_source_file(self, family: object, svg_path: str) -> Path | None:
         if not isinstance(family, IconFamily) or self._repo_root is None:
@@ -495,6 +556,11 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._thumb_thread = None
         self._thumb_worker = None
 
+    def _target_category_for_icon(self, family: IconFamily) -> str | None:
+        if self._current_category and self._current_category in family.categories:
+            return self._current_category
+        return family.categories[0] if family.categories else None
+
     @staticmethod
     def _variant_thumb_size(icon_size: int) -> int:
         return max(ICON_SIZE_MIN, min(icon_size, (icon_size * 3) // 4 or icon_size))
@@ -525,6 +591,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         icon_list.copy_requested.connect(self._on_copy_svg)
         icon_list.copy_path_requested.connect(self._on_copy_path)
         icon_list.open_note_requested.connect(self._on_open_note_in_editor)
+        icon_list.set_category_icon_requested.connect(self._on_set_as_category_icon)
         icon_list.reveal_source_requested.connect(self._on_reveal_source)
         icon_list.open_source_requested.connect(self._on_open_source)
 ```
@@ -560,6 +627,8 @@ def __init__(self, *, hide_on_close: bool = False) -> None:
         self._thumb_worker = None
         self._current_category: str | None = None
         self._selected_family_id: str | None = None
+        self._category_icons = load_category_icons()
+        self._default_category_family_ids: dict[str, str] = {}
         self._icon_size_save_timer = QTimer(self)
         self._icon_size_save_timer.setSingleShot(True)
         self._icon_size_save_timer.setInterval(300)
