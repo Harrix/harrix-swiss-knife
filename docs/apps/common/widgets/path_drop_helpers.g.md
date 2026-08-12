@@ -178,9 +178,12 @@ def install_url_drop_handlers(
         paths = [url.toLocalFile() for url in event.mimeData().urls() if url.toLocalFile()]
         if filter_path is not None:
             paths = [path for path in paths if filter_path(path)]
-        if paths:
-            on_drop_paths(paths)
+        # Accept and return before callbacks. Opening a modal dialog (or other long work)
+        # inside dropEvent keeps Windows Explorer's OLE drag locked until the dialog closes.
         event.acceptProposedAction()
+        if paths:
+            dropped = list(paths)
+            QTimer.singleShot(0, lambda: on_drop_paths(dropped))
 
     widget.setAcceptDrops(True)
     widget.dragEnterEvent = drag_enter_event  # ty: ignore[invalid-assignment]
