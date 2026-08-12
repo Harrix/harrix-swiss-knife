@@ -35,13 +35,13 @@ class MainWindow(QMainWindow, AppWindowMixin):
     about_app_name = "Vector Icons"
     about_description = "Browse and drag SVG icon families from Harrix-Vector-Icons."
 
-    def __init__(self, hide_on_close: bool = False) -> None:  # noqa: FBT001, FBT002
+    def __init__(self, *, hide_on_close: bool = False) -> None:
         """Build the browser UI and load catalog from config path."""
         super().__init__()
-        self._hide_on_close = hide_on_close
+        try_apply_system_backdrop(self, backdrop=SystemBackdrop.MICA)
         self.setWindowTitle("Vector Icons")
         self.setWindowIcon(QIcon(":/assets/logo.svg"))
-        self.resize(1100, 720)
+        self._init_hide_on_close(hide_on_close=hide_on_close)
 
         self._catalog: IconCatalog | None = None
         self._repo_root: Path | None = None
@@ -53,16 +53,14 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._current_category: str | None = None
 
         self._build_ui()
-        try_apply_system_backdrop(self)
         self._load_from_config()
+        self._setup_window_size_and_position()
 
     def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
         """Stop background work and optionally hide instead of closing."""
-        self._stop_thumb_refresh()
-        if self._hide_on_close:
-            event.ignore()
-            self.hide()
+        if self._hide_instead_of_close(event):
             return
+        self._stop_thumb_refresh()
         super().closeEvent(event)
 
     def _apply_filters(self) -> None:
@@ -248,7 +246,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, hide_on_close: bool = False) -> None
+def __init__(self, *, hide_on_close: bool = False) -> None
 ```
 
 Build the browser UI and load catalog from config path.
@@ -257,12 +255,12 @@ Build the browser UI and load catalog from config path.
 <summary>Code:</summary>
 
 ```python
-def __init__(self, hide_on_close: bool = False) -> None:  # noqa: FBT001, FBT002
+def __init__(self, *, hide_on_close: bool = False) -> None:
         super().__init__()
-        self._hide_on_close = hide_on_close
+        try_apply_system_backdrop(self, backdrop=SystemBackdrop.MICA)
         self.setWindowTitle("Vector Icons")
         self.setWindowIcon(QIcon(":/assets/logo.svg"))
-        self.resize(1100, 720)
+        self._init_hide_on_close(hide_on_close=hide_on_close)
 
         self._catalog: IconCatalog | None = None
         self._repo_root: Path | None = None
@@ -274,8 +272,8 @@ def __init__(self, hide_on_close: bool = False) -> None:  # noqa: FBT001, FBT002
         self._current_category: str | None = None
 
         self._build_ui()
-        try_apply_system_backdrop(self)
         self._load_from_config()
+        self._setup_window_size_and_position()
 ```
 
 </details>
@@ -293,11 +291,9 @@ Stop background work and optionally hide instead of closing.
 
 ```python
 def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
-        self._stop_thumb_refresh()
-        if self._hide_on_close:
-            event.ignore()
-            self.hide()
+        if self._hide_instead_of_close(event):
             return
+        self._stop_thumb_refresh()
         super().closeEvent(event)
 ```
 
