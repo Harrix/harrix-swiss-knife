@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, NoReturn
 
 from harrix_swiss_knife.apps.common.qt_database_manager_base import QtSqliteDatabaseManagerBase
 
@@ -749,6 +749,35 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         }
         return self.execute_simple_query(query, params)
 
+    def update_food_log_records_date(self, record_ids: list[int], date: str) -> bool:
+        """Set the same calendar date on many food_log rows (only the `date` column).
+
+        Args:
+
+        - `record_ids` (`list[int]`): Food log primary keys to update.
+        - `date` (`str`): New date in YYYY-MM-DD format.
+
+        Returns:
+
+        - `bool`: `True` if every update succeeded.
+
+        """
+        if not record_ids:
+            return True
+        try:
+            with self.sql_transaction():
+                for record_id in record_ids:
+                    if not self.execute_simple_query(
+                        "UPDATE food_log SET date = :date WHERE _id = :id",
+                        {"date": date, "id": record_id},
+                    ):
+                        msg = f"Failed to update food_log date for id={record_id}"
+                        _raise_runtime_error(msg)
+        except Exception:
+            return False
+        else:
+            return True
+
     def update_food_log_weight_and_calories(
         self,
         record_id: int,
@@ -842,6 +871,11 @@ def _put_autocomplete_name(target: dict[str, str | None], name: str, name_en: st
     """Insert `name` or fill a missing English name in `target`."""
     if name not in target or (target[name] is None and name_en is not None):
         target[name] = name_en
+
+
+def _raise_runtime_error(message: str) -> NoReturn:
+    """Raise `RuntimeError` (helper for TRY301 inside SQL transactions)."""
+    raise RuntimeError(message)
 
 
 def _sql_in_clause(values: list[str], param_prefix: str) -> tuple[str, dict[str, Any]]:

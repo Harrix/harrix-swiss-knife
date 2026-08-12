@@ -53,8 +53,11 @@ from PySide6.QtGui import (
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QApplication,
+    QDateEdit,
     QDialog,
+    QDialogButtonBox,
     QFileDialog,
+    QLabel,
     QListView,
     QMainWindow,
     QMenu,
@@ -63,6 +66,7 @@ from PySide6.QtWidgets import (
     QRadioButton,
     QSizePolicy,
     QTableView,
+    QVBoxLayout,
 )
 
 from harrix_swiss_knife import (
@@ -110,6 +114,7 @@ from harrix_swiss_knife.apps.fitness.progress_calculator import ExerciseProgress
 from harrix_swiss_knife.integrations.bothub import BothubRequestState
 from harrix_swiss_knife.keyboard_layout_search import text_matches_autocomplete
 from harrix_swiss_knife.paths import get_config_path_str, get_project_root
+from harrix_swiss_knife.qt_emoji_icon import apply_emoji_dialog_buttons
 from harrix_swiss_knife.win11_backdrop import SystemBackdrop, try_apply_system_backdrop
 
 logger = logging.getLogger(__name__)
@@ -5954,6 +5959,46 @@ class MainWindow(
         except Exception:
             logger.exception("Error selecting last executed exercise")
 
+    @requires_database()
+    def _set_date_for_selected_process_records(self, record_ids: list[int]) -> None:
+        """Set the same date on several process rows after user picks a date in a dialog."""
+        min_rows_for_bulk_date = 2
+        if len(record_ids) < min_rows_for_bulk_date or self.db_manager is None:
+            return
+        if not self._validate_database_connection():
+            return
+
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Set date for selected process records")
+        dialog_layout = QVBoxLayout(dialog)
+        dialog_layout.addWidget(
+            QLabel(f"New date for {len(record_ids)} process records:", dialog),
+        )
+        date_edit = QDateEdit(dialog)
+        date_edit.setCalendarPopup(True)
+        date_edit.setDisplayFormat("yyyy-MM-dd")
+        date_edit.setDate(self.dateEdit.date())
+        dialog_layout.addWidget(date_edit)
+
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel,
+            parent=dialog,
+        )
+        apply_emoji_dialog_buttons(buttons)
+        buttons.accepted.connect(dialog.accept)
+        buttons.rejected.connect(dialog.reject)
+        dialog_layout.addWidget(buttons)
+
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+
+        new_date: str = date_edit.date().toString("yyyy-MM-dd")
+        if self.db_manager.update_process_records_date(record_ids, new_date):
+            QTimer.singleShot(0, self.load_process_table)
+            self.update_sets_count_today()
+        else:
+            message_box.warning(self, "Date", "Could not update date for one or more process records.")
+
     # Add to MainWindow class (near other small helpers)
     def _set_no_data_info_label(self, text: str | None = None) -> None:
         """Set a unified `no data` message into label_chart_info.
@@ -6184,7 +6229,16 @@ class MainWindow(
         context_menu.addSeparator()
         export_action = context_menu.addAction("📤 Export to CSV")
         context_menu.addSeparator()
-        delete_action = context_menu.addAction("🗑 Delete selected row")
+
+        selected_process_ids = self._get_selected_row_ids("process")
+        delete_label = "🗑 Delete selected rows" if len(selected_process_ids) > 1 else "🗑 Delete selected row"
+        delete_action = context_menu.addAction(delete_label)
+
+        bulk_date_action = None
+        ids_for_date_change: list[int] = []
+        if len(selected_process_ids) > 1:
+            ids_for_date_change = list(selected_process_ids)
+            bulk_date_action = context_menu.addAction("✍️ Set date for all selected rows…")
 
         action = context_menu.exec_(self.tableView_process.mapToGlobal(position))
         if action is None:
@@ -6207,6 +6261,8 @@ class MainWindow(
                 self.pushButton_delete.click()
             else:
                 logger.debug("⚠️ Context menu: No row selected for deletion")
+        elif bulk_date_action is not None and action == bulk_date_action:
+            self._set_date_for_selected_process_records(ids_for_date_change)
 
     def _show_record_congratulations(self, exercise: str, record_info: dict) -> None:
         """Show congratulations message for new records.

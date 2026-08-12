@@ -38,6 +38,7 @@ lang: en
   - [⚙️ Method `update_food_item`](#%EF%B8%8F-method-update_food_item)
   - [⚙️ Method `update_food_log_name_en_by_name`](#%EF%B8%8F-method-update_food_log_name_en_by_name)
   - [⚙️ Method `update_food_log_record`](#%EF%B8%8F-method-update_food_log_record)
+  - [⚙️ Method `update_food_log_records_date`](#%EF%B8%8F-method-update_food_log_records_date)
   - [⚙️ Method `update_food_log_weight_and_calories`](#%EF%B8%8F-method-update_food_log_weight_and_calories)
 - [🏛️ Class `FoodAutocompleteEntry`](#%EF%B8%8F-class-foodautocompleteentry)
 - [🏛️ Class `FoodItemByNameRow`](#%EF%B8%8F-class-fooditembynamerow)
@@ -794,6 +795,35 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             "is_drink": 1 if is_drink else 0,
         }
         return self.execute_simple_query(query, params)
+
+    def update_food_log_records_date(self, record_ids: list[int], date: str) -> bool:
+        """Set the same calendar date on many food_log rows (only the `date` column).
+
+        Args:
+
+        - `record_ids` (`list[int]`): Food log primary keys to update.
+        - `date` (`str`): New date in YYYY-MM-DD format.
+
+        Returns:
+
+        - `bool`: `True` if every update succeeded.
+
+        """
+        if not record_ids:
+            return True
+        try:
+            with self.sql_transaction():
+                for record_id in record_ids:
+                    if not self.execute_simple_query(
+                        "UPDATE food_log SET date = :date WHERE _id = :id",
+                        {"date": date, "id": record_id},
+                    ):
+                        msg = f"Failed to update food_log date for id={record_id}"
+                        _raise_runtime_error(msg)
+        except Exception:
+            return False
+        else:
+            return True
 
     def update_food_log_weight_and_calories(
         self,
@@ -1868,6 +1898,47 @@ def update_food_log_record(
             "is_drink": 1 if is_drink else 0,
         }
         return self.execute_simple_query(query, params)
+```
+
+</details>
+
+### ⚙️ Method `update_food_log_records_date`
+
+```python
+def update_food_log_records_date(self, record_ids: list[int], date: str) -> bool
+```
+
+Set the same calendar date on many food_log rows (only the `date` column).
+
+Args:
+
+- `record_ids` (`list[int]`): Food log primary keys to update.
+- `date` (`str`): New date in YYYY-MM-DD format.
+
+Returns:
+
+- `bool`: `True` if every update succeeded.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def update_food_log_records_date(self, record_ids: list[int], date: str) -> bool:
+        if not record_ids:
+            return True
+        try:
+            with self.sql_transaction():
+                for record_id in record_ids:
+                    if not self.execute_simple_query(
+                        "UPDATE food_log SET date = :date WHERE _id = :id",
+                        {"date": date, "id": record_id},
+                    ):
+                        msg = f"Failed to update food_log date for id={record_id}"
+                        _raise_runtime_error(msg)
+        except Exception:
+            return False
+        else:
+            return True
 ```
 
 </details>

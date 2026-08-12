@@ -66,6 +66,7 @@ lang: en
   - [⚙️ Method `update_exercise_type`](#%EF%B8%8F-method-update_exercise_type)
   - [⚙️ Method `update_exercise_type_name_local_by_type`](#%EF%B8%8F-method-update_exercise_type_name_local_by_type)
   - [⚙️ Method `update_process_record`](#%EF%B8%8F-method-update_process_record)
+  - [⚙️ Method `update_process_records_date`](#%EF%B8%8F-method-update_process_records_date)
   - [⚙️ Method `update_weight_record`](#%EF%B8%8F-method-update_weight_record)
 
 </details>
@@ -1335,6 +1336,36 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             "id": record_id,
         }
         return self.execute_simple_query(query, params)
+
+    def update_process_records_date(self, record_ids: list[int], date: str) -> bool:
+        """Set the same calendar date on many process rows (only the `date` column).
+
+        Args:
+
+        - `record_ids` (`list[int]`): Process primary keys to update.
+        - `date` (`str`): New date in YYYY-MM-DD format.
+
+        Returns:
+
+        - `bool`: `True` if every update succeeded.
+
+        """
+        if not record_ids:
+            return True
+        try:
+            with self.sql_transaction():
+                for record_id in record_ids:
+                    if not self.execute_simple_query(
+                        "UPDATE process SET date = :date WHERE _id = :id",
+                        {"date": date, "id": record_id},
+                    ):
+                        msg = f"Failed to update process date for id={record_id}"
+                        _raise_runtime_error(msg)
+        except Exception:
+            logger.exception("Failed to update process dates in batch")
+            return False
+        else:
+            return True
 
     def update_weight_record(self, record_id: int, value: float, date: str) -> bool:
         """Update an existing weight record.
@@ -3283,6 +3314,48 @@ def update_process_record(self, record_id: int, exercise_id: int, type_id: int, 
             "id": record_id,
         }
         return self.execute_simple_query(query, params)
+```
+
+</details>
+
+### ⚙️ Method `update_process_records_date`
+
+```python
+def update_process_records_date(self, record_ids: list[int], date: str) -> bool
+```
+
+Set the same calendar date on many process rows (only the `date` column).
+
+Args:
+
+- `record_ids` (`list[int]`): Process primary keys to update.
+- `date` (`str`): New date in YYYY-MM-DD format.
+
+Returns:
+
+- `bool`: `True` if every update succeeded.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def update_process_records_date(self, record_ids: list[int], date: str) -> bool:
+        if not record_ids:
+            return True
+        try:
+            with self.sql_transaction():
+                for record_id in record_ids:
+                    if not self.execute_simple_query(
+                        "UPDATE process SET date = :date WHERE _id = :id",
+                        {"date": date, "id": record_id},
+                    ):
+                        msg = f"Failed to update process date for id={record_id}"
+                        _raise_runtime_error(msg)
+        except Exception:
+            logger.exception("Failed to update process dates in batch")
+            return False
+        else:
+            return True
 ```
 
 </details>

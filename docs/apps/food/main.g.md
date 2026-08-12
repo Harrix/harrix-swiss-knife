@@ -2550,6 +2550,45 @@ class MainWindow(
         self._food_log_dates_with_totals = set()
         self._food_log_date_color_map = {}
 
+    @requires_database()
+    def _set_date_for_selected_food_log_records(self, record_ids: list[int]) -> None:
+        """Set the same date on several food log rows after user picks a date in a dialog."""
+        min_rows_for_bulk_date = 2
+        if len(record_ids) < min_rows_for_bulk_date or self.db_manager is None:
+            return
+        if not self._validate_database_connection():
+            return
+
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Set date for selected food log records")
+        dialog_layout = QVBoxLayout(dialog)
+        dialog_layout.addWidget(
+            QLabel(f"New date for {len(record_ids)} food log records:", dialog),
+        )
+        date_edit = QDateEdit(dialog)
+        date_edit.setCalendarPopup(True)
+        date_edit.setDisplayFormat("yyyy-MM-dd")
+        date_edit.setDate(self.dateEdit_food.date())
+        dialog_layout.addWidget(date_edit)
+
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel,
+            parent=dialog,
+        )
+        apply_emoji_dialog_buttons(buttons)
+        buttons.accepted.connect(dialog.accept)
+        buttons.rejected.connect(dialog.reject)
+        dialog_layout.addWidget(buttons)
+
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+
+        new_date: str = date_edit.date().toString("yyyy-MM-dd")
+        if self.db_manager.update_food_log_records_date(record_ids, new_date):
+            QTimer.singleShot(0, self.update_food_data)
+        else:
+            message_box.warning(self, "Date", "Could not update date for one or more food log records.")
+
     def _set_today_date_in_food(self) -> None:
         """Set today's date in the food date field."""
         today = QDate.currentDate()
@@ -2721,6 +2760,13 @@ class MainWindow(
         else:
             delete_action = context_menu.addAction("🗑 Delete selected row")
 
+        bulk_date_action = None
+        ids_for_date_change: list[int] = []
+        if multiple_rows_selected:
+            ids_for_date_change = self._get_selected_row_ids("food_log")
+            if len(ids_for_date_change) > 1:
+                bulk_date_action = context_menu.addAction("✍️ Set date for all selected rows…")
+
         # Add total calories info at the bottom if multiple rows selected
         if multiple_rows_selected:
             context_menu.addSeparator()
@@ -2753,6 +2799,8 @@ class MainWindow(
                     self._delete_selected_food_log_rows(unique_rows)
                 else:
                     self.delete_record("food_log")
+            elif bulk_date_action is not None and action == bulk_date_action:
+                self._set_date_for_selected_food_log_records(ids_for_date_change)
         finally:
             # Reconnect the context menu signal after a short delay
             QTimer.singleShot(100, self._reconnect_context_menu)
