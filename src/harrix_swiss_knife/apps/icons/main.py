@@ -45,9 +45,7 @@ from harrix_swiss_knife.apps.icons.settings import (
     ICON_SIZE_MIN,
     load_category_icons,
     load_icon_size,
-    load_variant_view_mode,
     save_icon_size,
-    save_variant_view_mode,
     set_category_icon,
 )
 from harrix_swiss_knife.apps.icons.source_resolve import (
@@ -108,7 +106,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._selected_family_id: str | None = None
         self._category_icons = load_category_icons()
         self._default_category_family_ids: dict[str, str] = {}
-        self._variant_view_mode = load_variant_view_mode()
+        self._variant_view_mode = MODE_FEATURED
         self._variant_pixmaps: dict[str, QPixmap] = {}
         self._variant_progress_toast: toast_progress_notification.ToastProgressNotification | None = None
         self._icon_size_save_timer = QTimer(self)
@@ -195,8 +193,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self.variant_view_combo.setMinimumWidth(220)
         for mode_id, label in VARIANT_VIEW_MODES:
             self.variant_view_combo.addItem(label, mode_id)
-        index = self.variant_view_combo.findData(self._variant_view_mode)
-        self.variant_view_combo.setCurrentIndex(max(index, 0))
+        self.variant_view_combo.setCurrentIndex(0)
         self.variant_view_combo.currentIndexChanged.connect(self._on_variant_view_changed)
         toolbar.addWidget(self.variant_view_combo)
 
@@ -543,7 +540,6 @@ class MainWindow(QMainWindow, AppWindowMixin):
     def _on_variant_view_changed(self, _index: int) -> None:
         mode = self.variant_view_combo.currentData()
         self._variant_view_mode = str(mode) if mode else MODE_FEATURED
-        save_variant_view_mode(self._variant_view_mode)
         self._apply_filters()
 
     def _persist_icon_size(self) -> None:

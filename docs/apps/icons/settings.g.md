@@ -14,10 +14,8 @@ lang: en
 - [🔧 Function `clamp_icon_size`](#-function-clamp_icon_size)
 - [🔧 Function `load_category_icons`](#-function-load_category_icons)
 - [🔧 Function `load_icon_size`](#-function-load_icon_size)
-- [🔧 Function `load_variant_view_mode`](#-function-load_variant_view_mode)
 - [🔧 Function `save_category_icons`](#-function-save_category_icons)
 - [🔧 Function `save_icon_size`](#-function-save_icon_size)
-- [🔧 Function `save_variant_view_mode`](#-function-save_variant_view_mode)
 - [🔧 Function `set_category_icon`](#-function-set_category_icon)
 
 </details>
@@ -106,30 +104,6 @@ def load_icon_size() -> int:
 
 </details>
 
-## 🔧 Function `load_variant_view_mode`
-
-```python
-def load_variant_view_mode() -> str
-```
-
-Load main-grid variant view mode from `config-temp.json`.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def load_variant_view_mode() -> str:
-    try:
-        config = h.dev.config_load(get_config_path_str(), is_temp=True)
-    except (FileNotFoundError, OSError, ValueError):
-        return MODE_FEATURED
-    raw = str(config.get(VARIANT_VIEW_MODE_KEY) or MODE_FEATURED).strip()
-    known = {key for key, _ in VARIANT_VIEW_MODES}
-    return raw if raw in known else MODE_FEATURED
-```
-
-</details>
-
 ## 🔧 Function `save_category_icons`
 
 ```python
@@ -177,32 +151,6 @@ def save_icon_size(size: int) -> None:
     h.dev.config_update_value(
         ICON_SIZE_KEY,
         clamp_icon_size(size),
-        get_config_path_str(),
-        is_temp=True,
-    )
-```
-
-</details>
-
-## 🔧 Function `save_variant_view_mode`
-
-```python
-def save_variant_view_mode(mode: str) -> None
-```
-
-Persist main-grid variant view mode in `config-temp.json`.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def save_variant_view_mode(mode: str) -> None:
-    known = {key for key, _ in VARIANT_VIEW_MODES}
-    value = mode if mode in known else MODE_FEATURED
-    _ensure_temp_config()
-    h.dev.config_update_value(
-        VARIANT_VIEW_MODE_KEY,
-        value,
         get_config_path_str(),
         is_temp=True,
     )

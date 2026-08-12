@@ -4,12 +4,10 @@ from __future__ import annotations
 
 import harrix_pylib as h
 
-from harrix_swiss_knife.apps.icons.variant_view import MODE_FEATURED, VARIANT_VIEW_MODES
 from harrix_swiss_knife.paths import get_config_path_str, get_temp_config_path
 
 ICON_SIZE_KEY = "vector_icons_icon_size"
 CATEGORY_ICONS_KEY = "vector_icons_category_icons"
-VARIANT_VIEW_MODE_KEY = "vector_icons_variant_view_mode"
 ICON_SIZE_MIN = 64
 ICON_SIZE_MAX = 256
 ICON_SIZE_DEFAULT = 160
@@ -60,17 +58,6 @@ def load_icon_size() -> int:
     return clamp_icon_size(config.get(ICON_SIZE_KEY, ICON_SIZE_DEFAULT))
 
 
-def load_variant_view_mode() -> str:
-    """Load main-grid variant view mode from `config-temp.json`."""
-    try:
-        config = h.dev.config_load(get_config_path_str(), is_temp=True)
-    except (FileNotFoundError, OSError, ValueError):
-        return MODE_FEATURED
-    raw = str(config.get(VARIANT_VIEW_MODE_KEY) or MODE_FEATURED).strip()
-    known = {key for key, _ in VARIANT_VIEW_MODES}
-    return raw if raw in known else MODE_FEATURED
-
-
 def save_category_icons(mapping: dict[str, str]) -> None:
     """Persist category → family-id map in `config-temp.json`."""
     cleaned: dict[str, str] = {}
@@ -94,19 +81,6 @@ def save_icon_size(size: int) -> None:
     h.dev.config_update_value(
         ICON_SIZE_KEY,
         clamp_icon_size(size),
-        get_config_path_str(),
-        is_temp=True,
-    )
-
-
-def save_variant_view_mode(mode: str) -> None:
-    """Persist main-grid variant view mode in `config-temp.json`."""
-    known = {key for key, _ in VARIANT_VIEW_MODES}
-    value = mode if mode in known else MODE_FEATURED
-    _ensure_temp_config()
-    h.dev.config_update_value(
-        VARIANT_VIEW_MODE_KEY,
-        value,
         get_config_path_str(),
         is_temp=True,
     )
