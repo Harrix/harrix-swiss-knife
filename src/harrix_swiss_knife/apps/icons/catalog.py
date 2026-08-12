@@ -10,6 +10,8 @@ from datetime import UTC, datetime
 from pathlib import Path  # noqa: TC003
 from typing import Any
 
+from harrix_swiss_knife.keyboard_layout_search import text_matches_autocomplete
+
 _FRONTMATTER_RE = re.compile(r"^---\s*\n(.*?)\n---\s*\n?", re.DOTALL)
 _LIST_RE = re.compile(r"^\[\s*(.*?)\s*\]$")
 
@@ -32,7 +34,7 @@ class IconCatalog:
 
     def filter_icons(self, *, category: str | None = None, query: str = "") -> list[IconFamily]:
         """Filter icons by optional category and search query."""
-        needle = query.strip().casefold()
+        needle = query.strip()
         result: list[IconFamily] = []
         for icon in self.icons:
             if category and category not in icon.categories:
@@ -65,10 +67,8 @@ class IconFamily:
         return path if path.is_file() else None
 
     def matches(self, query: str) -> bool:
-        """Return whether the family matches a case-insensitive substring query."""
-        if not query:
-            return True
-        return query in self.search_blob
+        """Return whether the family matches query (case/layout tolerant)."""
+        return text_matches_autocomplete(self.search_blob, query)
 
 
 @dataclass(frozen=True, slots=True)
@@ -155,7 +155,7 @@ def rebuild_catalog(repo_root: Path) -> IconCatalog:
 def _build_search_blob(family: IconFamily) -> str:
     parts = [family.id, family.title, *family.categories, *family.tags]
     parts.extend(variant.name for variant in family.variants)
-    return " ".join(parts).casefold()
+    return " ".join(parts)
 
 
 def _category_from_id(family_id: str) -> str:

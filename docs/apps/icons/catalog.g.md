@@ -52,7 +52,7 @@ class IconCatalog:
 
     def filter_icons(self, *, category: str | None = None, query: str = "") -> list[IconFamily]:
         """Filter icons by optional category and search query."""
-        needle = query.strip().casefold()
+        needle = query.strip()
         result: list[IconFamily] = []
         for icon in self.icons:
             if category and category not in icon.categories:
@@ -99,7 +99,7 @@ Filter icons by optional category and search query.
 
 ```python
 def filter_icons(self, *, category: str | None = None, query: str = "") -> list[IconFamily]:
-        needle = query.strip().casefold()
+        needle = query.strip()
         result: list[IconFamily] = []
         for icon in self.icons:
             if category and category not in icon.categories:
@@ -144,10 +144,8 @@ class IconFamily:
         return path if path.is_file() else None
 
     def matches(self, query: str) -> bool:
-        """Return whether the family matches a case-insensitive substring query."""
-        if not query:
-            return True
-        return query in self.search_blob
+        """Return whether the family matches query (case/layout tolerant)."""
+        return text_matches_autocomplete(self.search_blob, query)
 ```
 
 </details>
@@ -179,16 +177,14 @@ def featured_path(self, repo_root: Path) -> Path | None:
 def matches(self, query: str) -> bool
 ```
 
-Return whether the family matches a case-insensitive substring query.
+Return whether the family matches query (case/layout tolerant).
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def matches(self, query: str) -> bool:
-        if not query:
-            return True
-        return query in self.search_blob
+        return text_matches_autocomplete(self.search_blob, query)
 ```
 
 </details>
