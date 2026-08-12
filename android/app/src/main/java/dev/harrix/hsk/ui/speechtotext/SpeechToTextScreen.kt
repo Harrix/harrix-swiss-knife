@@ -73,6 +73,7 @@ import dev.harrix.hsk.speechtotext.WaveformBucket
 import dev.harrix.hsk.ui.AutoFitText
 import dev.harrix.hsk.ui.CompactBottomActionButton
 import dev.harrix.hsk.ui.adaptiveBottomBarWidth
+import dev.harrix.hsk.ui.theme.HskTopAppBarHeight
 import dev.harrix.hsk.ui.theme.hskScaffoldContainerColor
 import dev.harrix.hsk.ui.theme.hskScaffoldContentWindowInsets
 import dev.harrix.hsk.ui.theme.hskTopAppBarColors
@@ -233,6 +234,7 @@ fun SpeechToTextScreen(
                 },
                 colors = hskTopAppBarColors(),
                 windowInsets = hskTopAppBarWindowInsets(),
+                expandedHeight = HskTopAppBarHeight,
                 navigationIcon = {
                     IconButton(
                         onClick = { leave() },

@@ -41,6 +41,7 @@ import androidx.compose.ui.unit.dp
 import dev.harrix.hsk.R
 import dev.harrix.hsk.ui.AutoFitText
 import dev.harrix.hsk.ui.adaptiveContentWidth
+import dev.harrix.hsk.ui.theme.HskTopAppBarHeight
 import dev.harrix.hsk.ui.theme.hskScaffoldContainerColor
 import dev.harrix.hsk.ui.theme.hskScaffoldContentWindowInsets
 import dev.harrix.hsk.ui.theme.hskTopAppBarColors
@@ -90,6 +91,7 @@ fun AboutScreen(
                 },
                 colors = hskTopAppBarColors(),
                 windowInsets = hskTopAppBarWindowInsets(),
+                expandedHeight = HskTopAppBarHeight,
                 navigationIcon = {
                     IconButton(onClick = onClose) {
                         Icon(

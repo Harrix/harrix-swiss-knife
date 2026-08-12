@@ -88,6 +88,7 @@ import dev.harrix.hsk.ui.TypeYesConfirmDialog
 import dev.harrix.hsk.ui.adaptiveContentWidth
 import dev.harrix.hsk.ui.isCompactWidth
 import dev.harrix.hsk.ui.theme.AppLanguage
+import dev.harrix.hsk.ui.theme.HskTopAppBarHeight
 import dev.harrix.hsk.ui.theme.ThemeMode
 import dev.harrix.hsk.ui.theme.hskScaffoldContainerColor
 import dev.harrix.hsk.ui.theme.hskScaffoldContentWindowInsets
@@ -213,6 +214,7 @@ fun SettingsScreen(
                 },
                 colors = hskTopAppBarColors(),
                 windowInsets = hskTopAppBarWindowInsets(),
+                expandedHeight = HskTopAppBarHeight,
                 navigationIcon = {
                     IconButton(onClick = { goBack() }) {
                         Icon(

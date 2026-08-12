@@ -65,6 +65,7 @@ import dev.harrix.hsk.gallery.GalleryCleanerPreferences
 import dev.harrix.hsk.gallery.GalleryPermissions
 import dev.harrix.hsk.ui.AutoFitText
 import dev.harrix.hsk.ui.gallery.EditablePhotoHost
+import dev.harrix.hsk.ui.theme.HskTopAppBarHeight
 import dev.harrix.hsk.ui.theme.hskScaffoldContainerColor
 import dev.harrix.hsk.ui.theme.hskScaffoldContentWindowInsets
 import dev.harrix.hsk.ui.theme.hskTopAppBarColors
@@ -219,6 +220,7 @@ fun PhotoEditorScreen(
                 },
                 colors = hskTopAppBarColors(),
                 windowInsets = hskTopAppBarWindowInsets(),
+                expandedHeight = HskTopAppBarHeight,
                 navigationIcon = {
                     val editing = currentPhoto != null
                     IconButton(

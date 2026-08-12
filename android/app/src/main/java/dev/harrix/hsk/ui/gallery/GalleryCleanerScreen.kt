@@ -132,6 +132,7 @@ import dev.harrix.hsk.ui.adaptiveBottomBarWidth
 import dev.harrix.hsk.ui.isCompactHeight
 import dev.harrix.hsk.ui.isCompactWidth
 import dev.harrix.hsk.ui.performLightActionHaptic
+import dev.harrix.hsk.ui.theme.HskTopAppBarHeight
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -972,7 +973,7 @@ fun GalleryCleanerScreen(
                         Modifier
                             .fillMaxWidth()
                             .windowInsetsPadding(WindowInsets.statusBars)
-                            .heightIn(min = 64.dp)
+                            .heightIn(min = HskTopAppBarHeight)
                             .padding(end = 4.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {

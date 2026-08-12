@@ -81,6 +81,7 @@ import dev.harrix.hsk.ui.settings.SettingsSection
 import dev.harrix.hsk.ui.speechtotext.SpeechToTextScreen
 import dev.harrix.hsk.ui.theme.AppLanguage
 import dev.harrix.hsk.ui.theme.HskAndroidTheme
+import dev.harrix.hsk.ui.theme.HskTopAppBarHeight
 import dev.harrix.hsk.ui.theme.ThemeMode
 import dev.harrix.hsk.ui.theme.hskScaffoldContainerColor
 import dev.harrix.hsk.ui.theme.hskScaffoldContentWindowInsets
@@ -296,6 +297,7 @@ fun MainScreen(
                                 },
                                 colors = hskTopAppBarColors(),
                                 windowInsets = hskTopAppBarWindowInsets(),
+                                expandedHeight = HskTopAppBarHeight,
                                 navigationIcon = {
                                     IconButton(
                                         onClick = {

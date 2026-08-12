@@ -126,6 +126,7 @@ import dev.harrix.hsk.ui.TypeYesConfirmDialog
 import dev.harrix.hsk.ui.adaptiveBottomBarWidth
 import dev.harrix.hsk.ui.isCompactWidth
 import dev.harrix.hsk.ui.performLightActionHaptic
+import dev.harrix.hsk.ui.theme.HskTopAppBarHeight
 import dev.harrix.hsk.ui.theme.hskScaffoldContainerColor
 import dev.harrix.hsk.ui.theme.hskScaffoldContentWindowInsets
 import dev.harrix.hsk.ui.theme.hskTopAppBarColors
@@ -520,6 +521,7 @@ fun VideoCleanerScreen(
                 },
                 colors = hskTopAppBarColors(),
                 windowInsets = hskTopAppBarWindowInsets(),
+                expandedHeight = HskTopAppBarHeight,
                 navigationIcon = {
                     IconButton(onClick = { leaveCleaner() }) {
                         Icon(

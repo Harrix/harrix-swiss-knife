@@ -58,6 +58,7 @@ import dev.harrix.hsk.R
 import dev.harrix.hsk.ui.AutoFitText
 import dev.harrix.hsk.ui.SimpleMarkdownText
 import dev.harrix.hsk.ui.adaptiveContentWidth
+import dev.harrix.hsk.ui.theme.HskTopAppBarHeight
 import dev.harrix.hsk.ui.theme.hskScaffoldContainerColor
 import dev.harrix.hsk.ui.theme.hskScaffoldContentWindowInsets
 import dev.harrix.hsk.ui.theme.hskTopAppBarColors
@@ -148,6 +149,7 @@ fun MedicineSearchScreen(
                 },
                 colors = hskTopAppBarColors(),
                 windowInsets = hskTopAppBarWindowInsets(),
+                expandedHeight = HskTopAppBarHeight,
                 navigationIcon = {
                     IconButton(onClick = { leave() }) {
                         Icon(
