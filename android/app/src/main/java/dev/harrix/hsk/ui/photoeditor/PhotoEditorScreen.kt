@@ -60,6 +60,7 @@ import coil.size.Size
 import dev.harrix.hsk.R
 import dev.harrix.hsk.gallery.CameraGalleryRepository
 import dev.harrix.hsk.gallery.CameraPhoto
+import dev.harrix.hsk.gallery.EditableImageCache
 import dev.harrix.hsk.gallery.GalleryCleanerPreferences
 import dev.harrix.hsk.gallery.GalleryPermissions
 import dev.harrix.hsk.ui.AutoFitText
@@ -271,22 +272,25 @@ fun PhotoEditorScreen(
                         repository = repository,
                         onSave = { result ->
                             viewModel.applySaved(result.photo, result.sizeBytes)
-                            if (result.savedAsCopy) {
-                                reloadGallery()
-                            }
-                            showToast(
-                                message =
+                            if (!result.appliedPerspective) {
                                 if (result.savedAsCopy) {
-                                    context.getString(
-                                        R.string.photo_editor_saved_as_copy,
-                                        result.copyFolderLabel ?: savedAsCopyFallbackFolder,
-                                    )
-                                } else {
-                                    savedMessage
-                                },
-                                long = result.savedAsCopy,
-                            )
-                            viewModel.clearPhoto()
+                                    reloadGallery()
+                                }
+                                showToast(
+                                    message =
+                                    if (result.savedAsCopy) {
+                                        context.getString(
+                                            R.string.photo_editor_saved_as_copy,
+                                            result.copyFolderLabel
+                                                ?: savedAsCopyFallbackFolder,
+                                        )
+                                    } else {
+                                        savedMessage
+                                    },
+                                    long = result.savedAsCopy,
+                                )
+                                viewModel.clearPhoto()
+                            }
                         },
                         onDiscard = {
                             imageRevision += 1
@@ -444,7 +448,8 @@ private fun PhotoEditorGalleryItem(
         remember(photo.sizeBytes) {
             CameraGalleryRepository.formatFileSize(photo.sizeBytes)
         }
-    val cacheKey = "${photo.uri}-$thumbRevision-${photo.sizeBytes}"
+    val cacheKey =
+        EditableImageCache.key(photo.uri, photo.sizeBytes, thumbRevision)
 
     Box(
         modifier =

@@ -6,7 +6,6 @@ import android.content.ClipData
 import android.content.Intent
 import android.content.IntentSender
 import android.content.pm.PackageManager
-import android.content.res.Configuration
 import android.graphics.Bitmap
 import android.media.MediaMetadataRetriever
 import android.net.Uri
@@ -99,7 +98,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
@@ -125,7 +123,6 @@ import dev.harrix.hsk.ui.CompactWideActionButton
 import dev.harrix.hsk.ui.OverflowTextTooltipBox
 import dev.harrix.hsk.ui.adaptiveBottomBarWidth
 import dev.harrix.hsk.ui.isCompactWidth
-import dev.harrix.hsk.ui.isTablet
 import dev.harrix.hsk.ui.performLightActionHaptic
 import dev.harrix.hsk.ui.theme.hskScaffoldContainerColor
 import dev.harrix.hsk.ui.theme.hskScaffoldContentWindowInsets
@@ -465,9 +462,6 @@ fun VideoCleanerScreen(
         }
     val selectedVideos = sortedVideos.filter { it.id in selectedIds }
     val selectedBytes = selectedVideos.sumOf { it.sizeBytes }
-    val useLandscapeSplit =
-        LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE &&
-            !isTablet()
 
     Scaffold(
         modifier = modifier,
@@ -583,19 +577,6 @@ fun VideoCleanerScreen(
                         )
                     },
                     onDelete = { trashSelected() },
-                    onSelectAll =
-                    if (useLandscapeSplit) {
-                        { selectedIds = sortedVideos.map { it.id }.toSet() }
-                    } else {
-                        null
-                    },
-                    onDeselectAll =
-                    if (useLandscapeSplit) {
-                        { selectedIds = emptySet() }
-                    } else {
-                        null
-                    },
-                    canDeselect = selectedIds.isNotEmpty(),
                 )
             }
         },
@@ -664,31 +645,29 @@ fun VideoCleanerScreen(
 
                 else -> {
                     Column(modifier = Modifier.fillMaxSize()) {
-                        if (!useLandscapeSplit) {
-                            Row(
-                                modifier =
-                                Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 4.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                VideoSelectionTextButton(
-                                    onClick = {
-                                        selectedIds = sortedVideos.map { it.id }.toSet()
-                                    },
-                                    icon = Icons.Filled.SelectAll,
-                                    label = stringResource(R.string.video_cleaner_select_all),
-                                    modifier = Modifier.weight(1f, fill = false),
-                                )
-                                VideoSelectionTextButton(
-                                    onClick = { selectedIds = emptySet() },
-                                    icon = Icons.Filled.Deselect,
-                                    label = stringResource(R.string.video_cleaner_deselect_all),
-                                    enabled = selectedIds.isNotEmpty(),
-                                    modifier = Modifier.weight(1f, fill = false),
-                                )
-                            }
+                        Row(
+                            modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 4.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            VideoSelectionTextButton(
+                                onClick = {
+                                    selectedIds = sortedVideos.map { it.id }.toSet()
+                                },
+                                icon = Icons.Filled.SelectAll,
+                                label = stringResource(R.string.video_cleaner_select_all),
+                                modifier = Modifier.weight(1f, fill = false),
+                            )
+                            VideoSelectionTextButton(
+                                onClick = { selectedIds = emptySet() },
+                                icon = Icons.Filled.Deselect,
+                                label = stringResource(R.string.video_cleaner_deselect_all),
+                                enabled = selectedIds.isNotEmpty(),
+                                modifier = Modifier.weight(1f, fill = false),
+                            )
                         }
                         val sortedVideoIds = remember(sortedVideos) { sortedVideos.map { it.id } }
                         LazyVerticalGrid(
@@ -750,57 +729,35 @@ private fun VideoSelectionTextButton(
     label: String,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    compact: Boolean = false,
 ) {
     var labelOverflows by remember(label) { mutableStateOf(false) }
-    val button: @Composable () -> Unit = {
-        OverflowTextTooltipBox(
-            text = label,
-            enabled = labelOverflows,
-            modifier = modifier,
+    OverflowTextTooltipBox(
+        text = label,
+        enabled = labelOverflows,
+        modifier = modifier,
+    ) {
+        TextButton(
+            onClick = onClick,
+            enabled = enabled,
+            modifier = Modifier.heightIn(min = 40.dp),
+            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
         ) {
-            TextButton(
-                onClick = onClick,
-                enabled = enabled,
-                modifier =
-                Modifier.heightIn(
-                    min = if (compact) 28.dp else 40.dp,
-                ),
-                contentPadding =
-                PaddingValues(
-                    horizontal = if (compact) 6.dp else 8.dp,
-                    vertical = if (compact) 2.dp else 4.dp,
-                ),
-            ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    modifier = Modifier.size(if (compact) 16.dp else 18.dp),
-                )
-                Spacer(modifier = Modifier.width(4.dp))
-                AutoFitText(
-                    text = label,
-                    modifier = Modifier.weight(1f, fill = false),
-                    maxLines = 2,
-                    textAlign = TextAlign.Center,
-                    style =
-                    if (compact) {
-                        MaterialTheme.typography.labelLarge
-                    } else {
-                        LocalTextStyle.current
-                    },
-                    enableOverflowTooltip = false,
-                    onOverflowChange = { labelOverflows = it },
-                )
-            }
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp),
+            )
+            Spacer(modifier = Modifier.width(4.dp))
+            AutoFitText(
+                text = label,
+                modifier = Modifier.weight(1f, fill = false),
+                maxLines = 2,
+                textAlign = TextAlign.Center,
+                style = LocalTextStyle.current,
+                enableOverflowTooltip = false,
+                onOverflowChange = { labelOverflows = it },
+            )
         }
-    }
-    if (compact) {
-        CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 28.dp) {
-            button()
-        }
-    } else {
-        button()
     }
 }
 
@@ -810,9 +767,6 @@ private fun VideoCleanerBottomBar(
     selectedSizeLabel: String?,
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
-    onSelectAll: (() -> Unit)? = null,
-    onDeselectAll: (() -> Unit)? = null,
-    canDeselect: Boolean = false,
 ) {
     val compact = isCompactWidth()
     val deleteLabel =
@@ -832,82 +786,32 @@ private fun VideoCleanerBottomBar(
             disabledContainerColor = colorScheme.onSurface.copy(alpha = 0.12f),
             disabledContentColor = colorScheme.onSurface.copy(alpha = 0.38f),
         )
-    val landscapeSelect = onSelectAll != null && onDeselectAll != null
     Column(
         modifier =
         modifier
             .fillMaxWidth()
             .background(MaterialTheme.colorScheme.surfaceContainer)
             .windowInsetsPadding(WindowInsets.navigationBars)
-            .padding(
-                horizontal = 16.dp,
-                vertical = if (landscapeSelect) 8.dp else 12.dp,
-            ),
+            .padding(horizontal = 16.dp, vertical = 12.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        if (onSelectAll != null && onDeselectAll != null) {
-            val selectAllClick = onSelectAll
-            val deselectAllClick = onDeselectAll
-            Row(
-                modifier = Modifier.adaptiveBottomBarWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(0.dp),
-                ) {
-                    VideoSelectionTextButton(
-                        onClick = selectAllClick,
-                        icon = Icons.Filled.SelectAll,
-                        label = stringResource(R.string.video_cleaner_select_all),
-                        compact = true,
-                    )
-                    VideoSelectionTextButton(
-                        onClick = deselectAllClick,
-                        icon = Icons.Filled.Deselect,
-                        label = stringResource(R.string.video_cleaner_deselect_all),
-                        enabled = canDeselect,
-                        compact = true,
-                    )
-                }
-                Column(modifier = Modifier.weight(1f)) {
-                    if (selectedSizeLabel != null) {
-                        AutoFitText(
-                            text = selectedSizeLabel,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                            modifier = Modifier.padding(bottom = 4.dp),
-                        )
-                    }
-                    CompactWideActionButton(
-                        onClick = onDelete,
-                        icon = Icons.Filled.Delete,
-                        label = deleteLabel,
-                        enabled = selectedCount > 0,
-                        colors = deleteColors,
-                    )
-                }
-            }
-        } else {
-            Column(modifier = Modifier.adaptiveBottomBarWidth()) {
-                if (selectedSizeLabel != null) {
-                    AutoFitText(
-                        text = selectedSizeLabel,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        modifier = Modifier.padding(bottom = 8.dp),
-                    )
-                }
-                CompactWideActionButton(
-                    onClick = onDelete,
-                    icon = Icons.Filled.Delete,
-                    label = deleteLabel,
-                    enabled = selectedCount > 0,
-                    colors = deleteColors,
+        Column(modifier = Modifier.adaptiveBottomBarWidth()) {
+            if (selectedSizeLabel != null) {
+                AutoFitText(
+                    text = selectedSizeLabel,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    modifier = Modifier.padding(bottom = 8.dp),
                 )
             }
+            CompactWideActionButton(
+                onClick = onDelete,
+                icon = Icons.Filled.Delete,
+                label = deleteLabel,
+                enabled = selectedCount > 0,
+                colors = deleteColors,
+            )
         }
     }
 }

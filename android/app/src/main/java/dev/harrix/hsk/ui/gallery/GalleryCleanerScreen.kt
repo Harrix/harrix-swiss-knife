@@ -6,7 +6,6 @@ import android.content.ClipData
 import android.content.Intent
 import android.content.IntentSender
 import android.content.pm.PackageManager
-import android.content.res.Configuration
 import android.net.Uri
 import android.os.Build
 import android.provider.Settings
@@ -29,7 +28,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -120,6 +118,7 @@ import coil.request.ImageRequest
 import dev.harrix.hsk.R
 import dev.harrix.hsk.gallery.CameraGalleryRepository
 import dev.harrix.hsk.gallery.CameraPhoto
+import dev.harrix.hsk.gallery.EditableImageCache
 import dev.harrix.hsk.gallery.GalleryDateFilter
 import dev.harrix.hsk.gallery.GalleryPermissions
 import dev.harrix.hsk.gallery.GalleryReviewOrder
@@ -131,7 +130,6 @@ import dev.harrix.hsk.ui.CompactBottomActionButton
 import dev.harrix.hsk.ui.adaptiveBottomBarWidth
 import dev.harrix.hsk.ui.isCompactHeight
 import dev.harrix.hsk.ui.isCompactWidth
-import dev.harrix.hsk.ui.isTablet
 import dev.harrix.hsk.ui.performLightActionHaptic
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -553,8 +551,10 @@ fun GalleryCleanerScreen(
         photo: CameraPhoto,
         sizeBytes: Long,
         keepEditUndo: Boolean,
+        stayInEditor: Boolean = false,
     ) {
         val existing = existingEditUndo(photo.id)
+        val previousSizeBytes = photo.sizeBytes
         val updated = photo.copy(sizeBytes = sizeBytes)
         remainingPhotos = remainingPhotos.map { if (it.id == photo.id) updated else it }
         currentPhoto = updated
@@ -570,14 +570,24 @@ fun GalleryCleanerScreen(
                     )
             pushEditUndo(undo)
         }
+        EditableImageCache.invalidate(
+            context = context,
+            uri = photo.uri,
+            previousSizeBytes = previousSizeBytes,
+            newSizeBytes = sizeBytes,
+            knownRevision = editImageRevision,
+        )
         editImageRevision += 1
         cardResetKey += 1
-        exitEditMode()
+        if (!stayInEditor) {
+            exitEditMode()
+        }
         statusMessage = null
     }
 
     fun applyRestoredEdit(undo: PendingEditUndo) {
         view.performLightActionHaptic()
+        val previousSizeBytes = currentPhoto?.sizeBytes ?: undo.photoSnapshot.sizeBytes
         val restored = undo.photoSnapshot.copy(sizeBytes = undo.originalSizeBytes)
         if (remainingPhotos.any { it.id == restored.id }) {
             remainingPhotos =
@@ -594,6 +604,13 @@ fun GalleryCleanerScreen(
             reinsertAsCurrent(restored)
         }
         removeEditUndo(undo.photoId)
+        EditableImageCache.invalidate(
+            context = context,
+            uri = undo.uri,
+            previousSizeBytes = previousSizeBytes,
+            newSizeBytes = restored.sizeBytes,
+            knownRevision = editImageRevision,
+        )
         editImageRevision += 1
         cardResetKey += 1
         statusMessage = null
@@ -920,10 +937,6 @@ fun GalleryCleanerScreen(
         )
     }
 
-    val isLandscape =
-        LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
-    // Split layout is for phones only; tablets keep the original stacked layout.
-    val useLandscapeSplit = isLandscape && !isTablet()
     val canEditPhoto = hasPermission && currentPhoto != null && !showIntro
     val canUndo = undoStack.isNotEmpty()
     val showSecondaryBar =
@@ -1189,7 +1202,7 @@ fun GalleryCleanerScreen(
                         }
                     }
                 }
-                if (showSecondaryBar && !useLandscapeSplit) {
+                if (showSecondaryBar) {
                     PhotoSecondaryActionsRow(
                         dateFilter = dateFilter,
                         isEditing = isEditing,
@@ -1204,9 +1217,9 @@ fun GalleryCleanerScreen(
             }
         },
         bottomBar = {
-            val showPortraitActions =
-                hasPermission && currentPhoto != null && !isEditing && !useLandscapeSplit
-            if (showPortraitActions) {
+            val showReviewActions =
+                hasPermission && currentPhoto != null && !isEditing
+            if (showReviewActions) {
                 val photo = currentPhoto!!
                 ReviewActionBar(
                     onDelete = { deletePhoto(photo) },
@@ -1320,71 +1333,13 @@ fun GalleryCleanerScreen(
                                     photo = photo,
                                     sizeBytes = result.sizeBytes,
                                     keepEditUndo = result.backupCreated,
+                                    stayInEditor = result.appliedPerspective,
                                 )
                             },
                             onDiscard = { exitEditMode() },
                             onError = { message -> statusMessage = message },
                             modifier = Modifier.fillMaxSize(),
                         )
-                    } else if (useLandscapeSplit) {
-                        Row(modifier = Modifier.fillMaxSize()) {
-                            SwipeablePhotoCard(
-                                photo = photo,
-                                resetKey = cardResetKey,
-                                imageRevision = editImageRevision,
-                                zoomResetToken = zoomResetToken,
-                                onZoomedChange = { isPhotoZoomed = it },
-                                onDelete = { deletePhoto(photo) },
-                                onKeep = { advanceAfterReview(photo) },
-                                showMetadata = false,
-                                modifier =
-                                Modifier
-                                    .weight(1f)
-                                    .fillMaxHeight()
-                                    .padding(8.dp),
-                            )
-                            Column(
-                                modifier =
-                                Modifier
-                                    .width(300.dp)
-                                    .fillMaxHeight()
-                                    .padding(horizontal = 12.dp, vertical = 8.dp),
-                                verticalArrangement = Arrangement.spacedBy(8.dp),
-                            ) {
-                                if (showSecondaryBar) {
-                                    PhotoSecondaryActionsRow(
-                                        dateFilter = dateFilter,
-                                        isEditing = isEditing,
-                                        canEditPhoto = canEditPhoto,
-                                        canUndo = canUndo,
-                                        isSavingEdit = false,
-                                        onEdit = { enterEditMode() },
-                                        onShare = { sharePhoto(photo) },
-                                        onUndo = { undoLastAction() },
-                                        compact = true,
-                                    )
-                                }
-                                PhotoMetaInfo(
-                                    photo = photo,
-                                    compact = false,
-                                    endAligned = true,
-                                    modifier = Modifier.fillMaxWidth(),
-                                )
-                                Spacer(modifier = Modifier.weight(1f))
-                                ReviewActionBar(
-                                    onDelete = { deletePhoto(photo) },
-                                    onKeep = { advanceAfterReview(photo) },
-                                    onSkip =
-                                    if (unreviewedOnlyMode) {
-                                        { skipPhoto(photo) }
-                                    } else {
-                                        null
-                                    },
-                                    embedded = true,
-                                    modifier = Modifier.fillMaxWidth(),
-                                )
-                            }
-                        }
                     } else {
                         SwipeablePhotoCard(
                             photo = photo,
@@ -1421,29 +1376,20 @@ private fun ReviewActionBar(
     onKeep: () -> Unit,
     modifier: Modifier = Modifier,
     onSkip: (() -> Unit)? = null,
-    embedded: Boolean = false,
 ) {
-    val barModifier =
-        if (embedded) {
-            modifier.fillMaxWidth()
-        } else {
-            modifier
-                .fillMaxWidth()
-                .background(MaterialTheme.colorScheme.surfaceContainer)
-                .windowInsetsPadding(WindowInsets.navigationBars)
-        }
     Box(
-        modifier = barModifier,
+        modifier =
+        modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surfaceContainer)
+            .windowInsetsPadding(WindowInsets.navigationBars),
         contentAlignment = Alignment.Center,
     ) {
         Row(
             modifier =
             Modifier
-                .then(if (embedded) Modifier.fillMaxWidth() else Modifier.adaptiveBottomBarWidth())
-                .padding(
-                    horizontal = if (embedded) 0.dp else 12.dp,
-                    vertical = if (embedded) 0.dp else 10.dp,
-                ),
+                .adaptiveBottomBarWidth()
+                .padding(horizontal = 12.dp, vertical = 10.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             CompactBottomActionButton(
@@ -1489,7 +1435,6 @@ private fun PhotoSecondaryActionsRow(
     onShare: () -> Unit,
     onUndo: () -> Unit,
     modifier: Modifier = Modifier,
-    compact: Boolean = false,
 ) {
     Row(
         modifier =
@@ -1498,10 +1443,10 @@ private fun PhotoSecondaryActionsRow(
             .padding(
                 // Match [PhotoMetaInfo] horizontal inset so the date filter lines up with
                 // the file name / meta under the photo.
-                start = if (compact) 0.dp else 16.dp,
-                end = if (compact) 0.dp else 4.dp,
+                start = 16.dp,
+                end = 4.dp,
                 top = 0.dp,
-                bottom = if (compact) 0.dp else 4.dp,
+                bottom = 4.dp,
             ),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -1535,7 +1480,7 @@ private fun PhotoSecondaryActionsRow(
                 },
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = if (compact) 1 else 2,
+                maxLines = 2,
                 textAlign = TextAlign.Start,
             )
         }
@@ -1805,8 +1750,12 @@ private fun SwipeablePhotoCard(
                 ImageRequest
                     .Builder(LocalContext.current)
                     .data(photo.uri)
-                    .memoryCacheKey("${photo.uri}-$imageRevision")
-                    .diskCacheKey("${photo.uri}-$imageRevision")
+                    .memoryCacheKey(
+                        EditableImageCache.key(photo.uri, photo.sizeBytes, imageRevision),
+                    )
+                    .diskCacheKey(
+                        EditableImageCache.key(photo.uri, photo.sizeBytes, imageRevision),
+                    )
                     .crossfade(true)
                     .build(),
                 contentDescription = photo.displayName,
@@ -1966,7 +1915,6 @@ private fun PhotoMetaInfo(
     photo: CameraPhoto,
     compact: Boolean,
     modifier: Modifier = Modifier,
-    endAligned: Boolean = false,
 ) {
     val dateLabel =
         remember(photo.dateTakenEpochMs) {
@@ -1981,14 +1929,13 @@ private fun PhotoMetaInfo(
     val nameLabel =
         photo.displayName?.takeIf { it.isNotBlank() }
             ?: stringResource(R.string.gallery_cleaner_untitled)
-    val textAlign = if (endAligned) TextAlign.End else TextAlign.Start
     Column(
         modifier =
         modifier.padding(
-            horizontal = if (endAligned) 0.dp else 16.dp,
+            horizontal = 16.dp,
             vertical = if (compact) 6.dp else 10.dp,
         ),
-        horizontalAlignment = if (endAligned) Alignment.End else Alignment.Start,
+        horizontalAlignment = Alignment.Start,
         verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
         if (compact) {
@@ -1997,32 +1944,28 @@ private fun PhotoMetaInfo(
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
-                textAlign = textAlign,
-                modifier = if (endAligned) Modifier.fillMaxWidth() else Modifier,
+                textAlign = TextAlign.Start,
             )
         } else {
             AutoFitText(
                 text = nameLabel,
                 style = MaterialTheme.typography.titleSmall,
                 maxLines = 1,
-                textAlign = textAlign,
-                modifier = if (endAligned) Modifier.fillMaxWidth() else Modifier,
+                textAlign = TextAlign.Start,
             )
             AutoFitText(
                 text = dateLabel,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
-                textAlign = textAlign,
-                modifier = if (endAligned) Modifier.fillMaxWidth() else Modifier,
+                textAlign = TextAlign.Start,
             )
             AutoFitText(
                 text = sizeLabel,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
-                textAlign = textAlign,
-                modifier = if (endAligned) Modifier.fillMaxWidth() else Modifier,
+                textAlign = TextAlign.Start,
             )
         }
     }

@@ -87,6 +87,7 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import dev.harrix.hsk.R
 import dev.harrix.hsk.gallery.CameraPhoto
+import dev.harrix.hsk.gallery.EditableImageCache
 import dev.harrix.hsk.gallery.NormalizedCropRect
 import dev.harrix.hsk.gallery.NormalizedPerspectiveQuad
 import dev.harrix.hsk.gallery.PerspectiveQuadDetector
@@ -513,8 +514,20 @@ fun PhotoCropEditor(
                             .Builder(context)
                             .data(photo.uri)
                             .size(CoilSize.ORIGINAL)
-                            .memoryCacheKey("${photo.uri}-$imageRevision")
-                            .diskCacheKey("${photo.uri}-$imageRevision")
+                            .memoryCacheKey(
+                                EditableImageCache.key(
+                                    photo.uri,
+                                    photo.sizeBytes,
+                                    imageRevision,
+                                ),
+                            )
+                            .diskCacheKey(
+                                EditableImageCache.key(
+                                    photo.uri,
+                                    photo.sizeBytes,
+                                    imageRevision,
+                                ),
+                            )
                             .crossfade(false)
                             .build(),
                         contentDescription = photo.displayName,
@@ -974,8 +987,20 @@ fun PhotoCropEditor(
                         .Builder(context)
                         .data(photo.uri)
                         .size(CoilSize.ORIGINAL)
-                        .memoryCacheKey("${photo.uri}-$imageRevision")
-                        .diskCacheKey("${photo.uri}-$imageRevision")
+                        .memoryCacheKey(
+                            EditableImageCache.key(
+                                photo.uri,
+                                photo.sizeBytes,
+                                imageRevision,
+                            ),
+                        )
+                        .diskCacheKey(
+                            EditableImageCache.key(
+                                photo.uri,
+                                photo.sizeBytes,
+                                imageRevision,
+                            ),
+                        )
                         .crossfade(false)
                         .build(),
                     contentDescription = photo.displayName,

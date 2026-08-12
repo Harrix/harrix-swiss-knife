@@ -67,10 +67,6 @@ fun homeGridColumnCount(): Int {
 @Composable
 fun isCompactHeight(): Boolean = LocalConfiguration.current.screenHeightDp < CompactScreenWidthDp
 
-/** True for tablets / large foldables (sw ≥ 600dp), orientation-independent. */
-@Composable
-fun isTablet(): Boolean = LocalConfiguration.current.smallestScreenWidthDp >= MediumScreenWidthDp
-
 @Composable
 fun videoGridColumnCount(): Int {
     val width = screenWidthDp()

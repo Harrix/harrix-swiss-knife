@@ -7,6 +7,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.AndroidViewModel
 import dev.harrix.hsk.gallery.CameraGalleryRepository
 import dev.harrix.hsk.gallery.CameraPhoto
+import dev.harrix.hsk.gallery.EditableImageCache
 import dev.harrix.hsk.gallery.EditableImageLoader
 import dev.harrix.hsk.gallery.PhotoEditSaver
 
@@ -38,7 +39,8 @@ class PhotoEditorViewModel(
 
     fun openGalleryPhoto(photo: CameraPhoto) {
         currentPhoto.value = photo
-        imageRevision.intValue = 0
+        // Keep the revision that already holds the rewritten bytes in Coil's cache.
+        imageRevision.intValue = galleryThumbRevisions.value[photo.id] ?: 0
     }
 
     fun loadFromUri(uri: Uri): Boolean {
@@ -65,6 +67,8 @@ class PhotoEditorViewModel(
         photo: CameraPhoto,
         sizeBytes: Long,
     ) {
+        val previousSizeBytes = photo.sizeBytes
+        val knownRevision = imageRevision.intValue
         val updated = photo.copy(sizeBytes = sizeBytes)
         currentPhoto.value = updated
         galleryPhotos.value =
@@ -75,6 +79,13 @@ class PhotoEditorViewModel(
                     item
                 }
             }
+        EditableImageCache.invalidate(
+            context = getApplication(),
+            uri = photo.uri,
+            previousSizeBytes = previousSizeBytes,
+            newSizeBytes = sizeBytes,
+            knownRevision = knownRevision,
+        )
         val revisions = galleryThumbRevisions.value.toMutableMap()
         revisions[updated.id] = (revisions[updated.id] ?: 0) + 1
         galleryThumbRevisions.value = revisions

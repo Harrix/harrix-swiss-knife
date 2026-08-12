@@ -95,7 +95,6 @@ fun PhotoFileDetailsPanel(
     dateLabel: String,
     modifier: Modifier = Modifier,
     compact: Boolean = false,
-    endAligned: Boolean = false,
     showMap: Boolean = false,
     details: PhotoFileDetails? = rememberPhotoFileDetails(photo),
 ) {
@@ -127,8 +126,6 @@ fun PhotoFileDetailsPanel(
             PhotoCaptureMode.Night -> stringResource(R.string.photo_file_details_mode_night)
             null -> null
         }
-    val textAlign = if (endAligned) TextAlign.End else TextAlign.Start
-    val horizontal = if (endAligned) Alignment.End else Alignment.Start
 
     fun copyText(value: String) {
         clipboard.setText(AnnotatedString(value))
@@ -142,8 +139,8 @@ fun PhotoFileDetailsPanel(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
-            textAlign = textAlign,
-            modifier = modifier.then(if (endAligned) Modifier.fillMaxWidth() else Modifier),
+            textAlign = TextAlign.Start,
+            modifier = modifier,
         )
         return
     }
@@ -156,7 +153,7 @@ fun PhotoFileDetailsPanel(
 
     Column(
         modifier = modifier,
-        horizontalAlignment = horizontal,
+        horizontalAlignment = Alignment.Start,
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         CopyableDetailRow(
@@ -165,7 +162,6 @@ fun PhotoFileDetailsPanel(
             onCopy = { copyText(dateLabel) },
             textStyle = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
             textColor = MaterialTheme.colorScheme.onSurface,
-            endAligned = endAligned,
         )
         CopyableDetailRow(
             text = nameLabel,
@@ -173,7 +169,6 @@ fun PhotoFileDetailsPanel(
             onCopy = { copyText(nameLabel) },
             textStyle = MaterialTheme.typography.bodyMedium,
             textColor = MaterialTheme.colorScheme.onSurfaceVariant,
-            endAligned = endAligned,
         )
         if (pathLabel != null) {
             CopyableDetailRow(
@@ -182,7 +177,6 @@ fun PhotoFileDetailsPanel(
                 onCopy = { copyText(pathLabel) },
                 textStyle = MaterialTheme.typography.bodySmall,
                 textColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                endAligned = endAligned,
                 maxLines = 3,
             )
         }
@@ -194,7 +188,6 @@ fun PhotoFileDetailsPanel(
                 textStyle =
                 MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
                 textColor = MaterialTheme.colorScheme.onSurface,
-                endAligned = endAligned,
                 maxLines = 1,
             )
         }
@@ -204,7 +197,6 @@ fun PhotoFileDetailsPanel(
             onCopy = { copyText(statsLine) },
             textStyle = MaterialTheme.typography.bodyMedium,
             textColor = MaterialTheme.colorScheme.onSurfaceVariant,
-            endAligned = endAligned,
         )
         if (settingsLine != null) {
             CopyableDetailRow(
@@ -213,7 +205,6 @@ fun PhotoFileDetailsPanel(
                 onCopy = { copyText(settingsLine) },
                 textStyle = MaterialTheme.typography.bodyMedium,
                 textColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                endAligned = endAligned,
             )
         }
         val location = details?.locationLabel
@@ -224,7 +215,6 @@ fun PhotoFileDetailsPanel(
                 onCopy = { copyText(location) },
                 textStyle = MaterialTheme.typography.bodyMedium,
                 textColor = MaterialTheme.colorScheme.onSurface,
-                endAligned = endAligned,
                 maxLines = 3,
                 modifier = Modifier.padding(top = 4.dp),
             )
@@ -236,7 +226,6 @@ fun PhotoFileDetailsPanel(
                 onCopy = { copyText(coordinatesLabel) },
                 textStyle = MaterialTheme.typography.bodyMedium,
                 textColor = MaterialTheme.colorScheme.onSurface,
-                endAligned = endAligned,
                 modifier = Modifier.padding(top = 2.dp),
             )
         }
@@ -256,7 +245,7 @@ fun PhotoFileDetailsPanel(
                         .fillMaxWidth()
                         .padding(top = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(6.dp),
-                    horizontalAlignment = horizontal,
+                    horizontalAlignment = Alignment.Start,
                 ) {
                     Text(
                         text = stringResource(R.string.photo_file_details_map),
@@ -265,15 +254,13 @@ fun PhotoFileDetailsPanel(
                             fontWeight = FontWeight.SemiBold,
                         ),
                         color = MaterialTheme.colorScheme.onSurface,
-                        textAlign = textAlign,
-                        modifier = if (endAligned) Modifier.fillMaxWidth() else Modifier,
+                        textAlign = TextAlign.Start,
                     )
                     Text(
                         text = stringResource(R.string.photo_file_details_no_coordinates),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = textAlign,
-                        modifier = if (endAligned) Modifier.fillMaxWidth() else Modifier,
+                        textAlign = TextAlign.Start,
                     )
                 }
             }
@@ -341,19 +328,13 @@ private fun CopyableDetailRow(
     onCopy: () -> Unit,
     textStyle: TextStyle,
     textColor: Color,
-    endAligned: Boolean,
     modifier: Modifier = Modifier,
     maxLines: Int = 2,
 ) {
     Row(
         modifier = modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement =
-        if (endAligned) {
-            Arrangement.spacedBy(4.dp, Alignment.End)
-        } else {
-            Arrangement.spacedBy(4.dp)
-        },
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         Text(
             text = text,
@@ -361,7 +342,7 @@ private fun CopyableDetailRow(
             color = textColor,
             maxLines = maxLines,
             overflow = TextOverflow.Ellipsis,
-            textAlign = if (endAligned) TextAlign.End else TextAlign.Start,
+            textAlign = TextAlign.Start,
             modifier = Modifier.weight(1f),
         )
         IconButton(

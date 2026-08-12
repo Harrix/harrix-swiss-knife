@@ -20,6 +20,7 @@ import androidx.compose.ui.res.stringResource
 import dev.harrix.hsk.R
 import dev.harrix.hsk.gallery.CameraGalleryRepository
 import dev.harrix.hsk.gallery.CameraPhoto
+import dev.harrix.hsk.gallery.EditableImageCache
 import dev.harrix.hsk.gallery.NormalizedCropRect
 import dev.harrix.hsk.gallery.NormalizedPerspectiveQuad
 import dev.harrix.hsk.gallery.PendingEditUndo
@@ -38,6 +39,11 @@ data class EditablePhotoSaveResult(
     val outputUri: Uri,
     /** Folder label when [savedAsCopy], e.g. `DCIM/Camera`. */
     val copyFolderLabel: String? = null,
+    /**
+     * True when the user applied perspective warp. Callers should keep the editor open
+     * (exit perspective mode only) instead of closing the whole edit session.
+     */
+    val appliedPerspective: Boolean = false,
 )
 
 /**
@@ -111,6 +117,8 @@ fun EditablePhotoHost(
     }
 
     fun performOverwrite(requestWriteIfNeeded: Boolean) {
+        val applyingPerspective = perspectiveQuad != null
+        val previousSizeBytes = photo.sizeBytes
         isSaving = true
         scope.launch {
             val result =
@@ -128,6 +136,13 @@ fun EditablePhotoHost(
             when (result) {
                 is PhotoEditSaver.SaveResult.Success -> {
                     isSaving = false
+                    EditableImageCache.invalidate(
+                        context = context,
+                        uri = photo.uri,
+                        previousSizeBytes = previousSizeBytes,
+                        newSizeBytes = result.sizeBytes,
+                        knownRevision = imageRevision,
+                    )
                     onSave(
                         EditablePhotoSaveResult(
                             photo = photo,
@@ -135,6 +150,7 @@ fun EditablePhotoHost(
                             backupCreated = result.backupCreated,
                             savedAsCopy = false,
                             outputUri = photo.uri,
+                            appliedPerspective = applyingPerspective,
                         ),
                     )
                 }
