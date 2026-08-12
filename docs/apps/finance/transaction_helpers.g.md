@@ -467,9 +467,12 @@ def compute_average_salary_by_year(db_manager: DatabaseManager, currency_id: int
 
 Return income by fiscal year as `(label, average_monthly, annual)`.
 
-Average monthly is annual income divided by 12. All income categories
-(`type = 1`) are converted to `currency_id` using transaction-date rates.
-Years are oldest-first. The current incomplete year still uses `/ 12`.
+Average monthly is period income divided by the fractional month length of
+that period (days / days-in-month for partial months). Full years use 12.
+The first year spans the earliest transaction through the fiscal year end;
+the current year spans the fiscal year start through today. All income
+categories (`type = 1`) are converted to `currency_id` using
+transaction-date rates. Years are oldest-first.
 
 <details>
 <summary>Code:</summary>
@@ -504,19 +507,23 @@ def compute_average_salary_by_year(
     fiscal_start = first_start
     while fiscal_start <= current_start:
         fiscal_end = _fiscal_year_end(fiscal_start)
-        date_to = min(fiscal_end, today)
+        is_first = fiscal_start == first_start
+        is_current = fiscal_start == current_start
+        period_start = earliest if is_first else fiscal_start
+        period_end = min(fiscal_end, today)
         income, _expenses = db_manager.get_income_vs_expenses_in_currency(
             currency_id,
-            fiscal_start.isoformat(),
-            date_to.isoformat(),
+            period_start.isoformat(),
+            period_end.isoformat(),
         )
         label = _format_compare_year_label(
             fiscal_start,
             fiscal_end,
-            is_current=fiscal_start == current_start,
+            is_current=is_current,
             calendar_year_start=calendar_year_start,
         )
-        average_monthly = income / _MONTHS_PER_YEAR
+        months = _fractional_calendar_months(period_start, period_end)
+        average_monthly = income / months
         rows.append((label, average_monthly, income))
         fiscal_start = _add_calendar_years(fiscal_start, 1)
 

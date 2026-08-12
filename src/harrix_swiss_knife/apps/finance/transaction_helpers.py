@@ -3,7 +3,8 @@
 Public API (all in this module except where noted):
 
 - calculate_daily_expenses — expenses per calendar day in target currency (transactions only)
-- compute_average_salary_by_year — income by fiscal year as (label, average monthly, annual)
+- compute_average_salary_by_year — income by fiscal year as (label, average monthly, annual);
+  partial first/current years divide by fractional month length (by days)
 - get_accounting_balance — total income minus expenses from transactions and exchanges
 - get_balance_difference — (accounting_balance, accounts_balance, difference)
 - get_natural_currency_reconciliation — per-currency journal vs accounts (minor units, no FX)
@@ -291,9 +292,12 @@ def compute_average_salary_by_year(
 ) -> list[tuple[str, float, float]]:
     """Return income by fiscal year as `(label, average_monthly, annual)`.
 
-    Average monthly is annual income divided by 12. All income categories
-    (`type = 1`) are converted to `currency_id` using transaction-date rates.
-    Years are oldest-first. The current incomplete year still uses `/ 12`.
+    Average monthly is period income divided by the fractional month length of
+    that period (days / days-in-month for partial months). Full years use 12.
+    The first year spans the earliest transaction through the fiscal year end;
+    the current year spans the fiscal year start through today. All income
+    categories (`type = 1`) are converted to `currency_id` using
+    transaction-date rates. Years are oldest-first.
 
     """
     earliest_str = db_manager.get_earliest_transaction_date()
@@ -318,19 +322,23 @@ def compute_average_salary_by_year(
     fiscal_start = first_start
     while fiscal_start <= current_start:
         fiscal_end = _fiscal_year_end(fiscal_start)
-        date_to = min(fiscal_end, today)
+        is_first = fiscal_start == first_start
+        is_current = fiscal_start == current_start
+        period_start = earliest if is_first else fiscal_start
+        period_end = min(fiscal_end, today)
         income, _expenses = db_manager.get_income_vs_expenses_in_currency(
             currency_id,
-            fiscal_start.isoformat(),
-            date_to.isoformat(),
+            period_start.isoformat(),
+            period_end.isoformat(),
         )
         label = _format_compare_year_label(
             fiscal_start,
             fiscal_end,
-            is_current=fiscal_start == current_start,
+            is_current=is_current,
             calendar_year_start=calendar_year_start,
         )
-        average_monthly = income / _MONTHS_PER_YEAR
+        months = _fractional_calendar_months(period_start, period_end)
+        average_monthly = income / months
         rows.append((label, average_monthly, income))
         fiscal_start = _add_calendar_years(fiscal_start, 1)
 
@@ -1913,6 +1921,35 @@ def _format_compare_year_label(
     if is_current:
         label += " (Current)"
     return label
+
+
+def _fractional_calendar_months(start: date, end: date) -> float:
+    """Return month length between dates, with partial months as day fractions."""
+    if end < start:
+        return 1.0
+    if (start.year, start.month) == (end.year, end.month):
+        days_in_month = calendar.monthrange(start.year, start.month)[1]
+        return max((end.day - start.day + 1) / days_in_month, 1.0 / days_in_month)
+
+    total = 0.0
+    first_days = calendar.monthrange(start.year, start.month)[1]
+    total += (first_days - start.day + 1) / first_days
+
+    year = start.year
+    month = start.month + 1
+    if month > _MONTHS_PER_YEAR:
+        month = 1
+        year += 1
+    while (year, month) < (end.year, end.month):
+        total += 1.0
+        month += 1
+        if month > _MONTHS_PER_YEAR:
+            month = 1
+            year += 1
+
+    last_days = calendar.monthrange(end.year, end.month)[1]
+    total += end.day / last_days
+    return max(total, 1.0 / last_days)
 
 
 def _merge_finance_events_ascending(

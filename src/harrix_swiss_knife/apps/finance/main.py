@@ -313,6 +313,12 @@ class MainWindow(
         self._report_build_toast: toast_countdown_notification.ToastCountdownNotification | None = None
         self._compare_last_years_start_month: int = 1
         self._compare_last_years_start_day: int = 1
+        self._average_salary_year_rows: list[tuple[str, float, float]] | None = None
+        self._average_salary_currency_symbol: str = ""
+        self._average_salary_year_start_month: int = 1
+        self._average_salary_year_start_day: int = 1
+        self._average_salary_show_monthly: bool = True
+        self._average_salary_show_annual: bool = True
 
         # Dialog state flags
         self._account_edit_dialog_open: bool = False
@@ -1476,6 +1482,37 @@ class MainWindow(
             self.label_today_expense.setText("0.00₽")
             self.label_yesterday_expense.setText("0.00₽")
 
+    def _add_average_salary_series_controls(self) -> None:
+        """Add On/Off comboboxes under the Average Salary chart for each series."""
+        row = QWidget()
+        layout = QHBoxLayout(row)
+        layout.setContentsMargins(8, 4, 8, 8)
+
+        monthly_label = QLabel("Average Monthly Income:")
+        monthly_combo = QComboBox()
+        monthly_combo.addItem("On")
+        monthly_combo.addItem("Off")
+        monthly_combo.setCurrentIndex(0 if self._average_salary_show_monthly else 1)
+
+        annual_label = QLabel("Annual Income:")
+        annual_combo = QComboBox()
+        annual_combo.addItem("On")
+        annual_combo.addItem("Off")
+        annual_combo.setCurrentIndex(0 if self._average_salary_show_annual else 1)
+
+        layout.addWidget(monthly_label)
+        layout.addWidget(monthly_combo)
+        layout.addSpacing(24)
+        layout.addWidget(annual_label)
+        layout.addWidget(annual_combo)
+        layout.addStretch(1)
+
+        monthly_combo.currentIndexChanged.connect(self._on_average_salary_series_controls_changed)
+        annual_combo.currentIndexChanged.connect(self._on_average_salary_series_controls_changed)
+        self._average_salary_monthly_combo = monthly_combo
+        self._average_salary_annual_combo = annual_combo
+        self.verticalLayout_charts_content.addWidget(row)
+
     def _add_chart_canvas(self, fig: Figure) -> None:
         canvas = FigureCanvas(fig)
         fig.tight_layout()
@@ -2220,27 +2257,64 @@ class MainWindow(
         year_start_day: int,
     ) -> None:
         """Draw average monthly income (and annual income) by fiscal year."""
+        self._average_salary_year_rows = year_rows
+        self._average_salary_currency_symbol = currency_symbol
+        self._average_salary_year_start_month = year_start_month
+        self._average_salary_year_start_day = year_start_day
+        show_monthly = self._average_salary_show_monthly
+        show_annual = self._average_salary_show_annual
+        if not show_monthly and not show_annual:
+            self._show_no_data_label(
+                self.verticalLayout_charts_content,
+                "Enable Average Monthly Income and/or Annual Income below",
+            )
+            self._add_average_salary_series_controls()
+            return
+
         fig = Figure(figsize=(12, 6), dpi=100)
         ax = fig.add_subplot(111)
         labels = [label for label, _average, _annual in year_rows]
         averages = [average for _label, average, _annual in year_rows]
         annuals = [annual for _label, _average, annual in year_rows]
         x_positions = list(range(len(labels)))
-        bar_width = 0.38
-        average_bars = ax.bar(
-            [x - bar_width / 2 for x in x_positions],
-            averages,
-            width=bar_width,
-            color="forestgreen",
-            label="Average Monthly Income",
-        )
-        annual_bars = ax.bar(
-            [x + bar_width / 2 for x in x_positions],
-            annuals,
-            width=bar_width,
-            color="steelblue",
-            label="Annual Income",
-        )
+        bar_width = 0.38 if show_monthly and show_annual else 0.6
+        bars_to_annotate: list[Any] = []
+
+        if show_monthly and show_annual:
+            average_bars = ax.bar(
+                [x - bar_width / 2 for x in x_positions],
+                averages,
+                width=bar_width,
+                color="forestgreen",
+                label="Average Monthly Income",
+            )
+            annual_bars = ax.bar(
+                [x + bar_width / 2 for x in x_positions],
+                annuals,
+                width=bar_width,
+                color="steelblue",
+                label="Annual Income",
+            )
+            bars_to_annotate.extend((average_bars, annual_bars))
+        elif show_monthly:
+            average_bars = ax.bar(
+                x_positions,
+                averages,
+                width=bar_width,
+                color="forestgreen",
+                label="Average Monthly Income",
+            )
+            bars_to_annotate.append(average_bars)
+        else:
+            annual_bars = ax.bar(
+                x_positions,
+                annuals,
+                width=bar_width,
+                color="steelblue",
+                label="Annual Income",
+            )
+            bars_to_annotate.append(annual_bars)
+
         ax.set_xticks(x_positions)
         ax.set_xticklabels(labels, rotation=45, ha="right")
         ax.set_xlabel("Year", fontsize=12)
@@ -2252,7 +2326,7 @@ class MainWindow(
         ax.set_title(title, fontsize=14, fontweight="bold")
         ax.grid(visible=True, axis="y", alpha=0.3)
         ax.legend(loc="upper left", fontsize=9)
-        for bars in (average_bars, annual_bars):
+        for bars in bars_to_annotate:
             for bar in bars:
                 height = bar.get_height()
                 ax.annotate(
@@ -2266,6 +2340,7 @@ class MainWindow(
                 )
         fig.tight_layout()
         self._add_chart_canvas(fig)
+        self._add_average_salary_series_controls()
 
     def _draw_balance_chart(
         self,
@@ -3549,6 +3624,23 @@ class MainWindow(
         # Set focus to amount field and select all text after a short delay
         # This ensures form population is complete before focusing
         QTimer.singleShot(100, self._focus_amount_and_select_text)
+
+    def _on_average_salary_series_controls_changed(self, *_args: object) -> None:
+        """Redraw Average Salary chart when series On/Off comboboxes change."""
+        monthly_combo = getattr(self, "_average_salary_monthly_combo", None)
+        annual_combo = getattr(self, "_average_salary_annual_combo", None)
+        year_rows = self._average_salary_year_rows
+        if monthly_combo is None or annual_combo is None or year_rows is None:
+            return
+        self._average_salary_show_monthly = monthly_combo.currentIndex() == 0
+        self._average_salary_show_annual = annual_combo.currentIndex() == 0
+        self._clear_layout(self.verticalLayout_charts_content)
+        self._draw_average_salary_by_year_chart(
+            year_rows,
+            self._average_salary_currency_symbol,
+            year_start_month=self._average_salary_year_start_month,
+            year_start_day=self._average_salary_year_start_day,
+        )
 
     def _on_balance_check_clicked(self) -> None:
         """Show sum of accounts, accounting balance (transactions + exchanges), and difference in current currency."""
