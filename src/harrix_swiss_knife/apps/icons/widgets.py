@@ -36,6 +36,8 @@ class DraggableIconList(QListWidget):
     details_requested = Signal(object, str)  # IconFamily, svg_path
     copy_requested = Signal(str)
     open_note_requested = Signal(object)  # IconFamily
+    reveal_source_requested = Signal(object, str)  # IconFamily, svg_path
+    open_source_requested = Signal(object, str)  # IconFamily, svg_path
 
     def __init__(
         self,
@@ -138,6 +140,9 @@ class DraggableIconList(QListWidget):
         details_action = menu.addAction("ℹ️ Icon details")  # noqa: RUF001
         copy_action = menu.addAction("📋 Copy")
         open_note_action = menu.addAction("📝 Open note in editor")
+        menu.addSeparator()
+        reveal_source_action = menu.addAction("📂 Reveal source in File Explorer")
+        open_source_action = menu.addAction("🎨 Open source")
         chosen = menu.exec_(self.mapToGlobal(pos))
         if chosen is reveal_action:
             self.reveal_requested.emit(path)
@@ -147,6 +152,10 @@ class DraggableIconList(QListWidget):
             self.copy_requested.emit(path)
         elif chosen is open_note_action:
             self.open_note_requested.emit(family)
+        elif chosen is reveal_source_action:
+            self.reveal_source_requested.emit(family, path)
+        elif chosen is open_source_action:
+            self.open_source_requested.emit(family, path)
 
     def _on_current_item_changed(
         self,

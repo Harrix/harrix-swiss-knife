@@ -249,6 +249,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         if not isinstance(family, IconFamily):
             return
         note = family.note_path(self._repo_root) if self._repo_root is not None else None
+        source = self._resolve_source_file(family, svg_path)
         variants = "\n".join(f"  - {variant.name} ({variant.file})" for variant in family.variants) or "  —"
         text = "\n".join(
             [
@@ -258,6 +259,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
                 f"Tags: {', '.join(family.tags) or '—'}",
                 f"Folder: {family.folder}",
                 f"Note: {note if note is not None else '—'}",
+                f"Source: {source if source is not None else '—'}",
                 f"Featured: {family.featured or '—'}",
                 f"Featured hash: {family.featured_hash or '—'}",
                 f"Selected SVG: {svg_path}",
@@ -298,6 +300,32 @@ class MainWindow(QMainWindow, AppWindowMixin):
             return
         self.statusBar().showMessage(f"Opened `{note_path.name}` in {editor}")
 
+    def _on_open_source(self, family: object, svg_path: str) -> None:
+        source = self._resolve_source_file(family, svg_path)
+        if source is None:
+            self._warn_source_not_found(family, svg_path)
+            return
+        config: dict[str, Any] = h.dev.config_load(get_config_path_str())
+        raw_app = str(config.get("path_vector_icons_source_app") or "").strip()
+        if not raw_app or raw_app.startswith("<"):
+            QMessageBox.warning(
+                self,
+                "Vector Icons",
+                "Set `path_vector_icons_source_app` in config.json "
+                "to Adobe Illustrator (or another vector app) executable.",
+            )
+            return
+        app_path = Path(raw_app)
+        if not app_path.is_file():
+            QMessageBox.warning(self, "Vector Icons", f"Source app not found:\n{app_path}")
+            return
+        try:
+            subprocess.Popen([str(app_path), str(source)], shell=False)
+        except OSError as exc:
+            QMessageBox.critical(self, "Vector Icons", f"Failed to open source:\n{exc}")
+            return
+        self.statusBar().showMessage(f"Opened `{source.name}` in {app_path.name}")
+
     def _on_open_thumbs_cache(self) -> None:
         path = default_cache_dir()
         path.mkdir(parents=True, exist_ok=True)
@@ -326,6 +354,18 @@ class MainWindow(QMainWindow, AppWindowMixin):
             QMessageBox.warning(self, "Vector Icons", str(exc))
             return
         self.statusBar().showMessage(f"Revealed `{path.name}`")
+
+    def _on_reveal_source(self, family: object, svg_path: str) -> None:
+        source = self._resolve_source_file(family, svg_path)
+        if source is None:
+            self._warn_source_not_found(family, svg_path)
+            return
+        try:
+            reveal_in_file_explorer(source)
+        except (OSError, FileNotFoundError) as exc:
+            QMessageBox.warning(self, "Vector Icons", str(exc))
+            return
+        self.statusBar().showMessage(f"Revealed source `{source.name}`")
 
     def _on_thumb_finished(self, updated: int) -> None:
         total = len(self._catalog.icons) if self._catalog else 0
@@ -361,6 +401,19 @@ class MainWindow(QMainWindow, AppWindowMixin):
             pixmap = self._thumb_cache.load_pixmap(family.id)
             if pixmap is not None:
                 self._pixmaps[family.id] = pixmap
+
+    def _resolve_source_file(self, family: object, svg_path: str) -> Path | None:
+        if not isinstance(family, IconFamily) or self._repo_root is None:
+            return None
+        config: dict[str, Any] = h.dev.config_load(get_config_path_str())
+        ai_root = resolve_external_ai_root(config.get("path_vector_icons_ai"))
+        note_dir = self._repo_root / family.folder
+        return find_icon_source_file(
+            family_id=family.id,
+            note_dir=note_dir,
+            svg_path=Path(svg_path),
+            external_ai_root=ai_root,
+        )
 
     def _restore_or_clear_selection(self, families: list[IconFamily]) -> None:
         """Keep selection if the family is still visible; otherwise clear variants."""
@@ -402,11 +455,33 @@ class MainWindow(QMainWindow, AppWindowMixin):
     def _variant_thumb_size(icon_size: int) -> int:
         return max(ICON_SIZE_MIN, min(icon_size, (icon_size * 3) // 4 or icon_size))
 
+    def _warn_source_not_found(self, family: object, svg_path: str) -> None:
+        if not isinstance(family, IconFamily) or self._repo_root is None:
+            QMessageBox.warning(self, "Vector Icons", "Source file not found.")
+            return
+        config: dict[str, Any] = h.dev.config_load(get_config_path_str())
+        ai_root = resolve_external_ai_root(config.get("path_vector_icons_ai"))
+        note_dir = self._repo_root / family.folder
+        stems = ", ".join(candidate_source_stems(family.id, Path(svg_path)))
+        dirs = "\n".join(f"  - {path}" for path in source_search_directories(note_dir, ai_root)) or "  —"
+        hint = ""
+        if ai_root is None:
+            hint = (
+                "\n\nSet `path_vector_icons_ai` in config.json (for example Harrix-Vector-Icons-ai or its src folder)."
+            )
+        QMessageBox.warning(
+            self,
+            "Vector Icons",
+            f"Source file not found for `{family.id}`.\n\nTried stems: {stems}\nSearch folders:\n{dirs}{hint}",
+        )
+
     def _wire_icon_list_actions(self, icon_list: DraggableIconList) -> None:
         icon_list.reveal_requested.connect(self._on_reveal_in_explorer)
         icon_list.details_requested.connect(self._on_icon_details)
         icon_list.copy_requested.connect(self._on_copy_svg)
         icon_list.open_note_requested.connect(self._on_open_note_in_editor)
+        icon_list.reveal_source_requested.connect(self._on_reveal_source)
+        icon_list.open_source_requested.connect(self._on_open_source)
 ```
 
 </details>

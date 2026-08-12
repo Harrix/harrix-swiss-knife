@@ -72,6 +72,9 @@ class AppConfig(TypedDict, total=False):
     compact_mode: bool
     android_build_variant: str
     path_photos: str
+    path_vector_icons: NotRequired[str]
+    path_vector_icons_ai: NotRequired[str]
+    path_vector_icons_source_app: NotRequired[str]
 ```
 
 </details>
