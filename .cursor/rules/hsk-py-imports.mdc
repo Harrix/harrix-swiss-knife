@@ -1,0 +1,37 @@
+---
+description: Prefer top-level imports; ban noqa PLC0415 for routine local imports
+globs: "**/*.py"
+alwaysApply: false
+---
+
+# hsk py imports
+
+Put imports at the top of the module. Do not silence `PLC0415` with `# noqa` to keep a local import.
+
+## Default (required)
+
+```python
+# ❌ BAD — local import + noqa just to satisfy ruff
+def _is_ordered_list_line(line: str) -> bool:
+    import re  # noqa: PLC0415
+
+    return bool(re.match(r"^\s*\d+[.)]\s", line))
+
+# ✅ GOOD — top-level import
+import re
+
+def _is_ordered_list_line(line: str) -> bool:
+    return bool(re.match(r"^\s*\d+[.)]\s", line))
+```
+
+Same for stdlib and normal third-party / project modules: move the import to the top of the file.
+
+## Allowed local imports (rare)
+
+A local `import` with `# noqa: PLC0415` is allowed only when there is a real reason:
+
+- circular import that cannot be resolved by restructuring
+- optional / heavy dependency that must not load at module import time (e.g. `easyocr`, `pillow_avif`, `clr`)
+- intentional lazy load to avoid a costly or platform-specific import on every startup
+
+If none of those apply, fix `PLC0415` by moving the import to the top — never with `# noqa: PLC0415`.
