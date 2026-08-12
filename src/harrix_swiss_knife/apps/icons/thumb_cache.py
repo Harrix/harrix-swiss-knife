@@ -8,8 +8,8 @@ import os
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from PySide6.QtCore import QObject, Qt, QThread, Signal
-from PySide6.QtGui import QImage, QPainter, QPixmap
+from PySide6.QtCore import QObject, QRectF, Qt, QThread, Signal
+from PySide6.QtGui import QColor, QImage, QPainter, QPainterPath, QPixmap
 from PySide6.QtSvg import QSvgRenderer
 
 if TYPE_CHECKING:
@@ -20,8 +20,9 @@ logger = logging.getLogger(__name__)
 DEFAULT_THUMB_SIZE = 160
 META_FILENAME = "meta.json"
 # Bump when thumbnail raster style changes (forces cache refresh).
-THUMB_FORMAT_VERSION = 2
-PREVIEW_BACKGROUND = Qt.GlobalColor.lightGray
+THUMB_FORMAT_VERSION = 3
+PREVIEW_BACKGROUND = QColor(180, 180, 180)
+PREVIEW_CORNER_RADIUS_RATIO = 0.12
 
 
 class ThumbnailCache:
@@ -152,16 +153,20 @@ def default_cache_dir() -> Path:
 
 
 def placeholder_pixmap(size: int = DEFAULT_THUMB_SIZE) -> QPixmap:
-    """Return a light placeholder tile used before thumbs exist."""
+    """Return a light rounded placeholder tile used before thumbs exist."""
     image = QImage(size, size, QImage.Format.Format_ARGB32_Premultiplied)
-    image.fill(PREVIEW_BACKGROUND)
+    image.fill(Qt.GlobalColor.transparent)
+    painter = QPainter(image)
+    painter.setRenderHint(QPainter.RenderHint.Antialiasing, on=True)
+    _paint_rounded_preview_background(painter, size)
+    painter.end()
     return QPixmap.fromImage(image)
 
 
 def render_svg_to_image(svg_path: Path, size: int) -> QImage | None:
-    """Rasterize an SVG into a square image on a gray background.
+    """Rasterize an SVG into a square image.
 
-    Gray fill keeps white-filled icons visible against the window chrome.
+    White variants (`*_white_*`) get a rounded gray backdrop so they stay visible.
 
     """
     if not svg_path.is_file():
@@ -170,9 +175,11 @@ def render_svg_to_image(svg_path: Path, size: int) -> QImage | None:
     if not renderer.isValid():
         return None
     image = QImage(size, size, QImage.Format.Format_ARGB32_Premultiplied)
-    image.fill(PREVIEW_BACKGROUND)
+    image.fill(Qt.GlobalColor.transparent)
     painter = QPainter(image)
     painter.setRenderHint(QPainter.RenderHint.Antialiasing, on=True)
+    if svg_needs_contrast_background(svg_path):
+        _paint_rounded_preview_background(painter, size)
     renderer.render(painter)
     painter.end()
     return image
@@ -198,3 +205,16 @@ def start_thumbnail_refresh(
     thread.finished.connect(worker.deleteLater)
     thread.start()
     return thread, worker
+
+
+def svg_needs_contrast_background(svg_path: Path) -> bool:
+    """Return whether the SVG is a white-fill variant that needs a gray tile."""
+    return "_white" in svg_path.stem.casefold()
+
+
+def _paint_rounded_preview_background(painter: QPainter, size: int) -> None:
+    """Fill a rounded rectangle used behind white icons."""
+    radius = max(4.0, size * PREVIEW_CORNER_RADIUS_RATIO)
+    path = QPainterPath()
+    path.addRoundedRect(QRectF(0, 0, size, size), radius, radius)
+    painter.fillPath(path, PREVIEW_BACKGROUND)

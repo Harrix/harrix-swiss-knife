@@ -26,6 +26,7 @@ lang: en
 - [🔧 Function `placeholder_pixmap`](#-function-placeholder_pixmap)
 - [🔧 Function `render_svg_to_image`](#-function-render_svg_to_image)
 - [🔧 Function `start_thumbnail_refresh`](#-function-start_thumbnail_refresh)
+- [🔧 Function `svg_needs_contrast_background`](#-function-svg_needs_contrast_background)
 
 </details>
 
@@ -417,7 +418,7 @@ def default_cache_dir() -> Path:
 def placeholder_pixmap(size: int = DEFAULT_THUMB_SIZE) -> QPixmap
 ```
 
-Return a light placeholder tile used before thumbs exist.
+Return a light rounded placeholder tile used before thumbs exist.
 
 <details>
 <summary>Code:</summary>
@@ -425,7 +426,11 @@ Return a light placeholder tile used before thumbs exist.
 ```python
 def placeholder_pixmap(size: int = DEFAULT_THUMB_SIZE) -> QPixmap:
     image = QImage(size, size, QImage.Format.Format_ARGB32_Premultiplied)
-    image.fill(PREVIEW_BACKGROUND)
+    image.fill(Qt.GlobalColor.transparent)
+    painter = QPainter(image)
+    painter.setRenderHint(QPainter.RenderHint.Antialiasing, on=True)
+    _paint_rounded_preview_background(painter, size)
+    painter.end()
     return QPixmap.fromImage(image)
 ```
 
@@ -437,9 +442,9 @@ def placeholder_pixmap(size: int = DEFAULT_THUMB_SIZE) -> QPixmap:
 def render_svg_to_image(svg_path: Path, size: int) -> QImage | None
 ```
 
-Rasterize an SVG into a square image on a gray background.
+Rasterize an SVG into a square image.
 
-Gray fill keeps white-filled icons visible against the window chrome.
+White variants (`*_white_*`) get a rounded gray backdrop so they stay visible.
 
 <details>
 <summary>Code:</summary>
@@ -452,9 +457,11 @@ def render_svg_to_image(svg_path: Path, size: int) -> QImage | None:
     if not renderer.isValid():
         return None
     image = QImage(size, size, QImage.Format.Format_ARGB32_Premultiplied)
-    image.fill(PREVIEW_BACKGROUND)
+    image.fill(Qt.GlobalColor.transparent)
     painter = QPainter(image)
     painter.setRenderHint(QPainter.RenderHint.Antialiasing, on=True)
+    if svg_needs_contrast_background(svg_path):
+        _paint_rounded_preview_background(painter, size)
     renderer.render(painter)
     painter.end()
     return image
@@ -493,6 +500,24 @@ def start_thumbnail_refresh(
     thread.finished.connect(worker.deleteLater)
     thread.start()
     return thread, worker
+```
+
+</details>
+
+## 🔧 Function `svg_needs_contrast_background`
+
+```python
+def svg_needs_contrast_background(svg_path: Path) -> bool
+```
+
+Return whether the SVG is a white-fill variant that needs a gray tile.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def svg_needs_contrast_background(svg_path: Path) -> bool:
+    return "_white" in svg_path.stem.casefold()
 ```
 
 </details>
