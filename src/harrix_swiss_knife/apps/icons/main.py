@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any
 
 import harrix_pylib as h
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QCloseEvent, QIcon, QPixmap
 from PySide6.QtWidgets import (
     QHBoxLayout,
@@ -18,6 +18,7 @@ from PySide6.QtWidgets import (
     QMainWindow,
     QMessageBox,
     QPushButton,
+    QSlider,
     QSplitter,
     QStatusBar,
     QVBoxLayout,
@@ -28,6 +29,12 @@ from harrix_swiss_knife import resources_rc  # noqa: F401
 from harrix_swiss_knife.apps.common.app_entry import run_app_main
 from harrix_swiss_knife.apps.common.qt_main_window import AppWindowMixin
 from harrix_swiss_knife.apps.icons.catalog import IconCatalog, IconFamily, load_catalog, rebuild_catalog
+from harrix_swiss_knife.apps.icons.settings import (
+    ICON_SIZE_MAX,
+    ICON_SIZE_MIN,
+    load_icon_size,
+    save_icon_size,
+)
 from harrix_swiss_knife.apps.icons.thumb_cache import (
     DEFAULT_THUMB_SIZE,
     ThumbnailCache,
@@ -57,15 +64,20 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self.setWindowIcon(QIcon(":/assets/logo.svg"))
         self._init_hide_on_close(hide_on_close=hide_on_close)
 
+        self._icon_size = load_icon_size()
         self._catalog: IconCatalog | None = None
         self._repo_root: Path | None = None
         self._thumb_cache = ThumbnailCache(size=DEFAULT_THUMB_SIZE)
         self._pixmaps: dict[str, QPixmap] = {}
-        self._placeholder = placeholder_pixmap(DEFAULT_THUMB_SIZE)
+        self._placeholder = placeholder_pixmap(self._icon_size)
         self._thumb_thread = None
         self._thumb_worker = None
         self._current_category: str | None = None
         self._selected_family_id: str | None = None
+        self._icon_size_save_timer = QTimer(self)
+        self._icon_size_save_timer.setSingleShot(True)
+        self._icon_size_save_timer.setInterval(300)
+        self._icon_size_save_timer.timeout.connect(self._persist_icon_size)
 
         self._build_ui()
         self._load_from_config()
@@ -73,6 +85,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
 
     def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
         """Stop background work and optionally hide instead of closing."""
+        self._persist_icon_size()
         if self._hide_instead_of_close(event):
             return
         self._stop_thumb_refresh()
@@ -103,10 +116,39 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self.statusBar().showMessage(f"Showing {len(families)} / {len(self._catalog.icons)}")
         self._restore_or_clear_selection(families)
 
+    def _apply_icon_size(self, size: int) -> None:
+        """Apply display size to grids without writing config."""
+        self._icon_size = size
+        self._placeholder = placeholder_pixmap(size)
+        self.icon_list.set_display_icon_size(size)
+        self.variants_panel.set_thumb_size(self._variant_thumb_size(size))
+        self.size_value_label.setText(str(size))
+        selected_id = self._selected_family_id
+        self._apply_filters()
+        if selected_id is not None and self._catalog is not None and self._repo_root is not None:
+            family = next((item for item in self._catalog.icons if item.id == selected_id), None)
+            if family is not None:
+                self._selected_family_id = selected_id
+                self.variants_panel.show_family(family, self._repo_root)
+
     def _build_ui(self) -> None:
         central = QWidget(self)
         self.setCentralWidget(central)
         root = QVBoxLayout(central)
+
+        size_row = QHBoxLayout()
+        size_row.addWidget(QLabel("Icon size"))
+        self.size_slider = QSlider(Qt.Orientation.Horizontal)
+        self.size_slider.setRange(ICON_SIZE_MIN, ICON_SIZE_MAX)
+        self.size_slider.setValue(self._icon_size)
+        self.size_slider.setTickPosition(QSlider.TickPosition.TicksBelow)
+        self.size_slider.setTickInterval(32)
+        self.size_slider.valueChanged.connect(self._on_icon_size_changed)
+        size_row.addWidget(self.size_slider, stretch=1)
+        self.size_value_label = QLabel(str(self._icon_size))
+        self.size_value_label.setMinimumWidth(36)
+        size_row.addWidget(self.size_value_label)
+        root.addLayout(size_row)
 
         toolbar = QHBoxLayout()
         self.search_edit = QLineEdit()
@@ -131,12 +173,12 @@ class MainWindow(QMainWindow, AppWindowMixin):
         center_layout.setContentsMargins(0, 0, 0, 0)
         self.count_label = QLabel("")
         center_layout.addWidget(self.count_label)
-        self.icon_list = DraggableIconList(icon_size=DEFAULT_THUMB_SIZE)
+        self.icon_list = DraggableIconList(icon_size=self._icon_size)
         self.icon_list.family_selected.connect(self._on_family_selected)
         center_layout.addWidget(self.icon_list)
         splitter.addWidget(center)
 
-        self.variants_panel = VariantsPanel()
+        self.variants_panel = VariantsPanel(thumb_size=self._variant_thumb_size(self._icon_size))
         self.variants_panel.setMinimumWidth(220)
         splitter.addWidget(self.variants_panel)
 
@@ -203,6 +245,10 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self.variants_panel.show_family(family, self._repo_root)
         self.statusBar().showMessage(f"{family.id}: {len(family.variants)} variants")
 
+    def _on_icon_size_changed(self, value: int) -> None:
+        self._apply_icon_size(value)
+        self._icon_size_save_timer.start()
+
     def _on_refresh_catalog(self) -> None:
         if self._repo_root is None:
             self._load_from_config()
@@ -227,6 +273,10 @@ class MainWindow(QMainWindow, AppWindowMixin):
             return
         self._pixmaps[family_id] = pixmap
         self.icon_list.update_family_pixmap(family_id, pixmap)
+
+    def _persist_icon_size(self) -> None:
+        self._icon_size_save_timer.stop()
+        save_icon_size(self.size_slider.value())
 
     def _populate_categories(self) -> None:
         self.category_list.blockSignals(True)  # noqa: FBT003
@@ -283,6 +333,10 @@ class MainWindow(QMainWindow, AppWindowMixin):
             self._thumb_thread.wait(3000)
         self._thumb_thread = None
         self._thumb_worker = None
+
+    @staticmethod
+    def _variant_thumb_size(icon_size: int) -> int:
+        return max(ICON_SIZE_MIN, min(icon_size, (icon_size * 3) // 4 or icon_size))
 
 
 def main() -> None:

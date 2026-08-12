@@ -58,6 +58,12 @@ class DraggableIconList(QListWidget):
         if emit_family_selection:
             self.currentItemChanged.connect(self._on_current_item_changed)
 
+    def set_display_icon_size(self, icon_size: int) -> None:
+        """Update icon and grid sizes used by the list."""
+        self._icon_size = icon_size
+        self.setIconSize(QSize(icon_size, icon_size))
+        self.setGridSize(QSize(icon_size + 24, icon_size + 48))
+
     def set_family_items(
         self,
         families: list[IconFamily],
@@ -162,6 +168,11 @@ class VariantsPanel(QWidget):
         """Clear the variants list and reset the header."""
         self.list.clear()
         self.header.setText("Select an icon to see variants")
+
+    def set_thumb_size(self, thumb_size: int) -> None:
+        """Update variant thumbnail size (does not rebuild items)."""
+        self._thumb_size = thumb_size
+        self.list.set_display_icon_size(thumb_size)
 
     def show_family(self, family: IconFamily | None, repo_root: Path | None) -> None:
         """Populate the panel with variants of `family`."""

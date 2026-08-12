@@ -13,12 +13,14 @@ lang: en
 
 - [🏛️ Class `DraggableIconList`](#%EF%B8%8F-class-draggableiconlist)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
+  - [⚙️ Method `set_display_icon_size`](#%EF%B8%8F-method-set_display_icon_size)
   - [⚙️ Method `set_family_items`](#%EF%B8%8F-method-set_family_items)
   - [⚙️ Method `startDrag`](#%EF%B8%8F-method-startdrag)
   - [⚙️ Method `update_family_pixmap`](#%EF%B8%8F-method-update_family_pixmap)
 - [🏛️ Class `VariantsPanel`](#%EF%B8%8F-class-variantspanel)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-1)
   - [⚙️ Method `clear_variants`](#%EF%B8%8F-method-clear_variants)
+  - [⚙️ Method `set_thumb_size`](#%EF%B8%8F-method-set_thumb_size)
   - [⚙️ Method `show_family`](#%EF%B8%8F-method-show_family)
 
 </details>
@@ -66,6 +68,12 @@ class DraggableIconList(QListWidget):
         self.customContextMenuRequested.connect(self._on_context_menu)
         if emit_family_selection:
             self.currentItemChanged.connect(self._on_current_item_changed)
+
+    def set_display_icon_size(self, icon_size: int) -> None:
+        """Update icon and grid sizes used by the list."""
+        self._icon_size = icon_size
+        self.setIconSize(QSize(icon_size, icon_size))
+        self.setGridSize(QSize(icon_size + 24, icon_size + 48))
 
     def set_family_items(
         self,
@@ -188,6 +196,26 @@ def __init__(
         self.customContextMenuRequested.connect(self._on_context_menu)
         if emit_family_selection:
             self.currentItemChanged.connect(self._on_current_item_changed)
+```
+
+</details>
+
+### ⚙️ Method `set_display_icon_size`
+
+```python
+def set_display_icon_size(self, icon_size: int) -> None
+```
+
+Update icon and grid sizes used by the list.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def set_display_icon_size(self, icon_size: int) -> None:
+        self._icon_size = icon_size
+        self.setIconSize(QSize(icon_size, icon_size))
+        self.setGridSize(QSize(icon_size + 24, icon_size + 48))
 ```
 
 </details>
@@ -321,6 +349,11 @@ class VariantsPanel(QWidget):
         self.list.clear()
         self.header.setText("Select an icon to see variants")
 
+    def set_thumb_size(self, thumb_size: int) -> None:
+        """Update variant thumbnail size (does not rebuild items)."""
+        self._thumb_size = thumb_size
+        self.list.set_display_icon_size(thumb_size)
+
     def show_family(self, family: IconFamily | None, repo_root: Path | None) -> None:
         """Populate the panel with variants of `family`."""
         self._repo_root = repo_root
@@ -398,6 +431,25 @@ Clear the variants list and reset the header.
 def clear_variants(self) -> None:
         self.list.clear()
         self.header.setText("Select an icon to see variants")
+```
+
+</details>
+
+### ⚙️ Method `set_thumb_size`
+
+```python
+def set_thumb_size(self, thumb_size: int) -> None
+```
+
+Update variant thumbnail size (does not rebuild items).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def set_thumb_size(self, thumb_size: int) -> None:
+        self._thumb_size = thumb_size
+        self.list.set_display_icon_size(thumb_size)
 ```
 
 </details>
