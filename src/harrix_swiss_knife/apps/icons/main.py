@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any
 
 import harrix_pylib as h
-from PySide6.QtCore import QMimeData, QSize, Qt, QTimer, QUrl
+from PySide6.QtCore import QEventLoop, QMimeData, QSize, Qt, QTimer, QUrl
 from PySide6.QtGui import QCloseEvent, QIcon, QPixmap
 from PySide6.QtWidgets import (
     QApplication,
@@ -30,7 +30,10 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from harrix_swiss_knife import resources_rc  # noqa: F401
+from harrix_swiss_knife import (
+    resources_rc,  # noqa: F401
+    toast_progress_notification,
+)
 from harrix_swiss_knife.actions.common.open_in_editor import open_in_editor
 from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.app_entry import run_app_main
@@ -75,6 +78,8 @@ logger = logging.getLogger(__name__)
 
 ALL_CATEGORIES = "(All)"
 CATEGORY_LIST_ICON_SIZE = 28
+VARIANT_RENDER_CHUNK = 8
+VARIANT_PROGRESS_TOAST_MIN = 5
 
 
 class MainWindow(QMainWindow, AppWindowMixin):
@@ -105,6 +110,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._default_category_family_ids: dict[str, str] = {}
         self._variant_view_mode = load_variant_view_mode()
         self._variant_pixmaps: dict[str, QPixmap] = {}
+        self._variant_progress_toast: toast_progress_notification.ToastProgressNotification | None = None
         self._icon_size_save_timer = QTimer(self)
         self._icon_size_save_timer.setSingleShot(True)
         self._icon_size_save_timer.setInterval(300)
@@ -119,6 +125,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._persist_icon_size()
         if self._hide_instead_of_close(event):
             return
+        self._close_variant_progress_toast()
         self._stop_thumb_refresh()
         super().closeEvent(event)
 
@@ -275,6 +282,12 @@ class MainWindow(QMainWindow, AppWindowMixin):
                 Qt.TransformationMode.SmoothTransformation,
             ),
         )
+
+    def _close_variant_progress_toast(self) -> None:
+        toast = self._variant_progress_toast
+        self._variant_progress_toast = None
+        if toast is not None:
+            toast.close()
 
     @staticmethod
     def _format_byte_size(total_bytes: int) -> str:
@@ -539,9 +552,12 @@ class MainWindow(QMainWindow, AppWindowMixin):
 
     def _pixmaps_for_entries(self, entries: list[GridEntry]) -> dict[str, QPixmap]:
         result: dict[str, QPixmap] = {}
+        pending: list[Path] = []
+        pending_keys: set[str] = set()
+
         for entry in entries:
             key = str(entry.svg_path)
-            if key in result:
+            if key in result or key in pending_keys:
                 continue
             featured = entry.family.featured_path(self._repo_root) if self._repo_root is not None else None
             if self._variant_view_mode == MODE_FEATURED or (
@@ -555,12 +571,39 @@ class MainWindow(QMainWindow, AppWindowMixin):
             if session is not None and not session.isNull():
                 result[key] = session
                 continue
-            image = render_svg_to_image(entry.svg_path, self._icon_size)
-            if image is None:
-                continue
-            pixmap = QPixmap.fromImage(image)
-            self._variant_pixmaps[key] = pixmap
-            result[key] = pixmap
+            pending.append(entry.svg_path)
+            pending_keys.add(key)
+
+        if not pending:
+            return result
+
+        toast: toast_progress_notification.ToastProgressNotification | None = None
+        if len(pending) >= VARIANT_PROGRESS_TOAST_MIN:
+            self._close_variant_progress_toast()
+            toast = toast_progress_notification.ToastProgressNotification(
+                "Rendering icon previews…",
+                total=len(pending),
+                parent=self,
+            )
+            self._variant_progress_toast = toast
+            toast.start_countdown()
+            toast.set_progress(0, len(pending))
+            QApplication.processEvents(QEventLoop.ProcessEventsFlag.ExcludeUserInputEvents)
+
+        try:
+            for index, svg_path in enumerate(pending, start=1):
+                key = str(svg_path)
+                image = render_svg_to_image(svg_path, self._icon_size)
+                if image is not None:
+                    pixmap = QPixmap.fromImage(image)
+                    self._variant_pixmaps[key] = pixmap
+                    result[key] = pixmap
+                if toast is not None:
+                    toast.set_progress(index, len(pending))
+                    if index == len(pending) or index % VARIANT_RENDER_CHUNK == 0:
+                        QApplication.processEvents(QEventLoop.ProcessEventsFlag.ExcludeUserInputEvents)
+        finally:
+            self._close_variant_progress_toast()
         return result
 
     def _populate_categories(self) -> None:
