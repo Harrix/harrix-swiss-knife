@@ -173,7 +173,6 @@ class Ui_MainWindow(object):
         self.comboBox_chart_period.setItemText(2, QCoreApplication.translate("MainWindow", u"Years", None))
 
         self.checkBox_chart_show_labels.setText(QCoreApplication.translate("MainWindow", u"Show labels", None))
-        self.pushButton_update_chart.setText(QCoreApplication.translate("MainWindow", u"Update Chart", None))
         self.label_chart_from.setText(QCoreApplication.translate("MainWindow", u"From:", None))
         self.dateEdit_chart_from.setDisplayFormat(QCoreApplication.translate("MainWindow", u"yyyy-MM-dd", None))
         self.label_chart_to.setText(QCoreApplication.translate("MainWindow", u"To:", None))
@@ -1601,11 +1600,6 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout_charts_controls_1.addWidget(self.checkBox_chart_show_labels)
 
-        self.pushButton_update_chart = QPushButton(self.frame_charts_controls)
-        self.pushButton_update_chart.setObjectName(u"pushButton_update_chart")
-
-        self.horizontalLayout_charts_controls_1.addWidget(self.pushButton_update_chart)
-
         self.horizontalSpacer_charts = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
         self.horizontalLayout_charts_controls_1.addItem(self.horizontalSpacer_charts)
@@ -1967,7 +1961,6 @@ def retranslateUi(self, MainWindow):
         self.comboBox_chart_period.setItemText(2, QCoreApplication.translate("MainWindow", u"Years", None))
 
         self.checkBox_chart_show_labels.setText(QCoreApplication.translate("MainWindow", u"Show labels", None))
-        self.pushButton_update_chart.setText(QCoreApplication.translate("MainWindow", u"Update Chart", None))
         self.label_chart_from.setText(QCoreApplication.translate("MainWindow", u"From:", None))
         self.dateEdit_chart_from.setDisplayFormat(QCoreApplication.translate("MainWindow", u"yyyy-MM-dd", None))
         self.label_chart_to.setText(QCoreApplication.translate("MainWindow", u"To:", None))
@@ -3410,11 +3403,6 @@ def setupUi(self, MainWindow):
         self.checkBox_chart_show_labels.setChecked(True)
 
         self.horizontalLayout_charts_controls_1.addWidget(self.checkBox_chart_show_labels)
-
-        self.pushButton_update_chart = QPushButton(self.frame_charts_controls)
-        self.pushButton_update_chart.setObjectName(u"pushButton_update_chart")
-
-        self.horizontalLayout_charts_controls_1.addWidget(self.pushButton_update_chart)
 
         self.horizontalSpacer_charts = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 

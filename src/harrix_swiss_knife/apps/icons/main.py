@@ -768,7 +768,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
             if warning_msg not in body:
                 h1_match = re.search(r"^(#\s+.*?)$", body, re.MULTILINE)
                 if h1_match:
-                    body = body[:h1_match.end()] + f"\n\n{warning_msg}" + body[h1_match.end():]
+                    body = body[: h1_match.end()] + f"\n\n{warning_msg}" + body[h1_match.end() :]
                 else:
                     body = f"{warning_msg}\n\n" + body
 
