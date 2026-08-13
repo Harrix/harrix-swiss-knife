@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 
 import pytest
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QWidget
 
 from harrix_swiss_knife.apps.icons.catalog import (
     IconFamily,
@@ -308,6 +308,21 @@ def test_icon_lightbox_navigates_and_zooms(tmp_path: Path, qapp: QApplication) -
     dialog.canvas.zoom_by(2.0)
     assert dialog.canvas.zoom == 2.0
     dialog.close()
+
+
+def test_icon_lightbox_fits_parent_window(tmp_path: Path, qapp: QApplication) -> None:
+    svg = tmp_path / "icon.svg"
+    _write_svg(svg)
+    owner = QWidget()
+    owner.resize(640, 480)
+    owner.show()
+    qapp.processEvents()
+
+    dialog = IconLightboxDialog([svg], parent=owner)
+    assert dialog.size() == owner.size()
+
+    dialog.close()
+    owner.close()
 
 
 def test_delete_note_family_removes_folder_and_catalog_entry(tmp_path: Path) -> None:

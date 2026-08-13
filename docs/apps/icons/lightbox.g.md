@@ -442,7 +442,7 @@ class IconLightboxDialog(QDialog):
         current_index: int = 0,
         parent: QWidget | None = None,
     ) -> None:
-        """Build a fullscreen modal lightbox."""
+        """Build a modal lightbox fitted to its application window."""
         super().__init__(parent)
         self._paths = [path for path in paths if path.is_file()]
         self._index = max(0, min(current_index, len(self._paths) - 1))
@@ -452,11 +452,16 @@ class IconLightboxDialog(QDialog):
         )
         self.setStyleSheet("IconLightboxDialog { background-color: rgba(0, 0, 0, 225); }")
 
-        screen = QGuiApplication.primaryScreen()
-        if screen is not None:
-            self.setGeometry(screen.availableGeometry())
+        owner = parent.window() if parent is not None else None
+        if owner is not None:
+            top_left = owner.mapToGlobal(QPoint(0, 0))
+            self.setGeometry(top_left.x(), top_left.y(), owner.width(), owner.height())
         else:
-            self.resize(1280, 720)
+            screen = QGuiApplication.primaryScreen()
+            if screen is not None:
+                self.setGeometry(screen.availableGeometry())
+            else:
+                self.resize(1280, 720)
 
         self.canvas = IconLightboxCanvas(self)
         self.canvas.backdrop_clicked.connect(self.accept)
@@ -563,7 +568,7 @@ class IconLightboxDialog(QDialog):
 def __init__(self, paths: Sequence[Path], *, current_index: int = 0, parent: QWidget | None = None) -> None
 ```
 
-Build a fullscreen modal lightbox.
+Build a modal lightbox fitted to its application window.
 
 <details>
 <summary>Code:</summary>
@@ -585,11 +590,16 @@ def __init__(
         )
         self.setStyleSheet("IconLightboxDialog { background-color: rgba(0, 0, 0, 225); }")
 
-        screen = QGuiApplication.primaryScreen()
-        if screen is not None:
-            self.setGeometry(screen.availableGeometry())
+        owner = parent.window() if parent is not None else None
+        if owner is not None:
+            top_left = owner.mapToGlobal(QPoint(0, 0))
+            self.setGeometry(top_left.x(), top_left.y(), owner.width(), owner.height())
         else:
-            self.resize(1280, 720)
+            screen = QGuiApplication.primaryScreen()
+            if screen is not None:
+                self.setGeometry(screen.availableGeometry())
+            else:
+                self.resize(1280, 720)
 
         self.canvas = IconLightboxCanvas(self)
         self.canvas.backdrop_clicked.connect(self.accept)
