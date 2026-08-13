@@ -77,7 +77,7 @@ class ReportOperations:
         self._report_build_worker.report_completed.connect(self._on_report_build_completed)
         self._report_build_worker.report_failed.connect(self._on_report_build_failed)
         self._report_build_worker.finished.connect(self._cleanup_report_build_worker)
-        self.pushButton_generate_report.setEnabled(False)
+        self.listView_report_type.setEnabled(False)
         self._report_build_worker.start()
 
     def _apply_account_balances_report(self, headers: list[str], report_data: list[list[str]]) -> None:
@@ -248,7 +248,7 @@ class ReportOperations:
         if worker is not None:
             worker.deleteLater()
             self._report_build_worker = None
-        self.pushButton_generate_report.setEnabled(True)
+        self.listView_report_type.setEnabled(True)
 
     def _close_report_build_toast(self) -> None:
         """Close the report-building countdown toast if it is open."""
