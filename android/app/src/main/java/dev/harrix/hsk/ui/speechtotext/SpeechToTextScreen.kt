@@ -35,6 +35,7 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material.icons.filled.TaskAlt
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -92,6 +93,7 @@ private val WaveformCenter = Color(0xFF616161)
 private val WaveformFill = Color(0xC84CAF50)
 private val WaveformLiveFill = Color(0xD266BB6A)
 private val WaveformOutline = Color(0xFF81C784)
+private const val TickTickPackage = "com.ticktick.task"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -113,6 +115,7 @@ fun SpeechToTextScreen(
     val copiedMessage = stringResource(R.string.speech_to_text_copied)
     val shareFailedMessage = stringResource(R.string.speech_to_text_share_failed)
     val shareChooserTitle = stringResource(R.string.speech_to_text_share)
+    val tickTickUnavailableMessage = stringResource(R.string.speech_to_text_ticktick_unavailable)
 
     var pendingMicAction by remember { mutableStateOf<MicAction?>(null) }
     var pendingOpenAutoStart by remember { mutableStateOf(true) }
@@ -141,6 +144,24 @@ fun SpeechToTextScreen(
             context.startActivity(Intent.createChooser(shareIntent, shareChooserTitle))
         } catch (_: ActivityNotFoundException) {
             showToast(shareFailedMessage)
+        }
+    }
+
+    fun sendResultToTickTick(text: String) {
+        val payload = text.trim()
+        if (payload.isEmpty()) {
+            return
+        }
+        val tickTickIntent =
+            Intent(Intent.ACTION_SEND).apply {
+                type = "text/plain"
+                setPackage(TickTickPackage)
+                putExtra(Intent.EXTRA_TEXT, payload)
+            }
+        try {
+            context.startActivity(tickTickIntent)
+        } catch (_: ActivityNotFoundException) {
+            showToast(tickTickUnavailableMessage)
         }
     }
 
@@ -347,6 +368,7 @@ fun SpeechToTextScreen(
                             showToast(copiedMessage)
                         },
                         onShare = { shareResultText(resultText) },
+                        onSendToTickTick = { sendResultToTickTick(resultText) },
                         onRewrite = { viewModel.rewrite() },
                         onRecordNew = { startOrRequestMic(MicAction.Start) },
                         onSingleLine = { viewModel.collapseToSingleLine() },
@@ -710,6 +732,7 @@ private fun ResultContent(
     onTextChange: (String) -> Unit,
     onCopy: () -> Unit,
     onShare: () -> Unit,
+    onSendToTickTick: () -> Unit,
     onRewrite: () -> Unit,
     onRecordNew: () -> Unit,
     onSingleLine: () -> Unit,
@@ -746,6 +769,19 @@ private fun ResultContent(
                     )
                     Spacer(modifier = Modifier.size(6.dp))
                     Text(stringResource(R.string.speech_to_text_record_new))
+                }
+                OutlinedButton(
+                    onClick = onSendToTickTick,
+                    enabled = text.isNotBlank(),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.TaskAlt,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Spacer(modifier = Modifier.size(6.dp))
+                    Text(stringResource(R.string.speech_to_text_send_to_ticktick))
                 }
                 Row(
                     modifier = Modifier.fillMaxWidth(),

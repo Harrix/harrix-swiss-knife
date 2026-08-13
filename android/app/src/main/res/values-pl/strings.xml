@@ -189,6 +189,8 @@
     <string name="speech_to_text_copied">Copied to clipboard</string>
     <string name="speech_to_text_share">Udostępnij</string>
     <string name="speech_to_text_share_failed">Brak aplikacji do udostępniania tekstu</string>
+    <string name="speech_to_text_send_to_ticktick">Wyślij do TickTick</string>
+    <string name="speech_to_text_ticktick_unavailable">TickTick nie jest zainstalowany lub nie może odebrać tego tekstu</string>
     <string name="speech_to_text_rewrite">Rewrite with AI</string>
     <string name="speech_to_text_single_line">To single line</string>
     <string name="speech_to_text_record_new">Record new</string>

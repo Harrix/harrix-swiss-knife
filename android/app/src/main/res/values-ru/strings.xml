@@ -189,6 +189,8 @@
     <string name="speech_to_text_copied">Скопировано в буфер обмена</string>
     <string name="speech_to_text_share">Поделиться</string>
     <string name="speech_to_text_share_failed">Нет приложения для отправки текста</string>
+    <string name="speech_to_text_send_to_ticktick">Отправить в TickTick</string>
+    <string name="speech_to_text_ticktick_unavailable">TickTick не установлен или не может принять этот текст</string>
     <string name="speech_to_text_rewrite">Рерайт с AI</string>
     <string name="speech_to_text_single_line">В одну строку</string>
     <string name="speech_to_text_record_new">Новая запись</string>

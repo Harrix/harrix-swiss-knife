@@ -189,6 +189,8 @@
     <string name="speech_to_text_copied">Copied to clipboard</string>
     <string name="speech_to_text_share">Подели</string>
     <string name="speech_to_text_share_failed">Нема апликације за дељење текста</string>
+    <string name="speech_to_text_send_to_ticktick">Пошаљи у TickTick</string>
+    <string name="speech_to_text_ticktick_unavailable">TickTick није инсталиран или не може да прими овај текст</string>
     <string name="speech_to_text_rewrite">Rewrite with AI</string>
     <string name="speech_to_text_single_line">To single line</string>
     <string name="speech_to_text_record_new">Record new</string>
