@@ -68,6 +68,7 @@ class IconFamily:
     folder: str
     featured: str
     featured_hash: str
+    date: str = ""
     variants: list[IconVariant] = field(default_factory=list)
     search_blob: str = ""
 
@@ -171,6 +172,7 @@ def rebuild_catalog(repo_root: Path) -> IconCatalog:
         categories = list(meta.get("categories") or []) or [_category_from_id(family_id)]
         title = str(meta.get("title") or _title_from_id(family_id))
         tags = list(meta.get("tags") or [])
+        icon_date = str(meta.get("date") or "").strip()
         featured = note_dir / "featured-image.svg"
         featured_rel = "featured-image.svg" if featured.is_file() else ""
         featured_hash = _file_sha256(featured) if featured.is_file() else ""
@@ -189,6 +191,7 @@ def rebuild_catalog(repo_root: Path) -> IconCatalog:
             {
                 "id": family_id,
                 "title": title,
+                "date": icon_date,
                 "categories": categories,
                 "tags": tags,
                 "folder": f"icons/{family_id}",
@@ -280,9 +283,9 @@ def scan_flat_folder(root: Path) -> IconCatalog:
 
 
 def _build_search_blob(family: IconFamily) -> str:
-    parts = [family.id, family.title, *family.categories, *family.tags]
+    parts = [family.id, family.title, family.date, *family.categories, *family.tags]
     parts.extend(variant.name for variant in family.variants)
-    return " ".join(parts)
+    return " ".join(part for part in parts if part)
 
 
 def _category_from_id(family_id: str) -> str:
@@ -311,6 +314,7 @@ def _family_from_dict(data: dict[str, Any]) -> IconFamily:
         folder=str(data.get("folder", "")),
         featured=str(data.get("featured", "")),
         featured_hash=str(data.get("featured_hash", "")),
+        date=str(data.get("date") or "").strip(),
         variants=variants,
     )
     family.search_blob = _build_search_blob(family)
@@ -376,7 +380,7 @@ def _parse_frontmatter(md_path: Path) -> dict[str, Any]:
         value = value.strip()
         if key in {"categories", "tags"}:
             result[key] = _parse_yaml_list(value)
-        elif key == "title":
+        elif key in {"title", "date"}:
             result[key] = value.strip("\"'")
     return result
 

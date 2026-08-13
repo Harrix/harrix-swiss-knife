@@ -408,6 +408,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
             [
                 f"ID: {family.id}",
                 f"Title: {family.title}",
+                f"Date: {family.date or '—'}",
                 f"Categories: {', '.join(family.categories) or '—'}",
                 f"Tags: {', '.join(family.tags) or '—'}",
                 f"Folder: {family.folder}",

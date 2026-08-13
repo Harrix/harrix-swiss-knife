@@ -358,8 +358,9 @@ class VariantsPanel(QWidget):
             return
 
         tags = ", ".join(family.tags) if family.tags else "—"
+        date_line = f"\nDate: {family.date}" if family.date else ""
         self.header.setText(
-            f"{family.title}\n{family.id}\nCategories: {', '.join(family.categories)}\nTags: {tags}",
+            f"{family.title}\n{family.id}{date_line}\nCategories: {', '.join(family.categories)}\nTags: {tags}",
         )
         for variant in family.variants:
             path = variant.absolute_path(repo_root, family.folder)

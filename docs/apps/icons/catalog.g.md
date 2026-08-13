@@ -139,6 +139,7 @@ class IconFamily:
     folder: str
     featured: str
     featured_hash: str
+    date: str = ""
     variants: list[IconVariant] = field(default_factory=list)
     search_blob: str = ""
 
@@ -380,6 +381,7 @@ def rebuild_catalog(repo_root: Path) -> IconCatalog:
         categories = list(meta.get("categories") or []) or [_category_from_id(family_id)]
         title = str(meta.get("title") or _title_from_id(family_id))
         tags = list(meta.get("tags") or [])
+        icon_date = str(meta.get("date") or "").strip()
         featured = note_dir / "featured-image.svg"
         featured_rel = "featured-image.svg" if featured.is_file() else ""
         featured_hash = _file_sha256(featured) if featured.is_file() else ""
@@ -398,6 +400,7 @@ def rebuild_catalog(repo_root: Path) -> IconCatalog:
             {
                 "id": family_id,
                 "title": title,
+                "date": icon_date,
                 "categories": categories,
                 "tags": tags,
                 "folder": f"icons/{family_id}",
