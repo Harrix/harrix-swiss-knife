@@ -22,13 +22,13 @@ from harrix_swiss_knife.apps.finance.report_build_worker import ReportBuildResul
 
 logger = logging.getLogger(__name__)
 
-REPORT_TYPES: tuple[str, ...] = (
-    "Monthly Summary",
-    "Category Analysis",
-    "Currency Analysis",
-    "Account Balances",
-    "Income vs Expenses",
-    "Average Salary by Year",
+REPORT_TYPES: tuple[tuple[str, str], ...] = (
+    ("📅", "Monthly Summary"),
+    ("🗂️", "Category Analysis"),
+    ("💱", "Currency Analysis"),
+    ("🏦", "Account Balances"),
+    ("⚖️", "Income vs Expenses"),
+    ("💼", "Average Salary by Year"),
 )
 
 
@@ -274,10 +274,10 @@ class ReportOperations:
         """Return the report type currently selected in `listView_report_type`."""
         index = self.listView_report_type.currentIndex()
         if index.isValid():
-            text = index.data(Qt.ItemDataRole.DisplayRole)
+            text = index.data(Qt.ItemDataRole.UserRole)
             if isinstance(text, str) and text.strip():
                 return text
-        return REPORT_TYPES[0]
+        return REPORT_TYPES[0][1]
 
     def _set_reports_model_and_stretch(self, model: QStandardItemModel) -> None:
         """Set model on reports table and stretch columns."""
@@ -290,8 +290,9 @@ class ReportOperations:
     def _setup_report_type_list(self) -> None:
         """Populate `listView_report_type` and select the first report type."""
         model = QStandardItemModel(self.listView_report_type)
-        for report_type in REPORT_TYPES:
-            item = QStandardItem(report_type)
+        for icon, report_type in REPORT_TYPES:
+            item = QStandardItem(f"{icon} {report_type}")
+            item.setData(report_type, Qt.ItemDataRole.UserRole)
             item.setEditable(False)
             model.appendRow(item)
         self.listView_report_type.setModel(model)
