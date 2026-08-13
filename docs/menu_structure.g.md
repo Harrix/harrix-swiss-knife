@@ -31,6 +31,7 @@ def get_menu_structure() -> list[Any]:
                 OnUpdateNode,
                 OnNpmManagePackages,
                 OnOpenConfigJson,
+                OnSettingsEditor,
                 OnSyncQuickAccessToTotalCommander,
                 OnUpdateHarrixSwissKnife,
                 OnViewRecentActionLogs,
