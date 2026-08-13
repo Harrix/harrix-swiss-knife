@@ -20,6 +20,7 @@ lang: en
   - [⚙️ Method `note_path`](#%EF%B8%8F-method-note_path)
 - [🏛️ Class `IconVariant`](#%EF%B8%8F-class-iconvariant)
   - [⚙️ Method `absolute_path`](#%EF%B8%8F-method-absolute_path)
+- [🔧 Function `delete_icon_family`](#-function-delete_icon_family)
 - [🔧 Function `is_note_icons_repo`](#-function-is_note_icons_repo)
 - [🔧 Function `load_catalog`](#-function-load_catalog)
 - [🔧 Function `open_icons_folder`](#-function-open_icons_folder)
@@ -259,6 +260,31 @@ Resolve the variant path under the icons repo root.
 ```python
 def absolute_path(self, repo_root: Path, folder: str) -> Path:
         return _join_repo_path(repo_root, folder, self.file)
+```
+
+</details>
+
+## 🔧 Function `delete_icon_family`
+
+```python
+def delete_icon_family(family: IconFamily, repo_root: Path, *, kind: CatalogKind) -> None
+```
+
+Permanently delete an icon family from disk.
+
+Note-folder repos remove the whole `icons/{id}/` directory. Flat dumps
+unlink the featured file and every variant file that still exists.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def delete_icon_family(family: IconFamily, repo_root: Path, *, kind: CatalogKind) -> None:
+    root = repo_root.expanduser().resolve()
+    if kind == "note":
+        _delete_note_family(family, root)
+        return
+    _delete_flat_family(family, root)
 ```
 
 </details>

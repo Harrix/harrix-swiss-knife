@@ -60,6 +60,20 @@ class ThumbnailCache:
         self._meta: dict[str, dict[str, str | int]] = {}
         self._load_meta()
 
+    def forget(self, family_id: str) -> None:
+        """Remove the cached PNG and meta entry for `family_id`."""
+        path = self.thumb_path(family_id)
+        try:
+            if path.is_file():
+                path.unlink()
+        except OSError:
+            logger.warning("Failed to remove thumbnail for %s", family_id)
+        self._meta.pop(family_id, None)
+        try:
+            self.save_meta()
+        except OSError:
+            logger.warning("Failed to save thumbnail meta after forgetting %s", family_id)
+
     def is_fresh(self, family: IconFamily) -> bool:
         """Return whether the cached thumb matches the featured hash, size, and format."""
         entry = self._meta.get(family.id)

@@ -11,8 +11,10 @@ from PySide6.QtWidgets import QApplication
 from harrix_swiss_knife.apps.icons.catalog import (
     IconFamily,
     IconVariant,
+    delete_icon_family,
     load_catalog,
     open_icons_folder,
+    rebuild_catalog,
 )
 from harrix_swiss_knife.apps.icons.variant_view import GridEntry
 from harrix_swiss_knife.apps.icons.widgets import DraggableIconList, VariantsPanel, placeholder_pixmap
@@ -149,3 +151,44 @@ def test_icon_variant_absolute_path(tmp_path: Path) -> None:
     variant = IconVariant(file="img/building__garage_01.svg", name="building__garage_01", hash="1")
     path = variant.absolute_path(repo, "icons/building__garage")
     assert path.is_file()
+
+
+def test_delete_note_family_removes_folder_and_catalog_entry(tmp_path: Path) -> None:
+    repo = _note_repo(tmp_path)
+    other = repo / "icons" / "building__house"
+    _write_svg(other / "featured-image.svg")
+    family = load_catalog(repo).icons[0]
+    delete_icon_family(family, repo, kind="note")
+    assert not (repo / "icons" / "building__garage").exists()
+    assert other.is_dir()
+    catalog = rebuild_catalog(repo)
+    assert [item.id for item in catalog.icons] == ["building__house"]
+
+
+def test_delete_note_family_rejects_unsafe_folder(tmp_path: Path) -> None:
+    repo = _note_repo(tmp_path)
+    family = IconFamily(
+        id="building__garage",
+        title="Garage",
+        categories=["building"],
+        tags=[],
+        folder="icons",
+        featured="featured-image.svg",
+        featured_hash="",
+    )
+    with pytest.raises(ValueError, match="unsafe folder"):
+        delete_icon_family(family, repo, kind="note")
+    assert (repo / "icons" / "building__garage").is_dir()
+
+
+def test_delete_flat_family_unlinks_files(tmp_path: Path) -> None:
+    dump = tmp_path / "dump"
+    _write_svg(dump / "foo.svg")
+    _write_svg(dump / "bar.svg")
+    catalog = open_icons_folder(dump)
+    assert catalog.kind == "flat"
+    assert len(catalog.icons) == 2
+    target = catalog.icons[0]
+    delete_icon_family(target, dump, kind="flat")
+    remaining = open_icons_folder(dump)
+    assert [item.id for item in remaining.icons] == [item.id for item in catalog.icons if item.id != target.id]

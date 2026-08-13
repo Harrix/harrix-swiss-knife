@@ -40,7 +40,13 @@ from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.app_entry import run_app_main
 from harrix_swiss_knife.apps.common.qt_main_window import AppWindowMixin
 from harrix_swiss_knife.apps.common.ui_helpers import reveal_in_file_explorer
-from harrix_swiss_knife.apps.icons.catalog import IconCatalog, IconFamily, open_icons_folder, rebuild_catalog
+from harrix_swiss_knife.apps.icons.catalog import (
+    IconCatalog,
+    IconFamily,
+    delete_icon_family,
+    open_icons_folder,
+    rebuild_catalog,
+)
 from harrix_swiss_knife.apps.icons.settings import (
     ICON_SIZE_MAX,
     ICON_SIZE_MIN,
@@ -430,6 +436,36 @@ class MainWindow(QMainWindow, AppWindowMixin):
         clipboard.setMimeData(mime)
         self.statusBar().showMessage(f"Copied `{path.name}`")
 
+    def _on_delete_icon(self, family: object) -> None:
+        if not isinstance(family, IconFamily) or self._repo_root is None or self._catalog is None:
+            return
+        kind = self._catalog.kind
+        if kind == "note":
+            detail = f"This will permanently remove the note folder `{family.folder}` and all variants."
+        else:
+            detail = "This will permanently remove the icon file(s) from disk."
+        reply = message_box.question(
+            self,
+            "Vector Icons",
+            f"Delete icon `{family.title}` ({family.id})?\n\n{detail}",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if reply != QMessageBox.StandardButton.Yes:
+            return
+        self._stop_thumb_refresh()
+        try:
+            delete_icon_family(family, self._repo_root, kind=kind)
+        except (OSError, ValueError) as exc:
+            QMessageBox.critical(self, "Vector Icons", f"Failed to delete icon:\n{exc}")
+            return
+        self._pixmaps.pop(family.id, None)
+        self._thumb_cache.forget(family.id)
+        if self._selected_family_id == family.id:
+            self._selected_family_id = None
+        self._on_refresh_catalog(allow_empty=True)
+        self.statusBar().showMessage(f"Deleted `{family.id}`")
+
     def _on_family_selected(self, family: object) -> None:
         if family is None:
             self._selected_family_id = None
@@ -566,7 +602,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._rebuild_folder_menus()
         self.statusBar().showMessage(f"Pinned `{self._repo_root}`")
 
-    def _on_refresh_catalog(self) -> None:
+    def _on_refresh_catalog(self, *, allow_empty: bool = False) -> None:
         if self._repo_root is None:
             self._load_from_config()
             return
@@ -576,6 +612,12 @@ class MainWindow(QMainWindow, AppWindowMixin):
                 catalog = open_icons_folder(root)
             else:
                 catalog = rebuild_catalog(root)
+        except FileNotFoundError as exc:
+            if allow_empty and self._catalog is not None and self._catalog.kind == "flat":
+                catalog = IconCatalog(version=1, generated_at="", icons=[], repo_root=root, kind="flat")
+            else:
+                QMessageBox.critical(self, "Vector Icons", f"Failed to refresh catalog:\n{exc}")
+                return
         except (OSError, ValueError, TypeError, json.JSONDecodeError) as exc:
             QMessageBox.critical(self, "Vector Icons", f"Failed to refresh catalog:\n{exc}")
             return
@@ -943,6 +985,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         icon_list.set_category_icon_requested.connect(self._on_set_as_category_icon)
         icon_list.reveal_source_requested.connect(self._on_reveal_source)
         icon_list.open_source_requested.connect(self._on_open_source)
+        icon_list.delete_requested.connect(self._on_delete_icon)
 
 
 def main() -> None:

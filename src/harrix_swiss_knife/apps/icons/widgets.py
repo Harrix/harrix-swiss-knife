@@ -48,6 +48,7 @@ class DraggableIconList(QListWidget):
     reveal_source_requested = Signal(object, str)  # IconFamily, svg_path
     open_source_requested = Signal(object, str)  # IconFamily, svg_path
     set_category_icon_requested = Signal(object)  # IconFamily
+    delete_requested = Signal(object)  # IconFamily
 
     def __init__(
         self,
@@ -210,6 +211,8 @@ class DraggableIconList(QListWidget):
         menu.addSeparator()
         reveal_source_action = menu.addAction("📂 Reveal source in File Explorer")
         open_source_action = menu.addAction("🎨 Open source")
+        menu.addSeparator()
+        delete_action = menu.addAction("🗑️ Delete")
         chosen = menu.exec_(self.mapToGlobal(pos))
         if chosen is reveal_action:
             self.reveal_requested.emit(path)
@@ -227,6 +230,8 @@ class DraggableIconList(QListWidget):
             self.reveal_source_requested.emit(family, path)
         elif chosen is open_source_action:
             self.open_source_requested.emit(family, path)
+        elif chosen is delete_action:
+            self.delete_requested.emit(family)
 
     def _on_current_item_changed(
         self,

@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+import shutil
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
@@ -100,6 +101,20 @@ class IconVariant:
     def absolute_path(self, repo_root: Path, folder: str) -> Path:
         """Resolve the variant path under the icons repo root."""
         return _join_repo_path(repo_root, folder, self.file)
+
+
+def delete_icon_family(family: IconFamily, repo_root: Path, *, kind: CatalogKind) -> None:
+    """Permanently delete an icon family from disk.
+
+    Note-folder repos remove the whole `icons/{id}/` directory. Flat dumps
+    unlink the featured file and every variant file that still exists.
+
+    """
+    root = repo_root.expanduser().resolve()
+    if kind == "note":
+        _delete_note_family(family, root)
+        return
+    _delete_flat_family(family, root)
 
 
 def is_note_icons_repo(root: Path) -> bool:
@@ -295,6 +310,53 @@ def _category_from_id(family_id: str) -> str:
 
 def _count_flat_icon_files(root: Path) -> int:
     return len(_iter_flat_icon_files(root))
+
+
+def _delete_flat_family(family: IconFamily, root: Path) -> None:
+    paths: list[Path] = []
+    featured = family.featured_path(root)
+    if featured is not None:
+        paths.append(featured)
+    for variant in family.variants:
+        path = variant.absolute_path(root, family.folder)
+        if path.is_file():
+            paths.append(path)
+    unique: list[Path] = []
+    seen: set[Path] = set()
+    for path in paths:
+        resolved = path.resolve()
+        if resolved in seen:
+            continue
+        _ensure_path_inside_root(resolved, root)
+        seen.add(resolved)
+        unique.append(resolved)
+    if not unique:
+        msg = f"No files to delete for `{family.id}`"
+        raise FileNotFoundError(msg)
+    for path in unique:
+        path.unlink()
+
+
+def _delete_note_family(family: IconFamily, root: Path) -> None:
+    folder = family.folder.strip().replace("\\", "/")
+    if not folder or folder in {".", "icons"} or ".." in Path(folder).parts:
+        msg = f"Refusing to delete unsafe folder `{family.folder}`"
+        raise ValueError(msg)
+    note_dir = (root / folder).resolve()
+    icons_root = (root / "icons").resolve()
+    if not note_dir.is_relative_to(icons_root) or note_dir == icons_root:
+        msg = f"Icon folder is outside icons/: {note_dir}"
+        raise ValueError(msg)
+    if not note_dir.is_dir():
+        msg = f"Icon folder not found: {note_dir}"
+        raise FileNotFoundError(msg)
+    shutil.rmtree(note_dir)
+
+
+def _ensure_path_inside_root(path: Path, root: Path) -> None:
+    if not path.is_relative_to(root) or path == root:
+        msg = f"Refusing to delete path outside folder: {path}"
+        raise ValueError(msg)
 
 
 def _family_from_dict(data: dict[str, Any]) -> IconFamily:

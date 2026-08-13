@@ -15,6 +15,7 @@ lang: en
 - [📎 Constant `THUMB_FORMAT_VERSION`](#-constant-thumb_format_version)
 - [🏛️ Class `ThumbnailCache`](#%EF%B8%8F-class-thumbnailcache)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
+  - [⚙️ Method `forget`](#%EF%B8%8F-method-forget)
   - [⚙️ Method `is_fresh`](#%EF%B8%8F-method-is_fresh)
   - [⚙️ Method `load_pixmap`](#%EF%B8%8F-method-load_pixmap)
   - [⚙️ Method `render_and_store`](#%EF%B8%8F-method-render_and_store)
@@ -68,6 +69,20 @@ class ThumbnailCache:
         self.size = size
         self._meta: dict[str, dict[str, str | int]] = {}
         self._load_meta()
+
+    def forget(self, family_id: str) -> None:
+        """Remove the cached PNG and meta entry for `family_id`."""
+        path = self.thumb_path(family_id)
+        try:
+            if path.is_file():
+                path.unlink()
+        except OSError:
+            logger.warning("Failed to remove thumbnail for %s", family_id)
+        self._meta.pop(family_id, None)
+        try:
+            self.save_meta()
+        except OSError:
+            logger.warning("Failed to save thumbnail meta after forgetting %s", family_id)
 
     def is_fresh(self, family: IconFamily) -> bool:
         """Return whether the cached thumb matches the featured hash, size, and format."""
@@ -192,6 +207,34 @@ def __init__(self, cache_dir: Path | None = None, *, size: int = DEFAULT_THUMB_S
         self.size = size
         self._meta: dict[str, dict[str, str | int]] = {}
         self._load_meta()
+```
+
+</details>
+
+### ⚙️ Method `forget`
+
+```python
+def forget(self, family_id: str) -> None
+```
+
+Remove the cached PNG and meta entry for `family_id`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def forget(self, family_id: str) -> None:
+        path = self.thumb_path(family_id)
+        try:
+            if path.is_file():
+                path.unlink()
+        except OSError:
+            logger.warning("Failed to remove thumbnail for %s", family_id)
+        self._meta.pop(family_id, None)
+        try:
+            self.save_meta()
+        except OSError:
+            logger.warning("Failed to save thumbnail meta after forgetting %s", family_id)
 ```
 
 </details>
