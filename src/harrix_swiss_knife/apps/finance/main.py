@@ -97,6 +97,7 @@ from harrix_swiss_knife.apps.finance.category_add_dialog import CategoryAddDialo
 from harrix_swiss_knife.apps.finance.category_edit_dialog import CategoryEditDialog
 from harrix_swiss_knife.apps.finance.category_suggest import suggest_categories
 from harrix_swiss_knife.apps.finance.chart_year_start_dialog import ChartYearStartDialog
+from harrix_swiss_knife.apps.finance.deferred_ui_refresh import DeferredUiRefreshScheduler
 from harrix_swiss_knife.apps.finance.delegates import (
     NAME_LOCAL_ROLE,
     AmountDelegate,
@@ -308,6 +309,13 @@ class MainWindow(
         # Reports-tab summary can be expensive to compute; refresh lazily.
         self._summary_dirty: bool = True
 
+        # After Add: refresh transactions immediately; defer summary/secondary UI.
+        self._ui_refresh_scheduler = DeferredUiRefreshScheduler(
+            self,
+            self._refresh_secondary_ui_after_transactions_changed,
+            interval_ms=400,
+        )
+
         # Charts tab: auto-draw only on first visit.
         self._charts_initialized: bool = False
         self._chart_build_toast: toast_countdown_notification.ToastCountdownNotification | None = None
@@ -445,6 +453,10 @@ class MainWindow(
             return
 
         self._is_closing = True
+
+        scheduler = getattr(self, "_ui_refresh_scheduler", None)
+        if scheduler is not None:
+            scheduler.stop()
 
         # Stop any running worker threads
         if hasattr(self, "exchange_rate_worker") and self.exchange_rate_worker.isRunning():
@@ -899,8 +911,7 @@ class MainWindow(
             def on_success(data: Any) -> None:
                 _amount, _desc, _cat_id, _curr_id, _date, _tag = data
                 current_date = self.dateEdit.date()
-                self._mark_transactions_changed()
-                self.update_all()
+                self._refresh_after_transaction_add(categories_may_change=False)
                 self._update_autocomplete_data()
                 self.doubleSpinBox_amount.setValue(100.0)
                 self.lineEdit_description.clear()
@@ -1222,6 +1233,9 @@ class MainWindow(
         - `index` (`int`): The index of the newly selected tab.
 
         """
+        if self._ui_refresh_scheduler.dirty:
+            self._ui_refresh_scheduler.flush()
+
         # Update relevant data when switching to different tabs
         id_exchange_rates_tab: int = 4
         id_charts_tab: int = 5
@@ -1331,6 +1345,7 @@ class MainWindow(
     @requires_database(is_show_warning=False)
     def update_all(self) -> None:
         """Refresh all tables and comboboxes."""
+        self._ui_refresh_scheduler.stop()
         # Load essential tables
         self._load_essential_tables()
         self._update_comboboxes()
@@ -3380,9 +3395,9 @@ class MainWindow(
         self._summary_dirty = True
 
     # Lazy loading change markers
-    def _mark_transactions_changed(self) -> None:
-        """Mark that transaction data has changed and needs refresh."""
-        # No specific action needed for transactions as they load immediately
+    def _mark_transactions_changed(self, *, categories_may_change: bool = False) -> None:
+        """Schedule deferred secondary UI refresh after transaction data changes."""
+        self._ui_refresh_scheduler.mark(categories_may_change=categories_may_change)
 
     def _on_account_double_clicked(self, index: QModelIndex) -> None:
         """Handle double-click on accounts table.
@@ -3550,9 +3565,10 @@ class MainWindow(
                 diff_minor = recomputed_diff
 
             if diff_minor == 0:
-                self._mark_transactions_changed()
+                self._ui_refresh_scheduler.stop()
                 self._mark_summary_dirty()
                 self.update_summary_labels()
+                self._summary_dirty = False
                 QTimer.singleShot(0, self._refresh_transactions_table)
                 self._refresh_test_balance_dialog_table(table)
                 return
@@ -3577,9 +3593,10 @@ class MainWindow(
                 message_box.warning(self, "Revision", "Failed to add revision transaction")
                 return
 
-            self._mark_transactions_changed()
+            self._ui_refresh_scheduler.stop()
             self._mark_summary_dirty()
             self.update_summary_labels()
+            self._summary_dirty = False
             QTimer.singleShot(0, self._refresh_transactions_table)
             self._refresh_test_balance_dialog_table(table)
         finally:
@@ -4071,9 +4088,10 @@ class MainWindow(
                     message_box.warning(self, "Revision", "Failed to add consolidated revision")
                     return
 
-            self._mark_transactions_changed()
+            self._ui_refresh_scheduler.stop()
             self._mark_summary_dirty()
             self.update_summary_labels()
+            self._summary_dirty = False
             QTimer.singleShot(0, self._refresh_transactions_table)
             self._refresh_test_balance_dialog_table(table)
         finally:
@@ -4675,10 +4693,8 @@ class MainWindow(
 
         # Show results
         if success_count > 0:
-            # Save current date before update_all
             current_date: QDate = self.dateEdit.date()
-            self.update_all()
-            # Restore the original date
+            self._refresh_after_transaction_add(categories_may_change=True)
             self.dateEdit.setDate(current_date)
 
         max_error_messages = 10
@@ -4710,6 +4726,27 @@ class MainWindow(
         self._compare_last_years_start_month = month
         self._compare_last_years_start_day = day
         return True
+
+    def _refresh_after_transaction_add(self, *, categories_may_change: bool = False) -> None:
+        """Reload transactions table immediately; defer summary and secondary UI."""
+        self._refresh_transactions_table()
+        self._mark_summary_dirty()
+        self._mark_transactions_changed(categories_may_change=categories_may_change)
+
+    def _refresh_secondary_ui_after_transactions_changed(self, *, categories_may_change: bool) -> None:
+        """Apply deferred UI updates after transaction add (main-thread timer)."""
+        if getattr(self, "_is_closing", False):
+            return
+        self._refresh_summary_if_needed()
+        self._update_accounts_balance_display()
+        if categories_may_change:
+            try:
+                self._load_categories_table()
+            except Exception:
+                logger.exception("❌ Error loading categories table after deferred refresh")
+            self._update_comboboxes()
+            self.update_filter_comboboxes()
+            self._connect_table_auto_save_signals()
 
     def _refresh_summary_if_needed(self) -> None:
         """Recompute summary labels when transaction data changed."""
@@ -5010,9 +5047,10 @@ class MainWindow(
 
         new_date: str = date_edit.date().toString("yyyy-MM-dd")
         if self.db_manager.update_transactions_date(transaction_ids, new_date):
-            self._mark_transactions_changed()
+            self._ui_refresh_scheduler.stop()
             self._mark_summary_dirty()
             self.update_summary_labels()
+            self._summary_dirty = False
             # Defer reload until the context menu / dialog event loop finishes.
             QTimer.singleShot(0, self._refresh_transactions_table)
         else:
