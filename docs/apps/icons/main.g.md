@@ -85,6 +85,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
             self.variants_panel.clear_variants()
             self.count_label.setText("0 icons")
             return
+        selected_id = self._selected_family_id
         query = self.search_edit.text()
         families = self._catalog.filter_icons(category=self._current_category, query=query)
         entries = build_grid_entries(families, repo_root=self._repo_root, mode=self._variant_view_mode)
@@ -103,6 +104,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self.statusBar().showMessage(
             f"Showing {len(entries)} tiles ({len(families)} families) / {len(self._catalog.icons)}",
         )
+        self._selected_family_id = selected_id
         self._restore_or_clear_selection([entry.family for entry in entries])
 
     def _apply_icon_size(self, size: int) -> None:
@@ -293,17 +295,17 @@ class MainWindow(QMainWindow, AppWindowMixin):
     def _load_from_config(self) -> None:
         config: dict[str, Any] = h.dev.config_load(get_config_path_str())
         candidates: list[Path] = []
-        recent = load_recent_folders()
-        if recent:
-            candidates.append(recent[0])
-        for pinned in load_pinned_folders():
-            if pinned not in candidates:
-                candidates.append(pinned)
         raw = str(config.get("path_vector_icons") or "").strip()
         if raw and not raw.startswith("<"):
             default_path = Path(raw)
-            if default_path not in candidates:
+            if default_path.is_dir():
                 candidates.append(default_path)
+        for pinned in load_pinned_folders():
+            if pinned not in candidates:
+                candidates.append(pinned)
+        for recent in load_recent_folders():
+            if recent not in candidates:
+                candidates.append(recent)
         for path in candidates:
             if path.is_dir():
                 self._open_folder(path, remember=False)
@@ -378,9 +380,14 @@ class MainWindow(QMainWindow, AppWindowMixin):
             return
         if not isinstance(family, IconFamily) or self._repo_root is None:
             return
-        self._selected_family_id = family.id
-        self.variants_panel.show_family(family, self._repo_root)
-        self.statusBar().showMessage(f"{family.id}: {len(family.variants)} variants")
+        chosen = family
+        if self._catalog is not None:
+            match = next((item for item in self._catalog.icons if item.id == family.id), None)
+            if match is not None:
+                chosen = match
+        self._selected_family_id = chosen.id
+        self.variants_panel.show_family(chosen, self._repo_root)
+        self.statusBar().showMessage(f"{chosen.id}: {len(chosen.variants)} variants")
 
     def _on_folder_combo_changed(self, index: int) -> None:
         if index < 0:
@@ -749,16 +756,23 @@ class MainWindow(QMainWindow, AppWindowMixin):
         )
 
     def _restore_or_clear_selection(self, families: list[IconFamily]) -> None:
-        """Keep selection if the family is still visible; otherwise clear variants."""
-        if self._selected_family_id is None:
+        """Keep selection if the family is still visible; otherwise select the first tile."""
+        target_id = self._selected_family_id
+        if target_id is None and families:
+            target_id = families[0].id
+        if target_id is None:
             self.variants_panel.clear_variants()
             return
         for index, family in enumerate(families):
-            if family.id != self._selected_family_id:
+            if family.id != target_id:
                 continue
             item = self.icon_list.item(index)
-            if item is not None:
-                self.icon_list.setCurrentItem(item)
+            if item is None:
+                break
+            self.icon_list.blockSignals(True)  # noqa: FBT003
+            self.icon_list.setCurrentItem(item)
+            self.icon_list.blockSignals(False)  # noqa: FBT003
+            self._on_family_selected(family)
             return
         self._selected_family_id = None
         self.variants_panel.clear_variants()

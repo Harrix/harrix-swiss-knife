@@ -6,12 +6,13 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from PySide6.QtCore import QMimeData, QModelIndex, QPersistentModelIndex, QPoint, QRect, QSize, Qt, QUrl, Signal
-from PySide6.QtGui import QColor, QDrag, QFont, QIcon, QPainter, QPixmap
+from PySide6.QtGui import QColor, QDrag, QFont, QIcon, QPainter, QPixmap, QResizeEvent
 from PySide6.QtWidgets import (
     QLabel,
     QListWidget,
     QListWidgetItem,
     QMenu,
+    QSizePolicy,
     QStyle,
     QStyledItemDelegate,
     QStyleOptionViewItem,
@@ -65,6 +66,8 @@ class DraggableIconList(QListWidget):
         self.setResizeMode(QListWidget.ResizeMode.Adjust)
         self.setMovement(QListWidget.Movement.Static)
         self.setUniformItemSizes(True)
+        self.setWrapping(True)
+        self.setFlow(QListWidget.Flow.LeftToRight)
         self.setWordWrap(True)
         self.setSpacing(8)
         self.setIconSize(QSize(icon_size, icon_size))
@@ -77,6 +80,7 @@ class DraggableIconList(QListWidget):
         if dual_line_labels:
             self.setItemDelegate(IconLabelDelegate(self))
         if emit_family_selection:
+            self.itemPressed.connect(self._emit_family_from_item)
             self.currentItemChanged.connect(self._on_current_item_changed)
 
     def set_display_icon_size(self, icon_size: int) -> None:
@@ -103,9 +107,8 @@ class DraggableIconList(QListWidget):
             item.setToolTip(f"{family.id}\n{', '.join(family.tags)}")
             item.setSizeHint(QSize(self._icon_size + 16, self._icon_size + LABEL_EXTRA_HEIGHT))
             self.addItem(item)
+        self.setCurrentRow(-1)
         self.blockSignals(False)  # noqa: FBT003
-        if self._emit_family_selection:
-            self.family_selected.emit(None)
 
     def set_grid_entries(
         self,
@@ -135,9 +138,8 @@ class DraggableIconList(QListWidget):
             item.setToolTip(tip)
             item.setSizeHint(QSize(self._icon_size + 16, self._icon_size + LABEL_EXTRA_HEIGHT))
             self.addItem(item)
+        self.setCurrentRow(-1)
         self.blockSignals(False)  # noqa: FBT003
-        if self._emit_family_selection:
-            self.family_selected.emit(None)
 
     def startDrag(self, supported_actions: Qt.DropAction) -> None:  # noqa: ARG002, N802
         """Start an OS file drag for the selected SVG path."""
@@ -173,6 +175,16 @@ class DraggableIconList(QListWidget):
                     icon_pixmap = _muted_pixmap(pixmap, FALLBACK_ICON_OPACITY)
                 item.setIcon(QIcon(icon_pixmap))
                 break
+
+    def _emit_family_from_item(self, item: QListWidgetItem | None) -> None:
+        if item is None:
+            self.family_selected.emit(None)
+            return
+        family = item.data(Qt.ItemDataRole.UserRole)
+        if family is not None and hasattr(family, "variants"):
+            self.family_selected.emit(family)
+        else:
+            self.family_selected.emit(None)
 
     def _grid_size_for(self, icon_size: int) -> QSize:
         label_h = LABEL_EXTRA_HEIGHT if self._dual_line_labels else 48
@@ -221,14 +233,7 @@ class DraggableIconList(QListWidget):
         current: QListWidgetItem | None,
         _previous: QListWidgetItem | None,
     ) -> None:
-        if current is None:
-            self.family_selected.emit(None)
-            return
-        family = current.data(Qt.ItemDataRole.UserRole)
-        if family is not None and hasattr(family, "variants"):
-            self.family_selected.emit(family)
-        else:
-            self.family_selected.emit(None)
+        self._emit_family_from_item(current)
 
 
 class IconLabelDelegate(QStyledItemDelegate):
@@ -334,15 +339,29 @@ class VariantsPanel(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         self.header = QLabel("Select an icon to see variants")
         self.header.setWordWrap(True)
+        self.header.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Maximum)
         layout.addWidget(self.header)
 
         self.list = DraggableIconList(icon_size=thumb_size, emit_family_selection=False)
-        layout.addWidget(self.list)
+        self.list.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        layout.addWidget(self.list, stretch=1)
 
     def clear_variants(self) -> None:
         """Clear the variants list and reset the header."""
         self.list.clear()
         self.header.setText("Select an icon to see variants")
+
+    def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802
+        """Keep IconMode cells narrower than the viewport so tiles stay visible."""
+        super().resizeEvent(event)
+        viewport_w = self.list.viewport().width()
+        if viewport_w <= 0:
+            return
+        cell_w = self.list.gridSize().width()
+        if cell_w <= viewport_w:
+            return
+        icon_size = max(32, min(self._thumb_size, viewport_w - 24 - self.list.spacing() * 2))
+        self.list.set_display_icon_size(icon_size)
 
     def set_thumb_size(self, thumb_size: int) -> None:
         """Update variant thumbnail size (does not rebuild items)."""
@@ -364,12 +383,16 @@ class VariantsPanel(QWidget):
         )
         for variant in family.variants:
             path = variant.absolute_path(repo_root, family.folder)
-            pixmap = self._preview(path, self._thumb_size)
+            try:
+                pixmap = self._preview(path, self._thumb_size)
+            except (OSError, ValueError, RuntimeError):
+                pixmap = placeholder_pixmap(self._thumb_size)
             item = QListWidgetItem(QIcon(pixmap), variant.name)
             item.setData(Qt.ItemDataRole.UserRole, family)
             item.setData(ROLE_SVG_PATH, str(path))
             item.setToolTip(str(path))
             self.list.addItem(item)
+        self.list.doItemsLayout()
 
     @staticmethod
     def _preview(path: Path, size: int) -> QPixmap:
