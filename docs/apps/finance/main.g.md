@@ -1991,7 +1991,7 @@ class MainWindow(
         self.pushButton_filter_exchange_rates_clear.clicked.connect(self.on_filter_exchange_rates_clear)
 
         # Report signals
-        self.pushButton_generate_report.clicked.connect(self.on_generate_report)
+        self.listView_report_type.clicked.connect(lambda _idx: self.on_generate_report())
 
         # Export signal
         self.pushButton_show_all_records.clicked.connect(self.on_show_all_records_clicked)
@@ -5246,7 +5246,6 @@ class MainWindow(
         self.pushButton_calculate_fee.setText(f"💰 {self.pushButton_calculate_fee.text()}")
         self.pushButton_rates_refresh.setText(f"🔄 {self.pushButton_rates_refresh.text()}")
         self.pushButton_update_chart.setText(f"🔄 {self.pushButton_update_chart.text()}")
-        self.pushButton_generate_report.setText(f"📄 {self.pushButton_generate_report.text()}")
 
         # Connect double-click signal for exchange table
         self.tableView_exchange.doubleClicked.connect(self._on_exchange_table_double_clicked)

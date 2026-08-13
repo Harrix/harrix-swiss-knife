@@ -184,7 +184,6 @@ class Ui_MainWindow(object):
         self.label_compare_last.setText(QCoreApplication.translate("MainWindow", u"Number of months:", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_charts), QCoreApplication.translate("MainWindow", u"Charts", None))
         self.groupBox_10.setTitle(QCoreApplication.translate("MainWindow", u"Generate Report", None))
-        self.pushButton_generate_report.setText(QCoreApplication.translate("MainWindow", u"Generate Report", None))
         self.groupBox_summary.setTitle(QCoreApplication.translate("MainWindow", u"Quick Summary", None))
         self.label_total_income.setText(QCoreApplication.translate("MainWindow", u"Total Income: 0.0\u2080\u20bd", None))
         self.label_total_expenses.setText(QCoreApplication.translate("MainWindow", u"Total Expenses: 0.0\u2080\u20bd", None))
@@ -1742,11 +1741,6 @@ class Ui_MainWindow(object):
 
         self.verticalLayout_19.addWidget(self.listView_report_type)
 
-        self.pushButton_generate_report = QPushButton(self.groupBox_10)
-        self.pushButton_generate_report.setObjectName(u"pushButton_generate_report")
-
-        self.verticalLayout_19.addWidget(self.pushButton_generate_report)
-
 
         self.verticalLayout_7.addWidget(self.groupBox_10)
 
@@ -1984,7 +1978,6 @@ def retranslateUi(self, MainWindow):
         self.label_compare_last.setText(QCoreApplication.translate("MainWindow", u"Number of months:", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_charts), QCoreApplication.translate("MainWindow", u"Charts", None))
         self.groupBox_10.setTitle(QCoreApplication.translate("MainWindow", u"Generate Report", None))
-        self.pushButton_generate_report.setText(QCoreApplication.translate("MainWindow", u"Generate Report", None))
         self.groupBox_summary.setTitle(QCoreApplication.translate("MainWindow", u"Quick Summary", None))
         self.label_total_income.setText(QCoreApplication.translate("MainWindow", u"Total Income: 0.0\u2080\u20bd", None))
         self.label_total_expenses.setText(QCoreApplication.translate("MainWindow", u"Total Expenses: 0.0\u2080\u20bd", None))
@@ -3557,11 +3550,6 @@ def setupUi(self, MainWindow):
         self.listView_report_type.setUniformItemSizes(True)
 
         self.verticalLayout_19.addWidget(self.listView_report_type)
-
-        self.pushButton_generate_report = QPushButton(self.groupBox_10)
-        self.pushButton_generate_report.setObjectName(u"pushButton_generate_report")
-
-        self.verticalLayout_19.addWidget(self.pushButton_generate_report)
 
 
         self.verticalLayout_7.addWidget(self.groupBox_10)
