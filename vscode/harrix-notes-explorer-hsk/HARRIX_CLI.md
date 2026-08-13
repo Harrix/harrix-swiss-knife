@@ -36,6 +36,7 @@ These stay in `extension.js` for a public build:
 
 - Git discard commands (`discardGitChangesInFolder`, `discardGitChangesInNote`) — use `git` directly
 - `addFolderInNote`, `addFileInNote`, `createFolder` — local filesystem only
+- `openIconsBrowse` / Icons Browse webview panel — local filesystem only (`icons-browse.js`)
 - `openMergedNote`, merged `*.g.md` tree rules — file open only (beautify/regenerate is CLI)
 - Note titles, preview copy, drag-and-drop, folder expansion, etc.
 

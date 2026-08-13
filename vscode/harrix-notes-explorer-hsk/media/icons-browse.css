@@ -1,0 +1,204 @@
+:root {
+  color-scheme: light dark;
+  --hne-gap: 12px;
+  --hne-cell-min: 96px;
+  --hne-radius: 8px;
+  --hne-fg: var(--vscode-foreground);
+  --hne-muted: var(--vscode-descriptionForeground);
+  --hne-bg: var(--vscode-editor-background);
+  --hne-hover: var(--vscode-list-hoverBackground);
+  --hne-active: var(--vscode-list-activeSelectionBackground);
+  --hne-border: var(--vscode-panel-border, rgba(128, 128, 128, 0.35));
+  --hne-focus: var(--vscode-focusBorder);
+  --hne-btn-bg: var(--vscode-button-secondaryBackground);
+  --hne-btn-fg: var(--vscode-button-secondaryForeground);
+  --hne-btn-hover: var(--vscode-button-secondaryHoverBackground);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: var(--hne-bg);
+  color: var(--hne-fg);
+  font-family: var(--vscode-font-family);
+  font-size: var(--vscode-font-size);
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+.chrome {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--hne-border);
+  flex-shrink: 0;
+}
+
+.chrome button {
+  appearance: none;
+  border: 1px solid transparent;
+  background: var(--hne-btn-bg);
+  color: var(--hne-btn-fg);
+  border-radius: 4px;
+  padding: 4px 10px;
+  cursor: pointer;
+  font: inherit;
+}
+
+.chrome button:hover:not(:disabled) {
+  background: var(--hne-btn-hover);
+}
+
+.chrome button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.chrome button:focus-visible {
+  outline: 1px solid var(--hne-focus);
+  outline-offset: 1px;
+}
+
+.breadcrumbs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 2px;
+  min-width: 0;
+  flex: 1;
+  line-height: 1.35;
+}
+
+.crumb {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: var(--hne-muted);
+  padding: 2px 4px;
+  border-radius: 4px;
+  cursor: pointer;
+  font: inherit;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.crumb:hover {
+  color: var(--hne-fg);
+  background: var(--hne-hover);
+}
+
+.crumb.current {
+  color: var(--hne-fg);
+  cursor: default;
+  font-weight: 600;
+}
+
+.crumb:focus-visible {
+  outline: 1px solid var(--hne-focus);
+}
+
+.sep {
+  color: var(--hne-muted);
+  opacity: 0.7;
+  user-select: none;
+}
+
+.main {
+  flex: 1;
+  overflow: auto;
+  padding: 16px;
+}
+
+.status {
+  color: var(--hne-muted);
+  padding: 24px 8px;
+  text-align: center;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(var(--hne-cell-min), 1fr));
+  gap: var(--hne-gap);
+  align-content: start;
+}
+
+.cell {
+  appearance: none;
+  border: 1px solid transparent;
+  background: transparent;
+  color: inherit;
+  border-radius: var(--hne-radius);
+  padding: 12px 8px 10px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  min-height: 108px;
+  font: inherit;
+  text-align: center;
+}
+
+.cell:hover {
+  background: var(--hne-hover);
+}
+
+.cell:focus-visible {
+  outline: 1px solid var(--hne-focus);
+  border-color: var(--hne-focus);
+}
+
+.cell:active {
+  background: var(--hne-active);
+}
+
+.glyph {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 36px;
+  line-height: 1;
+  user-select: none;
+}
+
+.glyph svg {
+  width: 40px;
+  height: 40px;
+  display: block;
+}
+
+.label {
+  width: 100%;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  word-break: break-word;
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+.desc {
+  width: 100%;
+  color: var(--hne-muted);
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

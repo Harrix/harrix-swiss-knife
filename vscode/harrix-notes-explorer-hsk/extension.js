@@ -14,6 +14,7 @@ const harrixCli = require('./harrix-cli');
 const { activateNewNote } = require('./new-note');
 /** @hsk-sync:note-meta — title/date resolution (keep synced with pyssg + Android) */
 const noteMeta = require('./note-meta');
+const { activateIconsBrowse, refreshIconsBrowseIfOpen } = require('./icons-browse');
 
 function normalizeFsPath(p) {
   const resolved = path.resolve(String(p));
@@ -1951,6 +1952,65 @@ function hasMarkdownRecursive(dir) {
   return false;
 }
 
+/**
+ * Shared listing rules for the notes tree and Icons Browse panel.
+ * Folders + `.md` only (attachments omitted); collapses `Folder/Folder.md` when alone.
+ *
+ * @param {string} dir
+ * @param {{ templateCountFor?: (folderPath: string) => number }} [opts]
+ * @returns {Array<{ kind: 'folder' | 'note', path: string, name: string }>}
+ */
+function collectNotesDirChildSpecs(dir, opts) {
+  const templateCountFor = opts?.templateCountFor || (() => 0);
+  if (!dir || !fs.existsSync(dir)) {
+    return [];
+  }
+
+  const entries = safeReaddir(dir);
+  const folders = entries
+    .filter((e) => e.isDirectory())
+    .filter(
+      (e) =>
+        hasMarkdownRecursive(path.join(dir, e.name)) ||
+        harrixCli.folderListedWithoutMarkdown(e.name, templateCountFor(path.join(dir, e.name))),
+    );
+
+  const hereName = path.basename(dir);
+  const mdFiles = entries.filter((e) => e.isFile() && isMd(e.name) && !isMergedTemplateGmd(e.name, hereName));
+
+  /** @type {Array<{ kind: 'folder' | 'note', path: string, name: string }>} */
+  const specs = [];
+
+  for (const folder of folders) {
+    const folderPath = path.join(dir, folder.name);
+    const sub = safeReaddir(folderPath);
+    const subVisibleMd = sub.filter((e) => e.isFile() && isMd(e.name) && !isMergedTemplateGmd(e.name, folder.name));
+    const subFolders = sub
+      .filter((e) => e.isDirectory())
+      .filter(
+        (e) =>
+          (!SKIP_MARKDOWN_SCAN_DIR_NAMES.has(e.name.toLowerCase()) &&
+            hasMarkdownRecursive(path.join(folderPath, e.name))) ||
+          harrixCli.isSpecialNotesFolderName(e.name),
+      );
+
+    const sameNameMdPath = path.join(folderPath, `${folder.name}.md`);
+    const hasSameNameMd = fs.existsSync(sameNameMdPath);
+
+    if (hasSameNameMd && subVisibleMd.length === 1 && subFolders.length === 0) {
+      specs.push({ kind: 'note', path: sameNameMdPath, name: folder.name });
+    } else {
+      specs.push({ kind: 'folder', path: folderPath, name: folder.name });
+    }
+  }
+
+  for (const file of mdFiles) {
+    specs.push({ kind: 'note', path: path.join(dir, file.name), name: noteStemFromPath(file.name) });
+  }
+
+  return specs;
+}
+
 // --- TreeDataProvider ---
 
 /**
@@ -2411,54 +2471,14 @@ class NotesProvider {
         ? element.folderDepth
         : 0;
 
-    const entries = safeReaddir(dir);
-
-    // Folders that look like notes trees (have .md here or any non-skipped child folder)
-    const folders = entries
-      .filter((e) => e.isDirectory())
-      .filter(
-        (e) =>
-          hasMarkdownRecursive(path.join(dir, e.name)) ||
-          harrixCli.folderListedWithoutMarkdown(e.name, this.getTemplatesForFolder(path.join(dir, e.name)).length),
-      );
-
-    const hereName = path.basename(dir);
-    // .md in this folder; hide only merged template `_<folder>.g.md`, not other *.g.md
-    const mdFiles = entries.filter((e) => e.isFile() && isMd(e.name) && !isMergedTemplateGmd(e.name, hereName));
-
-    const items = [];
-
-    // --- folders ---
-    for (const folder of folders) {
-      const folderPath = path.join(dir, folder.name);
-      const sub = safeReaddir(folderPath);
-      const subVisibleMd = sub.filter((e) => e.isFile() && isMd(e.name) && !isMergedTemplateGmd(e.name, folder.name));
-      const subFolders = sub
-        .filter((e) => e.isDirectory())
-        .filter(
-          (e) =>
-            (!SKIP_MARKDOWN_SCAN_DIR_NAMES.has(e.name.toLowerCase()) &&
-              hasMarkdownRecursive(path.join(folderPath, e.name))) ||
-            harrixCli.isSpecialNotesFolderName(e.name),
-        );
-
-      const sameNameMdPath = path.join(folderPath, `${folder.name}.md`);
-      const hasSameNameMd = fs.existsSync(sameNameMdPath);
-
-      // Rule: folder + exactly one .md with the same name + no "visible" subfolders
-      // => collapse into a single file
-      if (hasSameNameMd && subVisibleMd.length === 1 && subFolders.length === 0) {
-        items.push(this.createFileItem(sameNameMdPath));
-      } else {
-        items.push(this.createFolderItem(folderPath, folder.name, parentFolderDepth + 1));
-      }
-    }
-
-    // --- .md files ---
-    for (const file of mdFiles) {
-      const filePath = path.join(dir, file.name);
-      items.push(this.createFileItem(filePath));
-    }
+    const specs = collectNotesDirChildSpecs(dir, {
+      templateCountFor: (folderPath) => this.getTemplatesForFolder(folderPath).length,
+    });
+    const items = specs.map((spec) =>
+      spec.kind === 'folder'
+        ? this.createFolderItem(spec.path, spec.name, parentFolderDepth + 1)
+        : this.createFileItem(spec.path),
+    );
 
     const sorted = items.sort((a, b) => this.sortTreeItems(a, b));
     const notePaths = sorted
@@ -2466,6 +2486,69 @@ class NotesProvider {
       .map((item) => item.resourceUri.fsPath);
     this.scheduleNoteTitleResolve(notePaths, dir);
     return sorted;
+  }
+
+  /**
+   * Plain entries for the Icons Browse webview (same rules as the tree folder children).
+   * Pass `null` / `undefined` for the multi-root workspace picker.
+   *
+   * @param {string | null | undefined} dirPath
+   * @returns {Array<{ kind: 'folder' | 'note', path: string, name: string, label: string, iconEmoji: string, description: string }>}
+   */
+  listIconsBrowseEntries(dirPath) {
+    if (dirPath == null || dirPath === '') {
+      return this.rootEntries
+        .map((entry) => ({
+          kind: /** @type {'folder'} */ ('folder'),
+          path: entry.path,
+          name: entry.name,
+          label: entry.name,
+          iconEmoji: '',
+          description: '',
+        }))
+        .sort((a, b) => a.label.localeCompare(b.label, undefined, { numeric: true, sensitivity: 'base' }));
+    }
+
+    const specs = collectNotesDirChildSpecs(dirPath, {
+      templateCountFor: (folderPath) => this.getTemplatesForFolder(folderPath).length,
+    });
+
+    /** @type {Array<{ kind: 'folder' | 'note', path: string, name: string, label: string, iconEmoji: string, description: string }>} */
+    const entries = [];
+    /** @type {string[]} */
+    const notePaths = [];
+
+    for (const spec of specs) {
+      if (spec.kind === 'folder') {
+        entries.push({
+          kind: 'folder',
+          path: spec.path,
+          name: spec.name,
+          label: spec.name,
+          iconEmoji: '',
+          description: '',
+        });
+        continue;
+      }
+
+      notePaths.push(spec.path);
+      if (noteTitleCache.needsResolve(spec.path)) {
+        noteTitleCache.resolveFromDisk(spec.path);
+      }
+      const label = getNoteDisplayLabel(spec.path);
+      const stem = noteStemFromPath(spec.path);
+      entries.push({
+        kind: 'note',
+        path: spec.path,
+        name: stem,
+        label,
+        iconEmoji: noteTitleCache.getIconFast(spec.path) || '',
+        description: label !== stem && getShowNoteFileNameBesideTitle() ? stem : '',
+      });
+    }
+
+    this.scheduleNoteTitleResolve(notePaths, dirPath);
+    return entries.sort((a, b) => a.label.localeCompare(b.label, undefined, { numeric: true, sensitivity: 'base' }));
   }
 
   /**
@@ -3759,6 +3842,14 @@ async function activate(context) {
   const logChannel = vscode.window.createOutputChannel('Harrix Notes Explorer (HSK)');
   context.subscriptions.push(logChannel);
 
+  activateIconsBrowse({
+    context,
+    provider,
+    openNote: async (uri) => {
+      await openHarrixNote(uri, 'primary');
+    },
+  });
+
   context.subscriptions.push(
     vscode.commands.registerCommand('harrixNotesExplorerHsk.openNote', async (treeItemOrUri) => {
       const uri = noteUriFromTreeArg(treeItemOrUri);
@@ -4345,9 +4436,13 @@ async function activate(context) {
 
   // Auto-refresh when .md files change
   const watcher = vscode.workspace.createFileSystemWatcher('**/*.md');
-  watcher.onDidCreate(() => provider.refresh());
-  watcher.onDidDelete(() => provider.refresh());
-  watcher.onDidChange(() => provider.refresh());
+  const refreshTreeAndIconsBrowse = () => {
+    provider.refresh();
+    refreshIconsBrowseIfOpen();
+  };
+  watcher.onDidCreate(refreshTreeAndIconsBrowse);
+  watcher.onDidDelete(refreshTreeAndIconsBrowse);
+  watcher.onDidChange(refreshTreeAndIconsBrowse);
   context.subscriptions.push(watcher);
 
   return registerPreviewCopyMarkdownPlugin();

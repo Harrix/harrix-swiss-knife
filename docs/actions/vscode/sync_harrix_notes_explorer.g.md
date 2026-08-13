@@ -186,7 +186,8 @@ class OnSyncHarrixNotesExplorer(ActionBase):
 
         content = re.sub(
             r"\s*\|\|\s*harrixCli\.folderListedWithoutMarkdown\(\s*e\.name,\s*"
-            r"this\.getTemplatesForFolder\(path\.join\(dir, e\.name\)\)\.length\s*\)",
+            r"(?:this\.getTemplatesForFolder\(path\.join\(dir, e\.name\)\)\.length|"
+            r"templateCountFor\(path\.join\(dir, e\.name\)\))\s*\)",
             "",
             content,
         )
@@ -194,6 +195,13 @@ class OnSyncHarrixNotesExplorer(ActionBase):
         content = re.sub(
             r"\s*\|\|\s*harrixCli\.isSpecialNotesFolderName\(e\.name\)",
             "",
+            content,
+        )
+
+        # Icons Browse / shared listing: after CLI strip, template counts are always 0.
+        content = re.sub(
+            r"templateCountFor:\s*\(folderPath\)\s*=>\s*this\.getTemplatesForFolder\(folderPath\)\.length,",
+            "templateCountFor: () => 0,",
             content,
         )
 
