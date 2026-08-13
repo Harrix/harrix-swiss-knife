@@ -238,7 +238,7 @@ def scan_flat_folder(root: Path) -> IconCatalog:
 
     groups: dict[str, list[Path]] = {}
     for path in files:
-        key = _flat_family_id(path)
+        key = _flat_family_id(path, root)
         groups.setdefault(key, []).append(path)
 
     icons: list[IconFamily] = []
@@ -260,10 +260,11 @@ def scan_flat_folder(root: Path) -> IconCatalog:
                     hash=_file_sha256(member),
                 ),
             )
+        stem = Path(family_id).name
         family = IconFamily(
             id=family_id,
-            title=_title_from_id(family_id),
-            categories=[_category_from_id(family_id)],
+            title=_title_from_id(stem),
+            categories=[_flat_category(folder, stem)],
             tags=[],
             folder=folder,
             featured=featured_rel,
@@ -329,34 +330,39 @@ def _file_sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
-def _flat_family_id(path: Path) -> str:
+def _flat_category(folder: str, stem: str) -> str:
+    if folder:
+        return folder.split("/", 1)[0]
+    return _category_from_id(stem)
+
+
+def _flat_family_id(path: Path, root: Path) -> str:
     stem = path.stem
     if path.suffix.casefold() == ".svg":
-        base = _VARIANT_TOKEN_RE.sub("", stem)
-        return base or stem
-    return stem
+        stem = _VARIANT_TOKEN_RE.sub("", stem) or path.stem
+    rel_parent = str(Path(_relative_to_root(path, root)).parent).replace("\\", "/")
+    if rel_parent in {"", "."}:
+        return stem
+    return f"{rel_parent}/{stem}"
 
 
 def _iter_flat_icon_files(root: Path) -> list[Path]:
-    """Collect icon files in `root` and one level of subfolders."""
+    """Collect supported icon files in `root` and all nested subfolders."""
     result: list[Path] = []
-    try:
-        entries = sorted(root.iterdir(), key=lambda item: item.name.casefold())
-    except OSError:
-        return []
-    for entry in entries:
-        if entry.is_file() and entry.suffix.casefold() in FLAT_ICON_EXTENSIONS:
-            result.append(entry)
-            continue
-        if not entry.is_dir() or entry.name.casefold() in _SKIP_DIR_NAMES:
-            continue
+    stack = [root]
+    while stack:
+        current = stack.pop()
         try:
-            children = sorted(entry.iterdir(), key=lambda item: item.name.casefold())
+            entries = list(current.iterdir())
         except OSError:
             continue
-        result.extend(
-            child for child in children if child.is_file() and child.suffix.casefold() in FLAT_ICON_EXTENSIONS
-        )
+        for entry in entries:
+            if entry.is_dir():
+                if entry.name.casefold() not in _SKIP_DIR_NAMES:
+                    stack.append(entry)
+            elif entry.is_file() and entry.suffix.casefold() in FLAT_ICON_EXTENSIONS:
+                result.append(entry)
+    result.sort(key=lambda item: item.as_posix().casefold())
     return result
 
 

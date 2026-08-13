@@ -473,7 +473,7 @@ def scan_flat_folder(root: Path) -> IconCatalog:
 
     groups: dict[str, list[Path]] = {}
     for path in files:
-        key = _flat_family_id(path)
+        key = _flat_family_id(path, root)
         groups.setdefault(key, []).append(path)
 
     icons: list[IconFamily] = []
@@ -495,10 +495,11 @@ def scan_flat_folder(root: Path) -> IconCatalog:
                     hash=_file_sha256(member),
                 ),
             )
+        stem = Path(family_id).name
         family = IconFamily(
             id=family_id,
-            title=_title_from_id(family_id),
-            categories=[_category_from_id(family_id)],
+            title=_title_from_id(stem),
+            categories=[_flat_category(folder, stem)],
             tags=[],
             folder=folder,
             featured=featured_rel,
