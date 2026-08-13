@@ -225,11 +225,34 @@ function postState() {
   }
   const dirPath = currentDirPath();
   const entries = deps.provider.listIconsBrowseEntries(dirPath);
+  const iconStyle = getNotesIconStyleFromConfig();
+  const folderIcon = panel.webview
+    .asWebviewUri(vscode.Uri.joinPath(deps.context.extensionUri, 'media', 'icons', 'it__folder_01.svg'))
+    .toString();
+  const noteIcon = panel.webview
+    .asWebviewUri(vscode.Uri.joinPath(deps.context.extensionUri, 'media', 'icons', 'it__file-text_01.svg'))
+    .toString();
   void panel.webview.postMessage({
     type: 'state',
     crumbs,
     entries,
+    iconStyle,
+    icons: {
+      folder: folderIcon,
+      note: noteIcon,
+    },
   });
+}
+
+/**
+ * @returns {'harrix' | 'material'}
+ */
+function getNotesIconStyleFromConfig() {
+  const config = vscode.workspace.getConfiguration('harrixNotesExplorerHsk');
+  const raw = String(config.get('iconStyle') || 'harrix')
+    .trim()
+    .toLowerCase();
+  return raw === 'material' ? 'material' : 'harrix';
 }
 
 /**

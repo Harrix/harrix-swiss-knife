@@ -11,6 +11,10 @@
   let crumbs = [];
   /** @type {Array<{ kind: string, path: string, name: string, label: string, iconEmoji: string, description: string }>} */
   let entries = [];
+  /** @type {'harrix' | 'material'} */
+  let iconStyle = 'harrix';
+  /** @type {{ folder: string, note: string }} */
+  let iconUrls = { folder: '', note: '' };
 
   const FOLDER_SVG =
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">' +
@@ -26,6 +30,13 @@
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;');
+  }
+
+  /**
+   * @param {string} src
+   */
+  function imgHtml(src) {
+    return `<img src="${escapeHtml(src)}" alt="" draggable="false" />`;
   }
 
   function renderChrome() {
@@ -57,11 +68,17 @@
 
   function glyphHtml(entry) {
     if (entry.kind === 'folder') {
+      if (iconStyle === 'harrix' && iconUrls.folder) {
+        return imgHtml(iconUrls.folder);
+      }
       return FOLDER_SVG;
     }
     const emoji = String(entry.iconEmoji || '').trim();
     if (emoji) {
       return escapeHtml(emoji);
+    }
+    if (iconStyle === 'harrix' && iconUrls.note) {
+      return imgHtml(iconUrls.note);
     }
     return NOTE_SVG;
   }
@@ -114,6 +131,12 @@
   function applyState(msg) {
     crumbs = Array.isArray(msg.crumbs) ? msg.crumbs : [];
     entries = Array.isArray(msg.entries) ? msg.entries : [];
+    iconStyle = msg.iconStyle === 'material' ? 'material' : 'harrix';
+    const icons = msg.icons && typeof msg.icons === 'object' ? msg.icons : {};
+    iconUrls = {
+      folder: typeof icons.folder === 'string' ? icons.folder : '',
+      note: typeof icons.note === 'string' ? icons.note : '',
+    };
     renderChrome();
     renderGrid();
   }

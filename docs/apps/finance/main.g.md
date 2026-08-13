@@ -5260,7 +5260,6 @@ class MainWindow(
 
         self.pushButton_calculate_fee.setText(f"💰 {self.pushButton_calculate_fee.text()}")
         self.pushButton_rates_refresh.setText(f"🔄 {self.pushButton_rates_refresh.text()}")
-        self.pushButton_update_chart.setText(f"🔄 {self.pushButton_update_chart.text()}")
 
         # Connect double-click signal for exchange table
         self.tableView_exchange.doubleClicked.connect(self._on_exchange_table_double_clicked)

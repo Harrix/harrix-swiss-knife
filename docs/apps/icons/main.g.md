@@ -509,9 +509,9 @@ class MainWindow(QMainWindow, AppWindowMixin):
 
         self._on_refresh_catalog()
         summary = "\n".join(report.summary_lines)
-        detail_lines = [item.message for item in report.results[:40]]
-        if len(report.results) > 40:
-            detail_lines.append(f"… and {len(report.results) - 40} more")
+        detail_lines = [item.message for item in report.results[:ADD_SVGS_RESULT_PREVIEW_LIMIT]]
+        if len(report.results) > ADD_SVGS_RESULT_PREVIEW_LIMIT:
+            detail_lines.append(f"… and {len(report.results) - ADD_SVGS_RESULT_PREVIEW_LIMIT} more")
         detail = "\n".join(detail_lines)
         QMessageBox.information(self, "Vector Icons", f"{summary}\n\n{detail}")
         self.statusBar().showMessage(report.summary_lines[0] if report.summary_lines else "Add SVGs completed")

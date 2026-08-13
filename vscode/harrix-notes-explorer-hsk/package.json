@@ -143,6 +143,19 @@
           "default": true,
           "markdownDescription": "When the tree label is taken from YAML `title:` or a `#` heading and differs from the file name, show the file name (without extension) as a gray description next to the title. Set to `false` to show only the title. Requires `showNoteTitleFromContent`."
         },
+        "harrixNotesExplorerHsk.iconStyle": {
+          "type": "string",
+          "default": "harrix",
+          "enum": [
+            "harrix",
+            "material"
+          ],
+          "enumDescriptions": [
+            "Colored Harrix Vector Icons (same as Harrix Notes Android default: folder + file-text).",
+            "VS Code / Material-style theme icons (previous default look)."
+          ],
+          "markdownDescription": "Icon set for folders and notes in **Harrix Notes (HSK)** tree and **Notes Icons Browse**. Matches Android `NotesIconStyle` (`Harrix` / `Material`). YAML `icon:` emoji on a note still overrides the file icon."
+        },
         "harrixNotesExplorerHsk.openNotesInPreview": {
           "type": "boolean",
           "default": true,

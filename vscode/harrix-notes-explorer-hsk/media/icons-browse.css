@@ -176,10 +176,12 @@ body {
   user-select: none;
 }
 
-.glyph svg {
+.glyph svg,
+.glyph img {
   width: 40px;
   height: 40px;
   display: block;
+  object-fit: contain;
 }
 
 .label {

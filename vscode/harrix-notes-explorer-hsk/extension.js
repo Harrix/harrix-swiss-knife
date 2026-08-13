@@ -455,6 +455,28 @@ function isNoteTreeEmojiIcon(value) {
 }
 
 /**
+ * Folder/note icon set — aligned with Android `NotesIconStyle`.
+ * @returns {'harrix' | 'material'}
+ */
+function getNotesIconStyle() {
+  const config = vscode.workspace.getConfiguration('harrixNotesExplorerHsk');
+  const raw = String(config.get('iconStyle') || 'harrix')
+    .trim()
+    .toLowerCase();
+  return raw === 'material' ? 'material' : 'harrix';
+}
+
+/**
+ * Bundled Harrix Vector Icons (same assets as Harrix Notes Android).
+ * @param {'folder' | 'note'} kind
+ * @returns {vscode.Uri}
+ */
+function harrixIconUri(kind) {
+  const fileName = kind === 'folder' ? 'it__folder_01.svg' : 'it__file-text_01.svg';
+  return vscode.Uri.file(path.join(__dirname, 'media', 'icons', fileName));
+}
+
+/**
  * Build a TreeItem icon from an emoji / short symbol (data-URI SVG).
  * @param {string} emoji
  * @returns {vscode.Uri | undefined}
@@ -2597,6 +2619,8 @@ class NotesProvider {
     if (this.isFolderBusy(folderPath)) {
       item.iconPath = new vscode.ThemeIcon('loading~spin');
       item.description = '…';
+    } else if (getNotesIconStyle() === 'harrix') {
+      item.iconPath = harrixIconUri('folder');
     } else {
       item.iconPath = vscode.ThemeIcon.Folder;
     }
@@ -2632,7 +2656,13 @@ class NotesProvider {
     item.tooltip = tooltipLines.join('\n');
 
     const emojiIcon = noteIconPathFromEmoji(noteTitleCache.getIconFast(filePath));
-    item.iconPath = emojiIcon || new vscode.ThemeIcon('markdown');
+    if (emojiIcon) {
+      item.iconPath = emojiIcon;
+    } else if (getNotesIconStyle() === 'harrix') {
+      item.iconPath = harrixIconUri('note');
+    } else {
+      item.iconPath = new vscode.ThemeIcon('markdown');
+    }
     if (assetsVisible) {
       item.contextValue = 'noteWithAssets';
     } else if (noteDirHasAttachments(noteDir)) {
@@ -3829,9 +3859,11 @@ async function activate(context) {
       if (
         e.affectsConfiguration('harrixNotesExplorerHsk.rememberFolderExpansion') ||
         e.affectsConfiguration('harrixNotesExplorerHsk.showNoteTitleFromContent') ||
-        e.affectsConfiguration('harrixNotesExplorerHsk.showNoteFileNameBesideTitle')
+        e.affectsConfiguration('harrixNotesExplorerHsk.showNoteFileNameBesideTitle') ||
+        e.affectsConfiguration('harrixNotesExplorerHsk.iconStyle')
       ) {
         provider.refresh();
+        refreshIconsBrowseIfOpen();
       }
       if (e.affectsConfiguration('harrixNotesExplorerHsk.autoReveal')) {
         queueAutoReveal();
