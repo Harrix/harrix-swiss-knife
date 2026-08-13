@@ -2317,13 +2317,6 @@
                   </widget>
                  </item>
                  <item>
-                  <widget class="QPushButton" name="pushButton_update_chart">
-                   <property name="text">
-                    <string>Update Chart</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
                   <spacer name="horizontalSpacer_charts">
                    <property name="orientation">
                     <enum>Qt::Orientation::Horizontal</enum>

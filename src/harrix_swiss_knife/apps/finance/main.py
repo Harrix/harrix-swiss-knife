@@ -2065,7 +2065,21 @@ class MainWindow(
         self.pushButton_chart_last_month.clicked.connect(self.set_chart_last_month)
         self.pushButton_chart_last_year.clicked.connect(self.set_chart_last_year)
         self.pushButton_chart_all_time.clicked.connect(self.set_chart_all_time)
-        self.pushButton_update_chart.clicked.connect(self._update_finance_chart)
+
+        # Auto-update chart when parameters change
+        self.radioButton_type_of_chart_balance.toggled.connect(self._update_finance_chart)
+        self.radioButton_expense_and_income.toggled.connect(self._update_finance_chart)
+        self.radioButton_expense_and_income_compare_last_years.toggled.connect(self._update_finance_chart)
+        self.radioButton_type_of_chart_category.toggled.connect(self._update_finance_chart)
+        self.radioButton_type_of_chart_compare_last.toggled.connect(self._update_finance_chart)
+        self.radioButton_type_of_chart_compare_same_months.toggled.connect(self._update_finance_chart)
+        self.radioButton_type_of_chart_compare_last_years.toggled.connect(self._update_finance_chart)
+        self.radioButton_type_of_chart_average_salary.toggled.connect(self._update_finance_chart)
+        self.comboBox_chart_period.currentIndexChanged.connect(self._update_finance_chart)
+        self.dateEdit_chart_from.dateChanged.connect(self._update_finance_chart)
+        self.dateEdit_chart_to.dateChanged.connect(self._update_finance_chart)
+        self.checkBox_chart_show_labels.toggled.connect(self._update_finance_chart)
+        self.spinBox_compare_last.valueChanged.connect(self._update_finance_chart)
 
         self.list_chart_categories.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.list_chart_categories.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
@@ -4600,6 +4614,7 @@ class MainWindow(
             model.appendRow(item)
 
         self.list_chart_categories.setModel(model)
+        model.dataChanged.connect(self._update_finance_chart)
 
     def _populate_form_from_description(self, description: str) -> None:
         """Populate form fields based on description from database.
