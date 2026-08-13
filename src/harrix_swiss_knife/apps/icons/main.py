@@ -62,6 +62,7 @@ from harrix_swiss_knife.apps.icons.catalog import (
     open_icons_folder,
     rebuild_catalog,
 )
+from harrix_swiss_knife.apps.icons.lightbox import IconLightboxDialog
 from harrix_swiss_knife.apps.icons.settings import (
     ICON_SIZE_MAX,
     ICON_SIZE_MIN,
@@ -760,6 +761,17 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._rebuild_folder_menus()
         self.statusBar().showMessage(f"Pinned `{self._repo_root}`")
 
+    def _on_preview_icon(self, svg_path: str, source: DraggableIconList) -> None:
+        """Open the clicked icon in a lightbox using the source list order."""
+        selected = Path(svg_path)
+        paths = source.preview_paths()
+        if selected not in paths:
+            if not selected.is_file():
+                return
+            paths = [selected]
+        dialog = IconLightboxDialog(paths, current_index=paths.index(selected), parent=self)
+        dialog.exec()
+
     def _on_refresh_catalog(self, *, allow_empty: bool = False) -> None:
         if self._repo_root is None:
             self._load_from_config()
@@ -1217,6 +1229,9 @@ class MainWindow(QMainWindow, AppWindowMixin):
         icon_list.reveal_source_requested.connect(self._on_reveal_source)
         icon_list.open_source_requested.connect(self._on_open_source)
         icon_list.delete_requested.connect(self._on_delete_icon)
+        icon_list.preview_requested.connect(
+            lambda path, source=icon_list: self._on_preview_icon(path, source),
+        )
 
 
 def main() -> None:

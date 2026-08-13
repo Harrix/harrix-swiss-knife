@@ -1,0 +1,287 @@
+"""Interactive fullscreen lightbox for Vector Icons."""
+
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+from PySide6.QtCore import QPointF, QRectF, QSize, Qt, Signal
+from PySide6.QtGui import (
+    QGuiApplication,
+    QKeyEvent,
+    QMouseEvent,
+    QPainter,
+    QPaintEvent,
+    QResizeEvent,
+    QWheelEvent,
+)
+from PySide6.QtWidgets import QDialog, QLabel, QPushButton, QWidget
+
+from harrix_swiss_knife import qt_modality
+from harrix_swiss_knife.apps.icons.vector_render import render_icon_to_image
+from harrix_swiss_knife.qt_emoji_icon import CLOSE_BUTTON_EMOJI, create_emoji_icon
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
+    from pathlib import Path
+
+_SCREEN_MARGIN = 32
+_BUTTON_SIZE = 44
+_SIDE_MARGIN = 20
+_ZOOM_STEP = 1.2
+_MIN_ZOOM = 0.25
+_MAX_ZOOM = 8.0
+_MAX_RENDER_SIZE = 4096
+_DRAG_THRESHOLD = 3.0
+
+
+class IconLightboxCanvas(QWidget):
+    """Paint, zoom, and drag one vector icon."""
+
+    backdrop_clicked = Signal()
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        """Initialize canvas state."""
+        super().__init__(parent)
+        self.setMouseTracking(True)
+        self.setCursor(Qt.CursorShape.ArrowCursor)
+        self._path: Path | None = None
+        self._image = None
+        self._zoom = 1.0
+        self._offset = QPointF()
+        self._drag_start: QPointF | None = None
+        self._drag_origin = QPointF()
+        self._did_drag = False
+        self._render_size = 0
+
+    def mouseMoveEvent(self, event: QMouseEvent) -> None:  # noqa: N802
+        """Pan the enlarged icon while dragging."""
+        if self._drag_start is not None:
+            delta = event.position() - self._drag_start
+            if abs(delta.x()) + abs(delta.y()) >= _DRAG_THRESHOLD:
+                self._did_drag = True
+            self._offset = self._drag_origin + delta
+            self.update()
+            event.accept()
+            return
+        super().mouseMoveEvent(event)
+
+    def mousePressEvent(self, event: QMouseEvent) -> None:  # noqa: N802
+        """Start panning when pressing the displayed icon."""
+        if event.button() == Qt.MouseButton.LeftButton and self._image_rect().contains(event.position()):
+            self._drag_start = event.position()
+            self._drag_origin = QPointF(self._offset)
+            self._did_drag = False
+            self.setCursor(Qt.CursorShape.ClosedHandCursor)
+            event.accept()
+            return
+        super().mousePressEvent(event)
+
+    def mouseReleaseEvent(self, event: QMouseEvent) -> None:  # noqa: N802
+        """Finish panning or close after a backdrop click."""
+        if event.button() != Qt.MouseButton.LeftButton:
+            super().mouseReleaseEvent(event)
+            return
+        was_dragging = self._drag_start is not None
+        did_drag = self._did_drag
+        self._drag_start = None
+        self._did_drag = False
+        self.setCursor(Qt.CursorShape.OpenHandCursor if self._zoom > 1.0 else Qt.CursorShape.ArrowCursor)
+        if was_dragging:
+            event.accept()
+            return
+        if not did_drag and not self._image_rect().contains(event.position()):
+            self.backdrop_clicked.emit()
+            event.accept()
+            return
+        super().mouseReleaseEvent(event)
+
+    def paintEvent(self, event: QPaintEvent) -> None:  # noqa: ARG002, N802
+        """Draw the icon over the transparent canvas."""
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing, on=True)
+        painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, on=True)
+        if self._image is not None and not self._image.isNull():
+            painter.drawImage(self._image_rect(), self._image)
+        painter.end()
+
+    def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802
+        """Re-render at the new fitted resolution."""
+        super().resizeEvent(event)
+        self._render()
+
+    def set_path(self, path: Path) -> None:
+        """Load a new icon and reset its viewport."""
+        self._path = path
+        self._zoom = 1.0
+        self._offset = QPointF()
+        self._render_size = 0
+        self._render()
+        self.update()
+
+    def wheelEvent(self, event: QWheelEvent) -> None:  # noqa: N802
+        """Zoom around the mouse pointer."""
+        if event.angleDelta().y() == 0:
+            event.ignore()
+            return
+        factor = _ZOOM_STEP if event.angleDelta().y() > 0 else 1.0 / _ZOOM_STEP
+        self.zoom_by(factor, anchor=event.position())
+        event.accept()
+
+    @property
+    def zoom(self) -> float:
+        """Current zoom factor."""
+        return self._zoom
+
+    def zoom_by(self, factor: float, *, anchor: QPointF | None = None) -> None:
+        """Change zoom while keeping `anchor` fixed on the canvas."""
+        old_zoom = self._zoom
+        new_zoom = max(_MIN_ZOOM, min(_MAX_ZOOM, old_zoom * factor))
+        if new_zoom == old_zoom:
+            return
+        center = QPointF(self.rect().center())
+        pointer = anchor if anchor is not None else center
+        relative = pointer - center - self._offset
+        self._offset = pointer - center - relative * (new_zoom / old_zoom)
+        self._zoom = new_zoom
+        self._render()
+        self.update()
+
+    def _base_side(self) -> float:
+        return max(64.0, min(self.width(), self.height()) - _SCREEN_MARGIN * 2)
+
+    def _image_rect(self) -> QRectF:
+        side = self._base_side() * self._zoom
+        center = QPointF(self.rect().center()) + self._offset
+        return QRectF(center.x() - side / 2, center.y() - side / 2, side, side)
+
+    def _render(self) -> None:
+        if self._path is None or self.width() <= 0 or self.height() <= 0:
+            return
+        size = min(_MAX_RENDER_SIZE, max(64, round(self._base_side() * self._zoom)))
+        if size == self._render_size and self._image is not None:
+            return
+        self._image = render_icon_to_image(self._path, size)
+        self._render_size = size
+
+
+class IconLightboxDialog(QDialog):
+    """Browse icon files with zoom, pan, keyboard navigation, and backdrop close."""
+
+    def __init__(
+        self,
+        paths: Sequence[Path],
+        *,
+        current_index: int = 0,
+        parent: QWidget | None = None,
+    ) -> None:
+        """Build a fullscreen modal lightbox."""
+        super().__init__(parent)
+        self._paths = [path for path in paths if path.is_file()]
+        self._index = max(0, min(current_index, len(self._paths) - 1))
+        qt_modality.set_owner_window_modal(self)
+        self.setWindowFlags(
+            Qt.WindowType.Dialog | Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowStaysOnTopHint
+        )
+        self.setStyleSheet("IconLightboxDialog { background-color: rgba(0, 0, 0, 225); }")
+
+        screen = QGuiApplication.primaryScreen()
+        if screen is not None:
+            self.setGeometry(screen.availableGeometry())
+        else:
+            self.resize(1280, 720)
+
+        self.canvas = IconLightboxCanvas(self)
+        self.canvas.backdrop_clicked.connect(self.accept)
+
+        self._close_button = self._make_button("", "Close")
+        self._close_button.setIcon(create_emoji_icon(CLOSE_BUTTON_EMOJI, 22))
+        self._close_button.clicked.connect(self.accept)
+        self._previous_button = self._make_button("←", "Previous (Left arrow)")
+        self._previous_button.clicked.connect(self.show_previous)
+        self._next_button = self._make_button("→", "Next (Right arrow)")
+        self._next_button.clicked.connect(self.show_next)
+
+        self._caption = QLabel(self)
+        self._caption.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._caption.setStyleSheet(
+            "color: white; background: rgba(20, 20, 20, 180);border-radius: 7px; padding: 6px 12px;"
+        )
+        self._show_current()
+        self._position_controls()
+
+    @property
+    def current_index(self) -> int:
+        """Current path index."""
+        return self._index
+
+    def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
+        """Handle Escape and left/right navigation."""
+        if event.key() == Qt.Key.Key_Escape:
+            self.accept()
+            return
+        if event.key() == Qt.Key.Key_Left:
+            self.show_previous()
+            return
+        if event.key() == Qt.Key.Key_Right:
+            self.show_next()
+            return
+        super().keyPressEvent(event)
+
+    def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802
+        """Keep canvas and overlay controls aligned."""
+        super().resizeEvent(event)
+        self._position_controls()
+
+    def show_next(self) -> None:
+        """Show the next icon, wrapping at the end."""
+        if len(self._paths) > 1:
+            self._index = (self._index + 1) % len(self._paths)
+            self._show_current()
+
+    def show_previous(self) -> None:
+        """Show the previous icon, wrapping at the beginning."""
+        if len(self._paths) > 1:
+            self._index = (self._index - 1) % len(self._paths)
+            self._show_current()
+
+    def _make_button(self, text: str, tooltip: str) -> QPushButton:
+        button = QPushButton(text, self)
+        button.setFixedSize(QSize(_BUTTON_SIZE, _BUTTON_SIZE))
+        button.setCursor(Qt.CursorShape.PointingHandCursor)
+        button.setToolTip(tooltip)
+        button.setStyleSheet(
+            "QPushButton { color: white; font-size: 24px; font-weight: bold;"
+            "background: rgba(40, 40, 40, 210); border: 1px solid rgba(255, 255, 255, 90);"
+            "border-radius: 9px; }"
+            "QPushButton:hover { background: rgba(75, 75, 75, 240); }"
+        )
+        button.raise_()
+        return button
+
+    def _position_controls(self) -> None:
+        self.canvas.setGeometry(self.rect())
+        self._close_button.move(self.width() - _BUTTON_SIZE - _SIDE_MARGIN, _SIDE_MARGIN)
+        center_y = (self.height() - _BUTTON_SIZE) // 2
+        self._previous_button.move(_SIDE_MARGIN, center_y)
+        self._next_button.move(self.width() - _BUTTON_SIZE - _SIDE_MARGIN, center_y)
+        caption_width = min(640, max(240, self.width() - 240))
+        self._caption.setFixedWidth(caption_width)
+        self._caption.adjustSize()
+        self._caption.move((self.width() - caption_width) // 2, self.height() - self._caption.height() - _SIDE_MARGIN)
+        for widget in (self._close_button, self._previous_button, self._next_button, self._caption):
+            widget.raise_()
+
+    def _show_current(self) -> None:
+        if not self._paths:
+            self._caption.setText("No icon to display")
+            self._previous_button.hide()
+            self._next_button.hide()
+            return
+        path = self._paths[self._index]
+        self.setWindowTitle(path.name)
+        self.canvas.set_path(path)
+        self._caption.setText(f"{path.name}  ·  {self._index + 1} / {len(self._paths)}")
+        show_navigation = len(self._paths) > 1
+        self._previous_button.setVisible(show_navigation)
+        self._next_button.setVisible(show_navigation)
+        self._position_controls()

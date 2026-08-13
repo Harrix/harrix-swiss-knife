@@ -226,8 +226,6 @@ class SettingsEditorDialog(QDialog):
                 else:
                     self.categories[cat_name][key] = text
             elif isinstance(widget, QTextEdit):
-                import contextlib
-
                 with contextlib.suppress(json.JSONDecodeError):
                     self.categories[cat_name][key] = json.loads(widget.toPlainText())
 

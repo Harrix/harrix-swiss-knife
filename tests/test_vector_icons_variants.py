@@ -17,6 +17,7 @@ from harrix_swiss_knife.apps.icons.catalog import (
     open_icons_folder,
     rebuild_catalog,
 )
+from harrix_swiss_knife.apps.icons.lightbox import IconLightboxDialog
 from harrix_swiss_knife.apps.icons.trademark_update import TRADEMARK_WARNING, update_trademark_files
 from harrix_swiss_knife.apps.icons.variant_view import GridEntry
 from harrix_swiss_knife.apps.icons.widgets import DraggableIconList, VariantsPanel, placeholder_pixmap
@@ -287,6 +288,26 @@ def test_icon_variant_absolute_path(tmp_path: Path) -> None:
     variant = IconVariant(file="img/building__garage_01.svg", name="building__garage_01", hash="1")
     path = variant.absolute_path(repo, "icons/building__garage")
     assert path.is_file()
+
+
+def test_icon_lightbox_navigates_and_zooms(tmp_path: Path, qapp: QApplication) -> None:  # noqa: ARG001
+    first = tmp_path / "first.svg"
+    second = tmp_path / "second.svg"
+    _write_svg(first)
+    _write_svg(second)
+
+    dialog = IconLightboxDialog([first, second], current_index=1)
+    dialog.resize(800, 600)
+    assert dialog.current_index == 1
+    assert dialog.canvas.zoom == 1.0
+
+    dialog.show_next()
+    assert dialog.current_index == 0
+    dialog.show_previous()
+    assert dialog.current_index == 1
+    dialog.canvas.zoom_by(2.0)
+    assert dialog.canvas.zoom == 2.0
+    dialog.close()
 
 
 def test_delete_note_family_removes_folder_and_catalog_entry(tmp_path: Path) -> None:

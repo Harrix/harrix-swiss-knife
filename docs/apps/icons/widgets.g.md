@@ -13,6 +13,7 @@ lang: en
 
 - [🏛️ Class `DraggableIconList`](#%EF%B8%8F-class-draggableiconlist)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
+  - [⚙️ Method `preview_paths`](#%EF%B8%8F-method-preview_paths)
   - [⚙️ Method `set_display_icon_size`](#%EF%B8%8F-method-set_display_icon_size)
   - [⚙️ Method `set_family_items`](#%EF%B8%8F-method-set_family_items)
   - [⚙️ Method `set_grid_entries`](#%EF%B8%8F-method-set_grid_entries)
@@ -56,6 +57,7 @@ class DraggableIconList(QListWidget):
     set_category_icon_requested = Signal(object)  # IconFamily
     delete_requested = Signal(object)  # IconFamily
     toggle_trademark_requested = Signal(object)  # IconFamily
+    preview_requested = Signal(str)
 
     def __init__(
         self,
@@ -85,11 +87,26 @@ class DraggableIconList(QListWidget):
         self.setDragDropMode(QListWidget.DragDropMode.DragOnly)
         self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.customContextMenuRequested.connect(self._on_context_menu)
+        self.itemDoubleClicked.connect(self._on_item_double_clicked)
         if dual_line_labels:
             self.setItemDelegate(IconLabelDelegate(self))
         if emit_family_selection:
             self.itemPressed.connect(self._emit_family_from_item)
             self.currentItemChanged.connect(self._on_current_item_changed)
+
+    def preview_paths(self) -> list[Path]:
+        """Return all existing icon paths in display order."""
+        paths: list[Path] = []
+        for index in range(self.count()):
+            item = self.item(index)
+            if item is None:
+                continue
+            raw = item.data(ROLE_SVG_PATH)
+            if isinstance(raw, str) and raw:
+                path = Path(raw)
+                if path.is_file():
+                    paths.append(path)
+        return paths
 
     def set_display_icon_size(self, icon_size: int) -> None:
         """Update icon and grid sizes used by the list."""
@@ -280,6 +297,11 @@ class DraggableIconList(QListWidget):
         _previous: QListWidgetItem | None,
     ) -> None:
         self._emit_family_from_item(current)
+
+    def _on_item_double_clicked(self, item: QListWidgetItem) -> None:
+        path = item.data(ROLE_SVG_PATH)
+        if isinstance(path, str) and path and Path(path).is_file():
+            self.preview_requested.emit(path)
 ```
 
 </details>
@@ -323,11 +345,40 @@ def __init__(
         self.setDragDropMode(QListWidget.DragDropMode.DragOnly)
         self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.customContextMenuRequested.connect(self._on_context_menu)
+        self.itemDoubleClicked.connect(self._on_item_double_clicked)
         if dual_line_labels:
             self.setItemDelegate(IconLabelDelegate(self))
         if emit_family_selection:
             self.itemPressed.connect(self._emit_family_from_item)
             self.currentItemChanged.connect(self._on_current_item_changed)
+```
+
+</details>
+
+### ⚙️ Method `preview_paths`
+
+```python
+def preview_paths(self) -> list[Path]
+```
+
+Return all existing icon paths in display order.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def preview_paths(self) -> list[Path]:
+        paths: list[Path] = []
+        for index in range(self.count()):
+            item = self.item(index)
+            if item is None:
+                continue
+            raw = item.data(ROLE_SVG_PATH)
+            if isinstance(raw, str) and raw:
+                path = Path(raw)
+                if path.is_file():
+                    paths.append(path)
+        return paths
 ```
 
 </details>
