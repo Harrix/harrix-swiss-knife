@@ -32,6 +32,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.AlertDialog
@@ -159,6 +160,15 @@ fun SpeechToTextScreen(
                 pendingOpenAutoStart = false
                 viewModel.errorMessage.value =
                     context.getString(R.string.speech_to_text_permission_denied)
+            }
+        }
+
+    val saveAudioLauncher =
+        rememberLauncherForActivityResult(
+            ActivityResultContracts.CreateDocument(AudioRecorder.MIME_WAV),
+        ) { uri ->
+            if (uri != null) {
+                viewModel.saveCurrentRecording(uri)
             }
         }
 
@@ -314,6 +324,9 @@ fun SpeechToTextScreen(
                         onContinue = { startOrRequestMic(MicAction.Continue) },
                         onRerecord = { startOrRequestMic(MicAction.Rerecord) },
                         onRecognize = { viewModel.recognizeRecording() },
+                        onSave = {
+                            saveAudioLauncher.launch(viewModel.suggestedAudioFileName())
+                        },
                         onDiscard = { leave() },
                     )
                 }
@@ -508,6 +521,7 @@ private fun RecordedContent(
     onContinue: () -> Unit,
     onRerecord: () -> Unit,
     onRecognize: () -> Unit,
+    onSave: () -> Unit,
     onDiscard: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -555,6 +569,18 @@ private fun RecordedContent(
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Text(stringResource(R.string.speech_to_text_recognize))
+                }
+                OutlinedButton(
+                    onClick = onSave,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Save,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp),
+                    )
+                    Spacer(modifier = Modifier.size(8.dp))
+                    Text(stringResource(R.string.speech_to_text_save_audio))
                 }
                 Row(
                     modifier = Modifier.fillMaxWidth(),

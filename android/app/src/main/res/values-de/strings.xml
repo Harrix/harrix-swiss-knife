@@ -178,6 +178,9 @@
     <string name="speech_to_text_rerecord">Re-record</string>
     <string name="speech_to_text_recognize">Recognize</string>
     <string name="speech_to_text_discard_recording">Discard</string>
+    <string name="speech_to_text_save_audio">Audio speichern</string>
+    <string name="speech_to_text_audio_saved">Audio gespeichert</string>
+    <string name="speech_to_text_save_audio_failed">Audio konnte nicht gespeichert werden</string>
     <string name="speech_to_text_recognizing">Recognizing speech…</string>
     <string name="speech_to_text_fixing">Fixing text…</string>
     <string name="speech_to_text_rewriting">Rewriting text…</string>

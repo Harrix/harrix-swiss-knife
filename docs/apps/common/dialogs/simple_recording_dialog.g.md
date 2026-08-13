@@ -27,7 +27,7 @@ lang: en
 class SimpleRecordingDialog(QDialog)
 ```
 
-Modal dialog that starts recording on open; waveform, mic picker, Stop, and Cancel.
+Modal dialog that records audio and lets the user save or recognize it.
 
 <details>
 <summary>Code:</summary>
@@ -40,7 +40,7 @@ class SimpleRecordingDialog(QDialog):
         super().__init__(parent)
         self._audio_path = ""
         self._auto_start_scheduled = False
-        self._accept_pending = False
+        self._finalize_pending = False
         self._status_label = QLabel("")
         self._recorder = MicrophoneRecorder(self)
         self._recorder.envelope_ready.connect(self._on_envelope_ready)
@@ -62,7 +62,7 @@ class SimpleRecordingDialog(QDialog):
 
     def reject(self) -> None:
         """Cancel dialog and discard an active recording."""
-        self._accept_pending = False
+        self._finalize_pending = False
         self.release_multimedia()
         super().reject()
 
@@ -88,7 +88,7 @@ class SimpleRecordingDialog(QDialog):
 
     def _on_microphone_changed(self, _index: int) -> None:
         """Persist mic choice; discard current capture and start a fresh recording."""
-        if self._accept_pending:
+        if self._finalize_pending:
             return
 
         device = self._current_input_device()
@@ -101,38 +101,81 @@ class SimpleRecordingDialog(QDialog):
         self._audio_path = ""
         self._recorder.clear()
         self._level_widget.clear()
+        self._save_button.setVisible(False)
+        self._recognize_button.setVisible(False)
         self._status_label.clear()
         self._status_label.setVisible(False)
         self._start_recording_with_current_device()
 
+    def _on_recognize_clicked(self) -> None:
+        if not self._audio_path:
+            return
+        self.release_multimedia()
+        self.accept()
+
     def _on_recording_finalized(self, result: object) -> None:
         if not isinstance(result, FinalizeResult):
             return
-        self._update_stop_button()
         if not result.success:
-            self._accept_pending = False
+            self._finalize_pending = False
+            self._update_stop_button()
             self._status_label.setText(result.message or "Recording stopped")
             self._status_label.setVisible(True)
             self._level_widget.clear()
             self._stop_button.setEnabled(False)
             return
 
+        self._finalize_pending = False
+        self._update_stop_button()
         self._audio_path = result.recorded_path
         if result.normalized_pcm:
             self._level_widget.show_overview(result.normalized_pcm)
-        if self._accept_pending:
-            self._accept_pending = False
-            self.release_multimedia()
-            self.accept()
+        self._status_label.setText("Recording ready")
+        self._status_label.setVisible(True)
+        self._save_button.setVisible(True)
+        self._save_button.setEnabled(True)
+        self._recognize_button.setVisible(True)
+        self._recognize_button.setEnabled(True)
 
     def _on_recording_started(self) -> None:
         self._status_label.clear()
         self._status_label.setVisible(False)
+        self._save_button.setVisible(False)
+        self._recognize_button.setVisible(False)
         self._level_widget.begin_live()
         self._update_stop_button()
 
     def _on_recording_stopped(self) -> None:
         self._update_stop_button()
+
+    def _on_save_clicked(self) -> None:
+        source = Path(self._audio_path)
+        if not source.is_file():
+            return
+        suffix = source.suffix.lower()
+        filters = {
+            ".m4a": "M4A Audio (*.m4a);;All Files (*)",
+            ".wav": "WAV Audio (*.wav);;All Files (*)",
+        }
+        destination, _selected_filter = QFileDialog.getSaveFileName(
+            self,
+            "Save audio",
+            source.name,
+            filters.get(suffix, "Audio Files (*);;All Files (*)"),
+        )
+        if not destination:
+            return
+        destination_path = Path(destination)
+        if not destination_path.suffix:
+            destination_path = destination_path.with_suffix(suffix)
+        try:
+            if source.resolve() != destination_path.resolve():
+                shutil.copy2(source, destination_path)
+        except OSError as exc:
+            message_box.critical(self, "Save Audio", f"Could not save audio:\n{exc}")
+            return
+        self._status_label.setText(f"Saved to {destination_path}")
+        self._status_label.setVisible(True)
 
     def _on_start_failed(self, message: str) -> None:
         self._status_label.setText(message)
@@ -143,7 +186,7 @@ class SimpleRecordingDialog(QDialog):
     def _on_stop_clicked(self) -> None:
         if not self._recorder.is_recording:
             return
-        self._accept_pending = True
+        self._finalize_pending = True
         self._stop_button.setEnabled(False)
         self._microphone_combo.setEnabled(False)
         self._recorder.stop()
@@ -234,10 +277,20 @@ class SimpleRecordingDialog(QDialog):
         cancel_button.clicked.connect(self.reject)
         controls.addWidget(cancel_button, alignment=Qt.AlignmentFlag.AlignBottom)
 
+        self._save_button = make_emoji_push_button("Save audio", SAVE_BUTTON_EMOJI)
+        self._save_button.clicked.connect(self._on_save_clicked)
+        self._save_button.setVisible(False)
+        controls.addWidget(self._save_button, alignment=Qt.AlignmentFlag.AlignBottom)
+
+        self._recognize_button = make_emoji_push_button("Recognize", "🤖")
+        self._recognize_button.clicked.connect(self._on_recognize_clicked)
+        self._recognize_button.setVisible(False)
+        controls.addWidget(self._recognize_button, alignment=Qt.AlignmentFlag.AlignBottom)
+
         layout.addLayout(controls)
 
     def _start_recording_with_current_device(self) -> None:
-        if self._accept_pending:
+        if self._finalize_pending:
             return
         if self._recorder.is_recording:
             return
@@ -258,10 +311,10 @@ class SimpleRecordingDialog(QDialog):
 
     def _update_stop_button(self) -> None:
         recording = self._recorder.is_recording
-        self._stop_button.set_recording(recording=recording or self._accept_pending)
+        self._stop_button.set_recording(recording=recording or self._finalize_pending)
         self._stop_button.setEnabled(recording)
         self._stop_caption.setEnabled(recording)
-        if not self._accept_pending:
+        if not self._finalize_pending:
             self._microphone_combo.setEnabled(
                 self._microphone_combo.count() > 0 and self._current_input_device() is not None
             )
@@ -285,7 +338,7 @@ def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self._audio_path = ""
         self._auto_start_scheduled = False
-        self._accept_pending = False
+        self._finalize_pending = False
         self._status_label = QLabel("")
         self._recorder = MicrophoneRecorder(self)
         self._recorder.envelope_ready.connect(self._on_envelope_ready)
@@ -349,7 +402,7 @@ Cancel dialog and discard an active recording.
 
 ```python
 def reject(self) -> None:
-        self._accept_pending = False
+        self._finalize_pending = False
         self.release_multimedia()
         super().reject()
 ```

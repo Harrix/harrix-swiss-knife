@@ -325,6 +325,8 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._pinned_menu = file_menu.addMenu("📌 Pinned folders")
         self._recent_menu = file_menu.addMenu("🕒 Recent folders")
         file_menu.addSeparator()
+        add_svgs_action = file_menu.addAction("📥 Add SVGs…")
+        add_svgs_action.triggered.connect(self._on_add_svgs)
         refresh_action = file_menu.addAction("🔄 Refresh catalog")
         refresh_action.triggered.connect(self._on_refresh_catalog)
         open_cache_action = file_menu.addAction("📂 Open thumbs cache")
@@ -434,6 +436,85 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self.statusBar().showMessage("No icon folder configured")
         self._sync_folder_combo()
         self._rebuild_folder_menus()
+
+    def _on_add_svgs(self) -> None:
+        """Import SVGs from a folder into note folders of the open icons repo."""
+        if self._repo_root is None:
+            QMessageBox.warning(self, "Vector Icons", "No icons folder is open.")
+            return
+        if self._catalog is not None and self._catalog.kind == "flat":
+            QMessageBox.warning(
+                self,
+                "Vector Icons",
+                "Add SVGs works only with a note-folder icons repository.",
+            )
+            return
+        if not is_note_icons_repo(self._repo_root):
+            QMessageBox.warning(
+                self,
+                "Vector Icons",
+                "Current folder is not a Vector Icons note repository.",
+            )
+            return
+
+        start = str(self._repo_root.parent if self._repo_root.parent.is_dir() else self._repo_root)
+        chosen = QFileDialog.getExistingDirectory(self, "Select folder with new SVG files", start)
+        if not chosen:
+            return
+        source_dir = Path(chosen)
+        sources = discover_source_svgs(source_dir)
+        if not sources:
+            QMessageBox.information(self, "Vector Icons", f"No SVG files found in:\n{source_dir}")
+            return
+
+        jobs = build_jobs(sources, repo_root=self._repo_root)
+        collisions = jobs_with_content_collisions(jobs)
+        policy: CollisionPolicy = "rename"
+        if collisions:
+            box = QMessageBox(self)
+            box.setWindowTitle("SVG name collisions")
+            box.setIcon(QMessageBox.Icon.Question)
+            box.setText(
+                f"{len(collisions)} file(s) already exist with different content.\nHow should collisions be handled?"
+            )
+            rename_btn = box.addButton("Add as new variant", QMessageBox.ButtonRole.AcceptRole)
+            replace_btn = box.addButton("Replace existing", QMessageBox.ButtonRole.DestructiveRole)
+            skip_btn = box.addButton("Skip collisions", QMessageBox.ButtonRole.ActionRole)
+            box.addButton(QMessageBox.StandardButton.Cancel)
+            box.exec()
+            clicked = box.clickedButton()
+            if clicked is None or clicked == box.button(QMessageBox.StandardButton.Cancel):
+                return
+            if clicked is replace_btn:
+                policy = "replace"
+            elif clicked is skip_btn:
+                policy = "skip"
+            elif clicked is rename_btn:
+                policy = "rename"
+            else:
+                return
+
+        self.statusBar().showMessage(f"Adding {len(sources)} SVG(s)…")
+        QApplication.processEvents()
+        try:
+            report = add_svgs_to_repo(
+                source_dir,
+                repo_root=self._repo_root,
+                collision_policy=policy,
+                rebuild=False,
+            )
+        except (OSError, ValueError, RuntimeError) as exc:
+            QMessageBox.critical(self, "Vector Icons", f"Failed to add SVGs:\n{exc}")
+            return
+
+        self._on_refresh_catalog()
+        summary = "\n".join(report.summary_lines)
+        detail_lines = [item.message for item in report.results[:40]]
+        if len(report.results) > 40:
+            detail_lines.append(f"… and {len(report.results) - 40} more")
+        detail = "\n".join(detail_lines)
+        QMessageBox.information(self, "Vector Icons", f"{summary}\n\n{detail}")
+        self.statusBar().showMessage(report.summary_lines[0] if report.summary_lines else "Add SVGs completed")
 
     def _on_cache_statistics(self) -> None:
         stats = self._thumb_cache.stats(self._catalog)

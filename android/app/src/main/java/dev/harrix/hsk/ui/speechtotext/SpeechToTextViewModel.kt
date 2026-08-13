@@ -1,6 +1,7 @@
 package dev.harrix.hsk.ui.speechtotext
 
 import android.app.Application
+import android.net.Uri
 import android.os.Handler
 import android.os.Looper
 import androidx.compose.runtime.mutableFloatStateOf
@@ -8,6 +9,7 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import dev.harrix.hsk.R
 import dev.harrix.hsk.bothub.BothubConfig
 import dev.harrix.hsk.speechtotext.AudioRecorder
 import dev.harrix.hsk.speechtotext.AudioRecorderException
@@ -22,6 +24,8 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 
 enum class SpeechToTextPhase {
     Idle,
@@ -197,6 +201,39 @@ class SpeechToTextViewModel(
         waveformBuckets.clear()
         errorMessage.value = null
         processRecording(pending.file, pending.mimeType)
+    }
+
+    fun suggestedAudioFileName(): String = "hsk-speech-${LocalDateTime.now().format(AUDIO_FILE_TIMESTAMP)}.wav"
+
+    fun saveCurrentRecording(destination: Uri) {
+        val source =
+            recordedFile?.takeIf { it.isFile }
+                ?: pendingStore.load()?.file?.takeIf { it.isFile }
+        if (source == null) {
+            errorMessage.value =
+                getApplication<Application>().getString(R.string.speech_to_text_save_audio_failed)
+            return
+        }
+        viewModelScope.launch {
+            val result =
+                withContext(Dispatchers.IO) {
+                    runCatching {
+                        val resolver = getApplication<Application>().contentResolver
+                        resolver.openOutputStream(destination, "wt")?.use { output ->
+                            source.inputStream().use { input -> input.copyTo(output) }
+                        } ?: error("Could not open destination")
+                    }
+                }
+            result
+                .onSuccess {
+                    infoMessage.value =
+                        getApplication<Application>().getString(R.string.speech_to_text_audio_saved)
+                }.onFailure {
+                    errorMessage.value =
+                        getApplication<Application>()
+                            .getString(R.string.speech_to_text_save_audio_failed)
+                }
+        }
     }
 
     fun cancelRecording() {
@@ -396,5 +433,9 @@ class SpeechToTextViewModel(
         audioRecorder.setEnvelopeListener(null)
         resetSession()
         super.onCleared()
+    }
+
+    private companion object {
+        val AUDIO_FILE_TIMESTAMP: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss")
     }
 }

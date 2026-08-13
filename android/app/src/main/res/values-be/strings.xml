@@ -178,6 +178,9 @@
     <string name="speech_to_text_rerecord">Перазапісаць</string>
     <string name="speech_to_text_recognize">Распазнаць</string>
     <string name="speech_to_text_discard_recording">Скасаваць</string>
+    <string name="speech_to_text_save_audio">Захаваць аўдыя</string>
+    <string name="speech_to_text_audio_saved">Аўдыя захавана</string>
+    <string name="speech_to_text_save_audio_failed">Не ўдалося захаваць аўдыя</string>
     <string name="speech_to_text_recognizing">Recognizing speech…</string>
     <string name="speech_to_text_fixing">Fixing text…</string>
     <string name="speech_to_text_rewriting">Rewriting text…</string>
