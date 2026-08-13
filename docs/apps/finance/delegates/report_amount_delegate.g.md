@@ -71,9 +71,13 @@ class ReportAmountDelegate(QStyledItemDelegate):
             if is_negative:
                 text = text[1:]
 
-            # Try to parse as float
+            # Try to parse as float, handling optional currency suffix
+            parts = text.split(" ", 1)
+            num_str = parts[0]
+            suffix = f" {parts[1]}" if len(parts) > 1 else ""
+
             try:
-                num = float(text)
+                num = float(num_str)
             except (ValueError, TypeError):
                 return str(value)  # Return original if can't parse
 
@@ -115,6 +119,9 @@ class ReportAmountDelegate(QStyledItemDelegate):
             # Add minus sign back if needed
             if is_negative:
                 formatted = "-" + formatted
+
+            # Add the suffix back
+            formatted += suffix
         except Exception:
             logger.exception("Error while formatting amount")
             return str(value)
@@ -208,9 +215,13 @@ def displayText(self, value: object, _locale: QLocale | QLocale.Language) -> str
             if is_negative:
                 text = text[1:]
 
-            # Try to parse as float
+            # Try to parse as float, handling optional currency suffix
+            parts = text.split(" ", 1)
+            num_str = parts[0]
+            suffix = f" {parts[1]}" if len(parts) > 1 else ""
+
             try:
-                num = float(text)
+                num = float(num_str)
             except (ValueError, TypeError):
                 return str(value)  # Return original if can't parse
 
@@ -252,6 +263,9 @@ def displayText(self, value: object, _locale: QLocale | QLocale.Language) -> str
             # Add minus sign back if needed
             if is_negative:
                 formatted = "-" + formatted
+
+            # Add the suffix back
+            formatted += suffix
         except Exception:
             logger.exception("Error while formatting amount")
             return str(value)
