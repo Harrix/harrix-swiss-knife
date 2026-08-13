@@ -54,6 +54,37 @@ def test_hide_app_windows_keeps_modal_dialog_exec_alive(qapp: QApplication) -> N
     dialog.close()
 
 
+def test_hide_app_windows_fades_window_modal_owner_not_hide(qapp: QApplication) -> None:  # noqa: ARG001
+    """Owner of a WindowModal dialog must not use hide()/show() (breaks Z-order)."""
+    owner = QWidget()
+    owner.setWindowTitle("owner-window")
+    owner.show()
+    dialog = QDialog(owner)
+    dialog.setWindowModality(Qt.WindowModality.WindowModal)
+    dialog.show()
+    QApplication.processEvents()
+
+    concealed = hide_app_windows()
+    owner_item = next(item for item in concealed if item.widget is owner)
+    dialog_item = next(item for item in concealed if item.widget is dialog)
+    assert owner_item.mode == "opacity"
+    assert dialog_item.mode == "opacity"
+    assert owner.isVisible()
+    assert dialog.isVisible()
+    assert owner.windowOpacity() == 0.0
+    assert dialog.windowOpacity() == 0.0
+
+    restore_app_windows(concealed)
+    assert owner.windowOpacity() == 1.0
+    assert dialog.windowOpacity() == 1.0
+    assert dialog.windowModality() == Qt.WindowModality.WindowModal
+    assert dialog.isModal()
+    assert dialog.isActiveWindow() or dialog.isVisible()
+
+    dialog.close()
+    owner.close()
+
+
 def test_hide_app_windows_hides_non_modal_top_level(qapp: QApplication) -> None:  # noqa: ARG001
     window = QWidget()
     window.setWindowTitle("non-modal-test")
