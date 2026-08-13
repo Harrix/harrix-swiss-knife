@@ -146,7 +146,7 @@ def test_item_pressed_emits_family_with_variants(qapp: QApplication, tmp_path: P
     assert received[-1].variants[0].file == "img/building__garage_01.svg"
 
 
-def test_rebuild_catalog_title_from_h1_not_yaml(tmp_path: Path) -> None:
+def test_rebuild_catalog_title_prefers_yaml_then_h1(tmp_path: Path) -> None:
     repo = tmp_path / "repo"
     note = repo / "icons" / "clothes__suit"
     _write_svg(note / "featured-image.svg")
@@ -155,8 +155,32 @@ def test_rebuild_catalog_title_from_h1_not_yaml(tmp_path: Path) -> None:
         encoding="utf-8",
     )
     catalog = rebuild_catalog(repo)
-    assert catalog.icons[0].title == "Suit"
+    assert catalog.icons[0].title == "Yaml Title"
     assert catalog.icons[0].date == "2020-07-19"
+
+
+def test_rebuild_catalog_title_from_h1(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    note = repo / "icons" / "clothes__suit"
+    _write_svg(note / "featured-image.svg")
+    (note / "clothes__suit.md").write_text(
+        "---\ndate: 2020-07-19\ncategories: [clothes]\ntags: [suit]\n---\n\n# Suit\n",
+        encoding="utf-8",
+    )
+    catalog = rebuild_catalog(repo)
+    assert catalog.icons[0].title == "Suit"
+
+
+def test_rebuild_catalog_title_from_id(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    note = repo / "icons" / "clothes__suit"
+    _write_svg(note / "featured-image.svg")
+    (note / "clothes__suit.md").write_text(
+        "---\ndate: 2020-07-19\ncategories: [clothes]\ntags: [suit]\n---\n\nNo heading.\n",
+        encoding="utf-8",
+    )
+    catalog = rebuild_catalog(repo)
+    assert catalog.icons[0].title == "Suit"
 
 
 def test_icon_variant_absolute_path(tmp_path: Path) -> None:

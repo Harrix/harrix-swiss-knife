@@ -2,10 +2,10 @@
  * Resolve note title and date from Markdown metadata.
  *
  * @hsk-sync:note-meta — keep behavior aligned with:
- * - `harrix-pyssg` `note_meta.py`
+ * - `harrix_pylib.note_meta`
  * - `harrix-notes-android` `NoteMetaResolver` / `NoteTitleExtractor`
  *
- * Title priority: YAML `title` → first `#` heading → file stem.
+ * Title priority: YAML `title` → first `#` heading → `titleFromId(fileStem)`.
  * Date priority: date in file name → YAML `date` → file ctime → file mtime.
  */
 
@@ -133,6 +133,39 @@ function extractTitleFromMarkdown(mdText) {
 }
 
 /**
+ * @param {string} fileStem
+ * @returns {string}
+ */
+function titleFromId(fileStem) {
+  const stem = String(fileStem ?? '').trim();
+  if (!stem) {
+    return '';
+  }
+  const sep = stem.indexOf('__');
+  const slug = sep === -1 ? stem : stem.slice(sep + 2);
+  return pythonTitle(slug.replace(/-/g, ' ').replace(/_/g, ' '));
+}
+
+/**
+ * @param {string} text
+ * @returns {string}
+ */
+function pythonTitle(text) {
+  let out = '';
+  let cap = true;
+  for (const ch of text) {
+    if (/\p{L}/u.test(ch)) {
+      out += cap ? ch.toUpperCase() : ch.toLowerCase();
+      cap = false;
+    } else {
+      out += ch;
+      cap = true;
+    }
+  }
+  return out;
+}
+
+/**
  * @param {string} mdText
  * @param {{ fileStem?: string }} [opts]
  * @returns {string}
@@ -142,8 +175,8 @@ function resolveNoteTitle(mdText, opts = {}) {
   if (fromContent) {
     return fromContent;
   }
-  const stem = String(opts.fileStem ?? '').trim();
-  return stem || 'Untitled';
+  const human = titleFromId(opts.fileStem ?? '');
+  return human || 'Untitled';
 }
 
 /**
@@ -383,6 +416,7 @@ function extractNoteMetaFromMarkdown(text) {
 module.exports = {
   noteStemFromName,
   extractTitleFromMarkdown,
+  titleFromId,
   resolveNoteTitle,
   parseDateFromFileName,
   parseDateFromYaml,

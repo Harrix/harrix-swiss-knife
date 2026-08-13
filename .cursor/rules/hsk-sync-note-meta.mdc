@@ -1,5 +1,5 @@
 ---
-description: Keep @hsk-sync:note-meta title/date resolvers aligned across pyssg, VS Code, and Android
+description: Keep @hsk-sync:note-meta title/date resolvers aligned across pylib, VS Code, and Android
 globs: vscode/harrix-notes-explorer-hsk/note-meta.js,vscode/harrix-notes-explorer-hsk/extension.js
 alwaysApply: false
 ---
@@ -14,7 +14,8 @@ If priority, parsing rules, or date formats change in any implementation, update
 
 | Block | Path |
 |-------|------|
-| Python (pyssg) | `D:\GitHub\harrix-pyssg\src\harrix_pyssg\note_meta.py` (+ `Article.generate_html` title) |
+| Python (pylib, source of truth) | `D:\GitHub\harrix-pylib\src\harrix_pylib\note_meta.py` |
+| Python (pyssg re-export) | `D:\GitHub\harrix-pyssg\src\harrix_pyssg\note_meta.py` |
 | VS Code (JS) | `vscode/harrix-notes-explorer-hsk/note-meta.js` (+ `extension.js` `NoteTitleCache`) |
 | Android (Kotlin) | `D:\GitHub\harrix-notes-android` — `NoteMetaResolver.kt`, `NoteTitleExtractor.kt`, list date captions |
 
@@ -24,7 +25,8 @@ If priority, parsing rules, or date formats change in any implementation, update
 
 1. YAML frontmatter `title:` (quoted/unquoted scalar).
 2. Else first Markdown `#` heading (skip fenced code and HTML comment lines).
-3. Else file stem (`.md` / `.g.md` stripped).
+3. Else `title_from_id` / `titleFromId` (part after first `__`, `-`/`_` → spaces, title case).
+4. Else `Untitled`.
 
 ### Date (`resolve_note_date` / `resolveDate`)
 
@@ -38,7 +40,7 @@ Return both the calendar date and a source tag (`filename` / `yaml` / `file_ctim
 ## Change checklist
 
 - Keep regexes / priority identical across Python, JS, and Kotlin.
-- Update unit tests in `harrix-pyssg/tests/test_note_meta.py` when behavior changes.
+- Update unit tests in `harrix-pylib/tests/test_note_meta.py` when behavior changes.
 - After VS Code changes, run `hsk vscode format` / `hsk vscode check` / sync notes explorer.
 - After Android changes, run `hsk android format` / `hsk android check` in that repo.
-- After pyssg changes, run linked `hsk py ruff-sort-docs` + `hsk py check` on swiss-knife, pylib, and pyssg.
+- After Python changes, run linked `hsk py ruff-sort-docs` + `hsk py check` on swiss-knife, pylib, and pyssg.
