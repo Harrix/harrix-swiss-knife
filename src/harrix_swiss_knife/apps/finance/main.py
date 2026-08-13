@@ -5285,6 +5285,7 @@ class MainWindow(
         self._place_menu_bar_on_tab_row()
         self._setup_status_bar()
         self._apply_exit_about_menu_emojis()
+        self._setup_report_type_list()
 
         # Set emoji for buttons
         self.pushButton_yesterday.setText(f"📅 {self.pushButton_yesterday.text()}")

@@ -16,7 +16,7 @@ from PySide6.QtGui import (QAction, QBrush, QColor, QConicalGradient,
     QIcon, QImage, QKeySequence, QLinearGradient,
     QPainter, QPalette, QPixmap, QRadialGradient,
     QTransform)
-from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox, QDateEdit,
+from PySide6.QtWidgets import (QAbstractItemView, QApplication, QCheckBox, QComboBox, QDateEdit,
     QDoubleSpinBox, QFrame, QGroupBox, QHBoxLayout,
     QHeaderView, QLabel, QLineEdit, QListView,
     QMainWindow, QMenu, QMenuBar, QPushButton,
@@ -179,13 +179,6 @@ class Ui_MainWindow(object):
         self.label_compare_last.setText(QCoreApplication.translate("MainWindow", u"Number of months:", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_charts), QCoreApplication.translate("MainWindow", u"Charts", None))
         self.groupBox_10.setTitle(QCoreApplication.translate("MainWindow", u"Generate Report", None))
-        self.comboBox_report_type.setItemText(0, QCoreApplication.translate("MainWindow", u"Monthly Summary", None))
-        self.comboBox_report_type.setItemText(1, QCoreApplication.translate("MainWindow", u"Category Analysis", None))
-        self.comboBox_report_type.setItemText(2, QCoreApplication.translate("MainWindow", u"Currency Analysis", None))
-        self.comboBox_report_type.setItemText(3, QCoreApplication.translate("MainWindow", u"Account Balances", None))
-        self.comboBox_report_type.setItemText(4, QCoreApplication.translate("MainWindow", u"Income vs Expenses", None))
-        self.comboBox_report_type.setItemText(5, QCoreApplication.translate("MainWindow", u"Average Salary by Year", None))
-
         self.pushButton_generate_report.setText(QCoreApplication.translate("MainWindow", u"Generate Report", None))
         self.groupBox_summary.setTitle(QCoreApplication.translate("MainWindow", u"Quick Summary", None))
         self.label_total_income.setText(QCoreApplication.translate("MainWindow", u"Total Income: 0.00\u20bd", None))
@@ -1719,16 +1712,30 @@ class Ui_MainWindow(object):
         self.groupBox_10.setMinimumSize(QSize(0, 0))
         self.verticalLayout_19 = QVBoxLayout(self.groupBox_10)
         self.verticalLayout_19.setObjectName(u"verticalLayout_19")
-        self.comboBox_report_type = QComboBox(self.groupBox_10)
-        self.comboBox_report_type.addItem("")
-        self.comboBox_report_type.addItem("")
-        self.comboBox_report_type.addItem("")
-        self.comboBox_report_type.addItem("")
-        self.comboBox_report_type.addItem("")
-        self.comboBox_report_type.addItem("")
-        self.comboBox_report_type.setObjectName(u"comboBox_report_type")
+        self.listView_report_type = QListView(self.groupBox_10)
+        self.listView_report_type.setObjectName(u"listView_report_type")
+        self.listView_report_type.setMinimumSize(QSize(0, 160))
+        self.listView_report_type.setStyleSheet(u"QListView {\n"
+"                                border: 2px solid #7DB68A;\n"
+"                                border-radius: 4px;\n"
+"                                background-color: white;\n"
+"                                }\n"
+"                                QListView::item {\n"
+"                                padding: 4px;\n"
+"                                border-bottom: 1px solid #e0e0e0;\n"
+"                                }\n"
+"                                QListView::item:selected {\n"
+"                                background-color: #E8F5E8;\n"
+"                                color: black;\n"
+"                                }\n"
+"                                QListView::item:hover {\n"
+"                                background-color: #F0F8F0;\n"
+"                                }")
+        self.listView_report_type.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.listView_report_type.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+        self.listView_report_type.setUniformItemSizes(True)
 
-        self.verticalLayout_19.addWidget(self.comboBox_report_type)
+        self.verticalLayout_19.addWidget(self.listView_report_type)
 
         self.pushButton_generate_report = QPushButton(self.groupBox_10)
         self.pushButton_generate_report.setObjectName(u"pushButton_generate_report")

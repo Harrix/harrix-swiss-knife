@@ -71,7 +71,7 @@ class ReportBuildWorker(QThread):
         Args:
 
         - `db_filename` (`str`): Path to the finance SQLite database file.
-        - `report_type` (`str`): Value from the report type combobox.
+        - `report_type` (`str`): Value from the report type list.
         - `year_start_month` (`int`): Fiscal year start month (1-12).
         - `year_start_day` (`int`): Fiscal year start day.
 
@@ -137,7 +137,7 @@ Initialize the worker.
 Args:
 
 - `db_filename` (`str`): Path to the finance SQLite database file.
-- `report_type` (`str`): Value from the report type combobox.
+- `report_type` (`str`): Value from the report type list.
 - `year_start_month` (`int`): Fiscal year start month (1-12).
 - `year_start_day` (`int`): Fiscal year start day.
 

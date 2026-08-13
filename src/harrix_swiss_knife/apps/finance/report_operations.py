@@ -22,6 +22,15 @@ from harrix_swiss_knife.apps.finance.report_build_worker import ReportBuildResul
 
 logger = logging.getLogger(__name__)
 
+REPORT_TYPES: tuple[str, ...] = (
+    "Monthly Summary",
+    "Category Analysis",
+    "Currency Analysis",
+    "Account Balances",
+    "Income vs Expenses",
+    "Average Salary by Year",
+)
+
 
 class ReportOperations:
     """Mixin: generate and display finance reports on the Reports tab."""
@@ -37,7 +46,7 @@ class ReportOperations:
         if worker is not None and worker.isRunning():
             return
 
-        report_type: str = self.comboBox_report_type.currentText()
+        report_type: str = self._selected_report_type()
 
         year_start_month = 1
         year_start_day = 1
@@ -261,6 +270,15 @@ class ReportOperations:
         self._close_report_build_toast()
         message_box.warning(cast("QWidget", self), "Report Error", f"Failed to generate report: {error_message}")
 
+    def _selected_report_type(self) -> str:
+        """Return the report type currently selected in `listView_report_type`."""
+        index = self.listView_report_type.currentIndex()
+        if index.isValid():
+            text = index.data(Qt.ItemDataRole.DisplayRole)
+            if isinstance(text, str) and text.strip():
+                return text
+        return REPORT_TYPES[0]
+
     def _set_reports_model_and_stretch(self, model: QStandardItemModel) -> None:
         """Set model on reports table and stretch columns."""
         self.tableView_reports.setModel(model)
@@ -268,3 +286,16 @@ class ReportOperations:
         if reports_header.count() > 0:
             for i in range(reports_header.count()):
                 reports_header.setSectionResizeMode(i, reports_header.ResizeMode.Stretch)
+
+    def _setup_report_type_list(self) -> None:
+        """Populate `listView_report_type` and select the first report type."""
+        model = QStandardItemModel(self.listView_report_type)
+        for report_type in REPORT_TYPES:
+            item = QStandardItem(report_type)
+            item.setEditable(False)
+            model.appendRow(item)
+        self.listView_report_type.setModel(model)
+        self.listView_report_type.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.listView_report_type.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+        if model.rowCount() > 0:
+            self.listView_report_type.setCurrentIndex(model.index(0, 0))

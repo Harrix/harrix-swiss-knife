@@ -2500,37 +2500,40 @@
               </property>
               <layout class="QVBoxLayout" name="verticalLayout_19">
                <item>
-                <widget class="QComboBox" name="comboBox_report_type">
-                 <item>
-                  <property name="text">
-                   <string>Monthly Summary</string>
-                  </property>
-                 </item>
-                 <item>
-                  <property name="text">
-                   <string>Category Analysis</string>
-                  </property>
-                 </item>
-                 <item>
-                  <property name="text">
-                   <string>Currency Analysis</string>
-                  </property>
-                 </item>
-                 <item>
-                  <property name="text">
-                   <string>Account Balances</string>
-                  </property>
-                 </item>
-                 <item>
-                  <property name="text">
-                   <string>Income vs Expenses</string>
-                  </property>
-                 </item>
-                 <item>
-                  <property name="text">
-                   <string>Average Salary by Year</string>
-                  </property>
-                 </item>
+                <widget class="QListView" name="listView_report_type">
+                 <property name="minimumSize">
+                  <size>
+                   <width>0</width>
+                   <height>160</height>
+                  </size>
+                 </property>
+                 <property name="styleSheet">
+                  <string notr="true">QListView {
+                                border: 2px solid #7DB68A;
+                                border-radius: 4px;
+                                background-color: white;
+                                }
+                                QListView::item {
+                                padding: 4px;
+                                border-bottom: 1px solid #e0e0e0;
+                                }
+                                QListView::item:selected {
+                                background-color: #E8F5E8;
+                                color: black;
+                                }
+                                QListView::item:hover {
+                                background-color: #F0F8F0;
+                                }</string>
+                 </property>
+                 <property name="editTriggers">
+                  <set>QAbstractItemView::EditTrigger::NoEditTriggers</set>
+                 </property>
+                 <property name="selectionMode">
+                  <enum>QAbstractItemView::SelectionMode::SingleSelection</enum>
+                 </property>
+                 <property name="uniformItemSizes">
+                  <bool>true</bool>
+                 </property>
                 </widget>
                </item>
                <item>
