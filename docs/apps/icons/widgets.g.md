@@ -55,6 +55,7 @@ class DraggableIconList(QListWidget):
     open_source_requested = Signal(object, str)  # IconFamily, svg_path
     set_category_icon_requested = Signal(object)  # IconFamily
     delete_requested = Signal(object)  # IconFamily
+    toggle_trademark_requested = Signal(object)  # IconFamily
 
     def __init__(
         self,
@@ -111,7 +112,13 @@ class DraggableIconList(QListWidget):
             item = QListWidgetItem(QIcon(pixmap), family.title)
             item.setData(Qt.ItemDataRole.UserRole, family)
             item.setData(ROLE_SUBTITLE, family_display_filename(family))
-            item.setToolTip(f"{family.id}\n{', '.join(family.tags)}")
+            item.setData(ROLE_TRADEMARK, getattr(family, "trademark", False))
+
+            tooltip = f"{family.id}\n{', '.join(family.tags)}"
+            if getattr(family, "trademark", False):
+                tooltip += "\n\n⚠️ Editorial Use Only / Trademarked Character"
+            item.setToolTip(tooltip)
+
             item.setSizeHint(QSize(self._icon_size + 16, self._icon_size + LABEL_EXTRA_HEIGHT))
             self.addItem(item)
         self.setCurrentRow(-1)
@@ -139,7 +146,10 @@ class DraggableIconList(QListWidget):
             item.setData(ROLE_SVG_PATH, key)
             item.setData(ROLE_SUBTITLE, family_display_filename(entry.family, entry.svg_path))
             item.setData(ROLE_FALLBACK, entry.is_fallback)
+            item.setData(ROLE_TRADEMARK, getattr(entry.family, "trademark", False))
             tip = f"{entry.family.id}\n{entry.svg_path.name}"
+            if getattr(entry.family, "trademark", False):
+                tip += "\n\n⚠️ Editorial Use Only / Trademarked Character"
             if entry.is_fallback:
                 tip = f"{tip}\nFallback: family has no selected variant kind"
             item.setToolTip(tip)
@@ -214,6 +224,11 @@ class DraggableIconList(QListWidget):
         copy_path_action = menu.addAction("📋 Copy path")
         open_note_action = menu.addAction("📝 Open note in editor")
         set_category_action = menu.addAction("🏷️ Set as category icon")
+
+        is_trademark = getattr(family, "trademark", False)
+        toggle_trademark_text = "Remove trademark warning" if is_trademark else "Add trademark warning"
+        toggle_trademark_action = menu.addAction(f"⚠️ {toggle_trademark_text}")
+
         menu.addSeparator()
         reveal_source_action = menu.addAction("📂 Reveal source in File Explorer")
         open_source_action = menu.addAction("🎨 Open source")
@@ -232,6 +247,8 @@ class DraggableIconList(QListWidget):
             self.open_note_requested.emit(family)
         elif chosen is set_category_action:
             self.set_category_icon_requested.emit(family)
+        elif chosen is toggle_trademark_action:
+            self.toggle_trademark_requested.emit(family)
         elif chosen is reveal_source_action:
             self.reveal_source_requested.emit(family, path)
         elif chosen is open_source_action:
@@ -343,7 +360,13 @@ def set_family_items(
             item = QListWidgetItem(QIcon(pixmap), family.title)
             item.setData(Qt.ItemDataRole.UserRole, family)
             item.setData(ROLE_SUBTITLE, family_display_filename(family))
-            item.setToolTip(f"{family.id}\n{', '.join(family.tags)}")
+            item.setData(ROLE_TRADEMARK, getattr(family, "trademark", False))
+
+            tooltip = f"{family.id}\n{', '.join(family.tags)}"
+            if getattr(family, "trademark", False):
+                tooltip += "\n\n⚠️ Editorial Use Only / Trademarked Character"
+            item.setToolTip(tooltip)
+
             item.setSizeHint(QSize(self._icon_size + 16, self._icon_size + LABEL_EXTRA_HEIGHT))
             self.addItem(item)
         self.setCurrentRow(-1)
@@ -385,7 +408,10 @@ def set_grid_entries(
             item.setData(ROLE_SVG_PATH, key)
             item.setData(ROLE_SUBTITLE, family_display_filename(entry.family, entry.svg_path))
             item.setData(ROLE_FALLBACK, entry.is_fallback)
+            item.setData(ROLE_TRADEMARK, getattr(entry.family, "trademark", False))
             tip = f"{entry.family.id}\n{entry.svg_path.name}"
+            if getattr(entry.family, "trademark", False):
+                tip += "\n\n⚠️ Editorial Use Only / Trademarked Character"
             if entry.is_fallback:
                 tip = f"{tip}\nFallback: family has no selected variant kind"
             item.setToolTip(tip)
@@ -547,6 +573,22 @@ class IconLabelDelegate(QStyledItemDelegate):
                 int(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop | Qt.TextFlag.TextWordWrap),
                 subtitle_text,
             )
+
+        is_trademark = bool(index.data(ROLE_TRADEMARK))
+        if is_trademark:
+            icon_rect = (
+                style.subElementRect(QStyle.SubElement.SE_ItemViewItemDecoration, opt, widget)
+                if style is not None
+                else opt.rect
+            )
+            if icon_rect.isValid():
+                painter.setFont(title_font)
+                painter.drawText(
+                    icon_rect.adjusted(0, 4, -4, 0),
+                    int(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignTop),
+                    "⚠️",
+                )
+
         painter.restore()
 
     def sizeHint(  # noqa: N802
@@ -647,6 +689,22 @@ def paint(
                 int(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop | Qt.TextFlag.TextWordWrap),
                 subtitle_text,
             )
+
+        is_trademark = bool(index.data(ROLE_TRADEMARK))
+        if is_trademark:
+            icon_rect = (
+                style.subElementRect(QStyle.SubElement.SE_ItemViewItemDecoration, opt, widget)
+                if style is not None
+                else opt.rect
+            )
+            if icon_rect.isValid():
+                painter.setFont(title_font)
+                painter.drawText(
+                    icon_rect.adjusted(0, 4, -4, 0),
+                    int(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignTop),
+                    "⚠️",
+                )
+
         painter.restore()
 ```
 
