@@ -286,6 +286,11 @@
     <string name="gallery_cleaner_edit_perspective">Perspective</string>
     <string name="gallery_cleaner_edit_perspective_short">Persp</string>
     <string name="gallery_cleaner_edit_perspective_apply">Apply perspective</string>
+    <string name="gallery_cleaner_edit_blur">Blur</string>
+    <string name="gallery_cleaner_edit_blur_brush_size">Brush size</string>
+    <string name="gallery_cleaner_edit_blur_level">Blur level</string>
+    <string name="gallery_cleaner_edit_blur_undo_stroke">Undo blur stroke</string>
+    <string name="gallery_cleaner_edit_blur_apply">Apply blur</string>
     <string name="gallery_cleaner_edit_fit_frame">Fit frame</string>
     <string name="gallery_cleaner_edit_fit_frame_short">Fit</string>
     <string name="gallery_cleaner_edit_trim_empty">Trim empty edges</string>

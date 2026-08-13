@@ -285,6 +285,11 @@
     <string name="gallery_cleaner_edit_perspective">원근</string>
     <string name="gallery_cleaner_edit_perspective_short">원근</string>
     <string name="gallery_cleaner_edit_perspective_apply">Apply perspective</string>
+    <string name="gallery_cleaner_edit_blur">흐림</string>
+    <string name="gallery_cleaner_edit_blur_brush_size">브러시 크기</string>
+    <string name="gallery_cleaner_edit_blur_level">흐림 수준</string>
+    <string name="gallery_cleaner_edit_blur_undo_stroke">흐림 선 실행 취소</string>
+    <string name="gallery_cleaner_edit_blur_apply">흐림 적용</string>
     <string name="gallery_cleaner_edit_fit_frame">프레임에 맞추기</string>
     <string name="gallery_cleaner_edit_fit_frame_short">맞추기</string>
     <string name="gallery_cleaner_edit_trim_empty">빈 여백 자르기</string>

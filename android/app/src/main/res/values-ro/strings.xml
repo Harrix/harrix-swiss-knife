@@ -285,6 +285,11 @@
     <string name="gallery_cleaner_edit_perspective">Perspectivă</string>
     <string name="gallery_cleaner_edit_perspective_short">Persp.</string>
     <string name="gallery_cleaner_edit_perspective_apply">Apply perspective</string>
+    <string name="gallery_cleaner_edit_blur">Estompare</string>
+    <string name="gallery_cleaner_edit_blur_brush_size">Dimensiunea pensulei</string>
+    <string name="gallery_cleaner_edit_blur_level">Nivel de estompare</string>
+    <string name="gallery_cleaner_edit_blur_undo_stroke">Anulează tușa de estompare</string>
+    <string name="gallery_cleaner_edit_blur_apply">Aplică estomparea</string>
     <string name="gallery_cleaner_edit_fit_frame">Potrivește în cadru</string>
     <string name="gallery_cleaner_edit_fit_frame_short">Potrivește</string>
     <string name="gallery_cleaner_edit_trim_empty">Taie marginile goale</string>

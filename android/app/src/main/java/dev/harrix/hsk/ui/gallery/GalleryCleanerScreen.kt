@@ -1346,7 +1346,8 @@ fun GalleryCleanerScreen(
                                     photo = photo,
                                     sizeBytes = result.sizeBytes,
                                     keepEditUndo = result.backupCreated,
-                                    stayInEditor = result.appliedPerspective,
+                                    stayInEditor =
+                                    result.appliedPerspective || result.appliedBlur,
                                 )
                             },
                             onDiscard = { exitEditMode() },

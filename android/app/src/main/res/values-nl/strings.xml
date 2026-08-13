@@ -285,6 +285,11 @@
     <string name="gallery_cleaner_edit_perspective">Perspectief</string>
     <string name="gallery_cleaner_edit_perspective_short">Persp.</string>
     <string name="gallery_cleaner_edit_perspective_apply">Apply perspective</string>
+    <string name="gallery_cleaner_edit_blur">Vervagen</string>
+    <string name="gallery_cleaner_edit_blur_brush_size">Penseelgrootte</string>
+    <string name="gallery_cleaner_edit_blur_level">Vervagingsniveau</string>
+    <string name="gallery_cleaner_edit_blur_undo_stroke">Vervaagstreek ongedaan maken</string>
+    <string name="gallery_cleaner_edit_blur_apply">Vervaging toepassen</string>
     <string name="gallery_cleaner_edit_fit_frame">In kader passen</string>
     <string name="gallery_cleaner_edit_fit_frame_short">Passen</string>
     <string name="gallery_cleaner_edit_trim_empty">Lege randen bijsnijden</string>

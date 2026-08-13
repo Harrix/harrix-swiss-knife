@@ -285,6 +285,11 @@
     <string name="gallery_cleaner_edit_perspective">Perspektiva</string>
     <string name="gallery_cleaner_edit_perspective_short">Persp.</string>
     <string name="gallery_cleaner_edit_perspective_apply">Apply perspective</string>
+    <string name="gallery_cleaner_edit_blur">Rozmazání</string>
+    <string name="gallery_cleaner_edit_blur_brush_size">Velikost štětce</string>
+    <string name="gallery_cleaner_edit_blur_level">Úroveň rozmazání</string>
+    <string name="gallery_cleaner_edit_blur_undo_stroke">Vrátit tah rozmazání</string>
+    <string name="gallery_cleaner_edit_blur_apply">Použít rozmazání</string>
     <string name="gallery_cleaner_edit_fit_frame">Přizpůsobit rámečku</string>
     <string name="gallery_cleaner_edit_fit_frame_short">Přizpůsobit</string>
     <string name="gallery_cleaner_edit_trim_empty">Oříznout prázdné okraje</string>

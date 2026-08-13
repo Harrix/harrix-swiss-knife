@@ -285,6 +285,11 @@
     <string name="gallery_cleaner_edit_perspective">Perspective</string>
     <string name="gallery_cleaner_edit_perspective_short">Persp.</string>
     <string name="gallery_cleaner_edit_perspective_apply">Apply perspective</string>
+    <string name="gallery_cleaner_edit_blur">Flou</string>
+    <string name="gallery_cleaner_edit_blur_brush_size">Taille du pinceau</string>
+    <string name="gallery_cleaner_edit_blur_level">Niveau de flou</string>
+    <string name="gallery_cleaner_edit_blur_undo_stroke">Annuler le trait de flou</string>
+    <string name="gallery_cleaner_edit_blur_apply">Appliquer le flou</string>
     <string name="gallery_cleaner_edit_fit_frame">Ajuster au cadre</string>
     <string name="gallery_cleaner_edit_fit_frame_short">Ajuster</string>
     <string name="gallery_cleaner_edit_trim_empty">Rogner les bords vides</string>

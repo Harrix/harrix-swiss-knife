@@ -21,6 +21,7 @@ import dev.harrix.hsk.R
 import dev.harrix.hsk.gallery.CameraGalleryRepository
 import dev.harrix.hsk.gallery.CameraPhoto
 import dev.harrix.hsk.gallery.EditableImageCache
+import dev.harrix.hsk.gallery.NormalizedBlurStroke
 import dev.harrix.hsk.gallery.NormalizedCropRect
 import dev.harrix.hsk.gallery.NormalizedPerspectiveQuad
 import dev.harrix.hsk.gallery.PendingEditUndo
@@ -44,6 +45,8 @@ data class EditablePhotoSaveResult(
      * (exit perspective mode only) instead of closing the whole edit session.
      */
     val appliedPerspective: Boolean = false,
+    /** True when blur strokes were baked into the image while keeping the editor open. */
+    val appliedBlur: Boolean = false,
 )
 
 /**
@@ -70,6 +73,10 @@ fun EditablePhotoHost(
     var perspectiveQuad by remember(photo.id, imageRevision) {
         mutableStateOf<NormalizedPerspectiveQuad?>(null)
     }
+    var blurStrokes by remember(photo.id, imageRevision) {
+        mutableStateOf<List<NormalizedBlurStroke>>(emptyList())
+    }
+    var blurStrength by remember(photo.id, imageRevision) { mutableFloatStateOf(0.55f) }
     var isSaving by remember(photo.id, imageRevision) { mutableStateOf(false) }
     val saveFailedMessage = stringResource(R.string.gallery_cleaner_edit_save_failed)
 
@@ -89,6 +96,8 @@ fun EditablePhotoHost(
                     rotationDegrees = rotationDegrees,
                     cropRect = cropRect,
                     perspectiveQuad = perspectiveQuad,
+                    blurStrokes = blurStrokes,
+                    blurStrength = blurStrength,
                     isSavingSetter = { isSaving = it },
                     onSave = onSave,
                     onError = onError,
@@ -109,6 +118,8 @@ fun EditablePhotoHost(
             rotationDegrees = rotationDegrees,
             cropRect = cropRect,
             perspectiveQuad = perspectiveQuad,
+            blurStrokes = blurStrokes,
+            blurStrength = blurStrength,
             isSavingSetter = { isSaving = it },
             onSave = onSave,
             onError = onError,
@@ -118,6 +129,7 @@ fun EditablePhotoHost(
 
     fun performOverwrite(requestWriteIfNeeded: Boolean) {
         val applyingPerspective = perspectiveQuad != null
+        val applyingBlur = blurStrokes.isNotEmpty()
         val previousSizeBytes = photo.sizeBytes
         isSaving = true
         scope.launch {
@@ -130,6 +142,8 @@ fun EditablePhotoHost(
                         rotationDegrees = rotationDegrees,
                         crop = cropRect,
                         perspectiveQuad = perspectiveQuad,
+                        blurStrokes = blurStrokes,
+                        blurStrength = blurStrength,
                         existingUndo = existingUndo,
                     )
                 }
@@ -151,6 +165,7 @@ fun EditablePhotoHost(
                             savedAsCopy = false,
                             outputUri = photo.uri,
                             appliedPerspective = applyingPerspective,
+                            appliedBlur = applyingBlur,
                         ),
                     )
                 }
@@ -202,6 +217,10 @@ fun EditablePhotoHost(
         onCropRectChange = { cropRect = it },
         perspectiveQuad = perspectiveQuad,
         onPerspectiveQuadChange = { perspectiveQuad = it },
+        blurStrokes = blurStrokes,
+        onBlurStrokesChange = { blurStrokes = it },
+        blurStrength = blurStrength,
+        onBlurStrengthChange = { blurStrength = it },
         imageRevision = imageRevision,
         isSaving = isSaving,
         onSave = { performOverwrite(requestWriteIfNeeded = true) },
@@ -222,6 +241,8 @@ private fun runSaveAsCopy(
     rotationDegrees: Float,
     cropRect: NormalizedCropRect,
     perspectiveQuad: NormalizedPerspectiveQuad?,
+    blurStrokes: List<NormalizedBlurStroke>,
+    blurStrength: Float,
     isSavingSetter: (Boolean) -> Unit,
     onSave: (EditablePhotoSaveResult) -> Unit,
     onError: (String) -> Unit,
@@ -237,6 +258,8 @@ private fun runSaveAsCopy(
                     rotationDegrees = rotationDegrees,
                     crop = cropRect,
                     perspectiveQuad = perspectiveQuad,
+                    blurStrokes = blurStrokes,
+                    blurStrength = blurStrength,
                     displayName = photo.displayName,
                 )
             }

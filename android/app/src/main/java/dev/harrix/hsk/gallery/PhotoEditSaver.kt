@@ -179,6 +179,8 @@ class PhotoEditSaver(
          * When non-null, applies perspective warp instead of axis-aligned [crop].
          */
         perspectiveQuad: NormalizedPerspectiveQuad? = null,
+        blurStrokes: List<NormalizedBlurStroke> = emptyList(),
+        blurStrength: Float = 0.5f,
         /**
          * When non-null and still valid, keeps that pre-edit original across repeated saves
          * on the same photo for the session.
@@ -187,7 +189,15 @@ class PhotoEditSaver(
     ): SaveResult {
         val targetUri = MediaStoreImageUri.resolve(context, uri)
         val encoded =
-            renderEditedBytes(targetUri, mimeType, rotationDegrees, crop, perspectiveQuad)
+            renderEditedBytes(
+                targetUri,
+                mimeType,
+                rotationDegrees,
+                crop,
+                perspectiveQuad,
+                blurStrokes,
+                blurStrength,
+            )
                 ?: return SaveResult.Failed
 
         val reuseBackup =
@@ -226,11 +236,21 @@ class PhotoEditSaver(
         rotationDegrees: Float,
         crop: NormalizedCropRect,
         perspectiveQuad: NormalizedPerspectiveQuad? = null,
+        blurStrokes: List<NormalizedBlurStroke> = emptyList(),
+        blurStrength: Float = 0.5f,
         displayName: String? = null,
     ): CopyResult {
         val source = MediaStoreImageUri.resolve(context, sourceUri)
         val encoded =
-            renderEditedBytes(source, mimeType, rotationDegrees, crop, perspectiveQuad)
+            renderEditedBytes(
+                source,
+                mimeType,
+                rotationDegrees,
+                crop,
+                perspectiveQuad,
+                blurStrokes,
+                blurStrength,
+            )
                 ?: return CopyResult.Failed
         val written =
             PhotoEditCopyStore(context).writeCopy(
@@ -252,6 +272,8 @@ class PhotoEditSaver(
         rotationDegrees: Float,
         crop: NormalizedCropRect,
         perspectiveQuad: NormalizedPerspectiveQuad? = null,
+        blurStrokes: List<NormalizedBlurStroke> = emptyList(),
+        blurStrength: Float = 0.5f,
     ): ByteArray? {
         val oriented = decodeOrientedBitmap(uri) ?: return null
         val workspace =
@@ -261,6 +283,16 @@ class PhotoEditSaver(
             }
         if (workspace !== oriented) {
             oriented.recycle()
+        }
+        if (blurStrokes.isNotEmpty() &&
+            !PhotoBlurRenderer.apply(
+                bitmap = workspace,
+                strokes = blurStrokes,
+                strength = blurStrength,
+            )
+        ) {
+            workspace.recycle()
+            return null
         }
         val cropped =
             if (perspectiveQuad != null) {
@@ -820,6 +852,8 @@ class PhotoEditSaver(
         private const val CropInsetEpsilon = 1e-4f
         private const val CropInsetRectEpsilon = 0.004f
         private const val PerspectiveMinEdge = 0.06f
+        const val MIN_BLUR_BRUSH_RADIUS = 0.015f
+        const val MAX_BLUR_BRUSH_RADIUS = 0.18f
 
         /** True when [MediaStore.createWriteRequest] can be used for [uri] on this API level. */
         fun canRequestMediaStoreWrite(uri: Uri): Boolean {

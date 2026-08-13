@@ -285,6 +285,11 @@
     <string name="gallery_cleaner_edit_perspective">Perspektif</string>
     <string name="gallery_cleaner_edit_perspective_short">Persp.</string>
     <string name="gallery_cleaner_edit_perspective_apply">Apply perspective</string>
+    <string name="gallery_cleaner_edit_blur">Bulanıklaştırma</string>
+    <string name="gallery_cleaner_edit_blur_brush_size">Fırça boyutu</string>
+    <string name="gallery_cleaner_edit_blur_level">Bulanıklık düzeyi</string>
+    <string name="gallery_cleaner_edit_blur_undo_stroke">Bulanıklık darbesini geri al</string>
+    <string name="gallery_cleaner_edit_blur_apply">Bulanıklığı uygula</string>
     <string name="gallery_cleaner_edit_fit_frame">Çerçeveye sığdır</string>
     <string name="gallery_cleaner_edit_fit_frame_short">Sığdır</string>
     <string name="gallery_cleaner_edit_trim_empty">Boş kenarları kırp</string>

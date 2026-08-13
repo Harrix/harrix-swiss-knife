@@ -274,7 +274,7 @@ fun PhotoEditorScreen(
                         repository = repository,
                         onSave = { result ->
                             viewModel.applySaved(result.photo, result.sizeBytes)
-                            if (!result.appliedPerspective) {
+                            if (!result.appliedPerspective && !result.appliedBlur) {
                                 if (result.savedAsCopy) {
                                     reloadGallery()
                                 }

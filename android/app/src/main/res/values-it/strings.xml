@@ -285,6 +285,11 @@
     <string name="gallery_cleaner_edit_perspective">Prospettiva</string>
     <string name="gallery_cleaner_edit_perspective_short">Prosp.</string>
     <string name="gallery_cleaner_edit_perspective_apply">Apply perspective</string>
+    <string name="gallery_cleaner_edit_blur">Sfocatura</string>
+    <string name="gallery_cleaner_edit_blur_brush_size">Dimensione pennello</string>
+    <string name="gallery_cleaner_edit_blur_level">Livello sfocatura</string>
+    <string name="gallery_cleaner_edit_blur_undo_stroke">Annulla tratto sfocatura</string>
+    <string name="gallery_cleaner_edit_blur_apply">Applica sfocatura</string>
     <string name="gallery_cleaner_edit_fit_frame">Adatta al riquadro</string>
     <string name="gallery_cleaner_edit_fit_frame_short">Adatta</string>
     <string name="gallery_cleaner_edit_trim_empty">Taglia i bordi vuoti</string>

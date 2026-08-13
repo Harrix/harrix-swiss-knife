@@ -285,6 +285,11 @@
     <string name="gallery_cleaner_edit_perspective">Perspektif</string>
     <string name="gallery_cleaner_edit_perspective_short">Persp.</string>
     <string name="gallery_cleaner_edit_perspective_apply">Apply perspective</string>
+    <string name="gallery_cleaner_edit_blur">Buram</string>
+    <string name="gallery_cleaner_edit_blur_brush_size">Ukuran kuas</string>
+    <string name="gallery_cleaner_edit_blur_level">Tingkat keburaman</string>
+    <string name="gallery_cleaner_edit_blur_undo_stroke">Urungkan sapuan buram</string>
+    <string name="gallery_cleaner_edit_blur_apply">Terapkan buram</string>
     <string name="gallery_cleaner_edit_fit_frame">Sesuaikan bingkai</string>
     <string name="gallery_cleaner_edit_fit_frame_short">Sesuaikan</string>
     <string name="gallery_cleaner_edit_trim_empty">Potong tepi kosong</string>

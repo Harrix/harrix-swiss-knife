@@ -20,6 +20,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Undo
+import androidx.compose.material.icons.filled.BlurOn
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Crop
 import androidx.compose.material.icons.filled.CropFree
@@ -48,6 +50,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedIconButton
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -69,6 +72,8 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathFillType
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -86,8 +91,10 @@ import coil.request.ImageRequest
 import dev.harrix.hsk.R
 import dev.harrix.hsk.gallery.CameraPhoto
 import dev.harrix.hsk.gallery.EditableImageCache
+import dev.harrix.hsk.gallery.NormalizedBlurStroke
 import dev.harrix.hsk.gallery.NormalizedCropRect
 import dev.harrix.hsk.gallery.NormalizedPerspectiveQuad
+import dev.harrix.hsk.gallery.NormalizedPoint
 import dev.harrix.hsk.gallery.PerspectiveQuadDetector
 import dev.harrix.hsk.gallery.PhotoEditSaver
 import dev.harrix.hsk.ui.AutoFitText
@@ -173,10 +180,13 @@ private sealed class OneFingerAction {
     data class Perspective(
         val mode: PerspectiveDragMode,
     ) : OneFingerAction()
+
+    data object Blur : OneFingerAction()
 }
 
 /** Accent color for the perspective frame (distinct from the white AABB crop). */
 private val PerspectiveFrameColor = Color(0xFFFFB74D)
+private val BlurBrushColor = Color(0xFF64B5F6)
 
 /** Locked crop aspect relative to the square workspace, or free resize. */
 private const val AspectThreeFour = 3f / 4f
@@ -199,6 +209,10 @@ fun PhotoCropEditor(
     onCropRectChange: (NormalizedCropRect) -> Unit,
     perspectiveQuad: NormalizedPerspectiveQuad?,
     onPerspectiveQuadChange: (NormalizedPerspectiveQuad?) -> Unit,
+    blurStrokes: List<NormalizedBlurStroke>,
+    onBlurStrokesChange: (List<NormalizedBlurStroke>) -> Unit,
+    blurStrength: Float,
+    onBlurStrengthChange: (Float) -> Unit,
     imageRevision: Int,
     isSaving: Boolean,
     onSave: () -> Unit,
@@ -219,11 +233,15 @@ fun PhotoCropEditor(
     val onCropRectChangeState = rememberUpdatedState(onCropRectChange)
     val perspectiveQuadState = rememberUpdatedState(perspectiveQuad)
     val onPerspectiveQuadChangeState = rememberUpdatedState(onPerspectiveQuadChange)
+    val blurStrokesState = rememberUpdatedState(blurStrokes)
+    val onBlurStrokesChangeState = rememberUpdatedState(onBlurStrokesChange)
     val rotationState = rememberUpdatedState(rotationDegrees)
     val onRotationDegreesChangeState = rememberUpdatedState(onRotationDegreesChange)
     var isRotatingHint by remember { mutableStateOf(false) }
     var didInitCrop by remember(photo.id, imageRevision) { mutableStateOf(false) }
     val isPerspective = perspectiveQuad != null
+    var isBlurMode by remember(photo.id, imageRevision) { mutableStateOf(false) }
+    var blurBrushRadius by remember(photo.id, imageRevision) { mutableFloatStateOf(0.07f) }
 
     /** `null` = free aspect; otherwise width/height lock for the crop frame. */
     var lockedAspect by remember(photo.id, imageRevision) { mutableStateOf<Float?>(null) }
@@ -245,14 +263,14 @@ fun PhotoCropEditor(
     var trimSuggestion by remember(photo.id, imageRevision) {
         mutableStateOf<NormalizedCropRect?>(null)
     }
-    val showTrimBars = trimSuggestion != null && !isPerspective
+    val showTrimBars = trimSuggestion != null && !isPerspective && !isBlurMode
     val isViewTransformed =
         abs(viewScale - 1f) > CropViewZoomEpsilon ||
             hypot(viewOffset.x.toDouble(), viewOffset.y.toDouble()) > 1.0
 
     fun trimEmptyZones() {
         val suggestion = trimSuggestion ?: return
-        if (isSaving || isPerspective) {
+        if (isSaving || isPerspective || isBlurMode) {
             return
         }
         lockedAspect = null
@@ -270,6 +288,10 @@ fun PhotoCropEditor(
     fun togglePerspectiveMode() {
         if (isSaving || imageWidth <= 0) {
             return
+        }
+        if (isBlurMode) {
+            isBlurMode = false
+            onBlurStrokesChange(emptyList())
         }
         val currentQuad = perspectiveQuad
         if (currentQuad == null) {
@@ -306,6 +328,28 @@ fun PhotoCropEditor(
         }
     }
 
+    fun exitBlurMode() {
+        isBlurMode = false
+        onBlurStrokesChange(emptyList())
+    }
+
+    fun toggleBlurMode() {
+        if (isSaving || imageWidth <= 0) {
+            return
+        }
+        if (isBlurMode) {
+            exitBlurMode()
+            return
+        }
+        if (perspectiveQuad != null) {
+            exitPerspectiveMode()
+        }
+        showFileDetails = false
+        trimSuggestion = null
+        onBlurStrokesChange(emptyList())
+        isBlurMode = true
+    }
+
     BackHandler(enabled = showFileDetails) {
         showFileDetails = false
     }
@@ -314,8 +358,12 @@ fun PhotoCropEditor(
         exitPerspectiveMode()
     }
 
-    LaunchedEffect(isPerspective) {
-        if (isPerspective) {
+    BackHandler(enabled = isBlurMode && !isSaving && !showFileDetails) {
+        exitBlurMode()
+    }
+
+    LaunchedEffect(isPerspective, isBlurMode) {
+        if (isPerspective || isBlurMode) {
             showFileDetails = false
         }
     }
@@ -338,7 +386,7 @@ fun PhotoCropEditor(
         imageHeight,
         didInitCrop,
     ) {
-        val skipTrimAnalysis = !didInitCrop || isSaving || perspectiveQuad != null
+        val skipTrimAnalysis = !didInitCrop || isSaving || perspectiveQuad != null || isBlurMode
         if (skipTrimAnalysis) {
             trimSuggestion = null
             return@LaunchedEffect
@@ -393,7 +441,7 @@ fun PhotoCropEditor(
     }
 
     fun toggleContainCropInImage() {
-        if (isPerspective || isSaving) {
+        if (isPerspective || isBlurMode || isSaving) {
             return
         }
         val enabling = !containCropInImage
@@ -569,7 +617,39 @@ fun PhotoCropEditor(
                         val cropStroke = 2.dp.toPx() * invScale
                         val guideStroke = 1.dp.toPx() * invScale
                         val handle = handleVisualPx * invScale
-                        if (quadCornersPx != null && quadCornersPx.size == 4) {
+                        if (isBlurMode) {
+                            blurStrokes.forEach { stroke ->
+                                val points =
+                                    stroke.points.map { point ->
+                                        Offset(point.x * side, point.y * side)
+                                    }
+                                if (points.size == 1) {
+                                    drawCircle(
+                                        color = BlurBrushColor.copy(alpha = 0.42f),
+                                        radius = stroke.radius * side,
+                                        center = points.first(),
+                                    )
+                                } else if (points.isNotEmpty()) {
+                                    val brushPath =
+                                        Path().apply {
+                                            moveTo(points.first().x, points.first().y)
+                                            points.drop(1).forEach { point ->
+                                                lineTo(point.x, point.y)
+                                            }
+                                        }
+                                    drawPath(
+                                        path = brushPath,
+                                        color = BlurBrushColor.copy(alpha = 0.42f),
+                                        style =
+                                        Stroke(
+                                            width = stroke.radius * side * 2f,
+                                            cap = StrokeCap.Round,
+                                            join = StrokeJoin.Round,
+                                        ),
+                                    )
+                                }
+                            }
+                        } else if (quadCornersPx != null && quadCornersPx.size == 4) {
                             val framePath =
                                 Path().apply {
                                     moveTo(quadCornersPx[0].x, quadCornersPx[0].y)
@@ -688,6 +768,8 @@ fun PhotoCropEditor(
                             imageHeight,
                             lockedAspect,
                             isPerspective,
+                            isBlurMode,
+                            blurBrushRadius,
                             viewportW,
                             viewportH,
                         ) {
@@ -701,6 +783,8 @@ fun PhotoCropEditor(
                                 var gestureActive = true
                                 var gestureScale = viewScaleState.value
                                 var gestureOffset = viewOffsetState.value
+                                var blurStrokeBase = emptyList<NormalizedBlurStroke>()
+                                val activeBlurPoints = mutableListOf<NormalizedPoint>()
                                 isRotatingHint = false
 
                                 fun viewportToWorkspace(point: Offset): Offset = viewportToWorkspacePoint(
@@ -755,6 +839,7 @@ fun PhotoCropEditor(
                                         // Keep current rotation while adjusting a perspective quad.
                                         val rotationAllowed =
                                             perspectiveQuadState.value == null &&
+                                                !isBlurMode &&
                                                 !rotationLockedState.value
                                         if (rotationDelta != 0f && rotationAllowed) {
                                             isRotatingHint = true
@@ -792,7 +877,23 @@ fun PhotoCropEditor(
                                                     gestureScale.coerceAtLeast(1e-6f)
                                             val currentPerspective = perspectiveQuadState.value
                                             oneFingerAction =
-                                                if (currentPerspective != null) {
+                                                if (isBlurMode) {
+                                                    val point =
+                                                        NormalizedPoint(
+                                                            x = (local.x / side).coerceIn(0f, 1f),
+                                                            y = (local.y / side).coerceIn(0f, 1f),
+                                                        )
+                                                    blurStrokeBase = blurStrokesState.value
+                                                    activeBlurPoints += point
+                                                    onBlurStrokesChangeState.value(
+                                                        blurStrokeBase +
+                                                            NormalizedBlurStroke(
+                                                                points = activeBlurPoints.toList(),
+                                                                radius = blurBrushRadius,
+                                                            ),
+                                                    )
+                                                    OneFingerAction.Blur
+                                                } else if (currentPerspective != null) {
                                                     val cornersPx =
                                                         currentPerspective.corners().map { corner ->
                                                             Offset(corner.x * side, corner.y * side)
@@ -961,6 +1062,42 @@ fun PhotoCropEditor(
                                                             }
                                                         }
                                                     }
+
+                                                    OneFingerAction.Blur -> {
+                                                        val local =
+                                                            viewportToWorkspace(change.position)
+                                                        val point =
+                                                            NormalizedPoint(
+                                                                x =
+                                                                (local.x / side)
+                                                                    .coerceIn(0f, 1f),
+                                                                y =
+                                                                (local.y / side)
+                                                                    .coerceIn(0f, 1f),
+                                                            )
+                                                        val previous =
+                                                            activeBlurPoints.lastOrNull()
+                                                        val farEnough =
+                                                            previous == null ||
+                                                                hypot(
+                                                                    (point.x - previous.x)
+                                                                        .toDouble(),
+                                                                    (point.y - previous.y)
+                                                                        .toDouble(),
+                                                                ) >= 0.002
+                                                        if (farEnough) {
+                                                            activeBlurPoints += point
+                                                            onBlurStrokesChangeState.value(
+                                                                blurStrokeBase +
+                                                                    NormalizedBlurStroke(
+                                                                        points =
+                                                                        activeBlurPoints.toList(),
+                                                                        radius = blurBrushRadius,
+                                                                    ),
+                                                            )
+                                                        }
+                                                        change.consume()
+                                                    }
                                                 }
                                             }
                                         }
@@ -1033,7 +1170,8 @@ fun PhotoCropEditor(
             }
 
             val workspaceReady = workspace.width > 0f && imageWidth > 0
-            val showCropModeToggles = !isSaving && workspaceReady && !isPerspective
+            val showCropModeToggles =
+                !isSaving && workspaceReady && !isPerspective && !isBlurMode
             if (showCropModeToggles) {
                 Row(
                     modifier =
@@ -1103,7 +1241,7 @@ fun PhotoCropEditor(
                             tonal = true,
                         )
                     }
-                    if (isViewTransformed && !isPerspective) {
+                    if (isViewTransformed && !isPerspective && !isBlurMode) {
                         EditToolbarIconButton(
                             onClick = {
                                 val visible =
@@ -1144,6 +1282,11 @@ fun PhotoCropEditor(
         val aspectThreeFourLabel = stringResource(R.string.gallery_cleaner_edit_aspect_3_4)
         val aspectFreeLabel = stringResource(R.string.gallery_cleaner_edit_aspect_free)
         val perspectiveLabel = stringResource(R.string.gallery_cleaner_edit_perspective)
+        val blurLabel = stringResource(R.string.gallery_cleaner_edit_blur)
+        val blurBrushSizeLabel = stringResource(R.string.gallery_cleaner_edit_blur_brush_size)
+        val blurLevelLabel = stringResource(R.string.gallery_cleaner_edit_blur_level)
+        val undoBlurStrokeLabel =
+            stringResource(R.string.gallery_cleaner_edit_blur_undo_stroke)
         val rotateCcwLabel = stringResource(R.string.gallery_cleaner_edit_rotate_ccw)
         val resetRotationLabel = stringResource(R.string.gallery_cleaner_edit_reset_rotation)
         val rotateCwLabel = stringResource(R.string.gallery_cleaner_edit_rotate_cw)
@@ -1154,16 +1297,19 @@ fun PhotoCropEditor(
         val saveLabel = stringResource(R.string.gallery_cleaner_edit_save)
         val applyPerspectiveLabel =
             stringResource(R.string.gallery_cleaner_edit_perspective_apply)
+        val applyBlurLabel = stringResource(R.string.gallery_cleaner_edit_blur_apply)
         val moreLabel = stringResource(R.string.gallery_cleaner_edit_more)
         val fileDetailsLabel = stringResource(R.string.photo_file_details_title)
         val locked = lockedAspect
         val threeFourSelected = locked != null && isThreeFourFamily(locked)
-        val freeAspectSelected = lockedAspect == null && !isPerspective
-        val canEditAspect = !isSaving && imageWidth > 0 && !isPerspective
-        val canTogglePerspective = !isSaving && imageWidth > 0
-        val canRotate = !isSaving && !isPerspective && !rotationLocked
+        val freeAspectSelected = lockedAspect == null && !isPerspective && !isBlurMode
+        val canEditAspect = !isSaving && imageWidth > 0 && !isPerspective && !isBlurMode
+        val canTogglePerspective = !isSaving && imageWidth > 0 && !isBlurMode
+        val canToggleBlur = !isSaving && imageWidth > 0 && !isPerspective
+        val canRotate = !isSaving && !isPerspective && !isBlurMode && !rotationLocked
         val canResetRotation = canRotate && abs(displayDegrees) >= 0.5f
-        val canFitFrame = isViewTransformed && !isPerspective && imageWidth > 0
+        val canFitFrame =
+            isViewTransformed && !isPerspective && !isBlurMode && imageWidth > 0
         var moreMenuExpanded by remember { mutableStateOf(false) }
 
         fun applyFitFrame() {
@@ -1205,11 +1351,45 @@ fun PhotoCropEditor(
                     ),
                 verticalArrangement = Arrangement.spacedBy(if (compactChrome) 2.dp else 4.dp),
             ) {
+                if (isBlurMode) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = blurBrushSizeLabel,
+                                style = MaterialTheme.typography.labelMedium,
+                            )
+                            Slider(
+                                value = blurBrushRadius,
+                                onValueChange = { blurBrushRadius = it },
+                                valueRange =
+                                PhotoEditSaver.MIN_BLUR_BRUSH_RADIUS..PhotoEditSaver.MAX_BLUR_BRUSH_RADIUS,
+                                enabled = !isSaving,
+                            )
+                        }
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = blurLevelLabel,
+                                style = MaterialTheme.typography.labelMedium,
+                            )
+                            Slider(
+                                value = blurStrength,
+                                onValueChange = onBlurStrengthChange,
+                                valueRange = 0f..1f,
+                                enabled = !isSaving,
+                            )
+                        }
+                    }
+                }
                 val toolButtonCount =
                     when {
                         isPerspective -> 2
-                        showThreeFourChip -> 8
-                        else -> 7
+                        isBlurMode -> 3
+                        showThreeFourChip -> 9
+                        else -> 8
                     }
                 BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
                     val (toolButtonSize, toolSpacing) =
@@ -1233,7 +1413,7 @@ fun PhotoCropEditor(
                             horizontalArrangement = toolsArrangement,
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            if (!isPerspective) {
+                            if (!isPerspective && !isBlurMode) {
                                 EditToolbarIconButton(
                                     onClick = { rotateCropAspect90() },
                                     icon = Icons.Filled.CropRotate,
@@ -1266,15 +1446,40 @@ fun PhotoCropEditor(
                                     buttonSize = toolButtonSize,
                                 )
                             }
-                            EditToolbarIconButton(
-                                onClick = { togglePerspectiveMode() },
-                                icon = Icons.Filled.Transform,
-                                label = perspectiveLabel,
-                                enabled = canTogglePerspective,
-                                selected = isPerspective,
-                                buttonSize = toolButtonSize,
-                            )
+                            if (!isBlurMode) {
+                                EditToolbarIconButton(
+                                    onClick = { togglePerspectiveMode() },
+                                    icon = Icons.Filled.Transform,
+                                    label = perspectiveLabel,
+                                    enabled = canTogglePerspective,
+                                    selected = isPerspective,
+                                    buttonSize = toolButtonSize,
+                                )
+                            }
                             if (!isPerspective) {
+                                EditToolbarIconButton(
+                                    onClick = { toggleBlurMode() },
+                                    icon = Icons.Filled.BlurOn,
+                                    label = blurLabel,
+                                    enabled = canToggleBlur,
+                                    selected = isBlurMode,
+                                    buttonSize = toolButtonSize,
+                                )
+                            }
+                            if (isBlurMode) {
+                                EditToolbarIconButton(
+                                    onClick = {
+                                        if (blurStrokes.isNotEmpty()) {
+                                            onBlurStrokesChange(blurStrokes.dropLast(1))
+                                        }
+                                    },
+                                    icon = Icons.AutoMirrored.Filled.Undo,
+                                    label = undoBlurStrokeLabel,
+                                    enabled = !isSaving && blurStrokes.isNotEmpty(),
+                                    buttonSize = toolButtonSize,
+                                )
+                            }
+                            if (!isPerspective && !isBlurMode) {
                                 EditToolbarIconButton(
                                     onClick = { onRotationDegreesChange(rotationDegrees - 90f) },
                                     icon = Icons.Filled.Rotate90DegreesCcw,
@@ -1351,6 +1556,30 @@ fun PhotoCropEditor(
                                             togglePerspectiveMode()
                                         },
                                     )
+                                    EditOverflowMenuItem(
+                                        icon = Icons.Filled.BlurOn,
+                                        label = blurLabel,
+                                        enabled = canToggleBlur,
+                                        onClick = {
+                                            moreMenuExpanded = false
+                                            toggleBlurMode()
+                                        },
+                                    )
+                                    if (isBlurMode) {
+                                        EditOverflowMenuItem(
+                                            icon = Icons.AutoMirrored.Filled.Undo,
+                                            label = undoBlurStrokeLabel,
+                                            enabled = blurStrokes.isNotEmpty() && !isSaving,
+                                            onClick = {
+                                                moreMenuExpanded = false
+                                                if (blurStrokes.isNotEmpty()) {
+                                                    onBlurStrokesChange(
+                                                        blurStrokes.dropLast(1),
+                                                    )
+                                                }
+                                            },
+                                        )
+                                    }
                                     HorizontalDivider()
                                     EditOverflowMenuItem(
                                         icon = Icons.Filled.Rotate90DegreesCcw,
@@ -1408,7 +1637,7 @@ fun PhotoCropEditor(
                                             onDiscard()
                                         },
                                     )
-                                    if (onSaveCopy != null && !isPerspective) {
+                                    if (onSaveCopy != null && !isPerspective && !isBlurMode) {
                                         EditOverflowMenuItem(
                                             icon = Icons.Filled.SaveAs,
                                             label = saveCopyLabel,
@@ -1422,7 +1651,7 @@ fun PhotoCropEditor(
                                     EditOverflowMenuItem(
                                         icon = Icons.Filled.Info,
                                         label = fileDetailsLabel,
-                                        enabled = !isPerspective,
+                                        enabled = !isPerspective && !isBlurMode,
                                         onClick = {
                                             moreMenuExpanded = false
                                             showFileDetails = true
@@ -1430,18 +1659,19 @@ fun PhotoCropEditor(
                                     )
                                     EditOverflowMenuItem(
                                         icon =
-                                        if (isPerspective) {
+                                        if (isPerspective || isBlurMode) {
                                             Icons.Filled.Done
                                         } else {
                                             Icons.Filled.Save
                                         },
                                         label =
-                                        if (isPerspective) {
-                                            applyPerspectiveLabel
-                                        } else {
-                                            saveLabel
+                                        when {
+                                            isPerspective -> applyPerspectiveLabel
+                                            isBlurMode -> applyBlurLabel
+                                            else -> saveLabel
                                         },
-                                        enabled = !isSaving,
+                                        enabled =
+                                        !isSaving && (!isBlurMode || blurStrokes.isNotEmpty()),
                                         onClick = {
                                             moreMenuExpanded = false
                                             onSave()
@@ -1465,7 +1695,7 @@ fun PhotoCropEditor(
                         outlined = true,
                     )
                     Spacer(modifier = Modifier.weight(1f))
-                    if (onSaveCopy != null && !isPerspective) {
+                    if (onSaveCopy != null && !isPerspective && !isBlurMode) {
                         EditToolbarIconButton(
                             onClick = onSaveCopy,
                             icon = Icons.Filled.SaveAs,
@@ -1474,10 +1704,11 @@ fun PhotoCropEditor(
                             outlined = true,
                         )
                     }
-                    if (isPerspective) {
+                    if (isPerspective || isBlurMode) {
                         Button(
                             onClick = onSave,
-                            enabled = !isSaving,
+                            enabled =
+                            !isSaving && (!isBlurMode || blurStrokes.isNotEmpty()),
                         ) {
                             Icon(
                                 imageVector = Icons.Filled.Done,
@@ -1486,7 +1717,12 @@ fun PhotoCropEditor(
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             AutoFitText(
-                                text = applyPerspectiveLabel,
+                                text =
+                                if (isBlurMode) {
+                                    applyBlurLabel
+                                } else {
+                                    applyPerspectiveLabel
+                                },
                                 maxLines = 2,
                                 textAlign = TextAlign.Center,
                             )
@@ -1505,7 +1741,7 @@ fun PhotoCropEditor(
         }
     }
 
-    if (showFileDetails && !isPerspective) {
+    if (showFileDetails && !isPerspective && !isBlurMode) {
         PhotoFileDetailsSheet(
             photo = photo,
             onDismissRequest = { showFileDetails = false },
