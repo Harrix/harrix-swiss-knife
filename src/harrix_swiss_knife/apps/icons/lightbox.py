@@ -182,7 +182,7 @@ class IconLightboxDialog(QDialog):
         self.setWindowFlags(
             Qt.WindowType.Dialog | Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowStaysOnTopHint
         )
-        self.setStyleSheet("IconLightboxDialog { background-color: rgba(0, 0, 0, 225); }")
+        self.setStyleSheet("IconLightboxDialog { background-color: white; }")
 
         owner = parent.window() if parent is not None else None
         if owner is not None:
