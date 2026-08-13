@@ -28,6 +28,7 @@ FLAT_ICON_EXTENSIONS: frozenset[str] = frozenset({".svg", ".ai", ".pdf", ".eps"}
 _SKIP_DIR_NAMES: frozenset[str] = frozenset(
     {".git", ".hg", ".svn", "__pycache__", "node_modules", ".venv", "venv"},
 )
+_NOTE_ASSET_DIR_NAMES: frozenset[str] = frozenset({"img", "files"})
 
 
 @dataclass(slots=True)
@@ -108,8 +109,10 @@ class IconVariant:
 def delete_icon_family(family: IconFamily, repo_root: Path, *, kind: CatalogKind) -> None:
     """Permanently delete an icon family from disk.
 
-    Note-folder repos remove the whole `icons/{id}/` directory. Flat dumps
-    unlink the featured file and every variant file that still exists.
+    Note-folder repos remove the family directory under `icons/` (flat
+    `icons/{id}/` or nested `icons/{category}/{id}/`). Empty category folders
+    are removed afterwards. Flat dumps unlink the featured file and every
+    variant file that still exists.
 
     """
     root = repo_root.expanduser().resolve()
@@ -126,20 +129,7 @@ def is_note_icons_repo(root: Path) -> bool:
     icons_dir = root / "icons"
     if not icons_dir.is_dir():
         return False
-    try:
-        children = list(icons_dir.iterdir())
-    except OSError:
-        return False
-    for child in children:
-        if not child.is_dir():
-            continue
-        if (
-            (child / "featured-image.svg").is_file()
-            or (child / f"{child.name}.md").is_file()
-            or (child / "img").is_dir()
-        ):
-            return True
-    return False
+    return bool(_iter_icon_note_dirs(icons_dir))
 
 
 def load_catalog(repo_root: Path) -> IconCatalog:
@@ -175,14 +165,14 @@ def open_icons_folder(path: Path) -> IconCatalog:
 
 
 def rebuild_catalog(repo_root: Path) -> IconCatalog:
-    """Rebuild `catalog.json` from `icons/` note-folders and reload it."""
+    """Rebuild `catalog.json` from `icons/` note-folders (flat or nested by category) and reload it."""
     icons_dir = repo_root / "icons"
     if not icons_dir.is_dir():
         msg = f"icons/ not found in {repo_root}"
         raise FileNotFoundError(msg)
 
     icons_payload: list[dict[str, Any]] = []
-    for note_dir in sorted(p for p in icons_dir.iterdir() if p.is_dir()):
+    for note_dir in _iter_icon_note_dirs(icons_dir):
         family_id = note_dir.name
         md_path = note_dir / f"{family_id}.md"
         text = md_path.read_text(encoding="utf-8") if md_path.is_file() else ""
@@ -212,7 +202,7 @@ def rebuild_catalog(repo_root: Path) -> IconCatalog:
                 "date": icon_date,
                 "categories": categories,
                 "tags": tags,
-                "folder": f"icons/{family_id}",
+                "folder": _relative_to_root(note_dir, repo_root),
                 "featured": featured_rel,
                 "featured_hash": featured_hash,
                 "variants": variants,
@@ -353,7 +343,11 @@ def _delete_note_family(family: IconFamily, root: Path) -> None:
     if not note_dir.is_dir():
         msg = f"Icon folder not found: {note_dir}"
         raise FileNotFoundError(msg)
+    if not _is_icon_note_dir(note_dir):
+        msg = f"Refusing to delete non-note folder `{family.folder}`"
+        raise ValueError(msg)
     shutil.rmtree(note_dir)
+    _remove_empty_parents(note_dir.parent, icons_root)
 
 
 def _ensure_path_inside_root(path: Path, root: Path) -> None:
@@ -411,6 +405,13 @@ def _flat_family_id(path: Path, root: Path) -> str:
     return f"{rel_parent}/{stem}"
 
 
+def _is_icon_note_dir(path: Path) -> bool:
+    """Return whether `path` is an icon family note-folder."""
+    if not path.is_dir():
+        return False
+    return (path / "featured-image.svg").is_file() or (path / f"{path.name}.md").is_file() or (path / "img").is_dir()
+
+
 def _iter_flat_icon_files(root: Path) -> list[Path]:
     """Collect supported icon files in `root` and all nested subfolders."""
     result: list[Path] = []
@@ -427,6 +428,30 @@ def _iter_flat_icon_files(root: Path) -> list[Path]:
                     stack.append(entry)
             elif entry.is_file() and entry.suffix.casefold() in FLAT_ICON_EXTENSIONS:
                 result.append(entry)
+    result.sort(key=lambda item: item.as_posix().casefold())
+    return result
+
+
+def _iter_icon_note_dirs(icons_dir: Path) -> list[Path]:
+    """Collect icon note-folders under `icons/`, including category subfolders."""
+    result: list[Path] = []
+    stack = [icons_dir]
+    while stack:
+        current = stack.pop()
+        try:
+            entries = list(current.iterdir())
+        except OSError:
+            continue
+        for entry in entries:
+            if not entry.is_dir():
+                continue
+            name = entry.name.casefold()
+            if name in _SKIP_DIR_NAMES or name in _NOTE_ASSET_DIR_NAMES:
+                continue
+            if _is_icon_note_dir(entry):
+                result.append(entry)
+            else:
+                stack.append(entry)
     result.sort(key=lambda item: item.as_posix().casefold())
     return result
 
@@ -492,3 +517,18 @@ def _pick_featured_file(files: list[Path]) -> Path:
 
 def _relative_to_root(path: Path, root: Path) -> str:
     return path.resolve().relative_to(root.resolve()).as_posix()
+
+
+def _remove_empty_parents(start: Path, stop: Path) -> None:
+    """Remove empty directories from `start` up to, but not including, `stop`."""
+    current = start.resolve()
+    limit = stop.resolve()
+    while current.is_dir() and current != limit and limit in current.parents:
+        try:
+            if any(current.iterdir()):
+                return
+            parent = current.parent
+            current.rmdir()
+            current = parent
+        except OSError:
+            return

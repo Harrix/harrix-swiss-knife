@@ -1522,6 +1522,19 @@ class MainWindow(
         toast = toast_notification.ToastNotification(message, duration=2000, parent=self)
         toast.present()
 
+    def _after_table_data_changed(
+        self,
+        table_name: str,
+        top_left: QModelIndex,
+        bottom_right: QModelIndex,
+    ) -> None:
+        """Schedule deferred secondary UI refresh after manual transaction edits."""
+        del top_left, bottom_right
+        if table_name != "transactions":
+            return
+        self._mark_summary_dirty()
+        self._mark_transactions_changed()
+
     def _append_colored_rows_to_model(
         self,
         model: QStandardItemModel,

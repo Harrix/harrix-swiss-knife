@@ -12,6 +12,7 @@ from harrix_swiss_knife.apps.icons.catalog import (
     IconFamily,
     IconVariant,
     delete_icon_family,
+    is_note_icons_repo,
     load_catalog,
     open_icons_folder,
     rebuild_catalog,
@@ -181,6 +182,62 @@ def test_rebuild_catalog_title_from_id(tmp_path: Path) -> None:
     )
     catalog = rebuild_catalog(repo)
     assert catalog.icons[0].title == "Suit"
+
+
+def test_rebuild_catalog_nested_category_folder(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    note = repo / "icons" / "clothes" / "clothes__suit"
+    _write_svg(note / "featured-image.svg")
+    (note / "clothes__suit.md").write_text(
+        "---\ndate: 2020-07-19\ncategories: [clothes]\ntags: [suit]\n---\n\n# Suit\n",
+        encoding="utf-8",
+    )
+    catalog = rebuild_catalog(repo)
+    assert catalog.icons[0].id == "clothes__suit"
+    assert catalog.icons[0].title == "Suit"
+    assert catalog.icons[0].folder == "icons/clothes/clothes__suit"
+    assert catalog.icons[0].featured_path(repo) == note / "featured-image.svg"
+
+
+def test_rebuild_catalog_mixed_flat_and_nested(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    nested = repo / "icons" / "clothes" / "clothes__suit"
+    flat = repo / "icons" / "building__garage"
+    _write_svg(nested / "featured-image.svg")
+    _write_svg(flat / "featured-image.svg")
+    catalog = rebuild_catalog(repo)
+    by_id = {item.id: item for item in catalog.icons}
+    assert by_id["clothes__suit"].folder == "icons/clothes/clothes__suit"
+    assert by_id["building__garage"].folder == "icons/building__garage"
+
+
+def test_is_note_icons_repo_nested_without_catalog(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    _write_svg(repo / "icons" / "building" / "building__garage" / "featured-image.svg")
+    assert is_note_icons_repo(repo)
+    catalog = open_icons_folder(repo)
+    assert catalog.kind == "note"
+    assert catalog.icons[0].id == "building__garage"
+
+
+def test_delete_nested_note_family_prunes_empty_category(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    note = repo / "icons" / "building" / "building__garage"
+    sibling = repo / "icons" / "building" / "building__house"
+    other = repo / "icons" / "clothes" / "clothes__suit"
+    _write_svg(note / "featured-image.svg")
+    _write_svg(sibling / "featured-image.svg")
+    _write_svg(other / "featured-image.svg")
+    catalog = rebuild_catalog(repo)
+    family = next(item for item in catalog.icons if item.id == "building__garage")
+    delete_icon_family(family, repo, kind="note")
+    assert not note.exists()
+    assert sibling.is_dir()
+    assert (repo / "icons" / "building").is_dir()
+    leftover = next(item for item in rebuild_catalog(repo).icons if item.id == "building__house")
+    delete_icon_family(leftover, repo, kind="note")
+    assert not (repo / "icons" / "building").exists()
+    assert other.is_dir()
 
 
 def test_icon_variant_absolute_path(tmp_path: Path) -> None:

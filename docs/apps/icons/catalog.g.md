@@ -272,8 +272,10 @@ def delete_icon_family(family: IconFamily, repo_root: Path, *, kind: CatalogKind
 
 Permanently delete an icon family from disk.
 
-Note-folder repos remove the whole `icons/{id}/` directory. Flat dumps
-unlink the featured file and every variant file that still exists.
+Note-folder repos remove the family directory under `icons/` (flat
+`icons/{id}/` or nested `icons/{category}/{id}/`). Empty category folders
+are removed afterwards. Flat dumps unlink the featured file and every
+variant file that still exists.
 
 <details>
 <summary>Code:</summary>
@@ -307,20 +309,7 @@ def is_note_icons_repo(root: Path) -> bool:
     icons_dir = root / "icons"
     if not icons_dir.is_dir():
         return False
-    try:
-        children = list(icons_dir.iterdir())
-    except OSError:
-        return False
-    for child in children:
-        if not child.is_dir():
-            continue
-        if (
-            (child / "featured-image.svg").is_file()
-            or (child / f"{child.name}.md").is_file()
-            or (child / "img").is_dir()
-        ):
-            return True
-    return False
+    return bool(_iter_icon_note_dirs(icons_dir))
 ```
 
 </details>
@@ -387,7 +376,7 @@ def open_icons_folder(path: Path) -> IconCatalog:
 def rebuild_catalog(repo_root: Path) -> IconCatalog
 ```
 
-Rebuild `catalog.json` from `icons/` note-folders and reload it.
+Rebuild `catalog.json` from `icons/` note-folders (flat or nested by category) and reload it.
 
 <details>
 <summary>Code:</summary>
@@ -400,7 +389,7 @@ def rebuild_catalog(repo_root: Path) -> IconCatalog:
         raise FileNotFoundError(msg)
 
     icons_payload: list[dict[str, Any]] = []
-    for note_dir in sorted(p for p in icons_dir.iterdir() if p.is_dir()):
+    for note_dir in _iter_icon_note_dirs(icons_dir):
         family_id = note_dir.name
         md_path = note_dir / f"{family_id}.md"
         text = md_path.read_text(encoding="utf-8") if md_path.is_file() else ""
@@ -430,7 +419,7 @@ def rebuild_catalog(repo_root: Path) -> IconCatalog:
                 "date": icon_date,
                 "categories": categories,
                 "tags": tags,
-                "folder": f"icons/{family_id}",
+                "folder": _relative_to_root(note_dir, repo_root),
                 "featured": featured_rel,
                 "featured_hash": featured_hash,
                 "variants": variants,
