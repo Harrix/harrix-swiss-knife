@@ -378,6 +378,7 @@ def _family_from_dict(data: dict[str, Any]) -> IconFamily:
         featured=str(data.get("featured", "")),
         featured_hash=str(data.get("featured_hash", "")),
         date=str(data.get("date") or "").strip(),
+        trademark=bool(data.get("trademark", False)),
         variants=variants,
     )
     family.search_blob = _build_search_blob(family)

@@ -762,7 +762,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         else:
             new_fm = fm.strip() + "\ntrademark: true\n"
 
-        new_text = "---\n" + new_fm + "---\n" + text[match.end() :]
+        new_text = "---\n" + new_fm + "---\n\n" + text[match.end() :].lstrip()
         md_path.write_text(new_text, encoding="utf-8")
 
         self._on_refresh_catalog()
