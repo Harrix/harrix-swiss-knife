@@ -146,6 +146,19 @@ def test_item_pressed_emits_family_with_variants(qapp: QApplication, tmp_path: P
     assert received[-1].variants[0].file == "img/building__garage_01.svg"
 
 
+def test_rebuild_catalog_title_from_h1_not_yaml(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    note = repo / "icons" / "clothes__suit"
+    _write_svg(note / "featured-image.svg")
+    (note / "clothes__suit.md").write_text(
+        "---\ndate: 2020-07-19\ncategories: [clothes]\ntags: [suit]\ntitle: Yaml Title\n---\n\n# Suit\n",
+        encoding="utf-8",
+    )
+    catalog = rebuild_catalog(repo)
+    assert catalog.icons[0].title == "Suit"
+    assert catalog.icons[0].date == "2020-07-19"
+
+
 def test_icon_variant_absolute_path(tmp_path: Path) -> None:
     repo = _note_repo(tmp_path)
     variant = IconVariant(file="img/building__garage_01.svg", name="building__garage_01", hash="1")

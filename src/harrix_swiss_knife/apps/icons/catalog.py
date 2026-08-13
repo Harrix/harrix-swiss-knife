@@ -14,6 +14,7 @@ from typing import Any, Literal
 from harrix_swiss_knife.keyboard_layout_search import text_matches_autocomplete
 
 _FRONTMATTER_RE = re.compile(r"^---\s*\n(.*?)\n---\s*\n?", re.DOTALL)
+_H1_RE = re.compile(r"^#\s+(.+?)\s*$")
 _LIST_RE = re.compile(r"^\[\s*(.*?)\s*\]$")
 _VARIANT_TOKEN_RE = re.compile(
     r"_(?:white|black|gray|grey|line-[a-z0-9]+)(?=(?:_\d+)?$)",
@@ -183,7 +184,7 @@ def rebuild_catalog(repo_root: Path) -> IconCatalog:
     for note_dir in sorted(p for p in icons_dir.iterdir() if p.is_dir()):
         family_id = note_dir.name
         md_path = note_dir / f"{family_id}.md"
-        meta = _parse_frontmatter(md_path) if md_path.is_file() else {}
+        meta = _parse_note_markdown(md_path) if md_path.is_file() else {}
         categories = list(meta.get("categories") or []) or [_category_from_id(family_id)]
         title = str(meta.get("title") or _title_from_id(family_id))
         tags = list(meta.get("tags") or [])
@@ -392,6 +393,18 @@ def _file_sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def _first_h1(text: str) -> str:
+    body = text
+    frontmatter = _FRONTMATTER_RE.match(text)
+    if frontmatter:
+        body = text[frontmatter.end() :]
+    for line in body.splitlines():
+        match = _H1_RE.match(line)
+        if match:
+            return match.group(1).strip()
+    return ""
+
+
 def _flat_category(folder: str, stem: str) -> str:
     if folder:
         return folder.split("/", 1)[0]
@@ -434,8 +447,7 @@ def _join_repo_path(repo_root: Path, folder: str, relative: str) -> Path:
     return repo_root / relative
 
 
-def _parse_frontmatter(md_path: Path) -> dict[str, Any]:
-    text = md_path.read_text(encoding="utf-8")
+def _parse_frontmatter(text: str) -> dict[str, Any]:
     match = _FRONTMATTER_RE.match(text)
     if not match:
         return {}
@@ -448,8 +460,15 @@ def _parse_frontmatter(md_path: Path) -> dict[str, Any]:
         value = value.strip()
         if key in {"categories", "tags"}:
             result[key] = _parse_yaml_list(value)
-        elif key in {"title", "date"}:
+        elif key == "date":
             result[key] = value.strip("\"'")
+    return result
+
+
+def _parse_note_markdown(md_path: Path) -> dict[str, Any]:
+    text = md_path.read_text(encoding="utf-8")
+    result = _parse_frontmatter(text)
+    result["title"] = _first_h1(text)
     return result
 
 
