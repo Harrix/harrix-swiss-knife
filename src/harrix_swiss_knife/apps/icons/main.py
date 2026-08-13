@@ -755,14 +755,24 @@ class MainWindow(QMainWindow, AppWindowMixin):
 
         fm = match.group(1)
         is_trademark = getattr(family, "trademark", False)
+        body = text[match.end() :].lstrip()
+        warning_msg = "⚠️ Editorial Use Only / Trademarked Character"
 
         if is_trademark:
             new_fm_lines = [line for line in fm.splitlines() if not line.startswith("trademark:")]
             new_fm = "\n".join(new_fm_lines) + "\n"
+            body = body.replace(warning_msg, "").strip()
+            body = re.sub(r"\n{3,}", "\n\n", body)
         else:
             new_fm = fm.strip() + "\ntrademark: true\n"
+            if warning_msg not in body:
+                h1_match = re.search(r"^(#\s+.*?)$", body, re.MULTILINE)
+                if h1_match:
+                    body = body[:h1_match.end()] + f"\n\n{warning_msg}" + body[h1_match.end():]
+                else:
+                    body = f"{warning_msg}\n\n" + body
 
-        new_text = "---\n" + new_fm + "---\n\n" + text[match.end() :].lstrip()
+        new_text = "---\n" + new_fm + "---\n\n" + body.lstrip() + "\n"
         md_path.write_text(new_text, encoding="utf-8")
 
         self._on_refresh_catalog()
