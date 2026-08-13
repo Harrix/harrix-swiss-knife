@@ -744,7 +744,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         if not isinstance(family, IconFamily) or not self._repo_root:
             return
 
-        md_path = self._repo_root / "icons" / family.folder / f"{family.id}.md"
+        md_path = self._repo_root / family.folder / f"{family.id}.md"
         if not md_path.is_file():
             return
 

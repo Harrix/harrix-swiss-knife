@@ -207,16 +207,28 @@ class DraggableIconList(QListWidget):
         if item is None:
             return
         family = item.data(Qt.ItemDataRole.UserRole)
-        path = item.data(ROLE_SVG_PATH)
-        if family is None or not isinstance(path, str) or not path:
+        if family is None:
             return
+
+        path = item.data(ROLE_SVG_PATH)
+        has_path = isinstance(path, str) and bool(path)
+
         self.setCurrentItem(item)
 
         menu = QMenu(self)
-        reveal_action = menu.addAction("📂 Reveal in File Explorer")
-        details_action = menu.addAction("ℹ️ Icon details")  # noqa: RUF001
-        copy_action = menu.addAction("📋 Copy")
-        copy_path_action = menu.addAction("📋 Copy path")
+
+        reveal_action = None
+        details_action = None
+        copy_action = None
+        copy_path_action = None
+
+        if has_path:
+            reveal_action = menu.addAction("📂 Reveal in File Explorer")
+            details_action = menu.addAction("ℹ️ Icon details")  # noqa: RUF001
+            copy_action = menu.addAction("📋 Copy")
+            copy_path_action = menu.addAction("📋 Copy path")
+            menu.addSeparator()
+
         open_note_action = menu.addAction("📝 Open note in editor")
         set_category_action = menu.addAction("🏷️ Set as category icon")
 
@@ -225,18 +237,24 @@ class DraggableIconList(QListWidget):
         toggle_trademark_action = menu.addAction(f"⚠️ {toggle_trademark_text}")
 
         menu.addSeparator()
-        reveal_source_action = menu.addAction("📂 Reveal source in File Explorer")
-        open_source_action = menu.addAction("🎨 Open source")
-        menu.addSeparator()
+
+        reveal_source_action = None
+        open_source_action = None
+        if has_path:
+            reveal_source_action = menu.addAction("📂 Reveal source in File Explorer")
+            open_source_action = menu.addAction("🎨 Open source")
+            menu.addSeparator()
+
         delete_action = menu.addAction("🗑️ Delete")
         chosen = menu.exec_(self.mapToGlobal(pos))
-        if chosen is reveal_action:
+
+        if has_path and chosen is reveal_action:
             self.reveal_requested.emit(path)
-        elif chosen is details_action:
+        elif has_path and chosen is details_action:
             self.details_requested.emit(family, path)
-        elif chosen is copy_action:
+        elif has_path and chosen is copy_action:
             self.copy_requested.emit(path)
-        elif chosen is copy_path_action:
+        elif has_path and chosen is copy_path_action:
             self.copy_path_requested.emit(path)
         elif chosen is open_note_action:
             self.open_note_requested.emit(family)
@@ -244,9 +262,9 @@ class DraggableIconList(QListWidget):
             self.set_category_icon_requested.emit(family)
         elif chosen is toggle_trademark_action:
             self.toggle_trademark_requested.emit(family)
-        elif chosen is reveal_source_action:
+        elif has_path and chosen is reveal_source_action:
             self.reveal_source_requested.emit(family, path)
-        elif chosen is open_source_action:
+        elif has_path and chosen is open_source_action:
             self.open_source_requested.emit(family, path)
         elif chosen is delete_action:
             self.delete_requested.emit(family)
