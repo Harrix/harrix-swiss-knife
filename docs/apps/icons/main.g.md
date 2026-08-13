@@ -175,6 +175,9 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._variant_pixmaps: dict[str, QPixmap] = {}
         self._variant_progress_toast: toast_progress_notification.ToastProgressNotification | None = None
         self._thumb_progress_toast: toast_progress_notification.ToastProgressNotification | None = None
+        self._trademark_progress_toast: toast_progress_notification.ToastProgressNotification | None = None
+        self._trademark_thread: QThread | None = None
+        self._trademark_worker: TrademarkUpdateWorker | None = None
         self._thumb_refresh_done = 0
         self._thumb_refresh_total = 0
         self._icon_size_save_timer = QTimer(self)
@@ -192,6 +195,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         if self._hide_instead_of_close(event):
             return
         self._close_variant_progress_toast()
+        self._stop_trademark_update()
         self._stop_thumb_refresh()
         super().closeEvent(event)
 
@@ -371,6 +375,12 @@ class MainWindow(QMainWindow, AppWindowMixin):
     def _close_thumb_progress_toast(self) -> None:
         toast = self._thumb_progress_toast
         self._thumb_progress_toast = None
+        if toast is not None:
+            toast.close()
+
+    def _close_trademark_progress_toast(self) -> None:
+        toast = self._trademark_progress_toast
+        self._trademark_progress_toast = None
         if toast is not None:
             toast.close()
 
@@ -823,42 +833,65 @@ class MainWindow(QMainWindow, AppWindowMixin):
     def _on_toggle_trademark(self, family: object) -> None:
         if not isinstance(family, IconFamily) or not self._repo_root:
             return
+        if self._trademark_thread is not None and self._trademark_thread.isRunning():
+            self.statusBar().showMessage("A trademark warning update is already running")
+            return
 
         md_path = self._repo_root / family.folder / f"{family.id}.md"
         if not md_path.is_file():
+            QMessageBox.warning(self, "Vector Icons", f"Markdown note not found:\n{md_path}")
             return
 
-        text = md_path.read_text(encoding="utf-8")
-        match = re.match(r"^---\s*\n(.*?)\n---\s*\n?", text, re.DOTALL)
-        if not match:
-            return
-
-        fm = match.group(1)
-        is_trademark = getattr(family, "trademark", False)
-        body = text[match.end() :].lstrip()
-        warning_msg = "⚠️ Editorial Use Only / Trademarked Character"
-
-        if is_trademark:
-            new_fm_lines = [line for line in fm.splitlines() if not line.startswith("trademark:")]
-            new_fm = "\n".join(new_fm_lines) + "\n"
-            body = body.replace(warning_msg, "").strip()
-            body = re.sub(r"\n{3,}", "\n\n", body)
-        else:
-            new_fm = fm.strip() + "\ntrademark: true\n"
-            if warning_msg not in body:
-                h1_match = re.search(r"^(#\s+.*?)$", body, re.MULTILINE)
-                if h1_match:
-                    body = body[: h1_match.end()] + f"\n\n{warning_msg}" + body[h1_match.end() :]
-                else:
-                    body = f"{warning_msg}\n\n" + body
-
-        new_text = "---\n" + new_fm + "---\n\n" + body.lstrip() + "\n"
-        md_path.write_text(new_text, encoding="utf-8")
-
-        self._on_refresh_catalog()
-        self.statusBar().showMessage(
-            f"Trademark warning {'removed from' if is_trademark else 'added to'} `{family.id}`"
+        enabled = not family.trademark
+        self._trademark_progress_toast = toast_progress_notification.ToastProgressNotification(
+            "Updating trademark warning…",
+            total=1,
+            parent=self,
         )
+        self._trademark_progress_toast.start_countdown()
+        self._trademark_progress_toast.set_progress(0, 1)
+
+        thread = QThread(self)
+        worker = TrademarkUpdateWorker(
+            md_path=md_path,
+            catalog_path=self._repo_root / "catalog.json",
+            family_id=family.id,
+            enabled=enabled,
+        )
+        worker.moveToThread(thread)
+        thread.started.connect(worker.run)
+        worker.succeeded.connect(self._on_trademark_update_succeeded)
+        worker.failed.connect(self._on_trademark_update_failed)
+        worker.finished.connect(thread.quit)
+        worker.finished.connect(worker.deleteLater)
+        thread.finished.connect(self._on_trademark_update_finished)
+        thread.finished.connect(thread.deleteLater)
+        self._trademark_thread = thread
+        self._trademark_worker = worker
+        self.statusBar().showMessage(f"Updating trademark warning for `{family.id}`…")
+        thread.start()
+
+    def _on_trademark_update_failed(self, message: str) -> None:
+        QMessageBox.critical(self, "Vector Icons", f"Failed to update trademark warning:\n{message}")
+
+    def _on_trademark_update_finished(self) -> None:
+        self._close_trademark_progress_toast()
+        self._trademark_thread = None
+        self._trademark_worker = None
+
+    def _on_trademark_update_succeeded(self, family_id: str, enabled: bool) -> None:  # noqa: FBT001
+        if self._catalog is None:
+            return
+        family = next((item for item in self._catalog.icons if item.id == family_id), None)
+        if family is None:
+            return
+        family.trademark = enabled
+        self._apply_filters()
+        action = "added to" if enabled else "removed from"
+        message = f"Trademark warning {action} `{family_id}`"
+        self.statusBar().showMessage(message)
+        toast = toast_notification.ToastNotification(message, duration=2000, parent=self)
+        toast.present()
 
     def _on_variant_view_changed(self, _index: int) -> None:
         mode = self.variant_view_combo.currentData()
@@ -1084,6 +1117,15 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._thumb_worker = None
         self._close_thumb_progress_toast()
 
+    def _stop_trademark_update(self) -> None:
+        thread = self._trademark_thread
+        if thread is not None and thread.isRunning():
+            thread.quit()
+            thread.wait(3000)
+        self._trademark_thread = None
+        self._trademark_worker = None
+        self._close_trademark_progress_toast()
+
     def _sync_folder_combo(self) -> None:
         if not hasattr(self, "folder_combo"):
             return
@@ -1203,6 +1245,9 @@ def __init__(self, *, hide_on_close: bool = False) -> None:
         self._variant_pixmaps: dict[str, QPixmap] = {}
         self._variant_progress_toast: toast_progress_notification.ToastProgressNotification | None = None
         self._thumb_progress_toast: toast_progress_notification.ToastProgressNotification | None = None
+        self._trademark_progress_toast: toast_progress_notification.ToastProgressNotification | None = None
+        self._trademark_thread: QThread | None = None
+        self._trademark_worker: TrademarkUpdateWorker | None = None
         self._thumb_refresh_done = 0
         self._thumb_refresh_total = 0
         self._icon_size_save_timer = QTimer(self)
@@ -1234,6 +1279,7 @@ def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
         if self._hide_instead_of_close(event):
             return
         self._close_variant_progress_toast()
+        self._stop_trademark_update()
         self._stop_thumb_refresh()
         super().closeEvent(event)
 ```

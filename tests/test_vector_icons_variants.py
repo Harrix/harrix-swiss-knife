@@ -17,6 +17,7 @@ from harrix_swiss_knife.apps.icons.catalog import (
     open_icons_folder,
     rebuild_catalog,
 )
+from harrix_swiss_knife.apps.icons.trademark_update import TRADEMARK_WARNING, update_trademark_files
 from harrix_swiss_knife.apps.icons.variant_view import GridEntry
 from harrix_swiss_knife.apps.icons.widgets import DraggableIconList, VariantsPanel, placeholder_pixmap
 
@@ -197,6 +198,47 @@ def test_rebuild_catalog_nested_category_folder(tmp_path: Path) -> None:
     assert catalog.icons[0].title == "Suit"
     assert catalog.icons[0].folder == "icons/clothes/clothes__suit"
     assert catalog.icons[0].featured_path(repo) == note / "featured-image.svg"
+
+
+def test_update_trademark_files_changes_only_note_and_catalog_entry(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    note = repo / "icons" / "fiction_robot" / "fiction_robot__marvin"
+    _write_svg(note / "featured-image.svg")
+    md_path = note / "fiction_robot__marvin.md"
+    md_path.write_text(
+        "---\ncategories: [fiction_robot]\ntags: [marvin]\n---\n\n"
+        "# Robot Marvin\n\n![Featured image](featured-image.svg)\n",
+        encoding="utf-8",
+    )
+    rebuild_catalog(repo)
+    catalog_path = repo / "catalog.json"
+
+    update_trademark_files(
+        md_path=md_path,
+        catalog_path=catalog_path,
+        family_id="fiction_robot__marvin",
+        enabled=True,
+    )
+
+    enabled_text = md_path.read_text(encoding="utf-8")
+    assert "trademark: true" in enabled_text
+    assert f"# Robot Marvin\n\n{TRADEMARK_WARNING}\n\n" in enabled_text
+    enabled_catalog = load_catalog(repo)
+    assert enabled_catalog.icons[0].trademark is True
+
+    update_trademark_files(
+        md_path=md_path,
+        catalog_path=catalog_path,
+        family_id="fiction_robot__marvin",
+        enabled=False,
+    )
+
+    disabled_text = md_path.read_text(encoding="utf-8")
+    assert "trademark:" not in disabled_text
+    assert TRADEMARK_WARNING not in disabled_text
+    assert "# Robot Marvin\n\n![Featured image]" in disabled_text
+    disabled_catalog = load_catalog(repo)
+    assert disabled_catalog.icons[0].trademark is False
 
 
 def test_rebuild_catalog_mixed_flat_and_nested(tmp_path: Path) -> None:
