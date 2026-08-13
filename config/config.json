@@ -204,7 +204,13 @@
   "path_totalcmd_ini": "C:/TCTitan36/Wincmd.ini",
   "path_vector_icons": "D:/GitHub/Harrix-Vector-Icons",
   "path_vector_icons_ai": "D:/GitHub/Harrix-Vector-Icons-ai",
-  "path_vector_icons_pinned": ["D:/GitHub/Harrix-Vector-Icons", "D:/GitHub/Harrix-Vector-Icons-ai/src"],
+  "path_vector_icons_pinned": [
+    "D:/GitHub/Harrix-Vector-Icons",
+    "D:/GitHub/Harrix-Vector-Icons-ai/src",
+    "D:/GitHub/Harrix-Vector-Images-Maybe-Free",
+    "D:/GitHub/Harrix-WeatherIcons",
+    "D:/GitHub/Harrix-Vector-Images"
+  ],
   "path_vector_icons_source_app": "C:/Program Files/Adobe/Adobe Illustrator 2026/Support Files/Contents/Windows/Illustrator.exe",
   "paths_android_projects": ["D:/GitHub/harrix-swiss-knife/android", "D:/GitHub/harrix-notes-android"],
   "paths_combine_for_ai": [
