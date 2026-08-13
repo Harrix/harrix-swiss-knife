@@ -628,6 +628,15 @@ class ActionBase(ABC):
             self.toast.start_countdown()
 
         worker = _WorkerForThread(work_function, output_path)
+        _active_action_workers.append(worker)
+
+        def _cleanup_worker() -> None:
+            with contextlib.suppress(ValueError):
+                _active_action_workers.remove(worker)
+            worker.deleteLater()
+
+        worker.finished.connect(_cleanup_worker)
+
         if cancellable and ui_message:
             self.toast.cancel_requested.connect(worker.cancel)
         worker.finished.connect(callback_wrapper)  # Connect to our wrapper instead
@@ -1790,6 +1799,15 @@ def start_thread(
             self.toast.start_countdown()
 
         worker = _WorkerForThread(work_function, output_path)
+        _active_action_workers.append(worker)
+
+        def _cleanup_worker() -> None:
+            with contextlib.suppress(ValueError):
+                _active_action_workers.remove(worker)
+            worker.deleteLater()
+
+        worker.finished.connect(_cleanup_worker)
+
         if cancellable and ui_message:
             self.toast.cancel_requested.connect(worker.cancel)
         worker.finished.connect(callback_wrapper)  # Connect to our wrapper instead
