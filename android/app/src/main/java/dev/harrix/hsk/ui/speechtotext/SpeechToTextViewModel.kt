@@ -11,6 +11,8 @@ import androidx.lifecycle.viewModelScope
 import dev.harrix.hsk.bothub.BothubConfig
 import dev.harrix.hsk.speechtotext.AudioRecorder
 import dev.harrix.hsk.speechtotext.AudioRecorderException
+import dev.harrix.hsk.speechtotext.PendingSpeechRecording
+import dev.harrix.hsk.speechtotext.SpeechToTextPendingStore
 import dev.harrix.hsk.speechtotext.SpeechToTextRepository
 import dev.harrix.hsk.speechtotext.WaveformBucket
 import kotlinx.coroutines.Dispatchers
@@ -36,6 +38,7 @@ class SpeechToTextViewModel(
 ) : AndroidViewModel(application) {
     private val audioRecorder = AudioRecorder(application.applicationContext)
     private val repository = SpeechToTextRepository(application.applicationContext)
+    private val pendingStore = SpeechToTextPendingStore(application.applicationContext)
     private val mainHandler = Handler(Looper.getMainLooper())
 
     val phase = mutableStateOf(SpeechToTextPhase.Idle)
@@ -43,6 +46,7 @@ class SpeechToTextViewModel(
     val errorMessage = mutableStateOf<String?>(null)
     val infoMessage = mutableStateOf<String?>(null)
     val hasApiKey = mutableStateOf(BothubConfig.hasApiKey)
+    val pendingRecording = mutableStateOf<PendingSpeechRecording?>(pendingStore.load())
     val recordingDurationSeconds = mutableFloatStateOf(0f)
     val waveformBuckets = mutableStateListOf<WaveformBucket>()
 
@@ -178,6 +182,23 @@ class SpeechToTextViewModel(
         processRecording(file, recordedMime)
     }
 
+    fun retryPendingRecording() {
+        if (isBusyNetwork() || workJob?.isActive == true) {
+            return
+        }
+        val pending = pendingStore.load()
+        if (pending == null) {
+            pendingRecording.value = null
+            return
+        }
+        recordedFile = pending.file
+        recordedMime = pending.mimeType
+        recordingDurationSeconds.floatValue = pending.durationSeconds
+        waveformBuckets.clear()
+        errorMessage.value = null
+        processRecording(pending.file, pending.mimeType)
+    }
+
     fun cancelRecording() {
         if (phase.value != SpeechToTextPhase.Recording) {
             return
@@ -298,9 +319,27 @@ class SpeechToTextViewModel(
         mimeType: String,
     ) {
         workJob?.cancel()
+        phase.value = SpeechToTextPhase.Recognizing
         workJob =
             viewModelScope.launch {
-                phase.value = SpeechToTextPhase.Recognizing
+                val preservedOutcome =
+                    withContext(Dispatchers.IO) {
+                        runCatching {
+                            pendingStore.save(
+                                source = file,
+                                mimeType = mimeType,
+                                durationSeconds = recordingDurationSeconds.floatValue,
+                            )
+                        }
+                    }
+                if (preservedOutcome.isFailure) {
+                    errorMessage.value =
+                        preservedOutcome.exceptionOrNull()?.message
+                            ?: preservedOutcome.exceptionOrNull()?.toString()
+                    phase.value = failedRecordingPhase()
+                    return@launch
+                }
+                pendingRecording.value = preservedOutcome.getOrThrow()
                 val transcribedOutcome =
                     withContext(Dispatchers.IO) {
                         runCatching { repository.transcribe(file, mimeType) }
@@ -309,7 +348,7 @@ class SpeechToTextViewModel(
                     errorMessage.value =
                         transcribedOutcome.exceptionOrNull()?.message
                             ?: transcribedOutcome.exceptionOrNull()?.toString()
-                    phase.value = SpeechToTextPhase.Recorded
+                    phase.value = failedRecordingPhase()
                     return@launch
                 }
                 val transcribed = transcribedOutcome.getOrThrow()
@@ -318,16 +357,26 @@ class SpeechToTextViewModel(
                     withContext(Dispatchers.IO) {
                         runCatching { repository.fixText(transcribed) }
                     }
-                cleanupRecording(file)
                 fixedOutcome
                     .onSuccess { fixed ->
+                        withContext(Dispatchers.IO) {
+                            pendingStore.clear()
+                        }
+                        pendingRecording.value = null
+                        cleanupRecording(file)
                         resultText.value = fixed
                         phase.value = SpeechToTextPhase.Result
                     }.onFailure { e ->
                         errorMessage.value = e.message ?: e.toString()
-                        phase.value = SpeechToTextPhase.Idle
+                        phase.value = failedRecordingPhase()
                     }
             }
+    }
+
+    private fun failedRecordingPhase(): SpeechToTextPhase = if (audioRecorder.canContinue()) {
+        SpeechToTextPhase.Recorded
+    } else {
+        SpeechToTextPhase.Idle
     }
 
     private fun cleanupRecording(file: File) {

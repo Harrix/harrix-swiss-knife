@@ -193,6 +193,8 @@
     <string name="speech_to_text_error_ok">OK</string>
     <string name="speech_to_text_permission_denied">Для записи речи нужен доступ к микрофону.</string>
     <string name="speech_to_text_missing_api_key">Нет API-ключа AI. Создайте api-keys/bothub-api-key.txt (или задайте BOTHUB_API_KEY) и пересоберите APK.</string>
+    <string name="speech_to_text_pending_recording">Недоотправленная аудиозапись</string>
+    <string name="speech_to_text_pending_retry">Повторить отправку</string>
     <string name="photo_editor_share_label">Harrix Photo Editor</string>
     <string name="photo_editor_title">Photo Editor</string>
     <string name="photo_editor_close">Выйти из Photo Editor</string>

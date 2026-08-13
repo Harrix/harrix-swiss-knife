@@ -44,6 +44,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -103,6 +104,7 @@ fun SpeechToTextScreen(
     var errorMessage by viewModel.errorMessage
     var infoMessage by viewModel.infoMessage
     var hasApiKey by viewModel.hasApiKey
+    val pendingRecording by viewModel.pendingRecording
     val recordingDurationSeconds by viewModel.recordingDurationSeconds
     val waveformBuckets = viewModel.waveformBuckets
     val context = LocalContext.current
@@ -199,6 +201,7 @@ fun SpeechToTextScreen(
             !openAutoStartRequested &&
             phase == SpeechToTextPhase.Idle &&
             hasApiKey &&
+            pendingRecording == null &&
             errorMessage == null
     LaunchedEffect(canAutoStartRecording) {
         if (!canAutoStartRecording) {
@@ -268,11 +271,29 @@ fun SpeechToTextScreen(
                 )
                 Spacer(modifier = Modifier.height(12.dp))
             }
+            pendingRecording?.let { pending ->
+                PendingRecordingBanner(
+                    durationLabel = AudioRecorder.formatDuration(pending.durationSeconds),
+                    retryEnabled =
+                    hasApiKey &&
+                        (
+                            phase == SpeechToTextPhase.Idle ||
+                                phase == SpeechToTextPhase.Recorded ||
+                                phase == SpeechToTextPhase.Result
+                            ),
+                    onRetry = { viewModel.retryPendingRecording() },
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+            }
 
             when (phase) {
                 SpeechToTextPhase.Idle -> {
                     IdleContent(
-                        starting = hasApiKey && errorMessage == null && pendingOpenAutoStart,
+                        starting =
+                        hasApiKey &&
+                            pendingRecording == null &&
+                            errorMessage == null &&
+                            pendingOpenAutoStart,
                     )
                 }
 
@@ -333,6 +354,49 @@ fun SpeechToTextScreen(
                 }
             },
         )
+    }
+}
+
+@Composable
+private fun PendingRecordingBanner(
+    durationLabel: String,
+    retryEnabled: Boolean,
+    onRetry: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.tertiaryContainer,
+        contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = stringResource(R.string.speech_to_text_pending_recording),
+                    style = MaterialTheme.typography.titleSmall,
+                )
+                Text(
+                    text = durationLabel,
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
+            Button(
+                onClick = onRetry,
+                enabled = retryEnabled,
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Refresh,
+                    contentDescription = null,
+                )
+                Spacer(modifier = Modifier.size(8.dp))
+                Text(stringResource(R.string.speech_to_text_pending_retry))
+            }
+        }
     }
 }
 

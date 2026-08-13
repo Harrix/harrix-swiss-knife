@@ -193,6 +193,8 @@
     <string name="speech_to_text_error_ok">OK</string>
     <string name="speech_to_text_permission_denied">Microphone permission is required to record speech.</string>
     <string name="speech_to_text_missing_api_key">AI API key is missing. Create api-keys/bothub-api-key.txt (or set BOTHUB_API_KEY) and rebuild the APK.</string>
+    <string name="speech_to_text_pending_recording">未发送的录音</string>
+    <string name="speech_to_text_pending_retry">重试发送</string>
     <string name="photo_editor_share_label">Harrix Photo Editor</string>
     <string name="photo_editor_title">Photo Editor</string>
     <string name="photo_editor_close">退出 Photo Editor</string>
