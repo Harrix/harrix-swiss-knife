@@ -349,7 +349,15 @@ def get_monthly_summary_report_data(
     if not expense_categories:
         return ["Month"], [], [], set()
 
-    expense_categories.sort(key=lambda x: x[1])
+    def _sort_key(cat: tuple[int, str, str]) -> tuple[int, str]:
+        tokens = _normalize_category_tokens(cat[1])
+        if "cafe" in tokens:
+            return (0, cat[1])
+        if "food" in tokens:
+            return (1, cat[1])
+        return (2, cat[1])
+
+    expense_categories.sort(key=_sort_key)
 
     end_date: datetime = datetime.now(UTC).astimezone()
     month_names = _iter_month_keys_from_earliest(db_manager, end_date)
@@ -422,7 +430,15 @@ def get_monthly_summary_report_data_legacy(
     if not expense_categories:
         return ["Month"], [], [], set()
 
-    expense_categories.sort(key=lambda x: x[1])
+    def _sort_key(cat: tuple[int, str, str]) -> tuple[int, str]:
+        tokens = _normalize_category_tokens(cat[1])
+        if "cafe" in tokens:
+            return (0, cat[1])
+        if "food" in tokens:
+            return (1, cat[1])
+        return (2, cat[1])
+
+    expense_categories.sort(key=_sort_key)
 
     end_date: datetime = datetime.now(UTC).astimezone()
     month_names = _iter_month_keys_from_earliest(db_manager, end_date)
