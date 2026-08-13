@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import subprocess
 from pathlib import Path
 from typing import Any
@@ -12,10 +13,14 @@ import harrix_pylib as h
 from PySide6.QtCore import QEventLoop, QMimeData, QSize, Qt, QTimer, QUrl
 from PySide6.QtGui import QCloseEvent, QIcon, QPixmap
 from PySide6.QtWidgets import (
+    QAbstractItemView,
     QApplication,
     QComboBox,
+    QDialog,
+    QDialogButtonBox,
     QFileDialog,
     QHBoxLayout,
+    QHeaderView,
     QLabel,
     QLineEdit,
     QListWidget,
@@ -27,6 +32,8 @@ from PySide6.QtWidgets import (
     QSlider,
     QSplitter,
     QStatusBar,
+    QTableWidget,
+    QTableWidgetItem,
     QVBoxLayout,
     QWidget,
 )
@@ -90,6 +97,53 @@ ALL_CATEGORIES = "(All)"
 CATEGORY_LIST_ICON_SIZE = 28
 VARIANT_RENDER_CHUNK = 8
 VARIANT_PROGRESS_TOAST_MIN = 5
+
+
+class KeyValueTableDialog(QDialog):
+    """Dialog displaying key-value pairs in a table with a copy button for each row."""
+
+    def __init__(self, parent: QWidget | None, title: str, data: list[tuple[str, str]]) -> None:
+        """Initialize the dialog."""
+        super().__init__(parent)
+        self.setWindowTitle(title)
+        self.resize(600, 400)
+
+        layout = QVBoxLayout(self)
+
+        self.table = QTableWidget(len(data), 3)
+        self.table.setHorizontalHeaderLabels(["Property", "Value", ""])
+        self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
+        self.table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        self.table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.Fixed)
+        self.table.setColumnWidth(2, 40)
+        self.table.verticalHeader().setVisible(False)
+        self.table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+        self.table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self.table.setWordWrap(True)
+        self.table.verticalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+
+        for row, (key, value) in enumerate(data):
+            key_item = QTableWidgetItem(key)
+            self.table.setItem(row, 0, key_item)
+
+            value_item = QTableWidgetItem(value)
+            self.table.setItem(row, 1, value_item)
+
+            copy_btn = QPushButton("📋")
+            copy_btn.setToolTip("Copy value")
+            copy_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+            copy_btn.clicked.connect(lambda _checked, v=value: self._copy_value(v))
+            self.table.setCellWidget(row, 2, copy_btn)
+
+        layout.addWidget(self.table)
+
+        btn_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
+        btn_box.rejected.connect(self.reject)
+        layout.addWidget(btn_box)
+
+    def _copy_value(self, value: str) -> None:
+        QApplication.clipboard().setText(value)
 
 
 class MainWindow(QMainWindow, AppWindowMixin):
@@ -386,24 +440,27 @@ class MainWindow(QMainWindow, AppWindowMixin):
         stats = self._thumb_cache.stats(self._catalog)
         total_bytes = int(stats["total_bytes"])
         size_text = self._format_byte_size(total_bytes)
-        lines = [
-            f"Cache folder: {stats['cache_dir']}",
-            f"PNG files: {stats['png_files']}",
-            f"Total size: {size_text} ({total_bytes} bytes)",
-            f"Meta entries: {stats['meta_entries']}",
-            f"Thumb size: {stats['thumb_size']} px",
-            f"Format version: {stats['format_version']}",
+
+        data = [
+            ("Cache folder", str(stats["cache_dir"])),
+            ("PNG files", str(stats["png_files"])),
+            ("Total size", f"{size_text} ({total_bytes} bytes)"),
+            ("Meta entries", str(stats["meta_entries"])),
+            ("Thumb size", f"{stats['thumb_size']} px"),
+            ("Format version", str(stats["format_version"])),
         ]
         if int(stats["catalog_icons"]) > 0:
-            lines.extend(
+            data.extend(
                 [
-                    f"Catalog icons: {stats['catalog_icons']}",
-                    f"Fresh: {stats['fresh']}",
-                    f"Stale: {stats['stale']}",
-                    f"Missing: {stats['missing']}",
-                ],
+                    ("Catalog icons", str(stats["catalog_icons"])),
+                    ("Fresh", str(stats["fresh"])),
+                    ("Stale", str(stats["stale"])),
+                    ("Missing", str(stats["missing"])),
+                ]
             )
-        message_box.information(self, "Cache statistics", "\n".join(lines))
+
+        dialog = KeyValueTableDialog(self, "Cache statistics", data)
+        dialog.exec()
 
     def _on_category_changed(self, text: str) -> None:
         self._current_category = None if text == ALL_CATEGORIES or not text else text
@@ -504,24 +561,24 @@ class MainWindow(QMainWindow, AppWindowMixin):
         note = family.note_path(self._repo_root) if self._repo_root is not None else None
         source = self._resolve_source_file(family, svg_path)
         variants = "\n".join(f"  - {variant.name} ({variant.file})" for variant in family.variants) or "  —"
-        text = "\n".join(
-            [
-                f"ID: {family.id}",
-                f"Title: {family.title}",
-                f"Date: {family.date or '—'}",
-                f"Categories: {', '.join(family.categories) or '—'}",
-                f"Tags: {', '.join(family.tags) or '—'}",
-                f"Folder: {family.folder}",
-                f"Note: {note if note is not None else '—'}",
-                f"Source: {source if source is not None else '—'}",
-                f"Featured: {family.featured or '—'}",
-                f"Featured hash: {family.featured_hash or '—'}",
-                f"Selected SVG: {svg_path}",
-                f"Variants ({len(family.variants)}):",
-                variants,
-            ],
-        )
-        message_box.information(self, "Icon details", text)
+
+        data = [
+            ("ID", str(family.id)),
+            ("Title", str(family.title)),
+            ("Date", str(family.date or "—")),
+            ("Categories", ", ".join(family.categories) or "—"),
+            ("Tags", ", ".join(family.tags) or "—"),
+            ("Folder", str(family.folder)),
+            ("Note", str(note if note is not None else "—")),
+            ("Source", str(source if source is not None else "—")),
+            ("Featured", str(family.featured or "—")),
+            ("Featured hash", str(family.featured_hash or "—")),
+            ("Selected SVG", str(svg_path)),
+            (f"Variants ({len(family.variants)})", variants),
+        ]
+
+        dialog = KeyValueTableDialog(self, "Icon details", data)
+        dialog.exec()
 
     def _on_icon_size_changed(self, value: int) -> None:
         self._apply_icon_size(value)
@@ -682,6 +739,36 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self.icon_list.update_family_pixmap(family_id, pixmap)
         if family_id in self._category_icons.values() or family_id in self._default_category_family_ids.values():
             self._refresh_category_icons()
+
+    def _on_toggle_trademark(self, family: object) -> None:
+        if not isinstance(family, IconFamily) or not self._repo_root:
+            return
+
+        md_path = self._repo_root / "icons" / family.folder / f"{family.id}.md"
+        if not md_path.is_file():
+            return
+
+        text = md_path.read_text(encoding="utf-8")
+        match = re.match(r"^---\s*\n(.*?)\n---\s*\n?", text, re.DOTALL)
+        if not match:
+            return
+
+        fm = match.group(1)
+        is_trademark = getattr(family, "trademark", False)
+
+        if is_trademark:
+            new_fm_lines = [line for line in fm.splitlines() if not line.startswith("trademark:")]
+            new_fm = "\n".join(new_fm_lines) + "\n"
+        else:
+            new_fm = fm.strip() + "\ntrademark: true\n"
+
+        new_text = "---\n" + new_fm + "---\n" + text[match.end() :]
+        md_path.write_text(new_text, encoding="utf-8")
+
+        self._on_refresh_catalog()
+        self.statusBar().showMessage(
+            f"Trademark warning {'removed from' if is_trademark else 'added to'} `{family.id}`"
+        )
 
     def _on_variant_view_changed(self, _index: int) -> None:
         mode = self.variant_view_combo.currentData()
@@ -983,6 +1070,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         icon_list.copy_path_requested.connect(self._on_copy_path)
         icon_list.open_note_requested.connect(self._on_open_note_in_editor)
         icon_list.set_category_icon_requested.connect(self._on_set_as_category_icon)
+        icon_list.toggle_trademark_requested.connect(self._on_toggle_trademark)
         icon_list.reveal_source_requested.connect(self._on_reveal_source)
         icon_list.open_source_requested.connect(self._on_open_source)
         icon_list.delete_requested.connect(self._on_delete_icon)
