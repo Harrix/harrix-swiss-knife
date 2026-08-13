@@ -1644,12 +1644,17 @@ class MainWindow(
         top_left: QModelIndex,
         bottom_right: QModelIndex,
     ) -> None:
-        """Schedule deferred secondary UI refresh after manual transaction edits."""
+        """Schedule deferred UI refresh after manual transaction edits.
+
+        Reloads the transactions table so date colors / daily totals stay in sync
+        when the user edits rows in place (especially the date column).
+
+        """
         del top_left, bottom_right
         if table_name != "transactions":
             return
         self._mark_summary_dirty()
-        self._mark_transactions_changed()
+        self._mark_transactions_changed(reload_transactions=True)
 
     def _append_colored_rows_to_model(
         self,
@@ -3408,9 +3413,17 @@ class MainWindow(
         self._summary_dirty = True
 
     # Lazy loading change markers
-    def _mark_transactions_changed(self, *, categories_may_change: bool = False) -> None:
+    def _mark_transactions_changed(
+        self,
+        *,
+        categories_may_change: bool = False,
+        reload_transactions: bool = False,
+    ) -> None:
         """Schedule deferred secondary UI refresh after transaction data changes."""
-        self._ui_refresh_scheduler.mark(categories_may_change=categories_may_change)
+        self._ui_refresh_scheduler.mark(
+            categories_may_change=categories_may_change,
+            reload_transactions=reload_transactions,
+        )
 
     def _on_account_double_clicked(self, index: QModelIndex) -> None:
         """Handle double-click on accounts table.
@@ -4746,10 +4759,17 @@ class MainWindow(
         self._mark_summary_dirty()
         self._mark_transactions_changed(categories_may_change=categories_may_change)
 
-    def _refresh_secondary_ui_after_transactions_changed(self, *, categories_may_change: bool) -> None:
-        """Apply deferred UI updates after transaction add (main-thread timer)."""
+    def _refresh_secondary_ui_after_transactions_changed(
+        self,
+        *,
+        categories_may_change: bool,
+        reload_transactions: bool = False,
+    ) -> None:
+        """Apply deferred UI updates after transaction changes (main-thread timer)."""
         if getattr(self, "_is_closing", False):
             return
+        if reload_transactions:
+            self._refresh_transactions_table()
         self._refresh_summary_if_needed()
         self._update_accounts_balance_display()
         if categories_may_change:
