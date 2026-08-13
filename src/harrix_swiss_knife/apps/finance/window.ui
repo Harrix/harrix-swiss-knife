@@ -349,7 +349,7 @@
                   </font>
                  </property>
                  <property name="text">
-                  <string>0.00₽</string>
+                  <string>0.0₀₽</string>
                  </property>
                  <property name="alignment">
                   <set>Qt::AlignmentFlag::AlignCenter</set>
@@ -380,7 +380,7 @@
                   </font>
                  </property>
                  <property name="text">
-                  <string>0.00₽</string>
+                  <string>0.0₀₽</string>
                  </property>
                  <property name="alignment">
                   <set>Qt::AlignmentFlag::AlignCenter</set>
@@ -904,7 +904,7 @@
                   </font>
                  </property>
                  <property name="text">
-                  <string>0.00₽</string>
+                  <string>0.0₀₽</string>
                  </property>
                  <property name="alignment">
                   <set>Qt::AlignmentFlag::AlignCenter</set>
@@ -914,7 +914,7 @@
                <item>
                 <widget class="QLabel" name="label_balance_account_details">
                  <property name="text">
-                  <string>0.00₽</string>
+                  <string>0.0₀₽</string>
                  </property>
                 </widget>
                </item>
@@ -2558,7 +2558,7 @@
                   <string notr="true">color: #4CAF50; font-weight: bold;</string>
                  </property>
                  <property name="text">
-                  <string>Total Income: 0.00₽</string>
+                  <string>Total Income: 0.0₀₽</string>
                  </property>
                 </widget>
                </item>
@@ -2568,7 +2568,7 @@
                   <string notr="true">color: red; font-weight: bold;</string>
                  </property>
                  <property name="text">
-                  <string>Total Expenses: 0.00₽</string>
+                  <string>Total Expenses: 0.0₀₽</string>
                  </property>
                 </widget>
                </item>

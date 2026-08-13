@@ -127,6 +127,7 @@ from harrix_swiss_knife.apps.finance.mixins import (
     ValidationOperations,
     requires_database,
 )
+from harrix_swiss_knife.apps.finance.number_utils import format_amount
 from harrix_swiss_knife.apps.finance.report_operations import ReportOperations
 from harrix_swiss_knife.apps.finance.services.account_balance import format_total_accounts_balance_details
 from harrix_swiss_knife.apps.finance.standard_items_dialog import StandardItemsDialog
@@ -1428,9 +1429,12 @@ class MainWindow(
                 code = cur[0] if cur else str(cid)
                 sym = cur[2] if cur else ""
                 major = db.convert_from_minor_units(minor, cid)
-                income_lines.append(f"{code}: {major:,.2f}{sym}")
+                formatted_major = format_amount(f"{major:.2f}")
+                income_lines.append(f"{code}: {formatted_major}{sym}")
             income_text = (
-                "Total Income:\n" + "\n".join(income_lines) if income_lines else f"Total Income:\n0.00{currency_symbol}"
+                "Total Income:\n" + "\n".join(income_lines)
+                if income_lines
+                else f"Total Income:\n{format_amount('0.00')}{currency_symbol}"
             )
             self.label_total_income.setText(income_text)
 
@@ -1443,11 +1447,12 @@ class MainWindow(
                 code = cur[0] if cur else str(cid)
                 sym = cur[2] if cur else ""
                 major = db.convert_from_minor_units(minor, cid)
-                expense_lines.append(f"{code}: {major:,.2f}{sym}")
+                formatted_major = format_amount(f"{major:.2f}")
+                expense_lines.append(f"{code}: {formatted_major}{sym}")
             expense_text = (
                 "Total Expenses:\n" + "\n".join(expense_lines)
                 if expense_lines
-                else f"Total Expenses:\n0.00{currency_symbol}"
+                else f"Total Expenses:\n{format_amount('0.00')}{currency_symbol}"
             )
             self.label_total_expenses.setText(expense_text)
 
@@ -1475,28 +1480,29 @@ class MainWindow(
                     code = cur[0] if cur else str(cid)
                     sym = cur[2] if cur else ""
                     major = db.convert_from_minor_units(minor, cid)
-                    lines.append(f"{code}: {major:,.2f}{sym}")
+                    formatted_major = format_amount(f"{major:.2f}")
+                    lines.append(f"{code}: {formatted_major}{sym}")
                 return lines
 
             expense_today_lines: list[str] = _expense_lines_for_date(today_str)
             if expense_today_lines:
                 self.label_today_expense.setText("\n".join(expense_today_lines))
             else:
-                self.label_today_expense.setText(f"0.00{currency_symbol}")
+                self.label_today_expense.setText(f"{format_amount('0.00')}{currency_symbol}")
 
             expense_yesterday_lines: list[str] = _expense_lines_for_date(yesterday_str)
             if expense_yesterday_lines:
                 self.label_yesterday_expense.setText("\n".join(expense_yesterday_lines))
             else:
-                self.label_yesterday_expense.setText(f"0.00{currency_symbol}")
+                self.label_yesterday_expense.setText(f"{format_amount('0.00')}{currency_symbol}")
 
         except Exception:
             logger.exception("Error updating summary labels")
             # Set default values on error
-            self.label_total_income.setText("Total Income: 0.00₽")
-            self.label_total_expenses.setText("Total Expenses: 0.00₽")
-            self.label_today_expense.setText("0.00₽")
-            self.label_yesterday_expense.setText("0.00₽")
+            self.label_total_income.setText(f"Total Income: {format_amount('0.00')}₽")
+            self.label_total_expenses.setText(f"Total Expenses: {format_amount('0.00')}₽")
+            self.label_today_expense.setText(f"{format_amount('0.00')}₽")
+            self.label_yesterday_expense.setText(f"{format_amount('0.00')}₽")
 
     def _add_average_salary_series_controls(self) -> None:
         """Add compact series checkboxes under the Average Salary chart."""
