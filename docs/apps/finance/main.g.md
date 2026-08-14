@@ -6149,7 +6149,7 @@ class MainWindow(
         self.dateEdit_filter_to.setEnabled(enabled)
 
     @requires_database()
-    def _update_finance_chart(self) -> None:
+    def _update_finance_chart(self, *_args: object) -> None:
         """Build and render the finance chart according to the selected chart type."""
         if self.db_manager is None:
             return
