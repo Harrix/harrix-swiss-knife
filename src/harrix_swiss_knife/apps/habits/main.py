@@ -1343,6 +1343,16 @@ class MainWindow(
                 widget.hide()
                 widget.deleteLater()
 
+    def _configure_habits_table_columns(self) -> None:
+        """Keep compact flag columns and use remaining width for the habit name."""
+        header = self.tableView_habits.horizontalHeader()
+        if header.count() < len(self.table_config["habits"][2]):
+            return
+        header.setStretchLastSection(False)
+        header.setSectionResizeMode(0, header.ResizeMode.Stretch)
+        header.setSectionResizeMode(1, header.ResizeMode.ResizeToContents)
+        header.setSectionResizeMode(2, header.ResizeMode.ResizeToContents)
+
     @requires_database(is_show_warning=False)
     @requires_database()
     def _connect_signals(self) -> None:
@@ -1410,11 +1420,10 @@ class MainWindow(
             self.models[key] = None
 
     def _finish_window_initialization(self) -> None:
-        """Finish window initialization by showing the window and adjusting habits splitter."""
+        """Finish window initialization by showing the window."""
         if self._is_closing:
             return
         self.show()
-        QTimer.singleShot(100, self._set_habits_splitter_size)
 
     def _get_selected_habit_filter(self) -> str:
         """Get the currently selected habit from the filter list view."""
@@ -1633,6 +1642,13 @@ class MainWindow(
                     self.tableView_process_habits.edit(habit_proxy_index)
                 break
 
+    def _on_tab_changed(self, index: int) -> None:
+        """Apply table sizing after the Habits tab becomes visible."""
+        if self.tabWidget.widget(index) is not self.tab_sets_of_habits:
+            return
+        QTimer.singleShot(0, self._set_habits_splitter_size)
+        QTimer.singleShot(0, self._configure_habits_table_columns)
+
     def _refresh_habit_dashboard(self) -> None:
         """Reload Habitify-like dashboard from the current database."""
         dashboard = getattr(self, "_habit_dashboard", None)
@@ -1681,6 +1697,7 @@ class MainWindow(
         close_table_editor_if_open(self.tableView_habits)
         self.models["habits"] = model
         self.tableView_habits.setModel(model)
+        self._configure_habits_table_columns()
         self._connect_table_auto_save_signal("habits")
 
     def _setup_ui(self) -> None:
@@ -1695,6 +1712,7 @@ class MainWindow(
         add_habit_action.triggered.connect(self._habit_dashboard.add_habit)
         refresh_action = self.menuCommands.addAction("🔄 Refresh")
         refresh_action.triggered.connect(self._habit_dashboard.refresh)
+        self.tabWidget.currentChanged.connect(self._on_tab_changed)
 
         self.pushButton_habits_delete.setText(f"🗑️ {self.pushButton_habits_delete.text()}")
         self.pushButton_habits_refresh.setText(f"🔄 {self.pushButton_habits_refresh.text()}")
