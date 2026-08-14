@@ -325,6 +325,17 @@ def test_icon_lightbox_fits_parent_window(tmp_path: Path, qapp: QApplication) ->
     owner.close()
 
 
+def test_icon_lightbox_backdrop_swatches_have_no_labels(tmp_path: Path, qapp: QApplication) -> None:  # noqa: ARG001
+    svg = tmp_path / "icon.svg"
+    _write_svg(svg)
+    dialog = IconLightboxDialog([svg])
+    assert dialog._white_backdrop_button.text() == ""
+    assert dialog._black_backdrop_button.text() == ""
+    dialog._set_backdrop_color("black")
+    assert dialog._black_backdrop_button.isChecked()
+    dialog.close()
+
+
 def test_delete_note_family_removes_folder_and_catalog_entry(tmp_path: Path) -> None:
     repo = _note_repo(tmp_path)
     other = repo / "icons" / "building__house"

@@ -474,9 +474,9 @@ class IconLightboxDialog(QDialog):
         self._next_button = self._make_button("→", "Next (Right arrow)")
         self._next_button.clicked.connect(self.show_next)
 
-        self._black_backdrop_button = self._make_backdrop_button("Black", color="black")
+        self._black_backdrop_button = self._make_backdrop_button(color="black")
         self._black_backdrop_button.clicked.connect(lambda: self._set_backdrop_color("black"))
-        self._white_backdrop_button = self._make_backdrop_button("White", color="white")
+        self._white_backdrop_button = self._make_backdrop_button(color="white")
         self._white_backdrop_button.clicked.connect(lambda: self._set_backdrop_color("white"))
         self._set_backdrop_color("white")
 
@@ -530,17 +530,18 @@ class IconLightboxDialog(QDialog):
             self._index = (self._index - 1) % len(self._paths)
             self._show_current()
 
-    def _make_backdrop_button(self, text: str, *, color: str) -> QPushButton:
-        button = QPushButton(text, self)
+    def _make_backdrop_button(self, *, color: str) -> QPushButton:
+        button = QPushButton(self)
         button.setCheckable(True)
         button.setAutoExclusive(True)
-        button.setFixedSize(72, 34)
+        button.setFixedSize(_SWATCH_SIZE, _SWATCH_SIZE)
         button.setCursor(Qt.CursorShape.PointingHandCursor)
-        foreground = "white" if color == "black" else "black"
-        border = "white" if color == "black" else "#555"
+        button.setToolTip("Black backdrop" if color == "black" else "White backdrop")
+        border = "#888" if color == "white" else "#ccc"
+        radius = _SWATCH_SIZE // 2
         button.setStyleSheet(
-            f"QPushButton {{ color: {foreground}; background: {color}; border: 1px solid {border};"
-            "border-radius: 7px; padding: 4px 8px; }"
+            f"QPushButton {{ background: {color}; border: 1px solid {border};"
+            f"border-radius: {radius}px; padding: 0; }}"
             "QPushButton:checked { border: 3px solid #2f80ed; }"
         )
         return button
@@ -655,9 +656,9 @@ def __init__(
         self._next_button = self._make_button("→", "Next (Right arrow)")
         self._next_button.clicked.connect(self.show_next)
 
-        self._black_backdrop_button = self._make_backdrop_button("Black", color="black")
+        self._black_backdrop_button = self._make_backdrop_button(color="black")
         self._black_backdrop_button.clicked.connect(lambda: self._set_backdrop_color("black"))
-        self._white_backdrop_button = self._make_backdrop_button("White", color="white")
+        self._white_backdrop_button = self._make_backdrop_button(color="white")
         self._white_backdrop_button.clicked.connect(lambda: self._set_backdrop_color("white"))
         self._set_backdrop_color("white")
 
