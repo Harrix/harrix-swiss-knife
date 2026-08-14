@@ -13,6 +13,7 @@ lang: en
 
 - [🏛️ Class `HabitDashboardWidget`](#%EF%B8%8F-class-habitdashboardwidget)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
+  - [⚙️ Method `add_habit`](#%EF%B8%8F-method-add_habit)
   - [⚙️ Method `refresh`](#%EF%B8%8F-method-refresh)
   - [⚙️ Method `set_database`](#%EF%B8%8F-method-set_database)
 
@@ -33,7 +34,6 @@ Master-detail habits dashboard matching the design TZ screenshot.
 class HabitDashboardWidget(QWidget):
 
     data_changed = Signal()
-    open_table_view = Signal()
 
     def __init__(self, parent: QWidget | None = None) -> None:  # noqa: D107
         super().__init__(parent)
@@ -47,6 +47,32 @@ class HabitDashboardWidget(QWidget):
 
         self.setStyleSheet("HabitDashboardWidget { background: #FFFFFF; }")
         self._build_ui()
+
+    def add_habit(self) -> None:
+        """Prompt for a habit and add it to the database."""
+        if self._db is None:
+            return
+        name, ok = QInputDialog.getText(self, "Add Habit", "Habit name:")
+        if not ok:
+            return
+        name = name.strip()
+        if not name:
+            return
+        is_bool = (
+            QMessageBox.question(
+                self,
+                "Habit Type",
+                "Treat as boolean (done / not done) habit?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.Yes,
+            )
+            == QMessageBox.StandardButton.Yes
+        )
+        if self._db.add_habit(name, is_bool=is_bool):
+            self.refresh()
+            self.data_changed.emit()
+        else:
+            QMessageBox.warning(self, "Database Error", "Failed to add habit.")
 
     def refresh(self) -> None:
         """Reload list, week rings, and detail pane from the database."""
@@ -84,37 +110,7 @@ class HabitDashboardWidget(QWidget):
         title = QLabel("Habit")
         title.setStyleSheet("color: #111827; font-size: 20px; font-weight: 700;")
         header.addWidget(title)
-        header.addStretch(1)
-
-        self._btn_grid = QPushButton("▦")
-        self._btn_add = QPushButton("+")
-        self._btn_more = QPushButton("⋯")
-        for btn in (self._btn_grid, self._btn_add, self._btn_more):
-            btn.setFixedSize(32, 32)
-            btn.setCursor(Qt.CursorShape.PointingHandCursor)
-            btn.setStyleSheet(
-                """
-                QPushButton {
-                    background: transparent;
-                    border: none;
-                    color: #6B7280;
-                    font-size: 16px;
-                    border-radius: 8px;
-                }
-                QPushButton:hover { background: #F3F4F6; color: #111827; }
-                """
-            )
-        self._btn_grid.setToolTip("Open table view")
-        self._btn_add.setToolTip("Add habit")
-        self._btn_more.setToolTip("More")
-        header.addWidget(self._btn_grid)
-        header.addWidget(self._btn_add)
-        header.addWidget(self._btn_more)
         layout.addLayout(header)
-
-        self._btn_grid.clicked.connect(self.open_table_view.emit)
-        self._btn_add.clicked.connect(self._on_add_habit)
-        self._btn_more.clicked.connect(self._on_more_menu)
 
         week_row = QHBoxLayout()
         week_row.setSpacing(4)
@@ -226,31 +222,6 @@ class HabitDashboardWidget(QWidget):
                 widget.deleteLater()
         self._habit_rows.clear()
 
-    def _on_add_habit(self) -> None:
-        if self._db is None:
-            return
-        name, ok = QInputDialog.getText(self, "Add Habit", "Habit name:")
-        if not ok:
-            return
-        name = name.strip()
-        if not name:
-            return
-        is_bool = (
-            QMessageBox.question(
-                self,
-                "Habit Type",
-                "Treat as boolean (done / not done) habit?",
-                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-                QMessageBox.StandardButton.Yes,
-            )
-            == QMessageBox.StandardButton.Yes
-        )
-        if self._db.add_habit(name, is_bool=is_bool):
-            self.refresh()
-            self.data_changed.emit()
-        else:
-            QMessageBox.warning(self, "Database Error", "Failed to add habit.")
-
     def _on_calendar_day_toggled(self, date_str: str) -> None:
         if self._db is None or self._selected_habit_id is None:
             return
@@ -316,16 +287,6 @@ class HabitDashboardWidget(QWidget):
             )
         self._refresh_detail()
 
-    def _on_more_menu(self) -> None:
-        menu = QMenu(self)
-        act_refresh = menu.addAction("Refresh")
-        act_tables = menu.addAction("Open table view")
-        chosen = menu.exec_(self._btn_more.mapToGlobal(self._btn_more.rect().bottomLeft()))
-        if chosen == act_refresh:
-            self.refresh()
-        elif chosen == act_tables:
-            self.open_table_view.emit()
-
     def _on_week_day_toggled(self, habit_id: int, day_index: int) -> None:
         if self._db is None or day_index < 0 or day_index >= len(self._week_dates):
             return
@@ -339,7 +300,7 @@ class HabitDashboardWidget(QWidget):
         self._clear_habit_list()
         habits = self._db.get_habits(include_archived=False)
         if not habits:
-            empty = QLabel("No habits yet. Click + to add one.")
+            empty = QLabel("No habits yet. Use Commands → Add habit to add one.")
             empty.setStyleSheet("color: #9CA3AF; font-size: 13px; padding: 24px;")
             empty.setAlignment(Qt.AlignmentFlag.AlignCenter)
             self._list_layout.insertWidget(0, empty)
@@ -477,6 +438,46 @@ def __init__(self, parent: QWidget | None = None) -> None:  # noqa: D107
 
         self.setStyleSheet("HabitDashboardWidget { background: #FFFFFF; }")
         self._build_ui()
+```
+
+</details>
+
+### ⚙️ Method `add_habit`
+
+```python
+def add_habit(self) -> None
+```
+
+Prompt for a habit and add it to the database.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def add_habit(self) -> None:
+        if self._db is None:
+            return
+        name, ok = QInputDialog.getText(self, "Add Habit", "Habit name:")
+        if not ok:
+            return
+        name = name.strip()
+        if not name:
+            return
+        is_bool = (
+            QMessageBox.question(
+                self,
+                "Habit Type",
+                "Treat as boolean (done / not done) habit?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.Yes,
+            )
+            == QMessageBox.StandardButton.Yes
+        )
+        if self._db.add_habit(name, is_bool=is_bool):
+            self.refresh()
+            self.data_changed.emit()
+        else:
+            QMessageBox.warning(self, "Database Error", "Failed to add habit.")
 ```
 
 </details>

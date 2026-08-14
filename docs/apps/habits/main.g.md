@@ -1558,10 +1558,6 @@ class MainWindow(
         self.update_habits_filter_combobox()
         self.update_habits_year_combobox()
 
-    def _on_dashboard_open_table_view(self) -> None:
-        """Switch from Dashboard tab to the classic Habits table tab."""
-        self.tabWidget.setCurrentWidget(self.tab_sets_of_habits)
-
     def _on_process_habits_table_clicked(self, index: QModelIndex) -> None:
         """Handle click on process habits table.
 
@@ -1658,7 +1654,10 @@ class MainWindow(
         self._habit_dashboard = HabitDashboardWidget(self)
         self.verticalLayout_dashboard.addWidget(self._habit_dashboard)
         self._habit_dashboard.data_changed.connect(self._on_dashboard_data_changed)
-        self._habit_dashboard.open_table_view.connect(self._on_dashboard_open_table_view)
+        add_habit_action = self.menuCommands.addAction("➕ Add habit")  # noqa: RUF001
+        add_habit_action.triggered.connect(self._habit_dashboard.add_habit)
+        refresh_action = self.menuCommands.addAction("🔄 Refresh")
+        refresh_action.triggered.connect(self._habit_dashboard.refresh)
 
         self.pushButton_habits_delete.setText(f"🗑️ {self.pushButton_habits_delete.text()}")
         self.pushButton_habits_refresh.setText(f"🔄 {self.pushButton_habits_refresh.text()}")
