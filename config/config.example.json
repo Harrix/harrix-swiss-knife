@@ -260,7 +260,8 @@
     "text_fix_ru_clipboard": "snippet:config/prompts/text-fix-ru-clipboard.md",
     "text_rewrite_ru": "snippet:config/prompts/text-rewrite-ru.md",
     "image_ocr_to_markdown": "snippet:config/prompts/image-ocr-to-markdown.md",
-    "markdown_template_fields_from_source": "snippet:config/prompts/markdown-template-fields-from-source.md"
+    "markdown_template_fields_from_source": "snippet:config/prompts/markdown-template-fields-from-source.md",
+    "vector_icons_keywords": "snippet:config/prompts/vector-icons-keywords.md"
   },
   "pypi_token": "snippet:api-keys/pypi-token.txt",
   "show_main_window_on_startup": false,

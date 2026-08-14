@@ -18,6 +18,7 @@ lang: en
   - [⚙️ Method `featured_path`](#%EF%B8%8F-method-featured_path)
   - [⚙️ Method `matches`](#%EF%B8%8F-method-matches)
   - [⚙️ Method `note_path`](#%EF%B8%8F-method-note_path)
+  - [⚙️ Method `refresh_search_blob`](#%EF%B8%8F-method-refresh_search_blob)
 - [🏛️ Class `IconVariant`](#%EF%B8%8F-class-iconvariant)
   - [⚙️ Method `absolute_path`](#%EF%B8%8F-method-absolute_path)
 - [🔧 Function `delete_icon_family`](#-function-delete_icon_family)
@@ -160,6 +161,10 @@ class IconFamily:
         """Return absolute path to the family Markdown note when present."""
         path = _join_repo_path(repo_root, self.folder, f"{self.id}.md")
         return path if path.is_file() else None
+
+    def refresh_search_blob(self) -> None:
+        """Rebuild `search_blob` from current ID, title, categories, and tags."""
+        self.search_blob = _build_search_blob(self)
 ```
 
 </details>
@@ -218,6 +223,24 @@ Return absolute path to the family Markdown note when present.
 def note_path(self, repo_root: Path) -> Path | None:
         path = _join_repo_path(repo_root, self.folder, f"{self.id}.md")
         return path if path.is_file() else None
+```
+
+</details>
+
+### ⚙️ Method `refresh_search_blob`
+
+```python
+def refresh_search_blob(self) -> None
+```
+
+Rebuild `search_blob` from current ID, title, categories, and tags.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def refresh_search_blob(self) -> None:
+        self.search_blob = _build_search_blob(self)
 ```
 
 </details>

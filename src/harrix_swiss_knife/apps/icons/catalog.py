@@ -93,6 +93,10 @@ class IconFamily:
         path = _join_repo_path(repo_root, self.folder, f"{self.id}.md")
         return path if path.is_file() else None
 
+    def refresh_search_blob(self) -> None:
+        """Rebuild `search_blob` from current ID, title, categories, and tags."""
+        self.search_blob = _build_search_blob(self)
+
 
 @dataclass(frozen=True, slots=True)
 class IconVariant:
@@ -471,14 +475,26 @@ def _parse_frontmatter(text: str) -> dict[str, Any]:
     if not match:
         return {}
     result: dict[str, Any] = {}
+    current_list_key: str | None = None
     for line in match.group(1).splitlines():
+        stripped = line.strip()
+        if current_list_key is not None and stripped.startswith("- "):
+            item = stripped[2:].strip().strip("\"'")
+            if item:
+                result.setdefault(current_list_key, []).append(item)
+            continue
+        current_list_key = None
         if ":" not in line:
             continue
         key, value = line.split(":", 1)
         key = key.strip()
         value = value.strip()
         if key in {"categories", "tags"}:
-            result[key] = _parse_yaml_list(value)
+            if value:
+                result[key] = _parse_yaml_list(value)
+            else:
+                result[key] = []
+                current_list_key = key
         elif key == "date":
             result[key] = value.strip("\"'")
         elif key == "trademark":

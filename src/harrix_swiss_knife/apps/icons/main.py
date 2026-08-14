@@ -62,6 +62,8 @@ from harrix_swiss_knife.apps.icons.catalog import (
     open_icons_folder,
     rebuild_catalog,
 )
+from harrix_swiss_knife.apps.icons.keywords_dialog import EditKeywordsDialog
+from harrix_swiss_knife.apps.icons.keywords_update import update_keywords_files
 from harrix_swiss_knife.apps.icons.lightbox import IconLightboxDialog
 from harrix_swiss_knife.apps.icons.settings import (
     ICON_SIZE_MAX,
@@ -624,6 +626,46 @@ class MainWindow(QMainWindow, AppWindowMixin):
             self._selected_family_id = None
         self._on_refresh_catalog(allow_empty=True)
         self.statusBar().showMessage(f"Deleted `{family.id}`")
+
+    def _on_edit_keywords(self, family: object, svg_path: str) -> None:
+        if not isinstance(family, IconFamily):
+            return
+        if self._repo_root is None:
+            QMessageBox.warning(self, "Vector Icons", "Icons repository is not loaded.")
+            return
+        note_path = family.note_path(self._repo_root)
+        if note_path is None:
+            QMessageBox.warning(self, "Vector Icons", f"Markdown note not found for `{family.id}`.")
+            return
+
+        icon_path = Path(svg_path) if svg_path else None
+        if icon_path is None or not icon_path.is_file():
+            icon_path = family.featured_path(self._repo_root)
+
+        config: dict[str, Any] = h.dev.config_load(get_config_path_str())
+        dialog = EditKeywordsDialog(self, family=family, icon_path=icon_path, app_config=config)
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+
+        tags = dialog.get_tags()
+        try:
+            update_keywords_files(
+                md_path=note_path,
+                catalog_path=self._repo_root / "catalog.json",
+                family_id=family.id,
+                tags=tags,
+            )
+        except (OSError, ValueError, TypeError, json.JSONDecodeError) as exc:
+            QMessageBox.critical(self, "Vector Icons", f"Failed to save keywords:\n{exc}")
+            return
+
+        family.tags = tags
+        family.refresh_search_blob()
+        self._apply_filters()
+        message = f"Updated keywords for `{family.id}`"
+        self.statusBar().showMessage(message)
+        toast = toast_notification.ToastNotification(message, duration=2000, parent=self)
+        toast.present()
 
     def _on_family_selected(self, family: object) -> None:
         if family is None:
@@ -1224,6 +1266,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         icon_list.copy_requested.connect(self._on_copy_svg)
         icon_list.copy_path_requested.connect(self._on_copy_path)
         icon_list.open_note_requested.connect(self._on_open_note_in_editor)
+        icon_list.edit_keywords_requested.connect(self._on_edit_keywords)
         icon_list.set_category_icon_requested.connect(self._on_set_as_category_icon)
         icon_list.toggle_trademark_requested.connect(self._on_toggle_trademark)
         icon_list.reveal_source_requested.connect(self._on_reveal_source)

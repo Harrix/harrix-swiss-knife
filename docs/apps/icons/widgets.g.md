@@ -52,6 +52,7 @@ class DraggableIconList(QListWidget):
     copy_requested = Signal(str)
     copy_path_requested = Signal(str)
     open_note_requested = Signal(object)  # IconFamily
+    edit_keywords_requested = Signal(object, str)  # IconFamily, svg_path
     reveal_source_requested = Signal(object, str)  # IconFamily, svg_path
     open_source_requested = Signal(object, str)  # IconFamily, svg_path
     set_category_icon_requested = Signal(object)  # IconFamily
@@ -252,6 +253,7 @@ class DraggableIconList(QListWidget):
             menu.addSeparator()
 
         open_note_action = menu.addAction("📝 Open note in editor")
+        edit_keywords_action = menu.addAction("🏷️ Edit keywords…")
         set_category_action = menu.addAction("🏷️ Set as category icon")
 
         is_trademark = getattr(family, "trademark", False)
@@ -280,6 +282,8 @@ class DraggableIconList(QListWidget):
             self.copy_path_requested.emit(path)
         elif chosen is open_note_action:
             self.open_note_requested.emit(family)
+        elif chosen is edit_keywords_action:
+            self.edit_keywords_requested.emit(family, path if has_path else "")
         elif chosen is set_category_action:
             self.set_category_icon_requested.emit(family)
         elif chosen is toggle_trademark_action:
