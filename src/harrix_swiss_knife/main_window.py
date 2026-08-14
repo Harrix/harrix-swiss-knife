@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from PySide6.QtCore import QEvent, QObject, QPoint, Qt, QTimer
-from PySide6.QtGui import QAction, QCloseEvent, QResizeEvent, QShowEvent
+from PySide6.QtGui import QAction, QCloseEvent, QCursor, QResizeEvent, QShowEvent
 from PySide6.QtWidgets import (
     QApplication,
     QCheckBox,
@@ -35,7 +35,7 @@ if TYPE_CHECKING:
     from harrix_swiss_knife.action_output_bus import ActionOutputBus
 
 from harrix_swiss_knife.apps.common.qt_main_window import apply_app_window_size_and_position
-from harrix_swiss_knife.cli_menu import get_cli_copy_command, show_copy_cli_menu
+from harrix_swiss_knife.cli_menu import show_action_item_context_menu
 from harrix_swiss_knife.keyboard_layout_search import command_matches_search
 from harrix_swiss_knife.main_window_settings import load_main_window_icon_grid, save_main_window_icon_grid
 from harrix_swiss_knife.qt_command_section import (
@@ -394,24 +394,8 @@ class MainWindow(QMainWindow):
             self._set_placeholder(f"File reading error: {e!s}")
 
     def _on_grid_context_menu(self, grid: QListWidget, pos: QPoint) -> None:
-        """Show Copy CLI command when right-clicking a CLI-enabled card."""
-        item = grid.itemAt(pos)
-        if item is None:
-            return
-
-        action = item.data(Qt.ItemDataRole.UserRole)
-        if not isinstance(action, QAction):
-            return
-
-        cli_copy_command = get_cli_copy_command(action)
-        if cli_copy_command is None:
-            return
-
-        show_copy_cli_menu(
-            parent=self,
-            global_pos=grid.mapToGlobal(pos),
-            cli_copy_command=cli_copy_command,
-        )
+        """Show copy name/class/path and CLI command for the card under the cursor."""
+        self._show_list_item_context_menu(grid, pos)
 
     def _on_icon_item_clicked(self, item: QListWidgetItem) -> None:
         action = item.data(Qt.ItemDataRole.UserRole)
@@ -428,24 +412,8 @@ class MainWindow(QMainWindow):
         self.text_edit.verticalScrollBar().setValue(self.text_edit.verticalScrollBar().maximum())
 
     def _on_list_context_menu(self, pos: QPoint) -> None:
-        """Show Copy CLI command when right-clicking a CLI-enabled list item."""
-        item = self.list_widget.itemAt(pos)
-        if item is None:
-            return
-
-        action = item.data(Qt.ItemDataRole.UserRole)
-        if not isinstance(action, QAction):
-            return
-
-        cli_copy_command = get_cli_copy_command(action)
-        if cli_copy_command is None:
-            return
-
-        show_copy_cli_menu(
-            parent=self,
-            global_pos=self.list_widget.mapToGlobal(pos),
-            cli_copy_command=cli_copy_command,
-        )
+        """Show copy name/class/path and CLI command for the list item under the cursor."""
+        self._show_list_item_context_menu(self.list_widget, pos)
 
     def _on_search_changed(self, text: str) -> None:
         query = text.strip()
@@ -479,6 +447,20 @@ class MainWindow(QMainWindow):
     def _setup_window_size_and_position(self) -> None:
         """Set window size and position based on screen resolution and characteristics."""
         apply_app_window_size_and_position(self)
+
+    def _show_list_item_context_menu(self, list_widget: QListWidget, pos: QPoint) -> None:
+        """Show the action copy menu for the list item at `pos`."""
+        item = list_widget.itemAt(pos)
+        if item is None:
+            return
+        action = item.data(Qt.ItemDataRole.UserRole)
+        if not isinstance(action, QAction):
+            return
+        show_action_item_context_menu(
+            parent=self,
+            global_pos=QCursor.pos(),
+            action=action,
+        )
 
 
 @dataclass

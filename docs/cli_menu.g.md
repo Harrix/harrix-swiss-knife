@@ -17,7 +17,9 @@ lang: en
 - [🔧 Function `copy_cli_command_to_clipboard`](#-function-copy_cli_command_to_clipboard)
 - [🔧 Function `copy_text_to_clipboard`](#-function-copy_text_to_clipboard)
 - [🔧 Function `format_copy_cli_menu_label`](#-function-format_copy_cli_menu_label)
+- [🔧 Function `get_action_identity_text`](#-function-get_action_identity_text)
 - [🔧 Function `get_cli_copy_command`](#-function-get_cli_copy_command)
+- [🔧 Function `show_action_item_context_menu`](#-function-show_action_item_context_menu)
 - [🔧 Function `show_copy_cli_menu`](#-function-show_copy_cli_menu)
 
 </details>
@@ -28,7 +30,7 @@ lang: en
 class CliContextMenu(QMenu)
 ```
 
-QMenu that offers Copy CLI command on right-click for CLI-enabled actions.
+QMenu that offers copy name/class/path and Copy CLI command on right-click.
 
 <details>
 <summary>Code:</summary>
@@ -37,15 +39,14 @@ QMenu that offers Copy CLI command on right-click for CLI-enabled actions.
 class CliContextMenu(QMenu):
 
     def mouseReleaseEvent(self, event: QMouseEvent) -> None:  # noqa: N802
-        """On right-click over a CLI action, show the copy-command context menu."""
+        """On right-click over a leaf action, show copy name/class/path and CLI command."""
         if event.button() == Qt.MouseButton.RightButton:
             action = self.actionAt(event.pos())
-            cmd = get_cli_copy_command(action)
-            if cmd is not None:
-                show_copy_cli_menu(
+            if action is not None and not action.isSeparator() and action.menu() is None:
+                show_action_item_context_menu(
                     parent=self,
                     global_pos=event.globalPosition().toPoint(),
-                    cli_copy_command=cmd,
+                    action=action,
                 )
                 event.accept()
                 return
@@ -60,7 +61,7 @@ class CliContextMenu(QMenu):
 def mouseReleaseEvent(self, event: QMouseEvent) -> None
 ```
 
-On right-click over a CLI action, show the copy-command context menu.
+On right-click over a leaf action, show copy name/class/path and CLI command.
 
 <details>
 <summary>Code:</summary>
@@ -69,12 +70,11 @@ On right-click over a CLI action, show the copy-command context menu.
 def mouseReleaseEvent(self, event: QMouseEvent) -> None:  # noqa: N802
         if event.button() == Qt.MouseButton.RightButton:
             action = self.actionAt(event.pos())
-            cmd = get_cli_copy_command(action)
-            if cmd is not None:
-                show_copy_cli_menu(
+            if action is not None and not action.isSeparator() and action.menu() is None:
+                show_action_item_context_menu(
                     parent=self,
                     global_pos=event.globalPosition().toPoint(),
-                    cli_copy_command=cmd,
+                    action=action,
                 )
                 event.accept()
                 return
@@ -160,6 +160,29 @@ def format_copy_cli_menu_label(cli_copy_command: str) -> str:
 
 </details>
 
+## 🔧 Function `get_action_identity_text`
+
+```python
+def get_action_identity_text(action: QAction | None) -> str | None
+```
+
+Return the name/class/path snippet stored on a menu action, if any.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_action_identity_text(action: QAction | None) -> str | None:
+    if action is None:
+        return None
+    text = getattr(action, "action_identity_text", None)
+    if isinstance(text, str) and text:
+        return text
+    return None
+```
+
+</details>
+
 ## 🔧 Function `get_cli_copy_command`
 
 ```python
@@ -179,6 +202,36 @@ def get_cli_copy_command(action: QAction | None) -> str | None:
     if isinstance(cmd, str) and cmd:
         return cmd
     return None
+```
+
+</details>
+
+## 🔧 Function `show_action_item_context_menu`
+
+```python
+def show_action_item_context_menu(*, parent: QWidget | None, global_pos: QPoint, action: QAction) -> None
+```
+
+Show a context menu to copy action identity and, when present, the CLI command.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def show_action_item_context_menu(*, parent: QWidget | None, global_pos: QPoint, action: QAction) -> None:
+    identity_text = get_action_identity_text(action)
+    cli_copy_command = get_cli_copy_command(action)
+    if identity_text is None and cli_copy_command is None:
+        return
+
+    menu = QMenu(parent)
+    if identity_text is not None:
+        copy_identity = menu.addAction(COPY_ACTION_IDENTITY_MENU_LABEL)
+        copy_identity.triggered.connect(lambda: copy_text_to_clipboard(identity_text))
+    if cli_copy_command is not None:
+        copy_cli = menu.addAction(format_copy_cli_menu_label(cli_copy_command))
+        copy_cli.triggered.connect(lambda: copy_cli_command_to_clipboard(cli_copy_command))
+    menu.exec_(global_pos)
 ```
 
 </details>

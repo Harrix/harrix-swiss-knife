@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, replace
 from typing import TYPE_CHECKING
 
-from PySide6.QtCore import QSize, Qt, Signal
+from PySide6.QtCore import QPoint, QSize, Qt, Signal
 from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
@@ -83,6 +83,8 @@ class DescribedChoiceCard(QWidget):
         self._text_column = QVBoxLayout()
 
         self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.customContextMenuRequested.connect(self._forward_context_menu)
         self.setToolTip(f"{title}\n{description}" if description else title)
         self.setObjectName("DescribedChoiceCard")
         self.setStyleSheet(
@@ -173,6 +175,14 @@ class DescribedChoiceCard(QWidget):
             event.accept()
             return
         super().mouseReleaseEvent(event)
+
+    def _forward_context_menu(self, pos: QPoint) -> None:
+        """Re-emit the parent list context menu so item widgets do not swallow right-clicks."""
+        list_widget = self.parentWidget()
+        if not isinstance(list_widget, QListWidget):
+            return
+        list_pos = list_widget.viewport().mapFromGlobal(self.mapToGlobal(pos))
+        list_widget.customContextMenuRequested.emit(list_pos)
 
 
 def add_described_action_card(
