@@ -13,6 +13,8 @@
   let crumbs = [];
   /** @type {Array<{ kind: string, path: string, name: string, label: string, iconEmoji: string, description: string, contextValue?: string, isWorkspaceRoot?: boolean, isCut?: boolean, menu?: Array<{ type: string, command?: string, title?: string }> }>} */
   let entries = [];
+  /** @type {{ kind: string, path: string, name: string, contextValue?: string, isWorkspaceRoot?: boolean } | null} */
+  let currentFolder = null;
   /** @type {'harrix' | 'material'} */
   let iconStyle = 'harrix';
   /** @type {{ folder: string, note: string }} */
@@ -104,6 +106,28 @@
     }
     menuEl.style.left = `${left}px`;
     menuEl.style.top = `${top}px`;
+  }
+
+  /**
+   * @param {MouseEvent} event
+   */
+  function requestBackgroundContextMenu(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    if (!currentFolder?.path) {
+      hideContextMenu();
+      return;
+    }
+    vscode.postMessage({
+      type: 'requestContextMenu',
+      background: true,
+      path: currentFolder.path,
+      kind: 'folder',
+      contextValue: currentFolder.contextValue || '',
+      isWorkspaceRoot: currentFolder.isWorkspaceRoot === true,
+      x: event.clientX,
+      y: event.clientY,
+    });
   }
 
   /**
@@ -222,6 +246,7 @@
   function applyState(msg) {
     crumbs = Array.isArray(msg.crumbs) ? msg.crumbs : [];
     entries = Array.isArray(msg.entries) ? msg.entries : [];
+    currentFolder = msg.currentFolder && typeof msg.currentFolder === 'object' ? msg.currentFolder : null;
     iconStyle = msg.iconStyle === 'material' ? 'material' : 'harrix';
     const icons = msg.icons && typeof msg.icons === 'object' ? msg.icons : {};
     iconUrls = {
@@ -241,6 +266,16 @@
   refreshBtn.addEventListener('click', () => {
     vscode.postMessage({ type: 'refresh' });
   });
+
+  const mainEl = document.querySelector('.main');
+  if (mainEl) {
+    mainEl.addEventListener('contextmenu', (event) => {
+      if (event.target.closest('.cell')) {
+        return;
+      }
+      requestBackgroundContextMenu(event);
+    });
+  }
 
   document.addEventListener('click', () => {
     hideContextMenu();

@@ -2594,6 +2594,41 @@ class NotesProvider {
   }
 
   /**
+   * Folder metadata for the Icons Browse current-directory (empty-area) menu.
+   *
+   * @param {string | null | undefined} dirPath
+   * @returns {{ kind: 'folder', path: string, name: string, label: string, contextValue: string, isWorkspaceRoot: boolean } | null}
+   */
+  getIconsBrowseFolderEntry(dirPath) {
+    if (dirPath == null || dirPath === '') {
+      return null;
+    }
+    if (this.isWorkspaceRootPath(dirPath)) {
+      const root = this.findRootForPath(dirPath);
+      const name = root?.name || path.basename(dirPath);
+      const item = this.createWorkspaceRootFolderItem(dirPath, name);
+      return {
+        kind: 'folder',
+        path: dirPath,
+        name,
+        label: typeof item.label === 'string' ? item.label : name,
+        contextValue: String(item.contextValue || 'notesFolder'),
+        isWorkspaceRoot: true,
+      };
+    }
+    const name = path.basename(dirPath);
+    const item = this.createFolderItem(dirPath, name, 1);
+    return {
+      kind: 'folder',
+      path: dirPath,
+      name,
+      label: name,
+      contextValue: String(item.contextValue || 'notesFolder'),
+      isWorkspaceRoot: false,
+    };
+  }
+
+  /**
    * @param {string} folderPath
    * @param {string} [displayName] workspace folder name (may differ from basename)
    */

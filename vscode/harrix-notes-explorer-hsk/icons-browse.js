@@ -29,6 +29,14 @@ const PANEL_VIEW_TYPE = 'harrixNotesExplorerHsk.iconsBrowse';
  *     contextValue?: string,
  *     isWorkspaceRoot?: boolean,
  *   }>,
+ *   getIconsBrowseFolderEntry?: (dirPath: string | null | undefined) => {
+ *     kind: 'folder',
+ *     path: string,
+ *     name: string,
+ *     label: string,
+ *     contextValue: string,
+ *     isWorkspaceRoot: boolean,
+ *   } | null,
  *   onDidChangeTreeData: import('vscode').Event<unknown>,
  *   refresh?: () => void,
  * }} provider
@@ -231,6 +239,10 @@ function postState() {
   }
   const dirPath = currentDirPath();
   const rawEntries = deps.provider.listIconsBrowseEntries(dirPath);
+  const currentFolder =
+    typeof deps.provider.getIconsBrowseFolderEntry === 'function'
+      ? deps.provider.getIconsBrowseFolderEntry(dirPath)
+      : null;
   const canPaste = typeof deps.getCanPaste === 'function' ? deps.getCanPaste() : false;
   const cutPaths = new Set(
     (typeof deps.getCutPaths === 'function' ? deps.getCutPaths() : []).map((cutPath) => normalizePath(cutPath)),
@@ -263,6 +275,7 @@ function postState() {
     type: 'state',
     crumbs,
     entries,
+    currentFolder,
     iconStyle,
     icons: {
       folder: folderIcon,
@@ -356,26 +369,44 @@ async function handleWebviewMessage(message) {
 }
 
 /**
- * @param {{ path?: string, kind?: string, contextValue?: string, isWorkspaceRoot?: boolean, x?: number, y?: number }} msg
+ * @param {{ path?: string, kind?: string, contextValue?: string, isWorkspaceRoot?: boolean, background?: boolean, x?: number, y?: number }} msg
  */
 function postContextMenu(msg) {
-  if (!panel || !deps || typeof msg.path !== 'string' || !msg.path) {
+  if (!panel || !deps) {
     return;
   }
+  const background = msg.background === true;
+  const currentFolder =
+    typeof deps.provider.getIconsBrowseFolderEntry === 'function'
+      ? deps.provider.getIconsBrowseFolderEntry(currentDirPath())
+      : null;
+  const folder = background ? currentFolder : null;
+  const targetPath = background ? folder?.path : msg.path;
+  if (typeof targetPath !== 'string' || !targetPath) {
+    return;
+  }
+  const contextValue = background
+    ? folder?.contextValue || ''
+    : typeof msg.contextValue === 'string'
+      ? msg.contextValue
+      : '';
+  const isWorkspaceRoot = background ? folder?.isWorkspaceRoot === true : msg.isWorkspaceRoot === true;
+  const kind = background ? 'folder' : msg.kind || 'note';
   const canPaste = typeof deps.getCanPaste === 'function' ? deps.getCanPaste() : false;
   const openNotesInPreview =
     vscode.workspace.getConfiguration('harrixNotesExplorerHsk').get('openNotesInPreview') !== false;
-  const menu = buildIconsBrowseContextMenu(typeof msg.contextValue === 'string' ? msg.contextValue : '', {
+  const menu = buildIconsBrowseContextMenu(contextValue, {
     canPaste,
     openNotesInPreview,
-    isWorkspaceRoot: msg.isWorkspaceRoot === true,
+    isWorkspaceRoot,
+    background,
   });
   void panel.webview.postMessage({
     type: 'contextMenu',
-    path: msg.path,
-    kind: msg.kind || 'note',
-    contextValue: msg.contextValue || '',
-    isWorkspaceRoot: msg.isWorkspaceRoot === true,
+    path: targetPath,
+    kind,
+    contextValue,
+    isWorkspaceRoot,
     x: typeof msg.x === 'number' ? msg.x : 0,
     y: typeof msg.y === 'number' ? msg.y : 0,
     menu,
@@ -389,7 +420,22 @@ async function runIconsBrowseCommand(msg) {
   if (!deps || typeof msg.command !== 'string' || !msg.command || typeof msg.path !== 'string' || !msg.path) {
     return;
   }
-  const arg = buildTreeArgForIconsBrowse(msg);
+  let arg = buildTreeArgForIconsBrowse(msg);
+  if (msg.command === 'harrixNotesExplorerHsk.paste' && msg.kind === 'note') {
+    const dirPath = currentDirPath();
+    if (dirPath) {
+      const folder =
+        typeof deps.provider.getIconsBrowseFolderEntry === 'function'
+          ? deps.provider.getIconsBrowseFolderEntry(dirPath)
+          : null;
+      arg = buildTreeArgForIconsBrowse({
+        path: dirPath,
+        kind: 'folder',
+        contextValue: folder?.contextValue || '',
+        isWorkspaceRoot: folder?.isWorkspaceRoot === true,
+      });
+    }
+  }
   try {
     await vscode.commands.executeCommand(msg.command, arg);
   } catch (e) {

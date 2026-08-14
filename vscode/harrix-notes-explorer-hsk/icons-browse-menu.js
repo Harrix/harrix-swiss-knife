@@ -72,6 +72,7 @@ function sep() {
  *   canPaste?: boolean,
  *   openNotesInPreview?: boolean,
  *   isWorkspaceRoot?: boolean,
+ *   background?: boolean,
  * }} [opts]
  * @returns {Array<{ type: 'item', command: string, title: string } | { type: 'separator' }>}
  */
@@ -91,12 +92,16 @@ function buildIconsBrowseContextMenu(contextValue, opts) {
     out.push(item(CMD.findInFolder, 'Find in Folder...'));
   };
 
+  const pushPaste = () => {
+    if (canPaste) {
+      out.push(sep());
+      out.push(item(CMD.paste, 'Paste'));
+    }
+  };
+
   const pushCutCopyPaste = () => {
     if (isWorkspaceRoot) {
-      if (canPaste) {
-        out.push(sep());
-        out.push(item(CMD.paste, 'Paste'));
-      }
+      pushPaste();
       return;
     }
     out.push(sep());
@@ -124,6 +129,29 @@ function buildIconsBrowseContextMenu(contextValue, opts) {
       out.push(item(CMD.discardGitChangesInFolder, 'Discard Git Changes in Folder…'));
     }
   };
+
+  if (opts?.background === true) {
+    out.push(item(CMD.createNote, 'New Note…'));
+    out.push(item(CMD.createFolder, 'New Folder…'));
+    if (base.includes('Diary')) {
+      out.push(item(CMD.newDiaryNote, 'New Diary Note ꟲᴸᴵ'));
+    }
+    if (base.includes('Dreams')) {
+      out.push(item(CMD.newDreamNote, 'New Dream Note ꟲᴸᴵ'));
+    }
+    if (base.includes('Cases')) {
+      out.push(item(CMD.newCasesNote, 'New Cases Note ꟲᴸᴵ'));
+    }
+    if (base.includes('TemplateTarget')) {
+      out.push(item(CMD.addFromTemplate, 'Add from Template… ꟲᴸᴵ'));
+    }
+    pushPaste();
+    out.push(sep());
+    pushCommonNav();
+    out.push(sep());
+    out.push(item(CMD.revealInOS, 'Reveal in File Explorer'));
+    return out;
+  }
 
   if (base.startsWith('notesFolder')) {
     out.push(item(CMD.openIconsBrowse, 'Open Notes Icons Browse'));
