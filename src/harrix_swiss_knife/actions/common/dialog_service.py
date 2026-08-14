@@ -69,6 +69,7 @@ from harrix_swiss_knife.actions.common.text_result_dialog import (
     add_copy_button,
     add_ok_button,
     add_open_folder_button,
+    add_save_markdown_button,
     append_result_action_buttons,
     collapse_text_to_single_line,
 )
@@ -1500,6 +1501,9 @@ class ActionDialogService:
         rerun_button_emoji: str = RERUN_BUTTON_EMOJI,
         rewrite_button: bool = False,
         remove_paragraphs_button: bool = False,
+        save_button: bool = False,
+        save_default_path: str | None = None,
+        save_filter: str = "Markdown Files (*.md);;All Files (*)",
     ) -> str | tuple[str | None, int] | None:
         """Show read-only multi-line text dialog and return text if accepted."""
         has_action_buttons = rerun_button or rewrite_button or remove_paragraphs_button
@@ -1536,6 +1540,28 @@ class ActionDialogService:
                 self._show_toast("Copied to Clipboard")
 
             add_copy_button(button_layout, click_copy_button)
+
+            if save_button:
+
+                def click_save_markdown() -> None:
+                    path = self.get_save_filename(
+                        "Save Markdown",
+                        save_default_path or "",
+                        save_filter,
+                    )
+                    if path is None:
+                        return
+                    if path.suffix == "":
+                        path = path.with_suffix(".md")
+                    markdown = text_edit.toPlainText()
+                    if not markdown.endswith("\n"):
+                        markdown += "\n"
+                    path.parent.mkdir(parents=True, exist_ok=True)
+                    path.write_text(markdown, encoding="utf-8")
+                    self._add_line(f"💾 Saved Markdown: {path}")
+                    self._show_toast(f"Saved: {path.name}")
+
+                add_save_markdown_button(button_layout, click_save_markdown)
 
             if folder_to_open is not None:
 

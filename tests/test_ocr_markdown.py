@@ -9,7 +9,7 @@ from harrix_swiss_knife.actions.common.ocr_markdown import (
     default_markdown_base,
     format_ocr_body,
     image_link_path,
-    ocr_text_to_markdown_section,
+    ocr_text_to_markdown,
     save_ocr_markdown_with_images,
     suggest_markdown_filename,
     title_from_image_path,
@@ -45,10 +45,9 @@ def test_format_ocr_body_joins_paragraphs() -> None:
     assert format_ocr_body(text) == "First paragraph\n\nSecond paragraph"
 
 
-def test_ocr_text_to_markdown_section() -> None:
-    image = Path("2014/img/2014-01-01-scan.avif")
-    section = ocr_text_to_markdown_section("Line one\n\nLine two", image, Path("2014"))
-    assert section == ("# 2014-01-01\n\n![2014-01-01-scan](img/2014-01-01-scan.avif)\n\nLine one\n\nLine two\n")
+def test_ocr_text_to_markdown_is_body_only() -> None:
+    assert ocr_text_to_markdown("Line one\n\nLine two") == "Line one\n\nLine two"
+    assert ocr_text_to_markdown("   \n") == "_No text recognized._"
 
 
 def test_combine_markdown_sections() -> None:
@@ -77,5 +76,6 @@ def test_save_ocr_markdown_with_images_creates_named_note_folder(tmp_path: Path)
     assert markdown_path.is_file()
     assert copied.read_bytes() == b"png-bytes"
     markdown = markdown_path.read_text(encoding="utf-8")
-    assert "![tmp3slrz9xh](img/tmp3slrz9xh.png)" in markdown
     assert "Hello from OCR" in markdown
+    assert "![" not in markdown
+    assert "# tmp3slrz9xh" not in markdown

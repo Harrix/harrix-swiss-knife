@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 from typing import TYPE_CHECKING
 
-from harrix_swiss_knife.qt_emoji_icon import make_emoji_push_button
+from harrix_swiss_knife.qt_emoji_icon import SAVE_BUTTON_EMOJI, make_emoji_push_button
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -27,6 +27,7 @@ REMOVE_PARAGRAPHS_BUTTON_LABEL = "To single line"
 REMOVE_PARAGRAPHS_BUTTON_EMOJI = "↪️"
 COPY_BUTTON_LABEL = "Copy to Clipboard"
 COPY_BUTTON_EMOJI = "📋"
+SAVE_MARKDOWN_BUTTON_LABEL = "Save Markdown"
 OPEN_FOLDER_BUTTON_LABEL = "Open folder"
 OPEN_FOLDER_BUTTON_EMOJI = "📂"
 OK_BUTTON_LABEL = "OK"
@@ -56,6 +57,14 @@ def add_open_folder_button(button_layout: QHBoxLayout, click_handler: Callable[[
     open_folder_button.clicked.connect(click_handler)
     button_layout.addWidget(open_folder_button)
     return open_folder_button
+
+
+def add_save_markdown_button(button_layout: QHBoxLayout, click_handler: Callable[[], None]) -> QPushButton:
+    """Add a save-markdown button with an emoji icon."""
+    save_button = make_emoji_push_button(SAVE_MARKDOWN_BUTTON_LABEL, SAVE_BUTTON_EMOJI)
+    save_button.clicked.connect(click_handler)
+    button_layout.addWidget(save_button)
+    return save_button
 
 
 def append_result_action_buttons(

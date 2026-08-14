@@ -72,15 +72,20 @@ def ocr_image(path: Path, reader: easyocr.Reader) -> str:
     return "\n".join(lines)
 
 
-def ocr_text_to_markdown_section(ocr_text: str, image_path: Path, base_folder: Path) -> str:
-    """Build one Markdown section: heading, image embed, and recognized text."""
-    title = title_from_image_path(image_path)
-    link = image_link_path(image_path, base_folder)
-    alt = image_path.stem
+def ocr_text_to_markdown(ocr_text: str) -> str:
+    """Format recognized text as Markdown body (no filename heading or image embed)."""
     body = format_ocr_body(ocr_text)
-    if not body:
-        body = "_No text recognized._"
-    return f"# {title}\n\n![{alt}]({link})\n\n{body}\n"
+    return body or "_No text recognized._"
+
+
+def ocr_text_to_markdown_section(ocr_text: str, image_path: Path | None = None, base_folder: Path | None = None) -> str:
+    """Format recognized text as Markdown body.
+
+    `image_path` and `base_folder` are ignored; kept for existing callers.
+
+    """
+    del image_path, base_folder
+    return ocr_text_to_markdown(ocr_text)
 
 
 def save_ocr_markdown_with_images(

@@ -527,18 +527,23 @@ class ActionBase(ABC):
         """Show rename explanation with an example; return `False` if the user closed the dialog."""
         return self.show_instructions(instructions, title=title or self.display_title) is not None
 
-    def show_result(self) -> str | None:
+    def show_result(
+        self,
+        *,
+        display_text: str | None = None,
+        save_button: bool = False,
+        save_default_path: str | None = None,
+    ) -> str | None:
         """Open a dialog to display result of `execute`.
+
+        When `display_text` is set, show that instead of accumulated log lines.
 
         Returns:
 
         - `str | None`: The displayed text, or `None` if cancelled.
 
         """
-        if not self.result_lines:
-            return None
-
-        text = "\n".join(self.result_lines).strip()
+        text = display_text.strip() if display_text is not None else "\n".join(self.result_lines).strip()
         if not text:
             return None
 
@@ -546,7 +551,13 @@ class ActionBase(ABC):
         elapsed = self.elapsed_mm_ss()
         if elapsed is not None:
             title = f"Result — {elapsed}"
-        result = self.dialogs.show_text_multiline(text, title, open_folder_path=self.result_folder)
+        result = self.dialogs.show_text_multiline(
+            text,
+            title,
+            open_folder_path=self.result_folder,
+            save_button=save_button,
+            save_default_path=save_default_path,
+        )
         if isinstance(result, tuple):
             return result[0]
         return result

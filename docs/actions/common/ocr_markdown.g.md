@@ -16,6 +16,7 @@ lang: en
 - [🔧 Function `format_ocr_body`](#-function-format_ocr_body)
 - [🔧 Function `image_link_path`](#-function-image_link_path)
 - [🔧 Function `ocr_image`](#-function-ocr_image)
+- [🔧 Function `ocr_text_to_markdown`](#-function-ocr_text_to_markdown)
 - [🔧 Function `ocr_text_to_markdown_section`](#-function-ocr_text_to_markdown_section)
 - [🔧 Function `save_ocr_markdown_with_images`](#-function-save_ocr_markdown_with_images)
 - [🔧 Function `suggest_markdown_filename`](#-function-suggest_markdown_filename)
@@ -142,26 +143,42 @@ def ocr_image(path: Path, reader: easyocr.Reader) -> str:
 
 </details>
 
-## 🔧 Function `ocr_text_to_markdown_section`
+## 🔧 Function `ocr_text_to_markdown`
 
 ```python
-def ocr_text_to_markdown_section(ocr_text: str, image_path: Path, base_folder: Path) -> str
+def ocr_text_to_markdown(ocr_text: str) -> str
 ```
 
-Build one Markdown section: heading, image embed, and recognized text.
+Format recognized text as Markdown body (no filename heading or image embed).
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def ocr_text_to_markdown_section(ocr_text: str, image_path: Path, base_folder: Path) -> str:
-    title = title_from_image_path(image_path)
-    link = image_link_path(image_path, base_folder)
-    alt = image_path.stem
+def ocr_text_to_markdown(ocr_text: str) -> str:
     body = format_ocr_body(ocr_text)
-    if not body:
-        body = "_No text recognized._"
-    return f"# {title}\n\n![{alt}]({link})\n\n{body}\n"
+    return body or "_No text recognized._"
+```
+
+</details>
+
+## 🔧 Function `ocr_text_to_markdown_section`
+
+```python
+def ocr_text_to_markdown_section(ocr_text: str, image_path: Path | None = None, base_folder: Path | None = None) -> str
+```
+
+Format recognized text as Markdown body.
+
+`image_path` and `base_folder` are ignored; kept for existing callers.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def ocr_text_to_markdown_section(ocr_text: str, image_path: Path | None = None, base_folder: Path | None = None) -> str:
+    del image_path, base_folder
+    return ocr_text_to_markdown(ocr_text)
 ```
 
 </details>

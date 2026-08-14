@@ -52,7 +52,6 @@ class OnRecognizeTextWithOcr(ActionBase):
         self._image_paths = [Path(path) for path in selected]
         self._markdown_base = default_markdown_base(self._image_paths)
         self._markdown_result = ""
-        self._ocr_texts: list[str] = []
         self.start_thread(self.in_thread, self.thread_after_markdown, self.title)
 
     @ActionBase.handle_exceptions("image to Markdown OCR thread")
@@ -66,27 +65,23 @@ class OnRecognizeTextWithOcr(ActionBase):
 
         reader = self._create_reader(easyocr)
         sections: list[str] = []
-        ocr_texts: list[str] = []
         total = len(self._image_paths)
 
         for index, path in enumerate(self._image_paths, 1):
             self.add_line(f"🔵 [{index}/{total}] {path.name}")
             text = ocr_image(path, reader)
-            ocr_texts.append(text)
-            section = ocr_text_to_markdown_section(text, path, self._markdown_base)
-            sections.append(section)
+            sections.append(ocr_text_to_markdown(text))
             preview = text.strip().replace("\n", " ")
             if len(preview) > self._PREVIEW_MAX_LEN:
                 preview = preview[: self._PREVIEW_MAX_LEN - 3] + "..."
             self.add_line(f"📝 {preview or '(no text recognized)'}")
 
-        self._ocr_texts = ocr_texts
         self._markdown_result = combine_markdown_sections(sections)
         return f"✅ Recognized text in {len(sections)} image(s)"
 
     @ActionBase.handle_exceptions("image to Markdown OCR completion")
     def thread_after_markdown(self, result: Any) -> None:
-        """Show Markdown in a dialog, copy to clipboard, and offer to save a `.md` file."""
+        """Show recognized Markdown in the Result dialog with an optional save button."""
         if result:
             self.show_toast(result)
 
@@ -97,21 +92,12 @@ class OnRecognizeTextWithOcr(ActionBase):
 
         self.text_to_clipboard(markdown)
         self.add_line("📋 Markdown copied to clipboard")
-        self.dialogs.show_text_multiline(markdown, title="Image OCR → Markdown")
-
         default_name = suggest_markdown_filename(self._image_paths)
-        save_path = self.dialogs.get_save_filename(
-            "Save Markdown",
-            str(self._markdown_base / default_name),
-            "Markdown Files (*.md);;All Files (*)",
+        self.show_result(
+            display_text=markdown,
+            save_button=True,
+            save_default_path=str(self._markdown_base / default_name),
         )
-        if save_path is not None:
-            note_dir, saved_images = save_ocr_markdown_with_images(save_path, self._image_paths, self._ocr_texts)
-            self.add_line(f"💾 Saved note folder: {note_dir}")
-            self.add_line(f"📝 {note_dir / (note_dir.name + '.md')}")
-            self.add_line(f"🖼️ Images: {note_dir / 'img'} ({len(saved_images)})")
-
-        self.show_result()
 
     @staticmethod
     def _create_reader(easyocr_module: Any) -> easyocr.Reader:
@@ -152,7 +138,6 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         self._image_paths = [Path(path) for path in selected]
         self._markdown_base = default_markdown_base(self._image_paths)
         self._markdown_result = ""
-        self._ocr_texts: list[str] = []
         self.start_thread(self.in_thread, self.thread_after_markdown, self.title)
 ```
 
@@ -179,21 +164,17 @@ def in_thread(self) -> str | None:
 
         reader = self._create_reader(easyocr)
         sections: list[str] = []
-        ocr_texts: list[str] = []
         total = len(self._image_paths)
 
         for index, path in enumerate(self._image_paths, 1):
             self.add_line(f"🔵 [{index}/{total}] {path.name}")
             text = ocr_image(path, reader)
-            ocr_texts.append(text)
-            section = ocr_text_to_markdown_section(text, path, self._markdown_base)
-            sections.append(section)
+            sections.append(ocr_text_to_markdown(text))
             preview = text.strip().replace("\n", " ")
             if len(preview) > self._PREVIEW_MAX_LEN:
                 preview = preview[: self._PREVIEW_MAX_LEN - 3] + "..."
             self.add_line(f"📝 {preview or '(no text recognized)'}")
 
-        self._ocr_texts = ocr_texts
         self._markdown_result = combine_markdown_sections(sections)
         return f"✅ Recognized text in {len(sections)} image(s)"
 ```
@@ -206,7 +187,7 @@ def in_thread(self) -> str | None:
 def thread_after_markdown(self, result: Any) -> None
 ```
 
-Show Markdown in a dialog, copy to clipboard, and offer to save a `.md` file.
+Show recognized Markdown in the Result dialog with an optional save button.
 
 <details>
 <summary>Code:</summary>
@@ -223,21 +204,12 @@ def thread_after_markdown(self, result: Any) -> None:
 
         self.text_to_clipboard(markdown)
         self.add_line("📋 Markdown copied to clipboard")
-        self.dialogs.show_text_multiline(markdown, title="Image OCR → Markdown")
-
         default_name = suggest_markdown_filename(self._image_paths)
-        save_path = self.dialogs.get_save_filename(
-            "Save Markdown",
-            str(self._markdown_base / default_name),
-            "Markdown Files (*.md);;All Files (*)",
+        self.show_result(
+            display_text=markdown,
+            save_button=True,
+            save_default_path=str(self._markdown_base / default_name),
         )
-        if save_path is not None:
-            note_dir, saved_images = save_ocr_markdown_with_images(save_path, self._image_paths, self._ocr_texts)
-            self.add_line(f"💾 Saved note folder: {note_dir}")
-            self.add_line(f"📝 {note_dir / (note_dir.name + '.md')}")
-            self.add_line(f"🖼️ Images: {note_dir / 'img'} ({len(saved_images)})")
-
-        self.show_result()
 ```
 
 </details>

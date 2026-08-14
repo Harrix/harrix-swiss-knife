@@ -14,6 +14,7 @@ lang: en
 - [🔧 Function `add_copy_button`](#-function-add_copy_button)
 - [🔧 Function `add_ok_button`](#-function-add_ok_button)
 - [🔧 Function `add_open_folder_button`](#-function-add_open_folder_button)
+- [🔧 Function `add_save_markdown_button`](#-function-add_save_markdown_button)
 - [🔧 Function `append_result_action_buttons`](#-function-append_result_action_buttons)
 - [🔧 Function `collapse_text_to_single_line`](#-function-collapse_text_to_single_line)
 - [🔧 Function `resolve_text_result_dialog_action`](#-function-resolve_text_result_dialog_action)
@@ -79,6 +80,27 @@ def add_open_folder_button(button_layout: QHBoxLayout, click_handler: Callable[[
     open_folder_button.clicked.connect(click_handler)
     button_layout.addWidget(open_folder_button)
     return open_folder_button
+```
+
+</details>
+
+## 🔧 Function `add_save_markdown_button`
+
+```python
+def add_save_markdown_button(button_layout: QHBoxLayout, click_handler: Callable[[], None]) -> QPushButton
+```
+
+Add a save-markdown button with an emoji icon.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def add_save_markdown_button(button_layout: QHBoxLayout, click_handler: Callable[[], None]) -> QPushButton:
+    save_button = make_emoji_push_button(SAVE_MARKDOWN_BUTTON_LABEL, SAVE_BUTTON_EMOJI)
+    save_button.clicked.connect(click_handler)
+    button_layout.addWidget(save_button)
+    return save_button
 ```
 
 </details>

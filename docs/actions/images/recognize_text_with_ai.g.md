@@ -50,7 +50,6 @@ class OnRecognizeTextWithAI(ActionBase):
         self._image_paths = [Path(path) for path in selected]
         self._markdown_base = default_markdown_base(self._image_paths)
         self._sections: list[str] = []
-        self._ocr_texts: list[str] = []
         self._bothub_state = BothubRequestState()
         self._process_image(0)
 
@@ -62,22 +61,13 @@ class OnRecognizeTextWithAI(ActionBase):
 
         self.text_to_clipboard(markdown)
         self.add_line("📋 Markdown copied to clipboard")
-        self.dialogs.show_text_multiline(markdown, title="Image OCR (AI) → Markdown")
-
         default_name = suggest_markdown_filename(self._image_paths)
-        save_path = self.dialogs.get_save_filename(
-            "Save Markdown",
-            str(self._markdown_base / default_name),
-            "Markdown Files (*.md);;All Files (*)",
+        self.show_result(
+            display_text=markdown,
+            save_button=True,
+            save_default_path=str(self._markdown_base / default_name),
         )
-        if save_path is not None:
-            note_dir, saved_images = save_ocr_markdown_with_images(save_path, self._image_paths, self._ocr_texts)
-            self.add_line(f"💾 Saved note folder: {note_dir}")
-            self.add_line(f"📝 {note_dir / (note_dir.name + '.md')}")
-            self.add_line(f"🖼️ Images: {note_dir / 'img'} ({len(saved_images)})")
-
         self.show_toast(f"✅ Recognized text in {len(self._sections)} image(s)")
-        self.show_result()
 
     def _process_image(self, index: int) -> None:
         total = len(self._image_paths)
@@ -102,9 +92,7 @@ class OnRecognizeTextWithAI(ActionBase):
             message_box.critical(None, "BotHub Error", message)
 
         def on_success(response_text: str) -> None:
-            self._ocr_texts.append(response_text)
-            section = ocr_text_to_markdown_section(response_text, path, self._markdown_base)
-            self._sections.append(section)
+            self._sections.append(ocr_text_to_markdown(response_text))
             preview = response_text.strip().replace("\n", " ")
             if len(preview) > self._PREVIEW_MAX_LEN:
                 preview = preview[: self._PREVIEW_MAX_LEN - 3] + "..."
@@ -150,7 +138,6 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         self._image_paths = [Path(path) for path in selected]
         self._markdown_base = default_markdown_base(self._image_paths)
         self._sections: list[str] = []
-        self._ocr_texts: list[str] = []
         self._bothub_state = BothubRequestState()
         self._process_image(0)
 ```
