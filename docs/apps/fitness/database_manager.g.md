@@ -1548,7 +1548,7 @@ Args:
 
 - `exercise_id` (`int`): Exercise ID.
 - `type_id` (`int`): Type ID (-1 for no type).
-- `value` (`str`): Exercise value.
+- [`value`](../habits/dashboard_widgets.g.md#%EF%B8%8F-method-value) (`str`): Exercise value.
 - `date` (`str`): Date in YYYY-MM-DD format.
 
 Returns:
@@ -1592,7 +1592,7 @@ Add a new weight record.
 
 Args:
 
-- `value` (`float`): Weight value.
+- [`value`](../habits/dashboard_widgets.g.md#%EF%B8%8F-method-value) (`float`): Weight value.
 - `date` (`str`): Date in YYYY-MM-DD format.
 
 Returns:
@@ -3286,7 +3286,7 @@ Args:
 - `record_id` (`int`): Record ID.
 - `exercise_id` (`int`): Exercise ID.
 - `type_id` (`int`): Type ID (-1 for no type).
-- `value` (`str`): Exercise value.
+- [`value`](../habits/dashboard_widgets.g.md#%EF%B8%8F-method-value) (`str`): Exercise value.
 - `date` (`str`): Date in YYYY-MM-DD format.
 
 Returns:
@@ -3371,7 +3371,7 @@ Update an existing weight record.
 Args:
 
 - `record_id` (`int`): Record ID.
-- `value` (`float`): Weight value.
+- [`value`](../habits/dashboard_widgets.g.md#%EF%B8%8F-method-value) (`float`): Weight value.
 - `date` (`str`): Date in YYYY-MM-DD format.
 
 Returns:

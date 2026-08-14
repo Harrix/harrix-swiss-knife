@@ -129,7 +129,7 @@ Format amount with spaces for thousands separator and subscript decimals.
 
 Args:
 
-- `value` (`float | str`): The value to format.
+- [`value`](../habits/dashboard_widgets.g.md#%EF%B8%8F-method-value) (`float | str`): The value to format.
 
 Returns:
 

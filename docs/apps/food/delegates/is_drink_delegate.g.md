@@ -172,7 +172,7 @@ Map stored model value to emoji display text.
 
 Args:
 
-- `value` (`object`): Raw model value.
+- [`value`](../../habits/dashboard_widgets.g.md#%EF%B8%8F-method-value) (`object`): Raw model value.
 - `_locale` (`QLocale | QLocale.Language`): Locale (unused).
 
 Returns:
@@ -299,7 +299,7 @@ Return whether a model cell value represents a drink.
 
 Args:
 
-- `value` (`object`): Raw cell value from the model.
+- [`value`](../../habits/dashboard_widgets.g.md#%EF%B8%8F-method-value) (`object`): Raw cell value from the model.
 
 Returns:
 
