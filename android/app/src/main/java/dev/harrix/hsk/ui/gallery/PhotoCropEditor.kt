@@ -1,7 +1,6 @@
 package dev.harrix.hsk.ui.gallery
 
 import android.graphics.Bitmap
-import android.graphics.drawable.Drawable
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
@@ -231,9 +230,6 @@ fun PhotoCropEditor(
     val photoEditSaver = remember { PhotoEditSaver(context.applicationContext) }
     var imageWidth by remember(photo.id, imageRevision) { mutableIntStateOf(0) }
     var imageHeight by remember(photo.id, imageRevision) { mutableIntStateOf(0) }
-    var blurPreviewDrawable by remember(photo.id, imageRevision) {
-        mutableStateOf<Drawable?>(null)
-    }
     var blurPreviewBase by remember(photo.id, imageRevision) {
         mutableStateOf<Bitmap?>(null)
     }
@@ -382,25 +378,17 @@ fun PhotoCropEditor(
         }
     }
 
-    LaunchedEffect(
-        isBlurMode,
-        blurPreviewDrawable,
-        imageWidth,
-        imageHeight,
-        rotationDegrees,
-    ) {
+    LaunchedEffect(isBlurMode, photo.uri, rotationDegrees) {
         if (!isBlurMode) {
             blurPreviewBase = null
             blurPreviewBitmap = null
             return@LaunchedEffect
         }
-        val drawable = blurPreviewDrawable ?: return@LaunchedEffect
         blurPreviewBase =
             withContext(Dispatchers.Default) {
                 PhotoBlurRenderer.createPreviewBase(
-                    drawable = drawable,
-                    imageWidth = imageWidth,
-                    imageHeight = imageHeight,
+                    context = context.applicationContext,
+                    uri = photo.uri,
                     rotationDegrees = rotationDegrees,
                 )
             }
@@ -621,56 +609,58 @@ fun PhotoCropEditor(
                         .background(Color.Black),
                     contentAlignment = Alignment.Center,
                 ) {
-                    val activeBlurPreview = blurPreviewBitmap.takeIf { isBlurMode }
+                    AsyncImage(
+                        model =
+                        ImageRequest
+                            .Builder(context)
+                            .data(photo.uri)
+                            .size(CoilSize.ORIGINAL)
+                            .allowHardware(false)
+                            .memoryCacheKey(
+                                EditableImageCache.key(
+                                    photo.uri,
+                                    photo.sizeBytes,
+                                    imageRevision,
+                                ),
+                            )
+                            .diskCacheKey(
+                                EditableImageCache.key(
+                                    photo.uri,
+                                    photo.sizeBytes,
+                                    imageRevision,
+                                ),
+                            )
+                            .crossfade(false)
+                            .build(),
+                        contentDescription = photo.displayName,
+                        contentScale = ContentScale.FillBounds,
+                        onSuccess = { state ->
+                            applyPainterSize(state.painter.intrinsicSize) { width, height ->
+                                imageWidth = width
+                                imageHeight = height
+                            }
+                        },
+                        modifier =
+                        Modifier
+                            .size(
+                                width = with(density) { imageDrawSize.first.toDp() },
+                                height = with(density) { imageDrawSize.second.toDp() },
+                            )
+                            .graphicsLayer {
+                                rotationZ = rotationDegrees
+                                clip = false
+                            },
+                    )
+                    val activeBlurPreview =
+                        blurPreviewBitmap?.takeIf { preview ->
+                            isBlurMode && blurStrokes.isNotEmpty() && preview.width > 0
+                        }
                     if (activeBlurPreview != null) {
                         Image(
                             bitmap = activeBlurPreview.asImageBitmap(),
-                            contentDescription = photo.displayName,
+                            contentDescription = null,
                             contentScale = ContentScale.FillBounds,
                             modifier = Modifier.fillMaxSize(),
-                        )
-                    } else {
-                        AsyncImage(
-                            model =
-                            ImageRequest
-                                .Builder(context)
-                                .data(photo.uri)
-                                .size(CoilSize.ORIGINAL)
-                                .memoryCacheKey(
-                                    EditableImageCache.key(
-                                        photo.uri,
-                                        photo.sizeBytes,
-                                        imageRevision,
-                                    ),
-                                )
-                                .diskCacheKey(
-                                    EditableImageCache.key(
-                                        photo.uri,
-                                        photo.sizeBytes,
-                                        imageRevision,
-                                    ),
-                                )
-                                .crossfade(false)
-                                .build(),
-                            contentDescription = photo.displayName,
-                            contentScale = ContentScale.FillBounds,
-                            onSuccess = { state ->
-                                blurPreviewDrawable = state.result.drawable
-                                applyPainterSize(state.painter.intrinsicSize) { width, height ->
-                                    imageWidth = width
-                                    imageHeight = height
-                                }
-                            },
-                            modifier =
-                            Modifier
-                                .size(
-                                    width = with(density) { imageDrawSize.first.toDp() },
-                                    height = with(density) { imageDrawSize.second.toDp() },
-                                )
-                                .graphicsLayer {
-                                    rotationZ = rotationDegrees
-                                    clip = false
-                                },
                         )
                     }
 
@@ -1214,12 +1204,12 @@ fun PhotoCropEditor(
                                 imageRevision,
                             ),
                         )
+                        .allowHardware(false)
                         .crossfade(false)
                         .build(),
                     contentDescription = photo.displayName,
                     contentScale = ContentScale.Fit,
                     onSuccess = { state ->
-                        blurPreviewDrawable = state.result.drawable
                         applyPainterSize(state.painter.intrinsicSize) { width, height ->
                             imageWidth = width
                             imageHeight = height

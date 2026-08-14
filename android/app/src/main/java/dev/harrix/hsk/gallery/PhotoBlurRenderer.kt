@@ -1,13 +1,19 @@
 package dev.harrix.hsk.gallery
 
+import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.ImageDecoder
+import android.graphics.Matrix
 import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.RectF
-import android.graphics.drawable.Drawable
-import androidx.core.graphics.drawable.toBitmap
+import android.net.Uri
+import android.os.Build
+import androidx.exifinterface.media.ExifInterface
+import java.io.ByteArrayInputStream
 import kotlin.math.ceil
 import kotlin.math.hypot
 import kotlin.math.max
@@ -31,39 +37,35 @@ internal object PhotoBlurRenderer {
     /**
      * Creates a small square workspace that matches Photo Editor export geometry.
      *
-     * Coil has already applied EXIF orientation to [drawable], so only the interactive editor
-     * rotation needs to be reproduced here.
+     * Decodes a software bitmap from [uri] so the preview never depends on Coil hardware
+     * bitmaps, which draw as black on a software canvas.
      */
     fun createPreviewBase(
-        drawable: Drawable,
-        imageWidth: Int,
-        imageHeight: Int,
+        context: Context,
+        uri: Uri,
         rotationDegrees: Float,
         maxWorkspaceSide: Int = 1200,
     ): Bitmap? {
-        if (imageWidth <= 0 || imageHeight <= 0) {
-            return null
-        }
-        val sourceDiagonal = hypot(imageWidth.toDouble(), imageHeight.toDouble())
-        val scale = min(1.0, maxWorkspaceSide / sourceDiagonal)
-        val targetWidth = (imageWidth * scale).roundToInt().coerceAtLeast(1)
-        val targetHeight = (imageHeight * scale).roundToInt().coerceAtLeast(1)
-        val converted =
-            try {
-                drawable.toBitmap(targetWidth, targetHeight, Bitmap.Config.ARGB_8888)
-            } catch (_: Exception) {
-                return null
-            }
-        // A hardware Coil bitmap cannot be drawn onto the software preview canvas.
+        val decoded = decodeSoftwareBitmap(context, uri) ?: return null
+        val sourceDiagonal = hypot(decoded.width.toDouble(), decoded.height.toDouble())
+        val scale = min(1.0, maxWorkspaceSide / sourceDiagonal.coerceAtLeast(1.0))
         val source =
-            if (converted.config == Bitmap.Config.HARDWARE) {
-                try {
-                    converted.copy(Bitmap.Config.ARGB_8888, false)
-                } catch (_: OutOfMemoryError) {
-                    null
-                } ?: return null
+            if (scale < 0.999) {
+                val targetWidth = (decoded.width * scale).roundToInt().coerceAtLeast(1)
+                val targetHeight = (decoded.height * scale).roundToInt().coerceAtLeast(1)
+                val scaled =
+                    try {
+                        Bitmap.createScaledBitmap(decoded, targetWidth, targetHeight, true)
+                    } catch (_: OutOfMemoryError) {
+                        decoded.recycle()
+                        return null
+                    }
+                if (scaled !== decoded) {
+                    decoded.recycle()
+                }
+                toSoftwareBitmap(scaled) ?: return null
             } else {
-                converted
+                toSoftwareBitmap(decoded) ?: return null
             }
         val side =
             ceil(hypot(source.width.toDouble(), source.height.toDouble()))
@@ -73,6 +75,7 @@ internal object PhotoBlurRenderer {
             try {
                 Bitmap.createBitmap(side, side, Bitmap.Config.ARGB_8888)
             } catch (_: OutOfMemoryError) {
+                source.recycle()
                 return null
             }
         Canvas(square).apply {
@@ -80,6 +83,9 @@ internal object PhotoBlurRenderer {
             translate(side / 2f, side / 2f)
             rotate(rotationDegrees)
             drawBitmap(source, -source.width / 2f, -source.height / 2f, null)
+        }
+        if (source !== square) {
+            source.recycle()
         }
         return square
     }
@@ -106,10 +112,11 @@ internal object PhotoBlurRenderer {
         if (downsampled === bitmap) {
             return true
         }
-        val blurred = softenDownsampled(downsampled, amount) ?: run {
-            downsampled.recycle()
-            return false
-        }
+        val blurred =
+            softenDownsampled(downsampled, amount) ?: run {
+                downsampled.recycle()
+                return false
+            }
         if (blurred !== downsampled) {
             downsampled.recycle()
         }
@@ -222,6 +229,89 @@ internal object PhotoBlurRenderer {
         val outline = Path()
         strokePaint.getFillPath(centerLine, outline)
         destination.addPath(outline)
+    }
+
+    private fun decodeSoftwareBitmap(
+        context: Context,
+        uri: Uri,
+    ): Bitmap? {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            return try {
+                val source = ImageDecoder.createSource(context.contentResolver, uri)
+                ImageDecoder.decodeBitmap(source) { decoder, _, _ ->
+                    decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
+                }
+            } catch (_: Exception) {
+                null
+            }
+        }
+        val bytes =
+            try {
+                context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+            } catch (_: Exception) {
+                null
+            } ?: return null
+        val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size) ?: return null
+        val orientation =
+            try {
+                ExifInterface(ByteArrayInputStream(bytes)).getAttributeInt(
+                    ExifInterface.TAG_ORIENTATION,
+                    ExifInterface.ORIENTATION_NORMAL,
+                )
+            } catch (_: Exception) {
+                ExifInterface.ORIENTATION_NORMAL
+            }
+        return applyExifOrientation(bitmap, orientation)
+    }
+
+    private fun applyExifOrientation(
+        bitmap: Bitmap,
+        orientation: Int,
+    ): Bitmap {
+        val matrix = Matrix()
+        when (orientation) {
+            ExifInterface.ORIENTATION_FLIP_HORIZONTAL -> matrix.preScale(-1f, 1f)
+
+            ExifInterface.ORIENTATION_ROTATE_180 -> matrix.postRotate(180f)
+
+            ExifInterface.ORIENTATION_FLIP_VERTICAL -> matrix.preScale(1f, -1f)
+
+            ExifInterface.ORIENTATION_TRANSPOSE -> {
+                matrix.postRotate(90f)
+                matrix.preScale(-1f, 1f)
+            }
+
+            ExifInterface.ORIENTATION_ROTATE_90 -> matrix.postRotate(90f)
+
+            ExifInterface.ORIENTATION_TRANSVERSE -> {
+                matrix.postRotate(270f)
+                matrix.preScale(-1f, 1f)
+            }
+
+            ExifInterface.ORIENTATION_ROTATE_270 -> matrix.postRotate(270f)
+
+            else -> return bitmap
+        }
+        val transformed =
+            Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
+        if (transformed !== bitmap) {
+            bitmap.recycle()
+        }
+        return transformed
+    }
+
+    private fun toSoftwareBitmap(bitmap: Bitmap): Bitmap? {
+        if (bitmap.config != Bitmap.Config.HARDWARE) {
+            return bitmap
+        }
+        val software =
+            try {
+                bitmap.copy(Bitmap.Config.ARGB_8888, false)
+            } catch (_: OutOfMemoryError) {
+                null
+            }
+        bitmap.recycle()
+        return software
     }
 
     private const val MAX_BLUR_WORKING_SIDE = 1600
