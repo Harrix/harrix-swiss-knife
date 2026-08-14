@@ -5,7 +5,7 @@ from __future__ import annotations
 import calendar
 import logging
 from datetime import UTC, date, datetime, timedelta
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
@@ -185,6 +185,7 @@ class HabitDashboardWidget(QWidget):
 
         self._calendar = MonthCalendarGrid()
         self._calendar.day_toggled.connect(self._on_calendar_day_toggled)
+        self._calendar.day_value_set.connect(self._on_calendar_day_value_set)
         self._calendar.month_changed.connect(self._on_calendar_month_changed)
         layout.addWidget(self._calendar)
 
@@ -266,6 +267,11 @@ class HabitDashboardWidget(QWidget):
             return
         self._toggle_date(self._selected_habit_id, date_str)
 
+    def _on_calendar_day_value_set(self, date_str: str, value: object) -> None:
+        if self._db is None or self._selected_habit_id is None:
+            return
+        self._set_date_value(self._selected_habit_id, date_str, value)
+
     def _on_calendar_month_changed(self, year: int, month: int) -> None:
         self._calendar_year = year
         self._calendar_month = month
@@ -329,6 +335,7 @@ class HabitDashboardWidget(QWidget):
                 self._week_values_for(hid),
                 selected=hid == habit_id,
                 emoji=emoji,
+                allows_number=_habit_allows_number(habit),
             )
         self._refresh_detail()
 
@@ -338,6 +345,13 @@ class HabitDashboardWidget(QWidget):
         self._selected_habit_id = habit_id
         day = self._week_dates[day_index]
         self._toggle_date(habit_id, day.isoformat())
+
+    def _on_week_day_value_set(self, habit_id: int, day_index: int, value: object) -> None:
+        if self._db is None or day_index < 0 or day_index >= len(self._week_dates):
+            return
+        self._selected_habit_id = habit_id
+        day = self._week_dates[day_index]
+        self._set_date_value(habit_id, day.isoformat(), value)
 
     def _rebuild_habit_list(self) -> None:
         if self._db is None:
@@ -374,9 +388,11 @@ class HabitDashboardWidget(QWidget):
                 self._week_values_for(habit_id),
                 selected=habit_id == self._selected_habit_id,
                 emoji=emoji,
+                allows_number=_habit_allows_number(row),
             )
             habit_row.selected.connect(self._on_habit_selected)
             habit_row.day_toggled.connect(self._on_week_day_toggled)
+            habit_row.day_value_set.connect(self._on_week_day_value_set)
             self._habit_rows[habit_id] = habit_row
             self._list_layout.insertWidget(self._list_layout.count() - 1, habit_row)
 
@@ -423,8 +439,21 @@ class HabitDashboardWidget(QWidget):
         self._stat_streak.set_value(f"{streak} Days")
 
         day_values = self._db.get_habit_values_between(habit_id, month_start, month_end)
-        self._calendar.set_month(year, month, day_values)
+        self._calendar.set_month(year, month, day_values, allows_number=_habit_allows_number(habit))
         self._log_title.setText(f"Habit Log on {_month_name(month)}.")
+
+    def _set_date_value(self, habit_id: int, date_str: str, value: object) -> None:
+        if self._db is None:
+            return
+        if value is not None and not isinstance(value, int):
+            return
+        stored = None if value is None else int(value)
+        ok = self._db.set_habit_checkin(habit_id, date_str, stored)
+        if not ok:
+            QMessageBox.warning(self, "Database Error", "Failed to set check-in.")
+            return
+        self.refresh()
+        self.data_changed.emit()
 
     def _show_empty_detail(self) -> None:
         self._detail_name.setText("Select a habit")
@@ -474,6 +503,13 @@ class HabitDashboardWidget(QWidget):
             self._week_dates[-1].isoformat(),
         )
         return [stored.get(day.isoformat()) for day in self._week_dates]
+
+
+def _habit_allows_number(habit: list[Any] | None) -> bool:
+    """Return whether a habit row can store values other than 0/1."""
+    if habit is None or len(habit) <= _IS_BOOL_COLUMN:
+        return False
+    return habit[_IS_BOOL_COLUMN] != 1
 
 
 def _last_seven_days(today: date) -> list[date]:

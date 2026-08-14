@@ -9,7 +9,7 @@ from pathlib import Path
 import pytest
 from PySide6.QtWidgets import QApplication
 
-from harrix_swiss_knife.apps.habits.dashboard_widgets import CheckCircle, habit_day_state
+from harrix_swiss_knife.apps.habits.dashboard_widgets import CheckCircle, HabitRow, MonthCalendarGrid, habit_day_state
 from harrix_swiss_knife.apps.habits.database_manager import DatabaseManager
 
 RECOVER_SQL = Path(__file__).resolve().parents[1] / "src/harrix_swiss_knife/apps/habits/recover.sql"
@@ -139,3 +139,64 @@ def test_check_circle_four_states(qapp: QApplication) -> None:
     assert circle.toolTip() == "Value: 8"
     assert circle.is_done()
     assert circle.value() == 8
+
+
+def test_set_habit_checkin_four_kinds(habits_db: DatabaseManager) -> None:
+    """Set no record, 0, 1, and a numeric value for a habit day."""
+    assert habits_db.add_habit("Push-ups", is_bool=False)
+    habit_id = int(habits_db.get_habits()[0][0])
+    day = _local_today().isoformat()
+
+    assert habits_db.set_habit_checkin(habit_id, day, None)
+    assert habits_db.get_habit_value_on_date(habit_id, day) is None
+
+    assert habits_db.set_habit_checkin(habit_id, day, 0)
+    assert habits_db.get_habit_value_on_date(habit_id, day) == 0
+    assert not habits_db.is_habit_done_on_date(habit_id, day)
+
+    assert habits_db.set_habit_checkin(habit_id, day, 1)
+    assert habits_db.get_habit_value_on_date(habit_id, day) == 1
+    assert habits_db.is_habit_done_on_date(habit_id, day)
+
+    assert habits_db.set_habit_checkin(habit_id, day, 15)
+    assert habits_db.get_habit_value_on_date(habit_id, day) == 15
+    assert habits_db.is_habit_done_on_date(habit_id, day)
+
+    assert habits_db.set_habit_checkin(habit_id, day, None)
+    assert habits_db.get_habit_value_on_date(habit_id, day) is None
+    assert not habits_db.is_habit_done_on_date(habit_id, day)
+
+
+def test_habit_row_day_value_set_signal(qapp: QApplication) -> None:
+    """Week circles forward context-menu values, including None."""
+    assert qapp is not None
+    row = HabitRow()
+    row.set_habit_data(7, "Walk", 0, 0, [None] * 7, selected=False, allows_number=True)
+    received: list[tuple[int, int, object]] = []
+    row.day_value_set.connect(lambda hid, idx, val: received.append((hid, idx, val)))
+
+    circles = row.findChildren(CheckCircle)
+    assert len(circles) == 7
+    assert all(circle.allows_number() for circle in circles)
+    circles[3].value_set.emit(12)
+    circles[0].value_set.emit(None)
+    assert received == [(7, 3, 12), (7, 0, None)]
+
+    row.set_habit_data(7, "Walk", 0, 0, [None] * 7, selected=False, allows_number=False)
+    assert all(not circle.allows_number() for circle in row.findChildren(CheckCircle))
+
+
+def test_month_calendar_day_value_set_signal(qapp: QApplication) -> None:
+    """Month circles forward context-menu values for the selected date."""
+    assert qapp is not None
+    grid = MonthCalendarGrid()
+    grid.set_month(2026, 8, {"2026-08-14": 1}, allows_number=True)
+    received: list[tuple[str, object]] = []
+    grid.day_value_set.connect(lambda date_str, val: received.append((date_str, val)))
+
+    matches = [circle for circle in grid.findChildren(CheckCircle) if circle.value() == 1]
+    assert len(matches) == 1
+    assert matches[0].allows_number()
+    matches[0].value_set.emit(4)
+
+    assert received == [("2026-08-14", 4)]

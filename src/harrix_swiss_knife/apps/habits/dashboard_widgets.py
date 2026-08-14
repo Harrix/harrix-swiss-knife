@@ -5,13 +5,15 @@ from __future__ import annotations
 import calendar
 from typing import TYPE_CHECKING, Literal
 
-from PySide6.QtCore import QPointF, QRectF, Qt, Signal
+from PySide6.QtCore import QPoint, QPointF, QRectF, Qt, Signal
 from PySide6.QtGui import QColor, QFont, QPainter, QPen
 from PySide6.QtWidgets import (
     QFrame,
     QGridLayout,
     QHBoxLayout,
+    QInputDialog,
     QLabel,
+    QMenu,
     QPushButton,
     QSizePolicy,
     QVBoxLayout,
@@ -54,14 +56,22 @@ class CheckCircle(QWidget):
     """Clickable day circle for absent, not done, done, or numeric values."""
 
     clicked = Signal()
+    value_set = Signal(object)
 
     def __init__(self, parent: QWidget | None = None, *, size: int = 22) -> None:  # noqa: D107
         super().__init__(parent)
         self._value: int | None = None
+        self._allows_number = False
         self._size = size
         self.setFixedSize(size, size)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.customContextMenuRequested.connect(self._show_context_menu)
         self._apply_tooltip()
+
+    def allows_number(self) -> bool:
+        """Return whether the numeric context-menu action is enabled."""
+        return self._allows_number
 
     def day_state(self) -> HabitDayState:
         """Return visual state for the stored value."""
@@ -131,6 +141,10 @@ class CheckCircle(QWidget):
         painter.setPen(QColor("white"))
         painter.drawText(rect, int(Qt.AlignmentFlag.AlignCenter), text)
 
+    def set_allows_number(self, *, allows_number: bool) -> None:
+        """Enable the numeric context-menu action when the habit is not boolean."""
+        self._allows_number = allows_number
+
     def set_value(self, value: int | None) -> None:
         """Set stored process-habit value (``None`` = no database record)."""
         self._value = value
@@ -151,6 +165,36 @@ class CheckCircle(QWidget):
             self.setToolTip("Completed")
         else:
             self.setToolTip(f"Value: {self._value}")
+
+    def _show_context_menu(self, pos: QPoint) -> None:
+        menu = QMenu(self)
+        act_absent = menu.addAction("No record")
+        act_zero = menu.addAction("Not completed (0)")
+        act_one = menu.addAction("Completed (1)")
+        act_number = menu.addAction("Set number…") if self._allows_number else None
+        for action, checked in (
+            (act_absent, self._value is None),
+            (act_zero, self._value == 0),
+            (act_one, self._value == 1),
+        ):
+            action.setCheckable(True)
+            action.setChecked(checked)
+        if act_number is not None:
+            act_number.setCheckable(True)
+            act_number.setChecked(self._value is not None and self._value not in {0, 1})
+
+        chosen = menu.exec_(self.mapToGlobal(pos))
+        if chosen == act_absent:
+            self.value_set.emit(None)
+        elif chosen == act_zero:
+            self.value_set.emit(0)
+        elif chosen == act_one:
+            self.value_set.emit(1)
+        elif act_number is not None and chosen == act_number:
+            current = self._value if self._value is not None else 2
+            value, ok = QInputDialog.getInt(self, "Set value", "Value:", current, -999999, 999999)
+            if ok:
+                self.value_set.emit(value)
 
 
 class HabitIconBadge(QWidget):
@@ -192,6 +236,7 @@ class HabitRow(QFrame):
 
     selected = Signal(int)
     day_toggled = Signal(int, int)  # habit_id, day_index 0..6
+    day_value_set = Signal(int, int, object)  # habit_id, day_index, value (int | None)
 
     def __init__(self, parent: QWidget | None = None) -> None:  # noqa: D107
         super().__init__(parent)
@@ -226,6 +271,7 @@ class HabitRow(QFrame):
         for day_index in range(7):
             circle = CheckCircle(size=22)
             circle.clicked.connect(lambda idx=day_index: self._on_day_clicked(idx))
+            circle.value_set.connect(lambda value, idx=day_index: self._on_day_value_set(idx, value))
             self._checks.append(circle)
             self._checks_layout.addWidget(circle)
         root.addLayout(self._checks_layout)
@@ -250,6 +296,7 @@ class HabitRow(QFrame):
         *,
         selected: bool,
         emoji: str = "",
+        allows_number: bool = False,
     ) -> None:
         """Populate row content."""
         self._habit_id = habit_id
@@ -260,6 +307,7 @@ class HabitRow(QFrame):
         for i, circle in enumerate(self._checks):
             value = week_values[i] if i < len(week_values) else None
             circle.set_value(value)
+            circle.set_allows_number(allows_number=allows_number)
         self._apply_style()
 
     def _apply_style(self) -> None:
@@ -279,11 +327,16 @@ class HabitRow(QFrame):
         if self._habit_id >= 0:
             self.day_toggled.emit(self._habit_id, day_index)
 
+    def _on_day_value_set(self, day_index: int, value: object) -> None:
+        if self._habit_id >= 0:
+            self.day_value_set.emit(self._habit_id, day_index, value)
+
 
 class MonthCalendarGrid(QWidget):
     """Month grid of check circles with weekday headers."""
 
     day_toggled = Signal(str)  # YYYY-MM-DD
+    day_value_set = Signal(str, object)  # YYYY-MM-DD, value (int | None)
     month_changed = Signal(int, int)  # year, month
 
     def __init__(self, parent: QWidget | None = None) -> None:  # noqa: D107
@@ -291,6 +344,7 @@ class MonthCalendarGrid(QWidget):
         self._year = 0
         self._month = 0
         self._day_values: dict[str, int] = {}
+        self._allows_number = False
 
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
@@ -356,11 +410,19 @@ class MonthCalendarGrid(QWidget):
         root.addLayout(self._grid)
         self._day_cells: list[tuple[CheckCircle | None, QLabel, str | None]] = []
 
-    def set_month(self, year: int, month: int, day_values: dict[str, int] | None = None) -> None:
+    def set_month(
+        self,
+        year: int,
+        month: int,
+        day_values: dict[str, int] | None = None,
+        *,
+        allows_number: bool = False,
+    ) -> None:
         """Rebuild grid for year/month with stored values keyed by ``YYYY-MM-DD``."""
         self._year = year
         self._month = month
         self._day_values = dict(day_values or {})
+        self._allows_number = allows_number
         self._title.setText(f"{_month_short(month)} {year}")
         self._rebuild_grid()
 
@@ -407,7 +469,9 @@ class MonthCalendarGrid(QWidget):
                 date_str = f"{self._year:04d}-{self._month:02d}-{day:02d}"
                 circle = CheckCircle(size=26)
                 circle.set_value(self._day_values.get(date_str))
+                circle.set_allows_number(allows_number=self._allows_number)
                 circle.clicked.connect(lambda d=date_str: self.day_toggled.emit(d))
+                circle.value_set.connect(lambda value, d=date_str: self.day_value_set.emit(d, value))
                 day_label = QLabel(str(day))
                 day_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
                 day_label.setFixedHeight(18)

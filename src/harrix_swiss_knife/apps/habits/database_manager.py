@@ -489,6 +489,31 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         query = "UPDATE habits SET is_archived = :v WHERE _id = :id"
         return self.execute_simple_query(query, {"v": 1 if is_archived else 0, "id": habit_id})
 
+    def set_habit_checkin(self, habit_id: int, date_str: str, value: int | None) -> bool:
+        """Set or clear the process-habit value for a habit on a date.
+
+        `None` deletes all records for that day. A numeric value updates the
+        latest row or inserts a new one.
+
+        """
+        rows = self.get_rows(
+            """
+            SELECT _id FROM process_habits
+            WHERE _id_habit = :habit_id AND date = :date
+            ORDER BY _id DESC
+            """,
+            {"habit_id": habit_id, "date": date_str},
+        )
+        record_ids = [int(row[0]) for row in rows if row and row[0] is not None]
+        if value is None:
+            return all(self.delete_process_habit_record(record_id) for record_id in record_ids)
+
+        if not record_ids:
+            return self.add_process_habit_record(habit_id, value, date_str)
+
+        extras_ok = all(self.delete_process_habit_record(record_id) for record_id in record_ids[1:])
+        return extras_ok and self.update_process_habit_record(record_ids[0], habit_id, value, date_str)
+
     def toggle_habit_checkin(self, habit_id: int, date_str: str) -> bool:
         """Toggle completion for habit on a date.
 

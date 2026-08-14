@@ -35,6 +35,7 @@ lang: en
   - [⚙️ Method `get_limited_process_habits_records`](#%EF%B8%8F-method-get_limited_process_habits_records)
   - [⚙️ Method `is_habit_done_on_date`](#%EF%B8%8F-method-is_habit_done_on_date)
   - [⚙️ Method `set_habit_archived`](#%EF%B8%8F-method-set_habit_archived)
+  - [⚙️ Method `set_habit_checkin`](#%EF%B8%8F-method-set_habit_checkin)
   - [⚙️ Method `toggle_habit_checkin`](#%EF%B8%8F-method-toggle_habit_checkin)
   - [⚙️ Method `update_habit`](#%EF%B8%8F-method-update_habit)
   - [⚙️ Method `update_process_habit_record`](#%EF%B8%8F-method-update_process_habit_record)
@@ -526,6 +527,31 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         """Archive/unarchive a habit by ID."""
         query = "UPDATE habits SET is_archived = :v WHERE _id = :id"
         return self.execute_simple_query(query, {"v": 1 if is_archived else 0, "id": habit_id})
+
+    def set_habit_checkin(self, habit_id: int, date_str: str, value: int | None) -> bool:
+        """Set or clear the process-habit value for a habit on a date.
+
+        `None` deletes all records for that day. A numeric value updates the
+        latest row or inserts a new one.
+
+        """
+        rows = self.get_rows(
+            """
+            SELECT _id FROM process_habits
+            WHERE _id_habit = :habit_id AND date = :date
+            ORDER BY _id DESC
+            """,
+            {"habit_id": habit_id, "date": date_str},
+        )
+        record_ids = [int(row[0]) for row in rows if row and row[0] is not None]
+        if value is None:
+            return all(self.delete_process_habit_record(record_id) for record_id in record_ids)
+
+        if not record_ids:
+            return self.add_process_habit_record(habit_id, value, date_str)
+
+        extras_ok = all(self.delete_process_habit_record(record_id) for record_id in record_ids[1:])
+        return extras_ok and self.update_process_habit_record(record_ids[0], habit_id, value, date_str)
 
     def toggle_habit_checkin(self, habit_id: int, date_str: str) -> bool:
         """Toggle completion for habit on a date.
@@ -1397,6 +1423,43 @@ Archive/unarchive a habit by ID.
 def set_habit_archived(self, habit_id: int, *, is_archived: bool) -> bool:
         query = "UPDATE habits SET is_archived = :v WHERE _id = :id"
         return self.execute_simple_query(query, {"v": 1 if is_archived else 0, "id": habit_id})
+```
+
+</details>
+
+### ⚙️ Method `set_habit_checkin`
+
+```python
+def set_habit_checkin(self, habit_id: int, date_str: str, value: int | None) -> bool
+```
+
+Set or clear the process-habit value for a habit on a date.
+
+`None` deletes all records for that day. A numeric value updates the
+latest row or inserts a new one.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def set_habit_checkin(self, habit_id: int, date_str: str, value: int | None) -> bool:
+        rows = self.get_rows(
+            """
+            SELECT _id FROM process_habits
+            WHERE _id_habit = :habit_id AND date = :date
+            ORDER BY _id DESC
+            """,
+            {"habit_id": habit_id, "date": date_str},
+        )
+        record_ids = [int(row[0]) for row in rows if row and row[0] is not None]
+        if value is None:
+            return all(self.delete_process_habit_record(record_id) for record_id in record_ids)
+
+        if not record_ids:
+            return self.add_process_habit_record(habit_id, value, date_str)
+
+        extras_ok = all(self.delete_process_habit_record(record_id) for record_id in record_ids[1:])
+        return extras_ok and self.update_process_habit_record(record_ids[0], habit_id, value, date_str)
 ```
 
 </details>
