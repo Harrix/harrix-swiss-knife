@@ -1,34 +1,30 @@
----
-author: Anton Sergienko
-author-email: anton.b.sergienko@gmail.com
-lang: en
----
+"""Recognize text from scan images with BotHub and format as Markdown."""
 
-# 📄 File `image_to_markdown_with_ai.py`
+from __future__ import annotations
 
-<details>
-<summary>📖 Contents ⬇️</summary>
+from pathlib import Path
+from typing import Any
 
-## Contents
+from harrix_swiss_knife.actions.common.base import ActionBase
+from harrix_swiss_knife.actions.common.ocr_markdown import (
+    combine_markdown_sections,
+    default_markdown_base,
+    ocr_text_to_markdown_section,
+    save_ocr_markdown_with_images,
+    suggest_markdown_filename,
+)
+from harrix_swiss_knife.apps.common import message_box
+from harrix_swiss_knife.integrations.bothub import (
+    BothubRequestState,
+    build_image_ocr_prompt,
+    image_bytes_and_mime,
+    run_bothub_request,
+    show_bothub_prompt_build_error,
+)
 
-- [🏛️ Class `OnImageToMarkdownWithAI`](#%EF%B8%8F-class-onimagetomarkdownwithai)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
 
-</details>
-
-## 🏛️ Class `OnImageToMarkdownWithAI`
-
-```python
-class OnImageToMarkdownWithAI(ActionBase)
-```
-
-Recognize text from selected images via AI and show it as Markdown.
-
-<details>
-<summary>Code:</summary>
-
-```python
-class OnImageToMarkdownWithAI(ActionBase):
+class OnRecognizeTextWithAI(ActionBase):
+    """Recognize text from selected images via AI and show it as Markdown."""
 
     icon = "🤖"
     title = "Recognize text (AI)…"
@@ -127,41 +123,3 @@ class OnImageToMarkdownWithAI(ActionBase):
             state=self._bothub_state,
             on_error=on_error,
         )
-```
-
-</details>
-
-### ⚙️ Method `execute`
-
-```python
-def execute(self, *args: Any, **kwargs: Any) -> None
-```
-
-Select images (or use `image_paths`), recognize text with AI, and show Markdown.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        image_paths = kwargs.get("image_paths")
-        if image_paths:
-            selected = [str(path) for path in image_paths]
-        else:
-            selected = self.dialogs.get_open_filenames(
-                "Select scan images",
-                self.config["path_articles"],
-                self._IMAGE_FILTER,
-            )
-        if not selected:
-            return
-
-        self._image_paths = [Path(path) for path in selected]
-        self._markdown_base = default_markdown_base(self._image_paths)
-        self._sections: list[str] = []
-        self._ocr_texts: list[str] = []
-        self._bothub_state = BothubRequestState()
-        self._process_image(0)
-```
-
-</details>

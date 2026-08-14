@@ -56,8 +56,6 @@ from harrix_swiss_knife.actions.files.tree_view_folder_ignore_hidden_folders imp
     OnTreeViewFolderIgnoreHiddenFolders,
 )
 from harrix_swiss_knife.actions.images.clear_images import OnClearImages
-from harrix_swiss_knife.actions.images.image_to_markdown_with_ai import OnImageToMarkdownWithAI
-from harrix_swiss_knife.actions.images.image_to_markdown_with_ocr import OnImageToMarkdownWithOcr
 from harrix_swiss_knife.actions.images.open_images import OnOpenImages
 from harrix_swiss_knife.actions.images.open_optimized_images import OnOpenOptimizedImages
 from harrix_swiss_knife.actions.images.open_photos_in_viewer import OnOpenPhotosInViewer
@@ -68,6 +66,8 @@ from harrix_swiss_knife.actions.images.optimize_dialog_replace import OnOptimize
 from harrix_swiss_knife.actions.images.optimize_quality import OnOptimizeQuality
 from harrix_swiss_knife.actions.images.optimize_resize import OnOptimizeResize
 from harrix_swiss_knife.actions.images.optimize_single_image import OnOptimizeSingleImage
+from harrix_swiss_knife.actions.images.recognize_text_with_ai import OnRecognizeTextWithAI
+from harrix_swiss_knife.actions.images.recognize_text_with_ocr import OnRecognizeTextWithOcr
 from harrix_swiss_knife.actions.images.screenshot_region import OnScreenshotRegion
 from harrix_swiss_knife.actions.markdown.append_yaml_tag import OnAppendYamlTag
 from harrix_swiss_knife.actions.markdown.beautify_md import OnBeautifyMd
@@ -162,8 +162,8 @@ def get_menu_structure() -> list[Any]:
             "🖼️",
             [
                 OnOpenPhotosInViewer,
-                OnImageToMarkdownWithOcr,
-                OnImageToMarkdownWithAI,
+                OnRecognizeTextWithOcr,
+                OnRecognizeTextWithAI,
                 "-",
                 OnOptimize,
                 OnOptimizeDialogReplace,

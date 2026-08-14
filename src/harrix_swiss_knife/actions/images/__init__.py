@@ -1,8 +1,6 @@
 """Image optimization and management actions."""
 
 from harrix_swiss_knife.actions.images.clear_images import OnClearImages
-from harrix_swiss_knife.actions.images.image_to_markdown_with_ai import OnImageToMarkdownWithAI
-from harrix_swiss_knife.actions.images.image_to_markdown_with_ocr import OnImageToMarkdownWithOcr
 from harrix_swiss_knife.actions.images.open_images import OnOpenImages
 from harrix_swiss_knife.actions.images.open_optimized_images import OnOpenOptimizedImages
 from harrix_swiss_knife.actions.images.open_photos_in_viewer import OnOpenPhotosInViewer
@@ -13,12 +11,12 @@ from harrix_swiss_knife.actions.images.optimize_dialog_replace import OnOptimize
 from harrix_swiss_knife.actions.images.optimize_quality import OnOptimizeQuality
 from harrix_swiss_knife.actions.images.optimize_resize import OnOptimizeResize
 from harrix_swiss_knife.actions.images.optimize_single_image import OnOptimizeSingleImage
+from harrix_swiss_knife.actions.images.recognize_text_with_ai import OnRecognizeTextWithAI
+from harrix_swiss_knife.actions.images.recognize_text_with_ocr import OnRecognizeTextWithOcr
 from harrix_swiss_knife.actions.images.screenshot_region import OnScreenshotRegion
 
 __all__ = [
     "OnClearImages",
-    "OnImageToMarkdownWithAI",
-    "OnImageToMarkdownWithOcr",
     "OnOpenImages",
     "OnOpenOptimizedImages",
     "OnOpenPhotosInViewer",
@@ -29,5 +27,7 @@ __all__ = [
     "OnOptimizeQuality",
     "OnOptimizeResize",
     "OnOptimizeSingleImage",
+    "OnRecognizeTextWithAI",
+    "OnRecognizeTextWithOcr",
     "OnScreenshotRegion",
 ]

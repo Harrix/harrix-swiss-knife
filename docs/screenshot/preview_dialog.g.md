@@ -95,11 +95,11 @@ class ScreenshotPreviewDialog(QDialog):
 
         def run() -> None:
             # Local import: actions.images.__init__ pulls screenshot_region -> this package.
-            from harrix_swiss_knife.actions.images.image_to_markdown_with_ai import (  # noqa: PLC0415
-                OnImageToMarkdownWithAI,
+            from harrix_swiss_knife.actions.images.recognize_text_with_ai import (  # noqa: PLC0415
+                OnRecognizeTextWithAI,
             )
 
-            OnImageToMarkdownWithAI()(image_paths=[path])
+            OnRecognizeTextWithAI()(image_paths=[path])
 
         QTimer.singleShot(0, run)
 
@@ -111,11 +111,11 @@ class ScreenshotPreviewDialog(QDialog):
 
         def run() -> None:
             # Local import: actions.images.__init__ pulls screenshot_region -> this package.
-            from harrix_swiss_knife.actions.images.image_to_markdown_with_ocr import (  # noqa: PLC0415
-                OnImageToMarkdownWithOcr,
+            from harrix_swiss_knife.actions.images.recognize_text_with_ocr import (  # noqa: PLC0415
+                OnRecognizeTextWithOcr,
             )
 
-            OnImageToMarkdownWithOcr()(image_paths=[path])
+            OnRecognizeTextWithOcr()(image_paths=[path])
 
         QTimer.singleShot(0, run)
 

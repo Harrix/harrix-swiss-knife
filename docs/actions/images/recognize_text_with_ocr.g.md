@@ -4,24 +4,24 @@ author-email: anton.b.sergienko@gmail.com
 lang: en
 ---
 
-# 📄 File `image_to_markdown_with_ocr.py`
+# 📄 File `recognize_text_with_ocr.py`
 
 <details>
 <summary>📖 Contents ⬇️</summary>
 
 ## Contents
 
-- [🏛️ Class `OnImageToMarkdownWithOcr`](#%EF%B8%8F-class-onimagetomarkdownwithocr)
+- [🏛️ Class `OnRecognizeTextWithOcr`](#%EF%B8%8F-class-onrecognizetextwithocr)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
   - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread)
   - [⚙️ Method `thread_after_markdown`](#%EF%B8%8F-method-thread_after_markdown)
 
 </details>
 
-## 🏛️ Class `OnImageToMarkdownWithOcr`
+## 🏛️ Class `OnRecognizeTextWithOcr`
 
 ```python
-class OnImageToMarkdownWithOcr(ActionBase)
+class OnRecognizeTextWithOcr(ActionBase)
 ```
 
 Recognize text from selected images with local OCR and show it as Markdown.
@@ -30,7 +30,7 @@ Recognize text from selected images with local OCR and show it as Markdown.
 <summary>Code:</summary>
 
 ```python
-class OnImageToMarkdownWithOcr(ActionBase):
+class OnRecognizeTextWithOcr(ActionBase):
 
     icon = "🔤"
     title = "Recognize text (OCR, local)…"

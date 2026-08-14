@@ -20,7 +20,7 @@ if TYPE_CHECKING:
     import easyocr
 
 
-class OnImageToMarkdownWithOcr(ActionBase):
+class OnRecognizeTextWithOcr(ActionBase):
     """Recognize text from selected images with local OCR and show it as Markdown."""
 
     icon = "🔤"

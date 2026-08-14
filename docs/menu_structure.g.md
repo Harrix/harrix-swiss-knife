@@ -65,8 +65,8 @@ def get_menu_structure() -> list[Any]:
             "🖼️",
             [
                 OnOpenPhotosInViewer,
-                OnImageToMarkdownWithOcr,
-                OnImageToMarkdownWithAI,
+                OnRecognizeTextWithOcr,
+                OnRecognizeTextWithAI,
                 "-",
                 OnOptimize,
                 OnOptimizeDialogReplace,

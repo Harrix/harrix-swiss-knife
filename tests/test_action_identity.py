@@ -5,7 +5,7 @@ from harrix_swiss_knife.action_identity import (
     action_relative_source_path,
     format_action_identity_text,
 )
-from harrix_swiss_knife.actions.images.image_to_markdown_with_ai import OnImageToMarkdownWithAI
+from harrix_swiss_knife.actions.images.recognize_text_with_ai import OnRecognizeTextWithAI
 
 
 class _TitleOnlyAction:
@@ -13,7 +13,7 @@ class _TitleOnlyAction:
 
 
 def test_action_identity_name_uses_docstring_without_trailing_period() -> None:
-    assert action_identity_name(OnImageToMarkdownWithAI) == (
+    assert action_identity_name(OnRecognizeTextWithAI) == (
         "Recognize text from selected images via AI and show it as Markdown"
     )
 
@@ -23,13 +23,13 @@ def test_action_identity_name_falls_back_to_stripped_title() -> None:
 
 
 def test_action_relative_source_path_is_posix_under_src() -> None:
-    path = action_relative_source_path(OnImageToMarkdownWithAI)
-    assert path == "src/harrix_swiss_knife/actions/images/image_to_markdown_with_ai.py"
+    path = action_relative_source_path(OnRecognizeTextWithAI)
+    assert path == "src/harrix_swiss_knife/actions/images/recognize_text_with_ai.py"
 
 
 def test_format_action_identity_text_matches_card_copy_example() -> None:
-    assert format_action_identity_text(OnImageToMarkdownWithAI) == (
+    assert format_action_identity_text(OnRecognizeTextWithAI) == (
         "Recognize text from selected images via AI and show it as Markdown\n"
-        "OnImageToMarkdownWithAI\n"
-        "src/harrix_swiss_knife/actions/images/image_to_markdown_with_ai.py"
+        "OnRecognizeTextWithAI\n"
+        "src/harrix_swiss_knife/actions/images/recognize_text_with_ai.py"
     )
