@@ -73,7 +73,9 @@ from harrix_swiss_knife.actions.common.text_result_dialog import (
     collapse_text_to_single_line,
 )
 from harrix_swiss_knife.apps.common import message_box
+from harrix_swiss_knife.apps.common.dialogs.text_image_source_dialog import TextImageSourceDialog
 from harrix_swiss_knife.apps.common.qt_main_window import apply_app_window_size_and_position
+from harrix_swiss_knife.apps.common.widgets.image_picker import ImagePickerMode
 from harrix_swiss_knife.qt_action_card_grid import configure_action_card_grid
 from harrix_swiss_knife.qt_command_section import create_command_section, style_transparent_icon_grid
 from harrix_swiss_knife.qt_described_choice_cards import (
@@ -931,6 +933,35 @@ class ActionDialogService:
             return IconChoiceSelection(title=choice_title, action=action)
 
         return None
+
+    def get_images_from_picker(
+        self,
+        title: str = "Select images",
+        *,
+        description: str = "",
+        accept_button_text: str = "OK",
+    ) -> list[Path] | None:
+        """Show the standard ImagePicker and return selected image file paths.
+
+        Supports adding files, capturing a screenshot, pasting from the clipboard,
+        and drag-and-drop. Returns `None` if the dialog is cancelled or empty.
+
+        """
+        dialog = TextImageSourceDialog(
+            None,
+            title=title,
+            description=description,
+            show_text=False,
+            show_images=True,
+            images_required=True,
+            image_mode=ImagePickerMode.MULTI,
+            image_label="Images (drag, paste Ctrl+V, screenshot, or add files):",
+            accept_button_text=accept_button_text,
+        )
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return None
+        paths = [Path(path) for path in dialog.get_image_paths() if Path(path).is_file()]
+        return paths or None
 
     def get_max_image_size_option(
         self,

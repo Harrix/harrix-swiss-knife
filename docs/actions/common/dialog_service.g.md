@@ -26,6 +26,7 @@ lang: en
   - [⚙️ Method `get_folder_with_choice_option (overload 2)`](#%EF%B8%8F-method-get_folder_with_choice_option-overload-2)
   - [⚙️ Method `get_folder_with_choice_option`](#%EF%B8%8F-method-get_folder_with_choice_option)
   - [⚙️ Method `get_icon_choice`](#%EF%B8%8F-method-get_icon_choice)
+  - [⚙️ Method `get_images_from_picker`](#%EF%B8%8F-method-get_images_from_picker)
   - [⚙️ Method `get_max_image_size_option`](#%EF%B8%8F-method-get_max_image_size_option)
   - [⚙️ Method `get_open_filename`](#%EF%B8%8F-method-get_open_filename)
   - [⚙️ Method `get_open_filenames`](#%EF%B8%8F-method-get_open_filenames)
@@ -888,6 +889,35 @@ class ActionDialogService:
             return IconChoiceSelection(title=choice_title, action=action)
 
         return None
+
+    def get_images_from_picker(
+        self,
+        title: str = "Select images",
+        *,
+        description: str = "",
+        accept_button_text: str = "OK",
+    ) -> list[Path] | None:
+        """Show the standard ImagePicker and return selected image file paths.
+
+        Supports adding files, capturing a screenshot, pasting from the clipboard,
+        and drag-and-drop. Returns `None` if the dialog is cancelled or empty.
+
+        """
+        dialog = TextImageSourceDialog(
+            None,
+            title=title,
+            description=description,
+            show_text=False,
+            show_images=True,
+            images_required=True,
+            image_mode=ImagePickerMode.MULTI,
+            image_label="Images (drag, paste Ctrl+V, screenshot, or add files):",
+            accept_button_text=accept_button_text,
+        )
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return None
+        paths = [Path(path) for path in dialog.get_image_paths() if Path(path).is_file()]
+        return paths or None
 
     def get_max_image_size_option(
         self,
@@ -2693,6 +2723,47 @@ def get_icon_choice(
             return IconChoiceSelection(title=choice_title, action=action)
 
         return None
+```
+
+</details>
+
+### ⚙️ Method `get_images_from_picker`
+
+```python
+def get_images_from_picker(self, title: str = 'Select images', *, description: str = '', accept_button_text: str = 'OK') -> list[Path] | None
+```
+
+Show the standard ImagePicker and return selected image file paths.
+
+Supports adding files, capturing a screenshot, pasting from the clipboard,
+and drag-and-drop. Returns `None` if the dialog is cancelled or empty.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_images_from_picker(
+        self,
+        title: str = "Select images",
+        *,
+        description: str = "",
+        accept_button_text: str = "OK",
+    ) -> list[Path] | None:
+        dialog = TextImageSourceDialog(
+            None,
+            title=title,
+            description=description,
+            show_text=False,
+            show_images=True,
+            images_required=True,
+            image_mode=ImagePickerMode.MULTI,
+            image_label="Images (drag, paste Ctrl+V, screenshot, or add files):",
+            accept_button_text=accept_button_text,
+        )
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return None
+        paths = [Path(path) for path in dialog.get_image_paths() if Path(path).is_file()]
+        return paths or None
 ```
 
 </details>

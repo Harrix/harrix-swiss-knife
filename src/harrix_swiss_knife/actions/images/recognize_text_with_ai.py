@@ -30,7 +30,6 @@ class OnRecognizeTextWithAI(ActionBase):
     title = "Recognize text (AI)…"
     bold_title = False
 
-    _IMAGE_FILTER = "Image Files (*.png *.jpg *.jpeg *.webp *.bmp *.avif *.tif *.tiff);;All Files (*)"
     _PREVIEW_MAX_LEN = 120
 
     @ActionBase.handle_exceptions("recognizing text with AI")
@@ -38,13 +37,9 @@ class OnRecognizeTextWithAI(ActionBase):
         """Select images (or use `image_paths`), recognize text with AI, and show Markdown."""
         image_paths = kwargs.get("image_paths")
         if image_paths:
-            selected = [str(path) for path in image_paths]
+            selected = [Path(path) for path in image_paths]
         else:
-            selected = self.dialogs.get_open_filenames(
-                "Select scan images",
-                self.config["path_articles"],
-                self._IMAGE_FILTER,
-            )
+            selected = self.dialogs.get_images_from_picker("Select scan images")
         if not selected:
             return
 

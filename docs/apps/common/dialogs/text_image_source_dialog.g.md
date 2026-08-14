@@ -15,6 +15,7 @@ lang: en
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `eventFilter`](#%EF%B8%8F-method-eventfilter)
   - [⚙️ Method `get_image_bytes_and_mime`](#%EF%B8%8F-method-get_image_bytes_and_mime)
+  - [⚙️ Method `get_image_paths`](#%EF%B8%8F-method-get_image_paths)
   - [⚙️ Method `get_images_bytes_and_mime`](#%EF%B8%8F-method-get_images_bytes_and_mime)
   - [⚙️ Method `get_raw_text`](#%EF%B8%8F-method-get_raw_text)
 
@@ -85,6 +86,7 @@ class TextImageSourceDialog(QDialog):
 
         self._raw_text: str = ""
         self._images_data: list[tuple[bytes, str]] = []
+        self._image_paths: list[str] = []
         self.text_edit: QPlainTextEdit | None = None
         self.image_widget: ImagePicker | None = None
         self._setup_ui()
@@ -110,6 +112,10 @@ class TextImageSourceDialog(QDialog):
     def get_image_bytes_and_mime(self) -> tuple[bytes, str] | None:
         """Return the first image as bytes and MIME type, or `None`."""
         return self._images_data[0] if self._images_data else None
+
+    def get_image_paths(self) -> list[str]:
+        """Return selected image file paths after accept."""
+        return list(self._image_paths)
 
     def get_images_bytes_and_mime(self) -> list[tuple[bytes, str]]:
         """Return all provided images as `(bytes, mime)` pairs."""
@@ -137,8 +143,14 @@ class TextImageSourceDialog(QDialog):
 
     def _on_accept(self) -> None:
         self._raw_text = self.text_edit.toPlainText().strip() if self.text_edit is not None else ""
-        self._images_data = self.image_widget.get_images_bytes_and_mime() if self.image_widget is not None else []
-        if not self._is_input_valid(self._raw_text, has_images=bool(self._images_data)):
+        picker = self.image_widget
+        if picker is None:
+            self._image_paths = []
+            self._images_data = []
+        else:
+            self._image_paths = [path for path in picker.get_image_paths() if Path(path).is_file()]
+            self._images_data = picker.get_images_bytes_and_mime()
+        if not self._is_input_valid(self._raw_text, has_images=bool(self._image_paths) or bool(self._images_data)):
             return
         self.accept()
 
@@ -269,6 +281,7 @@ def __init__(
 
         self._raw_text: str = ""
         self._images_data: list[tuple[bytes, str]] = []
+        self._image_paths: list[str] = []
         self.text_edit: QPlainTextEdit | None = None
         self.image_widget: ImagePicker | None = None
         self._setup_ui()
@@ -322,6 +335,24 @@ Return the first image as bytes and MIME type, or `None`.
 ```python
 def get_image_bytes_and_mime(self) -> tuple[bytes, str] | None:
         return self._images_data[0] if self._images_data else None
+```
+
+</details>
+
+### ⚙️ Method `get_image_paths`
+
+```python
+def get_image_paths(self) -> list[str]
+```
+
+Return selected image file paths after accept.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_image_paths(self) -> list[str]:
+        return list(self._image_paths)
 ```
 
 </details>
