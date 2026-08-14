@@ -70,6 +70,18 @@ body {
   outline-offset: 1px;
 }
 
+.chrome .icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-left: auto;
+  padding: 4px;
+  width: 28px;
+  height: 28px;
+  line-height: 0;
+}
+
 .breadcrumbs {
   display: flex;
   flex-wrap: wrap;

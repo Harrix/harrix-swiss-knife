@@ -3,6 +3,7 @@
 
   const backBtn = document.getElementById('backBtn');
   const homeBtn = document.getElementById('homeBtn');
+  const refreshBtn = document.getElementById('refreshBtn');
   const crumbsEl = document.getElementById('crumbs');
   const gridEl = document.getElementById('grid');
   const statusEl = document.getElementById('status');
@@ -146,6 +147,9 @@
   });
   homeBtn.addEventListener('click', () => {
     vscode.postMessage({ type: 'goHome' });
+  });
+  refreshBtn.addEventListener('click', () => {
+    vscode.postMessage({ type: 'refresh' });
   });
 
   window.addEventListener('message', (event) => {
