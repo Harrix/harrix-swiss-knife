@@ -16,13 +16,13 @@ from PySide6.QtGui import (QAction, QBrush, QColor, QConicalGradient,
     QIcon, QImage, QKeySequence, QLinearGradient,
     QPainter, QPalette, QPixmap, QRadialGradient,
     QTransform)
-from PySide6.QtWidgets import (QAbstractItemView, QApplication, QCheckBox, QComboBox, QDateEdit,
-    QDoubleSpinBox, QFrame, QGroupBox, QHBoxLayout,
-    QHeaderView, QLabel, QLineEdit, QListView,
-    QMainWindow, QMenu, QMenuBar, QPushButton,
-    QRadioButton, QScrollArea, QSizePolicy, QSpacerItem,
-    QSpinBox, QSplitter, QStatusBar, QTabWidget,
-    QTableView, QVBoxLayout, QWidget)
+from PySide6.QtWidgets import (QAbstractItemView, QApplication, QCheckBox, QComboBox,
+    QDateEdit, QDoubleSpinBox, QFrame, QGroupBox,
+    QHBoxLayout, QHeaderView, QLabel, QLineEdit,
+    QListView, QMainWindow, QMenu, QMenuBar,
+    QPushButton, QRadioButton, QScrollArea, QSizePolicy,
+    QSpacerItem, QSpinBox, QSplitter, QStatusBar,
+    QTabWidget, QTableView, QVBoxLayout, QWidget)
 
 class Ui_MainWindow(object):
     # setupUi
@@ -33,6 +33,9 @@ class Ui_MainWindow(object):
         self.action_categories_refresh.setText(QCoreApplication.translate("MainWindow", u"Refresh Categories", None))
         self.action_copy_categories_as_text.setText(QCoreApplication.translate("MainWindow", u"Copy Categories As Text", None))
         self.action_standard_items.setText(QCoreApplication.translate("MainWindow", u"Standard Items", None))
+        self.action_transactions_show_all_records.setText(QCoreApplication.translate("MainWindow", u"Show All Transactions", None))
+        self.action_transactions_refresh.setText(QCoreApplication.translate("MainWindow", u"Refresh Transactions Table", None))
+        self.action_transactions_translate_with_ai.setText(QCoreApplication.translate("MainWindow", u"Translate Transactions with AI", None))
         self.actionExit.setText(QCoreApplication.translate("MainWindow", u"Exit", None))
         self.actionAbout.setText(QCoreApplication.translate("MainWindow", u"About", None))
         self.groupBox_transaction.setTitle(QCoreApplication.translate("MainWindow", u"Transaction Details", None))
@@ -46,10 +49,6 @@ class Ui_MainWindow(object):
         self.lineEdit_tag.setPlaceholderText(QCoreApplication.translate("MainWindow", u"Optional", None))
         self.groupBox_commands.setTitle(QCoreApplication.translate("MainWindow", u"Commands", None))
         self.pushButton_add_as_text_with_ai.setText(QCoreApplication.translate("MainWindow", u"Add with AI", None))
-        self.pushButton_translate_with_ai.setText(QCoreApplication.translate("MainWindow", u"Translate with AI", None))
-        self.pushButton_delete.setText(QCoreApplication.translate("MainWindow", u"Delete", None))
-        self.pushButton_show_all_records.setText(QCoreApplication.translate("MainWindow", u"Show All Records", None))
-        self.pushButton_refresh.setText(QCoreApplication.translate("MainWindow", u"Refresh", None))
         self.groupBox_today_expense.setTitle(QCoreApplication.translate("MainWindow", u"Today's Expenses", None))
         self.label_today_expense.setText(QCoreApplication.translate("MainWindow", u"0.0\u2080\u20bd", None))
         self.groupBox_yesterday_expense.setTitle(QCoreApplication.translate("MainWindow", u"Yesterday's Expenses", None))
@@ -85,8 +84,8 @@ class Ui_MainWindow(object):
         self.pushButton_accounts_delete.setText(QCoreApplication.translate("MainWindow", u"Delete", None))
         self.pushButton_accounts_refresh.setText(QCoreApplication.translate("MainWindow", u"Refresh", None))
         self.groupBox_balance_accounts.setTitle(QCoreApplication.translate("MainWindow", u"Balance", None))
-        self.label_balance_accounts.setText(QCoreApplication.translate("MainWindow", u"0.00\u20bd", None))
-        self.label_balance_account_details.setText(QCoreApplication.translate("MainWindow", u"0.00\u20bd", None))
+        self.label_balance_accounts.setText(QCoreApplication.translate("MainWindow", u"0.0\u2080\u20bd", None))
+        self.label_balance_account_details.setText(QCoreApplication.translate("MainWindow", u"0.0\u2080\u20bd", None))
         self.pushButton_balance_check.setText(QCoreApplication.translate("MainWindow", u"\U0001f9ee Balance Check", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_accounts), QCoreApplication.translate("MainWindow", u"Accounts", None))
         self.groupBox_default_currency.setTitle(QCoreApplication.translate("MainWindow", u"Default Currency", None))
@@ -197,6 +196,12 @@ class Ui_MainWindow(object):
         self.action_copy_categories_as_text.setObjectName(u"action_copy_categories_as_text")
         self.action_standard_items = QAction(MainWindow)
         self.action_standard_items.setObjectName(u"action_standard_items")
+        self.action_transactions_show_all_records = QAction(MainWindow)
+        self.action_transactions_show_all_records.setObjectName(u"action_transactions_show_all_records")
+        self.action_transactions_refresh = QAction(MainWindow)
+        self.action_transactions_refresh.setObjectName(u"action_transactions_refresh")
+        self.action_transactions_translate_with_ai = QAction(MainWindow)
+        self.action_transactions_translate_with_ai.setObjectName(u"action_transactions_translate_with_ai")
         self.actionExit = QAction(MainWindow)
         self.actionExit.setObjectName(u"actionExit")
         self.actionAbout = QAction(MainWindow)
@@ -358,33 +363,6 @@ class Ui_MainWindow(object):
 "                                      }")
 
         self.verticalLayout_2.addWidget(self.pushButton_add_as_text_with_ai)
-
-        self.pushButton_translate_with_ai = QPushButton(self.groupBox_commands)
-        self.pushButton_translate_with_ai.setObjectName(u"pushButton_translate_with_ai")
-
-        self.verticalLayout_2.addWidget(self.pushButton_translate_with_ai)
-
-        self.horizontalLayout_8 = QHBoxLayout()
-        self.horizontalLayout_8.setObjectName(u"horizontalLayout_8")
-        self.pushButton_delete = QPushButton(self.groupBox_commands)
-        self.pushButton_delete.setObjectName(u"pushButton_delete")
-        self.pushButton_delete.setMinimumSize(QSize(80, 0))
-
-        self.horizontalLayout_8.addWidget(self.pushButton_delete)
-
-        self.pushButton_show_all_records = QPushButton(self.groupBox_commands)
-        self.pushButton_show_all_records.setObjectName(u"pushButton_show_all_records")
-
-        self.horizontalLayout_8.addWidget(self.pushButton_show_all_records)
-
-        self.pushButton_refresh = QPushButton(self.groupBox_commands)
-        self.pushButton_refresh.setObjectName(u"pushButton_refresh")
-        self.pushButton_refresh.setMinimumSize(QSize(80, 0))
-
-        self.horizontalLayout_8.addWidget(self.pushButton_refresh)
-
-
-        self.verticalLayout_2.addLayout(self.horizontalLayout_8)
 
 
         self.verticalLayout_5.addWidget(self.groupBox_commands)
@@ -1786,6 +1764,10 @@ class Ui_MainWindow(object):
         self.menuBar.addAction(self.menuCommands.menuAction())
         self.menuBar.addAction(self.menuHelp.menuAction())
         self.menuFile.addAction(self.actionExit)
+        self.menuCommands.addAction(self.action_transactions_show_all_records)
+        self.menuCommands.addAction(self.action_transactions_refresh)
+        self.menuCommands.addAction(self.action_transactions_translate_with_ai)
+        self.menuCommands.addSeparator()
         self.menuCommands.addAction(self.action_add_category)
         self.menuCommands.addAction(self.action_categories_refresh)
         self.menuCommands.addAction(self.action_copy_categories_as_text)

@@ -1089,9 +1089,11 @@ class MainWindow(
 
         # Update button text and icon
         if self.show_all_transactions:
-            self.pushButton_show_all_records.setText(f"📊 Show Last {self.count_transactions_to_show}")
+            self.action_transactions_show_all_records.setText(
+                f"📊 Show Last {self.count_transactions_to_show} Transactions"
+            )
         else:
-            self.pushButton_show_all_records.setText("📊 Show All Records")
+            self.action_transactions_show_all_records.setText("📊 Show All Transactions")
 
         self._load_transactions_page(reset=True)
 
@@ -1877,7 +1879,9 @@ class MainWindow(
         # Main transaction signals
         self.pushButton_add.clicked.connect(self.on_add_transaction)
         self.pushButton_add_as_text_with_ai.clicked.connect(self.on_add_as_text_with_ai)
-        self.pushButton_translate_with_ai.clicked.connect(self.on_translate_with_ai)
+        self.action_transactions_translate_with_ai.triggered.connect(self.on_translate_with_ai)
+        self.action_transactions_refresh.triggered.connect(self.update_all)
+        self.action_transactions_show_all_records.triggered.connect(self.on_show_all_records_clicked)
         self.action_standard_items.triggered.connect(self.on_standard_items)
         bothub_cfg = self._app_config.get("bothub") or {}
         max_image_side = int(bothub_cfg.get("max_image_side", 1600))
@@ -1904,7 +1908,6 @@ class MainWindow(
 
         # Delete and refresh buttons for all tables
         tables_with_controls: dict[str, tuple[str, str]] = {
-            "transactions": ("pushButton_delete", "pushButton_refresh"),
             "accounts": ("pushButton_accounts_delete", "pushButton_accounts_refresh"),
             "currencies": ("pushButton_currencies_delete", "pushButton_currencies_refresh"),
             "currency_exchanges": ("pushButton_exchange_delete", "pushButton_exchange_refresh"),
@@ -2006,9 +2009,6 @@ class MainWindow(
 
         # Report signals
         self.listView_report_type.clicked.connect(lambda _idx: self.on_generate_report())
-
-        # Export signal
-        self.pushButton_show_all_records.clicked.connect(self.on_show_all_records_clicked)
 
         # Add context menu for transactions table
         self.tableView_transactions.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
@@ -5128,10 +5128,7 @@ class MainWindow(
         QWidget.setTabOrder(self.pushButton_yesterday, self.pushButton_add)
         QWidget.setTabOrder(self.pushButton_add, self.lineEdit_tag)
         QWidget.setTabOrder(self.lineEdit_tag, self.listView_categories)
-        QWidget.setTabOrder(self.listView_categories, self.pushButton_delete)
-        QWidget.setTabOrder(self.pushButton_delete, self.pushButton_show_all_records)
-        QWidget.setTabOrder(self.pushButton_show_all_records, self.pushButton_refresh)
-        QWidget.setTabOrder(self.pushButton_refresh, self.lineEdit_filter_description)
+        QWidget.setTabOrder(self.listView_categories, self.lineEdit_filter_description)
         QWidget.setTabOrder(self.lineEdit_filter_description, self.comboBox_filter_type)
         QWidget.setTabOrder(self.comboBox_filter_type, self.comboBox_filter_category)
         QWidget.setTabOrder(self.comboBox_filter_category, self.comboBox_filter_currency)
@@ -5195,13 +5192,13 @@ class MainWindow(
         self.pushButton_yesterday.setText(f"📅 {self.pushButton_yesterday.text()}")
         self.pushButton_add.setText(f"➕ {self.pushButton_add.text()}")  # noqa: RUF001
         self.pushButton_add_as_text_with_ai.setText(f"🤖 {self.pushButton_add_as_text_with_ai.text()}")
-        self.pushButton_translate_with_ai.setText(f"🤖 {self.pushButton_translate_with_ai.text()}")
+        self.action_transactions_translate_with_ai.setText(f"🤖 {self.action_transactions_translate_with_ai.text()}")
+        self.action_transactions_refresh.setText(f"🔄 {self.action_transactions_refresh.text()}")
+        self.action_transactions_show_all_records.setText("📊 Show All Transactions")
         self.action_add_category.setText(f"➕ {self.action_add_category.text()}")  # noqa: RUF001
         self.action_categories_refresh.setText(f"🔄 {self.action_categories_refresh.text()}")
         self.action_copy_categories_as_text.setText(f"📋 {self.action_copy_categories_as_text.text()}")
         self.action_standard_items.setText(f"📋 {self.action_standard_items.text()}")
-        self.pushButton_delete.setText(f"🗑️ {self.pushButton_delete.text()}")
-        self.pushButton_refresh.setText(f"🔄 {self.pushButton_refresh.text()}")
         self.groupBox_filter.setTitle("")
         self.groupBox_filter.setStyleSheet(
             "QGroupBox#groupBox_filter { border: none; margin-top: 0px; padding-top: 0px; }"
@@ -5214,8 +5211,6 @@ class MainWindow(
         self.pushButton_clear_filter.setFixedSize(clear_h, clear_h)
         self._update_clear_filter_button_visibility()
         self.pushButton_description_clear.setText("🧹")
-        self.pushButton_show_all_records.setText("📊 Show All Records")
-
         # Multi-line natural currency summaries (Quick Summary / today)
         self.label_total_income.setWordWrap(True)
         self.label_total_expenses.setWordWrap(True)
@@ -7630,9 +7625,11 @@ def on_show_all_records_clicked(self) -> None:
 
         # Update button text and icon
         if self.show_all_transactions:
-            self.pushButton_show_all_records.setText(f"📊 Show Last {self.count_transactions_to_show}")
+            self.action_transactions_show_all_records.setText(
+                f"📊 Show Last {self.count_transactions_to_show} Transactions"
+            )
         else:
-            self.pushButton_show_all_records.setText("📊 Show All Records")
+            self.action_transactions_show_all_records.setText("📊 Show All Transactions")
 
         self._load_transactions_page(reset=True)
 ```

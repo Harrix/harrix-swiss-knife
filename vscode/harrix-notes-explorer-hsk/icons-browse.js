@@ -27,6 +27,7 @@ const PANEL_VIEW_TYPE = 'harrixNotesExplorerHsk.iconsBrowse';
  *     description: string,
  *   }>,
  *   onDidChangeTreeData: import('vscode').Event<unknown>,
+ *   refresh?: () => void,
  * }} provider
  * @property {(uri: import('vscode').Uri) => Promise<void>} openNote
  */
@@ -308,6 +309,13 @@ async function handleWebviewMessage(message) {
       postState();
       break;
     }
+    case 'refresh': {
+      if (typeof deps.provider.refresh === 'function') {
+        deps.provider.refresh();
+      }
+      postState();
+      break;
+    }
     default:
       break;
   }
@@ -342,6 +350,11 @@ function getHtml(webview, extensionUri) {
     <button type="button" id="backBtn" title="Back">Back</button>
     <button type="button" id="homeBtn" title="Home">Home</button>
     <nav class="breadcrumbs" id="crumbs" aria-label="Path"></nav>
+    <button type="button" id="refreshBtn" class="icon-btn" title="Refresh" aria-label="Refresh">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true">
+        <path d="M17.65 6.35A7.95 7.95 0 0 0 12 4V1L7 6l5 5V7c2.76 0 5 2.24 5 5a4.99 4.99 0 0 1-.86 2.82l1.46 1.46A6.97 6.97 0 0 0 19 12c0-1.94-.78-3.7-2.35-5.65zM6 12c0-.85.17-1.66.48-2.4L4.95 8.07A6.97 6.97 0 0 0 5 12c0 1.94.78 3.7 2.35 5.65A7.95 7.95 0 0 0 12 20v3l5-5-5-5v3c-2.76 0-5-2.24-5-5z"/>
+      </svg>
+    </button>
   </header>
   <main class="main">
     <div id="status" class="status" hidden>Loading…</div>
