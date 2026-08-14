@@ -2564,9 +2564,9 @@ class MainWindow(
 
         # Update button text to reflect current state
         if self.show_all_records:
-            self.pushButton_show_all_records.setText(f"📋 Show Last {self.count_records_to_show}")
+            self.actionShow_All_Set_Records.setText(f"📋 Show Last {self.count_records_to_show} Set Records")
         else:
-            self.pushButton_show_all_records.setText("📋 Show All Records")
+            self.actionShow_All_Set_Records.setText("📋 Show All Set Records")
 
         # Reload the process table with the appropriate data
         self.load_process_table()
@@ -3032,7 +3032,7 @@ class MainWindow(
 
         # Reset show_all_records flag to default (show limited records)
         self.show_all_records = False
-        self.pushButton_show_all_records.setText("📋 Show All Records")
+        self.actionShow_All_Set_Records.setText("📋 Show All Set Records")
 
         if is_preserve_selections and current_exercise is None:
             current_exercise = self._get_current_selected_exercise()
@@ -4477,20 +4477,25 @@ class MainWindow(
 
         # Window resize event is handled by overriding resizeEvent method
 
-        # Connect delete and refresh buttons for all tables (except statistics)
-        tables_with_controls = {"process", "exercises", "types", "weight"}
+        # Connect delete and refresh buttons for all tables (except statistics and process)
+        tables_with_controls = {"exercises", "types", "weight"}
         for table_name in tables_with_controls:
             # Delete buttons
-            delete_btn_name = "pushButton_delete" if table_name == "process" else f"pushButton_{table_name}_delete"
+            delete_btn_name = f"pushButton_{table_name}_delete"
             delete_button = getattr(self, delete_btn_name, None)
             if delete_button:
                 delete_button.clicked.connect(partial(self.delete_record, table_name))
 
             # Refresh buttons
-            refresh_btn_name = "pushButton_refresh" if table_name == "process" else f"pushButton_{table_name}_refresh"
+            refresh_btn_name = f"pushButton_{table_name}_refresh"
             refresh_button = getattr(self, refresh_btn_name, None)
             if refresh_button:
                 refresh_button.clicked.connect(self.update_all)
+
+        # Connect main menu actions for process table
+        self.actionRefresh_Set_Table.triggered.connect(self.update_all)
+        self.actionShow_All_Set_Records.triggered.connect(self.on_toggle_show_all_records)
+        self.actionExport_Set_Table.triggered.connect(self.on_export_csv)
 
         # Connect process table selection change signal
         # Note: This will be connected later in show_tables() after model is created
@@ -4519,8 +4524,6 @@ class MainWindow(
         self.pushButton_statistics_refresh.clicked.connect(self.on_refresh_statistics)
         self.pushButton_last_exercises.clicked.connect(self.on_show_last_exercises)
         self.pushButton_check_steps.clicked.connect(self.on_check_steps)
-        self.pushButton_export_csv.clicked.connect(self.on_export_csv)
-        self.pushButton_show_all_records.clicked.connect(self.on_toggle_show_all_records)
         self.pushButton_exercise_goal_recommendations.clicked.connect(self.on_show_exercise_goal_recommendations)
 
         # Tab change
@@ -6141,10 +6144,6 @@ class MainWindow(
         # Set emoji for buttons
         self.pushButton_yesterday.setText(f"📅 {self.pushButton_yesterday.text()}")
         self.pushButton_add.setText(f"➕  {self.pushButton_add.text()}")  # noqa: RUF001
-        self.pushButton_delete.setText(f"🗑️ {self.pushButton_delete.text()}")
-        self.pushButton_refresh.setText(f"🔄 {self.pushButton_refresh.text()}")
-        self.pushButton_show_all_records.setText(f"📋 {self.pushButton_show_all_records.text()}")
-        self.pushButton_export_csv.setText(f"📤 {self.pushButton_export_csv.text()}")
         self.groupBox_filter.setTitle("")
         self.groupBox_filter.setStyleSheet(
             "QGroupBox#groupBox_filter { border: none; margin-top: 0px; padding-top: 0px; }"
@@ -6359,7 +6358,7 @@ class MainWindow(
                 self._delete_selected_process_rows(selected_process_ids)
             elif self.tableView_process.currentIndex().isValid():
                 logger.debug("🔧 Context menu: Delete action triggered")
-                self.pushButton_delete.click()
+                self.delete_record("process")
             else:
                 logger.debug("⚠️ Context menu: No row selected for deletion")
         elif bulk_date_action is not None and action == bulk_date_action:

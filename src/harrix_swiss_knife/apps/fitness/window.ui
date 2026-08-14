@@ -223,75 +223,6 @@
              </widget>
             </item>
             <item>
-             <widget class="QGroupBox" name="groupBox_5">
-              <property name="minimumSize">
-               <size>
-                <width>0</width>
-                <height>0</height>
-               </size>
-              </property>
-              <property name="title">
-               <string>Commands</string>
-              </property>
-              <layout class="QVBoxLayout" name="verticalLayout_2">
-               <item>
-                <layout class="QHBoxLayout" name="horizontalLayout_8">
-                 <item>
-                  <widget class="QPushButton" name="pushButton_delete">
-                   <property name="minimumSize">
-                    <size>
-                     <width>80</width>
-                     <height>0</height>
-                    </size>
-                   </property>
-                   <property name="text">
-                    <string>Delete selected</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QPushButton" name="pushButton_refresh">
-                   <property name="minimumSize">
-                    <size>
-                     <width>80</width>
-                     <height>0</height>
-                    </size>
-                   </property>
-                   <property name="text">
-                    <string>Refresh Table</string>
-                   </property>
-                  </widget>
-                 </item>
-                </layout>
-               </item>
-               <item>
-                <layout class="QHBoxLayout" name="horizontalLayout_25">
-                 <item>
-                  <widget class="QPushButton" name="pushButton_show_all_records">
-                   <property name="text">
-                    <string>Show All Records</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QPushButton" name="pushButton_export_csv">
-                   <property name="minimumSize">
-                    <size>
-                     <width>80</width>
-                     <height>0</height>
-                    </size>
-                   </property>
-                   <property name="text">
-                    <string>Export Table</string>
-                   </property>
-                  </widget>
-                 </item>
-                </layout>
-               </item>
-              </layout>
-             </widget>
-            </item>
-            <item>
              <widget class="QGroupBox" name="groupBox_9">
               <property name="minimumSize">
                <size>
@@ -1558,6 +1489,9 @@
     <property name="title">
      <string>Commands</string>
     </property>
+    <addaction name="actionShow_All_Set_Records"/>
+    <addaction name="actionRefresh_Set_Table"/>
+    <addaction name="actionExport_Set_Table"/>
    </widget>
    <widget class="QMenu" name="menuHelp">
     <property name="title">
@@ -1577,6 +1511,21 @@
   <action name="actionExit">
    <property name="text">
     <string>Exit</string>
+   </property>
+  </action>
+  <action name="actionShow_All_Set_Records">
+   <property name="text">
+    <string>📋 Show All Set Records</string>
+   </property>
+  </action>
+  <action name="actionRefresh_Set_Table">
+   <property name="text">
+    <string>🔄 Refresh Set Table</string>
+   </property>
+  </action>
+  <action name="actionExport_Set_Table">
+   <property name="text">
+    <string>📤 Export Set Table</string>
    </property>
   </action>
  </widget>
