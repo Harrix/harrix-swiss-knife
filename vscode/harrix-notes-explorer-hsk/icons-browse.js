@@ -34,6 +34,7 @@ const PANEL_VIEW_TYPE = 'harrixNotesExplorerHsk.iconsBrowse';
  * }} provider
  * @property {(uri: import('vscode').Uri) => Promise<void>} openNote
  * @property {() => boolean} [getCanPaste]
+ * @property {() => string[]} [getCutPaths]
  */
 
 /** @type {import('vscode').WebviewPanel | undefined} */
@@ -231,10 +232,20 @@ function postState() {
   const dirPath = currentDirPath();
   const rawEntries = deps.provider.listIconsBrowseEntries(dirPath);
   const canPaste = typeof deps.getCanPaste === 'function' ? deps.getCanPaste() : false;
+  const cutPaths = new Set(
+    (typeof deps.getCutPaths === 'function' ? deps.getCutPaths() : []).map((cutPath) => normalizePath(cutPath)),
+  );
   const openNotesInPreview =
     vscode.workspace.getConfiguration('harrixNotesExplorerHsk').get('openNotesInPreview') !== false;
   const entries = rawEntries.map((entry) => ({
     ...entry,
+    isCut: cutPaths.has(
+      normalizePath(
+        entry.kind === 'note' && String(entry.contextValue || '').includes('NamedFolder')
+          ? path.dirname(entry.path)
+          : entry.path,
+      ),
+    ),
     menu: buildIconsBrowseContextMenu(entry.contextValue || '', {
       canPaste,
       openNotesInPreview,

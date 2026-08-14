@@ -11,7 +11,7 @@
 
   /** @type {{ path: string, name: string }[]} */
   let crumbs = [];
-  /** @type {Array<{ kind: string, path: string, name: string, label: string, iconEmoji: string, description: string, contextValue?: string, isWorkspaceRoot?: boolean, menu?: Array<{ type: string, command?: string, title?: string }> }>} */
+  /** @type {Array<{ kind: string, path: string, name: string, label: string, iconEmoji: string, description: string, contextValue?: string, isWorkspaceRoot?: boolean, isCut?: boolean, menu?: Array<{ type: string, command?: string, title?: string }> }>} */
   let entries = [];
   /** @type {'harrix' | 'material'} */
   let iconStyle = 'harrix';
@@ -181,7 +181,7 @@
     for (const entry of entries) {
       const btn = document.createElement('button');
       btn.type = 'button';
-      btn.className = 'cell';
+      btn.className = entry.isCut ? 'cell is-cut' : 'cell';
       btn.title = entry.path;
 
       const glyph = document.createElement('div');

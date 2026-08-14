@@ -469,11 +469,21 @@ function getNotesIconStyle() {
 /**
  * Bundled Harrix Vector Icons (same assets as Harrix Notes Android).
  * @param {'folder' | 'note'} kind
+ * @param {boolean} [muted]
  * @returns {vscode.Uri}
  */
-function harrixIconUri(kind) {
+function harrixIconUri(kind, muted = false) {
   const fileName = kind === 'folder' ? 'it__folder_01.svg' : 'it__file-text_01.svg';
-  return vscode.Uri.file(path.join(__dirname, 'media', 'icons', fileName));
+  const iconPath = path.join(__dirname, 'media', 'icons', fileName);
+  if (!muted) {
+    return vscode.Uri.file(iconPath);
+  }
+  try {
+    const svg = fs.readFileSync(iconPath, 'utf8').replace('<svg ', '<svg opacity="0.45" ');
+    return vscode.Uri.parse(`data:image/svg+xml;base64,${Buffer.from(svg, 'utf8').toString('base64')}`);
+  } catch {
+    return vscode.Uri.file(iconPath);
+  }
 }
 
 /**
@@ -481,14 +491,15 @@ function harrixIconUri(kind) {
  * @param {string} emoji
  * @returns {vscode.Uri | undefined}
  */
-function noteIconPathFromEmoji(emoji) {
+function noteIconPathFromEmoji(emoji, muted = false) {
   const text = String(emoji ?? '').trim();
   if (!text || !isNoteTreeEmojiIcon(text)) {
     return undefined;
   }
   const escaped = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  const opacity = muted ? ' opacity="0.45"' : '';
   const svg =
-    `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">` +
+    `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"${opacity}>` +
     `<text x="8" y="12.5" text-anchor="middle" font-size="13">${escaped}</text></svg>`;
   return vscode.Uri.parse(`data:image/svg+xml;base64,${Buffer.from(svg, 'utf8').toString('base64')}`);
 }
@@ -2625,13 +2636,16 @@ class NotesProvider {
       const base = item.contextValue;
       item.contextValue = `git${base.charAt(0).toUpperCase()}${base.slice(1)}`;
     }
+    const isCut = treeClipboard.isCutPath(folderPath);
     if (this.isFolderBusy(folderPath)) {
       item.iconPath = new vscode.ThemeIcon('loading~spin');
       item.description = '…';
     } else if (getNotesIconStyle() === 'harrix') {
-      item.iconPath = harrixIconUri('folder');
+      item.iconPath = harrixIconUri('folder', isCut);
     } else {
-      item.iconPath = vscode.ThemeIcon.Folder;
+      item.iconPath = isCut
+        ? new vscode.ThemeIcon('folder', new vscode.ThemeColor('disabledForeground'))
+        : vscode.ThemeIcon.Folder;
     }
     return item;
   }
@@ -2664,13 +2678,15 @@ class NotesProvider {
     tooltipLines.push('', 'Drop files to copy into this note (featured-image → root, images → img, others → files).');
     item.tooltip = tooltipLines.join('\n');
 
-    const emojiIcon = noteIconPathFromEmoji(noteTitleCache.getIconFast(filePath));
+    const movablePath = isNoteInNamedFolder(filePath) ? path.dirname(filePath) : filePath;
+    const isCut = treeClipboard.isCutPath(movablePath);
+    const emojiIcon = noteIconPathFromEmoji(noteTitleCache.getIconFast(filePath), isCut);
     if (emojiIcon) {
       item.iconPath = emojiIcon;
     } else if (getNotesIconStyle() === 'harrix') {
-      item.iconPath = harrixIconUri('note');
+      item.iconPath = harrixIconUri('note', isCut);
     } else {
-      item.iconPath = new vscode.ThemeIcon('markdown');
+      item.iconPath = new vscode.ThemeIcon('markdown', isCut ? new vscode.ThemeColor('disabledForeground') : undefined);
     }
     if (assetsVisible) {
       item.contextValue = 'noteWithAssets';
@@ -2972,6 +2988,8 @@ class TreeClipboard {
     this.paths = [];
     /** @type {'copy' | 'cut' | null} */
     this.operation = null;
+    /** @type {(() => void) | null} */
+    this.onDidChange = null;
   }
 
   clear() {
@@ -2994,8 +3012,18 @@ class TreeClipboard {
     return this.paths.length > 0 && this.operation != null;
   }
 
+  /** @param {string} fsPath */
+  isCutPath(fsPath) {
+    if (this.operation !== 'cut') {
+      return false;
+    }
+    const key = normalizeFsPath(fsPath);
+    return this.paths.some((cutPath) => normalizeFsPath(cutPath) === key);
+  }
+
   _updateContext() {
     void vscode.commands.executeCommand('setContext', HNE_CAN_PASTE_CONTEXT, this.canPaste);
+    this.onDidChange?.();
   }
 }
 
@@ -3844,7 +3872,13 @@ async function activate(context) {
   queueAutoReveal();
 
   treeClipboard.clear();
-  context.subscriptions.push({ dispose: () => treeClipboard.clear() });
+  treeClipboard.onDidChange = () => provider.refresh();
+  context.subscriptions.push({
+    dispose: () => {
+      treeClipboard.onDidChange = null;
+      treeClipboard.clear();
+    },
+  });
 
   context.subscriptions.push(
     view.onDidExpandElement((e) => {
@@ -3888,6 +3922,7 @@ async function activate(context) {
     context,
     provider,
     getCanPaste: () => treeClipboard.canPaste,
+    getCutPaths: () => (treeClipboard.operation === 'cut' ? [...treeClipboard.paths] : []),
     openNote: async (uri) => {
       await openHarrixNote(uri, 'primary');
     },

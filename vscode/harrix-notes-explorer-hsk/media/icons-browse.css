@@ -188,6 +188,10 @@ body {
   user-select: none;
 }
 
+.cell.is-cut .glyph {
+  opacity: 0.45;
+}
+
 .glyph svg,
 .glyph img {
   width: 40px;
