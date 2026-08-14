@@ -19,6 +19,8 @@
   let iconStyle = 'harrix';
   /** @type {{ folder: string, note: string }} */
   let iconUrls = { folder: '', note: '' };
+  let osFileDrag = false;
+  const DRAG_THRESHOLD_PX = 8;
 
   const FOLDER_SVG =
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">' +
@@ -212,11 +214,19 @@
     return encodeURI(`file://${p}`).replace(/#/g, '%23');
   }
 
+  function setOsDragging(active) {
+    document.body.classList.toggle('is-os-dragging', active);
+  }
+
   /**
    * @param {DragEvent} event
    * @param {(typeof entries)[number]} entry
    */
   function onCellDragStart(event, entry) {
+    if (osFileDrag) {
+      event.preventDefault();
+      return;
+    }
     const dt = event.dataTransfer;
     if (!dt || !entry.path) {
       event.preventDefault();
@@ -231,6 +241,58 @@
     dt.setData('DownloadURL', `${mime}:${fileName}:${fileUrl}`);
   }
 
+  /**
+   * @param {HTMLElement} btn
+   * @param {(typeof entries)[number]} entry
+   * @param {{ skipClick: boolean }} dragState
+   */
+  function bindOsFileDrag(btn, entry, dragState) {
+    let pointerId = null;
+    let startX = 0;
+    let startY = 0;
+    let started = false;
+
+    btn.addEventListener('pointerdown', (event) => {
+      if (event.button !== 0 || !entry.path) {
+        return;
+      }
+      pointerId = event.pointerId;
+      startX = event.clientX;
+      startY = event.clientY;
+      started = false;
+    });
+
+    btn.addEventListener('pointermove', (event) => {
+      if (pointerId == null || event.pointerId !== pointerId || started) {
+        return;
+      }
+      if ((event.buttons & 1) === 0) {
+        pointerId = null;
+        return;
+      }
+      const dx = event.clientX - startX;
+      const dy = event.clientY - startY;
+      if (dx * dx + dy * dy < DRAG_THRESHOLD_PX * DRAG_THRESHOLD_PX) {
+        return;
+      }
+      started = true;
+      dragState.skipClick = true;
+      setOsDragging(true);
+      if (typeof btn.blur === 'function') {
+        btn.blur();
+      }
+      vscode.postMessage({ type: 'startOsFileDrag', path: entry.path });
+    });
+
+    const clearPointer = (event) => {
+      if (event.pointerId === pointerId) {
+        pointerId = null;
+      }
+    };
+    btn.addEventListener('pointerup', clearPointer);
+    btn.addEventListener('pointercancel', clearPointer);
+  }
+
   function renderGrid() {
     hideContextMenu();
     gridEl.replaceChildren();
@@ -242,12 +304,10 @@
     statusEl.hidden = true;
 
     for (const entry of entries) {
-      const fileUrl = entry.fileUri || toFileUrl(entry.path);
-      const btn = document.createElement('a');
-      btn.href = fileUrl;
+      const btn = document.createElement('button');
+      btn.type = 'button';
       btn.className = entry.isCut ? 'cell is-cut' : 'cell';
       btn.title = entry.path;
-      btn.setAttribute('role', 'button');
 
       const glyph = document.createElement('div');
       glyph.className = 'glyph';
@@ -267,23 +327,27 @@
         btn.appendChild(desc);
       }
 
-      btn.draggable = true;
-      let skipClickAfterDrag = false;
-
-      btn.addEventListener('dragstart', (event) => {
-        skipClickAfterDrag = true;
-        onCellDragStart(event, entry);
-      });
-      btn.addEventListener('dragend', () => {
-        setTimeout(() => {
-          skipClickAfterDrag = false;
-        }, 0);
-      });
+      const dragState = { skipClick: false };
+      if (osFileDrag) {
+        btn.draggable = false;
+        bindOsFileDrag(btn, entry, dragState);
+      } else {
+        btn.draggable = true;
+        btn.addEventListener('dragstart', (event) => {
+          dragState.skipClick = true;
+          onCellDragStart(event, entry);
+        });
+        btn.addEventListener('dragend', () => {
+          setTimeout(() => {
+            dragState.skipClick = false;
+          }, 0);
+        });
+      }
 
       btn.addEventListener('click', (event) => {
         event.preventDefault();
-        if (skipClickAfterDrag) {
-          skipClickAfterDrag = false;
+        if (dragState.skipClick) {
+          dragState.skipClick = false;
           return;
         }
         hideContextMenu();
@@ -293,10 +357,6 @@
           vscode.postMessage({ type: 'openNote', path: entry.path });
         }
       });
-      btn.addEventListener('auxclick', (event) => {
-        event.preventDefault();
-      });
-
       btn.addEventListener('contextmenu', (event) => {
         requestContextMenu(event, entry);
       });
@@ -315,6 +375,7 @@
       folder: typeof icons.folder === 'string' ? icons.folder : '',
       note: typeof icons.note === 'string' ? icons.note : '',
     };
+    osFileDrag = msg.osFileDrag === true;
     renderChrome();
     renderGrid();
   }
@@ -364,6 +425,9 @@
     }
     if (msg.type === 'state') {
       applyState(msg);
+    }
+    if (msg.type === 'osFileDragEnded') {
+      setOsDragging(false);
     }
     if (msg.type === 'contextMenu') {
       const entry = entries.find((e) => e.path === msg.path) || {

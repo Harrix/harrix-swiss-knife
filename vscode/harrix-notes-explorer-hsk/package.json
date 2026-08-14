@@ -31,6 +31,18 @@
     "markdown.previewScripts": [
       "./media/preview-copy.js"
     ],
+    "customEditors": [
+      {
+        "viewType": "harrixNotesExplorerHsk.visualMarkdown",
+        "displayName": "Visual Markdown",
+        "selector": [
+          {
+            "filenamePattern": "*.md"
+          }
+        ],
+        "priority": "option"
+      }
+    ],
     "configuration": {
       "title": "Harrix Notes Explorer (HSK)",
       "properties": {
@@ -383,6 +395,12 @@
         "title": "Open in Preview"
       },
       {
+        "command": "harrixNotesExplorerHsk.openNoteInVisualEditor",
+        "title": "Open in Visual Editor",
+        "category": "Harrix Notes HSK",
+        "icon": "$(symbol-color)"
+      },
+      {
         "command": "harrixNotesExplorerHsk.showNoteAssets",
         "title": "Show Attachments",
         "category": "Harrix Notes HSK"
@@ -502,6 +520,18 @@
           "group": "1_attachments"
         }
       ],
+      "editor/title": [
+        {
+          "command": "harrixNotesExplorerHsk.openNoteInVisualEditor",
+          "when": "resourceLangId == markdown && activeCustomEditorId != 'harrixNotesExplorerHsk.visualMarkdown'",
+          "group": "navigation@20"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.openNoteInEditor",
+          "when": "activeCustomEditorId == 'harrixNotesExplorerHsk.visualMarkdown'",
+          "group": "navigation@20"
+        }
+      ],
       "editor/title/context": [
         {
           "command": "harrixNotesExplorerHsk.openMarkdownPreviewTabInEditor",
@@ -525,6 +555,10 @@
         {
           "command": "harrixNotesExplorerHsk.openNoteInPreview",
           "when": "false"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.openNoteInVisualEditor",
+          "when": "resourceLangId == markdown || view == harrixNotesExplorerHsk"
         },
         {
           "command": "harrixNotesExplorerHsk.renameItem",
@@ -770,6 +804,11 @@
           "command": "harrixNotesExplorerHsk.openNoteInPreview",
           "when": "view == harrixNotesExplorerHsk && (viewItem == note || viewItem == noteHasAttachments || viewItem == noteWithAssets || viewItem == noteNamedFolder || viewItem == noteHasAttachmentsNamedFolder || viewItem == noteWithAssetsNamedFolder) && !config.harrixNotesExplorerHsk.openNotesInPreview",
           "group": "0_open@1"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.openNoteInVisualEditor",
+          "when": "view == harrixNotesExplorerHsk && (viewItem == note || viewItem == noteHasAttachments || viewItem == noteWithAssets || viewItem == noteNamedFolder || viewItem == noteHasAttachmentsNamedFolder || viewItem == noteWithAssetsNamedFolder || viewItem == gitNote || viewItem == gitNoteHasAttachments || viewItem == gitNoteWithAssets || viewItem == gitNoteNamedFolder || viewItem == gitNoteHasAttachmentsNamedFolder || viewItem == gitNoteWithAssetsNamedFolder)",
+          "group": "0_open@2"
         },
         {
           "command": "harrixNotesExplorerHsk.openNoteInEditor",

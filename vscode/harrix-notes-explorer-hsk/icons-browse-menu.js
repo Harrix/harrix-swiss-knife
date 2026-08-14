@@ -7,6 +7,7 @@ const CMD = {
   openIconsBrowse: 'harrixNotesExplorerHsk.openIconsBrowse',
   openNoteInEditor: 'harrixNotesExplorerHsk.openNoteInEditor',
   openNoteInPreview: 'harrixNotesExplorerHsk.openNoteInPreview',
+  openNoteInVisualEditor: 'harrixNotesExplorerHsk.openNoteInVisualEditor',
   createNote: 'harrixNotesExplorerHsk.createNote',
   createFolder: 'harrixNotesExplorerHsk.createFolder',
   addFolderInNote: 'harrixNotesExplorerHsk.addFolderInNote',
@@ -188,6 +189,7 @@ function buildIconsBrowseContextMenu(contextValue, opts) {
     } else {
       out.push(item(CMD.openNoteInPreview, 'Open in Preview'));
     }
+    out.push(item(CMD.openNoteInVisualEditor, 'Open in Visual Editor'));
     out.push(sep());
     out.push(item(CMD.createNote, 'New Note…'));
     out.push(item(CMD.addFolderInNote, 'Add Folder in Note…'));

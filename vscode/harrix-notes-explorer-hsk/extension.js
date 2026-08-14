@@ -15,6 +15,7 @@ const { activateNewNote } = require('./new-note');
 /** @hsk-sync:note-meta — title/date resolution (keep synced with pyssg + Android) */
 const noteMeta = require('./note-meta');
 const { activateIconsBrowse, refreshIconsBrowseIfOpen } = require('./icons-browse');
+const { activateVisualEditor } = require('./visual-editor');
 
 function normalizeFsPath(p) {
   const resolved = path.resolve(String(p));
@@ -3833,6 +3834,13 @@ async function activate(context) {
     console.error('[Harrix Notes HSK] open-media HTTP server failed:', err);
   }
   registerPreviewCopyConfigRefresh(context);
+  activateVisualEditor(context, {
+    noteUriFromTreeArg,
+    materializeDroppedFilesForNote,
+    getNoteDropSettings,
+    formatDroppedMarkdownSnippet,
+    toMarkdownRelativePath,
+  });
 
   const rootEntries = getWorkspaceRootEntries();
   if (rootEntries.length === 0) {

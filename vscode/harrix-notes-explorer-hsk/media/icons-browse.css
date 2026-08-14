@@ -164,7 +164,6 @@ body {
   font: inherit;
   text-align: center;
   user-select: none;
-  -webkit-user-drag: element;
 }
 
 .cell:hover {
@@ -177,8 +176,14 @@ body {
 }
 
 .cell:active {
-  cursor: grabbing;
   background: var(--hne-active);
+}
+
+body.is-os-dragging,
+body.is-os-dragging .cell,
+body.is-os-dragging .cell:hover,
+body.is-os-dragging .cell:active {
+  cursor: default;
 }
 
 .glyph {

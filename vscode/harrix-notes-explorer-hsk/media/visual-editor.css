@@ -1,0 +1,160 @@
+:root {
+  color-scheme: light dark;
+  --ve-fg: var(--vscode-foreground);
+  --ve-muted: var(--vscode-descriptionForeground);
+  --ve-bg: var(--vscode-editor-background);
+  --ve-border: var(--vscode-panel-border, rgba(128, 128, 128, 0.35));
+  --ve-btn-bg: var(--vscode-button-secondaryBackground);
+  --ve-btn-fg: var(--vscode-button-secondaryForeground);
+  --ve-btn-hover: var(--vscode-button-secondaryHoverBackground);
+  --ve-focus: var(--vscode-focusBorder);
+  --ve-input-bg: var(--vscode-input-background);
+  --ve-input-fg: var(--vscode-input-foreground);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+  background: var(--ve-bg);
+  color: var(--ve-fg);
+  font-family: var(--vscode-font-family);
+  font-size: var(--vscode-font-size);
+}
+
+.toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--ve-border);
+  background: var(--ve-bg);
+}
+
+.toolbar button {
+  appearance: none;
+  border: 1px solid transparent;
+  background: var(--ve-btn-bg);
+  color: var(--ve-btn-fg);
+  border-radius: 4px;
+  padding: 4px 8px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.toolbar button:hover {
+  background: var(--ve-btn-hover);
+}
+
+.toolbar button:focus-visible {
+  outline: 1px solid var(--ve-focus);
+}
+
+.toolbar .sep {
+  width: 1px;
+  margin: 2px 4px;
+  background: var(--ve-border);
+}
+
+.frontmatter {
+  margin: 12px 16px 0;
+  border: 1px solid var(--ve-border);
+  border-radius: 6px;
+  padding: 6px 10px;
+}
+
+.frontmatter summary {
+  cursor: pointer;
+  color: var(--ve-muted);
+  user-select: none;
+}
+
+.frontmatter textarea {
+  display: block;
+  width: 100%;
+  min-height: 88px;
+  margin-top: 8px;
+  resize: vertical;
+  border: 1px solid var(--ve-border);
+  border-radius: 4px;
+  background: var(--ve-input-bg);
+  color: var(--ve-input-fg);
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: 12px;
+  padding: 8px;
+}
+
+.editor {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 20px 24px 64px;
+  outline: none;
+  line-height: 1.55;
+  min-height: 60vh;
+}
+
+.editor:empty::before,
+.editor[data-placeholder]:empty::before {
+  content: attr(data-placeholder);
+  color: var(--ve-muted);
+}
+
+.editor h1,
+.editor h2,
+.editor h3 {
+  line-height: 1.25;
+  margin: 1.2em 0 0.5em;
+}
+
+.editor p,
+.editor ul,
+.editor ol,
+.editor blockquote,
+.editor pre {
+  margin: 0.7em 0;
+}
+
+.editor img {
+  max-width: 100%;
+  height: auto;
+}
+
+.editor a {
+  color: var(--vscode-textLink-foreground);
+}
+
+.editor blockquote {
+  border-left: 3px solid var(--ve-border);
+  padding-left: 12px;
+  color: var(--ve-muted);
+}
+
+.editor pre,
+.editor code {
+  font-family: var(--vscode-editor-font-family, monospace);
+  background: var(--vscode-textCodeBlock-background, rgba(127, 127, 127, 0.12));
+}
+
+.editor pre {
+  padding: 10px 12px;
+  border-radius: 6px;
+  overflow: auto;
+}
+
+.editor code {
+  padding: 0.1em 0.35em;
+  border-radius: 4px;
+}
+
+.editor pre code {
+  padding: 0;
+  background: transparent;
+}
