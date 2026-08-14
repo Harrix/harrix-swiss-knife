@@ -10,6 +10,7 @@ import android.graphics.drawable.Drawable
 import androidx.core.graphics.drawable.toBitmap
 import kotlin.math.ceil
 import kotlin.math.hypot
+import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
 
@@ -47,11 +48,22 @@ internal object PhotoBlurRenderer {
         val scale = min(1.0, maxWorkspaceSide / sourceDiagonal)
         val targetWidth = (imageWidth * scale).roundToInt().coerceAtLeast(1)
         val targetHeight = (imageHeight * scale).roundToInt().coerceAtLeast(1)
-        val source =
+        val converted =
             try {
                 drawable.toBitmap(targetWidth, targetHeight, Bitmap.Config.ARGB_8888)
             } catch (_: Exception) {
                 return null
+            }
+        // A hardware Coil bitmap cannot be drawn onto the software preview canvas.
+        val source =
+            if (converted.config == Bitmap.Config.HARDWARE) {
+                try {
+                    converted.copy(Bitmap.Config.ARGB_8888, false)
+                } catch (_: OutOfMemoryError) {
+                    null
+                } ?: return null
+            } else {
+                converted
             }
         val side =
             ceil(hypot(source.width.toDouble(), source.height.toDouble()))
@@ -78,17 +90,28 @@ internal object PhotoBlurRenderer {
         strength: Float,
     ): Boolean {
         val amount = strength.coerceIn(0f, 1f)
-        val scale = (0.48f - amount * 0.42f).coerceIn(0.06f, 0.48f)
+        val requestedScale = (0.48f - amount * 0.42f).coerceIn(0.06f, 0.48f)
+        val memorySafeScale =
+            MAX_BLUR_WORKING_SIDE.toFloat() /
+                max(bitmap.width, bitmap.height).coerceAtLeast(1)
+        val scale = min(requestedScale, memorySafeScale).coerceAtMost(0.95f)
         val smallWidth = (bitmap.width * scale).roundToInt().coerceAtLeast(1)
         val smallHeight = (bitmap.height * scale).roundToInt().coerceAtLeast(1)
-        val blurred =
+        val downsampled =
             try {
                 Bitmap.createScaledBitmap(bitmap, smallWidth, smallHeight, true)
             } catch (_: OutOfMemoryError) {
                 return false
             }
-        if (blurred === bitmap) {
+        if (downsampled === bitmap) {
             return true
+        }
+        val blurred = softenDownsampled(downsampled, amount) ?: run {
+            downsampled.recycle()
+            return false
+        }
+        if (blurred !== downsampled) {
+            downsampled.recycle()
         }
 
         val clip = Path()
@@ -124,6 +147,36 @@ internal object PhotoBlurRenderer {
         canvas.restoreToCount(checkpoint)
         blurred.recycle()
         return true
+    }
+
+    /**
+     * Adds a second downscale/upscale pass so the preview shows real blur instead of only
+     * reduced resolution. The same path is used for final export.
+     */
+    private fun softenDownsampled(
+        bitmap: Bitmap,
+        strength: Float,
+    ): Bitmap? {
+        val scale = (0.88f - strength * 0.72f).coerceIn(0.16f, 0.88f)
+        val tinyWidth = (bitmap.width * scale).roundToInt().coerceAtLeast(1)
+        val tinyHeight = (bitmap.height * scale).roundToInt().coerceAtLeast(1)
+        val tiny =
+            try {
+                Bitmap.createScaledBitmap(bitmap, tinyWidth, tinyHeight, true)
+            } catch (_: OutOfMemoryError) {
+                return null
+            }
+        val softened =
+            try {
+                Bitmap.createScaledBitmap(tiny, bitmap.width, bitmap.height, true)
+            } catch (_: OutOfMemoryError) {
+                tiny.recycle()
+                return null
+            }
+        if (tiny !== softened) {
+            tiny.recycle()
+        }
+        return softened
     }
 
     private fun addStrokeToPath(
@@ -170,4 +223,6 @@ internal object PhotoBlurRenderer {
         strokePaint.getFillPath(centerLine, outline)
         destination.addPath(outline)
     }
+
+    private const val MAX_BLUR_WORKING_SIDE = 1600
 }
