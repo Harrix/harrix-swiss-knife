@@ -36,6 +36,9 @@ class Ui_MainWindow(object):
         MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", u"Fitness tracker", None))
         self.actionAbout.setText(QCoreApplication.translate("MainWindow", u"About", None))
         self.actionExit.setText(QCoreApplication.translate("MainWindow", u"Exit", None))
+        self.actionShow_All_Set_Records.setText(QCoreApplication.translate("MainWindow", u"\U0001f4cb Show All Set Records", None))
+        self.actionRefresh_Set_Table.setText(QCoreApplication.translate("MainWindow", u"\U0001f504 Refresh Set Table", None))
+        self.actionExport_Set_Table.setText(QCoreApplication.translate("MainWindow", u"\U0001f4e4 Export Set Table", None))
         self.groupBox.setTitle(QCoreApplication.translate("MainWindow", u"Set parameters", None))
         self.label_exercise.setText(QCoreApplication.translate("MainWindow", u"TextLabel", None))
         self.label_last_date_count_today.setText(QCoreApplication.translate("MainWindow", u"TextLabel", None))
@@ -44,11 +47,6 @@ class Ui_MainWindow(object):
         self.pushButton_yesterday.setText(QCoreApplication.translate("MainWindow", u"Yesterday", None))
         self.pushButton_add.setText(QCoreApplication.translate("MainWindow", u"Add", None))
         self.label_exercise_avif.setText(QCoreApplication.translate("MainWindow", u"No exercise selected", None))
-        self.groupBox_5.setTitle(QCoreApplication.translate("MainWindow", u"Commands", None))
-        self.pushButton_delete.setText(QCoreApplication.translate("MainWindow", u"Delete selected", None))
-        self.pushButton_refresh.setText(QCoreApplication.translate("MainWindow", u"Refresh Table", None))
-        self.pushButton_show_all_records.setText(QCoreApplication.translate("MainWindow", u"Show All Records", None))
-        self.pushButton_export_csv.setText(QCoreApplication.translate("MainWindow", u"Export Table", None))
         self.groupBox_9.setTitle(QCoreApplication.translate("MainWindow", u"Count of Sets Today", None))
         self.label_count_sets_today.setText(QCoreApplication.translate("MainWindow", u"Text", None))
         self.pushButton_select_exercise.setText(QCoreApplication.translate("MainWindow", u"Select Exercise", None))
@@ -138,6 +136,12 @@ class Ui_MainWindow(object):
         self.actionAbout.setObjectName(u"actionAbout")
         self.actionExit = QAction(MainWindow)
         self.actionExit.setObjectName(u"actionExit")
+        self.actionShow_All_Set_Records = QAction(MainWindow)
+        self.actionShow_All_Set_Records.setObjectName(u"actionShow_All_Set_Records")
+        self.actionRefresh_Set_Table = QAction(MainWindow)
+        self.actionRefresh_Set_Table.setObjectName(u"actionRefresh_Set_Table")
+        self.actionExport_Set_Table = QAction(MainWindow)
+        self.actionExport_Set_Table.setObjectName(u"actionExport_Set_Table")
         self.centralWidget = QWidget(MainWindow)
         self.centralWidget.setObjectName(u"centralWidget")
         self.horizontalLayout = QHBoxLayout(self.centralWidget)
@@ -255,47 +259,6 @@ class Ui_MainWindow(object):
         self.label_exercise_avif.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         self.verticalLayout_3.addWidget(self.label_exercise_avif)
-
-        self.groupBox_5 = QGroupBox(self.frame)
-        self.groupBox_5.setObjectName(u"groupBox_5")
-        self.groupBox_5.setMinimumSize(QSize(0, 0))
-        self.verticalLayout_2 = QVBoxLayout(self.groupBox_5)
-        self.verticalLayout_2.setObjectName(u"verticalLayout_2")
-        self.horizontalLayout_8 = QHBoxLayout()
-        self.horizontalLayout_8.setObjectName(u"horizontalLayout_8")
-        self.pushButton_delete = QPushButton(self.groupBox_5)
-        self.pushButton_delete.setObjectName(u"pushButton_delete")
-        self.pushButton_delete.setMinimumSize(QSize(80, 0))
-
-        self.horizontalLayout_8.addWidget(self.pushButton_delete)
-
-        self.pushButton_refresh = QPushButton(self.groupBox_5)
-        self.pushButton_refresh.setObjectName(u"pushButton_refresh")
-        self.pushButton_refresh.setMinimumSize(QSize(80, 0))
-
-        self.horizontalLayout_8.addWidget(self.pushButton_refresh)
-
-
-        self.verticalLayout_2.addLayout(self.horizontalLayout_8)
-
-        self.horizontalLayout_25 = QHBoxLayout()
-        self.horizontalLayout_25.setObjectName(u"horizontalLayout_25")
-        self.pushButton_show_all_records = QPushButton(self.groupBox_5)
-        self.pushButton_show_all_records.setObjectName(u"pushButton_show_all_records")
-
-        self.horizontalLayout_25.addWidget(self.pushButton_show_all_records)
-
-        self.pushButton_export_csv = QPushButton(self.groupBox_5)
-        self.pushButton_export_csv.setObjectName(u"pushButton_export_csv")
-        self.pushButton_export_csv.setMinimumSize(QSize(80, 0))
-
-        self.horizontalLayout_25.addWidget(self.pushButton_export_csv)
-
-
-        self.verticalLayout_2.addLayout(self.horizontalLayout_25)
-
-
-        self.verticalLayout_3.addWidget(self.groupBox_5)
 
         self.groupBox_9 = QGroupBox(self.frame)
         self.groupBox_9.setObjectName(u"groupBox_9")
@@ -1105,6 +1068,9 @@ class Ui_MainWindow(object):
         self.menuBar.addAction(self.menuCommanda.menuAction())
         self.menuBar.addAction(self.menuHelp.menuAction())
         self.menuFile.addAction(self.actionExit)
+        self.menuCommanda.addAction(self.actionShow_All_Set_Records)
+        self.menuCommanda.addAction(self.actionRefresh_Set_Table)
+        self.menuCommanda.addAction(self.actionExport_Set_Table)
         self.menuHelp.addAction(self.actionAbout)
 
         self.retranslateUi(MainWindow)
@@ -1133,6 +1099,9 @@ def retranslateUi(self, MainWindow):
         MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", u"Fitness tracker", None))
         self.actionAbout.setText(QCoreApplication.translate("MainWindow", u"About", None))
         self.actionExit.setText(QCoreApplication.translate("MainWindow", u"Exit", None))
+        self.actionShow_All_Set_Records.setText(QCoreApplication.translate("MainWindow", u"\U0001f4cb Show All Set Records", None))
+        self.actionRefresh_Set_Table.setText(QCoreApplication.translate("MainWindow", u"\U0001f504 Refresh Set Table", None))
+        self.actionExport_Set_Table.setText(QCoreApplication.translate("MainWindow", u"\U0001f4e4 Export Set Table", None))
         self.groupBox.setTitle(QCoreApplication.translate("MainWindow", u"Set parameters", None))
         self.label_exercise.setText(QCoreApplication.translate("MainWindow", u"TextLabel", None))
         self.label_last_date_count_today.setText(QCoreApplication.translate("MainWindow", u"TextLabel", None))
@@ -1141,11 +1110,6 @@ def retranslateUi(self, MainWindow):
         self.pushButton_yesterday.setText(QCoreApplication.translate("MainWindow", u"Yesterday", None))
         self.pushButton_add.setText(QCoreApplication.translate("MainWindow", u"Add", None))
         self.label_exercise_avif.setText(QCoreApplication.translate("MainWindow", u"No exercise selected", None))
-        self.groupBox_5.setTitle(QCoreApplication.translate("MainWindow", u"Commands", None))
-        self.pushButton_delete.setText(QCoreApplication.translate("MainWindow", u"Delete selected", None))
-        self.pushButton_refresh.setText(QCoreApplication.translate("MainWindow", u"Refresh Table", None))
-        self.pushButton_show_all_records.setText(QCoreApplication.translate("MainWindow", u"Show All Records", None))
-        self.pushButton_export_csv.setText(QCoreApplication.translate("MainWindow", u"Export Table", None))
         self.groupBox_9.setTitle(QCoreApplication.translate("MainWindow", u"Count of Sets Today", None))
         self.label_count_sets_today.setText(QCoreApplication.translate("MainWindow", u"Text", None))
         self.pushButton_select_exercise.setText(QCoreApplication.translate("MainWindow", u"Select Exercise", None))
@@ -1251,6 +1215,12 @@ def setupUi(self, MainWindow):
         self.actionAbout.setObjectName(u"actionAbout")
         self.actionExit = QAction(MainWindow)
         self.actionExit.setObjectName(u"actionExit")
+        self.actionShow_All_Set_Records = QAction(MainWindow)
+        self.actionShow_All_Set_Records.setObjectName(u"actionShow_All_Set_Records")
+        self.actionRefresh_Set_Table = QAction(MainWindow)
+        self.actionRefresh_Set_Table.setObjectName(u"actionRefresh_Set_Table")
+        self.actionExport_Set_Table = QAction(MainWindow)
+        self.actionExport_Set_Table.setObjectName(u"actionExport_Set_Table")
         self.centralWidget = QWidget(MainWindow)
         self.centralWidget.setObjectName(u"centralWidget")
         self.horizontalLayout = QHBoxLayout(self.centralWidget)
@@ -1368,47 +1338,6 @@ def setupUi(self, MainWindow):
         self.label_exercise_avif.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         self.verticalLayout_3.addWidget(self.label_exercise_avif)
-
-        self.groupBox_5 = QGroupBox(self.frame)
-        self.groupBox_5.setObjectName(u"groupBox_5")
-        self.groupBox_5.setMinimumSize(QSize(0, 0))
-        self.verticalLayout_2 = QVBoxLayout(self.groupBox_5)
-        self.verticalLayout_2.setObjectName(u"verticalLayout_2")
-        self.horizontalLayout_8 = QHBoxLayout()
-        self.horizontalLayout_8.setObjectName(u"horizontalLayout_8")
-        self.pushButton_delete = QPushButton(self.groupBox_5)
-        self.pushButton_delete.setObjectName(u"pushButton_delete")
-        self.pushButton_delete.setMinimumSize(QSize(80, 0))
-
-        self.horizontalLayout_8.addWidget(self.pushButton_delete)
-
-        self.pushButton_refresh = QPushButton(self.groupBox_5)
-        self.pushButton_refresh.setObjectName(u"pushButton_refresh")
-        self.pushButton_refresh.setMinimumSize(QSize(80, 0))
-
-        self.horizontalLayout_8.addWidget(self.pushButton_refresh)
-
-
-        self.verticalLayout_2.addLayout(self.horizontalLayout_8)
-
-        self.horizontalLayout_25 = QHBoxLayout()
-        self.horizontalLayout_25.setObjectName(u"horizontalLayout_25")
-        self.pushButton_show_all_records = QPushButton(self.groupBox_5)
-        self.pushButton_show_all_records.setObjectName(u"pushButton_show_all_records")
-
-        self.horizontalLayout_25.addWidget(self.pushButton_show_all_records)
-
-        self.pushButton_export_csv = QPushButton(self.groupBox_5)
-        self.pushButton_export_csv.setObjectName(u"pushButton_export_csv")
-        self.pushButton_export_csv.setMinimumSize(QSize(80, 0))
-
-        self.horizontalLayout_25.addWidget(self.pushButton_export_csv)
-
-
-        self.verticalLayout_2.addLayout(self.horizontalLayout_25)
-
-
-        self.verticalLayout_3.addWidget(self.groupBox_5)
 
         self.groupBox_9 = QGroupBox(self.frame)
         self.groupBox_9.setObjectName(u"groupBox_9")
@@ -2218,6 +2147,9 @@ def setupUi(self, MainWindow):
         self.menuBar.addAction(self.menuCommanda.menuAction())
         self.menuBar.addAction(self.menuHelp.menuAction())
         self.menuFile.addAction(self.actionExit)
+        self.menuCommanda.addAction(self.actionShow_All_Set_Records)
+        self.menuCommanda.addAction(self.actionRefresh_Set_Table)
+        self.menuCommanda.addAction(self.actionExport_Set_Table)
         self.menuHelp.addAction(self.actionAbout)
 
         self.retranslateUi(MainWindow)
