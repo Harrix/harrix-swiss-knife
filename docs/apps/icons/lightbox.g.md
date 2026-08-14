@@ -474,6 +474,19 @@ class IconLightboxDialog(QDialog):
         self._next_button = self._make_button("→", "Next (Right arrow)")
         self._next_button.clicked.connect(self.show_next)
 
+        self._black_backdrop_button = self._make_backdrop_button("Black", color="black")
+        self._black_backdrop_button.clicked.connect(lambda: self._set_backdrop_color("black"))
+        self._white_backdrop_button = self._make_backdrop_button("White", color="white")
+        self._white_backdrop_button.clicked.connect(lambda: self._set_backdrop_color("white"))
+        self._set_backdrop_color("white")
+
+        self._previous_shortcut = QShortcut(QKeySequence(Qt.Key.Key_Left), self)
+        self._previous_shortcut.setContext(Qt.ShortcutContext.WindowShortcut)
+        self._previous_shortcut.activated.connect(self.show_previous)
+        self._next_shortcut = QShortcut(QKeySequence(Qt.Key.Key_Right), self)
+        self._next_shortcut.setContext(Qt.ShortcutContext.WindowShortcut)
+        self._next_shortcut.activated.connect(self.show_next)
+
         self._caption = QLabel(self)
         self._caption.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._caption.setStyleSheet(
@@ -517,6 +530,21 @@ class IconLightboxDialog(QDialog):
             self._index = (self._index - 1) % len(self._paths)
             self._show_current()
 
+    def _make_backdrop_button(self, text: str, *, color: str) -> QPushButton:
+        button = QPushButton(text, self)
+        button.setCheckable(True)
+        button.setAutoExclusive(True)
+        button.setFixedSize(72, 34)
+        button.setCursor(Qt.CursorShape.PointingHandCursor)
+        foreground = "white" if color == "black" else "black"
+        border = "white" if color == "black" else "#555"
+        button.setStyleSheet(
+            f"QPushButton {{ color: {foreground}; background: {color}; border: 1px solid {border};"
+            "border-radius: 7px; padding: 4px 8px; }"
+            "QPushButton:checked { border: 3px solid #2f80ed; }"
+        )
+        return button
+
     def _make_button(self, text: str, tooltip: str) -> QPushButton:
         button = QPushButton(text, self)
         button.setFixedSize(QSize(_BUTTON_SIZE, _BUTTON_SIZE))
@@ -524,15 +552,17 @@ class IconLightboxDialog(QDialog):
         button.setToolTip(tooltip)
         button.setStyleSheet(
             "QPushButton { color: white; font-size: 24px; font-weight: bold;"
-            "background: rgba(40, 40, 40, 210); border: 1px solid rgba(255, 255, 255, 90);"
+            "background: rgba(40, 40, 40, 125); border: 1px solid rgba(255, 255, 255, 90);"
             "border-radius: 9px; }"
-            "QPushButton:hover { background: rgba(75, 75, 75, 240); }"
+            "QPushButton:hover { background: rgba(40, 40, 40, 190); }"
         )
         button.raise_()
         return button
 
     def _position_controls(self) -> None:
         self.canvas.setGeometry(self.rect())
+        self._black_backdrop_button.move(_SIDE_MARGIN, _SIDE_MARGIN)
+        self._white_backdrop_button.move(_SIDE_MARGIN + self._black_backdrop_button.width() + 8, _SIDE_MARGIN)
         self._close_button.move(self.width() - _BUTTON_SIZE - _SIDE_MARGIN, _SIDE_MARGIN)
         center_y = (self.height() - _BUTTON_SIZE) // 2
         self._previous_button.move(_SIDE_MARGIN, center_y)
@@ -541,8 +571,21 @@ class IconLightboxDialog(QDialog):
         self._caption.setFixedWidth(caption_width)
         self._caption.adjustSize()
         self._caption.move((self.width() - caption_width) // 2, self.height() - self._caption.height() - _SIDE_MARGIN)
-        for widget in (self._close_button, self._previous_button, self._next_button, self._caption):
+        for widget in (
+            self._black_backdrop_button,
+            self._white_backdrop_button,
+            self._close_button,
+            self._previous_button,
+            self._next_button,
+            self._caption,
+        ):
             widget.raise_()
+
+    def _set_backdrop_color(self, color: str) -> None:
+        is_black = color == "black"
+        self.setStyleSheet(f"IconLightboxDialog {{ background-color: {'black' if is_black else 'white'}; }}")
+        self._black_backdrop_button.setChecked(is_black)
+        self._white_backdrop_button.setChecked(not is_black)
 
     def _show_current(self) -> None:
         if not self._paths:
@@ -611,6 +654,19 @@ def __init__(
         self._previous_button.clicked.connect(self.show_previous)
         self._next_button = self._make_button("→", "Next (Right arrow)")
         self._next_button.clicked.connect(self.show_next)
+
+        self._black_backdrop_button = self._make_backdrop_button("Black", color="black")
+        self._black_backdrop_button.clicked.connect(lambda: self._set_backdrop_color("black"))
+        self._white_backdrop_button = self._make_backdrop_button("White", color="white")
+        self._white_backdrop_button.clicked.connect(lambda: self._set_backdrop_color("white"))
+        self._set_backdrop_color("white")
+
+        self._previous_shortcut = QShortcut(QKeySequence(Qt.Key.Key_Left), self)
+        self._previous_shortcut.setContext(Qt.ShortcutContext.WindowShortcut)
+        self._previous_shortcut.activated.connect(self.show_previous)
+        self._next_shortcut = QShortcut(QKeySequence(Qt.Key.Key_Right), self)
+        self._next_shortcut.setContext(Qt.ShortcutContext.WindowShortcut)
+        self._next_shortcut.activated.connect(self.show_next)
 
         self._caption = QLabel(self)
         self._caption.setAlignment(Qt.AlignmentFlag.AlignCenter)
