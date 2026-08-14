@@ -495,13 +495,6 @@ class MainWindow(
             self.lineEdit_habit_emoji.setText(dialog.selected_emoji())
 
     @requires_database()
-    @requires_database()
-    @requires_database()
-    @requires_database()
-    @requires_database()
-    @requires_database()
-    @requires_database()
-    @requires_database()
     def on_export_habits_csv(self) -> None:
         """Export process habits table to CSV file."""
         if self.models.get("process_habits") is None:
