@@ -2,9 +2,15 @@ package dev.harrix.hsk.gallery
 
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.RectF
+import android.graphics.drawable.Drawable
+import androidx.core.graphics.drawable.toBitmap
+import kotlin.math.ceil
+import kotlin.math.hypot
+import kotlin.math.min
 import kotlin.math.roundToInt
 
 /** One blur-brush stroke on the normalized rotated square canvas. */
@@ -21,6 +27,51 @@ data class NormalizedBlurStroke(
  * bitmap, which is important for large phone photos.
  */
 internal object PhotoBlurRenderer {
+    /**
+     * Creates a small square workspace that matches Photo Editor export geometry.
+     *
+     * Coil has already applied EXIF orientation to [drawable], so only the interactive editor
+     * rotation needs to be reproduced here.
+     */
+    fun createPreviewBase(
+        drawable: Drawable,
+        imageWidth: Int,
+        imageHeight: Int,
+        rotationDegrees: Float,
+        maxWorkspaceSide: Int = 1200,
+    ): Bitmap? {
+        if (imageWidth <= 0 || imageHeight <= 0) {
+            return null
+        }
+        val sourceDiagonal = hypot(imageWidth.toDouble(), imageHeight.toDouble())
+        val scale = min(1.0, maxWorkspaceSide / sourceDiagonal)
+        val targetWidth = (imageWidth * scale).roundToInt().coerceAtLeast(1)
+        val targetHeight = (imageHeight * scale).roundToInt().coerceAtLeast(1)
+        val source =
+            try {
+                drawable.toBitmap(targetWidth, targetHeight, Bitmap.Config.ARGB_8888)
+            } catch (_: Exception) {
+                return null
+            }
+        val side =
+            ceil(hypot(source.width.toDouble(), source.height.toDouble()))
+                .toInt()
+                .coerceAtLeast(1)
+        val square =
+            try {
+                Bitmap.createBitmap(side, side, Bitmap.Config.ARGB_8888)
+            } catch (_: OutOfMemoryError) {
+                return null
+            }
+        Canvas(square).apply {
+            drawColor(Color.BLACK)
+            translate(side / 2f, side / 2f)
+            rotate(rotationDegrees)
+            drawBitmap(source, -source.width / 2f, -source.height / 2f, null)
+        }
+        return square
+    }
+
     fun apply(
         bitmap: Bitmap,
         strokes: List<NormalizedBlurStroke>,

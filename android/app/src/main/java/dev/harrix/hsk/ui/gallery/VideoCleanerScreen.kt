@@ -79,6 +79,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
@@ -653,7 +654,7 @@ fun VideoCleanerScreen(
                     }
                 }
 
-                isLoading || (hasPermission && !viewModel.sessionInitialized) -> {
+                hasPermission && !viewModel.sessionInitialized -> {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             CircularProgressIndicator()
@@ -700,31 +701,43 @@ fun VideoCleanerScreen(
                             )
                         }
                         val sortedVideoIds = remember(sortedVideos) { sortedVideos.map { it.id } }
-                        LazyVerticalGrid(
-                            columns = GridCells.Fixed(videoGridColumnCount()),
-                            state = gridState,
+                        PullToRefreshBox(
+                            isRefreshing = isLoading,
+                            onRefresh = {
+                                if (!isLoading) {
+                                    reloadVideos()
+                                }
+                            },
                             modifier =
                             Modifier
                                 .weight(1f)
-                                .fillMaxWidth()
-                                .lazyGridDragSelect(
-                                    lazyGridState = gridState,
-                                    itemIds = sortedVideoIds,
-                                    selectedIds = selectedIds,
-                                    onSelectedIdsChange = { selectedIds = it },
-                                ),
-                            contentPadding = PaddingValues(0.dp),
-                            horizontalArrangement = Arrangement.spacedBy(1.dp),
-                            verticalArrangement = Arrangement.spacedBy(1.dp),
+                                .fillMaxWidth(),
                         ) {
-                            items(sortedVideos, key = { it.id }) { video ->
-                                VideoGalleryItem(
-                                    video = video,
-                                    selected = video.id in selectedIds,
-                                    onPlay = { playingVideo = video },
-                                    onShare = { shareVideo(video) },
-                                    onFileDetails = { detailsVideo = video },
-                                )
+                            LazyVerticalGrid(
+                                columns = GridCells.Fixed(videoGridColumnCount()),
+                                state = gridState,
+                                modifier =
+                                Modifier
+                                    .fillMaxSize()
+                                    .lazyGridDragSelect(
+                                        lazyGridState = gridState,
+                                        itemIds = sortedVideoIds,
+                                        selectedIds = selectedIds,
+                                        onSelectedIdsChange = { selectedIds = it },
+                                    ),
+                                contentPadding = PaddingValues(0.dp),
+                                horizontalArrangement = Arrangement.spacedBy(1.dp),
+                                verticalArrangement = Arrangement.spacedBy(1.dp),
+                            ) {
+                                items(sortedVideos, key = { it.id }) { video ->
+                                    VideoGalleryItem(
+                                        video = video,
+                                        selected = video.id in selectedIds,
+                                        onPlay = { playingVideo = video },
+                                        onShare = { shareVideo(video) },
+                                        onFileDetails = { detailsVideo = video },
+                                    )
+                                }
                             }
                         }
                     }
