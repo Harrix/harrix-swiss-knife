@@ -2520,14 +2520,19 @@ class NotesProvider {
   listIconsBrowseEntries(dirPath) {
     if (dirPath == null || dirPath === '') {
       return this.rootEntries
-        .map((entry) => ({
-          kind: /** @type {'folder'} */ ('folder'),
-          path: entry.path,
-          name: entry.name,
-          label: entry.name,
-          iconEmoji: '',
-          description: '',
-        }))
+        .map((entry) => {
+          const item = this.createWorkspaceRootFolderItem(entry.path, entry.name);
+          return {
+            kind: /** @type {'folder'} */ ('folder'),
+            path: entry.path,
+            name: entry.name,
+            label: typeof item.label === 'string' ? item.label : entry.name,
+            iconEmoji: '',
+            description: '',
+            contextValue: String(item.contextValue || 'notesFolder'),
+            isWorkspaceRoot: true,
+          };
+        })
         .sort((a, b) => a.label.localeCompare(b.label, undefined, { numeric: true, sensitivity: 'base' }));
     }
 
@@ -2535,13 +2540,14 @@ class NotesProvider {
       templateCountFor: (folderPath) => this.getTemplatesForFolder(folderPath).length,
     });
 
-    /** @type {Array<{ kind: 'folder' | 'note', path: string, name: string, label: string, iconEmoji: string, description: string }>} */
+    /** @type {Array<{ kind: 'folder' | 'note', path: string, name: string, label: string, iconEmoji: string, description: string, contextValue: string, isWorkspaceRoot?: boolean }>} */
     const entries = [];
     /** @type {string[]} */
     const notePaths = [];
 
     for (const spec of specs) {
       if (spec.kind === 'folder') {
+        const item = this.createFolderItem(spec.path, spec.name, 1);
         entries.push({
           kind: 'folder',
           path: spec.path,
@@ -2549,6 +2555,7 @@ class NotesProvider {
           label: spec.name,
           iconEmoji: '',
           description: '',
+          contextValue: String(item.contextValue || 'notesFolder'),
         });
         continue;
       }
@@ -2557,6 +2564,7 @@ class NotesProvider {
       if (noteTitleCache.needsResolve(spec.path)) {
         noteTitleCache.resolveFromDisk(spec.path);
       }
+      const item = this.createFileItem(spec.path);
       const label = getNoteDisplayLabel(spec.path);
       const stem = noteStemFromPath(spec.path);
       entries.push({
@@ -2566,6 +2574,7 @@ class NotesProvider {
         label,
         iconEmoji: noteTitleCache.getIconFast(spec.path) || '',
         description: label !== stem && getShowNoteFileNameBesideTitle() ? stem : '',
+        contextValue: String(item.contextValue || 'note'),
       });
     }
 
@@ -3860,7 +3869,8 @@ async function activate(context) {
         e.affectsConfiguration('harrixNotesExplorerHsk.rememberFolderExpansion') ||
         e.affectsConfiguration('harrixNotesExplorerHsk.showNoteTitleFromContent') ||
         e.affectsConfiguration('harrixNotesExplorerHsk.showNoteFileNameBesideTitle') ||
-        e.affectsConfiguration('harrixNotesExplorerHsk.iconStyle')
+        e.affectsConfiguration('harrixNotesExplorerHsk.iconStyle') ||
+        e.affectsConfiguration('harrixNotesExplorerHsk.openNotesInPreview')
       ) {
         provider.refresh();
         refreshIconsBrowseIfOpen();
@@ -3877,6 +3887,7 @@ async function activate(context) {
   activateIconsBrowse({
     context,
     provider,
+    getCanPaste: () => treeClipboard.canPaste,
     openNote: async (uri) => {
       await openHarrixNote(uri, 'primary');
     },

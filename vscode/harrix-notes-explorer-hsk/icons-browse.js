@@ -5,6 +5,7 @@
 const vscode = require('vscode');
 const path = require('node:path');
 const fs = require('node:fs');
+const { buildIconsBrowseContextMenu } = require('./icons-browse-menu');
 
 const PANEL_VIEW_TYPE = 'harrixNotesExplorerHsk.iconsBrowse';
 
@@ -25,11 +26,14 @@ const PANEL_VIEW_TYPE = 'harrixNotesExplorerHsk.iconsBrowse';
  *     label: string,
  *     iconEmoji: string,
  *     description: string,
+ *     contextValue?: string,
+ *     isWorkspaceRoot?: boolean,
  *   }>,
  *   onDidChangeTreeData: import('vscode').Event<unknown>,
  *   refresh?: () => void,
  * }} provider
  * @property {(uri: import('vscode').Uri) => Promise<void>} openNote
+ * @property {() => boolean} [getCanPaste]
  */
 
 /** @type {import('vscode').WebviewPanel | undefined} */
@@ -225,7 +229,18 @@ function postState() {
     return;
   }
   const dirPath = currentDirPath();
-  const entries = deps.provider.listIconsBrowseEntries(dirPath);
+  const rawEntries = deps.provider.listIconsBrowseEntries(dirPath);
+  const canPaste = typeof deps.getCanPaste === 'function' ? deps.getCanPaste() : false;
+  const openNotesInPreview =
+    vscode.workspace.getConfiguration('harrixNotesExplorerHsk').get('openNotesInPreview') !== false;
+  const entries = rawEntries.map((entry) => ({
+    ...entry,
+    menu: buildIconsBrowseContextMenu(entry.contextValue || '', {
+      canPaste,
+      openNotesInPreview,
+      isWorkspaceRoot: entry.isWorkspaceRoot === true,
+    }),
+  }));
   const iconStyle = getNotesIconStyleFromConfig();
   const folderIcon = panel.webview
     .asWebviewUri(vscode.Uri.joinPath(deps.context.extensionUri, 'media', 'icons', 'it__folder_01.svg'))
@@ -316,9 +331,83 @@ async function handleWebviewMessage(message) {
       postState();
       break;
     }
+    case 'runCommand': {
+      await runIconsBrowseCommand(msg);
+      break;
+    }
+    case 'requestContextMenu': {
+      postContextMenu(msg);
+      break;
+    }
     default:
       break;
   }
+}
+
+/**
+ * @param {{ path?: string, kind?: string, contextValue?: string, isWorkspaceRoot?: boolean, x?: number, y?: number }} msg
+ */
+function postContextMenu(msg) {
+  if (!panel || !deps || typeof msg.path !== 'string' || !msg.path) {
+    return;
+  }
+  const canPaste = typeof deps.getCanPaste === 'function' ? deps.getCanPaste() : false;
+  const openNotesInPreview =
+    vscode.workspace.getConfiguration('harrixNotesExplorerHsk').get('openNotesInPreview') !== false;
+  const menu = buildIconsBrowseContextMenu(typeof msg.contextValue === 'string' ? msg.contextValue : '', {
+    canPaste,
+    openNotesInPreview,
+    isWorkspaceRoot: msg.isWorkspaceRoot === true,
+  });
+  void panel.webview.postMessage({
+    type: 'contextMenu',
+    path: msg.path,
+    kind: msg.kind || 'note',
+    contextValue: msg.contextValue || '',
+    isWorkspaceRoot: msg.isWorkspaceRoot === true,
+    x: typeof msg.x === 'number' ? msg.x : 0,
+    y: typeof msg.y === 'number' ? msg.y : 0,
+    menu,
+  });
+}
+
+/**
+ * @param {{ command?: string, path?: string, kind?: string, contextValue?: string, isWorkspaceRoot?: boolean }} msg
+ */
+async function runIconsBrowseCommand(msg) {
+  if (!deps || typeof msg.command !== 'string' || !msg.command || typeof msg.path !== 'string' || !msg.path) {
+    return;
+  }
+  const arg = buildTreeArgForIconsBrowse(msg);
+  try {
+    await vscode.commands.executeCommand(msg.command, arg);
+  } catch (e) {
+    const errMsg = e instanceof Error ? e.message : String(e);
+    void vscode.window.showErrorMessage(`Command failed: ${errMsg}`);
+  }
+  postState();
+}
+
+/**
+ * @param {{ path: string, kind?: string, contextValue?: string, isWorkspaceRoot?: boolean }} msg
+ */
+function buildTreeArgForIconsBrowse(msg) {
+  const uri = vscode.Uri.file(msg.path);
+  const contextValue = typeof msg.contextValue === 'string' ? msg.contextValue : '';
+  if (msg.kind === 'folder') {
+    return {
+      resourceUri: uri,
+      dirPath: msg.path,
+      contextValue,
+      isWorkspaceRoot: msg.isWorkspaceRoot === true,
+    };
+  }
+  return {
+    resourceUri: uri,
+    noteDirPath: path.dirname(msg.path),
+    isNoteItem: true,
+    contextValue,
+  };
 }
 
 /**
@@ -360,6 +449,7 @@ function getHtml(webview, extensionUri) {
     <div id="status" class="status" hidden>Loading…</div>
     <div id="grid" class="grid" role="list"></div>
   </main>
+  <div id="ctxMenu" class="ctx-menu" hidden role="menu"></div>
   <script src="${jsUri}"></script>
 </body>
 </html>`;

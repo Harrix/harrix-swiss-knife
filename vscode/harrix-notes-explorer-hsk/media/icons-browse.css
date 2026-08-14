@@ -216,3 +216,47 @@ body {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+.ctx-menu {
+  position: fixed;
+  z-index: 1000;
+  min-width: 220px;
+  max-width: min(360px, calc(100vw - 16px));
+  max-height: calc(100vh - 16px);
+  overflow: auto;
+  padding: 4px 0;
+  border: 1px solid var(--hne-border);
+  border-radius: 6px;
+  background: var(--vscode-menu-background, var(--hne-bg));
+  color: var(--vscode-menu-foreground, var(--hne-fg));
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+}
+
+.ctx-item {
+  appearance: none;
+  display: block;
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  font: inherit;
+  padding: 6px 14px;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ctx-item:hover,
+.ctx-item:focus-visible {
+  background: var(--vscode-menu-selectionBackground, var(--hne-hover));
+  color: var(--vscode-menu-selectionForeground, var(--hne-fg));
+  outline: none;
+}
+
+.ctx-sep {
+  height: 1px;
+  margin: 4px 0;
+  background: var(--vscode-menu-separatorBackground, var(--hne-border));
+}

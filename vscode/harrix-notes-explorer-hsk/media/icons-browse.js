@@ -7,10 +7,11 @@
   const crumbsEl = document.getElementById('crumbs');
   const gridEl = document.getElementById('grid');
   const statusEl = document.getElementById('status');
+  const menuEl = document.getElementById('ctxMenu');
 
   /** @type {{ path: string, name: string }[]} */
   let crumbs = [];
-  /** @type {Array<{ kind: string, path: string, name: string, label: string, iconEmoji: string, description: string }>} */
+  /** @type {Array<{ kind: string, path: string, name: string, label: string, iconEmoji: string, description: string, contextValue?: string, isWorkspaceRoot?: boolean, menu?: Array<{ type: string, command?: string, title?: string }> }>} */
   let entries = [];
   /** @type {'harrix' | 'material'} */
   let iconStyle = 'harrix';
@@ -38,6 +39,89 @@
    */
   function imgHtml(src) {
     return `<img src="${escapeHtml(src)}" alt="" draggable="false" />`;
+  }
+
+  function hideContextMenu() {
+    menuEl.hidden = true;
+    menuEl.replaceChildren();
+  }
+
+  /**
+   * @param {number} x
+   * @param {number} y
+   * @param {(typeof entries)[number]} entry
+   * @param {Array<{ type: string, command?: string, title?: string }>} menu
+   */
+  function showContextMenuAt(x, y, entry, menu) {
+    if (!menu.length) {
+      hideContextMenu();
+      return;
+    }
+
+    menuEl.replaceChildren();
+    for (const row of menu) {
+      if (row.type === 'separator') {
+        const hr = document.createElement('div');
+        hr.className = 'ctx-sep';
+        menuEl.appendChild(hr);
+        continue;
+      }
+      if (row.type !== 'item' || !row.command || !row.title) {
+        continue;
+      }
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'ctx-item';
+      btn.textContent = row.title;
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        hideContextMenu();
+        vscode.postMessage({
+          type: 'runCommand',
+          command: row.command,
+          path: entry.path,
+          kind: entry.kind,
+          contextValue: entry.contextValue || '',
+          isWorkspaceRoot: entry.isWorkspaceRoot === true,
+        });
+      });
+      menuEl.appendChild(btn);
+    }
+
+    menuEl.hidden = false;
+    const pad = 8;
+    menuEl.style.left = '0px';
+    menuEl.style.top = '0px';
+    const rect = menuEl.getBoundingClientRect();
+    let left = x;
+    let top = y;
+    if (left + rect.width > window.innerWidth - pad) {
+      left = Math.max(pad, window.innerWidth - rect.width - pad);
+    }
+    if (top + rect.height > window.innerHeight - pad) {
+      top = Math.max(pad, window.innerHeight - rect.height - pad);
+    }
+    menuEl.style.left = `${left}px`;
+    menuEl.style.top = `${top}px`;
+  }
+
+  /**
+   * @param {MouseEvent} event
+   * @param {(typeof entries)[number]} entry
+   */
+  function requestContextMenu(event, entry) {
+    event.preventDefault();
+    event.stopPropagation();
+    vscode.postMessage({
+      type: 'requestContextMenu',
+      path: entry.path,
+      kind: entry.kind,
+      contextValue: entry.contextValue || '',
+      isWorkspaceRoot: entry.isWorkspaceRoot === true,
+      x: event.clientX,
+      y: event.clientY,
+    });
   }
 
   function renderChrome() {
@@ -85,6 +169,7 @@
   }
 
   function renderGrid() {
+    hideContextMenu();
     gridEl.replaceChildren();
     if (!entries.length) {
       statusEl.hidden = false;
@@ -118,11 +203,16 @@
       }
 
       btn.addEventListener('click', () => {
+        hideContextMenu();
         if (entry.kind === 'folder') {
           vscode.postMessage({ type: 'openFolder', path: entry.path, name: entry.name });
         } else {
           vscode.postMessage({ type: 'openNote', path: entry.path });
         }
+      });
+
+      btn.addEventListener('contextmenu', (event) => {
+        requestContextMenu(event, entry);
       });
 
       gridEl.appendChild(btn);
@@ -152,6 +242,24 @@
     vscode.postMessage({ type: 'refresh' });
   });
 
+  document.addEventListener('click', () => {
+    hideContextMenu();
+  });
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') {
+      hideContextMenu();
+    }
+  });
+  window.addEventListener('blur', () => {
+    hideContextMenu();
+  });
+  menuEl.addEventListener('click', (event) => {
+    event.stopPropagation();
+  });
+  menuEl.addEventListener('contextmenu', (event) => {
+    event.preventDefault();
+  });
+
   window.addEventListener('message', (event) => {
     const msg = event.data;
     if (!msg || typeof msg !== 'object') {
@@ -159,6 +267,19 @@
     }
     if (msg.type === 'state') {
       applyState(msg);
+    }
+    if (msg.type === 'contextMenu') {
+      const entry = entries.find((e) => e.path === msg.path) || {
+        kind: msg.kind || 'note',
+        path: msg.path,
+        name: '',
+        label: '',
+        iconEmoji: '',
+        description: '',
+        contextValue: msg.contextValue || '',
+        isWorkspaceRoot: msg.isWorkspaceRoot === true,
+      };
+      showContextMenuAt(msg.x || 0, msg.y || 0, entry, Array.isArray(msg.menu) ? msg.menu : []);
     }
   });
 
