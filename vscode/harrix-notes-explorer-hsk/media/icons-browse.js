@@ -11,7 +11,7 @@
 
   /** @type {{ path: string, name: string }[]} */
   let crumbs = [];
-  /** @type {Array<{ kind: string, path: string, name: string, label: string, iconEmoji: string, description: string, contextValue?: string, isWorkspaceRoot?: boolean, isCut?: boolean, menu?: Array<{ type: string, command?: string, title?: string }> }>} */
+  /** @type {Array<{ kind: string, path: string, name: string, label: string, iconEmoji: string, description: string, contextValue?: string, isWorkspaceRoot?: boolean, isCut?: boolean, fileUri?: string, menu?: Array<{ type: string, command?: string, title?: string }> }>} */
   let entries = [];
   /** @type {{ kind: string, path: string, name: string, contextValue?: string, isWorkspaceRoot?: boolean } | null} */
   let currentFolder = null;
@@ -192,6 +192,45 @@
     return NOTE_SVG;
   }
 
+  function fileNameFromPath(fsPath) {
+    const p = String(fsPath || '').replace(/\\/g, '/');
+    const i = p.lastIndexOf('/');
+    return i >= 0 ? p.slice(i + 1) : p;
+  }
+
+  /**
+   * @param {string} fsPath
+   */
+  function toFileUrl(fsPath) {
+    let p = String(fsPath || '').replace(/\\/g, '/');
+    if (!p) {
+      return '';
+    }
+    if (!p.startsWith('/')) {
+      p = `/${p}`;
+    }
+    return encodeURI(`file://${p}`).replace(/#/g, '%23');
+  }
+
+  /**
+   * @param {DragEvent} event
+   * @param {(typeof entries)[number]} entry
+   */
+  function onCellDragStart(event, entry) {
+    const dt = event.dataTransfer;
+    if (!dt || !entry.path) {
+      event.preventDefault();
+      return;
+    }
+    const fileUrl = entry.fileUri || toFileUrl(entry.path);
+    const fileName = fileNameFromPath(entry.path).replace(/[:/\r\n]/g, '_');
+    const mime = entry.kind === 'note' ? 'text/markdown' : 'application/octet-stream';
+    dt.effectAllowed = 'copy';
+    dt.setData('text/uri-list', `${fileUrl}\r\n`);
+    dt.setData('application/vnd.code.uri-list', fileUrl);
+    dt.setData('DownloadURL', `${mime}:${fileName}:${fileUrl}`);
+  }
+
   function renderGrid() {
     hideContextMenu();
     gridEl.replaceChildren();
@@ -203,10 +242,12 @@
     statusEl.hidden = true;
 
     for (const entry of entries) {
-      const btn = document.createElement('button');
-      btn.type = 'button';
+      const fileUrl = entry.fileUri || toFileUrl(entry.path);
+      const btn = document.createElement('a');
+      btn.href = fileUrl;
       btn.className = entry.isCut ? 'cell is-cut' : 'cell';
       btn.title = entry.path;
+      btn.setAttribute('role', 'button');
 
       const glyph = document.createElement('div');
       glyph.className = 'glyph';
@@ -226,13 +267,34 @@
         btn.appendChild(desc);
       }
 
-      btn.addEventListener('click', () => {
+      btn.draggable = true;
+      let skipClickAfterDrag = false;
+
+      btn.addEventListener('dragstart', (event) => {
+        skipClickAfterDrag = true;
+        onCellDragStart(event, entry);
+      });
+      btn.addEventListener('dragend', () => {
+        setTimeout(() => {
+          skipClickAfterDrag = false;
+        }, 0);
+      });
+
+      btn.addEventListener('click', (event) => {
+        event.preventDefault();
+        if (skipClickAfterDrag) {
+          skipClickAfterDrag = false;
+          return;
+        }
         hideContextMenu();
         if (entry.kind === 'folder') {
           vscode.postMessage({ type: 'openFolder', path: entry.path, name: entry.name });
         } else {
           vscode.postMessage({ type: 'openNote', path: entry.path });
         }
+      });
+      btn.addEventListener('auxclick', (event) => {
+        event.preventDefault();
       });
 
       btn.addEventListener('contextmenu', (event) => {

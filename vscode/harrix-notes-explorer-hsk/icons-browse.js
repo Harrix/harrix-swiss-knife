@@ -351,6 +351,7 @@ function postState() {
     vscode.workspace.getConfiguration('harrixNotesExplorerHsk').get('openNotesInPreview') !== false;
   const entries = rawEntries.map((entry) => ({
     ...entry,
+    fileUri: vscode.Uri.file(entry.path).toString(true),
     isCut: cutPaths.has(
       normalizePath(
         entry.kind === 'note' && String(entry.contextValue || '').includes('NamedFolder')

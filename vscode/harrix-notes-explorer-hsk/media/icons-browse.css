@@ -152,9 +152,10 @@ body {
   border: 1px solid transparent;
   background: transparent;
   color: inherit;
+  text-decoration: none;
   border-radius: var(--hne-radius);
   padding: 12px 8px 10px;
-  cursor: pointer;
+  cursor: grab;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -162,6 +163,8 @@ body {
   min-height: 108px;
   font: inherit;
   text-align: center;
+  user-select: none;
+  -webkit-user-drag: element;
 }
 
 .cell:hover {
@@ -174,6 +177,7 @@ body {
 }
 
 .cell:active {
+  cursor: grabbing;
   background: var(--hne-active);
 }
 
@@ -186,6 +190,8 @@ body {
   font-size: 36px;
   line-height: 1;
   user-select: none;
+  pointer-events: none;
+  -webkit-user-drag: none;
 }
 
 .cell.is-cut .glyph {
@@ -198,6 +204,8 @@ body {
   height: 40px;
   display: block;
   object-fit: contain;
+  pointer-events: none;
+  -webkit-user-drag: none;
 }
 
 .label {
