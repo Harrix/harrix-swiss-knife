@@ -621,19 +621,37 @@ class MonthCalendarGrid(QWidget):
         root.setSpacing(8)
 
         header = QHBoxLayout()
-        self._prev_btn = QPushButton("<")
-        self._next_btn = QPushButton(">")
+        self._prev_btn = QPushButton("←")
+        self._next_btn = QPushButton("→")
         for btn in (self._prev_btn, self._next_btn):
-            btn.setFixedSize(28, 28)
+            btn.setFixedSize(34, 34)
             btn.setCursor(Qt.CursorShape.PointingHandCursor)
-            btn.setFlat(True)
             btn.setStyleSheet(
-                "QPushButton { color: #6B7280; font-size: 20px; border-radius: 6px; border: none; }"
-                "QPushButton:hover { background: #F3F4F6; color: #111827; }"
+                """
+                QPushButton {
+                    background: #F9FAFB;
+                    border: 1px solid #D1D5DB;
+                    border-radius: 8px;
+                    color: #374151;
+                    font-size: 18px;
+                    font-weight: 700;
+                }
+                QPushButton:hover {
+                    background: #EFF6FF;
+                    border-color: #93C5FD;
+                    color: #1D4ED8;
+                }
+                """
             )
+        self._prev_btn.setToolTip("Previous month")
+        self._next_btn.setToolTip("Next month")
         self._title = QLabel("")
         self._title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self._title.setStyleSheet("color: #111827; font-size: 15px; font-weight: 700;")
+        title_font = QFont(self._title.font())
+        title_font.setPointSize(12)
+        title_font.setBold(True)
+        self._title.setFont(title_font)
+        self._title.setStyleSheet("color: #111827;")
         header.addWidget(self._prev_btn)
         header.addWidget(self._title, 1)
         header.addWidget(self._next_btn)
@@ -646,12 +664,19 @@ class MonthCalendarGrid(QWidget):
         for name in ("M", "T", "W", "T", "F", "S", "S"):
             lab = QLabel(name)
             lab.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            lab.setStyleSheet("color: #9CA3AF; font-size: 11px;")
-            weekdays.addWidget(lab)
+            weekday_font = QFont(lab.font())
+            weekday_font.setPointSize(9)
+            weekday_font.setBold(True)
+            lab.setFont(weekday_font)
+            lab.setStyleSheet("color: #6B7280;")
+            weekdays.addWidget(lab, 1)
         root.addLayout(weekdays)
 
-        self._grid = QVBoxLayout()
-        self._grid.setSpacing(6)
+        self._grid = QGridLayout()
+        self._grid.setHorizontalSpacing(4)
+        self._grid.setVerticalSpacing(6)
+        for column in range(7):
+            self._grid.setColumnStretch(column, 1)
         root.addLayout(self._grid)
         self._day_cells: list[tuple[CheckCircle | None, QLabel, str | None]] = []
 
@@ -669,15 +694,6 @@ class MonthCalendarGrid(QWidget):
             widget = item.widget()
             if widget is not None:
                 widget.deleteLater()
-            else:
-                layout = item.layout()
-                if layout is None:
-                    continue
-                while layout.count():
-                    child = layout.takeAt(0)
-                    child_widget = child.widget()
-                    if child_widget is not None:
-                        child_widget.deleteLater()
         self._day_cells.clear()
 
     def _on_next(self) -> None:
@@ -699,18 +715,17 @@ class MonthCalendarGrid(QWidget):
 
         cal = calendar.Calendar(firstweekday=calendar.MONDAY)
         weeks = cal.monthdayscalendar(self._year, self._month)
-        for week in weeks:
-            row = QHBoxLayout()
-            row.setSpacing(4)
-            for day in week:
-                cell = QVBoxLayout()
-                cell.setSpacing(2)
-                cell.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+        for row_index, week in enumerate(weeks):
+            self._grid.setRowStretch(row_index, 1)
+            for column_index, day in enumerate(week):
+                cell = QWidget()
+                cell.setMinimumHeight(48)
+                cell_layout = QVBoxLayout(cell)
+                cell_layout.setContentsMargins(0, 0, 0, 0)
+                cell_layout.setSpacing(2)
+                cell_layout.setAlignment(Qt.AlignmentFlag.AlignHCenter)
                 if day == 0:
-                    spacer = QWidget()
-                    spacer.setFixedSize(28, 40)
-                    cell.addWidget(spacer)
-                    row.addLayout(cell)
+                    self._grid.addWidget(cell, row_index, column_index)
                     continue
 
                 date_str = f"{self._year:04d}-{self._month:02d}-{day:02d}"
@@ -718,13 +733,17 @@ class MonthCalendarGrid(QWidget):
                 circle.set_done(done=date_str in self._done_dates)
                 circle.clicked.connect(lambda d=date_str: self.day_toggled.emit(d))
                 day_label = QLabel(str(day))
-                day_label.setAlignment(Qt.AlignmentFlag.AlignHCenter)
-                day_label.setStyleSheet("color: #9CA3AF; font-size: 10px;")
-                cell.addWidget(circle, 0, Qt.AlignmentFlag.AlignHCenter)
-                cell.addWidget(day_label)
-                row.addLayout(cell)
+                day_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+                day_label.setFixedHeight(18)
+                day_font = QFont(day_label.font())
+                day_font.setPointSize(10)
+                day_font.setWeight(QFont.Weight.DemiBold)
+                day_label.setFont(day_font)
+                day_label.setStyleSheet("color: #4B5563;")
+                cell_layout.addWidget(circle, 0, Qt.AlignmentFlag.AlignHCenter)
+                cell_layout.addWidget(day_label)
+                self._grid.addWidget(cell, row_index, column_index)
                 self._day_cells.append((circle, day_label, date_str))
-            self._grid.addLayout(row)
 ```
 
 </details>
@@ -752,19 +771,37 @@ def __init__(self, parent: QWidget | None = None) -> None:  # noqa: D107
         root.setSpacing(8)
 
         header = QHBoxLayout()
-        self._prev_btn = QPushButton("<")
-        self._next_btn = QPushButton(">")
+        self._prev_btn = QPushButton("←")
+        self._next_btn = QPushButton("→")
         for btn in (self._prev_btn, self._next_btn):
-            btn.setFixedSize(28, 28)
+            btn.setFixedSize(34, 34)
             btn.setCursor(Qt.CursorShape.PointingHandCursor)
-            btn.setFlat(True)
             btn.setStyleSheet(
-                "QPushButton { color: #6B7280; font-size: 20px; border-radius: 6px; border: none; }"
-                "QPushButton:hover { background: #F3F4F6; color: #111827; }"
+                """
+                QPushButton {
+                    background: #F9FAFB;
+                    border: 1px solid #D1D5DB;
+                    border-radius: 8px;
+                    color: #374151;
+                    font-size: 18px;
+                    font-weight: 700;
+                }
+                QPushButton:hover {
+                    background: #EFF6FF;
+                    border-color: #93C5FD;
+                    color: #1D4ED8;
+                }
+                """
             )
+        self._prev_btn.setToolTip("Previous month")
+        self._next_btn.setToolTip("Next month")
         self._title = QLabel("")
         self._title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self._title.setStyleSheet("color: #111827; font-size: 15px; font-weight: 700;")
+        title_font = QFont(self._title.font())
+        title_font.setPointSize(12)
+        title_font.setBold(True)
+        self._title.setFont(title_font)
+        self._title.setStyleSheet("color: #111827;")
         header.addWidget(self._prev_btn)
         header.addWidget(self._title, 1)
         header.addWidget(self._next_btn)
@@ -777,12 +814,19 @@ def __init__(self, parent: QWidget | None = None) -> None:  # noqa: D107
         for name in ("M", "T", "W", "T", "F", "S", "S"):
             lab = QLabel(name)
             lab.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            lab.setStyleSheet("color: #9CA3AF; font-size: 11px;")
-            weekdays.addWidget(lab)
+            weekday_font = QFont(lab.font())
+            weekday_font.setPointSize(9)
+            weekday_font.setBold(True)
+            lab.setFont(weekday_font)
+            lab.setStyleSheet("color: #6B7280;")
+            weekdays.addWidget(lab, 1)
         root.addLayout(weekdays)
 
-        self._grid = QVBoxLayout()
-        self._grid.setSpacing(6)
+        self._grid = QGridLayout()
+        self._grid.setHorizontalSpacing(4)
+        self._grid.setVerticalSpacing(6)
+        for column in range(7):
+            self._grid.setColumnStretch(column, 1)
         root.addLayout(self._grid)
         self._day_cells: list[tuple[CheckCircle | None, QLabel, str | None]] = []
 ```
