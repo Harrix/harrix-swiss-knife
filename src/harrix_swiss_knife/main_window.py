@@ -155,6 +155,7 @@ class MainWindow(QMainWindow):
             description=description,
             user_data=action,
             on_select=action.trigger,
+            on_context_menu=self._on_card_context_menu,
         )
 
     def _add_list_action_item(self, action: QAction, *, indent_level: int = 0) -> None:
@@ -392,6 +393,11 @@ class MainWindow(QMainWindow):
             self.text_edit.verticalScrollBar().setValue(self.text_edit.verticalScrollBar().maximum())
         except Exception as e:
             self._set_placeholder(f"File reading error: {e!s}")
+
+    def _on_card_context_menu(self, user_data: object, global_pos: QPoint) -> None:
+        """Show copy name/class/path for the action bound to a command card."""
+        if isinstance(user_data, QAction):
+            show_action_item_context_menu(parent=self, global_pos=global_pos, action=user_data)
 
     def _on_grid_context_menu(self, grid: QListWidget, pos: QPoint) -> None:
         """Show copy name/class/path and CLI command for the card under the cursor."""

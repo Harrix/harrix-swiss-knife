@@ -1,6 +1,8 @@
 """Tests for described card scale that fits an almost-extra column."""
 
 import pytest
+from PySide6.QtCore import QPoint
+from PySide6.QtGui import QContextMenuEvent
 from PySide6.QtWidgets import QApplication, QListWidget
 
 from harrix_swiss_knife.qt_action_card_grid import CARD_SPACING
@@ -9,6 +11,7 @@ from harrix_swiss_knife.qt_described_choice_cards import (
     DESCRIBED_CARD_MIN_SCALE,
     DESCRIBED_CARD_WIDTH,
     DescribedChoiceCard,
+    add_described_action_card,
     configure_described_choice_card_grid,
     described_card_metrics_of,
     metrics_for_scale,
@@ -92,3 +95,29 @@ def test_grid_returns_to_base_height_for_short_texts(qapp: QApplication) -> None
     populate_described_choice_cards(grid, [("✅", "Short", "Short hint")])
 
     assert described_card_metrics_of(grid).height == DESCRIBED_CARD_HEIGHT
+
+
+def test_card_context_menu_invokes_callback(qapp: QApplication) -> None:
+    """Right-click on an item-widget card must reach the context-menu callback."""
+    grid = QListWidget()
+    configure_described_choice_card_grid(grid)
+    received: list[tuple[object, QPoint]] = []
+    payload = "action-payload"
+    add_described_action_card(
+        grid,
+        icon="✅",
+        title="Test",
+        description="Hint",
+        user_data=payload,
+        on_context_menu=lambda data, pos: received.append((data, pos)),
+    )
+
+    item = grid.item(0)
+    assert item is not None
+    card = grid.itemWidget(item)
+    assert isinstance(card, DescribedChoiceCard)
+
+    global_pos = QPoint(120, 80)
+    event = QContextMenuEvent(QContextMenuEvent.Reason.Mouse, QPoint(10, 10), global_pos)
+    assert qapp.sendEvent(card, event)
+    assert received == [(payload, global_pos)]

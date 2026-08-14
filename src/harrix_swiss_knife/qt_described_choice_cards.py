@@ -22,7 +22,7 @@ from harrix_swiss_knife.qt_emoji_icon import create_emoji_icon
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterator
 
-    from PySide6.QtGui import QMouseEvent
+    from PySide6.QtGui import QContextMenuEvent, QMouseEvent
 
 DESCRIBED_CARD_ICON_SIZE = 48
 DESCRIBED_CARD_WIDTH = 320
@@ -60,6 +60,7 @@ class DescribedChoiceCard(QWidget):
     """Horizontal card: emoji icon on the left, title and hint on the right."""
 
     selected = Signal()
+    context_menu_requested = Signal(QPoint)
 
     def __init__(
         self,
@@ -83,8 +84,6 @@ class DescribedChoiceCard(QWidget):
         self._text_column = QVBoxLayout()
 
         self.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-        self.customContextMenuRequested.connect(self._forward_context_menu)
         self.setToolTip(f"{title}\n{description}" if description else title)
         self.setObjectName("DescribedChoiceCard")
         self.setStyleSheet(
@@ -168,6 +167,11 @@ class DescribedChoiceCard(QWidget):
             text_height += metrics.text_gap + self._desc_label.heightForWidth(text_width)
         return max(text_height, metrics.icon_size) + 2 * metrics.margin_v + CARD_SPACING
 
+    def contextMenuEvent(self, event: QContextMenuEvent) -> None:  # noqa: N802
+        """Emit a context-menu request with the global cursor position."""
+        self.context_menu_requested.emit(event.globalPos())
+        event.accept()
+
     def mouseReleaseEvent(self, event: QMouseEvent) -> None:  # noqa: N802
         """Treat a left click on the card body as selecting the choice."""
         if event.button() == Qt.MouseButton.LeftButton:
@@ -175,14 +179,6 @@ class DescribedChoiceCard(QWidget):
             event.accept()
             return
         super().mouseReleaseEvent(event)
-
-    def _forward_context_menu(self, pos: QPoint) -> None:
-        """Re-emit the parent list context menu so item widgets do not swallow right-clicks."""
-        list_widget = self.parentWidget()
-        if not isinstance(list_widget, QListWidget):
-            return
-        list_pos = list_widget.viewport().mapFromGlobal(self.mapToGlobal(pos))
-        list_widget.customContextMenuRequested.emit(list_pos)
 
 
 def add_described_action_card(
@@ -193,6 +189,7 @@ def add_described_action_card(
     description: str,
     user_data: object,
     on_select: Callable[[], None] | None = None,
+    on_context_menu: Callable[[object, QPoint], None] | None = None,
 ) -> QListWidgetItem:
     """Append one described card with arbitrary `UserRole` payload."""
     metrics = described_card_metrics_of(list_widget)
@@ -213,7 +210,12 @@ def add_described_action_card(
         if on_select is not None:
             on_select()
 
+    def _on_card_context_menu(global_pos: QPoint, data: object = user_data) -> None:
+        if on_context_menu is not None:
+            on_context_menu(data, global_pos)
+
     card.selected.connect(_select)
+    card.context_menu_requested.connect(_on_card_context_menu)
     list_widget.setItemWidget(item, card)
     if card.content_height(metrics) > metrics.height:
         _apply_fitted_grid_height(list_widget, metrics)
