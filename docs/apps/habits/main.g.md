@@ -18,6 +18,7 @@ lang: en
   - [⚙️ Method `keyPressEvent`](#%EF%B8%8F-method-keypressevent)
   - [⚙️ Method `load_process_habits_table`](#%EF%B8%8F-method-load_process_habits_table)
   - [⚙️ Method `on_add_habit`](#%EF%B8%8F-method-on_add_habit)
+  - [⚙️ Method `on_choose_habit_emoji`](#%EF%B8%8F-method-on_choose_habit_emoji)
   - [⚙️ Method `on_export_habits_csv`](#%EF%B8%8F-method-on_export_habits_csv)
   - [⚙️ Method `on_habit_filter_clicked`](#%EF%B8%8F-method-on_habit_filter_clicked)
   - [⚙️ Method `on_habit_filter_selection_changed`](#%EF%B8%8F-method-on_habit_filter_selection_changed)
@@ -131,7 +132,7 @@ class MainWindow(
 
         # Table configuration mapping
         self.table_config: dict[str, tuple[QTableView, str, list[str]]] = {
-            "habits": (self.tableView_habits, "habits", ["Habit", "Is Boolean", "Is Archived"]),
+            "habits": (self.tableView_habits, "habits", ["Habit", "Emoji", "Is Boolean", "Is Archived"]),
             "process_habits": (
                 self.tableView_process_habits,
                 "process_habits",
@@ -462,11 +463,10 @@ class MainWindow(
                 process_habits_header.resizeSection(col_idx, _min_habit_value_column_width)
 
     @requires_database()
-    @requires_database()
-    @requires_database()
     def on_add_habit(self) -> None:
         """Insert a new habit using database manager."""
         habit_name = self.lineEdit_habit_name.text().strip()
+        emoji = self.lineEdit_habit_emoji.text().strip()
         is_bool = self.checkBox_habit_is_bool.isChecked() or None
 
         if not habit_name:
@@ -478,14 +478,21 @@ class MainWindow(
             return
 
         try:
-            if self.db_manager.add_habit(habit_name, is_bool=is_bool):
+            if self.db_manager.add_habit(habit_name, is_bool=is_bool, emoji=emoji):
                 self.update_all()
                 self.lineEdit_habit_name.clear()
+                self.lineEdit_habit_emoji.clear()
                 self.checkBox_habit_is_bool.setChecked(False)
             else:
                 message_box.warning(self, "Error", "Failed to add habit")
         except Exception as e:
             message_box.warning(self, "Database Error", f"Failed to add habit: {e}")
+
+    def on_choose_habit_emoji(self) -> None:
+        """Open emoji picker for the Add Habit form."""
+        dialog = HabitEmojiPickerDialog(self, current_emoji=self.lineEdit_habit_emoji.text().strip())
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            self.lineEdit_habit_emoji.setText(dialog.selected_emoji())
 
     @requires_database()
     @requires_database()
@@ -706,11 +713,13 @@ class MainWindow(
                         is_bool_value = row[2] if len(row) > min_habit_row_length else None
                         is_bool_str = "Yes" if is_bool_value == 1 else ("No" if is_bool_value == 0 else "")
                         archived_idx = 3
+                        emoji_idx = 4
                         is_archived_value = row[archived_idx] if len(row) > archived_idx else 0
                         is_archived_str = "Yes" if is_archived_value == 1 else "No"
                         habit_name = row[1] or ""
                         habit_id = row[0] if row[0] is not None else 0
-                        transformed_row = [habit_name, is_bool_str, is_archived_str, habit_id, light_blue]
+                        emoji = str(row[emoji_idx]) if len(row) > emoji_idx and row[emoji_idx] else ""
+                        transformed_row = [habit_name, emoji, is_bool_str, is_archived_str, habit_id, light_blue]
                         habits_transformed_data.append(transformed_row)
                     except Exception:
                         logger.exception("Error processing habit row")
@@ -778,12 +787,15 @@ class MainWindow(
                         is_bool_value = row[2] if len(row) > min_habit_row_length else None
                         is_bool_str = "Yes" if is_bool_value == 1 else ("No" if is_bool_value == 0 else "")
                         archived_idx = 3
+                        emoji_idx = 4
                         is_archived_value = row[archived_idx] if len(row) > archived_idx else 0
                         is_archived_str = "Yes" if is_archived_value == 1 else "No"
                         habit_name = row[1] or ""
                         habit_id = row[0] if row[0] is not None else 0
+                        emoji = str(row[emoji_idx]) if len(row) > emoji_idx and row[emoji_idx] else ""
                         transformed_row = [
                             habit_name,
+                            emoji,
                             is_bool_str,
                             is_archived_str,
                             habit_id,
@@ -1315,6 +1327,7 @@ class MainWindow(
         header.setSectionResizeMode(0, header.ResizeMode.Stretch)
         header.setSectionResizeMode(1, header.ResizeMode.ResizeToContents)
         header.setSectionResizeMode(2, header.ResizeMode.ResizeToContents)
+        header.setSectionResizeMode(3, header.ResizeMode.ResizeToContents)
 
     @requires_database(is_show_warning=False)
     @requires_database()
@@ -1344,6 +1357,7 @@ class MainWindow(
                     refresh_button.clicked.connect(self.refresh_habits_and_process_habits)
 
         self.pushButton_habit_add_new.clicked.connect(self.on_add_habit)
+        self.pushButton_habit_choose_emoji.clicked.connect(self.on_choose_habit_emoji)
         self.pushButton_habits_show_all_records.clicked.connect(self.on_toggle_show_all_habits_records)
         self.pushButton_habits_export_csv.clicked.connect(self.on_export_habits_csv)
 
@@ -1528,10 +1542,12 @@ class MainWindow(
 
     def _init_habits_table_delegates(self) -> None:
         """Install delegates for habits table columns."""
-        # Column indexes in habits table: 0=Habit, 1=Is Boolean, 2=Is Archived
+        # Column indexes: 0=Habit, 1=Emoji, 2=Is Boolean, 3=Is Archived
+        emoji_delegate = HabitEmojiDelegate(self.tableView_habits)
         yes_no_delegate = YesNoComboDelegate(self.tableView_habits)
-        self.tableView_habits.setItemDelegateForColumn(1, yes_no_delegate)
+        self.tableView_habits.setItemDelegateForColumn(1, emoji_delegate)
         self.tableView_habits.setItemDelegateForColumn(2, yes_no_delegate)
+        self.tableView_habits.setItemDelegateForColumn(3, yes_no_delegate)
 
     def _init_habits_year_list(self) -> None:
         """Initialize the habits year list view with a model and connect signals."""
@@ -1885,11 +1901,13 @@ class MainWindow(
                         is_bool_value = row[2] if len(row) > min_habit_row_length else None
                         is_bool_str = "Yes" if is_bool_value == 1 else ("No" if is_bool_value == 0 else "")
                         archived_idx = 3
+                        emoji_idx = 4
                         is_archived_value = row[archived_idx] if len(row) > archived_idx else 0
                         is_archived_str = "Yes" if is_archived_value == 1 else "No"
                         habit_name = row[1] or ""
                         habit_id = row[0] if row[0] is not None else 0
-                        transformed_row = [habit_name, is_bool_str, is_archived_str, habit_id, light_blue]
+                        emoji = str(row[emoji_idx]) if len(row) > emoji_idx and row[emoji_idx] else ""
+                        transformed_row = [habit_name, emoji, is_bool_str, is_archived_str, habit_id, light_blue]
                         habits_transformed_data.append(transformed_row)
                     except Exception:
                         logger.exception("Error processing habit row")
@@ -1971,7 +1989,7 @@ def __init__(self, *, hide_on_close: bool = False) -> None:  # noqa: D107  (inhe
 
         # Table configuration mapping
         self.table_config: dict[str, tuple[QTableView, str, list[str]]] = {
-            "habits": (self.tableView_habits, "habits", ["Habit", "Is Boolean", "Is Archived"]),
+            "habits": (self.tableView_habits, "habits", ["Habit", "Emoji", "Is Boolean", "Is Archived"]),
             "process_habits": (
                 self.tableView_process_habits,
                 "process_habits",
@@ -2364,6 +2382,7 @@ Insert a new habit using database manager.
 ```python
 def on_add_habit(self) -> None:
         habit_name = self.lineEdit_habit_name.text().strip()
+        emoji = self.lineEdit_habit_emoji.text().strip()
         is_bool = self.checkBox_habit_is_bool.isChecked() or None
 
         if not habit_name:
@@ -2375,14 +2394,35 @@ def on_add_habit(self) -> None:
             return
 
         try:
-            if self.db_manager.add_habit(habit_name, is_bool=is_bool):
+            if self.db_manager.add_habit(habit_name, is_bool=is_bool, emoji=emoji):
                 self.update_all()
                 self.lineEdit_habit_name.clear()
+                self.lineEdit_habit_emoji.clear()
                 self.checkBox_habit_is_bool.setChecked(False)
             else:
                 message_box.warning(self, "Error", "Failed to add habit")
         except Exception as e:
             message_box.warning(self, "Database Error", f"Failed to add habit: {e}")
+```
+
+</details>
+
+### ⚙️ Method `on_choose_habit_emoji`
+
+```python
+def on_choose_habit_emoji(self) -> None
+```
+
+Open emoji picker for the Add Habit form.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def on_choose_habit_emoji(self) -> None:
+        dialog = HabitEmojiPickerDialog(self, current_emoji=self.lineEdit_habit_emoji.text().strip())
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            self.lineEdit_habit_emoji.setText(dialog.selected_emoji())
 ```
 
 </details>
@@ -2707,11 +2747,13 @@ def refresh_habits_and_process_habits(self) -> None:
                         is_bool_value = row[2] if len(row) > min_habit_row_length else None
                         is_bool_str = "Yes" if is_bool_value == 1 else ("No" if is_bool_value == 0 else "")
                         archived_idx = 3
+                        emoji_idx = 4
                         is_archived_value = row[archived_idx] if len(row) > archived_idx else 0
                         is_archived_str = "Yes" if is_archived_value == 1 else "No"
                         habit_name = row[1] or ""
                         habit_id = row[0] if row[0] is not None else 0
-                        transformed_row = [habit_name, is_bool_str, is_archived_str, habit_id, light_blue]
+                        emoji = str(row[emoji_idx]) if len(row) > emoji_idx and row[emoji_idx] else ""
+                        transformed_row = [habit_name, emoji, is_bool_str, is_archived_str, habit_id, light_blue]
                         habits_transformed_data.append(transformed_row)
                     except Exception:
                         logger.exception("Error processing habit row")
@@ -2816,12 +2858,15 @@ def show_tables(self) -> None:
                         is_bool_value = row[2] if len(row) > min_habit_row_length else None
                         is_bool_str = "Yes" if is_bool_value == 1 else ("No" if is_bool_value == 0 else "")
                         archived_idx = 3
+                        emoji_idx = 4
                         is_archived_value = row[archived_idx] if len(row) > archived_idx else 0
                         is_archived_str = "Yes" if is_archived_value == 1 else "No"
                         habit_name = row[1] or ""
                         habit_id = row[0] if row[0] is not None else 0
+                        emoji = str(row[emoji_idx]) if len(row) > emoji_idx and row[emoji_idx] else ""
                         transformed_row = [
                             habit_name,
+                            emoji,
                             is_bool_str,
                             is_archived_str,
                             habit_id,
@@ -2901,7 +2946,7 @@ Update the habit calendar heatmap using database manager.
 
 Args:
 
-- `habit_name` (`str | None`): Name of the habit to display. If `None`, uses selected habit from
+- [`habit_name`](habit_edit_dialog.g.md#%EF%B8%8F-method-habit_name) (`str | None`): Name of the habit to display. If `None`, uses selected habit from
 
 `listView_filter_habit`.
 

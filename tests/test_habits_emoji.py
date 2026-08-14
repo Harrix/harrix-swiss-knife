@@ -1,0 +1,112 @@
+"""Tests for habits emoji storage, migration, and helpers."""
+
+from __future__ import annotations
+
+from collections.abc import Iterator
+from pathlib import Path
+
+import pytest
+from PySide6.QtWidgets import QApplication
+
+from harrix_swiss_knife.apps.habits.database_manager import DatabaseManager
+from harrix_swiss_knife.apps.habits.habit_emojis import default_habit_emoji, normalize_habit_emoji
+
+RECOVER_SQL = Path(__file__).resolve().parents[1] / "src/harrix_swiss_knife/apps/habits/recover.sql"
+
+_OLD_HABITS_SCHEMA = """
+CREATE TABLE "habits" (
+    "_id" INTEGER NOT NULL,
+    "name" TEXT NOT NULL,
+    "is_bool" INTEGER,
+    "is_archived" INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY("_id" AUTOINCREMENT)
+);
+CREATE TABLE "process_habits" (
+    "_id" INTEGER NOT NULL,
+    "_id_habit" INTEGER NOT NULL,
+    "value" INTEGER NOT NULL,
+    "date" TEXT NOT NULL,
+    PRIMARY KEY("_id" AUTOINCREMENT)
+);
+"""
+
+
+@pytest.fixture
+def qapp() -> QApplication:
+    """Ensure a QApplication exists for Qt SQL drivers."""
+    app = QApplication.instance()
+    if app is None:
+        return QApplication([])
+    if not isinstance(app, QApplication):
+        msg = "QApplication.instance() returned a non-QApplication object."
+        raise TypeError(msg)
+    return app
+
+
+@pytest.fixture
+def habits_db(tmp_path: Path, qapp: QApplication) -> Iterator[DatabaseManager]:  # noqa: ARG001
+    """Create an empty habits SQLite database for tests."""
+    db_path = tmp_path / "habits.sqlite"
+    assert DatabaseManager.create_database_from_sql(str(db_path), str(RECOVER_SQL))
+    db = DatabaseManager(str(db_path))
+    yield db
+    db.close()
+
+
+def test_default_habit_emoji_is_stable() -> None:
+    """Preset emoji for a habit ID stays deterministic."""
+    assert default_habit_emoji(1) == default_habit_emoji(1)
+    assert normalize_habit_emoji("") == default_habit_emoji(0)
+    assert normalize_habit_emoji(" 🏃 ", habit_id=1) == "🏃"
+
+
+def test_add_habit_with_emoji(habits_db: DatabaseManager) -> None:
+    """Insert stores the provided emoji and returns it in getters."""
+    assert habits_db.add_habit("Walk", is_bool=True, emoji="🚶")
+    row = habits_db.get_habits()[0]
+    assert len(row) == 5
+    assert row[1] == "Walk"
+    assert row[4] == "🚶"
+    by_id = habits_db.get_habit_by_id(int(row[0]))
+    assert by_id is not None
+    assert by_id[4] == "🚶"
+
+
+def test_add_habit_assigns_default_emoji_when_empty(habits_db: DatabaseManager) -> None:
+    """Empty emoji is replaced with a stable preset after insert."""
+    assert habits_db.add_habit("Read", is_bool=True)
+    row = habits_db.get_habits()[0]
+    habit_id = int(row[0])
+    assert row[4] == default_habit_emoji(habit_id)
+
+
+def test_update_habit_emoji(habits_db: DatabaseManager) -> None:
+    """Update can change the habit emoji."""
+    assert habits_db.add_habit("Meditate", is_bool=True, emoji="🧘")
+    habit_id = int(habits_db.get_habits()[0][0])
+    assert habits_db.update_habit(habit_id, "Meditate", is_bool=True, emoji="💤")
+    updated = habits_db.get_habit_by_id(habit_id)
+    assert updated is not None
+    assert updated[4] == "💤"
+
+
+def test_ensure_habits_schema_adds_and_backfills_emoji(tmp_path: Path, qapp: QApplication) -> None:  # noqa: ARG001
+    """Migration adds emoji column and fills existing habits."""
+    sql_path = tmp_path / "old_habits.sql"
+    sql_path.write_text(_OLD_HABITS_SCHEMA, encoding="utf-8")
+    db_path = tmp_path / "old_habits.sqlite"
+    assert DatabaseManager.create_database_from_sql(str(db_path), str(sql_path))
+    db = DatabaseManager(str(db_path))
+    try:
+        assert db.execute_simple_query(
+            "INSERT INTO habits (name, is_bool, is_archived) VALUES (:name, :is_bool, :is_archived)",
+            {"name": "Old Habit", "is_bool": 1, "is_archived": 0},
+        )
+        assert db.ensure_habits_schema()
+        cols = {str(row[1]) for row in db.get_rows("PRAGMA table_info(habits)") if len(row) > 1}
+        assert "emoji" in cols
+        row = db.get_habits()[0]
+        habit_id = int(row[0])
+        assert row[4] == default_habit_emoji(habit_id)
+    finally:
+        db.close()

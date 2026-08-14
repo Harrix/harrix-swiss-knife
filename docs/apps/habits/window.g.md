@@ -44,6 +44,9 @@ class Ui_MainWindow(object):
         self.pushButton_habits_export_csv.setText(QCoreApplication.translate("MainWindow", u"Export Table", None))
         self.groupBox_habits_2.setTitle(QCoreApplication.translate("MainWindow", u"Add New Habit", None))
         self.label_habits_5.setText(QCoreApplication.translate("MainWindow", u"Name:", None))
+        self.label_habit_emoji.setText(QCoreApplication.translate("MainWindow", u"Emoji:", None))
+        self.lineEdit_habit_emoji.setPlaceholderText(QCoreApplication.translate("MainWindow", u"Emoji", None))
+        self.pushButton_habit_choose_emoji.setText(QCoreApplication.translate("MainWindow", u"Choose\u2026", None))
         self.checkBox_habit_is_bool.setText(QCoreApplication.translate("MainWindow", u"Boolean (0 or 1 only)", None))
         self.pushButton_habit_add_new.setText(QCoreApplication.translate("MainWindow", u"Add", None))
         self.groupBox_habits_7.setTitle(QCoreApplication.translate("MainWindow", u"Commands", None))
@@ -151,6 +154,33 @@ class Ui_MainWindow(object):
 
 
         self.verticalLayout_habits_10.addLayout(self.horizontalLayout_habits_17)
+
+        self.horizontalLayout_habit_emoji = QHBoxLayout()
+        self.horizontalLayout_habit_emoji.setObjectName(u"horizontalLayout_habit_emoji")
+        self.label_habit_emoji = QLabel(self.groupBox_habits_2)
+        self.label_habit_emoji.setObjectName(u"label_habit_emoji")
+        self.label_habit_emoji.setMinimumSize(QSize(111, 0))
+
+        self.horizontalLayout_habit_emoji.addWidget(self.label_habit_emoji)
+
+        self.lineEdit_habit_emoji = QLineEdit(self.groupBox_habits_2)
+        self.lineEdit_habit_emoji.setObjectName(u"lineEdit_habit_emoji")
+        self.lineEdit_habit_emoji.setMaximumSize(QSize(80, 16777215))
+        self.lineEdit_habit_emoji.setMaxLength(16)
+
+        self.horizontalLayout_habit_emoji.addWidget(self.lineEdit_habit_emoji)
+
+        self.pushButton_habit_choose_emoji = QPushButton(self.groupBox_habits_2)
+        self.pushButton_habit_choose_emoji.setObjectName(u"pushButton_habit_choose_emoji")
+
+        self.horizontalLayout_habit_emoji.addWidget(self.pushButton_habit_choose_emoji)
+
+        self.horizontalSpacer_habit_emoji = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+
+        self.horizontalLayout_habit_emoji.addItem(self.horizontalSpacer_habit_emoji)
+
+
+        self.verticalLayout_habits_10.addLayout(self.horizontalLayout_habit_emoji)
 
         self.checkBox_habit_is_bool = QCheckBox(self.groupBox_habits_2)
         self.checkBox_habit_is_bool.setObjectName(u"checkBox_habit_is_bool")
@@ -309,6 +339,9 @@ def retranslateUi(self, MainWindow):
         self.pushButton_habits_export_csv.setText(QCoreApplication.translate("MainWindow", u"Export Table", None))
         self.groupBox_habits_2.setTitle(QCoreApplication.translate("MainWindow", u"Add New Habit", None))
         self.label_habits_5.setText(QCoreApplication.translate("MainWindow", u"Name:", None))
+        self.label_habit_emoji.setText(QCoreApplication.translate("MainWindow", u"Emoji:", None))
+        self.lineEdit_habit_emoji.setPlaceholderText(QCoreApplication.translate("MainWindow", u"Emoji", None))
+        self.pushButton_habit_choose_emoji.setText(QCoreApplication.translate("MainWindow", u"Choose\u2026", None))
         self.checkBox_habit_is_bool.setText(QCoreApplication.translate("MainWindow", u"Boolean (0 or 1 only)", None))
         self.pushButton_habit_add_new.setText(QCoreApplication.translate("MainWindow", u"Add", None))
         self.groupBox_habits_7.setTitle(QCoreApplication.translate("MainWindow", u"Commands", None))
@@ -432,6 +465,33 @@ def setupUi(self, MainWindow):
 
 
         self.verticalLayout_habits_10.addLayout(self.horizontalLayout_habits_17)
+
+        self.horizontalLayout_habit_emoji = QHBoxLayout()
+        self.horizontalLayout_habit_emoji.setObjectName(u"horizontalLayout_habit_emoji")
+        self.label_habit_emoji = QLabel(self.groupBox_habits_2)
+        self.label_habit_emoji.setObjectName(u"label_habit_emoji")
+        self.label_habit_emoji.setMinimumSize(QSize(111, 0))
+
+        self.horizontalLayout_habit_emoji.addWidget(self.label_habit_emoji)
+
+        self.lineEdit_habit_emoji = QLineEdit(self.groupBox_habits_2)
+        self.lineEdit_habit_emoji.setObjectName(u"lineEdit_habit_emoji")
+        self.lineEdit_habit_emoji.setMaximumSize(QSize(80, 16777215))
+        self.lineEdit_habit_emoji.setMaxLength(16)
+
+        self.horizontalLayout_habit_emoji.addWidget(self.lineEdit_habit_emoji)
+
+        self.pushButton_habit_choose_emoji = QPushButton(self.groupBox_habits_2)
+        self.pushButton_habit_choose_emoji.setObjectName(u"pushButton_habit_choose_emoji")
+
+        self.horizontalLayout_habit_emoji.addWidget(self.pushButton_habit_choose_emoji)
+
+        self.horizontalSpacer_habit_emoji = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+
+        self.horizontalLayout_habit_emoji.addItem(self.horizontalSpacer_habit_emoji)
+
+
+        self.verticalLayout_habits_10.addLayout(self.horizontalLayout_habit_emoji)
 
         self.checkBox_habit_is_bool = QCheckBox(self.groupBox_habits_2)
         self.checkBox_habit_is_bool.setObjectName(u"checkBox_habit_is_bool")

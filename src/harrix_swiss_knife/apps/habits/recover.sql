@@ -3,6 +3,7 @@ CREATE TABLE "habits" (
 	"name"	TEXT NOT NULL,
 	"is_bool"	INTEGER,
 	"is_archived"	INTEGER NOT NULL DEFAULT 0,
+	"emoji"	TEXT NOT NULL DEFAULT '',
 	PRIMARY KEY("_id" AUTOINCREMENT)
 );
 

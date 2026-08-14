@@ -9,10 +9,10 @@ from typing import TYPE_CHECKING
 
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
+    QDialog,
     QFrame,
     QGridLayout,
     QHBoxLayout,
-    QInputDialog,
     QLabel,
     QMenu,
     QMessageBox,
@@ -36,11 +36,17 @@ from harrix_swiss_knife.apps.habits.dashboard_widgets import (
     WeekDayHeader,
     weekday_short,
 )
+from harrix_swiss_knife.apps.habits.habit_edit_dialog import HabitEditDialog
+from harrix_swiss_knife.apps.habits.habit_emojis import normalize_habit_emoji
 
 if TYPE_CHECKING:
     from harrix_swiss_knife.apps.habits.database_manager import DatabaseManager
 
 logger = logging.getLogger(__name__)
+
+_EMOJI_COLUMN = 4
+_IS_BOOL_COLUMN = 2
+_NAME_COLUMN = 1
 
 
 class HabitDashboardWidget(QWidget):
@@ -65,23 +71,10 @@ class HabitDashboardWidget(QWidget):
         """Prompt for a habit and add it to the database."""
         if self._db is None:
             return
-        name, ok = QInputDialog.getText(self, "Add Habit", "Habit name:")
-        if not ok:
+        dialog = HabitEditDialog(self, title="Add Habit")
+        if dialog.exec() != QDialog.DialogCode.Accepted:
             return
-        name = name.strip()
-        if not name:
-            return
-        is_bool = (
-            QMessageBox.question(
-                self,
-                "Habit Type",
-                "Treat as boolean (done / not done) habit?",
-                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-                QMessageBox.StandardButton.Yes,
-            )
-            == QMessageBox.StandardButton.Yes
-        )
-        if self._db.add_habit(name, is_bool=is_bool):
+        if self._db.add_habit(dialog.habit_name(), is_bool=dialog.habit_is_bool(), emoji=dialog.habit_emoji()):
             self.refresh()
             self.data_changed.emit()
         else:
@@ -235,6 +228,39 @@ class HabitDashboardWidget(QWidget):
                 widget.deleteLater()
         self._habit_rows.clear()
 
+    def _edit_selected_habit(self) -> None:
+        if self._db is None or self._selected_habit_id is None:
+            return
+        habit = self._db.get_habit_by_id(self._selected_habit_id)
+        if habit is None:
+            return
+        habit_id = int(habit[0])
+        name = str(habit[_NAME_COLUMN] or "")
+        is_bool = bool(habit[_IS_BOOL_COLUMN] == 1) if len(habit) > _IS_BOOL_COLUMN else True
+        emoji = normalize_habit_emoji(
+            str(habit[_EMOJI_COLUMN]) if len(habit) > _EMOJI_COLUMN else "", habit_id=habit_id
+        )
+        dialog = HabitEditDialog(
+            self,
+            title="Edit Habit",
+            name=name,
+            is_bool=is_bool,
+            emoji=emoji,
+            habit_id=habit_id,
+        )
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+        if self._db.update_habit(
+            habit_id,
+            dialog.habit_name(),
+            is_bool=dialog.habit_is_bool(),
+            emoji=dialog.habit_emoji(),
+        ):
+            self.refresh()
+            self.data_changed.emit()
+        else:
+            QMessageBox.warning(self, "Database Error", "Failed to update habit.")
+
     def _on_calendar_day_toggled(self, date_str: str) -> None:
         if self._db is None or self._selected_habit_id is None:
             return
@@ -249,11 +275,14 @@ class HabitDashboardWidget(QWidget):
         if self._db is None or self._selected_habit_id is None:
             return
         menu = QMenu(self)
+        act_edit = menu.addAction("Edit habit")
         act_archive = menu.addAction("Archive habit")
         act_delete = menu.addAction("Delete habit")
         chosen = menu.exec_(self._detail_more.mapToGlobal(self._detail_more.rect().bottomLeft()))
         habit_id = self._selected_habit_id
-        if chosen == act_archive:
+        if chosen == act_edit:
+            self._edit_selected_habit()
+        elif chosen == act_archive:
             if self._db.set_habit_archived(habit_id, is_archived=True):
                 self._selected_habit_id = None
                 self.refresh()
@@ -287,7 +316,12 @@ class HabitDashboardWidget(QWidget):
                 self._db.is_habit_done_on_date(hid, d.isoformat()) if self._db else False for d in self._week_dates
             ]
             habit = self._db.get_habit_by_id(hid) if self._db else None
-            name = str(habit[1]) if habit else ""
+            name = str(habit[_NAME_COLUMN]) if habit else ""
+            emoji = (
+                normalize_habit_emoji(str(habit[_EMOJI_COLUMN]) if len(habit) > _EMOJI_COLUMN else "", habit_id=hid)
+                if habit
+                else ""
+            )
             total = self._db.get_habit_total_checkins(hid) if self._db else 0
             streak = self._db.get_habit_streak(hid) if self._db else 0
             row.set_habit_data(
@@ -297,6 +331,7 @@ class HabitDashboardWidget(QWidget):
                 streak,
                 week_done,
                 selected=hid == habit_id,
+                emoji=emoji,
             )
         self._refresh_detail()
 
@@ -326,7 +361,11 @@ class HabitDashboardWidget(QWidget):
 
         for row in habits:
             habit_id = int(row[0])
-            name = str(row[1])
+            name = str(row[_NAME_COLUMN])
+            emoji = normalize_habit_emoji(
+                str(row[_EMOJI_COLUMN]) if len(row) > _EMOJI_COLUMN else "",
+                habit_id=habit_id,
+            )
             total_days = self._db.get_habit_total_checkins(habit_id)
             streak = self._db.get_habit_streak(habit_id)
             week_done = [self._db.is_habit_done_on_date(habit_id, d.isoformat()) for d in self._week_dates]
@@ -338,6 +377,7 @@ class HabitDashboardWidget(QWidget):
                 streak,
                 week_done,
                 selected=habit_id == self._selected_habit_id,
+                emoji=emoji,
             )
             habit_row.selected.connect(self._on_habit_selected)
             habit_row.day_toggled.connect(self._on_week_day_toggled)
@@ -355,8 +395,12 @@ class HabitDashboardWidget(QWidget):
             return
 
         habit_id = int(habit[0])
-        name = str(habit[1])
-        self._detail_icon.set_habit(habit_id)
+        name = str(habit[_NAME_COLUMN])
+        emoji = normalize_habit_emoji(
+            str(habit[_EMOJI_COLUMN]) if len(habit) > _EMOJI_COLUMN else "",
+            habit_id=habit_id,
+        )
+        self._detail_icon.set_habit(habit_id, emoji)
         self._detail_name.setText(name)
 
         year, month = self._calendar_year, self._calendar_month

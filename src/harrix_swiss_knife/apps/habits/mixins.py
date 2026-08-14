@@ -53,8 +53,9 @@ class AutoSaveOperations(AutoSaveMixin):
 
         """
         name = model.data(model.index(row, 0)) or ""
-        is_bool_str = model.data(model.index(row, 1)) or ""
-        is_archived_str = model.data(model.index(row, 2)) or ""
+        emoji = model.data(model.index(row, 1)) or ""
+        is_bool_str = model.data(model.index(row, 2)) or ""
+        is_archived_str = model.data(model.index(row, 3)) or ""
 
         # Validate habit name
         if not name.strip():
@@ -74,7 +75,13 @@ class AutoSaveOperations(AutoSaveMixin):
         is_archived = is_archived_str == "Yes"
 
         # Update database
-        if not self.db_manager.update_habit(int(row_id), name.strip(), is_bool=is_bool, is_archived=is_archived):
+        if not self.db_manager.update_habit(
+            int(row_id),
+            name.strip(),
+            is_bool=is_bool,
+            is_archived=is_archived,
+            emoji=str(emoji).strip(),
+        ):
             message_box.warning(None, "Database Error", "Failed to save habit record")
 
     def _save_process_habits_data(

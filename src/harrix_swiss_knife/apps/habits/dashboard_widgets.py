@@ -18,6 +18,8 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from harrix_swiss_knife.apps.habits.habit_emojis import default_habit_emoji
+
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
@@ -43,17 +45,6 @@ HABIT_ICON_COLORS: tuple[QColor, ...] = (
     QColor("#DCFCE7"),  # green
     QColor("#FEF3C7"),  # amber
     QColor("#E0E7FF"),  # indigo
-)
-
-HABIT_ICON_GLYPHS: tuple[str, ...] = (
-    "★",
-    "✎",
-    "◆",
-    "●",
-    "▲",
-    "✦",
-    "◉",
-    "❖",
 )
 
 
@@ -145,9 +136,9 @@ class HabitIconBadge(QWidget):
         painter.drawText(self.rect(), Qt.AlignmentFlag.AlignCenter, self._glyph)
 
     def set_habit(self, habit_id: int, glyph: str | None = None) -> None:
-        """Style badge from habit ID."""
+        """Style badge from habit ID and optional stored emoji/glyph."""
         self._bg = habit_accent_color(habit_id)
-        self._glyph = glyph if glyph is not None else habit_glyph(habit_id)
+        self._glyph = glyph or habit_glyph(habit_id)
         self.update()
 
 
@@ -213,11 +204,12 @@ class HabitRow(QFrame):
         week_done: Sequence[bool],
         *,
         selected: bool,
+        emoji: str = "",
     ) -> None:
         """Populate row content."""
         self._habit_id = habit_id
         self._selected = selected
-        self._icon.set_habit(habit_id)
+        self._icon.set_habit(habit_id, emoji or None)
         self._name_label.setText(name)
         self._meta_label.setText(f"⚡ {total_days} Days   🔥 {streak_days} Days")
         for i, circle in enumerate(self._checks):
@@ -504,7 +496,7 @@ def habit_accent_color(habit_id: int) -> QColor:
 
 def habit_glyph(habit_id: int) -> str:
     """Return a simple glyph for a habit icon."""
-    return HABIT_ICON_GLYPHS[habit_id % len(HABIT_ICON_GLYPHS)]
+    return default_habit_emoji(habit_id)
 
 
 def weekday_short(weekday: int) -> str:

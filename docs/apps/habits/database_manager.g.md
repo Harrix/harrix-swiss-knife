@@ -72,25 +72,42 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         """
         super().__init__(prefix="habits_db", db_filename=db_filename)
 
-    def add_habit(self, name: str, *, is_bool: bool | None = None) -> bool:
+    def add_habit(self, name: str, *, is_bool: bool | None = None, emoji: str = "") -> bool:
         """Add a new habit to the database.
 
         Args:
 
         - `name` (`str`): Habit name.
         - `is_bool` (`bool | None`): Whether habit accepts only 0 or 1 values. Defaults to `None`.
+        - `emoji` (`str`): Habit emoji. Defaults to `""` (assigned after insert when empty).
 
         Returns:
 
         - `bool`: `True` if successful, `False` otherwise.
 
         """
-        query = "INSERT INTO habits (name, is_bool) VALUES (:name, :is_bool)"
+        cleaned_emoji = (emoji or "").strip()
+        query = "INSERT INTO habits (name, is_bool, emoji) VALUES (:name, :is_bool, :emoji)"
         params = {
             "name": name,
             "is_bool": 1 if is_bool is True else (0 if is_bool is False else None),
+            "emoji": cleaned_emoji,
         }
-        return self.execute_simple_query(query, params)
+        if not self.execute_simple_query(query, params):
+            return False
+        if cleaned_emoji:
+            return True
+        rows = self.get_rows(
+            "SELECT _id FROM habits WHERE name = :name ORDER BY _id DESC LIMIT 1",
+            {"name": name},
+        )
+        if not rows or rows[0][0] is None:
+            return True
+        habit_id = int(rows[0][0])
+        return self.execute_simple_query(
+            "UPDATE habits SET emoji = :emoji WHERE _id = :id",
+            {"emoji": default_habit_emoji(habit_id), "id": habit_id},
+        )
 
     def add_process_habit_record(self, habit_id: int, value: int, date: str) -> bool:
         """Add a new process habit record.
@@ -178,23 +195,28 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         try:
             cols = self.get_rows("PRAGMA table_info(habits)")
             existing = {str(row[1]) for row in cols if len(row) > 1 and row[1]}
-            if "is_archived" not in existing:
-                return self.execute_simple_query("ALTER TABLE habits ADD COLUMN is_archived INTEGER NOT NULL DEFAULT 0")
+            if "is_archived" not in existing and not self.execute_simple_query(
+                "ALTER TABLE habits ADD COLUMN is_archived INTEGER NOT NULL DEFAULT 0"
+            ):
+                return False
+            if "emoji" not in existing and not self.execute_simple_query(
+                "ALTER TABLE habits ADD COLUMN emoji TEXT NOT NULL DEFAULT ''"
+            ):
+                return False
+            return self._backfill_habit_emojis()
         except Exception:
             logger.exception("Failed to ensure habits schema")
             return False
-        else:
-            return True
 
     def get_all_habits(self) -> list[list[Any]]:
         r"""Get all habits with their properties.
 
         Returns:
 
-        - `list[list[Any]]`: List of habit records [\_id, name, is_bool, is_archived].
+        - `list[list[Any]]`: List of habit records [\_id, name, is_bool, is_archived, emoji].
 
         """
-        return self.get_rows("SELECT _id, name, is_bool, is_archived FROM habits")
+        return self.get_rows("SELECT _id, name, is_bool, is_archived, emoji FROM habits")
 
     def get_all_process_habits_records(self) -> list[list[Any]]:
         r"""Get all process habits records with habit names.
@@ -275,9 +297,9 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         return self.get_rows(query_text, params)
 
     def get_habit_by_id(self, habit_id: int) -> list[Any] | None:
-        """Return one habit row ``[_id, name, is_bool, is_archived]`` or ``None``."""
+        """Return one habit row ``[_id, name, is_bool, is_archived, emoji]`` or ``None``."""
         rows = self.get_rows(
-            "SELECT _id, name, is_bool, is_archived FROM habits WHERE _id = :id",
+            "SELECT _id, name, is_bool, is_archived, emoji FROM habits WHERE _id = :id",
             {"id": habit_id},
         )
         if rows:
@@ -391,7 +413,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         """Get habits with optional inclusion of archived ones."""
         if include_archived:
             return self.get_all_habits()
-        return self.get_rows("SELECT _id, name, is_bool, is_archived FROM habits WHERE is_archived = 0")
+        return self.get_rows("SELECT _id, name, is_bool, is_archived, emoji FROM habits WHERE is_archived = 0")
 
     def get_habits_years(self) -> list[int]:
         """Get distinct years from process_habits table in descending order.
@@ -494,6 +516,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         *,
         is_bool: bool | None = None,
         is_archived: bool | None = None,
+        emoji: str | None = None,
     ) -> bool:
         """Update an existing habit.
 
@@ -503,21 +526,26 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         - `name` (`str`): Habit name.
         - `is_bool` (`bool | None`): Whether habit accepts only 0 or 1 values. Defaults to `None`.
         - `is_archived` (`bool | None`): Whether habit is archived. Defaults to `None` (do not change).
+        - `emoji` (`str | None`): Habit emoji. Defaults to `None` (do not change).
 
         Returns:
 
         - `bool`: `True` if successful, `False` otherwise.
 
         """
-        query = "UPDATE habits SET name = :n, is_bool = :is_bool WHERE _id = :id"
-        params = {
+        fields = ["name = :n", "is_bool = :is_bool"]
+        params: dict[str, Any] = {
             "n": name,
             "is_bool": 1 if is_bool is True else (0 if is_bool is False else None),
             "id": habit_id,
         }
         if is_archived is not None:
-            query = "UPDATE habits SET name = :n, is_bool = :is_bool, is_archived = :is_archived WHERE _id = :id"
+            fields.append("is_archived = :is_archived")
             params["is_archived"] = 1 if is_archived else 0
+        if emoji is not None:
+            fields.append("emoji = :emoji")
+            params["emoji"] = normalize_habit_emoji(emoji, habit_id=habit_id)
+        query = f"UPDATE habits SET {', '.join(fields)} WHERE _id = :id"
         return self.execute_simple_query(query, params)
 
     def update_process_habit_record(self, record_id: int, habit_id: int, value: int, date: str) -> bool:
@@ -549,6 +577,20 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             "id": record_id,
         }
         return self.execute_simple_query(query, params)
+
+    def _backfill_habit_emojis(self) -> bool:
+        """Assign preset emoji to habits that still have an empty emoji value."""
+        rows = self.get_rows("SELECT _id FROM habits WHERE emoji IS NULL OR TRIM(emoji) = ''")
+        for row in rows:
+            if not row or row[0] is None:
+                continue
+            habit_id = int(row[0])
+            if not self.execute_simple_query(
+                "UPDATE habits SET emoji = :emoji WHERE _id = :id",
+                {"emoji": default_habit_emoji(habit_id), "id": habit_id},
+            ):
+                return False
+        return True
 ```
 
 </details>
@@ -582,7 +624,7 @@ def __init__(self, db_filename: str) -> None:
 ### ⚙️ Method `add_habit`
 
 ```python
-def add_habit(self, name: str, *, is_bool: bool | None = None) -> bool
+def add_habit(self, name: str, *, is_bool: bool | None = None, emoji: str = '') -> bool
 ```
 
 Add a new habit to the database.
@@ -591,6 +633,7 @@ Args:
 
 - `name` (`str`): Habit name.
 - `is_bool` (`bool | None`): Whether habit accepts only 0 or 1 values. Defaults to `None`.
+- `emoji` (`str`): Habit emoji. Defaults to `""` (assigned after insert when empty).
 
 Returns:
 
@@ -600,13 +643,29 @@ Returns:
 <summary>Code:</summary>
 
 ```python
-def add_habit(self, name: str, *, is_bool: bool | None = None) -> bool:
-        query = "INSERT INTO habits (name, is_bool) VALUES (:name, :is_bool)"
+def add_habit(self, name: str, *, is_bool: bool | None = None, emoji: str = "") -> bool:
+        cleaned_emoji = (emoji or "").strip()
+        query = "INSERT INTO habits (name, is_bool, emoji) VALUES (:name, :is_bool, :emoji)"
         params = {
             "name": name,
             "is_bool": 1 if is_bool is True else (0 if is_bool is False else None),
+            "emoji": cleaned_emoji,
         }
-        return self.execute_simple_query(query, params)
+        if not self.execute_simple_query(query, params):
+            return False
+        if cleaned_emoji:
+            return True
+        rows = self.get_rows(
+            "SELECT _id FROM habits WHERE name = :name ORDER BY _id DESC LIMIT 1",
+            {"name": name},
+        )
+        if not rows or rows[0][0] is None:
+            return True
+        habit_id = int(rows[0][0])
+        return self.execute_simple_query(
+            "UPDATE habits SET emoji = :emoji WHERE _id = :id",
+            {"emoji": default_habit_emoji(habit_id), "id": habit_id},
+        )
 ```
 
 </details>
@@ -756,13 +815,18 @@ def ensure_habits_schema(self) -> bool:
         try:
             cols = self.get_rows("PRAGMA table_info(habits)")
             existing = {str(row[1]) for row in cols if len(row) > 1 and row[1]}
-            if "is_archived" not in existing:
-                return self.execute_simple_query("ALTER TABLE habits ADD COLUMN is_archived INTEGER NOT NULL DEFAULT 0")
+            if "is_archived" not in existing and not self.execute_simple_query(
+                "ALTER TABLE habits ADD COLUMN is_archived INTEGER NOT NULL DEFAULT 0"
+            ):
+                return False
+            if "emoji" not in existing and not self.execute_simple_query(
+                "ALTER TABLE habits ADD COLUMN emoji TEXT NOT NULL DEFAULT ''"
+            ):
+                return False
+            return self._backfill_habit_emojis()
         except Exception:
             logger.exception("Failed to ensure habits schema")
             return False
-        else:
-            return True
 ```
 
 </details>
@@ -777,14 +841,14 @@ Get all habits with their properties.
 
 Returns:
 
-- `list[list[Any]]`: List of habit records [\_id, name, is_bool, is_archived].
+- `list[list[Any]]`: List of habit records [\_id, name, is_bool, is_archived, emoji].
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def get_all_habits(self) -> list[list[Any]]:
-        return self.get_rows("SELECT _id, name, is_bool, is_archived FROM habits")
+        return self.get_rows("SELECT _id, name, is_bool, is_archived, emoji FROM habits")
 ```
 
 </details>
@@ -854,7 +918,7 @@ Get filtered process habits records.
 
 Args:
 
-- `habit_name` (`str | None`): Filter by habit name. Defaults to `None`.
+- [`habit_name`](habit_edit_dialog.g.md#%EF%B8%8F-method-habit_name) (`str | None`): Filter by habit name. Defaults to `None`.
 - `date_from` (`str | None`): Filter from date (YYYY-MM-DD). Defaults to `None`.
 - `date_to` (`str | None`): Filter to date (YYYY-MM-DD). Defaults to `None`.
 
@@ -909,7 +973,7 @@ def get_filtered_process_habits_records(
 def get_habit_by_id(self, habit_id: int) -> list[Any] | None
 ```
 
-Return one habit row ``[_id, name, is_bool, is_archived]`` or ``None``.
+Return one habit row ``[_id, name, is_bool, is_archived, emoji]`` or ``None``.
 
 <details>
 <summary>Code:</summary>
@@ -917,7 +981,7 @@ Return one habit row ``[_id, name, is_bool, is_archived]`` or ``None``.
 ```python
 def get_habit_by_id(self, habit_id: int) -> list[Any] | None:
         rows = self.get_rows(
-            "SELECT _id, name, is_bool, is_archived FROM habits WHERE _id = :id",
+            "SELECT _id, name, is_bool, is_archived, emoji FROM habits WHERE _id = :id",
             {"id": habit_id},
         )
         if rows:
@@ -937,7 +1001,7 @@ Get habit data for calendar heatmap visualization.
 
 Args:
 
-- `habit_name` (`str`): Habit name.
+- [`habit_name`](habit_edit_dialog.g.md#%EF%B8%8F-method-habit_name) (`str`): Habit name.
 - `date_from` (`str | None`): From date (YYYY-MM-DD). Defaults to `None`.
 - `date_to` (`str | None`): To date (YYYY-MM-DD). Defaults to `None`.
 
@@ -1097,7 +1161,7 @@ Get habits with optional inclusion of archived ones.
 def get_habits(self, *, include_archived: bool = False) -> list[list[Any]]:
         if include_archived:
             return self.get_all_habits()
-        return self.get_rows("SELECT _id, name, is_bool, is_archived FROM habits WHERE is_archived = 0")
+        return self.get_rows("SELECT _id, name, is_bool, is_archived, emoji FROM habits WHERE is_archived = 0")
 ```
 
 </details>
@@ -1263,7 +1327,7 @@ def toggle_habit_checkin(self, habit_id: int, date_str: str) -> bool:
 ### ⚙️ Method `update_habit`
 
 ```python
-def update_habit(self, habit_id: int, name: str, *, is_bool: bool | None = None, is_archived: bool | None = None) -> bool
+def update_habit(self, habit_id: int, name: str, *, is_bool: bool | None = None, is_archived: bool | None = None, emoji: str | None = None) -> bool
 ```
 
 Update an existing habit.
@@ -1274,6 +1338,7 @@ Args:
 - `name` (`str`): Habit name.
 - `is_bool` (`bool | None`): Whether habit accepts only 0 or 1 values. Defaults to `None`.
 - `is_archived` (`bool | None`): Whether habit is archived. Defaults to `None` (do not change).
+- `emoji` (`str | None`): Habit emoji. Defaults to `None` (do not change).
 
 Returns:
 
@@ -1290,16 +1355,21 @@ def update_habit(
         *,
         is_bool: bool | None = None,
         is_archived: bool | None = None,
+        emoji: str | None = None,
     ) -> bool:
-        query = "UPDATE habits SET name = :n, is_bool = :is_bool WHERE _id = :id"
-        params = {
+        fields = ["name = :n", "is_bool = :is_bool"]
+        params: dict[str, Any] = {
             "n": name,
             "is_bool": 1 if is_bool is True else (0 if is_bool is False else None),
             "id": habit_id,
         }
         if is_archived is not None:
-            query = "UPDATE habits SET name = :n, is_bool = :is_bool, is_archived = :is_archived WHERE _id = :id"
+            fields.append("is_archived = :is_archived")
             params["is_archived"] = 1 if is_archived else 0
+        if emoji is not None:
+            fields.append("emoji = :emoji")
+            params["emoji"] = normalize_habit_emoji(emoji, habit_id=habit_id)
+        query = f"UPDATE habits SET {', '.join(fields)} WHERE _id = :id"
         return self.execute_simple_query(query, params)
 ```
 

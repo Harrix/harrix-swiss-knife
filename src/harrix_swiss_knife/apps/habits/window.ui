@@ -172,6 +172,59 @@
                 </layout>
                </item>
                <item>
+                <layout class="QHBoxLayout" name="horizontalLayout_habit_emoji">
+                 <item>
+                  <widget class="QLabel" name="label_habit_emoji">
+                   <property name="minimumSize">
+                    <size>
+                     <width>111</width>
+                     <height>0</height>
+                    </size>
+                   </property>
+                   <property name="text">
+                    <string>Emoji:</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QLineEdit" name="lineEdit_habit_emoji">
+                   <property name="maximumSize">
+                    <size>
+                     <width>80</width>
+                     <height>16777215</height>
+                    </size>
+                   </property>
+                   <property name="maxLength">
+                    <number>16</number>
+                   </property>
+                   <property name="placeholderText">
+                    <string>Emoji</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QPushButton" name="pushButton_habit_choose_emoji">
+                   <property name="text">
+                    <string>Choose…</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <spacer name="horizontalSpacer_habit_emoji">
+                   <property name="orientation">
+                    <enum>Qt::Orientation::Horizontal</enum>
+                   </property>
+                   <property name="sizeHint" stdset="0">
+                    <size>
+                     <width>40</width>
+                     <height>20</height>
+                    </size>
+                   </property>
+                  </spacer>
+                 </item>
+                </layout>
+               </item>
+               <item>
                 <widget class="QCheckBox" name="checkBox_habit_is_bool">
                  <property name="text">
                   <string>Boolean (0 or 1 only)</string>

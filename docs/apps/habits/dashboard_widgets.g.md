@@ -282,9 +282,9 @@ class HabitIconBadge(QWidget):
         painter.drawText(self.rect(), Qt.AlignmentFlag.AlignCenter, self._glyph)
 
     def set_habit(self, habit_id: int, glyph: str | None = None) -> None:
-        """Style badge from habit ID."""
+        """Style badge from habit ID and optional stored emoji/glyph."""
         self._bg = habit_accent_color(habit_id)
-        self._glyph = glyph if glyph is not None else habit_glyph(habit_id)
+        self._glyph = glyph or habit_glyph(habit_id)
         self.update()
 ```
 
@@ -349,7 +349,7 @@ def paintEvent(self, _event: QPaintEvent) -> None:  # noqa: N802
 def set_habit(self, habit_id: int, glyph: str | None = None) -> None
 ```
 
-Style badge from habit ID.
+Style badge from habit ID and optional stored emoji/glyph.
 
 <details>
 <summary>Code:</summary>
@@ -357,7 +357,7 @@ Style badge from habit ID.
 ```python
 def set_habit(self, habit_id: int, glyph: str | None = None) -> None:
         self._bg = habit_accent_color(habit_id)
-        self._glyph = glyph if glyph is not None else habit_glyph(habit_id)
+        self._glyph = glyph or habit_glyph(habit_id)
         self.update()
 ```
 
@@ -436,11 +436,12 @@ class HabitRow(QFrame):
         week_done: Sequence[bool],
         *,
         selected: bool,
+        emoji: str = "",
     ) -> None:
         """Populate row content."""
         self._habit_id = habit_id
         self._selected = selected
-        self._icon.set_habit(habit_id)
+        self._icon.set_habit(habit_id, emoji or None)
         self._name_label.setText(name)
         self._meta_label.setText(f"⚡ {total_days} Days   🔥 {streak_days} Days")
         for i, circle in enumerate(self._checks):
@@ -561,7 +562,7 @@ def mousePressEvent(self, event: QMouseEvent) -> None:  # noqa: N802
 ### ⚙️ Method `set_habit_data`
 
 ```python
-def set_habit_data(self, habit_id: int, name: str, total_days: int, streak_days: int, week_done: Sequence[bool], *, selected: bool) -> None
+def set_habit_data(self, habit_id: int, name: str, total_days: int, streak_days: int, week_done: Sequence[bool], *, selected: bool, emoji: str = '') -> None
 ```
 
 Populate row content.
@@ -579,10 +580,11 @@ def set_habit_data(
         week_done: Sequence[bool],
         *,
         selected: bool,
+        emoji: str = "",
     ) -> None:
         self._habit_id = habit_id
         self._selected = selected
-        self._icon.set_habit(habit_id)
+        self._icon.set_habit(habit_id, emoji or None)
         self._name_label.setText(name)
         self._meta_label.setText(f"⚡ {total_days} Days   🔥 {streak_days} Days")
         for i, circle in enumerate(self._checks):
@@ -1238,7 +1240,7 @@ Return a simple glyph for a habit icon.
 
 ```python
 def habit_glyph(habit_id: int) -> str:
-    return HABIT_ICON_GLYPHS[habit_id % len(HABIT_ICON_GLYPHS)]
+    return default_habit_emoji(habit_id)
 ```
 
 </details>
