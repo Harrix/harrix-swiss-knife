@@ -51,9 +51,14 @@ class OnNpmManagePackages(ActionBase):
     @ActionBase.handle_exceptions("npm operations thread")
     def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
+        npm_executable = shutil.which("npm.cmd" if sys.platform == "win32" else "npm") or shutil.which("npm")
+        if npm_executable is None:
+            self.add_line("❌ NPM was not found on PATH. Install Node.js or add NPM to PATH.")
+            return "NPM packages management failed"
+
         # Update NPM itself first
         self.add_line("Updating NPM...")
-        result = h.dev.run_command(["npm", "update", "npm", "-g"])
+        result = self._run_npm(npm_executable, "update", "npm", "-g")
         self.add_line(result)
 
         # Install/update all configured packages
@@ -63,13 +68,13 @@ class OnNpmManagePackages(ActionBase):
             return "NPM packages management failed"
 
         self.add_line("Installing/updating configured packages...")
-        install_commands = "\n".join([f"npm i -g {package}" for package in packages])
-        result = h.dev.run_command(install_commands, is_shell=True)
-        self.add_line(result)
+        for package in packages:
+            result = self._run_npm(npm_executable, "install", "-g", str(package))
+            self.add_line(result)
 
         # Run global update to ensure everything is up-to-date
         self.add_line("Running global update...")
-        result = h.dev.run_command(["npm", "update", "-g"])
+        result = self._run_npm(npm_executable, "update", "-g")
         self.add_line(result)
 
         return "NPM packages management completed"
@@ -80,6 +85,14 @@ class OnNpmManagePackages(ActionBase):
         self.show_toast("NPM packages management completed")
         self.add_line(result)
         self.show_result()
+
+    @staticmethod
+    def _run_npm(npm_executable: str, *args: str) -> str:
+        """Run NPM, accounting for the Windows `npm.cmd` launcher."""
+        command = [npm_executable, *args]
+        if sys.platform == "win32":
+            return h.dev.run_command(subprocess.list2cmdline(command), is_shell=True)
+        return h.dev.run_command(command)
 ```
 
 </details>
@@ -115,9 +128,14 @@ Execute code in a separate thread. For performing long-running operations.
 
 ```python
 def in_thread(self) -> str | None:
+        npm_executable = shutil.which("npm.cmd" if sys.platform == "win32" else "npm") or shutil.which("npm")
+        if npm_executable is None:
+            self.add_line("❌ NPM was not found on PATH. Install Node.js or add NPM to PATH.")
+            return "NPM packages management failed"
+
         # Update NPM itself first
         self.add_line("Updating NPM...")
-        result = h.dev.run_command(["npm", "update", "npm", "-g"])
+        result = self._run_npm(npm_executable, "update", "npm", "-g")
         self.add_line(result)
 
         # Install/update all configured packages
@@ -127,13 +145,13 @@ def in_thread(self) -> str | None:
             return "NPM packages management failed"
 
         self.add_line("Installing/updating configured packages...")
-        install_commands = "\n".join([f"npm i -g {package}" for package in packages])
-        result = h.dev.run_command(install_commands, is_shell=True)
-        self.add_line(result)
+        for package in packages:
+            result = self._run_npm(npm_executable, "install", "-g", str(package))
+            self.add_line(result)
 
         # Run global update to ensure everything is up-to-date
         self.add_line("Running global update...")
-        result = h.dev.run_command(["npm", "update", "-g"])
+        result = self._run_npm(npm_executable, "update", "-g")
         self.add_line(result)
 
         return "NPM packages management completed"
