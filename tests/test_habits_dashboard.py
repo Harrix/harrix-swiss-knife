@@ -9,6 +9,7 @@ from pathlib import Path
 import pytest
 from PySide6.QtWidgets import QApplication
 
+from harrix_swiss_knife.apps.habits.dashboard_widgets import CheckCircle, habit_day_state
 from harrix_swiss_knife.apps.habits.database_manager import DatabaseManager
 
 RECOVER_SQL = Path(__file__).resolve().parents[1] / "src/harrix_swiss_knife/apps/habits/recover.sql"
@@ -71,3 +72,70 @@ def test_habit_streak_counts_consecutive_days(habits_db: DatabaseManager) -> Non
     assert habits_db.toggle_habit_checkin(habit_id, today.isoformat())  # uncheck today
     # Still 2 if yesterday and day-2 are done (grace: start from yesterday)
     assert habits_db.get_habit_streak(habit_id) == 2
+
+
+def test_habit_day_state_mapping() -> None:
+    """Map missing, zero, one, and other integers to dashboard states."""
+    assert habit_day_state(None) == "absent"
+    assert habit_day_state(0) == "zero"
+    assert habit_day_state(1) == "one"
+    assert habit_day_state(2) == "number"
+    assert habit_day_state(15) == "number"
+    assert habit_day_state(-3) == "number"
+
+
+def test_get_habit_value_on_date_and_values_between(habits_db: DatabaseManager) -> None:
+    """Distinguish no row, stored 0, stored 1, and other numeric values."""
+    assert habits_db.add_habit("Push-ups", is_bool=False)
+    habit_id = int(habits_db.get_habits()[0][0])
+    today = _local_today()
+    day_one = today.isoformat()
+    day_zero = (today - timedelta(days=1)).isoformat()
+    day_number = (today - timedelta(days=2)).isoformat()
+    day_absent = (today - timedelta(days=3)).isoformat()
+
+    assert habits_db.add_process_habit_record(habit_id, 1, day_one)
+    assert habits_db.add_process_habit_record(habit_id, 0, day_zero)
+    assert habits_db.add_process_habit_record(habit_id, 12, day_number)
+
+    assert habits_db.get_habit_value_on_date(habit_id, day_one) == 1
+    assert habits_db.get_habit_value_on_date(habit_id, day_zero) == 0
+    assert habits_db.get_habit_value_on_date(habit_id, day_number) == 12
+    assert habits_db.get_habit_value_on_date(habit_id, day_absent) is None
+
+    values = habits_db.get_habit_values_between(habit_id, day_absent, day_one)
+    assert values[day_one] == 1
+    assert values[day_zero] == 0
+    assert values[day_number] == 12
+    assert day_absent not in values
+
+    assert habits_db.is_habit_done_on_date(habit_id, day_one)
+    assert not habits_db.is_habit_done_on_date(habit_id, day_zero)
+    assert habits_db.is_habit_done_on_date(habit_id, day_number)
+    assert not habits_db.is_habit_done_on_date(habit_id, day_absent)
+
+
+def test_check_circle_four_states(qapp: QApplication) -> None:
+    """CheckCircle shows absent, zero, completed, and numeric states."""
+    assert qapp is not None
+    circle = CheckCircle()
+    assert circle.day_state() == "absent"
+    assert circle.toolTip() == "No record"
+    assert not circle.is_done()
+    assert circle.value() is None
+
+    circle.set_value(0)
+    assert circle.day_state() == "zero"
+    assert circle.toolTip() == "Not completed (0)"
+    assert not circle.is_done()
+
+    circle.set_value(1)
+    assert circle.day_state() == "one"
+    assert circle.toolTip() == "Completed"
+    assert circle.is_done()
+
+    circle.set_value(8)
+    assert circle.day_state() == "number"
+    assert circle.toolTip() == "Value: 8"
+    assert circle.is_done()
+    assert circle.value() == 8

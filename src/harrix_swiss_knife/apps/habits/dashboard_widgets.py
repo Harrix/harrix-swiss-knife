@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import calendar
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 from PySide6.QtCore import QPointF, QRectF, Qt, Signal
 from PySide6.QtGui import QColor, QFont, QPainter, QPen
@@ -36,6 +36,8 @@ COLOR_RATE = QColor("#F97316")
 COLOR_STREAK = QColor("#EF4444")
 MONTHS_IN_YEAR = 12
 
+HabitDayState = Literal["absent", "zero", "one", "number"]
+
 HABIT_ICON_COLORS: tuple[QColor, ...] = (
     QColor("#FCE7F3"),  # pink
     QColor("#FFEDD5"),  # orange
@@ -49,21 +51,25 @@ HABIT_ICON_COLORS: tuple[QColor, ...] = (
 
 
 class CheckCircle(QWidget):
-    """Clickable day check-in circle (done = blue with checkmark)."""
+    """Clickable day circle for absent, not done, done, or numeric values."""
 
     clicked = Signal()
 
     def __init__(self, parent: QWidget | None = None, *, size: int = 22) -> None:  # noqa: D107
         super().__init__(parent)
-        self._done = False
+        self._value: int | None = None
         self._size = size
         self.setFixedSize(size, size)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.setToolTip("Toggle check-in")
+        self._apply_tooltip()
+
+    def day_state(self) -> HabitDayState:
+        """Return visual state for the stored value."""
+        return habit_day_state(self._value)
 
     def is_done(self) -> bool:
-        """Return whether the day is marked completed."""
-        return self._done
+        """Return whether the day is marked completed (value > 0)."""
+        return self._value is not None and self._value > 0
 
     def mousePressEvent(self, event: QMouseEvent) -> None:  # noqa: N802
         """Emit clicked on left press."""
@@ -72,23 +78,37 @@ class CheckCircle(QWidget):
         super().mousePressEvent(event)
 
     def paintEvent(self, _event: QPaintEvent) -> None:  # noqa: N802
-        """Draw filled check circle or empty gray circle."""
+        """Draw absent, zero, completed, or numeric day circle."""
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        painter.setRenderHint(QPainter.RenderHint.TextAntialiasing)
 
         margin = 1.0
         rect = QRectF(margin, margin, self.width() - 2 * margin, self.height() - 2 * margin)
+        state = self.day_state()
 
-        if self._done:
+        if state == "absent":
+            pen = QPen(COLOR_TRACK, 1.5)
+            pen.setStyle(Qt.PenStyle.DashLine)
+            painter.setPen(pen)
+            painter.setBrush(Qt.BrushStyle.NoBrush)
+            painter.drawEllipse(rect)
+            return
+
+        if state == "zero":
+            painter.setPen(QPen(COLOR_TRACK, 1.5))
+            painter.setBrush(COLOR_BG_MUTED)
+            painter.drawEllipse(rect)
+            return
+
+        if state == "one":
             painter.setPen(Qt.PenStyle.NoPen)
             painter.setBrush(COLOR_PRIMARY)
             painter.drawEllipse(rect)
-
             pen = QPen(QColor("white"), max(1.8, self._size * 0.1))
             pen.setCapStyle(Qt.PenCapStyle.RoundCap)
             pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
             painter.setPen(pen)
-            # Simple checkmark
             x0 = rect.left() + rect.width() * 0.28
             y0 = rect.top() + rect.height() * 0.52
             x1 = rect.left() + rect.width() * 0.42
@@ -97,15 +117,40 @@ class CheckCircle(QWidget):
             y2 = rect.top() + rect.height() * 0.32
             painter.drawLine(QPointF(x0, y0), QPointF(x1, y1))
             painter.drawLine(QPointF(x1, y1), QPointF(x2, y2))
-        else:
-            painter.setPen(QPen(COLOR_TRACK, 1.5))
-            painter.setBrush(COLOR_BG_MUTED)
-            painter.drawEllipse(rect)
+            return
 
-    def set_done(self, *, done: bool) -> None:
-        """Set completed state."""
-        self._done = done
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(COLOR_SUCCESS)
+        painter.drawEllipse(rect)
+        text = str(self._value)
+        font = QFont(self.font())
+        digit_count = max(len(text), 1)
+        font.setPointSizeF(max(5.0, self._size * min(0.42, 0.64 / digit_count)))
+        font.setBold(True)
+        painter.setFont(font)
+        painter.setPen(QColor("white"))
+        painter.drawText(rect, int(Qt.AlignmentFlag.AlignCenter), text)
+
+    def set_value(self, value: int | None) -> None:
+        """Set stored process-habit value (``None`` = no database record)."""
+        self._value = value
+        self._apply_tooltip()
         self.update()
+
+    def value(self) -> int | None:
+        """Return stored process-habit value, or ``None`` if there is no record."""
+        return self._value
+
+    def _apply_tooltip(self) -> None:
+        state = self.day_state()
+        if state == "absent":
+            self.setToolTip("No record")
+        elif state == "zero":
+            self.setToolTip("Not completed (0)")
+        elif state == "one":
+            self.setToolTip("Completed")
+        else:
+            self.setToolTip(f"Value: {self._value}")
 
 
 class HabitIconBadge(QWidget):
@@ -201,7 +246,7 @@ class HabitRow(QFrame):
         name: str,
         total_days: int,
         streak_days: int,
-        week_done: Sequence[bool],
+        week_values: Sequence[int | None],
         *,
         selected: bool,
         emoji: str = "",
@@ -213,8 +258,8 @@ class HabitRow(QFrame):
         self._name_label.setText(name)
         self._meta_label.setText(f"⚡ {total_days} Days   🔥 {streak_days} Days")
         for i, circle in enumerate(self._checks):
-            done = week_done[i] if i < len(week_done) else False
-            circle.set_done(done=done)
+            value = week_values[i] if i < len(week_values) else None
+            circle.set_value(value)
         self._apply_style()
 
     def _apply_style(self) -> None:
@@ -245,7 +290,7 @@ class MonthCalendarGrid(QWidget):
         super().__init__(parent)
         self._year = 0
         self._month = 0
-        self._done_dates: set[str] = set()
+        self._day_values: dict[str, int] = {}
 
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
@@ -311,11 +356,11 @@ class MonthCalendarGrid(QWidget):
         root.addLayout(self._grid)
         self._day_cells: list[tuple[CheckCircle | None, QLabel, str | None]] = []
 
-    def set_month(self, year: int, month: int, done_dates: set[str]) -> None:
-        """Rebuild grid for year/month with completed dates as ``YYYY-MM-DD``."""
+    def set_month(self, year: int, month: int, day_values: dict[str, int] | None = None) -> None:
+        """Rebuild grid for year/month with stored values keyed by ``YYYY-MM-DD``."""
         self._year = year
         self._month = month
-        self._done_dates = set(done_dates)
+        self._day_values = dict(day_values or {})
         self._title.setText(f"{_month_short(month)} {year}")
         self._rebuild_grid()
 
@@ -361,7 +406,7 @@ class MonthCalendarGrid(QWidget):
 
                 date_str = f"{self._year:04d}-{self._month:02d}-{day:02d}"
                 circle = CheckCircle(size=26)
-                circle.set_done(done=date_str in self._done_dates)
+                circle.set_value(self._day_values.get(date_str))
                 circle.clicked.connect(lambda d=date_str: self.day_toggled.emit(d))
                 day_label = QLabel(str(day))
                 day_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -492,6 +537,17 @@ class WeekDayHeader(QWidget):
 def habit_accent_color(habit_id: int) -> QColor:
     """Return a soft background color for a habit icon."""
     return HABIT_ICON_COLORS[habit_id % len(HABIT_ICON_COLORS)]
+
+
+def habit_day_state(value: int | None) -> HabitDayState:
+    """Map a stored process-habit value to a dashboard day state."""
+    if value is None:
+        return "absent"
+    if value == 0:
+        return "zero"
+    if value == 1:
+        return "one"
+    return "number"
 
 
 def habit_glyph(habit_id: int) -> str:

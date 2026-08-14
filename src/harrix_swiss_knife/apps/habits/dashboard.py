@@ -312,9 +312,6 @@ class HabitDashboardWidget(QWidget):
         self._selected_habit_id = habit_id
         for hid, row in self._habit_rows.items():
             # Re-apply selection style without full rebuild
-            week_done = [
-                self._db.is_habit_done_on_date(hid, d.isoformat()) if self._db else False for d in self._week_dates
-            ]
             habit = self._db.get_habit_by_id(hid) if self._db else None
             name = str(habit[_NAME_COLUMN]) if habit else ""
             emoji = (
@@ -329,7 +326,7 @@ class HabitDashboardWidget(QWidget):
                 name,
                 total,
                 streak,
-                week_done,
+                self._week_values_for(hid),
                 selected=hid == habit_id,
                 emoji=emoji,
             )
@@ -368,14 +365,13 @@ class HabitDashboardWidget(QWidget):
             )
             total_days = self._db.get_habit_total_checkins(habit_id)
             streak = self._db.get_habit_streak(habit_id)
-            week_done = [self._db.is_habit_done_on_date(habit_id, d.isoformat()) for d in self._week_dates]
             habit_row = HabitRow()
             habit_row.set_habit_data(
                 habit_id,
                 name,
                 total_days,
                 streak,
-                week_done,
+                self._week_values_for(habit_id),
                 selected=habit_id == self._selected_habit_id,
                 emoji=emoji,
             )
@@ -426,8 +422,8 @@ class HabitDashboardWidget(QWidget):
         self._stat_rate.set_value(f"{rate}%")
         self._stat_streak.set_value(f"{streak} Days")
 
-        done_dates = set(self._db.get_habit_done_dates_between(habit_id, month_start, month_end))
-        self._calendar.set_month(year, month, done_dates)
+        day_values = self._db.get_habit_values_between(habit_id, month_start, month_end)
+        self._calendar.set_month(year, month, day_values)
         self._log_title.setText(f"Habit Log on {_month_name(month)}.")
 
     def _show_empty_detail(self) -> None:
@@ -437,7 +433,7 @@ class HabitDashboardWidget(QWidget):
         self._stat_rate.set_value("-")
         self._stat_streak.set_value("-")
         today = _local_today()
-        self._calendar.set_month(today.year, today.month, set())
+        self._calendar.set_month(today.year, today.month, {})
         self._log_title.setText(f"Habit Log on {_month_name(today.month)}.")
 
     def _toggle_date(self, habit_id: int, date_str: str) -> None:
@@ -467,6 +463,17 @@ class HabitDashboardWidget(QWidget):
                 done = sum(1 for hid in habit_ids if self._db.is_habit_done_on_date(hid, day.isoformat()))
                 ratio = done / total
             self._week_headers[i].set_day(caption, ratio, is_today=day == today)
+
+    def _week_values_for(self, habit_id: int) -> list[int | None]:
+        """Return stored values for the visible week, or ``None`` when no record exists."""
+        if self._db is None or not self._week_dates:
+            return [None] * 7
+        stored = self._db.get_habit_values_between(
+            habit_id,
+            self._week_dates[0].isoformat(),
+            self._week_dates[-1].isoformat(),
+        )
+        return [stored.get(day.isoformat()) for day in self._week_dates]
 
 
 def _last_seven_days(today: date) -> list[date]:

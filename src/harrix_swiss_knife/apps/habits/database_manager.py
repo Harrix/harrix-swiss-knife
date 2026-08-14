@@ -373,6 +373,51 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             return int(rows[0][0])
         return 0
 
+    def get_habit_value_on_date(self, habit_id: int, date_str: str) -> int | None:
+        """Return stored value for habit on ``date_str``, or ``None`` if no record."""
+        rows = self.get_rows(
+            """
+            SELECT value FROM process_habits
+            WHERE _id_habit = :habit_id AND date = :date
+            ORDER BY _id DESC
+            LIMIT 1
+            """,
+            {"habit_id": habit_id, "date": date_str},
+        )
+        if not rows or rows[0][0] is None:
+            return None
+        try:
+            return int(rows[0][0])
+        except (TypeError, ValueError):
+            return None
+
+    def get_habit_values_between(self, habit_id: int, date_from: str, date_to: str) -> dict[str, int]:
+        """Return date → value map for a habit in an inclusive range.
+
+        Dates without a `process_habits` row are omitted. If several rows exist
+        for one date, the latest `_id` wins.
+
+        """
+        rows = self.get_rows(
+            """
+            SELECT date, value
+            FROM process_habits
+            WHERE _id_habit = :habit_id
+              AND date BETWEEN :date_from AND :date_to
+            ORDER BY date ASC, _id ASC
+            """,
+            {"habit_id": habit_id, "date_from": date_from, "date_to": date_to},
+        )
+        result: dict[str, int] = {}
+        for row in rows:
+            if not row or row[0] is None or row[1] is None:
+                continue
+            try:
+                result[str(row[0])] = int(row[1])
+            except (TypeError, ValueError):
+                continue
+        return result
+
     def get_habits(self, *, include_archived: bool = False) -> list[list[Any]]:
         """Get habits with optional inclusion of archived ones."""
         if include_archived:
