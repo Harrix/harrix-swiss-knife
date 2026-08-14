@@ -8,6 +8,7 @@ const fs = require('node:fs');
 const { buildIconsBrowseContextMenu } = require('./icons-browse-menu');
 
 const PANEL_VIEW_TYPE = 'harrixNotesExplorerHsk.iconsBrowse';
+const ICONS_BROWSE_FOLDER_KEY = 'harrixNotesExplorerHsk.iconsBrowse.currentFolder.v1';
 
 /**
  * @typedef {{ path: string, name: string }} IconsBrowseCrumb
@@ -61,8 +62,29 @@ function activateIconsBrowse(nextDeps) {
 
   context.subscriptions.push(
     vscode.commands.registerCommand('harrixNotesExplorerHsk.openIconsBrowse', async (treeItemOrUri) => {
-      const startPath = resolveStartFolderPath(treeItemOrUri, provider);
+      const explicit = treeItemOrUri != null;
+      let startPath = resolveStartFolderPath(treeItemOrUri, provider);
+      if (!explicit) {
+        const restored = restoreSavedFolderPath(provider);
+        if (restored !== undefined) {
+          startPath = restored;
+        }
+      }
       await showIconsBrowsePanel(startPath);
+    }),
+  );
+
+  context.subscriptions.push(
+    vscode.window.registerWebviewPanelSerializer(PANEL_VIEW_TYPE, {
+      async deserializeWebviewPanel(webviewPanel, _state) {
+        panel = webviewPanel;
+        const restored = restoreSavedFolderPath(provider);
+        const startPath =
+          restored === undefined ? (provider.rootEntries.length === 1 ? provider.rootEntries[0].path : null) : restored;
+        crumbs = buildCrumbsForStart(startPath, provider);
+        wirePanel(webviewPanel);
+        postState();
+      },
     }),
   );
 
@@ -80,6 +102,10 @@ function activateIconsBrowse(nextDeps) {
       panel = undefined;
       crumbs = [];
       deps = undefined;
+      if (persistTimer) {
+        clearTimeout(persistTimer);
+        persistTimer = null;
+      }
     },
   });
 }
@@ -143,9 +169,24 @@ async function showIconsBrowsePanel(startFolderPath) {
     },
   );
 
-  panel.webview.html = getHtml(panel.webview, deps.context.extensionUri);
+  wirePanel(panel);
+  postState();
+}
 
-  panel.onDidDispose(
+/**
+ * @param {import('vscode').WebviewPanel} webviewPanel
+ */
+function wirePanel(webviewPanel) {
+  if (!deps) {
+    return;
+  }
+  webviewPanel.webview.options = {
+    enableScripts: true,
+    localResourceRoots: [vscode.Uri.joinPath(deps.context.extensionUri, 'media')],
+  };
+  webviewPanel.webview.html = getHtml(webviewPanel.webview, deps.context.extensionUri);
+
+  webviewPanel.onDidDispose(
     () => {
       panel = undefined;
     },
@@ -153,15 +194,13 @@ async function showIconsBrowsePanel(startFolderPath) {
     deps.context.subscriptions,
   );
 
-  panel.webview.onDidReceiveMessage(
+  webviewPanel.webview.onDidReceiveMessage(
     async (message) => {
       await handleWebviewMessage(message);
     },
     null,
     deps.context.subscriptions,
   );
-
-  postState();
 }
 
 /**
@@ -233,6 +272,67 @@ function currentDirPath() {
   return last.path ? last.path : null;
 }
 
+/** @type {ReturnType<typeof setTimeout> | null} */
+let persistTimer = null;
+
+function persistCurrentFolder() {
+  if (!deps) {
+    return;
+  }
+  if (persistTimer) {
+    clearTimeout(persistTimer);
+  }
+  persistTimer = setTimeout(() => {
+    persistTimer = null;
+    if (!deps) {
+      return;
+    }
+    void deps.context.workspaceState.update(ICONS_BROWSE_FOLDER_KEY, currentDirPath() || '');
+  }, 250);
+}
+
+/**
+ * Last Icons Browse folder, or `null` for the multi-root home, or `undefined` if none saved.
+ * @param {IconsBrowseDeps['provider']} provider
+ * @returns {string | null | undefined}
+ */
+function restoreSavedFolderPath(provider) {
+  if (!deps) {
+    return undefined;
+  }
+  const saved = deps.context.workspaceState.get(ICONS_BROWSE_FOLDER_KEY);
+  if (saved == null) {
+    return undefined;
+  }
+  const raw = String(saved);
+  if (!raw) {
+    return null;
+  }
+  let cur = raw;
+  for (;;) {
+    try {
+      if (fs.existsSync(cur) && fs.statSync(cur).isDirectory()) {
+        const inWorkspace = provider.rootEntries.some((entry) => {
+          const rootNorm = normalizePath(entry.path);
+          const curNorm = normalizePath(cur);
+          return curNorm === rootNorm || curNorm.startsWith(rootNorm + path.sep);
+        });
+        if (inWorkspace) {
+          return cur;
+        }
+      }
+    } catch {
+      // walk up
+    }
+    const parent = path.dirname(cur);
+    if (parent === cur) {
+      break;
+    }
+    cur = parent;
+  }
+  return undefined;
+}
+
 function postState() {
   if (!panel || !deps) {
     return;
@@ -282,6 +382,7 @@ function postState() {
       note: noteIcon,
     },
   });
+  persistCurrentFolder();
 }
 
 /**
