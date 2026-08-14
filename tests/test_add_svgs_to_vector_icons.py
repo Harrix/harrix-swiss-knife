@@ -76,6 +76,10 @@ def test_add_svgs_creates_note_and_optimizes(tmp_path: Path) -> None:
     assert "author: Anton Sergienko" in md
     assert "permalink-source:" in md
     assert "fiction_robot__bender_01.svg" in md
+    assert "categories:\n  - fiction_robot\n" in md
+    assert "tags:\n  - fiction\n  - robot\n  - bender\n" in md
+    assert "categories: [" not in md
+    assert "tags: [" not in md
     catalog = load_catalog(repo)
     assert any(icon.id == "fiction_robot__bender" for icon in catalog.icons)
 

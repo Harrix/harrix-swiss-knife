@@ -377,13 +377,15 @@ def ensure_note_scaffold(note_dir: Path, family_id: str, *, repo_root: Path) -> 
     category = category_from_family_id(family_id)
     title = title_from_family_id(family_id)
     tags = tags_from_family_id(family_id)
-    tags_yaml = ", ".join(tags)
+    tags_yaml = "\n".join(f"  - {tag}" for tag in tags)
     today = datetime.now(UTC).date().isoformat()
     permalink = _permalink_for_note(note_dir, family_id, repo_root)
     body = f"""---
 date: {today}
-categories: [{category}]
-tags: [{tags_yaml}]
+categories:
+  - {category}
+tags:
+{tags_yaml}
 author: {_AUTHOR}
 author-email: {_AUTHOR_EMAIL}
 license: CC BY 4.0
