@@ -62,6 +62,7 @@ from harrix_swiss_knife.apps.icons.catalog import (
     open_icons_folder,
     rebuild_catalog,
 )
+from harrix_swiss_knife.apps.icons.keywords_ai import KeywordsBatchRunner
 from harrix_swiss_knife.apps.icons.keywords_dialog import EditKeywordsDialog
 from harrix_swiss_knife.apps.icons.keywords_update import update_keywords_files
 from harrix_swiss_knife.apps.icons.lightbox import IconLightboxDialog
@@ -110,6 +111,8 @@ CATEGORY_LIST_ICON_SIZE = 28
 VARIANT_RENDER_CHUNK = 8
 VARIANT_PROGRESS_TOAST_MIN = 5
 ADD_SVGS_RESULT_PREVIEW_LIMIT = 40
+_KEYWORD_TARGET_PAIR_LEN = 2
+_MIN_BATCH_KEYWORD_ICONS = 2
 
 
 class KeyValueTableDialog(QDialog):
@@ -192,6 +195,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._trademark_progress_toast: toast_progress_notification.ToastProgressNotification | None = None
         self._trademark_thread: QThread | None = None
         self._trademark_worker: TrademarkUpdateWorker | None = None
+        self._keywords_batch_runner: KeywordsBatchRunner | None = None
         self._thumb_refresh_done = 0
         self._thumb_refresh_total = 0
         self._icon_size_save_timer = QTimer(self)
@@ -210,6 +214,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
             return
         self._close_variant_progress_toast()
         self._stop_trademark_update()
+        self._stop_keywords_batch()
         self._stop_thumb_refresh()
         super().closeEvent(event)
 
@@ -539,6 +544,84 @@ class MainWindow(QMainWindow, AppWindowMixin):
         detail = "\n".join(detail_lines)
         QMessageBox.information(self, "Vector Icons", f"{summary}\n\n{detail}")
         self.statusBar().showMessage(report.summary_lines[0] if report.summary_lines else "Add SVGs completed")
+
+    def _on_batch_keywords_ai(self, targets: object) -> None:
+        if not isinstance(targets, list) or self._repo_root is None:
+            return
+        if self._keywords_batch_runner is not None and self._keywords_batch_runner.is_running:
+            QMessageBox.information(self, "Vector Icons", "Keyword AI batch is already running.")
+            return
+
+        jobs: list[tuple[IconFamily, Path]] = []
+        for item in targets:
+            if not isinstance(item, tuple) or len(item) != _KEYWORD_TARGET_PAIR_LEN:
+                continue
+            family, svg_path = item
+            if not isinstance(family, IconFamily):
+                continue
+            icon_path = Path(svg_path) if isinstance(svg_path, str) and svg_path else None
+            if icon_path is None or not icon_path.is_file():
+                icon_path = family.featured_path(self._repo_root)
+            if icon_path is None or not icon_path.is_file():
+                continue
+            if family.note_path(self._repo_root) is None:
+                continue
+            jobs.append((family, icon_path))
+
+        if len(jobs) < _MIN_BATCH_KEYWORD_ICONS:
+            QMessageBox.warning(self, "Vector Icons", "Need at least two icons with notes and preview files.")
+            return
+
+        answer = QMessageBox.question(
+            self,
+            "Vector Icons",
+            f"Process keywords with AI for {len(jobs)} selected icons?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.Yes,
+        )
+        if answer != QMessageBox.StandardButton.Yes:
+            return
+
+        config: dict[str, Any] = h.dev.config_load(get_config_path_str())
+        self._keywords_batch_runner = KeywordsBatchRunner(
+            self,
+            app_config=config,
+            jobs=jobs,
+            on_item_success=self._on_batch_keywords_item,
+            on_finished=self._on_batch_keywords_finished,
+        )
+        self._keywords_batch_runner.start()
+
+    def _on_batch_keywords_finished(self, updated: int, failed: int, *, cancelled: bool) -> None:
+        self._keywords_batch_runner = None
+        self._apply_filters()
+        if cancelled:
+            message = f"Keyword AI cancelled. Updated {updated}, failed {failed}."
+        else:
+            message = f"Keyword AI finished. Updated {updated}, failed {failed}."
+        self.statusBar().showMessage(message)
+        toast = toast_notification.ToastNotification(message, duration=3000, parent=self)
+        toast.present()
+
+    def _on_batch_keywords_item(self, family: IconFamily, tags: list[str]) -> None:
+        if self._repo_root is None:
+            return
+        note_path = family.note_path(self._repo_root)
+        if note_path is None:
+            return
+        try:
+            update_keywords_files(
+                md_path=note_path,
+                catalog_path=self._repo_root / "catalog.json",
+                family_id=family.id,
+                tags=tags,
+            )
+        except (OSError, ValueError, TypeError, json.JSONDecodeError) as exc:
+            logger.exception("Failed to save batch keywords for %s", family.id)
+            QMessageBox.critical(self, "Vector Icons", f"Failed to save keywords for `{family.id}`:\n{exc}")
+            return
+        family.tags = tags
+        family.refresh_search_blob()
 
     def _on_cache_statistics(self) -> None:
         stats = self._thumb_cache.stats(self._catalog)
@@ -1172,6 +1255,12 @@ class MainWindow(QMainWindow, AppWindowMixin):
             on_finished=self._on_thumb_finished,
         )
 
+    def _stop_keywords_batch(self) -> None:
+        runner = self._keywords_batch_runner
+        if runner is not None and runner.is_running:
+            runner.cancel()
+        self._keywords_batch_runner = None
+
     def _stop_thumb_refresh(self) -> None:
         if self._thumb_worker is not None:
             self._thumb_worker.cancel()
@@ -1267,6 +1356,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         icon_list.copy_path_requested.connect(self._on_copy_path)
         icon_list.open_note_requested.connect(self._on_open_note_in_editor)
         icon_list.edit_keywords_requested.connect(self._on_edit_keywords)
+        icon_list.batch_keywords_ai_requested.connect(self._on_batch_keywords_ai)
         icon_list.set_category_icon_requested.connect(self._on_set_as_category_icon)
         icon_list.toggle_trademark_requested.connect(self._on_toggle_trademark)
         icon_list.reveal_source_requested.connect(self._on_reveal_source)

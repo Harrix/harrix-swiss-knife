@@ -3,18 +3,22 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Callable
 from pathlib import Path
 
 import pytest
 from PySide6.QtWidgets import QApplication
 
 from harrix_swiss_knife.apps.icons.catalog import IconFamily, load_catalog, rebuild_catalog
+from harrix_swiss_knife.apps.icons.keywords_ai import KeywordsBatchRunner
 from harrix_swiss_knife.apps.icons.keywords_dialog import EditKeywordsDialog
 from harrix_swiss_knife.apps.icons.keywords_update import (
     parse_keywords_text,
     replace_frontmatter_list,
     update_keywords_files,
 )
+from harrix_swiss_knife.apps.icons.variant_view import GridEntry
+from harrix_swiss_knife.apps.icons.widgets import DraggableIconList, placeholder_pixmap
 
 _MIN_SVG = (
     '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><rect width="32" height="32" fill="#336699"/></svg>'
@@ -110,3 +114,81 @@ def test_edit_keywords_dialog_returns_textarea_tags(qapp: QApplication) -> None:
     dialog._text_edit.setPlainText(f"garage\n{_RU_GARAGE}\n")
     assert dialog.get_tags() == ["garage", _RU_GARAGE]
     assert not dialog._ai_button.isEnabled()
+
+
+def _family(family_id: str, tags: list[str] | None = None) -> IconFamily:
+    return IconFamily(
+        id=family_id,
+        title=family_id.rsplit("__", maxsplit=1)[-1].title(),
+        categories=[family_id.split("__", 1)[0]],
+        tags=tags or [],
+        folder=f"icons/{family_id}",
+        featured="featured-image.svg",
+        featured_hash="",
+    )
+
+
+def test_selected_keyword_targets_are_unique_and_ordered(qapp: QApplication, tmp_path: Path) -> None:
+    assert qapp is not None
+    first = _family("building__garage", ["garage"])
+    second = _family("fiction__ufo", ["ufo"])
+    first_svg = tmp_path / "building__garage.svg"
+    second_svg = tmp_path / "fiction__ufo.svg"
+    first_svg.write_text(_MIN_SVG, encoding="utf-8")
+    second_svg.write_text(_MIN_SVG, encoding="utf-8")
+    placeholder = placeholder_pixmap(64)
+    lst = DraggableIconList(icon_size=64, dual_line_labels=True)
+    lst.set_grid_entries(
+        [
+            GridEntry(family=first, svg_path=first_svg),
+            GridEntry(family=first, svg_path=first_svg),
+            GridEntry(family=second, svg_path=second_svg),
+        ],
+        pixmaps_by_path={str(first_svg): placeholder, str(second_svg): placeholder},
+        placeholder=placeholder,
+    )
+    for index in range(lst.count()):
+        item = lst.item(index)
+        assert item is not None
+        item.setSelected(True)
+    targets = lst.selected_keyword_targets()
+    assert [family.id for family, _path in targets] == ["building__garage", "fiction__ufo"]
+    assert lst.selectionMode() == lst.SelectionMode.ExtendedSelection
+
+
+def test_keywords_batch_runner_updates_then_reports_failures(qapp: QApplication, tmp_path: Path) -> None:
+    assert qapp is not None
+    first = _family("building__garage", ["garage"])
+    second = _family("fiction__ufo", ["ufo"])
+    first_svg = tmp_path / "a.svg"
+    second_svg = tmp_path / "b.svg"
+    first_svg.write_text(_MIN_SVG, encoding="utf-8")
+    second_svg.write_text(_MIN_SVG, encoding="utf-8")
+    updated: list[tuple[str, list[str]]] = []
+    finished: list[tuple[int, int, bool]] = []
+
+    def fake_request(
+        _parent: object,
+        *,
+        icon_path: Path,
+        on_tags: Callable[[list[str]], None],
+        on_error: Callable[[str], None],
+        **_kwargs: object,
+    ) -> None:
+        if icon_path == first_svg:
+            on_tags(["garage", _RU_GARAGE])
+            return
+        on_error("failed")
+
+    runner = KeywordsBatchRunner(
+        None,
+        app_config={},
+        jobs=[(first, first_svg), (second, second_svg)],
+        on_item_success=lambda family, tags: updated.append((family.id, tags)),
+        on_finished=lambda updated_count, failed, *, cancelled: finished.append((updated_count, failed, cancelled)),
+        request_fn=fake_request,
+    )
+    runner.start()
+    assert updated == [("building__garage", ["garage", _RU_GARAGE])]
+    assert finished == [(1, 1, False)]
+    assert not runner.is_running
