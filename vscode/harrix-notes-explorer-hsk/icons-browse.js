@@ -5,8 +5,8 @@
 const vscode = require('vscode');
 const path = require('node:path');
 const fs = require('node:fs');
+const { execFile } = require('node:child_process');
 const { buildIconsBrowseContextMenu } = require('./icons-browse-menu');
-const { isWindows, runOsFileDrag, startFileDragHelper, stopFileDragHelper } = require('./file-drag-win');
 
 const PANEL_VIEW_TYPE = 'harrixNotesExplorerHsk.iconsBrowse';
 const ICONS_BROWSE_FOLDER_KEY = 'harrixNotesExplorerHsk.iconsBrowse.currentFolder.v1';
@@ -54,12 +54,31 @@ let crumbs = [];
 /** @type {IconsBrowseDeps | undefined} */
 let deps;
 
+function killLeftoverFileDragHelpers() {
+  if (process.platform !== 'win32') {
+    return;
+  }
+  execFile(
+    'powershell.exe',
+    [
+      '-NoProfile',
+      '-WindowStyle',
+      'Hidden',
+      '-Command',
+      "Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -like '*file-drag-helper.ps1*' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }",
+    ],
+    { windowsHide: true },
+    () => {},
+  );
+}
+
 /**
  * @param {IconsBrowseDeps} nextDeps
  */
 function activateIconsBrowse(nextDeps) {
   deps = nextDeps;
   const { context, provider } = nextDeps;
+  killLeftoverFileDragHelpers();
 
   context.subscriptions.push(
     vscode.commands.registerCommand('harrixNotesExplorerHsk.openIconsBrowse', async (treeItemOrUri) => {
@@ -103,7 +122,6 @@ function activateIconsBrowse(nextDeps) {
       panel = undefined;
       crumbs = [];
       deps = undefined;
-      stopFileDragHelper();
       if (persistTimer) {
         clearTimeout(persistTimer);
         persistTimer = null;
@@ -187,12 +205,10 @@ function wirePanel(webviewPanel) {
     localResourceRoots: [vscode.Uri.joinPath(deps.context.extensionUri, 'media')],
   };
   webviewPanel.webview.html = getHtml(webviewPanel.webview, deps.context.extensionUri);
-  startFileDragHelper(deps.context);
 
   webviewPanel.onDidDispose(
     () => {
       panel = undefined;
-      stopFileDragHelper();
     },
     null,
     deps.context.subscriptions,
@@ -355,7 +371,6 @@ function postState() {
     vscode.workspace.getConfiguration('harrixNotesExplorerHsk').get('openNotesInPreview') !== false;
   const entries = rawEntries.map((entry) => ({
     ...entry,
-    fileUri: vscode.Uri.file(entry.path).toString(true),
     isCut: cutPaths.has(
       normalizePath(
         entry.kind === 'note' && String(entry.contextValue || '').includes('NamedFolder')
@@ -382,7 +397,6 @@ function postState() {
     entries,
     currentFolder,
     iconStyle,
-    osFileDrag: isWindows(),
     icons: {
       folder: folderIcon,
       note: noteIcon,
@@ -400,22 +414,6 @@ function getNotesIconStyleFromConfig() {
     .trim()
     .toLowerCase();
   return raw === 'material' ? 'material' : 'harrix';
-}
-
-/**
- * @param {string} fsPath
- */
-async function runOsFileDragAndNotify(fsPath) {
-  if (!deps) {
-    return;
-  }
-  try {
-    await runOsFileDrag(deps.context, fsPath, deps.provider.rootEntries);
-  } finally {
-    if (panel) {
-      void panel.webview.postMessage({ type: 'osFileDragEnded' });
-    }
-  }
 }
 
 /**
@@ -484,12 +482,6 @@ async function handleWebviewMessage(message) {
     }
     case 'requestContextMenu': {
       postContextMenu(msg);
-      break;
-    }
-    case 'startOsFileDrag': {
-      if (typeof msg.path === 'string' && msg.path) {
-        void runOsFileDragAndNotify(msg.path);
-      }
       break;
     }
     default:
