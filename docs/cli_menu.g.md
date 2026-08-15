@@ -295,19 +295,29 @@ def show_action_identity_context_menu(
     menu = QMenu(parent)
     if identity_text is not None:
         copy_identity = menu.addAction(COPY_ACTION_IDENTITY_MENU_LABEL)
-        copy_identity.triggered.connect(lambda: copy_text_to_clipboard(identity_text))
+        copy_identity.triggered.connect(
+            lambda *_args, text=identity_text: copy_text_to_clipboard(text),
+        )
     if identity_parts is not None:
         copy_name = menu.addAction(COPY_ACTION_NAME_MENU_LABEL)
-        copy_name.triggered.connect(lambda p=identity_parts: copy_text_to_clipboard(p.name))
+        copy_name.triggered.connect(
+            lambda *_args, text=identity_parts.name: copy_text_to_clipboard(text),
+        )
         copy_class = menu.addAction(COPY_ACTION_CLASS_MENU_LABEL)
-        copy_class.triggered.connect(lambda p=identity_parts: copy_text_to_clipboard(p.class_name))
+        copy_class.triggered.connect(
+            lambda *_args, text=identity_parts.class_name: copy_text_to_clipboard(text),
+        )
         copy_path = menu.addAction(COPY_ACTION_PATH_MENU_LABEL)
-        copy_path.triggered.connect(lambda p=identity_parts: copy_text_to_clipboard(p.path))
+        copy_path.triggered.connect(
+            lambda *_args, text=identity_parts.path: copy_text_to_clipboard(text),
+        )
     if cli_copy_command is not None:
         if not menu.isEmpty():
             menu.addSeparator()
         copy_cli = menu.addAction(format_copy_cli_menu_label(cli_copy_command))
-        copy_cli.triggered.connect(lambda: copy_cli_command_to_clipboard(cli_copy_command))
+        copy_cli.triggered.connect(
+            lambda *_args, cmd=cli_copy_command: copy_cli_command_to_clipboard(cmd),
+        )
     menu.exec_(global_pos)
 ```
 
@@ -352,7 +362,9 @@ Show a small context menu to copy a CLI command to the clipboard.
 def show_copy_cli_menu(*, parent: QWidget | None, global_pos: QPoint, cli_copy_command: str) -> None:
     menu = QMenu(parent)
     copy_action = menu.addAction(format_copy_cli_menu_label(cli_copy_command))
-    copy_action.triggered.connect(lambda: copy_cli_command_to_clipboard(cli_copy_command))
+    copy_action.triggered.connect(
+        lambda *_args, cmd=cli_copy_command: copy_cli_command_to_clipboard(cmd),
+    )
     menu.exec_(global_pos)
 ```
 
