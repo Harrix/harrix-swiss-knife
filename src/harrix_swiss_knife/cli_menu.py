@@ -9,8 +9,8 @@ from PySide6.QtWidgets import QMenu, QWidget
 CLI_EXECUTABLE = "hsk"
 CLI_MENU_SUFFIX = " ꟲᴸᴵ"
 CLI_TOOLTIP_DEFAULT = f"Available via {CLI_EXECUTABLE} (see --help)"
-COPY_ACTION_IDENTITY_MENU_LABEL = "Copy action name, class, and path"
-COPY_CLI_MENU_PREFIX = "Copy CLI command: "
+COPY_ACTION_IDENTITY_MENU_LABEL = "📋 Copy action name, class, and path"
+COPY_CLI_MENU_PREFIX = "📋 Copy CLI command: "
 
 
 class CliContextMenu(QMenu):

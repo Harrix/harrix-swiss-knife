@@ -53,6 +53,7 @@ class DraggableIconList(QListWidget):
     delete_requested = Signal(object)  # IconFamily
     toggle_trademark_requested = Signal(object)  # IconFamily
     preview_requested = Signal(str)
+    batch_keywords_ai_requested = Signal(object)  # list[tuple[IconFamily, str]]
 
     def __init__(
         self,
@@ -77,7 +78,7 @@ class DraggableIconList(QListWidget):
         self.setSpacing(8)
         self.setIconSize(QSize(icon_size, icon_size))
         self.setGridSize(self._grid_size_for(icon_size))
-        self.setSelectionMode(QListWidget.SelectionMode.SingleSelection)
+        self.setSelectionMode(QListWidget.SelectionMode.ExtendedSelection)
         self.setDragEnabled(True)
         self.setDragDropMode(QListWidget.DragDropMode.DragOnly)
         self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
@@ -102,6 +103,23 @@ class DraggableIconList(QListWidget):
                 if path.is_file():
                     paths.append(path)
         return paths
+
+    def selected_keyword_targets(self) -> list[tuple[IconFamily, str]]:
+        """Return unique selected families with an SVG path, in display order."""
+        targets: list[tuple[IconFamily, str]] = []
+        seen: set[str] = set()
+        for index in range(self.count()):
+            item = self.item(index)
+            if item is None or not item.isSelected():
+                continue
+            family = item.data(Qt.ItemDataRole.UserRole)
+            family_id = getattr(family, "id", None)
+            if not isinstance(family_id, str) or family_id in seen:
+                continue
+            seen.add(family_id)
+            path = item.data(ROLE_SVG_PATH)
+            targets.append((family, path if isinstance(path, str) else ""))
+        return targets
 
     def set_display_icon_size(self, icon_size: int) -> None:
         """Update icon and grid sizes used by the list."""
@@ -230,9 +248,17 @@ class DraggableIconList(QListWidget):
         path = item.data(ROLE_SVG_PATH)
         has_path = isinstance(path, str) and bool(path)
 
-        self.setCurrentItem(item)
+        if item not in self.selectedItems():
+            self.clearSelection()
+            item.setSelected(True)
+            self.setCurrentItem(item)
 
+        targets = self.selected_keyword_targets()
         menu = QMenu(self)
+        batch_ai_action = None
+        if len(targets) > 1:
+            batch_ai_action = menu.addAction(f"🤖 Process keywords with AI ({len(targets)} icons)…")
+            menu.addSeparator()
 
         reveal_action = None
         details_action = None
@@ -266,7 +292,9 @@ class DraggableIconList(QListWidget):
         delete_action = menu.addAction("🗑️ Delete")
         chosen = menu.exec_(self.mapToGlobal(pos))
 
-        if has_path and chosen is reveal_action:
+        if batch_ai_action is not None and chosen is batch_ai_action:
+            self.batch_keywords_ai_requested.emit(targets)
+        elif has_path and chosen is reveal_action:
             self.reveal_requested.emit(path)
         elif has_path and chosen is details_action:
             self.details_requested.emit(family, path)

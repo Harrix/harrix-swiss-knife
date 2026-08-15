@@ -116,7 +116,7 @@ lines), so they remain useful for user-facing error messages.
 Args:
 
 - `text` (`str`): Input text.
-- [`start`](audio_recording/recorder.g.md#%EF%B8%8F-method-start) (`int`): Starting index for the line counter. Defaults to `1`.
+- `start` (`int`): Starting index for the line counter. Defaults to `1`.
 
 Yields:
 
