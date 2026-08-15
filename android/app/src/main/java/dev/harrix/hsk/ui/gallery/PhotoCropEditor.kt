@@ -204,6 +204,29 @@ private fun nearAspect(
 private fun isThreeFourFamily(aspect: Float): Boolean = nearAspect(aspect, AspectThreeFour) ||
     nearAspect(aspect, 1f / AspectThreeFour)
 
+/**
+ * 3:4 for a portrait photo, 4:3 for landscape, using the current editor rotation
+ * so the crop keeps the orientation of the photo being edited.
+ */
+private fun threeFourAspectMatchingOrientation(
+    imageWidth: Int,
+    imageHeight: Int,
+    rotationDegrees: Float,
+): Float {
+    if (imageWidth <= 0 || imageHeight <= 0) {
+        return AspectThreeFour
+    }
+    val normalized = ((rotationDegrees % 180f) + 180f) % 180f
+    val axesSwapped = normalized > 45f && normalized < 135f
+    val visualWidth = if (axesSwapped) imageHeight else imageWidth
+    val visualHeight = if (axesSwapped) imageWidth else imageHeight
+    return if (visualWidth >= visualHeight) {
+        1f / AspectThreeFour
+    } else {
+        AspectThreeFour
+    }
+}
+
 @Composable
 fun PhotoCropEditor(
     photo: CameraPhoto,
@@ -535,6 +558,22 @@ fun PhotoCropEditor(
         val base = PhotoEditSaver.imageContentCrop(imageWidth, imageHeight)
         onCropRectChange(
             clampCropIfContained(PhotoEditSaver.fitCropToAspect(base, aspect)),
+        )
+    }
+
+    fun applyOrResetThreeFourAspect() {
+        val currentLock = lockedAspect
+        val alreadyThreeFour = currentLock != null && isThreeFourFamily(currentLock)
+        if (alreadyThreeFour) {
+            applyLockedAspect(originalAspect)
+            return
+        }
+        applyLockedAspect(
+            threeFourAspectMatchingOrientation(
+                imageWidth = imageWidth,
+                imageHeight = imageHeight,
+                rotationDegrees = rotationDegrees,
+            ),
         )
     }
 
@@ -1347,7 +1386,18 @@ fun PhotoCropEditor(
 
         val compactChrome = isCompactWidth() || isCompactHeight()
         val aspectRotateLabel = stringResource(R.string.gallery_cleaner_edit_aspect_rotate)
-        val aspectThreeFourLabel = stringResource(R.string.gallery_cleaner_edit_aspect_3_4)
+        val threeFourTargetAspect =
+            threeFourAspectMatchingOrientation(
+                imageWidth = imageWidth,
+                imageHeight = imageHeight,
+                rotationDegrees = rotationDegrees,
+            )
+        val aspectThreeFourLabel =
+            if (threeFourTargetAspect > 1f) {
+                "4:3"
+            } else {
+                stringResource(R.string.gallery_cleaner_edit_aspect_3_4)
+            }
         val aspectFreeLabel = stringResource(R.string.gallery_cleaner_edit_aspect_free)
         val perspectiveLabel = stringResource(R.string.gallery_cleaner_edit_perspective)
         val blurLabel = stringResource(R.string.gallery_cleaner_edit_blur)
@@ -1491,13 +1541,7 @@ fun PhotoCropEditor(
                                 )
                                 if (showThreeFourChip) {
                                     EditToolbarIconButton(
-                                        onClick = {
-                                            if (threeFourSelected) {
-                                                applyLockedAspect(originalAspect)
-                                            } else {
-                                                applyLockedAspect(AspectThreeFour)
-                                            }
-                                        },
+                                        onClick = { applyOrResetThreeFourAspect() },
                                         icon = Icons.Filled.Crop,
                                         label = aspectThreeFourLabel,
                                         enabled = canEditAspect,
@@ -1598,11 +1642,7 @@ fun PhotoCropEditor(
                                             enabled = canEditAspect,
                                             onClick = {
                                                 moreMenuExpanded = false
-                                                if (threeFourSelected) {
-                                                    applyLockedAspect(originalAspect)
-                                                } else {
-                                                    applyLockedAspect(AspectThreeFour)
-                                                }
+                                                applyOrResetThreeFourAspect()
                                             },
                                         )
                                     }
