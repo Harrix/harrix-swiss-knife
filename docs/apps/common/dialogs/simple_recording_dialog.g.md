@@ -122,7 +122,6 @@ class SimpleRecordingDialog(QDialog):
             self._status_label.setText(result.message or "Recording stopped")
             self._status_label.setVisible(True)
             self._level_widget.clear()
-            self._stop_button.setEnabled(False)
             return
 
         self._finalize_pending = False
@@ -130,8 +129,8 @@ class SimpleRecordingDialog(QDialog):
         self._audio_path = result.recorded_path
         if result.normalized_pcm:
             self._level_widget.show_overview(result.normalized_pcm)
-        self._status_label.setText("Recording ready")
-        self._status_label.setVisible(True)
+        self._status_label.clear()
+        self._status_label.setVisible(False)
         self._save_button.setVisible(True)
         self._save_button.setEnabled(True)
         self._recognize_button.setVisible(True)
@@ -180,7 +179,6 @@ class SimpleRecordingDialog(QDialog):
     def _on_start_failed(self, message: str) -> None:
         self._status_label.setText(message)
         self._status_label.setVisible(True)
-        self._stop_button.setEnabled(False)
         self._update_stop_button()
 
     def _on_stop_clicked(self) -> None:
@@ -199,7 +197,7 @@ class SimpleRecordingDialog(QDialog):
             if not devices:
                 self._microphone_combo.addItem("No microphone found")
                 self._microphone_combo.setEnabled(False)
-                self._stop_button.setEnabled(False)
+                self._update_stop_button()
                 return
 
             self._microphone_combo.setEnabled(True)
@@ -288,6 +286,7 @@ class SimpleRecordingDialog(QDialog):
         controls.addWidget(self._recognize_button, alignment=Qt.AlignmentFlag.AlignBottom)
 
         layout.addLayout(controls)
+        self._update_stop_button()
 
     def _start_recording_with_current_device(self) -> None:
         if self._finalize_pending:
@@ -299,7 +298,7 @@ class SimpleRecordingDialog(QDialog):
         if device is None:
             self._status_label.setText("No microphone found")
             self._status_label.setVisible(True)
-            self._stop_button.setEnabled(False)
+            self._update_stop_button()
             return
 
         MicrophoneRecorder.save_device(device)
@@ -307,14 +306,18 @@ class SimpleRecordingDialog(QDialog):
         if not result.success:
             self._status_label.setText(result.message or "Recording error")
             self._status_label.setVisible(True)
-            self._stop_button.setEnabled(False)
+            self._update_stop_button()
 
     def _update_stop_button(self) -> None:
         recording = self._recorder.is_recording
-        self._stop_button.set_recording(recording=recording or self._finalize_pending)
+        finalize_pending = self._finalize_pending
+        show_stop = recording or finalize_pending
+        self._stop_button.setVisible(show_stop)
+        self._stop_caption.setVisible(show_stop)
+        self._stop_button.set_recording(recording=recording or finalize_pending)
         self._stop_button.setEnabled(recording)
         self._stop_caption.setEnabled(recording)
-        if not self._finalize_pending:
+        if not finalize_pending:
             self._microphone_combo.setEnabled(
                 self._microphone_combo.count() > 0 and self._current_input_device() is not None
             )
