@@ -29,6 +29,7 @@ lang: en
   - [⚙️ Method `resizeEvent`](#%EF%B8%8F-method-resizeevent)
   - [⚙️ Method `set_thumb_size`](#%EF%B8%8F-method-set_thumb_size)
   - [⚙️ Method `show_family`](#%EF%B8%8F-method-show_family)
+- [🔧 Function `batch_context_action_texts`](#-function-batch_context_action_texts)
 - [🔧 Function `family_display_filename`](#-function-family_display_filename)
 
 </details>
@@ -240,6 +241,14 @@ class DraggableIconList(QListWidget):
         else:
             self.family_selected.emit(None)
 
+    def _exec_batch_context_menu(self, pos: QPoint, targets: list[tuple[IconFamily, str]]) -> None:
+        menu = QMenu(self)
+        labels = batch_context_action_texts(len(targets))
+        batch_ai_action = menu.addAction(labels[0])
+        chosen = menu.exec_(self.mapToGlobal(pos))
+        if chosen is batch_ai_action:
+            self.batch_keywords_ai_requested.emit(targets)
+
     def _grid_size_for(self, icon_size: int) -> QSize:
         label_h = LABEL_EXTRA_HEIGHT if self._dual_line_labels else 48
         return QSize(icon_size + 24, icon_size + label_h)
@@ -261,11 +270,11 @@ class DraggableIconList(QListWidget):
             self.setCurrentItem(item)
 
         targets = self.selected_keyword_targets()
-        menu = QMenu(self)
-        batch_ai_action = None
         if len(targets) > 1:
-            batch_ai_action = menu.addAction(f"🤖 Process keywords with AI ({len(targets)} icons)…")
-            menu.addSeparator()
+            self._exec_batch_context_menu(pos, targets)
+            return
+
+        menu = QMenu(self)
 
         reveal_action = None
         details_action = None
@@ -299,9 +308,7 @@ class DraggableIconList(QListWidget):
         delete_action = menu.addAction("🗑️ Delete")
         chosen = menu.exec_(self.mapToGlobal(pos))
 
-        if batch_ai_action is not None and chosen is batch_ai_action:
-            self.batch_keywords_ai_requested.emit(targets)
-        elif has_path and chosen is reveal_action:
+        if has_path and chosen is reveal_action:
             self.reveal_requested.emit(path)
         elif has_path and chosen is details_action:
             self.details_requested.emit(family, path)
@@ -1088,6 +1095,24 @@ def show_family(self, family: IconFamily | None, repo_root: Path | None) -> None
             item.setToolTip(str(path))
             self.list.addItem(item)
         self.list.doItemsLayout()
+```
+
+</details>
+
+## 🔧 Function `batch_context_action_texts`
+
+```python
+def batch_context_action_texts(count: int) -> list[str]
+```
+
+Return labels for the multi-select context menu.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def batch_context_action_texts(count: int) -> list[str]:
+    return [f"🤖 Process keywords with AI ({count} icons)…"]
 ```
 
 </details>

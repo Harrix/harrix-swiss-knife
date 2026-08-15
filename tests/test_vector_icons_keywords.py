@@ -18,7 +18,11 @@ from harrix_swiss_knife.apps.icons.keywords_update import (
     update_keywords_files,
 )
 from harrix_swiss_knife.apps.icons.variant_view import GridEntry
-from harrix_swiss_knife.apps.icons.widgets import DraggableIconList, placeholder_pixmap
+from harrix_swiss_knife.apps.icons.widgets import (
+    DraggableIconList,
+    batch_context_action_texts,
+    placeholder_pixmap,
+)
 
 _MIN_SVG = (
     '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><rect width="32" height="32" fill="#336699"/></svg>'
@@ -154,6 +158,10 @@ def test_selected_keyword_targets_are_unique_and_ordered(qapp: QApplication, tmp
     targets = lst.selected_keyword_targets()
     assert [family.id for family, _path in targets] == ["building__garage", "fiction__ufo"]
     assert lst.selectionMode() == lst.SelectionMode.ExtendedSelection
+    assert batch_context_action_texts(len(targets)) == [
+        "🤖 Process keywords with AI (2 icons)…",
+    ]
+    assert len(batch_context_action_texts(len(targets))) == 1
 
 
 def test_keywords_batch_runner_updates_then_reports_failures(qapp: QApplication, tmp_path: Path) -> None:
