@@ -120,6 +120,7 @@ fun SpeechToTextScreen(
     var pendingMicAction by remember { mutableStateOf<MicAction?>(null) }
     var pendingOpenAutoStart by remember { mutableStateOf(true) }
     var openAutoStartRequested by remember { mutableStateOf(false) }
+    var pendingReplaceMicAction by remember { mutableStateOf<MicAction?>(null) }
 
     fun leave() {
         viewModel.resetSession()
@@ -209,6 +210,14 @@ fun SpeechToTextScreen(
             pendingMicAction = action
             permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
         }
+    }
+
+    fun requestStartRecording(action: MicAction = MicAction.Start) {
+        if (pendingRecording != null && action != MicAction.Continue) {
+            pendingReplaceMicAction = action
+            return
+        }
+        startOrRequestMic(action)
     }
 
     BackHandler {
@@ -312,19 +321,33 @@ fun SpeechToTextScreen(
                                 phase == SpeechToTextPhase.Recorded ||
                                 phase == SpeechToTextPhase.Result
                             ),
+                    discardEnabled =
+                    phase != SpeechToTextPhase.Recognizing &&
+                        phase != SpeechToTextPhase.Fixing &&
+                        phase != SpeechToTextPhase.Rewriting,
                     onRetry = { viewModel.retryPendingRecording() },
+                    onDiscard = {
+                        pendingOpenAutoStart = false
+                        viewModel.discardPendingRecording()
+                    },
                 )
                 Spacer(modifier = Modifier.height(12.dp))
             }
 
             when (phase) {
                 SpeechToTextPhase.Idle -> {
-                    IdleContent(
-                        starting =
+                    val idleStarting =
                         hasApiKey &&
                             pendingRecording == null &&
                             errorMessage == null &&
-                            pendingOpenAutoStart,
+                            pendingOpenAutoStart
+                    IdleContent(
+                        starting = idleStarting,
+                        showStartButton =
+                        hasApiKey &&
+                            !idleStarting &&
+                            (pendingRecording != null || !pendingOpenAutoStart),
+                        onStartRecording = { requestStartRecording(MicAction.Start) },
                     )
                 }
 
@@ -343,7 +366,7 @@ fun SpeechToTextScreen(
                         buckets = waveformBuckets,
                         durationLabel = AudioRecorder.formatDuration(recordingDurationSeconds),
                         onContinue = { startOrRequestMic(MicAction.Continue) },
-                        onRerecord = { startOrRequestMic(MicAction.Rerecord) },
+                        onRerecord = { requestStartRecording(MicAction.Rerecord) },
                         onRecognize = { viewModel.recognizeRecording() },
                         onSave = {
                             saveAudioLauncher.launch(viewModel.suggestedAudioFileName())
@@ -370,12 +393,36 @@ fun SpeechToTextScreen(
                         onShare = { shareResultText(resultText) },
                         onSendToTickTick = { sendResultToTickTick(resultText) },
                         onRewrite = { viewModel.rewrite() },
-                        onRecordNew = { startOrRequestMic(MicAction.Start) },
+                        onRecordNew = { requestStartRecording(MicAction.Start) },
                         onSingleLine = { viewModel.collapseToSingleLine() },
                     )
                 }
             }
         }
+    }
+
+    pendingReplaceMicAction?.let { action ->
+        AlertDialog(
+            onDismissRequest = { pendingReplaceMicAction = null },
+            title = { Text(stringResource(R.string.speech_to_text_pending_replace_title)) },
+            text = { Text(stringResource(R.string.speech_to_text_pending_replace_message)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        pendingReplaceMicAction = null
+                        viewModel.discardPendingRecording()
+                        startOrRequestMic(action)
+                    },
+                ) {
+                    Text(stringResource(R.string.speech_to_text_pending_replace_confirm))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingReplaceMicAction = null }) {
+                    Text(stringResource(R.string.speech_to_text_pending_replace_cancel))
+                }
+            },
+        )
     }
 
     errorMessage?.let { message ->
@@ -396,7 +443,9 @@ fun SpeechToTextScreen(
 private fun PendingRecordingBanner(
     durationLabel: String,
     retryEnabled: Boolean,
+    discardEnabled: Boolean,
     onRetry: () -> Unit,
+    onDiscard: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Surface(
@@ -406,11 +455,11 @@ private fun PendingRecordingBanner(
         contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Column(modifier = Modifier.weight(1f)) {
+            Column(modifier = Modifier.weight(1f).padding(start = 4.dp)) {
                 Text(
                     text = stringResource(R.string.speech_to_text_pending_recording),
                     style = MaterialTheme.typography.titleSmall,
@@ -418,6 +467,15 @@ private fun PendingRecordingBanner(
                 Text(
                     text = durationLabel,
                     style = MaterialTheme.typography.bodySmall,
+                )
+            }
+            IconButton(
+                onClick = onDiscard,
+                enabled = discardEnabled,
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Close,
+                    contentDescription = stringResource(R.string.speech_to_text_pending_discard),
                 )
             }
             Button(
@@ -438,6 +496,8 @@ private fun PendingRecordingBanner(
 @Composable
 private fun IdleContent(
     starting: Boolean,
+    showStartButton: Boolean,
+    onStartRecording: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -461,6 +521,17 @@ private fun IdleContent(
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+        } else if (showStartButton) {
+            Spacer(modifier = Modifier.height(24.dp))
+            Button(onClick = onStartRecording) {
+                Icon(
+                    imageVector = Icons.Filled.Mic,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp),
+                )
+                Spacer(modifier = Modifier.size(8.dp))
+                Text(stringResource(R.string.speech_to_text_start_recording))
+            }
         }
     }
 }

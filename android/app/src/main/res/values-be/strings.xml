@@ -200,6 +200,12 @@
     <string name="speech_to_text_missing_api_key">Няма API-ключа AI. Стварыце api-keys/bothub-api-key.txt (або задайце BOTHUB_API_KEY) і перазбярыце APK.</string>
     <string name="speech_to_text_pending_recording">Неадпраўлены аўдыязапіс</string>
     <string name="speech_to_text_pending_retry">Паўтарыць адпраўку</string>
+    <string name="speech_to_text_pending_discard">Выдаліць неадпраўлены запіс</string>
+    <string name="speech_to_text_start_recording">Пачаць запіс</string>
+    <string name="speech_to_text_pending_replace_title">Замяніць неадпраўлены запіс?</string>
+    <string name="speech_to_text_pending_replace_message">Новы запіс выдаліць неадпраўленае аўдыё. Замест гэтага можна паўтарыць адпраўку.</string>
+    <string name="speech_to_text_pending_replace_confirm">Выдаліць і запісаць</string>
+    <string name="speech_to_text_pending_replace_cancel">Скасаваць</string>
     <string name="photo_editor_share_label">Harrix Photo Editor</string>
     <string name="photo_editor_title">Photo Editor</string>
     <string name="photo_editor_close">Выйсці з Photo Editor</string>

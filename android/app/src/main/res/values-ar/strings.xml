@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Harrix Swiss Knife</string>
     <string name="nav_open">فتح الملاحة</string>
@@ -200,7 +200,12 @@
     <string name="speech_to_text_missing_api_key">AI API key is missing. Create api-keys/bothub-api-key.txt (or set BOTHUB_API_KEY) and rebuild the APK.</string>
     <string name="speech_to_text_pending_recording">تسجيل لم يُرسل</string>
     <string name="speech_to_text_pending_retry">إعادة محاولة الإرسال</string>
-    <string name="photo_editor_share_label">Harrix Photo Editor</string>
+    <string name="speech_to_text_pending_discard">Discard unsent recording</string>
+    <string name="speech_to_text_start_recording">Start recording</string>
+    <string name="speech_to_text_pending_replace_title">Replace unsent recording?</string>
+    <string name="speech_to_text_pending_replace_message">Starting a new recording will delete the unsent audio. You can still retry sending it instead.</string>
+    <string name="speech_to_text_pending_replace_confirm">Delete and record</string>
+    <string name="speech_to_text_pending_replace_cancel">Cancel</string>    <string name="photo_editor_share_label">Harrix Photo Editor</string>
     <string name="photo_editor_title">Photo Editor</string>
     <string name="photo_editor_close">خروج من Photo Editor</string>
     <string name="photo_editor_back_to_gallery">العودة إلى المعرض</string>

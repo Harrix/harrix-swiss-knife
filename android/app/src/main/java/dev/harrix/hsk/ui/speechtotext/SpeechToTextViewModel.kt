@@ -187,6 +187,28 @@ class SpeechToTextViewModel(
         processRecording(file, recordedMime)
     }
 
+    fun discardPendingRecording() {
+        if (isBusyNetwork()) {
+            return
+        }
+        val pending = pendingStore.load()
+        pendingStore.clear()
+        pendingRecording.value = null
+        if (pending != null && recordedFile?.absolutePath == pending.file.absolutePath) {
+            recordedFile = null
+            waveformBuckets.clear()
+            recordingDurationSeconds.floatValue = 0f
+            if (phase.value == SpeechToTextPhase.Recorded) {
+                phase.value =
+                    if (resultText.value.isBlank()) {
+                        SpeechToTextPhase.Idle
+                    } else {
+                        SpeechToTextPhase.Result
+                    }
+            }
+        }
+    }
+
     fun retryPendingRecording() {
         if (isBusyNetwork() || workJob?.isActive == true) {
             return
