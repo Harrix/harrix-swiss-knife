@@ -1,0 +1,42 @@
+---
+description: Keep @hsk-sync:visual-markdown editors aligned with the Android visual editor
+globs: vscode/harrix-notes-explorer-hsk/visual-editor.js,vscode/harrix-notes-explorer-hsk/media/visual-editor.js,vscode/harrix-notes-explorer-hsk/media/visual-editor.css
+alwaysApply: false
+---
+
+# @hsk-sync:visual-markdown
+
+Token `@hsk-sync:visual-markdown` marks one **Visual Markdown** WYSIWYG editor in two apps. If toolbar commands, Markdown round-trip, YAML handling, or image insert behavior change in either implementation, update the other to match.
+
+## Sibling implementations
+
+| Block | Path |
+|-------|------|
+| VS Code host (this repo) | `vscode/harrix-notes-explorer-hsk/visual-editor.js` |
+| VS Code webview (this repo) | `vscode/harrix-notes-explorer-hsk/media/visual-editor.js` + `media/visual-editor.css` |
+| Android | `D:\GitHub\harrix-notes-android` — `app/src/main/assets/visual-editor/` + `NotesVisualEditorPane.kt` |
+
+## Shared contract
+
+Toolbar (same commands, same order):
+
+1. Bold, italic, strikethrough, inline code
+2. H1, H2, H3, paragraph
+3. Bullet list, numbered list, blockquote
+4. Link, image, horizontal rule
+
+Markdown I/O:
+
+- Parse body with **marked** (GFM, `breaks: false`)
+- Serialize with **Turndown** (`atx` headings, fenced code, `*` emphasis, `-` lists, `---` hr)
+- YAML front matter stays in a separate box (`---` … `---`), not in the contenteditable body
+- Local images keep a Markdown-relative `data-md-src` (typically `img/…`)
+
+Images:
+
+- Image button / paste / drop copies files into the note's `img/` folder
+- Inserted HTML uses `data-md-src` so Turndown writes `![](img/name.ext)`
+
+Out of scope for this sync id: VS Code theme tokens, Android Material theme, SAF vs filesystem, host dialogs (link prompt / file picker chrome).
+
+When adding a **new format command or insert kind**, add it to both toolbars and both JS round-trips in the same change set.

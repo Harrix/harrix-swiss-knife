@@ -1,3 +1,8 @@
+/**
+ * @hsk-sync:visual-markdown
+ * Keep toolbar commands and Markdown round-trip aligned with
+ * harrix-notes-android/app/src/main/assets/visual-editor/visual-editor.js
+ */
 (() => {
   const vscode = acquireVsCodeApi();
   const editor = document.getElementById('editor');

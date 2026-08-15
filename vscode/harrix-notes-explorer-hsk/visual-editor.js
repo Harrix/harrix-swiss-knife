@@ -1,5 +1,7 @@
 /**
  * Visual Markdown custom text editor (WYSIWYG) for notes.
+ *
+ * @hsk-sync:visual-markdown — sibling: harrix-notes-android NotesVisualEditorPane
  */
 
 const vscode = require('vscode');
