@@ -279,8 +279,10 @@ def build_text_diff_side_by_side(
             if result_text_holder is not None:
                 result_text_holder[0] = collapsed
             show_toast("Converted to single line")
+            if remove_paragraphs_btn is not None:
+                remove_paragraphs_btn.setVisible(False)
 
-        append_result_action_buttons(
+        remove_paragraphs_btn = append_result_action_buttons(
             dialog,
             button_layout,
             rerun_button=rerun_button,
@@ -288,6 +290,7 @@ def build_text_diff_side_by_side(
             rerun_button_emoji=rerun_button_emoji,
             remove_paragraphs_button=remove_paragraphs_button,
             on_remove_paragraphs=on_remove_paragraphs if remove_paragraphs_button else None,
+            remove_paragraphs_source_text=after_text,
         )
 
         add_ok_button(dialog, button_layout)

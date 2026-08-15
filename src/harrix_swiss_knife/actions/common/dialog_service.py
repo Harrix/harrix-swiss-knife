@@ -1576,8 +1576,10 @@ class ActionDialogService:
                 text_edit.setPlainText(current_text)
                 QGuiApplication.clipboard().setText(current_text)
                 self._show_toast("Converted to single line")
+                if remove_paragraphs_btn is not None:
+                    remove_paragraphs_btn.setVisible(False)
 
-            append_result_action_buttons(
+            remove_paragraphs_btn = append_result_action_buttons(
                 dialog,
                 button_layout,
                 rerun_button=rerun_button,
@@ -1586,6 +1588,7 @@ class ActionDialogService:
                 rewrite_button=rewrite_button,
                 remove_paragraphs_button=remove_paragraphs_button,
                 on_remove_paragraphs=on_remove_paragraphs if remove_paragraphs_button else None,
+                remove_paragraphs_source_text=current_text,
             )
 
             add_ok_button(dialog, button_layout)

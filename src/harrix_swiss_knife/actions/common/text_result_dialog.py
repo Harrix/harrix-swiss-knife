@@ -77,8 +77,14 @@ def append_result_action_buttons(
     rewrite_button: bool = False,
     remove_paragraphs_button: bool = False,
     on_remove_paragraphs: Callable[[], None] | None = None,
-) -> None:
-    """Add optional rerun/rewrite buttons and in-place remove-paragraphs action."""
+    remove_paragraphs_source_text: str = "",
+) -> QPushButton | None:
+    """Add optional rerun/rewrite buttons and in-place remove-paragraphs action.
+
+    The "To single line" button is created only when requested, and shown only while
+    `remove_paragraphs_source_text` has more than one line.
+
+    """
     if rerun_button:
         rerun_btn = make_emoji_push_button(rerun_button_label, rerun_button_emoji)
         rerun_btn.clicked.connect(lambda: dialog.done(RERUN_DIALOG_CODE))
@@ -89,18 +95,27 @@ def append_result_action_buttons(
         rewrite_btn.clicked.connect(lambda: dialog.done(REWRITE_DIALOG_CODE))
         button_layout.addWidget(rewrite_btn)
 
-    if remove_paragraphs_button and on_remove_paragraphs is not None:
-        remove_paragraphs_btn = make_emoji_push_button(
-            REMOVE_PARAGRAPHS_BUTTON_LABEL,
-            REMOVE_PARAGRAPHS_BUTTON_EMOJI,
-        )
-        remove_paragraphs_btn.clicked.connect(on_remove_paragraphs)
-        button_layout.addWidget(remove_paragraphs_btn)
+    if not remove_paragraphs_button or on_remove_paragraphs is None:
+        return None
+
+    remove_paragraphs_btn = make_emoji_push_button(
+        REMOVE_PARAGRAPHS_BUTTON_LABEL,
+        REMOVE_PARAGRAPHS_BUTTON_EMOJI,
+    )
+    remove_paragraphs_btn.clicked.connect(on_remove_paragraphs)
+    button_layout.addWidget(remove_paragraphs_btn)
+    remove_paragraphs_btn.setVisible(is_multiline_text(remove_paragraphs_source_text))
+    return remove_paragraphs_btn
 
 
 def collapse_text_to_single_line(text: str) -> str:
     """Replace line breaks and paragraph gaps with single spaces."""
     return re.sub(r"\s+", " ", text).strip()
+
+
+def is_multiline_text(text: str) -> bool:
+    """Return `True` when `text` contains more than one line."""
+    return len(text.splitlines()) > 1
 
 
 def resolve_text_result_dialog_action(
