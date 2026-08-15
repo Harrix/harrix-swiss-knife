@@ -4,12 +4,21 @@ from __future__ import annotations
 
 import inspect
 from pathlib import Path
+from typing import NamedTuple
 
 from harrix_swiss_knife.action_title import strip_md_inline_code_markers
 from harrix_swiss_knife.paths import get_project_root
 
 _PACKAGE_ROOT_NAME = "harrix_swiss_knife"
 _SRC_DIR_NAME = "src"
+
+
+class ActionIdentityParts(NamedTuple):
+    """Clipboard fields for an action: display name, class name, source path."""
+
+    name: str
+    class_name: str
+    path: str
 
 
 def action_identity_name(class_action: type) -> str:
@@ -20,6 +29,15 @@ def action_identity_name(class_action: type) -> str:
             return text
     title = strip_md_inline_code_markers(str(getattr(class_action, "title", "") or ""))
     return title.strip() or class_action.__name__
+
+
+def action_identity_parts(class_action: type) -> ActionIdentityParts:
+    """Return name, class name, and relative source path for an action class."""
+    return ActionIdentityParts(
+        name=action_identity_name(class_action),
+        class_name=class_action.__name__,
+        path=action_relative_source_path(class_action),
+    )
 
 
 def action_relative_source_path(class_action: type) -> str:
@@ -47,10 +65,5 @@ def action_relative_source_path(class_action: type) -> str:
 
 def format_action_identity_text(class_action: type) -> str:
     """Return three lines: action name, class name, and relative source path."""
-    return "\n".join(
-        (
-            action_identity_name(class_action),
-            class_action.__name__,
-            action_relative_source_path(class_action),
-        )
-    )
+    parts = action_identity_parts(class_action)
+    return f"{parts.name}\n{parts.class_name}\n{parts.path}"

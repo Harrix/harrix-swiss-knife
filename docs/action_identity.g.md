@@ -11,9 +11,32 @@ lang: en
 
 ## Contents
 
+- [🏛️ Class `ActionIdentityParts`](#%EF%B8%8F-class-actionidentityparts)
 - [🔧 Function `action_identity_name`](#-function-action_identity_name)
+- [🔧 Function `action_identity_parts`](#-function-action_identity_parts)
 - [🔧 Function `action_relative_source_path`](#-function-action_relative_source_path)
 - [🔧 Function `format_action_identity_text`](#-function-format_action_identity_text)
+
+</details>
+
+## 🏛️ Class `ActionIdentityParts`
+
+```python
+class ActionIdentityParts(NamedTuple)
+```
+
+Clipboard fields for an action: display name, class name, source path.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class ActionIdentityParts(NamedTuple):
+
+    name: str
+    class_name: str
+    path: str
+```
 
 </details>
 
@@ -36,6 +59,28 @@ def action_identity_name(class_action: type) -> str:
             return text
     title = strip_md_inline_code_markers(str(getattr(class_action, "title", "") or ""))
     return title.strip() or class_action.__name__
+```
+
+</details>
+
+## 🔧 Function `action_identity_parts`
+
+```python
+def action_identity_parts(class_action: type) -> ActionIdentityParts
+```
+
+Return name, class name, and relative source path for an action class.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def action_identity_parts(class_action: type) -> ActionIdentityParts:
+    return ActionIdentityParts(
+        name=action_identity_name(class_action),
+        class_name=class_action.__name__,
+        path=action_relative_source_path(class_action),
+    )
 ```
 
 </details>
@@ -89,13 +134,8 @@ Return three lines: action name, class name, and relative source path.
 
 ```python
 def format_action_identity_text(class_action: type) -> str:
-    return "\n".join(
-        (
-            action_identity_name(class_action),
-            class_action.__name__,
-            action_relative_source_path(class_action),
-        )
-    )
+    parts = action_identity_parts(class_action)
+    return f"{parts.name}\n{parts.class_name}\n{parts.path}"
 ```
 
 </details>

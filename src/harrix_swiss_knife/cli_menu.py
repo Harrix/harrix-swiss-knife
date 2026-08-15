@@ -6,10 +6,15 @@ from PySide6.QtCore import QPoint, Qt
 from PySide6.QtGui import QAction, QClipboard, QGuiApplication, QMouseEvent
 from PySide6.QtWidgets import QMenu, QWidget
 
+from harrix_swiss_knife.action_identity import ActionIdentityParts
+
 CLI_EXECUTABLE = "hsk"
 CLI_MENU_SUFFIX = " ꟲᴸᴵ"
 CLI_TOOLTIP_DEFAULT = f"Available via {CLI_EXECUTABLE} (see --help)"
 COPY_ACTION_IDENTITY_MENU_LABEL = "📋 Copy action name, class, and path"
+COPY_ACTION_NAME_MENU_LABEL = "📋 Copy action name"
+COPY_ACTION_CLASS_MENU_LABEL = "📋 Copy action class"
+COPY_ACTION_PATH_MENU_LABEL = "📋 Copy action path"
 COPY_CLI_MENU_PREFIX = "📋 Copy CLI command: "
 
 
@@ -56,6 +61,16 @@ def format_copy_cli_menu_label(cli_copy_command: str) -> str:
     return f"{COPY_CLI_MENU_PREFIX}{cli_copy_command}"
 
 
+def get_action_identity_parts(action: QAction | None) -> ActionIdentityParts | None:
+    """Return name/class/path parts stored on a menu action, if any."""
+    if action is None:
+        return None
+    parts = getattr(action, "action_identity_parts", None)
+    if isinstance(parts, ActionIdentityParts):
+        return parts
+    return None
+
+
 def get_action_identity_text(action: QAction | None) -> str | None:
     """Return the name/class/path snippet stored on a menu action, if any."""
     if action is None:
@@ -63,7 +78,10 @@ def get_action_identity_text(action: QAction | None) -> str | None:
     text = getattr(action, "action_identity_text", None)
     if isinstance(text, str) and text:
         return text
-    return None
+    parts = get_action_identity_parts(action)
+    if parts is None:
+        return None
+    return f"{parts.name}\n{parts.class_name}\n{parts.path}"
 
 
 def get_cli_copy_command(action: QAction | None) -> str | None:
@@ -78,16 +96,26 @@ def get_cli_copy_command(action: QAction | None) -> str | None:
 
 def show_action_item_context_menu(*, parent: QWidget | None, global_pos: QPoint, action: QAction) -> None:
     """Show a context menu to copy action identity and, when present, the CLI command."""
+    identity_parts = get_action_identity_parts(action)
     identity_text = get_action_identity_text(action)
     cli_copy_command = get_cli_copy_command(action)
-    if identity_text is None and cli_copy_command is None:
+    if identity_text is None and identity_parts is None and cli_copy_command is None:
         return
 
     menu = QMenu(parent)
     if identity_text is not None:
         copy_identity = menu.addAction(COPY_ACTION_IDENTITY_MENU_LABEL)
         copy_identity.triggered.connect(lambda: copy_text_to_clipboard(identity_text))
+    if identity_parts is not None:
+        copy_name = menu.addAction(COPY_ACTION_NAME_MENU_LABEL)
+        copy_name.triggered.connect(lambda p=identity_parts: copy_text_to_clipboard(p.name))
+        copy_class = menu.addAction(COPY_ACTION_CLASS_MENU_LABEL)
+        copy_class.triggered.connect(lambda p=identity_parts: copy_text_to_clipboard(p.class_name))
+        copy_path = menu.addAction(COPY_ACTION_PATH_MENU_LABEL)
+        copy_path.triggered.connect(lambda p=identity_parts: copy_text_to_clipboard(p.path))
     if cli_copy_command is not None:
+        if not menu.isEmpty():
+            menu.addSeparator()
         copy_cli = menu.addAction(format_copy_cli_menu_label(cli_copy_command))
         copy_cli.triggered.connect(lambda: copy_cli_command_to_clipboard(cli_copy_command))
     menu.exec_(global_pos)

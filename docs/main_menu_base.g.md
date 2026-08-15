@@ -288,6 +288,7 @@ class MainMenuBase:
         action_description = resolve_description() if callable(resolve_description) else ""
         setattr(action, "action_description", action_description)  # noqa: B010
         setattr(action, "action_identity_text", format_action_identity_text(class_action))  # noqa: B010
+        setattr(action, "action_identity_parts", action_identity_parts(class_action))  # noqa: B010
 
         if bold_title:
             font = action.font()

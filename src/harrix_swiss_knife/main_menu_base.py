@@ -6,7 +6,7 @@ import harrix_pylib as h
 from PySide6.QtGui import QAction, QIcon
 from PySide6.QtWidgets import QMenu
 
-from harrix_swiss_knife.action_identity import format_action_identity_text
+from harrix_swiss_knife.action_identity import action_identity_parts, format_action_identity_text
 from harrix_swiss_knife.action_title import strip_md_inline_code_markers
 from harrix_swiss_knife.cli_menu import (
     CLI_MENU_SUFFIX,
@@ -278,6 +278,7 @@ class MainMenuBase:
         action_description = resolve_description() if callable(resolve_description) else ""
         setattr(action, "action_description", action_description)  # noqa: B010
         setattr(action, "action_identity_text", format_action_identity_text(class_action))  # noqa: B010
+        setattr(action, "action_identity_parts", action_identity_parts(class_action))  # noqa: B010
 
         if bold_title:
             font = action.font()
