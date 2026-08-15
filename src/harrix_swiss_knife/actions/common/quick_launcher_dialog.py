@@ -26,6 +26,7 @@ from harrix_swiss_knife.action_hotkeys import load_hotkeys_for_action
 from harrix_swiss_knife.action_title import strip_md_inline_code_markers
 from harrix_swiss_knife.actions.common.quick_launcher_settings import load_quick_launcher_markdown_in_panel
 from harrix_swiss_knife.actions.markdown.new_markdown import OnNewMarkdown
+from harrix_swiss_knife.cli_menu import show_action_class_context_menu
 from harrix_swiss_knife.qt_action_card_grid import CARD_ICON_SIZE, configure_action_card_grid
 from harrix_swiss_knife.qt_command_section import (
     apply_opaque_white,
@@ -108,6 +109,8 @@ class QuickLauncherDialog(QDialog):
         configure_action_card_grid(self._cards)
         style_transparent_icon_grid(self._cards)
         self._cards.itemClicked.connect(self._on_item_clicked)
+        self._cards.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self._cards.customContextMenuRequested.connect(self._on_cards_context_menu)
         self._actions_section, _, actions_layout = create_command_section(title="Actions")
         actions_layout.addWidget(self._cards)
         self._layout.addWidget(self._actions_section, stretch=1)
@@ -403,6 +406,20 @@ class QuickLauncherDialog(QDialog):
 
     def _move_drag(self, global_pos: QPoint) -> None:
         self.move(global_pos - self._drag_position)
+
+    def _on_cards_context_menu(self, pos: QPoint) -> None:
+        """Show copy name/class/path for the action card under the cursor."""
+        item = self._cards.itemAt(pos)
+        if item is None:
+            return
+        action_cls = item.data(Qt.ItemDataRole.UserRole)
+        if not isinstance(action_cls, type):
+            return
+        show_action_class_context_menu(
+            parent=self,
+            global_pos=self._cards.mapToGlobal(pos),
+            action_cls=action_cls,
+        )
 
     def _on_item_clicked(self, item: QListWidgetItem) -> None:
         self._run_action(item)

@@ -98,6 +98,8 @@ class QuickLauncherDialog(QDialog):
         configure_action_card_grid(self._cards)
         style_transparent_icon_grid(self._cards)
         self._cards.itemClicked.connect(self._on_item_clicked)
+        self._cards.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self._cards.customContextMenuRequested.connect(self._on_cards_context_menu)
         self._actions_section, _, actions_layout = create_command_section(title="Actions")
         actions_layout.addWidget(self._cards)
         self._layout.addWidget(self._actions_section, stretch=1)
@@ -394,6 +396,20 @@ class QuickLauncherDialog(QDialog):
     def _move_drag(self, global_pos: QPoint) -> None:
         self.move(global_pos - self._drag_position)
 
+    def _on_cards_context_menu(self, pos: QPoint) -> None:
+        """Show copy name/class/path for the action card under the cursor."""
+        item = self._cards.itemAt(pos)
+        if item is None:
+            return
+        action_cls = item.data(Qt.ItemDataRole.UserRole)
+        if not isinstance(action_cls, type):
+            return
+        show_action_class_context_menu(
+            parent=self,
+            global_pos=self._cards.mapToGlobal(pos),
+            action_cls=action_cls,
+        )
+
     def _on_item_clicked(self, item: QListWidgetItem) -> None:
         self._run_action(item)
 
@@ -588,6 +604,8 @@ def __init__(self, parent: QWidget | None = None) -> None:
         configure_action_card_grid(self._cards)
         style_transparent_icon_grid(self._cards)
         self._cards.itemClicked.connect(self._on_item_clicked)
+        self._cards.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self._cards.customContextMenuRequested.connect(self._on_cards_context_menu)
         self._actions_section, _, actions_layout = create_command_section(title="Actions")
         actions_layout.addWidget(self._cards)
         self._layout.addWidget(self._actions_section, stretch=1)

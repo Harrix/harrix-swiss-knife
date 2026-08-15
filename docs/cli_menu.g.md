@@ -20,6 +20,8 @@ lang: en
 - [🔧 Function `get_action_identity_parts`](#-function-get_action_identity_parts)
 - [🔧 Function `get_action_identity_text`](#-function-get_action_identity_text)
 - [🔧 Function `get_cli_copy_command`](#-function-get_cli_copy_command)
+- [🔧 Function `show_action_class_context_menu`](#-function-show_action_class_context_menu)
+- [🔧 Function `show_action_identity_context_menu`](#-function-show_action_identity_context_menu)
 - [🔧 Function `show_action_item_context_menu`](#-function-show_action_item_context_menu)
 - [🔧 Function `show_copy_cli_menu`](#-function-show_copy_cli_menu)
 
@@ -233,22 +235,60 @@ def get_cli_copy_command(action: QAction | None) -> str | None:
 
 </details>
 
-## 🔧 Function `show_action_item_context_menu`
+## 🔧 Function `show_action_class_context_menu`
 
 ```python
-def show_action_item_context_menu(*, parent: QWidget | None, global_pos: QPoint, action: QAction) -> None
+def show_action_class_context_menu(*, parent: QWidget | None, global_pos: QPoint, action_cls: type) -> None
 ```
 
-Show a context menu to copy action identity and, when present, the CLI command.
+Show copy name/class/path (and CLI when available) for an action class.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def show_action_item_context_menu(*, parent: QWidget | None, global_pos: QPoint, action: QAction) -> None:
-    identity_parts = get_action_identity_parts(action)
-    identity_text = get_action_identity_text(action)
-    cli_copy_command = get_cli_copy_command(action)
+def show_action_class_context_menu(
+    *,
+    parent: QWidget | None,
+    global_pos: QPoint,
+    action_cls: type,
+) -> None:
+    identity_parts = action_identity_parts(action_cls)
+    identity_text = format_action_identity_text(action_cls)
+    cli_copy_command: str | None = None
+    if getattr(action_cls, "cli_available", False):
+        cli_copy_command = build_cli_copy_command(str(getattr(action_cls, "cli_hint", "") or ""))
+    show_action_identity_context_menu(
+        parent=parent,
+        global_pos=global_pos,
+        identity_text=identity_text,
+        identity_parts=identity_parts,
+        cli_copy_command=cli_copy_command,
+    )
+```
+
+</details>
+
+## 🔧 Function `show_action_identity_context_menu`
+
+```python
+def show_action_identity_context_menu(*, parent: QWidget | None, global_pos: QPoint, identity_text: str | None = None, identity_parts: ActionIdentityParts | None = None, cli_copy_command: str | None = None) -> None
+```
+
+Show a context menu to copy action identity fields and optional CLI command.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def show_action_identity_context_menu(
+    *,
+    parent: QWidget | None,
+    global_pos: QPoint,
+    identity_text: str | None = None,
+    identity_parts: ActionIdentityParts | None = None,
+    cli_copy_command: str | None = None,
+) -> None:
     if identity_text is None and identity_parts is None and cli_copy_command is None:
         return
 
@@ -269,6 +309,30 @@ def show_action_item_context_menu(*, parent: QWidget | None, global_pos: QPoint,
         copy_cli = menu.addAction(format_copy_cli_menu_label(cli_copy_command))
         copy_cli.triggered.connect(lambda: copy_cli_command_to_clipboard(cli_copy_command))
     menu.exec_(global_pos)
+```
+
+</details>
+
+## 🔧 Function `show_action_item_context_menu`
+
+```python
+def show_action_item_context_menu(*, parent: QWidget | None, global_pos: QPoint, action: QAction) -> None
+```
+
+Show a context menu to copy action identity and, when present, the CLI command.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def show_action_item_context_menu(*, parent: QWidget | None, global_pos: QPoint, action: QAction) -> None:
+    show_action_identity_context_menu(
+        parent=parent,
+        global_pos=global_pos,
+        identity_text=get_action_identity_text(action),
+        identity_parts=get_action_identity_parts(action),
+        cli_copy_command=get_cli_copy_command(action),
+    )
 ```
 
 </details>
