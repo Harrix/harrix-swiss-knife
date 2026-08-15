@@ -8,7 +8,7 @@ from harrix_swiss_knife.actions.common.base import ActionBase
 from harrix_swiss_knife.actions.common.text_result_dialog import resolve_text_result_dialog_action
 from harrix_swiss_knife.actions.text.rewrite_text_with_ai import OnRewriteTextWithAI
 from harrix_swiss_knife.apps.common import message_box
-from harrix_swiss_knife.apps.common.dialogs.simple_recording_dialog import SimpleRecordingDialog
+from harrix_swiss_knife.apps.common.dialogs.audio_source_dialog import AudioSourceDialog
 from harrix_swiss_knife.integrations.bothub import (
     PROMPT_MISSING_MSG,
     BothubRequestState,
@@ -32,7 +32,7 @@ class OnSpeechToTextWithAI(ActionBase):
     @ActionBase.handle_exceptions("converting speech to text with AI")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Collect audio, transcribe it to text, fix the transcript, and show the result."""
-        dialog = SimpleRecordingDialog()
+        dialog = AudioSourceDialog()
         if dialog.exec() != dialog.DialogCode.Accepted:
             dialog.release_multimedia()
             return
