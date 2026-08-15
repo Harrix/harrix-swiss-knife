@@ -7,10 +7,20 @@ from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 
 import pytest
-from PySide6.QtWidgets import QApplication
+from PySide6.QtCore import QRectF, Qt
+from PySide6.QtGui import QImage, QPainter, QStandardItem, QStandardItemModel
+from PySide6.QtWidgets import QApplication, QStyleOptionViewItem, QTableView
 
-from harrix_swiss_knife.apps.habits.dashboard_widgets import CheckCircle, HabitRow, MonthCalendarGrid, habit_day_state
+from harrix_swiss_knife.apps.habits.dashboard_widgets import (
+    CheckCircle,
+    HabitRow,
+    MonthCalendarGrid,
+    habit_day_state,
+    paint_habit_day_circle,
+)
 from harrix_swiss_knife.apps.habits.database_manager import DatabaseManager
+from harrix_swiss_knife.apps.habits.delegates.process_habit_bool_delegate import ProcessHabitBoolDelegate
+from harrix_swiss_knife.apps.habits.delegates.process_habit_int_delegate import ProcessHabitIntDelegate
 
 RECOVER_SQL = Path(__file__).resolve().parents[1] / "src/harrix_swiss_knife/apps/habits/recover.sql"
 
@@ -139,6 +149,56 @@ def test_check_circle_four_states(qapp: QApplication) -> None:
     assert circle.toolTip() == "Value: 8"
     assert circle.is_done()
     assert circle.value() == 8
+
+
+def test_paint_habit_day_circle_states(qapp: QApplication) -> None:
+    """Shared circle painter accepts absent, zero, one, and numeric values."""
+    assert qapp is not None
+    image = QImage(24, 24, QImage.Format.Format_ARGB32_Premultiplied)
+    image.fill(0)
+    painter = QPainter(image)
+    assert painter.isActive()
+    for value in (None, 0, 1, 8, -3):
+        paint_habit_day_circle(painter, QRectF(1, 1, 22, 22), value)
+    painter.end()
+
+
+def test_process_habit_delegates_paint_circles(qapp: QApplication) -> None:
+    """Table delegates paint dashboard-style circles for 0, 1, number, and empty."""
+    assert qapp is not None
+    model = QStandardItemModel(1, 4)
+    empty = QStandardItem("")
+    empty.setData((None, 1, "2026-08-15"), Qt.ItemDataRole.UserRole)
+    zero = QStandardItem("0")
+    zero.setData((10, 1, "2026-08-15"), Qt.ItemDataRole.UserRole)
+    one = QStandardItem("1")
+    one.setData((11, 1, "2026-08-15"), Qt.ItemDataRole.UserRole)
+    number = QStandardItem("12")
+    number.setData((12, 2, "2026-08-15"), Qt.ItemDataRole.UserRole)
+    model.setItem(0, 0, empty)
+    model.setItem(0, 1, zero)
+    model.setItem(0, 2, one)
+    model.setItem(0, 3, number)
+
+    view = QTableView()
+    view.setModel(model)
+    bool_delegate = ProcessHabitBoolDelegate(view)
+    int_delegate = ProcessHabitIntDelegate(view)
+    view.setItemDelegateForColumn(0, bool_delegate)
+    view.setItemDelegateForColumn(1, bool_delegate)
+    view.setItemDelegateForColumn(2, bool_delegate)
+    view.setItemDelegateForColumn(3, int_delegate)
+
+    image = QImage(80, 32, QImage.Format.Format_ARGB32_Premultiplied)
+    image.fill(0)
+    painter = QPainter(image)
+    option = QStyleOptionViewItem()
+    option.rect = image.rect()
+    option.widget = view
+    for column, delegate in ((0, bool_delegate), (1, bool_delegate), (2, bool_delegate), (3, int_delegate)):
+        delegate.paint(painter, option, model.index(0, column))
+    painter.end()
+    view.deleteLater()
 
 
 def test_set_habit_checkin_four_kinds(habits_db: DatabaseManager) -> None:

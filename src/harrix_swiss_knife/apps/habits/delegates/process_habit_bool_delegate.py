@@ -12,30 +12,33 @@ from PySide6.QtCore import (
     QObject,
     QPersistentModelIndex,
     QRect,
+    QRectF,
     QSize,
     Qt,
 )
-from PySide6.QtGui import QMouseEvent, QPainter
+from PySide6.QtGui import QFont, QMouseEvent, QPainter
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QApplication,
     QStyle,
     QStyledItemDelegate,
-    QStyleOptionButton,
     QStyleOptionViewItem,
-    QWidget,
 )
+
+from harrix_swiss_knife.apps.habits.dashboard_widgets import paint_habit_day_circle
 
 ProcessHabitBoolState = Literal["absent", "checked", "unchecked"]
 _DualPick = Literal["checked", "unchecked"]
 
 _TRUTHY_VALUES = frozenset({"1", "true", "yes"})
 _FALSY_VALUES = frozenset({"0", "false", "no"})
-_DUAL_CHECKBOX_GAP = 6
+_CIRCLE_SIZE = 20
+_DUAL_CIRCLE_GAP = 6
+_MIN_CELL_HEIGHT = 28
 
 
 class ProcessHabitBoolDelegate(QStyledItemDelegate):
-    """Paint checkboxes; hover picker for empty cells, toggle for existing values."""
+    """Paint dashboard-style circles; hover picker for empty cells, toggle otherwise."""
 
     def __init__(self, parent: QAbstractItemView | None = None) -> None:
         """Enable mouse tracking on the table view for hover picker UI."""
@@ -52,7 +55,7 @@ class ProcessHabitBoolDelegate(QStyledItemDelegate):
         self.setParent(None)
 
     def displayText(self, _value: object, _locale: QLocale | QLocale.Language) -> str:  # noqa: N802
-        """Hide stored 0/1 text; checkbox is drawn in paint()."""
+        """Hide stored 0/1 text; circle is drawn in paint()."""
         return ""
 
     def editorEvent(  # noqa: N802
@@ -85,7 +88,7 @@ class ProcessHabitBoolDelegate(QStyledItemDelegate):
         return model.setData(index, new_value, Qt.ItemDataRole.EditRole)
 
     def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
-        """Track hovered absent cell to show dual-checkbox picker."""
+        """Track hovered absent cell to show dual-circle picker."""
         view = self.parent()
         if not isinstance(view, QAbstractItemView) or watched is not view.viewport():
             return super().eventFilter(watched, event)
@@ -113,33 +116,36 @@ class ProcessHabitBoolDelegate(QStyledItemDelegate):
         option: QStyleOptionViewItem,
         index: QModelIndex | QPersistentModelIndex,
     ) -> None:
-        """Draw row background; draw checkbox(es) for stored or pending values."""
+        """Draw row background and dashboard-style day circles."""
         self.initStyleOption(option, index)
         style = option.widget.style() if option.widget is not None else QApplication.style()
 
         # Fill cell background (row color from model)
         style.drawPrimitive(QStyle.PrimitiveElement.PE_PanelItemViewItem, option, painter, option.widget)
 
+        painter.save()
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        painter.setRenderHint(QPainter.RenderHint.TextAntialiasing)
         state = cell_state_from_index(index)
         if state == "absent":
             if _is_same_cell(index, self._hover_index):
-                _paint_dual_checkboxes(painter, option, style)
-            return
-
-        check_option = QStyleOptionButton()
-        check_option.state = QStyle.StateFlag.State_Enabled | QStyle.StateFlag.State_Active
-        if state == "checked":
-            check_option.state |= QStyle.StateFlag.State_On
+                _paint_dual_circles(painter, option)
+            else:
+                _paint_day_circle(painter, _centered_circle_rect(option.rect), None, font=option.font)
+        elif state == "checked":
+            _paint_day_circle(painter, _centered_circle_rect(option.rect), 1, font=option.font)
         else:
-            check_option.state |= QStyle.StateFlag.State_Off
+            _paint_day_circle(painter, _centered_circle_rect(option.rect), 0, font=option.font)
+        painter.restore()
 
-        indicator_rect = style.subElementRect(
-            QStyle.SubElement.SE_CheckBoxIndicator,
-            check_option,
-            option.widget,
-        )
-        check_option.rect = _center_rect(option.rect, indicator_rect.size())
-        style.drawControl(QStyle.ControlElement.CE_CheckBox, check_option, painter, option.widget)
+    def sizeHint(  # noqa: N802
+        self,
+        option: QStyleOptionViewItem,
+        index: QModelIndex | QPersistentModelIndex,
+    ) -> QSize:
+        """Keep rows tall enough for dashboard-style circles."""
+        hint = super().sizeHint(option, index)
+        return QSize(max(hint.width(), 48), max(hint.height(), _MIN_CELL_HEIGHT))
 
 
 def cell_state_from_index(index: QModelIndex | QPersistentModelIndex) -> ProcessHabitBoolState:
@@ -193,20 +199,25 @@ def _center_rect(outer: QRect, size: QSize) -> QRect:
     return QRect(x, y, size.width(), size.height())
 
 
-def _checkbox_indicator_size(style: QStyle, widget: QWidget | None) -> QSize:
-    check_option = QStyleOptionButton()
-    check_option.state = QStyle.StateFlag.State_Enabled
-    return style.subElementRect(QStyle.SubElement.SE_CheckBoxIndicator, check_option, widget).size()
+def _centered_circle_rect(outer: QRect) -> QRect:
+    """Return a centered square for a single day circle."""
+    return _center_rect(outer, _circle_indicator_size(outer))
 
 
-def _dual_checkbox_rects(outer: QRect, indicator_size: QSize) -> tuple[QRect, QRect]:
+def _circle_indicator_size(outer: QRect) -> QSize:
+    """Return circle size that fits inside a table cell."""
+    side = max(14, min(_CIRCLE_SIZE, outer.height() - 6, outer.width() - 6))
+    return QSize(side, side)
+
+
+def _dual_circle_rects(outer: QRect, indicator_size: QSize) -> tuple[QRect, QRect]:
     """Return (unchecked_rect, checked_rect) centered in outer."""
-    total_w = indicator_size.width() * 2 + _DUAL_CHECKBOX_GAP
+    total_w = indicator_size.width() * 2 + _DUAL_CIRCLE_GAP
     start_x = outer.x() + (outer.width() - total_w) // 2
     y = outer.y() + (outer.height() - indicator_size.height()) // 2
     unchecked = QRect(start_x, y, indicator_size.width(), indicator_size.height())
     checked = QRect(
-        start_x + indicator_size.width() + _DUAL_CHECKBOX_GAP,
+        start_x + indicator_size.width() + _DUAL_CIRCLE_GAP,
         y,
         indicator_size.width(),
         indicator_size.height(),
@@ -225,29 +236,16 @@ def _is_same_cell(
     return left.row() == right.row() and left.column() == right.column() and left.model() is right.model()
 
 
-def _paint_checkbox(
-    painter: QPainter,
-    rect: QRect,
-    *,
-    checked: bool,
-    style: QStyle,
-    widget: QWidget | None,
-) -> None:
-    check_option = QStyleOptionButton()
-    check_option.state = QStyle.StateFlag.State_Enabled | QStyle.StateFlag.State_Active
-    if checked:
-        check_option.state |= QStyle.StateFlag.State_On
-    else:
-        check_option.state |= QStyle.StateFlag.State_Off
-    check_option.rect = rect
-    style.drawControl(QStyle.ControlElement.CE_CheckBox, check_option, painter, widget)
+def _paint_day_circle(painter: QPainter, rect: QRect, value: int | None, *, font: QFont) -> None:
+    """Draw one dashboard-style circle inside ``rect``."""
+    paint_habit_day_circle(painter, QRectF(rect), value, font=font)
 
 
-def _paint_dual_checkboxes(painter: QPainter, option: QStyleOptionViewItem, style: QStyle) -> None:
-    indicator_size = _checkbox_indicator_size(style, option.widget)
-    unchecked_rect, checked_rect = _dual_checkbox_rects(option.rect, indicator_size)
-    _paint_checkbox(painter, unchecked_rect, checked=False, style=style, widget=option.widget)
-    _paint_checkbox(painter, checked_rect, checked=True, style=style, widget=option.widget)
+def _paint_dual_circles(painter: QPainter, option: QStyleOptionViewItem) -> None:
+    indicator_size = _circle_indicator_size(option.rect)
+    unchecked_rect, checked_rect = _dual_circle_rects(option.rect, indicator_size)
+    _paint_day_circle(painter, unchecked_rect, 0, font=option.font)
+    _paint_day_circle(painter, checked_rect, 1, font=option.font)
 
 
 def _persistent_index_equals(
@@ -276,9 +274,8 @@ def _pick_dual_checkbox(
 
     local = pos - cell_rect.topLeft()
     local_rect = QRect(0, 0, cell_rect.width(), cell_rect.height())
-    style = view.style() if view is not None else QApplication.style()
-    indicator_size = _checkbox_indicator_size(style, view)
-    unchecked_rect, checked_rect = _dual_checkbox_rects(local_rect, indicator_size)
+    indicator_size = _circle_indicator_size(local_rect)
+    unchecked_rect, checked_rect = _dual_circle_rects(local_rect, indicator_size)
 
     if checked_rect.contains(local):
         return "checked"

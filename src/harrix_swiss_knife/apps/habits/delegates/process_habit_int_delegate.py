@@ -23,16 +23,16 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QStyle,
     QStyledItemDelegate,
-    QStyleOptionButton,
     QStyleOptionViewItem,
     QWidget,
 )
 
 from harrix_swiss_knife.apps.habits.delegates.process_habit_bool_delegate import (
-    _center_rect,
-    _checkbox_indicator_size,
+    _MIN_CELL_HEIGHT,
+    _centered_circle_rect,
+    _circle_indicator_size,
     _is_same_cell,
-    _paint_checkbox,
+    _paint_day_circle,
     _persistent_index_equals,
 )
 
@@ -44,7 +44,7 @@ _INPUT_MIN_WIDTH = 40
 
 
 class ProcessHabitIntDelegate(QStyledItemDelegate):
-    """Paint 0/1 as checkboxes or other values as text; hover picker for empty cells."""
+    """Paint 0/1/number as dashboard circles; hover picker for empty cells."""
 
     def __init__(self, parent: QAbstractItemView | None = None) -> None:
         """Enable mouse tracking on the table view for hover picker UI."""
@@ -72,12 +72,9 @@ class ProcessHabitIntDelegate(QStyledItemDelegate):
         table_view.viewport().removeEventFilter(self)
         self.setParent(None)
 
-    def displayText(self, value: object, _locale: QLocale | QLocale.Language) -> str:  # noqa: N802
-        """Hide 0/1 text; checkbox is drawn in paint()."""
-        text = str(value).strip() if value is not None else ""
-        if text in {"0", "1"}:
-            return ""
-        return text
+    def displayText(self, _value: object, _locale: QLocale | QLocale.Language) -> str:  # noqa: N802
+        """Hide stored values; circle is drawn in paint()."""
+        return ""
 
     def editorEvent(  # noqa: N802
         self,
@@ -154,40 +151,43 @@ class ProcessHabitIntDelegate(QStyledItemDelegate):
         option: QStyleOptionViewItem,
         index: QModelIndex | QPersistentModelIndex,
     ) -> None:
-        """Draw row background; checkbox, number, or hover picker."""
+        """Draw row background and dashboard-style day circles."""
         self.initStyleOption(option, index)
         style = option.widget.style() if option.widget is not None else QApplication.style()
 
         style.drawPrimitive(QStyle.PrimitiveElement.PE_PanelItemViewItem, option, painter, option.widget)
 
+        painter.save()
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        painter.setRenderHint(QPainter.RenderHint.TextAntialiasing)
         state = cell_state_from_index(index)
         if state == "absent":
             if _is_same_cell(index, self._hover_index):
-                _paint_int_picker(painter, option, style)
-            return
-
-        if state in {"zero", "one"}:
-            check_option = QStyleOptionButton()
-            check_option.state = QStyle.StateFlag.State_Enabled | QStyle.StateFlag.State_Active
-            if state == "one":
-                check_option.state |= QStyle.StateFlag.State_On
+                _paint_int_picker(painter, option)
             else:
-                check_option.state |= QStyle.StateFlag.State_Off
-            indicator_rect = style.subElementRect(
-                QStyle.SubElement.SE_CheckBoxIndicator,
-                check_option,
-                option.widget,
-            )
-            check_option.rect = _center_rect(option.rect, indicator_rect.size())
-            style.drawControl(QStyle.ControlElement.CE_CheckBox, check_option, painter, option.widget)
-            return
+                _paint_day_circle(painter, _centered_circle_rect(option.rect), None, font=option.font)
+        elif state == "zero":
+            _paint_day_circle(painter, _centered_circle_rect(option.rect), 0, font=option.font)
+        elif state == "one":
+            _paint_day_circle(painter, _centered_circle_rect(option.rect), 1, font=option.font)
+        else:
+            display = index.data(Qt.ItemDataRole.DisplayRole)
+            try:
+                value = int(str(display).strip())
+            except (TypeError, ValueError):
+                value = None
+            if value is not None:
+                _paint_day_circle(painter, _centered_circle_rect(option.rect), value, font=option.font)
+        painter.restore()
 
-        text = str(index.data(Qt.ItemDataRole.DisplayRole) or "")
-        if text:
-            painter.save()
-            painter.setPen(option.palette.color(option.palette.ColorRole.Text))
-            painter.drawText(option.rect, int(Qt.AlignmentFlag.AlignCenter), text)
-            painter.restore()
+    def sizeHint(  # noqa: N802
+        self,
+        option: QStyleOptionViewItem,
+        index: QModelIndex | QPersistentModelIndex,
+    ) -> QSize:
+        """Keep rows tall enough for dashboard-style circles."""
+        hint = super().sizeHint(option, index)
+        return QSize(max(hint.width(), 48), max(hint.height(), _MIN_CELL_HEIGHT))
 
 
 def cell_state_from_index(index: QModelIndex | QPersistentModelIndex) -> ProcessHabitIntState:
@@ -238,17 +238,17 @@ def _int_picker_rects(outer: QRect, indicator_size: QSize) -> tuple[QRect, QRect
     return unchecked, checked, input_rect
 
 
-def _paint_int_picker(painter: QPainter, option: QStyleOptionViewItem, style: QStyle) -> None:
-    indicator_size = _checkbox_indicator_size(style, option.widget)
+def _paint_int_picker(painter: QPainter, option: QStyleOptionViewItem) -> None:
+    indicator_size = _circle_indicator_size(option.rect)
     unchecked_rect, checked_rect, input_rect = _int_picker_rects(option.rect, indicator_size)
-    _paint_checkbox(painter, unchecked_rect, checked=False, style=style, widget=option.widget)
-    _paint_checkbox(painter, checked_rect, checked=True, style=style, widget=option.widget)
+    _paint_day_circle(painter, unchecked_rect, 0, font=option.font)
+    _paint_day_circle(painter, checked_rect, 1, font=option.font)
 
     painter.save()
     border = option.palette.color(option.palette.ColorRole.Mid)
     painter.setPen(QPen(border, 1))
     painter.setBrush(QColor(255, 255, 255, 40))
-    painter.drawRect(input_rect.adjusted(0, 0, -1, -1))
+    painter.drawRoundedRect(input_rect.adjusted(0, 0, -1, -1), 6, 6)
     painter.setPen(option.palette.color(option.palette.ColorRole.Text))
     painter.drawText(input_rect, int(Qt.AlignmentFlag.AlignCenter), "123")
     painter.restore()
@@ -269,8 +269,7 @@ def _pick_int_picker(
 
     local = pos - cell_rect.topLeft()
     local_rect = QRect(0, 0, cell_rect.width(), cell_rect.height())
-    style = view.style() if view is not None else QApplication.style()
-    indicator_size = _checkbox_indicator_size(style, view)
+    indicator_size = _circle_indicator_size(local_rect)
     unchecked_rect, checked_rect, input_rect = _int_picker_rects(local_rect, indicator_size)
 
     if input_rect.contains(local):

@@ -92,54 +92,9 @@ class CheckCircle(QWidget):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         painter.setRenderHint(QPainter.RenderHint.TextAntialiasing)
-
         margin = 1.0
         rect = QRectF(margin, margin, self.width() - 2 * margin, self.height() - 2 * margin)
-        state = self.day_state()
-
-        if state == "absent":
-            pen = QPen(COLOR_TRACK, 1.5)
-            pen.setStyle(Qt.PenStyle.DashLine)
-            painter.setPen(pen)
-            painter.setBrush(Qt.BrushStyle.NoBrush)
-            painter.drawEllipse(rect)
-            return
-
-        if state == "zero":
-            painter.setPen(QPen(COLOR_TRACK, 1.5))
-            painter.setBrush(COLOR_BG_MUTED)
-            painter.drawEllipse(rect)
-            return
-
-        if state == "one":
-            painter.setPen(Qt.PenStyle.NoPen)
-            painter.setBrush(COLOR_PRIMARY)
-            painter.drawEllipse(rect)
-            pen = QPen(QColor("white"), max(1.8, self._size * 0.1))
-            pen.setCapStyle(Qt.PenCapStyle.RoundCap)
-            pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
-            painter.setPen(pen)
-            x0 = rect.left() + rect.width() * 0.28
-            y0 = rect.top() + rect.height() * 0.52
-            x1 = rect.left() + rect.width() * 0.42
-            y1 = rect.top() + rect.height() * 0.68
-            x2 = rect.left() + rect.width() * 0.72
-            y2 = rect.top() + rect.height() * 0.32
-            painter.drawLine(QPointF(x0, y0), QPointF(x1, y1))
-            painter.drawLine(QPointF(x1, y1), QPointF(x2, y2))
-            return
-
-        painter.setPen(Qt.PenStyle.NoPen)
-        painter.setBrush(COLOR_SUCCESS)
-        painter.drawEllipse(rect)
-        text = str(self._value)
-        font = QFont(self.font())
-        digit_count = max(len(text), 1)
-        font.setPointSizeF(max(5.0, self._size * min(0.42, 0.64 / digit_count)))
-        font.setBold(True)
-        painter.setFont(font)
-        painter.setPen(QColor("white"))
-        painter.drawText(rect, int(Qt.AlignmentFlag.AlignCenter), text)
+        paint_habit_day_circle(painter, rect, self._value, font=self.font())
 
     def set_allows_number(self, *, allows_number: bool) -> None:
         """Enable the numeric context-menu action when the habit is not boolean."""
@@ -617,6 +572,62 @@ def habit_day_state(value: int | None) -> HabitDayState:
 def habit_glyph(habit_id: int) -> str:
     """Return a simple glyph for a habit icon."""
     return default_habit_emoji(habit_id)
+
+
+def paint_habit_day_circle(
+    painter: QPainter,
+    rect: QRectF,
+    value: int | None,
+    *,
+    font: QFont | None = None,
+) -> None:
+    """Draw a dashboard-style day circle for a stored process-habit value."""
+    state = habit_day_state(value)
+    size = min(rect.width(), rect.height())
+
+    if state == "absent":
+        pen = QPen(COLOR_TRACK, 1.5)
+        pen.setStyle(Qt.PenStyle.DashLine)
+        painter.setPen(pen)
+        painter.setBrush(Qt.BrushStyle.NoBrush)
+        painter.drawEllipse(rect)
+        return
+
+    if state == "zero":
+        painter.setPen(QPen(COLOR_TRACK, 1.5))
+        painter.setBrush(COLOR_BG_MUTED)
+        painter.drawEllipse(rect)
+        return
+
+    if state == "one":
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(COLOR_PRIMARY)
+        painter.drawEllipse(rect)
+        pen = QPen(QColor("white"), max(1.8, size * 0.1))
+        pen.setCapStyle(Qt.PenCapStyle.RoundCap)
+        pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
+        painter.setPen(pen)
+        x0 = rect.left() + rect.width() * 0.28
+        y0 = rect.top() + rect.height() * 0.52
+        x1 = rect.left() + rect.width() * 0.42
+        y1 = rect.top() + rect.height() * 0.68
+        x2 = rect.left() + rect.width() * 0.72
+        y2 = rect.top() + rect.height() * 0.32
+        painter.drawLine(QPointF(x0, y0), QPointF(x1, y1))
+        painter.drawLine(QPointF(x1, y1), QPointF(x2, y2))
+        return
+
+    painter.setPen(Qt.PenStyle.NoPen)
+    painter.setBrush(COLOR_SUCCESS)
+    painter.drawEllipse(rect)
+    text = str(value)
+    draw_font = QFont(font) if font is not None else QFont()
+    digit_count = max(len(text), 1)
+    draw_font.setPointSizeF(max(5.0, size * min(0.42, 0.64 / digit_count)))
+    draw_font.setBold(True)
+    painter.setFont(draw_font)
+    painter.setPen(QColor("white"))
+    painter.drawText(rect, int(Qt.AlignmentFlag.AlignCenter), text)
 
 
 def weekday_short(weekday: int) -> str:

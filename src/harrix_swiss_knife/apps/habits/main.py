@@ -496,6 +496,7 @@ class MainWindow(
         process_habits_header.setMinimumSectionSize(_min_habit_value_column_width)
         for i in range(process_habits_header.count()):
             process_habits_header.setSectionResizeMode(i, process_habits_header.ResizeMode.Interactive)
+        self.tableView_process_habits.verticalHeader().setDefaultSectionSize(30)
         self.tableView_process_habits.resizeColumnsToContents()
         for col_idx in self._process_habits_bool_columns | self._process_habits_int_columns:
             if process_habits_header.sectionSize(col_idx) < _min_habit_value_column_width:
