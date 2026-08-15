@@ -439,11 +439,17 @@ class HabitDashboardWidget(QWidget):
         self._stat_streak.set_value(f"{streak} Days")
 
         day_values = self._db.get_habit_values_between(habit_id, month_start, month_end)
-        self._calendar.set_month(year, month, day_values, allows_number=_habit_allows_number(habit))
+        self._calendar.set_month(
+            year,
+            month,
+            day_values,
+            allows_number=_habit_allows_number(habit),
+            today=today,
+        )
         self._log_title.setText(f"Habit Log on {_month_name(month)}.")
 
     def _set_date_value(self, habit_id: int, date_str: str, value: object) -> None:
-        if self._db is None:
+        if self._db is None or _is_future_date(date_str):
             return
         if value is not None and not isinstance(value, int):
             return
@@ -462,11 +468,11 @@ class HabitDashboardWidget(QWidget):
         self._stat_rate.set_value("-")
         self._stat_streak.set_value("-")
         today = _local_today()
-        self._calendar.set_month(today.year, today.month, {})
+        self._calendar.set_month(today.year, today.month, {}, today=today)
         self._log_title.setText(f"Habit Log on {_month_name(today.month)}.")
 
     def _toggle_date(self, habit_id: int, date_str: str) -> None:
-        if self._db is None:
+        if self._db is None or _is_future_date(date_str):
             return
         ok = self._db.toggle_habit_checkin(habit_id, date_str)
         if not ok:
@@ -510,6 +516,15 @@ def _habit_allows_number(habit: list[Any] | None) -> bool:
     if habit is None or len(habit) <= _IS_BOOL_COLUMN:
         return False
     return habit[_IS_BOOL_COLUMN] != 1
+
+
+def _is_future_date(date_str: str) -> bool:
+    """Return whether ``date_str`` is after today in the local timezone."""
+    try:
+        day = date.fromisoformat(date_str)
+    except ValueError:
+        return True
+    return day > _local_today()
 
 
 def _last_seven_days(today: date) -> list[date]:

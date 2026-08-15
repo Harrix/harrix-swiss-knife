@@ -9,7 +9,8 @@ from pathlib import Path
 import pytest
 from PySide6.QtCore import QRectF, Qt
 from PySide6.QtGui import QImage, QPainter, QStandardItem, QStandardItemModel
-from PySide6.QtWidgets import QApplication, QStyleOptionViewItem, QTableView
+from PySide6.QtTest import QTest
+from PySide6.QtWidgets import QApplication, QPushButton, QStyleOptionViewItem, QTableView
 
 from harrix_swiss_knife.apps.habits.dashboard_widgets import (
     CheckCircle,
@@ -250,13 +251,57 @@ def test_month_calendar_day_value_set_signal(qapp: QApplication) -> None:
     """Month circles forward context-menu values for the selected date."""
     assert qapp is not None
     grid = MonthCalendarGrid()
-    grid.set_month(2026, 8, {"2026-08-14": 1}, allows_number=True)
+    grid.set_month(2026, 8, {"2026-08-14": 1}, allows_number=True, today=date(2026, 8, 15))
     received: list[tuple[str, object]] = []
     grid.day_value_set.connect(lambda date_str, val: received.append((date_str, val)))
 
     matches = [circle for circle in grid.findChildren(CheckCircle) if circle.value() == 1]
     assert len(matches) == 1
     assert matches[0].allows_number()
+    assert matches[0].is_editable()
     matches[0].value_set.emit(4)
 
     assert received == [("2026-08-14", 4)]
+
+
+def test_check_circle_future_date_not_editable(qapp: QApplication) -> None:
+    """Future circles ignore left-clicks and show a future-date tooltip."""
+    assert qapp is not None
+    circle = CheckCircle()
+    received: list[bool] = []
+    circle.clicked.connect(lambda: received.append(True))
+
+    circle.set_editable(editable=False)
+    assert not circle.is_editable()
+    assert circle.toolTip() == "Future date"
+    QTest.mouseClick(circle, Qt.MouseButton.LeftButton)
+    assert received == []
+
+    circle.set_editable(editable=True)
+    assert circle.is_editable()
+    QTest.mouseClick(circle, Qt.MouseButton.LeftButton)
+    assert received == [True]
+
+
+def test_month_calendar_blocks_future_dates(qapp: QApplication) -> None:
+    """Future month days are not editable and the next-month button stops at today."""
+    assert qapp is not None
+    today = date(2026, 8, 15)
+    grid = MonthCalendarGrid()
+    grid.set_month(2026, 8, {"2026-08-16": 0}, today=today)
+    future = [circle for circle in grid.findChildren(CheckCircle) if circle.value() == 0]
+    assert len(future) == 1
+    assert not future[0].is_editable()
+    assert future[0].toolTip() == "Future date"
+
+    next_btn = next(button for button in grid.findChildren(QPushButton) if button.toolTip() == "Next month")
+    assert not next_btn.isEnabled()
+
+    changed: list[tuple[int, int]] = []
+    grid.month_changed.connect(lambda year, month: changed.append((year, month)))
+    next_btn.click()
+    assert changed == []
+
+    grid.set_month(2026, 7, {}, today=today)
+    next_btn = next(button for button in grid.findChildren(QPushButton) if button.toolTip() == "Next month")
+    assert next_btn.isEnabled()

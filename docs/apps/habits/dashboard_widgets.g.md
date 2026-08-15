@@ -16,9 +16,11 @@ lang: en
   - [⚙️ Method `allows_number`](#%EF%B8%8F-method-allows_number)
   - [⚙️ Method `day_state`](#%EF%B8%8F-method-day_state)
   - [⚙️ Method `is_done`](#%EF%B8%8F-method-is_done)
+  - [⚙️ Method `is_editable`](#%EF%B8%8F-method-is_editable)
   - [⚙️ Method `mousePressEvent`](#%EF%B8%8F-method-mousepressevent)
   - [⚙️ Method `paintEvent`](#%EF%B8%8F-method-paintevent)
   - [⚙️ Method `set_allows_number`](#%EF%B8%8F-method-set_allows_number)
+  - [⚙️ Method `set_editable`](#%EF%B8%8F-method-set_editable)
   - [⚙️ Method `set_value`](#%EF%B8%8F-method-set_value)
   - [⚙️ Method `value`](#%EF%B8%8F-method-value)
 - [🏛️ Class `HabitIconBadge`](#%EF%B8%8F-class-habiticonbadge)
@@ -72,10 +74,10 @@ class CheckCircle(QWidget):
         super().__init__(parent)
         self._value: int | None = None
         self._allows_number = False
+        self._editable = True
         self._size = size
         self.setFixedSize(size, size)
-        self.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self._apply_interactive_state()
         self.customContextMenuRequested.connect(self._show_context_menu)
         self._apply_tooltip()
 
@@ -91,9 +93,13 @@ class CheckCircle(QWidget):
         """Return whether the day is marked completed (value > 0)."""
         return self._value is not None and self._value > 0
 
+    def is_editable(self) -> bool:
+        """Return whether the circle accepts clicks and the context menu."""
+        return self._editable
+
     def mousePressEvent(self, event: QMouseEvent) -> None:  # noqa: N802
-        """Emit clicked on left press."""
-        if event.button() == Qt.MouseButton.LeftButton:
+        """Emit clicked on left press when the day is editable."""
+        if event.button() == Qt.MouseButton.LeftButton and self._editable:
             self.clicked.emit()
         super().mousePressEvent(event)
 
@@ -102,6 +108,8 @@ class CheckCircle(QWidget):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         painter.setRenderHint(QPainter.RenderHint.TextAntialiasing)
+        if not self._editable:
+            painter.setOpacity(0.35)
         margin = 1.0
         rect = QRectF(margin, margin, self.width() - 2 * margin, self.height() - 2 * margin)
         paint_habit_day_circle(painter, rect, self._value, font=self.font())
@@ -109,6 +117,13 @@ class CheckCircle(QWidget):
     def set_allows_number(self, *, allows_number: bool) -> None:
         """Enable the numeric context-menu action when the habit is not boolean."""
         self._allows_number = allows_number
+
+    def set_editable(self, *, editable: bool) -> None:
+        """Enable or disable clicks and the context menu for this day."""
+        self._editable = editable
+        self._apply_interactive_state()
+        self._apply_tooltip()
+        self.update()
 
     def set_value(self, value: int | None) -> None:
         """Set stored process-habit value (``None`` = no database record)."""
@@ -120,7 +135,18 @@ class CheckCircle(QWidget):
         """Return stored process-habit value, or ``None`` if there is no record."""
         return self._value
 
+    def _apply_interactive_state(self) -> None:
+        if self._editable:
+            self.setCursor(Qt.CursorShape.PointingHandCursor)
+            self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        else:
+            self.setCursor(Qt.CursorShape.ArrowCursor)
+            self.setContextMenuPolicy(Qt.ContextMenuPolicy.NoContextMenu)
+
     def _apply_tooltip(self) -> None:
+        if not self._editable:
+            self.setToolTip("Future date")
+            return
         state = self.day_state()
         if state == "absent":
             self.setToolTip("No record")
@@ -132,6 +158,8 @@ class CheckCircle(QWidget):
             self.setToolTip(f"Value: {self._value}")
 
     def _show_context_menu(self, pos: QPoint) -> None:
+        if not self._editable:
+            return
         menu = QMenu(self)
         act_absent = menu.addAction("No record")
         act_zero = menu.addAction("Not completed (0)")
@@ -180,10 +208,10 @@ def __init__(self, parent: QWidget | None = None, *, size: int = 22) -> None:  #
         super().__init__(parent)
         self._value: int | None = None
         self._allows_number = False
+        self._editable = True
         self._size = size
         self.setFixedSize(size, size)
-        self.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self._apply_interactive_state()
         self.customContextMenuRequested.connect(self._show_context_menu)
         self._apply_tooltip()
 ```
@@ -244,20 +272,38 @@ def is_done(self) -> bool:
 
 </details>
 
+### ⚙️ Method `is_editable`
+
+```python
+def is_editable(self) -> bool
+```
+
+Return whether the circle accepts clicks and the context menu.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def is_editable(self) -> bool:
+        return self._editable
+```
+
+</details>
+
 ### ⚙️ Method `mousePressEvent`
 
 ```python
 def mousePressEvent(self, event: QMouseEvent) -> None
 ```
 
-Emit clicked on left press.
+Emit clicked on left press when the day is editable.
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def mousePressEvent(self, event: QMouseEvent) -> None:  # noqa: N802
-        if event.button() == Qt.MouseButton.LeftButton:
+        if event.button() == Qt.MouseButton.LeftButton and self._editable:
             self.clicked.emit()
         super().mousePressEvent(event)
 ```
@@ -280,6 +326,8 @@ def paintEvent(self, _event: QPaintEvent) -> None:  # noqa: N802
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         painter.setRenderHint(QPainter.RenderHint.TextAntialiasing)
+        if not self._editable:
+            painter.setOpacity(0.35)
         margin = 1.0
         rect = QRectF(margin, margin, self.width() - 2 * margin, self.height() - 2 * margin)
         paint_habit_day_circle(painter, rect, self._value, font=self.font())
@@ -301,6 +349,27 @@ Enable the numeric context-menu action when the habit is not boolean.
 ```python
 def set_allows_number(self, *, allows_number: bool) -> None:
         self._allows_number = allows_number
+```
+
+</details>
+
+### ⚙️ Method `set_editable`
+
+```python
+def set_editable(self, *, editable: bool) -> None
+```
+
+Enable or disable clicks and the context menu for this day.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def set_editable(self, *, editable: bool) -> None:
+        self._editable = editable
+        self._apply_interactive_state()
+        self._apply_tooltip()
+        self.update()
 ```
 
 </details>
@@ -730,6 +799,7 @@ class MonthCalendarGrid(QWidget):
         self._month = 0
         self._day_values: dict[str, int] = {}
         self._allows_number = False
+        self._today = _local_today()
 
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
@@ -802,13 +872,16 @@ class MonthCalendarGrid(QWidget):
         day_values: dict[str, int] | None = None,
         *,
         allows_number: bool = False,
+        today: date | None = None,
     ) -> None:
         """Rebuild grid for year/month with stored values keyed by ``YYYY-MM-DD``."""
         self._year = year
         self._month = month
         self._day_values = dict(day_values or {})
         self._allows_number = allows_number
+        self._today = today or _local_today()
         self._title.setText(f"{_month_short(month)} {year}")
+        self._next_btn.setEnabled((self._year, self._month) < (self._today.year, self._today.month))
         self._rebuild_grid()
 
     def _clear_grid(self) -> None:
@@ -824,6 +897,8 @@ class MonthCalendarGrid(QWidget):
         if month > MONTHS_IN_YEAR:
             month = 1
             year += 1
+        if (year, month) > (self._today.year, self._today.month):
+            return
         self.month_changed.emit(year, month)
 
     def _on_prev(self) -> None:
@@ -852,9 +927,12 @@ class MonthCalendarGrid(QWidget):
                     continue
 
                 date_str = f"{self._year:04d}-{self._month:02d}-{day:02d}"
+                cell_date = date(self._year, self._month, day)
+                editable = cell_date <= self._today
                 circle = CheckCircle(size=26)
                 circle.set_value(self._day_values.get(date_str))
                 circle.set_allows_number(allows_number=self._allows_number)
+                circle.set_editable(editable=editable)
                 circle.clicked.connect(lambda d=date_str: self.day_toggled.emit(d))
                 circle.value_set.connect(lambda value, d=date_str: self.day_value_set.emit(d, value))
                 day_label = QLabel(str(day))
@@ -864,7 +942,7 @@ class MonthCalendarGrid(QWidget):
                 day_font.setPointSize(10)
                 day_font.setWeight(QFont.Weight.DemiBold)
                 day_label.setFont(day_font)
-                day_label.setStyleSheet("color: #4B5563;")
+                day_label.setStyleSheet("color: #D1D5DB;" if not editable else "color: #4B5563;")
                 cell_layout.addWidget(circle, 0, Qt.AlignmentFlag.AlignHCenter)
                 cell_layout.addWidget(day_label)
                 self._grid.addWidget(cell, row_index, column_index)
@@ -891,6 +969,7 @@ def __init__(self, parent: QWidget | None = None) -> None:  # noqa: D107
         self._month = 0
         self._day_values: dict[str, int] = {}
         self._allows_number = False
+        self._today = _local_today()
 
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
@@ -962,7 +1041,7 @@ def __init__(self, parent: QWidget | None = None) -> None:  # noqa: D107
 ### ⚙️ Method `set_month`
 
 ```python
-def set_month(self, year: int, month: int, day_values: dict[str, int] | None = None, *, allows_number: bool = False) -> None
+def set_month(self, year: int, month: int, day_values: dict[str, int] | None = None, *, allows_number: bool = False, today: date | None = None) -> None
 ```
 
 Rebuild grid for year/month with stored values keyed by ``YYYY-MM-DD``.
@@ -978,12 +1057,15 @@ def set_month(
         day_values: dict[str, int] | None = None,
         *,
         allows_number: bool = False,
+        today: date | None = None,
     ) -> None:
         self._year = year
         self._month = month
         self._day_values = dict(day_values or {})
         self._allows_number = allows_number
+        self._today = today or _local_today()
         self._title.setText(f"{_month_short(month)} {year}")
+        self._next_btn.setEnabled((self._year, self._month) < (self._today.year, self._today.month))
         self._rebuild_grid()
 ```
 
