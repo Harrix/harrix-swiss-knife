@@ -508,6 +508,34 @@ class AudioSourceDialog(QDialog):
         self._clear_recording()
         self._start_recording(append=False)
 
+    def _on_save_clicked(self) -> None:
+        source = Path(self._recognize_source_path())
+        if not source.is_file():
+            return
+        suffix = source.suffix.lower()
+        filters = {
+            ".m4a": "M4A Audio (*.m4a);;All Files (*)",
+            ".wav": "WAV Audio (*.wav);;All Files (*)",
+        }
+        destination, _selected_filter = QFileDialog.getSaveFileName(
+            self,
+            "Save audio",
+            source.name,
+            filters.get(suffix, "Audio Files (*);;All Files (*)"),
+        )
+        if not destination:
+            return
+        destination_path = Path(destination)
+        if not destination_path.suffix:
+            destination_path = destination_path.with_suffix(suffix)
+        try:
+            if source.resolve() != destination_path.resolve():
+                shutil.copy2(source, destination_path)
+        except OSError as exc:
+            message_box.critical(self, "Save Audio", f"Could not save audio:\n{exc}")
+            return
+        self._status_hint_label.setText(f"Saved to {destination_path}")
+
     def _on_start_failed(self, message: str) -> None:
         self._status_hint_label.setText(message)
 
@@ -683,6 +711,11 @@ class AudioSourceDialog(QDialog):
         cancel_button.clicked.connect(self.reject)
         button_layout.addWidget(cancel_button)
 
+        self._save_button = make_emoji_push_button("Save audio", SAVE_BUTTON_EMOJI)
+        self._save_button.clicked.connect(self._on_save_clicked)
+        self._save_button.setVisible(False)
+        button_layout.addWidget(self._save_button)
+
         self._recognize_button = make_emoji_push_button("Recognize", "🎙️")
         recognize_font = QFont()
         recognize_font.setBold(True)
@@ -696,6 +729,7 @@ class AudioSourceDialog(QDialog):
         self._update_record_button()
         self._update_source_sections()
         self._update_recording_action_buttons()
+        self._update_save_enabled()
 
     def _should_ignore_dialog_shortcuts(self) -> bool:
         focus_widget = self.focusWidget()
@@ -771,6 +805,7 @@ class AudioSourceDialog(QDialog):
         has_recording = bool(self._recorder.recorded_path)
         self._recognize_button.setEnabled((has_file or has_recording) and not self._recorder.is_recording)
         self._update_recording_action_buttons()
+        self._update_save_enabled()
 
     def _update_record_button(self) -> None:
         self._record_button.set_recording(recording=self._recorder.is_recording)
@@ -792,6 +827,12 @@ class AudioSourceDialog(QDialog):
         if not self._recorder.is_recording:
             return
         self._recording_time_label.setText(format_recording_duration(self._recorder.duration_seconds()))
+
+    def _update_save_enabled(self) -> None:
+        source = self._recognize_source_path()
+        can_save = bool(source) and Path(source).is_file() and not self._recorder.is_recording
+        self._save_button.setVisible(can_save)
+        self._save_button.setEnabled(can_save)
 
     def _update_source_sections(self) -> None:
         """Show recording or file picker section depending on the active audio source."""
