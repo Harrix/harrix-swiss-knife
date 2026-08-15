@@ -51,6 +51,7 @@ from harrix_swiss_knife.integrations.bothub import (
     build_prompt,
     build_text_fix_prompt,
     build_transcription_prompt,
+    get_max_image_side,
     get_speech_model,
     run_bothub_request,
     show_bothub_prompt_build_error,
@@ -942,8 +943,7 @@ class TemplateDialog(QDialog):
             )
             return
 
-        bothub_cfg = app_config.get("bothub") or {}
-        max_image_side = int(bothub_cfg.get("max_image_side", 1600))
+        max_image_side = get_max_image_side(app_config)
         source_dialog = TextImageSourceDialog(
             self,
             title="Fill template with AI",

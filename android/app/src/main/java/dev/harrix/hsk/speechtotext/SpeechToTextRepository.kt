@@ -1,6 +1,8 @@
 package dev.harrix.hsk.speechtotext
 
 import android.content.Context
+import dev.harrix.hsk.ai.AiClient
+import dev.harrix.hsk.ai.AiConfig
 import dev.harrix.hsk.bothub.BothubApiException
 import dev.harrix.hsk.bothub.BothubClient
 import dev.harrix.hsk.bothub.BothubConfig
@@ -14,9 +16,23 @@ class SpeechToTextRepository(
     private val context: Context,
     private val client: BothubClient = BothubClient(),
 ) {
-    fun requireApiKey() {
-        if (!BothubConfig.hasApiKey) {
-            throw BothubApiException(BothubClient.MISSING_API_KEY_MESSAGE)
+    fun requireApiKey(forSpeech: Boolean = false) {
+        val message =
+            when {
+                forSpeech && !AiConfig.supportsSpeech ->
+                    "Anthropic does not support speech-to-text. " +
+                        "Set ai.speech_provider to openai, gemini, or bothub, then rebuild the APK."
+
+                forSpeech && !AiConfig.hasSpeechApiKey ->
+                    AiClient.missingKeyMessage(AiConfig.speechProvider)
+
+                !forSpeech && !BothubConfig.hasApiKey ->
+                    BothubClient.MISSING_API_KEY_MESSAGE
+
+                else -> null
+            }
+        if (message != null) {
+            throw BothubApiException(message)
         }
     }
 
@@ -24,7 +40,7 @@ class SpeechToTextRepository(
         audioFile: File,
         mimeType: String = AudioRecorder.MIME_WAV,
     ): String {
-        requireApiKey()
+        requireApiKey(forSpeech = true)
         val bytes = audioFile.readBytes()
         if (bytes.size < AudioRecorder.MIN_AUDIO_BYTES) {
             throw BothubApiException("Recording is too short or empty")

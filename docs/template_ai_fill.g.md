@@ -80,8 +80,7 @@ def fill_template_fields_from_screenshot_ai(
     if image is None or image.isNull():
         return None
 
-    bothub_cfg = app_config.get("bothub") or {}
-    max_image_side = int(bothub_cfg.get("max_image_side", 1600))
+    max_image_side = get_max_image_side(app_config)
     try:
         image_data = qimage_bytes_and_mime(image, max_image_side=max_image_side)
     except ValueError as exc:

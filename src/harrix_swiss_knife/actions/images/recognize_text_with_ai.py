@@ -16,6 +16,7 @@ from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.integrations.bothub import (
     BothubRequestState,
     build_image_ocr_prompt,
+    get_max_image_side,
     image_bytes_and_mime,
     run_bothub_request,
     show_bothub_prompt_build_error,
@@ -73,8 +74,7 @@ class OnRecognizeTextWithAI(ActionBase):
         path = self._image_paths[index]
         self.add_line(f"🔵 [{index + 1}/{total}] {path.name}")
 
-        bothub_cfg = self.config.get("bothub") or {}
-        max_image_side = int(bothub_cfg.get("max_image_side", 1600))
+        max_image_side = get_max_image_side(self.config)
 
         try:
             image_data = image_bytes_and_mime(path, max_image_side=max_image_side)

@@ -12,6 +12,11 @@ def test_resolve_bothub_proxy_url_from_config() -> None:
     assert resolve_bothub_proxy_url(app_config) == "http://school:3128"
 
 
+def test_resolve_ai_proxy_url_prefers_ai_section() -> None:
+    app_config = {"ai": {"proxy": "http://ai:3128"}, "bothub": {"proxy": "http://school:3128"}}
+    assert resolve_bothub_proxy_url(app_config) == "http://ai:3128"
+
+
 def test_resolve_bothub_proxy_url_empty_config(monkeypatch) -> None:
     monkeypatch.setenv("HTTPS_PROXY", "http://env:8080")
     app_config = {"bothub": {"proxy": ""}}

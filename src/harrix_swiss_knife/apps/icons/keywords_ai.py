@@ -10,6 +10,7 @@ from harrix_swiss_knife.apps.icons.vector_render import render_icon_to_image
 from harrix_swiss_knife.integrations.bothub import (
     BothubRequestState,
     build_prompt,
+    get_max_image_side,
     qimage_bytes_and_mime,
     run_bothub_request,
     show_bothub_prompt_build_error,
@@ -213,8 +214,4 @@ def request_keywords_fill(
 
 
 def _max_image_side(app_config: dict[str, Any]) -> int:
-    bothub_cfg = app_config.get("bothub") or {}
-    try:
-        return int(bothub_cfg.get("max_image_side", _RASTER_SIDE))
-    except (TypeError, ValueError):
-        return _RASTER_SIDE
+    return get_max_image_side(app_config, default=_RASTER_SIDE)

@@ -823,8 +823,7 @@ class TemplateDialog(QDialog):
             )
             return
 
-        bothub_cfg = app_config.get("bothub") or {}
-        max_image_side = int(bothub_cfg.get("max_image_side", 1600))
+        max_image_side = get_max_image_side(app_config)
         source_dialog = TextImageSourceDialog(
             self,
             title="Fill template with AI",

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from harrix_swiss_knife.integrations.bothub.config import get_connection_params
+from harrix_swiss_knife.integrations.bothub.config import get_active_provider, get_connection_params
 from harrix_swiss_knife.integrations.bothub.prompts import build_prompt, get_prompt_template
 from harrix_swiss_knife.integrations.bothub_client import chat_completion
 
@@ -49,6 +49,7 @@ def fix_text_sync(input_text: str, config: dict[str, Any]) -> str:
 
     """
     prompt_text = build_text_fix_prompt(input_text, config)
+    provider = get_active_provider(config)
     api_key, base_url, model, proxy_url = get_connection_params(config)
     return chat_completion(
         api_key=api_key,
@@ -56,6 +57,7 @@ def fix_text_sync(input_text: str, config: dict[str, Any]) -> str:
         model=model,
         text=prompt_text,
         proxy_url=proxy_url,
+        provider=provider,
     )
 
 

@@ -77,7 +77,7 @@ def test_chat_completion_payload_sends_audio_as_data_uri(monkeypatch: pytest.Mon
     fake_opener = MagicMock()
     fake_opener.open = _fake_open
     monkeypatch.setattr(
-        "harrix_swiss_knife.integrations.bothub_client.build_https_opener",
+        "harrix_swiss_knife.integrations.ai.http.build_https_opener",
         lambda _proxy_url: fake_opener,
     )
 

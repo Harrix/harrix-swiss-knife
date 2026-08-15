@@ -163,6 +163,7 @@ from harrix_swiss_knife.apps.finance.widgets import ClickableCategoryLabel
 from harrix_swiss_knife.integrations.bothub import (
     BothubRequestState,
     build_prompt,
+    get_max_image_side,
     run_bothub_request,
     show_bothub_prompt_build_error,
 )
@@ -703,8 +704,7 @@ class MainWindow(
         initial_image_paths: list[str] | None = None,
     ) -> None:
         """Collect text/images, call BotHub, then open purchase text dialog with AI result."""
-        bothub_cfg = self._app_config.get("bothub") or {}
-        max_image_side = int(bothub_cfg.get("max_image_side", 1600))
+        max_image_side = get_max_image_side(self._app_config)
         source_dialog = AiSourceDialog(
             self,
             max_image_side=max_image_side,
@@ -2000,8 +2000,7 @@ class MainWindow(
         self.action_transactions_refresh.triggered.connect(self.update_all)
         self.action_transactions_show_all_records.triggered.connect(self.on_show_all_records_clicked)
         self.action_standard_items.triggered.connect(self.on_standard_items)
-        bothub_cfg = self._app_config.get("bothub") or {}
-        max_image_side = int(bothub_cfg.get("max_image_side", 1600))
+        max_image_side = get_max_image_side(self._app_config)
         self._ai_image_drop_zone = ImagePicker(
             mode=ImagePickerMode.COMPACT,
             on_paths=self._on_add_as_text_with_ai_image_dropped,

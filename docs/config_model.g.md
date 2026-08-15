@@ -11,13 +11,60 @@ lang: en
 
 ## Contents
 
+- [🏛️ Class `AiSettings`](#%EF%B8%8F-class-aisettings)
+- [🏛️ Class `AnthropicSettings`](#%EF%B8%8F-class-anthropicsettings)
 - [🏛️ Class `AppConfig`](#%EF%B8%8F-class-appconfig)
 - [🏛️ Class `BothubSettings`](#%EF%B8%8F-class-bothubsettings)
 - [🏛️ Class `FoodCalorieThresholds`](#%EF%B8%8F-class-foodcaloriethresholds)
+- [🏛️ Class `GeminiSettings`](#%EF%B8%8F-class-geminisettings)
 - [🏛️ Class `HotkeyEntry`](#%EF%B8%8F-class-hotkeyentry)
+- [🏛️ Class `OpenAISettings`](#%EF%B8%8F-class-openaisettings)
 - [🏛️ Class `PersonalDataSettings`](#%EF%B8%8F-class-personaldatasettings)
 - [🔧 Function `load_app_config`](#-function-load_app_config)
 - [🔧 Function `validate_app_config`](#-function-validate_app_config)
+
+</details>
+
+## 🏛️ Class `AiSettings`
+
+```python
+class AiSettings(TypedDict, total=False)
+```
+
+Active AI provider selection and shared transport settings.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class AiSettings(TypedDict, total=False):
+
+    provider: str
+    speech_provider: str
+    max_image_side: int
+    proxy: str
+```
+
+</details>
+
+## 🏛️ Class `AnthropicSettings`
+
+```python
+class AnthropicSettings(TypedDict, total=False)
+```
+
+Anthropic Messages API settings.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class AnthropicSettings(TypedDict, total=False):
+
+    base_url: str
+    model: str
+    max_tokens: int
+```
 
 </details>
 
@@ -56,8 +103,15 @@ class AppConfig(TypedDict, total=False):
     paths_git: list[str]
     vscode_workspace_notes: str
     vscode_workspace_articles: str
+    ai: AiSettings
     bothub: BothubSettings
     bothub_api_key: str
+    openai: OpenAISettings
+    openai_api_key: str
+    anthropic: AnthropicSettings
+    anthropic_api_key: str
+    gemini: GeminiSettings
+    gemini_api_key: str
     pypi_token: str
     sqlite_finance: str
     sqlite_fitness: str
@@ -125,6 +179,27 @@ class FoodCalorieThresholds(TypedDict, total=False):
 
 </details>
 
+## 🏛️ Class `GeminiSettings`
+
+```python
+class GeminiSettings(TypedDict, total=False)
+```
+
+Google Gemini generateContent settings.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class GeminiSettings(TypedDict, total=False):
+
+    base_url: str
+    model: str
+    speech_model: str
+```
+
+</details>
+
 ## 🏛️ Class `HotkeyEntry`
 
 ```python
@@ -142,6 +217,27 @@ class HotkeyEntry(TypedDict):
     action: str
     hotkeys: NotRequired[list[str]]
     hotkey: NotRequired[str]
+```
+
+</details>
+
+## 🏛️ Class `OpenAISettings`
+
+```python
+class OpenAISettings(TypedDict, total=False)
+```
+
+OpenAI chat completions and Whisper settings.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class OpenAISettings(TypedDict, total=False):
+
+    base_url: str
+    model: str
+    speech_model: str
 ```
 
 </details>

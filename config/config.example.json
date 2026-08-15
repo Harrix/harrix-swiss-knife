@@ -234,6 +234,12 @@
   "github_user": "Harrix",
   "site_default_language": "ru",
   "paths_with_featured_image": ["<YOUR_PATH>"],
+  "ai": {
+    "provider": "bothub",
+    "speech_provider": "",
+    "max_image_side": 1600,
+    "proxy": ""
+  },
   "bothub": {
     "base_url": "https://bothub.chat/api/v2/openai/v1",
     "model": "gpt-5.4",
@@ -242,6 +248,24 @@
     "proxy": ""
   },
   "bothub_api_key": "snippet:api-keys/bothub-api-key.txt",
+  "openai": {
+    "base_url": "https://api.openai.com/v1",
+    "model": "gpt-4.1",
+    "speech_model": "whisper-1"
+  },
+  "openai_api_key": "snippet:api-keys/openai-api-key.txt",
+  "anthropic": {
+    "base_url": "https://api.anthropic.com",
+    "model": "claude-sonnet-4-6",
+    "max_tokens": 8192
+  },
+  "anthropic_api_key": "snippet:api-keys/anthropic-api-key.txt",
+  "gemini": {
+    "base_url": "https://generativelanguage.googleapis.com/v1beta",
+    "model": "gemini-2.5-flash",
+    "speech_model": "gemini-2.5-flash"
+  },
+  "gemini_api_key": "snippet:api-keys/gemini-api-key.txt",
   "prompts": {
     "finance_purchases_to_tsv": "snippet:config/prompts/finance-purchases-to-tsv.md",
     "finance_category_translate_local": "snippet:config/prompts/finance-category-translate-local.md",

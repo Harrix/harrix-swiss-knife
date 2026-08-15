@@ -78,8 +78,7 @@ class OnRecognizeTextWithAI(ActionBase):
         path = self._image_paths[index]
         self.add_line(f"🔵 [{index + 1}/{total}] {path.name}")
 
-        bothub_cfg = self.config.get("bothub") or {}
-        max_image_side = int(bothub_cfg.get("max_image_side", 1600))
+        max_image_side = get_max_image_side(self.config)
 
         try:
             image_data = image_bytes_and_mime(path, max_image_side=max_image_side)

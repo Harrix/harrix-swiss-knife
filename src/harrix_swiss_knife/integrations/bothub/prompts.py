@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from harrix_swiss_knife.integrations.bothub.config import API_KEY_MISSING_MSG, validate_api_key
+from harrix_swiss_knife.integrations.ai.config import get_api_key_missing_message, get_chat_provider
+from harrix_swiss_knife.integrations.bothub.config import validate_api_key
 
 
 def build_prompt(
@@ -30,7 +31,7 @@ def build_prompt(
         raise ValueError(msg)
 
     if validate_api_key(config, show_message=False) is None:
-        raise ValueError(API_KEY_MISSING_MSG)
+        raise ValueError(get_api_key_missing_message(get_chat_provider(config)))
 
     prompt_text = template
     for key, value in replacements.items():

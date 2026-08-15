@@ -26,7 +26,7 @@ lang: en
   - [Customization](#customization)
 - [Android app (Harrix Swiss Knife)](#android-app-harrix-swiss-knife)
   - [Requirements](#requirements)
-  - [BotHub API key (Android)](#bothub-api-key-android)
+  - [AI API keys (Android)](#ai-api-keys-android)
   - [Optional SDK setup (install scripts)](#optional-sdk-setup-install-scripts)
   - [Build APK](#build-apk)
   - [Workflow](#workflow)
@@ -64,7 +64,9 @@ CLI commands after installation:
 
 ### BotHub (Food / Finance AI) on restricted networks
 
-BotHub HTTPS uses `certifi` and optional `SSL_CERT_FILE` (corporate root CA). Proxy resolution order: `bothub.proxy` in `config/config.json` (empty = auto), Qt system proxy (PAC/WPAD on Windows), `HTTPS_PROXY` / `HTTP_PROXY`, then Windows/urllib proxy settings. Example: `"bothub": { "proxy": "http://proxy.school.local:3128", ... }`.
+BotHub HTTPS uses `certifi` and optional `SSL_CERT_FILE` (corporate root CA). Proxy resolution order: `ai.proxy` (or legacy `bothub.proxy`) in `config/config.json` (empty = auto), Qt system proxy (PAC/WPAD on Windows), `HTTPS_PROXY` / `HTTP_PROXY`, then Windows/urllib proxy settings. Example: `"ai": { "proxy": "http://proxy.school.local:3128", ... }`.
+
+Choose the AI backend with `"ai": { "provider": "bothub" }` (`openai`, `anthropic`, `gemini`). Keys live in `api-keys/` — see `api-keys/README.md`.
 
 ## 📦 Building Windows install zip bundles
 
@@ -245,30 +247,39 @@ Optional Android companion app in this monorepo (Gallery Cleaner, Video Cleaner,
 - Android SDK with `ANDROID_HOME` (or `ANDROID_SDK_ROOT`)
 - SDK packages: `platform-tools`, `platforms;android-35`, `build-tools;35.0.0`
 - `android/local.properties` with `sdk.dir=...` (gitignored; created by the setup script)
-- For AI utilities (Speech to Text with AI): BotHub API key at build time (see [BotHub API key (Android)](#bothub-api-key-android))
+- For AI utilities (Speech to Text with AI): API key at build time (see [AI API keys (Android)](#ai-api-keys-android))
 
 User `Path` should include `%JAVA_HOME%\bin` and `%ANDROID_HOME%\platform-tools` (and optionally `%ANDROID_HOME%\emulator`, `%ANDROID_HOME%\cmdline-tools\latest\bin`).
 
-### BotHub API key (Android)
+### AI API keys (Android)
 
-The APK embeds the BotHub token via `BuildConfig` at compile time. The key is **not** committed to Git.
+The APK embeds the **active** AI provider settings via `BuildConfig` at compile time. Secrets are **not** committed to Git.
 
-Resolution order in `android/app/build.gradle.kts`:
+Provider selection (same as desktop `config/config.json` → `ai.provider`):
 
-1. Environment variable `BOTHUB_API_KEY` (useful for CI)
-2. Otherwise the same file as the desktop app: `api-keys/bothub-api-key.txt` (repo root; gitignored)
+1. Env `AI_PROVIDER`
+2. `android/local.properties` → `ai.provider`
+3. `config/config.json` → `ai.provider`
+4. Default: `bothub`
 
-Optional overrides (env, or `android/local.properties`):
+Supported providers: `bothub`, `openai`, `anthropic`, `gemini`. Optional `ai.speech_provider` (empty = same as chat). Anthropic has no STT — set speech to `openai`, `gemini`, or `bothub`.
 
-| Env                   | `local.properties`    | Default                                |
-| --------------------- | --------------------- | -------------------------------------- |
-| `BOTHUB_BASE_URL`     | `bothub.base_url`     | `https://bothub.chat/api/v2/openai/v1` |
-| `BOTHUB_MODEL`        | `bothub.model`        | `gpt-5.4`                              |
-| `BOTHUB_SPEECH_MODEL` | `bothub.speech_model` | `gemini-3.1-flash-lite-preview`        |
+API key resolution for the active provider:
 
-Setup: copy `api-keys/bothub-api-key.example.txt` → `api-keys/bothub-api-key.txt` and paste the token (one line). Rebuild the APK after changing the key.
+1. Provider env (`BOTHUB_API_KEY`, `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`)
+2. `local.properties` → `bothub.api_key` / `openai.api_key` / …
+3. `config/config.json` key (`bothub_api_key`, …) including `snippet:api-keys/…`
+4. File under `api-keys/` (same as desktop)
 
-If the key is missing, the project still builds; Speech to Text shows an in-app error until a key is provided. The key ends up inside the APK binary (decompilation can extract it) — acceptable for personal sideload, not for distributing a secret publicly.
+Optional overrides: `AI_BASE_URL` / `ai.base_url`, `AI_MODEL` / `ai.model`, `AI_SPEECH_MODEL` / `ai.speech_model`.
+
+Setup example (OpenAI):
+
+1. In `config/config.json`: `"ai": { "provider": "openai" }`
+2. Copy `api-keys/openai-api-key.example.txt` → `api-keys/openai-api-key.txt` and paste the key
+3. Rebuild the APK
+
+If the key is missing, the project still builds; Speech to Text / Medicine Search show an in-app error until a key is provided. The key ends up inside the APK binary (decompilation can extract it) — acceptable for personal sideload, not for distributing a secret publicly.
 
 Prompt Markdown for fix/rewrite is copied from `config/prompts/` into generated app assets on every `preBuild`.
 

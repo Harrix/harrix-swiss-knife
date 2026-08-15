@@ -10,6 +10,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import dev.harrix.hsk.R
+import dev.harrix.hsk.ai.AiConfig
 import dev.harrix.hsk.bothub.BothubConfig
 import dev.harrix.hsk.speechtotext.AudioRecorder
 import dev.harrix.hsk.speechtotext.AudioRecorderException
@@ -49,7 +50,7 @@ class SpeechToTextViewModel(
     val resultText = mutableStateOf("")
     val errorMessage = mutableStateOf<String?>(null)
     val infoMessage = mutableStateOf<String?>(null)
-    val hasApiKey = mutableStateOf(BothubConfig.hasApiKey)
+    val hasApiKey = mutableStateOf(isAiConfigured())
     val pendingRecording = mutableStateOf<PendingSpeechRecording?>(pendingStore.load())
     val recordingDurationSeconds = mutableFloatStateOf(0f)
     val waveformBuckets = mutableStateListOf<WaveformBucket>()
@@ -332,8 +333,10 @@ class SpeechToTextViewModel(
         resultText.value = ""
         errorMessage.value = null
         infoMessage.value = null
-        hasApiKey.value = BothubConfig.hasApiKey
+        hasApiKey.value = isAiConfigured()
     }
+
+    private fun isAiConfigured(): Boolean = AiConfig.supportsSpeech && AiConfig.hasSpeechApiKey && BothubConfig.hasApiKey
 
     private fun startDurationTicker() {
         durationJob?.cancel()

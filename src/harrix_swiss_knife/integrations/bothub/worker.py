@@ -1,4 +1,4 @@
-"""Background worker for BotHub chat completion requests."""
+"""Background worker for AI chat completion requests."""
 
 from __future__ import annotations
 
@@ -16,9 +16,11 @@ if TYPE_CHECKING:
     import http.client
     from collections.abc import Sequence
 
+    from harrix_swiss_knife.integrations.ai.config import ProviderName
+
 
 class BothubChatWorker(QThread):
-    """Worker thread for BotHub chat completion API calls.
+    """Worker thread for AI chat completion API calls.
 
     Attributes:
 
@@ -45,13 +47,15 @@ class BothubChatWorker(QThread):
         audio: tuple[bytes, str] | None = None,
         proxy_url: str | None = None,
         cancellable: bool = False,
+        provider: ProviderName = "bothub",
+        max_tokens: int | None = None,
     ) -> None:
         """Initialize the worker.
 
         Args:
 
-        - `api_key` (`str`): BotHub API key.
-        - `base_url` (`str`): BotHub API base URL.
+        - `api_key` (`str`): Provider API key.
+        - `base_url` (`str`): Provider API base URL.
         - `model` (`str`): Model name.
         - `prompt_text` (`str`): Full prompt text.
         - `images` (`Sequence[tuple[bytes, str]] | None`): Optional vision inputs.
@@ -59,6 +63,8 @@ class BothubChatWorker(QThread):
         - `audio` (`tuple[bytes, str] | None`): Optional audio bytes and MIME type.
         - `proxy_url` (`str | None`): Optional HTTP proxy URL for HTTPS.
         - `cancellable` (`bool`): Enable cancellable HTTP transport when `True`.
+        - `provider`: Active AI provider ID.
+        - `max_tokens`: Anthropic max tokens override.
 
         """
         super().__init__()
@@ -73,6 +79,8 @@ class BothubChatWorker(QThread):
         self._audio = audio
         self._proxy_url = proxy_url
         self._cancellable = cancellable
+        self._provider = provider
+        self._max_tokens = max_tokens
         self.should_stop = False
         self._conn: http.client.HTTPConnection | None = None
 
@@ -103,6 +111,8 @@ class BothubChatWorker(QThread):
                 proxy_url=self._proxy_url,
                 should_cancel=should_cancel,
                 on_connection=on_connection,
+                provider=self._provider,
+                max_tokens=self._max_tokens,
             )
         except RequestCancelledError:
             self.finished_cancelled.emit()

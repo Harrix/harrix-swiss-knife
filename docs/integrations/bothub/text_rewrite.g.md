@@ -68,7 +68,7 @@ Send text to BotHub synchronously and return rewritten text.
 Raises:
 
 - `ValueError`: Configuration errors (prompt or API key).
-- [`BotHubApiError`](../bothub_client.g.md#%EF%B8%8F-class-bothubapierror): API or network failure.
+- [`BotHubApiError`](../bothub_client.g.md#-constant-bothubapierror): API or network failure.
 
 <details>
 <summary>Code:</summary>
@@ -76,6 +76,7 @@ Raises:
 ```python
 def rewrite_text_sync(input_text: str, config: dict[str, Any]) -> str:
     prompt_text = build_text_rewrite_prompt(input_text, config)
+    provider = get_active_provider(config)
     api_key, base_url, model, proxy_url = get_connection_params(config)
     return chat_completion(
         api_key=api_key,
@@ -83,6 +84,7 @@ def rewrite_text_sync(input_text: str, config: dict[str, Any]) -> str:
         model=model,
         text=prompt_text,
         proxy_url=proxy_url,
+        provider=provider,
     )
 ```
 

@@ -92,6 +92,7 @@ from harrix_swiss_knife.integrations.bothub import (
     audio_bytes_and_mime,
     build_prompt,
     build_transcription_prompt,
+    get_max_image_side,
     get_speech_model,
     run_bothub_request,
     show_bothub_prompt_build_error,
@@ -627,8 +628,7 @@ class MainWindow(
         initial_image_paths: list[str] | None = None,
     ) -> None:
         """Collect text/images, call BotHub, then open food text dialog with AI result."""
-        bothub_cfg = self._app_config.get("bothub") or {}
-        max_image_side = int(bothub_cfg.get("max_image_side", 1600))
+        max_image_side = get_max_image_side(self._app_config)
         source_dialog = AiSourceDialog(
             self,
             max_image_side=max_image_side,
@@ -1478,8 +1478,7 @@ class MainWindow(
         self.pushButton_food_add.clicked.connect(self.on_add_food_log)
         self.pushButton_food_add_with_ai.clicked.connect(self.on_food_add_with_ai)
         self.pushButton_food_add_by_voice.clicked.connect(self.on_food_add_by_voice)
-        bothub_cfg = self._app_config.get("bothub") or {}
-        max_image_side = int(bothub_cfg.get("max_image_side", 1600))
+        max_image_side = get_max_image_side(self._app_config)
         self._ai_image_drop_zone = ImagePicker(
             mode=ImagePickerMode.COMPACT,
             on_paths=self._on_food_add_with_ai_image_dropped,

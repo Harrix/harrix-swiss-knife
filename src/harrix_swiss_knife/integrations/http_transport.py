@@ -16,7 +16,7 @@ import certifi
 
 _WRONG_VERSION_HINT = (
     "\n\nHint: this often happens on school/corporate Wi-Fi when HTTPS is intercepted "
-    "or a proxy is required. Set bothub.proxy in config.json, HTTPS_PROXY, "
+    "or a proxy is required. Set ai.proxy (or bothub.proxy) in config.json, HTTPS_PROXY, "
     "or use another network/VPN."
 )
 _CERT_VERIFY_HINT = "\n\nHint: set SSL_CERT_FILE to a PEM bundle that includes your network root CA."

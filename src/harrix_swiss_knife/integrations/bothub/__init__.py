@@ -2,7 +2,9 @@
 
 from harrix_swiss_knife.integrations.bothub.config import (
     API_KEY_MISSING_MSG,
+    get_active_provider,
     get_connection_params,
+    get_max_image_side,
     get_speech_model,
     validate_api_key,
 )
@@ -62,8 +64,10 @@ __all__ = [
     "build_text_rewrite_prompt",
     "build_transcription_prompt",
     "fix_text_sync",
+    "get_active_provider",
     "get_connection_params",
     "get_image_ocr_prompt_template",
+    "get_max_image_side",
     "get_prompt_template",
     "get_speech_model",
     "get_text_fix_from_clipboard_prompt_template",

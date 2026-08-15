@@ -9,6 +9,7 @@ Local secret files for harrix-swiss-knife. **Not committed to Git** (see root `.
 
 - [Files](#files)
 - [Setup](#setup)
+- [AI providers](#ai-providers)
 - [Transfer to another machine](#transfer-to-another-machine)
 - [Install zips and offline snapshots](#install-zips-and-offline-snapshots)
 
@@ -16,14 +17,17 @@ Local secret files for harrix-swiss-knife. **Not committed to Git** (see root `.
 
 ## Files
 
-| File                 | Config key                               | Purpose                                    |
-| -------------------- | ---------------------------------------- | ------------------------------------------ |
-| `pypi-token.txt`     | `pypi_token` in `config/config.json`     | PyPI token for publishing Python libraries |
-| `bothub-api-key.txt` | `bothub_api_key` in `config/config.json` | BotHub access token for AI features        |
+| File                     | Config key                                 | Purpose                                            |
+| ------------------------ | ------------------------------------------ | -------------------------------------------------- |
+| `pypi-token.txt`         | `pypi_token` in `config/config.json`       | PyPI token for publishing Python libraries         |
+| `bothub-api-key.txt`     | `bothub_api_key` in `config/config.json`   | BotHub access token for AI features                |
+| `openai-api-key.txt`     | `openai_api_key` in `config/config.json`   | OpenAI API key (chat + Whisper speech)             |
+| `anthropic-api-key.txt`  | `anthropic_api_key` in `config/config.json`| Anthropic API key (Claude Messages)                |
+| `gemini-api-key.txt`     | `gemini_api_key` in `config/config.json`   | Google Gemini API key                              |
 
-`bothub-api-key.txt` is also read by the Android Gradle build (`android/app/build.gradle.kts`) and embedded into the APK as `BuildConfig.BOTHUB_API_KEY` (override with env `BOTHUB_API_KEY`). See [`DEVELOPMENT.md` — BotHub API key (Android)](../DEVELOPMENT.md#bothub-api-key-android).
+AI keys are also read by the Android Gradle build (`android/app/build.gradle.kts`) for the **active** provider from `config.json` → `ai.provider` (override with env). See [`DEVELOPMENT.md`](../DEVELOPMENT.md#ai-api-keys-android).
 
-For school/corporate Wi-Fi, set optional `bothub.proxy` in `config/config.json` (see [`DEVELOPMENT.md`](../DEVELOPMENT.md#bothub-food--finance-ai-on-restricted-networks)).
+For school/corporate Wi-Fi, set optional `ai.proxy` (or legacy `bothub.proxy`) in `config/config.json` (see [`DEVELOPMENT.md`](../DEVELOPMENT.md#bothub-food--finance-ai-on-restricted-networks)).
 
 Paths in `config.json` use the `snippet:api-keys/...` prefix; `harrix_pylib` loads file contents at runtime.
 
@@ -34,6 +38,27 @@ Paths in `config.json` use the `snippet:api-keys/...` prefix; `harrix_pylib` loa
 3. Do not commit `api-keys/*` except files listed in `.gitignore` exceptions.
 
 Add new keys as separate `.txt` files and reference them from `config.json` with `snippet:api-keys/<filename>`.
+
+## AI providers
+
+Choose the backend in `config/config.json`:
+
+```json
+"ai": {
+  "provider": "bothub",
+  "speech_provider": "",
+  "max_image_side": 1600,
+  "proxy": ""
+}
+```
+
+Supported `provider` values: `bothub`, `openai`, `anthropic`, `gemini`.
+
+- `speech_provider` empty means the same as `provider`.
+- Anthropic has no speech-to-text API: set `speech_provider` to `openai`, `gemini`, or `bothub` for voice features.
+- Copy the matching `*-api-key.example.txt` → `*-api-key.txt` and paste the key (one line).
+
+If `ai` is omitted, the app keeps the previous BotHub-only behavior.
 
 ## Transfer to another machine
 

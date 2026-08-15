@@ -40,7 +40,7 @@ class BothubRequestState:
 ## 🔧 Function `run_bothub_request`
 
 ```python
-def run_bothub_request(parent: QWidget | None, config: dict[str, Any], prompt_text: str, on_success: Callable[[str], None], *, images: list[tuple[bytes, str]] | None = None, image: tuple[bytes, str] | None = None, audio: tuple[bytes, str] | None = None, model: str | None = None, toast_message: str = 'Requesting BotHub…', is_busy: Callable[[], bool] | None = None, state: BothubRequestState | None = None, on_error: Callable[[str], None] | None = None, on_cancelled: Callable[[], None] | None = None) -> bool
+def run_bothub_request(parent: QWidget | None, config: dict[str, Any], prompt_text: str, on_success: Callable[[str], None], *, images: list[tuple[bytes, str]] | None = None, image: tuple[bytes, str] | None = None, audio: tuple[bytes, str] | None = None, model: str | None = None, toast_message: str = 'Requesting AI…', is_busy: Callable[[], bool] | None = None, state: BothubRequestState | None = None, on_error: Callable[[str], None] | None = None, on_cancelled: Callable[[], None] | None = None) -> bool
 ```
 
 Validate config, show toast, start worker. Returns `True` if the request started.
@@ -54,7 +54,7 @@ Args:
 - `images`: Optional vision inputs as `(bytes, mime_type)` pairs.
 - `image`: Optional single vision input (merged into `images`).
 - `audio`: Optional speech input `(bytes, mime_type)`.
-- `model`: Optional model override; defaults to `bothub.model` from config.
+- `model`: Optional model override; defaults to provider model from config.
 - `toast_message`: Toast label while waiting.
 - `is_busy`: If provided and returns `True`, the request is not started.
 - `state`: Optional holder updated with worker/toast refs; cleared on completion.
@@ -75,7 +75,7 @@ def run_bothub_request(
     image: tuple[bytes, str] | None = None,
     audio: tuple[bytes, str] | None = None,
     model: str | None = None,
-    toast_message: str = "Requesting BotHub…",
+    toast_message: str = "Requesting AI…",
     is_busy: Callable[[], bool] | None = None,
     state: BothubRequestState | None = None,
     on_error: Callable[[str], None] | None = None,
@@ -84,12 +84,17 @@ def run_bothub_request(
     if is_busy is not None and is_busy():
         return False
 
-    api_key = validate_api_key(config, parent=parent)
+    for_speech = audio is not None
+    api_key = validate_api_key(config, parent=parent, for_speech=for_speech)
     if api_key is None:
         return False
 
-    api_key, base_url, default_model, proxy_url = get_connection_params(config)
+    provider = get_active_provider(config, for_speech=for_speech)
+    api_key, base_url, default_model, proxy_url = get_connection_params(config, for_speech=for_speech)
     resolved_model = model if model is not None else default_model
+    settings = get_provider_settings(config, provider)
+    max_tokens_raw = settings.get("max_tokens")
+    max_tokens = int(max_tokens_raw) if max_tokens_raw is not None else None
 
     toast_parent = _resolve_toast_parent(parent)
     toast = toast_cancellable_http_notification.ToastCancellableHttpNotification(
@@ -111,6 +116,8 @@ def run_bothub_request(
         audio=audio,
         proxy_url=proxy_url,
         cancellable=True,
+        provider=provider,
+        max_tokens=max_tokens,
     )
     _track_bothub_worker(worker)
 
@@ -151,7 +158,7 @@ def run_bothub_request(
         if on_error is not None:
             on_error(message)
         else:
-            message_box.critical(parent, "BotHub Error", message)
+            message_box.critical(parent, "AI Error", message)
 
     def on_worker_cancelled() -> None:
         nonlocal request_finished
@@ -180,10 +187,10 @@ def run_bothub_request(
 ## 🔧 Function `run_bothub_request_blocking`
 
 ```python
-def run_bothub_request_blocking(parent: QWidget | None, config: dict[str, Any], prompt_text: str, *, images: list[tuple[bytes, str]] | None = None, image: tuple[bytes, str] | None = None, audio: tuple[bytes, str] | None = None, model: str | None = None, toast_message: str = 'Requesting BotHub…', state: BothubRequestState | None = None) -> str | None
+def run_bothub_request_blocking(parent: QWidget | None, config: dict[str, Any], prompt_text: str, *, images: list[tuple[bytes, str]] | None = None, image: tuple[bytes, str] | None = None, audio: tuple[bytes, str] | None = None, model: str | None = None, toast_message: str = 'Requesting AI…', state: BothubRequestState | None = None) -> str | None
 ```
 
-Run a BotHub request and block the UI thread until it finishes.
+Run an AI request and block the UI thread until it finishes.
 
 Returns assistant text on success, or `None` on cancel / validation failure.
 Errors are shown via the default critical dialog unless the request is cancelled.
@@ -201,7 +208,7 @@ def run_bothub_request_blocking(
     image: tuple[bytes, str] | None = None,
     audio: tuple[bytes, str] | None = None,
     model: str | None = None,
-    toast_message: str = "Requesting BotHub…",
+    toast_message: str = "Requesting AI…",
     state: BothubRequestState | None = None,
 ) -> str | None:
     loop = QEventLoop()
@@ -212,7 +219,7 @@ def run_bothub_request_blocking(
         loop.quit()
 
     def on_error(message: str) -> None:
-        message_box.critical(parent, "BotHub Error", message)
+        message_box.critical(parent, "AI Error", message)
         loop.quit()
 
     def on_cancelled() -> None:

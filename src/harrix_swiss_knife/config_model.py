@@ -9,6 +9,23 @@ import harrix_pylib as h
 from harrix_swiss_knife.paths import get_config_path_str
 
 
+class AiSettings(TypedDict, total=False):
+    """Active AI provider selection and shared transport settings."""
+
+    provider: str
+    speech_provider: str
+    max_image_side: int
+    proxy: str
+
+
+class AnthropicSettings(TypedDict, total=False):
+    """Anthropic Messages API settings."""
+
+    base_url: str
+    model: str
+    max_tokens: int
+
+
 class AppConfig(TypedDict, total=False):
     """Known top-level keys of the application config.
 
@@ -35,8 +52,15 @@ class AppConfig(TypedDict, total=False):
     paths_git: list[str]
     vscode_workspace_notes: str
     vscode_workspace_articles: str
+    ai: AiSettings
     bothub: BothubSettings
     bothub_api_key: str
+    openai: OpenAISettings
+    openai_api_key: str
+    anthropic: AnthropicSettings
+    anthropic_api_key: str
+    gemini: GeminiSettings
+    gemini_api_key: str
     pypi_token: str
     sqlite_finance: str
     sqlite_fitness: str
@@ -76,12 +100,28 @@ class FoodCalorieThresholds(TypedDict, total=False):
     medium_high: int
 
 
+class GeminiSettings(TypedDict, total=False):
+    """Google Gemini generateContent settings."""
+
+    base_url: str
+    model: str
+    speech_model: str
+
+
 class HotkeyEntry(TypedDict):
     """One hotkey binding entry from config."""
 
     action: str
     hotkeys: NotRequired[list[str]]
     hotkey: NotRequired[str]
+
+
+class OpenAISettings(TypedDict, total=False):
+    """OpenAI chat completions and Whisper settings."""
+
+    base_url: str
+    model: str
+    speech_model: str
 
 
 class PersonalDataSettings(TypedDict, total=False):
