@@ -173,13 +173,50 @@
           "default": "icons",
           "enum": [
             "icons",
-            "list"
+            "list",
+            "thumbnails"
           ],
           "enumDescriptions": [
-            "Icon grid (current Notes Icons Browse).",
-            "List rows (same as Harrix Notes Android)."
+            "Icon grid.",
+            "List rows (Harrix Notes Android).",
+            "Thumbnail cards with image or text excerpt (Samsung Notes-style)."
           ],
-          "markdownDescription": "Folder view in **Notes Icons Browse**: icon grid or list rows. Matches Android `NotesBrowseLayout` (`Icons` / `List`). The toolbar button next to Refresh toggles this."
+          "markdownDescription": "Folder view in **Notes Icons Browse** (`@hsk-sync:notes-browse`). Matches Android `NotesBrowseLayout`."
+        },
+        "harrixNotesExplorerHsk.iconsBrowse.sortBy": {
+          "type": "string",
+          "default": "name",
+          "enum": [
+            "name",
+            "date",
+            "size"
+          ],
+          "enumDescriptions": [
+            "Sort by display name.",
+            "Sort by last modified time.",
+            "Sort by file size."
+          ],
+          "markdownDescription": "Sort key for **Notes Icons Browse** (`@hsk-sync:notes-browse`). Matches Android `NotesSortBy`."
+        },
+        "harrixNotesExplorerHsk.iconsBrowse.foldersFirst": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Keep folders above notes in **Notes Icons Browse** (`@hsk-sync:notes-browse`)."
+        },
+        "harrixNotesExplorerHsk.iconsBrowse.reverseOrder": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Reverse the current sort in **Notes Icons Browse** (`@hsk-sync:notes-browse`)."
+        },
+        "harrixNotesExplorerHsk.iconsBrowse.showGmdFiles": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Show `*.g.md` notes in **Notes Icons Browse** (`@hsk-sync:notes-browse`). Off by default, same as Android."
+        },
+        "harrixNotesExplorerHsk.iconsBrowse.showDates": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Show dates under titles in the **Notes Icons Browse** list (`@hsk-sync:notes-browse`)."
         },
         "harrixNotesExplorerHsk.openNotesInPreview": {
           "type": "boolean",

@@ -3947,7 +3947,7 @@ async function activate(context) {
         e.affectsConfiguration('harrixNotesExplorerHsk.showNoteTitleFromContent') ||
         e.affectsConfiguration('harrixNotesExplorerHsk.showNoteFileNameBesideTitle') ||
         e.affectsConfiguration('harrixNotesExplorerHsk.iconStyle') ||
-        e.affectsConfiguration('harrixNotesExplorerHsk.iconsBrowse.layout') ||
+        e.affectsConfiguration('harrixNotesExplorerHsk.iconsBrowse') ||
         e.affectsConfiguration('harrixNotesExplorerHsk.openNotesInPreview')
       ) {
         provider.refresh();

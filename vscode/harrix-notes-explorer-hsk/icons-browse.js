@@ -1,5 +1,8 @@
 /**
- * Icons Browse — editor-area WebviewPanel for folder drill-down (Android-like grid).
+ * Icons Browse — editor-area WebviewPanel for folder drill-down (Android-like grid/list).
+ *
+ * @hsk-sync:notes-browse — layout, sort, and the Sort and view menu stay aligned with
+ * Harrix Notes Android (`NotesBrowseLayout`, `NotesListingOptions`, folder overflow).
  */
 
 const vscode = require('vscode');
@@ -7,6 +10,8 @@ const path = require('node:path');
 const fs = require('node:fs');
 const { execFile } = require('node:child_process');
 const { buildIconsBrowseContextMenu } = require('./icons-browse-menu');
+const listing = require('./icons-browse-listing');
+const noteMeta = require('./note-meta');
 
 const PANEL_VIEW_TYPE = 'harrixNotesExplorerHsk.iconsBrowse';
 const ICONS_BROWSE_FOLDER_KEY = 'harrixNotesExplorerHsk.iconsBrowse.currentFolder.v1';
@@ -185,7 +190,7 @@ async function showIconsBrowsePanel(startFolderPath) {
     {
       enableScripts: true,
       retainContextWhenHidden: true,
-      localResourceRoots: [vscode.Uri.joinPath(deps.context.extensionUri, 'media')],
+      localResourceRoots: webviewResourceRoots(),
     },
   );
 
@@ -202,7 +207,7 @@ function wirePanel(webviewPanel) {
   }
   webviewPanel.webview.options = {
     enableScripts: true,
-    localResourceRoots: [vscode.Uri.joinPath(deps.context.extensionUri, 'media')],
+    localResourceRoots: webviewResourceRoots(),
   };
   webviewPanel.webview.html = getHtml(webviewPanel.webview, deps.context.extensionUri);
 
@@ -369,8 +374,27 @@ function postState() {
   );
   const openNotesInPreview =
     vscode.workspace.getConfiguration('harrixNotesExplorerHsk').get('openNotesInPreview') !== false;
-  const entries = rawEntries.map((entry) => ({
+  const browse = getBrowseOptionsFromConfig();
+  const listed = listing.applyListingOptions(
+    rawEntries.map((entry) => enrichBrowseEntry(entry, browse)),
+    browse,
+  );
+  const imageDirs = [
+    ...new Set(
+      listed.map((entry) => (entry.thumbnailImagePath ? path.dirname(entry.thumbnailImagePath) : '')).filter(Boolean),
+    ),
+  ];
+  panel.webview.options = {
+    enableScripts: true,
+    localResourceRoots: webviewResourceRoots(imageDirs),
+  };
+  const entries = listed.map((entry) => ({
     ...entry,
+    description: listing.browseCaption(entry, browse),
+    thumbnailImage: entry.thumbnailImagePath
+      ? panel.webview.asWebviewUri(vscode.Uri.file(entry.thumbnailImagePath)).toString()
+      : '',
+    thumbnailImagePath: undefined,
     isCut: cutPaths.has(
       normalizePath(
         entry.kind === 'note' && String(entry.contextValue || '').includes('NamedFolder')
@@ -385,7 +409,6 @@ function postState() {
     }),
   }));
   const iconStyle = getNotesIconStyleFromConfig();
-  const layout = getBrowseLayoutFromConfig();
   const folderIcon = panel.webview
     .asWebviewUri(vscode.Uri.joinPath(deps.context.extensionUri, 'media', 'icons', 'it__folder_01.svg'))
     .toString();
@@ -398,7 +421,7 @@ function postState() {
     entries,
     currentFolder,
     iconStyle,
-    layout,
+    browse,
     icons: {
       folder: folderIcon,
       note: noteIcon,
@@ -419,14 +442,173 @@ function getNotesIconStyleFromConfig() {
 }
 
 /**
- * @returns {'icons' | 'list'}
+ * @returns {import('./icons-browse-listing').BrowseOptions}
  */
-function getBrowseLayoutFromConfig() {
-  const config = vscode.workspace.getConfiguration('harrixNotesExplorerHsk');
-  const raw = String(config.get('iconsBrowse.layout') || 'icons')
+function getBrowseOptionsFromConfig() {
+  return listing.browseOptionsFromConfig(vscode.workspace.getConfiguration('harrixNotesExplorerHsk'));
+}
+
+/**
+ * @param {string[]} [extraDirs]
+ */
+function webviewResourceRoots(extraDirs = []) {
+  const roots = [vscode.Uri.joinPath(deps.context.extensionUri, 'media')];
+  for (const folder of vscode.workspace.workspaceFolders || []) {
+    roots.push(folder.uri);
+  }
+  for (const dir of extraDirs) {
+    if (dir) {
+      roots.push(vscode.Uri.file(dir));
+    }
+  }
+  return roots;
+}
+
+const THUMBNAIL_IMAGE_EXT = new Set(['.png', '.jpg', '.jpeg', '.webp', '.avif', '.gif']);
+
+/**
+ * @param {string} name
+ */
+function isFeaturedThumbnailName(name) {
+  const ext = path.extname(name);
+  const base = name.slice(0, name.length - ext.length).toLowerCase();
+  return base === 'featured-image' || base === 'featured_image';
+}
+
+/**
+ * @param {string} notePath
+ * @param {string} [markdown]
+ * @returns {string | null}
+ */
+function findThumbnailImagePath(notePath, markdown = '') {
+  const noteDir = path.dirname(notePath);
+  let entries = [];
+  try {
+    entries = fs.readdirSync(noteDir, { withFileTypes: true });
+  } catch {
+    entries = [];
+  }
+  for (const entry of entries) {
+    if (entry.isFile() && isFeaturedThumbnailName(entry.name)) {
+      return path.join(noteDir, entry.name);
+    }
+  }
+  const imgDir = path.join(noteDir, 'img');
+  let images = [];
+  try {
+    images = fs
+      .readdirSync(imgDir, { withFileTypes: true })
+      .filter((entry) => entry.isFile() && THUMBNAIL_IMAGE_EXT.has(path.extname(entry.name).toLowerCase()));
+  } catch {
+    images = [];
+  }
+  const canvas = images.find((entry) => /^canvas(?:_\d{2})?\.png$/i.test(entry.name));
+  if (canvas) {
+    return path.join(imgDir, canvas.name);
+  }
+  const fromMarkdown = resolveNoteRelativeImage(notePath, listing.firstMarkdownImageSrc(markdown));
+  if (fromMarkdown) {
+    return fromMarkdown;
+  }
+  images.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+  if (images[0]) {
+    return path.join(imgDir, images[0].name);
+  }
+  return null;
+}
+
+/**
+ * @param {string} notePath
+ * @param {string} rel
+ * @returns {string | null}
+ */
+function resolveNoteRelativeImage(notePath, rel) {
+  const cleaned = String(rel || '')
     .trim()
-    .toLowerCase();
-  return raw === 'list' ? 'list' : 'icons';
+    .replace(/\\/g, '/')
+    .replace(/^\/+/, '');
+  if (!cleaned) {
+    return null;
+  }
+  const abs = path.normalize(path.join(path.dirname(notePath), cleaned));
+  try {
+    if (fs.statSync(abs).isFile()) {
+      return abs;
+    }
+  } catch {
+    // missing
+  }
+  return null;
+}
+
+/**
+ * @param {{ kind: string, path: string, name: string, label: string, description: string }} entry
+ * @param {import('./icons-browse-listing').BrowseOptions} browse
+ */
+function enrichBrowseEntry(entry, browse) {
+  let mtimeMs = 0;
+  let sizeBytes = 0;
+  try {
+    const st = fs.statSync(entry.path);
+    mtimeMs = st.mtimeMs;
+    sizeBytes = st.size;
+  } catch {
+    // missing path
+  }
+  const isGmd = entry.kind === 'note' && listing.isGmdFileName(path.basename(entry.path));
+  /** @type {{ dateSource?: string, dateValue?: string, thumbnailExcerpt?: string, thumbnailImagePath?: string }} */
+  const extra = {};
+  if (browse.showDates && browse.layout === 'list' && entry.kind === 'note') {
+    const resolved = noteMeta.resolveNoteDateForPath(entry.path);
+    if (resolved) {
+      extra.dateSource = resolved.source;
+      extra.dateValue = resolved.value;
+    }
+  }
+  if (browse.layout === 'thumbnails' && entry.kind === 'note') {
+    let markdown = '';
+    try {
+      const fd = fs.openSync(entry.path, 'r');
+      const buf = Buffer.alloc(16 * 1024);
+      const read = fs.readSync(fd, buf, 0, buf.length, 0);
+      fs.closeSync(fd);
+      markdown = buf.slice(0, read).toString('utf8');
+    } catch {
+      markdown = '';
+    }
+    extra.thumbnailExcerpt = listing.excerptFromMarkdown(markdown);
+    const imagePath = findThumbnailImagePath(entry.path, markdown);
+    if (imagePath) {
+      extra.thumbnailImagePath = imagePath;
+    }
+  }
+  return {
+    ...entry,
+    isGmd,
+    mtimeMs,
+    sizeBytes,
+    sortLabel: entry.label || entry.name,
+    ...extra,
+  };
+}
+
+/**
+ * @param {string | undefined} key
+ * @param {unknown} value
+ */
+async function updateBrowseOption(key, value) {
+  const config = vscode.workspace.getConfiguration('harrixNotesExplorerHsk');
+  if (key === 'layout') {
+    await config.update('iconsBrowse.layout', listing.parseLayout(value), vscode.ConfigurationTarget.Global);
+    return;
+  }
+  if (key === 'sortBy') {
+    await config.update('iconsBrowse.sortBy', listing.parseSortBy(value), vscode.ConfigurationTarget.Global);
+    return;
+  }
+  if (key === 'foldersFirst' || key === 'reverseOrder' || key === 'showGmdFiles' || key === 'showDates') {
+    await config.update(`iconsBrowse.${key}`, value === true, vscode.ConfigurationTarget.Global);
+  }
 }
 
 /**
@@ -436,7 +618,10 @@ async function handleWebviewMessage(message) {
   if (!deps || !message || typeof message !== 'object') {
     return;
   }
-  const msg = /** @type {{ type?: string, path?: string, name?: string, index?: number, layout?: string }} */ (message);
+  const msg =
+    /** @type {{ type?: string, path?: string, name?: string, index?: number, key?: string, value?: unknown }} */ (
+      message
+    );
 
   switch (msg.type) {
     case 'ready':
@@ -482,11 +667,8 @@ async function handleWebviewMessage(message) {
       postState();
       break;
     }
-    case 'setLayout': {
-      const next = msg.layout === 'list' ? 'list' : 'icons';
-      await vscode.workspace
-        .getConfiguration('harrixNotesExplorerHsk')
-        .update('iconsBrowse.layout', next, vscode.ConfigurationTarget.Global);
+    case 'setBrowseOption': {
+      await updateBrowseOption(msg.key, msg.value);
       postState();
       break;
     }
@@ -639,12 +821,9 @@ function getHtml(webview, extensionUri) {
     <button type="button" id="homeBtn" title="Home">Home</button>
     <nav class="breadcrumbs" id="crumbs" aria-label="Path"></nav>
     <div class="chrome-actions">
-      <button type="button" id="viewToggleBtn" class="icon-btn" title="Switch to list" aria-label="Switch to list">
-        <svg id="viewToggleListIcon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true">
-          <path d="M4 6h2v2H4V6zm4 0h12v2H8V6zM4 11h2v2H4v-2zm4 0h12v2H8v-2zM4 16h2v2H4v-2zm4 0h12v2H8v-2z"/>
-        </svg>
-        <svg id="viewToggleGridIcon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true" hidden>
-          <path d="M4 4h7v7H4V4zm9 0h7v7h-7V4zM4 13h7v7H4v-7zm9 0h7v7h-7v-7z"/>
+      <button type="button" id="sortViewBtn" class="icon-btn" title="Sort and view" aria-label="Sort and view" aria-haspopup="true" aria-expanded="false">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true">
+          <path d="M3 18h6v-2H3v2zM3 6v2h18V6H3zm0 7h12v-2H3v2z"/>
         </svg>
       </button>
       <button type="button" id="refreshBtn" class="icon-btn" title="Refresh" aria-label="Refresh">
@@ -659,6 +838,7 @@ function getHtml(webview, extensionUri) {
     <div id="grid" class="grid" role="list"></div>
   </main>
   <div id="ctxMenu" class="ctx-menu" hidden role="menu"></div>
+  <div id="sortMenu" class="ctx-menu sort-menu" hidden role="menu"></div>
   <script src="${jsUri}"></script>
 </body>
 </html>`;

@@ -4,26 +4,45 @@
   const backBtn = document.getElementById('backBtn');
   const homeBtn = document.getElementById('homeBtn');
   const refreshBtn = document.getElementById('refreshBtn');
-  const viewToggleBtn = document.getElementById('viewToggleBtn');
-  const viewToggleListIcon = document.getElementById('viewToggleListIcon');
-  const viewToggleGridIcon = document.getElementById('viewToggleGridIcon');
+  const sortViewBtn = document.getElementById('sortViewBtn');
   const crumbsEl = document.getElementById('crumbs');
   const gridEl = document.getElementById('grid');
   const statusEl = document.getElementById('status');
   const menuEl = document.getElementById('ctxMenu');
+  const sortMenuEl = document.getElementById('sortMenu');
 
   /** @type {{ path: string, name: string }[]} */
   let crumbs = [];
-  /** @type {Array<{ kind: string, path: string, name: string, label: string, iconEmoji: string, description: string, contextValue?: string, isWorkspaceRoot?: boolean, isCut?: boolean, menu?: Array<{ type: string, command?: string, title?: string }> }>} */
+  /** @type {Array<{ kind: string, path: string, name: string, label: string, iconEmoji: string, description: string, thumbnailImage?: string, thumbnailExcerpt?: string, contextValue?: string, isWorkspaceRoot?: boolean, isCut?: boolean, menu?: Array<{ type: string, command?: string, title?: string }> }>} */
   let entries = [];
   /** @type {{ kind: string, path: string, name: string, contextValue?: string, isWorkspaceRoot?: boolean } | null} */
   let currentFolder = null;
   /** @type {'harrix' | 'material'} */
   let iconStyle = 'harrix';
-  /** @type {'icons' | 'list'} */
-  let layout = 'icons';
+  /** @type {{ layout: 'icons' | 'list' | 'thumbnails', sortBy: 'name' | 'date' | 'size', foldersFirst: boolean, reverseOrder: boolean, showGmdFiles: boolean, showDates: boolean }} */
+  let browse = {
+    layout: 'icons',
+    sortBy: 'name',
+    foldersFirst: false,
+    reverseOrder: false,
+    showGmdFiles: false,
+    showDates: false,
+  };
   /** @type {{ folder: string, note: string }} */
   let iconUrls = { folder: '', note: '' };
+
+  const LIST_SVG =
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">' +
+    '<path d="M4 6h2v2H4V6zm4 0h12v2H8V6zM4 11h2v2H4v-2zm4 0h12v2H8v-2zM4 16h2v2H4v-2zm4 0h12v2H8v-2z"/></svg>';
+  const GRID_SVG =
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">' +
+    '<path d="M4 4h7v7H4V4zm9 0h7v7h-7V4zM4 13h7v7H4v-7zm9 0h7v7h-7v-7z"/></svg>';
+  const DASHBOARD_SVG =
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">' +
+    '<path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>';
+  const CHECK_SVG =
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">' +
+    '<path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>';
 
   const FOLDER_SVG =
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">' +
@@ -53,6 +72,16 @@
     menuEl.replaceChildren();
   }
 
+  function hideSortMenu() {
+    sortMenuEl.hidden = true;
+    sortViewBtn.setAttribute('aria-expanded', 'false');
+  }
+
+  function hideAllMenus() {
+    hideContextMenu();
+    hideSortMenu();
+  }
+
   /**
    * @param {number} x
    * @param {number} y
@@ -60,6 +89,7 @@
    * @param {Array<{ type: string, command?: string, title?: string }>} menu
    */
   function showContextMenuAt(x, y, entry, menu) {
+    hideSortMenu();
     if (!menu.length) {
       hideContextMenu();
       return;
@@ -197,23 +227,174 @@
     return NOTE_SVG;
   }
 
-  function syncViewToggle() {
-    const isList = layout === 'list';
-    const nextTitle = isList ? 'Switch to icons' : 'Switch to list';
-    viewToggleBtn.title = nextTitle;
-    viewToggleBtn.setAttribute('aria-label', nextTitle);
-    viewToggleListIcon.hidden = isList;
-    viewToggleGridIcon.hidden = !isList;
-    document.body.classList.toggle('layout-list', isList);
-    document.body.classList.toggle('layout-icons', !isList);
+  function syncLayoutClass() {
+    document.body.classList.toggle('layout-list', browse.layout === 'list');
+    document.body.classList.toggle('layout-icons', browse.layout === 'icons');
+    document.body.classList.toggle('layout-thumbs', browse.layout === 'thumbnails');
+  }
+
+  /**
+   * @param {string} title
+   * @param {{
+   *   lead?: string,
+   *   checked?: boolean,
+   *   check?: 'lead' | 'trail',
+   *   onClick: () => void,
+   * }} opts
+   */
+  function sortMenuItem(title, opts) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'ctx-item menu-row';
+    btn.setAttribute('role', 'menuitem');
+
+    const lead = document.createElement('span');
+    lead.className = 'ctx-lead';
+    if (opts.lead) {
+      lead.innerHTML = opts.lead;
+    } else if (opts.checked && opts.check === 'lead') {
+      lead.innerHTML = CHECK_SVG;
+    }
+
+    const label = document.createElement('span');
+    label.className = 'ctx-item-label';
+    label.textContent = title;
+
+    const trail = document.createElement('span');
+    trail.className = 'ctx-trail';
+    if (opts.checked && opts.check === 'trail') {
+      trail.innerHTML = CHECK_SVG;
+    }
+
+    btn.appendChild(lead);
+    btn.appendChild(label);
+    btn.appendChild(trail);
+    btn.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      opts.onClick();
+    });
+    return btn;
+  }
+
+  function renderSortMenu() {
+    sortMenuEl.replaceChildren();
+    sortMenuEl.appendChild(
+      sortMenuItem('List', {
+        lead: LIST_SVG,
+        checked: browse.layout === 'list',
+        check: 'trail',
+        onClick: () => vscode.postMessage({ type: 'setBrowseOption', key: 'layout', value: 'list' }),
+      }),
+    );
+    sortMenuEl.appendChild(
+      sortMenuItem('Icons', {
+        lead: GRID_SVG,
+        checked: browse.layout === 'icons',
+        check: 'trail',
+        onClick: () => vscode.postMessage({ type: 'setBrowseOption', key: 'layout', value: 'icons' }),
+      }),
+    );
+    sortMenuEl.appendChild(
+      sortMenuItem('Thumbnails', {
+        lead: DASHBOARD_SVG,
+        checked: browse.layout === 'thumbnails',
+        check: 'trail',
+        onClick: () => vscode.postMessage({ type: 'setBrowseOption', key: 'layout', value: 'thumbnails' }),
+      }),
+    );
+    const sep1 = document.createElement('div');
+    sep1.className = 'ctx-sep';
+    sortMenuEl.appendChild(sep1);
+    for (const [value, title] of [
+      ['name', 'Name'],
+      ['date', 'Date'],
+      ['size', 'Size'],
+    ]) {
+      sortMenuEl.appendChild(
+        sortMenuItem(title, {
+          checked: browse.sortBy === value,
+          check: 'lead',
+          onClick: () => vscode.postMessage({ type: 'setBrowseOption', key: 'sortBy', value }),
+        }),
+      );
+    }
+    const sep2 = document.createElement('div');
+    sep2.className = 'ctx-sep';
+    sortMenuEl.appendChild(sep2);
+    sortMenuEl.appendChild(
+      sortMenuItem('Folders on top', {
+        checked: browse.foldersFirst,
+        check: 'trail',
+        onClick: () =>
+          vscode.postMessage({ type: 'setBrowseOption', key: 'foldersFirst', value: !browse.foldersFirst }),
+      }),
+    );
+    sortMenuEl.appendChild(
+      sortMenuItem('Reverse order', {
+        checked: browse.reverseOrder,
+        check: 'trail',
+        onClick: () =>
+          vscode.postMessage({ type: 'setBrowseOption', key: 'reverseOrder', value: !browse.reverseOrder }),
+      }),
+    );
+    sortMenuEl.appendChild(
+      sortMenuItem('Show .g.md files', {
+        checked: browse.showGmdFiles,
+        check: 'trail',
+        onClick: () =>
+          vscode.postMessage({ type: 'setBrowseOption', key: 'showGmdFiles', value: !browse.showGmdFiles }),
+      }),
+    );
+    sortMenuEl.appendChild(
+      sortMenuItem('Show dates', {
+        checked: browse.showDates,
+        check: 'trail',
+        onClick: () => vscode.postMessage({ type: 'setBrowseOption', key: 'showDates', value: !browse.showDates }),
+      }),
+    );
+  }
+
+  function positionSortMenu() {
+    const pad = 8;
+    const btnRect = sortViewBtn.getBoundingClientRect();
+    sortMenuEl.style.left = '0px';
+    sortMenuEl.style.top = '0px';
+    const rect = sortMenuEl.getBoundingClientRect();
+    let left = btnRect.right - rect.width;
+    let top = btnRect.bottom + 4;
+    if (left < pad) {
+      left = pad;
+    }
+    if (left + rect.width > window.innerWidth - pad) {
+      left = Math.max(pad, window.innerWidth - rect.width - pad);
+    }
+    if (top + rect.height > window.innerHeight - pad) {
+      top = Math.max(pad, btnRect.top - rect.height - 4);
+    }
+    sortMenuEl.style.left = `${left}px`;
+    sortMenuEl.style.top = `${top}px`;
+  }
+
+  function showSortMenu() {
+    hideContextMenu();
+    renderSortMenu();
+    sortMenuEl.hidden = false;
+    sortViewBtn.setAttribute('aria-expanded', 'true');
+    positionSortMenu();
   }
 
   function renderEntries() {
     hideContextMenu();
     gridEl.replaceChildren();
-    const isList = layout === 'list';
-    gridEl.className = isList ? 'list' : 'grid';
-    syncViewToggle();
+    const isList = browse.layout === 'list';
+    const isThumbs = browse.layout === 'thumbnails';
+    gridEl.className = isList ? 'list' : isThumbs ? 'thumbs' : 'grid';
+    syncLayoutClass();
+    if (!sortMenuEl.hidden) {
+      renderSortMenu();
+      positionSortMenu();
+    }
 
     if (!entries.length) {
       statusEl.hidden = false;
@@ -225,37 +406,53 @@
     for (const entry of entries) {
       const btn = document.createElement('button');
       btn.type = 'button';
-      const itemClass = isList ? 'row' : 'cell';
+      const itemClass = isList ? 'row' : isThumbs ? 'thumb' : 'cell';
       btn.className = entry.isCut ? `${itemClass} is-cut` : itemClass;
       btn.title = entry.path;
-
-      const glyph = document.createElement('div');
-      glyph.className = 'glyph';
-      glyph.innerHTML = glyphHtml(entry);
 
       const label = document.createElement('div');
       label.className = 'label';
       label.textContent = entry.label || entry.name;
 
-      btn.appendChild(glyph);
-      if (isList) {
-        const text = document.createElement('div');
-        text.className = 'row-text';
-        text.appendChild(label);
-        if (entry.description) {
-          const desc = document.createElement('div');
-          desc.className = 'desc';
-          desc.textContent = entry.description;
-          text.appendChild(desc);
+      if (isThumbs) {
+        const preview = document.createElement('div');
+        preview.className = entry.kind === 'folder' ? 'thumb-preview is-folder' : 'thumb-preview';
+        if (entry.kind === 'folder') {
+          preview.innerHTML = glyphHtml(entry);
+        } else if (entry.thumbnailImage) {
+          preview.innerHTML = imgHtml(entry.thumbnailImage);
+        } else {
+          const excerpt = document.createElement('div');
+          excerpt.className = 'thumb-excerpt';
+          excerpt.textContent = entry.thumbnailExcerpt || '';
+          preview.appendChild(excerpt);
         }
-        btn.appendChild(text);
-      } else {
+        btn.appendChild(preview);
         btn.appendChild(label);
-        if (entry.description) {
-          const desc = document.createElement('div');
-          desc.className = 'desc';
-          desc.textContent = entry.description;
-          btn.appendChild(desc);
+      } else {
+        const glyph = document.createElement('div');
+        glyph.className = 'glyph';
+        glyph.innerHTML = glyphHtml(entry);
+        btn.appendChild(glyph);
+        if (isList) {
+          const text = document.createElement('div');
+          text.className = 'row-text';
+          text.appendChild(label);
+          if (entry.description) {
+            const desc = document.createElement('div');
+            desc.className = 'desc';
+            desc.textContent = entry.description;
+            text.appendChild(desc);
+          }
+          btn.appendChild(text);
+        } else {
+          btn.appendChild(label);
+          if (entry.description) {
+            const desc = document.createElement('div');
+            desc.className = 'desc';
+            desc.textContent = entry.description;
+            btn.appendChild(desc);
+          }
         }
       }
 
@@ -280,7 +477,15 @@
     entries = Array.isArray(msg.entries) ? msg.entries : [];
     currentFolder = msg.currentFolder && typeof msg.currentFolder === 'object' ? msg.currentFolder : null;
     iconStyle = msg.iconStyle === 'material' ? 'material' : 'harrix';
-    layout = msg.layout === 'list' ? 'list' : 'icons';
+    const nextBrowse = msg.browse && typeof msg.browse === 'object' ? msg.browse : {};
+    browse = {
+      layout: nextBrowse.layout === 'list' ? 'list' : nextBrowse.layout === 'thumbnails' ? 'thumbnails' : 'icons',
+      sortBy: nextBrowse.sortBy === 'date' || nextBrowse.sortBy === 'size' ? nextBrowse.sortBy : 'name',
+      foldersFirst: nextBrowse.foldersFirst === true,
+      reverseOrder: nextBrowse.reverseOrder === true,
+      showGmdFiles: nextBrowse.showGmdFiles === true,
+      showDates: nextBrowse.showDates === true,
+    };
     const icons = msg.icons && typeof msg.icons === 'object' ? msg.icons : {};
     iconUrls = {
       folder: typeof icons.folder === 'string' ? icons.folder : '',
@@ -299,14 +504,19 @@
   refreshBtn.addEventListener('click', () => {
     vscode.postMessage({ type: 'refresh' });
   });
-  viewToggleBtn.addEventListener('click', () => {
-    vscode.postMessage({ type: 'setLayout', layout: layout === 'list' ? 'icons' : 'list' });
+  sortViewBtn.addEventListener('click', (event) => {
+    event.stopPropagation();
+    if (sortMenuEl.hidden) {
+      showSortMenu();
+    } else {
+      hideSortMenu();
+    }
   });
 
   const mainEl = document.querySelector('.main');
   if (mainEl) {
     mainEl.addEventListener('contextmenu', (event) => {
-      if (event.target.closest('.cell, .row')) {
+      if (event.target.closest('.cell, .row, .thumb')) {
         return;
       }
       requestBackgroundContextMenu(event);
@@ -314,20 +524,26 @@
   }
 
   document.addEventListener('click', () => {
-    hideContextMenu();
+    hideAllMenus();
   });
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') {
-      hideContextMenu();
+      hideAllMenus();
     }
   });
   window.addEventListener('blur', () => {
-    hideContextMenu();
+    hideAllMenus();
   });
   menuEl.addEventListener('click', (event) => {
     event.stopPropagation();
   });
   menuEl.addEventListener('contextmenu', (event) => {
+    event.preventDefault();
+  });
+  sortMenuEl.addEventListener('click', (event) => {
+    event.stopPropagation();
+  });
+  sortMenuEl.addEventListener('contextmenu', (event) => {
     event.preventDefault();
   });
 
