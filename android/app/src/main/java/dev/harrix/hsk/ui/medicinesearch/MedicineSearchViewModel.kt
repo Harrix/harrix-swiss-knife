@@ -6,9 +6,11 @@ import android.net.Uri
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import dev.harrix.hsk.R
 import dev.harrix.hsk.bothub.BothubApiException
 import dev.harrix.hsk.bothub.BothubClient
 import dev.harrix.hsk.bothub.BothubConfig
+import dev.harrix.hsk.bothub.BothubPrompts
 import dev.harrix.hsk.medicinesearch.MedicineSearchPreferences
 import dev.harrix.hsk.medicinesearch.MedicineSearchRepository
 import kotlinx.coroutines.CancellationException
@@ -25,6 +27,11 @@ enum class MedicineSearchPhase {
     Result,
 }
 
+data class MedicineSearchTurn(
+    val question: String,
+    val answer: String,
+)
+
 class MedicineSearchViewModel(
     application: Application,
 ) : AndroidViewModel(application) {
@@ -33,8 +40,11 @@ class MedicineSearchViewModel(
 
     val phase = mutableStateOf(MedicineSearchPhase.Idle)
     val queryText = mutableStateOf("")
+    val followUpText = mutableStateOf("")
     val attachedPhotos = mutableStateOf<List<Uri>>(emptyList())
+    val conversation = mutableStateOf<List<MedicineSearchTurn>>(emptyList())
     val resultText = mutableStateOf("")
+    val isFollowUpRequest = mutableStateOf(false)
     val fileDisplayName = mutableStateOf<String?>(null)
     val medicinesUri = mutableStateOf<Uri?>(null)
     val hasMedicinesFile = mutableStateOf(false)
@@ -55,6 +65,10 @@ class MedicineSearchViewModel(
 
     fun onQueryChange(value: String) {
         queryText.value = value
+    }
+
+    fun onFollowUpChange(value: String) {
+        followUpText.value = value
     }
 
     fun addPhotos(uris: List<Uri>) {
@@ -126,16 +140,62 @@ class MedicineSearchViewModel(
         if ((query.isEmpty() && photos.isEmpty()) || isBusy()) {
             return
         }
+        startSearch(
+            query = query,
+            photos = photos,
+            previousTurns = emptyList(),
+            followUp = false,
+        )
+    }
+
+    fun followUp() {
+        val query = followUpText.value.trim()
+        val previousTurns = conversation.value
+        if (query.isEmpty() || previousTurns.isEmpty() || isBusy()) {
+            return
+        }
+        startSearch(
+            query = query,
+            photos = attachedPhotos.value,
+            previousTurns = previousTurns,
+            followUp = true,
+        )
+    }
+
+    fun resetSession() {
+        searchJob?.cancel()
+        searchJob = null
+        fileJob?.cancel()
+        fileJob = null
+        queryText.value = ""
+        followUpText.value = ""
+        attachedPhotos.value = emptyList()
+        conversation.value = emptyList()
+        resultText.value = ""
+        isFollowUpRequest.value = false
+        errorMessage.value = null
+        phase.value = MedicineSearchPhase.Idle
+        reloadFromPreferences()
+    }
+
+    private fun startSearch(
+        query: String,
+        photos: List<Uri>,
+        previousTurns: List<MedicineSearchTurn>,
+        followUp: Boolean,
+    ) {
         if (!BothubConfig.hasApiKey) {
             hasApiKey.value = false
             errorMessage.value = BothubClient.MISSING_API_KEY_MESSAGE
             return
         }
         errorMessage.value = null
+        isFollowUpRequest.value = followUp
         searchJob?.cancel()
         searchJob =
             viewModelScope.launch {
                 phase.value = MedicineSearchPhase.Searching
+                val history = formatHistory(previousTurns)
                 val outcome =
                     withContext(Dispatchers.IO) {
                         runCatching {
@@ -143,13 +203,19 @@ class MedicineSearchViewModel(
                                 medicinesMarkdown = medicinesMarkdown,
                                 query = query,
                                 photos = photos,
+                                history = history,
                             )
                         }
                     }
                 ensureActive()
                 outcome
                     .onSuccess { answer ->
+                        val asked = askedQuestionLabel(query)
+                        conversation.value = previousTurns + MedicineSearchTurn(asked, answer)
                         resultText.value = answer
+                        if (previousTurns.isNotEmpty()) {
+                            followUpText.value = ""
+                        }
                         phase.value = MedicineSearchPhase.Result
                     }.onFailure { error ->
                         if (error is CancellationException) {
@@ -167,17 +233,21 @@ class MedicineSearchViewModel(
             }
     }
 
-    fun resetSession() {
-        searchJob?.cancel()
-        searchJob = null
-        fileJob?.cancel()
-        fileJob = null
-        queryText.value = ""
-        attachedPhotos.value = emptyList()
-        resultText.value = ""
-        errorMessage.value = null
-        phase.value = MedicineSearchPhase.Idle
-        reloadFromPreferences()
+    private fun askedQuestionLabel(query: String): String {
+        val trimmed = query.trim()
+        if (trimmed.isNotEmpty() && trimmed != BothubPrompts.PHOTO_ONLY_QUERY) {
+            return trimmed
+        }
+        return getApplication<Application>().getString(R.string.medicine_search_photo_only_question)
+    }
+
+    private fun formatHistory(turns: List<MedicineSearchTurn>): String? {
+        if (turns.isEmpty()) {
+            return null
+        }
+        return turns.joinToString("\n\n") { turn ->
+            "User: ${turn.question}\nAssistant: ${turn.answer}"
+        }
     }
 
     private fun loadUri(

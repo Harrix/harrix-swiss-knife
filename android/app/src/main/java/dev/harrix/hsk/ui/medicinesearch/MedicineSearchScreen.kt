@@ -21,8 +21,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Reply
 import androidx.compose.material.icons.filled.AddAPhoto
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
@@ -55,12 +58,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -89,8 +94,11 @@ fun MedicineSearchScreen(
 ) {
     var phase by viewModel.phase
     var queryText by viewModel.queryText
+    var followUpText by viewModel.followUpText
     val attachedPhotos by viewModel.attachedPhotos
+    val conversation by viewModel.conversation
     val resultText by viewModel.resultText
+    val isFollowUpRequest by viewModel.isFollowUpRequest
     var hasMedicinesFile by viewModel.hasMedicinesFile
     var errorMessage by viewModel.errorMessage
     var hasApiKey by viewModel.hasApiKey
@@ -103,8 +111,12 @@ fun MedicineSearchScreen(
     val isSearching = phase == MedicineSearchPhase.Searching
     val isLoadingFile = phase == MedicineSearchPhase.LoadingFile
     val busy = isSearching || isLoadingFile
-    val showResult = resultText.isNotBlank()
-    val canAsk = hasApiKey && !isLoadingFile && (queryText.isNotBlank() || attachedPhotos.isNotEmpty())
+    val showResult = resultText.isNotBlank() || conversation.isNotEmpty()
+    val canAsk =
+        hasApiKey &&
+            !busy &&
+            (queryText.isNotBlank() || attachedPhotos.isNotEmpty())
+    val canFollowUp = hasApiKey && !busy && followUpText.isNotBlank() && conversation.isNotEmpty()
 
     fun leave() {
         viewModel.resetSession()
@@ -114,6 +126,11 @@ fun MedicineSearchScreen(
     fun askBotHub() {
         keyboard?.hide()
         viewModel.search()
+    }
+
+    fun askFollowUp() {
+        keyboard?.hide()
+        viewModel.followUp()
     }
 
     BackHandler(onBack = { leave() })
@@ -129,7 +146,7 @@ fun MedicineSearchScreen(
         viewModel.reloadFromPreferences()
     }
 
-    LaunchedEffect(phase, showResult) {
+    LaunchedEffect(phase, showResult, conversation.size) {
         if (phase == MedicineSearchPhase.Searching ||
             phase == MedicineSearchPhase.LoadingFile ||
             showResult
@@ -319,7 +336,7 @@ fun MedicineSearchScreen(
                     enabled = canAsk,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    if (isSearching) {
+                    if (isSearching && !isFollowUpRequest) {
                         CircularProgressIndicator(
                             modifier = Modifier.size(18.dp),
                             strokeWidth = 2.dp,
@@ -336,7 +353,7 @@ fun MedicineSearchScreen(
                     AutoFitText(
                         text =
                         stringResource(
-                            if (isSearching) {
+                            if (isSearching && !isFollowUpRequest) {
                                 R.string.medicine_search_searching
                             } else {
                                 R.string.medicine_search_search
@@ -359,35 +376,23 @@ fun MedicineSearchScreen(
                 }
 
                 if (showResult) {
-                    Text(
-                        text = stringResource(R.string.medicine_search_result_label),
-                        style = MaterialTheme.typography.titleSmall,
-                    )
-                    SimpleMarkdownText(
-                        markdown = resultText,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    FilledTonalButton(
-                        onClick = {
+                    ConversationResult(
+                        turns = conversation,
+                        latestAnswer = resultText,
+                        followUpText = followUpText,
+                        isSearching = isSearching && isFollowUpRequest,
+                        busy = busy,
+                        canFollowUp = canFollowUp,
+                        hintColor = hintColor,
+                        onFollowUpChange = { viewModel.onFollowUpChange(it) },
+                        onFollowUp = { askFollowUp() },
+                        onCopy = {
                             clipboard.setText(AnnotatedString(resultText))
                             Toast
                                 .makeText(context, copiedMessage, Toast.LENGTH_SHORT)
                                 .show()
                         },
-                        enabled = !busy,
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.ContentCopy,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp),
-                        )
-                        Spacer(modifier = Modifier.size(8.dp))
-                        AutoFitText(
-                            text = stringResource(R.string.medicine_search_copy),
-                            maxLines = 1,
-                        )
-                    }
+                    )
                 }
 
                 Spacer(modifier = Modifier.height(8.dp))
@@ -411,6 +416,137 @@ fun MedicineSearchScreen(
                 }
             },
         )
+    }
+}
+
+@Composable
+private fun ConversationResult(
+    turns: List<MedicineSearchTurn>,
+    latestAnswer: String,
+    followUpText: String,
+    isSearching: Boolean,
+    busy: Boolean,
+    canFollowUp: Boolean,
+    hintColor: Color,
+    onFollowUpChange: (String) -> Unit,
+    onFollowUp: () -> Unit,
+    onCopy: () -> Unit,
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        val visibleTurns =
+            turns.ifEmpty {
+                if (latestAnswer.isBlank()) {
+                    emptyList()
+                } else {
+                    listOf(MedicineSearchTurn(question = "", answer = latestAnswer))
+                }
+            }
+        visibleTurns.forEachIndexed { index, turn ->
+            if (index > 0 && turn.question.isNotBlank()) {
+                Text(
+                    text = stringResource(R.string.medicine_search_follow_up_label),
+                    style = MaterialTheme.typography.titleSmall,
+                )
+                Text(
+                    text = turn.question,
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
+            Text(
+                text = stringResource(R.string.medicine_search_result_label),
+                style = MaterialTheme.typography.titleSmall,
+            )
+            SimpleMarkdownText(
+                markdown = turn.answer,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+        FilledTonalButton(
+            onClick = onCopy,
+            enabled = !busy && latestAnswer.isNotBlank(),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Icon(
+                imageVector = Icons.Filled.ContentCopy,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp),
+            )
+            Spacer(modifier = Modifier.size(8.dp))
+            AutoFitText(
+                text = stringResource(R.string.medicine_search_copy),
+                maxLines = 1,
+            )
+        }
+        OutlinedTextField(
+            value = followUpText,
+            onValueChange = onFollowUpChange,
+            modifier = Modifier.fillMaxWidth(),
+            enabled = !busy,
+            minLines = 2,
+            maxLines = 4,
+            label = {
+                Text(stringResource(R.string.medicine_search_follow_up_label))
+            },
+            placeholder = {
+                Text(
+                    text = stringResource(R.string.medicine_search_follow_up_hint),
+                    color = hintColor,
+                )
+            },
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+            keyboardActions =
+            KeyboardActions(
+                onSend = {
+                    if (canFollowUp) {
+                        onFollowUp()
+                    }
+                },
+            ),
+            colors =
+            OutlinedTextFieldDefaults.colors(
+                focusedPlaceholderColor = hintColor,
+                unfocusedPlaceholderColor = hintColor,
+                disabledPlaceholderColor = hintColor.copy(alpha = 0.7f),
+            ),
+        )
+        Button(
+            onClick = {
+                if (!isSearching) {
+                    onFollowUp()
+                }
+            },
+            enabled = canFollowUp,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            if (isSearching) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(18.dp),
+                    strokeWidth = 2.dp,
+                    color = MaterialTheme.colorScheme.onPrimary,
+                )
+            } else {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.Reply,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp),
+                )
+            }
+            Spacer(modifier = Modifier.size(8.dp))
+            AutoFitText(
+                text =
+                stringResource(
+                    if (isSearching) {
+                        R.string.medicine_search_searching
+                    } else {
+                        R.string.medicine_search_follow_up
+                    },
+                ),
+                maxLines = 1,
+            )
+        }
     }
 }
 

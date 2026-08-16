@@ -152,6 +152,10 @@
     <string name="medicine_search_loading_file">Loading medicines fileâ€¦</string>
     <string name="medicine_search_searching">Asking BotHubâ€¦</string>
     <string name="medicine_search_result_label">Answer</string>
+    <string name="medicine_search_follow_up_label">Follow-up question</string>
+    <string name="medicine_search_follow_up_hint">Can I take this with food?</string>
+    <string name="medicine_search_follow_up">Ask follow-up</string>
+    <string name="medicine_search_photo_only_question">Attached photos</string>
     <string name="medicine_search_copy">Copy</string>
     <string name="medicine_search_copied">Copied to clipboard</string>
     <string name="medicine_search_error_title">BotHub Error</string>

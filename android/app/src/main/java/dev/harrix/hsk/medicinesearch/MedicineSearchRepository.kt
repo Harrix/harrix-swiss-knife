@@ -55,6 +55,7 @@ class MedicineSearchRepository(
         medicinesMarkdown: String?,
         query: String,
         photos: List<Uri> = emptyList(),
+        history: String? = null,
     ): String {
         requireApiKey()
         val images = loadPhotos(photos)
@@ -67,6 +68,7 @@ class MedicineSearchRepository(
                     context = context,
                     medicinesMarkdown = medicinesMarkdown,
                     query = trimmed,
+                    history = history,
                 ),
                 images = images.takeIf { it.isNotEmpty() },
             )

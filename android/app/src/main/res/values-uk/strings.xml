@@ -152,6 +152,10 @@
     <string name="medicine_search_loading_file">Завантаження файлу з ліками…</string>
     <string name="medicine_search_searching">Запит до BotHub…</string>
     <string name="medicine_search_result_label">Відповідь</string>
+    <string name="medicine_search_follow_up_label">Уточнювальне питання</string>
+    <string name="medicine_search_follow_up_hint">Чи можна прийняти це з їжею?</string>
+    <string name="medicine_search_follow_up">Запитати ще</string>
+    <string name="medicine_search_photo_only_question">Додані фотографії</string>
     <string name="medicine_search_copy">Копіювати</string>
     <string name="medicine_search_copied">Скопійовано в буфер обміну</string>
     <string name="medicine_search_error_title">Помилка BotHub</string>
