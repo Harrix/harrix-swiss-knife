@@ -82,6 +82,7 @@ from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.app_entry import run_app_main
 from harrix_swiss_knife.apps.common.apps_config import get_apps_list_limits
 from harrix_swiss_knife.apps.common.chart_colors import generate_pastel_qcolors
+from harrix_swiss_knife.apps.common.date_edit_quick import attach_date_edit_quick_controls
 from harrix_swiss_knife.apps.common.db_init import init_tracker_database
 from harrix_swiss_knife.apps.common.qt_main_window import AppWindowMixin
 from harrix_swiss_knife.apps.common.scroll_pagination import ScrollPagination, on_scroll_load_more
@@ -97,7 +98,6 @@ from harrix_swiss_knife.apps.finance.category_add_dialog import CategoryAddDialo
 from harrix_swiss_knife.apps.finance.category_edit_dialog import CategoryEditDialog
 from harrix_swiss_knife.apps.finance.category_suggest import suggest_categories
 from harrix_swiss_knife.apps.finance.chart_year_start_dialog import ChartYearStartDialog
-from harrix_swiss_knife.apps.finance.date_edit_quick import attach_date_edit_quick_controls
 from harrix_swiss_knife.apps.finance.deferred_ui_refresh import DeferredUiRefreshScheduler
 from harrix_swiss_knife.apps.finance.delegates import (
     NAME_LOCAL_ROLE,

@@ -55,6 +55,7 @@ from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.app_entry import run_app_main
 from harrix_swiss_knife.apps.common.apps_config import get_apps_list_limits
 from harrix_swiss_knife.apps.common.chart_colors import generate_pastel_qcolors
+from harrix_swiss_knife.apps.common.date_edit_quick import attach_date_edit_quick_controls
 from harrix_swiss_knife.apps.common.db_init import init_tracker_database
 from harrix_swiss_knife.apps.common.dialogs.simple_recording_dialog import SimpleRecordingDialog
 from harrix_swiss_knife.apps.common.qt_main_window import AppWindowMixin
@@ -1087,16 +1088,6 @@ class MainWindow(
         # Adjust food log table column widths based on window size
         self._adjust_food_log_table_columns()
 
-    def set_food_yesterday_date(self) -> None:
-        """Set yesterday's date in the food date edit field.
-
-        Sets the dateEdit_food widget to yesterday's date for convenient entry
-        of food records from the previous day.
-
-        """
-        yesterday = QDate.currentDate().addDays(-1)
-        self.dateEdit_food.setDate(yesterday)
-
     def set_today_date(self) -> None:
         """Set today's date in the food date edit field."""
         today_qdate = QDate.currentDate()
@@ -1300,12 +1291,6 @@ class MainWindow(
             message_box.warning(self, "Database Error", f"Failed to add food item: {e}")
             logger.exception("Error adding food item from log record")
 
-    def _add_one_day_to_food(self) -> None:
-        """Add one day to the current date in food date field."""
-        current_date = self.dateEdit_food.date()
-        new_date = current_date.addDays(1)
-        self.dateEdit_food.setDate(new_date)
-
     def _adjust_food_log_table_columns(self) -> None:
         """Adjust food log table column widths proportionally to window size."""
         if not hasattr(self, "tableView_food_log") or not self.tableView_food_log.model():
@@ -1490,18 +1475,6 @@ class MainWindow(
         self.pushButton_kcal_with_ai.clicked.connect(self.on_kcal_with_ai)
         self.pushButton_translate_with_ai.clicked.connect(self.on_translate_with_ai)
         self.action_add_food_item.triggered.connect(self.on_add_food_item)
-        # Dropdown menu for food yesterday button
-        food_yesterday_menu = QMenu(self.pushButton_food_yesterday)
-        today_action = food_yesterday_menu.addAction("📅 Today's date")
-        today_action.triggered.connect(self._set_today_date_in_food)
-        yesterday_action = food_yesterday_menu.addAction("📅 Yesterday")
-        yesterday_action.triggered.connect(self.set_food_yesterday_date)
-        food_yesterday_menu.addSeparator()
-        plus_one_action = food_yesterday_menu.addAction("➕ Add 1 day")  # noqa: RUF001
-        plus_one_action.triggered.connect(self._add_one_day_to_food)
-        minus_one_action = food_yesterday_menu.addAction("➖ Subtract 1 day")  # noqa: RUF001
-        minus_one_action.triggered.connect(self._subtract_one_day_from_food)
-        self.pushButton_food_yesterday.setMenu(food_yesterday_menu)
 
         # Add context menu for kcal AI button (additional commands)
         self.pushButton_kcal_with_ai.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
@@ -2725,11 +2698,6 @@ class MainWindow(
         except Exception:
             logger.exception("❌ Error setting date from table + 1 day")
 
-    def _set_today_date_in_food(self) -> None:
-        """Set today's date in the food date field."""
-        today = QDate.currentDate()
-        self.dateEdit_food.setDate(today)
-
     def _setup_autocomplete(self) -> None:
         """Set up autocomplete functionality for food name input."""
         self.food_completer_source_model = QStandardItemModel(self)
@@ -2754,12 +2722,17 @@ class MainWindow(
         """Set up additional UI elements after basic initialization."""
         self._place_menu_bar_on_tab_row()
 
+        # Date field: attach quick preset/offset menu button (removed from .ui)
+        self.pushButton_food_date_quick = attach_date_edit_quick_controls(
+            self.dateEdit_food,
+            button_object_name="pushButton_food_date_quick",
+        )
+
         # Set emoji for buttons
         self.pushButton_food_add.setText(f"➕ {self.pushButton_food_add.text()}")  # noqa: RUF001
         self.pushButton_food_add_with_ai.setText(f"🤖 {self.pushButton_food_add_with_ai.text()}")
         self.pushButton_food_add_by_voice.setText(f"🎙️ {self.pushButton_food_add_by_voice.text()}")
         self.pushButton_translate_with_ai.setText(f"🤖 {self.pushButton_translate_with_ai.text()}")
-        self.pushButton_food_yesterday.setText(f"📅 {self.pushButton_food_yesterday.text()}")
         self.action_refresh.setText(f"🔄 {self.action_refresh.text()}")
         self.action_add_food_item.setText(f"➕ {self.action_add_food_item.text()}")  # noqa: RUF001
         self._apply_exit_about_menu_emojis()
@@ -2822,8 +2795,8 @@ class MainWindow(
         QWidget.setTabOrder(self.checkBox_food_is_drink, self.radioButton_use_weight)
         QWidget.setTabOrder(self.radioButton_use_weight, self.radioButton_use_calories)
         QWidget.setTabOrder(self.radioButton_use_calories, self.dateEdit_food)
-        QWidget.setTabOrder(self.dateEdit_food, self.pushButton_food_yesterday)
-        QWidget.setTabOrder(self.pushButton_food_yesterday, self.pushButton_food_add)
+        QWidget.setTabOrder(self.dateEdit_food, self.pushButton_food_date_quick)
+        QWidget.setTabOrder(self.pushButton_food_date_quick, self.pushButton_food_add)
         QWidget.setTabOrder(self.pushButton_food_add, self.pushButton_food_manual_name_clear)
 
     def _show_all_food_items(self) -> None:
@@ -3088,12 +3061,6 @@ class MainWindow(
             is_busy=lambda: self._bothub_state.worker is not None,
             state=self._bothub_state,
         )
-
-    def _subtract_one_day_from_food(self) -> None:
-        """Subtract one day from the current date in food date field."""
-        current_date = self.dateEdit_food.date()
-        new_date = current_date.addDays(-1)
-        self.dateEdit_food.setDate(new_date)
 
     def _swap_weight_and_calories_per_100g(self) -> None:
         """Swap weight and calories per 100g values in the selected row."""

@@ -55,7 +55,6 @@ lang: en
   - [⚙️ Method `set_weight_all_time`](#%EF%B8%8F-method-set_weight_all_time)
   - [⚙️ Method `set_weight_last_month`](#%EF%B8%8F-method-set_weight_last_month)
   - [⚙️ Method `set_weight_last_year`](#%EF%B8%8F-method-set_weight_last_year)
-  - [⚙️ Method `set_yesterday_date`](#%EF%B8%8F-method-set_yesterday_date)
   - [⚙️ Method `show_kcal_chart`](#%EF%B8%8F-method-show_kcal_chart)
   - [⚙️ Method `show_sets_chart`](#%EF%B8%8F-method-show_sets_chart)
   - [⚙️ Method `show_tables`](#%EF%B8%8F-method-show_tables)
@@ -2687,16 +2686,6 @@ class MainWindow(
         self._set_date_range(self.dateEdit_weight_from, self.dateEdit_weight_to, years=1)
         self.update_weight_chart()
 
-    def set_yesterday_date(self) -> None:
-        """Set yesterday's date in the main date edit field.
-
-        Sets the dateEdit widget to yesterday's date for convenient entry
-        of exercise records from the previous day.
-
-        """
-        yesterday = QDate.currentDate().addDays(-1)
-        self.dateEdit.setDate(yesterday)
-
     @requires_database()
     def show_kcal_chart(self) -> None:
         """Show chart of total calories using database manager."""
@@ -3882,12 +3871,6 @@ class MainWindow(
         # Use the existing function with the same data format
         self._add_exercise_recommendations_to_label(exercise, exercise_type, monthly_data, months_count, exercise_unit)
 
-    def _add_one_day_to_main(self) -> None:
-        """Add one day to the current date in main date field."""
-        current_date = self.dateEdit.date()
-        new_date = current_date.addDays(1)
-        self.dateEdit.setDate(new_date)
-
     def _add_same_months_recommendations_to_label(
         self, exercise: str, exercise_type: str | None, exercise_unit: str, yearly_data: list, years_count: int
     ) -> None:
@@ -4466,18 +4449,6 @@ class MainWindow(
         self.pushButton_weight_add.clicked.connect(self.on_add_weight)
         self.pushButton_translate_with_ai.clicked.connect(self.on_translate_with_ai)
         self._setup_exercise_media_widgets()
-        # Dropdown menu for yesterday button
-        yesterday_menu = QMenu(self.pushButton_yesterday)
-        today_action = yesterday_menu.addAction("📅 Today's date")
-        today_action.triggered.connect(self._set_today_date_in_main)
-        yesterday_action = yesterday_menu.addAction("📅 Yesterday")
-        yesterday_action.triggered.connect(self.set_yesterday_date)
-        yesterday_menu.addSeparator()
-        plus_one_action = yesterday_menu.addAction("➕ Add 1 day")  # noqa: RUF001
-        plus_one_action.triggered.connect(self._add_one_day_to_main)
-        minus_one_action = yesterday_menu.addAction("➖ Subtract 1 day")  # noqa: RUF001
-        minus_one_action.triggered.connect(self._subtract_one_day_from_main)
-        self.pushButton_yesterday.setMenu(yesterday_menu)
         self.pushButton_select_exercise.clicked.connect(self.on_select_exercise_button_clicked)
 
         # Stats & export
@@ -6072,11 +6043,6 @@ class MainWindow(
             line-height: 1.2;
         """)
 
-    def _set_today_date_in_main(self) -> None:
-        """Set today's date in the main date field."""
-        today = QDate.currentDate()
-        self.dateEdit.setDate(today)
-
     def _setup_exercise_media_widgets(self) -> None:
         """Add apply-media button and preview drop handlers for exercise AVIF files."""
         self.pushButton_exercise_media_apply = QPushButton("🖼️ Apply media to selected", self.groupBox_7)
@@ -6101,8 +6067,13 @@ class MainWindow(
         self._place_menu_bar_on_tab_row()
         self._apply_exit_about_menu_emojis()
 
+        # Date field: attach quick preset/offset menu button (removed from .ui)
+        self.pushButton_date_quick = attach_date_edit_quick_controls(
+            self.dateEdit,
+            button_object_name="pushButton_date_quick",
+        )
+
         # Set emoji for buttons
-        self.pushButton_yesterday.setText(f"📅 {self.pushButton_yesterday.text()}")
         self.pushButton_add.setText(f"➕  {self.pushButton_add.text()}")  # noqa: RUF001
         self.groupBox_filter.setTitle("")
         self.groupBox_filter.setStyleSheet(
@@ -6424,12 +6395,6 @@ class MainWindow(
         self._exercise_media_worker.save_failed.connect(self._on_exercise_media_save_failed)
         self._exercise_media_worker.finished.connect(self._cleanup_exercise_media_worker)
         self._exercise_media_worker.start()
-
-    def _subtract_one_day_from_main(self) -> None:
-        """Subtract one day from the current date in main date field."""
-        current_date = self.dateEdit.date()
-        new_date = current_date.addDays(-1)
-        self.dateEdit.setDate(new_date)
 
     def _sync_exercise_selection(self, exercise_name: str, *, source: str) -> None:
         """Synchronize exercise selection across widgets.
@@ -9792,28 +9757,6 @@ Set weight chart date range to last year.
 def set_weight_last_year(self) -> None:
         self._set_date_range(self.dateEdit_weight_from, self.dateEdit_weight_to, years=1)
         self.update_weight_chart()
-```
-
-</details>
-
-### ⚙️ Method `set_yesterday_date`
-
-```python
-def set_yesterday_date(self) -> None
-```
-
-Set yesterday's date in the main date edit field.
-
-Sets the dateEdit widget to yesterday's date for convenient entry
-of exercise records from the previous day.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def set_yesterday_date(self) -> None:
-        yesterday = QDate.currentDate().addDays(-1)
-        self.dateEdit.setDate(yesterday)
 ```
 
 </details>

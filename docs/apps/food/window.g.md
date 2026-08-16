@@ -49,7 +49,6 @@ class Ui_MainWindow(object):
         self.radioButton_use_calories.setText(QCoreApplication.translate("MainWindow", u"Enter calories directly", None))
         self.label_food_calories_calc.setText(QCoreApplication.translate("MainWindow", u"Calculated calories: 0", None))
         self.dateEdit_food.setDisplayFormat(QCoreApplication.translate("MainWindow", u"yyyy-MM-dd", None))
-        self.pushButton_food_yesterday.setText(QCoreApplication.translate("MainWindow", u"Yesterday", None))
         self.pushButton_food_add.setText(QCoreApplication.translate("MainWindow", u"Add Food", None))
         self.groupBox_food_commands.setTitle(QCoreApplication.translate("MainWindow", u"Commands", None))
         self.pushButton_food_add_with_ai.setText(QCoreApplication.translate("MainWindow", u"Add with AI", None))
@@ -225,12 +224,6 @@ class Ui_MainWindow(object):
         self.dateEdit_food.setCalendarPopup(True)
 
         self.horizontalLayout_food_date.addWidget(self.dateEdit_food)
-
-        self.pushButton_food_yesterday = QPushButton(self.groupBox_food_add)
-        self.pushButton_food_yesterday.setObjectName(u"pushButton_food_yesterday")
-        self.pushButton_food_yesterday.setMinimumSize(QSize(61, 0))
-
-        self.horizontalLayout_food_date.addWidget(self.pushButton_food_yesterday)
 
 
         self.verticalLayout.addLayout(self.horizontalLayout_food_date)
@@ -577,7 +570,6 @@ def retranslateUi(self, MainWindow):
         self.radioButton_use_calories.setText(QCoreApplication.translate("MainWindow", u"Enter calories directly", None))
         self.label_food_calories_calc.setText(QCoreApplication.translate("MainWindow", u"Calculated calories: 0", None))
         self.dateEdit_food.setDisplayFormat(QCoreApplication.translate("MainWindow", u"yyyy-MM-dd", None))
-        self.pushButton_food_yesterday.setText(QCoreApplication.translate("MainWindow", u"Yesterday", None))
         self.pushButton_food_add.setText(QCoreApplication.translate("MainWindow", u"Add Food", None))
         self.groupBox_food_commands.setTitle(QCoreApplication.translate("MainWindow", u"Commands", None))
         self.pushButton_food_add_with_ai.setText(QCoreApplication.translate("MainWindow", u"Add with AI", None))
@@ -769,12 +761,6 @@ def setupUi(self, MainWindow):
         self.dateEdit_food.setCalendarPopup(True)
 
         self.horizontalLayout_food_date.addWidget(self.dateEdit_food)
-
-        self.pushButton_food_yesterday = QPushButton(self.groupBox_food_add)
-        self.pushButton_food_yesterday.setObjectName(u"pushButton_food_yesterday")
-        self.pushButton_food_yesterday.setMinimumSize(QSize(61, 0))
-
-        self.horizontalLayout_food_date.addWidget(self.pushButton_food_yesterday)
 
 
         self.verticalLayout.addLayout(self.horizontalLayout_food_date)

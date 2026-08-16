@@ -1,10 +1,10 @@
-"""Tests for finance date-edit quick button labels."""
+"""Tests for date-edit quick button labels."""
 
 from __future__ import annotations
 
 from PySide6.QtCore import QDate
 
-from harrix_swiss_knife.apps.finance.date_edit_quick import date_quick_button_label
+from harrix_swiss_knife.apps.common.date_edit_quick import date_quick_button_label
 
 
 def test_date_quick_button_label_today_yesterday_and_other() -> None:

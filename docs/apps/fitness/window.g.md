@@ -36,15 +36,14 @@ class Ui_MainWindow(object):
         MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", u"Fitness tracker", None))
         self.actionAbout.setText(QCoreApplication.translate("MainWindow", u"About", None))
         self.actionExit.setText(QCoreApplication.translate("MainWindow", u"Exit", None))
-        self.actionShow_All_Set_Records.setText(QCoreApplication.translate("MainWindow", u"\U0001f4cb Show All Set Records", None))
-        self.actionRefresh_Set_Table.setText(QCoreApplication.translate("MainWindow", u"\U0001f504 Refresh Set Table", None))
-        self.actionExport_Set_Table.setText(QCoreApplication.translate("MainWindow", u"\U0001f4e4 Export Set Table", None))
+        self.actionShow_All_Set_Records.setText(QCoreApplication.translate("MainWindow", u"\ud83d\udccb Show All Set Records", None))
+        self.actionRefresh_Set_Table.setText(QCoreApplication.translate("MainWindow", u"\ud83d\udd04 Refresh Set Table", None))
+        self.actionExport_Set_Table.setText(QCoreApplication.translate("MainWindow", u"\ud83d\udce4 Export Set Table", None))
         self.groupBox.setTitle(QCoreApplication.translate("MainWindow", u"Set parameters", None))
         self.label_exercise.setText(QCoreApplication.translate("MainWindow", u"TextLabel", None))
         self.label_last_date_count_today.setText(QCoreApplication.translate("MainWindow", u"TextLabel", None))
         self.label_unit.setText(QCoreApplication.translate("MainWindow", u"times", None))
         self.dateEdit.setDisplayFormat(QCoreApplication.translate("MainWindow", u"yyyy-MM-dd", None))
-        self.pushButton_yesterday.setText(QCoreApplication.translate("MainWindow", u"Yesterday", None))
         self.pushButton_add.setText(QCoreApplication.translate("MainWindow", u"Add", None))
         self.label_exercise_avif.setText(QCoreApplication.translate("MainWindow", u"No exercise selected", None))
         self.groupBox_9.setTitle(QCoreApplication.translate("MainWindow", u"Count of Sets Today", None))
@@ -62,7 +61,7 @@ class Ui_MainWindow(object):
 #if QT_CONFIG(tooltip)
         self.pushButton_clear_filter.setToolTip(QCoreApplication.translate("MainWindow", u"Clear filter", None))
 #endif // QT_CONFIG(tooltip)
-        self.pushButton_clear_filter.setText(QCoreApplication.translate("MainWindow", u"\U0001f9f9", None))
+        self.pushButton_clear_filter.setText(QCoreApplication.translate("MainWindow", u"\ud83e\uddf9", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab), QCoreApplication.translate("MainWindow", u"Sets", None))
         self.label_chart_exercise.setText(QCoreApplication.translate("MainWindow", u"Exercise:", None))
         self.label_chart_type.setText(QCoreApplication.translate("MainWindow", u"Type:", None))
@@ -220,12 +219,6 @@ class Ui_MainWindow(object):
         self.dateEdit.setCalendarPopup(True)
 
         self.horizontalLayout_13.addWidget(self.dateEdit)
-
-        self.pushButton_yesterday = QPushButton(self.groupBox)
-        self.pushButton_yesterday.setObjectName(u"pushButton_yesterday")
-        self.pushButton_yesterday.setMinimumSize(QSize(61, 0))
-
-        self.horizontalLayout_13.addWidget(self.pushButton_yesterday)
 
 
         self.verticalLayout_5.addLayout(self.horizontalLayout_13)
@@ -1099,15 +1092,14 @@ def retranslateUi(self, MainWindow):
         MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", u"Fitness tracker", None))
         self.actionAbout.setText(QCoreApplication.translate("MainWindow", u"About", None))
         self.actionExit.setText(QCoreApplication.translate("MainWindow", u"Exit", None))
-        self.actionShow_All_Set_Records.setText(QCoreApplication.translate("MainWindow", u"\U0001f4cb Show All Set Records", None))
-        self.actionRefresh_Set_Table.setText(QCoreApplication.translate("MainWindow", u"\U0001f504 Refresh Set Table", None))
-        self.actionExport_Set_Table.setText(QCoreApplication.translate("MainWindow", u"\U0001f4e4 Export Set Table", None))
+        self.actionShow_All_Set_Records.setText(QCoreApplication.translate("MainWindow", u"\ud83d\udccb Show All Set Records", None))
+        self.actionRefresh_Set_Table.setText(QCoreApplication.translate("MainWindow", u"\ud83d\udd04 Refresh Set Table", None))
+        self.actionExport_Set_Table.setText(QCoreApplication.translate("MainWindow", u"\ud83d\udce4 Export Set Table", None))
         self.groupBox.setTitle(QCoreApplication.translate("MainWindow", u"Set parameters", None))
         self.label_exercise.setText(QCoreApplication.translate("MainWindow", u"TextLabel", None))
         self.label_last_date_count_today.setText(QCoreApplication.translate("MainWindow", u"TextLabel", None))
         self.label_unit.setText(QCoreApplication.translate("MainWindow", u"times", None))
         self.dateEdit.setDisplayFormat(QCoreApplication.translate("MainWindow", u"yyyy-MM-dd", None))
-        self.pushButton_yesterday.setText(QCoreApplication.translate("MainWindow", u"Yesterday", None))
         self.pushButton_add.setText(QCoreApplication.translate("MainWindow", u"Add", None))
         self.label_exercise_avif.setText(QCoreApplication.translate("MainWindow", u"No exercise selected", None))
         self.groupBox_9.setTitle(QCoreApplication.translate("MainWindow", u"Count of Sets Today", None))
@@ -1125,7 +1117,7 @@ def retranslateUi(self, MainWindow):
 #if QT_CONFIG(tooltip)
         self.pushButton_clear_filter.setToolTip(QCoreApplication.translate("MainWindow", u"Clear filter", None))
 #endif // QT_CONFIG(tooltip)
-        self.pushButton_clear_filter.setText(QCoreApplication.translate("MainWindow", u"\U0001f9f9", None))
+        self.pushButton_clear_filter.setText(QCoreApplication.translate("MainWindow", u"\ud83e\uddf9", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab), QCoreApplication.translate("MainWindow", u"Sets", None))
         self.label_chart_exercise.setText(QCoreApplication.translate("MainWindow", u"Exercise:", None))
         self.label_chart_type.setText(QCoreApplication.translate("MainWindow", u"Type:", None))
@@ -1299,12 +1291,6 @@ def setupUi(self, MainWindow):
         self.dateEdit.setCalendarPopup(True)
 
         self.horizontalLayout_13.addWidget(self.dateEdit)
-
-        self.pushButton_yesterday = QPushButton(self.groupBox)
-        self.pushButton_yesterday.setObjectName(u"pushButton_yesterday")
-        self.pushButton_yesterday.setMinimumSize(QSize(61, 0))
-
-        self.horizontalLayout_13.addWidget(self.pushButton_yesterday)
 
 
         self.verticalLayout_5.addLayout(self.horizontalLayout_13)

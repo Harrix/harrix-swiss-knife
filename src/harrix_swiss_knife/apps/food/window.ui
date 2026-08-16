@@ -226,19 +226,6 @@
                    </property>
                   </widget>
                  </item>
-                 <item>
-                  <widget class="QPushButton" name="pushButton_food_yesterday">
-                   <property name="minimumSize">
-                    <size>
-                     <width>61</width>
-                     <height>0</height>
-                    </size>
-                   </property>
-                   <property name="text">
-                    <string>Yesterday</string>
-                   </property>
-                  </widget>
-                 </item>
                 </layout>
                </item>
                <item>
