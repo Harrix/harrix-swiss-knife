@@ -190,6 +190,48 @@ function applyListingOptions(entries, options) {
   });
 }
 
+const TOC_DETAILS_BLOCK = /<details\b[^>]*>[\s\S]*?<\/details>/gi;
+const TOC_HINT = /содержан|оглавлени|table\s+of\s+contents|\bcontents\b/i;
+const TOC_HEADING = /^(?:содержание|оглавление|contents|table of contents)$/i;
+const TOC_HASH_LINK = /^\[[^\]]+\]\(#[^)]+\)$/;
+const DETAILS_OR_SUMMARY_TAG = /^<\/?(?:details|summary)\b/i;
+
+/**
+ * Drop collapsible TOC (`<details>` with Contents / Содержание) and leftover TOC lines.
+ *
+ * @param {string} text
+ * @returns {string}
+ */
+function stripTocBlocks(text) {
+  return String(text || '').replace(TOC_DETAILS_BLOCK, (block) => (TOC_HINT.test(block) ? '' : block));
+}
+
+/**
+ * @param {string} raw
+ * @returns {boolean}
+ */
+function isTocOnlyLine(raw) {
+  const line = String(raw || '').trim();
+  if (!line || DETAILS_OR_SUMMARY_TAG.test(line)) {
+    return true;
+  }
+  const heading = line
+    .replace(/^#{1,6}\s+/, '')
+    .replace(/<[^>]+>/g, '')
+    .replace(/[`*_]/g, '')
+    .replace(/[^\p{L}\p{N}\s]/gu, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (TOC_HEADING.test(heading)) {
+    return true;
+  }
+  const withoutList = line
+    .replace(/^[-*+]\s+/, '')
+    .replace(/^\d+\.\s+/, '')
+    .trim();
+  return TOC_HASH_LINK.test(withoutList);
+}
+
 /**
  * Plain-text card preview from Markdown (Samsung Notes-style thumbnails).
  *
@@ -201,10 +243,11 @@ function excerptFromMarkdown(text, maxLen = 220) {
   let src = String(text || '').replace(/^\uFEFF/, '');
   src = src.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n?/, '');
   src = src.replace(/<!--[\s\S]*?-->/g, '');
+  src = stripTocBlocks(src);
   const lines = [];
   for (const raw of src.split(/\r?\n/)) {
     let line = raw.trim();
-    if (!line || /^```/.test(line)) {
+    if (!line || /^```/.test(line) || isTocOnlyLine(line)) {
       continue;
     }
     line = line
