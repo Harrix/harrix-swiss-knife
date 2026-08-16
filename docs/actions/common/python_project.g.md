@@ -6,34 +6,6 @@ lang: en
 
 # 📄 File `python_project.py`
 
-<details>
-<summary>📖 Contents ⬇️</summary>
-
-## Contents
-
-- [🔧 Function `is_python_project`](#-function-is_python_project)
-- [🔧 Function `reject_python_project_for_md_beautify`](#-function-reject_python_project_for_md_beautify)
-
-</details>
-
-## 🔧 Function `is_python_project`
-
-```python
-def is_python_project(folder_path: Path | str) -> bool
-```
-
-Return whether `folder_path` looks like a Python project (`pyproject.toml`).
-
-<details>
-<summary>Code:</summary>
-
-```python
-def is_python_project(folder_path: Path | str) -> bool:
-    return (Path(folder_path) / "pyproject.toml").is_file()
-```
-
-</details>
-
 ## 🔧 Function `reject_python_project_for_md_beautify`
 
 ```python

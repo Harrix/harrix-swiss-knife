@@ -5,13 +5,12 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from harrix_pylib.funcs_py import is_python_project
+
+__all__ = ["is_python_project", "reject_python_project_for_md_beautify"]
+
 if TYPE_CHECKING:
     from harrix_swiss_knife.actions.common.base import ActionBase
-
-
-def is_python_project(folder_path: Path | str) -> bool:
-    """Return whether `folder_path` looks like a Python project (`pyproject.toml`)."""
-    return (Path(folder_path) / "pyproject.toml").is_file()
 
 
 def reject_python_project_for_md_beautify(

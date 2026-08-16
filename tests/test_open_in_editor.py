@@ -18,8 +18,8 @@ def test_open_in_editor_uses_argv_list_not_shell() -> None:
     completed.stdout = ""
     completed.stderr = ""
     with (
-        patch("harrix_swiss_knife.actions.common.open_in_editor.shutil.which", return_value="code-insiders"),
-        patch("harrix_swiss_knife.actions.common.open_in_editor.subprocess.run", return_value=completed) as run,
+        patch("harrix_pylib.funcs_dev.shutil.which", return_value="code-insiders"),
+        patch("harrix_pylib.funcs_dev.subprocess.run", return_value=completed) as run,
     ):
         open_in_editor("code-insiders", r"D:\ws\Notes.code-workspace", r"D:\notes\file.md")
 
@@ -36,9 +36,9 @@ def test_open_in_editor_rejects_empty_editor() -> None:
 
 def test_open_in_editor_timeout_message(tmp_path: Path) -> None:
     with (
-        patch("harrix_swiss_knife.actions.common.open_in_editor.shutil.which", return_value="editor"),
+        patch("harrix_pylib.funcs_dev.shutil.which", return_value="editor"),
         patch(
-            "harrix_swiss_knife.actions.common.open_in_editor.subprocess.run",
+            "harrix_pylib.funcs_dev.subprocess.run",
             side_effect=__import__("subprocess").TimeoutExpired(cmd="editor", timeout=1),
         ),
     ):

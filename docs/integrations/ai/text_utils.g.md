@@ -6,16 +6,6 @@ lang: en
 
 # 📄 File `text_utils.py`
 
-<details>
-<summary>📖 Contents ⬇️</summary>
-
-## Contents
-
-- [🔧 Function `extract_openai_message_content`](#-function-extract_openai_message_content)
-- [🔧 Function `strip_markdown_fences`](#-function-strip_markdown_fences)
-
-</details>
-
 ## 🔧 Function `extract_openai_message_content`
 
 ```python
@@ -43,34 +33,5 @@ def extract_openai_message_content(content: Any) -> str:
         return "\n".join(parts)
     return str(content)
 ```
-
-</details>
-
-## 🔧 Function `strip_markdown_fences`
-
-```python
-def strip_markdown_fences(text: str) -> str
-```
-
-Remove Markdown code fences from model output.
-
-<details>
-<summary>Code:</summary>
-
-````python
-def strip_markdown_fences(text: str) -> str:
-    stripped = text.strip()
-    fence_match = re.match(r"^```(?:\w+)?\s*\n?(.*?)\n?```\s*$", stripped, flags=re.DOTALL)
-    if fence_match:
-        return fence_match.group(1).strip()
-    if stripped.startswith("```"):
-        lines = stripped.splitlines()
-        if lines and lines[0].startswith("```"):
-            lines = lines[1:]
-        if lines and lines[-1].strip() == "```":
-            lines = lines[:-1]
-        return "\n".join(lines).strip()
-    return stripped
-````
 
 </details>

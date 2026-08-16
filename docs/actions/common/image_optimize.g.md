@@ -15,7 +15,6 @@ lang: en
   - [⚙️ Method `add`](#%EF%B8%8F-method-add)
   - [⚙️ Method `format_summary`](#%EF%B8%8F-method-format_summary)
 - [🔧 Function `find_optimized_output`](#-function-find_optimized_output)
-- [🔧 Function `format_byte_size`](#-function-format_byte_size)
 - [🔧 Function `is_canvas_numbered_image`](#-function-is_canvas_numbered_image)
 - [🔧 Function `optimize_image_file`](#-function-optimize_image_file)
 - [🔧 Function `optimize_images_in_folder`](#-function-optimize_images_in_folder)
@@ -143,31 +142,6 @@ def find_optimized_output(output_folder: Path, stem: str) -> Path | None:
         if candidate.is_file():
             return candidate
     return None
-```
-
-</details>
-
-## 🔧 Function `format_byte_size`
-
-```python
-def format_byte_size(num_bytes: int) -> str
-```
-
-Format a byte count as a short human-readable size.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def format_byte_size(num_bytes: int) -> str:
-    value = float(abs(num_bytes))
-    for unit in ("B", "KB", "MB", "GB"):
-        if value < _BYTES_PER_UNIT or unit == "GB":
-            if unit == "B":
-                return f"{int(value)} B"
-            return f"{value:.2f} {unit}"
-        value /= _BYTES_PER_UNIT
-    return f"{value:.2f} GB"
 ```
 
 </details>

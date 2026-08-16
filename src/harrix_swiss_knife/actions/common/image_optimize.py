@@ -14,9 +14,10 @@ from harrix_swiss_knife.actions.common.raster_optimize import RASTER_EXTENSIONS,
 TOOL_EXTENSIONS = h.img.EXE_RASTER_EXTENSIONS
 SUPPORTED_EXTENSIONS = frozenset({".svg", *TOOL_EXTENSIONS, *RASTER_EXTENSIONS})
 _OUTPUT_EXTENSION_ORDER = (".avif", ".png", ".svg", ".jpg", ".jpeg", ".webp", ".gif", ".mp4")
-_BYTES_PER_UNIT = 1024
 # Cursor canvas exports: canvas_01.png, canvas_02.png, …
 _CANVAS_NUMBERED_STEM = re.compile(r"^canvas_\d+$", re.IGNORECASE)
+
+format_byte_size = h.file.format_byte_size
 
 
 @dataclass(slots=True)
@@ -62,18 +63,6 @@ def find_optimized_output(output_folder: Path, stem: str) -> Path | None:
         if candidate.is_file():
             return candidate
     return None
-
-
-def format_byte_size(num_bytes: int) -> str:
-    """Format a byte count as a short human-readable size."""
-    value = float(abs(num_bytes))
-    for unit in ("B", "KB", "MB", "GB"):
-        if value < _BYTES_PER_UNIT or unit == "GB":
-            if unit == "B":
-                return f"{int(value)} B"
-            return f"{value:.2f} {unit}"
-        value /= _BYTES_PER_UNIT
-    return f"{value:.2f} GB"
 
 
 def is_canvas_numbered_image(path: Path | str) -> bool:
