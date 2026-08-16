@@ -120,7 +120,7 @@ class MainWindow(QMainWindow):
     def showEvent(self, event: QShowEvent) -> None:  # noqa: N802
         """Refresh Recent and focus the primary input when the window is shown."""
         super().showEvent(event)
-        self._refresh_recent_section()
+        QTimer.singleShot(0, self._on_cards_layout_changed)
         QTimer.singleShot(0, self.focus_initial_input)
 
     def show_window(self) -> None:
@@ -169,8 +169,7 @@ class MainWindow(QMainWindow):
         if not query:
             self._search_grid.hide()
             self._grouped_widget.show()
-            self._refresh_recent_section()
-            QTimer.singleShot(0, self._fit_visible_grids)
+            QTimer.singleShot(0, self._on_cards_layout_changed)
             return
 
         self._grouped_widget.hide()
@@ -319,6 +318,19 @@ class MainWindow(QMainWindow):
             show_in_list=False,
         )
 
+    def _cards_row_width(self) -> int:
+        """Return the catalog card-grid width, not the Recent grid's current contents."""
+        for section in self._sections:
+            if not section.show_in_list or section.grid is None or not section.grid.isVisible():
+                continue
+            width = section.grid.viewport().width()
+            if width > 0:
+                return width
+        viewport_width = self._scroll.viewport().width()
+        if viewport_width <= 0:
+            return 0
+        return max(1, viewport_width - 16)
+
     def _create_section(
         self,
         title: str,
@@ -359,7 +371,8 @@ class MainWindow(QMainWindow):
             self._sections.insert(insert_at, section)
         if not actions:
             section_widget.hide()
-        QTimer.singleShot(0, lambda g=grid: self._fit_grid_height(g))
+        if actions:
+            QTimer.singleShot(0, lambda g=grid: self._fit_grid_height(g))
         return section
 
     def _fit_grid_height(self, grid: QListWidget) -> None:
@@ -386,9 +399,9 @@ class MainWindow(QMainWindow):
             show_action_item_context_menu(parent=self, global_pos=global_pos, action=user_data)
 
     def _on_cards_layout_changed(self) -> None:
-        """Rebuild Recent to one row, then refit visible card grids."""
-        self._refresh_recent_section()
+        """Fit catalog cards first, then size Recent to that row width."""
         self._fit_visible_grids()
+        self._refresh_recent_section()
 
     def _on_grid_context_menu(self, grid: QListWidget, pos: QPoint) -> None:
         """Show copy name/class/path and CLI command for the card under the cursor."""
@@ -420,14 +433,8 @@ class MainWindow(QMainWindow):
                 self._add_list_action_item(action, indent_level=1)
 
     def _recent_column_count(self) -> int:
-        """Return how many Recent cards fit in one row of the cards pane."""
-        grid = None if self._recent_section is None else self._recent_section.grid
-        if grid is not None and grid.viewport().width() > 0:
-            return described_card_column_count(grid.viewport().width())
-        width = self._scroll.viewport().width()
-        if width > 0:
-            return described_card_column_count(max(1, width - 16))
-        return 1
+        """Return how many Recent cards fit in one catalog row."""
+        return described_card_column_count(self._cards_row_width())
 
     def _recent_gui_actions(self) -> list[QAction]:
         """Return catalog actions last used from the GUI, newest first, one row at most."""
@@ -448,9 +455,13 @@ class MainWindow(QMainWindow):
         if section is None or section.grid is None:
             return
         actions = self._recent_gui_actions()
+        if section.widget is not None:
+            section.widget.setVisible(bool(actions))
+        if not actions:
+            section.actions = []
+            section.grid.clear()
+            return
         if section.actions == actions and section.grid.count() == len(actions):
-            if section.widget is not None:
-                section.widget.setVisible(bool(actions))
             if section.grid.isVisible():
                 QTimer.singleShot(0, lambda grid=section.grid: self._fit_grid_height(grid))
             return
@@ -458,8 +469,6 @@ class MainWindow(QMainWindow):
         section.grid.clear()
         for action in actions:
             self._add_action_item(section.grid, action)
-        if section.widget is not None:
-            section.widget.setVisible(bool(actions))
         if section.grid.isVisible():
             QTimer.singleShot(0, lambda grid=section.grid: self._fit_grid_height(grid))
 
