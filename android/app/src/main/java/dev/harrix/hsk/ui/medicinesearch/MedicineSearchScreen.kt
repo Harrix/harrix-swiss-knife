@@ -30,6 +30,8 @@ import androidx.compose.material.icons.filled.AddAPhoto
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Medication
+import androidx.compose.material.icons.filled.PhotoCamera
+import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.UploadFile
@@ -51,6 +53,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -73,6 +76,7 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import coil.size.Size
 import dev.harrix.hsk.R
+import dev.harrix.hsk.medicinesearch.MedicineSearchCamera
 import dev.harrix.hsk.ui.AutoFitText
 import dev.harrix.hsk.ui.SimpleMarkdownText
 import dev.harrix.hsk.ui.adaptiveContentWidth
@@ -82,6 +86,7 @@ import dev.harrix.hsk.ui.theme.hskScaffoldContentWindowInsets
 import dev.harrix.hsk.ui.theme.hskTopAppBarColors
 import dev.harrix.hsk.ui.theme.hskTopAppBarWindowInsets
 import kotlinx.coroutines.delay
+import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -108,6 +113,10 @@ fun MedicineSearchScreen(
     val queryFocusRequester = remember { FocusRequester() }
     val scrollState = rememberScrollState()
     val copiedMessage = stringResource(R.string.medicine_search_copied)
+    val cameraFailedMessage = stringResource(R.string.medicine_search_camera_failed)
+    var showPhotoSource by remember { mutableStateOf(false) }
+    var pendingCameraUri by remember { mutableStateOf<Uri?>(null) }
+    var pendingCameraFile by remember { mutableStateOf<File?>(null) }
     val isSearching = phase == MedicineSearchPhase.Searching
     val isLoadingFile = phase == MedicineSearchPhase.LoadingFile
     val busy = isSearching || isLoadingFile
@@ -173,6 +182,21 @@ fun MedicineSearchScreen(
             }
         }
 
+    val takePicture =
+        rememberLauncherForActivityResult(
+            ActivityResultContracts.TakePicture(),
+        ) { success ->
+            val uri = pendingCameraUri
+            val file = pendingCameraFile
+            pendingCameraUri = null
+            pendingCameraFile = null
+            if (success && uri != null) {
+                viewModel.addPhotos(listOf(uri))
+            } else {
+                file?.delete()
+            }
+        }
+
     fun pickMedicinesFile() {
         openDocument.launch(arrayOf("text/markdown", "text/plain", "*/*"))
     }
@@ -181,6 +205,24 @@ fun MedicineSearchScreen(
         pickPhotos.launch(
             PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
         )
+    }
+
+    fun takeAttachedPhoto() {
+        val capture = MedicineSearchCamera.createCapture(context)
+        if (capture == null) {
+            Toast.makeText(context, cameraFailedMessage, Toast.LENGTH_SHORT).show()
+            return
+        }
+        pendingCameraUri = capture.uri
+        pendingCameraFile = capture.file
+        val launched =
+            runCatching { takePicture.launch(capture.uri) }.isSuccess
+        if (!launched) {
+            pendingCameraUri = null
+            pendingCameraFile = null
+            capture.file.delete()
+            Toast.makeText(context, cameraFailedMessage, Toast.LENGTH_SHORT).show()
+        }
     }
 
     Scaffold(
@@ -323,7 +365,7 @@ fun MedicineSearchScreen(
                     photos = attachedPhotos,
                     enabled = !busy,
                     canAddMore = attachedPhotos.size < MedicineSearchViewModel.MAX_PHOTOS,
-                    onAdd = { pickAttachedPhotos() },
+                    onAdd = { showPhotoSource = true },
                     onRemove = { viewModel.removePhoto(it) },
                 )
 
@@ -398,6 +440,55 @@ fun MedicineSearchScreen(
                 Spacer(modifier = Modifier.height(8.dp))
             }
         }
+    }
+
+    if (showPhotoSource) {
+        AlertDialog(
+            onDismissRequest = { showPhotoSource = false },
+            title = { Text(stringResource(R.string.medicine_search_add_photo)) },
+            text = {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    TextButton(
+                        onClick = {
+                            showPhotoSource = false
+                            pickAttachedPhotos()
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.PhotoLibrary,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                        )
+                        Spacer(modifier = Modifier.size(8.dp))
+                        Text(stringResource(R.string.medicine_search_choose_gallery))
+                    }
+                    TextButton(
+                        onClick = {
+                            showPhotoSource = false
+                            takeAttachedPhoto()
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.PhotoCamera,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                        )
+                        Spacer(modifier = Modifier.size(8.dp))
+                        Text(stringResource(R.string.medicine_search_take_photo))
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showPhotoSource = false }) {
+                    Text(stringResource(R.string.confirm_cancel))
+                }
+            },
+        )
     }
 
     errorMessage?.let { message ->

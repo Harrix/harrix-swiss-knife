@@ -146,6 +146,9 @@
     <string name="medicine_search_query_label">Question</string>
     <string name="medicine_search_query_hint">I have a headache. What from my medicines can I take?</string>
     <string name="medicine_search_add_photo">Add photo</string>
+    <string name="medicine_search_choose_gallery">Choose from gallery</string>
+    <string name="medicine_search_take_photo">Take photo</string>
+    <string name="medicine_search_camera_failed">Could not open camera</string>
     <string name="medicine_search_remove_photo">Remove photo</string>
     <string name="medicine_search_photos_label">Photos</string>
     <string name="medicine_search_photo_failed">Could not read photo</string>

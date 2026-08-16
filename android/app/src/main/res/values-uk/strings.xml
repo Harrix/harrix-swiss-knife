@@ -145,6 +145,9 @@
     <string name="medicine_search_query_label">Питання</string>
     <string name="medicine_search_query_hint">У мене болить голова, що з ліків прийняти?</string>
     <string name="medicine_search_add_photo">Додати фото</string>
+    <string name="medicine_search_choose_gallery">Вибрати з галереї</string>
+    <string name="medicine_search_take_photo">Зробити фото</string>
+    <string name="medicine_search_camera_failed">Не вдалося відкрити камеру</string>
     <string name="medicine_search_remove_photo">Видалити фото</string>
     <string name="medicine_search_photos_label">Фотографії</string>
     <string name="medicine_search_photo_failed">Не вдалося прочитати фото</string>
