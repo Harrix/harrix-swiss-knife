@@ -1972,15 +1972,23 @@ function isInsideGitWorkTreeFs(folderPath) {
   }
 }
 
-// Fast stand-in for a full recursive markdown scan (same idea as the Android notes browser):
-// interesting if this folder already has a `.md` file or any non-skipped subdirectory.
-function hasMarkdownRecursive(dir) {
-  for (const entry of safeReaddir(dir)) {
+// Folder is listable when it has a `.md` note or a descendant folder that does
+// (`@hsk-sync:notes-browse`, same idea as Android `directoryHasMarkdownNotes`).
+function hasMarkdownRecursive(dir, depth = 0) {
+  if (depth > 16) {
+    return false;
+  }
+  const entries = safeReaddir(dir);
+  for (const entry of entries) {
     if (entry.isFile() && isMd(entry.name)) {
       return true;
     }
+  }
+  for (const entry of entries) {
     if (entry.isDirectory() && !SKIP_MARKDOWN_SCAN_DIR_NAMES.has(entry.name.toLowerCase())) {
-      return true;
+      if (hasMarkdownRecursive(path.join(dir, entry.name), depth + 1)) {
+        return true;
+      }
     }
   }
   return false;

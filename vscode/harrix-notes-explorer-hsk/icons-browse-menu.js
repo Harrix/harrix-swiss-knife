@@ -5,6 +5,7 @@
 
 const CMD = {
   openIconsBrowse: 'harrixNotesExplorerHsk.openIconsBrowse',
+  openNote: 'harrixNotesExplorerHsk.openNote',
   openNoteInEditor: 'harrixNotesExplorerHsk.openNoteInEditor',
   openNoteInPreview: 'harrixNotesExplorerHsk.openNoteInPreview',
   openNoteInVisualEditor: 'harrixNotesExplorerHsk.openNoteInVisualEditor',
@@ -188,6 +189,7 @@ function buildIconsBrowseContextMenu(contextValue, opts) {
   }
 
   if (base.startsWith('note')) {
+    out.push(item(CMD.openNote, 'Open'));
     if (openNotesInPreview) {
       out.push(item(CMD.openNoteInEditor, 'Open in Editor'));
     } else {
