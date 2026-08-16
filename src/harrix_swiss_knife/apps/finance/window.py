@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'window.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.11.1
+## Created by: Qt User Interface Compiler version 6.10.0
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -43,7 +43,6 @@ class Ui_MainWindow(object):
         self.lineEdit_description.setPlaceholderText(QCoreApplication.translate("MainWindow", u"Description", None))
         self.pushButton_description_clear.setText("")
         self.dateEdit.setDisplayFormat(QCoreApplication.translate("MainWindow", u"yyyy-MM-dd", None))
-        self.pushButton_yesterday.setText(QCoreApplication.translate("MainWindow", u"Yesterday", None))
         self.pushButton_add.setText(QCoreApplication.translate("MainWindow", u"Add Transaction", None))
         self.label_tag.setText(QCoreApplication.translate("MainWindow", u"Tag:", None))
         self.lineEdit_tag.setPlaceholderText(QCoreApplication.translate("MainWindow", u"Optional", None))
@@ -71,7 +70,7 @@ class Ui_MainWindow(object):
 #if QT_CONFIG(tooltip)
         self.pushButton_clear_filter.setToolTip(QCoreApplication.translate("MainWindow", u"Clear filter", None))
 #endif // QT_CONFIG(tooltip)
-        self.pushButton_clear_filter.setText(QCoreApplication.translate("MainWindow", u"\U0001f9f9", None))
+        self.pushButton_clear_filter.setText(QCoreApplication.translate("MainWindow", u"\ud83e\uddf9", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_transactions), QCoreApplication.translate("MainWindow", u"Transactions", None))
         self.groupBox_add_account.setTitle(QCoreApplication.translate("MainWindow", u"Add New Account", None))
         self.label_account_name.setText(QCoreApplication.translate("MainWindow", u"Name:", None))
@@ -86,7 +85,7 @@ class Ui_MainWindow(object):
         self.groupBox_balance_accounts.setTitle(QCoreApplication.translate("MainWindow", u"Balance", None))
         self.label_balance_accounts.setText(QCoreApplication.translate("MainWindow", u"0.0\u2080\u20bd", None))
         self.label_balance_account_details.setText(QCoreApplication.translate("MainWindow", u"0.0\u2080\u20bd", None))
-        self.pushButton_balance_check.setText(QCoreApplication.translate("MainWindow", u"\U0001f9ee Balance Check", None))
+        self.pushButton_balance_check.setText(QCoreApplication.translate("MainWindow", u"\ud83e\uddee Balance Check", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_accounts), QCoreApplication.translate("MainWindow", u"Accounts", None))
         self.groupBox_default_currency.setTitle(QCoreApplication.translate("MainWindow", u"Default Currency", None))
         self.pushButton_set_default_currency.setText(QCoreApplication.translate("MainWindow", u"Set Default", None))
@@ -114,7 +113,6 @@ class Ui_MainWindow(object):
         self.lineEdit_exchange_description.setPlaceholderText(QCoreApplication.translate("MainWindow", u"Exchange description (optional)", None))
         self.label_exchange_date.setText(QCoreApplication.translate("MainWindow", u"Date:", None))
         self.dateEdit_exchange.setDisplayFormat(QCoreApplication.translate("MainWindow", u"yyyy-MM-dd", None))
-        self.pushButton_exchange_yesterday.setText(QCoreApplication.translate("MainWindow", u"Yesterday", None))
         self.pushButton_exchange_add.setText(QCoreApplication.translate("MainWindow", u"Add Exchange", None))
         self.groupBox_exchange_commands.setTitle(QCoreApplication.translate("MainWindow", u"Commands", None))
         self.pushButton_exchange_delete.setText(QCoreApplication.translate("MainWindow", u"Delete", None))
@@ -294,12 +292,6 @@ class Ui_MainWindow(object):
         self.dateEdit.setCalendarPopup(True)
 
         self.horizontalLayout_date.addWidget(self.dateEdit)
-
-        self.pushButton_yesterday = QPushButton(self.groupBox_transaction)
-        self.pushButton_yesterday.setObjectName(u"pushButton_yesterday")
-        self.pushButton_yesterday.setMinimumSize(QSize(61, 0))
-
-        self.horizontalLayout_date.addWidget(self.pushButton_yesterday)
 
 
         self.verticalLayout_3.addLayout(self.horizontalLayout_date)
@@ -1065,12 +1057,6 @@ class Ui_MainWindow(object):
         self.dateEdit_exchange.setCalendarPopup(True)
 
         self.horizontalLayout_exchange_date.addWidget(self.dateEdit_exchange)
-
-        self.pushButton_exchange_yesterday = QPushButton(self.groupBox_exchange_operation)
-        self.pushButton_exchange_yesterday.setObjectName(u"pushButton_exchange_yesterday")
-        self.pushButton_exchange_yesterday.setMinimumSize(QSize(61, 0))
-
-        self.horizontalLayout_exchange_date.addWidget(self.pushButton_exchange_yesterday)
 
 
         self.verticalLayout_exchange_operation.addLayout(self.horizontalLayout_exchange_date)

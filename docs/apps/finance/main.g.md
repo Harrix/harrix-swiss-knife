@@ -40,8 +40,6 @@ lang: en
   - [⚙️ Method `on_standard_items`](#%EF%B8%8F-method-on_standard_items)
   - [⚙️ Method `on_tab_changed`](#%EF%B8%8F-method-on_tab_changed)
   - [⚙️ Method `on_translate_with_ai`](#%EF%B8%8F-method-on_translate_with_ai)
-  - [⚙️ Method `on_yesterday`](#%EF%B8%8F-method-on_yesterday)
-  - [⚙️ Method `on_yesterday_exchange`](#%EF%B8%8F-method-on_yesterday_exchange)
   - [⚙️ Method `set_chart_all_time`](#%EF%B8%8F-method-set_chart_all_time)
   - [⚙️ Method `set_chart_last_month`](#%EF%B8%8F-method-set_chart_last_month)
   - [⚙️ Method `set_chart_last_year`](#%EF%B8%8F-method-set_chart_last_year)
@@ -1182,16 +1180,6 @@ class MainWindow(
             state=self._bothub_state,
         )
 
-    def on_yesterday(self) -> None:
-        """Set yesterday's date in the main date field."""
-        yesterday: QDate = QDate.currentDate().addDays(-1)
-        self.dateEdit.setDate(yesterday)
-
-    def on_yesterday_exchange(self) -> None:
-        """Set yesterday's date in the exchange date field."""
-        yesterday: QDate = QDate.currentDate().addDays(-1)
-        self.dateEdit_exchange.setDate(yesterday)
-
     def set_chart_all_time(self) -> None:
         """Set chart date range from the first transaction to today."""
         self._set_date_range(self.dateEdit_chart_from, self.dateEdit_chart_to, is_all_time=True)
@@ -1416,28 +1404,6 @@ class MainWindow(
         fig.tight_layout()
         self.verticalLayout_charts_content.addWidget(canvas)
         canvas.draw()
-
-    def _add_main_date_actions(self, menu: QMenu) -> None:
-        """Add Today / Yesterday / ±1 day actions for the main transaction date."""
-        today_action = menu.addAction("📅 Today's date")
-        today_action.triggered.connect(self._set_today_date_in_main)
-
-        yesterday_action = menu.addAction("📅 Yesterday")
-        yesterday_action.triggered.connect(self.on_yesterday)
-
-        menu.addSeparator()
-
-        plus_one_action = menu.addAction("➕ Add 1 day")  # noqa: RUF001
-        plus_one_action.triggered.connect(self._add_one_day_to_main)
-
-        minus_one_action = menu.addAction("➖ Subtract 1 day")  # noqa: RUF001
-        minus_one_action.triggered.connect(self._subtract_one_day_from_main)
-
-    def _add_one_day_to_main(self) -> None:
-        """Add one day to the current date in main date field."""
-        current_date: QDate = self.dateEdit.date()
-        new_date: QDate = current_date.addDays(1)
-        self.dateEdit.setDate(new_date)
 
     def _add_record(
         self,
@@ -1893,13 +1859,6 @@ class MainWindow(
         self.verticalLayout_2.insertWidget(1, self._ai_image_drop_zone)
         self.pushButton_description_clear.clicked.connect(self.on_clear_description)
 
-        # Dropdown menu for yesterday button; context menu for main date edit
-        yesterday_menu = QMenu(self.pushButton_yesterday)
-        self._add_main_date_actions(yesterday_menu)
-        self.pushButton_yesterday.setMenu(yesterday_menu)
-        self.dateEdit.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-        self.dateEdit.customContextMenuRequested.connect(self._show_date_edit_context_menu)
-
         # Calculate amount from expression
         self.doubleSpinBox_amount.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.doubleSpinBox_amount.customContextMenuRequested.connect(self._show_amount_context_menu)
@@ -1977,7 +1936,6 @@ class MainWindow(
 
         # Exchange signals
         self.pushButton_calculate_exchange.clicked.connect(self.on_calculate_exchange)
-        self.pushButton_exchange_yesterday.clicked.connect(self.on_yesterday_exchange)
         self.pushButton_calculate_fee.clicked.connect(self.on_calculate_fee)
 
         # Currency signals
@@ -5083,11 +5041,6 @@ class MainWindow(
             if not stretch_last:
                 header.setStretchLastSection(False)
 
-    def _set_today_date_in_main(self) -> None:
-        """Set today's date in the main date field."""
-        today: QDate = QDate.currentDate()
-        self.dateEdit.setDate(today)
-
     def _setup_autocomplete(self) -> None:
         """Set up autocomplete functionality for description input."""
         self.description_completer_source_model: QStringListModel = QStringListModel(self)
@@ -5122,8 +5075,8 @@ class MainWindow(
         QWidget.setTabOrder(self.lineEdit_description, self.doubleSpinBox_amount)
         QWidget.setTabOrder(self.doubleSpinBox_amount, self.comboBox_currency)
         QWidget.setTabOrder(self.comboBox_currency, self.dateEdit)
-        QWidget.setTabOrder(self.dateEdit, self.pushButton_yesterday)
-        QWidget.setTabOrder(self.pushButton_yesterday, self.pushButton_add)
+        QWidget.setTabOrder(self.dateEdit, self.pushButton_date_quick)
+        QWidget.setTabOrder(self.pushButton_date_quick, self.pushButton_add)
         QWidget.setTabOrder(self.pushButton_add, self.lineEdit_tag)
         QWidget.setTabOrder(self.lineEdit_tag, self.listView_categories)
         QWidget.setTabOrder(self.listView_categories, self.lineEdit_filter_description)
@@ -5186,8 +5139,17 @@ class MainWindow(
         self._apply_exit_about_menu_emojis()
         self._setup_report_type_list()
 
+        # Date fields: attach quick preset/offset menu buttons (removed from .ui)
+        self.pushButton_date_quick = attach_date_edit_quick_controls(
+            self.dateEdit,
+            button_object_name="pushButton_date_quick",
+        )
+        self.pushButton_exchange_date_quick = attach_date_edit_quick_controls(
+            self.dateEdit_exchange,
+            button_object_name="pushButton_exchange_date_quick",
+        )
+
         # Set emoji for buttons
-        self.pushButton_yesterday.setText(f"📅 {self.pushButton_yesterday.text()}")
         self.pushButton_add.setText(f"➕ {self.pushButton_add.text()}")  # noqa: RUF001
         self.pushButton_add_as_text_with_ai.setText(f"🤖 {self.pushButton_add_as_text_with_ai.text()}")
         self.action_transactions_translate_with_ai.setText(f"🤖 {self.action_transactions_translate_with_ai.text()}")
@@ -5234,7 +5196,6 @@ class MainWindow(
         self.pushButton_select_only_income.setText(f"💰 {self.pushButton_select_only_income.text()}")
 
         # Set emoji for additional exchange and currency buttons
-        self.pushButton_exchange_yesterday.setText(f"📅 {self.pushButton_exchange_yesterday.text()}")
         self.pushButton_calculate_exchange.setText(f"🧮 {self.pushButton_calculate_exchange.text()}")
         self.pushButton_currency_add.setText(f"➕ {self.pushButton_currency_add.text()}")  # noqa: RUF001
         self.pushButton_set_default_currency.setText(f"⭐ {self.pushButton_set_default_currency.text()}")
@@ -5457,14 +5418,6 @@ class MainWindow(
         )
 
         cast("Any", menu).exec(self.list_chart_categories.viewport().mapToGlobal(position))
-
-    def _show_date_edit_context_menu(self, position: QPoint) -> None:
-        """Show context menu for main date edit with standard edit actions plus date shortcuts."""
-        line_edit = self.dateEdit.lineEdit()
-        context_menu: QMenu = line_edit.createStandardContextMenu() if line_edit is not None else QMenu(self)
-        context_menu.addSeparator()
-        self._add_main_date_actions(context_menu)
-        context_menu.exec_(self.dateEdit.mapToGlobal(position))
 
     def _show_no_data_label(self, layout: QLayout, text: str) -> None:
         """Show a message when no data is available for the chart.
@@ -5958,12 +5911,6 @@ class MainWindow(
         ):
             # This will be handled by the lambda connection above
             pass
-
-    def _subtract_one_day_from_main(self) -> None:
-        """Subtract one day from the current date in main date field."""
-        current_date: QDate = self.dateEdit.date()
-        new_date: QDate = current_date.addDays(-1)
-        self.dateEdit.setDate(new_date)
 
     def _transactions_filter_is_active(self) -> bool:
         """Return `True` when any transaction table filter is applied."""
@@ -7752,44 +7699,6 @@ def on_translate_with_ai(self) -> None:
             is_busy=lambda: self._bothub_state.worker is not None,
             state=self._bothub_state,
         )
-```
-
-</details>
-
-### ⚙️ Method `on_yesterday`
-
-```python
-def on_yesterday(self) -> None
-```
-
-Set yesterday's date in the main date field.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def on_yesterday(self) -> None:
-        yesterday: QDate = QDate.currentDate().addDays(-1)
-        self.dateEdit.setDate(yesterday)
-```
-
-</details>
-
-### ⚙️ Method `on_yesterday_exchange`
-
-```python
-def on_yesterday_exchange(self) -> None
-```
-
-Set yesterday's date in the exchange date field.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def on_yesterday_exchange(self) -> None:
-        yesterday: QDate = QDate.currentDate().addDays(-1)
-        self.dateEdit_exchange.setDate(yesterday)
 ```
 
 </details>

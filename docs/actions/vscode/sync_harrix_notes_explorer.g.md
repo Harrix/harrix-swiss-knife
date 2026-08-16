@@ -155,6 +155,9 @@ class OnSyncHarrixNotesExplorer(ActionBase):
             elif path.name == "extension.js":
                 text = cls._patch_extension_js(text)
                 text = cls._apply_hsk_to_public_renames(text, publisher=publisher)
+            elif path.name == "icons-browse-menu.js":
+                text = cls._strip_cli_from_icons_browse_menu(text, manifest)
+                text = cls._apply_hsk_to_public_renames(text, publisher=publisher)
             else:
                 text = cls._apply_hsk_to_public_renames(text, publisher=publisher)
             path.write_text(text, encoding="utf-8", newline="\n")
@@ -165,6 +168,21 @@ class OnSyncHarrixNotesExplorer(ActionBase):
     def _cleanup_build_dir(build_dir: Path) -> None:
         if build_dir.is_dir():
             shutil.rmtree(build_dir, ignore_errors=True)
+
+    @staticmethod
+    def _cli_command_short_names(manifest: dict[str, Any]) -> list[str]:
+        """Return command suffixes from `package.harrix-cli.contributes.json` (`beautifyMd`, …)."""
+        raw = manifest.get("commandIds")
+        if not isinstance(raw, list):
+            return []
+        names: list[str] = []
+        for command_id in raw:
+            if not isinstance(command_id, str) or "." not in command_id:
+                continue
+            short = command_id.rsplit(".", 1)[-1]
+            if short:
+                names.append(short)
+        return names
 
     @staticmethod
     def _item_command_in_set(item: object, command_ids: set[str]) -> bool:
@@ -271,6 +289,56 @@ class OnSyncHarrixNotesExplorer(ActionBase):
         if "with hsk integration" in desc.lower():
             return "Harrix Notes Explorer — custom notes panel for markdown notes"
         return desc
+
+    @classmethod
+    def _strip_cli_from_icons_browse_menu(cls, content: str, manifest: dict[str, Any]) -> str:
+        """Remove HSK CLI command IDs and menu items from Icons Browse context menu."""
+        short_names = cls._cli_command_short_names(manifest)
+        for short_name in short_names:
+            content = re.sub(
+                rf"^[ \t]*{re.escape(short_name)}:[ \t]*'harrixNotesExplorerHsk\.{re.escape(short_name)}',[ \t]*\n",
+                "",
+                content,
+                flags=re.MULTILINE,
+            )
+            content = re.sub(
+                rf"^[ \t]*out\.push\(item\(CMD\.{re.escape(short_name)},[^;\n]*\);[ \t]*\n",
+                "",
+                content,
+                flags=re.MULTILINE,
+            )
+
+        content = re.sub(r"\n[ \t]*if \(base\.includes\('[^']+'\)\) \{\s*\}", "", content)
+        content = re.sub(
+            r"const pushFolderCli = \(\) => \{\s*out\.push\(sep\(\)\);\s*"
+            r"if \(isGit\) \{\n"
+            r"      out\.push\(item\(CMD\.discardGitChangesInFolder, ([^)]+)\)\);\n"
+            r"    \}\n"
+            r"  \};",
+            "const pushFolderCli = () => {\n"
+            "    if (isGit) {\n"
+            "      out.push(sep());\n"
+            "      out.push(item(CMD.discardGitChangesInFolder, \\1));\n"
+            "    }\n"
+            "  };",
+            content,
+        )
+        content = re.sub(
+            r"const pushFolderCli = \(\) => \{\s*out\.push\(sep\(\)\);\s*\};",
+            "const pushFolderCli = () => {};",
+            content,
+        )
+
+        leftover = [
+            name
+            for name in short_names
+            if re.search(rf"\bCMD\.{re.escape(name)}\b", content)
+            or re.search(rf"harrixNotesExplorerHsk\.{re.escape(name)}\b", content)
+        ]
+        if leftover:
+            msg = "icons-browse-menu.js still references CLI commands after public build patch: " + ", ".join(leftover)
+            raise ValueError(msg)
+        return content
 
     @classmethod
     def _strip_cli_from_package_json(cls, data: dict[str, Any], manifest: dict[str, Any]) -> dict[str, Any]:
