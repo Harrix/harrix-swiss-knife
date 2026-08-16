@@ -10,6 +10,7 @@ from harrix_swiss_knife.actions.common.python_project import (
     reject_python_project_for_md_beautify,
 )
 from harrix_swiss_knife.actions.markdown.beautify_md import OnBeautifyMd
+from harrix_swiss_knife.actions.markdown.regenerate_g_md import OnRegenerateGMd
 
 
 def test_is_python_project_detects_pyproject(tmp_path: Path) -> None:
@@ -61,3 +62,26 @@ def test_beautify_common_default_does_not_delete_g_md(tmp_path: Path) -> None:
     )
 
     assert dump.exists()
+
+
+def test_regenerate_g_md_does_not_change_source_md(tmp_path: Path) -> None:
+    """Regenerate rebuilds `.g.md` dumps and leaves source notes unchanged."""
+    original = "---\nlang: ru\n---\n\n# Note\n\nHello world.\n"
+    note = tmp_path / "note.md"
+    note.write_text(original, encoding="utf-8")
+    stale = tmp_path / "_stale.g.md"
+    stale.write_text("old dump\n", encoding="utf-8")
+
+    action = MagicMock()
+    action.config = {"paths_notes_for_summaries": []}
+    action.prose_wrap = "preserve"
+    action.print_width = 80
+    action.apply_prose_fixes = False
+    action.format_code_blocks = False
+
+    OnRegenerateGMd.regenerate_g_md_common(action, str(tmp_path))
+
+    assert note.read_text(encoding="utf-8") == original
+    assert not stale.exists()
+    combined = tmp_path / f"_{tmp_path.name}.g.md"
+    assert combined.exists()

@@ -133,6 +133,7 @@ _Figure 1: Screenshot_
   - 📁 Move MD into named folders in …
   - 🖼️ Optimize images in MD in … ꟲᴸᴵ
   - 🖼️ ★ Optimize selected images in …
+  - 📜 Regenerate `.g.md` in … ꟲᴸᴵ
   - 📶 Sort sections in …
 - **Site**
   - 📦 Add site content submodule… ꟲᴸᴵ
@@ -304,6 +305,10 @@ Folder arguments are optional (default: current directory) for commands that tak
 - `hsk md beautify-regenerate-g-md "D:/path/to/project" --no-prose-fixes` — skip MdChecker typography autofixes in MdFormatter
 - `hsk md beautify-regenerate-g-md "D:/path/to/project" --no-format-code-blocks` — skip formatting fenced code bodies (e.g. `latex`)
 - `hsk md beautify-regenerate-g-md "D:/path/to/project" --prose-wrap always --print-width 80` — Prettier prose wrap (`always`/`never`/`preserve`)
+- `hsk md regenerate-g-md "D:/path/to/project"` — delete `*.g.md`, regenerate, beautify only `*.g.md` (source `.md` unchanged)
+- `hsk md regenerate-g-md "D:/path/to/project" --no-prose-fixes` — skip MdChecker typography autofixes in MdFormatter
+- `hsk md regenerate-g-md "D:/path/to/project" --no-format-code-blocks` — skip formatting fenced code block bodies (e.g. `latex`)
+- `hsk md regenerate-g-md "D:/path/to/project" --prose-wrap always --print-width 80` — Prettier prose wrap (`always`/`never`/`preserve`)
 - `hsk md check "D:/path/to/project"` — all Harrix MD rules
 - `hsk md check "D:/path/to/project" --include-g-md` — all Harrix MD rules and checking `.g.md`
 - `hsk md check "D:/path/to/project" --rule H001` — check only selected rule ids (repeatable)

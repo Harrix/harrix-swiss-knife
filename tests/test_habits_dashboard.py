@@ -10,7 +10,7 @@ import pytest
 from PySide6.QtCore import QRectF, Qt
 from PySide6.QtGui import QImage, QPainter, QStandardItem, QStandardItemModel
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QApplication, QPushButton, QStyleOptionViewItem, QTableView
+from PySide6.QtWidgets import QApplication, QLineEdit, QPushButton, QStyleOptionViewItem, QTableView
 
 from harrix_swiss_knife.apps.habits.dashboard_widgets import (
     CheckCircle,
@@ -22,6 +22,12 @@ from harrix_swiss_knife.apps.habits.dashboard_widgets import (
 from harrix_swiss_knife.apps.habits.database_manager import DatabaseManager
 from harrix_swiss_knife.apps.habits.delegates.process_habit_bool_delegate import ProcessHabitBoolDelegate
 from harrix_swiss_knife.apps.habits.delegates.process_habit_int_delegate import ProcessHabitIntDelegate
+from harrix_swiss_knife.apps.habits.habit_day_picker import (
+    DayChoiceCircle,
+    HabitDayPickerPopup,
+    alternative_habit_day_choices,
+    habit_day_choice_caption,
+)
 
 RECOVER_SQL = Path(__file__).resolve().parents[1] / "src/harrix_swiss_knife/apps/habits/recover.sql"
 
@@ -131,23 +137,20 @@ def test_check_circle_four_states(qapp: QApplication) -> None:
     assert qapp is not None
     circle = CheckCircle()
     assert circle.day_state() == "absent"
-    assert circle.toolTip() == "No record"
+    assert circle.toolTip() == ""
     assert not circle.is_done()
     assert circle.value() is None
 
     circle.set_value(0)
     assert circle.day_state() == "zero"
-    assert circle.toolTip() == "Not completed (0)"
     assert not circle.is_done()
 
     circle.set_value(1)
     assert circle.day_state() == "one"
-    assert circle.toolTip() == "Completed"
     assert circle.is_done()
 
     circle.set_value(8)
     assert circle.day_state() == "number"
-    assert circle.toolTip() == "Value: 8"
     assert circle.is_done()
     assert circle.value() == 8
 
@@ -229,7 +232,7 @@ def test_set_habit_checkin_four_kinds(habits_db: DatabaseManager) -> None:
 
 
 def test_habit_row_day_value_set_signal(qapp: QApplication) -> None:
-    """Week circles forward context-menu values, including None."""
+    """Week circles forward picker values, including None."""
     assert qapp is not None
     row = HabitRow()
     row.set_habit_data(7, "Walk", 0, 0, [None] * 7, selected=False, allows_number=True)
@@ -248,7 +251,7 @@ def test_habit_row_day_value_set_signal(qapp: QApplication) -> None:
 
 
 def test_month_calendar_day_value_set_signal(qapp: QApplication) -> None:
-    """Month circles forward context-menu values for the selected date."""
+    """Month circles forward picker values for the selected date."""
     assert qapp is not None
     grid = MonthCalendarGrid()
     grid.set_month(2026, 8, {"2026-08-14": 1}, allows_number=True, today=date(2026, 8, 15))
@@ -305,3 +308,53 @@ def test_month_calendar_blocks_future_dates(qapp: QApplication) -> None:
     grid.set_month(2026, 7, {}, today=today)
     next_btn = next(button for button in grid.findChildren(QPushButton) if button.toolTip() == "Next month")
     assert next_btn.isEnabled()
+
+
+def test_alternative_habit_day_choices() -> None:
+    """Picker offers every state except the one already on the circle."""
+    assert alternative_habit_day_choices(None, allows_number=True) == [0, 1, "number"]
+    assert alternative_habit_day_choices(0, allows_number=True) == [None, 1, "number"]
+    assert alternative_habit_day_choices(1, allows_number=True) == [None, 0, "number"]
+    assert alternative_habit_day_choices(8, allows_number=True) == [None, 0, 1]
+    assert alternative_habit_day_choices(None, allows_number=False) == [0, 1]
+    assert alternative_habit_day_choices(1, allows_number=False) == [None, 0]
+    assert habit_day_choice_caption(None) == "No record"
+    assert habit_day_choice_caption("number") == "Number"
+
+
+def test_habit_day_picker_selects_alternative(qapp: QApplication) -> None:
+    """Clicking a picker circle sets that remaining value and closes the panel."""
+    assert qapp is not None
+    circle = CheckCircle()
+    circle.set_allows_number(allows_number=True)
+    received: list[object] = []
+    circle.value_set.connect(received.append)
+
+    popup = HabitDayPickerPopup.show_for(circle)
+    assert popup.choices() == [0, 1, "number"]
+    zero = next(option for option in popup.findChildren(DayChoiceCircle) if option.choice() == 0)
+    QTest.mouseClick(zero, Qt.MouseButton.LeftButton)
+    assert received == [0]
+    assert not popup.isVisible()
+    HabitDayPickerPopup.hide_active()
+
+
+def test_habit_day_picker_number_stepper(qapp: QApplication) -> None:
+    """Number choice opens a stepper that emits the typed value."""
+    assert qapp is not None
+    circle = CheckCircle()
+    circle.set_allows_number(allows_number=True)
+    received: list[object] = []
+    circle.value_set.connect(received.append)
+
+    popup = HabitDayPickerPopup.show_for(circle)
+    number = next(option for option in popup.findChildren(DayChoiceCircle) if option.choice() == "number")
+    QTest.mouseClick(number, Qt.MouseButton.LeftButton)
+    edit = popup.findChild(QLineEdit)
+    assert edit is not None
+    edit.setText("12")
+    set_btn = next(button for button in popup.findChildren(QPushButton) if button.text() == "Set")
+    QTest.mouseClick(set_btn, Qt.MouseButton.LeftButton)
+    assert received == [12]
+    assert not popup.isVisible()
+    HabitDayPickerPopup.hide_active()

@@ -35,6 +35,7 @@ lang: en
 - [🔧 Function `markdown_new_note`](#-function-markdown_new_note)
 - [🔧 Function `markdown_new_note_with_images`](#-function-markdown_new_note_with_images)
 - [🔧 Function `markdown_optimize_images_folder`](#-function-markdown_optimize_images_folder)
+- [🔧 Function `markdown_regenerate_g_md`](#-function-markdown_regenerate_g_md)
 - [🔧 Function `python_group`](#-function-python_group)
 - [🔧 Function `python_check`](#-function-python_check)
 - [🔧 Function `python_check_all`](#-function-python_check_all)
@@ -593,6 +594,40 @@ Optimize images referenced by Markdown files under FOLDER (PNG/AVIF size compari
 def markdown_optimize_images_folder(folder: Path, max_size: int | None) -> None:
     action = OnOptimizeImagesInMd()
     action(folder_path=folder, max_size=max_size, noninteractive=True)
+    _finish_timed_action(action)
+```
+
+</details>
+
+## 🔧 Function `markdown_regenerate_g_md`
+
+```python
+def markdown_regenerate_g_md(folder: Path, prose_wrap: str, print_width: int, *, apply_prose_fixes: bool, format_code_blocks: bool) -> None
+```
+
+Delete `.g.md`, regenerate, and beautify only `.g.md` (source `.md` unchanged).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def markdown_regenerate_g_md(
+    folder: Path,
+    prose_wrap: str,
+    print_width: int,
+    *,
+    apply_prose_fixes: bool,
+    format_code_blocks: bool,
+) -> None:
+    action = OnRegenerateGMd()
+    action(
+        folder_path=folder,
+        noninteractive=True,
+        prose_wrap=prose_wrap.lower(),
+        print_width=print_width,
+        apply_prose_fixes=apply_prose_fixes,
+        format_code_blocks=format_code_blocks,
+    )
     _finish_timed_action(action)
 ```
 

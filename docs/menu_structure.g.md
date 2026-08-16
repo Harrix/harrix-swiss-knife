@@ -121,6 +121,7 @@ def get_menu_structure() -> list[Any]:
                 "-",
                 OnAppendYamlTag,
                 OnBeautifyMd,
+                OnRegenerateGMd,
                 OnBeautifyMdAndRegenerateGMd,
                 OnCheckMd,
                 OnMoveMdIntoNamedFolders,

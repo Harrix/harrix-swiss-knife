@@ -20,6 +20,7 @@ from harrix_swiss_knife.actions.markdown import (
     OnCheckMd,
     OnNewMarkdown,
     OnOptimizeImagesInMd,
+    OnRegenerateGMd,
 )
 from harrix_swiss_knife.actions.python import (
     OnCheckPythonProject,
@@ -497,6 +498,64 @@ def markdown_optimize_images_folder(folder: Path, max_size: int | None) -> None:
     """Optimize images referenced by Markdown files under FOLDER (PNG/AVIF size comparison)."""
     action = OnOptimizeImagesInMd()
     action(folder_path=folder, max_size=max_size, noninteractive=True)
+    _finish_timed_action(action)
+
+
+@markdown_group.command("regenerate-g-md")
+@click.argument(
+    "folder",
+    required=False,
+    default=".",
+    type=click.Path(exists=True, file_okay=False, path_type=Path),
+)
+@click.option(
+    "--prose-wrap",
+    type=click.Choice(["always", "never", "preserve"], case_sensitive=False),
+    default="preserve",
+    show_default=True,
+    help="Prettier proseWrap: wrap prose only when always.",
+)
+@click.option(
+    "--print-width",
+    type=click.IntRange(1),
+    default=80,
+    show_default=True,
+    help="Prettier printWidth (used when --prose-wrap is always).",
+)
+@click.option(
+    "--no-prose-fixes",
+    "apply_prose_fixes",
+    is_flag=True,
+    flag_value=False,
+    default=True,
+    help="Disable mechanical MdChecker autofixes in MdFormatter (enabled by default).",
+)
+@click.option(
+    "--no-format-code-blocks",
+    "format_code_blocks",
+    is_flag=True,
+    flag_value=False,
+    default=True,
+    help="Disable formatting of fenced code block bodies (e.g. ```latex) in MdFormatter.",
+)
+def markdown_regenerate_g_md(
+    folder: Path,
+    prose_wrap: str,
+    print_width: int,
+    *,
+    apply_prose_fixes: bool,
+    format_code_blocks: bool,
+) -> None:
+    """Delete `.g.md`, regenerate, and beautify only `.g.md` (source `.md` unchanged)."""
+    action = OnRegenerateGMd()
+    action(
+        folder_path=folder,
+        noninteractive=True,
+        prose_wrap=prose_wrap.lower(),
+        print_width=print_width,
+        apply_prose_fixes=apply_prose_fixes,
+        format_code_blocks=format_code_blocks,
+    )
     _finish_timed_action(action)
 
 

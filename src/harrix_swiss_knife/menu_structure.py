@@ -85,6 +85,7 @@ from harrix_swiss_knife.actions.markdown.move_md_into_named_folders import OnMov
 from harrix_swiss_knife.actions.markdown.new_markdown import OnNewMarkdown
 from harrix_swiss_knife.actions.markdown.optimize_images_in_md import OnOptimizeImagesInMd
 from harrix_swiss_knife.actions.markdown.optimize_selected_images import OnOptimizeSelectedImages
+from harrix_swiss_knife.actions.markdown.regenerate_g_md import OnRegenerateGMd
 from harrix_swiss_knife.actions.markdown.sort_sections import OnSortSections
 from harrix_swiss_knife.actions.python.check_python_project import OnCheckPythonProject
 from harrix_swiss_knife.actions.python.check_python_projects import OnCheckPythonProjects
@@ -218,6 +219,7 @@ def get_menu_structure() -> list[Any]:
                 "-",
                 OnAppendYamlTag,
                 OnBeautifyMd,
+                OnRegenerateGMd,
                 OnBeautifyMdAndRegenerateGMd,
                 OnCheckMd,
                 OnMoveMdIntoNamedFolders,

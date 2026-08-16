@@ -6,15 +6,13 @@ import calendar
 from datetime import UTC, date, datetime
 from typing import TYPE_CHECKING, Literal
 
-from PySide6.QtCore import QPoint, QPointF, QRectF, Qt, Signal
+from PySide6.QtCore import QPointF, QRectF, Qt, Signal
 from PySide6.QtGui import QColor, QFont, QPainter, QPen
 from PySide6.QtWidgets import (
     QFrame,
     QGridLayout,
     QHBoxLayout,
-    QInputDialog,
     QLabel,
-    QMenu,
     QPushButton,
     QSizePolicy,
     QVBoxLayout,
@@ -26,7 +24,8 @@ from harrix_swiss_knife.apps.habits.habit_emojis import default_habit_emoji
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from PySide6.QtGui import QMouseEvent, QPaintEvent
+    from PySide6.QtCore import QEvent
+    from PySide6.QtGui import QEnterEvent, QMouseEvent, QPaintEvent
 
 
 # Design tokens from the Habitify-like screenshot TZ
@@ -66,25 +65,40 @@ class CheckCircle(QWidget):
         self._editable = True
         self._size = size
         self.setFixedSize(size, size)
+        self.setAttribute(Qt.WidgetAttribute.WA_Hover, on=True)
         self._apply_interactive_state()
-        self.customContextMenuRequested.connect(self._show_context_menu)
         self._apply_tooltip()
 
     def allows_number(self) -> bool:
-        """Return whether the numeric context-menu action is enabled."""
+        """Return whether the numeric picker choice is enabled."""
         return self._allows_number
 
     def day_state(self) -> HabitDayState:
         """Return visual state for the stored value."""
         return habit_day_state(self._value)
 
+    def enterEvent(self, event: QEnterEvent) -> None:  # noqa: N802
+        """Show the day-value picker when hovering an editable circle."""
+        if self._editable:
+            from harrix_swiss_knife.apps.habits.habit_day_picker import HabitDayPickerPopup  # noqa: PLC0415
+
+            HabitDayPickerPopup.request_show(self)
+        super().enterEvent(event)
+
     def is_done(self) -> bool:
         """Return whether the day is marked completed (value > 0)."""
         return self._value is not None and self._value > 0
 
     def is_editable(self) -> bool:
-        """Return whether the circle accepts clicks and the context menu."""
+        """Return whether the circle accepts clicks and the hover picker."""
         return self._editable
+
+    def leaveEvent(self, event: QEvent) -> None:  # noqa: N802
+        """Hide the day-value picker after the pointer leaves the circle."""
+        from harrix_swiss_knife.apps.habits.habit_day_picker import HabitDayPickerPopup  # noqa: PLC0415
+
+        HabitDayPickerPopup.request_hide()
+        super().leaveEvent(event)
 
     def mousePressEvent(self, event: QMouseEvent) -> None:  # noqa: N802
         """Emit clicked on left press when the day is editable."""
@@ -104,11 +118,11 @@ class CheckCircle(QWidget):
         paint_habit_day_circle(painter, rect, self._value, font=self.font())
 
     def set_allows_number(self, *, allows_number: bool) -> None:
-        """Enable the numeric context-menu action when the habit is not boolean."""
+        """Enable the numeric picker choice when the habit is not boolean."""
         self._allows_number = allows_number
 
     def set_editable(self, *, editable: bool) -> None:
-        """Enable or disable clicks and the context menu for this day."""
+        """Enable or disable clicks and the hover picker for this day."""
         self._editable = editable
         self._apply_interactive_state()
         self._apply_tooltip()
@@ -127,56 +141,15 @@ class CheckCircle(QWidget):
     def _apply_interactive_state(self) -> None:
         if self._editable:
             self.setCursor(Qt.CursorShape.PointingHandCursor)
-            self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         else:
             self.setCursor(Qt.CursorShape.ArrowCursor)
-            self.setContextMenuPolicy(Qt.ContextMenuPolicy.NoContextMenu)
+        self.setContextMenuPolicy(Qt.ContextMenuPolicy.NoContextMenu)
 
     def _apply_tooltip(self) -> None:
         if not self._editable:
             self.setToolTip("Future date")
             return
-        state = self.day_state()
-        if state == "absent":
-            self.setToolTip("No record")
-        elif state == "zero":
-            self.setToolTip("Not completed (0)")
-        elif state == "one":
-            self.setToolTip("Completed")
-        else:
-            self.setToolTip(f"Value: {self._value}")
-
-    def _show_context_menu(self, pos: QPoint) -> None:
-        if not self._editable:
-            return
-        menu = QMenu(self)
-        act_absent = menu.addAction("No record")
-        act_zero = menu.addAction("Not completed (0)")
-        act_one = menu.addAction("Completed (1)")
-        act_number = menu.addAction("Set number…") if self._allows_number else None
-        for action, checked in (
-            (act_absent, self._value is None),
-            (act_zero, self._value == 0),
-            (act_one, self._value == 1),
-        ):
-            action.setCheckable(True)
-            action.setChecked(checked)
-        if act_number is not None:
-            act_number.setCheckable(True)
-            act_number.setChecked(self._value is not None and self._value not in {0, 1})
-
-        chosen = menu.exec_(self.mapToGlobal(pos))
-        if chosen == act_absent:
-            self.value_set.emit(None)
-        elif chosen == act_zero:
-            self.value_set.emit(0)
-        elif chosen == act_one:
-            self.value_set.emit(1)
-        elif act_number is not None and chosen == act_number:
-            current = self._value if self._value is not None else 2
-            value, ok = QInputDialog.getInt(self, "Set value", "Value:", current, -999999, 999999)
-            if ok:
-                self.value_set.emit(value)
+        self.setToolTip("")
 
 
 class HabitIconBadge(QWidget):
@@ -616,6 +589,7 @@ def paint_habit_day_circle(
     value: int | None,
     *,
     font: QFont | None = None,
+    text: str | None = None,
 ) -> None:
     """Draw a dashboard-style day circle for a stored process-habit value."""
     state = habit_day_state(value)
@@ -656,14 +630,14 @@ def paint_habit_day_circle(
     painter.setPen(Qt.PenStyle.NoPen)
     painter.setBrush(COLOR_SUCCESS)
     painter.drawEllipse(rect)
-    text = str(value)
+    display = text if text is not None else str(value)
     draw_font = QFont(font) if font is not None else QFont()
-    digit_count = max(len(text), 1)
+    digit_count = max(len(display), 1)
     draw_font.setPointSizeF(max(5.0, size * min(0.42, 0.64 / digit_count)))
     draw_font.setBold(True)
     painter.setFont(draw_font)
     painter.setPen(QColor("white"))
-    painter.drawText(rect, int(Qt.AlignmentFlag.AlignCenter), text)
+    painter.drawText(rect, int(Qt.AlignmentFlag.AlignCenter), display)
 
 
 def weekday_short(weekday: int) -> str:
