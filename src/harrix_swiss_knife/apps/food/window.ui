@@ -325,42 +325,6 @@
                  </property>
                 </widget>
                </item>
-               <item>
-                <layout class="QHBoxLayout" name="horizontalLayout_food_commands">
-                 <item>
-                  <widget class="QPushButton" name="pushButton_translate_with_ai">
-                   <property name="text">
-                    <string>Translate with AI</string>
-                   </property>
-                  </widget>
-                 </item>
-                </layout>
-               </item>
-               <item>
-                <layout class="QHBoxLayout" name="horizontalLayout_3">
-                 <item>
-                  <widget class="QPushButton" name="pushButton_add_as_text">
-                   <property name="text">
-                    <string>Add As Text</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QPushButton" name="pushButton_show_all_records">
-                   <property name="text">
-                    <string>Show All Records</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QPushButton" name="pushButton_check">
-                   <property name="text">
-                    <string>Check</string>
-                   </property>
-                  </widget>
-                 </item>
-                </layout>
-               </item>
               </layout>
              </widget>
             </item>
@@ -657,6 +621,11 @@
     </property>
     <addaction name="action_refresh"/>
     <addaction name="action_add_food_item"/>
+    <addaction name="separator"/>
+    <addaction name="action_translate_with_ai"/>
+    <addaction name="action_add_as_text"/>
+    <addaction name="action_show_all_records"/>
+    <addaction name="action_check"/>
    </widget>
    <widget class="QMenu" name="menuFile">
     <property name="title">
@@ -682,6 +651,26 @@
   <action name="action_add_food_item">
    <property name="text">
     <string>Add Food Item</string>
+   </property>
+  </action>
+  <action name="action_translate_with_ai">
+   <property name="text">
+    <string>Translate with AI</string>
+   </property>
+  </action>
+  <action name="action_add_as_text">
+   <property name="text">
+    <string>Add As Text</string>
+   </property>
+  </action>
+  <action name="action_show_all_records">
+   <property name="text">
+    <string>Show All Records</string>
+   </property>
+  </action>
+  <action name="action_check">
+   <property name="text">
+    <string>Check</string>
    </property>
   </action>
   <action name="actionExit">

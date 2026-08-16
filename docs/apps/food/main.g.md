@@ -948,11 +948,11 @@ class MainWindow(
         """Toggle between showing all records and last self.count_food_records_to_show records."""
         self.show_all_food_records = not self.show_all_food_records
 
-        # Update button text and icon
+        # Update menu action text
         if self.show_all_food_records:
-            self.pushButton_show_all_records.setText(f"📊 Show Last {self.count_food_records_to_show}")
+            self.action_show_all_records.setText(f"📊 Show Last {self.count_food_records_to_show}")
         else:
-            self.pushButton_show_all_records.setText("📊 Show All Records")
+            self.action_show_all_records.setText("📊 Show All Records")
 
         # Refresh the food log table
         self._update_food_log_table()
@@ -1409,16 +1409,16 @@ class MainWindow(
         )
         self.verticalLayout_2.insertWidget(1, self._ai_image_drop_zone)
         self.pushButton_kcal_with_ai.clicked.connect(self.on_kcal_with_ai)
-        self.pushButton_translate_with_ai.clicked.connect(self.on_translate_with_ai)
         self.action_add_food_item.triggered.connect(self.on_add_food_item)
+        self.action_translate_with_ai.triggered.connect(self.on_translate_with_ai)
+        self.action_add_as_text.triggered.connect(self.on_add_as_text)
+        self.action_show_all_records.triggered.connect(self.on_show_all_records_clicked)
+        self.action_check.triggered.connect(self.on_check_problematic_records)
 
         # Add context menu for kcal AI button (additional commands)
         self.pushButton_kcal_with_ai.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.pushButton_kcal_with_ai.customContextMenuRequested.connect(self._show_kcal_with_ai_context_menu)
 
-        self.pushButton_show_all_records.clicked.connect(self.on_show_all_records_clicked)
-        self.pushButton_add_as_text.clicked.connect(self.on_add_as_text)
-        self.pushButton_check.clicked.connect(self.on_check_problematic_records)
         self.pushButton_food_manual_name_clear.clicked.connect(self.on_clear_food_manual_name)
 
         # Connect radio buttons and spin boxes for calories calculation
@@ -2668,13 +2668,13 @@ class MainWindow(
         self.pushButton_food_add.setText(f"➕ {self.pushButton_food_add.text()}")  # noqa: RUF001
         self.pushButton_food_add_with_ai.setText(f"🤖 {self.pushButton_food_add_with_ai.text()}")
         self.pushButton_food_add_by_voice.setText(f"🎙️ {self.pushButton_food_add_by_voice.text()}")
-        self.pushButton_translate_with_ai.setText(f"🤖 {self.pushButton_translate_with_ai.text()}")
         self.action_refresh.setText(f"🔄 {self.action_refresh.text()}")
         self.action_add_food_item.setText(f"➕ {self.action_add_food_item.text()}")  # noqa: RUF001
+        self.action_translate_with_ai.setText(f"🤖 {self.action_translate_with_ai.text()}")
+        self.action_add_as_text.setText(f"📝 {self.action_add_as_text.text()}")
+        self.action_show_all_records.setText(f"📊 {self.action_show_all_records.text()}")
+        self.action_check.setText(f"🔍 {self.action_check.text()}")
         self._apply_exit_about_menu_emojis()
-        self.pushButton_show_all_records.setText(f"📊 {self.pushButton_show_all_records.text()}")
-        self.pushButton_add_as_text.setText(f"📝 {self.pushButton_add_as_text.text()}")
-        self.pushButton_check.setText(f"🔍 {self.pushButton_check.text()}")
         self.pushButton_food_manual_name_clear.setText("🧹")
         self.pushButton_food_manual_name_clear.setToolTip("Clear food name input")
         self.pushButton_kcal_with_ai.setText("🤖")
@@ -4753,11 +4753,11 @@ Toggle between showing all records and last self.count_food_records_to_show reco
 def on_show_all_records_clicked(self) -> None:
         self.show_all_food_records = not self.show_all_food_records
 
-        # Update button text and icon
+        # Update menu action text
         if self.show_all_food_records:
-            self.pushButton_show_all_records.setText(f"📊 Show Last {self.count_food_records_to_show}")
+            self.action_show_all_records.setText(f"📊 Show Last {self.count_food_records_to_show}")
         else:
-            self.pushButton_show_all_records.setText("📊 Show All Records")
+            self.action_show_all_records.setText("📊 Show All Records")
 
         # Refresh the food log table
         self._update_food_log_table()

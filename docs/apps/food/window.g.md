@@ -36,6 +36,10 @@ class Ui_MainWindow(object):
         MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", u"Food tracker", None))
         self.action_refresh.setText(QCoreApplication.translate("MainWindow", u"Refresh", None))
         self.action_add_food_item.setText(QCoreApplication.translate("MainWindow", u"Add Food Item", None))
+        self.action_translate_with_ai.setText(QCoreApplication.translate("MainWindow", u"Translate with AI", None))
+        self.action_add_as_text.setText(QCoreApplication.translate("MainWindow", u"Add As Text", None))
+        self.action_show_all_records.setText(QCoreApplication.translate("MainWindow", u"Show All Records", None))
+        self.action_check.setText(QCoreApplication.translate("MainWindow", u"Check", None))
         self.actionExit.setText(QCoreApplication.translate("MainWindow", u"Exit", None))
         self.actionAbout.setText(QCoreApplication.translate("MainWindow", u"About", None))
         self.groupBox_food_add.setTitle(QCoreApplication.translate("MainWindow", u"Add Food Entry", None))
@@ -53,10 +57,6 @@ class Ui_MainWindow(object):
         self.groupBox_food_commands.setTitle(QCoreApplication.translate("MainWindow", u"Commands", None))
         self.pushButton_food_add_with_ai.setText(QCoreApplication.translate("MainWindow", u"Add with AI", None))
         self.pushButton_food_add_by_voice.setText(QCoreApplication.translate("MainWindow", u"Add by voice", None))
-        self.pushButton_translate_with_ai.setText(QCoreApplication.translate("MainWindow", u"Translate with AI", None))
-        self.pushButton_add_as_text.setText(QCoreApplication.translate("MainWindow", u"Add As Text", None))
-        self.pushButton_show_all_records.setText(QCoreApplication.translate("MainWindow", u"Show All Records", None))
-        self.pushButton_check.setText(QCoreApplication.translate("MainWindow", u"Check", None))
         self.groupBox_food_today.setTitle(QCoreApplication.translate("MainWindow", u"Today", None))
         self.label_food_today.setText(QCoreApplication.translate("MainWindow", u"0", None))
         self.label_food_items.setText(QCoreApplication.translate("MainWindow", u"Food Items:", None))
@@ -89,6 +89,14 @@ class Ui_MainWindow(object):
         self.action_refresh.setObjectName(u"action_refresh")
         self.action_add_food_item = QAction(MainWindow)
         self.action_add_food_item.setObjectName(u"action_add_food_item")
+        self.action_translate_with_ai = QAction(MainWindow)
+        self.action_translate_with_ai.setObjectName(u"action_translate_with_ai")
+        self.action_add_as_text = QAction(MainWindow)
+        self.action_add_as_text.setObjectName(u"action_add_as_text")
+        self.action_show_all_records = QAction(MainWindow)
+        self.action_show_all_records.setObjectName(u"action_show_all_records")
+        self.action_check = QAction(MainWindow)
+        self.action_check.setObjectName(u"action_check")
         self.actionExit = QAction(MainWindow)
         self.actionExit.setObjectName(u"actionExit")
         self.actionAbout = QAction(MainWindow)
@@ -291,36 +299,6 @@ class Ui_MainWindow(object):
 "                                      }")
 
         self.verticalLayout_2.addWidget(self.pushButton_food_add_by_voice)
-
-        self.horizontalLayout_food_commands = QHBoxLayout()
-        self.horizontalLayout_food_commands.setObjectName(u"horizontalLayout_food_commands")
-        self.pushButton_translate_with_ai = QPushButton(self.groupBox_food_commands)
-        self.pushButton_translate_with_ai.setObjectName(u"pushButton_translate_with_ai")
-
-        self.horizontalLayout_food_commands.addWidget(self.pushButton_translate_with_ai)
-
-
-        self.verticalLayout_2.addLayout(self.horizontalLayout_food_commands)
-
-        self.horizontalLayout_3 = QHBoxLayout()
-        self.horizontalLayout_3.setObjectName(u"horizontalLayout_3")
-        self.pushButton_add_as_text = QPushButton(self.groupBox_food_commands)
-        self.pushButton_add_as_text.setObjectName(u"pushButton_add_as_text")
-
-        self.horizontalLayout_3.addWidget(self.pushButton_add_as_text)
-
-        self.pushButton_show_all_records = QPushButton(self.groupBox_food_commands)
-        self.pushButton_show_all_records.setObjectName(u"pushButton_show_all_records")
-
-        self.horizontalLayout_3.addWidget(self.pushButton_show_all_records)
-
-        self.pushButton_check = QPushButton(self.groupBox_food_commands)
-        self.pushButton_check.setObjectName(u"pushButton_check")
-
-        self.horizontalLayout_3.addWidget(self.pushButton_check)
-
-
-        self.verticalLayout_2.addLayout(self.horizontalLayout_3)
 
 
         self.verticalLayout_food_controls.addWidget(self.groupBox_food_commands)
@@ -528,6 +506,11 @@ class Ui_MainWindow(object):
         self.menuBar.addAction(self.menuHelp.menuAction())
         self.menuCommands.addAction(self.action_refresh)
         self.menuCommands.addAction(self.action_add_food_item)
+        self.menuCommands.addSeparator()
+        self.menuCommands.addAction(self.action_translate_with_ai)
+        self.menuCommands.addAction(self.action_add_as_text)
+        self.menuCommands.addAction(self.action_show_all_records)
+        self.menuCommands.addAction(self.action_check)
         self.menuFile.addAction(self.actionExit)
         self.menuHelp.addAction(self.actionAbout)
 
@@ -557,6 +540,10 @@ def retranslateUi(self, MainWindow):
         MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", u"Food tracker", None))
         self.action_refresh.setText(QCoreApplication.translate("MainWindow", u"Refresh", None))
         self.action_add_food_item.setText(QCoreApplication.translate("MainWindow", u"Add Food Item", None))
+        self.action_translate_with_ai.setText(QCoreApplication.translate("MainWindow", u"Translate with AI", None))
+        self.action_add_as_text.setText(QCoreApplication.translate("MainWindow", u"Add As Text", None))
+        self.action_show_all_records.setText(QCoreApplication.translate("MainWindow", u"Show All Records", None))
+        self.action_check.setText(QCoreApplication.translate("MainWindow", u"Check", None))
         self.actionExit.setText(QCoreApplication.translate("MainWindow", u"Exit", None))
         self.actionAbout.setText(QCoreApplication.translate("MainWindow", u"About", None))
         self.groupBox_food_add.setTitle(QCoreApplication.translate("MainWindow", u"Add Food Entry", None))
@@ -574,10 +561,6 @@ def retranslateUi(self, MainWindow):
         self.groupBox_food_commands.setTitle(QCoreApplication.translate("MainWindow", u"Commands", None))
         self.pushButton_food_add_with_ai.setText(QCoreApplication.translate("MainWindow", u"Add with AI", None))
         self.pushButton_food_add_by_voice.setText(QCoreApplication.translate("MainWindow", u"Add by voice", None))
-        self.pushButton_translate_with_ai.setText(QCoreApplication.translate("MainWindow", u"Translate with AI", None))
-        self.pushButton_add_as_text.setText(QCoreApplication.translate("MainWindow", u"Add As Text", None))
-        self.pushButton_show_all_records.setText(QCoreApplication.translate("MainWindow", u"Show All Records", None))
-        self.pushButton_check.setText(QCoreApplication.translate("MainWindow", u"Check", None))
         self.groupBox_food_today.setTitle(QCoreApplication.translate("MainWindow", u"Today", None))
         self.label_food_today.setText(QCoreApplication.translate("MainWindow", u"0", None))
         self.label_food_items.setText(QCoreApplication.translate("MainWindow", u"Food Items:", None))
@@ -626,6 +609,14 @@ def setupUi(self, MainWindow):
         self.action_refresh.setObjectName(u"action_refresh")
         self.action_add_food_item = QAction(MainWindow)
         self.action_add_food_item.setObjectName(u"action_add_food_item")
+        self.action_translate_with_ai = QAction(MainWindow)
+        self.action_translate_with_ai.setObjectName(u"action_translate_with_ai")
+        self.action_add_as_text = QAction(MainWindow)
+        self.action_add_as_text.setObjectName(u"action_add_as_text")
+        self.action_show_all_records = QAction(MainWindow)
+        self.action_show_all_records.setObjectName(u"action_show_all_records")
+        self.action_check = QAction(MainWindow)
+        self.action_check.setObjectName(u"action_check")
         self.actionExit = QAction(MainWindow)
         self.actionExit.setObjectName(u"actionExit")
         self.actionAbout = QAction(MainWindow)
@@ -828,36 +819,6 @@ def setupUi(self, MainWindow):
 "                                      }")
 
         self.verticalLayout_2.addWidget(self.pushButton_food_add_by_voice)
-
-        self.horizontalLayout_food_commands = QHBoxLayout()
-        self.horizontalLayout_food_commands.setObjectName(u"horizontalLayout_food_commands")
-        self.pushButton_translate_with_ai = QPushButton(self.groupBox_food_commands)
-        self.pushButton_translate_with_ai.setObjectName(u"pushButton_translate_with_ai")
-
-        self.horizontalLayout_food_commands.addWidget(self.pushButton_translate_with_ai)
-
-
-        self.verticalLayout_2.addLayout(self.horizontalLayout_food_commands)
-
-        self.horizontalLayout_3 = QHBoxLayout()
-        self.horizontalLayout_3.setObjectName(u"horizontalLayout_3")
-        self.pushButton_add_as_text = QPushButton(self.groupBox_food_commands)
-        self.pushButton_add_as_text.setObjectName(u"pushButton_add_as_text")
-
-        self.horizontalLayout_3.addWidget(self.pushButton_add_as_text)
-
-        self.pushButton_show_all_records = QPushButton(self.groupBox_food_commands)
-        self.pushButton_show_all_records.setObjectName(u"pushButton_show_all_records")
-
-        self.horizontalLayout_3.addWidget(self.pushButton_show_all_records)
-
-        self.pushButton_check = QPushButton(self.groupBox_food_commands)
-        self.pushButton_check.setObjectName(u"pushButton_check")
-
-        self.horizontalLayout_3.addWidget(self.pushButton_check)
-
-
-        self.verticalLayout_2.addLayout(self.horizontalLayout_3)
 
 
         self.verticalLayout_food_controls.addWidget(self.groupBox_food_commands)
@@ -1065,6 +1026,11 @@ def setupUi(self, MainWindow):
         self.menuBar.addAction(self.menuHelp.menuAction())
         self.menuCommands.addAction(self.action_refresh)
         self.menuCommands.addAction(self.action_add_food_item)
+        self.menuCommands.addSeparator()
+        self.menuCommands.addAction(self.action_translate_with_ai)
+        self.menuCommands.addAction(self.action_add_as_text)
+        self.menuCommands.addAction(self.action_show_all_records)
+        self.menuCommands.addAction(self.action_check)
         self.menuFile.addAction(self.actionExit)
         self.menuHelp.addAction(self.actionAbout)
 

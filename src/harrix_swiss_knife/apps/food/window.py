@@ -25,6 +25,57 @@ from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox, QDateEdit,
     QVBoxLayout, QWidget)
 
 class Ui_MainWindow(object):
+    # setupUi
+
+    def retranslateUi(self, MainWindow):
+        MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", u"Food tracker", None))
+        self.action_refresh.setText(QCoreApplication.translate("MainWindow", u"Refresh", None))
+        self.action_add_food_item.setText(QCoreApplication.translate("MainWindow", u"Add Food Item", None))
+        self.action_translate_with_ai.setText(QCoreApplication.translate("MainWindow", u"Translate with AI", None))
+        self.action_add_as_text.setText(QCoreApplication.translate("MainWindow", u"Add As Text", None))
+        self.action_show_all_records.setText(QCoreApplication.translate("MainWindow", u"Show All Records", None))
+        self.action_check.setText(QCoreApplication.translate("MainWindow", u"Check", None))
+        self.actionExit.setText(QCoreApplication.translate("MainWindow", u"Exit", None))
+        self.actionAbout.setText(QCoreApplication.translate("MainWindow", u"About", None))
+        self.groupBox_food_add.setTitle(QCoreApplication.translate("MainWindow", u"Add Food Entry", None))
+        self.lineEdit_food_manual_name.setPlaceholderText(QCoreApplication.translate("MainWindow", u"Enter food name", None))
+        self.pushButton_kcal_with_ai.setText("")
+        self.pushButton_food_manual_name_clear.setText("")
+        self.label_food_weight_unit.setText(QCoreApplication.translate("MainWindow", u"g", None))
+        self.label_food_calories.setText(QCoreApplication.translate("MainWindow", u"kcal", None))
+        self.checkBox_food_is_drink.setText(QCoreApplication.translate("MainWindow", u"Drink", None))
+        self.radioButton_use_weight.setText(QCoreApplication.translate("MainWindow", u"Calculate by weight", None))
+        self.radioButton_use_calories.setText(QCoreApplication.translate("MainWindow", u"Enter calories directly", None))
+        self.label_food_calories_calc.setText(QCoreApplication.translate("MainWindow", u"Calculated calories: 0", None))
+        self.dateEdit_food.setDisplayFormat(QCoreApplication.translate("MainWindow", u"yyyy-MM-dd", None))
+        self.pushButton_food_add.setText(QCoreApplication.translate("MainWindow", u"Add Food", None))
+        self.groupBox_food_commands.setTitle(QCoreApplication.translate("MainWindow", u"Commands", None))
+        self.pushButton_food_add_with_ai.setText(QCoreApplication.translate("MainWindow", u"Add with AI", None))
+        self.pushButton_food_add_by_voice.setText(QCoreApplication.translate("MainWindow", u"Add by voice", None))
+        self.groupBox_food_today.setTitle(QCoreApplication.translate("MainWindow", u"Today", None))
+        self.label_food_today.setText(QCoreApplication.translate("MainWindow", u"0", None))
+        self.label_food_items.setText(QCoreApplication.translate("MainWindow", u"Food Items:", None))
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_food), QCoreApplication.translate("MainWindow", u"Food", None))
+        self.label.setText(QCoreApplication.translate("MainWindow", u"Kcal per day:", None))
+        self.label_food_stats_from.setText(QCoreApplication.translate("MainWindow", u"From:", None))
+        self.dateEdit_food_stats_from.setDisplayFormat(QCoreApplication.translate("MainWindow", u"yyyy-MM-dd", None))
+        self.label_food_stats_to.setText(QCoreApplication.translate("MainWindow", u"To:", None))
+        self.dateEdit_food_stats_to.setDisplayFormat(QCoreApplication.translate("MainWindow", u"yyyy-MM-dd", None))
+        self.pushButton_food_stats_last_week.setText(QCoreApplication.translate("MainWindow", u"Last Week", None))
+        self.pushButton_food_stats_last_month.setText(QCoreApplication.translate("MainWindow", u"Last Month", None))
+        self.pushButton_food_stats_last_year.setText(QCoreApplication.translate("MainWindow", u"Last Year", None))
+        self.pushButton_food_stats_all_time.setText(QCoreApplication.translate("MainWindow", u"All Time", None))
+        self.pushButton_food_stats_update.setText(QCoreApplication.translate("MainWindow", u"Update Chart", None))
+        self.comboBox_food_stats_period.setItemText(0, QCoreApplication.translate("MainWindow", u"Days", None))
+        self.comboBox_food_stats_period.setItemText(1, QCoreApplication.translate("MainWindow", u"Months", None))
+        self.comboBox_food_stats_period.setItemText(2, QCoreApplication.translate("MainWindow", u"Years", None))
+
+        self.pushButton_food_stats_food_weight.setText(QCoreApplication.translate("MainWindow", u"Food Weight Chart", None))
+        self.pushButton_food_stats_drink.setText(QCoreApplication.translate("MainWindow", u"Drinks Chart", None))
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_food_stats), QCoreApplication.translate("MainWindow", u"Food Statistics", None))
+        self.menuCommands.setTitle(QCoreApplication.translate("MainWindow", u"Commands", None))
+        self.menuFile.setTitle(QCoreApplication.translate("MainWindow", u"File", None))
+        self.menuHelp.setTitle(QCoreApplication.translate("MainWindow", u"Help", None))
     def setupUi(self, MainWindow):
         if not MainWindow.objectName():
             MainWindow.setObjectName(u"MainWindow")
@@ -33,6 +84,14 @@ class Ui_MainWindow(object):
         self.action_refresh.setObjectName(u"action_refresh")
         self.action_add_food_item = QAction(MainWindow)
         self.action_add_food_item.setObjectName(u"action_add_food_item")
+        self.action_translate_with_ai = QAction(MainWindow)
+        self.action_translate_with_ai.setObjectName(u"action_translate_with_ai")
+        self.action_add_as_text = QAction(MainWindow)
+        self.action_add_as_text.setObjectName(u"action_add_as_text")
+        self.action_show_all_records = QAction(MainWindow)
+        self.action_show_all_records.setObjectName(u"action_show_all_records")
+        self.action_check = QAction(MainWindow)
+        self.action_check.setObjectName(u"action_check")
         self.actionExit = QAction(MainWindow)
         self.actionExit.setObjectName(u"actionExit")
         self.actionAbout = QAction(MainWindow)
@@ -235,36 +294,6 @@ class Ui_MainWindow(object):
 "                                      }")
 
         self.verticalLayout_2.addWidget(self.pushButton_food_add_by_voice)
-
-        self.horizontalLayout_food_commands = QHBoxLayout()
-        self.horizontalLayout_food_commands.setObjectName(u"horizontalLayout_food_commands")
-        self.pushButton_translate_with_ai = QPushButton(self.groupBox_food_commands)
-        self.pushButton_translate_with_ai.setObjectName(u"pushButton_translate_with_ai")
-
-        self.horizontalLayout_food_commands.addWidget(self.pushButton_translate_with_ai)
-
-
-        self.verticalLayout_2.addLayout(self.horizontalLayout_food_commands)
-
-        self.horizontalLayout_3 = QHBoxLayout()
-        self.horizontalLayout_3.setObjectName(u"horizontalLayout_3")
-        self.pushButton_add_as_text = QPushButton(self.groupBox_food_commands)
-        self.pushButton_add_as_text.setObjectName(u"pushButton_add_as_text")
-
-        self.horizontalLayout_3.addWidget(self.pushButton_add_as_text)
-
-        self.pushButton_show_all_records = QPushButton(self.groupBox_food_commands)
-        self.pushButton_show_all_records.setObjectName(u"pushButton_show_all_records")
-
-        self.horizontalLayout_3.addWidget(self.pushButton_show_all_records)
-
-        self.pushButton_check = QPushButton(self.groupBox_food_commands)
-        self.pushButton_check.setObjectName(u"pushButton_check")
-
-        self.horizontalLayout_3.addWidget(self.pushButton_check)
-
-
-        self.verticalLayout_2.addLayout(self.horizontalLayout_3)
 
 
         self.verticalLayout_food_controls.addWidget(self.groupBox_food_commands)
@@ -472,6 +501,11 @@ class Ui_MainWindow(object):
         self.menuBar.addAction(self.menuHelp.menuAction())
         self.menuCommands.addAction(self.action_refresh)
         self.menuCommands.addAction(self.action_add_food_item)
+        self.menuCommands.addSeparator()
+        self.menuCommands.addAction(self.action_translate_with_ai)
+        self.menuCommands.addAction(self.action_add_as_text)
+        self.menuCommands.addAction(self.action_show_all_records)
+        self.menuCommands.addAction(self.action_check)
         self.menuFile.addAction(self.actionExit)
         self.menuHelp.addAction(self.actionAbout)
 
@@ -481,56 +515,4 @@ class Ui_MainWindow(object):
 
 
         QMetaObject.connectSlotsByName(MainWindow)
-    # setupUi
-
-    def retranslateUi(self, MainWindow):
-        MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", u"Food tracker", None))
-        self.action_refresh.setText(QCoreApplication.translate("MainWindow", u"Refresh", None))
-        self.action_add_food_item.setText(QCoreApplication.translate("MainWindow", u"Add Food Item", None))
-        self.actionExit.setText(QCoreApplication.translate("MainWindow", u"Exit", None))
-        self.actionAbout.setText(QCoreApplication.translate("MainWindow", u"About", None))
-        self.groupBox_food_add.setTitle(QCoreApplication.translate("MainWindow", u"Add Food Entry", None))
-        self.lineEdit_food_manual_name.setPlaceholderText(QCoreApplication.translate("MainWindow", u"Enter food name", None))
-        self.pushButton_kcal_with_ai.setText("")
-        self.pushButton_food_manual_name_clear.setText("")
-        self.label_food_weight_unit.setText(QCoreApplication.translate("MainWindow", u"g", None))
-        self.label_food_calories.setText(QCoreApplication.translate("MainWindow", u"kcal", None))
-        self.checkBox_food_is_drink.setText(QCoreApplication.translate("MainWindow", u"Drink", None))
-        self.radioButton_use_weight.setText(QCoreApplication.translate("MainWindow", u"Calculate by weight", None))
-        self.radioButton_use_calories.setText(QCoreApplication.translate("MainWindow", u"Enter calories directly", None))
-        self.label_food_calories_calc.setText(QCoreApplication.translate("MainWindow", u"Calculated calories: 0", None))
-        self.dateEdit_food.setDisplayFormat(QCoreApplication.translate("MainWindow", u"yyyy-MM-dd", None))
-        self.pushButton_food_add.setText(QCoreApplication.translate("MainWindow", u"Add Food", None))
-        self.groupBox_food_commands.setTitle(QCoreApplication.translate("MainWindow", u"Commands", None))
-        self.pushButton_food_add_with_ai.setText(QCoreApplication.translate("MainWindow", u"Add with AI", None))
-        self.pushButton_food_add_by_voice.setText(QCoreApplication.translate("MainWindow", u"Add by voice", None))
-        self.pushButton_translate_with_ai.setText(QCoreApplication.translate("MainWindow", u"Translate with AI", None))
-        self.pushButton_add_as_text.setText(QCoreApplication.translate("MainWindow", u"Add As Text", None))
-        self.pushButton_show_all_records.setText(QCoreApplication.translate("MainWindow", u"Show All Records", None))
-        self.pushButton_check.setText(QCoreApplication.translate("MainWindow", u"Check", None))
-        self.groupBox_food_today.setTitle(QCoreApplication.translate("MainWindow", u"Today", None))
-        self.label_food_today.setText(QCoreApplication.translate("MainWindow", u"0", None))
-        self.label_food_items.setText(QCoreApplication.translate("MainWindow", u"Food Items:", None))
-        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_food), QCoreApplication.translate("MainWindow", u"Food", None))
-        self.label.setText(QCoreApplication.translate("MainWindow", u"Kcal per day:", None))
-        self.label_food_stats_from.setText(QCoreApplication.translate("MainWindow", u"From:", None))
-        self.dateEdit_food_stats_from.setDisplayFormat(QCoreApplication.translate("MainWindow", u"yyyy-MM-dd", None))
-        self.label_food_stats_to.setText(QCoreApplication.translate("MainWindow", u"To:", None))
-        self.dateEdit_food_stats_to.setDisplayFormat(QCoreApplication.translate("MainWindow", u"yyyy-MM-dd", None))
-        self.pushButton_food_stats_last_week.setText(QCoreApplication.translate("MainWindow", u"Last Week", None))
-        self.pushButton_food_stats_last_month.setText(QCoreApplication.translate("MainWindow", u"Last Month", None))
-        self.pushButton_food_stats_last_year.setText(QCoreApplication.translate("MainWindow", u"Last Year", None))
-        self.pushButton_food_stats_all_time.setText(QCoreApplication.translate("MainWindow", u"All Time", None))
-        self.pushButton_food_stats_update.setText(QCoreApplication.translate("MainWindow", u"Update Chart", None))
-        self.comboBox_food_stats_period.setItemText(0, QCoreApplication.translate("MainWindow", u"Days", None))
-        self.comboBox_food_stats_period.setItemText(1, QCoreApplication.translate("MainWindow", u"Months", None))
-        self.comboBox_food_stats_period.setItemText(2, QCoreApplication.translate("MainWindow", u"Years", None))
-
-        self.pushButton_food_stats_food_weight.setText(QCoreApplication.translate("MainWindow", u"Food Weight Chart", None))
-        self.pushButton_food_stats_drink.setText(QCoreApplication.translate("MainWindow", u"Drinks Chart", None))
-        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_food_stats), QCoreApplication.translate("MainWindow", u"Food Statistics", None))
-        self.menuCommands.setTitle(QCoreApplication.translate("MainWindow", u"Commands", None))
-        self.menuFile.setTitle(QCoreApplication.translate("MainWindow", u"File", None))
-        self.menuHelp.setTitle(QCoreApplication.translate("MainWindow", u"Help", None))
-    # retranslateUi
 
