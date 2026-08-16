@@ -11,6 +11,7 @@ from harrix_swiss_knife.paths import get_config_path_str, get_temp_config_path
 
 ICON_SIZE_KEY = "vector_icons_icon_size"
 CATEGORY_ICONS_KEY = "vector_icons_category_icons"
+LAST_ICONS_KEY = "vector_icons_last_icons"
 RECENT_FOLDERS_KEY = "vector_icons_recent_folders"
 PINNED_FOLDERS_KEY = "path_vector_icons_pinned"
 RECENT_FOLDERS_MAX_KEY = "vector_icons_recent_folders_max"
@@ -82,6 +83,30 @@ def load_icon_size() -> int:
     except (FileNotFoundError, OSError, ValueError):
         return ICON_SIZE_DEFAULT
     return clamp_icon_size(config.get(ICON_SIZE_KEY, ICON_SIZE_DEFAULT))
+
+
+def load_last_icon(folder: Path) -> str | None:
+    """Return the last selected family ID for `folder`, if stored."""
+    family_id = load_last_icons().get(_folder_key(folder), "").strip()
+    return family_id or None
+
+
+def load_last_icons() -> dict[str, str]:
+    """Load folder → last family-id map from `config-temp.json`."""
+    try:
+        config = h.dev.config_load(get_config_path_str(), is_temp=True)
+    except (FileNotFoundError, OSError, ValueError):
+        return {}
+    raw = config.get(LAST_ICONS_KEY)
+    if not isinstance(raw, dict):
+        return {}
+    result: dict[str, str] = {}
+    for key, value in raw.items():
+        folder = str(key).strip()
+        family_id = str(value).strip()
+        if folder and family_id:
+            result[folder] = family_id
+    return result
 
 
 def load_pinned_folders() -> list[Path]:
@@ -196,6 +221,22 @@ def save_icon_size(size: int) -> None:
     )
 
 
+def save_last_icon(folder: Path, family_id: str) -> None:
+    """Remember `family_id` as the last selected icon in `folder`."""
+    cleaned_id = family_id.strip()
+    if not cleaned_id:
+        return
+    mapping = load_last_icons()
+    mapping[_folder_key(folder)] = cleaned_id
+    _ensure_temp_config()
+    h.dev.config_update_value(
+        LAST_ICONS_KEY,
+        mapping,
+        get_config_path_str(),
+        is_temp=True,
+    )
+
+
 def set_category_icon(category: str, family_id: str) -> dict[str, str]:
     """Assign `family_id` as the icon for `category` and persist the map."""
     mapping = load_category_icons()
@@ -209,6 +250,13 @@ def _ensure_temp_config() -> None:
     temp_config_path.parent.mkdir(parents=True, exist_ok=True)
     if not temp_config_path.exists() or temp_config_path.stat().st_size == 0:
         temp_config_path.write_text("{}", encoding="utf-8")
+
+
+def _folder_key(path: Path) -> str:
+    try:
+        return str(path.expanduser().resolve())
+    except OSError:
+        return str(path)
 
 
 def _parse_path_list(raw: object) -> list[Path]:

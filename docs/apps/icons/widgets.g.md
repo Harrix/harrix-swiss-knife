@@ -14,6 +14,7 @@ lang: en
 - [🏛️ Class `DraggableIconList`](#%EF%B8%8F-class-draggableiconlist)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `preview_paths`](#%EF%B8%8F-method-preview_paths)
+  - [⚙️ Method `select_family`](#%EF%B8%8F-method-select_family)
   - [⚙️ Method `selected_keyword_targets`](#%EF%B8%8F-method-selected_keyword_targets)
   - [⚙️ Method `set_display_icon_size`](#%EF%B8%8F-method-set_display_icon_size)
   - [⚙️ Method `set_family_items`](#%EF%B8%8F-method-set_family_items)
@@ -111,6 +112,20 @@ class DraggableIconList(QListWidget):
                 if path.is_file():
                     paths.append(path)
         return paths
+
+    def select_family(self, family_id: str) -> bool:
+        """Select the first tile for `family_id` and scroll it into view."""
+        for index in range(self.count()):
+            item = self.item(index)
+            if item is None:
+                continue
+            family = item.data(Qt.ItemDataRole.UserRole)
+            if getattr(family, "id", None) != family_id:
+                continue
+            self.setCurrentItem(item)
+            self.scrollToItem(item, QAbstractItemView.ScrollHint.PositionAtCenter)
+            return True
+        return False
 
     def selected_keyword_targets(self) -> list[tuple[IconFamily, str]]:
         """Return unique selected families with an SVG path, in display order."""
@@ -419,6 +434,34 @@ def preview_paths(self) -> list[Path]:
                 if path.is_file():
                     paths.append(path)
         return paths
+```
+
+</details>
+
+### ⚙️ Method `select_family`
+
+```python
+def select_family(self, family_id: str) -> bool
+```
+
+Select the first tile for `family_id` and scroll it into view.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def select_family(self, family_id: str) -> bool:
+        for index in range(self.count()):
+            item = self.item(index)
+            if item is None:
+                continue
+            family = item.data(Qt.ItemDataRole.UserRole)
+            if getattr(family, "id", None) != family_id:
+                continue
+            self.setCurrentItem(item)
+            self.scrollToItem(item, QAbstractItemView.ScrollHint.PositionAtCenter)
+            return True
+        return False
 ```
 
 </details>

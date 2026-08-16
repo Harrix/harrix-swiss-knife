@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 from PySide6.QtCore import QMimeData, QModelIndex, QPersistentModelIndex, QPoint, QRect, QSize, Qt, QUrl, Signal
 from PySide6.QtGui import QColor, QDrag, QFont, QIcon, QPainter, QPixmap, QResizeEvent
 from PySide6.QtWidgets import (
+    QAbstractItemView,
     QLabel,
     QListWidget,
     QListWidgetItem,
@@ -103,6 +104,20 @@ class DraggableIconList(QListWidget):
                 if path.is_file():
                     paths.append(path)
         return paths
+
+    def select_family(self, family_id: str) -> bool:
+        """Select the first tile for `family_id` and scroll it into view."""
+        for index in range(self.count()):
+            item = self.item(index)
+            if item is None:
+                continue
+            family = item.data(Qt.ItemDataRole.UserRole)
+            if getattr(family, "id", None) != family_id:
+                continue
+            self.setCurrentItem(item)
+            self.scrollToItem(item, QAbstractItemView.ScrollHint.PositionAtCenter)
+            return True
+        return False
 
     def selected_keyword_targets(self) -> list[tuple[IconFamily, str]]:
         """Return unique selected families with an SVG path, in display order."""

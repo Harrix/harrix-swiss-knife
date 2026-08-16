@@ -15,6 +15,8 @@ lang: en
 - [🔧 Function `clamp_recent_folders_max`](#-function-clamp_recent_folders_max)
 - [🔧 Function `load_category_icons`](#-function-load_category_icons)
 - [🔧 Function `load_icon_size`](#-function-load_icon_size)
+- [🔧 Function `load_last_icon`](#-function-load_last_icon)
+- [🔧 Function `load_last_icons`](#-function-load_last_icons)
 - [🔧 Function `load_pinned_folders`](#-function-load_pinned_folders)
 - [🔧 Function `load_recent_folders`](#-function-load_recent_folders)
 - [🔧 Function `load_recent_folders_max`](#-function-load_recent_folders_max)
@@ -22,6 +24,7 @@ lang: en
 - [🔧 Function `remember_recent_folder`](#-function-remember_recent_folder)
 - [🔧 Function `save_category_icons`](#-function-save_category_icons)
 - [🔧 Function `save_icon_size`](#-function-save_icon_size)
+- [🔧 Function `save_last_icon`](#-function-save_last_icon)
 - [🔧 Function `set_category_icon`](#-function-set_category_icon)
 
 </details>
@@ -137,6 +140,56 @@ def load_icon_size() -> int:
     except (FileNotFoundError, OSError, ValueError):
         return ICON_SIZE_DEFAULT
     return clamp_icon_size(config.get(ICON_SIZE_KEY, ICON_SIZE_DEFAULT))
+```
+
+</details>
+
+## 🔧 Function `load_last_icon`
+
+```python
+def load_last_icon(folder: Path) -> str | None
+```
+
+Return the last selected family ID for `folder`, if stored.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def load_last_icon(folder: Path) -> str | None:
+    family_id = load_last_icons().get(_folder_key(folder), "").strip()
+    return family_id or None
+```
+
+</details>
+
+## 🔧 Function `load_last_icons`
+
+```python
+def load_last_icons() -> dict[str, str]
+```
+
+Load folder → last family-id map from `config-temp.json`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def load_last_icons() -> dict[str, str]:
+    try:
+        config = h.dev.config_load(get_config_path_str(), is_temp=True)
+    except (FileNotFoundError, OSError, ValueError):
+        return {}
+    raw = config.get(LAST_ICONS_KEY)
+    if not isinstance(raw, dict):
+        return {}
+    result: dict[str, str] = {}
+    for key, value in raw.items():
+        folder = str(key).strip()
+        family_id = str(value).strip()
+        if folder and family_id:
+            result[folder] = family_id
+    return result
 ```
 
 </details>
@@ -335,6 +388,35 @@ def save_icon_size(size: int) -> None:
     h.dev.config_update_value(
         ICON_SIZE_KEY,
         clamp_icon_size(size),
+        get_config_path_str(),
+        is_temp=True,
+    )
+```
+
+</details>
+
+## 🔧 Function `save_last_icon`
+
+```python
+def save_last_icon(folder: Path, family_id: str) -> None
+```
+
+Remember `family_id` as the last selected icon in `folder`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def save_last_icon(folder: Path, family_id: str) -> None:
+    cleaned_id = family_id.strip()
+    if not cleaned_id:
+        return
+    mapping = load_last_icons()
+    mapping[_folder_key(folder)] = cleaned_id
+    _ensure_temp_config()
+    h.dev.config_update_value(
+        LAST_ICONS_KEY,
+        mapping,
         get_config_path_str(),
         is_temp=True,
     )

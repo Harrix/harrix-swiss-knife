@@ -733,7 +733,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         toast = toast_notification.ToastNotification(message, duration=2000, parent=self)
         toast.present()
 
-    def _on_family_selected(self, family: object) -> None:
+    def _on_family_selected(self, family: object, *, persist: bool = True) -> None:
         if family is None:
             self._selected_family_id = None
             self.variants_panel.clear_variants()
@@ -746,6 +746,8 @@ class MainWindow(QMainWindow, AppWindowMixin):
             if match is not None:
                 chosen = match
         self._selected_family_id = chosen.id
+        if persist:
+            save_last_icon(self._repo_root, chosen.id)
         self.variants_panel.show_family(chosen, self._repo_root)
         self.statusBar().showMessage(f"{chosen.id}: {len(chosen.variants)} variants")
 
@@ -1040,7 +1042,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._close_variant_progress_toast()
         self._repo_root = catalog.repo_root
         self._catalog = catalog
-        self._selected_family_id = None
+        self._selected_family_id = load_last_icon(catalog.repo_root)
         self._current_category = None
         self._variant_pixmaps.clear()
         self._thumb_cache = ThumbnailCache(cache_dir=cache_dir_for_root(catalog.repo_root), size=DEFAULT_THUMB_SIZE)
@@ -1203,17 +1205,16 @@ class MainWindow(QMainWindow, AppWindowMixin):
         if target_id is None:
             self.variants_panel.clear_variants()
             return
-        for index, family in enumerate(families):
+        for family in families:
             if family.id != target_id:
                 continue
-            item = self.icon_list.item(index)
-            if item is None:
-                break
             self.icon_list.blockSignals(True)  # noqa: FBT003
-            self.icon_list.setCurrentItem(item)
+            selected = self.icon_list.select_family(family.id)
             self.icon_list.blockSignals(False)  # noqa: FBT003
-            self._on_family_selected(family)
-            return
+            if selected:
+                self._on_family_selected(family, persist=False)
+                return
+            break
         self._selected_family_id = None
         self.variants_panel.clear_variants()
 
