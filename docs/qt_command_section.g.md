@@ -12,6 +12,7 @@ lang: en
 ## Contents
 
 - [🔧 Function `apply_opaque_white`](#-function-apply_opaque_white)
+- [🔧 Function `count_icon_grid_first_row`](#-function-count_icon_grid_first_row)
 - [🔧 Function `create_command_section`](#-function-create_command_section)
 - [🔧 Function `fit_icon_grid_height`](#-function-fit_icon_grid_height)
 - [🔧 Function `measure_icon_grid_height`](#-function-measure_icon_grid_height)
@@ -39,6 +40,39 @@ def apply_opaque_white(widget: QWidget) -> None:
     palette.setColor(QPalette.ColorRole.Base, white)
     widget.setAutoFillBackground(True)
     widget.setPalette(palette)
+```
+
+</details>
+
+## 🔧 Function `count_icon_grid_first_row`
+
+```python
+def count_icon_grid_first_row(grid: QListWidget) -> int
+```
+
+Return how many icon cards Qt placed on the first row.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def count_icon_grid_first_row(grid: QListWidget) -> int:
+    if grid.count() == 0:
+        return 0
+    grid.doItemsLayout()
+    first = grid.item(0)
+    if first is None:
+        return 0
+    first_top = grid.visualItemRect(first).top()
+    count = 0
+    for index in range(grid.count()):
+        item = grid.item(index)
+        if item is None:
+            continue
+        if grid.visualItemRect(item).top() > first_top + 4:
+            break
+        count += 1
+    return count
 ```
 
 </details>

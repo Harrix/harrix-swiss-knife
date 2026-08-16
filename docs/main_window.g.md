@@ -422,6 +422,13 @@ class MainWindow(QMainWindow):
 
     def _recent_column_count(self) -> int:
         """Return how many Recent cards fit in one catalog row."""
+        laid_out = 0
+        for section in self._sections:
+            if not section.show_in_list or section.grid is None or not section.grid.isVisible():
+                continue
+            laid_out = max(laid_out, count_icon_grid_first_row(section.grid))
+        if laid_out > 0:
+            return laid_out
         return described_card_column_count(self._cards_row_width())
 
     def _recent_gui_actions(self) -> list[QAction]:

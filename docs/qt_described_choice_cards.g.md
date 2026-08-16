@@ -497,10 +497,7 @@ Return how many described cards fit in one row at `available_width`.
 
 ```python
 def described_card_column_count(available_width: int) -> int:
-    if available_width <= 0:
-        return 1
-    metrics = resolve_described_card_metrics(available_width)
-    return max(1, (available_width + CARD_SPACING) // (metrics.width + CARD_SPACING))
+    return _described_card_row_plan(available_width)[0]
 ```
 
 </details>
@@ -647,22 +644,7 @@ Args:
 
 ```python
 def resolve_described_card_metrics(available_width: int) -> DescribedCardMetrics:
-    if available_width <= 0:
-        return metrics_for_scale(1.0)
-
-    spacing = CARD_SPACING
-    base_width = DESCRIBED_CARD_WIDTH
-    # IconMode pitch: n * cell + (n - 1) * spacing <= available.
-    columns_full = max(1, (available_width + spacing) // (base_width + spacing))
-    columns_extra = columns_full + 1
-    width_for_extra = columns_extra * base_width + (columns_extra - 1) * spacing
-    if width_for_extra <= available_width:
-        return metrics_for_scale(1.0)
-
-    scale_for_extra = (available_width - (columns_extra - 1) * spacing) / (columns_extra * base_width)
-    if scale_for_extra < 1.0 and scale_for_extra >= DESCRIBED_CARD_MIN_SCALE:
-        return metrics_for_scale(scale_for_extra)
-    return metrics_for_scale(1.0)
+    return _described_card_row_plan(available_width)[1]
 ```
 
 </details>

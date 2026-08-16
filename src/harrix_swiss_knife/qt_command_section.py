@@ -32,6 +32,26 @@ def apply_opaque_white(widget: QWidget) -> None:
     widget.setPalette(palette)
 
 
+def count_icon_grid_first_row(grid: QListWidget) -> int:
+    """Return how many icon cards Qt placed on the first row."""
+    if grid.count() == 0:
+        return 0
+    grid.doItemsLayout()
+    first = grid.item(0)
+    if first is None:
+        return 0
+    first_top = grid.visualItemRect(first).top()
+    count = 0
+    for index in range(grid.count()):
+        item = grid.item(index)
+        if item is None:
+            continue
+        if grid.visualItemRect(item).top() > first_top + 4:
+            break
+        count += 1
+    return count
+
+
 def create_command_section(*, title: str | None = None) -> tuple[QFrame, QLabel | None, QVBoxLayout]:
     """Create a bordered white section card for an icon command grid.
 

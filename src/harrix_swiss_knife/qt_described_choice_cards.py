@@ -247,10 +247,7 @@ def configure_described_choice_card_grid(list_widget: QListWidget, *, min_height
 
 def described_card_column_count(available_width: int) -> int:
     """Return how many described cards fit in one row at `available_width`."""
-    if available_width <= 0:
-        return 1
-    metrics = resolve_described_card_metrics(available_width)
-    return max(1, (available_width + CARD_SPACING) // (metrics.width + CARD_SPACING))
+    return _described_card_row_plan(available_width)[0]
 
 
 def described_card_metrics_of(list_widget: QListWidget) -> DescribedCardMetrics:
@@ -334,22 +331,7 @@ def resolve_described_card_metrics(available_width: int) -> DescribedCardMetrics
     - `available_width` (`int`): Grid viewport width in pixels.
 
     """
-    if available_width <= 0:
-        return metrics_for_scale(1.0)
-
-    spacing = CARD_SPACING
-    base_width = DESCRIBED_CARD_WIDTH
-    # IconMode pitch: n * cell + (n - 1) * spacing <= available.
-    columns_full = max(1, (available_width + spacing) // (base_width + spacing))
-    columns_extra = columns_full + 1
-    width_for_extra = columns_extra * base_width + (columns_extra - 1) * spacing
-    if width_for_extra <= available_width:
-        return metrics_for_scale(1.0)
-
-    scale_for_extra = (available_width - (columns_extra - 1) * spacing) / (columns_extra * base_width)
-    if scale_for_extra < 1.0 and scale_for_extra >= DESCRIBED_CARD_MIN_SCALE:
-        return metrics_for_scale(scale_for_extra)
-    return metrics_for_scale(1.0)
+    return _described_card_row_plan(available_width)[1]
 
 
 def sync_described_choice_card_grid(list_widget: QListWidget) -> bool:
@@ -382,6 +364,31 @@ def _apply_fitted_grid_height(list_widget: QListWidget, metrics: DescribedCardMe
         if isinstance(widget, DescribedChoiceCard):
             widget.setFixedHeight(fitted.height - CARD_SPACING)
     return fitted
+
+
+def _described_card_row_plan(available_width: int) -> tuple[int, DescribedCardMetrics]:
+    """Return `(columns, metrics)` for one row at `available_width`.
+
+    When cards shrink to fit an extra column, the column count stays that extra
+    value even if rounded cell pixels would integer-divide back down.
+
+    """
+    if available_width <= 0:
+        return 1, metrics_for_scale(1.0)
+
+    spacing = CARD_SPACING
+    base_width = DESCRIBED_CARD_WIDTH
+    # IconMode pitch: n * cell + (n - 1) * spacing <= available.
+    columns_full = max(1, (available_width + spacing) // (base_width + spacing))
+    columns_extra = columns_full + 1
+    width_for_extra = columns_extra * base_width + (columns_extra - 1) * spacing
+    if width_for_extra <= available_width:
+        return columns_full, metrics_for_scale(1.0)
+
+    scale_for_extra = (available_width - (columns_extra - 1) * spacing) / (columns_extra * base_width)
+    if DESCRIBED_CARD_MIN_SCALE <= scale_for_extra < 1.0:
+        return columns_extra, metrics_for_scale(scale_for_extra)
+    return columns_full, metrics_for_scale(1.0)
 
 
 def _described_cards(list_widget: QListWidget) -> Iterator[tuple[QListWidgetItem, DescribedChoiceCard]]:
