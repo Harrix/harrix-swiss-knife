@@ -87,6 +87,10 @@ def optimize_image_file(
         if Path(image_path).is_absolute():
             new_image_path = image_filename.with_suffix(new_ext)
             new_image_rel_path = str(new_image_path)
+        elif _keep_featured_image_in_note_root(image_filename, md_dir):
+            # Note convention: featured-image.* may live in the note root (not only img/).
+            new_image_path = md_dir / f"{image_filename.stem}{new_ext}"
+            new_image_rel_path = f"{image_filename.stem}{new_ext}"
         else:
             img_folder_path = md_dir / image_folder
             img_folder_path.mkdir(exist_ok=True)

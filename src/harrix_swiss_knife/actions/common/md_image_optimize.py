@@ -8,6 +8,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 import harrix_pylib as h
+from harrix_pylib.md_assets import is_featured_image_name
 from PIL import Image
 
 from harrix_swiss_knife.actions.common.image_optimize import (
@@ -80,6 +81,10 @@ def optimize_image_file(
         if Path(image_path).is_absolute():
             new_image_path = image_filename.with_suffix(new_ext)
             new_image_rel_path = str(new_image_path)
+        elif _keep_featured_image_in_note_root(image_filename, md_dir):
+            # Note convention: featured-image.* may live in the note root (not only img/).
+            new_image_path = md_dir / f"{image_filename.stem}{new_ext}"
+            new_image_rel_path = f"{image_filename.stem}{new_ext}"
         else:
             img_folder_path = md_dir / image_folder
             img_folder_path.mkdir(exist_ok=True)
@@ -278,6 +283,11 @@ def _is_already_optimized(image_filename: Path, ext: str, *, max_size: int | Non
         except (OSError, ValueError):
             return False
     return False
+
+
+def _keep_featured_image_in_note_root(image_filename: Path, md_dir: Path) -> bool:
+    """Return `True` when a root-level `featured-image.*` must stay beside the Markdown file."""
+    return is_featured_image_name(image_filename.name) and image_filename.parent.resolve() == md_dir.resolve()
 
 
 def _resolve_md_dir(path_md: Path | str) -> Path:
