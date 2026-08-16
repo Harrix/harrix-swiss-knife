@@ -1,9 +1,13 @@
 package dev.harrix.hsk.ui.medicinesearch
 
+import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,8 +19,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AddAPhoto
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Medication
@@ -31,6 +38,7 @@ import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
@@ -44,8 +52,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -54,6 +64,9 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import coil.size.Size
 import dev.harrix.hsk.R
 import dev.harrix.hsk.ui.AutoFitText
 import dev.harrix.hsk.ui.SimpleMarkdownText
@@ -64,6 +77,7 @@ import dev.harrix.hsk.ui.theme.hskScaffoldContentWindowInsets
 import dev.harrix.hsk.ui.theme.hskTopAppBarColors
 import dev.harrix.hsk.ui.theme.hskTopAppBarWindowInsets
 import kotlinx.coroutines.delay
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MedicineSearchScreen(
@@ -75,6 +89,7 @@ fun MedicineSearchScreen(
 ) {
     var phase by viewModel.phase
     var queryText by viewModel.queryText
+    val attachedPhotos by viewModel.attachedPhotos
     val resultText by viewModel.resultText
     var hasMedicinesFile by viewModel.hasMedicinesFile
     var errorMessage by viewModel.errorMessage
@@ -89,6 +104,7 @@ fun MedicineSearchScreen(
     val isLoadingFile = phase == MedicineSearchPhase.LoadingFile
     val busy = isSearching || isLoadingFile
     val showResult = resultText.isNotBlank()
+    val canAsk = hasApiKey && !isLoadingFile && (queryText.isNotBlank() || attachedPhotos.isNotEmpty())
 
     fun leave() {
         viewModel.resetSession()
@@ -131,8 +147,23 @@ fun MedicineSearchScreen(
             }
         }
 
+    val pickPhotos =
+        rememberLauncherForActivityResult(
+            ActivityResultContracts.PickMultipleVisualMedia(MedicineSearchViewModel.MAX_PHOTOS),
+        ) { uris ->
+            if (uris.isNotEmpty()) {
+                viewModel.addPhotos(uris)
+            }
+        }
+
     fun pickMedicinesFile() {
         openDocument.launch(arrayOf("text/markdown", "text/plain", "*/*"))
+    }
+
+    fun pickAttachedPhotos() {
+        pickPhotos.launch(
+            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
+        )
     }
 
     Scaffold(
@@ -271,13 +302,21 @@ fun MedicineSearchScreen(
                     ),
                 )
 
+                AttachedPhotosRow(
+                    photos = attachedPhotos,
+                    enabled = !busy,
+                    canAddMore = attachedPhotos.size < MedicineSearchViewModel.MAX_PHOTOS,
+                    onAdd = { pickAttachedPhotos() },
+                    onRemove = { viewModel.removePhoto(it) },
+                )
+
                 Button(
                     onClick = {
                         if (!isSearching) {
                             askBotHub()
                         }
                     },
-                    enabled = hasApiKey && queryText.isNotBlank() && !isLoadingFile,
+                    enabled = canAsk,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     if (isSearching) {
@@ -372,6 +411,91 @@ fun MedicineSearchScreen(
                 }
             },
         )
+    }
+}
+
+@Composable
+private fun AttachedPhotosRow(
+    photos: List<Uri>,
+    enabled: Boolean,
+    canAddMore: Boolean,
+    onAdd: () -> Unit,
+    onRemove: (Uri) -> Unit,
+) {
+    val context = LocalContext.current
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(
+            text = stringResource(R.string.medicine_search_photos_label),
+            style = MaterialTheme.typography.titleSmall,
+        )
+        if (photos.isNotEmpty()) {
+            Row(
+                modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                photos.forEach { uri ->
+                    Box(modifier = Modifier.size(72.dp)) {
+                        AsyncImage(
+                            model =
+                            ImageRequest
+                                .Builder(context)
+                                .data(uri)
+                                .size(Size(144, 144))
+                                .crossfade(true)
+                                .build(),
+                            contentDescription = null,
+                            modifier =
+                            Modifier
+                                .fillMaxSize()
+                                .clip(RoundedCornerShape(8.dp)),
+                            contentScale = ContentScale.Crop,
+                        )
+                        IconButton(
+                            onClick = { onRemove(uri) },
+                            enabled = enabled,
+                            modifier =
+                            Modifier
+                                .align(Alignment.TopEnd)
+                                .size(24.dp)
+                                .background(
+                                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
+                                    shape = CircleShape,
+                                ),
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Close,
+                                contentDescription =
+                                stringResource(R.string.medicine_search_remove_photo),
+                                modifier = Modifier.size(16.dp),
+                            )
+                        }
+                    }
+                }
+            }
+        }
+        OutlinedButton(
+            onClick = onAdd,
+            enabled = enabled && canAddMore,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Icon(
+                imageVector = Icons.Filled.AddAPhoto,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp),
+            )
+            Spacer(modifier = Modifier.size(8.dp))
+            AutoFitText(
+                text = stringResource(R.string.medicine_search_add_photo),
+                maxLines = 1,
+            )
+        }
     }
 }
 

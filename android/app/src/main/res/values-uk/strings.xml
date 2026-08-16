@@ -127,7 +127,7 @@
     <string name="video_cleaner_card_description">Відобразіть відео з камери за датою та видаліть вибрані з них.</string>
     <string name="photo_editor_card_description">Обрізайте і вирівнюйте фотографію. Відкрийте зображення з програми або поділіться ним тут.</string>
     <string name="speech_to_text_card_description">Запис мови, розпізнавання через AI, потім виправлення або рерайт тексту.</string>
-    <string name="medicine_search_card_description">Запитайте про симптоми — BotHub підкаже за вашим Markdown-списком або що купити.</string>
+    <string name="medicine_search_card_description">Запитайте про симптоми або надішліть фото — BotHub підкаже за вашим Markdown-списком або що купити.</string>
     <string name="medicine_search_title">Пошук за ліками</string>
     <string name="medicine_search_close">Вийти з пошуку за ліками</string>
     <string name="medicine_search_settings">Налаштування пошуку за ліками</string>
@@ -144,6 +144,10 @@
     <string name="medicine_search_open_failed">Не вдалося відкрити файл із ліками</string>
     <string name="medicine_search_query_label">Питання</string>
     <string name="medicine_search_query_hint">У мене болить голова, що з ліків прийняти?</string>
+    <string name="medicine_search_add_photo">Додати фото</string>
+    <string name="medicine_search_remove_photo">Видалити фото</string>
+    <string name="medicine_search_photos_label">Фотографії</string>
+    <string name="medicine_search_photo_failed">Не вдалося прочитати фото</string>
     <string name="medicine_search_search">Запитати BotHub</string>
     <string name="medicine_search_loading_file">Завантаження файлу з ліками…</string>
     <string name="medicine_search_searching">Запит до BotHub…</string>

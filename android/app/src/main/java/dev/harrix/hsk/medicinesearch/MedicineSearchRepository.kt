@@ -3,6 +3,7 @@ package dev.harrix.hsk.medicinesearch
 import android.content.Context
 import android.net.Uri
 import android.provider.OpenableColumns
+import dev.harrix.hsk.R
 import dev.harrix.hsk.bothub.BothubApiException
 import dev.harrix.hsk.bothub.BothubClient
 import dev.harrix.hsk.bothub.BothubConfig
@@ -53,12 +54,11 @@ class MedicineSearchRepository(
     fun search(
         medicinesMarkdown: String?,
         query: String,
+        photos: List<Uri> = emptyList(),
     ): String {
         requireApiKey()
-        val trimmed = query.trim()
-        if (trimmed.isEmpty()) {
-            throw BothubApiException("Query is empty")
-        }
+        val images = loadPhotos(photos)
+        val trimmed = resolveQuery(query, images.isNotEmpty())
         val answer =
             client.chatCompletion(
                 model = BothubConfig.model,
@@ -68,11 +68,35 @@ class MedicineSearchRepository(
                     medicinesMarkdown = medicinesMarkdown,
                     query = trimmed,
                 ),
+                images = images.takeIf { it.isNotEmpty() },
             )
         if (answer.isBlank()) {
             throw BothubApiException("Empty response from BotHub")
         }
         return answer
+    }
+
+    private fun loadPhotos(photos: List<Uri>): List<Pair<ByteArray, String>> = photos.map { uri ->
+        runCatching { MedicineSearchImages.loadForAi(context, uri) }.getOrElse { error ->
+            throw BothubApiException(
+                context.getString(R.string.medicine_search_photo_failed),
+                error,
+            )
+        }
+    }
+
+    private fun resolveQuery(
+        query: String,
+        hasPhotos: Boolean,
+    ): String {
+        val trimmed = query.trim()
+        if (trimmed.isNotEmpty()) {
+            return trimmed
+        }
+        if (hasPhotos) {
+            return BothubPrompts.PHOTO_ONLY_QUERY
+        }
+        throw BothubApiException("Query is empty")
     }
 
     private fun queryDisplayName(uri: Uri): String? {

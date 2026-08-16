@@ -12,6 +12,9 @@ object BothubPrompts {
         "Transcribe the speech in this audio accurately and verbatim. " +
             "Return only the transcribed text without comments or formatting."
 
+    const val PHOTO_ONLY_QUERY =
+        "Look at the attached photo(s) and advise what I can take from my home medicines."
+
     private const val TEXT_PLACEHOLDER = "{{TEXT}}"
     private const val MEDICINES_PLACEHOLDER = "{{MEDICINES}}"
     private const val QUERY_PLACEHOLDER = "{{QUERY}}"

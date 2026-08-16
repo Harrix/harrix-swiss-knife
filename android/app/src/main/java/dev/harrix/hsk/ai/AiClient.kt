@@ -27,6 +27,7 @@ class AiClient(
         model: String,
         text: String,
         audio: Pair<ByteArray, String>? = null,
+        images: List<Pair<ByteArray, String>>? = null,
         forSpeech: Boolean = audio != null,
     ): String {
         val provider = if (forSpeech) AiConfig.speechProvider else AiConfig.provider
@@ -46,14 +47,33 @@ class AiClient(
                 if (audio != null) {
                     openaiTranscribe(apiKey, baseUrl, model, text, audio)
                 } else {
-                    openaiChat(apiKey, baseUrl, model, text, audio = null, allowAudioAsImageUrl = false)
+                    openaiChat(
+                        apiKey,
+                        baseUrl,
+                        model,
+                        text,
+                        audio = null,
+                        images = images,
+                        allowAudioAsImageUrl = false,
+                    )
                 }
 
-            AiConfig.PROVIDER_ANTHROPIC -> anthropicMessages(apiKey, baseUrl, model, text)
+            AiConfig.PROVIDER_ANTHROPIC ->
+                anthropicMessages(apiKey, baseUrl, model, text, images)
 
-            AiConfig.PROVIDER_GEMINI -> geminiGenerate(apiKey, baseUrl, model, text, audio)
+            AiConfig.PROVIDER_GEMINI ->
+                geminiGenerate(apiKey, baseUrl, model, text, audio, images)
 
-            else -> openaiChat(apiKey, baseUrl, model, text, audio, allowAudioAsImageUrl = true)
+            else ->
+                openaiChat(
+                    apiKey,
+                    baseUrl,
+                    model,
+                    text,
+                    audio,
+                    images,
+                    allowAudioAsImageUrl = true,
+                )
         }
     }
 
@@ -63,9 +83,11 @@ class AiClient(
         model: String,
         text: String,
         audio: Pair<ByteArray, String>?,
+        images: List<Pair<ByteArray, String>>?,
         allowAudioAsImageUrl: Boolean,
     ): String {
-        val messageContent = buildOpenAiMessageContent(text, audio, allowAudioAsImageUrl)
+        val messageContent =
+            buildOpenAiMessageContent(text, audio, images, allowAudioAsImageUrl)
         val payload =
             JSONObject()
                 .put("model", model)
@@ -131,7 +153,24 @@ class AiClient(
         baseUrl: String,
         model: String,
         text: String,
+        images: List<Pair<ByteArray, String>>?,
     ): String {
+        val content = JSONArray()
+        images.orEmpty().forEach { (bytes, mime) ->
+            val b64 = Base64.encodeToString(bytes, Base64.NO_WRAP)
+            content.put(
+                JSONObject()
+                    .put("type", "image")
+                    .put(
+                        "source",
+                        JSONObject()
+                            .put("type", "base64")
+                            .put("media_type", mime.substringBefore(';').ifBlank { "image/jpeg" })
+                            .put("data", b64),
+                    ),
+            )
+        }
+        content.put(JSONObject().put("type", "text").put("text", text))
         val payload =
             JSONObject()
                 .put("model", model)
@@ -141,12 +180,7 @@ class AiClient(
                     JSONArray().put(
                         JSONObject()
                             .put("role", "user")
-                            .put(
-                                "content",
-                                JSONArray().put(
-                                    JSONObject().put("type", "text").put("text", text),
-                                ),
-                            ),
+                            .put("content", content),
                     ),
                 )
         val url = baseUrl.trimEnd('/') + "/v1/messages"
@@ -170,8 +204,20 @@ class AiClient(
         model: String,
         text: String,
         audio: Pair<ByteArray, String>?,
+        images: List<Pair<ByteArray, String>>?,
     ): String {
         val parts = JSONArray().put(JSONObject().put("text", text))
+        images.orEmpty().forEach { (bytes, mime) ->
+            val b64 = Base64.encodeToString(bytes, Base64.NO_WRAP)
+            parts.put(
+                JSONObject().put(
+                    "inline_data",
+                    JSONObject()
+                        .put("mime_type", mime.substringBefore(';').ifBlank { "image/jpeg" })
+                        .put("data", b64),
+                ),
+            )
+        }
         if (audio != null) {
             val (bytes, mime) = audio
             val b64 = Base64.encodeToString(bytes, Base64.NO_WRAP)
@@ -209,19 +255,32 @@ class AiClient(
     private fun buildOpenAiMessageContent(
         text: String,
         audio: Pair<ByteArray, String>?,
+        images: List<Pair<ByteArray, String>>?,
         allowAudioAsImageUrl: Boolean,
     ): Any {
-        if (audio == null || !allowAudioAsImageUrl) {
-            return text
-        }
-        val (bytes, mime) = audio
-        val b64 = Base64.encodeToString(bytes, Base64.NO_WRAP)
-        return JSONArray()
-            .put(
+        val parts = JSONArray().put(
+            JSONObject()
+                .put("type", "text")
+                .put("text", text),
+        )
+        images.orEmpty().forEach { (bytes, mime) ->
+            val b64 = Base64.encodeToString(bytes, Base64.NO_WRAP)
+            val imageMime = mime.substringBefore(';').ifBlank { "image/jpeg" }
+            parts.put(
                 JSONObject()
-                    .put("type", "text")
-                    .put("text", text),
-            ).put(
+                    .put("type", "image_url")
+                    .put(
+                        "image_url",
+                        JSONObject()
+                            .put("url", "data:$imageMime;base64,$b64")
+                            .put("detail", "auto"),
+                    ),
+            )
+        }
+        if (audio != null && allowAudioAsImageUrl) {
+            val (bytes, mime) = audio
+            val b64 = Base64.encodeToString(bytes, Base64.NO_WRAP)
+            parts.put(
                 JSONObject()
                     .put("type", "image_url")
                     .put(
@@ -231,6 +290,8 @@ class AiClient(
                             .put("detail", "auto"),
                     ),
             )
+        }
+        return if (parts.length() == 1) text else parts
     }
 
     private fun postJson(

@@ -33,6 +33,7 @@ class MedicineSearchViewModel(
 
     val phase = mutableStateOf(MedicineSearchPhase.Idle)
     val queryText = mutableStateOf("")
+    val attachedPhotos = mutableStateOf<List<Uri>>(emptyList())
     val resultText = mutableStateOf("")
     val fileDisplayName = mutableStateOf<String?>(null)
     val medicinesUri = mutableStateOf<Uri?>(null)
@@ -54,6 +55,20 @@ class MedicineSearchViewModel(
 
     fun onQueryChange(value: String) {
         queryText.value = value
+    }
+
+    fun addPhotos(uris: List<Uri>) {
+        if (uris.isEmpty()) {
+            return
+        }
+        attachedPhotos.value =
+            (attachedPhotos.value + uris)
+                .distinct()
+                .take(MAX_PHOTOS)
+    }
+
+    fun removePhoto(uri: Uri) {
+        attachedPhotos.value = attachedPhotos.value.filterNot { it == uri }
     }
 
     fun reloadFromPreferences() {
@@ -107,7 +122,8 @@ class MedicineSearchViewModel(
 
     fun search() {
         val query = queryText.value.trim()
-        if (query.isEmpty() || isBusy()) {
+        val photos = attachedPhotos.value
+        if ((query.isEmpty() && photos.isEmpty()) || isBusy()) {
             return
         }
         if (!BothubConfig.hasApiKey) {
@@ -126,6 +142,7 @@ class MedicineSearchViewModel(
                             repository.search(
                                 medicinesMarkdown = medicinesMarkdown,
                                 query = query,
+                                photos = photos,
                             )
                         }
                     }
@@ -156,6 +173,7 @@ class MedicineSearchViewModel(
         fileJob?.cancel()
         fileJob = null
         queryText.value = ""
+        attachedPhotos.value = emptyList()
         resultText.value = ""
         errorMessage.value = null
         phase.value = MedicineSearchPhase.Idle
@@ -249,5 +267,9 @@ class MedicineSearchViewModel(
         searchJob?.cancel()
         fileJob?.cancel()
         super.onCleared()
+    }
+
+    companion object {
+        const val MAX_PHOTOS = 4
     }
 }

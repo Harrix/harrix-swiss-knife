@@ -22,8 +22,9 @@ class BothubClient(
         model: String,
         text: String,
         audio: Pair<ByteArray, String>? = null,
+        images: List<Pair<ByteArray, String>>? = null,
     ): String = try {
-        aiClient.chatCompletion(model = model, text = text, audio = audio)
+        aiClient.chatCompletion(model = model, text = text, audio = audio, images = images)
     } catch (error: AiApiException) {
         throw BothubApiException(error.message ?: "AI request failed", error)
     }

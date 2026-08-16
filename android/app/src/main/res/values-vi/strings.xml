@@ -127,7 +127,7 @@
     <string name="video_cleaner_card_description">Liệt kê Các Video Camera theo ngày và thùng rác được chọn.</string>
     <string name="photo_editor_card_description">Cắt và làm thẳng ảnh. Mở từ ứng dụng hoặc chia sẻ hình ảnh tại đây.</string>
     <string name="speech_to_text_card_description">Record speech, recognize with AI, then fix or rewrite the text.</string>
-    <string name="medicine_search_card_description">Ask about symptoms; BotHub suggests medicines from your Markdown list or what to buy.</string>
+    <string name="medicine_search_card_description">Ask about symptoms or send a photo; BotHub suggests medicines from your Markdown list or what to buy.</string>
     <string name="medicine_search_title">Medicine Search</string>
     <string name="medicine_search_close">Exit Medicine Search</string>
     <string name="medicine_search_settings">Medicine Search settings</string>
@@ -144,6 +144,10 @@
     <string name="medicine_search_open_failed">Could not open medicines file</string>
     <string name="medicine_search_query_label">Question</string>
     <string name="medicine_search_query_hint">I have a headache. What from my medicines can I take?</string>
+    <string name="medicine_search_add_photo">Add photo</string>
+    <string name="medicine_search_remove_photo">Remove photo</string>
+    <string name="medicine_search_photos_label">Photos</string>
+    <string name="medicine_search_photo_failed">Could not read photo</string>
     <string name="medicine_search_search">Ask BotHub</string>
     <string name="medicine_search_loading_file">Loading medicines fileâ€¦</string>
     <string name="medicine_search_searching">Asking BotHubâ€¦</string>
