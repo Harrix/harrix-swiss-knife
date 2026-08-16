@@ -311,10 +311,6 @@ fun MedicineSearchScreen(
                     BusyRow(text = stringResource(R.string.medicine_search_loading_file))
                 }
 
-                if (isSearching) {
-                    BusyRow(text = stringResource(R.string.medicine_search_searching))
-                }
-
                 if (!hasMedicinesFile && phase == MedicineSearchPhase.Idle && !showResult) {
                     Text(
                         text = stringResource(R.string.medicine_search_works_without_file),
