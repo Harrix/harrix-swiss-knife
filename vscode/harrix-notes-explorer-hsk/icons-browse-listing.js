@@ -8,7 +8,7 @@
 
 /**
  * @typedef {{
- *   layout: 'icons' | 'list' | 'thumbnails',
+ *   layout: 'icons' | 'list' | 'thumbnails' | 'tree',
  *   sortBy: 'name' | 'date' | 'size',
  *   foldersFirst: boolean,
  *   reverseOrder: boolean,
@@ -29,13 +29,13 @@ function isGmdFileName(name) {
 
 /**
  * @param {unknown} raw
- * @returns {'icons' | 'list' | 'thumbnails'}
+ * @returns {'icons' | 'list' | 'thumbnails' | 'tree'}
  */
 function parseLayout(raw) {
   const value = String(raw || '')
     .trim()
     .toLowerCase();
-  if (value === 'list' || value === 'thumbnails') {
+  if (value === 'list' || value === 'thumbnails' || value === 'tree') {
     return value;
   }
   return 'icons';

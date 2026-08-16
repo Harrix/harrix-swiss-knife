@@ -19,7 +19,7 @@
   let currentFolder = null;
   /** @type {'harrix' | 'material'} */
   let iconStyle = 'harrix';
-  /** @type {{ layout: 'icons' | 'list' | 'thumbnails', sortBy: 'name' | 'date' | 'size', foldersFirst: boolean, reverseOrder: boolean, showGmdFiles: boolean, showDates: boolean }} */
+  /** @type {{ layout: 'icons' | 'list' | 'thumbnails' | 'tree', sortBy: 'name' | 'date' | 'size', foldersFirst: boolean, reverseOrder: boolean, showGmdFiles: boolean, showDates: boolean }} */
   let browse = {
     layout: 'icons',
     sortBy: 'name',
@@ -40,6 +40,9 @@
   const DASHBOARD_SVG =
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">' +
     '<path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>';
+  const TREE_SVG =
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">' +
+    '<path d="M22 11V3h-7v3H9V3H2v8h7V8h2v10h4v3h7v-8h-7v3h-2V8h2v3z"/></svg>';
   const CHECK_SVG =
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">' +
     '<path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>';
@@ -231,6 +234,7 @@
     document.body.classList.toggle('layout-list', browse.layout === 'list');
     document.body.classList.toggle('layout-icons', browse.layout === 'icons');
     document.body.classList.toggle('layout-thumbs', browse.layout === 'thumbnails');
+    document.body.classList.toggle('layout-tree', browse.layout === 'tree');
   }
 
   /**
@@ -301,6 +305,14 @@
         checked: browse.layout === 'thumbnails',
         check: 'trail',
         onClick: () => vscode.postMessage({ type: 'setBrowseOption', key: 'layout', value: 'thumbnails' }),
+      }),
+    );
+    sortMenuEl.appendChild(
+      sortMenuItem('Tree', {
+        lead: TREE_SVG,
+        checked: browse.layout === 'tree',
+        check: 'trail',
+        onClick: () => vscode.postMessage({ type: 'setBrowseOption', key: 'layout', value: 'tree' }),
       }),
     );
     const sep1 = document.createElement('div');
@@ -384,17 +396,142 @@
     positionSortMenu();
   }
 
+  /**
+   * @param {(typeof entries)[number]} entry
+   * @param {'row' | 'thumb' | 'cell'} itemClass
+   */
+  function createEntryButton(entry, itemClass) {
+    const isList = itemClass === 'row';
+    const isThumbs = itemClass === 'thumb';
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = entry.isCut ? `${itemClass} is-cut` : itemClass;
+    btn.title = entry.path;
+
+    const label = document.createElement('div');
+    label.className = 'label';
+    label.textContent = entry.label || entry.name;
+
+    if (isThumbs) {
+      const preview = document.createElement('div');
+      preview.className = entry.kind === 'folder' ? 'thumb-preview is-folder' : 'thumb-preview';
+      if (entry.kind === 'folder') {
+        preview.innerHTML = glyphHtml(entry);
+      } else if (entry.thumbnailImage) {
+        preview.innerHTML = imgHtml(entry.thumbnailImage);
+      } else {
+        const excerpt = document.createElement('div');
+        excerpt.className = 'thumb-excerpt';
+        excerpt.textContent = entry.thumbnailExcerpt || '';
+        preview.appendChild(excerpt);
+      }
+      btn.appendChild(preview);
+      btn.appendChild(label);
+    } else {
+      const glyph = document.createElement('div');
+      glyph.className = 'glyph';
+      glyph.innerHTML = glyphHtml(entry);
+      btn.appendChild(glyph);
+      if (isList) {
+        const text = document.createElement('div');
+        text.className = 'row-text';
+        text.appendChild(label);
+        if (entry.description) {
+          const desc = document.createElement('div');
+          desc.className = 'desc';
+          desc.textContent = entry.description;
+          text.appendChild(desc);
+        }
+        btn.appendChild(text);
+      } else {
+        btn.appendChild(label);
+        if (entry.description) {
+          const desc = document.createElement('div');
+          desc.className = 'desc';
+          desc.textContent = entry.description;
+          btn.appendChild(desc);
+        }
+      }
+    }
+
+    btn.addEventListener('click', () => {
+      hideContextMenu();
+      if (entry.kind === 'folder') {
+        vscode.postMessage({ type: 'openFolder', path: entry.path, name: entry.name });
+      } else {
+        vscode.postMessage({ type: 'openNote', path: entry.path });
+      }
+    });
+    btn.addEventListener('contextmenu', (event) => {
+      requestContextMenu(event, entry);
+    });
+    return btn;
+  }
+
+  function renderTreeBrowse() {
+    gridEl.className = 'tree-browse';
+    crumbs.forEach((crumb, index) => {
+      const isCurrent = index === crumbs.length - 1;
+      const row = document.createElement('button');
+      row.type = 'button';
+      row.className = isCurrent ? 'tree-level is-current' : 'tree-level';
+      row.style.setProperty('--tree-depth', String(index));
+      row.title = crumb.path || crumb.name;
+      const glyph = document.createElement('div');
+      glyph.className = 'glyph';
+      glyph.innerHTML = glyphHtml({ kind: 'folder', iconEmoji: '' });
+      const label = document.createElement('div');
+      label.className = 'label';
+      label.textContent = crumb.name || 'Notes';
+      row.appendChild(glyph);
+      row.appendChild(label);
+      if (!isCurrent) {
+        row.addEventListener('click', () => {
+          hideContextMenu();
+          vscode.postMessage({ type: 'navigateTo', index });
+        });
+      }
+      gridEl.appendChild(row);
+    });
+
+    const zone = document.createElement('div');
+    zone.className = 'tree-zone';
+    zone.style.setProperty('--tree-zone-inset', `${Math.max(0, crumbs.length - 1) * 16}px`);
+    const inner = document.createElement('div');
+    inner.className = 'grid';
+    statusEl.hidden = true;
+    if (!entries.length) {
+      const empty = document.createElement('div');
+      empty.className = 'status';
+      empty.textContent = 'This folder has no notes or subfolders.';
+      zone.appendChild(empty);
+    } else {
+      for (const entry of entries) {
+        inner.appendChild(createEntryButton(entry, 'cell'));
+      }
+      zone.appendChild(inner);
+    }
+    gridEl.appendChild(zone);
+  }
+
   function renderEntries() {
     hideContextMenu();
     gridEl.replaceChildren();
     const isList = browse.layout === 'list';
     const isThumbs = browse.layout === 'thumbnails';
-    gridEl.className = isList ? 'list' : isThumbs ? 'thumbs' : 'grid';
+    const isTree = browse.layout === 'tree';
     syncLayoutClass();
     if (!sortMenuEl.hidden) {
       renderSortMenu();
       positionSortMenu();
     }
+
+    if (isTree) {
+      renderTreeBrowse();
+      return;
+    }
+
+    gridEl.className = isList ? 'list' : isThumbs ? 'thumbs' : 'grid';
 
     if (!entries.length) {
       statusEl.hidden = false;
@@ -403,72 +540,9 @@
     }
     statusEl.hidden = true;
 
+    const itemClass = isList ? 'row' : isThumbs ? 'thumb' : 'cell';
     for (const entry of entries) {
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      const itemClass = isList ? 'row' : isThumbs ? 'thumb' : 'cell';
-      btn.className = entry.isCut ? `${itemClass} is-cut` : itemClass;
-      btn.title = entry.path;
-
-      const label = document.createElement('div');
-      label.className = 'label';
-      label.textContent = entry.label || entry.name;
-
-      if (isThumbs) {
-        const preview = document.createElement('div');
-        preview.className = entry.kind === 'folder' ? 'thumb-preview is-folder' : 'thumb-preview';
-        if (entry.kind === 'folder') {
-          preview.innerHTML = glyphHtml(entry);
-        } else if (entry.thumbnailImage) {
-          preview.innerHTML = imgHtml(entry.thumbnailImage);
-        } else {
-          const excerpt = document.createElement('div');
-          excerpt.className = 'thumb-excerpt';
-          excerpt.textContent = entry.thumbnailExcerpt || '';
-          preview.appendChild(excerpt);
-        }
-        btn.appendChild(preview);
-        btn.appendChild(label);
-      } else {
-        const glyph = document.createElement('div');
-        glyph.className = 'glyph';
-        glyph.innerHTML = glyphHtml(entry);
-        btn.appendChild(glyph);
-        if (isList) {
-          const text = document.createElement('div');
-          text.className = 'row-text';
-          text.appendChild(label);
-          if (entry.description) {
-            const desc = document.createElement('div');
-            desc.className = 'desc';
-            desc.textContent = entry.description;
-            text.appendChild(desc);
-          }
-          btn.appendChild(text);
-        } else {
-          btn.appendChild(label);
-          if (entry.description) {
-            const desc = document.createElement('div');
-            desc.className = 'desc';
-            desc.textContent = entry.description;
-            btn.appendChild(desc);
-          }
-        }
-      }
-
-      btn.addEventListener('click', () => {
-        hideContextMenu();
-        if (entry.kind === 'folder') {
-          vscode.postMessage({ type: 'openFolder', path: entry.path, name: entry.name });
-        } else {
-          vscode.postMessage({ type: 'openNote', path: entry.path });
-        }
-      });
-      btn.addEventListener('contextmenu', (event) => {
-        requestContextMenu(event, entry);
-      });
-
-      gridEl.appendChild(btn);
+      gridEl.appendChild(createEntryButton(entry, itemClass));
     }
   }
 
@@ -479,7 +553,14 @@
     iconStyle = msg.iconStyle === 'material' ? 'material' : 'harrix';
     const nextBrowse = msg.browse && typeof msg.browse === 'object' ? msg.browse : {};
     browse = {
-      layout: nextBrowse.layout === 'list' ? 'list' : nextBrowse.layout === 'thumbnails' ? 'thumbnails' : 'icons',
+      layout:
+        nextBrowse.layout === 'list'
+          ? 'list'
+          : nextBrowse.layout === 'thumbnails'
+            ? 'thumbnails'
+            : nextBrowse.layout === 'tree'
+              ? 'tree'
+              : 'icons',
       sortBy: nextBrowse.sortBy === 'date' || nextBrowse.sortBy === 'size' ? nextBrowse.sortBy : 'name',
       foldersFirst: nextBrowse.foldersFirst === true,
       reverseOrder: nextBrowse.reverseOrder === true,
@@ -516,7 +597,7 @@
   const mainEl = document.querySelector('.main');
   if (mainEl) {
     mainEl.addEventListener('contextmenu', (event) => {
-      if (event.target.closest('.cell, .row, .thumb')) {
+      if (event.target.closest('.cell, .row, .thumb, .tree-level')) {
         return;
       }
       requestBackgroundContextMenu(event);

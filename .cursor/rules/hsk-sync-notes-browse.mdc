@@ -25,13 +25,13 @@ Toolbar: Material **Sort** icon (`M3 18h6v-2H3v2zM3 6v2h18V6H3zm0 7h12v-2H3v2z`)
 
 Menu (same labels and order):
 
-1. List / Icons / Thumbnails — radio, leading ViewList / GridView / Dashboard, trailing check
+1. List / Icons / Thumbnails / Tree — radio, leading ViewList / GridView / Dashboard / AccountTree, trailing check
 2. separator
 3. Name / Date / Size — radio, leading check
 4. separator
 5. Folders on top / Reverse order / Show .g.md files / Show dates — checkboxes
 
-Listing (`NotesListingOptions.apply`): hide `*.g.md` notes unless Show .g.md; sort by display name / mtime / size; optional reverse; optional folders first. Show a folder only if it (or a descendant) contains a Markdown note. Show dates only in **list** rows (`dd.MM.yyyy` for filename/YAML, `dd.MM.yyyy, HH:mm` for file times). **Thumbnails** cards show featured image / canvas / first Markdown or `img/` image, else a text excerpt; dates stay list-only.
+Listing (`NotesListingOptions.apply`): hide `*.g.md` notes unless Show .g.md; sort by display name / mtime / size; optional reverse; optional folders first. Show a folder only if it (or a descendant) contains a Markdown note. Show dates only in **list** rows (`dd.MM.yyyy` for filename/YAML, `dd.MM.yyyy, HH:mm` for file times). **Thumbnails** cards show featured image / canvas / first Markdown or `img/` image, else a text excerpt; dates stay list-only. **Tree** shows the folder path as indented levels and one icon grid for the current folder; clicking a parent level goes back.
 
 ## Change checklist
 
