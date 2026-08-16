@@ -27,7 +27,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from harrix_swiss_knife.action_usage import RECENT_GUI_ACTIONS_LIMIT, list_recent_gui_action_names
+from harrix_swiss_knife.action_usage import list_recent_gui_action_names
 from harrix_swiss_knife.apps.common.qt_main_window import apply_app_window_size_and_position
 from harrix_swiss_knife.cli_menu import get_action_identity_parts, show_action_item_context_menu
 from harrix_swiss_knife.keyboard_layout_search import command_matches_search
@@ -40,6 +40,7 @@ from harrix_swiss_knife.qt_command_section import (
 from harrix_swiss_knife.qt_described_choice_cards import (
     add_described_action_card,
     configure_described_choice_card_grid,
+    described_card_column_count,
     sync_described_choice_card_grid,
 )
 from harrix_swiss_knife.qt_emoji_icon import create_emoji_icon
@@ -85,7 +86,9 @@ class MainWindow(QMainWindow):
         self.hide()
 
     def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
-        """Forward wheel events from icon grids to the outer scroll area."""
+        """Forward wheel events from icon grids and refit Recent when the cards pane resizes."""
+        if event.type() == QEvent.Type.Resize and watched is self._scroll.viewport():
+            QTimer.singleShot(0, self._on_cards_layout_changed)
         if event.type() == QEvent.Type.Wheel and self._is_icon_grid_wheel_target(watched):
             QApplication.sendEvent(self._scroll.viewport(), event)
             return True
@@ -110,9 +113,9 @@ class MainWindow(QMainWindow):
             self._run_listed_action(action)
 
     def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802
-        """Refit icon grid heights when the window width changes."""
+        """Refit Recent and icon grid heights when the window width changes."""
         super().resizeEvent(event)
-        QTimer.singleShot(0, self._fit_visible_grids)
+        QTimer.singleShot(0, self._on_cards_layout_changed)
 
     def showEvent(self, event: QShowEvent) -> None:  # noqa: N802
         """Refresh Recent and focus the primary input when the window is shown."""
@@ -166,6 +169,7 @@ class MainWindow(QMainWindow):
         if not query:
             self._search_grid.hide()
             self._grouped_widget.show()
+            self._refresh_recent_section()
             QTimer.singleShot(0, self._fit_visible_grids)
             return
 
@@ -216,6 +220,7 @@ class MainWindow(QMainWindow):
         self._scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         apply_opaque_white(self._scroll)
         apply_opaque_white(self._scroll.viewport())
+        self._scroll.viewport().installEventFilter(self)
         cards_layout.addWidget(self._scroll)
 
         self._content = QWidget()
@@ -311,6 +316,7 @@ class MainWindow(QMainWindow):
             self._recent_gui_actions(),
             track_in_all=False,
             insert_at=0,
+            show_in_list=False,
         )
 
     def _create_section(
@@ -320,6 +326,7 @@ class MainWindow(QMainWindow):
         *,
         track_in_all: bool = True,
         insert_at: int | None = None,
+        show_in_list: bool = True,
     ) -> _CommandSection:
         section_widget, label, section_layout = create_command_section(title=title)
 
@@ -336,7 +343,14 @@ class MainWindow(QMainWindow):
                 self._all_actions.append(action)
 
         section_layout.addWidget(grid)
-        section = _CommandSection(title=title, actions=actions, label=label, grid=grid, widget=section_widget)
+        section = _CommandSection(
+            title=title,
+            actions=actions,
+            label=label,
+            grid=grid,
+            widget=section_widget,
+            show_in_list=show_in_list,
+        )
         if insert_at is None:
             self._grouped_layout.addWidget(section_widget)
             self._sections.append(section)
@@ -371,6 +385,11 @@ class MainWindow(QMainWindow):
         if isinstance(user_data, QAction):
             show_action_item_context_menu(parent=self, global_pos=global_pos, action=user_data)
 
+    def _on_cards_layout_changed(self) -> None:
+        """Rebuild Recent to one row, then refit visible card grids."""
+        self._refresh_recent_section()
+        self._fit_visible_grids()
+
     def _on_grid_context_menu(self, grid: QListWidget, pos: QPoint) -> None:
         """Show copy name/class/path and CLI command for the card under the cursor."""
         self._show_list_item_context_menu(grid, pos)
@@ -391,24 +410,36 @@ class MainWindow(QMainWindow):
         self._apply_card_search(query)
 
     def _populate_list_from_sections(self) -> None:
-        """Fill the list using the same Recent / Main / submenu order as the cards."""
+        """Fill the list using the same Main / submenu order as the cards, without Recent."""
         self.list_widget.clear()
         for section in self._sections:
-            if not section.actions:
+            if not section.show_in_list or not section.actions:
                 continue
             self._add_list_section_header(section.title)
             for action in section.actions:
                 self._add_list_action_item(action, indent_level=1)
 
+    def _recent_column_count(self) -> int:
+        """Return how many Recent cards fit in one row of the cards pane."""
+        grid = None if self._recent_section is None else self._recent_section.grid
+        if grid is not None and grid.viewport().width() > 0:
+            return described_card_column_count(grid.viewport().width())
+        width = self._scroll.viewport().width()
+        if width > 0:
+            return described_card_column_count(max(1, width - 16))
+        return 1
+
     def _recent_gui_actions(self) -> list[QAction]:
-        """Return up to six catalog actions last used from the GUI, newest first."""
+        """Return catalog actions last used from the GUI, newest first, one row at most."""
         by_class: dict[str, QAction] = {}
         for action in self._all_actions:
             parts = get_action_identity_parts(action)
             if parts is not None:
                 by_class[parts.class_name] = action
         return [
-            by_class[name] for name in list_recent_gui_action_names(limit=RECENT_GUI_ACTIONS_LIMIT) if name in by_class
+            by_class[name]
+            for name in list_recent_gui_action_names(limit=self._recent_column_count())
+            if name in by_class
         ]
 
     def _refresh_recent_section(self) -> None:
@@ -417,6 +448,12 @@ class MainWindow(QMainWindow):
         if section is None or section.grid is None:
             return
         actions = self._recent_gui_actions()
+        if section.actions == actions and section.grid.count() == len(actions):
+            if section.widget is not None:
+                section.widget.setVisible(bool(actions))
+            if section.grid.isVisible():
+                QTimer.singleShot(0, lambda grid=section.grid: self._fit_grid_height(grid))
+            return
         section.actions = actions
         section.grid.clear()
         for action in actions:
@@ -425,8 +462,6 @@ class MainWindow(QMainWindow):
             section.widget.setVisible(bool(actions))
         if section.grid.isVisible():
             QTimer.singleShot(0, lambda grid=section.grid: self._fit_grid_height(grid))
-        if not self._search_edit.text().strip():
-            self._populate_list_from_sections()
 
     def _run_listed_action(self, action: QAction) -> None:
         """Run a catalog action and refresh the Recent section."""
@@ -461,6 +496,7 @@ class _CommandSection:
     label: QLabel | None = None
     grid: QListWidget | None = None
     widget: QWidget | None = None
+    show_in_list: bool = True
 
 
 def _collect_leaf_actions(menu: QMenu) -> list[QAction]:

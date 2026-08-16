@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 _lock = threading.Lock()
 
 RECENT_GUI_ACTIONS_LIMIT = 6
+RECENT_GUI_EXCLUDED_CLASS_NAMES = frozenset({"OnExit"})
 
 
 class ActionUsageEntry(TypedDict):
@@ -34,17 +35,22 @@ def list_recent_gui_action_names(
     *,
     limit: int = RECENT_GUI_ACTIONS_LIMIT,
     path: Path | None = None,
+    excluded: frozenset[str] | None = None,
 ) -> list[str]:
     """Return class names of the most recently used GUI actions, newest first.
 
     CLI invocations are ignored. Entries without a GUI timestamp are skipped,
     except historical GUI-only records that only have `last_used`.
+    Class names in `excluded` (Exit by default) are omitted before the limit.
 
     """
     if limit <= 0:
         return []
+    skip = RECENT_GUI_EXCLUDED_CLASS_NAMES if excluded is None else excluded
     ranked: list[tuple[datetime, str]] = []
     for class_name, entry in load_action_usage(path).items():
+        if class_name in skip:
+            continue
         stamp = _effective_last_used_gui(entry)
         if not stamp:
             continue

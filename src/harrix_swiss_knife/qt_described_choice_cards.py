@@ -245,6 +245,14 @@ def configure_described_choice_card_grid(list_widget: QListWidget, *, min_height
     apply_described_card_grid_metrics(list_widget, metrics_for_scale(1.0))
 
 
+def described_card_column_count(available_width: int) -> int:
+    """Return how many described cards fit in one row at `available_width`."""
+    if available_width <= 0:
+        return 1
+    metrics = resolve_described_card_metrics(available_width)
+    return max(1, (available_width + CARD_SPACING) // (metrics.width + CARD_SPACING))
+
+
 def described_card_metrics_of(list_widget: QListWidget) -> DescribedCardMetrics:
     """Return metrics last applied to `list_widget`, or full-size defaults."""
     metrics = getattr(list_widget, _METRICS_ATTR, None)

@@ -13,6 +13,7 @@ from harrix_swiss_knife.qt_described_choice_cards import (
     DescribedChoiceCard,
     add_described_action_card,
     configure_described_choice_card_grid,
+    described_card_column_count,
     described_card_metrics_of,
     metrics_for_scale,
     populate_described_choice_cards,
@@ -61,6 +62,13 @@ def test_resolve_full_size_when_exact_columns_fit() -> None:
     metrics = resolve_described_card_metrics(available)
     assert metrics.scale == 1.0
     assert metrics.width == DESCRIBED_CARD_WIDTH
+
+
+def test_described_card_column_count_matches_full_and_shrunk_rows() -> None:
+    assert described_card_column_count(_pitch(5)) == 5
+    assert described_card_column_count(_pitch(6)) == 6
+    assert described_card_column_count(_pitch(6) - 24) == 6
+    assert described_card_column_count(0) == 1
 
 
 def test_metrics_for_scale_scales_icon_and_fonts() -> None:

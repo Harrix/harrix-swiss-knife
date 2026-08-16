@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 
 from harrix_swiss_knife.action_usage import (
     RECENT_GUI_ACTIONS_LIMIT,
+    RECENT_GUI_EXCLUDED_CLASS_NAMES,
     list_recent_gui_action_names,
     load_action_usage,
     record_action_usage,
@@ -99,3 +100,37 @@ def test_list_recent_gui_action_names_falls_back_to_gui_only_last_used(tmp_path:
     )
 
     assert list_recent_gui_action_names(path=path) == ["OnLegacyGui"]
+
+
+def test_list_recent_gui_action_names_skips_excluded_exit(tmp_path: Path) -> None:
+    path = tmp_path / "action_usage.json"
+    path.write_text(
+        """{
+  "OnExit": {
+    "count": 4,
+    "gui": 4,
+    "cli": 0,
+    "last_used": "2026-08-16T12:00:00+03:00",
+    "last_used_gui": "2026-08-16T12:00:00+03:00"
+  },
+  "OnFinance": {
+    "count": 1,
+    "gui": 1,
+    "cli": 0,
+    "last_used": "2026-08-16T11:00:00+03:00",
+    "last_used_gui": "2026-08-16T11:00:00+03:00"
+  },
+  "OnFood": {
+    "count": 1,
+    "gui": 1,
+    "cli": 0,
+    "last_used": "2026-08-16T10:00:00+03:00",
+    "last_used_gui": "2026-08-16T10:00:00+03:00"
+  }
+}
+""",
+        encoding="utf8",
+    )
+
+    assert "OnExit" in RECENT_GUI_EXCLUDED_CLASS_NAMES
+    assert list_recent_gui_action_names(path=path, limit=2) == ["OnFinance", "OnFood"]

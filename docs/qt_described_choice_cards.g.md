@@ -21,6 +21,7 @@ lang: en
 - [🔧 Function `add_described_action_card`](#-function-add_described_action_card)
 - [🔧 Function `apply_described_card_grid_metrics`](#-function-apply_described_card_grid_metrics)
 - [🔧 Function `configure_described_choice_card_grid`](#-function-configure_described_choice_card_grid)
+- [🔧 Function `described_card_column_count`](#-function-described_card_column_count)
 - [🔧 Function `described_card_metrics_of`](#-function-described_card_metrics_of)
 - [🔧 Function `described_card_text_width`](#-function-described_card_text_width)
 - [🔧 Function `metrics_for_scale`](#-function-metrics_for_scale)
@@ -479,6 +480,27 @@ Apply a wide horizontal-card grid layout for described choices.
 def configure_described_choice_card_grid(list_widget: QListWidget, *, min_height: int | None = None) -> None:
     configure_action_card_grid(list_widget, min_height=min_height)
     apply_described_card_grid_metrics(list_widget, metrics_for_scale(1.0))
+```
+
+</details>
+
+## 🔧 Function `described_card_column_count`
+
+```python
+def described_card_column_count(available_width: int) -> int
+```
+
+Return how many described cards fit in one row at `available_width`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def described_card_column_count(available_width: int) -> int:
+    if available_width <= 0:
+        return 1
+    metrics = resolve_described_card_metrics(available_width)
+    return max(1, (available_width + CARD_SPACING) // (metrics.width + CARD_SPACING))
 ```
 
 </details>
