@@ -71,6 +71,15 @@ def test_described_card_column_count_matches_full_and_shrunk_rows() -> None:
     assert described_card_column_count(0) == 1
 
 
+def test_described_card_column_count_keeps_shrunk_extra_column_after_rounding() -> None:
+    available = 1600
+    metrics = resolve_described_card_metrics(available)
+    assert DESCRIBED_CARD_MIN_SCALE <= metrics.scale < 1.0
+    naive = (available + CARD_SPACING) // (metrics.width + CARD_SPACING)
+    assert naive == 4
+    assert described_card_column_count(available) == 5
+
+
 def test_metrics_for_scale_scales_icon_and_fonts() -> None:
     metrics = metrics_for_scale(0.9)
     assert metrics.icon_size < 48

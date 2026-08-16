@@ -3387,7 +3387,7 @@ class MainWindow(
                 "show_stats": True,
                 "stats_unit": "L",
                 "period": period,
-                "fill_zero_periods": True,
+                "fill_zero_periods": False,
                 "date_from": date_from,
                 "date_to": date_to,
                 "is_calories_chart": False,  # Not calories chart
@@ -3445,7 +3445,7 @@ class MainWindow(
                 "show_stats": True,
                 "stats_unit": "kcal",
                 "period": period,
-                "fill_zero_periods": True,
+                "fill_zero_periods": False,
                 "date_from": date_from,
                 "date_to": date_to,
                 "is_calories_chart": True,  # Add this parameter
@@ -3591,7 +3591,7 @@ class MainWindow(
                 "show_stats": True,
                 "stats_unit": "kg",
                 "period": period,
-                "fill_zero_periods": True,
+                "fill_zero_periods": False,
                 "date_from": date_from,
                 "date_to": date_to,
                 "is_calories_chart": False,  # Not calories chart

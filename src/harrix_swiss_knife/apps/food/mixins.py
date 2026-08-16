@@ -7,6 +7,7 @@ for database operations, table management, chart creation, and date handling.
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
 from matplotlib.dates import date2num
@@ -30,6 +31,8 @@ __all__ = [
     "DateOperations",
     "TableOperations",
     "ValidationOperations",
+    "has_period_gap",
+    "iter_nonempty_chart_segments",
     "requires_database",
 ]
 
@@ -174,25 +177,27 @@ class ChartOperations(ChartOperationsBase):
         x_values: list,
         y_values: list,
         color: str,
-        non_zero_count: int | None = None,
+        non_zero_count: int | None = None,  # noqa: ARG002
         period: str | None = None,
         *,
         is_calories_chart: bool = False,
     ) -> None:
         """Plot data; calorie charts get zone lines and per-point colors."""
+        segments = iter_nonempty_chart_segments(x_values, y_values, period)
+        plotted_x = [x_value for segment_x, _segment_y in segments for x_value in segment_x]
+        plotted_y = [y_value for _segment_x, segment_y in segments for y_value in segment_y]
         if not is_calories_chart:
-            super()._plot_data(
-                ax,
-                x_values,
-                y_values,
-                color,
-                non_zero_count,
-                period,
-                is_calories_chart=False,
-            )
+            for segment_x, segment_y in segments:
+                super()._plot_data(
+                    ax,
+                    segment_x,
+                    segment_y,
+                    color,
+                    len(segment_y),
+                    period,
+                    is_calories_chart=False,
+                )
             return
-
-        x_nums: list[float] = date2num(x_values)
 
         if period not in {"Months", "Years"}:
             ax.axhline(
@@ -217,16 +222,21 @@ class ChartOperations(ChartOperationsBase):
                 label="Medium-high calories limit",
             )
 
-        ax.plot(x_nums, y_values, color="gray", linestyle="-", linewidth=1, alpha=0.6, zorder=2)
+        min_points_for_line = 2
+        for segment_x, segment_y in segments:
+            if len(segment_x) < min_points_for_line:
+                continue
+            ax.plot(date2num(segment_x), segment_y, color="gray", linestyle="-", linewidth=1, alpha=0.6, zorder=2)
+
+        if not plotted_x:
+            return
 
         point_colors: list[str] = []
         level_low_calories = 1800
         level_medium_low_calories = 2100
         level_medium_high_calories = 2500
-        for y in y_values:
-            if y is None or y == 0:
-                point_colors.append("lightgray")
-            elif y <= level_low_calories:
+        for y in plotted_y:
+            if y <= level_low_calories:
                 point_colors.append("#90EE90")
             elif y <= level_medium_low_calories:
                 point_colors.append("#FFFFE0")
@@ -236,8 +246,8 @@ class ChartOperations(ChartOperationsBase):
                 point_colors.append("#FFC0CB")
 
         ax.scatter(
-            x_nums,
-            y_values,
+            date2num(plotted_x),
+            plotted_y,
             c=point_colors,
             s=36,
             zorder=3,
@@ -246,23 +256,22 @@ class ChartOperations(ChartOperationsBase):
         )
 
         maximum_count_points_for_labels = 100
-        if len(x_values) < maximum_count_points_for_labels:
-            for x_dt, y in zip(x_values, y_values, strict=False):
-                if y is not None and y != 0:
-                    label_text = str(int(y)) if isinstance(y, int) or y == int(y) else f"{y:.1f}"
-                    if period == "Years" and hasattr(x_dt, "year"):
-                        label_text += f" ({x_dt.year})"
-                    ax.annotate(
-                        label_text,
-                        (date2num(x_dt), y),
-                        textcoords="offset points",
-                        xytext=(0, 10),
-                        ha="center",
-                        fontsize=9,
-                        alpha=0.8,
-                        bbox={"boxstyle": "round,pad=0.2", "facecolor": "white", "edgecolor": "none", "alpha": 0.7},
-                        zorder=4,
-                    )
+        if len(plotted_x) < maximum_count_points_for_labels:
+            for x_dt, y in zip(plotted_x, plotted_y, strict=False):
+                label_text = str(int(y)) if isinstance(y, int) or y == int(y) else f"{y:.1f}"
+                if period == "Years" and hasattr(x_dt, "year"):
+                    label_text += f" ({x_dt.year})"
+                ax.annotate(
+                    label_text,
+                    (date2num(x_dt), y),
+                    textcoords="offset points",
+                    xytext=(0, 10),
+                    ha="center",
+                    fontsize=9,
+                    alpha=0.8,
+                    bbox={"boxstyle": "round,pad=0.2", "facecolor": "white", "edgecolor": "none", "alpha": 0.7},
+                    zorder=4,
+                )
 
 
 class DateOperations(DateMixin):
@@ -274,3 +283,43 @@ class DateOperations(DateMixin):
 
 class ValidationOperations(ValidationMixin):
     """Mixin class for validation operations."""
+
+
+def has_period_gap(previous: datetime, current: datetime, period: str | None) -> bool:
+    """Return whether `current` skips at least one period after `previous`."""
+    if period == "Months":
+        return (current.year - previous.year) * 12 + (current.month - previous.month) > 1
+    if period == "Years":
+        return current.year - previous.year > 1
+    previous_day = previous.date() if isinstance(previous, datetime) else previous
+    current_day = current.date() if isinstance(current, datetime) else current
+    return (current_day - previous_day).days > 1
+
+
+def iter_nonempty_chart_segments(
+    x_values: list,
+    y_values: list,
+    period: str | None,
+) -> list[tuple[list, list]]:
+    """Split chart series into segments, skipping empty values and period gaps."""
+    segments: list[tuple[list, list]] = []
+    current_x: list = []
+    current_y: list = []
+    previous_x = None
+    for x_value, y_value in zip(x_values, y_values, strict=False):
+        if y_value is None or y_value == 0:
+            if current_x:
+                segments.append((current_x, current_y))
+                current_x, current_y = [], []
+            previous_x = None
+            continue
+        if previous_x is not None and has_period_gap(previous_x, x_value, period):
+            if current_x:
+                segments.append((current_x, current_y))
+            current_x, current_y = [], []
+        current_x.append(x_value)
+        current_y.append(y_value)
+        previous_x = x_value
+    if current_x:
+        segments.append((current_x, current_y))
+    return segments
