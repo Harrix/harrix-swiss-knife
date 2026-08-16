@@ -30,7 +30,7 @@ lang: en
 class MainWindow(QMainWindow)
 ```
 
-Tray-click window with icon grid or classic list + output panel.
+Tray-click window with a command list and action cards.
 
 <details>
 <summary>Code:</summary>
@@ -38,13 +38,12 @@ Tray-click window with icon grid or classic list + output panel.
 ```python
 class MainWindow(QMainWindow):
 
-    def __init__(self, menu: QMenu, *, output_bus: ActionOutputBus | None = None) -> None:
+    def __init__(self, menu: QMenu) -> None:
         """Initialize the main window from the tray menu structure.
 
         Args:
 
         - `menu` (`QMenu`): Tray menu whose actions are shown in the window.
-        - `output_bus` (`ActionOutputBus | None`): Output bus for the classic list view.
 
         """
         super().__init__()
@@ -52,12 +51,9 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("Harrix Swiss Knife")
         try_apply_system_backdrop(self, backdrop=SystemBackdrop.MICA)
 
-        self._icon_grid_mode = load_main_window_icon_grid()
         self._sections: list[_CommandSection] = []
+        self._recent_section: _CommandSection | None = None
         self._all_actions: list[QAction] = []
-        self.current_content = ""
-        self._active_output_path: Path | None = None
-        self._output_bus = output_bus
 
         central_widget = QWidget()
         apply_opaque_white(central_widget)
@@ -67,12 +63,9 @@ class MainWindow(QMainWindow):
         root_layout.setSpacing(12)
 
         root_layout.addLayout(self._build_header_row())
-        root_layout.addWidget(self._build_icon_mode_widget(), stretch=1)
-        root_layout.addWidget(self._build_list_mode_widget(), stretch=1)
+        root_layout.addWidget(self._build_body_widget(), stretch=1)
         self._build_sections_from_menu(menu)
         self._populate_list_from_sections()
-
-        self._apply_view_mode()
         self._setup_window_size_and_position()
 
     def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
@@ -97,31 +90,31 @@ class MainWindow(QMainWindow):
         self._search_edit.selectAll()
 
     def on_item_clicked(self, item: QListWidgetItem) -> None:
-        """Handle click on a command in classic list mode."""
+        """Handle click on a command in the list pane."""
         if not item.flags() & Qt.ItemFlag.ItemIsSelectable:
             return
 
         action = item.data(Qt.ItemDataRole.UserRole)
         if isinstance(action, QAction):
-            action.trigger()
+            self._run_listed_action(action)
 
     def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802
         """Refit icon grid heights when the window width changes."""
         super().resizeEvent(event)
-        if self._icon_grid_mode:
-            QTimer.singleShot(0, self._fit_visible_grids)
+        QTimer.singleShot(0, self._fit_visible_grids)
 
     def showEvent(self, event: QShowEvent) -> None:  # noqa: N802
-        """Focus the primary input when the window is shown."""
+        """Refresh Recent and focus the primary input when the window is shown."""
         super().showEvent(event)
+        self._refresh_recent_section()
         QTimer.singleShot(0, self.focus_initial_input)
 
     def show_window(self) -> None:
         """Show the window."""
         self.show()
 
-    def _action_matches_icon_search(self, action: QAction, query: str) -> bool:
-        """Match title or description in Icon view search."""
+    def _action_matches_search(self, action: QAction, query: str) -> bool:
+        """Match title or description in search."""
         if command_matches_search(action.text(), query):
             return True
         description = getattr(action, "action_description", "") or ""
@@ -136,7 +129,7 @@ class MainWindow(QMainWindow):
             title=action.text(),
             description=description,
             user_data=action,
-            on_select=action.trigger,
+            on_select=lambda listed=action: self._run_listed_action(listed),
             on_context_menu=self._on_card_context_menu,
         )
 
@@ -158,7 +151,7 @@ class MainWindow(QMainWindow):
         item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsSelectable)
         self.list_widget.addItem(item)
 
-    def _apply_icon_search(self, query: str) -> None:
+    def _apply_card_search(self, query: str) -> None:
         if not query:
             self._search_grid.hide()
             self._grouped_widget.show()
@@ -168,7 +161,7 @@ class MainWindow(QMainWindow):
         self._grouped_widget.hide()
         self._search_grid.clear()
         for action in self._all_actions:
-            if self._action_matches_icon_search(action, query):
+            if self._action_matches_search(action, query):
                 self._add_action_item(self._search_grid, action)
         self._search_grid.show()
         QTimer.singleShot(0, lambda: self._fit_grid_height(self._search_grid))
@@ -180,62 +173,31 @@ class MainWindow(QMainWindow):
 
         self.list_widget.clear()
         for action in self._all_actions:
-            if command_matches_search(action.text(), query):
+            if self._action_matches_search(action, query):
                 self._add_list_action_item(action)
 
-    def _apply_view_mode(self) -> None:
-        self._icon_mode_widget.setVisible(self._icon_grid_mode)
-        self._list_mode_widget.setVisible(not self._icon_grid_mode)
-        if self._icon_grid_mode:
-            QTimer.singleShot(0, self._fit_visible_grids)
-        self._on_search_changed(self._search_edit.text())
+    def _build_body_widget(self) -> QWidget:
+        body = QWidget()
+        apply_opaque_white(body)
+        body_layout = QHBoxLayout(body)
+        body_layout.setContentsMargins(0, 0, 0, 0)
 
-    def _build_header_row(self) -> QHBoxLayout:
-        header_row = QHBoxLayout()
-        header_row.setSpacing(12)
+        splitter = QSplitter()
+        splitter.addWidget(self._build_list_pane())
+        splitter.addWidget(self._build_cards_pane())
+        splitter.setStretchFactor(0, 0)
+        splitter.setStretchFactor(1, 1)
+        splitter.setSizes([300, 700])
+        body_layout.addWidget(splitter)
+        return body
 
-        self._search_row_widget = QWidget()
-        search_row = QHBoxLayout(self._search_row_widget)
-        search_row.setContentsMargins(0, 0, 0, 0)
-        search_row.setSpacing(8)
+    def _build_cards_pane(self) -> QWidget:
+        cards_pane = QWidget()
+        apply_opaque_white(cards_pane)
 
-        search_icon = QLabel()
-        search_icon.setPixmap(create_emoji_icon("🔍", 22).pixmap(22, 22))
-        search_icon.setFixedSize(24, 24)
-        search_row.addWidget(search_icon)
-
-        self._search_edit = QLineEdit()
-        self._search_edit.setPlaceholderText("Search commands…")
-        self._search_edit.setClearButtonEnabled(False)
-        self._search_edit.textChanged.connect(self._on_search_changed)
-        search_row.addWidget(self._search_edit, stretch=1)
-
-        self._clear_button = QToolButton()
-        self._clear_button.setText("✕")
-        self._clear_button.setToolTip("Clear search")
-        self._clear_button.setCursor(Qt.CursorShape.PointingHandCursor)
-        self._clear_button.setAutoRaise(True)
-        self._clear_button.clicked.connect(self._search_edit.clear)
-        self._clear_button.hide()
-        search_row.addWidget(self._clear_button)
-
-        header_row.addWidget(self._search_row_widget, stretch=1)
-
-        self._view_mode_checkbox = QCheckBox("Icon view")
-        self._view_mode_checkbox.setToolTip("Show commands as icons. Uncheck for classic list with output panel.")
-        self._view_mode_checkbox.setChecked(self._icon_grid_mode)
-        self._view_mode_checkbox.toggled.connect(lambda checked: self._on_view_mode_toggled(icon_grid=checked))
-        header_row.addWidget(self._view_mode_checkbox)
-
-        return header_row
-
-    def _build_icon_mode_widget(self) -> QWidget:
-        self._icon_mode_widget = QWidget()
-        apply_opaque_white(self._icon_mode_widget)
-
-        icon_layout = QVBoxLayout(self._icon_mode_widget)
-        icon_layout.setContentsMargins(0, 0, 0, 0)
-        icon_layout.setSpacing(0)
+        cards_layout = QVBoxLayout(cards_pane)
+        cards_layout.setContentsMargins(0, 0, 0, 0)
+        cards_layout.setSpacing(0)
 
         self._scroll = QScrollArea()
         self._scroll.setWidgetResizable(True)
@@ -243,7 +205,7 @@ class MainWindow(QMainWindow):
         self._scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         apply_opaque_white(self._scroll)
         apply_opaque_white(self._scroll.viewport())
-        icon_layout.addWidget(self._scroll)
+        cards_layout.addWidget(self._scroll)
 
         self._content = QWidget()
         apply_opaque_white(self._content)
@@ -271,38 +233,48 @@ class MainWindow(QMainWindow):
         )
         self._search_grid.hide()
         self._content_layout.addWidget(self._search_grid, 0, Qt.AlignmentFlag.AlignTop)
-        # Keep section / search cards under the search field (not vertically centered).
         self._content_layout.addStretch(1)
 
-        return self._icon_mode_widget
+        return cards_pane
 
-    def _build_list_mode_widget(self) -> QWidget:
-        self._list_mode_widget = QWidget()
-        list_layout = QHBoxLayout(self._list_mode_widget)
+    def _build_header_row(self) -> QHBoxLayout:
+        header_row = QHBoxLayout()
+        header_row.setSpacing(8)
+
+        search_icon = QLabel()
+        search_icon.setPixmap(create_emoji_icon("🔍", 22).pixmap(22, 22))
+        search_icon.setFixedSize(24, 24)
+        header_row.addWidget(search_icon)
+
+        self._search_edit = QLineEdit()
+        self._search_edit.setPlaceholderText("Search commands…")
+        self._search_edit.setClearButtonEnabled(False)
+        self._search_edit.textChanged.connect(self._on_search_changed)
+        header_row.addWidget(self._search_edit, stretch=1)
+
+        self._clear_button = QToolButton()
+        self._clear_button.setText("✕")
+        self._clear_button.setToolTip("Clear search")
+        self._clear_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._clear_button.setAutoRaise(True)
+        self._clear_button.clicked.connect(self._search_edit.clear)
+        self._clear_button.hide()
+        header_row.addWidget(self._clear_button)
+
+        return header_row
+
+    def _build_list_pane(self) -> QWidget:
+        list_pane = QWidget()
+        apply_opaque_white(list_pane)
+        list_layout = QVBoxLayout(list_pane)
         list_layout.setContentsMargins(0, 0, 0, 0)
 
-        splitter = QSplitter()
-        list_layout.addWidget(splitter)
-
         self.list_widget = QListWidget()
-        splitter.addWidget(self.list_widget)
-
-        self.text_edit = QTextEdit()
-        splitter.addWidget(self.text_edit)
-
-        splitter.setSizes([300, 700])
-
-        if self._output_bus is not None:
-            self._output_bus.active_output_changed.connect(self._on_active_output_changed)
-            self._output_bus.line_appended.connect(self._on_line_appended)
-        else:
-            self._set_placeholder("No action output yet")
-
         self.list_widget.itemClicked.connect(self.on_item_clicked)
         self.list_widget.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.list_widget.customContextMenuRequested.connect(self._on_list_context_menu)
-
-        return self._list_mode_widget
+        list_layout.addWidget(self.list_widget)
+        return list_pane
 
     def _build_sections_from_menu(self, menu: QMenu) -> None:
         submenu_sections: list[tuple[str, list[QAction]]] = []
@@ -323,8 +295,21 @@ class MainWindow(QMainWindow):
             self._create_section("Main", top_level_actions)
         for title, actions in submenu_sections:
             self._create_section(title, actions)
+        self._recent_section = self._create_section(
+            "Recent",
+            self._recent_gui_actions(),
+            track_in_all=False,
+            insert_at=0,
+        )
 
-    def _create_section(self, title: str, actions: list[QAction]) -> None:
+    def _create_section(
+        self,
+        title: str,
+        actions: list[QAction],
+        *,
+        track_in_all: bool = True,
+        insert_at: int | None = None,
+    ) -> _CommandSection:
         section_widget, label, section_layout = create_command_section(title=title)
 
         grid = QListWidget()
@@ -336,12 +321,21 @@ class MainWindow(QMainWindow):
 
         for action in actions:
             self._add_action_item(grid, action)
-            self._all_actions.append(action)
+            if track_in_all:
+                self._all_actions.append(action)
 
         section_layout.addWidget(grid)
-        self._grouped_layout.addWidget(section_widget)
-        self._sections.append(_CommandSection(title=title, actions=actions, label=label, grid=grid))
+        section = _CommandSection(title=title, actions=actions, label=label, grid=grid, widget=section_widget)
+        if insert_at is None:
+            self._grouped_layout.addWidget(section_widget)
+            self._sections.append(section)
+        else:
+            self._grouped_layout.insertWidget(insert_at, section_widget)
+            self._sections.insert(insert_at, section)
+        if not actions:
+            section_widget.hide()
         QTimer.singleShot(0, lambda g=grid: self._fit_grid_height(g))
+        return section
 
     def _fit_grid_height(self, grid: QListWidget) -> None:
         """Rescale described cards to the viewport, then fit section height."""
@@ -361,21 +355,6 @@ class MainWindow(QMainWindow):
         grids.extend(section.grid for section in self._sections if section.grid is not None)
         return any(watched is grid or watched is grid.viewport() for grid in grids)
 
-    def _on_active_output_changed(self, path_str: str) -> None:
-        try:
-            path = Path(path_str)
-            self._active_output_path = path
-            if path.exists():
-                output_txt = path.read_text(encoding="utf8")
-                self.text_edit.setPlainText(output_txt)
-                self.current_content = output_txt
-            else:
-                self.text_edit.setPlainText("")
-                self.current_content = ""
-            self.text_edit.verticalScrollBar().setValue(self.text_edit.verticalScrollBar().maximum())
-        except Exception as e:
-            self._set_placeholder(f"File reading error: {e!s}")
-
     def _on_card_context_menu(self, user_data: object, global_pos: QPoint) -> None:
         """Show copy name/class/path for the action bound to a command card."""
         if isinstance(user_data, QAction):
@@ -388,16 +367,7 @@ class MainWindow(QMainWindow):
     def _on_icon_item_clicked(self, item: QListWidgetItem) -> None:
         action = item.data(Qt.ItemDataRole.UserRole)
         if isinstance(action, QAction):
-            action.trigger()
-
-    def _on_line_appended(self, path_str: str, line: str) -> None:
-        if self._active_output_path is None:
-            return
-        if str(self._active_output_path.resolve()) != path_str:
-            return
-        self.text_edit.append(line)
-        self.current_content = self.text_edit.toPlainText()
-        self.text_edit.verticalScrollBar().setValue(self.text_edit.verticalScrollBar().maximum())
+            self._run_listed_action(action)
 
     def _on_list_context_menu(self, pos: QPoint) -> None:
         """Show copy name/class/path and CLI command for the list item under the cursor."""
@@ -406,31 +376,51 @@ class MainWindow(QMainWindow):
     def _on_search_changed(self, text: str) -> None:
         query = text.strip()
         self._clear_button.setVisible(bool(text))
-
-        if self._icon_grid_mode:
-            self._apply_icon_search(query)
-        else:
-            self._apply_list_search(query)
-
-    def _on_view_mode_toggled(self, *, icon_grid: bool) -> None:
-        self._icon_grid_mode = icon_grid
-        save_main_window_icon_grid(icon_grid=icon_grid)
-        self._apply_view_mode()
-        QTimer.singleShot(0, self.focus_initial_input)
+        self._apply_list_search(query)
+        self._apply_card_search(query)
 
     def _populate_list_from_sections(self) -> None:
-        """Fill classic list using the same Main / submenu order as icon mode."""
+        """Fill the list using the same Recent / Main / submenu order as the cards."""
         self.list_widget.clear()
         for section in self._sections:
+            if not section.actions:
+                continue
             self._add_list_section_header(section.title)
             for action in section.actions:
                 self._add_list_action_item(action, indent_level=1)
 
-    def _set_placeholder(self, placeholder: str) -> None:
-        if placeholder != self.current_content:
-            self.text_edit.setPlainText(placeholder)
-            self.current_content = placeholder
-            self.text_edit.verticalScrollBar().setValue(self.text_edit.verticalScrollBar().maximum())
+    def _recent_gui_actions(self) -> list[QAction]:
+        """Return up to six catalog actions last used from the GUI, newest first."""
+        by_class: dict[str, QAction] = {}
+        for action in self._all_actions:
+            parts = get_action_identity_parts(action)
+            if parts is not None:
+                by_class[parts.class_name] = action
+        return [
+            by_class[name] for name in list_recent_gui_action_names(limit=RECENT_GUI_ACTIONS_LIMIT) if name in by_class
+        ]
+
+    def _refresh_recent_section(self) -> None:
+        """Rebuild the Recent section from the latest GUI usage timestamps."""
+        section = self._recent_section
+        if section is None or section.grid is None:
+            return
+        actions = self._recent_gui_actions()
+        section.actions = actions
+        section.grid.clear()
+        for action in actions:
+            self._add_action_item(section.grid, action)
+        if section.widget is not None:
+            section.widget.setVisible(bool(actions))
+        if section.grid.isVisible():
+            QTimer.singleShot(0, lambda grid=section.grid: self._fit_grid_height(grid))
+        if not self._search_edit.text().strip():
+            self._populate_list_from_sections()
+
+    def _run_listed_action(self, action: QAction) -> None:
+        """Run a catalog action and refresh the Recent section."""
+        action.trigger()
+        self._refresh_recent_section()
 
     def _setup_window_size_and_position(self) -> None:
         """Set window size and position based on screen resolution and characteristics."""
@@ -456,7 +446,7 @@ class MainWindow(QMainWindow):
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, menu: QMenu, *, output_bus: ActionOutputBus | None = None) -> None
+def __init__(self, menu: QMenu) -> None
 ```
 
 Initialize the main window from the tray menu structure.
@@ -464,24 +454,20 @@ Initialize the main window from the tray menu structure.
 Args:
 
 - `menu` (`QMenu`): Tray menu whose actions are shown in the window.
-- `output_bus` (`ActionOutputBus | None`): Output bus for the classic list view.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def __init__(self, menu: QMenu, *, output_bus: ActionOutputBus | None = None) -> None:
+def __init__(self, menu: QMenu) -> None:
         super().__init__()
 
         self.setWindowTitle("Harrix Swiss Knife")
         try_apply_system_backdrop(self, backdrop=SystemBackdrop.MICA)
 
-        self._icon_grid_mode = load_main_window_icon_grid()
         self._sections: list[_CommandSection] = []
+        self._recent_section: _CommandSection | None = None
         self._all_actions: list[QAction] = []
-        self.current_content = ""
-        self._active_output_path: Path | None = None
-        self._output_bus = output_bus
 
         central_widget = QWidget()
         apply_opaque_white(central_widget)
@@ -491,12 +477,9 @@ def __init__(self, menu: QMenu, *, output_bus: ActionOutputBus | None = None) ->
         root_layout.setSpacing(12)
 
         root_layout.addLayout(self._build_header_row())
-        root_layout.addWidget(self._build_icon_mode_widget(), stretch=1)
-        root_layout.addWidget(self._build_list_mode_widget(), stretch=1)
+        root_layout.addWidget(self._build_body_widget(), stretch=1)
         self._build_sections_from_menu(menu)
         self._populate_list_from_sections()
-
-        self._apply_view_mode()
         self._setup_window_size_and_position()
 ```
 
@@ -585,7 +568,7 @@ def focus_search(self) -> None:
 def on_item_clicked(self, item: QListWidgetItem) -> None
 ```
 
-Handle click on a command in classic list mode.
+Handle click on a command in the list pane.
 
 <details>
 <summary>Code:</summary>
@@ -597,7 +580,7 @@ def on_item_clicked(self, item: QListWidgetItem) -> None:
 
         action = item.data(Qt.ItemDataRole.UserRole)
         if isinstance(action, QAction):
-            action.trigger()
+            self._run_listed_action(action)
 ```
 
 </details>
@@ -616,8 +599,7 @@ Refit icon grid heights when the window width changes.
 ```python
 def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802
         super().resizeEvent(event)
-        if self._icon_grid_mode:
-            QTimer.singleShot(0, self._fit_visible_grids)
+        QTimer.singleShot(0, self._fit_visible_grids)
 ```
 
 </details>
@@ -628,7 +610,7 @@ def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802
 def showEvent(self, event: QShowEvent) -> None
 ```
 
-Focus the primary input when the window is shown.
+Refresh Recent and focus the primary input when the window is shown.
 
 <details>
 <summary>Code:</summary>
@@ -636,6 +618,7 @@ Focus the primary input when the window is shown.
 ```python
 def showEvent(self, event: QShowEvent) -> None:  # noqa: N802
         super().showEvent(event)
+        self._refresh_recent_section()
         QTimer.singleShot(0, self.focus_initial_input)
 ```
 

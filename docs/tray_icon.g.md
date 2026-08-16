@@ -44,8 +44,6 @@ class TrayIcon(QSystemTrayIcon):
         icon: QIcon,
         menu: QMenu,
         parent: QWidget | None = None,
-        *,
-        output_bus: ActionOutputBus | None = None,
     ) -> None:
         """Initialize the `TrayIcon` with the given icon and menu.
 
@@ -68,12 +66,11 @@ class TrayIcon(QSystemTrayIcon):
         self.activated.connect(self.on_activated)
         self.main_window: main_window.MainWindow | None = None
         self.menu: QMenu = menu
-        self._output_bus = output_bus
 
     def ensure_main_window(self) -> main_window.MainWindow:
         """Create the main window on first use."""
         if self.main_window is None:
-            self.main_window = main_window.MainWindow(self.menu, output_bus=self._output_bus)
+            self.main_window = main_window.MainWindow(self.menu)
         return self.main_window
 
     def on_activated(self, reason: QSystemTrayIcon.ActivationReason) -> None:
@@ -100,7 +97,7 @@ class TrayIcon(QSystemTrayIcon):
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, icon: QIcon, menu: QMenu, parent: QWidget | None = None, *, output_bus: ActionOutputBus | None = None) -> None
+def __init__(self, icon: QIcon, menu: QMenu, parent: QWidget | None = None) -> None
 ```
 
 Initialize the [`TrayIcon`](#%EF%B8%8F-class-trayicon) with the given icon and menu.
@@ -126,8 +123,6 @@ def __init__(
         icon: QIcon,
         menu: QMenu,
         parent: QWidget | None = None,
-        *,
-        output_bus: ActionOutputBus | None = None,
     ) -> None:
         super().__init__(icon, parent)
         set_menu_tooltips_visible_recursive(menu)
@@ -135,7 +130,6 @@ def __init__(
         self.activated.connect(self.on_activated)
         self.main_window: main_window.MainWindow | None = None
         self.menu: QMenu = menu
-        self._output_bus = output_bus
 ```
 
 </details>
@@ -154,7 +148,7 @@ Create the main window on first use.
 ```python
 def ensure_main_window(self) -> main_window.MainWindow:
         if self.main_window is None:
-            self.main_window = main_window.MainWindow(self.menu, output_bus=self._output_bus)
+            self.main_window = main_window.MainWindow(self.menu)
         return self.main_window
 ```
 

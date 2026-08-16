@@ -158,7 +158,7 @@ def run_tray_application(log: logging.Logger, *, main_menu_cls: type[MainMenuBas
     placeholder_menu = _make_placeholder_menu()
 
     _log_startup_phase(log, "Creating tray icon", startup_t0)
-    tray_icon = TrayIcon(QIcon(":/assets/logo.svg"), menu=placeholder_menu, output_bus=output_bus)
+    tray_icon = TrayIcon(QIcon(":/assets/logo.svg"), menu=placeholder_menu)
     tray_icon.setToolTip("Harrix Swiss Knife")
     tray_icon.show()
     _log_startup_phase(log, "Tray visible", startup_t0)

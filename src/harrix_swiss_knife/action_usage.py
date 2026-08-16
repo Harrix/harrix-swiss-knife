@@ -17,6 +17,8 @@ logger = logging.getLogger(__name__)
 
 _lock = threading.Lock()
 
+RECENT_GUI_ACTIONS_LIMIT = 6
+
 
 class ActionUsageEntry(TypedDict):
     """Usage counters for one action class."""
@@ -25,6 +27,30 @@ class ActionUsageEntry(TypedDict):
     gui: int
     cli: int
     last_used: str
+    last_used_gui: str
+
+
+def list_recent_gui_action_names(
+    *,
+    limit: int = RECENT_GUI_ACTIONS_LIMIT,
+    path: Path | None = None,
+) -> list[str]:
+    """Return class names of the most recently used GUI actions, newest first.
+
+    CLI invocations are ignored. Entries without a GUI timestamp are skipped,
+    except historical GUI-only records that only have `last_used`.
+
+    """
+    if limit <= 0:
+        return []
+    ranked: list[tuple[datetime, str]] = []
+    for class_name, entry in load_action_usage(path).items():
+        stamp = _effective_last_used_gui(entry)
+        if not stamp:
+            continue
+        ranked.append((_parse_usage_timestamp(stamp), class_name))
+    ranked.sort(key=lambda item: (item[0], item[1]), reverse=True)
+    return [name for _, name in ranked[:limit]]
 
 
 def load_action_usage(path: Path | None = None) -> ActionUsageMap:
@@ -61,17 +87,35 @@ def record_action_usage(class_name: str, *, via_cli: bool, path: Path | None = N
     try:
         with _lock:
             data = load_action_usage(usage_path)
-            entry = data.get(class_name) or ActionUsageEntry(count=0, gui=0, cli=0, last_used="")
+            entry = data.get(class_name) or ActionUsageEntry(
+                count=0,
+                gui=0,
+                cli=0,
+                last_used="",
+                last_used_gui="",
+            )
             entry["count"] = int(entry["count"]) + 1
             if via_cli:
                 entry["cli"] = int(entry["cli"]) + 1
             else:
                 entry["gui"] = int(entry["gui"]) + 1
-            entry["last_used"] = datetime.now(UTC).astimezone().isoformat(timespec="seconds")
+            now = datetime.now(UTC).astimezone().isoformat(timespec="seconds")
+            entry["last_used"] = now
+            if not via_cli:
+                entry["last_used_gui"] = now
             data[class_name] = entry
             _write_atomic(usage_path, data)
     except Exception:
         logger.exception("Failed to record action usage for %s", class_name)
+
+
+def _effective_last_used_gui(entry: ActionUsageEntry) -> str:
+    """Return the GUI recency stamp, with a fallback for older usage files."""
+    if entry["last_used_gui"]:
+        return entry["last_used_gui"]
+    if entry["gui"] > 0 and entry["cli"] == 0:
+        return entry["last_used"]
+    return ""
 
 
 def _normalize_entry(value: dict[str, Any]) -> ActionUsageEntry | None:
@@ -83,9 +127,29 @@ def _normalize_entry(value: dict[str, Any]) -> ActionUsageEntry | None:
         last_used = value.get("last_used", "")
         if not isinstance(last_used, str):
             last_used = ""
+        last_used_gui = value.get("last_used_gui", "")
+        if not isinstance(last_used_gui, str):
+            last_used_gui = ""
     except (TypeError, ValueError):
         return None
-    return ActionUsageEntry(count=max(count, 0), gui=max(gui, 0), cli=max(cli, 0), last_used=last_used)
+    return ActionUsageEntry(
+        count=max(count, 0),
+        gui=max(gui, 0),
+        cli=max(cli, 0),
+        last_used=last_used,
+        last_used_gui=last_used_gui,
+    )
+
+
+def _parse_usage_timestamp(value: str) -> datetime:
+    """Parse an ISO usage stamp; invalid values sort as oldest."""
+    try:
+        parsed = datetime.fromisoformat(value)
+    except ValueError:
+        return datetime.min.replace(tzinfo=UTC)
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=UTC)
+    return parsed
 
 
 def _write_atomic(path: Path, data: ActionUsageMap) -> None:
