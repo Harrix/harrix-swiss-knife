@@ -95,20 +95,20 @@ class OnOptimizeImagesInMd(ActionBase):
         """Execute code in a separate thread. For performing long-running operations."""
         if self.folder_path is None:
             return
-        results = []
         size_stats = OptimizeSizeStats()
-        for md_file in sorted(Path(self.folder_path).rglob("*.md")):
-            if md_file.name.endswith(".g.md"):
-                continue
-            results.append(
-                optimize_images_in_md_file(
-                    md_file,
-                    is_convert_png_to_avif=False,
-                    is_compare_png_avif_sizes=True,
-                    max_size=self.max_size,
-                    size_stats=size_stats,
-                )
+        md_files = [
+            md_file for md_file in sorted(Path(self.folder_path).rglob("*.md")) if not md_file.name.endswith(".g.md")
+        ]
+        results = [
+            optimize_images_in_md_file(
+                md_file,
+                is_convert_png_to_avif=False,
+                is_compare_png_avif_sizes=True,
+                max_size=self.max_size,
+                size_stats=size_stats,
             )
+            for md_file in h.file.iter_with_progress(md_files)
+        ]
         self.add_line("\n".join(results))
         if size_stats.count > 0:
             self.add_line(size_stats.format_summary())
@@ -204,20 +204,20 @@ Execute code in a separate thread. For performing long-running operations.
 def in_thread(self) -> str | None:
         if self.folder_path is None:
             return
-        results = []
         size_stats = OptimizeSizeStats()
-        for md_file in sorted(Path(self.folder_path).rglob("*.md")):
-            if md_file.name.endswith(".g.md"):
-                continue
-            results.append(
-                optimize_images_in_md_file(
-                    md_file,
-                    is_convert_png_to_avif=False,
-                    is_compare_png_avif_sizes=True,
-                    max_size=self.max_size,
-                    size_stats=size_stats,
-                )
+        md_files = [
+            md_file for md_file in sorted(Path(self.folder_path).rglob("*.md")) if not md_file.name.endswith(".g.md")
+        ]
+        results = [
+            optimize_images_in_md_file(
+                md_file,
+                is_convert_png_to_avif=False,
+                is_compare_png_avif_sizes=True,
+                max_size=self.max_size,
+                size_stats=size_stats,
             )
+            for md_file in h.file.iter_with_progress(md_files)
+        ]
         self.add_line("\n".join(results))
         if size_stats.count > 0:
             self.add_line(size_stats.format_summary())
