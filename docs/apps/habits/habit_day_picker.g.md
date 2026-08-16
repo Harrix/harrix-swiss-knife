@@ -19,12 +19,14 @@ lang: en
 - [🏛️ Class `HabitDayPickerPopup`](#%EF%B8%8F-class-habitdaypickerpopup)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-1)
   - [⚙️ Method `attach`](#%EF%B8%8F-method-attach)
+  - [⚙️ Method `cancel_reposition`](#%EF%B8%8F-method-cancel_reposition)
   - [⚙️ Method `choices`](#%EF%B8%8F-method-choices)
   - [⚙️ Method `enterEvent`](#%EF%B8%8F-method-enterevent)
   - [⚙️ Method `hide_active (classmethod)`](#%EF%B8%8F-method-hide_active-classmethod)
   - [⚙️ Method `is_attached_to`](#%EF%B8%8F-method-is_attached_to)
   - [⚙️ Method `leaveEvent`](#%EF%B8%8F-method-leaveevent)
   - [⚙️ Method `paintEvent`](#%EF%B8%8F-method-paintevent-1)
+  - [⚙️ Method `refresh_geometry`](#%EF%B8%8F-method-refresh_geometry)
   - [⚙️ Method `request_hide (classmethod)`](#%EF%B8%8F-method-request_hide-classmethod)
   - [⚙️ Method `request_keep (classmethod)`](#%EF%B8%8F-method-request_keep-classmethod)
   - [⚙️ Method `request_show (classmethod)`](#%EF%B8%8F-method-request_show-classmethod)
@@ -220,7 +222,9 @@ class HabitDayPickerPopup(QWidget):
         self._stepper.cancelled.connect(self.hide_active)
         self._stepper.hide()
         self._root_layout.addWidget(self._choices_page, 0, Qt.AlignmentFlag.AlignCenter)
-        self._root_layout.addWidget(self._stepper, 0, Qt.AlignmentFlag.AlignCenter)
+        self._reposition_timer = QTimer(self)
+        self._reposition_timer.setSingleShot(True)
+        self._reposition_timer.timeout.connect(self._update_geometry)
 
     def attach(self, circle: CheckCircle) -> None:
         """Rebuild choices for ``circle`` and point the bubble at it."""
@@ -233,6 +237,11 @@ class HabitDayPickerPopup(QWidget):
         self._rebuild_choices()
         self.show_choices_page()
         self._update_geometry()
+        self._schedule_geometry_update()
+
+    def cancel_reposition(self) -> None:
+        """Cancel a pending geometry pass after hide."""
+        self._reposition_timer.stop()
 
     def choices(self) -> list[HabitDayChoice]:
         """Return the choices currently offered in the picker."""
@@ -249,6 +258,7 @@ class HabitDayPickerPopup(QWidget):
         cls._cancel_timers()
         cls._pending = None
         if cls._instance is not None:
+            cls._instance.cancel_reposition()
             cls._instance.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating, on=True)
             cls._instance.hide()
             cls._instance.show_choices_page()
@@ -275,6 +285,11 @@ class HabitDayPickerPopup(QWidget):
         painter.setPen(QPen(COLOR_TRACK, 1))
         painter.setBrush(QColor("white"))
         painter.drawPath(path)
+
+    def refresh_geometry(self) -> None:
+        """Place the bubble above the attached circle after it is shown."""
+        self._update_geometry()
+        self._schedule_geometry_update()
 
     @classmethod
     def request_hide(cls) -> None:
@@ -322,7 +337,19 @@ class HabitDayPickerPopup(QWidget):
         cls._instance.attach(circle)
         cls._instance.show()
         cls._instance.raise_()
+        cls._instance.refresh_geometry()
         return cls._instance
+
+    def _anchor_edges(self) -> tuple[int, int, int]:
+        """Return global center X, top, and bottom of the hovered circle."""
+        if self._anchor is None:
+            return (0, 0, 0)
+        top_left = self._anchor.mapToGlobal(self._anchor.rect().topLeft())
+        return (
+            top_left.x() + self._anchor.width() // 2,
+            top_left.y(),
+            top_left.y() + self._anchor.height(),
+        )
 
     def _apply_choice(self, choice: object) -> None:
         typed = cast("HabitDayChoice", choice)
@@ -395,10 +422,8 @@ class HabitDayPickerPopup(QWidget):
         """Shrink the bubble to the visible page instead of the hidden stepper."""
         self._choices_page.adjustSize()
         self._stepper.adjustSize()
+        self.updateGeometry()
         self.adjustSize()
-        hint = self.sizeHint()
-        if hint.isValid():
-            self.resize(hint)
 
     def _on_anchor_destroyed(self) -> None:
         self._anchor = None
@@ -433,6 +458,10 @@ class HabitDayPickerPopup(QWidget):
             column.addWidget(caption, 0, Qt.AlignmentFlag.AlignHCenter)
             self._choices_layout.addLayout(column)
 
+    def _schedule_geometry_update(self) -> None:
+        """Reposition after Qt finishes layout of the just-shown bubble."""
+        self._reposition_timer.start(0)
+
     def _set_panel_margins(self, *, triangle_on_top: bool) -> None:
         extra = _TRIANGLE_HEIGHT
         if triangle_on_top:
@@ -461,37 +490,47 @@ class HabitDayPickerPopup(QWidget):
         self.activateWindow()
 
     def _show_page(self, page: QWidget) -> None:
-        """Show ``page`` and hide the other picker page."""
-        self._choices_page.setVisible(page is self._choices_page)
-        self._stepper.setVisible(page is self._stepper)
+        """Show ``page`` and keep only that page in the layout."""
+        for child in (self._choices_page, self._stepper):
+            if child is page:
+                continue
+            child.hide()
+            self._root_layout.removeWidget(child)
+        if self._root_layout.indexOf(page) < 0:
+            self._root_layout.addWidget(page, 0, Qt.AlignmentFlag.AlignCenter)
+        page.show()
         self._fit_to_content()
 
     def _update_geometry(self) -> None:
         if self._anchor is None:
             return
         self._fit_to_content()
-        target = self._anchor.mapToGlobal(self._anchor.rect().center())
-        screen = QGuiApplication.screenAt(target) or QGuiApplication.primaryScreen()
+        center_x, circle_top, circle_bottom = self._anchor_edges()
+        screen = QGuiApplication.screenAt(self._anchor.mapToGlobal(self._anchor.rect().center()))
+        if screen is None:
+            screen = QGuiApplication.primaryScreen()
         area = screen.availableGeometry() if screen is not None else self.rect()
-        width = self.width()
-        height = self.height()
-        x = target.x() - width // 2
-        y = target.y() - self._anchor.height() // 2 - height + 4
+        width, height = self._window_size()
+        x = center_x - width // 2
         x = max(area.left() + 4, min(x, area.right() - width - 4))
-        self._triangle_on_top = y < area.top() + 4
-        if self._triangle_on_top:
-            y = target.y() + self._anchor.height() // 2 - 4
-            self._set_panel_margins(triangle_on_top=True)
-        else:
-            self._set_panel_margins(triangle_on_top=False)
+        y_above = circle_top - height - _ANCHOR_GAP
+        self._triangle_on_top = y_above < area.top() + 4
+        self._set_panel_margins(triangle_on_top=self._triangle_on_top)
         self._fit_to_content()
-        height = self.height()
-        y = target.y() - self._anchor.height() // 2 - height + 4
-        if self._triangle_on_top:
-            y = target.y() + self._anchor.height() // 2 - 4
-        self.move(x, y)
-        self._triangle_x = float(target.x() - x)
+        width, height = self._window_size()
+        x = center_x - width // 2
+        x = max(area.left() + 4, min(x, area.right() - width - 4))
+        y = circle_bottom + _ANCHOR_GAP if self._triangle_on_top else circle_top - height - _ANCHOR_GAP
+        self.setGeometry(x, y, width, height)
+        self._triangle_x = float(center_x - x)
         self.update()
+
+    def _window_size(self) -> tuple[int, int]:
+        """Return the bubble size from the current page, not a stale window size."""
+        hint = self.sizeHint()
+        width = hint.width() if hint.isValid() and hint.width() > 0 else self.width()
+        height = hint.height() if hint.isValid() and hint.height() > 0 else self.height()
+        return (width, height)
 ```
 
 </details>
@@ -539,7 +578,9 @@ def __init__(self) -> None:  # noqa: D107
         self._stepper.cancelled.connect(self.hide_active)
         self._stepper.hide()
         self._root_layout.addWidget(self._choices_page, 0, Qt.AlignmentFlag.AlignCenter)
-        self._root_layout.addWidget(self._stepper, 0, Qt.AlignmentFlag.AlignCenter)
+        self._reposition_timer = QTimer(self)
+        self._reposition_timer.setSingleShot(True)
+        self._reposition_timer.timeout.connect(self._update_geometry)
 ```
 
 </details>
@@ -566,6 +607,25 @@ def attach(self, circle: CheckCircle) -> None:
         self._rebuild_choices()
         self.show_choices_page()
         self._update_geometry()
+        self._schedule_geometry_update()
+```
+
+</details>
+
+### ⚙️ Method `cancel_reposition`
+
+```python
+def cancel_reposition(self) -> None
+```
+
+Cancel a pending geometry pass after hide.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def cancel_reposition(self) -> None:
+        self._reposition_timer.stop()
 ```
 
 </details>
@@ -623,6 +683,7 @@ def hide_active(cls) -> None:
         cls._cancel_timers()
         cls._pending = None
         if cls._instance is not None:
+            cls._instance.cancel_reposition()
             cls._instance.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating, on=True)
             cls._instance.hide()
             cls._instance.show_choices_page()
@@ -691,6 +752,25 @@ def paintEvent(self, _event: QPaintEvent) -> None:  # noqa: N802
         painter.setPen(QPen(COLOR_TRACK, 1))
         painter.setBrush(QColor("white"))
         painter.drawPath(path)
+```
+
+</details>
+
+### ⚙️ Method `refresh_geometry`
+
+```python
+def refresh_geometry(self) -> None
+```
+
+Place the bubble above the attached circle after it is shown.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def refresh_geometry(self) -> None:
+        self._update_geometry()
+        self._schedule_geometry_update()
 ```
 
 </details>
@@ -804,6 +884,7 @@ def show_for(cls, circle: CheckCircle) -> HabitDayPickerPopup:
         cls._instance.attach(circle)
         cls._instance.show()
         cls._instance.raise_()
+        cls._instance.refresh_geometry()
         return cls._instance
 ```
 

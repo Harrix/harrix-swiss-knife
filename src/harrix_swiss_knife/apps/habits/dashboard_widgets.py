@@ -20,6 +20,7 @@ from PySide6.QtWidgets import (
 )
 
 from harrix_swiss_knife.apps.habits.habit_emojis import default_habit_emoji
+from harrix_swiss_knife.qt_emoji_icon import create_emoji_icon
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -171,13 +172,11 @@ class HabitIconBadge(QWidget):
         painter.setPen(Qt.PenStyle.NoPen)
         painter.setBrush(self._bg)
         painter.drawEllipse(0, 0, self.width(), self.height())
-
+        side = max(18, round(self._size * 0.78))
+        x = (self.width() - side) // 2
+        y = (self.height() - side) // 2
         painter.setPen(COLOR_TEXT)
-        font = QFont(self.font())
-        font.setPointSize(max(10, int(self._size * 0.35)))
-        font.setBold(True)
-        painter.setFont(font)
-        painter.drawText(self.rect(), Qt.AlignmentFlag.AlignCenter, self._glyph)
+        create_emoji_icon(self._glyph, side).paint(painter, x, y, side, side)
 
     def set_habit(self, habit_id: int, glyph: str | None = None) -> None:
         """Style badge from habit ID and optional stored emoji/glyph."""

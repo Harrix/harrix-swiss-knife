@@ -6,8 +6,10 @@ from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
+from PySide6.QtGui import QImage
 from PySide6.QtWidgets import QApplication
 
+from harrix_swiss_knife.apps.habits.dashboard_widgets import HabitIconBadge
 from harrix_swiss_knife.apps.habits.database_manager import DatabaseManager
 from harrix_swiss_knife.apps.habits.habit_emojis import default_habit_emoji, normalize_habit_emoji
 
@@ -110,3 +112,20 @@ def test_ensure_habits_schema_adds_and_backfills_emoji(tmp_path: Path, qapp: QAp
         assert row[4] == default_habit_emoji(habit_id)
     finally:
         db.close()
+
+
+def _render_habit_icon_badge(emoji: str) -> QImage:
+    badge = HabitIconBadge(size=40)
+    badge.set_habit(1, emoji)
+    image = QImage(40, 40, QImage.Format.Format_ARGB32)
+    image.fill(0)
+    badge.render(image)
+    return image
+
+
+def test_habit_icon_badge_paints_centered_emoji(qapp: QApplication) -> None:
+    """List badge draws the habit emoji instead of an empty colored circle."""
+    assert qapp is not None
+    runner = _render_habit_icon_badge("🏃")
+    syringe = _render_habit_icon_badge("💉")
+    assert runner != syringe

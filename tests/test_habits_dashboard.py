@@ -10,7 +10,7 @@ import pytest
 from PySide6.QtCore import QRectF, Qt
 from PySide6.QtGui import QImage, QPainter, QStandardItem, QStandardItemModel
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QApplication, QLineEdit, QPushButton, QStyleOptionViewItem, QTableView
+from PySide6.QtWidgets import QApplication, QLineEdit, QPushButton, QStyleOptionViewItem, QTableView, QWidget
 
 from harrix_swiss_knife.apps.habits.dashboard_widgets import (
     CheckCircle,
@@ -385,3 +385,39 @@ def test_habit_day_picker_two_choices_are_compact(qapp: QApplication) -> None:
 
     assert two_width < three_width
     assert two_height < 90
+
+
+def _assert_picker_above_circle(popup: HabitDayPickerPopup, circle: CheckCircle) -> None:
+    circle_top = circle.mapToGlobal(circle.rect().topLeft()).y()
+    popup_bottom = popup.y() + popup.height()
+    assert popup.y() < circle_top
+    assert popup_bottom <= circle_top
+
+
+def test_habit_day_picker_sits_above_circle(qapp: QApplication) -> None:
+    """Bubble stays above the hovered circle even after a taller stepper page."""
+    assert qapp is not None
+    HabitDayPickerPopup.hide_active()
+
+    host = QWidget()
+    host.resize(400, 400)
+    host.move(240, 240)
+    circle = CheckCircle(host)
+    circle.set_allows_number(allows_number=True)
+    circle.move(180, 220)
+    host.show()
+    qapp.processEvents()
+
+    popup = HabitDayPickerPopup.show_for(circle)
+    qapp.processEvents()
+    _assert_picker_above_circle(popup, circle)
+
+    number = next(option for option in popup.findChildren(DayChoiceCircle) if option.choice() == "number")
+    QTest.mouseClick(number, Qt.MouseButton.LeftButton)
+    qapp.processEvents()
+    popup = HabitDayPickerPopup.show_for(circle)
+    qapp.processEvents()
+    _assert_picker_above_circle(popup, circle)
+
+    HabitDayPickerPopup.hide_active()
+    host.close()

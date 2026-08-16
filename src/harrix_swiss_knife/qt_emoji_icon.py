@@ -9,7 +9,7 @@ glyph's tight bounding rect and centers the result without clipping.
 
 from __future__ import annotations
 
-from PySide6.QtCore import QPointF, Qt
+from PySide6.QtCore import QPointF, QRectF, Qt
 from PySide6.QtGui import QFont, QFontMetricsF, QIcon, QPainter, QPixmap
 from PySide6.QtWidgets import QDialogButtonBox, QPushButton, QWidget
 
@@ -47,31 +47,7 @@ def create_emoji_icon(emoji: str, size: int = 64) -> QIcon:
 
     painter = QPainter(pixmap)
     painter.setRenderHint(QPainter.RenderHint.TextAntialiasing, on=True)
-
-    target = float(size) * 0.90
-    base_font = QFont()
-    base_font.setPointSizeF(float(size))
-
-    metrics = QFontMetricsF(base_font)
-    rect = metrics.tightBoundingRect(emoji)
-    rect_w = max(rect.width(), 1.0)
-    rect_h = max(rect.height(), 1.0)
-
-    # If the glyph is taller than wide, fit by height; otherwise fit by width.
-    scale = (target / rect_h) if (rect_h > rect_w) else (target / rect_w)
-
-    font = QFont(base_font)
-    font.setPointSizeF(max(1.0, base_font.pointSizeF() * scale))
-    painter.setFont(font)
-
-    metrics2 = QFontMetricsF(font)
-    rect2 = metrics2.tightBoundingRect(emoji)
-
-    x = (float(size) - rect2.width()) / 2.0
-    y = (float(size) - rect2.height()) / 2.0
-    baseline = QPointF(x - rect2.left(), y - rect2.top())
-
-    painter.drawText(baseline, emoji)
+    paint_centered_emoji(painter, emoji, QRectF(0.0, 0.0, float(size), float(size)), fill=0.90)
     painter.end()
 
     return QIcon(pixmap)
@@ -88,3 +64,33 @@ def make_emoji_push_button(
     button = QPushButton(label, parent)
     button.setIcon(create_emoji_icon(emoji, icon_size))
     return button
+
+
+def paint_centered_emoji(
+    painter: QPainter,
+    emoji: str,
+    rect: QRectF,
+    *,
+    fill: float = 0.90,
+) -> None:
+    """Draw ``emoji`` centered in ``rect``, scaled to ``fill`` of the shorter side."""
+    if not emoji:
+        return
+    painter.save()
+    painter.setPen(Qt.GlobalColor.black)
+    size = min(rect.width(), rect.height())
+    target = size * fill
+    base_font = QFont()
+    base_font.setPointSizeF(max(1.0, size))
+    bounds = QFontMetricsF(base_font).tightBoundingRect(emoji)
+    rect_w = max(bounds.width(), 1.0)
+    rect_h = max(bounds.height(), 1.0)
+    scale = (target / rect_h) if rect_h > rect_w else (target / rect_w)
+    font = QFont(base_font)
+    font.setPointSizeF(max(1.0, base_font.pointSizeF() * scale))
+    painter.setFont(font)
+    fitted = QFontMetricsF(font).tightBoundingRect(emoji)
+    x = rect.x() + (rect.width() - fitted.width()) / 2.0
+    y = rect.y() + (rect.height() - fitted.height()) / 2.0
+    painter.drawText(QPointF(x - fitted.left(), y - fitted.top()), emoji)
+    painter.restore()
