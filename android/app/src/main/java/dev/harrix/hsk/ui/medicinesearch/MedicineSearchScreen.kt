@@ -63,6 +63,9 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -87,6 +90,7 @@ import dev.harrix.hsk.ui.theme.hskTopAppBarColors
 import dev.harrix.hsk.ui.theme.hskTopAppBarWindowInsets
 import kotlinx.coroutines.delay
 import java.io.File
+import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -112,6 +116,9 @@ fun MedicineSearchScreen(
     val keyboard = LocalSoftwareKeyboardController.current
     val queryFocusRequester = remember { FocusRequester() }
     val scrollState = rememberScrollState()
+    var scrollableCoords by remember { mutableStateOf<LayoutCoordinates?>(null) }
+    var queryFieldCoords by remember { mutableStateOf<LayoutCoordinates?>(null) }
+    var latestUserMessageCoords by remember { mutableStateOf<LayoutCoordinates?>(null) }
     val copiedMessage = stringResource(R.string.medicine_search_copied)
     val cameraFailedMessage = stringResource(R.string.medicine_search_camera_failed)
     var showPhotoSource by remember { mutableStateOf(false) }
@@ -155,13 +162,27 @@ fun MedicineSearchScreen(
         viewModel.reloadFromPreferences()
     }
 
-    LaunchedEffect(phase, showResult, conversation.size) {
-        if (phase == MedicineSearchPhase.Searching ||
-            phase == MedicineSearchPhase.LoadingFile ||
-            showResult
-        ) {
-            scrollState.animateScrollTo(scrollState.maxValue)
+    LaunchedEffect(phase, conversation.size, resultText) {
+        if (phase != MedicineSearchPhase.Result) {
+            return@LaunchedEffect
         }
+        if (conversation.isEmpty() && resultText.isBlank()) {
+            return@LaunchedEffect
+        }
+        delay(80)
+        val target =
+            if (conversation.size <= 1) {
+                queryFieldCoords
+            } else {
+                latestUserMessageCoords ?: queryFieldCoords
+            }
+        scrollState.animateScrollTo(
+            contentOffsetY(
+                child = target,
+                scrollable = scrollableCoords,
+                scrollValue = scrollState.value,
+            ),
+        )
     }
 
     val openDocument =
@@ -271,6 +292,7 @@ fun MedicineSearchScreen(
                 Modifier
                     .fillMaxSize()
                     .verticalScroll(scrollState)
+                    .onGloballyPositioned { scrollableCoords = it }
                     .adaptiveContentWidth()
                     .padding(horizontal = 16.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -340,7 +362,8 @@ fun MedicineSearchScreen(
                     modifier =
                     Modifier
                         .fillMaxWidth()
-                        .focusRequester(queryFocusRequester),
+                        .focusRequester(queryFocusRequester)
+                        .onGloballyPositioned { queryFieldCoords = it },
                     enabled = !busy,
                     minLines = 3,
                     maxLines = 6,
@@ -421,6 +444,7 @@ fun MedicineSearchScreen(
                     ConversationResult(
                         turns = conversation,
                         latestAnswer = resultText,
+                        onLatestUserMessagePosition = { latestUserMessageCoords = it },
                         followUpText = followUpText,
                         isSearching = isSearching && isFollowUpRequest,
                         busy = busy,
@@ -514,6 +538,7 @@ fun MedicineSearchScreen(
 private fun ConversationResult(
     turns: List<MedicineSearchTurn>,
     latestAnswer: String,
+    onLatestUserMessagePosition: (LayoutCoordinates) -> Unit,
     followUpText: String,
     isSearching: Boolean,
     busy: Boolean,
@@ -536,10 +561,17 @@ private fun ConversationResult(
                 }
             }
         visibleTurns.forEachIndexed { index, turn ->
+            val isLatestUserMessage = index == visibleTurns.lastIndex && index > 0
             if (index > 0 && turn.question.isNotBlank()) {
                 Text(
                     text = stringResource(R.string.medicine_search_follow_up_label),
                     style = MaterialTheme.typography.titleSmall,
+                    modifier =
+                    if (isLatestUserMessage) {
+                        Modifier.onGloballyPositioned(onLatestUserMessagePosition)
+                    } else {
+                        Modifier
+                    },
                 )
                 Text(
                     text = turn.question,
@@ -724,6 +756,24 @@ private fun AttachedPhotosRow(
             )
         }
     }
+}
+
+private fun contentOffsetY(
+    child: LayoutCoordinates?,
+    scrollable: LayoutCoordinates?,
+    scrollValue: Int,
+): Int {
+    if (child == null || scrollable == null) {
+        return 0
+    }
+    if (!child.isAttached || !scrollable.isAttached) {
+        return 0
+    }
+    return (
+        child.positionInRoot().y -
+            scrollable.positionInRoot().y +
+            scrollValue
+        ).roundToInt().coerceAtLeast(0)
 }
 
 @Composable
