@@ -4,6 +4,9 @@
   const backBtn = document.getElementById('backBtn');
   const homeBtn = document.getElementById('homeBtn');
   const refreshBtn = document.getElementById('refreshBtn');
+  const viewToggleBtn = document.getElementById('viewToggleBtn');
+  const viewToggleListIcon = document.getElementById('viewToggleListIcon');
+  const viewToggleGridIcon = document.getElementById('viewToggleGridIcon');
   const crumbsEl = document.getElementById('crumbs');
   const gridEl = document.getElementById('grid');
   const statusEl = document.getElementById('status');
@@ -17,6 +20,8 @@
   let currentFolder = null;
   /** @type {'harrix' | 'material'} */
   let iconStyle = 'harrix';
+  /** @type {'icons' | 'list'} */
+  let layout = 'icons';
   /** @type {{ folder: string, note: string }} */
   let iconUrls = { folder: '', note: '' };
 
@@ -192,9 +197,24 @@
     return NOTE_SVG;
   }
 
-  function renderGrid() {
+  function syncViewToggle() {
+    const isList = layout === 'list';
+    const nextTitle = isList ? 'Switch to icons' : 'Switch to list';
+    viewToggleBtn.title = nextTitle;
+    viewToggleBtn.setAttribute('aria-label', nextTitle);
+    viewToggleListIcon.hidden = isList;
+    viewToggleGridIcon.hidden = !isList;
+    document.body.classList.toggle('layout-list', isList);
+    document.body.classList.toggle('layout-icons', !isList);
+  }
+
+  function renderEntries() {
     hideContextMenu();
     gridEl.replaceChildren();
+    const isList = layout === 'list';
+    gridEl.className = isList ? 'list' : 'grid';
+    syncViewToggle();
+
     if (!entries.length) {
       statusEl.hidden = false;
       statusEl.textContent = 'This folder has no notes or subfolders.';
@@ -205,7 +225,8 @@
     for (const entry of entries) {
       const btn = document.createElement('button');
       btn.type = 'button';
-      btn.className = entry.isCut ? 'cell is-cut' : 'cell';
+      const itemClass = isList ? 'row' : 'cell';
+      btn.className = entry.isCut ? `${itemClass} is-cut` : itemClass;
       btn.title = entry.path;
 
       const glyph = document.createElement('div');
@@ -217,13 +238,25 @@
       label.textContent = entry.label || entry.name;
 
       btn.appendChild(glyph);
-      btn.appendChild(label);
-
-      if (entry.description) {
-        const desc = document.createElement('div');
-        desc.className = 'desc';
-        desc.textContent = entry.description;
-        btn.appendChild(desc);
+      if (isList) {
+        const text = document.createElement('div');
+        text.className = 'row-text';
+        text.appendChild(label);
+        if (entry.description) {
+          const desc = document.createElement('div');
+          desc.className = 'desc';
+          desc.textContent = entry.description;
+          text.appendChild(desc);
+        }
+        btn.appendChild(text);
+      } else {
+        btn.appendChild(label);
+        if (entry.description) {
+          const desc = document.createElement('div');
+          desc.className = 'desc';
+          desc.textContent = entry.description;
+          btn.appendChild(desc);
+        }
       }
 
       btn.addEventListener('click', () => {
@@ -247,13 +280,14 @@
     entries = Array.isArray(msg.entries) ? msg.entries : [];
     currentFolder = msg.currentFolder && typeof msg.currentFolder === 'object' ? msg.currentFolder : null;
     iconStyle = msg.iconStyle === 'material' ? 'material' : 'harrix';
+    layout = msg.layout === 'list' ? 'list' : 'icons';
     const icons = msg.icons && typeof msg.icons === 'object' ? msg.icons : {};
     iconUrls = {
       folder: typeof icons.folder === 'string' ? icons.folder : '',
       note: typeof icons.note === 'string' ? icons.note : '',
     };
     renderChrome();
-    renderGrid();
+    renderEntries();
   }
 
   backBtn.addEventListener('click', () => {
@@ -265,11 +299,14 @@
   refreshBtn.addEventListener('click', () => {
     vscode.postMessage({ type: 'refresh' });
   });
+  viewToggleBtn.addEventListener('click', () => {
+    vscode.postMessage({ type: 'setLayout', layout: layout === 'list' ? 'icons' : 'list' });
+  });
 
   const mainEl = document.querySelector('.main');
   if (mainEl) {
     mainEl.addEventListener('contextmenu', (event) => {
-      if (event.target.closest('.cell')) {
+      if (event.target.closest('.cell, .row')) {
         return;
       }
       requestBackgroundContextMenu(event);

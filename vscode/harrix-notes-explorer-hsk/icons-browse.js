@@ -385,6 +385,7 @@ function postState() {
     }),
   }));
   const iconStyle = getNotesIconStyleFromConfig();
+  const layout = getBrowseLayoutFromConfig();
   const folderIcon = panel.webview
     .asWebviewUri(vscode.Uri.joinPath(deps.context.extensionUri, 'media', 'icons', 'it__folder_01.svg'))
     .toString();
@@ -397,6 +398,7 @@ function postState() {
     entries,
     currentFolder,
     iconStyle,
+    layout,
     icons: {
       folder: folderIcon,
       note: noteIcon,
@@ -417,13 +419,24 @@ function getNotesIconStyleFromConfig() {
 }
 
 /**
+ * @returns {'icons' | 'list'}
+ */
+function getBrowseLayoutFromConfig() {
+  const config = vscode.workspace.getConfiguration('harrixNotesExplorerHsk');
+  const raw = String(config.get('iconsBrowse.layout') || 'icons')
+    .trim()
+    .toLowerCase();
+  return raw === 'list' ? 'list' : 'icons';
+}
+
+/**
  * @param {unknown} message
  */
 async function handleWebviewMessage(message) {
   if (!deps || !message || typeof message !== 'object') {
     return;
   }
-  const msg = /** @type {{ type?: string, path?: string, name?: string, index?: number }} */ (message);
+  const msg = /** @type {{ type?: string, path?: string, name?: string, index?: number, layout?: string }} */ (message);
 
   switch (msg.type) {
     case 'ready':
@@ -466,6 +479,14 @@ async function handleWebviewMessage(message) {
         break;
       }
       crumbs = crumbs.slice(0, msg.index + 1);
+      postState();
+      break;
+    }
+    case 'setLayout': {
+      const next = msg.layout === 'list' ? 'list' : 'icons';
+      await vscode.workspace
+        .getConfiguration('harrixNotesExplorerHsk')
+        .update('iconsBrowse.layout', next, vscode.ConfigurationTarget.Global);
       postState();
       break;
     }
@@ -617,11 +638,21 @@ function getHtml(webview, extensionUri) {
     <button type="button" id="backBtn" title="Back">Back</button>
     <button type="button" id="homeBtn" title="Home">Home</button>
     <nav class="breadcrumbs" id="crumbs" aria-label="Path"></nav>
-    <button type="button" id="refreshBtn" class="icon-btn" title="Refresh" aria-label="Refresh">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true">
-        <path d="M17.65 6.35A7.95 7.95 0 0 0 12 4V1L7 6l5 5V7c2.76 0 5 2.24 5 5a4.99 4.99 0 0 1-.86 2.82l1.46 1.46A6.97 6.97 0 0 0 19 12c0-1.94-.78-3.7-2.35-5.65zM6 12c0-.85.17-1.66.48-2.4L4.95 8.07A6.97 6.97 0 0 0 5 12c0 1.94.78 3.7 2.35 5.65A7.95 7.95 0 0 0 12 20v3l5-5-5-5v3c-2.76 0-5-2.24-5-5z"/>
-      </svg>
-    </button>
+    <div class="chrome-actions">
+      <button type="button" id="viewToggleBtn" class="icon-btn" title="Switch to list" aria-label="Switch to list">
+        <svg id="viewToggleListIcon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true">
+          <path d="M4 6h2v2H4V6zm4 0h12v2H8V6zM4 11h2v2H4v-2zm4 0h12v2H8v-2zM4 16h2v2H4v-2zm4 0h12v2H8v-2z"/>
+        </svg>
+        <svg id="viewToggleGridIcon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true" hidden>
+          <path d="M4 4h7v7H4V4zm9 0h7v7h-7V4zM4 13h7v7H4v-7zm9 0h7v7h-7v-7z"/>
+        </svg>
+      </button>
+      <button type="button" id="refreshBtn" class="icon-btn" title="Refresh" aria-label="Refresh">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true">
+          <path d="M17.65 6.35A7.95 7.95 0 0 0 12 4V1L7 6l5 5V7c2.76 0 5 2.24 5 5a4.99 4.99 0 0 1-.86 2.82l1.46 1.46A6.97 6.97 0 0 0 19 12c0-1.94-.78-3.7-2.35-5.65zM6 12c0-.85.17-1.66.48-2.4L4.95 8.07A6.97 6.97 0 0 0 5 12c0 1.94.78 3.7 2.35 5.65A7.95 7.95 0 0 0 12 20v3l5-5-5-5v3c-2.76 0-5-2.24-5-5z"/>
+        </svg>
+      </button>
+    </div>
   </header>
   <main class="main">
     <div id="status" class="status" hidden>Loading…</div>

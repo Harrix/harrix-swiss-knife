@@ -168,6 +168,19 @@
           ],
           "markdownDescription": "Icon set for folders and notes in **Harrix Notes (HSK)** tree and **Notes Icons Browse**. Matches Android `NotesIconStyle` (`Harrix` / `Material`). YAML `icon:` emoji on a note still overrides the file icon."
         },
+        "harrixNotesExplorerHsk.iconsBrowse.layout": {
+          "type": "string",
+          "default": "icons",
+          "enum": [
+            "icons",
+            "list"
+          ],
+          "enumDescriptions": [
+            "Icon grid (current Notes Icons Browse).",
+            "List rows (same as Harrix Notes Android)."
+          ],
+          "markdownDescription": "Folder view in **Notes Icons Browse**: icon grid or list rows. Matches Android `NotesBrowseLayout` (`Icons` / `List`). The toolbar button next to Refresh toggles this."
+        },
         "harrixNotesExplorerHsk.openNotesInPreview": {
           "type": "boolean",
           "default": true,
