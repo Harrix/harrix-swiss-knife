@@ -9,9 +9,10 @@ from PySide6.QtGui import QColor, QFont, QGuiApplication, QIntValidator, QPainte
 from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
+    QLayout,
     QLineEdit,
     QPushButton,
-    QStackedWidget,
+    QSizePolicy,
     QVBoxLayout,
     QWidget,
 )
@@ -27,7 +28,6 @@ from harrix_swiss_knife.apps.habits.dashboard_widgets import (
 
 if TYPE_CHECKING:
     from PySide6.QtGui import QEnterEvent, QMouseEvent, QPaintEvent
-    from PySide6.QtWidgets import QLayout
 
     from harrix_swiss_knife.apps.habits.dashboard_widgets import CheckCircle
 
@@ -35,9 +35,12 @@ HabitDayChoice = int | None | Literal["number"]
 
 _SHOW_DELAY_MS = 180
 _HIDE_DELAY_MS = 280
-_TRIANGLE_HEIGHT = 9
-_TRIANGLE_HALF_WIDTH = 8
+_TRIANGLE_HEIGHT = 8
+_TRIANGLE_HALF_WIDTH = 7
 _OPTION_CIRCLE_SIZE = 26
+_PANEL_MARGIN = 8
+_PANEL_EDGE_TO_TRIANGLE = 4
+_CHOICE_SPACING = 8
 _NUMBER_PREVIEW_VALUE = 2
 _NUMBER_MIN = -999999
 _NUMBER_MAX = 999999
@@ -101,19 +104,23 @@ class HabitDayPickerPopup(QWidget):
         self.setMouseTracking(True)
 
         self._root_layout = QVBoxLayout(self)
-        self._root_layout.setContentsMargins(12, 12, 12, 12 + _TRIANGLE_HEIGHT)
+        self._set_panel_margins(triangle_on_top=False)
         self._root_layout.setSpacing(0)
-        self._stack = QStackedWidget()
+        self.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Maximum)
         self._choices_page = QWidget()
+        self._choices_page.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Maximum)
         self._choices_layout = QHBoxLayout(self._choices_page)
         self._choices_layout.setContentsMargins(0, 0, 0, 0)
-        self._choices_layout.setSpacing(10)
+        self._choices_layout.setSpacing(_CHOICE_SPACING)
+        self._choices_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._choices_layout.setSizeConstraint(QLayout.SizeConstraint.SetFixedSize)
         self._stepper = HabitNumberStepper()
+        self._stepper.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Maximum)
         self._stepper.confirmed.connect(self._on_number_confirmed)
         self._stepper.cancelled.connect(self.hide_active)
-        self._stack.addWidget(self._choices_page)
-        self._stack.addWidget(self._stepper)
-        self._root_layout.addWidget(self._stack)
+        self._stepper.hide()
+        self._root_layout.addWidget(self._choices_page, 0, Qt.AlignmentFlag.AlignCenter)
+        self._root_layout.addWidget(self._stepper, 0, Qt.AlignmentFlag.AlignCenter)
 
     def attach(self, circle: CheckCircle) -> None:
         """Rebuild choices for ``circle`` and point the bubble at it."""
@@ -124,7 +131,7 @@ class HabitDayPickerPopup(QWidget):
         self._anchor = circle
         self._choices = alternative_habit_day_choices(circle.value(), allows_number=circle.allows_number())
         self._rebuild_choices()
-        self._stack.setCurrentWidget(self._choices_page)
+        self.show_choices_page()
         self._update_geometry()
 
     def choices(self) -> list[HabitDayChoice]:
@@ -204,7 +211,7 @@ class HabitDayPickerPopup(QWidget):
 
     def show_choices_page(self) -> None:
         """Show the alternative-state circles instead of the number stepper."""
-        self._stack.setCurrentWidget(self._choices_page)
+        self._show_page(self._choices_page)
 
     @classmethod
     def show_for(cls, circle: CheckCircle) -> HabitDayPickerPopup:
@@ -284,6 +291,15 @@ class HabitDayPickerPopup(QWidget):
             timer.timeout.connect(cls.hide_active)
             cls._hide_timer = timer
 
+    def _fit_to_content(self) -> None:
+        """Shrink the bubble to the visible page instead of the hidden stepper."""
+        self._choices_page.adjustSize()
+        self._stepper.adjustSize()
+        self.adjustSize()
+        hint = self.sizeHint()
+        if hint.isValid():
+            self.resize(hint)
+
     def _on_anchor_destroyed(self) -> None:
         self._anchor = None
         self.hide_active()
@@ -311,28 +327,49 @@ class HabitDayPickerPopup(QWidget):
             circle = DayChoiceCircle(choice)
             circle.selected.connect(self._apply_choice)
             caption = QLabel(habit_day_choice_caption(choice))
-            caption.setAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop)
-            caption.setWordWrap(True)
-            caption.setFixedWidth(58)
+            caption.setAlignment(Qt.AlignmentFlag.AlignHCenter)
             caption.setStyleSheet("color: #6B7280; font-size: 9px;")
             column.addWidget(circle, 0, Qt.AlignmentFlag.AlignHCenter)
-            column.addWidget(caption)
+            column.addWidget(caption, 0, Qt.AlignmentFlag.AlignHCenter)
             self._choices_layout.addLayout(column)
+
+    def _set_panel_margins(self, *, triangle_on_top: bool) -> None:
+        extra = _TRIANGLE_HEIGHT
+        if triangle_on_top:
+            self._root_layout.setContentsMargins(
+                _PANEL_MARGIN,
+                _PANEL_MARGIN + extra,
+                _PANEL_MARGIN,
+                _PANEL_EDGE_TO_TRIANGLE,
+            )
+            return
+        self._root_layout.setContentsMargins(
+            _PANEL_MARGIN,
+            _PANEL_MARGIN,
+            _PANEL_MARGIN,
+            _PANEL_EDGE_TO_TRIANGLE + extra,
+        )
 
     def _show_number_stepper(self) -> None:
         current = self._anchor.value() if self._anchor is not None else None
         initial = current if current is not None and habit_day_state(current) == "number" else _DEFAULT_NUMBER
         self._stepper.set_value(initial)
-        self._stack.setCurrentWidget(self._stepper)
+        self._show_page(self._stepper)
         self.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating, on=False)
         self.adjustSize()
         self._update_geometry()
         self.activateWindow()
 
+    def _show_page(self, page: QWidget) -> None:
+        """Show ``page`` and hide the other picker page."""
+        self._choices_page.setVisible(page is self._choices_page)
+        self._stepper.setVisible(page is self._stepper)
+        self._fit_to_content()
+
     def _update_geometry(self) -> None:
         if self._anchor is None:
             return
-        self.adjustSize()
+        self._fit_to_content()
         target = self._anchor.mapToGlobal(self._anchor.rect().center())
         screen = QGuiApplication.screenAt(target) or QGuiApplication.primaryScreen()
         area = screen.availableGeometry() if screen is not None else self.rect()
@@ -344,10 +381,10 @@ class HabitDayPickerPopup(QWidget):
         self._triangle_on_top = y < area.top() + 4
         if self._triangle_on_top:
             y = target.y() + self._anchor.height() // 2 - 4
-            self._root_layout.setContentsMargins(12, 12 + _TRIANGLE_HEIGHT, 12, 12)
+            self._set_panel_margins(triangle_on_top=True)
         else:
-            self._root_layout.setContentsMargins(12, 12, 12, 12 + _TRIANGLE_HEIGHT)
-        self.adjustSize()
+            self._set_panel_margins(triangle_on_top=False)
+        self._fit_to_content()
         height = self.height()
         y = target.y() - self._anchor.height() // 2 - height + 4
         if self._triangle_on_top:

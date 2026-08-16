@@ -358,3 +358,30 @@ def test_habit_day_picker_number_stepper(qapp: QApplication) -> None:
     assert received == [12]
     assert not popup.isVisible()
     HabitDayPickerPopup.hide_active()
+
+
+def test_habit_day_picker_two_choices_are_compact(qapp: QApplication) -> None:
+    """Two remaining states stay close together instead of stretching to the stepper page."""
+    assert qapp is not None
+    HabitDayPickerPopup.hide_active()
+
+    two_circle = CheckCircle()
+    two_circle.set_allows_number(allows_number=False)
+    two_circle.show()
+    popup = HabitDayPickerPopup.show_for(two_circle)
+    qapp.processEvents()
+    assert popup.choices() == [0, 1]
+    two_width = popup.width()
+    two_height = popup.height()
+
+    three_circle = CheckCircle()
+    three_circle.set_allows_number(allows_number=True)
+    three_circle.show()
+    popup = HabitDayPickerPopup.show_for(three_circle)
+    qapp.processEvents()
+    assert popup.choices() == [0, 1, "number"]
+    three_width = popup.width()
+    HabitDayPickerPopup.hide_active()
+
+    assert two_width < three_width
+    assert two_height < 90
