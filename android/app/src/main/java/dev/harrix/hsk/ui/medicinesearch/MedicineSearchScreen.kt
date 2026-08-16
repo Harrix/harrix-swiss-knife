@@ -1,5 +1,7 @@
 package dev.harrix.hsk.ui.medicinesearch
 
+import android.content.ActivityNotFoundException
+import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
@@ -34,12 +36,12 @@ import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.UploadFile
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -56,6 +58,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -89,6 +92,8 @@ import dev.harrix.hsk.ui.theme.hskScaffoldContentWindowInsets
 import dev.harrix.hsk.ui.theme.hskTopAppBarColors
 import dev.harrix.hsk.ui.theme.hskTopAppBarWindowInsets
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import java.io.File
 import kotlin.math.roundToInt
 
@@ -120,6 +125,8 @@ fun MedicineSearchScreen(
     var queryFieldCoords by remember { mutableStateOf<LayoutCoordinates?>(null) }
     var latestUserMessageCoords by remember { mutableStateOf<LayoutCoordinates?>(null) }
     val copiedMessage = stringResource(R.string.medicine_search_copied)
+    val shareChooserTitle = stringResource(R.string.medicine_search_share)
+    val shareFailedMessage = stringResource(R.string.medicine_search_share_failed)
     val cameraFailedMessage = stringResource(R.string.medicine_search_camera_failed)
     var showPhotoSource by remember { mutableStateOf(false) }
     var pendingCameraUri by remember { mutableStateOf<Uri?>(null) }
@@ -149,6 +156,32 @@ fun MedicineSearchScreen(
         viewModel.followUp()
     }
 
+    fun copyAnswer(text: String) {
+        val payload = text.trim()
+        if (payload.isEmpty()) {
+            return
+        }
+        clipboard.setText(AnnotatedString(payload))
+        Toast.makeText(context, copiedMessage, Toast.LENGTH_SHORT).show()
+    }
+
+    fun shareAnswer(text: String) {
+        val payload = text.trim()
+        if (payload.isEmpty()) {
+            return
+        }
+        val shareIntent =
+            Intent(Intent.ACTION_SEND).apply {
+                type = "text/plain"
+                putExtra(Intent.EXTRA_TEXT, payload)
+            }
+        try {
+            context.startActivity(Intent.createChooser(shareIntent, shareChooserTitle))
+        } catch (_: ActivityNotFoundException) {
+            Toast.makeText(context, shareFailedMessage, Toast.LENGTH_SHORT).show()
+        }
+    }
+
     BackHandler(onBack = { leave() })
 
     LaunchedEffect(Unit) {
@@ -162,6 +195,10 @@ fun MedicineSearchScreen(
         viewModel.reloadFromPreferences()
     }
 
+    LaunchedEffect(conversation.size) {
+        latestUserMessageCoords = null
+    }
+
     LaunchedEffect(phase, conversation.size, resultText) {
         if (phase != MedicineSearchPhase.Result) {
             return@LaunchedEffect
@@ -169,17 +206,19 @@ fun MedicineSearchScreen(
         if (conversation.isEmpty() && resultText.isBlank()) {
             return@LaunchedEffect
         }
-        delay(80)
         val target =
             if (conversation.size <= 1) {
+                delay(16)
                 queryFieldCoords
             } else {
-                latestUserMessageCoords ?: queryFieldCoords
+                snapshotFlow { latestUserMessageCoords }
+                    .filterNotNull()
+                    .first { it.isAttached }
             }
         scrollState.animateScrollTo(
             contentOffsetY(
                 child = target,
-                scrollable = scrollableCoords,
+                viewport = scrollableCoords,
                 scrollValue = scrollState.value,
             ),
         )
@@ -291,8 +330,8 @@ fun MedicineSearchScreen(
                 modifier =
                 Modifier
                     .fillMaxSize()
-                    .verticalScroll(scrollState)
                     .onGloballyPositioned { scrollableCoords = it }
+                    .verticalScroll(scrollState)
                     .adaptiveContentWidth()
                     .padding(horizontal = 16.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -452,12 +491,8 @@ fun MedicineSearchScreen(
                         hintColor = hintColor,
                         onFollowUpChange = { viewModel.onFollowUpChange(it) },
                         onFollowUp = { askFollowUp() },
-                        onCopy = {
-                            clipboard.setText(AnnotatedString(resultText))
-                            Toast
-                                .makeText(context, copiedMessage, Toast.LENGTH_SHORT)
-                                .show()
-                        },
+                        onCopyAnswer = { copyAnswer(it) },
+                        onShareAnswer = { shareAnswer(it) },
                     )
                 }
 
@@ -546,7 +581,8 @@ private fun ConversationResult(
     hintColor: Color,
     onFollowUpChange: (String) -> Unit,
     onFollowUp: () -> Unit,
-    onCopy: () -> Unit,
+    onCopyAnswer: (String) -> Unit,
+    onShareAnswer: (String) -> Unit,
 ) {
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -561,47 +597,63 @@ private fun ConversationResult(
                 }
             }
         visibleTurns.forEachIndexed { index, turn ->
-            val isLatestUserMessage = index == visibleTurns.lastIndex && index > 0
-            if (index > 0 && turn.question.isNotBlank()) {
-                Text(
-                    text = stringResource(R.string.medicine_search_follow_up_label),
-                    style = MaterialTheme.typography.titleSmall,
-                    modifier =
-                    if (isLatestUserMessage) {
-                        Modifier.onGloballyPositioned(onLatestUserMessagePosition)
-                    } else {
-                        Modifier
-                    },
-                )
-                Text(
-                    text = turn.question,
-                    style = MaterialTheme.typography.bodyMedium,
+            val isLatestTurn = index == visibleTurns.lastIndex
+            Column(
+                modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .then(
+                        if (isLatestTurn && index > 0) {
+                            Modifier.onGloballyPositioned(onLatestUserMessagePosition)
+                        } else {
+                            Modifier
+                        },
+                    ),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                if (index > 0 && turn.question.isNotBlank()) {
+                    Text(
+                        text = stringResource(R.string.medicine_search_follow_up_label),
+                        style = MaterialTheme.typography.titleSmall,
+                    )
+                    Text(
+                        text = turn.question,
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = stringResource(R.string.medicine_search_result_label),
+                        style = MaterialTheme.typography.titleSmall,
+                        modifier = Modifier.weight(1f),
+                    )
+                    IconButton(
+                        onClick = { onCopyAnswer(turn.answer) },
+                        enabled = !busy && turn.answer.isNotBlank(),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.ContentCopy,
+                            contentDescription = stringResource(R.string.medicine_search_copy),
+                        )
+                    }
+                    IconButton(
+                        onClick = { onShareAnswer(turn.answer) },
+                        enabled = !busy && turn.answer.isNotBlank(),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Share,
+                            contentDescription = stringResource(R.string.medicine_search_share),
+                        )
+                    }
+                }
+                SimpleMarkdownText(
+                    markdown = turn.answer,
+                    modifier = Modifier.fillMaxWidth(),
                 )
             }
-            Text(
-                text = stringResource(R.string.medicine_search_result_label),
-                style = MaterialTheme.typography.titleSmall,
-            )
-            SimpleMarkdownText(
-                markdown = turn.answer,
-                modifier = Modifier.fillMaxWidth(),
-            )
-        }
-        FilledTonalButton(
-            onClick = onCopy,
-            enabled = !busy && latestAnswer.isNotBlank(),
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Icon(
-                imageVector = Icons.Filled.ContentCopy,
-                contentDescription = null,
-                modifier = Modifier.size(18.dp),
-            )
-            Spacer(modifier = Modifier.size(8.dp))
-            AutoFitText(
-                text = stringResource(R.string.medicine_search_copy),
-                maxLines = 1,
-            )
         }
         OutlinedTextField(
             value = followUpText,
@@ -760,18 +812,18 @@ private fun AttachedPhotosRow(
 
 private fun contentOffsetY(
     child: LayoutCoordinates?,
-    scrollable: LayoutCoordinates?,
+    viewport: LayoutCoordinates?,
     scrollValue: Int,
 ): Int {
-    if (child == null || scrollable == null) {
+    if (child == null || viewport == null) {
         return 0
     }
-    if (!child.isAttached || !scrollable.isAttached) {
+    if (!child.isAttached || !viewport.isAttached) {
         return 0
     }
     return (
         child.positionInRoot().y -
-            scrollable.positionInRoot().y +
+            viewport.positionInRoot().y +
             scrollValue
         ).roundToInt().coerceAtLeast(0)
 }

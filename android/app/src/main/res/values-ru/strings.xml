@@ -161,6 +161,8 @@
     <string name="medicine_search_photo_only_question">Приложенные фотографии</string>
     <string name="medicine_search_copy">Копировать</string>
     <string name="medicine_search_copied">Скопировано в буфер обмена</string>
+    <string name="medicine_search_share">Поделиться</string>
+    <string name="medicine_search_share_failed">Нет приложения для отправки текста</string>
     <string name="medicine_search_error_title">Ошибка BotHub</string>
     <string name="medicine_search_error_ok">OK</string>
     <string name="medicine_search_missing_api_key">Нет API-ключа BotHub. Создайте api-keys/bothub-api-key.txt (или задайте BOTHUB_API_KEY) и пересоберите APK.</string>

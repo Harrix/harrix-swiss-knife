@@ -161,6 +161,8 @@
     <string name="medicine_search_photo_only_question">Attached photos</string>
     <string name="medicine_search_copy">Copy</string>
     <string name="medicine_search_copied">Copied to clipboard</string>
+    <string name="medicine_search_share">Share</string>
+    <string name="medicine_search_share_failed">No app available to share text</string>
     <string name="medicine_search_error_title">BotHub Error</string>
     <string name="medicine_search_error_ok">OK</string>
     <string name="medicine_search_missing_api_key">BotHub API key is missing. Create api-keys/bothub-api-key.txt (or set BOTHUB_API_KEY) and rebuild the APK.</string>
