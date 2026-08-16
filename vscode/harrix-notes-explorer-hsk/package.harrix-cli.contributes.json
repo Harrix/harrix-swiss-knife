@@ -12,6 +12,8 @@
     "harrixNotesExplorerHsk.newDreamNote",
     "harrixNotesExplorerHsk.newCasesNote",
     "harrixNotesExplorerHsk.addFromTemplate",
+    "harrixNotesExplorerHsk.beautifyMd",
+    "harrixNotesExplorerHsk.regenerateGMd",
     "harrixNotesExplorerHsk.beautifyRegenerateGMd",
     "harrixNotesExplorerHsk.checkMarkdownInFolder",
     "harrixNotesExplorerHsk.optimizeImagesFolder",

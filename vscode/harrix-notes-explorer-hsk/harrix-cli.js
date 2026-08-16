@@ -108,6 +108,16 @@ async function runHarrixMarkdownListTemplates() {
 }
 
 /** @param {string} folderPath */
+function runHarrixBeautifyMd(folderPath) {
+  runHarrixCliInTerminal(['md', 'beautify-md', path.resolve(folderPath)]);
+}
+
+/** @param {string} folderPath */
+function runHarrixRegenerateGMd(folderPath) {
+  runHarrixCliInTerminal(['md', 'regenerate-g-md', path.resolve(folderPath)]);
+}
+
+/** @param {string} folderPath */
 function runHarrixBeautifyRegenerateGMd(folderPath) {
   runHarrixCliInTerminal(['md', 'beautify-regenerate-g-md', path.resolve(folderPath)]);
 }
@@ -598,6 +608,40 @@ function activateHarrixCliIntegration(deps) {
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
         vscode.window.showErrorMessage(`Markdown check failed: ${msg}`);
+      }
+    }),
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('harrixNotesExplorerHsk.beautifyMd', async (treeItemOrUri) => {
+      const folderPath = resolveFolderPathForCliCommand(treeItemOrUri, deps);
+      if (!folderPath) {
+        vscode.window.showErrorMessage('Open a markdown note or select a folder / Note/Note.md in Harrix Notes (HSK).');
+        return;
+      }
+      try {
+        runHarrixBeautifyMd(folderPath);
+        vscode.window.showInformationMessage('Beautify Markdown running in Terminal.');
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        vscode.window.showErrorMessage(`Beautify Markdown in Folder failed: ${msg}`);
+      }
+    }),
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('harrixNotesExplorerHsk.regenerateGMd', async (treeItemOrUri) => {
+      const folderPath = resolveFolderPathForCliCommand(treeItemOrUri, deps);
+      if (!folderPath) {
+        vscode.window.showErrorMessage('Open a markdown note or select a folder / Note/Note.md in Harrix Notes (HSK).');
+        return;
+      }
+      try {
+        runHarrixRegenerateGMd(folderPath);
+        vscode.window.showInformationMessage('Regenerate .g.md running in Terminal.');
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        vscode.window.showErrorMessage(`Regenerate .g.md in Folder failed: ${msg}`);
       }
     }),
   );

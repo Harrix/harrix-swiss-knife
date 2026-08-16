@@ -68,6 +68,8 @@ These stay in `extension.js` for a public build:
 - `harrixNotesExplorerHsk.newDreamNote`
 - `harrixNotesExplorerHsk.newCasesNote`
 - `harrixNotesExplorerHsk.addFromTemplate`
+- `harrixNotesExplorerHsk.beautifyMd`
+- `harrixNotesExplorerHsk.regenerateGMd`
 - `harrixNotesExplorerHsk.beautifyRegenerateGMd`
 - `harrixNotesExplorerHsk.checkMarkdownInFolder`
 - `harrixNotesExplorerHsk.optimizeImagesFolder`

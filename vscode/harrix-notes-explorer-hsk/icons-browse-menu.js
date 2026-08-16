@@ -29,6 +29,8 @@ const CMD = {
   copy: 'harrixNotesExplorerHsk.copy',
   paste: 'harrixNotesExplorerHsk.paste',
   checkMarkdownInFolder: 'harrixNotesExplorerHsk.checkMarkdownInFolder',
+  beautifyMd: 'harrixNotesExplorerHsk.beautifyMd',
+  regenerateGMd: 'harrixNotesExplorerHsk.regenerateGMd',
   beautifyRegenerateGMd: 'harrixNotesExplorerHsk.beautifyRegenerateGMd',
   optimizeImagesFolder: 'harrixNotesExplorerHsk.optimizeImagesFolder',
   discardGitChangesInFolder: 'harrixNotesExplorerHsk.discardGitChangesInFolder',
@@ -124,6 +126,8 @@ function buildIconsBrowseContextMenu(contextValue, opts) {
   const pushFolderCli = () => {
     out.push(sep());
     out.push(item(CMD.checkMarkdownInFolder, 'Check Markdown in Folder ꟲᴸᴵ'));
+    out.push(item(CMD.beautifyMd, 'Beautify Markdown in Folder ꟲᴸᴵ'));
+    out.push(item(CMD.regenerateGMd, 'Regenerate .g.md in Folder ꟲᴸᴵ'));
     out.push(item(CMD.beautifyRegenerateGMd, 'Beautify Markdown and Regenerate .g.md in Folder ꟲᴸᴵ'));
     out.push(item(CMD.optimizeImagesFolder, 'Optimize Images in Folder ꟲᴸᴵ'));
     if (isGit) {
