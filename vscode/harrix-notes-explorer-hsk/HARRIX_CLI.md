@@ -29,6 +29,7 @@ This extension can be built **with** or **without** integration to `hsk`. All CL
 | [`harrix-cli.js`](harrix-cli.js)                                             | CLI runners, command registration, template loading, Diary/Dreams/Cases tree helpers    |
 | [`package.harrix-cli.contributes.json`](package.harrix-cli.contributes.json) | Manifest keys and command IDs to remove from `package.json` for a public build          |
 | [`extension.js`](extension.js)                                               | Core tree/UI; imports `harrix-cli` only via `require('./harrix-cli')` and `harrixCli.*` |
+| [`icons-browse-menu.js`](icons-browse-menu.js)                               | Icons Browse context menu; CLI items (`beautifyMd`, …) are stripped in the public build |
 
 ## Not part of the CLI layer
 
@@ -54,9 +55,10 @@ These stay in `extension.js` for a public build:
    - In `createFolderItem`, set `contextValue` without `harrixCli.resolveNotesFolderContextValue` (use only `notesFolder` / `notesFolderWithMerged`).
    - Optionally remove `templateItems`, `getTemplatesForFolder`, `setTemplateTargets` from `NotesProvider`.
 3. In [`package.json`](package.json): remove entries listed in [`package.harrix-cli.contributes.json`](package.harrix-cli.contributes.json) (settings, commands, menu items, `viewItem` values for Diary/Dreams/Cases/templates).
-4. Remove `_harrixCli` from `package.json` if present.
-5. Delete this file and `package.harrix-cli.contributes.json` if you no longer need the checklist.
-6. Reload VS Code / reinstall the extension.
+4. In [`icons-browse-menu.js`](icons-browse-menu.js): remove the same CLI command IDs and `out.push(item(CMD.…))` rows (Beautify / Regenerate / Check MD / Optimize images / Diary / Dreams / Cases / template). Keep Git discard.
+5. Remove `_harrixCli` from `package.json` if present.
+6. Delete this file and `package.harrix-cli.contributes.json` if you no longer need the checklist.
+7. Reload VS Code / reinstall the extension.
 
 ## Core (not CLI) — New note
 
