@@ -145,9 +145,12 @@ function resolveStartFolderPath(treeItemOrUri, provider) {
   if (item && typeof item.dirPath === 'string' && item.dirPath) {
     return item.dirPath;
   }
+  if (item && typeof item.noteDirPath === 'string' && item.noteDirPath) {
+    return item.noteDirPath;
+  }
   const uri = item?.resourceUri ?? treeItemOrUri;
-  if (uri instanceof vscode.Uri && uri.scheme === 'file') {
-    const fsPath = uri.fsPath;
+  const fsPath = filePathFromUriLike(uri);
+  if (fsPath) {
     try {
       const stat = fs.statSync(fsPath);
       if (stat.isDirectory()) {
@@ -165,6 +168,20 @@ function resolveStartFolderPath(treeItemOrUri, provider) {
     return provider.rootEntries[0].path;
   }
   return null;
+}
+
+/**
+ * @param {unknown} uri
+ * @returns {string}
+ */
+function filePathFromUriLike(uri) {
+  if (uri instanceof vscode.Uri) {
+    return uri.scheme === 'file' ? uri.fsPath : '';
+  }
+  if (uri && typeof uri === 'object' && uri.scheme === 'file' && typeof uri.fsPath === 'string') {
+    return uri.fsPath;
+  }
+  return '';
 }
 
 /**

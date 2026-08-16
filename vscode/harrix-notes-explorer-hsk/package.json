@@ -382,7 +382,7 @@
       },
       {
         "command": "harrixNotesExplorerHsk.openIconsBrowse",
-        "title": "Open Notes Icons Browse",
+        "title": "Open in Notes Icons Browse",
         "category": "Harrix Notes HSK",
         "icon": "$(layout-grid)"
       },
@@ -740,8 +740,8 @@
       "view/item/context": [
         {
           "command": "harrixNotesExplorerHsk.openIconsBrowse",
-          "when": "view == harrixNotesExplorerHsk && (viewItem == notesFolder || viewItem == notesFolderWithMerged || viewItem == notesFolderDiary || viewItem == notesFolderWithMergedDiary || viewItem == notesFolderDreams || viewItem == notesFolderWithMergedDreams || viewItem == notesFolderCases || viewItem == notesFolderWithMergedCases || viewItem == notesFolderTemplateTarget || viewItem == notesFolderTemplateTargetWithMerged || viewItem == gitNotesFolder || viewItem == gitNotesFolderWithMerged || viewItem == gitNotesFolderDiary || viewItem == gitNotesFolderWithMergedDiary || viewItem == gitNotesFolderDreams || viewItem == gitNotesFolderWithMergedDreams || viewItem == gitNotesFolderCases || viewItem == gitNotesFolderWithMergedCases || viewItem == gitNotesFolderTemplateTarget || viewItem == gitNotesFolderTemplateTargetWithMerged)",
-          "group": "0_open@2"
+          "when": "view == harrixNotesExplorerHsk && (viewItem =~ /notesFolder/ || viewItem =~ /NamedFolder/)",
+          "group": "0_open@1"
         },
         {
           "command": "harrixNotesExplorerHsk.createNote",

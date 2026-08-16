@@ -160,7 +160,7 @@ function buildIconsBrowseContextMenu(contextValue, opts) {
   }
 
   if (base.startsWith('notesFolder')) {
-    out.push(item(CMD.openIconsBrowse, 'Open Notes Icons Browse'));
+    out.push(item(CMD.openIconsBrowse, 'Open in Notes Icons Browse'));
     out.push(sep());
     out.push(item(CMD.createNote, 'New Note…'));
     out.push(item(CMD.createFolder, 'New Folder…'));
@@ -196,6 +196,9 @@ function buildIconsBrowseContextMenu(contextValue, opts) {
       out.push(item(CMD.openNoteInPreview, 'Open in Preview'));
     }
     out.push(item(CMD.openNoteInVisualEditor, 'Open in Visual Editor'));
+    if (base.includes('NamedFolder')) {
+      out.push(item(CMD.openIconsBrowse, 'Open in Notes Icons Browse'));
+    }
     out.push(sep());
     out.push(item(CMD.createNote, 'New Note…'));
     out.push(item(CMD.addFolderInNote, 'Add Folder in Note…'));
