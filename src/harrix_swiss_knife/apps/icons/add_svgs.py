@@ -8,7 +8,7 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from enum import StrEnum
 from pathlib import Path
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
 import harrix_pylib as h
 
@@ -20,6 +20,9 @@ from harrix_swiss_knife.apps.icons.family_id import (
     tags_from_family_id,
     title_from_family_id,
 )
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
 
 
 @dataclass
@@ -88,6 +91,38 @@ class SvgJob:
     same_hash: bool = False
 
 
+def add_svg_sources_to_repo(
+    sources: list[Path],
+    *,
+    repo_root: Path,
+    collision_policy: CollisionPolicy = "rename",
+    rebuild: bool = True,
+) -> AddSvgsReport:
+    """Add already-resolved SVG files into note folders, optionally rebuild catalog."""
+    report = AddSvgsReport()
+    unique_sources = _unique_existing_svgs(sources)
+    if not unique_sources:
+        report.results.append(
+            AddSvgResult(
+                source=Path(),
+                family_id="",
+                dest=None,
+                status=AddSvgStatus.ERROR,
+                message="No SVG files to add.",
+            )
+        )
+        return report
+
+    jobs = build_jobs(unique_sources, repo_root=repo_root)
+    for job in jobs:
+        report.results.extend(process_job(job, repo_root=repo_root, collision_policy=collision_policy))
+
+    if rebuild:
+        rebuild_catalog(repo_root)
+        report.catalog_rebuilt = True
+    return report
+
+
 def add_svgs_to_repo(
     source_dir: Path,
     *,
@@ -96,9 +131,9 @@ def add_svgs_to_repo(
     rebuild: bool = True,
 ) -> AddSvgsReport:
     """Discover SVGs in `source_dir`, add them into note folders, optionally rebuild catalog."""
-    report = AddSvgsReport()
     sources = discover_source_svgs(source_dir)
     if not sources:
+        report = AddSvgsReport()
         report.results.append(
             AddSvgResult(
                 source=source_dir,
@@ -109,15 +144,12 @@ def add_svgs_to_repo(
             )
         )
         return report
-
-    jobs = build_jobs(sources, repo_root=repo_root)
-    for job in jobs:
-        report.results.extend(process_job(job, repo_root=repo_root, collision_policy=collision_policy))
-
-    if rebuild:
-        rebuild_catalog(repo_root)
-        report.catalog_rebuilt = True
-    return report
+    return add_svg_sources_to_repo(
+        sources,
+        repo_root=repo_root,
+        collision_policy=collision_policy,
+        rebuild=rebuild,
+    )
 
 
 def append_icon_to_note(md_path: Path, svg_name: str) -> None:
@@ -165,6 +197,30 @@ def build_jobs(source_svgs: list[Path], *, repo_root: Path) -> list[SvgJob]:
             )
         )
     return jobs
+
+
+def collect_dropped_svg_sources(paths: Sequence[Path | str], *, repo_root: Path | None = None) -> list[Path]:
+    """Collect SVG files from dropped files and folders, skipping the repo `icons/` tree."""
+    results: list[Path] = []
+    seen: set[Path] = set()
+    icons_root = (Path(repo_root) / "icons").resolve() if repo_root is not None else None
+    for raw in paths:
+        path = Path(raw)
+        if path.is_dir():
+            candidates = discover_source_svgs(path)
+        elif path.is_file() and path.suffix.casefold() == ".svg":
+            candidates = [path]
+        else:
+            continue
+        for candidate in candidates:
+            resolved = candidate.resolve()
+            if icons_root is not None and _is_relative_to(resolved, icons_root):
+                continue
+            if resolved in seen:
+                continue
+            seen.add(resolved)
+            results.append(resolved)
+    return results
 
 
 def discover_source_svgs(source_dir: Path) -> list[Path]:
@@ -381,9 +437,32 @@ def unique_variant_name(img_dir: Path, stem: str, suffix: str = ".svg") -> str:
         index += 1
 
 
+def _is_relative_to(path: Path, parent: Path) -> bool:
+    try:
+        path.resolve().relative_to(parent.resolve())
+    except (OSError, ValueError):
+        return False
+    return True
+
+
 def _permalink_for_note(note_dir: Path, family_id: str, repo_root: Path) -> str:
     rel = (note_dir / f"{family_id}.md").resolve().relative_to(Path(repo_root).resolve()).as_posix()
     return f"{_PERMALINK_BASE}/{rel}"
+
+
+def _unique_existing_svgs(sources: list[Path]) -> list[Path]:
+    unique: list[Path] = []
+    seen: set[Path] = set()
+    for source in sources:
+        path = Path(source)
+        if not path.is_file() or path.suffix.casefold() != ".svg":
+            continue
+        resolved = path.resolve()
+        if resolved in seen:
+            continue
+        seen.add(resolved)
+        unique.append(resolved)
+    return unique
 
 
 CollisionPolicy = Literal["rename", "replace", "skip"]

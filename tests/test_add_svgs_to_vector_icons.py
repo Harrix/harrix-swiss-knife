@@ -8,6 +8,7 @@ from harrix_swiss_knife.apps.icons.add_svgs import (
     AddSvgStatus,
     add_svgs_to_repo,
     build_jobs,
+    collect_dropped_svg_sources,
     discover_source_svgs,
     jobs_with_content_collisions,
     unique_variant_name,
@@ -111,6 +112,25 @@ def test_skip_identical_hash(tmp_path: Path) -> None:
     _write(source / "building__garage_01.svg", _MIN_SVG)
     report = add_svgs_to_repo(source, repo_root=repo, collision_policy="replace", rebuild=False)
     assert any(item.status == AddSvgStatus.SKIPPED_SAME for item in report.results)
+
+
+def test_collect_dropped_svg_sources_files_and_folder(tmp_path: Path) -> None:
+    repo = _repo_with_note(tmp_path)
+    inbox = tmp_path / "inbox"
+    svg_file = inbox / "clothes__suit_01.svg"
+    other_svg = inbox / "pack" / "fiction_robot__bender_01.svg"
+    _write(svg_file)
+    _write(other_svg)
+    _write(inbox / "skip.ai", "not-svg")
+    existing = repo / "icons" / "building" / "building__garage" / "img" / "building__garage_01.svg"
+
+    found = collect_dropped_svg_sources(
+        [svg_file, inbox / "pack", inbox / "skip.ai", existing],
+        repo_root=repo,
+    )
+    names = {path.name for path in found}
+    assert names == {"clothes__suit_01.svg", "fiction_robot__bender_01.svg"}
+    assert existing.resolve() not in found
 
 
 def test_unique_variant_name(tmp_path: Path) -> None:

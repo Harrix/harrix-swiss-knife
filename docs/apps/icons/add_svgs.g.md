@@ -16,9 +16,11 @@ lang: en
 - [🏛️ Class `AddSvgsReport`](#%EF%B8%8F-class-addsvgsreport)
   - [⚙️ Method `summary_lines (property)`](#%EF%B8%8F-method-summary_lines-property)
 - [🏛️ Class `SvgJob`](#%EF%B8%8F-class-svgjob)
+- [🔧 Function `add_svg_sources_to_repo`](#-function-add_svg_sources_to_repo)
 - [🔧 Function `add_svgs_to_repo`](#-function-add_svgs_to_repo)
 - [🔧 Function `append_icon_to_note`](#-function-append_icon_to_note)
 - [🔧 Function `build_jobs`](#-function-build_jobs)
+- [🔧 Function `collect_dropped_svg_sources`](#-function-collect_dropped_svg_sources)
 - [🔧 Function `discover_source_svgs`](#-function-discover_source_svgs)
 - [🔧 Function `ensure_featured_image`](#-function-ensure_featured_image)
 - [🔧 Function `ensure_note_scaffold`](#-function-ensure_note_scaffold)
@@ -180,6 +182,51 @@ class SvgJob:
 
 </details>
 
+## 🔧 Function `add_svg_sources_to_repo`
+
+```python
+def add_svg_sources_to_repo(sources: list[Path], *, repo_root: Path, collision_policy: CollisionPolicy = 'rename', rebuild: bool = True) -> AddSvgsReport
+```
+
+Add already-resolved SVG files into note folders, optionally rebuild catalog.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def add_svg_sources_to_repo(
+    sources: list[Path],
+    *,
+    repo_root: Path,
+    collision_policy: CollisionPolicy = "rename",
+    rebuild: bool = True,
+) -> AddSvgsReport:
+    report = AddSvgsReport()
+    unique_sources = _unique_existing_svgs(sources)
+    if not unique_sources:
+        report.results.append(
+            AddSvgResult(
+                source=Path(),
+                family_id="",
+                dest=None,
+                status=AddSvgStatus.ERROR,
+                message="No SVG files to add.",
+            )
+        )
+        return report
+
+    jobs = build_jobs(unique_sources, repo_root=repo_root)
+    for job in jobs:
+        report.results.extend(process_job(job, repo_root=repo_root, collision_policy=collision_policy))
+
+    if rebuild:
+        rebuild_catalog(repo_root)
+        report.catalog_rebuilt = True
+    return report
+```
+
+</details>
+
 ## 🔧 Function `add_svgs_to_repo`
 
 ```python
@@ -199,9 +246,9 @@ def add_svgs_to_repo(
     collision_policy: CollisionPolicy = "rename",
     rebuild: bool = True,
 ) -> AddSvgsReport:
-    report = AddSvgsReport()
     sources = discover_source_svgs(source_dir)
     if not sources:
+        report = AddSvgsReport()
         report.results.append(
             AddSvgResult(
                 source=source_dir,
@@ -212,15 +259,12 @@ def add_svgs_to_repo(
             )
         )
         return report
-
-    jobs = build_jobs(sources, repo_root=repo_root)
-    for job in jobs:
-        report.results.extend(process_job(job, repo_root=repo_root, collision_policy=collision_policy))
-
-    if rebuild:
-        rebuild_catalog(repo_root)
-        report.catalog_rebuilt = True
-    return report
+    return add_svg_sources_to_repo(
+        sources,
+        repo_root=repo_root,
+        collision_policy=collision_policy,
+        rebuild=rebuild,
+    )
 ```
 
 </details>
@@ -294,6 +338,43 @@ def build_jobs(source_svgs: list[Path], *, repo_root: Path) -> list[SvgJob]:
             )
         )
     return jobs
+```
+
+</details>
+
+## 🔧 Function `collect_dropped_svg_sources`
+
+```python
+def collect_dropped_svg_sources(paths: Sequence[Path | str], *, repo_root: Path | None = None) -> list[Path]
+```
+
+Collect SVG files from dropped files and folders, skipping the repo `icons/` tree.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def collect_dropped_svg_sources(paths: Sequence[Path | str], *, repo_root: Path | None = None) -> list[Path]:
+    results: list[Path] = []
+    seen: set[Path] = set()
+    icons_root = (Path(repo_root) / "icons").resolve() if repo_root is not None else None
+    for raw in paths:
+        path = Path(raw)
+        if path.is_dir():
+            candidates = discover_source_svgs(path)
+        elif path.is_file() and path.suffix.casefold() == ".svg":
+            candidates = [path]
+        else:
+            continue
+        for candidate in candidates:
+            resolved = candidate.resolve()
+            if icons_root is not None and _is_relative_to(resolved, icons_root):
+                continue
+            if resolved in seen:
+                continue
+            seen.add(resolved)
+            results.append(resolved)
+    return results
 ```
 
 </details>

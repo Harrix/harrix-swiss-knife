@@ -47,14 +47,17 @@ from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.app_entry import run_app_main
 from harrix_swiss_knife.apps.common.qt_main_window import AppWindowMixin
 from harrix_swiss_knife.apps.common.ui_helpers import reveal_in_file_explorer
+from harrix_swiss_knife.apps.common.widgets.path_drop_helpers import install_url_drop_handlers
 from harrix_swiss_knife.apps.icons.add_svgs import (
     CollisionPolicy,
-    add_svgs_to_repo,
+    add_svg_sources_to_repo,
     build_jobs,
+    collect_dropped_svg_sources,
     discover_source_svgs,
     jobs_with_content_collisions,
 )
 from harrix_swiss_knife.apps.icons.catalog import (
+    FLAT_ICON_EXTENSIONS,
     IconCatalog,
     IconFamily,
     delete_icon_family,
@@ -325,6 +328,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self.icon_list = DraggableIconList(icon_size=self._icon_size, dual_line_labels=True)
         self.icon_list.family_selected.connect(self._on_family_selected)
         self._wire_icon_list_actions(self.icon_list)
+        install_url_drop_handlers(self.icon_list, self._on_icon_files_dropped, filter_path=_is_add_svgs_drop_path)
         center_layout.addWidget(self.icon_list)
         splitter.addWidget(center)
 
@@ -441,64 +445,9 @@ class MainWindow(QMainWindow, AppWindowMixin):
             return f"{total_bytes / kib:.1f} KB"
         return f"{total_bytes} B"
 
-    def _load_from_config(self) -> None:
-        config: dict[str, Any] = h.dev.config_load(get_config_path_str())
-        candidates: list[Path] = []
-        raw = str(config.get("path_vector_icons") or "").strip()
-        if raw and not raw.startswith("<"):
-            default_path = Path(raw)
-            if default_path.is_dir():
-                candidates.append(default_path)
-        for pinned in load_pinned_folders():
-            if pinned not in candidates:
-                candidates.append(pinned)
-        for recent in load_recent_folders():
-            if recent not in candidates:
-                candidates.append(recent)
-        for path in candidates:
-            if path.is_dir():
-                self._open_folder(path, remember=False)
-                return
-        QMessageBox.warning(
-            self,
-            "Vector Icons",
-            "Set `path_vector_icons` or `path_vector_icons_pinned` in config.json,\nor use File → Open folder…",
-        )
-        self.statusBar().showMessage("No icon folder configured")
-        self._sync_folder_combo()
-        self._rebuild_folder_menus()
-
-    def _on_add_svgs(self) -> None:
-        """Import SVGs from a folder into note folders of the open icons repo."""
-        if self._repo_root is None:
-            QMessageBox.warning(self, "Vector Icons", "No icons folder is open.")
-            return
-        if self._catalog is not None and self._catalog.kind == "flat":
-            QMessageBox.warning(
-                self,
-                "Vector Icons",
-                "Add SVGs works only with a note-folder icons repository.",
-            )
-            return
-        if not is_note_icons_repo(self._repo_root):
-            QMessageBox.warning(
-                self,
-                "Vector Icons",
-                "Current folder is not a Vector Icons note repository.",
-            )
-            return
-
-        start = str(self._repo_root.parent if self._repo_root.parent.is_dir() else self._repo_root)
-        chosen = QFileDialog.getExistingDirectory(self, "Select folder with new SVG files", start)
-        if not chosen:
-            return
-        source_dir = Path(chosen)
-        sources = discover_source_svgs(source_dir)
-        if not sources:
-            QMessageBox.information(self, "Vector Icons", f"No SVG files found in:\n{source_dir}")
-            return
-
-        jobs = build_jobs(sources, repo_root=self._repo_root)
+    def _import_svg_sources(self, sources: list[Path], *, repo_root: Path) -> None:
+        """Ask about collisions, then add `sources` into the open icons repo."""
+        jobs = build_jobs(sources, repo_root=repo_root)
         collisions = jobs_with_content_collisions(jobs)
         policy: CollisionPolicy = "rename"
         if collisions:
@@ -528,9 +477,9 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self.statusBar().showMessage(f"Adding {len(sources)} SVG(s)…")
         QApplication.processEvents()
         try:
-            report = add_svgs_to_repo(
-                source_dir,
-                repo_root=self._repo_root,
+            report = add_svg_sources_to_repo(
+                sources,
+                repo_root=repo_root,
                 collision_policy=policy,
                 rebuild=False,
             )
@@ -546,6 +495,50 @@ class MainWindow(QMainWindow, AppWindowMixin):
         detail = "\n".join(detail_lines)
         QMessageBox.information(self, "Vector Icons", f"{summary}\n\n{detail}")
         self.statusBar().showMessage(report.summary_lines[0] if report.summary_lines else "Add SVGs completed")
+
+    def _load_from_config(self) -> None:
+        config: dict[str, Any] = h.dev.config_load(get_config_path_str())
+        candidates: list[Path] = []
+        raw = str(config.get("path_vector_icons") or "").strip()
+        if raw and not raw.startswith("<"):
+            default_path = Path(raw)
+            if default_path.is_dir():
+                candidates.append(default_path)
+        for pinned in load_pinned_folders():
+            if pinned not in candidates:
+                candidates.append(pinned)
+        for recent in load_recent_folders():
+            if recent not in candidates:
+                candidates.append(recent)
+        for path in candidates:
+            if path.is_dir():
+                self._open_folder(path, remember=False)
+                return
+        QMessageBox.warning(
+            self,
+            "Vector Icons",
+            "Set `path_vector_icons` or `path_vector_icons_pinned` in config.json,\nor use File → Open folder…",
+        )
+        self.statusBar().showMessage("No icon folder configured")
+        self._sync_folder_combo()
+        self._rebuild_folder_menus()
+
+    def _on_add_svgs(self) -> None:
+        """Import SVGs from a folder into note folders of the open icons repo."""
+        repo_root = self._require_note_repo_for_add_svgs()
+        if repo_root is None:
+            return
+
+        start = str(repo_root.parent if repo_root.parent.is_dir() else repo_root)
+        chosen = QFileDialog.getExistingDirectory(self, "Select folder with new SVG files", start)
+        if not chosen:
+            return
+        source_dir = Path(chosen)
+        sources = discover_source_svgs(source_dir)
+        if not sources:
+            QMessageBox.information(self, "Vector Icons", f"No SVG files found in:\n{source_dir}")
+            return
+        self._import_svg_sources(sources, repo_root=repo_root)
 
     def _on_batch_keywords_ai(self, targets: object) -> None:
         if not isinstance(targets, list) or self._repo_root is None:
@@ -810,6 +803,21 @@ class MainWindow(QMainWindow, AppWindowMixin):
 
         dialog = KeyValueTableDialog(self, "Icon details", data)
         dialog.exec()
+
+    def _on_icon_files_dropped(self, paths: list[str]) -> None:
+        """Run Add SVGs for SVG files dropped onto the main icon grid."""
+        repo_root = self._require_note_repo_for_add_svgs()
+        if repo_root is None:
+            return
+        sources = collect_dropped_svg_sources(paths, repo_root=repo_root)
+        if not sources:
+            QMessageBox.information(
+                self,
+                "Vector Icons",
+                "Drop SVG files or a folder with SVGs to add them.\nAI, PDF, and EPS files are not imported here.",
+            )
+            return
+        self._import_svg_sources(sources, repo_root=repo_root)
 
     def _on_icon_size_changed(self, value: int) -> None:
         self._apply_icon_size(value)
@@ -1197,6 +1205,27 @@ class MainWindow(QMainWindow, AppWindowMixin):
                 continue
             item.setIcon(self._category_pixmap_icon(name))
 
+    def _require_note_repo_for_add_svgs(self) -> Path | None:
+        """Return the open note-folder repo, or show a warning and return `None`."""
+        if self._repo_root is None:
+            QMessageBox.warning(self, "Vector Icons", "No icons folder is open.")
+            return None
+        if self._catalog is not None and self._catalog.kind == "flat":
+            QMessageBox.warning(
+                self,
+                "Vector Icons",
+                "Add SVGs works only with a note-folder icons repository.",
+            )
+            return None
+        if not is_note_icons_repo(self._repo_root):
+            QMessageBox.warning(
+                self,
+                "Vector Icons",
+                "Current folder is not a Vector Icons note repository.",
+            )
+            return None
+        return self._repo_root
+
     def _resolve_source_file(self, family: object, svg_path: str) -> Path | None:
         if not isinstance(family, IconFamily) or self._repo_root is None:
             return None
@@ -1368,6 +1397,12 @@ class MainWindow(QMainWindow, AppWindowMixin):
         icon_list.preview_requested.connect(
             lambda path, source=icon_list: self._on_preview_icon(path, source),
         )
+
+
+def _is_add_svgs_drop_path(path: str) -> bool:
+    """Return `True` for folders and icon files that the grid drop zone should accept."""
+    candidate = Path(path)
+    return candidate.is_dir() or candidate.suffix.casefold() in FLAT_ICON_EXTENSIONS
 
 
 def main() -> None:
