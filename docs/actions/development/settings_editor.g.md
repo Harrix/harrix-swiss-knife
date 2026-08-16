@@ -40,6 +40,8 @@ class OnSettingsEditor(ActionBase):
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the settings editor action."""
         dialog = SettingsEditorDialog()
+        # Same sizing as food/finance/habits main windows (maximize or ~1920 wide).
+        apply_app_window_size_and_position(dialog)
         dialog.exec()
         self.add_line("Settings editor closed.")
         self.show_result()
@@ -61,6 +63,8 @@ Execute the settings editor action.
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         dialog = SettingsEditorDialog()
+        # Same sizing as food/finance/habits main windows (maximize or ~1920 wide).
+        apply_app_window_size_and_position(dialog)
         dialog.exec()
         self.add_line("Settings editor closed.")
         self.show_result()
@@ -86,7 +90,6 @@ class SettingsEditorDialog(QDialog):
         """Initialize the settings editor."""
         super().__init__(parent)
         self.setWindowTitle("Settings")
-        self.resize(900, 600)
 
         self.config_path = get_config_path_str()
         try:
@@ -291,7 +294,6 @@ Initialize the settings editor.
 def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.setWindowTitle("Settings")
-        self.resize(900, 600)
 
         self.config_path = get_config_path_str()
         try:

@@ -202,7 +202,8 @@
   "path_vector_icons_source_app": "<YOUR_ADOBE_ILLUSTRATOR_EXE>",
   "path_vector_icons_pinned": [
     "<YOUR_GITHUB_FOLDER>/Harrix-Vector-Icons",
-    "<YOUR_GITHUB_FOLDER>/Harrix-Vector-Icons-ai/src"
+    "<YOUR_GITHUB_FOLDER>/Harrix-Vector-Icons-ai/src",
+    "<YOUR_GITHUB_FOLDER>/Harrix-UI-Icons"
   ],
   "vector_icons_recent_folders_max": 12,
   "paths_combine_for_ai": [
