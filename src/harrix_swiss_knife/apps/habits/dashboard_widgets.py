@@ -265,14 +265,14 @@ class HabitRow(QFrame):
         self._apply_style()
 
     def _apply_style(self) -> None:
-        border = COLOR_PRIMARY.name() if self._selected else "transparent"
         bg = "#EFF6FF" if self._selected else "#FFFFFF"
         self.setStyleSheet(
             f"""
             QFrame#habitRow {{
                 background: {bg};
-                border: 1px solid {border};
-                border-radius: 10px;
+                border: none;
+                border-bottom: 1px solid {COLOR_TRACK.name()};
+                border-radius: 0px;
             }}
             """
         )

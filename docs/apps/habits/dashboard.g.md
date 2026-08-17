@@ -45,6 +45,7 @@ class HabitDashboardWidget(QWidget):
         self._week_dates: list[date] = []
         self._habit_rows: dict[int, HabitRow] = {}
 
+        self.setAutoFillBackground(True)
         self.setStyleSheet("HabitDashboardWidget { background: #FFFFFF; }")
         self._build_ui()
 
@@ -109,15 +110,28 @@ class HabitDashboardWidget(QWidget):
         layout.addLayout(week_row)
 
         scroll = QScrollArea()
+        scroll.setObjectName("habitDashListScroll")
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QFrame.Shape.NoFrame)
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        scroll.setStyleSheet(
+            """
+            QScrollArea { background: #FFFFFF; border: none; }
+            QScrollArea > QWidget > QWidget { background: #FFFFFF; }
+            """
+        )
         self._list_host = QWidget()
+        self._list_host.setObjectName("habitDashListHost")
+        self._list_host.setAutoFillBackground(True)
+        self._list_host.setStyleSheet("QWidget#habitDashListHost { background: #FFFFFF; }")
         self._list_layout = QVBoxLayout(self._list_host)
         self._list_layout.setContentsMargins(0, 0, 0, 0)
-        self._list_layout.setSpacing(8)
+        self._list_layout.setSpacing(0)
         self._list_layout.addStretch(1)
         scroll.setWidget(self._list_host)
+        scroll.viewport().setAutoFillBackground(True)
+        scroll.viewport().setStyleSheet("background: #FFFFFF;")
         layout.addWidget(scroll, 1)
         return pane
 
@@ -516,6 +530,7 @@ def __init__(self, parent: QWidget | None = None) -> None:  # noqa: D107
         self._week_dates: list[date] = []
         self._habit_rows: dict[int, HabitRow] = {}
 
+        self.setAutoFillBackground(True)
         self.setStyleSheet("HabitDashboardWidget { background: #FFFFFF; }")
         self._build_ui()
 ```

@@ -10,8 +10,17 @@ import pytest
 from PySide6.QtCore import QRectF, Qt
 from PySide6.QtGui import QImage, QPainter, QStandardItem, QStandardItemModel
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QApplication, QLineEdit, QPushButton, QStyleOptionViewItem, QTableView, QWidget
+from PySide6.QtWidgets import (
+    QApplication,
+    QLineEdit,
+    QPushButton,
+    QScrollArea,
+    QStyleOptionViewItem,
+    QTableView,
+    QWidget,
+)
 
+from harrix_swiss_knife.apps.habits.dashboard import HabitDashboardWidget
 from harrix_swiss_knife.apps.habits.dashboard_widgets import (
     CheckCircle,
     HabitRow,
@@ -248,6 +257,18 @@ def test_habit_row_day_value_set_signal(qapp: QApplication) -> None:
 
     row.set_habit_data(7, "Walk", 0, 0, [None] * 7, selected=False, allows_number=False)
     assert all(not circle.allows_number() for circle in row.findChildren(CheckCircle))
+    assert "border-bottom" in row.styleSheet()
+    assert "#FFFFFF" in row.styleSheet()
+
+
+def test_habit_dashboard_list_scrolls(qapp: QApplication) -> None:
+    """Habit list sits in a resizable scroll area so long lists can move down."""
+    assert qapp is not None
+    dashboard = HabitDashboardWidget()
+    scroll = dashboard.findChild(QScrollArea, "habitDashListScroll")
+    assert scroll is not None
+    assert scroll.widgetResizable()
+    assert scroll.verticalScrollBarPolicy() == Qt.ScrollBarPolicy.ScrollBarAsNeeded
 
 
 def test_month_calendar_day_value_set_signal(qapp: QApplication) -> None:

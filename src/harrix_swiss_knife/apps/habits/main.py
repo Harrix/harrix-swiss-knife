@@ -10,7 +10,7 @@ from __future__ import annotations
 import contextlib
 import logging
 import warnings
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from functools import partial
 from pathlib import Path
 from typing import Any, cast
@@ -1085,7 +1085,7 @@ class MainWindow(
             df_mapped = df.copy()
             df_mapped["values_mapped"] = [value_to_mapped.get(int(v), 0) for v in df_mapped["values"].tolist()]
 
-            dp.calendar(
+            cell_patches = dp.calendar(
                 dates=df_mapped["dates"].tolist(),
                 values=df_mapped["values_mapped"],
                 start_date=start_date.strftime("%Y-%m-%d"),
@@ -1132,6 +1132,35 @@ class MainWindow(
             # Reduce font size for all text elements in the plot
             for text in ax.texts:
                 text.set_fontsize(8)
+            if is_bool_flag is not True:
+                date_values: dict[date, int] = {}
+                for raw_date, raw_value in zip(
+                    df_agg["dates"].tolist(),
+                    df_agg["values"].tolist(),
+                    strict=True,
+                ):
+                    if isinstance(raw_date, datetime):
+                        day = raw_date.date()
+                    elif isinstance(raw_date, date):
+                        day = raw_date
+                    else:
+                        day = date.fromisoformat(str(raw_date)[:10])
+                    date_values[day] = int(raw_value)
+                for index, value in numeric_habit_heatmap_cell_labels(
+                    start_date,
+                    len(cell_patches),
+                    date_values,
+                ):
+                    ax.annotate(
+                        str(value),
+                        xy=(0.5, 0.5),
+                        xycoords=cell_patches[index],
+                        ha="center",
+                        va="center",
+                        color="white",
+                        fontsize=6,
+                        fontweight="bold",
+                    )
             figure.tight_layout(rect=(0, 0.06, 1, 1))
         except Exception as e:
             logger.exception("Error creating calendar heatmap")
@@ -1972,6 +2001,20 @@ class MainWindow(
         small_window_threshold = 911
         is_small = self.height() < small_window_threshold
         self._is_small_window_layout = is_small
+
+
+def numeric_habit_heatmap_cell_labels(
+    start_date: date,
+    cell_count: int,
+    date_values: dict[date, int],
+) -> list[tuple[int, int]]:
+    """Return ``(cell_index, value)`` for numeric heatmap cells that are not 0."""
+    labels: list[tuple[int, int]] = []
+    for index in range(cell_count):
+        value = int(date_values.get(start_date + timedelta(days=index), 0))
+        if value != 0:
+            labels.append((index, value))
+    return labels
 
 
 if __name__ == "__main__":
