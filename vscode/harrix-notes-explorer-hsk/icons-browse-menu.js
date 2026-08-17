@@ -1,10 +1,10 @@
 /**
  * Context menu for Icons Browse — mirrors `view/item/context` in package.json
  * for folders and notes (not asset rows).
+ * `Open in Notes Icons Browse` stays on the Harrix Notes (HSK) tree only.
  */
 
 const CMD = {
-  openIconsBrowse: 'harrixNotesExplorerHsk.openIconsBrowse',
   openNote: 'harrixNotesExplorerHsk.openNote',
   openNoteInEditor: 'harrixNotesExplorerHsk.openNoteInEditor',
   openNoteInPreview: 'harrixNotesExplorerHsk.openNoteInPreview',
@@ -160,8 +160,6 @@ function buildIconsBrowseContextMenu(contextValue, opts) {
   }
 
   if (base.startsWith('notesFolder')) {
-    out.push(item(CMD.openIconsBrowse, 'Open in Notes Icons Browse'));
-    out.push(sep());
     out.push(item(CMD.createNote, 'New Note…'));
     out.push(item(CMD.createFolder, 'New Folder…'));
     if (base.includes('Diary')) {
@@ -196,9 +194,6 @@ function buildIconsBrowseContextMenu(contextValue, opts) {
       out.push(item(CMD.openNoteInPreview, 'Open in Preview'));
     }
     out.push(item(CMD.openNoteInVisualEditor, 'Open in Visual Editor'));
-    if (base.includes('NamedFolder')) {
-      out.push(item(CMD.openIconsBrowse, 'Open in Notes Icons Browse'));
-    }
     out.push(sep());
     out.push(item(CMD.createNote, 'New Note…'));
     out.push(item(CMD.addFolderInNote, 'Add Folder in Note…'));
