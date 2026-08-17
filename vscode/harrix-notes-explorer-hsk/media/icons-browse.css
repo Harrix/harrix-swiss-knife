@@ -78,6 +78,17 @@ body {
   flex-shrink: 0;
 }
 
+.tree-expand-actions {
+  display: none;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+body.layout-tree .tree-expand-actions:not([hidden]) {
+  display: flex;
+}
+
 .chrome .icon-btn {
   display: inline-flex;
   align-items: center;
@@ -502,19 +513,12 @@ body.layout-tree .main {
 }
 
 .tree-level {
-  appearance: none;
-  border: 1px solid transparent;
-  background: transparent;
-  color: inherit;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 2px;
   width: 100%;
   min-height: 36px;
-  padding: 4px 14px 4px calc(14px + var(--tree-depth, 0) * 16px);
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
+  padding: 2px 14px 2px calc(8px + var(--tree-depth, 0) * 16px);
   user-select: none;
 }
 
@@ -523,13 +527,59 @@ body.layout-tree .main {
 }
 
 .tree-level.is-current {
-  cursor: default;
   font-weight: 600;
 }
 
-.tree-level:focus-visible {
+.tree-twistie {
+  appearance: none;
+  border: 1px solid transparent;
+  background: transparent;
+  color: inherit;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.tree-twistie.is-leaf {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.tree-twistie svg {
+  width: 16px;
+  height: 16px;
+}
+
+.tree-twistie:focus-visible,
+.tree-level-open:focus-visible {
   outline: 1px solid var(--hne-focus);
   border-color: var(--hne-focus);
+}
+
+.tree-level-open {
+  appearance: none;
+  border: 1px solid transparent;
+  background: transparent;
+  color: inherit;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+  padding: 2px 4px;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.tree-level-open:disabled {
+  cursor: default;
+  color: inherit;
 }
 
 .tree-level .glyph {

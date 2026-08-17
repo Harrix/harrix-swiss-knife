@@ -126,6 +126,7 @@ function activateIconsBrowse(nextDeps) {
       panel?.dispose();
       panel = undefined;
       crumbs = [];
+      browseTreeExpanded.clear();
       deps = undefined;
       if (persistTimer) {
         clearTimeout(persistTimer);
@@ -316,21 +317,72 @@ function currentDirPath() {
 
 const FOLDER_TREE_MAX_DEPTH = 16;
 
+/** @type {Set<string>} normalized folder paths the user (or Expand all) opened */
+const browseTreeExpanded = new Set();
+
 /**
- * All listable folders from the browse root, for Tree layout.
- *
- * @param {ReturnType<typeof getBrowseOptionsFromConfig>} browse
- * @returns {Array<{ path: string, name: string, depth: number }>}
+ * @param {string} folderPath
+ * @returns {string}
  */
-function buildFolderTree(browse) {
+function folderTreeKey(folderPath) {
+  const raw = String(folderPath || '');
+  return raw ? normalizePath(raw) : '';
+}
+
+/**
+ * Ancestors of the current folder — kept expanded so the working folder stays visible.
+ *
+ * @returns {string[]}
+ */
+function currentPathAncestorKeys() {
+  return crumbs.slice(0, -1).map((crumb) => folderTreeKey(crumb.path || ''));
+}
+
+function ensureCurrentPathExpanded() {
+  for (const key of currentPathAncestorKeys()) {
+    browseTreeExpanded.add(key);
+  }
+}
+
+/**
+ * @param {ReturnType<typeof getBrowseOptionsFromConfig>} browse
+ * @param {string | null} dirPath
+ * @returns {Array<{ path: string, name: string, label?: string }>}
+ */
+function listedChildFolders(browse, dirPath) {
   if (!deps) {
     return [];
   }
-  /** @type {Array<{ path: string, name: string, depth: number }>} */
-  const rows = [];
+  return listing.applyListingOptions(
+    deps.provider
+      .listIconsBrowseEntries(dirPath)
+      .filter((entry) => entry.kind === 'folder')
+      .map((entry) => {
+        let mtimeMs = 0;
+        let sizeBytes = 0;
+        try {
+          const st = fs.statSync(entry.path);
+          mtimeMs = st.mtimeMs;
+          sizeBytes = st.size;
+        } catch {
+          // missing path
+        }
+        return { ...entry, mtimeMs, sizeBytes };
+      }),
+    browse,
+  );
+}
+
+/**
+ * @param {ReturnType<typeof getBrowseOptionsFromConfig>} browse
+ * @returns {string[]}
+ */
+function collectAllFolderTreeKeys(browse) {
+  /** @type {string[]} */
+  const keys = [];
   const root = crumbs[0];
   if (!root) {
-    return rows;
+    return keys;
   }
 
   /**
@@ -341,36 +393,61 @@ function buildFolderTree(browse) {
     if (depth > FOLDER_TREE_MAX_DEPTH) {
       return;
     }
-    const folders = listing.applyListingOptions(
-      deps.provider
-        .listIconsBrowseEntries(dirPath)
-        .filter((entry) => entry.kind === 'folder')
-        .map((entry) => {
-          let mtimeMs = 0;
-          let sizeBytes = 0;
-          try {
-            const st = fs.statSync(entry.path);
-            mtimeMs = st.mtimeMs;
-            sizeBytes = st.size;
-          } catch {
-            // missing path
-          }
-          return { ...entry, mtimeMs, sizeBytes };
-        }),
-      browse,
-    );
-    for (const folder of folders) {
-      rows.push({
-        path: folder.path,
-        name: folder.name || folder.label,
-        depth,
-      });
+    for (const folder of listedChildFolders(browse, dirPath)) {
+      keys.push(folderTreeKey(folder.path));
       walk(folder.path, depth + 1);
     }
   };
 
-  rows.push({ path: root.path || '', name: root.name, depth: 0 });
+  keys.push(folderTreeKey(root.path || ''));
   walk(root.path ? root.path : null, 1);
+  return keys;
+}
+
+/**
+ * Visible folders for Tree layout (collapsed branches omitted).
+ *
+ * @param {ReturnType<typeof getBrowseOptionsFromConfig>} browse
+ * @returns {Array<{ path: string, name: string, depth: number, hasChildren: boolean, expanded: boolean }>}
+ */
+function buildFolderTree(browse) {
+  if (!deps) {
+    return [];
+  }
+  ensureCurrentPathExpanded();
+  /** @type {Array<{ path: string, name: string, depth: number, hasChildren: boolean, expanded: boolean }>} */
+  const rows = [];
+  const root = crumbs[0];
+  if (!root) {
+    return rows;
+  }
+
+  /**
+   * @param {string} folderPath
+   * @param {string} name
+   * @param {number} depth
+   * @param {string | null} listPath
+   */
+  const pushNode = (folderPath, name, depth, listPath) => {
+    const childFolders = depth >= FOLDER_TREE_MAX_DEPTH ? [] : listedChildFolders(browse, listPath);
+    const key = folderTreeKey(folderPath);
+    const expanded = browseTreeExpanded.has(key);
+    rows.push({
+      path: folderPath,
+      name,
+      depth,
+      hasChildren: childFolders.length > 0,
+      expanded,
+    });
+    if (!expanded) {
+      return;
+    }
+    for (const folder of childFolders) {
+      pushNode(folder.path, folder.name || folder.label || folder.path, depth + 1, folder.path);
+    }
+  };
+
+  pushNode(root.path || '', root.name, 0, root.path ? root.path : null);
   return rows;
 }
 
@@ -744,6 +821,33 @@ async function handleWebviewMessage(message) {
       postState();
       break;
     }
+    case 'toggleTreeFolder': {
+      if (typeof msg.path !== 'string') {
+        break;
+      }
+      const key = folderTreeKey(msg.path);
+      if (browseTreeExpanded.has(key)) {
+        browseTreeExpanded.delete(key);
+      } else {
+        browseTreeExpanded.add(key);
+      }
+      postState();
+      break;
+    }
+    case 'expandAllTree': {
+      const browse = getBrowseOptionsFromConfig();
+      for (const key of collectAllFolderTreeKeys(browse)) {
+        browseTreeExpanded.add(key);
+      }
+      postState();
+      break;
+    }
+    case 'collapseAllTree': {
+      browseTreeExpanded.clear();
+      ensureCurrentPathExpanded();
+      postState();
+      break;
+    }
     case 'setBrowseOption': {
       await updateBrowseOption(msg.key, msg.value);
       postState();
@@ -896,6 +1000,10 @@ function getHtml(webview, extensionUri) {
   <header class="chrome">
     <button type="button" id="backBtn" title="Back">Back</button>
     <button type="button" id="homeBtn" title="Home">Home</button>
+    <div class="tree-expand-actions" id="treeExpandActions" hidden>
+      <button type="button" id="expandAllBtn" title="Expand all">Expand all</button>
+      <button type="button" id="collapseAllBtn" title="Collapse all">Collapse all</button>
+    </div>
     <nav class="breadcrumbs" id="crumbs" aria-label="Path"></nav>
     <div class="chrome-actions">
       <button type="button" id="sortViewBtn" class="icon-btn" title="Sort and view" aria-label="Sort and view" aria-haspopup="true" aria-expanded="false">

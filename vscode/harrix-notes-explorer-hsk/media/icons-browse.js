@@ -3,6 +3,9 @@
 
   const backBtn = document.getElementById('backBtn');
   const homeBtn = document.getElementById('homeBtn');
+  const expandAllBtn = document.getElementById('expandAllBtn');
+  const collapseAllBtn = document.getElementById('collapseAllBtn');
+  const treeExpandActions = document.getElementById('treeExpandActions');
   const refreshBtn = document.getElementById('refreshBtn');
   const sortViewBtn = document.getElementById('sortViewBtn');
   const crumbsEl = document.getElementById('crumbs');
@@ -13,7 +16,7 @@
 
   /** @type {{ path: string, name: string }[]} */
   let crumbs = [];
-  /** @type {Array<{ path: string, name: string, depth: number }>} */
+  /** @type {Array<{ path: string, name: string, depth: number, hasChildren?: boolean, expanded?: boolean }>} */
   let folderTree = [];
   /** @type {Array<{ kind: string, path: string, name: string, label: string, iconEmoji: string, description: string, thumbnailImage?: string, thumbnailExcerpt?: string, contextValue?: string, isWorkspaceRoot?: boolean, isCut?: boolean, menu?: Array<{ type: string, command?: string, title?: string }> }>} */
   let entries = [];
@@ -45,6 +48,12 @@
   const TREE_SVG =
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">' +
     '<path d="M22 11V3h-7v3H9V3H2v8h7V8h2v10h4v3h7v-8h-7v3h-2V8h2v3z"/></svg>';
+  const TWISTIE_COLLAPSED_SVG =
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">' +
+    '<path d="M10 17 15 12 10 7v10z"/></svg>';
+  const TWISTIE_EXPANDED_SVG =
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">' +
+    '<path d="M7 10h10l-5 5z"/></svg>';
   const CHECK_SVG =
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">' +
     '<path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>';
@@ -237,6 +246,9 @@
     document.body.classList.toggle('layout-icons', browse.layout === 'icons');
     document.body.classList.toggle('layout-thumbs', browse.layout === 'thumbnails');
     document.body.classList.toggle('layout-tree', browse.layout === 'tree');
+    if (treeExpandActions) {
+      treeExpandActions.hidden = browse.layout !== 'tree';
+    }
   }
 
   /**
@@ -515,25 +527,49 @@
     let placedZone = false;
     for (const node of nodes) {
       const isCurrent = sameFsPath(node.path, currentPath);
-      const row = document.createElement('button');
-      row.type = 'button';
+      const row = document.createElement('div');
       row.className = isCurrent ? 'tree-level is-current' : 'tree-level';
       row.style.setProperty('--tree-depth', String(node.depth));
       row.title = node.path || node.name;
+      const twistie = document.createElement('button');
+      twistie.type = 'button';
+      twistie.className = 'tree-twistie';
+      if (node.hasChildren) {
+        twistie.innerHTML = node.expanded ? TWISTIE_EXPANDED_SVG : TWISTIE_COLLAPSED_SVG;
+        twistie.title = node.expanded ? 'Collapse' : 'Expand';
+        twistie.setAttribute('aria-label', node.expanded ? 'Collapse' : 'Expand');
+        twistie.addEventListener('click', (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          hideContextMenu();
+          vscode.postMessage({ type: 'toggleTreeFolder', path: node.path });
+        });
+      } else {
+        twistie.classList.add('is-leaf');
+        twistie.tabIndex = -1;
+        twistie.setAttribute('aria-hidden', 'true');
+      }
+      const openBtn = document.createElement('button');
+      openBtn.type = 'button';
+      openBtn.className = 'tree-level-open';
       const glyph = document.createElement('div');
       glyph.className = 'glyph';
       glyph.innerHTML = glyphHtml({ kind: 'folder', iconEmoji: '' });
       const label = document.createElement('div');
       label.className = 'label';
       label.textContent = node.name || 'Notes';
-      row.appendChild(glyph);
-      row.appendChild(label);
+      openBtn.appendChild(glyph);
+      openBtn.appendChild(label);
       if (!isCurrent) {
-        row.addEventListener('click', () => {
+        openBtn.addEventListener('click', () => {
           hideContextMenu();
           vscode.postMessage({ type: 'openFolder', path: node.path, name: node.name });
         });
+      } else {
+        openBtn.disabled = true;
       }
+      row.appendChild(twistie);
+      row.appendChild(openBtn);
       gridEl.appendChild(row);
       if (isCurrent) {
         appendTreeZone(node.depth);
@@ -614,6 +650,16 @@
   homeBtn.addEventListener('click', () => {
     vscode.postMessage({ type: 'goHome' });
   });
+  if (expandAllBtn) {
+    expandAllBtn.addEventListener('click', () => {
+      vscode.postMessage({ type: 'expandAllTree' });
+    });
+  }
+  if (collapseAllBtn) {
+    collapseAllBtn.addEventListener('click', () => {
+      vscode.postMessage({ type: 'collapseAllTree' });
+    });
+  }
   refreshBtn.addEventListener('click', () => {
     vscode.postMessage({ type: 'refresh' });
   });
