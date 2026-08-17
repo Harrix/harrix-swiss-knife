@@ -44,8 +44,6 @@ class OnSettingsEditor(ActionBase):
         # Same sizing as food/finance/habits main windows (maximize or ~1920 wide).
         apply_app_window_size_and_position(dialog)
         dialog.exec()
-        self.add_line("Settings editor closed.")
-        self.show_result()
 
 
 class SettingsEditorDialog(QDialog):

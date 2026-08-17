@@ -25,13 +25,13 @@ Toolbar: Material **Sort** icon (`M3 18h6v-2H3v2zM3 6v2h18V6H3zm0 7h12v-2H3v2z`)
 
 Menu (same labels and order):
 
-1. List / Icons / Thumbnails / Tree — radio, leading ViewList / GridView / Dashboard / AccountTree, trailing check
+1. List / Table / Icons / Thumbnails / Tree — radio, leading ViewList / TableRows / GridView / Dashboard / AccountTree, trailing check
 2. separator
 3. Name / Date / Size — radio, leading check
 4. separator
 5. Folders on top / Reverse order / Show .g.md files / Show dates — checkboxes
 
-Listing (`NotesListingOptions.apply`): hide `*.g.md` notes unless Show .g.md; sort by display name / mtime / size; optional reverse; optional folders first. Show a folder only if it (or a descendant) contains a Markdown note. Show dates only in **list** rows (`dd.MM.yyyy` for filename/YAML, `dd.MM.yyyy, HH:mm` for file times). **Thumbnails** cards show featured image / canvas / first Markdown or `img/` image, else a text excerpt; dates stay list-only. **Tree** shows listable folders from the notes root with expand/collapse (default collapsed; the path to the current folder stays open). Expand all / Collapse all sit above the tree; Collapse all keeps the current-folder path open. One icon grid sits under the current folder.
+Listing (`NotesListingOptions.apply`): hide `*.g.md` notes unless Show .g.md; sort by display name / mtime / size; optional reverse; optional folders first. Show a folder only if it (or a descendant) contains a Markdown note. Show dates only in **list** rows (`dd.MM.yyyy` for filename/YAML, `dd.MM.yyyy, HH:mm` for file times). **Table** always shows Name / Date / Type / Size; header click on Name, Date, or Size sets that sort (same column toggles reverse; a new column starts ascending). Type is not sortable. Folder size is blank unless `sizeBytes > 0`. Type is Folder or Note (`.g.md` is still a note). **Thumbnails** cards show featured image / canvas / first Markdown or `img/` image, else a text excerpt; dates stay list-only. **Tree** shows listable folders from the notes root with expand/collapse (default collapsed; the path to the current folder stays open). Expand all / Collapse all sit above the tree; Collapse all keeps the current-folder path open. One icon grid sits under the current folder.
 
 ## Change checklist
 
