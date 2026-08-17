@@ -742,7 +742,12 @@
       "view/item/context": [
         {
           "command": "harrixNotesExplorerHsk.openIconsBrowse",
-          "when": "view == harrixNotesExplorerHsk && (viewItem =~ /notesFolder/ || viewItem =~ /NamedFolder/)",
+          "when": "view == harrixNotesExplorerHsk && (viewItem == notesFolder || viewItem == notesFolderWithMerged || viewItem == notesFolderDiary || viewItem == notesFolderWithMergedDiary || viewItem == notesFolderDreams || viewItem == notesFolderWithMergedDreams || viewItem == notesFolderCases || viewItem == notesFolderWithMergedCases || viewItem == notesFolderTemplateTarget || viewItem == notesFolderTemplateTargetWithMerged || viewItem == gitNotesFolder || viewItem == gitNotesFolderWithMerged || viewItem == gitNotesFolderDiary || viewItem == gitNotesFolderWithMergedDiary || viewItem == gitNotesFolderDreams || viewItem == gitNotesFolderWithMergedDreams || viewItem == gitNotesFolderCases || viewItem == gitNotesFolderWithMergedCases || viewItem == gitNotesFolderTemplateTarget || viewItem == gitNotesFolderTemplateTargetWithMerged)",
+          "group": "0_open@1"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.openIconsBrowse",
+          "when": "view == harrixNotesExplorerHsk && (viewItem == noteNamedFolder || viewItem == noteHasAttachmentsNamedFolder || viewItem == noteWithAssetsNamedFolder || viewItem == gitNoteNamedFolder || viewItem == gitNoteHasAttachmentsNamedFolder || viewItem == gitNoteWithAssetsNamedFolder)",
           "group": "0_open@1"
         },
         {
