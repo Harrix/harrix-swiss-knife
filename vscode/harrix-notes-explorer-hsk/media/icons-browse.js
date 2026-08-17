@@ -13,6 +13,8 @@
 
   /** @type {{ path: string, name: string }[]} */
   let crumbs = [];
+  /** @type {Array<{ path: string, name: string, depth: number }>} */
+  let folderTree = [];
   /** @type {Array<{ kind: string, path: string, name: string, label: string, iconEmoji: string, description: string, thumbnailImage?: string, thumbnailExcerpt?: string, contextValue?: string, isWorkspaceRoot?: boolean, isCut?: boolean, menu?: Array<{ type: string, command?: string, title?: string }> }>} */
   let entries = [];
   /** @type {{ kind: string, path: string, name: string, contextValue?: string, isWorkspaceRoot?: boolean } | null} */
@@ -468,37 +470,20 @@
     return btn;
   }
 
-  function renderTreeBrowse() {
-    gridEl.className = 'tree-browse';
-    crumbs.forEach((crumb, index) => {
-      const isCurrent = index === crumbs.length - 1;
-      const row = document.createElement('button');
-      row.type = 'button';
-      row.className = isCurrent ? 'tree-level is-current' : 'tree-level';
-      row.style.setProperty('--tree-depth', String(index));
-      row.title = crumb.path || crumb.name;
-      const glyph = document.createElement('div');
-      glyph.className = 'glyph';
-      glyph.innerHTML = glyphHtml({ kind: 'folder', iconEmoji: '' });
-      const label = document.createElement('div');
-      label.className = 'label';
-      label.textContent = crumb.name || 'Notes';
-      row.appendChild(glyph);
-      row.appendChild(label);
-      if (!isCurrent) {
-        row.addEventListener('click', () => {
-          hideContextMenu();
-          vscode.postMessage({ type: 'navigateTo', index });
-        });
-      }
-      gridEl.appendChild(row);
-    });
+  function sameFsPath(left, right) {
+    const a = String(left || '')
+      .replace(/\\/g, '/')
+      .replace(/\/+$/, '');
+    const b = String(right || '')
+      .replace(/\\/g, '/')
+      .replace(/\/+$/, '');
+    return a === b || a.toLowerCase() === b.toLowerCase();
+  }
 
+  function appendTreeZone(depth) {
     const zone = document.createElement('div');
     zone.className = 'tree-zone';
-    zone.style.setProperty('--tree-zone-inset', `${Math.max(0, crumbs.length - 1) * 16}px`);
-    const inner = document.createElement('div');
-    inner.className = 'grid';
+    zone.style.setProperty('--tree-zone-inset', `${Math.max(0, depth) * 16}px`);
     statusEl.hidden = true;
     if (!entries.length) {
       const empty = document.createElement('div');
@@ -506,12 +491,58 @@
       empty.textContent = 'This folder has no notes or subfolders.';
       zone.appendChild(empty);
     } else {
+      const inner = document.createElement('div');
+      inner.className = 'grid';
       for (const entry of entries) {
         inner.appendChild(createEntryButton(entry, 'cell'));
       }
       zone.appendChild(inner);
     }
     gridEl.appendChild(zone);
+  }
+
+  function renderTreeBrowse() {
+    gridEl.className = 'tree-browse';
+    const currentPath = currentFolder?.path || crumbs[crumbs.length - 1]?.path || '';
+    const nodes =
+      folderTree.length > 0
+        ? folderTree
+        : crumbs.map((crumb, index) => ({
+            path: crumb.path || '',
+            name: crumb.name,
+            depth: index,
+          }));
+    let placedZone = false;
+    for (const node of nodes) {
+      const isCurrent = sameFsPath(node.path, currentPath);
+      const row = document.createElement('button');
+      row.type = 'button';
+      row.className = isCurrent ? 'tree-level is-current' : 'tree-level';
+      row.style.setProperty('--tree-depth', String(node.depth));
+      row.title = node.path || node.name;
+      const glyph = document.createElement('div');
+      glyph.className = 'glyph';
+      glyph.innerHTML = glyphHtml({ kind: 'folder', iconEmoji: '' });
+      const label = document.createElement('div');
+      label.className = 'label';
+      label.textContent = node.name || 'Notes';
+      row.appendChild(glyph);
+      row.appendChild(label);
+      if (!isCurrent) {
+        row.addEventListener('click', () => {
+          hideContextMenu();
+          vscode.postMessage({ type: 'openFolder', path: node.path, name: node.name });
+        });
+      }
+      gridEl.appendChild(row);
+      if (isCurrent) {
+        appendTreeZone(node.depth);
+        placedZone = true;
+      }
+    }
+    if (!placedZone) {
+      appendTreeZone(Math.max(0, crumbs.length - 1));
+    }
   }
 
   function renderEntries() {
@@ -549,6 +580,7 @@
   function applyState(msg) {
     crumbs = Array.isArray(msg.crumbs) ? msg.crumbs : [];
     entries = Array.isArray(msg.entries) ? msg.entries : [];
+    folderTree = Array.isArray(msg.folderTree) ? msg.folderTree : [];
     currentFolder = msg.currentFolder && typeof msg.currentFolder === 'object' ? msg.currentFolder : null;
     iconStyle = msg.iconStyle === 'material' ? 'material' : 'harrix';
     const nextBrowse = msg.browse && typeof msg.browse === 'object' ? msg.browse : {};

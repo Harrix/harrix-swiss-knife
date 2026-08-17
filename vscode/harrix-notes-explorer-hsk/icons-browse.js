@@ -314,6 +314,66 @@ function currentDirPath() {
   return last.path ? last.path : null;
 }
 
+const FOLDER_TREE_MAX_DEPTH = 16;
+
+/**
+ * All listable folders from the browse root, for Tree layout.
+ *
+ * @param {ReturnType<typeof getBrowseOptionsFromConfig>} browse
+ * @returns {Array<{ path: string, name: string, depth: number }>}
+ */
+function buildFolderTree(browse) {
+  if (!deps) {
+    return [];
+  }
+  /** @type {Array<{ path: string, name: string, depth: number }>} */
+  const rows = [];
+  const root = crumbs[0];
+  if (!root) {
+    return rows;
+  }
+
+  /**
+   * @param {string | null} dirPath
+   * @param {number} depth
+   */
+  const walk = (dirPath, depth) => {
+    if (depth > FOLDER_TREE_MAX_DEPTH) {
+      return;
+    }
+    const folders = listing.applyListingOptions(
+      deps.provider
+        .listIconsBrowseEntries(dirPath)
+        .filter((entry) => entry.kind === 'folder')
+        .map((entry) => {
+          let mtimeMs = 0;
+          let sizeBytes = 0;
+          try {
+            const st = fs.statSync(entry.path);
+            mtimeMs = st.mtimeMs;
+            sizeBytes = st.size;
+          } catch {
+            // missing path
+          }
+          return { ...entry, mtimeMs, sizeBytes };
+        }),
+      browse,
+    );
+    for (const folder of folders) {
+      rows.push({
+        path: folder.path,
+        name: folder.name || folder.label,
+        depth,
+      });
+      walk(folder.path, depth + 1);
+    }
+  };
+
+  rows.push({ path: root.path || '', name: root.name, depth: 0 });
+  walk(root.path ? root.path : null, 1);
+  return rows;
+}
+
 /** @type {ReturnType<typeof setTimeout> | null} */
 let persistTimer = null;
 
@@ -436,6 +496,7 @@ function postState() {
     type: 'state',
     crumbs,
     entries,
+    folderTree: browse.layout === 'tree' ? buildFolderTree(browse) : [],
     currentFolder,
     iconStyle,
     browse,
@@ -645,11 +706,10 @@ async function handleWebviewMessage(message) {
       postState();
       break;
     case 'openFolder': {
-      if (typeof msg.path !== 'string' || !msg.path) {
+      if (typeof msg.path !== 'string') {
         break;
       }
-      const name = typeof msg.name === 'string' && msg.name ? msg.name : path.basename(msg.path);
-      crumbs = [...crumbs, { path: msg.path, name }];
+      crumbs = buildCrumbsForStart(msg.path || null, deps.provider);
       postState();
       break;
     }

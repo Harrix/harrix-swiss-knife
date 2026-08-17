@@ -31,7 +31,7 @@ Menu (same labels and order):
 4. separator
 5. Folders on top / Reverse order / Show .g.md files / Show dates — checkboxes
 
-Listing (`NotesListingOptions.apply`): hide `*.g.md` notes unless Show .g.md; sort by display name / mtime / size; optional reverse; optional folders first. Show a folder only if it (or a descendant) contains a Markdown note. Show dates only in **list** rows (`dd.MM.yyyy` for filename/YAML, `dd.MM.yyyy, HH:mm` for file times). **Thumbnails** cards show featured image / canvas / first Markdown or `img/` image, else a text excerpt; dates stay list-only. **Tree** shows the folder path as indented levels and one icon grid for the current folder; clicking a parent level goes back.
+Listing (`NotesListingOptions.apply`): hide `*.g.md` notes unless Show .g.md; sort by display name / mtime / size; optional reverse; optional folders first. Show a folder only if it (or a descendant) contains a Markdown note. Show dates only in **list** rows (`dd.MM.yyyy` for filename/YAML, `dd.MM.yyyy, HH:mm` for file times). **Thumbnails** cards show featured image / canvas / first Markdown or `img/` image, else a text excerpt; dates stay list-only. **Tree** shows every listable folder from the notes root (not only the opened path) and one icon grid under the current folder; clicking a folder row or icon opens that folder.
 
 ## Change checklist
 
