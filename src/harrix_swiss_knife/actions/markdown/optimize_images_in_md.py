@@ -9,7 +9,10 @@ import harrix_pylib as h
 
 from harrix_swiss_knife.actions.common.base import ActionBase
 from harrix_swiss_knife.actions.common.image_optimize import OptimizeSizeStats
-from harrix_swiss_knife.actions.common.md_image_optimize import optimize_images_in_md_file
+from harrix_swiss_knife.actions.common.md_image_optimize import (
+    optimize_images_in_md_file,
+    summarize_md_optimize_messages,
+)
 
 
 class OnOptimizeImagesInMd(ActionBase):
@@ -93,7 +96,9 @@ class OnOptimizeImagesInMd(ActionBase):
             )
             for md_file in h.file.iter_with_progress(md_files)
         ]
-        self.add_line("\n".join(results))
+        summary = summarize_md_optimize_messages(results)
+        if summary:
+            self.add_line(summary)
         if size_stats.count > 0:
             self.add_line(size_stats.format_summary())
 

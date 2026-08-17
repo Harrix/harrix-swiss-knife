@@ -15,6 +15,7 @@ lang: en
 - [🔧 Function `optimize_images_in_md_file`](#-function-optimize_images_in_md_file)
 - [🔧 Function `optimize_single_image_for_template`](#-function-optimize_single_image_for_template)
 - [🔧 Function `process_markdown_image_line`](#-function-process_markdown_image_line)
+- [🔧 Function `summarize_md_optimize_messages`](#-function-summarize_md_optimize_messages)
 - [🔧 Function `transform_markdown_content`](#-function-transform_markdown_content)
 
 </details>
@@ -142,7 +143,7 @@ def optimize_images_in_md_file(
     if document != document_new:
         path.write_text(document_new, encoding="utf-8")
         return f"✅ File {path} applied."
-    return "File is not changed."
+    return UNCHANGED_MD_FILE_MESSAGE
 ```
 
 </details>
@@ -243,6 +244,29 @@ def process_markdown_image_line(
 
     _new_image_path, new_image_rel_path = result
     return f"![{alt_text}]({new_image_rel_path})"
+```
+
+</details>
+
+## 🔧 Function `summarize_md_optimize_messages`
+
+```python
+def summarize_md_optimize_messages(messages: list[str]) -> str
+```
+
+Drop per-file unchanged lines and append a single unchanged-file count.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def summarize_md_optimize_messages(messages: list[str]) -> str:
+    applied = [message for message in messages if message != UNCHANGED_MD_FILE_MESSAGE]
+    unchanged_count = len(messages) - len(applied)
+    lines = list(applied)
+    if unchanged_count > 0:
+        lines.append(f"ℹ️ {unchanged_count} file(s) not changed.")  # noqa: RUF001
+    return "\n".join(lines)
 ```
 
 </details>

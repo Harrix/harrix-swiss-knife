@@ -20,6 +20,7 @@ from harrix_swiss_knife.actions.common.image_optimize import (
 SUPPORTED_IMAGE_EXTENSIONS = [".jpg", ".jpeg", ".webp", ".gif", ".mp4", ".png", ".svg", ".avif"]
 REMOTE_IMAGE_PATTERN = re.compile(r"^\!\[(.*?)\]\((http.*?)\)$")
 LOCAL_IMAGE_PATTERN = re.compile(r"^\!\[(.*?)\]\((.*?)\)$")
+UNCHANGED_MD_FILE_MESSAGE = "File is not changed."
 
 
 def optimize_image_file(
@@ -123,7 +124,7 @@ def optimize_images_in_md_file(
     if document != document_new:
         path.write_text(document_new, encoding="utf-8")
         return f"✅ File {path} applied."
-    return "File is not changed."
+    return UNCHANGED_MD_FILE_MESSAGE
 
 
 def optimize_single_image_for_template(
@@ -198,6 +199,16 @@ def process_markdown_image_line(
 
     _new_image_path, new_image_rel_path = result
     return f"![{alt_text}]({new_image_rel_path})"
+
+
+def summarize_md_optimize_messages(messages: list[str]) -> str:
+    """Drop per-file unchanged lines and append a single unchanged-file count."""
+    applied = [message for message in messages if message != UNCHANGED_MD_FILE_MESSAGE]
+    unchanged_count = len(messages) - len(applied)
+    lines = list(applied)
+    if unchanged_count > 0:
+        lines.append(f"ℹ️ {unchanged_count} file(s) not changed.")  # noqa: RUF001
+    return "\n".join(lines)
 
 
 def transform_markdown_content(

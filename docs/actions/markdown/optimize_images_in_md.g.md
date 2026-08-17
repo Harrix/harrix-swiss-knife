@@ -109,7 +109,9 @@ class OnOptimizeImagesInMd(ActionBase):
             )
             for md_file in h.file.iter_with_progress(md_files)
         ]
-        self.add_line("\n".join(results))
+        summary = summarize_md_optimize_messages(results)
+        if summary:
+            self.add_line(summary)
         if size_stats.count > 0:
             self.add_line(size_stats.format_summary())
 
@@ -218,7 +220,9 @@ def in_thread(self) -> str | None:
             )
             for md_file in h.file.iter_with_progress(md_files)
         ]
-        self.add_line("\n".join(results))
+        summary = summarize_md_optimize_messages(results)
+        if summary:
+            self.add_line(summary)
         if size_stats.count > 0:
             self.add_line(size_stats.format_summary())
 ```

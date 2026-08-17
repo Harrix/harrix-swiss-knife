@@ -8,8 +8,10 @@ from unittest.mock import patch
 from PIL import Image
 
 from harrix_swiss_knife.actions.common.md_image_optimize import (
+    UNCHANGED_MD_FILE_MESSAGE,
     optimize_image_file,
     process_markdown_image_line,
+    summarize_md_optimize_messages,
 )
 
 
@@ -99,3 +101,24 @@ def test_process_markdown_line_keeps_featured_image_link_in_root(mock_optimize: 
     assert (tmp_path / "featured-image.avif").is_file()
     assert not (tmp_path / "img" / "featured-image.avif").exists()
     assert mock_optimize.called
+
+
+def test_summarize_md_optimize_messages_keeps_applied_and_counts_unchanged() -> None:
+    applied = "✅ File note.md applied."
+    result = summarize_md_optimize_messages(
+        [applied, UNCHANGED_MD_FILE_MESSAGE, UNCHANGED_MD_FILE_MESSAGE],
+    )
+    assert result == f"{applied}\nℹ️ 2 file(s) not changed."  # noqa: RUF001  # noqa: RUF001
+    assert UNCHANGED_MD_FILE_MESSAGE not in result
+
+
+def test_summarize_md_optimize_messages_all_unchanged() -> None:
+    result = summarize_md_optimize_messages(
+        [UNCHANGED_MD_FILE_MESSAGE, UNCHANGED_MD_FILE_MESSAGE, UNCHANGED_MD_FILE_MESSAGE],
+    )
+    assert result == "ℹ️ 3 file(s) not changed."  # noqa: RUF001  # noqa: RUF001
+
+
+def test_summarize_md_optimize_messages_no_unchanged() -> None:
+    applied = "✅ File note.md applied."
+    assert summarize_md_optimize_messages([applied]) == applied
