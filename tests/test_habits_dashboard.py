@@ -259,6 +259,9 @@ def test_habit_row_day_value_set_signal(qapp: QApplication) -> None:
     assert all(not circle.allows_number() for circle in row.findChildren(CheckCircle))
     assert "border-bottom" in row.styleSheet()
     assert "#FFFFFF" in row.styleSheet()
+    row.set_habit_data(7, "Walk", 0, 0, [None] * 7, selected=True, allows_number=False)
+    assert "#EFF6FF" in row.styleSheet()
+    assert "QFrame#habitRow QLabel" in row.styleSheet()
 
 
 def test_habit_dashboard_list_scrolls(qapp: QApplication) -> None:

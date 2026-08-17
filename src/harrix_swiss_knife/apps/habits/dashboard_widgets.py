@@ -212,9 +212,11 @@ class HabitRow(QFrame):
         text_col = QVBoxLayout()
         text_col.setSpacing(2)
         self._name_label = QLabel("")
-        self._name_label.setStyleSheet("color: #111827; font-size: 14px; font-weight: 700;")
+        self._name_label.setAutoFillBackground(False)
+        self._name_label.setStyleSheet("background: transparent; color: #111827; font-size: 14px; font-weight: 700;")
         self._meta_label = QLabel("")
-        self._meta_label.setStyleSheet("color: #6B7280; font-size: 12px;")
+        self._meta_label.setAutoFillBackground(False)
+        self._meta_label.setStyleSheet("background: transparent; color: #6B7280; font-size: 12px;")
         text_col.addWidget(self._name_label)
         text_col.addWidget(self._meta_label)
         root.addLayout(text_col, 1)
@@ -273,6 +275,9 @@ class HabitRow(QFrame):
                 border: none;
                 border-bottom: 1px solid {COLOR_TRACK.name()};
                 border-radius: 0px;
+            }}
+            QFrame#habitRow QLabel {{
+                background: transparent;
             }}
             """
         )
