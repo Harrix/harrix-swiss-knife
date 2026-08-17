@@ -314,16 +314,6 @@
            </property>
            <layout class="QVBoxLayout" name="verticalLayout_24">
             <item>
-             <widget class="QLabel" name="label_filter_habit_year">
-              <property name="text">
-               <string>Year:</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QListView" name="listView_filter_habit_year"/>
-            </item>
-            <item>
              <widget class="QLabel" name="label_filter_habit">
               <property name="text">
                <string>Habit:</string>
@@ -332,6 +322,16 @@
             </item>
             <item>
              <widget class="QListView" name="listView_filter_habit"/>
+            </item>
+            <item>
+             <widget class="QLabel" name="label_filter_habit_year">
+              <property name="text">
+               <string>Year:</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QListView" name="listView_filter_habit_year"/>
             </item>
            </layout>
           </widget>

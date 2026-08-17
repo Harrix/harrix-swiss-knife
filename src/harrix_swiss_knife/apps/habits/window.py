@@ -47,8 +47,8 @@ class Ui_MainWindow(object):
         self.pushButton_habits_delete_selected.setText(QCoreApplication.translate("MainWindow", u"Delete selected", None))
         self.pushButton_habits_refresh_table.setText(QCoreApplication.translate("MainWindow", u"Refresh Table", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_sets_of_habits), QCoreApplication.translate("MainWindow", u"Habits", None))
-        self.label_filter_habit_year.setText(QCoreApplication.translate("MainWindow", u"Year:", None))
         self.label_filter_habit.setText(QCoreApplication.translate("MainWindow", u"Habit:", None))
+        self.label_filter_habit_year.setText(QCoreApplication.translate("MainWindow", u"Year:", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_charts), QCoreApplication.translate("MainWindow", u"Charts", None))
         self.menuFile.setTitle(QCoreApplication.translate("MainWindow", u"File", None))
         self.menuCommands.setTitle(QCoreApplication.translate("MainWindow", u"Commands", None))
@@ -247,16 +247,6 @@ class Ui_MainWindow(object):
         self.verticalLayout_24 = QVBoxLayout(self.layoutWidget)
         self.verticalLayout_24.setObjectName(u"verticalLayout_24")
         self.verticalLayout_24.setContentsMargins(0, 0, 0, 0)
-        self.label_filter_habit_year = QLabel(self.layoutWidget)
-        self.label_filter_habit_year.setObjectName(u"label_filter_habit_year")
-
-        self.verticalLayout_24.addWidget(self.label_filter_habit_year)
-
-        self.listView_filter_habit_year = QListView(self.layoutWidget)
-        self.listView_filter_habit_year.setObjectName(u"listView_filter_habit_year")
-
-        self.verticalLayout_24.addWidget(self.listView_filter_habit_year)
-
         self.label_filter_habit = QLabel(self.layoutWidget)
         self.label_filter_habit.setObjectName(u"label_filter_habit")
 
@@ -266,6 +256,16 @@ class Ui_MainWindow(object):
         self.listView_filter_habit.setObjectName(u"listView_filter_habit")
 
         self.verticalLayout_24.addWidget(self.listView_filter_habit)
+
+        self.label_filter_habit_year = QLabel(self.layoutWidget)
+        self.label_filter_habit_year.setObjectName(u"label_filter_habit_year")
+
+        self.verticalLayout_24.addWidget(self.label_filter_habit_year)
+
+        self.listView_filter_habit_year = QListView(self.layoutWidget)
+        self.listView_filter_habit_year.setObjectName(u"listView_filter_habit_year")
+
+        self.verticalLayout_24.addWidget(self.listView_filter_habit_year)
 
         self.splitter_charts.addWidget(self.layoutWidget)
         self.scrollArea_charts_process_habits = QScrollArea(self.splitter_charts)
