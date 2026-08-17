@@ -35,6 +35,12 @@ lang: en
   - [⚙️ Method `update_habit_calendar_heatmap`](#%EF%B8%8F-method-update_habit_calendar_heatmap)
   - [⚙️ Method `update_habits_filter_combobox`](#%EF%B8%8F-method-update_habits_filter_combobox)
   - [⚙️ Method `update_habits_year_combobox`](#%EF%B8%8F-method-update_habits_year_combobox)
+- [🔧 Function `apply_habit_heatmap_month_separation`](#-function-apply_habit_heatmap_month_separation)
+- [🔧 Function `habit_heatmap_month_column_count`](#-function-habit_heatmap_month_column_count)
+- [🔧 Function `habit_heatmap_month_ranges`](#-function-habit_heatmap_month_ranges)
+- [🔧 Function `habit_heatmap_month_separated_positions`](#-function-habit_heatmap_month_separated_positions)
+- [🔧 Function `habit_heatmap_week_start`](#-function-habit_heatmap_week_start)
+- [🔧 Function `habit_heatmap_weekday_index`](#-function-habit_heatmap_weekday_index)
 - [🔧 Function `numeric_habit_heatmap_cell_labels`](#-function-numeric_habit_heatmap_cell_labels)
 
 </details>
@@ -1060,6 +1066,7 @@ class MainWindow(
                 boxstyle="round",
                 ax=ax,
             )
+            apply_habit_heatmap_month_separation(ax, cell_patches, start_date, end_date)
 
             # Custom legend: exactly the displayed values
             norm = Normalize(vmin=0, vmax=max(mapped_vmax, 1))
@@ -3197,6 +3204,7 @@ def update_habit_calendar_heatmap(self, habit_name: str | None = None, year: int
                 boxstyle="round",
                 ax=ax,
             )
+            apply_habit_heatmap_month_separation(ax, cell_patches, start_date, end_date)
 
             # Custom legend: exactly the displayed values
             norm = Normalize(vmin=0, vmax=max(mapped_vmax, 1))
@@ -3469,6 +3477,180 @@ def update_habits_year_combobox(self) -> None:
 
         except Exception:
             logger.exception("Error updating habits year list view")
+```
+
+</details>
+
+## 🔧 Function `apply_habit_heatmap_month_separation`
+
+```python
+def apply_habit_heatmap_month_separation(ax: Any, cell_patches: list[Any], start_date: date, end_date: date, *, cell_inset: float = HEATMAP_CELL_INSET, month_gap: float = HEATMAP_MONTH_GAP) -> None
+```
+
+Shift dayplot cells and month labels into LeetCode-style month blocks.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def apply_habit_heatmap_month_separation(
+    ax: Any,
+    cell_patches: list[Any],
+    start_date: date,
+    end_date: date,
+    *,
+    cell_inset: float = HEATMAP_CELL_INSET,
+    month_gap: float = HEATMAP_MONTH_GAP,
+) -> None:
+    positions, month_labels, total_width = habit_heatmap_month_separated_positions(
+        start_date,
+        end_date,
+        month_gap=month_gap,
+    )
+    for index, patch in enumerate(cell_patches):
+        week_x, weekday_y = positions[start_date + timedelta(days=index)]
+        patch.set_x(week_x + cell_inset)
+        patch.set_y(weekday_y + cell_inset)
+
+    month_texts = [text for text in ax.texts if text.get_position()[1] > HEATMAP_MONTH_LABEL_Y_MIN]
+    for text, (_label, month_x) in zip(month_texts, month_labels, strict=False):
+        text.set_position((month_x + HEATMAP_MONTH_LABEL_X_INSET, text.get_position()[1]))
+
+    ax.set_xlim(-0.5, total_width + 0.5)
+```
+
+</details>
+
+## 🔧 Function `habit_heatmap_month_column_count`
+
+```python
+def habit_heatmap_month_column_count(month_start: date, month_end: date, *, week_starts_on: int = HEATMAP_WEEK_STARTS_ON) -> int
+```
+
+Return how many week columns a (possibly partial) month occupies.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def habit_heatmap_month_column_count(
+    month_start: date,
+    month_end: date,
+    *,
+    week_starts_on: int = HEATMAP_WEEK_STARTS_ON,
+) -> int:
+    first_week = habit_heatmap_week_start(month_start, week_starts_on=week_starts_on)
+    last_week = habit_heatmap_week_start(month_end, week_starts_on=week_starts_on)
+    return (last_week - first_week).days // 7 + 1
+```
+
+</details>
+
+## 🔧 Function `habit_heatmap_month_ranges`
+
+```python
+def habit_heatmap_month_ranges(start_date: date, end_date: date) -> list[tuple[date, date]]
+```
+
+Return inclusive visible ``(month_start, month_end)`` ranges in ``[start_date, end_date]``.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def habit_heatmap_month_ranges(start_date: date, end_date: date) -> list[tuple[date, date]]:
+    ranges: list[tuple[date, date]] = []
+    cursor = start_date
+    while cursor <= end_date:
+        last_day = monthrange(cursor.year, cursor.month)[1]
+        month_end = min(end_date, date(cursor.year, cursor.month, last_day))
+        ranges.append((cursor, month_end))
+        cursor = month_end + timedelta(days=1)
+    return ranges
+```
+
+</details>
+
+## 🔧 Function `habit_heatmap_month_separated_positions`
+
+```python
+def habit_heatmap_month_separated_positions(start_date: date, end_date: date, *, week_starts_on: int = HEATMAP_WEEK_STARTS_ON, month_gap: float = HEATMAP_MONTH_GAP) -> tuple[dict[date, tuple[float, float]], list[tuple[str, float]], float]
+```
+
+Return LeetCode-style cell positions with a gap between month blocks.
+
+Each month is its own Sunday-start week grid. A week that spans two months is
+split so January days stay in January and February days start a new block.
+
+Returns:
+
+- `positions`: `day -> (week_x, weekday_y)` in dayplot week units
+- `month_labels`: `(abbreviation, x)` for the first column of each month
+- `total_width`: right edge of the last month block in week units
+
+<details>
+<summary>Code:</summary>
+
+```python
+def habit_heatmap_month_separated_positions(
+    start_date: date,
+    end_date: date,
+    *,
+    week_starts_on: int = HEATMAP_WEEK_STARTS_ON,
+    month_gap: float = HEATMAP_MONTH_GAP,
+) -> tuple[dict[date, tuple[float, float]], list[tuple[str, float]], float]:
+    positions: dict[date, tuple[float, float]] = {}
+    month_labels: list[tuple[str, float]] = []
+    x_cursor = 0.0
+
+    for month_start, month_end in habit_heatmap_month_ranges(start_date, end_date):
+        month_week0 = habit_heatmap_week_start(month_start, week_starts_on=week_starts_on)
+        month_labels.append((month_start.strftime("%b"), x_cursor))
+        day = month_start
+        while day <= month_end:
+            week_x = x_cursor + (habit_heatmap_week_start(day, week_starts_on=week_starts_on) - month_week0).days // 7
+            positions[day] = (float(week_x), float(habit_heatmap_weekday_index(day, week_starts_on=week_starts_on)))
+            day += timedelta(days=1)
+        x_cursor += habit_heatmap_month_column_count(month_start, month_end, week_starts_on=week_starts_on) + month_gap
+
+    total_width = x_cursor - month_gap if month_labels else 0.0
+    return positions, month_labels, total_width
+```
+
+</details>
+
+## 🔧 Function `habit_heatmap_week_start`
+
+```python
+def habit_heatmap_week_start(day: date, *, week_starts_on: int = HEATMAP_WEEK_STARTS_ON) -> date
+```
+
+Return the first day of the heatmap week that contains ``day``.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def habit_heatmap_week_start(day: date, *, week_starts_on: int = HEATMAP_WEEK_STARTS_ON) -> date:
+    return day - timedelta(days=habit_heatmap_weekday_index(day, week_starts_on=week_starts_on))
+```
+
+</details>
+
+## 🔧 Function `habit_heatmap_weekday_index`
+
+```python
+def habit_heatmap_weekday_index(day: date, *, week_starts_on: int = HEATMAP_WEEK_STARTS_ON) -> int
+```
+
+Return 0-based heatmap row for ``day`` (Sunday-first by default).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def habit_heatmap_weekday_index(day: date, *, week_starts_on: int = HEATMAP_WEEK_STARTS_ON) -> int:
+    return (day.weekday() - week_starts_on) % 7
 ```
 
 </details>
