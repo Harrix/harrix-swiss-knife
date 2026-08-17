@@ -290,61 +290,71 @@
             </item>
            </layout>
           </widget>
-          <widget class="QSplitter" name="splitter_4">
-           <property name="orientation">
-            <enum>Qt::Orientation::Vertical</enum>
+          <widget class="QTableView" name="tableView_process_habits"/>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="tab_charts">
+       <attribute name="title">
+        <string>Charts</string>
+       </attribute>
+       <layout class="QHBoxLayout" name="horizontalLayout_charts">
+        <item>
+         <widget class="QSplitter" name="splitter_charts">
+          <property name="orientation">
+           <enum>Qt::Orientation::Horizontal</enum>
+          </property>
+          <widget class="QWidget" name="layoutWidget">
+           <property name="minimumSize">
+            <size>
+             <width>150</width>
+             <height>0</height>
+            </size>
            </property>
-           <widget class="QTableView" name="tableView_process_habits"/>
-           <widget class="QSplitter" name="splitter_3">
-            <property name="orientation">
-             <enum>Qt::Orientation::Horizontal</enum>
-            </property>
-            <widget class="QWidget" name="layoutWidget">
-             <layout class="QVBoxLayout" name="verticalLayout_24">
-              <item>
-               <widget class="QLabel" name="label_filter_habit_year">
-                <property name="text">
-                 <string>Year:</string>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QListView" name="listView_filter_habit_year"/>
-              </item>
-              <item>
-               <widget class="QLabel" name="label_filter_habit">
-                <property name="text">
-                 <string>Habit:</string>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QListView" name="listView_filter_habit"/>
-              </item>
-             </layout>
-            </widget>
-            <widget class="QScrollArea" name="scrollArea_charts_process_habits">
-             <property name="minimumSize">
-              <size>
-               <width>0</width>
-               <height>301</height>
-              </size>
-             </property>
-             <property name="widgetResizable">
-              <bool>true</bool>
-             </property>
-             <widget class="QWidget" name="scrollAreaWidgetContents_charts_process_habits">
-              <property name="geometry">
-               <rect>
-                <x>0</x>
-                <y>0</y>
-                <width>86</width>
-                <height>755</height>
-               </rect>
+           <layout class="QVBoxLayout" name="verticalLayout_24">
+            <item>
+             <widget class="QLabel" name="label_filter_habit_year">
+              <property name="text">
+               <string>Year:</string>
               </property>
-              <layout class="QVBoxLayout" name="verticalLayout_charts_process_habits_content"/>
              </widget>
-            </widget>
+            </item>
+            <item>
+             <widget class="QListView" name="listView_filter_habit_year"/>
+            </item>
+            <item>
+             <widget class="QLabel" name="label_filter_habit">
+              <property name="text">
+               <string>Habit:</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QListView" name="listView_filter_habit"/>
+            </item>
+           </layout>
+          </widget>
+          <widget class="QScrollArea" name="scrollArea_charts_process_habits">
+           <property name="minimumSize">
+            <size>
+             <width>0</width>
+             <height>301</height>
+            </size>
+           </property>
+           <property name="widgetResizable">
+            <bool>true</bool>
+           </property>
+           <widget class="QWidget" name="scrollAreaWidgetContents_charts_process_habits">
+            <property name="geometry">
+             <rect>
+              <x>0</x>
+              <y>0</y>
+              <width>86</width>
+              <height>755</height>
+             </rect>
+            </property>
+            <layout class="QVBoxLayout" name="verticalLayout_charts_process_habits_content"/>
            </widget>
           </widget>
          </widget>

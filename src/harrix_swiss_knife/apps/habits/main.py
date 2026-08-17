@@ -1655,11 +1655,14 @@ class MainWindow(
                 break
 
     def _on_tab_changed(self, index: int) -> None:
-        """Apply table sizing after the Habits tab becomes visible."""
-        if self.tabWidget.widget(index) is not self.tab_sets_of_habits:
+        """Apply table or chart sizing after a tab becomes visible."""
+        widget = self.tabWidget.widget(index)
+        if widget is self.tab_sets_of_habits:
+            QTimer.singleShot(0, self._set_habits_splitter_size)
+            QTimer.singleShot(0, self._configure_habits_table_columns)
             return
-        QTimer.singleShot(0, self._set_habits_splitter_size)
-        QTimer.singleShot(0, self._configure_habits_table_columns)
+        if widget is self.tab_charts:
+            QTimer.singleShot(0, self._set_charts_splitter_size)
 
     def _refresh_habit_dashboard(self) -> None:
         """Reload Habitify-like dashboard from the current database."""
@@ -1686,6 +1689,21 @@ class MainWindow(
             timer.timeout.connect(self.refresh_habits_and_process_habits)
             self._habits_refresh_timer = timer
         timer.start(delay_ms)
+
+    def _set_charts_splitter_size(self) -> None:
+        """Set initial width for heatmap filters to 150 pixels."""
+        if self._is_closing:
+            return
+        min_count_of_widgets = 2
+        if self.splitter_charts.count() < min_count_of_widgets:
+            return
+        total_width = self.splitter_charts.width()
+        if total_width > 0:
+            filter_width = 150
+            chart_width = max(100, total_width - filter_width)
+            self.splitter_charts.setSizes([filter_width, chart_width])
+            return
+        QTimer.singleShot(50, self._set_charts_splitter_size)
 
     def _set_habits_splitter_size(self) -> None:
         """Set initial width for frame_habits to 350 pixels."""
@@ -1736,11 +1754,9 @@ class MainWindow(
 
         self.splitter_habits.setStretchFactor(0, 1)
         self.splitter_habits.setStretchFactor(1, 3)
-        self.splitter_3.setStretchFactor(0, 0)
-        self.splitter_3.setStretchFactor(1, 1)
-        self.splitter_3.setSizes([150, 1000])
-        self.splitter_4.setStretchFactor(0, 4)
-        self.splitter_4.setStretchFactor(1, 1)
+        self.splitter_charts.setStretchFactor(0, 0)
+        self.splitter_charts.setStretchFactor(1, 1)
+        self.splitter_charts.setSizes([150, 1000])
 
     def _show_habit_filter_context_menu(self, position: QPoint) -> None:
         """Show context menu for habit filter list view."""
