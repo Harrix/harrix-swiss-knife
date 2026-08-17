@@ -555,7 +555,5 @@ body.layout-tree .main {
 .tree-zone {
   margin: 4px 10px 0 calc(10px + var(--tree-zone-inset, 0px));
   padding: 8px 6px 10px;
-  border-top: 1px solid var(--hne-border);
-  border-bottom: 1px solid var(--hne-border);
-  border-left: 2px solid var(--hne-border);
+  border: 1px solid var(--hne-border);
 }
