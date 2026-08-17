@@ -16,6 +16,9 @@ lang: en
 - [🔧 Function `build_cli_copy_command`](#-function-build_cli_copy_command)
 - [🔧 Function `copy_cli_command_to_clipboard`](#-function-copy_cli_command_to_clipboard)
 - [🔧 Function `copy_text_to_clipboard`](#-function-copy_text_to_clipboard)
+- [🔧 Function `format_copy_action_class_menu_label`](#-function-format_copy_action_class_menu_label)
+- [🔧 Function `format_copy_action_name_menu_label`](#-function-format_copy_action_name_menu_label)
+- [🔧 Function `format_copy_action_path_menu_label`](#-function-format_copy_action_path_menu_label)
 - [🔧 Function `format_copy_cli_menu_label`](#-function-format_copy_cli_menu_label)
 - [🔧 Function `get_action_identity_parts`](#-function-get_action_identity_parts)
 - [🔧 Function `get_action_identity_text`](#-function-get_action_identity_text)
@@ -24,6 +27,7 @@ lang: en
 - [🔧 Function `show_action_identity_context_menu`](#-function-show_action_identity_context_menu)
 - [🔧 Function `show_action_item_context_menu`](#-function-show_action_item_context_menu)
 - [🔧 Function `show_copy_cli_menu`](#-function-show_copy_cli_menu)
+- [🔧 Function `truncate_action_name_preview`](#-function-truncate_action_name_preview)
 
 </details>
 
@@ -141,6 +145,60 @@ def copy_text_to_clipboard(text: str) -> None:
     clipboard = QGuiApplication.clipboard()
     if clipboard is not None:
         clipboard.setText(text, QClipboard.Mode.Clipboard)
+```
+
+</details>
+
+## 🔧 Function `format_copy_action_class_menu_label`
+
+```python
+def format_copy_action_class_menu_label(class_name: str) -> str
+```
+
+Build context menu item text: prefix, colon, and the class name to copy.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def format_copy_action_class_menu_label(class_name: str) -> str:
+    return f"{COPY_ACTION_CLASS_MENU_PREFIX}{class_name}"
+```
+
+</details>
+
+## 🔧 Function `format_copy_action_name_menu_label`
+
+```python
+def format_copy_action_name_menu_label(name: str) -> str
+```
+
+Build context menu item text: prefix, colon, and a shortened name preview.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def format_copy_action_name_menu_label(name: str) -> str:
+    return f"{COPY_ACTION_NAME_MENU_PREFIX}{truncate_action_name_preview(name)}"
+```
+
+</details>
+
+## 🔧 Function `format_copy_action_path_menu_label`
+
+```python
+def format_copy_action_path_menu_label(path: str) -> str
+```
+
+Build context menu item text: prefix, colon, and the path to copy.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def format_copy_action_path_menu_label(path: str) -> str:
+    return f"{COPY_ACTION_PATH_MENU_PREFIX}{path}"
 ```
 
 </details>
@@ -299,15 +357,15 @@ def show_action_identity_context_menu(
             lambda *_args, text=identity_text: copy_text_to_clipboard(text),
         )
     if identity_parts is not None:
-        copy_name = menu.addAction(COPY_ACTION_NAME_MENU_LABEL)
+        copy_name = menu.addAction(format_copy_action_name_menu_label(identity_parts.name))
         copy_name.triggered.connect(
             lambda *_args, text=identity_parts.name: copy_text_to_clipboard(text),
         )
-        copy_class = menu.addAction(COPY_ACTION_CLASS_MENU_LABEL)
+        copy_class = menu.addAction(format_copy_action_class_menu_label(identity_parts.class_name))
         copy_class.triggered.connect(
             lambda *_args, text=identity_parts.class_name: copy_text_to_clipboard(text),
         )
-        copy_path = menu.addAction(COPY_ACTION_PATH_MENU_LABEL)
+        copy_path = menu.addAction(format_copy_action_path_menu_label(identity_parts.path))
         copy_path.triggered.connect(
             lambda *_args, text=identity_parts.path: copy_text_to_clipboard(text),
         )
@@ -366,6 +424,28 @@ def show_copy_cli_menu(*, parent: QWidget | None, global_pos: QPoint, cli_copy_c
         lambda *_args, cmd=cli_copy_command: copy_cli_command_to_clipboard(cmd),
     )
     menu.exec_(global_pos)
+```
+
+</details>
+
+## 🔧 Function `truncate_action_name_preview`
+
+```python
+def truncate_action_name_preview(name: str, max_len: int = COPY_ACTION_NAME_PREVIEW_MAX_LEN) -> str
+```
+
+Return `name` unchanged, or a prefix ending with `…` when it is too long.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def truncate_action_name_preview(name: str, max_len: int = COPY_ACTION_NAME_PREVIEW_MAX_LEN) -> str:
+    if max_len <= 0:
+        return _ELLIPSIS
+    if len(name) <= max_len:
+        return name
+    return name[:max_len].rstrip() + _ELLIPSIS
 ```
 
 </details>

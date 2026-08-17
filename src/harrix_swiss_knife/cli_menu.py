@@ -16,10 +16,12 @@ CLI_EXECUTABLE = "hsk"
 CLI_MENU_SUFFIX = " ꟲᴸᴵ"
 CLI_TOOLTIP_DEFAULT = f"Available via {CLI_EXECUTABLE} (see --help)"
 COPY_ACTION_IDENTITY_MENU_LABEL = "📋 Copy action name, class, and path"
-COPY_ACTION_NAME_MENU_LABEL = "📋 Copy action name"
-COPY_ACTION_CLASS_MENU_LABEL = "📋 Copy action class"
-COPY_ACTION_PATH_MENU_LABEL = "📋 Copy action path"
+COPY_ACTION_NAME_MENU_PREFIX = "📋 Copy action name: "
+COPY_ACTION_CLASS_MENU_PREFIX = "📋 Copy action class: "
+COPY_ACTION_PATH_MENU_PREFIX = "📋 Copy action path: "
+COPY_ACTION_NAME_PREVIEW_MAX_LEN = 40
 COPY_CLI_MENU_PREFIX = "📋 Copy CLI command: "
+_ELLIPSIS = "…"
 
 
 class CliContextMenu(QMenu):
@@ -58,6 +60,21 @@ def copy_text_to_clipboard(text: str) -> None:
     clipboard = QGuiApplication.clipboard()
     if clipboard is not None:
         clipboard.setText(text, QClipboard.Mode.Clipboard)
+
+
+def format_copy_action_class_menu_label(class_name: str) -> str:
+    """Build context menu item text: prefix, colon, and the class name to copy."""
+    return f"{COPY_ACTION_CLASS_MENU_PREFIX}{class_name}"
+
+
+def format_copy_action_name_menu_label(name: str) -> str:
+    """Build context menu item text: prefix, colon, and a shortened name preview."""
+    return f"{COPY_ACTION_NAME_MENU_PREFIX}{truncate_action_name_preview(name)}"
+
+
+def format_copy_action_path_menu_label(path: str) -> str:
+    """Build context menu item text: prefix, colon, and the path to copy."""
+    return f"{COPY_ACTION_PATH_MENU_PREFIX}{path}"
 
 
 def format_copy_cli_menu_label(cli_copy_command: str) -> str:
@@ -138,15 +155,15 @@ def show_action_identity_context_menu(
             lambda *_args, text=identity_text: copy_text_to_clipboard(text),
         )
     if identity_parts is not None:
-        copy_name = menu.addAction(COPY_ACTION_NAME_MENU_LABEL)
+        copy_name = menu.addAction(format_copy_action_name_menu_label(identity_parts.name))
         copy_name.triggered.connect(
             lambda *_args, text=identity_parts.name: copy_text_to_clipboard(text),
         )
-        copy_class = menu.addAction(COPY_ACTION_CLASS_MENU_LABEL)
+        copy_class = menu.addAction(format_copy_action_class_menu_label(identity_parts.class_name))
         copy_class.triggered.connect(
             lambda *_args, text=identity_parts.class_name: copy_text_to_clipboard(text),
         )
-        copy_path = menu.addAction(COPY_ACTION_PATH_MENU_LABEL)
+        copy_path = menu.addAction(format_copy_action_path_menu_label(identity_parts.path))
         copy_path.triggered.connect(
             lambda *_args, text=identity_parts.path: copy_text_to_clipboard(text),
         )
@@ -179,3 +196,12 @@ def show_copy_cli_menu(*, parent: QWidget | None, global_pos: QPoint, cli_copy_c
         lambda *_args, cmd=cli_copy_command: copy_cli_command_to_clipboard(cmd),
     )
     menu.exec_(global_pos)
+
+
+def truncate_action_name_preview(name: str, max_len: int = COPY_ACTION_NAME_PREVIEW_MAX_LEN) -> str:
+    """Return `name` unchanged, or a prefix ending with `…` when it is too long."""
+    if max_len <= 0:
+        return _ELLIPSIS
+    if len(name) <= max_len:
+        return name
+    return name[:max_len].rstrip() + _ELLIPSIS
