@@ -18,13 +18,13 @@
   let crumbs = [];
   /** @type {Array<{ path: string, name: string, depth: number, hasChildren?: boolean, expanded?: boolean }>} */
   let folderTree = [];
-  /** @type {Array<{ kind: string, path: string, name: string, label: string, iconEmoji: string, description: string, thumbnailImage?: string, thumbnailExcerpt?: string, contextValue?: string, isWorkspaceRoot?: boolean, isCut?: boolean, menu?: Array<{ type: string, command?: string, title?: string }> }>} */
+  /** @type {Array<{ kind: string, path: string, name: string, label: string, iconEmoji: string, description: string, thumbnailImage?: string, thumbnailExcerpt?: string, tableDate?: string, tableSize?: string, tableType?: string, contextValue?: string, isWorkspaceRoot?: boolean, isCut?: boolean, menu?: Array<{ type: string, command?: string, title?: string }> }>} */
   let entries = [];
   /** @type {{ kind: string, path: string, name: string, contextValue?: string, isWorkspaceRoot?: boolean } | null} */
   let currentFolder = null;
   /** @type {'harrix' | 'material'} */
   let iconStyle = 'harrix';
-  /** @type {{ layout: 'icons' | 'list' | 'thumbnails' | 'tree', sortBy: 'name' | 'date' | 'size', foldersFirst: boolean, reverseOrder: boolean, showGmdFiles: boolean, showDates: boolean }} */
+  /** @type {{ layout: 'icons' | 'list' | 'table' | 'thumbnails' | 'tree', sortBy: 'name' | 'date' | 'size', foldersFirst: boolean, reverseOrder: boolean, showGmdFiles: boolean, showDates: boolean }} */
   let browse = {
     layout: 'icons',
     sortBy: 'name',
@@ -45,6 +45,9 @@
   const DASHBOARD_SVG =
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">' +
     '<path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>';
+  const TABLE_SVG =
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">' +
+    '<path d="M3 5h18v2H3V5zm0 6h18v2H3v-2zm0 6h18v2H3v-2z"/></svg>';
   const TREE_SVG =
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">' +
     '<path d="M22 11V3h-7v3H9V3H2v8h7V8h2v10h4v3h7v-8h-7v3h-2V8h2v3z"/></svg>';
@@ -243,6 +246,7 @@
 
   function syncLayoutClass() {
     document.body.classList.toggle('layout-list', browse.layout === 'list');
+    document.body.classList.toggle('layout-table', browse.layout === 'table');
     document.body.classList.toggle('layout-icons', browse.layout === 'icons');
     document.body.classList.toggle('layout-thumbs', browse.layout === 'thumbnails');
     document.body.classList.toggle('layout-tree', browse.layout === 'tree');
@@ -303,6 +307,14 @@
         checked: browse.layout === 'list',
         check: 'trail',
         onClick: () => vscode.postMessage({ type: 'setBrowseOption', key: 'layout', value: 'list' }),
+      }),
+    );
+    sortMenuEl.appendChild(
+      sortMenuItem('Table', {
+        lead: TABLE_SVG,
+        checked: browse.layout === 'table',
+        check: 'trail',
+        onClick: () => vscode.postMessage({ type: 'setBrowseOption', key: 'layout', value: 'table' }),
       }),
     );
     sortMenuEl.appendChild(
@@ -581,10 +593,94 @@
     }
   }
 
+  function tableSortMark(column) {
+    if (browse.sortBy !== column) {
+      return '';
+    }
+    return browse.reverseOrder ? ' ▾' : ' ▴';
+  }
+
+  function appendTableHeadCell(row, column, title, className) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = `table-col ${className}${browse.sortBy === column ? ' is-sorted' : ''}`;
+    btn.textContent = title + tableSortMark(column);
+    btn.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      vscode.postMessage({ type: 'sortByColumn', value: column });
+    });
+    row.appendChild(btn);
+  }
+
+  function renderTableBrowse() {
+    gridEl.className = 'table';
+    statusEl.hidden = true;
+    const head = document.createElement('div');
+    head.className = 'table-head';
+    appendTableHeadCell(head, 'name', 'Name', 'name');
+    appendTableHeadCell(head, 'date', 'Date', 'date');
+    const typeCol = document.createElement('div');
+    typeCol.className = 'table-col type';
+    typeCol.textContent = 'Type';
+    head.appendChild(typeCol);
+    appendTableHeadCell(head, 'size', 'Size', 'size');
+    gridEl.appendChild(head);
+    if (!entries.length) {
+      const empty = document.createElement('div');
+      empty.className = 'status';
+      empty.textContent = 'This folder has no notes or subfolders.';
+      gridEl.appendChild(empty);
+      return;
+    }
+    for (const entry of entries) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = entry.isCut ? 'table-row is-cut' : 'table-row';
+      btn.title = entry.path;
+      const name = document.createElement('div');
+      name.className = 'table-col name';
+      const glyph = document.createElement('div');
+      glyph.className = 'glyph';
+      glyph.innerHTML = glyphHtml(entry);
+      const label = document.createElement('div');
+      label.className = 'label';
+      label.textContent = entry.label || entry.name;
+      name.appendChild(glyph);
+      name.appendChild(label);
+      const date = document.createElement('div');
+      date.className = 'table-col date';
+      date.textContent = entry.tableDate || '';
+      const type = document.createElement('div');
+      type.className = 'table-col type';
+      type.textContent = entry.tableType || '';
+      const size = document.createElement('div');
+      size.className = 'table-col size';
+      size.textContent = entry.tableSize || '';
+      btn.appendChild(name);
+      btn.appendChild(date);
+      btn.appendChild(type);
+      btn.appendChild(size);
+      btn.addEventListener('click', () => {
+        hideContextMenu();
+        if (entry.kind === 'folder') {
+          vscode.postMessage({ type: 'openFolder', path: entry.path, name: entry.name });
+        } else {
+          vscode.postMessage({ type: 'openNote', path: entry.path });
+        }
+      });
+      btn.addEventListener('contextmenu', (event) => {
+        requestContextMenu(event, entry);
+      });
+      gridEl.appendChild(btn);
+    }
+  }
+
   function renderEntries() {
     hideContextMenu();
     gridEl.replaceChildren();
     const isList = browse.layout === 'list';
+    const isTable = browse.layout === 'table';
     const isThumbs = browse.layout === 'thumbnails';
     const isTree = browse.layout === 'tree';
     syncLayoutClass();
@@ -595,6 +691,11 @@
 
     if (isTree) {
       renderTreeBrowse();
+      return;
+    }
+
+    if (isTable) {
+      renderTableBrowse();
       return;
     }
 
@@ -624,11 +725,13 @@
       layout:
         nextBrowse.layout === 'list'
           ? 'list'
-          : nextBrowse.layout === 'thumbnails'
-            ? 'thumbnails'
-            : nextBrowse.layout === 'tree'
-              ? 'tree'
-              : 'icons',
+          : nextBrowse.layout === 'table'
+            ? 'table'
+            : nextBrowse.layout === 'thumbnails'
+              ? 'thumbnails'
+              : nextBrowse.layout === 'tree'
+                ? 'tree'
+                : 'icons',
       sortBy: nextBrowse.sortBy === 'date' || nextBrowse.sortBy === 'size' ? nextBrowse.sortBy : 'name',
       foldersFirst: nextBrowse.foldersFirst === true,
       reverseOrder: nextBrowse.reverseOrder === true,
@@ -675,7 +778,7 @@
   const mainEl = document.querySelector('.main');
   if (mainEl) {
     mainEl.addEventListener('contextmenu', (event) => {
-      if (event.target.closest('.cell, .row, .thumb, .tree-level')) {
+      if (event.target.closest('.cell, .row, .thumb, .table-row, .tree-level')) {
         return;
       }
       requestBackgroundContextMenu(event);

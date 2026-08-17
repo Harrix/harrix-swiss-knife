@@ -152,7 +152,8 @@ body.layout-tree .tree-expand-actions:not([hidden]) {
   padding: 16px;
 }
 
-body.layout-list .main {
+body.layout-list .main,
+body.layout-table .main {
   padding: 8px 0;
 }
 
@@ -329,6 +330,125 @@ body.layout-tree .main {
 }
 
 .row.is-cut .glyph {
+  opacity: 0.45;
+}
+
+.table {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  min-width: 560px;
+}
+
+.table-head,
+.table-row {
+  display: grid;
+  grid-template-columns: minmax(160px, 1fr) 148px 88px 80px;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 0 14px;
+  min-height: 36px;
+}
+
+.table-head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--hne-bg);
+  border-bottom: 1px solid var(--hne-border);
+  color: var(--hne-muted);
+  font-weight: 600;
+}
+
+.table-col {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  padding: 6px 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.table-col.date,
+.table-col.type,
+.table-col.size {
+  color: var(--hne-muted);
+  font-size: 12px;
+}
+
+.table-head .table-col {
+  cursor: pointer;
+}
+
+.table-head .table-col.type {
+  cursor: default;
+}
+
+.table-head .table-col.is-sorted {
+  color: var(--hne-fg);
+}
+
+.table-col.size {
+  text-align: right;
+}
+
+.table-col.name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.table-row {
+  appearance: none;
+  border: 1px solid transparent;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+  user-select: none;
+}
+
+.table-row:hover {
+  background: var(--hne-hover);
+}
+
+.table-row:focus-visible {
+  outline: 1px solid var(--hne-focus);
+  border-color: var(--hne-focus);
+}
+
+.table-row:active {
+  background: var(--hne-active);
+}
+
+.table-row .glyph {
+  width: 22px;
+  height: 22px;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.table-row .glyph svg,
+.table-row .glyph img {
+  width: 18px;
+  height: 18px;
+}
+
+.table-row .label {
+  -webkit-line-clamp: 1;
+  line-clamp: 1;
+  text-align: left;
+  font-size: 13px;
+}
+
+.table-row.is-cut .glyph {
   opacity: 0.45;
 }
 

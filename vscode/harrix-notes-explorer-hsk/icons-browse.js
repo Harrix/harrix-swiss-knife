@@ -545,6 +545,9 @@ function postState() {
   const entries = listed.map((entry) => ({
     ...entry,
     description: listing.browseCaption(entry, browse),
+    tableDate: listing.formatBrowseDate(entry),
+    tableSize: listing.formatByteSize(entry.sizeBytes),
+    tableType: entry.kind === 'folder' ? 'Folder' : 'Note',
     thumbnailImage: entry.thumbnailImagePath
       ? panel.webview.asWebviewUri(vscode.Uri.file(entry.thumbnailImagePath)).toString()
       : '',
@@ -713,7 +716,7 @@ function enrichBrowseEntry(entry, browse) {
   const isGmd = entry.kind === 'note' && listing.isGmdFileName(path.basename(entry.path));
   /** @type {{ dateSource?: string, dateValue?: string, thumbnailExcerpt?: string, thumbnailImagePath?: string }} */
   const extra = {};
-  if (browse.showDates && browse.layout === 'list' && entry.kind === 'note') {
+  if (entry.kind === 'note' && (browse.layout === 'table' || (browse.showDates && browse.layout === 'list'))) {
     const resolved = noteMeta.resolveNoteDateForPath(entry.path);
     if (resolved) {
       extra.dateSource = resolved.source;
@@ -850,6 +853,18 @@ async function handleWebviewMessage(message) {
     }
     case 'setBrowseOption': {
       await updateBrowseOption(msg.key, msg.value);
+      postState();
+      break;
+    }
+    case 'sortByColumn': {
+      const column = listing.parseSortBy(msg.value);
+      const browse = getBrowseOptionsFromConfig();
+      if (browse.sortBy === column) {
+        await updateBrowseOption('reverseOrder', !browse.reverseOrder);
+      } else {
+        await updateBrowseOption('sortBy', column);
+        await updateBrowseOption('reverseOrder', false);
+      }
       postState();
       break;
     }

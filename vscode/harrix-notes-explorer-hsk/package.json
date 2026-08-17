@@ -174,12 +174,14 @@
           "enum": [
             "icons",
             "list",
+            "table",
             "thumbnails",
             "tree"
           ],
           "enumDescriptions": [
             "Icon grid.",
             "List rows (Harrix Notes Android).",
+            "Details table like a file explorer (Name, Date, Type, Size).",
             "Thumbnail cards with image or text excerpt (Samsung Notes-style).",
             "Folder path as tree levels plus an icon grid for the current folder."
           ],

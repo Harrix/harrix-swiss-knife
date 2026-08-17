@@ -8,7 +8,7 @@
 
 /**
  * @typedef {{
- *   layout: 'icons' | 'list' | 'thumbnails' | 'tree',
+ *   layout: 'icons' | 'list' | 'table' | 'thumbnails' | 'tree',
  *   sortBy: 'name' | 'date' | 'size',
  *   foldersFirst: boolean,
  *   reverseOrder: boolean,
@@ -29,13 +29,13 @@ function isGmdFileName(name) {
 
 /**
  * @param {unknown} raw
- * @returns {'icons' | 'list' | 'thumbnails' | 'tree'}
+ * @returns {'icons' | 'list' | 'table' | 'thumbnails' | 'tree'}
  */
 function parseLayout(raw) {
   const value = String(raw || '')
     .trim()
     .toLowerCase();
-  if (value === 'list' || value === 'thumbnails' || value === 'tree') {
+  if (value === 'list' || value === 'table' || value === 'thumbnails' || value === 'tree') {
     return value;
   }
   return 'icons';
@@ -97,6 +97,24 @@ function formatListDateTime(epochMs) {
   const hh = String(dt.getHours()).padStart(2, '0');
   const min = String(dt.getMinutes()).padStart(2, '0');
   return `${dd}.${mm}.${yyyy}, ${hh}:${min}`;
+}
+
+/**
+ * @param {number} bytes
+ * @returns {string}
+ */
+function formatByteSize(bytes) {
+  const n = Number(bytes);
+  if (!Number.isFinite(n) || n <= 0) {
+    return '';
+  }
+  if (n < 1024) {
+    return `${Math.round(n)} B`;
+  }
+  if (n < 1024 * 1024) {
+    return `${(n / 1024).toFixed(1)} KB`;
+  }
+  return `${(n / (1024 * 1024)).toFixed(2)} MB`;
 }
 
 /**
@@ -303,6 +321,7 @@ module.exports = {
   excerptFromMarkdown,
   firstMarkdownImageSrc,
   formatBrowseDate,
+  formatByteSize,
   formatListDate,
   formatListDateTime,
   isGmdFileName,
