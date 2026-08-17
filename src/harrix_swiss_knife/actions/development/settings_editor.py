@@ -5,7 +5,7 @@ from __future__ import annotations
 import contextlib
 import json
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import harrix_pylib as h
 from PySide6.QtCore import Qt
@@ -19,6 +19,7 @@ from PySide6.QtWidgets import (
     QMessageBox,
     QPushButton,
     QScrollArea,
+    QSizePolicy,
     QSplitter,
     QTextEdit,
     QVBoxLayout,
@@ -26,8 +27,12 @@ from PySide6.QtWidgets import (
 )
 
 from harrix_swiss_knife.actions.common.base import ActionBase
+from harrix_swiss_knife.actions.common.dialog_geometry import text_content_height
 from harrix_swiss_knife.apps.common.qt_main_window import apply_app_window_size_and_position
 from harrix_swiss_knife.paths import get_config_path_str
+
+if TYPE_CHECKING:
+    from PySide6.QtGui import QResizeEvent, QShowEvent
 
 
 class OnSettingsEditor(ActionBase):
@@ -49,6 +54,9 @@ class OnSettingsEditor(ActionBase):
 class SettingsEditorDialog(QDialog):
     """A VS Code style settings editor for `config.json`."""
 
+    _FALLBACK_MULTILINE_WIDTH = 700
+    _MIN_MULTILINE_WIDTH = 50
+
     def __init__(self, parent: QWidget | None = None) -> None:
         """Initialize the settings editor."""
         super().__init__(parent)
@@ -64,6 +72,16 @@ class SettingsEditorDialog(QDialog):
         self.input_widgets: dict[str, QWidget] = {}
 
         self._setup_ui()
+
+    def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802
+        """Refit multiline fields when the dialog width changes."""
+        super().resizeEvent(event)
+        self._fit_multiline_widgets()
+
+    def showEvent(self, event: QShowEvent) -> None:  # noqa: N802
+        """Refit multiline fields when the dialog is shown."""
+        super().showEvent(event)
+        self._fit_multiline_widgets()
 
     def _categorize_config(self, data: dict[str, Any]) -> dict[str, dict[str, Any]]:
         categories: dict[str, dict[str, Any]] = {"General": {}}
@@ -90,6 +108,19 @@ class SettingsEditorDialog(QDialog):
             elif item.layout():
                 self._clear_layout(item.layout())
 
+    def _fit_multiline_widget(self, widget: QTextEdit) -> None:
+        width = widget.width()
+        if width < self._MIN_MULTILINE_WIDTH:
+            width = max(self.scroll_area.viewport().width(), self._FALLBACK_MULTILINE_WIDTH)
+        height = text_content_height(widget, width=width)
+        extra = widget.fontMetrics().lineSpacing()
+        widget.setFixedHeight(height + extra)
+
+    def _fit_multiline_widgets(self) -> None:
+        for widget in self.input_widgets.values():
+            if isinstance(widget, QTextEdit):
+                self._fit_multiline_widget(widget)
+
     def _on_category_changed(self, row: int) -> None:
         if self.search_input.text():
             self.search_input.clear()  # This will trigger _on_search and render the category
@@ -101,6 +132,11 @@ class SettingsEditorDialog(QDialog):
 
         cat_name = self.list_categories.item(row).text()
         self._render_category(cat_name)
+
+    def _on_multiline_text_changed(self) -> None:
+        sender = self.sender()
+        if isinstance(sender, QTextEdit):
+            self._fit_multiline_widget(sender)
 
     def _on_save(self) -> None:
         self._save_current_category()
@@ -162,13 +198,18 @@ class SettingsEditorDialog(QDialog):
             else:
                 # Lists or complex objects
                 widget = QTextEdit()
+                widget.setAcceptRichText(False)
+                widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+                widget.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
                 widget.setPlainText(json.dumps(value, indent=2, ensure_ascii=False))
-                widget.setMaximumHeight(100)
+                widget.textChanged.connect(self._on_multiline_text_changed)
                 setting_layout.addWidget(widget)
                 self.input_widgets[widget_key] = widget
 
             self.settings_layout.addLayout(setting_layout)
             self.settings_layout.addSpacing(10)
+
+        self._fit_multiline_widgets()
 
     def _save_current_category(self) -> None:
         for widget_key, widget in self.input_widgets.items():
