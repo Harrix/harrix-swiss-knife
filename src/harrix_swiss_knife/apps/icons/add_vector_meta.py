@@ -74,6 +74,21 @@ def defaults_from_source_stem(stem: str) -> tuple[str, str, str]:
     return family_id, title, category
 
 
+def extra_categories_for_family(categories: list[str], family_id: str) -> list[str]:
+    """Return YAML categories that are not the family-id folder prefix."""
+    prefix = category_from_family_id(family_id).casefold()
+    extras: list[str] = []
+    seen: set[str] = {prefix} if prefix else set()
+    for item in categories:
+        cleaned = item.strip()
+        key = cleaned.casefold()
+        if not cleaned or key in seen:
+            continue
+        seen.add(key)
+        extras.append(cleaned)
+    return extras
+
+
 def extract_permalink_base(permalink: str) -> str | None:
     """Strip `/{category}/{family_id}` from a site permalink."""
     text = permalink.strip().rstrip("/")
@@ -116,6 +131,38 @@ def note_dir_for_meta(repo_root: Path, *, family_id: str, category: str) -> Path
     if cleaned_category:
         return icons_dir / cleaned_category / family_id
     return icons_dir / family_id
+
+
+def note_meta_from_existing(
+    *,
+    family_id: str,
+    title: str,
+    categories: list[str],
+    tags: list[str],
+    featured_name: str,
+    frontmatter: dict[str, Any],
+) -> NoteMeta:
+    """Build dialog metadata from an existing note family and frontmatter."""
+    prefix = category_from_family_id(family_id) if "__" in family_id else ""
+    category = prefix or (categories[0] if categories else "")
+    permalink = str(frontmatter.get("permalink") or "").strip()
+    permalink_source = str(frontmatter.get("permalink-source") or "").strip()
+    featured = featured_name.strip() or "featured-image.svg"
+    return NoteMeta(
+        family_id=family_id,
+        title=title,
+        date=str(frontmatter.get("date") or "").strip(),
+        category=category,
+        tags=list(tags),
+        author=str(frontmatter.get("author") or "").strip(),
+        author_email=str(frontmatter.get("author-email") or "").strip(),
+        license=str(frontmatter.get("license") or "").strip(),
+        license_url=str(frontmatter.get("license-url") or "").strip(),
+        permalink=permalink,
+        permalink_source=permalink_source,
+        lang=str(frontmatter.get("lang") or "en").strip() or "en",
+        featured_name=featured,
+    )
 
 
 def permalink_suffixes(category: str, family_id: str) -> tuple[str, str]:
@@ -201,6 +248,18 @@ def scan_repo_meta_defaults(repo_root: Path) -> RepoMetaDefaults:
     result.permalink_source_base = consensus_value(permalink_source_bases)
     result.existing_variant_stems = _unique_sorted(stems)
     return result
+
+
+def sync_family_id_category(family_id: str, category: str) -> str:
+    """Return `family_id` with its `__` prefix replaced by `category`."""
+    cleaned_id = family_id.strip()
+    cleaned_category = category.strip()
+    if not cleaned_id or not cleaned_category:
+        return cleaned_id
+    slug = cleaned_id.split("__", 1)[1] if "__" in cleaned_id else cleaned_id
+    if not slug:
+        return cleaned_category
+    return f"{cleaned_category}__{slug}"
 
 
 def today_iso_date() -> str:

@@ -308,7 +308,7 @@ class DraggableIconList(QListWidget):
             menu.addSeparator()
 
         open_note_action = menu.addAction("📝 Open note in editor")
-        edit_keywords_action = menu.addAction("🏷️ Edit keywords…")
+        edit_keywords_action = menu.addAction("✏️ Edit icon…")
         set_category_action = menu.addAction("🏷️ Set as category icon")
 
         is_trademark = getattr(family, "trademark", False)

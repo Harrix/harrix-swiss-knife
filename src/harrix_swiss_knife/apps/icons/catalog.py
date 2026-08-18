@@ -243,6 +243,21 @@ def rebuild_catalog(repo_root: Path) -> IconCatalog:
     return catalog
 
 
+def remove_empty_parents(start: Path, stop: Path) -> None:
+    """Remove empty directories from `start` up to, but not including, `stop`."""
+    current = start.resolve()
+    limit = stop.resolve()
+    while current.is_dir() and current != limit and limit in current.parents:
+        try:
+            if any(current.iterdir()):
+                return
+            parent = current.parent
+            current.rmdir()
+            current = parent
+        except OSError:
+            return
+
+
 def resolve_icons_root(path: Path) -> Path:
     """Normalize a user-chosen folder to the directory that actually holds icons."""
     root = path.expanduser().resolve()
@@ -393,7 +408,7 @@ def _delete_note_family(family: IconFamily, root: Path) -> None:
         msg = f"Refusing to delete non-note folder `{family.folder}`"
         raise ValueError(msg)
     shutil.rmtree(note_dir)
-    _remove_empty_parents(note_dir.parent, icons_root)
+    remove_empty_parents(note_dir.parent, icons_root)
 
 
 def _ensure_path_inside_root(path: Path, root: Path) -> None:
@@ -601,18 +616,3 @@ def _pick_featured_file(files: list[Path]) -> Path:
 
 def _relative_to_root(path: Path, root: Path) -> str:
     return path.resolve().relative_to(root.resolve()).as_posix()
-
-
-def _remove_empty_parents(start: Path, stop: Path) -> None:
-    """Remove empty directories from `start` up to, but not including, `stop`."""
-    current = start.resolve()
-    limit = stop.resolve()
-    while current.is_dir() and current != limit and limit in current.parents:
-        try:
-            if any(current.iterdir()):
-                return
-            parent = current.parent
-            current.rmdir()
-            current = parent
-        except OSError:
-            return

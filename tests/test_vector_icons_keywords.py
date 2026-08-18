@@ -11,7 +11,6 @@ from PySide6.QtWidgets import QApplication
 
 from harrix_swiss_knife.apps.icons.catalog import IconFamily, load_catalog, rebuild_catalog
 from harrix_swiss_knife.apps.icons.keywords_ai import KeywordsBatchRunner
-from harrix_swiss_knife.apps.icons.keywords_dialog import EditKeywordsDialog
 from harrix_swiss_knife.apps.icons.keywords_update import (
     parse_keywords_text,
     replace_frontmatter_list,
@@ -101,23 +100,6 @@ def test_rebuild_catalog_reads_block_tags(tmp_path: Path) -> None:
     assert catalog.icons[0].tags == ["garage", _RU_GARAGE]
     loaded = load_catalog(repo)
     assert loaded.icons[0].tags == ["garage", _RU_GARAGE]
-
-
-def test_edit_keywords_dialog_returns_textarea_tags(qapp: QApplication) -> None:
-    assert qapp is not None
-    family = IconFamily(
-        id="building__garage",
-        title="Garage",
-        categories=["building"],
-        tags=["garage"],
-        folder="icons/building__garage",
-        featured="featured-image.svg",
-        featured_hash="",
-    )
-    dialog = EditKeywordsDialog(None, family=family, icon_path=None, app_config={})
-    dialog._text_edit.setPlainText(f"garage\n{_RU_GARAGE}\n")
-    assert dialog.get_tags() == ["garage", _RU_GARAGE]
-    assert not dialog._ai_button.isEnabled()
 
 
 def _family(family_id: str, tags: list[str] | None = None) -> IconFamily:

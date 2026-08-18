@@ -15,12 +15,15 @@ lang: en
 - [🏛️ Class `RepoMetaDefaults`](#%EF%B8%8F-class-repometadefaults)
 - [🔧 Function `consensus_value`](#-function-consensus_value)
 - [🔧 Function `defaults_from_source_stem`](#-function-defaults_from_source_stem)
+- [🔧 Function `extra_categories_for_family`](#-function-extra_categories_for_family)
 - [🔧 Function `extract_permalink_base`](#-function-extract_permalink_base)
 - [🔧 Function `extract_permalink_source_base`](#-function-extract_permalink_source_base)
 - [🔧 Function `join_permalink`](#-function-join_permalink)
 - [🔧 Function `note_dir_for_meta`](#-function-note_dir_for_meta)
+- [🔧 Function `note_meta_from_existing`](#-function-note_meta_from_existing)
 - [🔧 Function `permalink_suffixes`](#-function-permalink_suffixes)
 - [🔧 Function `scan_repo_meta_defaults`](#-function-scan_repo_meta_defaults)
+- [🔧 Function `sync_family_id_category`](#-function-sync_family_id_category)
 - [🔧 Function `today_iso_date`](#-function-today_iso_date)
 
 </details>
@@ -128,6 +131,34 @@ def defaults_from_source_stem(stem: str) -> tuple[str, str, str]:
 
 </details>
 
+## 🔧 Function `extra_categories_for_family`
+
+```python
+def extra_categories_for_family(categories: list[str], family_id: str) -> list[str]
+```
+
+Return YAML categories that are not the family-id folder prefix.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def extra_categories_for_family(categories: list[str], family_id: str) -> list[str]:
+    prefix = category_from_family_id(family_id).casefold()
+    extras: list[str] = []
+    seen: set[str] = {prefix} if prefix else set()
+    for item in categories:
+        cleaned = item.strip()
+        key = cleaned.casefold()
+        if not cleaned or key in seen:
+            continue
+        seen.add(key)
+        extras.append(cleaned)
+    return extras
+```
+
+</details>
+
 ## 🔧 Function `extract_permalink_base`
 
 ```python
@@ -220,6 +251,51 @@ def note_dir_for_meta(repo_root: Path, *, family_id: str, category: str) -> Path
     if cleaned_category:
         return icons_dir / cleaned_category / family_id
     return icons_dir / family_id
+```
+
+</details>
+
+## 🔧 Function `note_meta_from_existing`
+
+```python
+def note_meta_from_existing(*, family_id: str, title: str, categories: list[str], tags: list[str], featured_name: str, frontmatter: dict[str, Any]) -> NoteMeta
+```
+
+Build dialog metadata from an existing note family and frontmatter.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def note_meta_from_existing(
+    *,
+    family_id: str,
+    title: str,
+    categories: list[str],
+    tags: list[str],
+    featured_name: str,
+    frontmatter: dict[str, Any],
+) -> NoteMeta:
+    prefix = category_from_family_id(family_id) if "__" in family_id else ""
+    category = prefix or (categories[0] if categories else "")
+    permalink = str(frontmatter.get("permalink") or "").strip()
+    permalink_source = str(frontmatter.get("permalink-source") or "").strip()
+    featured = featured_name.strip() or "featured-image.svg"
+    return NoteMeta(
+        family_id=family_id,
+        title=title,
+        date=str(frontmatter.get("date") or "").strip(),
+        category=category,
+        tags=list(tags),
+        author=str(frontmatter.get("author") or "").strip(),
+        author_email=str(frontmatter.get("author-email") or "").strip(),
+        license=str(frontmatter.get("license") or "").strip(),
+        license_url=str(frontmatter.get("license-url") or "").strip(),
+        permalink=permalink,
+        permalink_source=permalink_source,
+        lang=str(frontmatter.get("lang") or "en").strip() or "en",
+        featured_name=featured,
+    )
 ```
 
 </details>
@@ -331,6 +407,31 @@ def scan_repo_meta_defaults(repo_root: Path) -> RepoMetaDefaults:
     result.permalink_source_base = consensus_value(permalink_source_bases)
     result.existing_variant_stems = _unique_sorted(stems)
     return result
+```
+
+</details>
+
+## 🔧 Function `sync_family_id_category`
+
+```python
+def sync_family_id_category(family_id: str, category: str) -> str
+```
+
+Return `family_id` with its `__` prefix replaced by `category`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def sync_family_id_category(family_id: str, category: str) -> str:
+    cleaned_id = family_id.strip()
+    cleaned_category = category.strip()
+    if not cleaned_id or not cleaned_category:
+        return cleaned_id
+    slug = cleaned_id.split("__", 1)[1] if "__" in cleaned_id else cleaned_id
+    if not slug:
+        return cleaned_category
+    return f"{cleaned_category}__{slug}"
 ```
 
 </details>

@@ -28,6 +28,7 @@ lang: en
 - [🔧 Function `open_icons_folder`](#-function-open_icons_folder)
 - [🔧 Function `parse_note_frontmatter`](#-function-parse_note_frontmatter)
 - [🔧 Function `rebuild_catalog`](#-function-rebuild_catalog)
+- [🔧 Function `remove_empty_parents`](#-function-remove_empty_parents)
 - [🔧 Function `resolve_icons_root`](#-function-resolve_icons_root)
 - [🔧 Function `scan_flat_folder`](#-function-scan_flat_folder)
 
@@ -505,6 +506,34 @@ def rebuild_catalog(repo_root: Path) -> IconCatalog:
     catalog = load_catalog(repo_root)
     catalog.kind = "note"
     return catalog
+```
+
+</details>
+
+## 🔧 Function `remove_empty_parents`
+
+```python
+def remove_empty_parents(start: Path, stop: Path) -> None
+```
+
+Remove empty directories from `start` up to, but not including, `stop`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def remove_empty_parents(start: Path, stop: Path) -> None:
+    current = start.resolve()
+    limit = stop.resolve()
+    while current.is_dir() and current != limit and limit in current.parents:
+        try:
+            if any(current.iterdir()):
+                return
+            parent = current.parent
+            current.rmdir()
+            current = parent
+        except OSError:
+            return
 ```
 
 </details>

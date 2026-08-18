@@ -58,7 +58,7 @@ from harrix_swiss_knife.apps.icons.add_vector import (
     variant_dest_name,
 )
 from harrix_swiss_knife.apps.icons.add_vector_dialog import AddVectorImageDialog
-from harrix_swiss_knife.apps.icons.add_vector_meta import scan_repo_meta_defaults
+from harrix_swiss_knife.apps.icons.add_vector_meta import note_meta_from_existing, scan_repo_meta_defaults
 from harrix_swiss_knife.apps.icons.catalog import (
     FLAT_ICON_EXTENSIONS,
     IconCatalog,
@@ -66,11 +66,12 @@ from harrix_swiss_knife.apps.icons.catalog import (
     delete_icon_family,
     is_note_icons_repo,
     open_icons_folder,
+    parse_note_frontmatter,
     rebuild_catalog,
 )
 from harrix_swiss_knife.apps.icons.choose_family_dialog import ChooseIconFamilyDialog
+from harrix_swiss_knife.apps.icons.edit_icon import update_icon_note
 from harrix_swiss_knife.apps.icons.keywords_ai import KeywordsBatchRunner
-from harrix_swiss_knife.apps.icons.keywords_dialog import EditKeywordsDialog
 from harrix_swiss_knife.apps.icons.keywords_update import update_keywords_files
 from harrix_swiss_knife.apps.icons.lightbox import IconLightboxDialog
 from harrix_swiss_knife.apps.icons.settings import (
@@ -882,28 +883,51 @@ class MainWindow(QMainWindow, AppWindowMixin):
         icon_path = Path(svg_path) if svg_path else None
         if icon_path is None or not icon_path.is_file():
             icon_path = family.featured_path(self._repo_root)
+        preview_path = icon_path if icon_path is not None and icon_path.is_file() else note_path
 
+        try:
+            frontmatter = parse_note_frontmatter(note_path.read_text(encoding="utf-8"))
+        except OSError as exc:
+            QMessageBox.critical(self, "Vector Icons", f"Failed to read note:\n{exc}")
+            return
+        initial = note_meta_from_existing(
+            family_id=family.id,
+            title=family.title,
+            categories=family.categories,
+            tags=family.tags,
+            featured_name=family.featured or "featured-image.svg",
+            frontmatter=frontmatter,
+        )
+        defaults = scan_repo_meta_defaults(self._repo_root)
         config: dict[str, Any] = h.dev.config_load(get_config_path_str())
-        dialog = EditKeywordsDialog(self, family=family, icon_path=icon_path, app_config=config)
+        dialog = AddVectorImageDialog(
+            self,
+            source_path=preview_path,
+            defaults=defaults,
+            app_config=config,
+            initial_meta=initial,
+            window_title=f"Edit icon — {family.id}",
+        )
         if dialog.exec() != QDialog.DialogCode.Accepted:
             return
 
-        tags = dialog.get_tags()
+        meta = dialog.get_meta()
+        if not meta.family_id:
+            QMessageBox.warning(self, "Vector Icons", "Filename is empty.")
+            return
         try:
-            update_keywords_files(
-                md_path=note_path,
-                catalog_path=self._repo_root / "catalog.json",
-                family_id=family.id,
-                tags=tags,
-            )
-        except (OSError, ValueError, TypeError, json.JSONDecodeError) as exc:
-            QMessageBox.critical(self, "Vector Icons", f"Failed to save keywords:\n{exc}")
+            report = update_icon_note(repo_root=self._repo_root, family=family, meta=meta)
+        except (OSError, ValueError, TypeError, FileExistsError) as exc:
+            QMessageBox.critical(self, "Vector Icons", f"Failed to save icon:\n{exc}")
             return
 
-        family.tags = tags
-        family.refresh_search_blob()
-        self._apply_filters()
-        message = f"Updated keywords for `{family.id}`"
+        self._pixmaps.pop(report.old_family_id, None)
+        self._thumb_cache.forget(report.old_family_id)
+        self._selected_family_id = report.new_family_id
+        if meta.category.strip():
+            self._current_category = meta.category.strip()
+        self._on_refresh_catalog()
+        message = f"Updated `{report.new_family_id}`"
         self.statusBar().showMessage(message)
         toast = toast_notification.ToastNotification(message, duration=2000, parent=self)
         toast.present()
