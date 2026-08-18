@@ -31,5 +31,6 @@ class OnListFilesSimple(ActionBase):
         result = h.file.list_files_simple(
             folder_path, is_ignore_hidden_folders=kwargs.get("is_ignore_hidden_folders", False)
         )
+        result = f"{folder_path}\n\n(no files found)" if not result.strip() else f"{folder_path}\n\n{result}"
         self.add_line(result)
         self.show_result()

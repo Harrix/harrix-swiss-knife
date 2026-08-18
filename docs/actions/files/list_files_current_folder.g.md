@@ -13,6 +13,7 @@ lang: en
 
 - [🏛️ Class `OnListFilesCurrentFolder`](#%EF%B8%8F-class-onlistfilescurrentfolder)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
+- [🔧 Function `format_current_folder_listing`](#-function-format_current_folder_listing)
 
 </details>
 
@@ -45,9 +46,7 @@ class OnListFilesCurrentFolder(ActionBase):
         if folder_path is None:
             return
 
-        result = h.file.list_files_simple(
-            folder_path, is_ignore_hidden_folders=kwargs.get("is_ignore_hidden_folders", False), is_only_files=True
-        )
+        result = format_current_folder_listing(folder_path)
         self.add_line(result)
         self.show_result()
 ```
@@ -71,11 +70,40 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         if folder_path is None:
             return
 
-        result = h.file.list_files_simple(
-            folder_path, is_ignore_hidden_folders=kwargs.get("is_ignore_hidden_folders", False), is_only_files=True
-        )
+        result = format_current_folder_listing(folder_path)
         self.add_line(result)
         self.show_result()
+```
+
+</details>
+
+## 🔧 Function `format_current_folder_listing`
+
+```python
+def format_current_folder_listing(folder: Path) -> str
+```
+
+Return names in `folder` only: directories first (`name/`), then files.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def format_current_folder_listing(folder: Path) -> str:
+    try:
+        items = list(folder.iterdir())
+    except OSError as exc:
+        return f"{folder}\n\nFailed to read folder:\n{exc}"
+
+    lines: list[str] = []
+    for item in sorted(items, key=lambda path: (not path.is_dir(), path.name.casefold())):
+        if item.is_dir():
+            lines.append(f"{item.name}/")
+        elif item.is_file():
+            lines.append(item.name)
+
+    body = "\n".join(lines) if lines else "(empty folder)"
+    return f"{folder}\n\n{body}"
 ```
 
 </details>
