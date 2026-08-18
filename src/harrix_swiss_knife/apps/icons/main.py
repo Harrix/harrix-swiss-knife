@@ -137,6 +137,7 @@ FOLDER_TREE_ICON_SIZE = 16
 VARIANT_RENDER_CHUNK = 8
 VARIANT_PROGRESS_TOAST_MIN = 5
 PRIME_PIXMAP_CHUNK = 32
+SEARCH_DEBOUNCE_MS = 400
 ADD_SVGS_RESULT_PREVIEW_LIMIT = 40
 _KEYWORD_TARGET_PAIR_LEN = 2
 _MIN_BATCH_KEYWORD_ICONS = 2
@@ -246,6 +247,10 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._icon_size_save_timer.setSingleShot(True)
         self._icon_size_save_timer.setInterval(300)
         self._icon_size_save_timer.timeout.connect(self._persist_icon_size)
+        self._search_filter_timer = QTimer(self)
+        self._search_filter_timer.setSingleShot(True)
+        self._search_filter_timer.setInterval(SEARCH_DEBOUNCE_MS)
+        self._search_filter_timer.timeout.connect(self._apply_filters)
 
         self._build_ui()
         self._load_from_config()
@@ -253,6 +258,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
 
     def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
         """Stop background work and optionally hide instead of closing."""
+        self._search_filter_timer.stop()
         self._persist_icon_size()
         if self._hide_instead_of_close(event):
             return
@@ -308,6 +314,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
             self._apply_filters()
 
     def _apply_filters(self) -> None:
+        self._search_filter_timer.stop()
         if self._catalog is None or self._repo_root is None:
             self.icon_list.clear()
             self.variants_panel.clear_variants()
@@ -468,7 +475,8 @@ class MainWindow(QMainWindow, AppWindowMixin):
 
         self.search_edit = QLineEdit()
         self.search_edit.setPlaceholderText("Search icons (title, tags, id)…")
-        self.search_edit.textChanged.connect(self._apply_filters)
+        self.search_edit.textChanged.connect(self._schedule_search_filter)
+        self.search_edit.returnPressed.connect(self._apply_filters)
         toolbar.addWidget(self.search_edit, stretch=1)
 
         self.refresh_btn = QPushButton("🔄 Refresh catalog")
@@ -1728,6 +1736,10 @@ class MainWindow(QMainWindow, AppWindowMixin):
             break
         self._selected_family_id = None
         self.variants_panel.clear_variants()
+
+    def _schedule_search_filter(self) -> None:
+        """Restart debounce so the grid filters after typing pauses."""
+        self._search_filter_timer.start()
 
     def _select_all_categories(self) -> None:
         if self.category_list.currentRow() == 0 and self._current_category is None:
