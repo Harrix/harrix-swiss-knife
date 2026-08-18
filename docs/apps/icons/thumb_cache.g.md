@@ -20,6 +20,7 @@ lang: en
   - [⚙️ Method `load_pixmap`](#%EF%B8%8F-method-load_pixmap)
   - [⚙️ Method `render_and_store`](#%EF%B8%8F-method-render_and_store)
   - [⚙️ Method `save_meta`](#%EF%B8%8F-method-save_meta)
+  - [⚙️ Method `stale_families`](#%EF%B8%8F-method-stale_families)
   - [⚙️ Method `stats`](#%EF%B8%8F-method-stats)
   - [⚙️ Method `thumb_path`](#%EF%B8%8F-method-thumb_path)
 - [🏛️ Class `ThumbnailWorker`](#%EF%B8%8F-class-thumbnailworker)
@@ -128,6 +129,10 @@ class ThumbnailCache:
     def save_meta(self) -> None:
         """Persist thumbnail metadata to disk."""
         self._meta_path().write_text(json.dumps(self._meta, indent=2) + "\n", encoding="utf-8")
+
+    def stale_families(self, families: list[IconFamily]) -> list[IconFamily]:
+        """Return families whose disk thumb is missing or no longer matches."""
+        return [family for family in families if not self.is_fresh(family)]
 
     def stats(self, catalog: IconCatalog | None = None) -> dict[str, int | str]:
         """Collect thumbnail cache statistics for UI display."""
@@ -336,6 +341,24 @@ Persist thumbnail metadata to disk.
 ```python
 def save_meta(self) -> None:
         self._meta_path().write_text(json.dumps(self._meta, indent=2) + "\n", encoding="utf-8")
+```
+
+</details>
+
+### ⚙️ Method `stale_families`
+
+```python
+def stale_families(self, families: list[IconFamily]) -> list[IconFamily]
+```
+
+Return families whose disk thumb is missing or no longer matches.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def stale_families(self, families: list[IconFamily]) -> list[IconFamily]:
+        return [family for family in families if not self.is_fresh(family)]
 ```
 
 </details>

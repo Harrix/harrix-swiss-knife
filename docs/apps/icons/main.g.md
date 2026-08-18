@@ -388,6 +388,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._favorite_ids = load_favorites(catalog.repo_root)
         self._sync_favorite_ids_to_lists()
         self._sync_repo_root_to_lists()
+        self._close_load_progress_toast()
         if len(catalog.icons) <= PRIME_PIXMAP_LIMIT:
             self._prime_pixmaps_from_cache()
         if refresh:
@@ -416,6 +417,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._sync_sidebar_source()
         self._apply_filters()
         self._close_load_progress_toast()
+        self._refresh_category_icons()
         self._start_thumb_refresh()
         if refresh:
             category_count = len(catalog.categories())
@@ -1551,9 +1553,11 @@ class MainWindow(QMainWindow, AppWindowMixin):
         if self.sender() is not self._thumb_worker:
             return
         self._hide_thumb_status_progress()
+        self._refresh_category_icons()
+        if updated <= 0:
+            return
         total = len(self._catalog.icons) if self._catalog else 0
         self.statusBar().showMessage(f"Thumbnails ready ({updated} updated, {total} total)", 4000)
-        self._refresh_category_icons()
 
     def _on_thumb_progress(self, family_id: str, thumb_path: str) -> None:
         if self.sender() is not self._thumb_worker:
@@ -1663,11 +1667,8 @@ class MainWindow(QMainWindow, AppWindowMixin):
         result: dict[str, QPixmap] = {}
         pending: list[Path] = []
         pending_keys: set[str] = set()
-        preparing = self._load_progress_toast is not None
-        if preparing:
-            self._update_load_toast("Preparing icon previews…", done=0, total=len(entries))
 
-        for index, entry in enumerate(entries, start=1):
+        for entry in entries:
             key = str(entry.svg_path)
             if key in result or key in pending_keys:
                 continue
@@ -1691,16 +1692,20 @@ class MainWindow(QMainWindow, AppWindowMixin):
                 continue
             pending.append(entry.svg_path)
             pending_keys.add(key)
-            if preparing and (index == len(entries) or index % VARIANT_RENDER_CHUNK == 0):
-                self._update_load_toast("Preparing icon previews…", done=index, total=len(entries))
 
         if not pending:
             return result
 
-        owned_toast = self._load_progress_toast is None
         toast: toast_progress_notification.ToastProgressNotification | None = None
-        if len(pending) >= VARIANT_PROGRESS_TOAST_MIN or not owned_toast:
-            toast = self._update_load_toast("Rendering icon previews…", done=0, total=len(pending))
+        if len(pending) >= VARIANT_PROGRESS_TOAST_MIN:
+            toast = toast_progress_notification.ToastProgressNotification(
+                "Rendering icon previews…",
+                total=len(pending),
+                parent=self,
+            )
+            self._close_variant_progress_toast()
+            self._variant_progress_toast = toast
+            toast.start_countdown()
         try:
             for index, svg_path in enumerate(pending, start=1):
                 key = str(svg_path)
@@ -1714,8 +1719,6 @@ class MainWindow(QMainWindow, AppWindowMixin):
                     if index == len(pending) or index % VARIANT_RENDER_CHUNK == 0:
                         toast.pump_events()
         finally:
-            if owned_toast:
-                self._close_load_progress_toast()
             self._close_variant_progress_toast()
         return result
 
@@ -1798,15 +1801,10 @@ class MainWindow(QMainWindow, AppWindowMixin):
         if self._catalog is None:
             return
         self._pixmaps.clear()
-        total = len(self._catalog.icons)
-        if total >= VARIANT_PROGRESS_TOAST_MIN:
-            self._update_load_toast("Loading cached thumbnails…", done=0, total=total)
-        for index, family in enumerate(self._catalog.icons, start=1):
+        for family in self._catalog.icons:
             pixmap = self._thumb_cache.load_pixmap(family.id)
             if pixmap is not None:
                 self._pixmaps[family.id] = pixmap
-            if total >= VARIANT_PROGRESS_TOAST_MIN and (index == total or index % PRIME_PIXMAP_CHUNK == 0):
-                self._update_load_toast("Loading cached thumbnails…", done=index, total=total)
 
     def _rebuild_folder_menus(self) -> None:
         if not hasattr(self, "_pinned_menu"):
@@ -2034,13 +2032,15 @@ class MainWindow(QMainWindow, AppWindowMixin):
         )
         if not families:
             return
-        self._thumb_refresh_total = sum(not self._thumb_cache.is_fresh(family) for family in families)
-        if self._thumb_refresh_total:
-            self._update_thumb_status_progress(0, self._thumb_refresh_total)
+        stale = self._thumb_cache.stale_families(families)
+        self._thumb_refresh_total = len(stale)
+        if not stale:
+            return
+        self._update_thumb_status_progress(0, self._thumb_refresh_total)
         self._thumb_thread, self._thumb_worker = start_thumbnail_refresh(
             self._catalog,
             self._thumb_cache,
-            families=families,
+            families=stale,
             on_progress=self._on_thumb_progress,
             on_finished=self._on_thumb_finished,
         )

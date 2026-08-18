@@ -119,6 +119,10 @@ class ThumbnailCache:
         """Persist thumbnail metadata to disk."""
         self._meta_path().write_text(json.dumps(self._meta, indent=2) + "\n", encoding="utf-8")
 
+    def stale_families(self, families: list[IconFamily]) -> list[IconFamily]:
+        """Return families whose disk thumb is missing or no longer matches."""
+        return [family for family in families if not self.is_fresh(family)]
+
     def stats(self, catalog: IconCatalog | None = None) -> dict[str, int | str]:
         """Collect thumbnail cache statistics for UI display."""
         png_files = [path for path in self.cache_dir.glob("*.png") if path.is_file()]
