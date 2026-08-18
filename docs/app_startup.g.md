@@ -13,6 +13,7 @@ lang: en
 
 - [🔧 Function `get_log_dir`](#-function-get_log_dir)
 - [🔧 Function `install_diagnostic_handlers`](#-function-install_diagnostic_handlers)
+- [🔧 Function `is_ignored_qt_message`](#-function-is_ignored_qt_message)
 - [🔧 Function `log_startup_context`](#-function-log_startup_context)
 - [🔧 Function `run_tray_application`](#-function-run_tray_application)
 - [🔧 Function `setup_file_logging`](#-function-setup_file_logging)
@@ -119,13 +120,10 @@ def install_diagnostic_handlers(log: logging.Logger) -> None:
         QtMsgType.QtFatalMsg: logging.CRITICAL,
     }
 
-    # Harmless Windows/Qt noise (phantom/disconnected displays).
-    _qt_ignored_substrings = ("monitorData: Unable to obtain handle for monitor",)
-
     def _qt_message_handler(msg_type: QtMsgType, context: object, message: str) -> None:
         if msg_type not in _qt_msg_levels:
             return
-        if any(part in message for part in _qt_ignored_substrings):
+        if is_ignored_qt_message(message):
             return
         level = _qt_msg_levels[msg_type]
         location = ""
@@ -136,6 +134,24 @@ def install_diagnostic_handlers(log: logging.Logger) -> None:
         log.log(level, text)
 
     qInstallMessageHandler(_qt_message_handler)
+```
+
+</details>
+
+## 🔧 Function `is_ignored_qt_message`
+
+```python
+def is_ignored_qt_message(message: str) -> bool
+```
+
+Return whether a Qt message is known harmless renderer or display noise.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def is_ignored_qt_message(message: str) -> bool:
+    return any(part in message for part in _QT_IGNORED_SUBSTRINGS)
 ```
 
 </details>

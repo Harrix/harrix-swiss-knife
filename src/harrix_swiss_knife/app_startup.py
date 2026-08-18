@@ -36,6 +36,15 @@ if TYPE_CHECKING:
     from harrix_swiss_knife.main_menu_base import MainMenuBase
 
 
+# Harmless Qt noise: phantom displays, and QSvg warnings from stock/Illustrator dumps.
+_QT_IGNORED_SUBSTRINGS = (
+    "monitorData: Unable to obtain handle for monitor",
+    "Could not resolve property:",
+    "Invalid path data; path truncated",
+    "is undefined!",
+)
+
+
 def get_log_dir() -> Path:
     """Pick a writable log directory: <repo>/logs first, then %LOCALAPPDATA%/harrix-swiss-knife/logs."""
     here = Path(__file__).resolve().parent  # src/harrix_swiss_knife
@@ -113,13 +122,10 @@ def install_diagnostic_handlers(log: logging.Logger) -> None:
         QtMsgType.QtFatalMsg: logging.CRITICAL,
     }
 
-    # Harmless Windows/Qt noise (phantom/disconnected displays).
-    _qt_ignored_substrings = ("monitorData: Unable to obtain handle for monitor",)
-
     def _qt_message_handler(msg_type: QtMsgType, context: object, message: str) -> None:
         if msg_type not in _qt_msg_levels:
             return
-        if any(part in message for part in _qt_ignored_substrings):
+        if is_ignored_qt_message(message):
             return
         level = _qt_msg_levels[msg_type]
         location = ""
@@ -130,6 +136,11 @@ def install_diagnostic_handlers(log: logging.Logger) -> None:
         log.log(level, text)
 
     qInstallMessageHandler(_qt_message_handler)
+
+
+def is_ignored_qt_message(message: str) -> bool:
+    """Return whether a Qt message is known harmless renderer or display noise."""
+    return any(part in message for part in _QT_IGNORED_SUBSTRINGS)
 
 
 def log_startup_context(log: logging.Logger, log_path: Path) -> None:
