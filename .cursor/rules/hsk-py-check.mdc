@@ -19,17 +19,11 @@ Do not finish while `hsk py check` still fails, unless the failure is environmen
 
 ## Cross-project check
 
-The following projects are linked:
+Linked external projects:
 
-- `harrix-swiss-knife`
 - `harrix-pylib`
 - `harrix-pyssg`
 
-If changes are made to **any** of these projects, for **every** project from the list above (not just the one that was modified):
+Run `hsk py ruff-sort-docs` and `hsk py check` in an external project **only if that project itself was modified** in this session. Do not check unmodified linked projects.
 
-- run `hsk py ruff-sort-docs`
-- run `hsk py check`
-
-Fix all errors in each of them before finishing. Repeat the cycle up to **3 times maximum** per project.
-
-Do not finish until `hsk py check` passes in all listed projects, unless a failure is environmental and cannot be fixed in code.
+If an external project was modified: fix until `hsk py check` passes there (up to **3 times maximum**), unless the failure is environmental and cannot be fixed in code.
