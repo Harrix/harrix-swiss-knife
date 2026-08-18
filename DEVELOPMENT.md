@@ -91,7 +91,7 @@ Scripts live in `install\`. To refresh installer payloads and produce the distri
 
 After step 5, pick up the two zip files from `install\` for distribution.
 
-- Online zip → target runs `install.bat` (Git clone).
+- Online zip → target runs `install.bat` (clones the repositories).
 - Offline zip → target runs `install-all-offline.bat` (repo snapshots + uv caches; copies ffmpeg/avif from `dependencies\`).
 
 Alternative for steps 1–4 on the builder: `.\install\download-bundle.ps1` (one-shot binaries + installers + repos + uv cache), then still run step 5 to build the zips.
