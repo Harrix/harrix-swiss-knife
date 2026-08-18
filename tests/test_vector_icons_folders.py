@@ -8,6 +8,7 @@ from harrix_swiss_knife.apps.icons.catalog import (
     CatalogKind,
     IconCatalog,
     IconFamily,
+    exclusive_sidebar_filters,
     family_in_folder,
     folder_disk_path,
     folder_parts,
@@ -42,6 +43,17 @@ def test_folder_parts_normalizes_slashes() -> None:
     assert folder_parts(r"icons\animals\cat") == ["icons", "animals", "cat"]
     assert folder_parts("icons/./food") == ["icons", "food"]
     assert folder_parts("") == []
+
+
+def test_exclusive_sidebar_filters_keep_only_clicked_side() -> None:
+    assert exclusive_sidebar_filters(source="folder", folder="icons/animals", category="ui") == (
+        "icons/animals",
+        None,
+    )
+    assert exclusive_sidebar_filters(source="category", folder="icons/animals", category="ui") == (None, "ui")
+    assert exclusive_sidebar_filters(source="folder", folder=None, category="ui") == (None, None)
+    assert exclusive_sidebar_filters(source="category", folder="icons/animals", category=None) == (None, None)
+    assert exclusive_sidebar_filters(source=None, folder="icons/animals", category="ui") == (None, None)
 
 
 def test_family_in_folder_matches_prefix_and_exact() -> None:

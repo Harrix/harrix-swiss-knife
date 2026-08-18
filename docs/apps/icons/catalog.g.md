@@ -24,6 +24,7 @@ lang: en
 - [🏛️ Class `IconVariant`](#%EF%B8%8F-class-iconvariant)
   - [⚙️ Method `absolute_path`](#%EF%B8%8F-method-absolute_path)
 - [🔧 Function `delete_icon_family`](#-function-delete_icon_family)
+- [🔧 Function `exclusive_sidebar_filters`](#-function-exclusive_sidebar_filters)
 - [🔧 Function `family_in_folder`](#-function-family_in_folder)
 - [🔧 Function `family_license_info`](#-function-family_license_info)
 - [🔧 Function `folder_disk_path`](#-function-folder_disk_path)
@@ -401,6 +402,33 @@ def delete_icon_family(family: IconFamily, repo_root: Path, *, kind: CatalogKind
         _delete_note_family(family, root)
         return
     _delete_flat_family(family, root)
+```
+
+</details>
+
+## 🔧 Function `exclusive_sidebar_filters`
+
+```python
+def exclusive_sidebar_filters(*, source: Literal['folder', 'category'] | None, folder: str | None, category: str | None) -> tuple[str | None, str | None]
+```
+
+Return `(folder, category)` so only the last clicked sidebar is active.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def exclusive_sidebar_filters(
+    *,
+    source: Literal["folder", "category"] | None,
+    folder: str | None,
+    category: str | None,
+) -> tuple[str | None, str | None]:
+    if source == "folder":
+        return folder, None
+    if source == "category":
+        return None, category
+    return None, None
 ```
 
 </details>

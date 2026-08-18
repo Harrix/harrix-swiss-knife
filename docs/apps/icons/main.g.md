@@ -169,6 +169,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._thumb_worker = None
         self._current_category: str | None = None
         self._current_folder: str | None = None
+        self._nav_source: Literal["folder", "category"] | None = None
         self._nav_syncing = False
         self._selected_family_id: str | None = None
         self._category_icons = load_category_icons()
@@ -223,6 +224,36 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._stop_keywords_batch()
         self._stop_thumb_refresh()
         super().closeEvent(event)
+
+    def _activate_category(self, text: str) -> None:
+        if self._nav_syncing:
+            return
+        category = None if text == ALL_CATEGORIES or not text else text
+        if is_favorites_category(category):
+            category = FAVORITES_CATEGORY
+        changed = (
+            category != self._current_category or self._current_folder is not None or self._nav_source != "category"
+        )
+        self._nav_source = "category"
+        self._current_category = category
+        self._select_all_folders()
+        if not changed:
+            return
+        self._apply_filters()
+        self._start_thumb_refresh()
+
+    def _activate_folder(self, prefix: str) -> None:
+        if self._nav_syncing:
+            return
+        folder = prefix or None
+        changed = folder != self._current_folder or self._current_category is not None or self._nav_source != "folder"
+        self._nav_source = "folder"
+        self._current_folder = folder
+        self._select_all_categories()
+        if not changed:
+            return
+        self._apply_filters()
+        self._start_thumb_refresh()
 
     def _add_variants_to_family(self, sources: list[Path], *, family: IconFamily) -> None:
         if self._repo_root is None:
@@ -279,13 +310,19 @@ class MainWindow(QMainWindow, AppWindowMixin):
             return
         selected_id = self._selected_family_id
         query = self.search_edit.text()
-        category = None if is_favorites_category(self._current_category) else self._current_category
+        folder, category = exclusive_sidebar_filters(
+            source=self._nav_source,
+            folder=self._current_folder,
+            category=self._current_category,
+        )
+        if is_favorites_category(category):
+            category = None
         families = self._catalog.filter_icons(
             category=category,
-            folder=self._current_folder,
+            folder=folder,
             query=query,
         )
-        if is_favorites_category(self._current_category):
+        if self._nav_source == "category" and is_favorites_category(self._current_category):
             by_id = {family.id: family for family in families}
             families = [by_id[family_id] for family_id in self._favorite_ids if family_id in by_id]
         entries = build_grid_entries(families, repo_root=self._repo_root, mode=self._variant_view_mode)
@@ -376,6 +413,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
             self._sync_folder_combo()
             self._rebuild_folder_menus()
             self._sync_add_vector_menu_title()
+        self._sync_sidebar_source()
         self._apply_filters()
         self._close_load_progress_toast()
         self._start_thumb_refresh()
@@ -474,11 +512,13 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self.folder_tree.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.folder_tree.customContextMenuRequested.connect(self._on_folder_tree_context_menu)
         self.folder_tree.currentItemChanged.connect(self._on_folder_tree_changed)
+        self.folder_tree.itemClicked.connect(self._on_folder_item_clicked)
         left_splitter.addWidget(self._sidebar_panel("Folders:", self.folder_tree))
 
         self.category_list = QListWidget()
         self.category_list.setIconSize(QSize(CATEGORY_LIST_ICON_SIZE, CATEGORY_LIST_ICON_SIZE))
         self.category_list.currentTextChanged.connect(self._on_category_changed)
+        self.category_list.itemClicked.connect(self._on_category_item_clicked)
         left_splitter.addWidget(self._sidebar_panel("Categories:", self.category_list))
 
         left_splitter.setStretchFactor(0, 1)
@@ -1007,15 +1047,10 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._apply_loaded_catalog(catalog)
 
     def _on_category_changed(self, text: str) -> None:
-        if self._nav_syncing:
-            return
-        self._current_category = None if text == ALL_CATEGORIES or not text else text
-        if is_favorites_category(self._current_category):
-            self._current_category = FAVORITES_CATEGORY
-        if self._current_category:
-            self._select_all_folders()
-        self._apply_filters()
-        self._start_thumb_refresh()
+        self._activate_category(text)
+
+    def _on_category_item_clicked(self, item: QListWidgetItem) -> None:
+        self._activate_category(item.text())
 
     def _on_check_images(self) -> None:
         self._start_maintenance("check", "Checking images…")
@@ -1188,17 +1223,14 @@ class MainWindow(QMainWindow, AppWindowMixin):
                     return
         self._open_folder(path)
 
+    def _on_folder_item_clicked(self, item: QTreeWidgetItem, _column: int) -> None:
+        self._activate_folder(str(item.data(0, Qt.ItemDataRole.UserRole) or ""))
+
     def _on_folder_tree_changed(self, current: QTreeWidgetItem | None, _previous: QTreeWidgetItem | None) -> None:
-        if self._nav_syncing:
-            return
         path = ""
         if current is not None:
             path = str(current.data(0, Qt.ItemDataRole.UserRole) or "")
-        self._current_folder = path or None
-        if self._current_folder:
-            self._select_all_categories()
-        self._apply_filters()
-        self._start_thumb_refresh()
+        self._activate_folder(path)
 
     def _on_folder_tree_context_menu(self, pos: QPoint) -> None:
         item = self.folder_tree.itemAt(pos)
@@ -2035,6 +2067,14 @@ class MainWindow(QMainWindow, AppWindowMixin):
         if hasattr(self, "variants_panel"):
             self.variants_panel.list.set_repo_root(self._repo_root)
 
+    def _sync_sidebar_source(self) -> None:
+        if self._current_folder:
+            self._nav_source = "folder"
+        elif self._current_category:
+            self._nav_source = "category"
+        else:
+            self._nav_source = None
+
     def _target_category_for_icon(self, family: IconFamily) -> str | None:
         if is_favorites_category(self._current_category):
             return FAVORITES_CATEGORY
@@ -2148,6 +2188,7 @@ def __init__(self, *, hide_on_close: bool = False) -> None:
         self._thumb_worker = None
         self._current_category: str | None = None
         self._current_folder: str | None = None
+        self._nav_source: Literal["folder", "category"] | None = None
         self._nav_syncing = False
         self._selected_family_id: str | None = None
         self._category_icons = load_category_icons()

@@ -154,6 +154,20 @@ def delete_icon_family(family: IconFamily, repo_root: Path, *, kind: CatalogKind
     _delete_flat_family(family, root)
 
 
+def exclusive_sidebar_filters(
+    *,
+    source: Literal["folder", "category"] | None,
+    folder: str | None,
+    category: str | None,
+) -> tuple[str | None, str | None]:
+    """Return `(folder, category)` so only the last clicked sidebar is active."""
+    if source == "folder":
+        return folder, None
+    if source == "category":
+        return None, category
+    return None, None
+
+
 def family_in_folder(family_folder: str, selected: str) -> bool:
     """Return whether `family_folder` is `selected` or nested under it."""
     family = "/".join(folder_parts(family_folder))
