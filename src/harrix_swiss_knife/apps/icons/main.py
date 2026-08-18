@@ -74,12 +74,14 @@ from harrix_swiss_knife.apps.icons.settings import (
     ICON_SIZE_MIN,
     load_category_icons,
     load_icon_size,
+    load_last_folder,
     load_last_icon,
     load_pinned_folders,
     load_recent_folders,
     pin_folder,
     remember_recent_folder,
     save_icon_size,
+    save_last_folder,
     save_last_icon,
     set_category_icon,
 )
@@ -499,6 +501,9 @@ class MainWindow(QMainWindow, AppWindowMixin):
     def _load_from_config(self) -> None:
         config: dict[str, Any] = h.dev.config_load(get_config_path_str())
         candidates: list[Path] = []
+        last_folder = load_last_folder()
+        if last_folder is not None and last_folder.is_dir():
+            candidates.append(last_folder)
         raw = str(config.get("path_vector_icons") or "").strip()
         if raw and not raw.startswith("<"):
             default_path = Path(raw)
@@ -1075,6 +1080,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._thumb_cache = ThumbnailCache(cache_dir=cache_dir_for_root(catalog.repo_root), size=DEFAULT_THUMB_SIZE)
         if remember:
             remember_recent_folder(catalog.repo_root)
+        save_last_folder(catalog.repo_root)
         self.setWindowTitle(f"Vector Icons — {catalog.repo_root.name}")
         self._prime_pixmaps_from_cache()
         self._populate_categories()

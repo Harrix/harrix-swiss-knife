@@ -12,7 +12,12 @@ from PySide6.QtWidgets import QApplication
 
 from harrix_swiss_knife.apps.icons import settings
 from harrix_swiss_knife.apps.icons.catalog import IconFamily
-from harrix_swiss_knife.apps.icons.settings import load_last_icon, save_last_icon
+from harrix_swiss_knife.apps.icons.settings import (
+    load_last_folder,
+    load_last_icon,
+    save_last_folder,
+    save_last_icon,
+)
 from harrix_swiss_knife.apps.icons.variant_view import GridEntry
 from harrix_swiss_knife.apps.icons.widgets import DraggableIconList, placeholder_pixmap
 
@@ -60,6 +65,32 @@ def test_save_and_load_last_icon_per_folder(tmp_path: Path, monkeypatch: pytest.
     save_last_icon(first, "clothes__suit")
     assert load_last_icon(first) == "clothes__suit"
     assert load_last_icon(second) == "fiction__ufo"
+
+
+def test_save_and_load_last_folder(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    store: dict[str, Any] = {}
+
+    def fake_load(_path: str, *, is_temp: bool = False) -> dict[str, Any]:
+        _ = is_temp
+        return dict(store)
+
+    def fake_update(key: str, value: object, _path: str, *, is_temp: bool = False) -> None:
+        _ = is_temp
+        store[key] = value
+
+    monkeypatch.setattr(h.dev, "config_load", fake_load)
+    monkeypatch.setattr(h.dev, "config_update_value", fake_update)
+    monkeypatch.setattr(settings, "_ensure_temp_config", lambda: None)
+
+    first = tmp_path / "repo-a"
+    second = tmp_path / "repo-b"
+    first.mkdir()
+    second.mkdir()
+
+    save_last_folder(first)
+    assert load_last_folder() == first
+    save_last_folder(second)
+    assert load_last_folder() == second
 
 
 def test_select_family_scrolls_to_matching_tile(qapp: QApplication, tmp_path: Path) -> None:

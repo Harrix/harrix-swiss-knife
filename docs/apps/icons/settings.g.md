@@ -15,6 +15,7 @@ lang: en
 - [🔧 Function `clamp_recent_folders_max`](#-function-clamp_recent_folders_max)
 - [🔧 Function `load_category_icons`](#-function-load_category_icons)
 - [🔧 Function `load_icon_size`](#-function-load_icon_size)
+- [🔧 Function `load_last_folder`](#-function-load_last_folder)
 - [🔧 Function `load_last_icon`](#-function-load_last_icon)
 - [🔧 Function `load_last_icons`](#-function-load_last_icons)
 - [🔧 Function `load_pinned_folders`](#-function-load_pinned_folders)
@@ -24,6 +25,7 @@ lang: en
 - [🔧 Function `remember_recent_folder`](#-function-remember_recent_folder)
 - [🔧 Function `save_category_icons`](#-function-save_category_icons)
 - [🔧 Function `save_icon_size`](#-function-save_icon_size)
+- [🔧 Function `save_last_folder`](#-function-save_last_folder)
 - [🔧 Function `save_last_icon`](#-function-save_last_icon)
 - [🔧 Function `set_category_icon`](#-function-set_category_icon)
 
@@ -140,6 +142,34 @@ def load_icon_size() -> int:
     except (FileNotFoundError, OSError, ValueError):
         return ICON_SIZE_DEFAULT
     return clamp_icon_size(config.get(ICON_SIZE_KEY, ICON_SIZE_DEFAULT))
+```
+
+</details>
+
+## 🔧 Function `load_last_folder`
+
+```python
+def load_last_folder() -> Path | None
+```
+
+Return the last opened icons folder, if stored and existing.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def load_last_folder() -> Path | None:
+    try:
+        config = h.dev.config_load(get_config_path_str(), is_temp=True)
+    except (FileNotFoundError, OSError, ValueError):
+        return None
+    raw = str(config.get(LAST_FOLDER_KEY) or "").strip()
+    if not raw or raw.startswith("<"):
+        return None
+    path = Path(raw)
+    if not path.is_dir():
+        return None
+    return path
 ```
 
 </details>
@@ -388,6 +418,33 @@ def save_icon_size(size: int) -> None:
     h.dev.config_update_value(
         ICON_SIZE_KEY,
         clamp_icon_size(size),
+        get_config_path_str(),
+        is_temp=True,
+    )
+```
+
+</details>
+
+## 🔧 Function `save_last_folder`
+
+```python
+def save_last_folder(folder: Path) -> None
+```
+
+Remember the last opened icons folder in `config-temp.json`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def save_last_folder(folder: Path) -> None:
+    resolved = folder.expanduser().resolve()
+    if not resolved.is_dir():
+        return
+    _ensure_temp_config()
+    h.dev.config_update_value(
+        LAST_FOLDER_KEY,
+        str(resolved),
         get_config_path_str(),
         is_temp=True,
     )

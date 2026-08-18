@@ -12,6 +12,7 @@ from harrix_swiss_knife.paths import get_config_path_str, get_temp_config_path
 ICON_SIZE_KEY = "vector_icons_icon_size"
 CATEGORY_ICONS_KEY = "vector_icons_category_icons"
 LAST_ICONS_KEY = "vector_icons_last_icons"
+LAST_FOLDER_KEY = "vector_icons_last_folder"
 RECENT_FOLDERS_KEY = "vector_icons_recent_folders"
 PINNED_FOLDERS_KEY = "path_vector_icons_pinned"
 RECENT_FOLDERS_MAX_KEY = "vector_icons_recent_folders_max"
@@ -83,6 +84,21 @@ def load_icon_size() -> int:
     except (FileNotFoundError, OSError, ValueError):
         return ICON_SIZE_DEFAULT
     return clamp_icon_size(config.get(ICON_SIZE_KEY, ICON_SIZE_DEFAULT))
+
+
+def load_last_folder() -> Path | None:
+    """Return the last opened icons folder, if stored and existing."""
+    try:
+        config = h.dev.config_load(get_config_path_str(), is_temp=True)
+    except (FileNotFoundError, OSError, ValueError):
+        return None
+    raw = str(config.get(LAST_FOLDER_KEY) or "").strip()
+    if not raw or raw.startswith("<"):
+        return None
+    path = Path(raw)
+    if not path.is_dir():
+        return None
+    return path
 
 
 def load_last_icon(folder: Path) -> str | None:
@@ -216,6 +232,20 @@ def save_icon_size(size: int) -> None:
     h.dev.config_update_value(
         ICON_SIZE_KEY,
         clamp_icon_size(size),
+        get_config_path_str(),
+        is_temp=True,
+    )
+
+
+def save_last_folder(folder: Path) -> None:
+    """Remember the last opened icons folder in `config-temp.json`."""
+    resolved = folder.expanduser().resolve()
+    if not resolved.is_dir():
+        return
+    _ensure_temp_config()
+    h.dev.config_update_value(
+        LAST_FOLDER_KEY,
+        str(resolved),
         get_config_path_str(),
         is_temp=True,
     )
