@@ -377,6 +377,11 @@ class MainWindow(QMainWindow, AppWindowMixin):
             self._on_variant_files_dropped,
             filter_path=_is_vector_drop_path,
         )
+        install_url_drop_handlers(
+            self.variants_panel,
+            self._on_variant_files_dropped,
+            filter_path=_is_vector_drop_path,
+        )
         splitter.addWidget(self.variants_panel)
 
         splitter.setStretchFactor(0, 0)

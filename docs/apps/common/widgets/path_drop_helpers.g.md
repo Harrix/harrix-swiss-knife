@@ -157,6 +157,9 @@ def install_url_drop_handlers(widget: QWidget, on_drop_paths: Callable[[list[str
 
 Install drag-and-drop handlers that pass local file paths to `on_drop_paths`.
 
+Uses an event filter on the widget and its viewport (for `QAbstractItemView`)
+so `DragOnly` lists still accept files from Explorer.
+
 <details>
 <summary>Code:</summary>
 
@@ -167,27 +170,15 @@ def install_url_drop_handlers(
     *,
     filter_path: Callable[[str], bool] | None = None,
 ) -> None:
-
-    def drag_enter_event(event: QDragEnterEvent) -> None:
-        if event.mimeData().hasUrls():
-            event.acceptProposedAction()
-
-    def drop_event(event: QDropEvent) -> None:
-        if not event.mimeData().hasUrls():
-            return
-        paths = [url.toLocalFile() for url in event.mimeData().urls() if url.toLocalFile()]
-        if filter_path is not None:
-            paths = [path for path in paths if filter_path(path)]
-        # Accept and return before callbacks. Opening a modal dialog (or other long work)
-        # inside dropEvent keeps Windows Explorer's OLE drag locked until the dialog closes.
-        event.acceptProposedAction()
-        if paths:
-            dropped = list(paths)
-            QTimer.singleShot(0, lambda: on_drop_paths(dropped))
-
+    drop_filter = _UrlDropEventFilter(widget, on_drop_paths, filter_path=filter_path)
     widget.setAcceptDrops(True)
-    widget.dragEnterEvent = drag_enter_event  # ty: ignore[invalid-assignment]
-    widget.dropEvent = drop_event  # ty: ignore[invalid-assignment]
+    widget.installEventFilter(drop_filter)
+    viewport = getattr(widget, "viewport", None)
+    viewport_widget = viewport() if callable(viewport) else None
+    if viewport_widget is not None:
+        viewport_widget.setAcceptDrops(True)
+        viewport_widget.installEventFilter(drop_filter)
+    widget.setProperty("_hsk_url_drop_filter", drop_filter)
 ```
 
 </details>

@@ -82,6 +82,9 @@ class DraggableIconList(QListWidget):
         self.setSelectionMode(QListWidget.SelectionMode.ExtendedSelection)
         self.setDragEnabled(True)
         self.setDragDropMode(QListWidget.DragDropMode.DragOnly)
+        # DragOnly turns drops off; Explorer file drops still need the viewport.
+        self.setAcceptDrops(True)
+        self.viewport().setAcceptDrops(True)
         self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.customContextMenuRequested.connect(self._on_context_menu)
         self.itemDoubleClicked.connect(self._on_item_double_clicked)

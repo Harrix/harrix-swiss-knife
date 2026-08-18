@@ -6,12 +6,12 @@ import re
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from PySide6.QtCore import QTimer
+from PySide6.QtCore import QEvent, QObject, QTimer
+from PySide6.QtGui import QDragEnterEvent, QDragMoveEvent, QDropEvent
 
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from PySide6.QtGui import QDragEnterEvent, QDropEvent
     from PySide6.QtWidgets import QLineEdit, QWidget
 
 
@@ -27,6 +27,59 @@ _MIN_MONTH = 1
 _MAX_MONTH = 12
 _MIN_DAY = 1
 _MAX_DAY = 31
+
+
+class _UrlDropEventFilter(QObject):
+    """Accept local file URL drops, including on item-view viewports."""
+
+    def __init__(
+        self,
+        parent: QWidget,
+        on_drop_paths: Callable[[list[str]], None],
+        *,
+        filter_path: Callable[[str], bool] | None = None,
+    ) -> None:
+        super().__init__(parent)
+        self._on_drop_paths = on_drop_paths
+        self._filter_path = filter_path
+
+    def eventFilter(self, _watched: QObject, event: QEvent) -> bool:  # noqa: N802
+        """Handle drag-enter, drag-move, and drop for file URLs."""
+        event_type = event.type()
+        if event_type == QEvent.Type.DragEnter and isinstance(event, QDragEnterEvent):
+            return self._accept_if_paths(event)
+        if event_type == QEvent.Type.DragMove and isinstance(event, QDragMoveEvent):
+            return self._accept_if_paths(event)
+        if event_type == QEvent.Type.Drop and isinstance(event, QDropEvent):
+            return self._handle_drop(event)
+        return False
+
+    def _accept_if_paths(self, event: QDragEnterEvent | QDragMoveEvent) -> bool:
+        if self._local_paths(event):
+            event.acceptProposedAction()
+            return True
+        event.ignore()
+        return False
+
+    def _handle_drop(self, event: QDropEvent) -> bool:
+        paths = self._local_paths(event)
+        if not paths:
+            event.ignore()
+            return False
+        # Accept before callbacks. A modal dialog inside dropEvent keeps Explorer's OLE drag locked.
+        event.acceptProposedAction()
+        dropped = list(paths)
+        QTimer.singleShot(0, lambda: self._on_drop_paths(dropped))
+        return True
+
+    def _local_paths(self, event: QDragEnterEvent | QDragMoveEvent | QDropEvent) -> list[str]:
+        mime = event.mimeData()
+        if mime is None or not mime.hasUrls():
+            return []
+        paths = [url.toLocalFile() for url in mime.urls() if url.toLocalFile()]
+        if self._filter_path is not None:
+            return [path for path in paths if self._filter_path(path)]
+        return paths
 
 
 def extract_date_from_filename(path: str) -> str | None:
@@ -109,28 +162,21 @@ def install_url_drop_handlers(
     *,
     filter_path: Callable[[str], bool] | None = None,
 ) -> None:
-    """Install drag-and-drop handlers that pass local file paths to `on_drop_paths`."""
+    """Install drag-and-drop handlers that pass local file paths to `on_drop_paths`.
 
-    def drag_enter_event(event: QDragEnterEvent) -> None:
-        if event.mimeData().hasUrls():
-            event.acceptProposedAction()
+    Uses an event filter on the widget and its viewport (for `QAbstractItemView`)
+    so `DragOnly` lists still accept files from Explorer.
 
-    def drop_event(event: QDropEvent) -> None:
-        if not event.mimeData().hasUrls():
-            return
-        paths = [url.toLocalFile() for url in event.mimeData().urls() if url.toLocalFile()]
-        if filter_path is not None:
-            paths = [path for path in paths if filter_path(path)]
-        # Accept and return before callbacks. Opening a modal dialog (or other long work)
-        # inside dropEvent keeps Windows Explorer's OLE drag locked until the dialog closes.
-        event.acceptProposedAction()
-        if paths:
-            dropped = list(paths)
-            QTimer.singleShot(0, lambda: on_drop_paths(dropped))
-
+    """
+    drop_filter = _UrlDropEventFilter(widget, on_drop_paths, filter_path=filter_path)
     widget.setAcceptDrops(True)
-    widget.dragEnterEvent = drag_enter_event  # ty: ignore[invalid-assignment]
-    widget.dropEvent = drop_event  # ty: ignore[invalid-assignment]
+    widget.installEventFilter(drop_filter)
+    viewport = getattr(widget, "viewport", None)
+    viewport_widget = viewport() if callable(viewport) else None
+    if viewport_widget is not None:
+        viewport_widget.setAcceptDrops(True)
+        viewport_widget.installEventFilter(drop_filter)
+    widget.setProperty("_hsk_url_drop_filter", drop_filter)
 
 
 def resolve_date_from_image_batch(
