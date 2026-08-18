@@ -185,7 +185,7 @@ def pin_folder(path: Path) -> list[Path]:
     updated = [resolved, *[item for item in existing if item.resolve() != resolved]]
     h.dev.config_update_value(
         PINNED_FOLDERS_KEY,
-        [str(item) for item in updated],
+        [_path_to_config_string(item) for item in updated],
         get_config_path_str(),
     )
     return updated
@@ -245,7 +245,7 @@ def save_last_folder(folder: Path) -> None:
     _ensure_temp_config()
     h.dev.config_update_value(
         LAST_FOLDER_KEY,
-        str(resolved),
+        _path_to_config_string(resolved),
         get_config_path_str(),
         is_temp=True,
     )
@@ -308,3 +308,8 @@ def _parse_path_list(raw: object) -> list[Path]:
         if path.is_dir():
             result.append(path)
     return result
+
+
+def _path_to_config_string(path: Path) -> str:
+    """Return normalized path string for config files (forward slashes)."""
+    return path.as_posix()
