@@ -13,6 +13,8 @@ lang: en
 
 - [🏛️ Class `OnListFilesSimple`](#%EF%B8%8F-class-onlistfilessimple)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
+  - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread)
+  - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after)
 
 </details>
 
@@ -40,15 +42,30 @@ class OnListFilesSimple(ActionBase):
     @ActionBase.handle_exceptions("generating file list")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Generate a simple list of all files in a directory structure."""
-        folder_path = self.dialogs.get_existing_directory("Select folder", self.config["path_3d"])
-        if folder_path is None:
+        self.folder_path = self.dialogs.get_existing_directory("Select folder", self.config["path_3d"])
+        if self.folder_path is None:
+            return
+
+        self._ignore_hidden_folders = bool(kwargs.get("is_ignore_hidden_folders", False))
+        self.start_thread(self.in_thread, self.thread_after, self.title)
+
+    @ActionBase.handle_exceptions("generating file list thread")
+    def in_thread(self) -> None:
+        """List files in a worker thread."""
+        if self.folder_path is None:
             return
 
         result = h.file.list_files_simple(
-            folder_path, is_ignore_hidden_folders=kwargs.get("is_ignore_hidden_folders", False)
+            self.folder_path,
+            is_ignore_hidden_folders=self._ignore_hidden_folders,
         )
-        result = f"{folder_path}\n\n(no files found)" if not result.strip() else f"{folder_path}\n\n{result}"
+        result = f"{self.folder_path}\n\n(no files found)" if not result.strip() else f"{self.folder_path}\n\n{result}"
         self.add_line(result)
+
+    @ActionBase.handle_exceptions("generating file list thread completion")
+    def thread_after(self, result: Any) -> None:  # noqa: ARG002
+        """Show toast and result after the file list is ready."""
+        self.show_toast(f"{self.title} completed")
         self.show_result()
 ```
 
@@ -67,15 +84,56 @@ Generate a simple list of all files in a directory structure.
 
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        folder_path = self.dialogs.get_existing_directory("Select folder", self.config["path_3d"])
-        if folder_path is None:
+        self.folder_path = self.dialogs.get_existing_directory("Select folder", self.config["path_3d"])
+        if self.folder_path is None:
+            return
+
+        self._ignore_hidden_folders = bool(kwargs.get("is_ignore_hidden_folders", False))
+        self.start_thread(self.in_thread, self.thread_after, self.title)
+```
+
+</details>
+
+### ⚙️ Method `in_thread`
+
+```python
+def in_thread(self) -> None
+```
+
+List files in a worker thread.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def in_thread(self) -> None:
+        if self.folder_path is None:
             return
 
         result = h.file.list_files_simple(
-            folder_path, is_ignore_hidden_folders=kwargs.get("is_ignore_hidden_folders", False)
+            self.folder_path,
+            is_ignore_hidden_folders=self._ignore_hidden_folders,
         )
-        result = f"{folder_path}\n\n(no files found)" if not result.strip() else f"{folder_path}\n\n{result}"
+        result = f"{self.folder_path}\n\n(no files found)" if not result.strip() else f"{self.folder_path}\n\n{result}"
         self.add_line(result)
+```
+
+</details>
+
+### ⚙️ Method `thread_after`
+
+```python
+def thread_after(self, result: Any) -> None
+```
+
+Show toast and result after the file list is ready.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def thread_after(self, result: Any) -> None:  # noqa: ARG002
+        self.show_toast(f"{self.title} completed")
         self.show_result()
 ```
 

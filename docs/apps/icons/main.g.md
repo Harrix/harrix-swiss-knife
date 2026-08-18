@@ -178,6 +178,10 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._trademark_progress_toast: toast_progress_notification.ToastProgressNotification | None = None
         self._trademark_thread: QThread | None = None
         self._trademark_worker: TrademarkUpdateWorker | None = None
+        self._maintenance_progress_toast: toast_progress_notification.ToastProgressNotification | None = None
+        self._maintenance_thread: QThread | None = None
+        self._maintenance_worker: RepoMaintenanceWorker | None = None
+        self._maintenance_kind: MaintenanceKind | None = None
         self._keywords_batch_runner: KeywordsBatchRunner | None = None
         self._thumb_refresh_done = 0
         self._thumb_refresh_total = 0
@@ -197,6 +201,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
             return
         self._close_variant_progress_toast()
         self._stop_trademark_update()
+        self._stop_maintenance()
         self._stop_keywords_batch()
         self._stop_thumb_refresh()
         super().closeEvent(event)
@@ -407,6 +412,12 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._add_variants_action.triggered.connect(self._on_add_icon_variants)
         refresh_action = file_menu.addAction("🔄 Refresh catalog")
         refresh_action.triggered.connect(self._on_refresh_catalog)
+        file_menu.addSeparator()
+        self._check_images_action = file_menu.addAction("🚧 Check images")
+        self._check_images_action.triggered.connect(self._on_check_images)
+        self._beautify_optimize_action = file_menu.addAction("💎 Beautify and optimize icons")
+        self._beautify_optimize_action.triggered.connect(self._on_beautify_and_optimize)
+        file_menu.addSeparator()
         open_cache_action = file_menu.addAction("📂 Open thumbs cache")
         open_cache_action.triggered.connect(self._on_open_thumbs_cache)
         cache_stats_action = file_menu.addAction("📊 Cache statistics")
@@ -446,6 +457,12 @@ class MainWindow(QMainWindow, AppWindowMixin):
                 Qt.TransformationMode.SmoothTransformation,
             ),
         )
+
+    def _close_maintenance_progress_toast(self) -> None:
+        toast = self._maintenance_progress_toast
+        self._maintenance_progress_toast = None
+        if toast is not None:
+            toast.close()
 
     def _close_thumb_progress_toast(self) -> None:
         toast = self._thumb_progress_toast
@@ -752,6 +769,9 @@ class MainWindow(QMainWindow, AppWindowMixin):
         family.tags = tags
         family.refresh_search_blob()
 
+    def _on_beautify_and_optimize(self) -> None:
+        self._start_maintenance("beautify_optimize", "Beautify and optimize icons…")
+
     def _on_cache_statistics(self) -> None:
         stats = self._thumb_cache.stats(self._catalog)
         total_bytes = int(stats["total_bytes"])
@@ -781,6 +801,9 @@ class MainWindow(QMainWindow, AppWindowMixin):
     def _on_category_changed(self, text: str) -> None:
         self._current_category = None if text == ALL_CATEGORIES or not text else text
         self._apply_filters()
+
+    def _on_check_images(self) -> None:
+        self._start_maintenance("check", "Checking images…")
 
     def _on_copy_path(self, svg_path: str) -> None:
         path = str(Path(svg_path).resolve())
@@ -980,6 +1003,33 @@ class MainWindow(QMainWindow, AppWindowMixin):
     def _on_icon_size_changed(self, value: int) -> None:
         self._apply_icon_size(value)
         self._icon_size_save_timer.start()
+
+    def _on_maintenance_failed(self, message: str) -> None:
+        self._close_maintenance_progress_toast()
+        QMessageBox.critical(self, "Vector Icons", f"Maintenance failed:\n{message}")
+
+    def _on_maintenance_finished(self) -> None:
+        self._close_maintenance_progress_toast()
+        self._maintenance_thread = None
+        self._maintenance_worker = None
+        self._maintenance_kind = None
+
+    def _on_maintenance_progress(self, done: int, total: int, message: str) -> None:
+        if self._maintenance_progress_toast is not None:
+            self._maintenance_progress_toast.set_progress(done, total)
+        if message:
+            self.statusBar().showMessage(message)
+
+    def _on_maintenance_succeeded(self, text: str) -> None:
+        kind = self._maintenance_kind
+        title = "Check images" if kind == "check" else "Beautify and optimize icons"
+        self._close_maintenance_progress_toast()
+        toast = toast_notification.ToastNotification(f"{title} completed", duration=2500, parent=self)
+        toast.present()
+        self.statusBar().showMessage(f"{title} completed")
+        if kind == "beautify_optimize":
+            self._on_refresh_catalog()
+        self._show_text_result(title, text)
 
     def _on_open_folder(self) -> None:
         start = str(self._repo_root) if self._repo_root is not None else ""
@@ -1452,6 +1502,20 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._selected_family_id = None
         self.variants_panel.clear_variants()
 
+    def _show_text_result(self, title: str, text: str) -> None:
+        dialog = QDialog(self)
+        dialog.setWindowTitle(title)
+        dialog.resize(900, 640)
+        layout = QVBoxLayout(dialog)
+        editor = QPlainTextEdit()
+        editor.setReadOnly(True)
+        editor.setPlainText(text)
+        layout.addWidget(editor)
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok)
+        buttons.accepted.connect(dialog.accept)
+        layout.addWidget(buttons)
+        dialog.exec()
+
     def _show_vector_report(self, report: object) -> None:
         summary_lines = getattr(report, "summary_lines", None)
         results = getattr(report, "results", [])
@@ -1462,6 +1526,40 @@ class MainWindow(QMainWindow, AppWindowMixin):
         detail = "\n".join(detail_lines)
         QMessageBox.information(self, "Vector Icons", f"{summary}\n\n{detail}" if detail else summary)
         self.statusBar().showMessage(summary_lines[0] if summary_lines else "Done")
+
+    def _start_maintenance(self, kind: MaintenanceKind, toast_message: str) -> None:
+        if self._repo_root is None or not self._is_note_repo_open():
+            QMessageBox.warning(
+                self,
+                "Vector Icons",
+                "Check and beautify work only with a note-folder icons repository.",
+            )
+            return
+        if self._maintenance_thread is not None and self._maintenance_thread.isRunning():
+            QMessageBox.information(self, "Vector Icons", "A maintenance job is already running.")
+            return
+        self._maintenance_kind = kind
+        self._maintenance_progress_toast = toast_progress_notification.ToastProgressNotification(
+            toast_message,
+            total=0,
+            parent=self,
+        )
+        self._maintenance_progress_toast.start_countdown()
+        thread = QThread(self)
+        worker = RepoMaintenanceWorker(self._repo_root, kind)
+        worker.moveToThread(thread)
+        thread.started.connect(worker.run)
+        worker.progress.connect(self._on_maintenance_progress)
+        worker.succeeded.connect(self._on_maintenance_succeeded)
+        worker.failed.connect(self._on_maintenance_failed)
+        worker.finished.connect(thread.quit)
+        worker.finished.connect(worker.deleteLater)
+        thread.finished.connect(self._on_maintenance_finished)
+        thread.finished.connect(thread.deleteLater)
+        self._maintenance_thread = thread
+        self._maintenance_worker = worker
+        self.statusBar().showMessage(toast_message)
+        thread.start()
 
     def _start_thumb_refresh(self) -> None:
         if self._catalog is None:
@@ -1490,6 +1588,16 @@ class MainWindow(QMainWindow, AppWindowMixin):
             runner.cancel()
         self._keywords_batch_runner = None
 
+    def _stop_maintenance(self) -> None:
+        thread = self._maintenance_thread
+        if thread is not None and thread.isRunning():
+            thread.quit()
+            thread.wait(3000)
+        self._maintenance_thread = None
+        self._maintenance_worker = None
+        self._maintenance_kind = None
+        self._close_maintenance_progress_toast()
+
     def _stop_thumb_refresh(self) -> None:
         if self._thumb_worker is not None:
             self._thumb_worker.cancel()
@@ -1515,9 +1623,14 @@ class MainWindow(QMainWindow, AppWindowMixin):
         if self._is_note_repo_open():
             self._add_vector_action.setText("📥 Add Vector Image…")
             self._add_variants_action.setEnabled(True)
+            note_repo = True
         else:
             self._add_vector_action.setText("📥 Add Vector Images…")
             self._add_variants_action.setEnabled(False)
+            note_repo = False
+        if hasattr(self, "_check_images_action"):
+            self._check_images_action.setEnabled(note_repo)
+            self._beautify_optimize_action.setEnabled(note_repo)
 
     def _sync_folder_combo(self) -> None:
         if not hasattr(self, "folder_combo"):
@@ -1646,6 +1759,10 @@ def __init__(self, *, hide_on_close: bool = False) -> None:
         self._trademark_progress_toast: toast_progress_notification.ToastProgressNotification | None = None
         self._trademark_thread: QThread | None = None
         self._trademark_worker: TrademarkUpdateWorker | None = None
+        self._maintenance_progress_toast: toast_progress_notification.ToastProgressNotification | None = None
+        self._maintenance_thread: QThread | None = None
+        self._maintenance_worker: RepoMaintenanceWorker | None = None
+        self._maintenance_kind: MaintenanceKind | None = None
         self._keywords_batch_runner: KeywordsBatchRunner | None = None
         self._thumb_refresh_done = 0
         self._thumb_refresh_total = 0
@@ -1679,6 +1796,7 @@ def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
             return
         self._close_variant_progress_toast()
         self._stop_trademark_update()
+        self._stop_maintenance()
         self._stop_keywords_batch()
         self._stop_thumb_refresh()
         super().closeEvent(event)
