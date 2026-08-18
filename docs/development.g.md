@@ -70,7 +70,7 @@ Choose the AI backend with `"ai": { "provider": "bothub" }` (`openai`, `anthropi
 
 ## 📦 Building Windows install zip bundles
 
-Scripts live in `install\`. To refresh installer payloads and produce the distributable zips, run the **download/build steps** below in numeric order (`01` → `06`). Step **`06`** is optional log cleanup.
+Scripts live in `install\`. To refresh installer payloads and produce the distributable zips, run the **download/build steps** below in numeric order (`01` → `05`). Step **`06`** is optional log cleanup.
 
 ### Before you start
 
@@ -86,10 +86,15 @@ Scripts live in `install\`. To refresh installer payloads and produce the distri
 | 2    | `install\02_download-bundle-force-installers.bat` | Core         | Installers (Git, Python, uv, VS Code) → `install\dependencies\` (**elevated**).                                                                   |
 | 3    | `install\03_download-repos.bat`                   | Offline kit  | `git archive` snapshots → `install\dependencies\repos\`.                                                                                          |
 | 4    | `install\04_download-uv-cache.bat`                | Offline kit  | Warm `install\dependencies\uv-cache\` (**quit `harrix-swiss-knife` first**).                                                                      |
-| 5    | `install\06_build-install-zips.bat`               | Core         | Writes `install-harrix-swiss-knife.zip` and `install-offline-harrix-swiss-knife.zip` into `install\`.                                             |
-| 6    | `install\07_clean-logs.bat`                       | Optional     | Logs only: `*.log` under `install\` and `install\dependencies\` (often **after** steps 1–5).                                                      |
+| 5    | `install\05_build-install-zips.bat`               | Core         | Writes `install-harrix-swiss-knife.zip` and `install-offline-harrix-swiss-knife.zip` into `install\`.                                             |
+| 6    | `install\06_clean-logs.bat`                       | Optional     | Logs only: `*.log` under `install\` and `install\dependencies\` (often **after** steps 1–5).                                                      |
 
 After step 5, pick up the two zip files from `install\` for distribution.
+
+- Online zip → target runs `install.bat` (git clone).
+- Offline zip → target runs `install-all-offline.bat` (repo snapshots + uv caches; copies ffmpeg/avif from `dependencies\`).
+
+Alternative for steps 1–4 on the builder: `.\install\download-bundle.ps1` (one-shot binaries + installers + repos + uv cache), then still run step 5 to build the zips.
 
 Personal private-data transfer (`install\pack-private-data.bat` / `install\install-private-data.bat`) packs only `api-keys` secrets and `fitness_img` into `install\private-data-harrix-swiss-knife.zip`. It is **not** part of the public online/offline install zip pipeline above. See `api-keys/README.md` (section Transfer to another machine).
 
@@ -232,7 +237,7 @@ Example user settings:
 
 ## Android app (Harrix Swiss Knife)
 
-Optional Android companion app in this monorepo (Gallery Cleaner, Video Cleaner, Photo Editor, Speech to Text with AI). Markdown notes browsing lives in the separate [harrix-notes-android](https://github.com/Harrix/harrix-notes-android) app (**Harrix Notes**). Not part of the Windows install zip pipeline (numbered steps `01` to `07`).
+Optional Android companion app in this monorepo (Gallery Cleaner, Video Cleaner, Photo Editor, Speech to Text with AI). Markdown notes browsing lives in the separate [harrix-notes-android](https://github.com/Harrix/harrix-notes-android) app (**Harrix Notes**). Not part of the Windows install zip pipeline (numbered steps `01` to `06`).
 
 - Folder: `android/`
 - Package / applicationId: `dev.harrix.hsk` (reverse DNS for <https://harrix.dev>)

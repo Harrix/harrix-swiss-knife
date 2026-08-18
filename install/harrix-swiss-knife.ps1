@@ -17,7 +17,8 @@
     Skip winget installs for Git, uv, and VS Code (managed Python via uv is also skipped).
 
 .PARAMETER SkipBinaries
-    Skip downloading ffmpeg.exe, avifenc.exe, avifdec.exe.
+    Skip network downloads of ffmpeg.exe, avifenc.exe, avifdec.exe.
+    Still copies them from install\dependencies\ when present (offline bundle).
 
 .PARAMETER Force
     Re-download binaries even if they already exist in project root. Alias: -ForceBinaries.
@@ -962,7 +963,8 @@ function Test-RepoReadyOrResetEmptyFolder {
         [Parameter(Mandatory = $true)]
         [string] $RepoPath,
         [Parameter(Mandatory = $true)]
-        [string] $Label
+        [string] $Label,
+        [switch] $AllowOfflineSnapshot
     )
 
     if (-not (Test-Path -LiteralPath $RepoPath)) {
@@ -979,6 +981,12 @@ function Test-RepoReadyOrResetEmptyFolder {
         Write-Host "    Removing empty non-git folder before clone: $RepoPath" -ForegroundColor DarkGray
         Remove-Item -LiteralPath $RepoPath -Force -ErrorAction Stop
         return $false
+    }
+
+    # git archive snapshots have no .git; treat a project tree as already installed for re-runs.
+    if ($AllowOfflineSnapshot -and (Test-Path -LiteralPath (Join-Path $RepoPath "pyproject.toml"))) {
+        Write-Host "    $Label present as offline snapshot (no .git); skip re-extract" -ForegroundColor DarkGray
+        return $true
     }
 
     throw "$Label folder exists but is not a git repository: $RepoPath. Move or delete this folder and run install.bat again."
@@ -1175,7 +1183,8 @@ function Expand-ExeFromZip {
 function Install-OptimizeBinaries {
     param(
         [string] $ProjectRoot,
-        [switch] $ForceBins
+        [switch] $ForceBins,
+        [switch] $SkipDownload
     )
 
     $destDir = $ProjectRoot
@@ -1216,6 +1225,20 @@ function Install-OptimizeBinaries {
                 Remove-Item -LiteralPath $ffZip -Force -ErrorAction SilentlyContinue
                 Write-Host "    Removed redundant ffmpeg-master-latest-win64-gpl.zip from offline bundle (loose ffmpeg in dependencies)." -ForegroundColor DarkGray
             }
+        }
+        return
+    }
+
+    if ($SkipDownload) {
+        $missing = @()
+        foreach ($exe in $need) {
+            if (-not (Test-Path -LiteralPath (Join-Path $destDir $exe))) {
+                $missing += $exe
+            }
+        }
+        if ($missing.Count -gt 0) {
+            Write-Warning ("    Missing after offline copy (network download skipped): {0}" -f ($missing -join ", "))
+            Add-Outcome -Category "skipped" -Message ("Optimize binaries incomplete; download skipped (-SkipBinaries): {0}" -f ($missing -join ", "))
         }
         return
     }
@@ -1486,10 +1509,22 @@ function New-AppShortcut {
         return
     }
 
+    # Stage under project temp\ then move — avoids COM encoding issues on non-ASCII Desktop/Startup paths
+    # (same approach as src\harrix_swiss_knife\desktop_shortcut.py).
+    $tempDir = Join-Path $ProjectRoot "temp"
+    $stagingName = ".hsk_{0}_shortcut_build.lnk" -f $label
+    $stagingPath = Join-Path $tempDir $stagingName
+    $lnkPath = Join-Path $folder "Harrix Swiss Knife.lnk"
     try {
-        $lnkPath = Join-Path $folder "Harrix Swiss Knife.lnk"
+        if (-not (Test-Path -LiteralPath $tempDir)) {
+            New-Item -ItemType Directory -Path $tempDir -Force | Out-Null
+        }
+        if (Test-Path -LiteralPath $stagingPath) {
+            Remove-Item -LiteralPath $stagingPath -Force -ErrorAction SilentlyContinue
+        }
+
         $wsh = New-Object -ComObject WScript.Shell
-        $lnk = $wsh.CreateShortcut($lnkPath)
+        $lnk = $wsh.CreateShortcut($stagingPath)
         $lnk.TargetPath = $pyw
         $lnk.Arguments = "`"$mainPy`""
         $lnk.WorkingDirectory = $ProjectRoot
@@ -1507,6 +1542,11 @@ function New-AppShortcut {
             }
         }
         $lnk.Save()
+
+        if (Test-Path -LiteralPath $lnkPath) {
+            Remove-Item -LiteralPath $lnkPath -Force -ErrorAction Stop
+        }
+        Move-Item -LiteralPath $stagingPath -Destination $lnkPath -Force
         Write-Host "    Shortcut created: $lnkPath"
         Add-Outcome -Category "installed" -Message "$FolderKind shortcut created ($lnkPath)"
     }
@@ -1514,6 +1554,45 @@ function New-AppShortcut {
         Write-Warning "    Could not create $label shortcut: $($_.Exception.Message)"
         Add-Outcome -Category "skipped" -Message "$FolderKind shortcut failed: $($_.Exception.Message)"
     }
+    finally {
+        if (Test-Path -LiteralPath $stagingPath) {
+            Remove-Item -LiteralPath $stagingPath -Force -ErrorAction SilentlyContinue
+        }
+    }
+}
+
+function Ensure-UvToolBinOnUserPath {
+    # uv tool install puts shims in %USERPROFILE%\.local\bin; ensure that dir is on the user PATH
+    # (winget-installed uv may not have added it).
+    [CmdletBinding()]
+    param()
+
+    $bin = Join-Path $env:USERPROFILE ".local\bin"
+    if (-not (Test-Path -LiteralPath $bin)) {
+        New-Item -ItemType Directory -Path $bin -Force | Out-Null
+    }
+
+    $userPath = [Environment]::GetEnvironmentVariable("Path", "User")
+    if ([string]::IsNullOrWhiteSpace($userPath)) { $userPath = "" }
+    $parts = @($userPath -split ";" | Where-Object { $_ -ne "" })
+    $already = $false
+    foreach ($p in $parts) {
+        if ([string]::Equals($p, $bin, [System.StringComparison]::OrdinalIgnoreCase)) {
+            $already = $true
+            break
+        }
+    }
+    if (-not $already) {
+        $newUserPath = if ($userPath) { ($bin + ";" + $userPath) } else { $bin }
+        [Environment]::SetEnvironmentVariable("Path", $newUserPath, "User")
+        $dummyName = "hsk-uv-tool-path-" + [Guid]::NewGuid().ToString("N")
+        [Environment]::SetEnvironmentVariable($dummyName, "1", "User")
+        [Environment]::SetEnvironmentVariable($dummyName, $null, "User")
+        Write-Host "    Added $bin to user PATH" -ForegroundColor DarkGray
+        Add-Outcome -Category "installed" -Message "Added $bin to user PATH (for hsk CLI)"
+    }
+
+    Update-PathFromEnvironment
 }
 
 function New-DesktopShortcut {
@@ -1703,7 +1782,7 @@ try {
     $hsk = Join-Path $resolvedRoot "harrix-swiss-knife"
 
     Write-Step "Clone repositories (idempotent)"
-    if (-not (Test-RepoReadyOrResetEmptyFolder -RepoPath $pylib -Label "harrix-pylib")) {
+    if (-not (Test-RepoReadyOrResetEmptyFolder -RepoPath $pylib -Label "harrix-pylib" -AllowOfflineSnapshot:$UseOfflineRepoSnapshots)) {
         $snap = $null
         if ($UseOfflineRepoSnapshots) {
             $snap = Get-DependenciesRepoSnapshot -Name "harrix-pylib"
@@ -1724,7 +1803,7 @@ try {
         Add-Outcome -Category "already" -Message "harrix-pylib already present"
         Update-GitRepoIfPossible -RepoPath $pylib -Label "harrix-pylib"
     }
-    if (-not (Test-RepoReadyOrResetEmptyFolder -RepoPath $pyssg -Label "harrix-pyssg")) {
+    if (-not (Test-RepoReadyOrResetEmptyFolder -RepoPath $pyssg -Label "harrix-pyssg" -AllowOfflineSnapshot:$UseOfflineRepoSnapshots)) {
         $snap = $null
         if ($UseOfflineRepoSnapshots) {
             $snap = Get-DependenciesRepoSnapshot -Name "harrix-pyssg"
@@ -1745,7 +1824,7 @@ try {
         Add-Outcome -Category "already" -Message "harrix-pyssg already present"
         Update-GitRepoIfPossible -RepoPath $pyssg -Label "harrix-pyssg"
     }
-    if (-not (Test-RepoReadyOrResetEmptyFolder -RepoPath $hsk -Label "harrix-swiss-knife")) {
+    if (-not (Test-RepoReadyOrResetEmptyFolder -RepoPath $hsk -Label "harrix-swiss-knife" -AllowOfflineSnapshot:$UseOfflineRepoSnapshots)) {
         $snap = $null
         if ($UseOfflineRepoSnapshots) {
             $snap = Get-DependenciesRepoSnapshot -Name "harrix-swiss-knife"
@@ -1854,6 +1933,7 @@ try {
                 Add-Outcome -Category "skipped" -Message "CLI not installed (uv tool install failed; run Dev -> Install CLI (hsk on PATH))"
             }
             else {
+                Ensure-UvToolBinOnUserPath
                 Add-Outcome -Category "installed" -Message "Installed global CLI (hsk on PATH via uv tool install -e)"
             }
         }
@@ -1922,20 +2002,16 @@ try {
     Write-Step "Windows autostart (Startup folder)"
     New-StartupShortcut -ProjectRoot $hsk
 
-    # Download large binaries at the very end so a failure doesn't block installation.
-    if (-not $SkipBinaries) {
-        Write-Step "Download Optimize dependencies (ffmpeg, avifenc, avifdec)"
-        try {
-            Install-OptimizeBinaries -ProjectRoot $hsk -ForceBins:$Force
-        }
-        catch {
-            Write-Warning "Could not download Optimize dependencies: $($_.Exception.Message)"
-            Write-Warning "Installation will continue. You can download these later from the app: Dev → Download Optimize dependencies (ffmpeg, avifenc, avifdec)."
-            Add-Outcome -Category "failed" -Message "Optimize binaries download failed: $($_.Exception.Message)"
-        }
+    # Copy/download Optimize binaries at the end so a download failure does not block installation.
+    # -SkipBinaries still copies from install\dependencies\; it only skips network downloads.
+    Write-Step "Optimize dependencies (ffmpeg, avifenc, avifdec)"
+    try {
+        Install-OptimizeBinaries -ProjectRoot $hsk -ForceBins:$Force -SkipDownload:$SkipBinaries
     }
-    else {
-        Add-Outcome -Category "skipped" -Message "Optimize binaries download skipped (-SkipBinaries)"
+    catch {
+        Write-Warning "Could not install Optimize dependencies: $($_.Exception.Message)"
+        Write-Warning "Installation will continue. You can download these later from the app: Dev → Download Optimize dependencies (ffmpeg, avifenc, avifdec)."
+        Add-Outcome -Category "failed" -Message "Optimize binaries install failed: $($_.Exception.Message)"
     }
 
     Write-Step "Done"

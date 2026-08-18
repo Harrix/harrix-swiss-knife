@@ -1,5 +1,5 @@
 @echo off
-REM Optional: install JDK 17 + Android SDK for the android\ module (not part of zip pipeline 01-07).
+REM Optional: install JDK 17 + Android SDK for the android\ module (not part of zip pipeline 01-06).
 
 cd /d "%~dp0"
 

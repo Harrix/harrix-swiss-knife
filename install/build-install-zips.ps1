@@ -1,5 +1,5 @@
 #Requires -Version 5.1
-# Build online/offline distributable zip archives (invoked from 06_build-install-zips.bat).
+# Build online/offline distributable zip archives (invoked from 05_build-install-zips.bat).
 [CmdletBinding()]
 param()
 
@@ -110,8 +110,8 @@ try {
     Copy-IfExists (Join-Path $root "harrix-swiss-knife.ps1") $stageOffline
     Copy-IfExists (Join-Path $root "install-all-offline.bat") $stageOffline
     Copy-IfExists (Join-Path $root "install-all-offline-with-log.ps1") $stageOffline
-    $offlineFileExcludes = @("ffmpeg.exe", "avifenc.exe", "avifdec.exe") + $omitZips
-    Copy-Deps $deps (Join-Path $stageOffline "dependencies") @() $offlineFileExcludes
+    # Keep loose ffmpeg/avif tools in the offline zip; step 01 extracts them and removes fallback zips.
+    Copy-Deps $deps (Join-Path $stageOffline "dependencies") @() $omitZips
     Zip-Dir $stageOffline $outOffline
 
     Write-Host ("Created: {0}" -f $outOnline) -ForegroundColor Green

@@ -1,5 +1,5 @@
 #Requires -Version 5.1
-# Optional Android toolchain for harrix-swiss-knife\android (not part of zip pipeline 01-07).
+# Optional Android toolchain for harrix-swiss-knife\android (not part of zip pipeline 01-06).
 [CmdletBinding()]
 param(
     [switch]$SkipAndroidStudio,
