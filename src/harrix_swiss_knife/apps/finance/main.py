@@ -277,7 +277,7 @@ class MainWindow(
         self.count_exchange_rates_to_show: int = initial_count
         self.exchange_rates_load_more_count: int = load_more_count
         self.description_autocomplete_limit: int = initial_count
-        self._description_category_pairs: list[tuple[str, str]] = []
+        self._description_category_pairs: list[tuple[str, str, int]] = []
         self._category_suggest_timer = QTimer(self)
         self._category_suggest_timer.setSingleShot(True)
         self._category_suggest_timer.setInterval(700)
@@ -4863,12 +4863,25 @@ class MainWindow(
         if model is None:
             return
 
-        category_names = [
-            name
-            for row in range(model.rowCount())
-            if (name := model.data(model.index(row, 0), Qt.ItemDataRole.UserRole))
-        ]
-        suggested = suggest_categories(text, self._description_category_pairs, category_names)
+        category_names: list[str] = []
+        category_aliases: dict[str, list[str]] = {}
+        for row in range(model.rowCount()):
+            name = model.data(model.index(row, 0), Qt.ItemDataRole.UserRole)
+            if not name:
+                continue
+            category_name = str(name)
+            category_names.append(category_name)
+            local = model.data(model.index(row, 0), NAME_LOCAL_ROLE)
+            aliases = [category_name]
+            if local:
+                aliases.append(str(local))
+            category_aliases[category_name] = aliases
+        suggested = suggest_categories(
+            text,
+            self._description_category_pairs,
+            category_names,
+            category_aliases=category_aliases,
+        )
         self._apply_category_suggestions(suggested)
 
     def _save_table_column_widths(self, table_view: QTableView) -> list[int]:

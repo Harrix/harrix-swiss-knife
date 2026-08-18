@@ -1039,11 +1039,16 @@ class MainWindow(QMainWindow, AppWindowMixin):
         dialog = IconLightboxDialog(paths, current_index=paths.index(selected), parent=self)
         dialog.exec()
 
-    def _on_refresh_catalog(self, *, allow_empty: bool = False) -> None:
+    def _on_refresh_catalog(self, *_args: object, allow_empty: bool = False) -> None:
         if self._repo_root is None:
             self._load_from_config()
             return
         root = self._repo_root
+        self._stop_thumb_refresh()
+        self._close_variant_progress_toast()
+        self.statusBar().showMessage("Refreshing catalog…")
+        QApplication.processEvents(QEventLoop.ProcessEventsFlag.ExcludeUserInputEvents)
+        previous_category = self._current_category
         try:
             if self._catalog is not None and self._catalog.kind == "flat":
                 catalog = open_icons_folder(root)
@@ -1063,9 +1068,14 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._variant_pixmaps.clear()
         self._thumb_cache = ThumbnailCache(cache_dir=cache_dir_for_root(catalog.repo_root), size=DEFAULT_THUMB_SIZE)
         self._prime_pixmaps_from_cache()
-        self._populate_categories()
+        self._populate_categories(preferred_category=previous_category)
+        QApplication.processEvents(QEventLoop.ProcessEventsFlag.ExcludeUserInputEvents)
         self._apply_filters()
         self._start_thumb_refresh()
+        category_count = len(catalog.categories())
+        self.statusBar().showMessage(
+            f"Catalog refreshed: {len(catalog.icons)} icons, {category_count} categories",
+        )
 
     def _on_reveal_in_explorer(self, svg_path: str) -> None:
         path = Path(svg_path)
@@ -1292,23 +1302,34 @@ class MainWindow(QMainWindow, AppWindowMixin):
             self._close_variant_progress_toast()
         return result
 
-    def _populate_categories(self) -> None:
+    def _populate_categories(self, *, preferred_category: str | None = None) -> None:
+        previous = preferred_category if preferred_category is not None else self._current_category
+        self.category_list.setUpdatesEnabled(False)
         self.category_list.blockSignals(True)  # noqa: FBT003
         self.category_list.clear()
         self._default_category_family_ids.clear()
         all_item = QListWidgetItem(QIcon(":/assets/logo.svg"), ALL_CATEGORIES)
         self.category_list.addItem(all_item)
+        names: list[str] = []
         if self._catalog is not None:
-            for name in self._catalog.categories():
+            names = self._catalog.categories()
+            for name in names:
                 families = self._catalog.filter_icons(category=name)
                 if families:
                     self._default_category_family_ids[name] = families[0].id
                 item = QListWidgetItem(name)
                 item.setIcon(self._category_pixmap_icon(name))
                 self.category_list.addItem(item)
-        self.category_list.setCurrentRow(0)
+        select_row = 0
+        if previous and previous in names:
+            select_row = names.index(previous) + 1
+            self._current_category = previous
+        else:
+            self._current_category = None
+        self.category_list.setCurrentRow(select_row)
         self.category_list.blockSignals(False)  # noqa: FBT003
-        self._current_category = None
+        self.category_list.setUpdatesEnabled(True)
+        self.category_list.viewport().update()
 
     def _prime_pixmaps_from_cache(self) -> None:
         if self._catalog is None:

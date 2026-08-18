@@ -1331,57 +1331,43 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             monthly.setdefault(month, {})[cid] = amount_major
         return monthly
 
-    def get_recent_description_category_pairs(self, limit: int = 1000) -> list[tuple[str, str]]:
-        """Return recent/frequent `(description, category_name)` pairs for fuzzy suggestions.
+    def get_recent_description_category_pairs(self, limit: int = 1000) -> list[tuple[str, str, int]]:
+        """Return `(description, category_name, usage_count)` rows for category suggestions.
 
         Args:
 
-        - `limit` (`int`): Approximate number of source transactions to consider. Defaults to `1000`.
+        - `limit` (`int`): Maximum number of grouped history pairs. Defaults to `1000`.
 
         Returns:
 
-        - `list[tuple[str, str]]`: Pairs of description and category name (may repeat categories).
+        - `list[tuple[str, str, int]]`: Description, category name, and how often that pair was used.
+          Standard-item catalog rows are appended with a high count so they rank as established mappings.
 
         """
         query = """
-            WITH frequent_pairs AS (
-                SELECT t.description, cat.name AS category_name,
-                       COUNT(*) AS usage_count, MAX(t.date) AS last_used
-                FROM transactions t
-                JOIN categories cat ON t._id_categories = cat._id
-                WHERE t.description IS NOT NULL AND t.description != ''
-                GROUP BY t.description, cat.name
-                ORDER BY usage_count DESC, last_used DESC
-                LIMIT :limit_frequent
-            ),
-            recent_pairs AS (
-                SELECT t.description, cat.name AS category_name
-                FROM transactions t
-                JOIN categories cat ON t._id_categories = cat._id
-                WHERE t.description IS NOT NULL AND t.description != ''
-                ORDER BY t._id DESC
-                LIMIT :limit_recent
-            )
-            SELECT description, category_name
-            FROM (
-                SELECT description, category_name FROM frequent_pairs
-                UNION
-                SELECT description, category_name FROM recent_pairs
-            )
+            SELECT t.description, cat.name AS category_name, COUNT(*) AS usage_count
+            FROM transactions t
+            JOIN categories cat ON t._id_categories = cat._id
+            WHERE t.description IS NOT NULL AND TRIM(t.description) != ''
+            GROUP BY t.description, cat.name
+            ORDER BY usage_count DESC, MAX(t.date) DESC
+            LIMIT :limit
         """
-        limit_frequent_percentage = 0.7
-        limit_frequent = int(limit * limit_frequent_percentage)
-        limit_recent = limit - limit_frequent
-        rows = self.get_rows(query, {"limit_frequent": limit_frequent, "limit_recent": limit_recent})
-        pairs = [(str(row[0]), str(row[1])) for row in rows if row[0] and row[1]]
-        catalog_pairs = self.get_standard_item_description_category_pairs()
-        seen = {(description.lower(), category) for description, category in pairs}
-        for description, category in catalog_pairs:
+        rows = self.get_rows(query, {"limit": limit})
+        merged: dict[tuple[str, str], tuple[str, str, int]] = {}
+        for row in rows:
+            if not row[0] or not row[1]:
+                continue
+            description = str(row[0])
+            category = str(row[1])
+            merged[(description.lower(), category)] = (description, category, int(row[2] or 1))
+        catalog_weight = 25
+        for description, category in self.get_standard_item_description_category_pairs():
             key = (description.lower(), category)
-            if key not in seen:
-                pairs.append((description, category))
-                seen.add(key)
-        return pairs
+            previous = merged.get(key)
+            if previous is None or previous[2] < catalog_weight:
+                merged[key] = (description, category, catalog_weight)
+        return list(merged.values())
 
     def get_recent_transaction_descriptions_for_autocomplete(self, limit: int = 1000) -> list[str]:
         """Get recent unique transaction descriptions for autocomplete.
@@ -1502,17 +1488,35 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         return rows[0] if rows else None
 
     def get_standard_item_description_category_pairs(self) -> list[tuple[str, str]]:
-        """Return `(name, category_name)` pairs from the standard items catalog."""
+        """Return `(name, category_name)` pairs from the standard items catalog.
+
+        Includes both the local catalog name and `name_en` when present.
+
+        """
         rows = self.get_rows(
             """
-            SELECT s.name, c.name
+            SELECT s.name, s.name_en, c.name
             FROM standard_items s
             JOIN categories c ON s._id_categories = c._id
-            WHERE s.name IS NOT NULL AND TRIM(s.name) != ''
             ORDER BY s.name COLLATE NOCASE
             """
         )
-        return [(str(row[0]), str(row[1])) for row in rows if row[0] and row[1]]
+        pairs: list[tuple[str, str]] = []
+        seen: set[tuple[str, str]] = set()
+        for name, name_en, category in rows:
+            category_name = str(category or "").strip()
+            if not category_name:
+                continue
+            for raw in (name, name_en):
+                text = str(raw or "").strip()
+                if not text:
+                    continue
+                key = (text.lower(), category_name)
+                if key in seen:
+                    continue
+                seen.add(key)
+                pairs.append((text, category_name))
+        return pairs
 
     def get_standard_item_names_for_autocomplete(self) -> list[str]:
         """Return catalog names for description autocomplete."""
@@ -4393,63 +4397,49 @@ def get_monthly_expense_totals_by_category(self, currency_id: int) -> dict[str, 
 ### ⚙️ Method `get_recent_description_category_pairs`
 
 ```python
-def get_recent_description_category_pairs(self, limit: int = 1000) -> list[tuple[str, str]]
+def get_recent_description_category_pairs(self, limit: int = 1000) -> list[tuple[str, str, int]]
 ```
 
-Return recent/frequent `(description, category_name)` pairs for fuzzy suggestions.
+Return `(description, category_name, usage_count)` rows for category suggestions.
 
 Args:
 
-- `limit` (`int`): Approximate number of source transactions to consider. Defaults to `1000`.
+- `limit` (`int`): Maximum number of grouped history pairs. Defaults to `1000`.
 
 Returns:
 
-- `list[tuple[str, str]]`: Pairs of description and category name (may repeat categories).
+- `list[tuple[str, str, int]]`: Description, category name, and how often that pair was used.
+  Standard-item catalog rows are appended with a high count so they rank as established mappings.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def get_recent_description_category_pairs(self, limit: int = 1000) -> list[tuple[str, str]]:
+def get_recent_description_category_pairs(self, limit: int = 1000) -> list[tuple[str, str, int]]:
         query = """
-            WITH frequent_pairs AS (
-                SELECT t.description, cat.name AS category_name,
-                       COUNT(*) AS usage_count, MAX(t.date) AS last_used
-                FROM transactions t
-                JOIN categories cat ON t._id_categories = cat._id
-                WHERE t.description IS NOT NULL AND t.description != ''
-                GROUP BY t.description, cat.name
-                ORDER BY usage_count DESC, last_used DESC
-                LIMIT :limit_frequent
-            ),
-            recent_pairs AS (
-                SELECT t.description, cat.name AS category_name
-                FROM transactions t
-                JOIN categories cat ON t._id_categories = cat._id
-                WHERE t.description IS NOT NULL AND t.description != ''
-                ORDER BY t._id DESC
-                LIMIT :limit_recent
-            )
-            SELECT description, category_name
-            FROM (
-                SELECT description, category_name FROM frequent_pairs
-                UNION
-                SELECT description, category_name FROM recent_pairs
-            )
+            SELECT t.description, cat.name AS category_name, COUNT(*) AS usage_count
+            FROM transactions t
+            JOIN categories cat ON t._id_categories = cat._id
+            WHERE t.description IS NOT NULL AND TRIM(t.description) != ''
+            GROUP BY t.description, cat.name
+            ORDER BY usage_count DESC, MAX(t.date) DESC
+            LIMIT :limit
         """
-        limit_frequent_percentage = 0.7
-        limit_frequent = int(limit * limit_frequent_percentage)
-        limit_recent = limit - limit_frequent
-        rows = self.get_rows(query, {"limit_frequent": limit_frequent, "limit_recent": limit_recent})
-        pairs = [(str(row[0]), str(row[1])) for row in rows if row[0] and row[1]]
-        catalog_pairs = self.get_standard_item_description_category_pairs()
-        seen = {(description.lower(), category) for description, category in pairs}
-        for description, category in catalog_pairs:
+        rows = self.get_rows(query, {"limit": limit})
+        merged: dict[tuple[str, str], tuple[str, str, int]] = {}
+        for row in rows:
+            if not row[0] or not row[1]:
+                continue
+            description = str(row[0])
+            category = str(row[1])
+            merged[(description.lower(), category)] = (description, category, int(row[2] or 1))
+        catalog_weight = 25
+        for description, category in self.get_standard_item_description_category_pairs():
             key = (description.lower(), category)
-            if key not in seen:
-                pairs.append((description, category))
-                seen.add(key)
-        return pairs
+            previous = merged.get(key)
+            if previous is None or previous[2] < catalog_weight:
+                merged[key] = (description, category, catalog_weight)
+        return list(merged.values())
 ```
 
 </details>
@@ -4628,6 +4618,8 @@ def get_standard_item_description_category_pairs(self) -> list[tuple[str, str]]
 
 Return `(name, category_name)` pairs from the standard items catalog.
 
+Includes both the local catalog name and `name_en` when present.
+
 <details>
 <summary>Code:</summary>
 
@@ -4635,14 +4627,28 @@ Return `(name, category_name)` pairs from the standard items catalog.
 def get_standard_item_description_category_pairs(self) -> list[tuple[str, str]]:
         rows = self.get_rows(
             """
-            SELECT s.name, c.name
+            SELECT s.name, s.name_en, c.name
             FROM standard_items s
             JOIN categories c ON s._id_categories = c._id
-            WHERE s.name IS NOT NULL AND TRIM(s.name) != ''
             ORDER BY s.name COLLATE NOCASE
             """
         )
-        return [(str(row[0]), str(row[1])) for row in rows if row[0] and row[1]]
+        pairs: list[tuple[str, str]] = []
+        seen: set[tuple[str, str]] = set()
+        for name, name_en, category in rows:
+            category_name = str(category or "").strip()
+            if not category_name:
+                continue
+            for raw in (name, name_en):
+                text = str(raw or "").strip()
+                if not text:
+                    continue
+                key = (text.lower(), category_name)
+                if key in seen:
+                    continue
+                seen.add(key)
+                pairs.append((text, category_name))
+        return pairs
 ```
 
 </details>

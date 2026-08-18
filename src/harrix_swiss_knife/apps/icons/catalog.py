@@ -165,10 +165,15 @@ def open_icons_folder(path: Path) -> IconCatalog:
     Does not write `catalog.json` into flat dumps. For AI-style repos that keep
     files under `src/`, that subdirectory is used when the chosen root is empty.
 
+    Note repos rebuild `catalog.json` when it is missing or older than any icon
+    note (so category/tag edits show up without a manual refresh).
+
     """
     root = resolve_icons_root(path)
     if is_note_icons_repo(root):
-        if not (root / "catalog.json").is_file() and (root / "icons").is_dir():
+        catalog_path = root / "catalog.json"
+        icons_dir = root / "icons"
+        if icons_dir.is_dir() and (not catalog_path.is_file() or _catalog_is_stale(root, catalog_path)):
             return rebuild_catalog(root)
         return load_catalog(root)
     return scan_flat_folder(root)
@@ -312,6 +317,30 @@ def _build_search_blob(family: IconFamily) -> str:
     parts = [family.id, family.title, family.date, *family.categories, *family.tags]
     parts.extend(variant.name for variant in family.variants)
     return " ".join(part for part in parts if part)
+
+
+def _catalog_is_stale(repo_root: Path, catalog_path: Path) -> bool:
+    """Return whether any icon note is newer than `catalog.json`."""
+    try:
+        catalog_mtime = catalog_path.stat().st_mtime
+    except OSError:
+        return True
+    icons_dir = repo_root / "icons"
+    if not icons_dir.is_dir():
+        return False
+    for note_dir in _iter_icon_note_dirs(icons_dir):
+        try:
+            if note_dir.stat().st_mtime > catalog_mtime:
+                return True
+        except OSError:
+            continue
+        md_path = note_dir / f"{note_dir.name}.md"
+        try:
+            if md_path.is_file() and md_path.stat().st_mtime > catalog_mtime:
+                return True
+        except OSError:
+            continue
+    return False
 
 
 def _category_from_id(family_id: str) -> str:

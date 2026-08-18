@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+import os
 from pathlib import Path
 
 from harrix_swiss_knife.apps.icons.add_vector import (
@@ -22,7 +24,7 @@ from harrix_swiss_knife.apps.icons.add_vector_meta import (
     permalink_suffixes,
     scan_repo_meta_defaults,
 )
-from harrix_swiss_knife.apps.icons.catalog import load_catalog, rebuild_catalog
+from harrix_swiss_knife.apps.icons.catalog import load_catalog, open_icons_folder, rebuild_catalog
 
 _MIN_SVG = (
     '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><rect width="32" height="32" fill="#336699"/></svg>'
@@ -190,3 +192,43 @@ def test_load_catalog_after_ai_featured(tmp_path: Path) -> None:
     assert family.variants[0].file == "img/ui__button.ai"
     loaded = load_catalog(repo)
     assert loaded.icons[0].featured == "featured-image.ai"
+
+
+def test_rebuild_catalog_picks_up_new_category(tmp_path: Path) -> None:
+    repo = _repo_with_garage(tmp_path)
+    first = rebuild_catalog(repo)
+    assert first.categories() == ["building"]
+
+    md_path = repo / "icons" / "building" / "building__garage" / "building__garage.md"
+    text = md_path.read_text(encoding="utf-8")
+    md_path.write_text(
+        text.replace("categories:\n  - building\n", "categories: [building, vehicle]\n"),
+        encoding="utf-8",
+    )
+    rebuilt = rebuild_catalog(repo)
+    assert rebuilt.categories() == ["building", "vehicle"]
+    assert rebuilt.icons[0].categories == ["building", "vehicle"]
+
+
+def test_open_icons_folder_rebuilds_stale_catalog(tmp_path: Path) -> None:
+    repo = _repo_with_garage(tmp_path)
+    rebuild_catalog(repo)
+    catalog_path = repo / "catalog.json"
+    raw = json.loads(catalog_path.read_text(encoding="utf-8"))
+    for icon in raw["icons"]:
+        icon["categories"] = ["building"]
+    catalog_path.write_text(json.dumps(raw, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+    md_path = repo / "icons" / "building" / "building__garage" / "building__garage.md"
+    text = md_path.read_text(encoding="utf-8")
+    md_path.write_text(
+        text.replace("categories:\n  - building\n", "categories: [building, vehicle]\n"),
+        encoding="utf-8",
+    )
+    # Ensure the note is newer than catalog.json even on coarse filesystem clocks.
+    catalog_mtime = catalog_path.stat().st_mtime
+    os.utime(md_path, (catalog_mtime + 5, catalog_mtime + 5))
+
+    opened = open_icons_folder(repo)
+    assert "vehicle" in opened.categories()
+    assert opened.icons[0].categories == ["building", "vehicle"]

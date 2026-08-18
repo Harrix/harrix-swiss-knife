@@ -399,6 +399,9 @@ Open a note-folder repo or a flat icon dump (SVG/AI/PDF/EPS).
 Does not write `catalog.json` into flat dumps. For AI-style repos that keep
 files under `src/`, that subdirectory is used when the chosen root is empty.
 
+Note repos rebuild `catalog.json` when it is missing or older than any icon
+note (so category/tag edits show up without a manual refresh).
+
 <details>
 <summary>Code:</summary>
 
@@ -406,7 +409,9 @@ files under `src/`, that subdirectory is used when the chosen root is empty.
 def open_icons_folder(path: Path) -> IconCatalog:
     root = resolve_icons_root(path)
     if is_note_icons_repo(root):
-        if not (root / "catalog.json").is_file() and (root / "icons").is_dir():
+        catalog_path = root / "catalog.json"
+        icons_dir = root / "icons"
+        if icons_dir.is_dir() and (not catalog_path.is_file() or _catalog_is_stale(root, catalog_path)):
             return rebuild_catalog(root)
         return load_catalog(root)
     return scan_flat_folder(root)
