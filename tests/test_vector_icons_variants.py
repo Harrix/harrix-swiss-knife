@@ -25,6 +25,7 @@ from harrix_swiss_knife.apps.icons.widgets import (
     VariantsPanel,
     is_svg_icon_path,
     placeholder_pixmap,
+    read_svg_text,
 )
 
 _MIN_SVG = (
@@ -388,3 +389,20 @@ def test_is_svg_icon_path() -> None:
     assert not is_svg_icon_path(r"D:\icons\building__garage.ai")
     assert not is_svg_icon_path("")
     assert not is_svg_icon_path(None)
+
+
+def test_read_svg_text_utf8_and_utf16(tmp_path: Path) -> None:
+    utf8 = tmp_path / "icon.svg"
+    utf8.write_text(_MIN_SVG, encoding="utf-8")
+    assert read_svg_text(utf8) == _MIN_SVG
+
+    utf16 = tmp_path / "icon-utf16.svg"
+    utf16.write_bytes(_MIN_SVG.encode("utf-16"))
+    assert "<svg" in read_svg_text(utf16)
+
+
+def test_read_svg_text_rejects_binary(tmp_path: Path) -> None:
+    binary = tmp_path / "icon.svg"
+    binary.write_bytes(b"%!PS-Adobe\xe2\x00not-unicode")
+    with pytest.raises(UnicodeDecodeError):
+        read_svg_text(binary)

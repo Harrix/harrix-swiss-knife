@@ -1069,7 +1069,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
             QMessageBox.warning(self, "Vector Icons", "Clipboard is not available.")
             return
         try:
-            clipboard.setText(path.read_text(encoding="utf-8"))
+            clipboard.setText(read_svg_text(path))
         except (OSError, UnicodeDecodeError) as exc:
             QMessageBox.warning(self, "Vector Icons", f"Failed to read `{path.name}`:\n{exc}")
             return

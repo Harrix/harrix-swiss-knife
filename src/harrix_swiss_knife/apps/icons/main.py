@@ -134,7 +134,12 @@ from harrix_swiss_knife.apps.icons.variant_view import (
     GridEntry,
     build_grid_entries,
 )
-from harrix_swiss_knife.apps.icons.widgets import CategoryDropList, DraggableIconList, VariantsPanel
+from harrix_swiss_knife.apps.icons.widgets import (
+    CategoryDropList,
+    DraggableIconList,
+    VariantsPanel,
+    read_svg_text,
+)
 from harrix_swiss_knife.paths import get_config_path_str
 from harrix_swiss_knife.win11_backdrop import SystemBackdrop, try_apply_system_backdrop
 
@@ -1127,7 +1132,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
             QMessageBox.warning(self, "Vector Icons", "Clipboard is not available.")
             return
         try:
-            clipboard.setText(path.read_text(encoding="utf-8"))
+            clipboard.setText(read_svg_text(path))
         except (OSError, UnicodeDecodeError) as exc:
             QMessageBox.warning(self, "Vector Icons", f"Failed to read `{path.name}`:\n{exc}")
             return

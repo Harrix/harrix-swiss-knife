@@ -44,6 +44,7 @@ lang: en
 - [🔧 Function `encode_family_ids_mime`](#-function-encode_family_ids_mime)
 - [🔧 Function `family_display_filename`](#-function-family_display_filename)
 - [🔧 Function `is_svg_icon_path`](#-function-is_svg_icon_path)
+- [🔧 Function `read_svg_text`](#-function-read_svg_text)
 
 </details>
 
@@ -1557,6 +1558,38 @@ Return whether `path` looks like an SVG file path.
 ```python
 def is_svg_icon_path(path: object) -> bool:
     return isinstance(path, str) and Path(path).suffix.casefold() == ".svg"
+```
+
+</details>
+
+## 🔧 Function `read_svg_text`
+
+```python
+def read_svg_text(path: Path) -> str
+```
+
+Read SVG markup, trying encodings used by export tools.
+
+Raises:
+
+- `OSError`: If the file cannot be read.
+- `UnicodeDecodeError`: If the bytes are not valid SVG text.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def read_svg_text(path: Path) -> str:
+    data = path.read_bytes()
+    last_error: UnicodeDecodeError | None = None
+    for encoding in ("utf-8-sig", "utf-8", "utf-16"):
+        try:
+            return data.decode(encoding)
+        except UnicodeDecodeError as exc:
+            last_error = exc
+    if last_error is not None:
+        raise last_error
+    return data.decode("utf-8")
 ```
 
 </details>

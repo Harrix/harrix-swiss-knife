@@ -696,6 +696,27 @@ def is_svg_icon_path(path: object) -> bool:
     return isinstance(path, str) and Path(path).suffix.casefold() == ".svg"
 
 
+def read_svg_text(path: Path) -> str:
+    """Read SVG markup, trying encodings used by export tools.
+
+    Raises:
+
+    - `OSError`: If the file cannot be read.
+    - `UnicodeDecodeError`: If the bytes are not valid SVG text.
+
+    """
+    data = path.read_bytes()
+    last_error: UnicodeDecodeError | None = None
+    for encoding in ("utf-8-sig", "utf-8", "utf-16"):
+        try:
+            return data.decode(encoding)
+        except UnicodeDecodeError as exc:
+            last_error = exc
+    if last_error is not None:
+        raise last_error
+    return data.decode("utf-8")
+
+
 def _filename_label_font(base: QFont) -> QFont:
     font = QFont(base)
     font.setPointSizeF(max(7.5, base.pointSizeF() * 0.72))
