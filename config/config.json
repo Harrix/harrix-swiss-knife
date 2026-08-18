@@ -202,15 +202,15 @@
   "path_quotes": "D:/Dropbox/Notes/Notes-Lists/Quotes",
   "path_site_repo": "D:/GitHub/harrix.dev",
   "path_totalcmd_ini": "C:/TCTitan36/Wincmd.ini",
-  "path_vector_icons": "D:/GitHub/Harrix-Vector-Icons",
-  "path_vector_icons_ai": "D:/GitHub/Harrix-Vector-Icons-ai",
+  "path_vector_icons": "D:/GitHub/_vector/Harrix-Vector-Icons",
+  "path_vector_icons_ai": "D:/GitHub/_vector/Harrix-Vector-Icons-ai",
   "path_vector_icons_pinned": [
-    "D:/GitHub/Harrix-Vector-Icons",
-    "D:/GitHub/Harrix-Vector-Icons-ai/src",
-    "D:/GitHub/Harrix-Vector-Images-Maybe-Free",
-    "D:/GitHub/Harrix-WeatherIcons",
-    "D:/GitHub/Harrix-UI-Icons",
-    "D:/GitHub/Harrix-Vector-Images"
+    "D:/GitHub/_vector/Harrix-Vector-Icons",
+    "D:/GitHub/_vector/Harrix-Vector-Icons-ai/src",
+    "D:/GitHub/_vector/Harrix-Vector-Images-Maybe-Free",
+    "D:/GitHub/_vector/Harrix-WeatherIcons",
+    "D:/GitHub/_vector/Harrix-UI-Icons",
+    "D:/GitHub/_vector/Harrix-Vector-Images"
   ],
   "path_vector_icons_source_app": "C:/Program Files/Adobe/Adobe Illustrator 2026/Support Files/Contents/Windows/Illustrator.exe",
   "paths_android_projects": ["D:/GitHub/harrix-swiss-knife/android", "D:/GitHub/harrix-notes-android"],
