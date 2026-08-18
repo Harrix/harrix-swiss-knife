@@ -15,6 +15,7 @@ lang: en
 - [🔧 Function `available_variant_view_modes`](#-function-available_variant_view_modes)
 - [🔧 Function `build_grid_entries`](#-function-build_grid_entries)
 - [🔧 Function `classify_variant_kind`](#-function-classify_variant_kind)
+- [🔧 Function `collect_icon_detail_preview_paths`](#-function-collect_icon_detail_preview_paths)
 
 </details>
 
@@ -172,6 +173,52 @@ def classify_variant_kind(stem: str) -> str:
         color_kind = color_match.group(1).casefold()
         return "gray" if color_kind == "grey" else color_kind
     return MODE_COLOR
+```
+
+</details>
+
+## 🔧 Function `collect_icon_detail_preview_paths`
+
+```python
+def collect_icon_detail_preview_paths(family: IconFamily, repo_root: Path | None, selected_path: str) -> list[tuple[str, Path]]
+```
+
+Return `(label, path)` pairs for Icon details thumbnails.
+
+Includes featured, each variant, and the selected file when it exists.
+Duplicate paths (same resolved file) are omitted.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def collect_icon_detail_preview_paths(
+    family: IconFamily,
+    repo_root: Path | None,
+    selected_path: str,
+) -> list[tuple[str, Path]]:
+    seen: set[str] = set()
+    result: list[tuple[str, Path]] = []
+
+    def add(label: str, path: Path | None) -> None:
+        if path is None or not path.is_file():
+            return
+        try:
+            key = str(path.resolve())
+        except OSError:
+            key = str(path)
+        if key in seen:
+            return
+        seen.add(key)
+        result.append((label, path))
+
+    if repo_root is not None:
+        add("Featured", family.featured_path(repo_root))
+        for variant in family.variants:
+            add(variant.name, variant.absolute_path(repo_root, family.folder))
+    selected = Path(selected_path)
+    add(selected.name, selected if selected.is_file() else None)
+    return result
 ```
 
 </details>

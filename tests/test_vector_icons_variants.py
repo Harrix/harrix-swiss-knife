@@ -27,6 +27,7 @@ from harrix_swiss_knife.apps.icons.variant_view import (
     MODE_WHITE,
     GridEntry,
     available_variant_view_modes,
+    collect_icon_detail_preview_paths,
 )
 from harrix_swiss_knife.apps.icons.widgets import (
     DraggableIconList,
@@ -442,3 +443,26 @@ def test_available_variant_view_modes_hides_missing_kinds() -> None:
 def test_available_variant_view_modes_includes_line_kind() -> None:
     family = _family_with_variants("symbol__ok", ["symbol__ok_line-16"])
     assert available_variant_view_modes([family]) == (MODE_FEATURED, MODE_LINE_16, MODE_ALL)
+
+
+def test_collect_icon_detail_preview_paths(tmp_path: Path) -> None:
+    featured = tmp_path / "featured-image.svg"
+    variant = tmp_path / "img" / "building__garage_white.svg"
+    extra = tmp_path / "other.svg"
+    _write_svg(featured)
+    _write_svg(variant)
+    _write_svg(extra)
+    family = IconFamily(
+        id="building__garage",
+        title="Garage",
+        categories=["building"],
+        tags=[],
+        folder="",
+        featured="featured-image.svg",
+        featured_hash="",
+        variants=[IconVariant(file="img/building__garage_white.svg", name="building__garage_white", hash="")],
+    )
+    paths = collect_icon_detail_preview_paths(family, tmp_path, str(extra))
+    assert [label for label, _path in paths] == ["Featured", "building__garage_white", extra.name]
+    assert collect_icon_detail_preview_paths(family, tmp_path, str(featured))[0][0] == "Featured"
+    assert len(collect_icon_detail_preview_paths(family, tmp_path, str(featured))) == 2

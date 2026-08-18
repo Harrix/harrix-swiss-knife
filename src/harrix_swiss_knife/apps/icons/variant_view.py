@@ -4,11 +4,10 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from pathlib import Path
-
     from harrix_swiss_knife.apps.icons.catalog import IconFamily, IconVariant
 
 MODE_FEATURED = "featured"
@@ -147,6 +146,41 @@ def classify_variant_kind(stem: str) -> str:
         color_kind = color_match.group(1).casefold()
         return "gray" if color_kind == "grey" else color_kind
     return MODE_COLOR
+
+
+def collect_icon_detail_preview_paths(
+    family: IconFamily,
+    repo_root: Path | None,
+    selected_path: str,
+) -> list[tuple[str, Path]]:
+    """Return `(label, path)` pairs for Icon details thumbnails.
+
+    Includes featured, each variant, and the selected file when it exists.
+    Duplicate paths (same resolved file) are omitted.
+
+    """
+    seen: set[str] = set()
+    result: list[tuple[str, Path]] = []
+
+    def add(label: str, path: Path | None) -> None:
+        if path is None or not path.is_file():
+            return
+        try:
+            key = str(path.resolve())
+        except OSError:
+            key = str(path)
+        if key in seen:
+            return
+        seen.add(key)
+        result.append((label, path))
+
+    if repo_root is not None:
+        add("Featured", family.featured_path(repo_root))
+        for variant in family.variants:
+            add(variant.name, variant.absolute_path(repo_root, family.folder))
+    selected = Path(selected_path)
+    add(selected.name, selected if selected.is_file() else None)
+    return result
 
 
 def _featured_entry(family: IconFamily, repo_root: Path, *, is_fallback: bool = False) -> GridEntry | None:

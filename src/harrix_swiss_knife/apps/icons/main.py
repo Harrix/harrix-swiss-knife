@@ -22,6 +22,7 @@ from PySide6.QtWidgets import (
     QHeaderView,
     QLabel,
     QLineEdit,
+    QListWidget,
     QListWidgetItem,
     QMainWindow,
     QMenu,
@@ -134,6 +135,7 @@ from harrix_swiss_knife.apps.icons.variant_view import (
     GridEntry,
     available_variant_view_modes,
     build_grid_entries,
+    collect_icon_detail_preview_paths,
 )
 from harrix_swiss_knife.apps.icons.widgets import (
     CategoryDropList,
@@ -159,18 +161,27 @@ ADD_SVGS_RESULT_PREVIEW_LIMIT = 40
 _KEYWORD_TARGET_PAIR_LEN = 2
 _MIN_BATCH_KEYWORD_ICONS = 2
 _VECTOR_FILE_FILTER = "Vector images (*.svg *.ai *.pdf *.eps);;All files (*.*)"
+_DETAILS_PREVIEW_SIZE = 128
+_DETAILS_PREVIEW_PANEL_WIDTH = 200
 
 
 class KeyValueTableDialog(QDialog):
     """Dialog displaying key-value pairs in a table with a copy button for each row."""
 
-    def __init__(self, parent: QWidget | None, title: str, data: list[tuple[str, str]]) -> None:
+    def __init__(
+        self,
+        parent: QWidget | None,
+        title: str,
+        data: list[tuple[str, str]],
+        *,
+        previews: list[tuple[str, QPixmap]] | None = None,
+    ) -> None:
         """Initialize the dialog."""
         super().__init__(parent)
         self.setWindowTitle(title)
-        self.resize(600, 400)
+        self.resize(880 if previews else 600, 480 if previews else 400)
 
-        layout = QVBoxLayout(self)
+        table_column = QVBoxLayout()
 
         self.table = QTableWidget(len(data), 3)
         self.table.setHorizontalHeaderLabels(["Property", "Value", ""])
@@ -198,11 +209,18 @@ class KeyValueTableDialog(QDialog):
             copy_btn.clicked.connect(lambda _checked, v=value: self._copy_value(v))
             self.table.setCellWidget(row, 2, copy_btn)
 
-        layout.addWidget(self.table)
-
+        table_column.addWidget(self.table)
         btn_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
         btn_box.rejected.connect(self.reject)
-        layout.addWidget(btn_box)
+        table_column.addWidget(btn_box)
+
+        if previews:
+            root = QHBoxLayout(self)
+            root.addWidget(_preview_list_widget(previews))
+            root.addLayout(table_column, stretch=1)
+        else:
+            layout = QVBoxLayout(self)
+            layout.addLayout(table_column)
 
     def _copy_value(self, value: str) -> None:
         QApplication.clipboard().setText(value)
@@ -769,6 +787,16 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._thumb_status_label.hide()
         self._thumb_status_bar.hide()
         self._thumb_status_bar.reset()
+
+    def _icon_detail_previews(self, family: IconFamily, svg_path: str) -> list[tuple[str, QPixmap]]:
+        """Build left-side thumbnails for the Icon details dialog."""
+        previews: list[tuple[str, QPixmap]] = []
+        for label, path in collect_icon_detail_preview_paths(family, self._repo_root, svg_path):
+            pixmap = self._preview_pixmap_for_path(family, path)
+            if pixmap is None or pixmap.isNull():
+                pixmap = placeholder_pixmap(_DETAILS_PREVIEW_SIZE)
+            previews.append((label, pixmap))
+        return previews
 
     def _import_vector_sources(self, sources: list[Path]) -> None:
         """Import vector files into the open flat folder or note repository."""
@@ -1434,7 +1462,12 @@ class MainWindow(QMainWindow, AppWindowMixin):
             (f"Variants ({len(family.variants)})", variants),
         ]
 
-        dialog = KeyValueTableDialog(self, "Icon details", data)
+        dialog = KeyValueTableDialog(
+            self,
+            "Icon details",
+            data,
+            previews=self._icon_detail_previews(family, svg_path),
+        )
         dialog.exec()
 
     def _on_icon_files_dropped(self, paths: list[str]) -> None:
@@ -1868,6 +1901,32 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self.folder_tree.blockSignals(False)  # noqa: FBT003
         self.folder_tree.setUpdatesEnabled(True)
         self.folder_tree.viewport().update()
+
+    def _preview_pixmap_for_path(self, family: IconFamily, path: Path) -> QPixmap | None:
+        """Return a cached or freshly rendered thumbnail for `path`."""
+        featured = family.featured_path(self._repo_root) if self._repo_root is not None else None
+        try:
+            resolved = path.resolve()
+        except OSError:
+            resolved = path
+        if featured is not None:
+            try:
+                featured_resolved = featured.resolve()
+            except OSError:
+                featured_resolved = featured
+            if resolved == featured_resolved:
+                cached = self._pixmaps.get(family.id)
+                if cached is None:
+                    cached = self._thumb_cache.load_pixmap(family.id)
+                if cached is not None and not cached.isNull():
+                    return cached
+        session = self._variant_pixmaps.get(str(path)) or self._variant_pixmaps.get(str(resolved))
+        if session is not None and not session.isNull():
+            return session
+        image = render_icon_to_image(path, _DETAILS_PREVIEW_SIZE)
+        if image is None:
+            return None
+        return QPixmap.fromImage(image)
 
     def _prime_pixmaps_from_cache(self) -> None:
         if self._catalog is None:
@@ -2350,6 +2409,24 @@ def _is_vector_drop_path(path: str) -> bool:
     """Return `True` for folders and vector files that drop zones should accept."""
     candidate = Path(path)
     return candidate.is_dir() or candidate.suffix.casefold() in FLAT_ICON_EXTENSIONS
+
+
+def _preview_list_widget(previews: list[tuple[str, QPixmap]]) -> QListWidget:
+    """Return a left-side thumbnail list for Icon details."""
+    panel = QListWidget()
+    panel.setViewMode(QListWidget.ViewMode.IconMode)
+    panel.setIconSize(QSize(_DETAILS_PREVIEW_SIZE, _DETAILS_PREVIEW_SIZE))
+    panel.setMovement(QListWidget.Movement.Static)
+    panel.setResizeMode(QListWidget.ResizeMode.Adjust)
+    panel.setWordWrap(True)
+    panel.setSpacing(6)
+    panel.setFixedWidth(_DETAILS_PREVIEW_PANEL_WIDTH)
+    panel.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
+    for label, pixmap in previews:
+        item = QListWidgetItem(QIcon(pixmap), label)
+        item.setSizeHint(QSize(_DETAILS_PREVIEW_PANEL_WIDTH - 24, _DETAILS_PREVIEW_SIZE + 36))
+        panel.addItem(item)
+    return panel
 
 
 def main() -> None:

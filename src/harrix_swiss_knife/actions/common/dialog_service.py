@@ -98,6 +98,9 @@ from harrix_swiss_knife.qt_markdown_choice_cards import (
 
 COMMIT_OFFER_CREATE_CODE = 10
 COMMIT_OFFER_COPY_CODE = 11
+_ABOUT_LOGO_SIZE = 192
+_ABOUT_TEXT_MIN_HEIGHT = 320
+_ABOUT_LOGO_RESOURCE = ":/assets/logo.svg"
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Collection
@@ -1289,6 +1292,12 @@ class ActionDialogService:
             about_text += f"GitHub: [{github}]({github})\n\n"
 
         def _build(dialog: QDialog, layout: QVBoxLayout) -> None:
+            logo_label = QLabel()
+            logo_label.setAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignVCenter)
+            logo_label.setPixmap(QIcon(_ABOUT_LOGO_RESOURCE).pixmap(QSize(_ABOUT_LOGO_SIZE, _ABOUT_LOGO_SIZE)))
+            logo_label.setFixedHeight(_ABOUT_LOGO_SIZE + 16)
+            layout.addWidget(logo_label)
+
             text_browser = QTextBrowser()
             text_browser.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
             text_browser.setMarkdown(about_text)
@@ -1299,6 +1308,7 @@ class ActionDialogService:
             fit_widget_height(
                 text_browser,
                 text_content_height(text_browser),
+                minimum=_ABOUT_TEXT_MIN_HEIGHT,
                 maximum=self._default_size.height() - 160,
             )
 
@@ -1320,7 +1330,7 @@ class ActionDialogService:
 
             layout.addLayout(button_layout)
 
-        result, _dialog = self._exec_standard_dialog(title, _build, stretch_row=0)
+        result, _dialog = self._exec_standard_dialog(title, _build, stretch_row=1)
         return about_text if result == QDialog.DialogCode.Accepted else None
 
     def show_action_output_log_browser(
