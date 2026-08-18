@@ -174,7 +174,15 @@ def get_menu_structure() -> list[Any]:
         OnFitness,
         OnFood,
         OnHabits,
-        OnIcons,
+        (
+            "Icons",
+            "🎨",
+            [
+                OnIcons,
+                OnCheckImages,
+                OnBeautifyAndOptimizeIcons,
+            ],
+        ),
         "-",
         OnQuickLauncher,
         "-",

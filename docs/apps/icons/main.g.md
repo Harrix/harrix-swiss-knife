@@ -368,8 +368,9 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self.folder_tree = QTreeWidget()
         self.folder_tree.setHeaderHidden(True)
         self.folder_tree.setRootIsDecorated(True)
-        self.folder_tree.setIconSize(QSize(CATEGORY_LIST_ICON_SIZE, CATEGORY_LIST_ICON_SIZE))
-        self.folder_tree.setIndentation(16)
+        self.folder_tree.setUniformRowHeights(True)
+        self.folder_tree.setIconSize(QSize(FOLDER_TREE_ICON_SIZE, FOLDER_TREE_ICON_SIZE))
+        self.folder_tree.setIndentation(12)
         self.folder_tree.currentItemChanged.connect(self._on_folder_tree_changed)
         left_splitter.addWidget(self._sidebar_panel("Folders:", self.folder_tree))
 

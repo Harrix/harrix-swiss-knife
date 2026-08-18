@@ -155,11 +155,14 @@ _Figure 1: Screenshot_
   - ⚡ Publish Python library to PyPI in …
   - 🌟 Ruff sort, ruff format, sort PY in … ꟲᴸᴵ
   - 🌟 ★ Ruff sort, ruff format, sort, make docs PY in … ꟲᴸᴵ
+- **Icons**
+  - 💎 Beautify and optimize icons
+  - 🚧 Check images
+  - 🎨 Vector Icons
 - 💰 Finance tracker
 - 🏃🏻 Fitness tracker
 - 🍔 Food tracker
 - ✅ Habit tracker
-- 🎨 Vector Icons
 - ⚡ Quick launcher…
 - × Exit
 

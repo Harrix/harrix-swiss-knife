@@ -5,6 +5,8 @@ from __future__ import annotations
 import pytest
 from PySide6.QtWidgets import QApplication
 
+from harrix_swiss_knife.actions.apps.beautify_and_optimize_icons import OnBeautifyAndOptimizeIcons
+from harrix_swiss_knife.actions.apps.check_images import OnCheckImages
 from harrix_swiss_knife.actions.common.quick_launcher_registry import (
     collect_quick_launcher_actions,
     iter_menu_structure,
@@ -54,6 +56,8 @@ def test_iter_menu_structure_includes_nested_text_actions() -> None:
     assert OnFixTextWithAI in classes
     assert OnSpeechToTextWithAI in classes
     assert OnOptimizeClipboard in classes
+    assert OnCheckImages in classes
+    assert OnBeautifyAndOptimizeIcons in classes
 
 
 def test_parse_hotkey_string_ctrl_alt_space(qapp: QApplication) -> None:  # noqa: ARG001
