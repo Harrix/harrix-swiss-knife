@@ -10,7 +10,7 @@ from __future__ import annotations
 import itertools
 from typing import TYPE_CHECKING
 
-from PySide6.QtCore import QPoint, QRect, QSize, Qt
+from PySide6.QtCore import QEvent, QEventLoop, QObject, QPoint, QRect, QSize, Qt
 from PySide6.QtGui import QCloseEvent, QColor, QIcon, QMouseEvent, QPainter, QPixmap, QShowEvent
 from PySide6.QtWidgets import QApplication, QDialog, QLabel, QPushButton, QVBoxLayout, QWidget
 
@@ -56,6 +56,34 @@ COMPACT_ACTION_BUTTON_STYLE = (
 _stack_seq = itertools.count()
 _active_toasts: set[ToastNotificationBase] = set()
 
+_USER_INPUT_EVENT_TYPES = frozenset(
+    {
+        QEvent.Type.MouseButtonPress,
+        QEvent.Type.MouseButtonRelease,
+        QEvent.Type.MouseButtonDblClick,
+        QEvent.Type.MouseMove,
+        QEvent.Type.NonClientAreaMouseButtonPress,
+        QEvent.Type.NonClientAreaMouseButtonRelease,
+        QEvent.Type.NonClientAreaMouseButtonDblClick,
+        QEvent.Type.NonClientAreaMouseMove,
+        QEvent.Type.Wheel,
+        QEvent.Type.KeyPress,
+        QEvent.Type.KeyRelease,
+        QEvent.Type.Shortcut,
+        QEvent.Type.ShortcutOverride,
+        QEvent.Type.ContextMenu,
+        QEvent.Type.HoverEnter,
+        QEvent.Type.HoverLeave,
+        QEvent.Type.HoverMove,
+        QEvent.Type.Enter,
+        QEvent.Type.Leave,
+        QEvent.Type.FocusIn,
+        QEvent.Type.DragEnter,
+        QEvent.Type.DragMove,
+        QEvent.Type.Drop,
+    },
+)
+
 
 class ToastNotificationBase(QDialog):
     """Base class for toast notifications.
@@ -90,6 +118,8 @@ class ToastNotificationBase(QDialog):
         self.message = message
         self.label = QLabel(self.message, self)
         self.label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        # Clicks must reach the dialog so dragging and double-click pin work.
+        self.label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
         self._apply_default_style()
 
         # Layout setup
@@ -101,6 +131,7 @@ class ToastNotificationBase(QDialog):
         # Dragging tracking variables
         self.dragging = False
         self.drag_position = QPoint()
+        self._user_moved = False
 
         # Pinned state (bottom-right near system tray)
         self._is_pinned = False
@@ -160,6 +191,7 @@ class ToastNotificationBase(QDialog):
         """
         if event.buttons() & Qt.MouseButton.LeftButton and self.dragging:
             self.move(event.globalPosition().toPoint() - self.drag_position)
+            self._user_moved = True
             event.accept()
 
     def mousePressEvent(self, event: QMouseEvent) -> None:  # noqa: N802
@@ -197,6 +229,16 @@ class ToastNotificationBase(QDialog):
         self.activateWindow()
         self._position_collapse_button()
 
+    def pump_events(self) -> None:
+        """Process queued Qt events while keeping this toast clickable and draggable.
+
+        Use during long UI-thread work instead of
+        `QApplication.processEvents(ExcludeUserInputEvents)`, which updates the
+        toast text but drops mouse input.
+
+        """
+        process_events_allowing_widget(self)
+
     def reposition_action_buttons(self) -> None:
         """Place collapse (and subclass) action buttons after a move or resize."""
         self._position_collapse_button()
@@ -209,11 +251,7 @@ class ToastNotificationBase(QDialog):
     @classmethod
     def restack_group(cls, *, pinned: bool) -> None:
         """Reposition all visible toasts in the given pin group."""
-        toasts = [
-            toast
-            for toast in sorted(_active_toasts, key=lambda item: item.stack_order)
-            if toast.isVisible() and toast.is_pinned == pinned
-        ]
+        toasts = cls.stack_members(pinned=pinned)
         if not toasts:
             return
 
@@ -241,6 +279,20 @@ class ToastNotificationBase(QDialog):
         super().showEvent(event)
         _active_toasts.add(self)
         self.restack_group(pinned=self.is_pinned)
+
+    @classmethod
+    def stack_members(cls, *, pinned: bool) -> list[ToastNotificationBase]:
+        """Return visible toasts in a pin group that still follow automatic stacking."""
+        return [
+            toast
+            for toast in sorted(_active_toasts, key=lambda item: item.stack_order)
+            if toast.isVisible() and toast.is_pinned == pinned and not toast.user_moved
+        ]
+
+    @property
+    def user_moved(self) -> bool:
+        """Whether the user dragged this toast away from the automatic stack."""
+        return self._user_moved
 
     def _action_button_side(self) -> int:
         """Return the action-button side length for the current pin state."""
@@ -316,6 +368,7 @@ class ToastNotificationBase(QDialog):
 
     def _toggle_pinned(self) -> None:
         """Toggle between pinned compact layout and expanded centered layout."""
+        self._user_moved = False
         if self._is_pinned:
             self._is_pinned = False
             self._apply_default_style()
@@ -330,6 +383,20 @@ class ToastNotificationBase(QDialog):
     def _trailing_controls_width(self) -> int:
         """Width reserved to the right of the collapse button for subclass controls."""
         return 0
+
+
+class _AllowWidgetInputFilter(QObject):
+    """Block user input except for one widget tree (typically a toast)."""
+
+    def __init__(self, root: QWidget) -> None:
+        super().__init__(root)
+        self._root = root
+
+    def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
+        """Swallow user input that is not aimed at the allowed widget."""
+        if event.type() not in _USER_INPUT_EVENT_TYPES:
+            return False
+        return not event_targets_widget(watched, self._root)
 
 
 def compute_toast_stack_positions(
@@ -369,6 +436,17 @@ def compute_toast_stack_positions(
     return points
 
 
+def event_targets_widget(watched: QObject, root: QWidget) -> bool:
+    """Return whether `watched` belongs to `root` or its native window."""
+    root_window = root.windowHandle()
+    current: QObject | None = watched
+    while current is not None:
+        if current is root or current is root_window:
+            return True
+        current = current.parent()
+    return False
+
+
 def make_action_icon(side: int, symbol: str) -> QIcon:
     """Render a centered action symbol for the given button side length."""
     pixmap = QPixmap(side, side)
@@ -383,6 +461,29 @@ def make_action_icon(side: int, symbol: str) -> QIcon:
     painter.drawText(pixmap.rect(), Qt.AlignmentFlag.AlignCenter, symbol)
     painter.end()
     return QIcon(pixmap)
+
+
+def process_events_allowing_widget(widget: QWidget | None) -> None:
+    """Pump the event loop so `widget` stays interactive during long UI-thread work.
+
+    The rest of the UI still receives paint and timer events, but mouse and
+    keyboard input is delivered only to `widget` and its descendants. That keeps
+    a toast draggable without letting the owner window re-enter catalog load
+    handlers.
+
+    """
+    app = QApplication.instance()
+    if not isinstance(app, QApplication):
+        return
+    if widget is None:
+        app.processEvents(QEventLoop.ProcessEventsFlag.ExcludeUserInputEvents)
+        return
+    event_filter = _AllowWidgetInputFilter(widget)
+    app.installEventFilter(event_filter)
+    try:
+        app.processEvents()
+    finally:
+        app.removeEventFilter(event_filter)
 
 
 def _toast_home_point(area: QRect, size: QSize, *, pinned: bool, margin: int) -> QPoint:

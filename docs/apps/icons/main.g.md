@@ -1445,7 +1445,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
                 if toast is not None:
                     toast.set_progress(index, len(pending))
                     if index == len(pending) or index % VARIANT_RENDER_CHUNK == 0:
-                        QApplication.processEvents(QEventLoop.ProcessEventsFlag.ExcludeUserInputEvents)
+                        toast.pump_events()
         finally:
             if owned_toast:
                 self._close_load_progress_toast()
@@ -1886,7 +1886,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         else:
             toast.message = message
         toast.set_progress(done, total)
-        QApplication.processEvents(QEventLoop.ProcessEventsFlag.ExcludeUserInputEvents)
+        toast.pump_events()
         return toast
 
     @staticmethod

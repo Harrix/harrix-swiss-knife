@@ -32,7 +32,9 @@ class ToastProgressNotification(toast_countdown_notification.ToastCountdownNotif
         super().__init__(message, parent)
 
         self._progress_container = QWidget(self)
+        self._progress_container.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
         self.progress_bar = QProgressBar(self._progress_container)
+        self.progress_bar.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
         self.progress_bar.setTextVisible(True)
         self.progress_bar.setFormat("%v / %m")
         self.progress_bar.setMinimumWidth(220)
