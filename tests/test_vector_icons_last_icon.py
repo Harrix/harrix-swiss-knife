@@ -13,10 +13,13 @@ from PySide6.QtWidgets import QApplication
 from harrix_swiss_knife.apps.icons import settings
 from harrix_swiss_knife.apps.icons.catalog import IconFamily
 from harrix_swiss_knife.apps.icons.settings import (
+    LAST_ICONS_KEY,
     PINNED_FOLDERS_KEY,
+    RECENT_FOLDERS_KEY,
     load_last_folder,
     load_last_icon,
     pin_folder,
+    remember_recent_folder,
     save_last_folder,
     save_last_icon,
 )
@@ -91,6 +94,7 @@ def test_save_and_load_last_folder(tmp_path: Path, monkeypatch: pytest.MonkeyPat
 
     save_last_folder(first)
     assert load_last_folder() == first
+    assert "\\" not in store[settings.LAST_FOLDER_KEY]
     save_last_folder(second)
     assert load_last_folder() == second
 
@@ -122,6 +126,56 @@ def test_pin_folder_saves_posix_style_paths(tmp_path: Path, monkeypatch: pytest.
     assert str(first.resolve().as_posix()) in raw
     assert str(second.resolve().as_posix()) in raw
     assert all("\\" not in item for item in raw if isinstance(item, str))
+
+
+def test_remember_recent_folder_saves_posix_paths(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    store: dict[str, Any] = {}
+
+    def fake_load(_path: str, *, is_temp: bool = False) -> dict[str, Any]:
+        _ = is_temp
+        return dict(store)
+
+    def fake_update(key: str, value: object, _path: str, *, is_temp: bool = False) -> None:
+        _ = is_temp
+        store[key] = value
+
+    monkeypatch.setattr(h.dev, "config_load", fake_load)
+    monkeypatch.setattr(h.dev, "config_update_value", fake_update)
+    monkeypatch.setattr(settings, "_ensure_temp_config", lambda: None)
+    monkeypatch.setattr(settings, "load_recent_folders_max", lambda: 12)
+
+    folder = tmp_path / "repo-a"
+    folder.mkdir()
+    remember_recent_folder(folder)
+    raw = store.get(RECENT_FOLDERS_KEY)
+    assert isinstance(raw, list)
+    assert raw == [folder.resolve().as_posix()]
+
+
+def test_last_icon_lookup_accepts_backslash_keys(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    folder = tmp_path / "repo-a"
+    folder.mkdir()
+    store: dict[str, Any] = {
+        LAST_ICONS_KEY: {str(folder.resolve()): "building__garage"},
+    }
+
+    def fake_load(_path: str, *, is_temp: bool = False) -> dict[str, Any]:
+        _ = is_temp
+        return dict(store)
+
+    def fake_update(key: str, value: object, _path: str, *, is_temp: bool = False) -> None:
+        _ = is_temp
+        store[key] = value
+
+    monkeypatch.setattr(h.dev, "config_load", fake_load)
+    monkeypatch.setattr(h.dev, "config_update_value", fake_update)
+    monkeypatch.setattr(settings, "_ensure_temp_config", lambda: None)
+
+    assert load_last_icon(folder) == "building__garage"
+    save_last_icon(folder, "fiction__ufo")
+    keys = list(store[LAST_ICONS_KEY])
+    assert keys == [folder.resolve().as_posix()]
+    assert all("\\" not in key for key in keys)
 
 
 def test_select_family_scrolls_to_matching_tile(qapp: QApplication, tmp_path: Path) -> None:

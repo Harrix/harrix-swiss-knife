@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import contextlib
 from pathlib import Path
 
 import harrix_pylib as h
@@ -105,7 +104,7 @@ def load_favorites_map() -> dict[str, list[str]]:
         return {}
     result: dict[str, list[str]] = {}
     for key, value in raw.items():
-        folder = str(key).strip()
+        folder = _normalize_folder_key(str(key))
         ids = _clean_family_ids(value)
         if folder and ids:
             result[folder] = ids
@@ -153,7 +152,7 @@ def load_last_icons() -> dict[str, str]:
         return {}
     result: dict[str, str] = {}
     for key, value in raw.items():
-        folder = str(key).strip()
+        folder = _normalize_folder_key(str(key))
         family_id = str(value).strip()
         if folder and family_id:
             result[folder] = family_id
@@ -237,7 +236,7 @@ def remember_recent_folder(path: Path) -> list[Path]:
     _ensure_temp_config()
     h.dev.config_update_value(
         RECENT_FOLDERS_KEY,
-        [str(item) for item in updated],
+        [_path_to_config_string(item) for item in updated],
         get_config_path_str(),
         is_temp=True,
     )
@@ -403,10 +402,14 @@ def _ensure_temp_config() -> None:
 
 
 def _folder_key(path: Path) -> str:
-    try:
-        return str(path.expanduser().resolve())
-    except OSError:
-        return str(path)
+    return _path_to_config_string(path)
+
+
+def _normalize_folder_key(raw: str) -> str:
+    text = raw.strip()
+    if not text or text.startswith("<"):
+        return ""
+    return _path_to_config_string(Path(text))
 
 
 def _parse_path_list(raw: object) -> list[Path]:
@@ -419,9 +422,7 @@ def _parse_path_list(raw: object) -> list[Path]:
         if not text or text.startswith("<"):
             continue
         path = Path(text)
-        key = str(path)
-        with contextlib.suppress(OSError):
-            key = str(path.resolve())
+        key = _path_to_config_string(path)
         if key in seen:
             continue
         seen.add(key)
@@ -432,4 +433,7 @@ def _parse_path_list(raw: object) -> list[Path]:
 
 def _path_to_config_string(path: Path) -> str:
     """Return normalized path string for config files (forward slashes)."""
-    return path.as_posix()
+    try:
+        return path.expanduser().resolve().as_posix()
+    except OSError:
+        return path.as_posix()

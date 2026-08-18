@@ -1293,7 +1293,12 @@ class OnNewMarkdown(ActionBase):
             temp_config_path.parent.mkdir(parents=True, exist_ok=True)
             if not temp_config_path.exists() or temp_config_path.stat().st_size == 0:
                 temp_config_path.write_text("{}", encoding="utf-8")
-            h.dev.config_update_value("path_last_note_folder", str(parent), self.config_path, is_temp=True)
+            h.dev.config_update_value(
+                "path_last_note_folder",
+                parent.expanduser().as_posix(),
+                self.config_path,
+                is_temp=True,
+            )
         except (FileNotFoundError, OSError) as e:
             self.add_line(f"⚠️ Could not update temp config ({self.temp_config_path}): {e}")
 

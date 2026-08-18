@@ -209,7 +209,7 @@ def load_favorites_map() -> dict[str, list[str]]:
         return {}
     result: dict[str, list[str]] = {}
     for key, value in raw.items():
-        folder = str(key).strip()
+        folder = _normalize_folder_key(str(key))
         ids = _clean_family_ids(value)
         if folder and ids:
             result[folder] = ids
@@ -309,7 +309,7 @@ def load_last_icons() -> dict[str, str]:
         return {}
     result: dict[str, str] = {}
     for key, value in raw.items():
-        folder = str(key).strip()
+        folder = _normalize_folder_key(str(key))
         family_id = str(value).strip()
         if folder and family_id:
             result[folder] = family_id
@@ -456,7 +456,7 @@ def remember_recent_folder(path: Path) -> list[Path]:
     _ensure_temp_config()
     h.dev.config_update_value(
         RECENT_FOLDERS_KEY,
-        [str(item) for item in updated],
+        [_path_to_config_string(item) for item in updated],
         get_config_path_str(),
         is_temp=True,
     )
