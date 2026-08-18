@@ -23,8 +23,10 @@ lang: en
   - [⚙️ Method `absolute_path`](#%EF%B8%8F-method-absolute_path)
 - [🔧 Function `delete_icon_family`](#-function-delete_icon_family)
 - [🔧 Function `is_note_icons_repo`](#-function-is_note_icons_repo)
+- [🔧 Function `iter_icon_note_dirs`](#-function-iter_icon_note_dirs)
 - [🔧 Function `load_catalog`](#-function-load_catalog)
 - [🔧 Function `open_icons_folder`](#-function-open_icons_folder)
+- [🔧 Function `parse_note_frontmatter`](#-function-parse_note_frontmatter)
 - [🔧 Function `rebuild_catalog`](#-function-rebuild_catalog)
 - [🔧 Function `resolve_icons_root`](#-function-resolve_icons_root)
 - [🔧 Function `scan_flat_folder`](#-function-scan_flat_folder)
@@ -338,6 +340,24 @@ def is_note_icons_repo(root: Path) -> bool:
 
 </details>
 
+## 🔧 Function `iter_icon_note_dirs`
+
+```python
+def iter_icon_note_dirs(icons_dir: Path) -> list[Path]
+```
+
+Return note folders under `icons/` (public wrapper).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def iter_icon_note_dirs(icons_dir: Path) -> list[Path]:
+    return _iter_icon_note_dirs(icons_dir)
+```
+
+</details>
+
 ## 🔧 Function `load_catalog`
 
 ```python
@@ -394,6 +414,24 @@ def open_icons_folder(path: Path) -> IconCatalog:
 
 </details>
 
+## 🔧 Function `parse_note_frontmatter`
+
+```python
+def parse_note_frontmatter(text: str) -> dict[str, Any]
+```
+
+Parse YAML-like frontmatter from a note (public wrapper).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def parse_note_frontmatter(text: str) -> dict[str, Any]:
+    return _parse_frontmatter(text)
+```
+
+</details>
+
 ## 🔧 Function `rebuild_catalog`
 
 ```python
@@ -423,19 +461,19 @@ def rebuild_catalog(repo_root: Path) -> IconCatalog:
         tags = list(meta.get("tags") or [])
         trademark = bool(meta.get("trademark"))
         icon_date = str(meta.get("date") or "").strip()
-        featured = note_dir / "featured-image.svg"
-        featured_rel = "featured-image.svg" if featured.is_file() else ""
-        featured_hash = _file_sha256(featured) if featured.is_file() else ""
+        featured_path = _find_featured_image(note_dir)
+        featured_rel = featured_path.name if featured_path is not None else ""
+        featured_hash = _file_sha256(featured_path) if featured_path is not None else ""
         variants: list[dict[str, str]] = []
         img_dir = note_dir / "img"
         if img_dir.is_dir():
             variants.extend(
                 {
-                    "file": f"img/{svg.name}",
-                    "name": svg.stem,
-                    "hash": _file_sha256(svg),
+                    "file": f"img/{path.name}",
+                    "name": path.stem,
+                    "hash": _file_sha256(path),
                 }
-                for svg in sorted(img_dir.glob("*.svg"))
+                for path in sorted(_iter_vector_files(img_dir), key=lambda item: item.name.casefold())
             )
         icons_payload.append(
             {

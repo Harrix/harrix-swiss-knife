@@ -137,6 +137,11 @@ def is_note_icons_repo(root: Path) -> bool:
     return bool(_iter_icon_note_dirs(icons_dir))
 
 
+def iter_icon_note_dirs(icons_dir: Path) -> list[Path]:
+    """Return note folders under `icons/` (public wrapper)."""
+    return _iter_icon_note_dirs(icons_dir)
+
+
 def load_catalog(repo_root: Path) -> IconCatalog:
     """Load `catalog.json` from an icons repository root."""
     path = repo_root / "catalog.json"
@@ -169,6 +174,11 @@ def open_icons_folder(path: Path) -> IconCatalog:
     return scan_flat_folder(root)
 
 
+def parse_note_frontmatter(text: str) -> dict[str, Any]:
+    """Parse YAML-like frontmatter from a note (public wrapper)."""
+    return _parse_frontmatter(text)
+
+
 def rebuild_catalog(repo_root: Path) -> IconCatalog:
     """Rebuild `catalog.json` from `icons/` note-folders (flat or nested by category) and reload it."""
     icons_dir = repo_root / "icons"
@@ -187,19 +197,19 @@ def rebuild_catalog(repo_root: Path) -> IconCatalog:
         tags = list(meta.get("tags") or [])
         trademark = bool(meta.get("trademark"))
         icon_date = str(meta.get("date") or "").strip()
-        featured = note_dir / "featured-image.svg"
-        featured_rel = "featured-image.svg" if featured.is_file() else ""
-        featured_hash = _file_sha256(featured) if featured.is_file() else ""
+        featured_path = _find_featured_image(note_dir)
+        featured_rel = featured_path.name if featured_path is not None else ""
+        featured_hash = _file_sha256(featured_path) if featured_path is not None else ""
         variants: list[dict[str, str]] = []
         img_dir = note_dir / "img"
         if img_dir.is_dir():
             variants.extend(
                 {
-                    "file": f"img/{svg.name}",
-                    "name": svg.stem,
-                    "hash": _file_sha256(svg),
+                    "file": f"img/{path.name}",
+                    "name": path.stem,
+                    "hash": _file_sha256(path),
                 }
-                for svg in sorted(img_dir.glob("*.svg"))
+                for path in sorted(_iter_vector_files(img_dir), key=lambda item: item.name.casefold())
             )
         icons_payload.append(
             {
@@ -397,6 +407,15 @@ def _file_sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def _find_featured_image(note_dir: Path) -> Path | None:
+    """Return the first existing `featured-image` among SVG/AI/PDF/EPS (SVG preferred)."""
+    for suffix in (".svg", ".ai", ".pdf", ".eps"):
+        candidate = note_dir / f"featured-image{suffix}"
+        if candidate.is_file():
+            return candidate
+    return None
+
+
 def _flat_category(folder: str, stem: str) -> str:
     if folder:
         return folder.split("/", 1)[0]
@@ -417,7 +436,9 @@ def _is_icon_note_dir(path: Path) -> bool:
     """Return whether `path` is an icon family note-folder."""
     if not path.is_dir():
         return False
-    return (path / "featured-image.svg").is_file() or (path / f"{path.name}.md").is_file() or (path / "img").is_dir()
+    if (path / f"{path.name}.md").is_file() or (path / "img").is_dir():
+        return True
+    return _find_featured_image(path) is not None
 
 
 def _iter_flat_icon_files(root: Path) -> list[Path]:
@@ -462,6 +483,16 @@ def _iter_icon_note_dirs(icons_dir: Path) -> list[Path]:
                 stack.append(entry)
     result.sort(key=lambda item: item.as_posix().casefold())
     return result
+
+
+def _iter_vector_files(directory: Path) -> list[Path]:
+    """Return vector files directly under `directory`."""
+    try:
+        return [
+            path for path in directory.iterdir() if path.is_file() and path.suffix.casefold() in FLAT_ICON_EXTENSIONS
+        ]
+    except OSError:
+        return []
 
 
 def _join_repo_path(repo_root: Path, folder: str, relative: str) -> Path:

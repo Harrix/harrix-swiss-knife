@@ -27,6 +27,7 @@ lang: en
 - [🏛️ Class `VariantsPanel`](#%EF%B8%8F-class-variantspanel)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-1)
   - [⚙️ Method `clear_variants`](#%EF%B8%8F-method-clear_variants)
+  - [⚙️ Method `current_family (property)`](#%EF%B8%8F-method-current_family-property)
   - [⚙️ Method `resizeEvent`](#%EF%B8%8F-method-resizeevent)
   - [⚙️ Method `set_thumb_size`](#%EF%B8%8F-method-set_thumb_size)
   - [⚙️ Method `show_family`](#%EF%B8%8F-method-show_family)
@@ -937,6 +938,7 @@ class VariantsPanel(QWidget):
         super().__init__(parent)
         self._thumb_size = thumb_size
         self._repo_root: Path | None = None
+        self._family: IconFamily | None = None
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -951,8 +953,14 @@ class VariantsPanel(QWidget):
 
     def clear_variants(self) -> None:
         """Clear the variants list and reset the header."""
+        self._family = None
         self.list.clear()
         self.header.setText("Select an icon to see variants")
+
+    @property
+    def current_family(self) -> IconFamily | None:
+        """Return the family currently shown in the panel."""
+        return self._family
 
     def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802
         """Keep IconMode cells narrower than the viewport so tiles stay visible."""
@@ -974,6 +982,7 @@ class VariantsPanel(QWidget):
     def show_family(self, family: IconFamily | None, repo_root: Path | None) -> None:
         """Populate the panel with variants of `family`."""
         self._repo_root = repo_root
+        self._family = family
         self.list.clear()
         if family is None or repo_root is None:
             self.header.setText("Select an icon to see variants")
@@ -1023,6 +1032,7 @@ def __init__(self, parent: QWidget | None = None, *, thumb_size: int = VARIANT_T
         super().__init__(parent)
         self._thumb_size = thumb_size
         self._repo_root: Path | None = None
+        self._family: IconFamily | None = None
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -1051,8 +1061,27 @@ Clear the variants list and reset the header.
 
 ```python
 def clear_variants(self) -> None:
+        self._family = None
         self.list.clear()
         self.header.setText("Select an icon to see variants")
+```
+
+</details>
+
+### ⚙️ Method `current_family (property)`
+
+```python
+def current_family(self) -> IconFamily | None
+```
+
+Return the family currently shown in the panel.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def current_family(self) -> IconFamily | None:
+        return self._family
 ```
 
 </details>
@@ -1116,6 +1145,7 @@ Populate the panel with variants of `family`.
 ```python
 def show_family(self, family: IconFamily | None, repo_root: Path | None) -> None:
         self._repo_root = repo_root
+        self._family = family
         self.list.clear()
         if family is None or repo_root is None:
             self.header.setText("Select an icon to see variants")
@@ -1173,7 +1203,7 @@ Return the filename shown under the family title in the main grid.
 
 ```python
 def family_display_filename(family: IconFamily, svg_path: Path | None = None) -> str:
-    if svg_path is not None and svg_path.name.casefold() != "featured-image.svg":
+    if svg_path is not None and not svg_path.name.casefold().startswith("featured-image."):
         return svg_path.name
     if family.variants:
         return Path(family.variants[0].file).name

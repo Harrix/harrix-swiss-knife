@@ -335,7 +335,8 @@
     "text_fix_ru": "snippet:config/prompts/text-fix-ru.md",
     "text_fix_ru_clipboard": "snippet:config/prompts/text-fix-ru-clipboard.md",
     "text_rewrite_ru": "snippet:config/prompts/text-rewrite-ru.md",
-    "vector_icons_keywords": "snippet:config/prompts/vector-icons-keywords.md"
+    "vector_icons_keywords": "snippet:config/prompts/vector-icons-keywords.md",
+    "vector_icons_add_image": "snippet:config/prompts/vector-icons-add-image.md"
   },
   "pypi_token": "snippet:api-keys/pypi-token.txt",
   "quick_launcher_markdown_in_panel": true,

@@ -201,6 +201,39 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._stop_thumb_refresh()
         super().closeEvent(event)
 
+    def _add_variants_to_family(self, sources: list[Path], *, family: IconFamily) -> None:
+        if self._repo_root is None:
+            return
+        collisions = 0
+        img_dir = self._repo_root / family.folder / "img"
+        for source in sources:
+            dest = img_dir / variant_dest_name(source, family_id=family.id)
+            if dest.is_file():
+                collisions += 1
+        policy = self._ask_collision_policy(collisions)
+        if policy is None:
+            return
+        self.statusBar().showMessage(f"Adding {len(sources)} variant(s) to `{family.id}`…")
+        QApplication.processEvents()
+        try:
+            report = add_variants_to_family(
+                sources,
+                repo_root=self._repo_root,
+                family_id=family.id,
+                note_folder=family.folder,
+                collision_policy=policy,
+                rebuild=False,
+            )
+        except (OSError, ValueError, RuntimeError) as exc:
+            QMessageBox.critical(self, "Vector Icons", f"Failed to add variants:\n{exc}")
+            return
+        self._on_refresh_catalog()
+        if self._catalog is not None:
+            refreshed = next((item for item in self._catalog.icons if item.id == family.id), None)
+            if refreshed is not None:
+                self._on_family_selected(refreshed, persist=False)
+        self._show_vector_report(report)
+
     def _apply_filters(self) -> None:
         if self._catalog is None or self._repo_root is None:
             self.icon_list.clear()
@@ -244,6 +277,32 @@ class MainWindow(QMainWindow, AppWindowMixin):
             if family is not None:
                 self._selected_family_id = selected_id
                 self.variants_panel.show_family(family, self._repo_root)
+
+    def _ask_collision_policy(self, collision_count: int) -> CollisionPolicy | None:
+        """Ask how to handle filename collisions. Return `None` on cancel."""
+        if collision_count <= 0:
+            return "rename"
+        box = QMessageBox(self)
+        box.setWindowTitle("Vector name collisions")
+        box.setIcon(QMessageBox.Icon.Question)
+        box.setText(
+            f"{collision_count} file(s) already exist with different content.\nHow should collisions be handled?"
+        )
+        rename_btn = box.addButton("Add as new variant", QMessageBox.ButtonRole.AcceptRole)
+        replace_btn = box.addButton("Replace existing", QMessageBox.ButtonRole.DestructiveRole)
+        skip_btn = box.addButton("Skip collisions", QMessageBox.ButtonRole.ActionRole)
+        box.addButton(QMessageBox.StandardButton.Cancel)
+        box.exec()
+        clicked = box.clickedButton()
+        if clicked is None or clicked == box.button(QMessageBox.StandardButton.Cancel):
+            return None
+        if clicked is replace_btn:
+            return "replace"
+        if clicked is skip_btn:
+            return "skip"
+        if clicked is rename_btn:
+            return "rename"
+        return None
 
     def _build_ui(self) -> None:
         central = QWidget(self)
@@ -306,13 +365,18 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self.icon_list = DraggableIconList(icon_size=self._icon_size, dual_line_labels=True)
         self.icon_list.family_selected.connect(self._on_family_selected)
         self._wire_icon_list_actions(self.icon_list)
-        install_url_drop_handlers(self.icon_list, self._on_icon_files_dropped, filter_path=_is_add_svgs_drop_path)
+        install_url_drop_handlers(self.icon_list, self._on_icon_files_dropped, filter_path=_is_vector_drop_path)
         center_layout.addWidget(self.icon_list)
         splitter.addWidget(center)
 
         self.variants_panel = VariantsPanel(thumb_size=self._variant_thumb_size(self._icon_size))
         self.variants_panel.setMinimumWidth(220)
         self._wire_icon_list_actions(self.variants_panel.list)
+        install_url_drop_handlers(
+            self.variants_panel.list,
+            self._on_variant_files_dropped,
+            filter_path=_is_vector_drop_path,
+        )
         splitter.addWidget(self.variants_panel)
 
         splitter.setStretchFactor(0, 0)
@@ -332,8 +396,10 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._pinned_menu = file_menu.addMenu("📌 Pinned folders")
         self._recent_menu = file_menu.addMenu("🕒 Recent folders")
         file_menu.addSeparator()
-        add_svgs_action = file_menu.addAction("📥 Add SVGs…")
-        add_svgs_action.triggered.connect(self._on_add_svgs)
+        self._add_vector_action = file_menu.addAction("📥 Add Vector Image…")
+        self._add_vector_action.triggered.connect(self._on_add_vector_images)
+        self._add_variants_action = file_menu.addAction("📥 Add icon variants…")
+        self._add_variants_action.triggered.connect(self._on_add_icon_variants)
         refresh_action = file_menu.addAction("🔄 Refresh catalog")
         refresh_action.triggered.connect(self._on_refresh_catalog)
         open_cache_action = file_menu.addAction("📂 Open thumbs cache")
@@ -348,6 +414,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._apply_exit_about_menu_emojis()
         self._rebuild_folder_menus()
         self._sync_folder_combo()
+        self._sync_add_vector_menu_title()
 
     def _category_family_id(self, category: str) -> str | None:
         if self._catalog is None:
@@ -423,56 +490,99 @@ class MainWindow(QMainWindow, AppWindowMixin):
             return f"{total_bytes / kib:.1f} KB"
         return f"{total_bytes} B"
 
-    def _import_svg_sources(self, sources: list[Path], *, repo_root: Path) -> None:
-        """Ask about collisions, then add `sources` into the open icons repo."""
-        jobs = build_jobs(sources, repo_root=repo_root)
-        collisions = jobs_with_content_collisions(jobs)
-        policy: CollisionPolicy = "rename"
-        if collisions:
-            box = QMessageBox(self)
-            box.setWindowTitle("SVG name collisions")
-            box.setIcon(QMessageBox.Icon.Question)
-            box.setText(
-                f"{len(collisions)} file(s) already exist with different content.\nHow should collisions be handled?"
-            )
-            rename_btn = box.addButton("Add as new variant", QMessageBox.ButtonRole.AcceptRole)
-            replace_btn = box.addButton("Replace existing", QMessageBox.ButtonRole.DestructiveRole)
-            skip_btn = box.addButton("Skip collisions", QMessageBox.ButtonRole.ActionRole)
-            box.addButton(QMessageBox.StandardButton.Cancel)
-            box.exec()
-            clicked = box.clickedButton()
-            if clicked is None or clicked == box.button(QMessageBox.StandardButton.Cancel):
-                return
-            if clicked is replace_btn:
-                policy = "replace"
-            elif clicked is skip_btn:
-                policy = "skip"
-            elif clicked is rename_btn:
-                policy = "rename"
-            else:
-                return
-
-        self.statusBar().showMessage(f"Adding {len(sources)} SVG(s)…")
+    def _import_vector_sources(self, sources: list[Path]) -> None:
+        """Import vector files into the open flat folder or note repository."""
+        if self._repo_root is None:
+            return
+        if self._is_note_repo_open():
+            self._import_vector_sources_as_notes(sources)
+            return
+        collisions = sum(1 for source in sources if (self._repo_root / source.name).is_file())
+        policy = self._ask_collision_policy(collisions)
+        if policy is None:
+            return
+        self.statusBar().showMessage(f"Copying {len(sources)} vector file(s)…")
         QApplication.processEvents()
         try:
-            report = add_svg_sources_to_repo(
+            report = copy_vectors_to_flat_folder(
                 sources,
-                repo_root=repo_root,
+                dest_dir=self._repo_root,
                 collision_policy=policy,
-                rebuild=False,
             )
         except (OSError, ValueError, RuntimeError) as exc:
-            QMessageBox.critical(self, "Vector Icons", f"Failed to add SVGs:\n{exc}")
+            QMessageBox.critical(self, "Vector Icons", f"Failed to copy files:\n{exc}")
             return
-
         self._on_refresh_catalog()
-        summary = "\n".join(report.summary_lines)
-        detail_lines = [item.message for item in report.results[:ADD_SVGS_RESULT_PREVIEW_LIMIT]]
-        if len(report.results) > ADD_SVGS_RESULT_PREVIEW_LIMIT:
-            detail_lines.append(f"… and {len(report.results) - ADD_SVGS_RESULT_PREVIEW_LIMIT} more")
-        detail = "\n".join(detail_lines)
-        QMessageBox.information(self, "Vector Icons", f"{summary}\n\n{detail}")
-        self.statusBar().showMessage(report.summary_lines[0] if report.summary_lines else "Add SVGs completed")
+        self._show_vector_report(report)
+
+    def _import_vector_sources_as_notes(self, sources: list[Path]) -> None:
+        if self._repo_root is None:
+            return
+        defaults = scan_repo_meta_defaults(self._repo_root)
+        config: dict[str, Any] = h.dev.config_load(get_config_path_str())
+        messages: list[str] = []
+        created_any = False
+        for source in sources:
+            dialog = AddVectorImageDialog(self, source_path=source, defaults=defaults, app_config=config)
+            if dialog.exec() != QDialog.DialogCode.Accepted:
+                messages.append(f"Skipped `{source.name}` (cancelled)")
+                continue
+            meta = dialog.get_meta()
+            if not meta.family_id:
+                messages.append(f"Skipped `{source.name}` (empty filename)")
+                continue
+            existing = note_exists_for_family(self._repo_root, family_id=meta.family_id, category=meta.category)
+            if existing is not None:
+                answer = QMessageBox.question(
+                    self,
+                    "Vector Icons",
+                    f"Note `{meta.family_id}` already exists.\nAdd `{source.name}` as a variant instead?",
+                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                    QMessageBox.StandardButton.Yes,
+                )
+                if answer != QMessageBox.StandardButton.Yes:
+                    messages.append(f"Skipped `{source.name}` (note exists)")
+                    continue
+                family = IconFamily(
+                    id=meta.family_id,
+                    title=meta.title,
+                    categories=[meta.category] if meta.category else [],
+                    tags=meta.tags,
+                    folder=str(existing.relative_to(self._repo_root)).replace("\\", "/"),
+                    featured="",
+                    featured_hash="",
+                )
+                self._add_variants_to_family([source], family=family)
+                created_any = True
+                continue
+            try:
+                report = create_note_from_meta(
+                    source,
+                    repo_root=self._repo_root,
+                    meta=meta,
+                    collision_policy="rename",
+                    rebuild=False,
+                )
+            except (OSError, ValueError, RuntimeError) as exc:
+                messages.append(f"Error for `{source.name}`: {exc}")
+                continue
+            created_any = True
+            messages.extend(item.message for item in report.results)
+        if created_any:
+            self._on_refresh_catalog()
+        if messages:
+            preview = "\n".join(messages[:ADD_SVGS_RESULT_PREVIEW_LIMIT])
+            if len(messages) > ADD_SVGS_RESULT_PREVIEW_LIMIT:
+                preview += f"\n… and {len(messages) - ADD_SVGS_RESULT_PREVIEW_LIMIT} more"
+            QMessageBox.information(self, "Vector Icons", preview)
+            self.statusBar().showMessage(messages[0])
+
+    def _is_note_repo_open(self) -> bool:
+        if self._repo_root is None:
+            return False
+        if self._catalog is not None and self._catalog.kind == "flat":
+            return False
+        return is_note_icons_repo(self._repo_root)
 
     def _load_from_config(self) -> None:
         config: dict[str, Any] = h.dev.config_load(get_config_path_str())
@@ -504,22 +614,60 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._sync_folder_combo()
         self._rebuild_folder_menus()
 
-    def _on_add_svgs(self) -> None:
-        """Import SVGs from a folder into note folders of the open icons repo."""
-        repo_root = self._require_note_repo_for_add_svgs()
-        if repo_root is None:
+    def _on_add_icon_variants(self) -> None:
+        """Pick vector files and add them as variants of an existing note."""
+        if self._repo_root is None or self._catalog is None:
+            QMessageBox.warning(self, "Vector Icons", "No icons folder is open.")
             return
-
-        start = str(repo_root.parent if repo_root.parent.is_dir() else repo_root)
-        chosen = QFileDialog.getExistingDirectory(self, "Select folder with new SVG files", start)
+        if self._catalog.kind != "note" or not is_note_icons_repo(self._repo_root):
+            QMessageBox.warning(
+                self, "Vector Icons", "Add icon variants works only with a note-folder icons repository."
+            )
+            return
+        start = str(self._repo_root.parent if self._repo_root.parent.is_dir() else self._repo_root)
+        chosen, _filter = QFileDialog.getOpenFileNames(
+            self,
+            "Select variant files",
+            start,
+            _VECTOR_FILE_FILTER,
+        )
         if not chosen:
             return
-        source_dir = Path(chosen)
-        sources = discover_source_svgs(source_dir)
+        sources = collect_vector_sources(chosen)
         if not sources:
-            QMessageBox.information(self, "Vector Icons", f"No SVG files found in:\n{source_dir}")
+            QMessageBox.information(self, "Vector Icons", "No SVG/AI/PDF/EPS files selected.")
             return
-        self._import_svg_sources(sources, repo_root=repo_root)
+        family = self.variants_panel.current_family
+        if family is None and self._selected_family_id is not None:
+            family = next((item for item in self._catalog.icons if item.id == self._selected_family_id), None)
+        if family is None:
+            dialog = ChooseIconFamilyDialog(self, catalog=self._catalog)
+            if dialog.exec() != QDialog.DialogCode.Accepted:
+                return
+            family = dialog.selected_family()
+        if family is None:
+            return
+        self._add_variants_to_family(sources, family=family)
+
+    def _on_add_svgs(self) -> None:
+        """Import SVGs from a folder into note folders of the open icons repo."""
+        self._on_add_vector_images()
+
+    def _on_add_vector_images(self) -> None:
+        """Add vector files via file picker into the open folder."""
+        if self._repo_root is None:
+            QMessageBox.warning(self, "Vector Icons", "No icons folder is open.")
+            return
+        start = str(self._repo_root.parent if self._repo_root.parent.is_dir() else self._repo_root)
+        title = "Select vector image" if self._is_note_repo_open() else "Select vector images"
+        chosen, _filter = QFileDialog.getOpenFileNames(self, title, start, _VECTOR_FILE_FILTER)
+        if not chosen:
+            return
+        sources = collect_vector_sources(chosen)
+        if not sources:
+            QMessageBox.information(self, "Vector Icons", "No SVG/AI/PDF/EPS files selected.")
+            return
+        self._import_vector_sources(sources)
 
     def _on_batch_keywords_ai(self, targets: object) -> None:
         if not isinstance(targets, list) or self._repo_root is None:
@@ -786,19 +934,20 @@ class MainWindow(QMainWindow, AppWindowMixin):
         dialog.exec()
 
     def _on_icon_files_dropped(self, paths: list[str]) -> None:
-        """Run Add SVGs for SVG files dropped onto the main icon grid."""
-        repo_root = self._require_note_repo_for_add_svgs()
-        if repo_root is None:
+        """Run Add Vector Image for files dropped onto the main icon grid."""
+        if self._repo_root is None:
+            QMessageBox.warning(self, "Vector Icons", "No icons folder is open.")
             return
-        sources = collect_dropped_svg_sources(paths, repo_root=repo_root)
+        skip = (self._repo_root / "icons") if self._is_note_repo_open() else None
+        sources = collect_vector_sources(paths, skip_under=skip)
         if not sources:
             QMessageBox.information(
                 self,
                 "Vector Icons",
-                "Drop SVG files or a folder with SVGs to add them.\nAI, PDF, and EPS files are not imported here.",
+                "Drop SVG/AI/PDF/EPS files or a folder with them to add them.",
             )
             return
-        self._import_svg_sources(sources, repo_root=repo_root)
+        self._import_vector_sources(sources)
 
     def _on_icon_size_changed(self, value: int) -> None:
         self._apply_icon_size(value)
@@ -1034,6 +1183,21 @@ class MainWindow(QMainWindow, AppWindowMixin):
         toast = toast_notification.ToastNotification(message, duration=2000, parent=self)
         toast.present()
 
+    def _on_variant_files_dropped(self, paths: list[str]) -> None:
+        """Add dropped files as variants of the family shown in the panel."""
+        if self._repo_root is None or not self._is_note_repo_open():
+            QMessageBox.warning(self, "Vector Icons", "Variants can be added only in a note-folder icons repository.")
+            return
+        family = self.variants_panel.current_family
+        if family is None:
+            QMessageBox.warning(self, "Vector Icons", "Select an icon first so variants have a target.")
+            return
+        sources = collect_vector_sources(paths, skip_under=self._repo_root / "icons")
+        if not sources:
+            QMessageBox.information(self, "Vector Icons", "Drop SVG/AI/PDF/EPS files to add variants.")
+            return
+        self._add_variants_to_family(sources, family=family)
+
     def _on_variant_view_changed(self, _index: int) -> None:
         mode = self.variant_view_combo.currentData()
         self._variant_view_mode = str(mode) if mode else MODE_FEATURED
@@ -1064,6 +1228,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._start_thumb_refresh()
         self._sync_folder_combo()
         self._rebuild_folder_menus()
+        self._sync_add_vector_menu_title()
         kind = "flat dump" if catalog.kind == "flat" else "note repo"
         self.statusBar().showMessage(f"Opened {kind}: {catalog.repo_root} ({len(catalog.icons)} icons)")
 
@@ -1189,17 +1354,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
 
     def _require_note_repo_for_add_svgs(self) -> Path | None:
         """Return the open note-folder repo, or show a warning and return `None`."""
-        if self._repo_root is None:
-            QMessageBox.warning(self, "Vector Icons", "No icons folder is open.")
-            return None
-        if self._catalog is not None and self._catalog.kind == "flat":
-            QMessageBox.warning(
-                self,
-                "Vector Icons",
-                "Add SVGs works only with a note-folder icons repository.",
-            )
-            return None
-        if not is_note_icons_repo(self._repo_root):
+        if not self._is_note_repo_open() or self._repo_root is None:
             QMessageBox.warning(
                 self,
                 "Vector Icons",
@@ -1248,6 +1403,17 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._selected_family_id = None
         self.variants_panel.clear_variants()
 
+    def _show_vector_report(self, report: object) -> None:
+        summary_lines = getattr(report, "summary_lines", None)
+        results = getattr(report, "results", [])
+        summary = "\n".join(summary_lines) if summary_lines else "Done."
+        detail_lines = [item.message for item in results[:ADD_SVGS_RESULT_PREVIEW_LIMIT]]
+        if len(results) > ADD_SVGS_RESULT_PREVIEW_LIMIT:
+            detail_lines.append(f"… and {len(results) - ADD_SVGS_RESULT_PREVIEW_LIMIT} more")
+        detail = "\n".join(detail_lines)
+        QMessageBox.information(self, "Vector Icons", f"{summary}\n\n{detail}" if detail else summary)
+        self.statusBar().showMessage(summary_lines[0] if summary_lines else "Done")
+
     def _start_thumb_refresh(self) -> None:
         if self._catalog is None:
             return
@@ -1293,6 +1459,16 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._trademark_thread = None
         self._trademark_worker = None
         self._close_trademark_progress_toast()
+
+    def _sync_add_vector_menu_title(self) -> None:
+        if not hasattr(self, "_add_vector_action"):
+            return
+        if self._is_note_repo_open():
+            self._add_vector_action.setText("📥 Add Vector Image…")
+            self._add_variants_action.setEnabled(True)
+        else:
+            self._add_vector_action.setText("📥 Add Vector Images…")
+            self._add_variants_action.setEnabled(False)
 
     def _sync_folder_combo(self) -> None:
         if not hasattr(self, "folder_combo"):
