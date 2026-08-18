@@ -12,6 +12,7 @@ lang: en
 ## Contents
 
 - [🏛️ Class `UpdateIconReport`](#%EF%B8%8F-class-updateiconreport)
+- [🔧 Function `reassign_icon_category`](#-function-reassign_icon_category)
 - [🔧 Function `replace_family_id_in_name`](#-function-replace_family_id_in_name)
 - [🔧 Function `update_icon_note`](#-function-update_icon_note)
 
@@ -36,6 +37,54 @@ class UpdateIconReport:
     dest_dir: Path
     moved: bool
     renamed_files: list[str]
+```
+
+</details>
+
+## 🔧 Function `reassign_icon_category`
+
+```python
+def reassign_icon_category(*, repo_root: Path, family: IconFamily, category: str, rebuild: bool = True) -> UpdateIconReport | None
+```
+
+Move a note-family to `category`, or return `None` when it is already native.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def reassign_icon_category(
+    *,
+    repo_root: Path,
+    family: IconFamily,
+    category: str,
+    rebuild: bool = True,
+) -> UpdateIconReport | None:
+    cleaned = category.strip()
+    if not cleaned:
+        return None
+    native = native_category_for_family(family.id, family.categories)
+    if native.casefold() == cleaned.casefold():
+        return None
+    note_path = family.note_path(repo_root)
+    if note_path is None:
+        msg = f"Markdown note not found for `{family.id}`"
+        raise FileNotFoundError(msg)
+    frontmatter = parse_note_frontmatter(note_path.read_text(encoding="utf-8"))
+    meta = note_meta_from_existing(
+        family_id=family.id,
+        title=family.title,
+        categories=family.categories,
+        tags=family.tags,
+        featured_name=family.featured or "featured-image.svg",
+        frontmatter=frontmatter,
+    )
+    return update_icon_note(
+        repo_root=repo_root,
+        family=family,
+        meta=note_meta_with_category(meta, cleaned),
+        rebuild=rebuild,
+    )
 ```
 
 </details>

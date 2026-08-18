@@ -11,10 +11,16 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `DraggableIconList`](#%EF%B8%8F-class-draggableiconlist)
+- [🏛️ Class `CategoryDropList`](#%EF%B8%8F-class-categorydroplist)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
+  - [⚙️ Method `dragEnterEvent`](#%EF%B8%8F-method-dragenterevent)
+  - [⚙️ Method `dragMoveEvent`](#%EF%B8%8F-method-dragmoveevent)
+  - [⚙️ Method `dropEvent`](#%EF%B8%8F-method-dropevent)
+- [🏛️ Class `DraggableIconList`](#%EF%B8%8F-class-draggableiconlist)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-1)
   - [⚙️ Method `preview_paths`](#%EF%B8%8F-method-preview_paths)
   - [⚙️ Method `select_family`](#%EF%B8%8F-method-select_family)
+  - [⚙️ Method `selected_families`](#%EF%B8%8F-method-selected_families)
   - [⚙️ Method `selected_keyword_targets`](#%EF%B8%8F-method-selected_keyword_targets)
   - [⚙️ Method `set_display_icon_size`](#%EF%B8%8F-method-set_display_icon_size)
   - [⚙️ Method `set_family_items`](#%EF%B8%8F-method-set_family_items)
@@ -27,14 +33,151 @@ lang: en
   - [⚙️ Method `paint`](#%EF%B8%8F-method-paint)
   - [⚙️ Method `sizeHint`](#%EF%B8%8F-method-sizehint)
 - [🏛️ Class `VariantsPanel`](#%EF%B8%8F-class-variantspanel)
-  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-1)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-2)
   - [⚙️ Method `clear_variants`](#%EF%B8%8F-method-clear_variants)
   - [⚙️ Method `current_family (property)`](#%EF%B8%8F-method-current_family-property)
   - [⚙️ Method `resizeEvent`](#%EF%B8%8F-method-resizeevent)
   - [⚙️ Method `set_thumb_size`](#%EF%B8%8F-method-set_thumb_size)
   - [⚙️ Method `show_family`](#%EF%B8%8F-method-show_family)
 - [🔧 Function `batch_context_action_texts`](#-function-batch_context_action_texts)
+- [🔧 Function `decode_family_ids_mime`](#-function-decode_family_ids_mime)
+- [🔧 Function `encode_family_ids_mime`](#-function-encode_family_ids_mime)
 - [🔧 Function `family_display_filename`](#-function-family_display_filename)
+
+</details>
+
+## 🏛️ Class `CategoryDropList`
+
+```python
+class CategoryDropList(QListWidget)
+```
+
+Category sidebar that accepts icon-family drops from the grid.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class CategoryDropList(QListWidget):
+
+    families_dropped = Signal(str, object)  # category, list[str]
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        """Enable drops of Vector Icons family IDs onto category rows."""
+        super().__init__(parent)
+        self.setAcceptDrops(True)
+        self.viewport().setAcceptDrops(True)
+
+    def dragEnterEvent(self, event: QDragEnterEvent) -> None:  # noqa: N802
+        """Accept internal icon-family drags."""
+        if decode_family_ids_mime(event.mimeData()):
+            event.acceptProposedAction()
+            return
+        event.ignore()
+
+    def dragMoveEvent(self, event: QDragMoveEvent) -> None:  # noqa: N802
+        """Allow a drop only when the cursor is over a category row."""
+        if self.itemAt(event.position().toPoint()) is None or not decode_family_ids_mime(event.mimeData()):
+            event.ignore()
+            return
+        event.acceptProposedAction()
+
+    def dropEvent(self, event: QDropEvent) -> None:  # noqa: N802
+        """Emit the target category and dropped family IDs."""
+        item = self.itemAt(event.position().toPoint())
+        family_ids = decode_family_ids_mime(event.mimeData())
+        if item is None or not family_ids:
+            event.ignore()
+            return
+        event.acceptProposedAction()
+        self.families_dropped.emit(item.text(), family_ids)
+```
+
+</details>
+
+### ⚙️ Method `__init__`
+
+```python
+def __init__(self, parent: QWidget | None = None) -> None
+```
+
+Enable drops of Vector Icons family IDs onto category rows.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.setAcceptDrops(True)
+        self.viewport().setAcceptDrops(True)
+```
+
+</details>
+
+### ⚙️ Method `dragEnterEvent`
+
+```python
+def dragEnterEvent(self, event: QDragEnterEvent) -> None
+```
+
+Accept internal icon-family drags.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def dragEnterEvent(self, event: QDragEnterEvent) -> None:  # noqa: N802
+        if decode_family_ids_mime(event.mimeData()):
+            event.acceptProposedAction()
+            return
+        event.ignore()
+```
+
+</details>
+
+### ⚙️ Method `dragMoveEvent`
+
+```python
+def dragMoveEvent(self, event: QDragMoveEvent) -> None
+```
+
+Allow a drop only when the cursor is over a category row.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def dragMoveEvent(self, event: QDragMoveEvent) -> None:  # noqa: N802
+        if self.itemAt(event.position().toPoint()) is None or not decode_family_ids_mime(event.mimeData()):
+            event.ignore()
+            return
+        event.acceptProposedAction()
+```
+
+</details>
+
+### ⚙️ Method `dropEvent`
+
+```python
+def dropEvent(self, event: QDropEvent) -> None
+```
+
+Emit the target category and dropped family IDs.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def dropEvent(self, event: QDropEvent) -> None:  # noqa: N802
+        item = self.itemAt(event.position().toPoint())
+        family_ids = decode_family_ids_mime(event.mimeData())
+        if item is None or not family_ids:
+            event.ignore()
+            return
+        event.acceptProposedAction()
+        self.families_dropped.emit(item.text(), family_ids)
+```
 
 </details>
 
@@ -138,6 +281,10 @@ class DraggableIconList(QListWidget):
             return True
         return False
 
+    def selected_families(self) -> list[IconFamily]:
+        """Return unique selected families in display order."""
+        return [family for family, _path in self.selected_keyword_targets()]
+
     def selected_keyword_targets(self) -> list[tuple[IconFamily, str]]:
         """Return unique selected families with an SVG path, in display order."""
         targets: list[tuple[IconFamily, str]] = []
@@ -231,24 +378,27 @@ class DraggableIconList(QListWidget):
         self._repo_root = repo_root
 
     def startDrag(self, supported_actions: Qt.DropAction) -> None:  # noqa: ARG002, N802
-        """Start an OS file drag for the selected SVG path."""
-        item = self.currentItem()
-        if item is None:
-            return
-        svg_path = item.data(ROLE_SVG_PATH)
-        if not isinstance(svg_path, str) or not svg_path:
-            return
-        path = Path(svg_path)
-        if not path.is_file():
+        """Start a drag with family IDs (for Categories) and file URLs (for Explorer)."""
+        targets = self.selected_keyword_targets()
+        if not targets:
             return
         mime = QMimeData()
-        mime.setUrls([QUrl.fromLocalFile(str(path.resolve()))])
+        encode_family_ids_mime(mime, [family.id for family, _path in targets])
+        urls = [
+            QUrl.fromLocalFile(str(Path(svg_path).resolve()))
+            for _family, svg_path in targets
+            if svg_path and Path(svg_path).is_file()
+        ]
+        if urls:
+            mime.setUrls(urls)
         drag = QDrag(self)
         drag.setMimeData(mime)
-        icon = item.icon()
-        if not icon.isNull():
-            drag.setPixmap(icon.pixmap(64, 64))
-            drag.setHotSpot(QPoint(32, 32))
+        item = self.currentItem()
+        if item is not None:
+            icon = item.icon()
+            if not icon.isNull():
+                drag.setPixmap(icon.pixmap(64, 64))
+                drag.setHotSpot(QPoint(32, 32))
         drag.exec(Qt.DropAction.CopyAction)
 
     def update_family_pixmap(self, family_id: str, pixmap: QPixmap) -> None:
@@ -507,6 +657,24 @@ def select_family(self, family_id: str) -> bool:
 
 </details>
 
+### ⚙️ Method `selected_families`
+
+```python
+def selected_families(self) -> list[IconFamily]
+```
+
+Return unique selected families in display order.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def selected_families(self) -> list[IconFamily]:
+        return [family for family, _path in self.selected_keyword_targets()]
+```
+
+</details>
+
 ### ⚙️ Method `selected_keyword_targets`
 
 ```python
@@ -689,30 +857,33 @@ def set_repo_root(self, repo_root: Path | None) -> None:
 def startDrag(self, supported_actions: Qt.DropAction) -> None
 ```
 
-Start an OS file drag for the selected SVG path.
+Start a drag with family IDs (for Categories) and file URLs (for Explorer).
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def startDrag(self, supported_actions: Qt.DropAction) -> None:  # noqa: ARG002, N802
-        item = self.currentItem()
-        if item is None:
-            return
-        svg_path = item.data(ROLE_SVG_PATH)
-        if not isinstance(svg_path, str) or not svg_path:
-            return
-        path = Path(svg_path)
-        if not path.is_file():
+        targets = self.selected_keyword_targets()
+        if not targets:
             return
         mime = QMimeData()
-        mime.setUrls([QUrl.fromLocalFile(str(path.resolve()))])
+        encode_family_ids_mime(mime, [family.id for family, _path in targets])
+        urls = [
+            QUrl.fromLocalFile(str(Path(svg_path).resolve()))
+            for _family, svg_path in targets
+            if svg_path and Path(svg_path).is_file()
+        ]
+        if urls:
+            mime.setUrls(urls)
         drag = QDrag(self)
         drag.setMimeData(mime)
-        icon = item.icon()
-        if not icon.isNull():
-            drag.setPixmap(icon.pixmap(64, 64))
-            drag.setHotSpot(QPoint(32, 32))
+        item = self.currentItem()
+        if item is not None:
+            icon = item.icon()
+            if not icon.isNull():
+                drag.setPixmap(icon.pixmap(64, 64))
+                drag.setHotSpot(QPoint(32, 32))
         drag.exec(Qt.DropAction.CopyAction)
 ```
 
@@ -1268,6 +1439,50 @@ def batch_context_action_texts(count: int, *, all_favorites: bool = False) -> li
         f"🤖 Process keywords with AI ({count} icons)…",
         favorite_label,
     ]
+```
+
+</details>
+
+## 🔧 Function `decode_family_ids_mime`
+
+```python
+def decode_family_ids_mime(mime: QMimeData) -> list[str]
+```
+
+Return family IDs encoded by the Vector Icons grid drag.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def decode_family_ids_mime(mime: QMimeData) -> list[str]:
+    if not mime.hasFormat(FAMILY_IDS_MIME):
+        return []
+    try:
+        raw = json.loads(bytes(mime.data(FAMILY_IDS_MIME).data()).decode("utf-8"))
+    except (TypeError, ValueError, UnicodeDecodeError):
+        return []
+    if not isinstance(raw, list):
+        return []
+    return [str(item).strip() for item in raw if str(item).strip()]
+```
+
+</details>
+
+## 🔧 Function `encode_family_ids_mime`
+
+```python
+def encode_family_ids_mime(mime: QMimeData, family_ids: list[str]) -> None
+```
+
+Store family IDs on a drag so Categories can accept an internal drop.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def encode_family_ids_mime(mime: QMimeData, family_ids: list[str]) -> None:
+    mime.setData(FAMILY_IDS_MIME, json.dumps(family_ids).encode("utf-8"))
 ```
 
 </details>

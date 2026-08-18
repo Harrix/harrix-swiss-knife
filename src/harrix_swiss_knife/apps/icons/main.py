@@ -22,7 +22,6 @@ from PySide6.QtWidgets import (
     QHeaderView,
     QLabel,
     QLineEdit,
-    QListWidget,
     QListWidgetItem,
     QMainWindow,
     QMenu,
@@ -64,7 +63,11 @@ from harrix_swiss_knife.apps.icons.add_vector import (
     variant_dest_name,
 )
 from harrix_swiss_knife.apps.icons.add_vector_dialog import AddVectorImageDialog
-from harrix_swiss_knife.apps.icons.add_vector_meta import note_meta_from_existing, scan_repo_meta_defaults
+from harrix_swiss_knife.apps.icons.add_vector_meta import (
+    note_meta_from_existing,
+    note_meta_with_category,
+    scan_repo_meta_defaults,
+)
 from harrix_swiss_knife.apps.icons.catalog import (
     FLAT_ICON_EXTENSIONS,
     IconCatalog,
@@ -80,7 +83,7 @@ from harrix_swiss_knife.apps.icons.catalog import (
 )
 from harrix_swiss_knife.apps.icons.catalog_load import CatalogLoadWorker
 from harrix_swiss_knife.apps.icons.choose_family_dialog import ChooseIconFamilyDialog
-from harrix_swiss_knife.apps.icons.edit_icon import update_icon_note
+from harrix_swiss_knife.apps.icons.edit_icon import reassign_icon_category, update_icon_note
 from harrix_swiss_knife.apps.icons.keywords_ai import KeywordsBatchRunner
 from harrix_swiss_knife.apps.icons.keywords_update import update_keywords_files
 from harrix_swiss_knife.apps.icons.lightbox import IconLightboxDialog
@@ -131,7 +134,7 @@ from harrix_swiss_knife.apps.icons.variant_view import (
     GridEntry,
     build_grid_entries,
 )
-from harrix_swiss_knife.apps.icons.widgets import DraggableIconList, VariantsPanel
+from harrix_swiss_knife.apps.icons.widgets import CategoryDropList, DraggableIconList, VariantsPanel
 from harrix_swiss_knife.paths import get_config_path_str
 from harrix_swiss_knife.win11_backdrop import SystemBackdrop, try_apply_system_backdrop
 
@@ -570,10 +573,11 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self.folder_tree.itemClicked.connect(self._on_folder_item_clicked)
         left_splitter.addWidget(self._sidebar_panel("Folders:", self.folder_tree))
 
-        self.category_list = QListWidget()
+        self.category_list = CategoryDropList()
         self.category_list.setIconSize(QSize(CATEGORY_LIST_ICON_SIZE, CATEGORY_LIST_ICON_SIZE))
         self.category_list.currentTextChanged.connect(self._on_category_changed)
         self.category_list.itemClicked.connect(self._on_category_item_clicked)
+        self.category_list.families_dropped.connect(self._on_families_dropped_on_category)
         left_splitter.addWidget(self._sidebar_panel("Categories:", self.category_list))
 
         left_splitter.setStretchFactor(0, 1)
@@ -1215,6 +1219,8 @@ class MainWindow(QMainWindow, AppWindowMixin):
         if not meta.family_id:
             QMessageBox.warning(self, "Vector Icons", "Filename is empty.")
             return
+        if meta.category.strip():
+            meta = note_meta_with_category(meta, meta.category)
         try:
             report = update_icon_note(repo_root=self._repo_root, family=family, meta=meta)
         except (OSError, ValueError, TypeError, FileExistsError) as exc:
@@ -1229,11 +1235,76 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._selected_family_id = report.new_family_id
         if meta.category.strip():
             self._current_category = meta.category.strip()
+            self._current_folder = None
+            self._nav_source = "category"
         self._on_refresh_catalog()
         message = f"Updated `{report.new_family_id}`"
         self.statusBar().showMessage(message)
         toast = toast_notification.ToastNotification(message, duration=2000, parent=self)
         toast.present()
+
+    def _on_families_dropped_on_category(self, category: str, family_ids: object) -> None:
+        if not isinstance(family_ids, list):
+            return
+        ids = [str(item).strip() for item in family_ids if str(item).strip()]
+        if not ids or category == ALL_CATEGORIES or is_favorites_category(category):
+            return
+        if self._repo_root is None or self._catalog is None or not self._is_note_repo_open():
+            QMessageBox.warning(
+                self,
+                "Vector Icons",
+                "Category moves work only in a Vector Icons note repository.",
+            )
+            return
+        by_id = {family.id: family for family in self._catalog.icons}
+        moved = 0
+        skipped = 0
+        errors: list[str] = []
+        last_id: str | None = None
+        for family_id in ids:
+            family = by_id.get(family_id)
+            if family is None:
+                continue
+            try:
+                report = reassign_icon_category(
+                    repo_root=self._repo_root,
+                    family=family,
+                    category=category,
+                    rebuild=False,
+                )
+            except (OSError, ValueError, TypeError, FileExistsError) as exc:
+                errors.append(f"{family_id}: {exc}")
+                continue
+            if report is None:
+                skipped += 1
+                continue
+            self._pixmaps.pop(report.old_family_id, None)
+            self._thumb_cache.forget(report.old_family_id)
+            if report.old_family_id != report.new_family_id:
+                self._favorite_ids = rename_favorite(
+                    self._repo_root,
+                    report.old_family_id,
+                    report.new_family_id,
+                )
+            last_id = report.new_family_id
+            moved += 1
+        if moved:
+            self._sync_favorite_ids_to_lists()
+            if last_id is not None:
+                self._selected_family_id = last_id
+            self._current_category = category
+            self._current_folder = None
+            self._nav_source = "category"
+            self._on_refresh_catalog()
+            message = f"Moved {moved} icon(s) to `{category}`"
+            self.statusBar().showMessage(message)
+            toast = toast_notification.ToastNotification(message, duration=2500, parent=self)
+            toast.present()
+        elif skipped and not errors:
+            self.statusBar().showMessage(f"Already in `{category}`")
+        if errors:
+            preview = "\n".join(errors[:ADD_SVGS_RESULT_PREVIEW_LIMIT])
+            QMessageBox.warning(self, "Vector Icons", f"Failed to move some icons:\n{preview}")
 
     def _on_family_selected(self, family: object, *, persist: bool = True) -> None:
         if family is None:

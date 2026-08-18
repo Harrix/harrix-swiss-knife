@@ -165,6 +165,36 @@ def note_meta_from_existing(
     )
 
 
+def note_meta_with_category(meta: NoteMeta, category: str) -> NoteMeta:
+    """Return metadata with `category`, synced family ID, and permalink suffixes."""
+    cleaned = category.strip()
+    new_id = sync_family_id_category(meta.family_id, cleaned) or meta.family_id
+    site, source = permalink_suffixes(cleaned, new_id)
+    permalink = meta.permalink
+    permalink_source = meta.permalink_source
+    base = extract_permalink_base(permalink)
+    source_base = extract_permalink_source_base(permalink_source)
+    if base and site:
+        permalink = join_permalink(base, site)
+    if source_base and source:
+        permalink_source = join_permalink(source_base, source)
+    return NoteMeta(
+        family_id=new_id,
+        title=meta.title,
+        date=meta.date,
+        category=cleaned,
+        tags=list(meta.tags),
+        author=meta.author,
+        author_email=meta.author_email,
+        license=meta.license,
+        license_url=meta.license_url,
+        permalink=permalink,
+        permalink_source=permalink_source,
+        lang=meta.lang,
+        featured_name=meta.featured_name,
+    )
+
+
 def permalink_suffixes(category: str, family_id: str) -> tuple[str, str]:
     """Return site and source path suffixes for `category` + `family_id`."""
     cleaned_id = family_id.strip()

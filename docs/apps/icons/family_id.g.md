@@ -13,6 +13,7 @@ lang: en
 
 - [🔧 Function `category_from_family_id`](#-function-category_from_family_id)
 - [🔧 Function `family_id_from_stem`](#-function-family_id_from_stem)
+- [🔧 Function `native_category_for_family`](#-function-native_category_for_family)
 - [🔧 Function `note_dir_for_family_id`](#-function-note_dir_for_family_id)
 - [🔧 Function `tags_from_family_id`](#-function-tags_from_family_id)
 - [🔧 Function `title_from_family_id`](#-function-title_from_family_id)
@@ -75,6 +76,28 @@ def family_id_from_stem(stem: str) -> str:
         if not changed:
             break
     return name
+```
+
+</details>
+
+## 🔧 Function `native_category_for_family`
+
+```python
+def native_category_for_family(family_id: str, categories: list[str] | None = None) -> str
+```
+
+Return the folder/filename category for a family (ID prefix, else first YAML).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def native_category_for_family(family_id: str, categories: list[str] | None = None) -> str:
+    if "__" in family_id:
+        return category_from_family_id(family_id)
+    if categories:
+        return str(categories[0]).strip()
+    return ""
 ```
 
 </details>

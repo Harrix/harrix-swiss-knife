@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
+from PySide6.QtCore import QMimeData
 from PySide6.QtWidgets import QApplication
 
 from harrix_swiss_knife.apps.icons.add_vector_dialog import AddVectorImageDialog
@@ -13,10 +14,17 @@ from harrix_swiss_knife.apps.icons.add_vector_meta import (
     RepoMetaDefaults,
     extra_categories_for_family,
     note_meta_from_existing,
+    note_meta_with_category,
     sync_family_id_category,
 )
 from harrix_swiss_knife.apps.icons.catalog import rebuild_catalog
-from harrix_swiss_knife.apps.icons.edit_icon import replace_family_id_in_name, update_icon_note
+from harrix_swiss_knife.apps.icons.edit_icon import (
+    reassign_icon_category,
+    replace_family_id_in_name,
+    update_icon_note,
+)
+from harrix_swiss_knife.apps.icons.family_id import native_category_for_family
+from harrix_swiss_knife.apps.icons.widgets import decode_family_ids_mime, encode_family_ids_mime
 
 _MIN_SVG = (
     '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><rect width="32" height="32" fill="#336699"/></svg>'
@@ -221,6 +229,40 @@ def test_add_vector_dialog_edit_mode_syncs_category(qapp: QApplication, tmp_path
     assert meta.category == "furniture"
     assert meta.family_id == "furniture__garage"
     assert meta.permalink.endswith("furniture/furniture__garage")
+
+
+def test_family_ids_mime_roundtrip(qapp: QApplication) -> None:
+    assert qapp is not None
+    mime = QMimeData()
+    encode_family_ids_mime(mime, ["building__garage", "furniture__desk"])
+    assert decode_family_ids_mime(mime) == ["building__garage", "furniture__desk"]
+
+
+def test_native_category_for_family_prefers_id_prefix() -> None:
+    assert native_category_for_family("building__garage", ["furniture"]) == "building"
+    assert native_category_for_family("garage", ["furniture"]) == "furniture"
+
+
+def test_note_meta_with_category_syncs_id_and_permalinks() -> None:
+    meta = note_meta_with_category(_garage_meta(), "furniture")
+    assert meta.family_id == "furniture__garage"
+    assert meta.category == "furniture"
+    assert meta.permalink.endswith("furniture/furniture__garage")
+    assert meta.permalink_source.endswith("furniture/furniture__garage/furniture__garage.md")
+
+
+def test_reassign_icon_category_skips_native_and_moves_foreign(tmp_path: Path) -> None:
+    repo = _repo_with_garage(tmp_path)
+    family = rebuild_catalog(repo).icons[0]
+    assert reassign_icon_category(repo_root=repo, family=family, category="building") is None
+    report = reassign_icon_category(repo_root=repo, family=family, category="furniture")
+    assert report is not None
+    assert report.moved
+    dest = repo / "icons" / "furniture" / "furniture__garage"
+    markdown = (dest / "furniture__garage.md").read_text(encoding="utf-8")
+    assert "  - furniture" in markdown
+    assert "img/furniture__garage_01.svg" in markdown
+    assert (dest / "img" / "furniture__garage_01.svg").is_file()
 
 
 def test_note_meta_from_existing_uses_family_id_prefix() -> None:

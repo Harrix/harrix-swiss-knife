@@ -49,6 +49,15 @@ def family_id_from_stem(stem: str) -> str:
     return name
 
 
+def native_category_for_family(family_id: str, categories: list[str] | None = None) -> str:
+    """Return the folder/filename category for a family (ID prefix, else first YAML)."""
+    if "__" in family_id:
+        return category_from_family_id(family_id)
+    if categories:
+        return str(categories[0]).strip()
+    return ""
+
+
 def note_dir_for_family_id(icons_dir: Path, family_id: str) -> Path:
     """Return `icons/{category}/{family_id}` for a family ID."""
     return Path(icons_dir) / category_from_family_id(family_id) / family_id
