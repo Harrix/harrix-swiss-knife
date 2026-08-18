@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 DEFAULT_THUMB_SIZE = 160
 META_FILENAME = "meta.json"
 # Bump when thumbnail raster style changes (forces cache refresh).
-THUMB_FORMAT_VERSION = 5
+THUMB_FORMAT_VERSION = 6
 
 # Re-export preview constants used by tests / callers.
 __all__ = [

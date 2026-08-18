@@ -11,10 +11,42 @@ lang: en
 
 ## Contents
 
+- [🔧 Function `fitted_content_rect`](#-function-fitted_content_rect)
 - [🔧 Function `render_icon_to_image`](#-function-render_icon_to_image)
 - [🔧 Function `render_svg_to_image`](#-function-render_svg_to_image)
 - [🔧 Function `render_vector_document_to_image`](#-function-render_vector_document_to_image)
 - [🔧 Function `svg_needs_contrast_background`](#-function-svg_needs_contrast_background)
+
+</details>
+
+## 🔧 Function `fitted_content_rect`
+
+```python
+def fitted_content_rect(renderer: QSvgRenderer, bounds: QRectF) -> QRectF
+```
+
+Return a centered rect inside `bounds` that keeps the SVG aspect ratio.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def fitted_content_rect(renderer: QSvgRenderer, bounds: QRectF) -> QRectF:
+    view = renderer.viewBoxF()
+    if view.width() > 0 and view.height() > 0:
+        content_w, content_h = view.width(), view.height()
+    else:
+        default = renderer.defaultSize()
+        content_w, content_h = float(default.width()), float(default.height())
+    if content_w <= 0 or content_h <= 0:
+        return QRectF(bounds)
+    scale = min(bounds.width() / content_w, bounds.height() / content_h)
+    draw_w = content_w * scale
+    draw_h = content_h * scale
+    x = bounds.x() + (bounds.width() - draw_w) / 2
+    y = bounds.y() + (bounds.height() - draw_h) / 2
+    return QRectF(x, y, draw_w, draw_h)
+```
 
 </details>
 
@@ -56,6 +88,7 @@ def render_svg_to_image(svg_path: Path, size: int) -> QImage | None
 
 Rasterize an SVG into a square image.
 
+Non-square SVGs keep their aspect ratio and are centered (letterboxed).
 White variants (`*_white_*`) get a rounded gray backdrop so they stay visible.
 The icon itself is inset so it does not touch the gray tile edges.
 
@@ -76,10 +109,10 @@ def render_svg_to_image(svg_path: Path, size: int) -> QImage | None:
     if svg_needs_contrast_background(svg_path):
         _paint_rounded_preview_background(painter, size)
         inset = max(2.0, size * PREVIEW_ICON_INSET_RATIO)
-        icon_size = size - 2 * inset
-        renderer.render(painter, QRectF(inset, inset, icon_size, icon_size))
+        bounds = QRectF(inset, inset, size - 2 * inset, size - 2 * inset)
     else:
-        renderer.render(painter)
+        bounds = QRectF(0, 0, size, size)
+    renderer.render(painter, fitted_content_rect(renderer, bounds))
     painter.end()
     return image
 ```

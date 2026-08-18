@@ -43,7 +43,7 @@ _No docstring provided._
 ## 📎 Constant `THUMB_FORMAT_VERSION`
 
 ```python
-THUMB_FORMAT_VERSION = 5
+THUMB_FORMAT_VERSION = 6
 ```
 
 _No docstring provided._
