@@ -10,7 +10,7 @@ from typing import Any
 
 import harrix_pylib as h
 from PySide6.QtCore import QMimeData, QSize, Qt, QThread, QTimer, QUrl
-from PySide6.QtGui import QCloseEvent, QIcon, QPixmap
+from PySide6.QtGui import QCloseEvent, QDesktopServices, QIcon, QPixmap
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QApplication,
@@ -68,7 +68,9 @@ from harrix_swiss_knife.apps.icons.catalog import (
     IconCatalog,
     IconFamily,
     delete_icon_family,
+    family_license_info,
     is_note_icons_repo,
+    is_openable_license_url,
     parse_note_frontmatter,
 )
 from harrix_swiss_knife.apps.icons.catalog_load import CatalogLoadWorker
@@ -382,6 +384,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._thumb_cache = ThumbnailCache(cache_dir=cache_dir_for_root(catalog.repo_root), size=DEFAULT_THUMB_SIZE)
         self._favorite_ids = load_favorites(catalog.repo_root)
         self._sync_favorite_ids_to_lists()
+        self._sync_repo_root_to_lists()
         self._prime_pixmaps_from_cache()
         if refresh:
             if previous_folder:
@@ -1205,6 +1208,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         note = family.note_path(self._repo_root) if self._repo_root is not None else None
         source = self._resolve_source_file(family, svg_path)
         variants = "\n".join(f"  - {variant.name} ({variant.file})" for variant in family.variants) or "  —"
+        license_name, license_url = family_license_info(family, self._repo_root)
 
         data = [
             ("ID", str(family.id)),
@@ -1212,6 +1216,8 @@ class MainWindow(QMainWindow, AppWindowMixin):
             ("Date", str(family.date or "—")),
             ("Categories", ", ".join(family.categories) or "—"),
             ("Tags", ", ".join(family.tags) or "—"),
+            ("License", license_name or "—"),
+            ("License URL", license_url or "—"),
             ("Folder", str(family.folder)),
             ("Note", str(note if note is not None else "—")),
             ("Source", str(source if source is not None else "—")),
@@ -1277,6 +1283,13 @@ class MainWindow(QMainWindow, AppWindowMixin):
         if not chosen:
             return
         self._open_folder(Path(chosen))
+
+    def _on_open_license(self, url: object) -> None:
+        text = str(url or "").strip()
+        if not is_openable_license_url(text):
+            QMessageBox.warning(self, "Vector Icons", "License URL is missing or is not an http(s) link.")
+            return
+        QDesktopServices.openUrl(QUrl(text))
 
     def _on_open_note_in_editor(self, family: object) -> None:
         if not isinstance(family, IconFamily):
@@ -1998,6 +2011,12 @@ class MainWindow(QMainWindow, AppWindowMixin):
             self.folder_combo.setCurrentIndex(selected)
         self.folder_combo.blockSignals(False)  # noqa: FBT003
 
+    def _sync_repo_root_to_lists(self) -> None:
+        if hasattr(self, "icon_list"):
+            self.icon_list.set_repo_root(self._repo_root)
+        if hasattr(self, "variants_panel"):
+            self.variants_panel.list.set_repo_root(self._repo_root)
+
     def _target_category_for_icon(self, family: IconFamily) -> str | None:
         if is_favorites_category(self._current_category):
             return FAVORITES_CATEGORY
@@ -2058,6 +2077,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         icon_list.batch_favorites_requested.connect(self._on_batch_favorites)
         icon_list.set_category_icon_requested.connect(self._on_set_as_category_icon)
         icon_list.favorite_toggled.connect(self._on_favorite_toggled)
+        icon_list.license_requested.connect(self._on_open_license)
         icon_list.toggle_trademark_requested.connect(self._on_toggle_trademark)
         icon_list.reveal_source_requested.connect(self._on_reveal_source)
         icon_list.open_source_requested.connect(self._on_open_source)

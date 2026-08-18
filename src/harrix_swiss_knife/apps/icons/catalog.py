@@ -97,6 +97,8 @@ class IconFamily:
     featured: str
     featured_hash: str
     date: str = ""
+    license: str = ""
+    license_url: str = ""
     trademark: bool = False
     variants: list[IconVariant] = field(default_factory=list)
     search_blob: str = ""
@@ -160,6 +162,26 @@ def family_in_folder(family_folder: str, selected: str) -> bool:
     return family == prefix or family.startswith(f"{prefix}/")
 
 
+def family_license_info(family: IconFamily, repo_root: Path | None = None) -> tuple[str, str]:
+    """Return `(license, license_url)` from the catalog, falling back to the note."""
+    name = family.license.strip()
+    url = family.license_url.strip()
+    if name and url:
+        return name, url
+    if repo_root is None:
+        return name, url
+    note = family.note_path(repo_root)
+    if note is None:
+        return name, url
+    try:
+        meta = parse_note_frontmatter(note.read_text(encoding="utf-8"))
+    except OSError:
+        return name, url
+    note_name = str(meta.get("license") or "").strip()
+    note_url = str(meta.get("license-url") or "").strip()
+    return name or note_name, url or note_url
+
+
 def folder_parts(folder: str) -> list[str]:
     """Split a repo-relative folder into non-empty path parts."""
     return [part for part in folder.replace("\\", "/").split("/") if part and part != "."]
@@ -173,6 +195,13 @@ def is_note_icons_repo(root: Path) -> bool:
     if not icons_dir.is_dir():
         return False
     return bool(_iter_icon_note_dirs(icons_dir))
+
+
+def is_openable_license_url(url: str) -> bool:
+    """Return whether `url` can be opened as an http(s) license page."""
+    cleaned = url.strip()
+    lower = cleaned.casefold()
+    return lower.startswith(("http://", "https://"))
 
 
 def iter_icon_note_dirs(icons_dir: Path) -> list[Path]:
@@ -240,6 +269,8 @@ def rebuild_catalog(repo_root: Path) -> IconCatalog:
         tags = list(meta.get("tags") or [])
         trademark = bool(meta.get("trademark"))
         icon_date = str(meta.get("date") or "").strip()
+        license_name = str(meta.get("license") or "").strip()
+        license_url = str(meta.get("license-url") or "").strip()
         featured_path = _find_featured_image(note_dir)
         featured_rel = featured_path.name if featured_path is not None else ""
         featured_hash = _file_sha256(featured_path) if featured_path is not None else ""
@@ -259,6 +290,8 @@ def rebuild_catalog(repo_root: Path) -> IconCatalog:
                 "id": family_id,
                 "title": title,
                 "date": icon_date,
+                "license": license_name,
+                "license-url": license_url,
                 "trademark": trademark,
                 "categories": categories,
                 "tags": tags,
@@ -474,6 +507,8 @@ def _family_from_dict(data: dict[str, Any]) -> IconFamily:
         featured=str(data.get("featured", "")),
         featured_hash=str(data.get("featured_hash", "")),
         date=str(data.get("date") or "").strip(),
+        license=str(data.get("license") or "").strip(),
+        license_url=str(data.get("license-url") or data.get("license_url") or "").strip(),
         trademark=bool(data.get("trademark", False)),
         variants=variants,
     )

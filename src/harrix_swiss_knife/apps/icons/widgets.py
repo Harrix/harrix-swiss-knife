@@ -21,6 +21,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from harrix_swiss_knife.apps.icons.catalog import family_license_info, is_openable_license_url
 from harrix_swiss_knife.apps.icons.thumb_cache import DEFAULT_THUMB_SIZE, placeholder_pixmap, render_icon_to_image
 
 if TYPE_CHECKING:
@@ -54,6 +55,7 @@ class DraggableIconList(QListWidget):
     delete_requested = Signal(object)  # IconFamily
     toggle_trademark_requested = Signal(object)  # IconFamily
     favorite_toggled = Signal(object)  # IconFamily
+    license_requested = Signal(str)
     preview_requested = Signal(str)
     batch_keywords_ai_requested = Signal(object)  # list[tuple[IconFamily, str]]
     batch_favorites_requested = Signal(object)  # (targets, add)
@@ -72,6 +74,7 @@ class DraggableIconList(QListWidget):
         self._emit_family_selection = emit_family_selection
         self._dual_line_labels = dual_line_labels
         self._favorite_family_ids: set[str] = set()
+        self._repo_root: Path | None = None
         self.setViewMode(QListWidget.ViewMode.IconMode)
         self.setResizeMode(QListWidget.ResizeMode.Adjust)
         self.setMovement(QListWidget.Movement.Static)
@@ -213,6 +216,10 @@ class DraggableIconList(QListWidget):
         self.setCurrentRow(-1)
         self.blockSignals(False)  # noqa: FBT003
 
+    def set_repo_root(self, repo_root: Path | None) -> None:
+        """Remember the open icons folder for license lookup from notes."""
+        self._repo_root = repo_root
+
     def startDrag(self, supported_actions: Qt.DropAction) -> None:  # noqa: ARG002, N802
         """Start an OS file drag for the selected SVG path."""
         item = self.currentItem()
@@ -315,6 +322,12 @@ class DraggableIconList(QListWidget):
         set_category_action = menu.addAction("🏷️ Set as category icon")
         is_favorite = str(getattr(family, "id", "")).strip() in self._favorite_family_ids
         favorite_action = menu.addAction("⭐ Remove from favorites" if is_favorite else "⭐ Add to favorites")
+        license_name, license_url = family_license_info(family, self._repo_root)
+        license_action = None
+        if license_name:
+            license_action = menu.addAction(f"License: {license_name}")
+            if not is_openable_license_url(license_url):
+                license_action.setEnabled(False)
 
         is_trademark = getattr(family, "trademark", False)
         toggle_trademark_text = "Remove trademark warning" if is_trademark else "Add trademark warning"
@@ -348,6 +361,8 @@ class DraggableIconList(QListWidget):
             self.set_category_icon_requested.emit(family)
         elif chosen is favorite_action:
             self.favorite_toggled.emit(family)
+        elif license_action is not None and chosen is license_action:
+            self.license_requested.emit(license_url)
         elif chosen is toggle_trademark_action:
             self.toggle_trademark_requested.emit(family)
         elif has_path and chosen is reveal_source_action:

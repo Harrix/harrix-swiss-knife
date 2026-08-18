@@ -24,8 +24,10 @@ lang: en
   - [⚙️ Method `absolute_path`](#%EF%B8%8F-method-absolute_path)
 - [🔧 Function `delete_icon_family`](#-function-delete_icon_family)
 - [🔧 Function `family_in_folder`](#-function-family_in_folder)
+- [🔧 Function `family_license_info`](#-function-family_license_info)
 - [🔧 Function `folder_parts`](#-function-folder_parts)
 - [🔧 Function `is_note_icons_repo`](#-function-is_note_icons_repo)
+- [🔧 Function `is_openable_license_url`](#-function-is_openable_license_url)
 - [🔧 Function `iter_icon_note_dirs`](#-function-iter_icon_note_dirs)
 - [🔧 Function `load_catalog`](#-function-load_catalog)
 - [🔧 Function `open_icons_folder`](#-function-open_icons_folder)
@@ -208,6 +210,8 @@ class IconFamily:
     featured: str
     featured_hash: str
     date: str = ""
+    license: str = ""
+    license_url: str = ""
     trademark: bool = False
     variants: list[IconVariant] = field(default_factory=list)
     search_blob: str = ""
@@ -403,6 +407,39 @@ def family_in_folder(family_folder: str, selected: str) -> bool:
 
 </details>
 
+## 🔧 Function `family_license_info`
+
+```python
+def family_license_info(family: IconFamily, repo_root: Path | None = None) -> tuple[str, str]
+```
+
+Return `(license, license_url)` from the catalog, falling back to the note.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def family_license_info(family: IconFamily, repo_root: Path | None = None) -> tuple[str, str]:
+    name = family.license.strip()
+    url = family.license_url.strip()
+    if name and url:
+        return name, url
+    if repo_root is None:
+        return name, url
+    note = family.note_path(repo_root)
+    if note is None:
+        return name, url
+    try:
+        meta = parse_note_frontmatter(note.read_text(encoding="utf-8"))
+    except OSError:
+        return name, url
+    note_name = str(meta.get("license") or "").strip()
+    note_url = str(meta.get("license-url") or "").strip()
+    return name or note_name, url or note_url
+```
+
+</details>
+
 ## 🔧 Function `folder_parts`
 
 ```python
@@ -440,6 +477,26 @@ def is_note_icons_repo(root: Path) -> bool:
     if not icons_dir.is_dir():
         return False
     return bool(_iter_icon_note_dirs(icons_dir))
+```
+
+</details>
+
+## 🔧 Function `is_openable_license_url`
+
+```python
+def is_openable_license_url(url: str) -> bool
+```
+
+Return whether `url` can be opened as an http(s) license page.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def is_openable_license_url(url: str) -> bool:
+    cleaned = url.strip()
+    lower = cleaned.casefold()
+    return lower.startswith(("http://", "https://"))
 ```
 
 </details>
@@ -570,6 +627,8 @@ def rebuild_catalog(repo_root: Path) -> IconCatalog:
         tags = list(meta.get("tags") or [])
         trademark = bool(meta.get("trademark"))
         icon_date = str(meta.get("date") or "").strip()
+        license_name = str(meta.get("license") or "").strip()
+        license_url = str(meta.get("license-url") or "").strip()
         featured_path = _find_featured_image(note_dir)
         featured_rel = featured_path.name if featured_path is not None else ""
         featured_hash = _file_sha256(featured_path) if featured_path is not None else ""
@@ -589,6 +648,8 @@ def rebuild_catalog(repo_root: Path) -> IconCatalog:
                 "id": family_id,
                 "title": title,
                 "date": icon_date,
+                "license": license_name,
+                "license-url": license_url,
                 "trademark": trademark,
                 "categories": categories,
                 "tags": tags,
