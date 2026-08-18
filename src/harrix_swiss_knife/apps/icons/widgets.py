@@ -6,7 +6,18 @@ import json
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from PySide6.QtCore import QMimeData, QModelIndex, QPersistentModelIndex, QPoint, QRect, QSize, Qt, QUrl, Signal
+from PySide6.QtCore import (
+    QMimeData,
+    QModelIndex,
+    QPersistentModelIndex,
+    QPoint,
+    QRect,
+    QSize,
+    Qt,
+    QTimer,
+    QUrl,
+    Signal,
+)
 from PySide6.QtGui import (
     QColor,
     QDrag,
@@ -41,6 +52,7 @@ if TYPE_CHECKING:
     from harrix_swiss_knife.apps.icons.variant_view import GridEntry
 
 VARIANT_THUMB_SIZE = 112
+VIEWPORT_SIGNAL_DEBOUNCE_MS = 60
 ROLE_SVG_PATH = int(Qt.ItemDataRole.UserRole) + 1
 ROLE_SUBTITLE = int(Qt.ItemDataRole.UserRole) + 2
 ROLE_FALLBACK = int(Qt.ItemDataRole.UserRole) + 3
@@ -110,6 +122,7 @@ class DraggableIconList(QListWidget):
     preview_requested = Signal(str)
     batch_keywords_ai_requested = Signal(object)  # list[tuple[IconFamily, str]]
     batch_favorites_requested = Signal(object)  # (targets, add)
+    viewport_changed = Signal()
 
     def __init__(
         self,
@@ -126,6 +139,12 @@ class DraggableIconList(QListWidget):
         self._dual_line_labels = dual_line_labels
         self._favorite_family_ids: set[str] = set()
         self._repo_root: Path | None = None
+        # family_id → first row, so thumbnail updates skip a full list scan.
+        self._family_rows: dict[str, int] = {}
+        self._viewport_timer = QTimer(self)
+        self._viewport_timer.setSingleShot(True)
+        self._viewport_timer.setInterval(VIEWPORT_SIGNAL_DEBOUNCE_MS)
+        self._viewport_timer.timeout.connect(self.viewport_changed)
         self.setViewMode(QListWidget.ViewMode.IconMode)
         self.setResizeMode(QListWidget.ResizeMode.Adjust)
         self.setMovement(QListWidget.Movement.Static)
@@ -137,6 +156,8 @@ class DraggableIconList(QListWidget):
         self.setIconSize(QSize(icon_size, icon_size))
         self.setGridSize(self._grid_size_for(icon_size))
         self.setSelectionMode(QListWidget.SelectionMode.ExtendedSelection)
+        # Pixel scrolling keeps the scrollbar value in sync with the grid geometry math.
+        self.setVerticalScrollMode(QAbstractItemView.ScrollMode.ScrollPerPixel)
         self.setDragEnabled(True)
         self.setDragDropMode(QListWidget.DragDropMode.DragOnly)
         # DragOnly turns drops off; Explorer file drops still need the viewport.
@@ -150,6 +171,26 @@ class DraggableIconList(QListWidget):
         if emit_family_selection:
             self.itemPressed.connect(self._emit_family_from_item)
             self.currentItemChanged.connect(self._on_current_item_changed)
+        self.verticalScrollBar().valueChanged.connect(self.schedule_viewport_changed)
+
+    def append_grid_entries(
+        self,
+        entries: list[GridEntry],
+        *,
+        pixmaps_by_path: dict[str, QPixmap],
+        placeholder: QPixmap,
+    ) -> None:
+        """Add more variant-view tiles without rebuilding the grid."""
+        if not entries:
+            return
+        self.blockSignals(True)  # noqa: FBT003
+        self.setUpdatesEnabled(False)
+        try:
+            for entry in entries:
+                self._add_grid_item(entry, pixmaps_by_path=pixmaps_by_path, placeholder=placeholder)
+        finally:
+            self.setUpdatesEnabled(True)
+            self.blockSignals(False)  # noqa: FBT003
 
     def preview_paths(self) -> list[Path]:
         """Return all existing icon paths in display order."""
@@ -165,19 +206,38 @@ class DraggableIconList(QListWidget):
                     paths.append(path)
         return paths
 
+    def reset_row_pixmaps(self, rows: list[int], *, placeholder: QPixmap) -> None:
+        """Drop pixmaps of rows scrolled far away so memory stays bounded."""
+        if not rows:
+            return
+        icon = QIcon(placeholder)
+        self.setUpdatesEnabled(False)
+        try:
+            for row in rows:
+                item = self.item(row)
+                if item is not None:
+                    item.setIcon(icon)
+        finally:
+            self.setUpdatesEnabled(True)
+
+    def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802
+        """Reflow tiles and ask the owner to reload pixmaps for the new visible rows."""
+        super().resizeEvent(event)
+        self.schedule_viewport_changed()
+
+    def schedule_viewport_changed(self) -> None:
+        """Ask for a debounced `viewport_changed` signal after scrolling or resizing."""
+        self._viewport_timer.start()
+
     def select_family(self, family_id: str) -> bool:
         """Select the first tile for `family_id` and scroll it into view."""
-        for index in range(self.count()):
-            item = self.item(index)
-            if item is None:
-                continue
-            family = item.data(Qt.ItemDataRole.UserRole)
-            if getattr(family, "id", None) != family_id:
-                continue
-            self.setCurrentItem(item)
-            self.scrollToItem(item, QAbstractItemView.ScrollHint.PositionAtCenter)
-            return True
-        return False
+        row = self._family_rows.get(family_id)
+        item = self.item(row) if row is not None else None
+        if item is None:
+            return False
+        self.setCurrentItem(item)
+        self.scrollToItem(item, QAbstractItemView.ScrollHint.PositionAtCenter)
+        return True
 
     def selected_families(self) -> list[IconFamily]:
         """Return unique selected families in display order."""
@@ -216,10 +276,12 @@ class DraggableIconList(QListWidget):
         """Rebuild the grid from filtered families and available thumbnails."""
         self.blockSignals(True)  # noqa: FBT003
         self.clear()
+        self._family_rows = {}
         for family in families:
             pixmap = pixmaps.get(family.id) or placeholder
             item = QListWidgetItem(QIcon(pixmap), family.title)
             item.setData(Qt.ItemDataRole.UserRole, family)
+            self._family_rows.setdefault(family.id, self.count())
             item.setData(ROLE_SUBTITLE, family_display_filename(family))
             item.setData(ROLE_TRADEMARK, getattr(family, "trademark", False))
 
@@ -247,27 +309,9 @@ class DraggableIconList(QListWidget):
         """Rebuild the grid from variant-view entries and path→pixmap map."""
         self.blockSignals(True)  # noqa: FBT003
         self.clear()
+        self._family_rows = {}
         for entry in entries:
-            key = str(entry.svg_path)
-            pixmap = pixmaps_by_path.get(key) or placeholder
-            title = entry.family.title
-            if entry.is_fallback:
-                title = f"{entry.family.title} (no match)"
-                pixmap = _muted_pixmap(pixmap, FALLBACK_ICON_OPACITY)
-            item = QListWidgetItem(QIcon(pixmap), title)
-            item.setData(Qt.ItemDataRole.UserRole, entry.family)
-            item.setData(ROLE_SVG_PATH, key)
-            item.setData(ROLE_SUBTITLE, family_display_filename(entry.family, entry.svg_path))
-            item.setData(ROLE_FALLBACK, entry.is_fallback)
-            item.setData(ROLE_TRADEMARK, getattr(entry.family, "trademark", False))
-            tip = f"{entry.family.id}\n{entry.svg_path.name}"
-            if getattr(entry.family, "trademark", False):
-                tip += "\n\n⚠️ Editorial Use Only / Trademarked Character"
-            if entry.is_fallback:
-                tip = f"{tip}\nFallback: family has no selected variant kind"
-            item.setToolTip(tip)
-            item.setSizeHint(QSize(self._icon_size + 16, self._icon_size + LABEL_EXTRA_HEIGHT))
-            self.addItem(item)
+            self._add_grid_item(entry, pixmaps_by_path=pixmaps_by_path, placeholder=placeholder)
         self.setCurrentRow(-1)
         self.blockSignals(False)  # noqa: FBT003
 
@@ -299,19 +343,76 @@ class DraggableIconList(QListWidget):
                 drag.setHotSpot(QPoint(32, 32))
         drag.exec(Qt.DropAction.CopyAction)
 
-    def update_family_pixmap(self, family_id: str, pixmap: QPixmap) -> None:
-        """Update the icon for a family already present in the list."""
-        for index in range(self.count()):
-            item = self.item(index)
-            if item is None:
-                continue
-            family = item.data(Qt.ItemDataRole.UserRole)
-            if getattr(family, "id", None) == family_id:
-                icon_pixmap = pixmap
-                if bool(item.data(ROLE_FALLBACK)):
-                    icon_pixmap = _muted_pixmap(pixmap, FALLBACK_ICON_OPACITY)
+    def update_row_pixmaps(self, pixmaps: dict[int, QPixmap]) -> None:
+        """Apply thumbnails for the given rows with a single repaint."""
+        if not pixmaps:
+            return
+        self.setUpdatesEnabled(False)
+        try:
+            for row, pixmap in pixmaps.items():
+                item = self.item(row)
+                if item is None:
+                    continue
+                icon_pixmap = _muted_pixmap(pixmap, FALLBACK_ICON_OPACITY) if bool(item.data(ROLE_FALLBACK)) else pixmap
                 item.setIcon(QIcon(icon_pixmap))
-                break
+        finally:
+            self.setUpdatesEnabled(True)
+
+    def visible_row_span(self, margin_lines: int = 1) -> tuple[int, int]:
+        """Return the row range currently on screen, padded by `margin_lines` grid lines.
+
+        Tiles live in a fixed grid, so the range is derived from the scroll offset instead of
+        hit-testing items, which stays exact even when the point falls between cells.
+
+        """
+        count = self.count()
+        if count == 0:
+            return (0, -1)
+        grid = self.gridSize()
+        cell_width = max(1, grid.width())
+        cell_height = max(1, grid.height())
+        viewport = self.viewport()
+        columns = max(1, viewport.width() // cell_width)
+        lines = viewport.height() // cell_height + 1
+        top_line = max(0, self.verticalScrollBar().value() // cell_height)
+        first = max(0, (top_line - margin_lines) * columns)
+        last = min(count - 1, (top_line + lines + margin_lines) * columns - 1)
+        # Hit-test the middle of the viewport as a safety net if the geometry math drifts.
+        probe = self.indexAt(QPoint(viewport.width() // 2, viewport.height() // 2))
+        if probe.isValid():
+            reach = (lines + margin_lines) * columns
+            first = min(first, max(0, probe.row() - reach))
+            last = max(last, min(count - 1, probe.row() + reach))
+        return (first, last)
+
+    def _add_grid_item(
+        self,
+        entry: GridEntry,
+        *,
+        pixmaps_by_path: dict[str, QPixmap],
+        placeholder: QPixmap,
+    ) -> None:
+        key = str(entry.svg_path)
+        pixmap = pixmaps_by_path.get(key) or placeholder
+        title = entry.family.title
+        if entry.is_fallback:
+            title = f"{entry.family.title} (no match)"
+            pixmap = _muted_pixmap(pixmap, FALLBACK_ICON_OPACITY)
+        item = QListWidgetItem(QIcon(pixmap), title)
+        item.setData(Qt.ItemDataRole.UserRole, entry.family)
+        item.setData(ROLE_SVG_PATH, key)
+        item.setData(ROLE_SUBTITLE, family_display_filename(entry.family, entry.svg_path))
+        item.setData(ROLE_FALLBACK, entry.is_fallback)
+        item.setData(ROLE_TRADEMARK, getattr(entry.family, "trademark", False))
+        tip = f"{entry.family.id}\n{entry.svg_path.name}"
+        if getattr(entry.family, "trademark", False):
+            tip += "\n\n⚠️ Editorial Use Only / Trademarked Character"
+        if entry.is_fallback:
+            tip = f"{tip}\nFallback: family has no selected variant kind"
+        item.setToolTip(tip)
+        item.setSizeHint(QSize(self._icon_size + 16, self._icon_size + LABEL_EXTRA_HEIGHT))
+        self._family_rows.setdefault(entry.family.id, self.count())
+        self.addItem(item)
 
     def _emit_family_from_item(self, item: QListWidgetItem | None) -> None:
         if item is None:

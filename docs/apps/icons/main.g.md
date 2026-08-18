@@ -205,7 +205,6 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._default_category_family_ids: dict[str, str] = {}
         self._variant_view_mode = MODE_FEATURED
         self._variant_pixmaps: dict[str, QPixmap] = {}
-        self._variant_progress_toast: toast_progress_notification.ToastProgressNotification | None = None
         self._load_progress_toast: toast_progress_notification.ToastProgressNotification | None = None
         self._catalog_load_thread: QThread | None = None
         self._catalog_load_worker: CatalogLoadWorker | None = None
@@ -226,6 +225,26 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._keywords_batch_runner: KeywordsBatchRunner | None = None
         self._thumb_refresh_done = 0
         self._thumb_refresh_total = 0
+        self._thumb_dirty_families: set[str] = set()
+        self._thumb_flush_timer = QTimer(self)
+        self._thumb_flush_timer.setSingleShot(True)
+        self._thumb_flush_timer.setInterval(THUMB_UPDATE_FLUSH_MS)
+        self._thumb_flush_timer.timeout.connect(self._flush_thumb_updates)
+        self._grid_entries: list[GridEntry] = []
+        self._pending_grid_entries: list[GridEntry] = []
+        self._loaded_rows: set[int] = set()
+        self._viewport_pixmap_timer = QTimer(self)
+        self._viewport_pixmap_timer.setSingleShot(True)
+        self._viewport_pixmap_timer.setInterval(0)
+        self._viewport_pixmap_timer.timeout.connect(self._refresh_viewport_pixmaps)
+        self._visible_family_ids: set[str] = set()
+        self._grid_total_entries = 0
+        self._grid_total_families = 0
+        self._grid_matched = 0
+        self._grid_fallback = 0
+        self._grid_fill_timer = QTimer(self)
+        self._grid_fill_timer.setInterval(15)
+        self._grid_fill_timer.timeout.connect(self._fill_next_grid_chunk)
         self._icon_size_save_timer = QTimer(self)
         self._icon_size_save_timer.setSingleShot(True)
         self._icon_size_save_timer.setInterval(300)
@@ -245,7 +264,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._persist_icon_size()
         if self._hide_instead_of_close(event):
             return
-        self._close_variant_progress_toast()
+        self._stop_grid_fill()
         self._stop_catalog_load()
         self._stop_trademark_update()
         self._stop_maintenance()
@@ -331,10 +350,13 @@ class MainWindow(QMainWindow, AppWindowMixin):
 
     def _apply_filters(self) -> None:
         self._search_filter_timer.stop()
+        self._stop_grid_fill()
         if self._catalog is None or self._repo_root is None:
             self.icon_list.clear()
             self.variants_panel.clear_variants()
             self.count_label.setText("0 icons")
+            self._grid_entries = []
+            self._loaded_rows = set()
             self._sync_variant_view_combo([])
             return
         selected_id = self._selected_family_id
@@ -360,37 +382,31 @@ class MainWindow(QMainWindow, AppWindowMixin):
             by_id = {family.id: family for family in families}
             families = [by_id[family_id] for family_id in self._favorite_ids if family_id in by_id]
         entries = build_grid_entries(families, repo_root=self._repo_root, mode=self._variant_view_mode)
-        truncated = len(entries) > GRID_RENDER_LIMIT
-        if truncated:
-            entries = entries[:GRID_RENDER_LIMIT]
-        pixmaps_by_path = self._pixmaps_for_entries(entries)
+        self._grid_entries = entries
+        self._grid_total_entries = len(entries)
+        self._grid_total_families = len(families)
+        self._grid_matched = sum(1 for entry in entries if not entry.is_fallback)
+        self._grid_fallback = self._grid_total_entries - self._grid_matched
+        first_chunk = entries[:GRID_FIRST_CHUNK]
+        self._pending_grid_entries = entries[GRID_FIRST_CHUNK:]
+        self._loaded_rows = set()
         self.icon_list.set_grid_entries(
-            entries,
-            pixmaps_by_path=pixmaps_by_path,
+            first_chunk,
+            pixmaps_by_path={},
             placeholder=self._placeholder,
         )
-        visible: list[IconFamily] = []
-        seen_ids: set[str] = set()
-        for entry in entries:
-            family_id = entry.family.id
-            if family_id in seen_ids:
-                continue
-            seen_ids.add(family_id)
-            visible.append(entry.family)
-        self._visible_families = visible
-        matched = sum(1 for entry in entries if not entry.is_fallback)
-        fallback = sum(1 for entry in entries if entry.is_fallback)
-        shown = f"{len(entries)} of {len(families)}" if truncated else str(len(entries))
-        if fallback:
-            self.count_label.setText(f"{shown} tiles ({matched} match, {fallback} fallback)")
-        else:
-            self.count_label.setText(f"{shown} tiles / {len(families)} families")
-        extra = " (narrow the folder or search)" if truncated else ""
-        self.statusBar().showMessage(
-            f"Showing {len(entries)} tiles ({len(families)} families) / {len(self._catalog.icons)}{extra}",
-        )
+        self._visible_families = []
+        self._visible_family_ids = set()
+        self._collect_visible_families(first_chunk)
+        self._update_grid_counters()
         self._selected_family_id = selected_id
-        self._restore_or_clear_selection([entry.family for entry in entries])
+        self._restore_or_clear_selection(
+            [entry.family for entry in first_chunk],
+            allow_defer=bool(self._pending_grid_entries),
+        )
+        self._refresh_viewport_pixmaps()
+        if self._pending_grid_entries:
+            self._grid_fill_timer.start()
 
     def _apply_icon_size(self, size: int) -> None:
         """Apply display size to grids without writing config."""
@@ -414,7 +430,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         previous_category = self._pending_refresh_category
         previous_folder = self._pending_refresh_folder
         self._stop_thumb_refresh()
-        self._close_variant_progress_toast()
+        self._stop_grid_fill()
         self._repo_root = catalog.repo_root
         self._catalog = catalog
         self._variant_pixmaps.clear()
@@ -436,7 +452,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
             self._selected_family_id = load_last_icon(catalog.repo_root)
             self._current_category = None
             self._current_folder = None
-            if len(catalog.icons) > GRID_RENDER_LIMIT:
+            if len(catalog.icons) > LARGE_CATALOG_LIMIT:
                 folder = preferred_sidebar_folder(catalog, self._selected_family_id)
                 self._current_folder = folder or None
             if remember:
@@ -573,6 +589,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         center_layout.addWidget(self.count_label)
         self.icon_list = DraggableIconList(icon_size=self._icon_size, dual_line_labels=True)
         self.icon_list.family_selected.connect(self._on_family_selected)
+        self.icon_list.viewport_changed.connect(self._schedule_viewport_pixmaps)
         self._wire_icon_list_actions(self.icon_list)
         install_url_drop_handlers(self.icon_list, self._on_icon_files_dropped, filter_path=_is_vector_drop_path)
         center_layout.addWidget(self.icon_list)
@@ -647,6 +664,16 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._sync_folder_combo()
         self._sync_add_vector_menu_title()
 
+    @staticmethod
+    def _cache_pixmap(cache: dict[str, QPixmap], key: str, pixmap: QPixmap) -> None:
+        """Store a pixmap, dropping the oldest entries so caches stay bounded."""
+        cache[key] = pixmap
+        overflow = len(cache) - PIXMAP_CACHE_MAX
+        if overflow <= 0:
+            return
+        for stale_key in list(cache)[:overflow]:
+            cache.pop(stale_key, None)
+
     def _category_family_id(self, category: str) -> str | None:
         if self._catalog is None:
             return None
@@ -694,11 +721,91 @@ class MainWindow(QMainWindow, AppWindowMixin):
         if toast is not None:
             toast.close()
 
-    def _close_variant_progress_toast(self) -> None:
-        toast = self._variant_progress_toast
-        self._variant_progress_toast = None
-        if toast is not None:
-            toast.close()
+    def _collect_visible_families(self, entries: list[GridEntry]) -> None:
+        """Track unique families of already rendered tiles for thumbnail refresh."""
+        for entry in entries:
+            if entry.family.id in self._visible_family_ids:
+                continue
+            self._visible_family_ids.add(entry.family.id)
+            self._visible_families.append(entry.family)
+
+    def _entry_pixmap(self, entry: GridEntry) -> QPixmap | None:
+        """Return the thumbnail for one tile, from memory, disk cache, or a fresh render."""
+        key = str(entry.svg_path)
+        featured = entry.family.featured_path(self._repo_root) if self._repo_root is not None else None
+        is_featured_tile = self._variant_view_mode == MODE_FEATURED or (
+            featured is not None and entry.svg_path.resolve() == featured.resolve()
+        )
+        if is_featured_tile:
+            cached = self._pixmaps.get(entry.family.id)
+            if cached is None:
+                cached = self._thumb_cache.load_pixmap(entry.family.id)
+                if cached is not None:
+                    self._cache_pixmap(self._pixmaps, entry.family.id, cached)
+            if cached is not None and not cached.isNull():
+                return cached
+        # No disk thumbnail yet: render now so the tile is not stuck on a placeholder
+        # while the background worker walks through the rest of the folder.
+        session = self._variant_pixmaps.get(key)
+        if session is not None and not session.isNull():
+            return session
+        image = render_icon_to_image(entry.svg_path, self._icon_size)
+        if image is None:
+            return None
+        pixmap = QPixmap.fromImage(image)
+        self._cache_pixmap(self._variant_pixmaps, key, pixmap)
+        return pixmap
+
+    def _evict_offscreen_rows(self, first: int, last: int) -> None:
+        if len(self._loaded_rows) <= LOADED_ROWS_MAX:
+            return
+        span = max(1, last - first + 1)
+        low = first - 2 * span
+        high = last + 2 * span
+        stale = [row for row in self._loaded_rows if row < low or row > high]
+        if not stale:
+            return
+        self.icon_list.reset_row_pixmaps(stale, placeholder=self._placeholder)
+        self._loaded_rows.difference_update(stale)
+
+    def _fill_next_grid_chunk(self) -> None:
+        """Append more tiles, but give the event loop a turn once the time budget is spent."""
+        deadline = time.monotonic() + GRID_FILL_BUDGET_S
+        while self._pending_grid_entries and time.monotonic() < deadline:
+            chunk = self._pending_grid_entries[:GRID_CHUNK_SIZE]
+            del self._pending_grid_entries[:GRID_CHUNK_SIZE]
+            self.icon_list.append_grid_entries(
+                chunk,
+                pixmaps_by_path={},
+                placeholder=self._placeholder,
+            )
+            self._collect_visible_families(chunk)
+        self._update_grid_counters()
+        if not self._pending_grid_entries:
+            self._finish_grid_fill()
+
+    def _finish_grid_fill(self) -> None:
+        self._grid_fill_timer.stop()
+        self._pending_grid_entries = []
+        self._update_grid_counters()
+        if self._selected_family_id is not None and self.icon_list.currentItem() is None:
+            self._restore_or_clear_selection(self._visible_families)
+        self._refresh_viewport_pixmaps()
+        self._start_thumb_refresh()
+
+    def _flush_thumb_updates(self) -> None:
+        """Apply thumbnails finished since the last flush with a single repaint."""
+        families = self._thumb_dirty_families
+        self._thumb_dirty_families = set()
+        self._update_thumb_status_progress(self._thumb_refresh_done, self._thumb_refresh_total)
+        if not families:
+            return
+        for family_id in families:
+            self._pixmaps.pop(family_id, None)
+        self._refresh_viewport_pixmaps(force_families=families)
+        category_ids = set(self._category_icons.values()) | set(self._default_category_family_ids.values())
+        if category_ids & families:
+            self._refresh_category_icons()
 
     @staticmethod
     def _folder_display_name(path: Path) -> str:
@@ -1604,6 +1711,8 @@ class MainWindow(QMainWindow, AppWindowMixin):
     def _on_thumb_finished(self, updated: int) -> None:
         if self.sender() is not self._thumb_worker:
             return
+        self._thumb_flush_timer.stop()
+        self._flush_thumb_updates()
         self._hide_thumb_status_progress()
         self._refresh_category_icons()
         if updated <= 0:
@@ -1615,14 +1724,10 @@ class MainWindow(QMainWindow, AppWindowMixin):
         if self.sender() is not self._thumb_worker:
             return
         self._thumb_refresh_done += 1
-        self._update_thumb_status_progress(self._thumb_refresh_done, self._thumb_refresh_total)
-        pixmap = QPixmap(thumb_path)
-        if pixmap.isNull():
-            return
-        self._pixmaps[family_id] = pixmap
-        self.icon_list.update_family_pixmap(family_id, pixmap)
-        if family_id in self._category_icons.values() or family_id in self._default_category_family_ids.values():
-            self._refresh_category_icons()
+        if thumb_path:
+            self._thumb_dirty_families.add(family_id)
+        if not self._thumb_flush_timer.isActive():
+            self._thumb_flush_timer.start()
 
     def _on_toggle_trademark(self, family: object) -> None:
         if not isinstance(family, IconFamily) or not self._repo_root:
@@ -1714,65 +1819,6 @@ class MainWindow(QMainWindow, AppWindowMixin):
     def _persist_icon_size(self) -> None:
         self._icon_size_save_timer.stop()
         save_icon_size(self.size_slider.value())
-
-    def _pixmaps_for_entries(self, entries: list[GridEntry]) -> dict[str, QPixmap]:
-        result: dict[str, QPixmap] = {}
-        pending: list[Path] = []
-        pending_keys: set[str] = set()
-
-        for entry in entries:
-            key = str(entry.svg_path)
-            if key in result or key in pending_keys:
-                continue
-            featured = entry.family.featured_path(self._repo_root) if self._repo_root is not None else None
-            if self._variant_view_mode == MODE_FEATURED or (
-                featured is not None and entry.svg_path.resolve() == featured.resolve()
-            ):
-                cached = self._pixmaps.get(entry.family.id)
-                if cached is None:
-                    cached = self._thumb_cache.load_pixmap(entry.family.id)
-                    if cached is not None:
-                        self._pixmaps[entry.family.id] = cached
-                if cached is not None and not cached.isNull():
-                    result[key] = cached
-                    continue
-                if self._variant_view_mode == MODE_FEATURED:
-                    continue
-            session = self._variant_pixmaps.get(key)
-            if session is not None and not session.isNull():
-                result[key] = session
-                continue
-            pending.append(entry.svg_path)
-            pending_keys.add(key)
-
-        if not pending:
-            return result
-
-        toast: toast_progress_notification.ToastProgressNotification | None = None
-        if len(pending) >= VARIANT_PROGRESS_TOAST_MIN:
-            toast = toast_progress_notification.ToastProgressNotification(
-                "Rendering icon previews…",
-                total=len(pending),
-                parent=self,
-            )
-            self._close_variant_progress_toast()
-            self._variant_progress_toast = toast
-            toast.start_countdown()
-        try:
-            for index, svg_path in enumerate(pending, start=1):
-                key = str(svg_path)
-                image = render_icon_to_image(svg_path, self._icon_size)
-                if image is not None:
-                    pixmap = QPixmap.fromImage(image)
-                    self._variant_pixmaps[key] = pixmap
-                    result[key] = pixmap
-                if toast is not None:
-                    toast.set_progress(index, len(pending))
-                    if index == len(pending) or index % VARIANT_RENDER_CHUNK == 0:
-                        toast.pump_events()
-        finally:
-            self._close_variant_progress_toast()
-        return result
 
     def _populate_categories(self, *, preferred_category: str | None = None) -> None:
         previous = preferred_category if preferred_category is not None else self._current_category
@@ -1917,6 +1963,31 @@ class MainWindow(QMainWindow, AppWindowMixin):
                 continue
             item.setIcon(self._category_pixmap_icon(name))
 
+    def _refresh_viewport_pixmaps(self, *, force_families: set[str] | None = None) -> None:
+        """Load thumbnails for tiles near the viewport and drop the ones scrolled far away."""
+        if not self._grid_entries:
+            return
+        first, last = self.icon_list.visible_row_span(VIEWPORT_MARGIN_LINES)
+        last = min(last, self.icon_list.count() - 1, len(self._grid_entries) - 1)
+        deadline = time.monotonic() + VIEWPORT_LOAD_BUDGET_S
+        updates: dict[int, QPixmap] = {}
+        unfinished = False
+        for row in range(first, last + 1):
+            entry = self._grid_entries[row]
+            if row in self._loaded_rows and (force_families is None or entry.family.id not in force_families):
+                continue
+            if time.monotonic() >= deadline:
+                unfinished = True
+                break
+            self._loaded_rows.add(row)
+            pixmap = self._entry_pixmap(entry)
+            if pixmap is not None and not pixmap.isNull():
+                updates[row] = pixmap
+        self.icon_list.update_row_pixmaps(updates)
+        self._evict_offscreen_rows(first, last)
+        if unfinished:
+            self._viewport_pixmap_timer.start()
+
     def _require_note_repo_for_add_svgs(self) -> Path | None:
         """Return the open note-folder repo, or show a warning and return `None`."""
         if not self._is_note_repo_open() or self._repo_root is None:
@@ -1947,8 +2018,13 @@ class MainWindow(QMainWindow, AppWindowMixin):
             external_ai_root=ai_root,
         )
 
-    def _restore_or_clear_selection(self, families: list[IconFamily]) -> None:
-        """Keep selection if the family is still visible; otherwise select the first tile."""
+    def _restore_or_clear_selection(self, families: list[IconFamily], *, allow_defer: bool = False) -> None:
+        """Keep selection if the family is still visible; otherwise select the first tile.
+
+        With `allow_defer` the selection is kept untouched when the family is not rendered yet,
+        so a retry after the grid finishes filling can still find it.
+
+        """
         target_id = self._selected_family_id
         if target_id is None and families:
             target_id = families[0].id
@@ -1965,12 +2041,17 @@ class MainWindow(QMainWindow, AppWindowMixin):
                 self._on_family_selected(family, persist=False)
                 return
             break
+        if allow_defer:
+            return
         self._selected_family_id = None
         self.variants_panel.clear_variants()
 
     def _schedule_search_filter(self) -> None:
         """Restart debounce so the grid filters after typing pauses."""
         self._search_filter_timer.start()
+
+    def _schedule_viewport_pixmaps(self) -> None:
+        self._viewport_pixmap_timer.start()
 
     def _select_all_categories(self) -> None:
         if self.category_list.currentRow() == 0 and self._current_category is None:
@@ -2040,7 +2121,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         refresh: bool,
     ) -> None:
         self._stop_thumb_refresh()
-        self._close_variant_progress_toast()
+        self._stop_grid_fill()
         self._catalog_load_generation += 1
         generation = self._catalog_load_generation
         self._pending_open_remember = remember
@@ -2106,7 +2187,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._stop_thumb_refresh()
         self._thumb_refresh_done = 0
         families = self._visible_families or (
-            list(self._catalog.icons) if len(self._catalog.icons) <= GRID_RENDER_LIMIT else []
+            list(self._catalog.icons) if len(self._catalog.icons) <= LARGE_CATALOG_LIMIT else []
         )
         if not families:
             return
@@ -2134,6 +2215,11 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._catalog_load_worker = None
         self._close_load_progress_toast()
 
+    def _stop_grid_fill(self) -> None:
+        self._grid_fill_timer.stop()
+        self._viewport_pixmap_timer.stop()
+        self._pending_grid_entries = []
+
     def _stop_keywords_batch(self) -> None:
         runner = self._keywords_batch_runner
         if runner is not None and runner.is_running:
@@ -2151,6 +2237,8 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._close_maintenance_progress_toast()
 
     def _stop_thumb_refresh(self) -> None:
+        self._thumb_flush_timer.stop()
+        self._thumb_dirty_families = set()
         if self._thumb_worker is not None:
             self._thumb_worker.cancel()
         if self._thumb_thread is not None and self._thumb_thread.isRunning():
@@ -2275,6 +2363,21 @@ class MainWindow(QMainWindow, AppWindowMixin):
             return self._current_category
         return family.categories[0] if family.categories else None
 
+    def _update_grid_counters(self) -> None:
+        loaded = self.icon_list.count()
+        total = self._grid_total_entries
+        complete = loaded >= total
+        shown = str(total) if complete else f"{loaded} of {total}"
+        if self._grid_fallback:
+            self.count_label.setText(f"{shown} tiles ({self._grid_matched} match, {self._grid_fallback} fallback)")
+        else:
+            self.count_label.setText(f"{shown} tiles / {self._grid_total_families} families")
+        catalog_total = len(self._catalog.icons) if self._catalog is not None else 0
+        suffix = "" if complete else " — loading…"
+        self.statusBar().showMessage(
+            f"Showing {shown} tiles ({self._grid_total_families} families) / {catalog_total}{suffix}",
+        )
+
     def _update_load_toast(
         self,
         message: str,
@@ -2391,7 +2494,6 @@ def __init__(self, *, hide_on_close: bool = False) -> None:
         self._default_category_family_ids: dict[str, str] = {}
         self._variant_view_mode = MODE_FEATURED
         self._variant_pixmaps: dict[str, QPixmap] = {}
-        self._variant_progress_toast: toast_progress_notification.ToastProgressNotification | None = None
         self._load_progress_toast: toast_progress_notification.ToastProgressNotification | None = None
         self._catalog_load_thread: QThread | None = None
         self._catalog_load_worker: CatalogLoadWorker | None = None
@@ -2412,6 +2514,26 @@ def __init__(self, *, hide_on_close: bool = False) -> None:
         self._keywords_batch_runner: KeywordsBatchRunner | None = None
         self._thumb_refresh_done = 0
         self._thumb_refresh_total = 0
+        self._thumb_dirty_families: set[str] = set()
+        self._thumb_flush_timer = QTimer(self)
+        self._thumb_flush_timer.setSingleShot(True)
+        self._thumb_flush_timer.setInterval(THUMB_UPDATE_FLUSH_MS)
+        self._thumb_flush_timer.timeout.connect(self._flush_thumb_updates)
+        self._grid_entries: list[GridEntry] = []
+        self._pending_grid_entries: list[GridEntry] = []
+        self._loaded_rows: set[int] = set()
+        self._viewport_pixmap_timer = QTimer(self)
+        self._viewport_pixmap_timer.setSingleShot(True)
+        self._viewport_pixmap_timer.setInterval(0)
+        self._viewport_pixmap_timer.timeout.connect(self._refresh_viewport_pixmaps)
+        self._visible_family_ids: set[str] = set()
+        self._grid_total_entries = 0
+        self._grid_total_families = 0
+        self._grid_matched = 0
+        self._grid_fallback = 0
+        self._grid_fill_timer = QTimer(self)
+        self._grid_fill_timer.setInterval(15)
+        self._grid_fill_timer.timeout.connect(self._fill_next_grid_chunk)
         self._icon_size_save_timer = QTimer(self)
         self._icon_size_save_timer.setSingleShot(True)
         self._icon_size_save_timer.setInterval(300)
@@ -2445,7 +2567,7 @@ def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
         self._persist_icon_size()
         if self._hide_instead_of_close(event):
             return
-        self._close_variant_progress_toast()
+        self._stop_grid_fill()
         self._stop_catalog_load()
         self._stop_trademark_update()
         self._stop_maintenance()
