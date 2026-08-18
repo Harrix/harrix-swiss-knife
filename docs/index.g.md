@@ -71,6 +71,7 @@ _Figure 1: Screenshot_
   - 📥 Update Node.js
   - 📥 Update uv
   - 📦 Update/Install global NPM packages
+  - 📥 Upgrade uv Python
   - 📋 View recent action logs
 - **Android**
   - 📱 Build Android APK in … ꟲᴸᴵ
