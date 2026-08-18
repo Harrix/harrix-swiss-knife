@@ -1114,6 +1114,34 @@ class MainWindow(QMainWindow, AppWindowMixin):
     def _on_check_images(self) -> None:
         self._start_maintenance("check", "Checking images…")
 
+    def _on_copy_contents(self, svg_path: str) -> None:
+        path = Path(svg_path)
+        if path.suffix.casefold() != ".svg":
+            QMessageBox.warning(self, "Vector Icons", "Copy contents is available only for SVG files.")
+            return
+        if not path.is_file():
+            QMessageBox.warning(self, "Vector Icons", f"File not found:\n{path}")
+            return
+        clipboard = QApplication.clipboard()
+        if clipboard is None:
+            QMessageBox.warning(self, "Vector Icons", "Clipboard is not available.")
+            return
+        try:
+            clipboard.setText(path.read_text(encoding="utf-8"))
+        except (OSError, UnicodeDecodeError) as exc:
+            QMessageBox.warning(self, "Vector Icons", f"Failed to read `{path.name}`:\n{exc}")
+            return
+        self.statusBar().showMessage(f"Copied contents of `{path.name}`")
+
+    def _on_copy_filename(self, svg_path: str) -> None:
+        name = Path(svg_path).name
+        clipboard = QApplication.clipboard()
+        if clipboard is None:
+            QMessageBox.warning(self, "Vector Icons", "Clipboard is not available.")
+            return
+        clipboard.setText(name)
+        self.statusBar().showMessage(f"Copied filename `{name}`")
+
     def _on_copy_path(self, svg_path: str) -> None:
         path = str(Path(svg_path).resolve())
         clipboard = QApplication.clipboard()
@@ -1130,16 +1158,12 @@ class MainWindow(QMainWindow, AppWindowMixin):
             return
         mime = QMimeData()
         mime.setUrls([QUrl.fromLocalFile(str(path.resolve()))])
-        try:
-            mime.setText(path.read_text(encoding="utf-8"))
-        except OSError:
-            mime.setText(str(path.resolve()))
         clipboard = QApplication.clipboard()
         if clipboard is None:
             QMessageBox.warning(self, "Vector Icons", "Clipboard is not available.")
             return
         clipboard.setMimeData(mime)
-        self.statusBar().showMessage(f"Copied `{path.name}`")
+        self.statusBar().showMessage(f"Copied file `{path.name}`")
 
     def _on_delete_icon(self, family: object) -> None:
         if not isinstance(family, IconFamily) or self._repo_root is None or self._catalog is None:
@@ -2266,6 +2290,8 @@ class MainWindow(QMainWindow, AppWindowMixin):
         icon_list.reveal_requested.connect(self._on_reveal_in_explorer)
         icon_list.details_requested.connect(self._on_icon_details)
         icon_list.copy_requested.connect(self._on_copy_svg)
+        icon_list.copy_contents_requested.connect(self._on_copy_contents)
+        icon_list.copy_filename_requested.connect(self._on_copy_filename)
         icon_list.copy_path_requested.connect(self._on_copy_path)
         icon_list.open_note_requested.connect(self._on_open_note_in_editor)
         icon_list.edit_keywords_requested.connect(self._on_edit_keywords)

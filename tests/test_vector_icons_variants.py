@@ -20,7 +20,12 @@ from harrix_swiss_knife.apps.icons.catalog import (
 from harrix_swiss_knife.apps.icons.lightbox import IconLightboxDialog
 from harrix_swiss_knife.apps.icons.trademark_update import TRADEMARK_WARNING, update_trademark_files
 from harrix_swiss_knife.apps.icons.variant_view import GridEntry
-from harrix_swiss_knife.apps.icons.widgets import DraggableIconList, VariantsPanel, placeholder_pixmap
+from harrix_swiss_knife.apps.icons.widgets import (
+    DraggableIconList,
+    VariantsPanel,
+    is_svg_icon_path,
+    placeholder_pixmap,
+)
 
 _MIN_SVG = (
     '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><rect width="32" height="32" fill="#336699"/></svg>'
@@ -375,3 +380,11 @@ def test_delete_flat_family_unlinks_files(tmp_path: Path) -> None:
     delete_icon_family(target, dump, kind="flat")
     remaining = open_icons_folder(dump)
     assert [item.id for item in remaining.icons] == [item.id for item in catalog.icons if item.id != target.id]
+
+
+def test_is_svg_icon_path() -> None:
+    assert is_svg_icon_path(r"D:\icons\building__garage.svg")
+    assert is_svg_icon_path("featured-image.SVG")
+    assert not is_svg_icon_path(r"D:\icons\building__garage.ai")
+    assert not is_svg_icon_path("")
+    assert not is_svg_icon_path(None)

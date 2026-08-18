@@ -45,7 +45,7 @@ ROLE_SVG_PATH = int(Qt.ItemDataRole.UserRole) + 1
 ROLE_SUBTITLE = int(Qt.ItemDataRole.UserRole) + 2
 ROLE_FALLBACK = int(Qt.ItemDataRole.UserRole) + 3
 ROLE_TRADEMARK = int(Qt.ItemDataRole.UserRole) + 4
-LABEL_EXTRA_HEIGHT = 56
+LABEL_EXTRA_HEIGHT = 86
 FALLBACK_ICON_OPACITY = 0.38
 FALLBACK_TITLE_ALPHA = 120
 FALLBACK_SUBTITLE_ALPHA = 90
@@ -95,6 +95,8 @@ class DraggableIconList(QListWidget):
     reveal_requested = Signal(str)
     details_requested = Signal(object, str)  # IconFamily, svg_path
     copy_requested = Signal(str)
+    copy_contents_requested = Signal(str)
+    copy_filename_requested = Signal(str)
     copy_path_requested = Signal(str)
     open_note_requested = Signal(object)  # IconFamily
     edit_keywords_requested = Signal(object, str)  # IconFamily, svg_path
@@ -363,13 +365,18 @@ class DraggableIconList(QListWidget):
 
         reveal_action = None
         details_action = None
-        copy_action = None
+        copy_file_action = None
+        copy_contents_action = None
+        copy_filename_action = None
         copy_path_action = None
 
         if has_path:
             reveal_action = menu.addAction("📂 Reveal in File Explorer")
             details_action = menu.addAction("ℹ️ Icon details")  # noqa: RUF001
-            copy_action = menu.addAction("📋 Copy")
+            copy_file_action = menu.addAction("📋 Copy file")
+            if is_svg_icon_path(path):
+                copy_contents_action = menu.addAction("📋 Copy contents")
+            copy_filename_action = menu.addAction("📋 Copy filename")
             copy_path_action = menu.addAction("📋 Copy path")
             menu.addSeparator()
 
@@ -405,8 +412,12 @@ class DraggableIconList(QListWidget):
             self.reveal_requested.emit(path)
         elif has_path and chosen is details_action:
             self.details_requested.emit(family, path)
-        elif has_path and chosen is copy_action:
+        elif has_path and chosen is copy_file_action:
             self.copy_requested.emit(path)
+        elif has_path and copy_contents_action is not None and chosen is copy_contents_action:
+            self.copy_contents_requested.emit(path)
+        elif has_path and chosen is copy_filename_action:
+            self.copy_filename_requested.emit(path)
         elif has_path and chosen is copy_path_action:
             self.copy_path_requested.emit(path)
         elif chosen is open_note_action:
@@ -483,13 +494,24 @@ class IconLabelDelegate(QStyledItemDelegate):
         painter.setPen(title_color)
 
         title_font = QFont(opt.font)
-        subtitle_font = QFont(opt.font)
-        subtitle_font.setPointSizeF(max(8.0, title_font.pointSizeF() * 0.85))
-        subtitle_font.setBold(False)
+        subtitle_font = _filename_label_font(opt.font)
 
         painter.setFont(title_font)
-        title_height = painter.fontMetrics().height()
-        title_rect = QRect(text_rect.left(), text_rect.top(), text_rect.width(), title_height)
+        title_height = (
+            painter.fontMetrics()
+            .boundingRect(
+                text_rect,
+                int(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop | Qt.TextFlag.TextWordWrap),
+                title,
+            )
+            .height()
+        )
+        title_rect = QRect(
+            text_rect.left(),
+            text_rect.top(),
+            text_rect.width(),
+            min(title_height, painter.fontMetrics().height() * 2),
+        )
         painter.drawText(
             title_rect,
             int(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop | Qt.TextFlag.TextWordWrap),
@@ -510,11 +532,11 @@ class IconLabelDelegate(QStyledItemDelegate):
                 text_rect.left(),
                 title_rect.bottom() + 1,
                 text_rect.width(),
-                text_rect.bottom() - title_rect.bottom(),
+                max(0, text_rect.bottom() - title_rect.bottom()),
             )
             painter.drawText(
                 subtitle_rect,
-                int(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop | Qt.TextFlag.TextWordWrap),
+                int(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop | Qt.TextFlag.TextWrapAnywhere),
                 subtitle_text,
             )
 
@@ -667,6 +689,18 @@ def family_display_filename(family: IconFamily, svg_path: Path | None = None) ->
     if family.variants:
         return Path(family.variants[0].file).name
     return f"{family.id}.svg"
+
+
+def is_svg_icon_path(path: object) -> bool:
+    """Return whether `path` looks like an SVG file path."""
+    return isinstance(path, str) and Path(path).suffix.casefold() == ".svg"
+
+
+def _filename_label_font(base: QFont) -> QFont:
+    font = QFont(base)
+    font.setPointSizeF(max(7.5, base.pointSizeF() * 0.72))
+    font.setBold(False)
+    return font
 
 
 def _muted_pixmap(pixmap: QPixmap, opacity: float) -> QPixmap:
