@@ -28,6 +28,7 @@ from PySide6.QtWidgets import (
     QMenu,
     QMessageBox,
     QPlainTextEdit,
+    QProgressBar,
     QPushButton,
     QSizePolicy,
     QSlider,
@@ -240,7 +241,6 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._pending_refresh_category: str | None = None
         self._pending_refresh_folder: str | None = None
         self._visible_families: list[IconFamily] = []
-        self._thumb_progress_toast: toast_progress_notification.ToastProgressNotification | None = None
         self._trademark_progress_toast: toast_progress_notification.ToastProgressNotification | None = None
         self._trademark_thread: QThread | None = None
         self._trademark_worker: TrademarkUpdateWorker | None = None
@@ -583,8 +583,19 @@ class MainWindow(QMainWindow, AppWindowMixin):
         splitter.setSizes([200, 900, 320])
         root.addWidget(splitter)
 
-        self.setStatusBar(QStatusBar())
-        self.statusBar().showMessage("Ready")
+        status = QStatusBar()
+        self.setStatusBar(status)
+        status.showMessage("Ready")
+        self._thumb_status_label = QLabel("Thumbnails")
+        self._thumb_status_label.hide()
+        self._thumb_status_bar = QProgressBar()
+        self._thumb_status_bar.setMaximumWidth(160)
+        self._thumb_status_bar.setMaximumHeight(14)
+        self._thumb_status_bar.setTextVisible(True)
+        self._thumb_status_bar.setFormat("%v / %m")
+        self._thumb_status_bar.hide()
+        status.addPermanentWidget(self._thumb_status_label)
+        status.addPermanentWidget(self._thumb_status_bar)
 
         file_menu = self.menuBar().addMenu("&File")
         open_folder_action = file_menu.addAction("📂 Open folder…")
@@ -661,12 +672,6 @@ class MainWindow(QMainWindow, AppWindowMixin):
         if toast is not None:
             toast.close()
 
-    def _close_thumb_progress_toast(self) -> None:
-        toast = self._thumb_progress_toast
-        self._thumb_progress_toast = None
-        if toast is not None:
-            toast.close()
-
     def _close_trademark_progress_toast(self) -> None:
         toast = self._trademark_progress_toast
         self._trademark_progress_toast = None
@@ -708,6 +713,11 @@ class MainWindow(QMainWindow, AppWindowMixin):
         if total_bytes >= kib:
             return f"{total_bytes / kib:.1f} KB"
         return f"{total_bytes} B"
+
+    def _hide_thumb_status_progress(self) -> None:
+        self._thumb_status_label.hide()
+        self._thumb_status_bar.hide()
+        self._thumb_status_bar.reset()
 
     def _import_vector_sources(self, sources: list[Path]) -> None:
         """Import vector files into the open flat folder or note repository."""
@@ -1478,18 +1488,18 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self.statusBar().showMessage(f"Category `{category}` icon set to `{family.id}`")
 
     def _on_thumb_finished(self, updated: int) -> None:
-        toast = self._thumb_progress_toast
-        if toast is not None:
-            toast.set_progress(updated, self._thumb_refresh_total)
-        self._close_thumb_progress_toast()
+        if self.sender() is not self._thumb_worker:
+            return
+        self._hide_thumb_status_progress()
         total = len(self._catalog.icons) if self._catalog else 0
-        self.statusBar().showMessage(f"Thumbnails ready ({updated} updated, {total} total)")
+        self.statusBar().showMessage(f"Thumbnails ready ({updated} updated, {total} total)", 4000)
         self._refresh_category_icons()
 
     def _on_thumb_progress(self, family_id: str, thumb_path: str) -> None:
+        if self.sender() is not self._thumb_worker:
+            return
         self._thumb_refresh_done += 1
-        if self._thumb_progress_toast is not None:
-            self._thumb_progress_toast.set_progress(self._thumb_refresh_done, self._thumb_refresh_total)
+        self._update_thumb_status_progress(self._thumb_refresh_done, self._thumb_refresh_total)
         pixmap = QPixmap(thumb_path)
         if pixmap.isNull():
             return
@@ -1966,13 +1976,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
             return
         self._thumb_refresh_total = sum(not self._thumb_cache.is_fresh(family) for family in families)
         if self._thumb_refresh_total:
-            self._thumb_progress_toast = toast_progress_notification.ToastProgressNotification(
-                "Refreshing icon thumbnails…",
-                total=self._thumb_refresh_total,
-                parent=self,
-            )
-            self._thumb_progress_toast.start_countdown()
-        self.statusBar().showMessage("Refreshing thumbnails in background…")
+            self._update_thumb_status_progress(0, self._thumb_refresh_total)
         self._thumb_thread, self._thumb_worker = start_thumbnail_refresh(
             self._catalog,
             self._thumb_cache,
@@ -2016,7 +2020,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
             self._thumb_thread.wait(3000)
         self._thumb_thread = None
         self._thumb_worker = None
-        self._close_thumb_progress_toast()
+        self._hide_thumb_status_progress()
 
     def _stop_trademark_update(self) -> None:
         thread = self._trademark_thread
@@ -2125,6 +2129,12 @@ class MainWindow(QMainWindow, AppWindowMixin):
         toast.set_progress(done, total)
         toast.pump_events()
         return toast
+
+    def _update_thumb_status_progress(self, done: int, total: int) -> None:
+        self._thumb_status_bar.setRange(0, max(1, total))
+        self._thumb_status_bar.setValue(min(max(done, 0), max(total, 1)))
+        self._thumb_status_label.show()
+        self._thumb_status_bar.show()
 
     @staticmethod
     def _variant_thumb_size(icon_size: int) -> int:
