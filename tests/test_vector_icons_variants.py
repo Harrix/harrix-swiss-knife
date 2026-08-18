@@ -19,7 +19,15 @@ from harrix_swiss_knife.apps.icons.catalog import (
 )
 from harrix_swiss_knife.apps.icons.lightbox import IconLightboxDialog
 from harrix_swiss_knife.apps.icons.trademark_update import TRADEMARK_WARNING, update_trademark_files
-from harrix_swiss_knife.apps.icons.variant_view import GridEntry
+from harrix_swiss_knife.apps.icons.variant_view import (
+    MODE_ALL,
+    MODE_COLOR,
+    MODE_FEATURED,
+    MODE_LINE_16,
+    MODE_WHITE,
+    GridEntry,
+    available_variant_view_modes,
+)
 from harrix_swiss_knife.apps.icons.widgets import (
     DraggableIconList,
     VariantsPanel,
@@ -406,3 +414,31 @@ def test_read_svg_text_rejects_binary(tmp_path: Path) -> None:
     binary.write_bytes(b"%!PS-Adobe\xe2\x00not-unicode")
     with pytest.raises(UnicodeDecodeError):
         read_svg_text(binary)
+
+
+def _family_with_variants(family_id: str, names: list[str]) -> IconFamily:
+    return IconFamily(
+        id=family_id,
+        title=family_id,
+        categories=[],
+        tags=[],
+        folder="",
+        featured="featured-image.svg",
+        featured_hash="",
+        variants=[IconVariant(file=f"img/{name}.svg", name=name, hash="") for name in names],
+    )
+
+
+def test_available_variant_view_modes_featured_only() -> None:
+    family = _family_with_variants("ui__check", [])
+    assert available_variant_view_modes([family]) == (MODE_FEATURED,)
+
+
+def test_available_variant_view_modes_hides_missing_kinds() -> None:
+    family = _family_with_variants("building__garage", ["building__garage", "building__garage_white"])
+    assert available_variant_view_modes([family]) == (MODE_FEATURED, MODE_COLOR, MODE_WHITE, MODE_ALL)
+
+
+def test_available_variant_view_modes_includes_line_kind() -> None:
+    family = _family_with_variants("symbol__ok", ["symbol__ok_line-16"])
+    assert available_variant_view_modes([family]) == (MODE_FEATURED, MODE_LINE_16, MODE_ALL)

@@ -47,6 +47,34 @@ class GridEntry:
     is_fallback: bool = False
 
 
+def available_variant_view_modes(families: list[IconFamily]) -> tuple[str, ...]:
+    """Return View modes that exist among `families`, always including Featured.
+
+    Kind modes appear only when at least one variant has that kind. `All variants`
+    appears when any family has variant files.
+
+    """
+    kinds: set[str] = set()
+    has_variants = False
+    for family in families:
+        if family.variants:
+            has_variants = True
+        for variant in family.variants:
+            kinds.add(classify_variant_kind(variant.name))
+    result: list[str] = []
+    for mode_id, _label in VARIANT_VIEW_MODES:
+        if mode_id == MODE_FEATURED:
+            result.append(MODE_FEATURED)
+            continue
+        if mode_id == MODE_ALL:
+            if has_variants:
+                result.append(MODE_ALL)
+            continue
+        if mode_id in kinds:
+            result.append(mode_id)
+    return tuple(result)
+
+
 def build_grid_entries(
     families: list[IconFamily],
     *,

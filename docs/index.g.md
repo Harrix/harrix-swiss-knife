@@ -235,7 +235,6 @@ Use this when the target machine has slow or blocked internet. Build the offline
    ```
 
    That populates `install\dependencies\` (ignored by Git) with installers, media binaries, repo snapshots, and uv caches.
-
 2. Build distributable zips:
 
    ```powershell

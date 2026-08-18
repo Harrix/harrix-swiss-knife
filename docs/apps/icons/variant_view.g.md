@@ -12,6 +12,7 @@ lang: en
 ## Contents
 
 - [🏛️ Class `GridEntry`](#%EF%B8%8F-class-gridentry)
+- [🔧 Function `available_variant_view_modes`](#-function-available_variant_view_modes)
 - [🔧 Function `build_grid_entries`](#-function-build_grid_entries)
 - [🔧 Function `classify_variant_kind`](#-function-classify_variant_kind)
 
@@ -34,6 +35,45 @@ class GridEntry:
     family: IconFamily
     svg_path: Path
     is_fallback: bool = False
+```
+
+</details>
+
+## 🔧 Function `available_variant_view_modes`
+
+```python
+def available_variant_view_modes(families: list[IconFamily]) -> tuple[str, ...]
+```
+
+Return View modes that exist among `families`, always including Featured.
+
+Kind modes appear only when at least one variant has that kind. `All variants`
+appears when any family has variant files.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def available_variant_view_modes(families: list[IconFamily]) -> tuple[str, ...]:
+    kinds: set[str] = set()
+    has_variants = False
+    for family in families:
+        if family.variants:
+            has_variants = True
+        for variant in family.variants:
+            kinds.add(classify_variant_kind(variant.name))
+    result: list[str] = []
+    for mode_id, _label in VARIANT_VIEW_MODES:
+        if mode_id == MODE_FEATURED:
+            result.append(MODE_FEATURED)
+            continue
+        if mode_id == MODE_ALL:
+            if has_variants:
+                result.append(MODE_ALL)
+            continue
+        if mode_id in kinds:
+            result.append(mode_id)
+    return tuple(result)
 ```
 
 </details>

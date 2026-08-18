@@ -307,6 +307,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
             self.icon_list.clear()
             self.variants_panel.clear_variants()
             self.count_label.setText("0 icons")
+            self._sync_variant_view_combo([])
             return
         selected_id = self._selected_family_id
         query = self.search_edit.text()
@@ -317,6 +318,11 @@ class MainWindow(QMainWindow, AppWindowMixin):
         )
         if is_favorites_category(category):
             category = None
+        scope = self._catalog.filter_icons(category=category, folder=folder, query="")
+        if self._nav_source == "category" and is_favorites_category(self._current_category):
+            by_id = {family.id: family for family in scope}
+            scope = [by_id[family_id] for family_id in self._favorite_ids if family_id in by_id]
+        self._sync_variant_view_combo(scope)
         families = self._catalog.filter_icons(
             category=category,
             folder=folder,
@@ -480,13 +486,16 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self.size_value_label.setMinimumWidth(28)
         toolbar.addWidget(self.size_value_label)
 
-        toolbar.addWidget(QLabel("View"))
+        self._variant_view_label = QLabel("View")
+        toolbar.addWidget(self._variant_view_label)
         self.variant_view_combo = QComboBox()
         self.variant_view_combo.setMinimumWidth(220)
         for mode_id, label in VARIANT_VIEW_MODES:
             self.variant_view_combo.addItem(label, mode_id)
         self.variant_view_combo.setCurrentIndex(0)
         self.variant_view_combo.currentIndexChanged.connect(self._on_variant_view_changed)
+        self._variant_view_label.setVisible(False)
+        self.variant_view_combo.setVisible(False)
         toolbar.addWidget(self.variant_view_combo)
 
         self.search_edit = QLineEdit()
@@ -2166,6 +2175,29 @@ class MainWindow(QMainWindow, AppWindowMixin):
             self._nav_source = "category"
         else:
             self._nav_source = None
+
+    def _sync_variant_view_combo(self, families: list[IconFamily]) -> None:
+        """Show only View modes that exist in the current folder or category."""
+        if not hasattr(self, "variant_view_combo"):
+            return
+        available = available_variant_view_modes(families)
+        if self._variant_view_mode not in available:
+            self._variant_view_mode = MODE_FEATURED
+        only_featured = available == (MODE_FEATURED,)
+        self._variant_view_label.setVisible(not only_featured)
+        self.variant_view_combo.setVisible(not only_featured)
+        if only_featured:
+            return
+        labels = dict(VARIANT_VIEW_MODES)
+        self.variant_view_combo.blockSignals(True)  # noqa: FBT003
+        self.variant_view_combo.clear()
+        selected = 0
+        for mode_id in available:
+            self.variant_view_combo.addItem(labels.get(mode_id, mode_id), mode_id)
+            if mode_id == self._variant_view_mode:
+                selected = self.variant_view_combo.count() - 1
+        self.variant_view_combo.setCurrentIndex(selected)
+        self.variant_view_combo.blockSignals(False)  # noqa: FBT003
 
     def _target_category_for_icon(self, family: IconFamily) -> str | None:
         if is_favorites_category(self._current_category):
