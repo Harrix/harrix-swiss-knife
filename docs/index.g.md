@@ -158,11 +158,11 @@ _Figure 1: Screenshot_
 - **Icons**
   - 💎 Beautify and optimize icons
   - 🚧 Check images
-  - 🎨 Vector Icons
 - 💰 Finance tracker
 - 🏃🏻 Fitness tracker
 - 🍔 Food tracker
 - ✅ Habit tracker
+- 🎨 Vector Icons
 - ⚡ Quick launcher…
 - × Exit
 
