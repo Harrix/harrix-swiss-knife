@@ -74,6 +74,7 @@ from harrix_swiss_knife.apps.icons.catalog import (
     is_note_icons_repo,
     is_openable_license_url,
     parse_note_frontmatter,
+    preferred_sidebar_folder,
 )
 from harrix_swiss_knife.apps.icons.catalog_load import CatalogLoadWorker
 from harrix_swiss_knife.apps.icons.choose_family_dialog import ChooseIconFamilyDialog
@@ -141,6 +142,8 @@ FOLDER_TREE_ICON_SIZE = 16
 VARIANT_RENDER_CHUNK = 8
 VARIANT_PROGRESS_TOAST_MIN = 5
 PRIME_PIXMAP_CHUNK = 32
+PRIME_PIXMAP_LIMIT = 400
+GRID_RENDER_LIMIT = 1500
 SEARCH_DEBOUNCE_MS = 400
 ADD_SVGS_RESULT_PREVIEW_LIMIT = 40
 _KEYWORD_TARGET_PAIR_LEN = 2
@@ -236,6 +239,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._pending_catalog_allow_empty = False
         self._pending_refresh_category: str | None = None
         self._pending_refresh_folder: str | None = None
+        self._visible_families: list[IconFamily] = []
         self._thumb_progress_toast: toast_progress_notification.ToastProgressNotification | None = None
         self._trademark_progress_toast: toast_progress_notification.ToastProgressNotification | None = None
         self._trademark_thread: QThread | None = None
@@ -338,21 +342,45 @@ class MainWindow(QMainWindow, AppWindowMixin):
         if is_favorites_category(self._current_category):
             by_id = {family.id: family for family in families}
             families = [by_id[family_id] for family_id in self._favorite_ids if family_id in by_id]
+        unfiltered = not query.strip() and not self._current_folder and self._current_category is None
+        if unfiltered and len(families) > GRID_RENDER_LIMIT:
+            self.icon_list.clear()
+            self.variants_panel.clear_variants()
+            self._visible_families = []
+            self.count_label.setText(f"{len(families)} icons — select a folder or category to browse")
+            self.statusBar().showMessage(
+                f"{len(families)} icons. Select a folder or category (showing all is too slow).",
+            )
+            return
         entries = build_grid_entries(families, repo_root=self._repo_root, mode=self._variant_view_mode)
+        truncated = len(entries) > GRID_RENDER_LIMIT
+        if truncated:
+            entries = entries[:GRID_RENDER_LIMIT]
         pixmaps_by_path = self._pixmaps_for_entries(entries)
         self.icon_list.set_grid_entries(
             entries,
             pixmaps_by_path=pixmaps_by_path,
             placeholder=self._placeholder,
         )
+        visible: list[IconFamily] = []
+        seen_ids: set[str] = set()
+        for entry in entries:
+            family_id = entry.family.id
+            if family_id in seen_ids:
+                continue
+            seen_ids.add(family_id)
+            visible.append(entry.family)
+        self._visible_families = visible
         matched = sum(1 for entry in entries if not entry.is_fallback)
         fallback = sum(1 for entry in entries if entry.is_fallback)
+        shown = f"{len(entries)} of {len(families)}" if truncated else str(len(entries))
         if fallback:
-            self.count_label.setText(f"{len(entries)} tiles ({matched} match, {fallback} fallback)")
+            self.count_label.setText(f"{shown} tiles ({matched} match, {fallback} fallback)")
         else:
-            self.count_label.setText(f"{len(entries)} tiles / {len(families)} families")
+            self.count_label.setText(f"{shown} tiles / {len(families)} families")
+        extra = " (narrow the folder or search)" if truncated else ""
         self.statusBar().showMessage(
-            f"Showing {len(entries)} tiles ({len(families)} families) / {len(self._catalog.icons)}",
+            f"Showing {len(entries)} tiles ({len(families)} families) / {len(self._catalog.icons)}{extra}",
         )
         self._selected_family_id = selected_id
         self._restore_or_clear_selection([entry.family for entry in entries])
@@ -387,7 +415,8 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._favorite_ids = load_favorites(catalog.repo_root)
         self._sync_favorite_ids_to_lists()
         self._sync_repo_root_to_lists()
-        self._prime_pixmaps_from_cache()
+        if len(catalog.icons) <= PRIME_PIXMAP_LIMIT:
+            self._prime_pixmaps_from_cache()
         if refresh:
             if previous_folder:
                 self._populate_folders(preferred_folder=previous_folder)
@@ -399,6 +428,9 @@ class MainWindow(QMainWindow, AppWindowMixin):
             self._selected_family_id = load_last_icon(catalog.repo_root)
             self._current_category = None
             self._current_folder = None
+            if len(catalog.icons) > GRID_RENDER_LIMIT:
+                folder = preferred_sidebar_folder(catalog, self._selected_family_id)
+                self._current_folder = folder or None
             if remember:
                 remember_recent_folder(catalog.repo_root)
             save_last_folder(catalog.repo_root)
@@ -620,6 +652,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         toast = self._load_progress_toast
         self._load_progress_toast = None
         if toast is not None:
+            toast.mark_completed()
             toast.close()
 
     def _close_maintenance_progress_toast(self) -> None:
@@ -986,6 +1019,19 @@ class MainWindow(QMainWindow, AppWindowMixin):
         dialog = KeyValueTableDialog(self, "Cache statistics", data)
         dialog.exec()
 
+    def _on_cancel_catalog_load(self) -> None:
+        if self._catalog_load_worker is not None:
+            self._catalog_load_worker.request_cancel()
+        self._catalog_load_generation += 1
+        self._load_progress_toast = None
+        self.statusBar().showMessage("Opening cancelled")
+
+    def _on_catalog_load_cancelled(self, generation: int) -> None:
+        if generation != self._catalog_load_generation:
+            return
+        self._close_load_progress_toast()
+        self.statusBar().showMessage("Opening cancelled")
+
     def _on_catalog_load_failed(self, message: str, generation: int) -> None:
         if generation != self._catalog_load_generation:
             return
@@ -1023,6 +1069,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         if self._current_category:
             self._select_all_folders()
         self._apply_filters()
+        self._start_thumb_refresh()
 
     def _on_check_images(self) -> None:
         self._start_maintenance("check", "Checking images…")
@@ -1205,6 +1252,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         if self._current_folder:
             self._select_all_categories()
         self._apply_filters()
+        self._start_thumb_refresh()
 
     def _on_folder_tree_context_menu(self, pos: QPoint) -> None:
         item = self.folder_tree.itemAt(pos)
@@ -1558,8 +1606,14 @@ class MainWindow(QMainWindow, AppWindowMixin):
                 featured is not None and entry.svg_path.resolve() == featured.resolve()
             ):
                 cached = self._pixmaps.get(entry.family.id)
+                if cached is None:
+                    cached = self._thumb_cache.load_pixmap(entry.family.id)
+                    if cached is not None:
+                        self._pixmaps[entry.family.id] = cached
                 if cached is not None and not cached.isNull():
                     result[key] = cached
+                    continue
+                if self._variant_view_mode == MODE_FEATURED:
                     continue
             session = self._variant_pixmaps.get(key)
             if session is not None and not session.isNull():
@@ -1857,6 +1911,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         thread.started.connect(worker.run)
         worker.succeeded.connect(self._on_catalog_load_succeeded, Qt.ConnectionType.QueuedConnection)
         worker.failed.connect(self._on_catalog_load_failed, Qt.ConnectionType.QueuedConnection)
+        worker.cancelled.connect(self._on_catalog_load_cancelled, Qt.ConnectionType.QueuedConnection)
         worker.finished.connect(thread.quit)
         worker.finished.connect(worker.deleteLater)
         thread.finished.connect(self._on_catalog_load_finished)
@@ -1904,7 +1959,12 @@ class MainWindow(QMainWindow, AppWindowMixin):
             return
         self._stop_thumb_refresh()
         self._thumb_refresh_done = 0
-        self._thumb_refresh_total = sum(not self._thumb_cache.is_fresh(family) for family in self._catalog.icons)
+        families = self._visible_families or (
+            list(self._catalog.icons) if len(self._catalog.icons) <= GRID_RENDER_LIMIT else []
+        )
+        if not families:
+            return
+        self._thumb_refresh_total = sum(not self._thumb_cache.is_fresh(family) for family in families)
         if self._thumb_refresh_total:
             self._thumb_progress_toast = toast_progress_notification.ToastProgressNotification(
                 "Refreshing icon thumbnails…",
@@ -1916,12 +1976,15 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._thumb_thread, self._thumb_worker = start_thumbnail_refresh(
             self._catalog,
             self._thumb_cache,
+            families=families,
             on_progress=self._on_thumb_progress,
             on_finished=self._on_thumb_finished,
         )
 
     def _stop_catalog_load(self) -> None:
         self._catalog_load_generation += 1
+        if self._catalog_load_worker is not None:
+            self._catalog_load_worker.request_cancel()
         thread = self._catalog_load_thread
         if thread is not None and thread.isRunning():
             thread.wait(3000)
@@ -2048,8 +2111,14 @@ class MainWindow(QMainWindow, AppWindowMixin):
     ) -> toast_progress_notification.ToastProgressNotification:
         toast = self._load_progress_toast
         if toast is None:
-            toast = toast_progress_notification.ToastProgressNotification(message, total=total, parent=self)
+            toast = toast_progress_notification.ToastProgressNotification(
+                message,
+                total=total,
+                parent=self,
+                cancellable=True,
+            )
             self._load_progress_toast = toast
+            toast.cancel_requested.connect(self._on_cancel_catalog_load)
             toast.start_countdown()
         else:
             toast.message = message

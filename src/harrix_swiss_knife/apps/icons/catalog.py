@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import re
 import shutil
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
@@ -23,12 +25,11 @@ _VARIANT_TOKEN_RE = re.compile(
 )
 
 CatalogKind = Literal["note", "flat"]
+CancelCheck = Callable[[], bool]
 
-FLAT_ICON_EXTENSIONS: frozenset[str] = frozenset({".svg", ".ai", ".pdf", ".eps"})
-_SKIP_DIR_NAMES: frozenset[str] = frozenset(
-    {".git", ".hg", ".svn", "__pycache__", "node_modules", ".venv", "venv"},
-)
-_NOTE_ASSET_DIR_NAMES: frozenset[str] = frozenset({"img", "files"})
+
+class CatalogLoadCancelledError(Exception):
+    """Raised when a catalog scan is cancelled by the user."""
 
 
 @dataclass(slots=True)
@@ -234,7 +235,7 @@ def load_catalog(repo_root: Path) -> IconCatalog:
     )
 
 
-def open_icons_folder(path: Path) -> IconCatalog:
+def open_icons_folder(path: Path, *, should_cancel: CancelCheck | None = None) -> IconCatalog:
     """Open a note-folder repo or a flat icon dump (SVG/AI/PDF/EPS).
 
     Does not write `catalog.json` into flat dumps. For AI-style repos that keep
@@ -244,14 +245,15 @@ def open_icons_folder(path: Path) -> IconCatalog:
     note (so category/tag edits show up without a manual refresh).
 
     """
-    root = resolve_icons_root(path)
+    root = resolve_icons_root(path, should_cancel=should_cancel)
+    _raise_if_cancelled(should_cancel)
     if is_note_icons_repo(root):
         catalog_path = root / "catalog.json"
         icons_dir = root / "icons"
         if icons_dir.is_dir() and (not catalog_path.is_file() or _catalog_is_stale(root, catalog_path)):
-            return rebuild_catalog(root)
+            return rebuild_catalog(root, should_cancel=should_cancel)
         return load_catalog(root)
-    return scan_flat_folder(root)
+    return scan_flat_folder(root, should_cancel=should_cancel)
 
 
 def parse_note_frontmatter(text: str) -> dict[str, Any]:
@@ -259,7 +261,23 @@ def parse_note_frontmatter(text: str) -> dict[str, Any]:
     return _parse_frontmatter(text)
 
 
-def rebuild_catalog(repo_root: Path) -> IconCatalog:
+def preferred_sidebar_folder(catalog: IconCatalog, family_id: str | None) -> str:
+    """Return a Folders-tree prefix that contains `family_id`, or `""`."""
+    if not family_id:
+        return ""
+    family = next((item for item in catalog.icons if item.id == family_id), None)
+    if family is None:
+        return ""
+    prefixes = set(catalog.folder_prefixes())
+    parts = folder_parts(family.folder)
+    for index in range(len(parts), 0, -1):
+        candidate = "/".join(parts[:index])
+        if candidate in prefixes:
+            return candidate
+    return ""
+
+
+def rebuild_catalog(repo_root: Path, *, should_cancel: CancelCheck | None = None) -> IconCatalog:
     """Rebuild `catalog.json` from `icons/` note-folders (flat or nested by category) and reload it."""
     icons_dir = repo_root / "icons"
     if not icons_dir.is_dir():
@@ -268,6 +286,7 @@ def rebuild_catalog(repo_root: Path) -> IconCatalog:
 
     icons_payload: list[dict[str, Any]] = []
     for note_dir in _iter_icon_note_dirs(icons_dir):
+        _raise_if_cancelled(should_cancel)
         family_id = note_dir.name
         md_path = note_dir / f"{family_id}.md"
         text = md_path.read_text(encoding="utf-8") if md_path.is_file() else ""
@@ -337,7 +356,7 @@ def remove_empty_parents(start: Path, stop: Path) -> None:
             return
 
 
-def resolve_icons_root(path: Path) -> Path:
+def resolve_icons_root(path: Path, *, should_cancel: CancelCheck | None = None) -> Path:
     """Normalize a user-chosen folder to the directory that actually holds icons."""
     root = path.expanduser().resolve()
     if not root.is_dir():
@@ -345,28 +364,30 @@ def resolve_icons_root(path: Path) -> Path:
         raise FileNotFoundError(msg)
     if is_note_icons_repo(root):
         return root
-    if _count_flat_icon_files(root) > 0:
+    if _has_flat_icon_file(root, should_cancel=should_cancel):
         return root
     src = root / "src"
-    if src.is_dir() and _count_flat_icon_files(src) > 0:
+    if src.is_dir() and _has_flat_icon_file(src, should_cancel=should_cancel):
         return src
     return root
 
 
-def scan_flat_folder(root: Path) -> IconCatalog:
+def scan_flat_folder(root: Path, *, should_cancel: CancelCheck | None = None) -> IconCatalog:
     """Build an in-memory catalog from loose icon files (no `catalog.json` write)."""
-    files = _iter_flat_icon_files(root)
+    files = _iter_flat_icon_files(root, should_cancel=should_cancel)
     if not files:
         msg = f"No SVG/AI/PDF/EPS icons found in {root}"
         raise FileNotFoundError(msg)
 
     groups: dict[str, list[Path]] = {}
     for path in files:
+        _raise_if_cancelled(should_cancel)
         key = _flat_family_id(path, root)
         groups.setdefault(key, []).append(path)
 
     icons: list[IconFamily] = []
     for family_id in sorted(groups, key=str.casefold):
+        _raise_if_cancelled(should_cancel)
         members = sorted(groups[family_id], key=lambda item: item.as_posix().casefold())
         featured_path = _pick_featured_file(members)
         rel_featured = _relative_to_root(featured_path, root)
@@ -381,7 +402,7 @@ def scan_flat_folder(root: Path) -> IconCatalog:
                 IconVariant(
                     file=variant_file,
                     name=member.stem,
-                    hash=_file_sha256(member),
+                    hash=_file_fingerprint(member),
                 ),
             )
         stem = Path(family_id).name
@@ -392,7 +413,7 @@ def scan_flat_folder(root: Path) -> IconCatalog:
             tags=[],
             folder=folder,
             featured=featured_rel,
-            featured_hash=_file_sha256(featured_path),
+            featured_hash=_file_fingerprint(featured_path),
             variants=variants,
         )
         family.search_blob = _build_search_blob(family)
@@ -439,10 +460,6 @@ def _catalog_is_stale(repo_root: Path, catalog_path: Path) -> bool:
 
 def _category_from_id(family_id: str) -> str:
     return family_id.split("__", 1)[0] if "__" in family_id else family_id
-
-
-def _count_flat_icon_files(root: Path) -> int:
-    return len(_iter_flat_icon_files(root))
 
 
 def _delete_flat_family(family: IconFamily, root: Path) -> None:
@@ -524,6 +541,15 @@ def _family_from_dict(data: dict[str, Any]) -> IconFamily:
     return family
 
 
+def _file_fingerprint(path: Path) -> str:
+    """Return a cheap identity from mtime and size (no full-file hash)."""
+    try:
+        info = path.stat()
+    except OSError:
+        return ""
+    return f"{info.st_mtime_ns}:{info.st_size}"
+
+
 def _file_sha256(path: Path) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as handle:
@@ -557,6 +583,31 @@ def _flat_family_id(path: Path, root: Path) -> str:
     return f"{rel_parent}/{stem}"
 
 
+def _has_flat_icon_file(root: Path, *, should_cancel: CancelCheck | None = None) -> bool:
+    """Return whether `root` contains at least one SVG/AI/PDF/EPS file."""
+    stack = [root]
+    while stack:
+        _raise_if_cancelled(should_cancel)
+        current = stack.pop()
+        try:
+            with os.scandir(current) as entries:
+                for entry in entries:
+                    _raise_if_cancelled(should_cancel)
+                    try:
+                        if entry.is_dir(follow_symlinks=False):
+                            if entry.name.casefold() not in _SKIP_DIR_NAMES:
+                                stack.append(Path(entry.path))
+                        elif entry.is_file(follow_symlinks=False) and Path(entry.name).suffix.casefold() in (
+                            FLAT_ICON_EXTENSIONS
+                        ):
+                            return True
+                    except OSError:
+                        continue
+        except OSError:
+            continue
+    return False
+
+
 def _is_icon_note_dir(path: Path) -> bool:
     """Return whether `path` is an icon family note-folder."""
     if not path.is_dir():
@@ -566,22 +617,29 @@ def _is_icon_note_dir(path: Path) -> bool:
     return _find_featured_image(path) is not None
 
 
-def _iter_flat_icon_files(root: Path) -> list[Path]:
+def _iter_flat_icon_files(root: Path, *, should_cancel: CancelCheck | None = None) -> list[Path]:
     """Collect supported icon files in `root` and all nested subfolders."""
     result: list[Path] = []
     stack = [root]
     while stack:
+        _raise_if_cancelled(should_cancel)
         current = stack.pop()
         try:
-            entries = list(current.iterdir())
+            with os.scandir(current) as entries:
+                for entry in entries:
+                    _raise_if_cancelled(should_cancel)
+                    try:
+                        if entry.is_dir(follow_symlinks=False):
+                            if entry.name.casefold() not in _SKIP_DIR_NAMES:
+                                stack.append(Path(entry.path))
+                        elif entry.is_file(follow_symlinks=False) and Path(entry.name).suffix.casefold() in (
+                            FLAT_ICON_EXTENSIONS
+                        ):
+                            result.append(Path(entry.path))
+                    except OSError:
+                        continue
         except OSError:
             continue
-        for entry in entries:
-            if entry.is_dir():
-                if entry.name.casefold() not in _SKIP_DIR_NAMES:
-                    stack.append(entry)
-            elif entry.is_file() and entry.suffix.casefold() in FLAT_ICON_EXTENSIONS:
-                result.append(entry)
     result.sort(key=lambda item: item.as_posix().casefold())
     return result
 
@@ -695,5 +753,17 @@ def _pick_featured_file(files: list[Path]) -> Path:
     return min(files, key=rank)
 
 
+def _raise_if_cancelled(should_cancel: CancelCheck | None) -> None:
+    if should_cancel is not None and should_cancel():
+        raise CatalogLoadCancelledError
+
+
 def _relative_to_root(path: Path, root: Path) -> str:
     return path.resolve().relative_to(root.resolve()).as_posix()
+
+
+FLAT_ICON_EXTENSIONS: frozenset[str] = frozenset({".svg", ".ai", ".pdf", ".eps"})
+_SKIP_DIR_NAMES: frozenset[str] = frozenset(
+    {".git", ".hg", ".svn", "__pycache__", "node_modules", ".venv", "venv"},
+)
+_NOTE_ASSET_DIR_NAMES: frozenset[str] = frozenset({"img", "files"})

@@ -11,6 +11,7 @@ from harrix_swiss_knife.apps.icons.catalog import (
     family_in_folder,
     folder_disk_path,
     folder_parts,
+    preferred_sidebar_folder,
 )
 
 
@@ -71,6 +72,18 @@ def test_folder_prefixes_flat_kind_keeps_file_parent() -> None:
         kind="flat",
     )
     assert catalog.folder_prefixes() == ["ui", "ui/actions"]
+
+
+def test_preferred_sidebar_folder_walks_up_to_prefix() -> None:
+    catalog = _catalog(
+        [
+            _family("cat", "icons/animals/cat"),
+            _family("dog", "icons/animals/dog"),
+        ]
+    )
+    assert preferred_sidebar_folder(catalog, "cat") == "icons/animals"
+    assert preferred_sidebar_folder(catalog, "missing") == ""
+    assert preferred_sidebar_folder(catalog, None) == ""
 
 
 def test_filter_icons_by_folder_prefix() -> None:

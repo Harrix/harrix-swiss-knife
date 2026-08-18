@@ -4,7 +4,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from harrix_swiss_knife.apps.icons.catalog import IconCatalog
+import pytest
+
+from harrix_swiss_knife.apps.icons.catalog import CatalogLoadCancelledError, IconCatalog, scan_flat_folder
 from harrix_swiss_knife.apps.icons.catalog_load import CatalogLoadWorker
 
 _MIN_SVG = (
@@ -53,3 +55,34 @@ def test_catalog_load_worker_reports_missing_folder(tmp_path: Path) -> None:
     message, generation = failed[0]
     assert generation == 2
     assert "not found" in message.casefold() or "no svg" in message.casefold() or message
+
+
+def test_scan_flat_folder_uses_stat_fingerprint(tmp_path: Path) -> None:
+    dump = tmp_path / "dump"
+    _write(dump / "Infographics" / "chart.svg")
+    catalog = scan_flat_folder(dump)
+    family = catalog.icons[0]
+    assert ":" in family.featured_hash
+    assert family.featured_hash == family.variants[0].hash
+
+
+def test_scan_flat_folder_can_be_cancelled(tmp_path: Path) -> None:
+    dump = tmp_path / "dump"
+    _write(dump / "one.svg")
+
+    def cancel_immediately() -> bool:
+        return True
+
+    with pytest.raises(CatalogLoadCancelledError):
+        scan_flat_folder(dump, should_cancel=cancel_immediately)
+
+
+def test_catalog_load_worker_emits_cancelled(tmp_path: Path) -> None:
+    dump = tmp_path / "dump"
+    _write(dump / "one.svg")
+    worker = CatalogLoadWorker(dump, generation=9)
+    worker.request_cancel()
+    cancelled: list[int] = []
+    worker.cancelled.connect(cancelled.append)
+    worker.run()
+    assert cancelled == [9]

@@ -13,7 +13,12 @@ lang: en
 
 - [🏛️ Class `ToastProgressNotification`](#%EF%B8%8F-class-toastprogressnotification)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
+  - [⚙️ Method `closeEvent`](#%EF%B8%8F-method-closeevent)
   - [⚙️ Method `done (property)`](#%EF%B8%8F-method-done-property)
+  - [⚙️ Method `keyPressEvent`](#%EF%B8%8F-method-keypressevent)
+  - [⚙️ Method `mark_completed`](#%EF%B8%8F-method-mark_completed)
+  - [⚙️ Method `reposition_action_buttons`](#%EF%B8%8F-method-reposition_action_buttons)
+  - [⚙️ Method `resizeEvent`](#%EF%B8%8F-method-resizeevent)
   - [⚙️ Method `set_progress`](#%EF%B8%8F-method-set_progress)
   - [⚙️ Method `total (property)`](#%EF%B8%8F-method-total-property)
 
@@ -32,6 +37,7 @@ Attributes:
 - [`done`](#%EF%B8%8F-method-done-property) (`int`): Completed work units.
 - [`total`](#%EF%B8%8F-method-total-property) (`int`): Total work units (0 means unknown / indeterminate).
 - `progress_bar` (`QProgressBar`): Determinate progress indicator under the label.
+- `cancel_requested` (`Signal`): Emitted once when a cancellable toast is cancelled.
 
 <details>
 <summary>Code:</summary>
@@ -39,16 +45,22 @@ Attributes:
 ```python
 class ToastProgressNotification(toast_countdown_notification.ToastCountdownNotification):
 
+    cancel_requested = Signal()
+
     def __init__(
         self,
         message: str = "Process is running…",
         *,
         total: int = 0,
         parent: QWidget | None = None,
+        cancellable: bool = False,
     ) -> None:
         """Initialize progress toast with countdown and progress bar."""
         self._done = 0
         self._total = max(0, total)
+        self._cancellable = cancellable
+        self._cancelled = False
+        self._completed = False
         super().__init__(message, parent)
 
         self._progress_container = QWidget(self)
@@ -70,13 +82,52 @@ class ToastProgressNotification(toast_countdown_notification.ToastCountdownNotif
             layout.setSpacing(0)
             layout.addWidget(self._progress_container)
 
+        if cancellable:
+            self._close_button = QPushButton(self)
+            self._close_button.setCursor(Qt.CursorShape.PointingHandCursor)
+            self._close_button.setFlat(True)
+            self._close_button.setStyleSheet(toast_notification_base.DEFAULT_ACTION_BUTTON_STYLE)
+            self._apply_close_button_icon(compact=False)
+            self._close_button.setToolTip("Cancel")
+            self._close_button.clicked.connect(self._on_user_cancel)
+            self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+            self._position_close_button()
+
         self._apply_progress_style(compact=False)
         self.set_progress(0, self._total)
+
+    def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
+        """Emit cancel when the user closes a still-running cancellable toast."""
+        if self._cancellable and not self._completed and not self._cancelled:
+            self._emit_cancel_requested()
+        super().closeEvent(event)
 
     @property
     def done(self) -> int:
         """Number of completed work units."""
         return self._done
+
+    def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
+        """Cancel a cancellable toast when the user presses Escape."""
+        if self._cancellable and event.key() == Qt.Key.Key_Escape:
+            self._on_user_cancel()
+            event.accept()
+            return
+        super().keyPressEvent(event)
+
+    def mark_completed(self) -> None:
+        """Mark the job as finished so closing the toast does not emit cancel."""
+        self._completed = True
+
+    def reposition_action_buttons(self) -> None:
+        """Place close and collapse buttons after a move or resize."""
+        self._position_close_button()
+        super().reposition_action_buttons()
+
+    def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802
+        """Reposition close and collapse buttons when the toast is resized."""
+        super().resizeEvent(event)
+        self._position_close_button()
 
     def set_progress(self, done: int, total: int | None = None) -> None:
         """Update progress values and refresh the progress bar.
@@ -104,10 +155,26 @@ class ToastProgressNotification(toast_countdown_notification.ToastCountdownNotif
         """Total number of work units."""
         return self._total
 
+    def _apply_close_button_icon(self, *, compact: bool) -> None:
+        if not hasattr(self, "_close_button"):
+            return
+        side = (
+            toast_notification_base.COMPACT_ACTION_BUTTON_SIDE
+            if compact
+            else toast_notification_base.DEFAULT_ACTION_BUTTON_SIDE
+        )
+        self._close_button.setFixedSize(side, side)
+        self._close_button.setIconSize(QSize(side, side))
+        self._close_button.setIcon(toast_notification_base.make_action_icon(side, _CLOSE_SYMBOL))
+
     def _apply_compact_style(self) -> None:
         """Apply compact styling to the label and progress bar."""
         super()._apply_compact_style()
         self._apply_progress_style(compact=True)
+        if hasattr(self, "_close_button"):
+            self._close_button.setStyleSheet(toast_notification_base.COMPACT_ACTION_BUTTON_STYLE)
+            self._apply_close_button_icon(compact=True)
+            self._position_close_button()
         if hasattr(self, "progress_bar"):
             self._refresh_label_text()
 
@@ -115,6 +182,10 @@ class ToastProgressNotification(toast_countdown_notification.ToastCountdownNotif
         """Apply default styling to the label and progress bar."""
         super()._apply_default_style()
         self._apply_progress_style(compact=False)
+        if hasattr(self, "_close_button"):
+            self._close_button.setStyleSheet(toast_notification_base.DEFAULT_ACTION_BUTTON_STYLE)
+            self._apply_close_button_icon(compact=False)
+            self._position_close_button()
         if hasattr(self, "progress_bar"):
             self._refresh_label_text()
 
@@ -185,25 +256,55 @@ class ToastProgressNotification(toast_countdown_notification.ToastCountdownNotif
             "font-weight: bold;",
         )
 
+    def _emit_cancel_requested(self) -> None:
+        if self._cancelled:
+            return
+        self._cancelled = True
+        self.cancel_requested.emit()
+
+    def _on_user_cancel(self) -> None:
+        if not self._cancellable or self._completed or self._cancelled:
+            return
+        self._emit_cancel_requested()
+        self.close()
+
+    def _position_close_button(self) -> None:
+        if not hasattr(self, "_close_button"):
+            return
+        label_geom = self.label.geometry()
+        side = self._action_button_side()
+        margin = 2 if self._is_pinned else 4
+        self._close_button.move(
+            label_geom.x() + label_geom.width() - side - margin,
+            label_geom.y() + margin,
+        )
+        self._close_button.raise_()
+
     def _refresh_label_text(self) -> None:
         """Update label with message, elapsed time, and progress summary."""
         if not hasattr(self, "progress_bar"):
             return
         elapsed = getattr(self, "elapsed_seconds", 0)
+        cancel_hint = f"\n{_CANCEL_HINT}" if self._cancellable and not self._is_pinned else ""
         if self._is_pinned:
             progress = f"{self._done}/{self._total}" if self._total > 0 else str(self._done)
             self.label.setText(f"{self.message}\n{elapsed}s · {progress}")
         elif self._total > 0:
             self.label.setText(
-                f"{self.message}\nSeconds elapsed: {elapsed}\nProgress: {self._done} / {self._total}",
+                f"{self.message}\nSeconds elapsed: {elapsed}\nProgress: {self._done} / {self._total}{cancel_hint}",
             )
         else:
-            self.label.setText(f"{self.message}\nSeconds elapsed: {elapsed}")
+            self.label.setText(f"{self.message}\nSeconds elapsed: {elapsed}{cancel_hint}")
         previous_size = self.size()
         self.adjustSize()
         self.reposition_action_buttons()
         if self.size() != previous_size:
             self.restack_group(pinned=self.is_pinned)
+
+    def _trailing_controls_width(self) -> int:
+        if not hasattr(self, "_close_button"):
+            return 0
+        return self._action_button_side() + toast_notification_base.ACTION_BUTTON_GAP
 ```
 
 </details>
@@ -211,7 +312,7 @@ class ToastProgressNotification(toast_countdown_notification.ToastCountdownNotif
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, message: str = 'Process is running…', *, total: int = 0, parent: QWidget | None = None) -> None
+def __init__(self, message: str = 'Process is running…', *, total: int = 0, parent: QWidget | None = None, cancellable: bool = False) -> None
 ```
 
 Initialize progress toast with countdown and progress bar.
@@ -226,9 +327,13 @@ def __init__(
         *,
         total: int = 0,
         parent: QWidget | None = None,
+        cancellable: bool = False,
     ) -> None:
         self._done = 0
         self._total = max(0, total)
+        self._cancellable = cancellable
+        self._cancelled = False
+        self._completed = False
         super().__init__(message, parent)
 
         self._progress_container = QWidget(self)
@@ -250,8 +355,39 @@ def __init__(
             layout.setSpacing(0)
             layout.addWidget(self._progress_container)
 
+        if cancellable:
+            self._close_button = QPushButton(self)
+            self._close_button.setCursor(Qt.CursorShape.PointingHandCursor)
+            self._close_button.setFlat(True)
+            self._close_button.setStyleSheet(toast_notification_base.DEFAULT_ACTION_BUTTON_STYLE)
+            self._apply_close_button_icon(compact=False)
+            self._close_button.setToolTip("Cancel")
+            self._close_button.clicked.connect(self._on_user_cancel)
+            self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+            self._position_close_button()
+
         self._apply_progress_style(compact=False)
         self.set_progress(0, self._total)
+```
+
+</details>
+
+### ⚙️ Method `closeEvent`
+
+```python
+def closeEvent(self, event: QCloseEvent) -> None
+```
+
+Emit cancel when the user closes a still-running cancellable toast.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
+        if self._cancellable and not self._completed and not self._cancelled:
+            self._emit_cancel_requested()
+        super().closeEvent(event)
 ```
 
 </details>
@@ -270,6 +406,84 @@ Number of completed work units.
 ```python
 def done(self) -> int:
         return self._done
+```
+
+</details>
+
+### ⚙️ Method `keyPressEvent`
+
+```python
+def keyPressEvent(self, event: QKeyEvent) -> None
+```
+
+Cancel a cancellable toast when the user presses Escape.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
+        if self._cancellable and event.key() == Qt.Key.Key_Escape:
+            self._on_user_cancel()
+            event.accept()
+            return
+        super().keyPressEvent(event)
+```
+
+</details>
+
+### ⚙️ Method `mark_completed`
+
+```python
+def mark_completed(self) -> None
+```
+
+Mark the job as finished so closing the toast does not emit cancel.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def mark_completed(self) -> None:
+        self._completed = True
+```
+
+</details>
+
+### ⚙️ Method `reposition_action_buttons`
+
+```python
+def reposition_action_buttons(self) -> None
+```
+
+Place close and collapse buttons after a move or resize.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def reposition_action_buttons(self) -> None:
+        self._position_close_button()
+        super().reposition_action_buttons()
+```
+
+</details>
+
+### ⚙️ Method `resizeEvent`
+
+```python
+def resizeEvent(self, event: QResizeEvent) -> None
+```
+
+Reposition close and collapse buttons when the toast is resized.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802
+        super().resizeEvent(event)
+        self._position_close_button()
 ```
 
 </details>

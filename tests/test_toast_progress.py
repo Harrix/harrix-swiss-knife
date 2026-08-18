@@ -48,3 +48,12 @@ def test_progress_toast_zero_total_is_indeterminate(qapp: QApplication) -> None:
     toast.set_progress(5)
     assert toast.done == 5
     toast.close()
+
+
+def test_progress_toast_cancel_emits_once(qapp: QApplication) -> None:  # noqa: ARG001
+    toast = ToastProgressNotification("Opening folder…", cancellable=True)
+    cancelled: list[int] = []
+    toast.cancel_requested.connect(lambda: cancelled.append(1))
+    toast.close()
+    toast.close()
+    assert cancelled == [1]

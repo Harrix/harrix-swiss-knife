@@ -427,11 +427,17 @@ class ThumbnailWorker(QObject):
     progress = Signal(str, str)  # family_id, thumb_path
     finished = Signal(int)  # updated count
 
-    def __init__(self, catalog: IconCatalog, cache: ThumbnailCache) -> None:
+    def __init__(
+        self,
+        catalog: IconCatalog,
+        cache: ThumbnailCache,
+        families: list[IconFamily] | None = None,
+    ) -> None:
         """Store catalog/cache references for the worker thread."""
         super().__init__()
         self._catalog = catalog
         self._cache = cache
+        self._families = list(families) if families is not None else list(catalog.icons)
         self._cancel = False
 
     def cancel(self) -> None:
@@ -441,7 +447,7 @@ class ThumbnailWorker(QObject):
     def run(self) -> None:
         """Refresh thumbnails that are missing or have a changed hash."""
         updated = 0
-        for family in self._catalog.icons:
+        for family in self._families:
             if self._cancel:
                 break
             if self._cache.is_fresh(family):
@@ -465,7 +471,7 @@ class ThumbnailWorker(QObject):
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, catalog: IconCatalog, cache: ThumbnailCache) -> None
+def __init__(self, catalog: IconCatalog, cache: ThumbnailCache, families: list[IconFamily] | None = None) -> None
 ```
 
 Store catalog/cache references for the worker thread.
@@ -474,10 +480,16 @@ Store catalog/cache references for the worker thread.
 <summary>Code:</summary>
 
 ```python
-def __init__(self, catalog: IconCatalog, cache: ThumbnailCache) -> None:
+def __init__(
+        self,
+        catalog: IconCatalog,
+        cache: ThumbnailCache,
+        families: list[IconFamily] | None = None,
+    ) -> None:
         super().__init__()
         self._catalog = catalog
         self._cache = cache
+        self._families = list(families) if families is not None else list(catalog.icons)
         self._cancel = False
 ```
 
@@ -515,7 +527,7 @@ Refresh thumbnails that are missing or have a changed hash.
 ```python
 def run(self) -> None:
         updated = 0
-        for family in self._catalog.icons:
+        for family in self._families:
             if self._cancel:
                 break
             if self._cache.is_fresh(family):
@@ -590,7 +602,7 @@ def placeholder_pixmap(size: int = DEFAULT_THUMB_SIZE) -> QPixmap:
 ## 🔧 Function `start_thumbnail_refresh`
 
 ```python
-def start_thumbnail_refresh(catalog: IconCatalog, cache: ThumbnailCache, *, on_progress: object | None = None, on_finished: object | None = None) -> tuple[QThread, ThumbnailWorker]
+def start_thumbnail_refresh(catalog: IconCatalog, cache: ThumbnailCache, *, families: list[IconFamily] | None = None, on_progress: object | None = None, on_finished: object | None = None) -> tuple[QThread, ThumbnailWorker]
 ```
 
 Start a QThread that refreshes thumbnails; returns (thread, worker).
@@ -603,11 +615,12 @@ def start_thumbnail_refresh(
     catalog: IconCatalog,
     cache: ThumbnailCache,
     *,
+    families: list[IconFamily] | None = None,
     on_progress: object | None = None,
     on_finished: object | None = None,
 ) -> tuple[QThread, ThumbnailWorker]:
     thread = QThread()
-    worker = ThumbnailWorker(catalog, cache)
+    worker = ThumbnailWorker(catalog, cache, families)
     worker.moveToThread(thread)
     thread.started.connect(worker.run)
     if on_progress is not None:
