@@ -69,10 +69,9 @@ from harrix_swiss_knife.apps.icons.catalog import (
     IconFamily,
     delete_icon_family,
     is_note_icons_repo,
-    open_icons_folder,
     parse_note_frontmatter,
-    rebuild_catalog,
 )
+from harrix_swiss_knife.apps.icons.catalog_load import CatalogLoadWorker
 from harrix_swiss_knife.apps.icons.choose_family_dialog import ChooseIconFamilyDialog
 from harrix_swiss_knife.apps.icons.edit_icon import update_icon_note
 from harrix_swiss_knife.apps.icons.keywords_ai import KeywordsBatchRunner
@@ -129,6 +128,7 @@ CATEGORY_LIST_ICON_SIZE = 28
 FOLDER_TREE_ICON_SIZE = 16
 VARIANT_RENDER_CHUNK = 8
 VARIANT_PROGRESS_TOAST_MIN = 5
+PRIME_PIXMAP_CHUNK = 32
 ADD_SVGS_RESULT_PREVIEW_LIMIT = 40
 _KEYWORD_TARGET_PAIR_LEN = 2
 _MIN_BATCH_KEYWORD_ICONS = 2
@@ -213,6 +213,15 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._variant_view_mode = MODE_FEATURED
         self._variant_pixmaps: dict[str, QPixmap] = {}
         self._variant_progress_toast: toast_progress_notification.ToastProgressNotification | None = None
+        self._load_progress_toast: toast_progress_notification.ToastProgressNotification | None = None
+        self._catalog_load_thread: QThread | None = None
+        self._catalog_load_worker: CatalogLoadWorker | None = None
+        self._catalog_load_generation = 0
+        self._pending_open_remember = False
+        self._pending_catalog_refresh = False
+        self._pending_catalog_allow_empty = False
+        self._pending_refresh_category: str | None = None
+        self._pending_refresh_folder: str | None = None
         self._thumb_progress_toast: toast_progress_notification.ToastProgressNotification | None = None
         self._trademark_progress_toast: toast_progress_notification.ToastProgressNotification | None = None
         self._trademark_thread: QThread | None = None
@@ -239,6 +248,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         if self._hide_instead_of_close(event):
             return
         self._close_variant_progress_toast()
+        self._stop_catalog_load()
         self._stop_trademark_update()
         self._stop_maintenance()
         self._stop_keywords_batch()
@@ -325,6 +335,50 @@ class MainWindow(QMainWindow, AppWindowMixin):
             if family is not None:
                 self._selected_family_id = selected_id
                 self.variants_panel.show_family(family, self._repo_root)
+
+    def _apply_loaded_catalog(self, catalog: IconCatalog) -> None:
+        remember = self._pending_open_remember
+        refresh = self._pending_catalog_refresh
+        previous_category = self._pending_refresh_category
+        previous_folder = self._pending_refresh_folder
+        self._stop_thumb_refresh()
+        self._close_variant_progress_toast()
+        self._repo_root = catalog.repo_root
+        self._catalog = catalog
+        self._variant_pixmaps.clear()
+        self._thumb_cache = ThumbnailCache(cache_dir=cache_dir_for_root(catalog.repo_root), size=DEFAULT_THUMB_SIZE)
+        self._prime_pixmaps_from_cache()
+        if refresh:
+            if previous_folder:
+                self._populate_folders(preferred_folder=previous_folder)
+                self._populate_categories(preferred_category="")
+            else:
+                self._populate_folders(preferred_folder="")
+                self._populate_categories(preferred_category=previous_category)
+        else:
+            self._selected_family_id = load_last_icon(catalog.repo_root)
+            self._current_category = None
+            self._current_folder = None
+            if remember:
+                remember_recent_folder(catalog.repo_root)
+            save_last_folder(catalog.repo_root)
+            self.setWindowTitle(f"Vector Icons — {catalog.repo_root.name}")
+            self._populate_folders()
+            self._populate_categories()
+            self._sync_folder_combo()
+            self._rebuild_folder_menus()
+            self._sync_add_vector_menu_title()
+        self._apply_filters()
+        self._close_load_progress_toast()
+        self._start_thumb_refresh()
+        if refresh:
+            category_count = len(catalog.categories())
+            self.statusBar().showMessage(
+                f"Catalog refreshed: {len(catalog.icons)} icons, {category_count} categories",
+            )
+            return
+        kind = "flat dump" if catalog.kind == "flat" else "note repo"
+        self.statusBar().showMessage(f"Opened {kind}: {catalog.repo_root} ({len(catalog.icons)} icons)")
 
     def _ask_collision_policy(self, collision_count: int) -> CollisionPolicy | None:
         """Ask how to handle filename collisions. Return `None` on cancel."""
@@ -516,6 +570,12 @@ class MainWindow(QMainWindow, AppWindowMixin):
                 Qt.TransformationMode.SmoothTransformation,
             ),
         )
+
+    def _close_load_progress_toast(self) -> None:
+        toast = self._load_progress_toast
+        self._load_progress_toast = None
+        if toast is not None:
+            toast.close()
 
     def _close_maintenance_progress_toast(self) -> None:
         toast = self._maintenance_progress_toast
@@ -857,6 +917,34 @@ class MainWindow(QMainWindow, AppWindowMixin):
         dialog = KeyValueTableDialog(self, "Cache statistics", data)
         dialog.exec()
 
+    def _on_catalog_load_failed(self, message: str, generation: int) -> None:
+        if generation != self._catalog_load_generation:
+            return
+        if self._pending_catalog_allow_empty and self._catalog is not None and self._catalog.kind == "flat":
+            root = self._repo_root or Path()
+            self._apply_loaded_catalog(
+                IconCatalog(version=1, generated_at="", icons=[], repo_root=root, kind="flat"),
+            )
+            return
+        self._close_load_progress_toast()
+        title = "Failed to refresh catalog" if self._pending_catalog_refresh else "Failed to open folder"
+        QMessageBox.critical(self, "Vector Icons", f"{title}:\n{message}")
+
+    def _on_catalog_load_finished(self) -> None:
+        sender = self.sender()
+        if self._catalog_load_thread is not None and sender is not self._catalog_load_thread:
+            return
+        self._catalog_load_thread = None
+        self._catalog_load_worker = None
+
+    def _on_catalog_load_succeeded(self, catalog: object, generation: int) -> None:
+        if generation != self._catalog_load_generation:
+            return
+        if not isinstance(catalog, IconCatalog):
+            self._on_catalog_load_failed("Catalog loader returned an unexpected result", generation)
+            return
+        self._apply_loaded_catalog(catalog)
+
     def _on_category_changed(self, text: str) -> None:
         if self._nav_syncing:
             return
@@ -1195,44 +1283,12 @@ class MainWindow(QMainWindow, AppWindowMixin):
         if self._repo_root is None:
             self._load_from_config()
             return
-        root = self._repo_root
-        self._stop_thumb_refresh()
-        self._close_variant_progress_toast()
-        self.statusBar().showMessage("Refreshing catalog…")
-        QApplication.processEvents(QEventLoop.ProcessEventsFlag.ExcludeUserInputEvents)
-        previous_category = self._current_category
-        previous_folder = self._current_folder
-        try:
-            if self._catalog is not None and self._catalog.kind == "flat":
-                catalog = open_icons_folder(root)
-            else:
-                catalog = rebuild_catalog(root)
-        except FileNotFoundError as exc:
-            if allow_empty and self._catalog is not None and self._catalog.kind == "flat":
-                catalog = IconCatalog(version=1, generated_at="", icons=[], repo_root=root, kind="flat")
-            else:
-                QMessageBox.critical(self, "Vector Icons", f"Failed to refresh catalog:\n{exc}")
-                return
-        except (OSError, ValueError, TypeError, json.JSONDecodeError) as exc:
-            QMessageBox.critical(self, "Vector Icons", f"Failed to refresh catalog:\n{exc}")
-            return
-        self._catalog = catalog
-        self._repo_root = catalog.repo_root
-        self._variant_pixmaps.clear()
-        self._thumb_cache = ThumbnailCache(cache_dir=cache_dir_for_root(catalog.repo_root), size=DEFAULT_THUMB_SIZE)
-        self._prime_pixmaps_from_cache()
-        if previous_folder:
-            self._populate_folders(preferred_folder=previous_folder)
-            self._populate_categories(preferred_category="")
-        else:
-            self._populate_folders(preferred_folder="")
-            self._populate_categories(preferred_category=previous_category)
-        QApplication.processEvents(QEventLoop.ProcessEventsFlag.ExcludeUserInputEvents)
-        self._apply_filters()
-        self._start_thumb_refresh()
-        category_count = len(catalog.categories())
-        self.statusBar().showMessage(
-            f"Catalog refreshed: {len(catalog.icons)} icons, {category_count} categories",
+        self._start_catalog_load(
+            self._repo_root,
+            remember=False,
+            rebuild=self._catalog is None or self._catalog.kind != "flat",
+            allow_empty=allow_empty,
+            refresh=True,
         )
 
     def _on_reveal_in_explorer(self, svg_path: str) -> None:
@@ -1373,34 +1429,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
 
     def _open_folder(self, path: Path, *, remember: bool = True) -> None:
         """Load a note-folder repo or flat icon dump and refresh the UI."""
-        try:
-            catalog = open_icons_folder(path)
-        except (OSError, ValueError, TypeError, json.JSONDecodeError) as exc:
-            QMessageBox.critical(self, "Vector Icons", f"Failed to open folder:\n{exc}")
-            return
-        self._stop_thumb_refresh()
-        self._close_variant_progress_toast()
-        self._repo_root = catalog.repo_root
-        self._catalog = catalog
-        self._selected_family_id = load_last_icon(catalog.repo_root)
-        self._current_category = None
-        self._current_folder = None
-        self._variant_pixmaps.clear()
-        self._thumb_cache = ThumbnailCache(cache_dir=cache_dir_for_root(catalog.repo_root), size=DEFAULT_THUMB_SIZE)
-        if remember:
-            remember_recent_folder(catalog.repo_root)
-        save_last_folder(catalog.repo_root)
-        self.setWindowTitle(f"Vector Icons — {catalog.repo_root.name}")
-        self._prime_pixmaps_from_cache()
-        self._populate_folders()
-        self._populate_categories()
-        self._apply_filters()
-        self._start_thumb_refresh()
-        self._sync_folder_combo()
-        self._rebuild_folder_menus()
-        self._sync_add_vector_menu_title()
-        kind = "flat dump" if catalog.kind == "flat" else "note repo"
-        self.statusBar().showMessage(f"Opened {kind}: {catalog.repo_root} ({len(catalog.icons)} icons)")
+        self._start_catalog_load(path, remember=remember, rebuild=False, allow_empty=False, refresh=False)
 
     def _persist_icon_size(self) -> None:
         self._icon_size_save_timer.stop()
@@ -1410,8 +1439,11 @@ class MainWindow(QMainWindow, AppWindowMixin):
         result: dict[str, QPixmap] = {}
         pending: list[Path] = []
         pending_keys: set[str] = set()
+        preparing = self._load_progress_toast is not None
+        if preparing:
+            self._update_load_toast("Preparing icon previews…", done=0, total=len(entries))
 
-        for entry in entries:
+        for index, entry in enumerate(entries, start=1):
             key = str(entry.svg_path)
             if key in result or key in pending_keys:
                 continue
@@ -1429,23 +1461,16 @@ class MainWindow(QMainWindow, AppWindowMixin):
                 continue
             pending.append(entry.svg_path)
             pending_keys.add(key)
+            if preparing and (index == len(entries) or index % VARIANT_RENDER_CHUNK == 0):
+                self._update_load_toast("Preparing icon previews…", done=index, total=len(entries))
 
         if not pending:
             return result
 
+        owned_toast = self._load_progress_toast is None
         toast: toast_progress_notification.ToastProgressNotification | None = None
-        if len(pending) >= VARIANT_PROGRESS_TOAST_MIN:
-            self._close_variant_progress_toast()
-            toast = toast_progress_notification.ToastProgressNotification(
-                "Rendering icon previews…",
-                total=len(pending),
-                parent=self,
-            )
-            self._variant_progress_toast = toast
-            toast.start_countdown()
-            toast.set_progress(0, len(pending))
-            QApplication.processEvents(QEventLoop.ProcessEventsFlag.ExcludeUserInputEvents)
-
+        if len(pending) >= VARIANT_PROGRESS_TOAST_MIN or not owned_toast:
+            toast = self._update_load_toast("Rendering icon previews…", done=0, total=len(pending))
         try:
             for index, svg_path in enumerate(pending, start=1):
                 key = str(svg_path)
@@ -1459,6 +1484,8 @@ class MainWindow(QMainWindow, AppWindowMixin):
                     if index == len(pending) or index % VARIANT_RENDER_CHUNK == 0:
                         QApplication.processEvents(QEventLoop.ProcessEventsFlag.ExcludeUserInputEvents)
         finally:
+            if owned_toast:
+                self._close_load_progress_toast()
             self._close_variant_progress_toast()
         return result
 
@@ -1535,10 +1562,15 @@ class MainWindow(QMainWindow, AppWindowMixin):
         if self._catalog is None:
             return
         self._pixmaps.clear()
-        for family in self._catalog.icons:
+        total = len(self._catalog.icons)
+        if total >= VARIANT_PROGRESS_TOAST_MIN:
+            self._update_load_toast("Loading cached thumbnails…", done=0, total=total)
+        for index, family in enumerate(self._catalog.icons, start=1):
             pixmap = self._thumb_cache.load_pixmap(family.id)
             if pixmap is not None:
                 self._pixmaps[family.id] = pixmap
+            if total >= VARIANT_PROGRESS_TOAST_MIN and (index == total or index % PRIME_PIXMAP_CHUNK == 0):
+                self._update_load_toast("Loading cached thumbnails…", done=index, total=total)
 
     def _rebuild_folder_menus(self) -> None:
         if not hasattr(self, "_pinned_menu"):
@@ -1682,6 +1714,41 @@ class MainWindow(QMainWindow, AppWindowMixin):
         layout.addWidget(widget)
         return panel
 
+    def _start_catalog_load(
+        self,
+        path: Path,
+        *,
+        remember: bool,
+        rebuild: bool,
+        allow_empty: bool,
+        refresh: bool,
+    ) -> None:
+        self._stop_thumb_refresh()
+        self._close_variant_progress_toast()
+        self._catalog_load_generation += 1
+        generation = self._catalog_load_generation
+        self._pending_open_remember = remember
+        self._pending_catalog_allow_empty = allow_empty
+        self._pending_catalog_refresh = refresh
+        self._pending_refresh_category = self._current_category if refresh else None
+        self._pending_refresh_folder = self._current_folder if refresh else None
+        message = "Refreshing catalog…" if refresh else "Opening folder…"
+        self._update_load_toast(message)
+        self.statusBar().showMessage(message)
+        thread = QThread(self)
+        worker = CatalogLoadWorker(path, rebuild=rebuild)
+        worker.moveToThread(thread)
+        thread.started.connect(worker.run)
+        worker.succeeded.connect(lambda catalog, gen=generation: self._on_catalog_load_succeeded(catalog, gen))
+        worker.failed.connect(lambda text, gen=generation: self._on_catalog_load_failed(text, gen))
+        worker.finished.connect(thread.quit)
+        worker.finished.connect(worker.deleteLater)
+        thread.finished.connect(self._on_catalog_load_finished)
+        thread.finished.connect(thread.deleteLater)
+        self._catalog_load_thread = thread
+        self._catalog_load_worker = worker
+        thread.start()
+
     def _start_maintenance(self, kind: MaintenanceKind, toast_message: str) -> None:
         if self._repo_root is None or not self._is_note_repo_open():
             QMessageBox.warning(
@@ -1736,6 +1803,15 @@ class MainWindow(QMainWindow, AppWindowMixin):
             on_progress=self._on_thumb_progress,
             on_finished=self._on_thumb_finished,
         )
+
+    def _stop_catalog_load(self) -> None:
+        self._catalog_load_generation += 1
+        thread = self._catalog_load_thread
+        if thread is not None and thread.isRunning():
+            thread.wait(3000)
+        self._catalog_load_thread = None
+        self._catalog_load_worker = None
+        self._close_load_progress_toast()
 
     def _stop_keywords_batch(self) -> None:
         runner = self._keywords_batch_runner
@@ -1831,6 +1907,24 @@ class MainWindow(QMainWindow, AppWindowMixin):
         if self._current_category and self._current_category in family.categories:
             return self._current_category
         return family.categories[0] if family.categories else None
+
+    def _update_load_toast(
+        self,
+        message: str,
+        *,
+        done: int = 0,
+        total: int = 0,
+    ) -> toast_progress_notification.ToastProgressNotification:
+        toast = self._load_progress_toast
+        if toast is None:
+            toast = toast_progress_notification.ToastProgressNotification(message, total=total, parent=self)
+            self._load_progress_toast = toast
+            toast.start_countdown()
+        else:
+            toast.message = message
+        toast.set_progress(done, total)
+        QApplication.processEvents(QEventLoop.ProcessEventsFlag.ExcludeUserInputEvents)
+        return toast
 
     @staticmethod
     def _variant_thumb_size(icon_size: int) -> int:
