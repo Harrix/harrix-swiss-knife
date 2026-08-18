@@ -31,15 +31,16 @@ Open or rebuild an icons catalog in a worker thread.
 ```python
 class CatalogLoadWorker(QObject):
 
-    succeeded = Signal(object)
-    failed = Signal(str)
+    succeeded = Signal(object, int)
+    failed = Signal(str, int)
     finished = Signal()
 
-    def __init__(self, path: Path, *, rebuild: bool = False) -> None:
-        """Store the folder path and whether to force a catalog rebuild."""
+    def __init__(self, path: Path, *, rebuild: bool = False, generation: int = 0) -> None:
+        """Store the folder path, rebuild flag, and UI generation token."""
         super().__init__()
         self._path = Path(path)
         self._rebuild = rebuild
+        self.generation = generation
 
     @Slot()
     def run(self) -> None:
@@ -47,12 +48,12 @@ class CatalogLoadWorker(QObject):
         try:
             catalog = rebuild_catalog(self._path) if self._rebuild else open_icons_folder(self._path)
         except (OSError, ValueError, TypeError, json.JSONDecodeError, FileNotFoundError) as exc:
-            self.failed.emit(str(exc))
+            self.failed.emit(str(exc), self.generation)
         else:
             if not isinstance(catalog, IconCatalog):
-                self.failed.emit("Catalog loader returned an unexpected result")
+                self.failed.emit("Catalog loader returned an unexpected result", self.generation)
             else:
-                self.succeeded.emit(catalog)
+                self.succeeded.emit(catalog, self.generation)
         finally:
             self.finished.emit()
 ```
@@ -62,19 +63,20 @@ class CatalogLoadWorker(QObject):
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, path: Path, *, rebuild: bool = False) -> None
+def __init__(self, path: Path, *, rebuild: bool = False, generation: int = 0) -> None
 ```
 
-Store the folder path and whether to force a catalog rebuild.
+Store the folder path, rebuild flag, and UI generation token.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def __init__(self, path: Path, *, rebuild: bool = False) -> None:
+def __init__(self, path: Path, *, rebuild: bool = False, generation: int = 0) -> None:
         super().__init__()
         self._path = Path(path)
         self._rebuild = rebuild
+        self.generation = generation
 ```
 
 </details>
@@ -95,12 +97,12 @@ def run(self) -> None:
         try:
             catalog = rebuild_catalog(self._path) if self._rebuild else open_icons_folder(self._path)
         except (OSError, ValueError, TypeError, json.JSONDecodeError, FileNotFoundError) as exc:
-            self.failed.emit(str(exc))
+            self.failed.emit(str(exc), self.generation)
         else:
             if not isinstance(catalog, IconCatalog):
-                self.failed.emit("Catalog loader returned an unexpected result")
+                self.failed.emit("Catalog loader returned an unexpected result", self.generation)
             else:
-                self.succeeded.emit(catalog)
+                self.succeeded.emit(catalog, self.generation)
         finally:
             self.finished.emit()
 ```

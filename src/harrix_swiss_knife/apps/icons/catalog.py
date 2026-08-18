@@ -182,6 +182,14 @@ def family_license_info(family: IconFamily, repo_root: Path | None = None) -> tu
     return name or note_name, url or note_url
 
 
+def folder_disk_path(repo_root: Path, prefix: str) -> Path:
+    """Return the on-disk folder for a sidebar prefix (`""` is the repo root)."""
+    parts = folder_parts(prefix)
+    if not parts:
+        return repo_root
+    return repo_root.joinpath(*parts)
+
+
 def folder_parts(folder: str) -> list[str]:
     """Split a repo-relative folder into non-empty path parts."""
     return [part for part in folder.replace("\\", "/").split("/") if part and part != "."]

@@ -9,6 +9,7 @@ from harrix_swiss_knife.apps.icons.catalog import (
     IconCatalog,
     IconFamily,
     family_in_folder,
+    folder_disk_path,
     folder_parts,
 )
 
@@ -27,6 +28,13 @@ def _family(family_id: str, folder: str, *, categories: list[str] | None = None)
 
 def _catalog(icons: list[IconFamily], *, kind: CatalogKind = "note") -> IconCatalog:
     return IconCatalog(version=1, generated_at="", icons=icons, repo_root=Path(), kind=kind)
+
+
+def test_folder_disk_path_joins_prefix_or_repo_root(tmp_path: Path) -> None:
+    repo = tmp_path / "icons-repo"
+    assert folder_disk_path(repo, "") == repo
+    assert folder_disk_path(repo, "icons/animals") == repo / "icons" / "animals"
+    assert folder_disk_path(repo, r"icons\food") == repo / "icons" / "food"
 
 
 def test_folder_parts_normalizes_slashes() -> None:

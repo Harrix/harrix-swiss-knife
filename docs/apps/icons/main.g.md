@@ -453,6 +453,8 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self.folder_tree.setUniformRowHeights(True)
         self.folder_tree.setIconSize(QSize(FOLDER_TREE_ICON_SIZE, FOLDER_TREE_ICON_SIZE))
         self.folder_tree.setIndentation(12)
+        self.folder_tree.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.folder_tree.customContextMenuRequested.connect(self._on_folder_tree_context_menu)
         self.folder_tree.currentItemChanged.connect(self._on_folder_tree_changed)
         left_splitter.addWidget(self._sidebar_panel("Folders:", self.folder_tree))
 
@@ -1154,6 +1156,17 @@ class MainWindow(QMainWindow, AppWindowMixin):
             self._select_all_categories()
         self._apply_filters()
 
+    def _on_folder_tree_context_menu(self, pos: QPoint) -> None:
+        item = self.folder_tree.itemAt(pos)
+        if item is None or self._repo_root is None:
+            return
+        menu = QMenu(self.folder_tree)
+        reveal_action = menu.addAction("📂 Reveal in File Explorer")
+        chosen = menu.exec_(self.folder_tree.mapToGlobal(pos))
+        if chosen is reveal_action:
+            prefix = str(item.data(0, Qt.ItemDataRole.UserRole) or "")
+            self._on_reveal_in_explorer(str(folder_disk_path(self._repo_root, prefix)))
+
     def _on_icon_details(self, family: object, svg_path: str) -> None:
         if not isinstance(family, IconFamily):
             return
@@ -1789,11 +1802,11 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._update_load_toast(message)
         self.statusBar().showMessage(message)
         thread = QThread(self)
-        worker = CatalogLoadWorker(path, rebuild=rebuild)
+        worker = CatalogLoadWorker(path, rebuild=rebuild, generation=generation)
         worker.moveToThread(thread)
         thread.started.connect(worker.run)
-        worker.succeeded.connect(lambda catalog, gen=generation: self._on_catalog_load_succeeded(catalog, gen))
-        worker.failed.connect(lambda text, gen=generation: self._on_catalog_load_failed(text, gen))
+        worker.succeeded.connect(self._on_catalog_load_succeeded, Qt.ConnectionType.QueuedConnection)
+        worker.failed.connect(self._on_catalog_load_failed, Qt.ConnectionType.QueuedConnection)
         worker.finished.connect(thread.quit)
         worker.finished.connect(worker.deleteLater)
         thread.finished.connect(self._on_catalog_load_finished)

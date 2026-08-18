@@ -25,6 +25,7 @@ lang: en
 - [🔧 Function `delete_icon_family`](#-function-delete_icon_family)
 - [🔧 Function `family_in_folder`](#-function-family_in_folder)
 - [🔧 Function `family_license_info`](#-function-family_license_info)
+- [🔧 Function `folder_disk_path`](#-function-folder_disk_path)
 - [🔧 Function `folder_parts`](#-function-folder_parts)
 - [🔧 Function `is_note_icons_repo`](#-function-is_note_icons_repo)
 - [🔧 Function `is_openable_license_url`](#-function-is_openable_license_url)
@@ -436,6 +437,27 @@ def family_license_info(family: IconFamily, repo_root: Path | None = None) -> tu
     note_name = str(meta.get("license") or "").strip()
     note_url = str(meta.get("license-url") or "").strip()
     return name or note_name, url or note_url
+```
+
+</details>
+
+## 🔧 Function `folder_disk_path`
+
+```python
+def folder_disk_path(repo_root: Path, prefix: str) -> Path
+```
+
+Return the on-disk folder for a sidebar prefix (`""` is the repo root).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def folder_disk_path(repo_root: Path, prefix: str) -> Path:
+    parts = folder_parts(prefix)
+    if not parts:
+        return repo_root
+    return repo_root.joinpath(*parts)
 ```
 
 </details>

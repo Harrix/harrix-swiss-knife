@@ -30,23 +30,26 @@ def _repo_with_garage(tmp_path: Path) -> Path:
 
 def test_catalog_load_worker_opens_note_repo(tmp_path: Path) -> None:
     repo = _repo_with_garage(tmp_path)
-    worker = CatalogLoadWorker(repo)
-    loaded: list[object] = []
-    failed: list[str] = []
-    worker.succeeded.connect(loaded.append)
-    worker.failed.connect(failed.append)
+    worker = CatalogLoadWorker(repo, generation=4)
+    loaded: list[tuple[object, int]] = []
+    failed: list[tuple[str, int]] = []
+    worker.succeeded.connect(lambda catalog, gen: loaded.append((catalog, gen)))
+    worker.failed.connect(lambda text, gen: failed.append((text, gen)))
     worker.run()
     assert failed == []
     assert len(loaded) == 1
-    catalog = loaded[0]
+    catalog, generation = loaded[0]
+    assert generation == 4
     assert isinstance(catalog, IconCatalog)
     assert catalog.icons[0].id == "building__garage"
 
 
 def test_catalog_load_worker_reports_missing_folder(tmp_path: Path) -> None:
-    worker = CatalogLoadWorker(tmp_path / "missing")
-    failed: list[str] = []
-    worker.failed.connect(failed.append)
+    worker = CatalogLoadWorker(tmp_path / "missing", generation=2)
+    failed: list[tuple[str, int]] = []
+    worker.failed.connect(lambda text, gen: failed.append((text, gen)))
     worker.run()
     assert failed
-    assert "not found" in failed[0].casefold() or "no svg" in failed[0].casefold() or failed[0]
+    message, generation = failed[0]
+    assert generation == 2
+    assert "not found" in message.casefold() or "no svg" in message.casefold() or message
