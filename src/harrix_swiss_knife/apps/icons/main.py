@@ -342,16 +342,6 @@ class MainWindow(QMainWindow, AppWindowMixin):
         if is_favorites_category(self._current_category):
             by_id = {family.id: family for family in families}
             families = [by_id[family_id] for family_id in self._favorite_ids if family_id in by_id]
-        unfiltered = not query.strip() and not self._current_folder and self._current_category is None
-        if unfiltered and len(families) > GRID_RENDER_LIMIT:
-            self.icon_list.clear()
-            self.variants_panel.clear_variants()
-            self._visible_families = []
-            self.count_label.setText(f"{len(families)} icons — select a folder or category to browse")
-            self.statusBar().showMessage(
-                f"{len(families)} icons. Select a folder or category (showing all is too slow).",
-            )
-            return
         entries = build_grid_entries(families, repo_root=self._repo_root, mode=self._variant_view_mode)
         truncated = len(entries) > GRID_RENDER_LIMIT
         if truncated:
