@@ -75,6 +75,7 @@ These stay in `extension.js` for a public build:
 - `harrixNotesExplorerHsk.beautifyRegenerateGMd`
 - `harrixNotesExplorerHsk.checkMarkdownInFolder`
 - `harrixNotesExplorerHsk.optimizeImagesFolder`
+- `harrixNotesExplorerHsk.optimizeImagesFolderNoSizeLimit`
 - `harrixNotesExplorerHsk.convertToSiteArticleLink` (local convert; does not run `hsk` in Terminal)
 
 ## Settings (CLI only)

@@ -17,6 +17,7 @@
     "harrixNotesExplorerHsk.beautifyRegenerateGMd",
     "harrixNotesExplorerHsk.checkMarkdownInFolder",
     "harrixNotesExplorerHsk.optimizeImagesFolder",
+    "harrixNotesExplorerHsk.optimizeImagesFolderNoSizeLimit",
     "harrixNotesExplorerHsk.convertToSiteArticleLink"
   ],
   "viewItemContextValues": [

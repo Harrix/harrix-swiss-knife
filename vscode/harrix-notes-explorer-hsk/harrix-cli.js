@@ -129,10 +129,14 @@ function runHarrixMarkdownCheck(folderPath) {
 
 /**
  * @param {string} folderPath
- * @param {number} maxSize
+ * @param {number} [maxSize]
  */
 function runHarrixOptimizeImagesFolder(folderPath, maxSize) {
-  runHarrixCliInTerminal(['md', 'optimize-images-folder', path.resolve(folderPath), '--max-size', String(maxSize)]);
+  const args = ['md', 'optimize-images-folder', path.resolve(folderPath)];
+  if (maxSize != null) {
+    args.push('--max-size', String(maxSize));
+  }
+  runHarrixCliInTerminal(args);
 }
 
 /** @returns {number} */
@@ -663,21 +667,40 @@ function activateHarrixCliIntegration(deps) {
     }),
   );
 
-  context.subscriptions.push(
-    vscode.commands.registerCommand('harrixNotesExplorerHsk.optimizeImagesFolder', async (treeItemOrUri) => {
-      const folderPath = resolveFolderPathForCliCommand(treeItemOrUri, deps);
-      if (!folderPath) {
-        vscode.window.showErrorMessage('Open a markdown note or select a folder / Note/Note.md in Harrix Notes (HSK).');
+  /**
+   * @param {unknown} treeItemOrUri
+   * @param {{ unlimited?: boolean }} [opts]
+   */
+  async function runOptimizeImagesFolderCommand(treeItemOrUri, opts) {
+    const folderPath = resolveFolderPathForCliCommand(treeItemOrUri, deps);
+    if (!folderPath) {
+      vscode.window.showErrorMessage('Open a markdown note or select a folder / Note/Note.md in Harrix Notes (HSK).');
+      return;
+    }
+    try {
+      if (opts?.unlimited) {
+        runHarrixOptimizeImagesFolder(folderPath);
+        vscode.window.showInformationMessage('Optimize images running in Terminal (no size limit).');
         return;
       }
-      try {
-        const maxSize = getOptimizeImagesFolderMaxSize();
-        runHarrixOptimizeImagesFolder(folderPath, maxSize);
-        vscode.window.showInformationMessage(`Optimize images running in Terminal (max ${maxSize}px).`);
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : String(e);
-        vscode.window.showErrorMessage(`Optimize images in folder failed: ${msg}`);
-      }
+      const maxSize = getOptimizeImagesFolderMaxSize();
+      runHarrixOptimizeImagesFolder(folderPath, maxSize);
+      vscode.window.showInformationMessage(`Optimize images running in Terminal (max ${maxSize}px).`);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      vscode.window.showErrorMessage(`Optimize images in folder failed: ${msg}`);
+    }
+  }
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('harrixNotesExplorerHsk.optimizeImagesFolder', async (treeItemOrUri) => {
+      await runOptimizeImagesFolderCommand(treeItemOrUri);
+    }),
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('harrixNotesExplorerHsk.optimizeImagesFolderNoSizeLimit', async (treeItemOrUri) => {
+      await runOptimizeImagesFolderCommand(treeItemOrUri, { unlimited: true });
     }),
   );
 

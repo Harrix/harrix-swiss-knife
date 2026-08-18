@@ -114,7 +114,7 @@
           "type": "number",
           "default": 1024,
           "minimum": 1,
-          "markdownDescription": "Max width or height in pixels for **Optimize Images in Folder** (`hsk md optimize-images-folder --max-size`). Images larger on either side are resized."
+          "markdownDescription": "Max width or height in pixels for **Optimize Images in Folder** (`hsk md optimize-images-folder --max-size`). Images larger on either side are resized. **Optimize Images in Folder (No Size Limit)** omits `--max-size`."
         },
         "harrixNotesExplorerHsk.siteLink.defaultLanguage": {
           "type": "string",
@@ -537,6 +537,11 @@
         "category": "Harrix Notes (HSK)"
       },
       {
+        "command": "harrixNotesExplorerHsk.optimizeImagesFolderNoSizeLimit",
+        "title": "Optimize Images in Folder (No Size Limit) ꟲᴸᴵ",
+        "category": "Harrix Notes (HSK)"
+      },
+      {
         "command": "harrixNotesExplorerHsk.convertToSiteArticleLink",
         "title": "Convert to Site Article Dual Link ꟲᴸᴵ",
         "category": "Harrix Notes (HSK)"
@@ -718,6 +723,10 @@
         },
         {
           "command": "harrixNotesExplorerHsk.optimizeImagesFolder",
+          "when": "resourceLangId == markdown"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.optimizeImagesFolderNoSizeLimit",
           "when": "resourceLangId == markdown"
         },
         {
@@ -949,6 +958,11 @@
         },
         {
           "command": "harrixNotesExplorerHsk.optimizeImagesFolder",
+          "when": "view == harrixNotesExplorerHsk && (viewItem == noteNamedFolder || viewItem == noteHasAttachmentsNamedFolder || viewItem == noteWithAssetsNamedFolder || viewItem == gitNoteNamedFolder || viewItem == gitNoteHasAttachmentsNamedFolder || viewItem == gitNoteWithAssetsNamedFolder)",
+          "group": "2_notesCli@1"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.optimizeImagesFolderNoSizeLimit",
           "when": "view == harrixNotesExplorerHsk && (viewItem == noteNamedFolder || viewItem == noteHasAttachmentsNamedFolder || viewItem == noteWithAssetsNamedFolder || viewItem == gitNoteNamedFolder || viewItem == gitNoteHasAttachmentsNamedFolder || viewItem == gitNoteWithAssetsNamedFolder)",
           "group": "2_notesCli@1"
         },
@@ -1188,7 +1202,17 @@
           "group": "2_notesCli@1"
         },
         {
+          "command": "harrixNotesExplorerHsk.optimizeImagesFolderNoSizeLimit",
+          "when": "view == harrixNotesExplorerHsk && (viewItem == notesFolder || viewItem == gitNotesFolder)",
+          "group": "2_notesCli@1"
+        },
+        {
           "command": "harrixNotesExplorerHsk.optimizeImagesFolder",
+          "when": "view == harrixNotesExplorerHsk && (viewItem == notesFolderWithMerged || viewItem == gitNotesFolderWithMerged)",
+          "group": "2_notesCli@1"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.optimizeImagesFolderNoSizeLimit",
           "when": "view == harrixNotesExplorerHsk && (viewItem == notesFolderWithMerged || viewItem == gitNotesFolderWithMerged)",
           "group": "2_notesCli@1"
         },
@@ -1198,7 +1222,17 @@
           "group": "2_notesCli@1"
         },
         {
+          "command": "harrixNotesExplorerHsk.optimizeImagesFolderNoSizeLimit",
+          "when": "view == harrixNotesExplorerHsk && (viewItem == notesFolderDiary || viewItem == gitNotesFolderDiary)",
+          "group": "2_notesCli@1"
+        },
+        {
           "command": "harrixNotesExplorerHsk.optimizeImagesFolder",
+          "when": "view == harrixNotesExplorerHsk && (viewItem == notesFolderWithMergedDiary || viewItem == gitNotesFolderWithMergedDiary)",
+          "group": "2_notesCli@1"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.optimizeImagesFolderNoSizeLimit",
           "when": "view == harrixNotesExplorerHsk && (viewItem == notesFolderWithMergedDiary || viewItem == gitNotesFolderWithMergedDiary)",
           "group": "2_notesCli@1"
         },
@@ -1208,7 +1242,17 @@
           "group": "2_notesCli@1"
         },
         {
+          "command": "harrixNotesExplorerHsk.optimizeImagesFolderNoSizeLimit",
+          "when": "view == harrixNotesExplorerHsk && (viewItem == notesFolderDreams || viewItem == gitNotesFolderDreams)",
+          "group": "2_notesCli@1"
+        },
+        {
           "command": "harrixNotesExplorerHsk.optimizeImagesFolder",
+          "when": "view == harrixNotesExplorerHsk && (viewItem == notesFolderWithMergedDreams || viewItem == gitNotesFolderWithMergedDreams)",
+          "group": "2_notesCli@1"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.optimizeImagesFolderNoSizeLimit",
           "when": "view == harrixNotesExplorerHsk && (viewItem == notesFolderWithMergedDreams || viewItem == gitNotesFolderWithMergedDreams)",
           "group": "2_notesCli@1"
         },
@@ -1218,7 +1262,17 @@
           "group": "2_notesCli@1"
         },
         {
+          "command": "harrixNotesExplorerHsk.optimizeImagesFolderNoSizeLimit",
+          "when": "view == harrixNotesExplorerHsk && (viewItem == notesFolderCases || viewItem == gitNotesFolderCases)",
+          "group": "2_notesCli@1"
+        },
+        {
           "command": "harrixNotesExplorerHsk.optimizeImagesFolder",
+          "when": "view == harrixNotesExplorerHsk && (viewItem == notesFolderWithMergedCases || viewItem == gitNotesFolderWithMergedCases)",
+          "group": "2_notesCli@1"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.optimizeImagesFolderNoSizeLimit",
           "when": "view == harrixNotesExplorerHsk && (viewItem == notesFolderWithMergedCases || viewItem == gitNotesFolderWithMergedCases)",
           "group": "2_notesCli@1"
         },
@@ -1228,7 +1282,17 @@
           "group": "2_notesCli@1"
         },
         {
+          "command": "harrixNotesExplorerHsk.optimizeImagesFolderNoSizeLimit",
+          "when": "view == harrixNotesExplorerHsk && (viewItem == notesFolderTemplateTarget || viewItem == gitNotesFolderTemplateTarget)",
+          "group": "2_notesCli@1"
+        },
+        {
           "command": "harrixNotesExplorerHsk.optimizeImagesFolder",
+          "when": "view == harrixNotesExplorerHsk && (viewItem == notesFolderTemplateTargetWithMerged || viewItem == gitNotesFolderTemplateTargetWithMerged)",
+          "group": "2_notesCli@1"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.optimizeImagesFolderNoSizeLimit",
           "when": "view == harrixNotesExplorerHsk && (viewItem == notesFolderTemplateTargetWithMerged || viewItem == gitNotesFolderTemplateTargetWithMerged)",
           "group": "2_notesCli@1"
         },
