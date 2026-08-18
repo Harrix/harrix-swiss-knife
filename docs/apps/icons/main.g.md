@@ -168,6 +168,8 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._thumb_thread = None
         self._thumb_worker = None
         self._current_category: str | None = None
+        self._current_folder: str | None = None
+        self._nav_syncing = False
         self._selected_family_id: str | None = None
         self._category_icons = load_category_icons()
         self._default_category_family_ids: dict[str, str] = {}
@@ -247,7 +249,11 @@ class MainWindow(QMainWindow, AppWindowMixin):
             return
         selected_id = self._selected_family_id
         query = self.search_edit.text()
-        families = self._catalog.filter_icons(category=self._current_category, query=query)
+        families = self._catalog.filter_icons(
+            category=self._current_category,
+            folder=self._current_folder,
+            query=query,
+        )
         entries = build_grid_entries(families, repo_root=self._repo_root, mode=self._variant_view_mode)
         pixmaps_by_path = self._pixmaps_for_entries(entries)
         self.icon_list.set_grid_entries(
@@ -355,12 +361,27 @@ class MainWindow(QMainWindow, AppWindowMixin):
         root.addLayout(toolbar)
 
         splitter = QSplitter(Qt.Orientation.Horizontal)
+        left_splitter = QSplitter(Qt.Orientation.Vertical)
+        left_splitter.setMinimumWidth(160)
+        left_splitter.setMaximumWidth(260)
+
+        self.folder_tree = QTreeWidget()
+        self.folder_tree.setHeaderHidden(True)
+        self.folder_tree.setRootIsDecorated(True)
+        self.folder_tree.setIconSize(QSize(CATEGORY_LIST_ICON_SIZE, CATEGORY_LIST_ICON_SIZE))
+        self.folder_tree.setIndentation(16)
+        self.folder_tree.currentItemChanged.connect(self._on_folder_tree_changed)
+        left_splitter.addWidget(self._sidebar_panel("Folders:", self.folder_tree))
+
         self.category_list = QListWidget()
-        self.category_list.setMinimumWidth(160)
-        self.category_list.setMaximumWidth(260)
         self.category_list.setIconSize(QSize(CATEGORY_LIST_ICON_SIZE, CATEGORY_LIST_ICON_SIZE))
         self.category_list.currentTextChanged.connect(self._on_category_changed)
-        splitter.addWidget(self.category_list)
+        left_splitter.addWidget(self._sidebar_panel("Categories:", self.category_list))
+
+        left_splitter.setStretchFactor(0, 1)
+        left_splitter.setStretchFactor(1, 1)
+        left_splitter.setSizes([220, 280])
+        splitter.addWidget(left_splitter)
 
         center = QWidget()
         center_layout = QVBoxLayout(center)
@@ -799,7 +820,11 @@ class MainWindow(QMainWindow, AppWindowMixin):
         dialog.exec()
 
     def _on_category_changed(self, text: str) -> None:
+        if self._nav_syncing:
+            return
         self._current_category = None if text == ALL_CATEGORIES or not text else text
+        if self._current_category:
+            self._select_all_folders()
         self._apply_filters()
 
     def _on_check_images(self) -> None:
@@ -958,6 +983,17 @@ class MainWindow(QMainWindow, AppWindowMixin):
                 if path == self._repo_root:
                     return
         self._open_folder(path)
+
+    def _on_folder_tree_changed(self, current: QTreeWidgetItem | None, _previous: QTreeWidgetItem | None) -> None:
+        if self._nav_syncing:
+            return
+        path = ""
+        if current is not None:
+            path = str(current.data(0, Qt.ItemDataRole.UserRole) or "")
+        self._current_folder = path or None
+        if self._current_folder:
+            self._select_all_categories()
+        self._apply_filters()
 
     def _on_icon_details(self, family: object, svg_path: str) -> None:
         if not isinstance(family, IconFamily):
@@ -1127,6 +1163,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self.statusBar().showMessage("Refreshing catalog…")
         QApplication.processEvents(QEventLoop.ProcessEventsFlag.ExcludeUserInputEvents)
         previous_category = self._current_category
+        previous_folder = self._current_folder
         try:
             if self._catalog is not None and self._catalog.kind == "flat":
                 catalog = open_icons_folder(root)
@@ -1146,7 +1183,12 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._variant_pixmaps.clear()
         self._thumb_cache = ThumbnailCache(cache_dir=cache_dir_for_root(catalog.repo_root), size=DEFAULT_THUMB_SIZE)
         self._prime_pixmaps_from_cache()
-        self._populate_categories(preferred_category=previous_category)
+        if previous_folder:
+            self._populate_folders(preferred_folder=previous_folder)
+            self._populate_categories(preferred_category="")
+        else:
+            self._populate_folders(preferred_folder="")
+            self._populate_categories(preferred_category=previous_category)
         QApplication.processEvents(QEventLoop.ProcessEventsFlag.ExcludeUserInputEvents)
         self._apply_filters()
         self._start_thumb_refresh()
@@ -1304,6 +1346,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._catalog = catalog
         self._selected_family_id = load_last_icon(catalog.repo_root)
         self._current_category = None
+        self._current_folder = None
         self._variant_pixmaps.clear()
         self._thumb_cache = ThumbnailCache(cache_dir=cache_dir_for_root(catalog.repo_root), size=DEFAULT_THUMB_SIZE)
         if remember:
@@ -1311,6 +1354,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         save_last_folder(catalog.repo_root)
         self.setWindowTitle(f"Vector Icons — {catalog.repo_root.name}")
         self._prime_pixmaps_from_cache()
+        self._populate_folders()
         self._populate_categories()
         self._apply_filters()
         self._start_thumb_refresh()
@@ -1409,6 +1453,46 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self.category_list.setUpdatesEnabled(True)
         self.category_list.viewport().update()
 
+    def _populate_folders(self, *, preferred_folder: str | None = None) -> None:
+        previous = preferred_folder if preferred_folder is not None else self._current_folder
+        self.folder_tree.setUpdatesEnabled(False)
+        self.folder_tree.blockSignals(True)  # noqa: FBT003
+        self.folder_tree.clear()
+        all_item = QTreeWidgetItem([ALL_FOLDERS])
+        all_item.setData(0, Qt.ItemDataRole.UserRole, "")
+        all_item.setIcon(0, QIcon(":/assets/logo.svg"))
+        self.folder_tree.addTopLevelItem(all_item)
+
+        prefixes: list[str] = []
+        if self._catalog is not None:
+            prefixes = self._catalog.folder_prefixes()
+        folder_icon = self.style().standardIcon(QStyle.StandardPixmap.SP_DirIcon)
+        items: dict[str, QTreeWidgetItem] = {}
+        for prefix in prefixes:
+            name = prefix.rsplit("/", 1)[-1]
+            parent_path = prefix.rsplit("/", 1)[0] if "/" in prefix else ""
+            item = QTreeWidgetItem([name])
+            item.setData(0, Qt.ItemDataRole.UserRole, prefix)
+            item.setIcon(0, folder_icon)
+            parent = items.get(parent_path)
+            if parent is None:
+                self.folder_tree.addTopLevelItem(item)
+            else:
+                parent.addChild(item)
+            items[prefix] = item
+
+        self.folder_tree.expandAll()
+        selected = all_item
+        if previous and previous in items:
+            selected = items[previous]
+            self._current_folder = previous
+        else:
+            self._current_folder = None
+        self.folder_tree.setCurrentItem(selected)
+        self.folder_tree.blockSignals(False)  # noqa: FBT003
+        self.folder_tree.setUpdatesEnabled(True)
+        self.folder_tree.viewport().update()
+
     def _prime_pixmaps_from_cache(self) -> None:
         if self._catalog is None:
             return
@@ -1502,6 +1586,28 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._selected_family_id = None
         self.variants_panel.clear_variants()
 
+    def _select_all_categories(self) -> None:
+        if self.category_list.currentRow() == 0 and self._current_category is None:
+            return
+        self._nav_syncing = True
+        try:
+            self.category_list.setCurrentRow(0)
+            self._current_category = None
+        finally:
+            self._nav_syncing = False
+
+    def _select_all_folders(self) -> None:
+        if not self._current_folder and self.folder_tree.currentItem() is self.folder_tree.topLevelItem(0):
+            return
+        self._nav_syncing = True
+        try:
+            all_item = self.folder_tree.topLevelItem(0)
+            if all_item is not None:
+                self.folder_tree.setCurrentItem(all_item)
+            self._current_folder = None
+        finally:
+            self._nav_syncing = False
+
     def _show_text_result(self, title: str, text: str) -> None:
         dialog = QDialog(self)
         dialog.setWindowTitle(title)
@@ -1526,6 +1632,17 @@ class MainWindow(QMainWindow, AppWindowMixin):
         detail = "\n".join(detail_lines)
         QMessageBox.information(self, "Vector Icons", f"{summary}\n\n{detail}" if detail else summary)
         self.statusBar().showMessage(summary_lines[0] if summary_lines else "Done")
+
+    @staticmethod
+    def _sidebar_panel(title: str, widget: QWidget) -> QWidget:
+        """Return a labeled sidebar pane for the left vertical splitter."""
+        panel = QWidget()
+        layout = QVBoxLayout(panel)
+        layout.setContentsMargins(4, 4, 0, 0)
+        layout.setSpacing(4)
+        layout.addWidget(QLabel(title))
+        layout.addWidget(widget)
+        return panel
 
     def _start_maintenance(self, kind: MaintenanceKind, toast_message: str) -> None:
         if self._repo_root is None or not self._is_note_repo_open():
@@ -1749,6 +1866,8 @@ def __init__(self, *, hide_on_close: bool = False) -> None:
         self._thumb_thread = None
         self._thumb_worker = None
         self._current_category: str | None = None
+        self._current_folder: str | None = None
+        self._nav_syncing = False
         self._selected_family_id: str | None = None
         self._category_icons = load_category_icons()
         self._default_category_family_ids: dict[str, str] = {}

@@ -14,6 +14,7 @@ lang: en
 - [🏛️ Class `IconCatalog`](#%EF%B8%8F-class-iconcatalog)
   - [⚙️ Method `categories`](#%EF%B8%8F-method-categories)
   - [⚙️ Method `filter_icons`](#%EF%B8%8F-method-filter_icons)
+  - [⚙️ Method `folder_prefixes`](#%EF%B8%8F-method-folder_prefixes)
 - [🏛️ Class `IconFamily`](#%EF%B8%8F-class-iconfamily)
   - [⚙️ Method `featured_path`](#%EF%B8%8F-method-featured_path)
   - [⚙️ Method `matches`](#%EF%B8%8F-method-matches)
@@ -22,6 +23,8 @@ lang: en
 - [🏛️ Class `IconVariant`](#%EF%B8%8F-class-iconvariant)
   - [⚙️ Method `absolute_path`](#%EF%B8%8F-method-absolute_path)
 - [🔧 Function `delete_icon_family`](#-function-delete_icon_family)
+- [🔧 Function `family_in_folder`](#-function-family_in_folder)
+- [🔧 Function `folder_parts`](#-function-folder_parts)
 - [🔧 Function `is_note_icons_repo`](#-function-is_note_icons_repo)
 - [🔧 Function `iter_icon_note_dirs`](#-function-iter_icon_note_dirs)
 - [🔧 Function `load_catalog`](#-function-load_catalog)
@@ -61,17 +64,41 @@ class IconCatalog:
             names.update(icon.categories)
         return sorted(names, key=str.casefold)
 
-    def filter_icons(self, *, category: str | None = None, query: str = "") -> list[IconFamily]:
-        """Filter icons by optional category and search query."""
+    def filter_icons(
+        self,
+        *,
+        category: str | None = None,
+        folder: str | None = None,
+        query: str = "",
+    ) -> list[IconFamily]:
+        """Filter icons by optional category, folder prefix, and search query."""
         needle = query.strip()
         result: list[IconFamily] = []
         for icon in self.icons:
             if category and category not in icon.categories:
                 continue
+            if folder and not family_in_folder(icon.folder, folder):
+                continue
             if needle and not icon.matches(needle):
                 continue
             result.append(icon)
         return result
+
+    def folder_prefixes(self) -> list[str]:
+        """Return sorted unique folder prefixes for the sidebar tree.
+
+        Note catalogs omit the family note folder itself. Flat catalogs keep
+        every parent directory of icon files.
+
+        """
+        prefixes: set[str] = set()
+        for icon in self.icons:
+            parts = folder_parts(icon.folder)
+            if self.kind == "note" and parts:
+                parts = parts[:-1]
+            for index in range(len(parts)):
+                prefixes.add("/".join(parts[: index + 1]))
+        return sorted(prefixes, key=str.casefold)
 ```
 
 </details>
@@ -100,25 +127,61 @@ def categories(self) -> list[str]:
 ### ⚙️ Method `filter_icons`
 
 ```python
-def filter_icons(self, *, category: str | None = None, query: str = '') -> list[IconFamily]
+def filter_icons(self, *, category: str | None = None, folder: str | None = None, query: str = '') -> list[IconFamily]
 ```
 
-Filter icons by optional category and search query.
+Filter icons by optional category, folder prefix, and search query.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def filter_icons(self, *, category: str | None = None, query: str = "") -> list[IconFamily]:
+def filter_icons(
+        self,
+        *,
+        category: str | None = None,
+        folder: str | None = None,
+        query: str = "",
+    ) -> list[IconFamily]:
         needle = query.strip()
         result: list[IconFamily] = []
         for icon in self.icons:
             if category and category not in icon.categories:
                 continue
+            if folder and not family_in_folder(icon.folder, folder):
+                continue
             if needle and not icon.matches(needle):
                 continue
             result.append(icon)
         return result
+```
+
+</details>
+
+### ⚙️ Method `folder_prefixes`
+
+```python
+def folder_prefixes(self) -> list[str]
+```
+
+Return sorted unique folder prefixes for the sidebar tree.
+
+Note catalogs omit the family note folder itself. Flat catalogs keep
+every parent directory of icon files.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def folder_prefixes(self) -> list[str]:
+        prefixes: set[str] = set()
+        for icon in self.icons:
+            parts = folder_parts(icon.folder)
+            if self.kind == "note" and parts:
+                parts = parts[:-1]
+            for index in range(len(parts)):
+                prefixes.add("/".join(parts[: index + 1]))
+        return sorted(prefixes, key=str.casefold)
 ```
 
 </details>
@@ -314,6 +377,46 @@ def delete_icon_family(family: IconFamily, repo_root: Path, *, kind: CatalogKind
         _delete_note_family(family, root)
         return
     _delete_flat_family(family, root)
+```
+
+</details>
+
+## 🔧 Function `family_in_folder`
+
+```python
+def family_in_folder(family_folder: str, selected: str) -> bool
+```
+
+Return whether `family_folder` is `selected` or nested under it.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def family_in_folder(family_folder: str, selected: str) -> bool:
+    family = "/".join(folder_parts(family_folder))
+    prefix = "/".join(folder_parts(selected))
+    if not prefix:
+        return True
+    return family == prefix or family.startswith(f"{prefix}/")
+```
+
+</details>
+
+## 🔧 Function `folder_parts`
+
+```python
+def folder_parts(folder: str) -> list[str]
+```
+
+Split a repo-relative folder into non-empty path parts.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def folder_parts(folder: str) -> list[str]:
+    return [part for part in folder.replace("\\", "/").split("/") if part and part != "."]
 ```
 
 </details>
