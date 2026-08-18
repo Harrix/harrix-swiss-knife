@@ -353,10 +353,12 @@ def set_category_icon(category: str, family_id: str) -> dict[str, str]:
     return mapping
 
 
-def sidebar_category_names(catalog_names: list[str]) -> list[str]:
-    """Return sidebar categories with Favorites first, then catalog names."""
+def sidebar_category_names(catalog_names: list[str], *, has_favorites: bool = False) -> list[str]:
+    """Return sidebar categories with Favorites first when it has icons."""
     rest = [name for name in catalog_names if not is_favorites_category(name)]
-    return [FAVORITES_CATEGORY, *rest]
+    if has_favorites:
+        return [FAVORITES_CATEGORY, *rest]
+    return rest
 
 
 def toggle_favorite(folder: Path, family_id: str) -> tuple[list[str], bool]:

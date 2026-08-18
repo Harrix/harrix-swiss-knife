@@ -681,18 +681,20 @@ def set_category_icon(category: str, family_id: str) -> dict[str, str]:
 ## 🔧 Function `sidebar_category_names`
 
 ```python
-def sidebar_category_names(catalog_names: list[str]) -> list[str]
+def sidebar_category_names(catalog_names: list[str], *, has_favorites: bool = False) -> list[str]
 ```
 
-Return sidebar categories with Favorites first, then catalog names.
+Return sidebar categories with Favorites first when it has icons.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def sidebar_category_names(catalog_names: list[str]) -> list[str]:
+def sidebar_category_names(catalog_names: list[str], *, has_favorites: bool = False) -> list[str]:
     rest = [name for name in catalog_names if not is_favorites_category(name)]
-    return [FAVORITES_CATEGORY, *rest]
+    if has_favorites:
+        return [FAVORITES_CATEGORY, *rest]
+    return rest
 ```
 
 </details>

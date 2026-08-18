@@ -83,15 +83,20 @@ def test_rename_favorite_keeps_position(tmp_path: Path, monkeypatch: pytest.Monk
 
 
 def test_sidebar_puts_favorites_first() -> None:
-    assert sidebar_category_names(["building", "clothes"]) == [
+    assert sidebar_category_names(["building", "clothes"], has_favorites=True) == [
         FAVORITES_CATEGORY,
         "building",
         "clothes",
     ]
-    assert sidebar_category_names(["building", "Favorites", "clothes"]) == [
+    assert sidebar_category_names(["building", "Favorites", "clothes"], has_favorites=True) == [
         FAVORITES_CATEGORY,
         "building",
         "clothes",
     ]
     assert is_favorites_category("favorites")
     assert not is_favorites_category("(All)")
+
+
+def test_sidebar_hides_empty_favorites() -> None:
+    assert sidebar_category_names(["building", "clothes"]) == ["building", "clothes"]
+    assert sidebar_category_names(["building", "Favorites"], has_favorites=False) == ["building"]

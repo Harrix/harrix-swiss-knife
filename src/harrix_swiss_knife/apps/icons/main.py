@@ -309,8 +309,11 @@ class MainWindow(QMainWindow, AppWindowMixin):
         else:
             self._default_category_family_ids.pop(FAVORITES_CATEGORY, None)
         self._sync_favorite_ids_to_lists()
-        self._refresh_category_icons()
-        if is_favorites_category(self._current_category):
+        leave_favorites = is_favorites_category(self._current_category) and not self._favorite_ids
+        preferred = "" if leave_favorites else self._current_category
+        was_favorites = is_favorites_category(self._current_category)
+        self._populate_categories(preferred_category=preferred)
+        if was_favorites or is_favorites_category(self._current_category):
             self._apply_filters()
 
     def _apply_filters(self) -> None:
@@ -1574,7 +1577,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self.category_list.addItem(all_item)
         names: list[str] = []
         if self._catalog is not None:
-            names = sidebar_category_names(self._catalog.categories())
+            names = sidebar_category_names(self._catalog.categories(), has_favorites=bool(self._favorite_ids))
             if self._favorite_ids:
                 self._default_category_family_ids[FAVORITES_CATEGORY] = self._favorite_ids[0]
             for name in names:
@@ -1586,8 +1589,8 @@ class MainWindow(QMainWindow, AppWindowMixin):
                 item.setIcon(self._category_pixmap_icon(name))
                 self.category_list.addItem(item)
         select_row = 0
-        if previous and is_favorites_category(previous):
-            select_row = 1
+        if previous and is_favorites_category(previous) and FAVORITES_CATEGORY in names:
+            select_row = names.index(FAVORITES_CATEGORY) + 1
             self._current_category = FAVORITES_CATEGORY
         elif previous and previous in names:
             select_row = names.index(previous) + 1
