@@ -51,14 +51,15 @@ class AddVectorImageDialog(QDialog):
         self._initial_title = title
         self._initial_category = category
         self.setWindowTitle(f"Add Vector Image — {source_path.name}")
-        self.setMinimumSize(820, 560)
+        self.setMinimumSize(1100, 600)
+        self.resize(1200, 640)
         qt_modality.set_owner_window_modal(self)
         self._setup_ui()
         self._apply_initial_values()
 
     def get_meta(self) -> NoteMeta:
         """Return confirmed metadata from the form."""
-        family_id = self._filename_edit.currentText().strip()
+        family_id = self._filename_edit.text().strip()
         category = self._category_edit.currentText().strip()
         site_suffix = self._permalink_suffix.text().strip()
         source_suffix = self._permalink_source_suffix.text().strip()
@@ -83,7 +84,7 @@ class AddVectorImageDialog(QDialog):
         self._updating = True
         try:
             if fill.filename:
-                self._filename_edit.setCurrentText(fill.filename)
+                self._filename_edit.setText(fill.filename)
             if fill.name:
                 self._name_edit.setText(fill.name)
             if fill.category:
@@ -98,7 +99,7 @@ class AddVectorImageDialog(QDialog):
     def _apply_initial_values(self) -> None:
         self._updating = True
         try:
-            self._filename_edit.setCurrentText(self._initial_family_id)
+            self._filename_edit.setText(self._initial_family_id)
             self._name_edit.setText(self._initial_title)
             self._category_edit.setCurrentText(self._initial_category)
             self._author_edit.setCurrentText(self._defaults.author)
@@ -117,6 +118,8 @@ class AddVectorImageDialog(QDialog):
         combo = QComboBox()
         combo.setEditable(True)
         combo.setInsertPolicy(QComboBox.InsertPolicy.NoInsert)
+        combo.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        combo.setMinimumContentsLength(24)
         for value in values:
             combo.addItem(value)
         combo.setCurrentText("")
@@ -140,7 +143,7 @@ class AddVectorImageDialog(QDialog):
             icon_path=self._source_path,
             existing_stems=self._defaults.existing_variant_stems,
             category=self._category_edit.currentText().strip(),
-            filename=self._filename_edit.currentText().strip(),
+            filename=self._filename_edit.text().strip(),
             name=self._name_edit.text().strip(),
             tags=parse_keywords_text(self._tags_edit.toPlainText()),
             fill_button=self._ai_button,
@@ -148,7 +151,7 @@ class AddVectorImageDialog(QDialog):
         )
 
     def _refresh_derived_fields(self, *, rebuild_name: bool) -> None:
-        family_id = self._filename_edit.currentText().strip()
+        family_id = self._filename_edit.text().strip()
         category = self._category_edit.currentText().strip()
         if rebuild_name and family_id:
             self._name_edit.setText(title_from_family_id(family_id))
@@ -173,8 +176,8 @@ class AddVectorImageDialog(QDialog):
         form = QFormLayout(form_host)
         form.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.ExpandingFieldsGrow)
 
-        self._filename_edit = self._editable_combo([])
-        self._filename_edit.editTextChanged.connect(self._on_filename_changed)
+        self._filename_edit = QLineEdit()
+        self._filename_edit.textChanged.connect(self._on_filename_changed)
         form.addRow("filename", self._filename_edit)
 
         self._name_edit = QLineEdit()
@@ -276,7 +279,8 @@ def __init__(
         self._initial_title = title
         self._initial_category = category
         self.setWindowTitle(f"Add Vector Image — {source_path.name}")
-        self.setMinimumSize(820, 560)
+        self.setMinimumSize(1100, 600)
+        self.resize(1200, 640)
         qt_modality.set_owner_window_modal(self)
         self._setup_ui()
         self._apply_initial_values()
@@ -297,7 +301,7 @@ Return confirmed metadata from the form.
 
 ```python
 def get_meta(self) -> NoteMeta:
-        family_id = self._filename_edit.currentText().strip()
+        family_id = self._filename_edit.text().strip()
         category = self._category_edit.currentText().strip()
         site_suffix = self._permalink_suffix.text().strip()
         source_suffix = self._permalink_source_suffix.text().strip()
