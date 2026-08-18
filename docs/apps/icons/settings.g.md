@@ -11,9 +11,13 @@ lang: en
 
 ## Contents
 
+- [🔧 Function `add_favorites`](#-function-add_favorites)
 - [🔧 Function `clamp_icon_size`](#-function-clamp_icon_size)
 - [🔧 Function `clamp_recent_folders_max`](#-function-clamp_recent_folders_max)
+- [🔧 Function `is_favorites_category`](#-function-is_favorites_category)
 - [🔧 Function `load_category_icons`](#-function-load_category_icons)
+- [🔧 Function `load_favorites`](#-function-load_favorites)
+- [🔧 Function `load_favorites_map`](#-function-load_favorites_map)
 - [🔧 Function `load_icon_size`](#-function-load_icon_size)
 - [🔧 Function `load_last_folder`](#-function-load_last_folder)
 - [🔧 Function `load_last_icon`](#-function-load_last_icon)
@@ -23,11 +27,34 @@ lang: en
 - [🔧 Function `load_recent_folders_max`](#-function-load_recent_folders_max)
 - [🔧 Function `pin_folder`](#-function-pin_folder)
 - [🔧 Function `remember_recent_folder`](#-function-remember_recent_folder)
+- [🔧 Function `remove_favorites`](#-function-remove_favorites)
+- [🔧 Function `rename_favorite`](#-function-rename_favorite)
 - [🔧 Function `save_category_icons`](#-function-save_category_icons)
+- [🔧 Function `save_favorites`](#-function-save_favorites)
 - [🔧 Function `save_icon_size`](#-function-save_icon_size)
 - [🔧 Function `save_last_folder`](#-function-save_last_folder)
 - [🔧 Function `save_last_icon`](#-function-save_last_icon)
 - [🔧 Function `set_category_icon`](#-function-set_category_icon)
+- [🔧 Function `sidebar_category_names`](#-function-sidebar_category_names)
+- [🔧 Function `toggle_favorite`](#-function-toggle_favorite)
+
+</details>
+
+## 🔧 Function `add_favorites`
+
+```python
+def add_favorites(folder: Path, family_ids: list[str]) -> list[str]
+```
+
+Append `family_ids` to favorites for `folder`, keeping existing order.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def add_favorites(folder: Path, family_ids: list[str]) -> list[str]:
+    return save_favorites(folder, [*load_favorites(folder), *family_ids])
+```
 
 </details>
 
@@ -93,6 +120,24 @@ def clamp_recent_folders_max(value: object) -> int:
 
 </details>
 
+## 🔧 Function `is_favorites_category`
+
+```python
+def is_favorites_category(name: str | None) -> bool
+```
+
+Return whether `name` is the sidebar Favorites category.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def is_favorites_category(name: str | None) -> bool:
+    return bool(name) and name.casefold() == FAVORITES_CATEGORY.casefold()
+```
+
+</details>
+
 ## 🔧 Function `load_category_icons`
 
 ```python
@@ -119,6 +164,55 @@ def load_category_icons() -> dict[str, str]:
         family_id = str(value).strip()
         if category and family_id:
             result[category] = family_id
+    return result
+```
+
+</details>
+
+## 🔧 Function `load_favorites`
+
+```python
+def load_favorites(folder: Path) -> list[str]
+```
+
+Return favorite family IDs for `folder`, oldest first.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def load_favorites(folder: Path) -> list[str]:
+    return load_favorites_map().get(_folder_key(folder), [])
+```
+
+</details>
+
+## 🔧 Function `load_favorites_map`
+
+```python
+def load_favorites_map() -> dict[str, list[str]]
+```
+
+Load folder → favorite family-id lists from `config-temp.json`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def load_favorites_map() -> dict[str, list[str]]:
+    try:
+        config = h.dev.config_load(get_config_path_str(), is_temp=True)
+    except (FileNotFoundError, OSError, ValueError):
+        return {}
+    raw = config.get(FAVORITES_KEY)
+    if not isinstance(raw, dict):
+        return {}
+    result: dict[str, list[str]] = {}
+    for key, value in raw.items():
+        folder = str(key).strip()
+        ids = _clean_family_ids(value)
+        if folder and ids:
+            result[folder] = ids
     return result
 ```
 
@@ -371,6 +465,56 @@ def remember_recent_folder(path: Path) -> list[Path]:
 
 </details>
 
+## 🔧 Function `remove_favorites`
+
+```python
+def remove_favorites(folder: Path, family_ids: list[str]) -> list[str]
+```
+
+Remove `family_ids` from favorites for `folder`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def remove_favorites(folder: Path, family_ids: list[str]) -> list[str]:
+    drop = {item.strip() for item in family_ids if item.strip()}
+    return save_favorites(folder, [item for item in load_favorites(folder) if item not in drop])
+```
+
+</details>
+
+## 🔧 Function `rename_favorite`
+
+```python
+def rename_favorite(folder: Path, old_family_id: str, new_family_id: str) -> list[str]
+```
+
+Replace `old_family_id` with `new_family_id` in favorites when present.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def rename_favorite(folder: Path, old_family_id: str, new_family_id: str) -> list[str]:
+    old_id = old_family_id.strip()
+    new_id = new_family_id.strip()
+    current = load_favorites(folder)
+    if not old_id or old_id not in current:
+        return current
+    updated: list[str] = []
+    seen: set[str] = set()
+    for item in current:
+        replacement = new_id if item == old_id else item
+        if not replacement or replacement in seen:
+            continue
+        seen.add(replacement)
+        updated.append(replacement)
+    return save_favorites(folder, updated)
+```
+
+</details>
+
 ## 🔧 Function `save_category_icons`
 
 ```python
@@ -397,6 +541,38 @@ def save_category_icons(mapping: dict[str, str]) -> None:
         get_config_path_str(),
         is_temp=True,
     )
+```
+
+</details>
+
+## 🔧 Function `save_favorites`
+
+```python
+def save_favorites(folder: Path, family_ids: list[str]) -> list[str]
+```
+
+Persist favorite family IDs for `folder` in `config-temp.json`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def save_favorites(folder: Path, family_ids: list[str]) -> list[str]:
+    cleaned = _clean_family_ids(family_ids)
+    mapping = load_favorites_map()
+    key = _folder_key(folder)
+    if cleaned:
+        mapping[key] = cleaned
+    else:
+        mapping.pop(key, None)
+    _ensure_temp_config()
+    h.dev.config_update_value(
+        FAVORITES_KEY,
+        mapping,
+        get_config_path_str(),
+        is_temp=True,
+    )
+    return cleaned
 ```
 
 </details>
@@ -498,6 +674,52 @@ def set_category_icon(category: str, family_id: str) -> dict[str, str]:
     mapping[category.strip()] = family_id.strip()
     save_category_icons(mapping)
     return mapping
+```
+
+</details>
+
+## 🔧 Function `sidebar_category_names`
+
+```python
+def sidebar_category_names(catalog_names: list[str]) -> list[str]
+```
+
+Return sidebar categories with Favorites first, then catalog names.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def sidebar_category_names(catalog_names: list[str]) -> list[str]:
+    rest = [name for name in catalog_names if not is_favorites_category(name)]
+    return [FAVORITES_CATEGORY, *rest]
+```
+
+</details>
+
+## 🔧 Function `toggle_favorite`
+
+```python
+def toggle_favorite(folder: Path, family_id: str) -> tuple[list[str], bool]
+```
+
+Add or remove `family_id` in favorites for `folder`.
+
+Returns:
+
+- The updated favorite IDs
+- `True` when the icon was added, `False` when it was removed
+
+<details>
+<summary>Code:</summary>
+
+```python
+def toggle_favorite(folder: Path, family_id: str) -> tuple[list[str], bool]:
+    cleaned = family_id.strip()
+    current = load_favorites(folder)
+    if cleaned in current:
+        return save_favorites(folder, [item for item in current if item != cleaned]), False
+    return save_favorites(folder, [*current, cleaned]), True
 ```
 
 </details>

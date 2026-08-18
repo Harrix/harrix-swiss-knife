@@ -142,8 +142,12 @@ def test_selected_keyword_targets_are_unique_and_ordered(qapp: QApplication, tmp
     assert lst.selectionMode() == lst.SelectionMode.ExtendedSelection
     assert batch_context_action_texts(len(targets)) == [
         "🤖 Process keywords with AI (2 icons)…",
+        "⭐ Add to favorites (2 icons)",
     ]
-    assert len(batch_context_action_texts(len(targets))) == 1
+    assert batch_context_action_texts(len(targets), all_favorites=True) == [
+        "🤖 Process keywords with AI (2 icons)…",
+        "⭐ Remove from favorites (2 icons)",
+    ]
 
 
 def test_keywords_batch_runner_updates_then_reports_failures(qapp: QApplication, tmp_path: Path) -> None:

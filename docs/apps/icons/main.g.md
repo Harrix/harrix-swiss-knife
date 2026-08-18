@@ -172,6 +172,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._nav_syncing = False
         self._selected_family_id: str | None = None
         self._category_icons = load_category_icons()
+        self._favorite_ids: list[str] = []
         self._default_category_family_ids: dict[str, str] = {}
         self._variant_view_mode = MODE_FEATURED
         self._variant_pixmaps: dict[str, QPixmap] = {}
@@ -251,6 +252,16 @@ class MainWindow(QMainWindow, AppWindowMixin):
                 self._on_family_selected(refreshed, persist=False)
         self._show_vector_report(report)
 
+    def _after_favorites_changed(self) -> None:
+        if self._favorite_ids:
+            self._default_category_family_ids[FAVORITES_CATEGORY] = self._favorite_ids[0]
+        else:
+            self._default_category_family_ids.pop(FAVORITES_CATEGORY, None)
+        self._sync_favorite_ids_to_lists()
+        self._refresh_category_icons()
+        if is_favorites_category(self._current_category):
+            self._apply_filters()
+
     def _apply_filters(self) -> None:
         if self._catalog is None or self._repo_root is None:
             self.icon_list.clear()
@@ -259,11 +270,15 @@ class MainWindow(QMainWindow, AppWindowMixin):
             return
         selected_id = self._selected_family_id
         query = self.search_edit.text()
+        category = None if is_favorites_category(self._current_category) else self._current_category
         families = self._catalog.filter_icons(
-            category=self._current_category,
+            category=category,
             folder=self._current_folder,
             query=query,
         )
+        if is_favorites_category(self._current_category):
+            by_id = {family.id: family for family in families}
+            families = [by_id[family_id] for family_id in self._favorite_ids if family_id in by_id]
         entries = build_grid_entries(families, repo_root=self._repo_root, mode=self._variant_view_mode)
         pixmaps_by_path = self._pixmaps_for_entries(entries)
         self.icon_list.set_grid_entries(
@@ -310,6 +325,8 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._catalog = catalog
         self._variant_pixmaps.clear()
         self._thumb_cache = ThumbnailCache(cache_dir=cache_dir_for_root(catalog.repo_root), size=DEFAULT_THUMB_SIZE)
+        self._favorite_ids = load_favorites(catalog.repo_root)
+        self._sync_favorite_ids_to_lists()
         self._prime_pixmaps_from_cache()
         if refresh:
             if previous_folder:
@@ -514,7 +531,9 @@ class MainWindow(QMainWindow, AppWindowMixin):
         assigned = self._category_icons.get(category)
         if assigned:
             for family in self._catalog.icons:
-                if family.id == assigned and category in family.categories:
+                if family.id != assigned:
+                    continue
+                if is_favorites_category(category) or category in family.categories:
                     return assigned
         return self._default_category_family_ids.get(category)
 
@@ -773,6 +792,30 @@ class MainWindow(QMainWindow, AppWindowMixin):
             return
         self._import_vector_sources(sources)
 
+    def _on_batch_favorites(self, payload: object) -> None:
+        if self._repo_root is None or not isinstance(payload, tuple) or len(payload) != _KEYWORD_TARGET_PAIR_LEN:
+            return
+        targets, add = payload
+        if not isinstance(targets, list):
+            return
+        should_add = bool(add)
+        family_ids: list[str] = []
+        for item in targets:
+            if not isinstance(item, tuple) or len(item) != _KEYWORD_TARGET_PAIR_LEN:
+                continue
+            family = item[0]
+            if isinstance(family, IconFamily):
+                family_ids.append(family.id)
+        if not family_ids:
+            return
+        if should_add:
+            self._favorite_ids = add_favorites(self._repo_root, family_ids)
+            self.statusBar().showMessage(f"Added {len(family_ids)} icon(s) to favorites")
+        else:
+            self._favorite_ids = remove_favorites(self._repo_root, family_ids)
+            self.statusBar().showMessage(f"Removed {len(family_ids)} icon(s) from favorites")
+        self._after_favorites_changed()
+
     def _on_batch_keywords_ai(self, targets: object) -> None:
         if not isinstance(targets, list) or self._repo_root is None:
             return
@@ -912,6 +955,8 @@ class MainWindow(QMainWindow, AppWindowMixin):
         if self._nav_syncing:
             return
         self._current_category = None if text == ALL_CATEGORIES or not text else text
+        if is_favorites_category(self._current_category):
+            self._current_category = FAVORITES_CATEGORY
         if self._current_category:
             self._select_all_folders()
         self._apply_filters()
@@ -971,6 +1016,8 @@ class MainWindow(QMainWindow, AppWindowMixin):
             return
         self._pixmaps.pop(family.id, None)
         self._thumb_cache.forget(family.id)
+        self._favorite_ids = remove_favorites(self._repo_root, [family.id])
+        self._sync_favorite_ids_to_lists()
         if self._selected_family_id == family.id:
             self._selected_family_id = None
         self._on_refresh_catalog(allow_empty=True)
@@ -1030,6 +1077,9 @@ class MainWindow(QMainWindow, AppWindowMixin):
 
         self._pixmaps.pop(report.old_family_id, None)
         self._thumb_cache.forget(report.old_family_id)
+        if report.old_family_id != report.new_family_id:
+            self._favorite_ids = rename_favorite(self._repo_root, report.old_family_id, report.new_family_id)
+            self._sync_favorite_ids_to_lists()
         self._selected_family_id = report.new_family_id
         if meta.category.strip():
             self._current_category = meta.category.strip()
@@ -1056,6 +1106,15 @@ class MainWindow(QMainWindow, AppWindowMixin):
             save_last_icon(self._repo_root, chosen.id)
         self.variants_panel.show_family(chosen, self._repo_root)
         self.statusBar().showMessage(f"{chosen.id}: {len(chosen.variants)} variants")
+
+    def _on_favorite_toggled(self, family: object) -> None:
+        if not isinstance(family, IconFamily) or self._repo_root is None:
+            return
+        self._favorite_ids, added = toggle_favorite(self._repo_root, family.id)
+        self._after_favorites_changed()
+        verb = "Added" if added else "Removed"
+        direction = "to" if added else "from"
+        self.statusBar().showMessage(f"{verb} `{family.id}` {direction} favorites")
 
     def _on_folder_combo_changed(self, index: int) -> None:
         if index < 0:
@@ -1462,16 +1521,22 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self.category_list.addItem(all_item)
         names: list[str] = []
         if self._catalog is not None:
-            names = self._catalog.categories()
+            names = sidebar_category_names(self._catalog.categories())
+            if self._favorite_ids:
+                self._default_category_family_ids[FAVORITES_CATEGORY] = self._favorite_ids[0]
             for name in names:
-                families = self._catalog.filter_icons(category=name)
-                if families:
-                    self._default_category_family_ids[name] = families[0].id
+                if not is_favorites_category(name):
+                    families = self._catalog.filter_icons(category=name)
+                    if families:
+                        self._default_category_family_ids[name] = families[0].id
                 item = QListWidgetItem(name)
                 item.setIcon(self._category_pixmap_icon(name))
                 self.category_list.addItem(item)
         select_row = 0
-        if previous and previous in names:
+        if previous and is_favorites_category(previous):
+            select_row = 1
+            self._current_category = FAVORITES_CATEGORY
+        elif previous and previous in names:
             select_row = names.index(previous) + 1
             self._current_category = previous
         else:
@@ -1826,6 +1891,13 @@ class MainWindow(QMainWindow, AppWindowMixin):
             self._check_images_action.setEnabled(note_repo)
             self._beautify_optimize_action.setEnabled(note_repo)
 
+    def _sync_favorite_ids_to_lists(self) -> None:
+        ids = set(self._favorite_ids)
+        if hasattr(self, "icon_list"):
+            self.icon_list.set_favorite_family_ids(ids)
+        if hasattr(self, "variants_panel"):
+            self.variants_panel.list.set_favorite_family_ids(ids)
+
     def _sync_folder_combo(self) -> None:
         if not hasattr(self, "folder_combo"):
             return
@@ -1867,6 +1939,8 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self.folder_combo.blockSignals(False)  # noqa: FBT003
 
     def _target_category_for_icon(self, family: IconFamily) -> str | None:
+        if is_favorites_category(self._current_category):
+            return FAVORITES_CATEGORY
         if self._current_category and self._current_category in family.categories:
             return self._current_category
         return family.categories[0] if family.categories else None
@@ -1921,7 +1995,9 @@ class MainWindow(QMainWindow, AppWindowMixin):
         icon_list.open_note_requested.connect(self._on_open_note_in_editor)
         icon_list.edit_keywords_requested.connect(self._on_edit_keywords)
         icon_list.batch_keywords_ai_requested.connect(self._on_batch_keywords_ai)
+        icon_list.batch_favorites_requested.connect(self._on_batch_favorites)
         icon_list.set_category_icon_requested.connect(self._on_set_as_category_icon)
+        icon_list.favorite_toggled.connect(self._on_favorite_toggled)
         icon_list.toggle_trademark_requested.connect(self._on_toggle_trademark)
         icon_list.reveal_source_requested.connect(self._on_reveal_source)
         icon_list.open_source_requested.connect(self._on_open_source)
@@ -1965,6 +2041,7 @@ def __init__(self, *, hide_on_close: bool = False) -> None:
         self._nav_syncing = False
         self._selected_family_id: str | None = None
         self._category_icons = load_category_icons()
+        self._favorite_ids: list[str] = []
         self._default_category_family_ids: dict[str, str] = {}
         self._variant_view_mode = MODE_FEATURED
         self._variant_pixmaps: dict[str, QPixmap] = {}

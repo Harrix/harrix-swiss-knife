@@ -18,6 +18,7 @@ lang: en
   - [⚙️ Method `selected_keyword_targets`](#%EF%B8%8F-method-selected_keyword_targets)
   - [⚙️ Method `set_display_icon_size`](#%EF%B8%8F-method-set_display_icon_size)
   - [⚙️ Method `set_family_items`](#%EF%B8%8F-method-set_family_items)
+  - [⚙️ Method `set_favorite_family_ids`](#%EF%B8%8F-method-set_favorite_family_ids)
   - [⚙️ Method `set_grid_entries`](#%EF%B8%8F-method-set_grid_entries)
   - [⚙️ Method `startDrag`](#%EF%B8%8F-method-startdrag)
   - [⚙️ Method `update_family_pixmap`](#%EF%B8%8F-method-update_family_pixmap)
@@ -62,8 +63,10 @@ class DraggableIconList(QListWidget):
     set_category_icon_requested = Signal(object)  # IconFamily
     delete_requested = Signal(object)  # IconFamily
     toggle_trademark_requested = Signal(object)  # IconFamily
+    favorite_toggled = Signal(object)  # IconFamily
     preview_requested = Signal(str)
     batch_keywords_ai_requested = Signal(object)  # list[tuple[IconFamily, str]]
+    batch_favorites_requested = Signal(object)  # (targets, add)
 
     def __init__(
         self,
@@ -78,6 +81,7 @@ class DraggableIconList(QListWidget):
         self._icon_size = icon_size
         self._emit_family_selection = emit_family_selection
         self._dual_line_labels = dual_line_labels
+        self._favorite_family_ids: set[str] = set()
         self.setViewMode(QListWidget.ViewMode.IconMode)
         self.setResizeMode(QListWidget.ResizeMode.Adjust)
         self.setMovement(QListWidget.Movement.Static)
@@ -181,6 +185,10 @@ class DraggableIconList(QListWidget):
         self.setCurrentRow(-1)
         self.blockSignals(False)  # noqa: FBT003
 
+    def set_favorite_family_ids(self, family_ids: set[str] | list[str]) -> None:
+        """Update the favorite family IDs used by the context menu labels."""
+        self._favorite_family_ids = {str(item).strip() for item in family_ids if str(item).strip()}
+
     def set_grid_entries(
         self,
         entries: list[GridEntry],
@@ -262,11 +270,16 @@ class DraggableIconList(QListWidget):
 
     def _exec_batch_context_menu(self, pos: QPoint, targets: list[tuple[IconFamily, str]]) -> None:
         menu = QMenu(self)
-        labels = batch_context_action_texts(len(targets))
+        selected_ids = {family.id for family, _path in targets}
+        all_favorites = bool(selected_ids) and selected_ids.issubset(self._favorite_family_ids)
+        labels = batch_context_action_texts(len(targets), all_favorites=all_favorites)
         batch_ai_action = menu.addAction(labels[0])
+        favorite_action = menu.addAction(labels[1])
         chosen = menu.exec_(self.mapToGlobal(pos))
         if chosen is batch_ai_action:
             self.batch_keywords_ai_requested.emit(targets)
+        elif chosen is favorite_action:
+            self.batch_favorites_requested.emit((targets, not all_favorites))
 
     def _grid_size_for(self, icon_size: int) -> QSize:
         label_h = LABEL_EXTRA_HEIGHT if self._dual_line_labels else 48
@@ -310,6 +323,8 @@ class DraggableIconList(QListWidget):
         open_note_action = menu.addAction("📝 Open note in editor")
         edit_keywords_action = menu.addAction("✏️ Edit icon…")
         set_category_action = menu.addAction("🏷️ Set as category icon")
+        is_favorite = str(getattr(family, "id", "")).strip() in self._favorite_family_ids
+        favorite_action = menu.addAction("⭐ Remove from favorites" if is_favorite else "⭐ Add to favorites")
 
         is_trademark = getattr(family, "trademark", False)
         toggle_trademark_text = "Remove trademark warning" if is_trademark else "Add trademark warning"
@@ -341,6 +356,8 @@ class DraggableIconList(QListWidget):
             self.edit_keywords_requested.emit(family, path if has_path else "")
         elif chosen is set_category_action:
             self.set_category_icon_requested.emit(family)
+        elif chosen is favorite_action:
+            self.favorite_toggled.emit(family)
         elif chosen is toggle_trademark_action:
             self.toggle_trademark_requested.emit(family)
         elif has_path and chosen is reveal_source_action:
@@ -389,6 +406,7 @@ def __init__(
         self._icon_size = icon_size
         self._emit_family_selection = emit_family_selection
         self._dual_line_labels = dual_line_labels
+        self._favorite_family_ids: set[str] = set()
         self.setViewMode(QListWidget.ViewMode.IconMode)
         self.setResizeMode(QListWidget.ResizeMode.Adjust)
         self.setMovement(QListWidget.Movement.Static)
@@ -561,6 +579,24 @@ def set_family_items(
             self.addItem(item)
         self.setCurrentRow(-1)
         self.blockSignals(False)  # noqa: FBT003
+```
+
+</details>
+
+### ⚙️ Method `set_favorite_family_ids`
+
+```python
+def set_favorite_family_ids(self, family_ids: set[str] | list[str]) -> None
+```
+
+Update the favorite family IDs used by the context menu labels.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def set_favorite_family_ids(self, family_ids: set[str] | list[str]) -> None:
+        self._favorite_family_ids = {str(item).strip() for item in family_ids if str(item).strip()}
 ```
 
 </details>
@@ -1181,7 +1217,7 @@ def show_family(self, family: IconFamily | None, repo_root: Path | None) -> None
 ## 🔧 Function `batch_context_action_texts`
 
 ```python
-def batch_context_action_texts(count: int) -> list[str]
+def batch_context_action_texts(count: int, *, all_favorites: bool = False) -> list[str]
 ```
 
 Return labels for the multi-select context menu.
@@ -1190,8 +1226,14 @@ Return labels for the multi-select context menu.
 <summary>Code:</summary>
 
 ```python
-def batch_context_action_texts(count: int) -> list[str]:
-    return [f"🤖 Process keywords with AI ({count} icons)…"]
+def batch_context_action_texts(count: int, *, all_favorites: bool = False) -> list[str]:
+    favorite_label = (
+        f"⭐ Remove from favorites ({count} icons)" if all_favorites else f"⭐ Add to favorites ({count} icons)"
+    )
+    return [
+        f"🤖 Process keywords with AI ({count} icons)…",
+        favorite_label,
+    ]
 ```
 
 </details>
