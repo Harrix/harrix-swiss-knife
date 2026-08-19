@@ -19,6 +19,7 @@
 .PARAMETER SkipBinaries
     Skip network downloads of ffmpeg.exe, avifenc.exe, avifdec.exe.
     Still copies them from install\dependencies\ when present (offline bundle).
+    Also set automatically when -Mode Offline (or Auto resolves to Offline).
 
 .PARAMETER Force
     Re-download binaries even if they already exist in project root. Alias: -ForceBinaries.
@@ -26,11 +27,18 @@
 .PARAMETER NoPauseOnError
     Do not wait for Enter before exiting after an error (for automation).
 
+.PARAMETER Mode
+    Install mode: Auto (default), Online, or Offline.
+    Auto: Online when this script runs from a git checkout of harrix-swiss-knife;
+    otherwise Offline when install\dependencies\repos\harrix-swiss-knife.zip exists;
+    otherwise Online.
+    Offline: extract repo snapshots and skip ffmpeg/avif network downloads (copy from bundle).
+    Online: full git clone; download binaries unless -SkipBinaries.
+
 .PARAMETER UseOfflineRepoSnapshots
-    When enabled, the "Clone repositories" step will first try extracting
-    install\dependencies\repos\<name>.zip snapshots (created by 03_download-repos.bat),
-    and only fall back to git clone when snapshots are missing.
-    By default this is disabled so install.bat always does a full git clone.
+    Legacy alias for offline repo extraction. Prefer -Mode Offline.
+    When -Mode is Auto and this switch is set, resolves to Offline mode.
+    When -Mode Offline, this is always enabled. When -Mode Online, ignored.
 #>
 [CmdletBinding()]
 param(
@@ -48,6 +56,8 @@ param(
     [Alias("ForceBinaries")]
     [switch] $Force,
     [switch] $NoPauseOnError,
+    [ValidateSet("Auto", "Online", "Offline")]
+    [string] $Mode = "Auto",
     [switch] $UseOfflineRepoSnapshots
 )
 
@@ -1611,6 +1621,46 @@ function New-StartupShortcut {
 
 try {
     $script:PythonWasProvisioned = $false
+
+    $requestedMode = $Mode
+    $legacyOfflineAlias = [bool]$UseOfflineRepoSnapshots
+    $resolvedMode = $requestedMode
+    if ($resolvedMode -eq "Auto") {
+        if ($legacyOfflineAlias) {
+            $resolvedMode = "Offline"
+        }
+        elseif (Get-InstallRootFromClonedHsk) {
+            # Developer checkout: prefer git clone even if a local repos snapshot exists after step 03.
+            $resolvedMode = "Online"
+        }
+        elseif (Get-DependenciesRepoSnapshot -Name "harrix-swiss-knife") {
+            $resolvedMode = "Offline"
+        }
+        else {
+            $resolvedMode = "Online"
+        }
+    }
+
+    if ($resolvedMode -eq "Offline") {
+        $UseOfflineRepoSnapshots = $true
+        $SkipBinaries = $true
+    }
+    else {
+        $UseOfflineRepoSnapshots = $false
+        # Keep caller -SkipBinaries for Online (copy-from-bundle / skip network only).
+    }
+
+    Write-Step ("Install mode: {0}" -f $resolvedMode)
+    if ($requestedMode -ne $resolvedMode) {
+        Write-Host ("    Resolved from -Mode {0}" -f $requestedMode) -ForegroundColor DarkGray
+    }
+    if ($resolvedMode -eq "Offline") {
+        Write-Host "    Offline: repo snapshots + copy ffmpeg/avif from dependencies (no media download)" -ForegroundColor DarkGray
+    }
+    else {
+        Write-Host "    Online: git clone; media tools download unless -SkipBinaries" -ForegroundColor DarkGray
+    }
+
     if (-not $SkipPrerequisites) {
         Write-Step "Prerequisites (winget)"
         Update-PathFromEnvironment

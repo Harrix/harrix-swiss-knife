@@ -1,6 +1,9 @@
 #Requires -Version 5.1
 [CmdletBinding()]
-param()
+param(
+    [ValidateSet("Auto", "Online", "Offline")]
+    [string] $Mode = "Auto"
+)
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
@@ -15,10 +18,12 @@ if (-not (Test-Path -LiteralPath $script)) {
 $runner = Join-Path $env:TEMP ("harrix-swiss-knife-install-{0}.ps1" -f ([guid]::NewGuid().ToString("N")))
 $scriptLiteral = "'" + $script.Replace("'", "''") + "'"
 $logLiteral = "'" + $log.Replace("'", "''") + "'"
+$modeLiteral = "'" + $Mode.Replace("'", "''") + "'"
 $runnerContent = @(
     '$ErrorActionPreference = "Continue"',
     '$ScriptPath = ' + $scriptLiteral,
     '$LogPath = ' + $logLiteral,
+    '$Mode = ' + $modeLiteral,
     '$TranscriptPath = $LogPath',
     'try {',
     '    [Console]::OutputEncoding = New-Object System.Text.UTF8Encoding($false)',
@@ -29,7 +34,7 @@ $runnerContent = @(
     '$exitCode = 0',
     'try {',
     '    Start-Transcript -LiteralPath $TranscriptPath -Force | Out-Null',
-    '    & $ScriptPath -NoPauseOnError',
+    '    & $ScriptPath -Mode $Mode -NoPauseOnError',
     '    if ($null -ne $global:LASTEXITCODE) { $exitCode = $global:LASTEXITCODE }',
     '}',
     'catch {',

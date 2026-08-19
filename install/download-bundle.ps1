@@ -227,6 +227,7 @@ function Find-AssetUrl($Release, [string] $ExactName, [string[]] $Contains = @()
 $repo = Resolve-RepoRoot
 $deps = Join-Path $PSScriptRoot "dependencies"
 New-DirIfMissing $deps
+$script:BundleExitCode = 0
 
 Write-Host ""
 Write-Host ("Repo root:  {0}" -f $repo) -ForegroundColor Green
@@ -393,6 +394,7 @@ if (-not $SkipRepos) {
 
     if (-not (Get-Command -Name "git" -ErrorAction SilentlyContinue)) {
         Write-Host "    Skip repos snapshot: 'git' is not on PATH." -ForegroundColor Yellow
+        if ($OnlyRepos) { $script:BundleExitCode = 1 }
     }
     else {
         $repoParent = Split-Path -Parent $repo
@@ -444,6 +446,7 @@ if (-not $SkipRepos) {
         else {
             Write-Host "    Keep previous repos snapshot (stage failed)" -ForegroundColor Yellow
             Remove-Item -LiteralPath $reposDirStage -Recurse -Force -ErrorAction SilentlyContinue
+            if ($OnlyRepos) { $script:BundleExitCode = 1 }
         }
     }
 }
@@ -460,6 +463,7 @@ if (-not $SkipUvCache) {
     $uvCmd = Get-Command -Name "uv" -ErrorAction SilentlyContinue
     if (-not $uvCmd) {
         Write-Host "    Skip uv python cache: 'uv' is not on PATH (install uv first or run install.bat once to provision it)." -ForegroundColor Yellow
+        if ($OnlyUvCache) { $script:BundleExitCode = 1 }
     }
     else {
         $pyVersion = "3.13"
@@ -488,6 +492,7 @@ if (-not $SkipUvCache) {
             $ErrorActionPreference = $prevEap
             if ($code -ne 0) {
                 Write-Host ("    uv python install exited with code {0}" -f $code) -ForegroundColor Yellow
+                if ($OnlyUvCache) { $script:BundleExitCode = 1 }
             }
             else {
                 Write-Host ("    OK: managed Python {0} cached in uv-python-cache" -f $pyVersion) -ForegroundColor Green
@@ -515,6 +520,7 @@ if (-not $SkipUvCache) {
     if (-not $uvCmd) {
         Write-Host "    Skip uv cache: 'uv' is not on PATH (install uv first or run install.bat once to provision it)." -ForegroundColor Yellow
         Remove-Item -LiteralPath $cacheDirStage -Recurse -Force -ErrorAction SilentlyContinue
+        if ($OnlyUvCache) { $script:BundleExitCode = 1 }
     }
     else {
         $repoParent = Split-Path -Parent $repo
@@ -566,6 +572,7 @@ if (-not $SkipUvCache) {
             else {
                 Write-Host "    Keep previous uv cache (stage failed)" -ForegroundColor Yellow
                 Remove-Item -LiteralPath $cacheDirStage -Recurse -Force -ErrorAction SilentlyContinue
+                if ($OnlyUvCache) { $script:BundleExitCode = 1 }
             }
         }
         finally {
@@ -586,3 +593,5 @@ else {
 Write-Step "Done"
 Write-Host "Repo root: $repo" -ForegroundColor Green
 Write-Host "Bundle dir: $deps" -ForegroundColor Green
+# Explicit exit so wrappers do not inherit a leftover $LASTEXITCODE from git/uv soft failures.
+exit $script:BundleExitCode

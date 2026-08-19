@@ -108,8 +108,8 @@ try {
     Zip-Dir $stageOnline $outOnline
 
     Copy-IfExists (Join-Path $root "harrix-swiss-knife.ps1") $stageOffline
-    Copy-IfExists (Join-Path $root "install-all-offline.bat") $stageOffline
-    Copy-IfExists (Join-Path $root "install-all-offline-with-log.ps1") $stageOffline
+    Copy-IfExists (Join-Path $root "install.bat") $stageOffline
+    Copy-IfExists (Join-Path $root "install-with-log.ps1") $stageOffline
     # Keep loose ffmpeg/avif tools in the offline zip; step 01 extracts them and removes fallback zips.
     Copy-Deps $deps (Join-Path $stageOffline "dependencies") @() $omitZips
     Zip-Dir $stageOffline $outOffline

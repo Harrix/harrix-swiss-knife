@@ -1,9 +1,13 @@
 @echo off
-REM Install harrix-swiss-knife (online).
+REM Install harrix-swiss-knife (online or offline; mode Auto unless overridden).
+REM Examples:
+REM   install.bat
+REM   install.bat -Mode Offline
+REM   install.bat -Mode Online
 
 cd /d "%~dp0"
 
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0install-with-log.ps1"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0install-with-log.ps1" %*
 
 set EXITCODE=%ERRORLEVEL%
 

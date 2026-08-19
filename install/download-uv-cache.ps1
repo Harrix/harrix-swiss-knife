@@ -14,4 +14,6 @@ Write-Host ""
 
 $script = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot "download-bundle.ps1")).Path
 & $script -OnlyUvCache *>&1 | Tee-Object -FilePath $logPath -Append | Out-Host
-exit $LASTEXITCODE
+$exitCode = $LASTEXITCODE
+if ($null -eq $exitCode) { $exitCode = 0 }
+exit $exitCode

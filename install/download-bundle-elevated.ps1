@@ -55,7 +55,9 @@ if ($null -eq $exitCode) {
 
 Write-Host ""
 Write-Host ("Elevated download finished (exit code {0}). Log: {1}" -f $exitCode, $logPath) -ForegroundColor Cyan
-Write-Host "Press Enter to close this elevated window..." -ForegroundColor Yellow
-Read-Host | Out-Null
+if ($exitCode -ne 0) {
+    Write-Host "Press Enter to close this elevated window..." -ForegroundColor Yellow
+    Read-Host | Out-Null
+}
 
 exit $exitCode

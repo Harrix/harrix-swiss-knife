@@ -41,13 +41,17 @@ class KeyValueTableDialog(QDialog):
         data: list[tuple[str, str]],
         *,
         previews: list[tuple[str, QPixmap]] | None = None,
+        actions: list[tuple[str, object, bool]] | None = None,
     ) -> None:
-        """Initialize the dialog."""
+        """Initialize the dialog.
+
+        `actions` is `(label, callback, enabled)` for extra buttons on the bottom row.
+
+        """
         super().__init__(parent)
         self.setWindowTitle(title)
-        self.resize(880 if previews else 600, 480 if previews else 400)
-
-        table_column = QVBoxLayout()
+        self.resize(880 if previews else 600, 520 if previews else 400)
+        self.action_buttons: list[QPushButton] = []
 
         self.table = QTableWidget(len(data), 3)
         self.table.setHorizontalHeaderLabels(["Property", "Value", ""])
@@ -75,18 +79,28 @@ class KeyValueTableDialog(QDialog):
             copy_btn.clicked.connect(lambda _checked, v=value: self._copy_value(v))
             self.table.setCellWidget(row, 2, copy_btn)
 
-        table_column.addWidget(self.table)
-        btn_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
-        btn_box.rejected.connect(self.reject)
-        table_column.addWidget(btn_box)
-
+        root = QVBoxLayout(self)
         if previews:
-            root = QHBoxLayout(self)
-            root.addWidget(_preview_list_widget(previews))
-            root.addLayout(table_column, stretch=1)
+            content = QHBoxLayout()
+            content.addWidget(_preview_list_widget(previews))
+            content.addWidget(self.table, stretch=1)
+            root.addLayout(content, stretch=1)
         else:
-            layout = QVBoxLayout(self)
-            layout.addLayout(table_column)
+            root.addWidget(self.table, stretch=1)
+
+        btn_row = QHBoxLayout()
+        for label, callback, enabled in actions or []:
+            btn = QPushButton(label)
+            btn.setEnabled(enabled)
+            if callable(callback):
+                btn.clicked.connect(callback)
+            btn_row.addWidget(btn)
+            self.action_buttons.append(btn)
+        btn_row.addStretch()
+        close_btn = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
+        close_btn.rejected.connect(self.reject)
+        btn_row.addWidget(close_btn)
+        root.addLayout(btn_row)
 
     def _copy_value(self, value: str) -> None:
         QApplication.clipboard().setText(value)
@@ -97,10 +111,12 @@ class KeyValueTableDialog(QDialog):
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, parent: QWidget | None, title: str, data: list[tuple[str, str]], *, previews: list[tuple[str, QPixmap]] | None = None) -> None
+def __init__(self, parent: QWidget | None, title: str, data: list[tuple[str, str]], *, previews: list[tuple[str, QPixmap]] | None = None, actions: list[tuple[str, object, bool]] | None = None) -> None
 ```
 
 Initialize the dialog.
+
+`actions` is `(label, callback, enabled)` for extra buttons on the bottom row.
 
 <details>
 <summary>Code:</summary>
@@ -113,12 +129,12 @@ def __init__(
         data: list[tuple[str, str]],
         *,
         previews: list[tuple[str, QPixmap]] | None = None,
+        actions: list[tuple[str, object, bool]] | None = None,
     ) -> None:
         super().__init__(parent)
         self.setWindowTitle(title)
-        self.resize(880 if previews else 600, 480 if previews else 400)
-
-        table_column = QVBoxLayout()
+        self.resize(880 if previews else 600, 520 if previews else 400)
+        self.action_buttons: list[QPushButton] = []
 
         self.table = QTableWidget(len(data), 3)
         self.table.setHorizontalHeaderLabels(["Property", "Value", ""])
@@ -146,18 +162,28 @@ def __init__(
             copy_btn.clicked.connect(lambda _checked, v=value: self._copy_value(v))
             self.table.setCellWidget(row, 2, copy_btn)
 
-        table_column.addWidget(self.table)
-        btn_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
-        btn_box.rejected.connect(self.reject)
-        table_column.addWidget(btn_box)
-
+        root = QVBoxLayout(self)
         if previews:
-            root = QHBoxLayout(self)
-            root.addWidget(_preview_list_widget(previews))
-            root.addLayout(table_column, stretch=1)
+            content = QHBoxLayout()
+            content.addWidget(_preview_list_widget(previews))
+            content.addWidget(self.table, stretch=1)
+            root.addLayout(content, stretch=1)
         else:
-            layout = QVBoxLayout(self)
-            layout.addLayout(table_column)
+            root.addWidget(self.table, stretch=1)
+
+        btn_row = QHBoxLayout()
+        for label, callback, enabled in actions or []:
+            btn = QPushButton(label)
+            btn.setEnabled(enabled)
+            if callable(callback):
+                btn.clicked.connect(callback)
+            btn_row.addWidget(btn)
+            self.action_buttons.append(btn)
+        btn_row.addStretch()
+        close_btn = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
+        close_btn.rejected.connect(self.reject)
+        btn_row.addWidget(close_btn)
+        root.addLayout(btn_row)
 ```
 
 </details>
@@ -1516,12 +1542,36 @@ class MainWindow(QMainWindow, AppWindowMixin):
             (f"Variants ({len(family.variants)})", variants),
         ]
 
+        selected = Path(svg_path) if svg_path else None
+        can_reveal = selected is not None and selected.is_file()
+        can_open_note = note is not None and note.is_file()
+        dialog_holder: list[KeyValueTableDialog] = []
+
+        def edit_icon() -> None:
+            if dialog_holder:
+                dialog_holder[0].accept()
+            self._on_edit_keywords(family, svg_path)
+
         dialog = KeyValueTableDialog(
             self,
             "Icon details",
             data,
             previews=self._icon_detail_previews(family, svg_path),
+            actions=[
+                (
+                    "📂 Reveal in File Explorer",
+                    lambda: self._on_reveal_in_explorer(svg_path),
+                    can_reveal,
+                ),
+                (
+                    "📝 Open note in editor",
+                    lambda: self._on_open_note_in_editor(family),
+                    can_open_note,
+                ),
+                ("✏️ Edit icon…", edit_icon, can_open_note),
+            ],
         )
+        dialog_holder.append(dialog)
         dialog.exec()
 
     def _on_icon_files_dropped(self, paths: list[str]) -> None:
