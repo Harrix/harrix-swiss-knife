@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1428</width>
-    <height>1144</height>
+    <width>1410</width>
+    <height>859</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -2029,8 +2029,8 @@
                 <rect>
                  <x>0</x>
                  <y>0</y>
-                 <width>712</width>
-                 <height>964</height>
+                 <width>96</width>
+                 <height>26</height>
                 </rect>
                </property>
                <layout class="QVBoxLayout" name="verticalLayout_exchange_rates_content"/>
@@ -2366,8 +2366,8 @@
                 <rect>
                  <x>0</x>
                  <y>0</y>
-                 <width>931</width>
-                 <height>928</height>
+                 <width>96</width>
+                 <height>26</height>
                 </rect>
                </property>
                <layout class="QVBoxLayout" name="verticalLayout_charts_content"/>
@@ -2521,7 +2521,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1428</width>
+     <width>1410</width>
      <height>33</height>
     </rect>
    </property>

@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'window.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.10.0
+## Created by: Qt User Interface Compiler version 6.11.2
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -79,7 +79,7 @@ class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         if not MainWindow.objectName():
             MainWindow.setObjectName(u"MainWindow")
-        MainWindow.resize(1375, 926)
+        MainWindow.resize(1354, 771)
         self.action_refresh = QAction(MainWindow)
         self.action_refresh.setObjectName(u"action_refresh")
         self.action_add_food_item = QAction(MainWindow)
@@ -470,7 +470,7 @@ class Ui_MainWindow(object):
         self.scrollArea_food_stats.setWidgetResizable(True)
         self.scrollAreaWidgetContents_food_stats = QWidget()
         self.scrollAreaWidgetContents_food_stats.setObjectName(u"scrollAreaWidgetContents_food_stats")
-        self.scrollAreaWidgetContents_food_stats.setGeometry(QRect(0, 0, 1071, 767))
+        self.scrollAreaWidgetContents_food_stats.setGeometry(QRect(0, 0, 1050, 612))
         self.verticalLayout_food_stats_content = QVBoxLayout(self.scrollAreaWidgetContents_food_stats)
         self.verticalLayout_food_stats_content.setObjectName(u"verticalLayout_food_stats_content")
         self.scrollArea_food_stats.setWidget(self.scrollAreaWidgetContents_food_stats)
@@ -487,7 +487,7 @@ class Ui_MainWindow(object):
         MainWindow.setCentralWidget(self.centralWidget)
         self.menuBar = QMenuBar(MainWindow)
         self.menuBar.setObjectName(u"menuBar")
-        self.menuBar.setGeometry(QRect(0, 0, 1375, 33))
+        self.menuBar.setGeometry(QRect(0, 0, 1354, 33))
         self.menuCommands = QMenu(self.menuBar)
         self.menuCommands.setObjectName(u"menuCommands")
         self.menuFile = QMenu(self.menuBar)

@@ -130,7 +130,7 @@ class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         if not MainWindow.objectName():
             MainWindow.setObjectName(u"MainWindow")
-        MainWindow.resize(2332, 1197)
+        MainWindow.resize(1392, 641)
         self.actionAbout = QAction(MainWindow)
         self.actionAbout.setObjectName(u"actionAbout")
         self.actionExit = QAction(MainWindow)
@@ -1048,7 +1048,7 @@ class Ui_MainWindow(object):
         MainWindow.setCentralWidget(self.centralWidget)
         self.menuBar = QMenuBar(MainWindow)
         self.menuBar.setObjectName(u"menuBar")
-        self.menuBar.setGeometry(QRect(0, 0, 2332, 33))
+        self.menuBar.setGeometry(QRect(0, 0, 1392, 33))
         self.menuFile = QMenu(self.menuBar)
         self.menuFile.setObjectName(u"menuFile")
         self.menuCommanda = QMenu(self.menuBar)
@@ -1202,7 +1202,7 @@ _No docstring provided._
 def setupUi(self, MainWindow):
         if not MainWindow.objectName():
             MainWindow.setObjectName(u"MainWindow")
-        MainWindow.resize(2332, 1197)
+        MainWindow.resize(1392, 641)
         self.actionAbout = QAction(MainWindow)
         self.actionAbout.setObjectName(u"actionAbout")
         self.actionExit = QAction(MainWindow)
@@ -2120,7 +2120,7 @@ def setupUi(self, MainWindow):
         MainWindow.setCentralWidget(self.centralWidget)
         self.menuBar = QMenuBar(MainWindow)
         self.menuBar.setObjectName(u"menuBar")
-        self.menuBar.setGeometry(QRect(0, 0, 2332, 33))
+        self.menuBar.setGeometry(QRect(0, 0, 1392, 33))
         self.menuFile = QMenu(self.menuBar)
         self.menuFile.setObjectName(u"menuFile")
         self.menuCommanda = QMenu(self.menuBar)

@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'window.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.10.0
+## Created by: Qt User Interface Compiler version 6.11.2
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -185,7 +185,7 @@ class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         if not MainWindow.objectName():
             MainWindow.setObjectName(u"MainWindow")
-        MainWindow.resize(1428, 1144)
+        MainWindow.resize(1410, 859)
         self.action_add_category = QAction(MainWindow)
         self.action_add_category.setObjectName(u"action_add_category")
         self.action_categories_refresh = QAction(MainWindow)
@@ -1414,7 +1414,7 @@ class Ui_MainWindow(object):
         self.scrollArea_xchange_rates.setWidgetResizable(True)
         self.scrollAreaWidgetContents_food_stats = QWidget()
         self.scrollAreaWidgetContents_food_stats.setObjectName(u"scrollAreaWidgetContents_food_stats")
-        self.scrollAreaWidgetContents_food_stats.setGeometry(QRect(0, 0, 712, 964))
+        self.scrollAreaWidgetContents_food_stats.setGeometry(QRect(0, 0, 96, 26))
         self.verticalLayout_exchange_rates_content = QVBoxLayout(self.scrollAreaWidgetContents_food_stats)
         self.verticalLayout_exchange_rates_content.setObjectName(u"verticalLayout_exchange_rates_content")
         self.scrollArea_xchange_rates.setWidget(self.scrollAreaWidgetContents_food_stats)
@@ -1637,7 +1637,7 @@ class Ui_MainWindow(object):
         self.scrollArea_charts.setWidgetResizable(True)
         self.scrollAreaWidgetContents_charts = QWidget()
         self.scrollAreaWidgetContents_charts.setObjectName(u"scrollAreaWidgetContents_charts")
-        self.scrollAreaWidgetContents_charts.setGeometry(QRect(0, 0, 931, 928))
+        self.scrollAreaWidgetContents_charts.setGeometry(QRect(0, 0, 96, 26))
         self.verticalLayout_charts_content = QVBoxLayout(self.scrollAreaWidgetContents_charts)
         self.verticalLayout_charts_content.setObjectName(u"verticalLayout_charts_content")
         self.scrollArea_charts.setWidget(self.scrollAreaWidgetContents_charts)
@@ -1737,7 +1737,7 @@ class Ui_MainWindow(object):
         MainWindow.setStatusBar(self.statusbar)
         self.menuBar = QMenuBar(MainWindow)
         self.menuBar.setObjectName(u"menuBar")
-        self.menuBar.setGeometry(QRect(0, 0, 1428, 33))
+        self.menuBar.setGeometry(QRect(0, 0, 1410, 33))
         self.menuFile = QMenu(self.menuBar)
         self.menuFile.setObjectName(u"menuFile")
         self.menuCommands = QMenu(self.menuBar)

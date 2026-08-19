@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'window.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.10.0
+## Created by: Qt User Interface Compiler version 6.11.2
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -125,7 +125,7 @@ class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         if not MainWindow.objectName():
             MainWindow.setObjectName(u"MainWindow")
-        MainWindow.resize(2332, 1197)
+        MainWindow.resize(1392, 641)
         self.actionAbout = QAction(MainWindow)
         self.actionAbout.setObjectName(u"actionAbout")
         self.actionExit = QAction(MainWindow)
@@ -1043,7 +1043,7 @@ class Ui_MainWindow(object):
         MainWindow.setCentralWidget(self.centralWidget)
         self.menuBar = QMenuBar(MainWindow)
         self.menuBar.setObjectName(u"menuBar")
-        self.menuBar.setGeometry(QRect(0, 0, 2332, 33))
+        self.menuBar.setGeometry(QRect(0, 0, 1392, 33))
         self.menuFile = QMenu(self.menuBar)
         self.menuFile.setObjectName(u"menuFile")
         self.menuCommanda = QMenu(self.menuBar)

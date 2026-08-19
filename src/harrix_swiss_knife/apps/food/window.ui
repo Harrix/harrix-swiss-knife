@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1375</width>
-    <height>926</height>
+    <width>1354</width>
+    <height>771</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -590,8 +590,8 @@
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>1071</width>
-               <height>767</height>
+               <width>1050</width>
+               <height>612</height>
               </rect>
              </property>
              <layout class="QVBoxLayout" name="verticalLayout_food_stats_content"/>
@@ -611,7 +611,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1375</width>
+     <width>1354</width>
      <height>33</height>
     </rect>
    </property>

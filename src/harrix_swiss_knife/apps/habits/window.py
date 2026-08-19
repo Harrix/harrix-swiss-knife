@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'window.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.11.1
+## Created by: Qt User Interface Compiler version 6.11.2
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -56,7 +56,7 @@ class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         if not MainWindow.objectName():
             MainWindow.setObjectName(u"MainWindow")
-        MainWindow.resize(2332, 1197)
+        MainWindow.resize(972, 681)
         self.actionExit = QAction(MainWindow)
         self.actionExit.setObjectName(u"actionExit")
         self.actionAbout = QAction(MainWindow)
@@ -274,7 +274,7 @@ class Ui_MainWindow(object):
         self.scrollArea_charts_process_habits.setWidgetResizable(True)
         self.scrollAreaWidgetContents_charts_process_habits = QWidget()
         self.scrollAreaWidgetContents_charts_process_habits.setObjectName(u"scrollAreaWidgetContents_charts_process_habits")
-        self.scrollAreaWidgetContents_charts_process_habits.setGeometry(QRect(0, 0, 86, 755))
+        self.scrollAreaWidgetContents_charts_process_habits.setGeometry(QRect(0, 0, 96, 297))
         self.verticalLayout_charts_process_habits_content = QVBoxLayout(self.scrollAreaWidgetContents_charts_process_habits)
         self.verticalLayout_charts_process_habits_content.setObjectName(u"verticalLayout_charts_process_habits_content")
         self.scrollArea_charts_process_habits.setWidget(self.scrollAreaWidgetContents_charts_process_habits)
@@ -289,7 +289,7 @@ class Ui_MainWindow(object):
         MainWindow.setCentralWidget(self.centralWidget)
         self.menuBar = QMenuBar(MainWindow)
         self.menuBar.setObjectName(u"menuBar")
-        self.menuBar.setGeometry(QRect(0, 0, 2332, 33))
+        self.menuBar.setGeometry(QRect(0, 0, 972, 33))
         self.menuFile = QMenu(self.menuBar)
         self.menuFile.setObjectName(u"menuFile")
         self.menuCommands = QMenu(self.menuBar)
