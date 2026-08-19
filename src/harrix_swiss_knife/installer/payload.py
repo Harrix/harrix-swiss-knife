@@ -7,11 +7,49 @@ import sys
 import zipfile
 from collections.abc import Callable
 from pathlib import Path
+from typing import BinaryIO
 
 from harrix_swiss_knife.installer.constants import OVERLAY_MAGIC, OVERLAY_TRAILER_SIZE
 
 LogFn = Callable[[str], None]
 ProgressFn = Callable[[int, int], None]
+
+
+class _OffsetView:
+    """Seekable view of a byte range inside an already-open binary file."""
+
+    def __init__(self, handle: BinaryIO, start: int, length: int) -> None:
+        self._handle = handle
+        self._start = start
+        self._length = length
+        self._handle.seek(start)
+
+    def read(self, size: int = -1) -> bytes:
+        pos = self.tell()
+        if size is None or size < 0:
+            size = self._length - pos
+        size = max(0, min(size, self._length - pos))
+        return self._handle.read(size)
+
+    def readable(self) -> bool:
+        return True
+
+    def seek(self, offset: int, whence: int = 0) -> int:
+        if whence == 0:
+            target = self._start + offset
+        elif whence == 1:
+            target = self._handle.tell() + offset
+        else:
+            target = self._start + self._length + offset
+        target = min(max(target, self._start), self._start + self._length)
+        self._handle.seek(target)
+        return self.tell()
+
+    def seekable(self) -> bool:
+        return True
+
+    def tell(self) -> int:
+        return self._handle.tell() - self._start
 
 
 def append_overlay_zip(stub_exe: Path, zip_path: Path, out_exe: Path) -> None:
@@ -45,7 +83,7 @@ def extract_overlay(
     dest_dir.mkdir(parents=True, exist_ok=True)
     tmp_zip = dest_dir / "_payload.zip"
     if log:
-        log(f"Extracting payload ({length // (1024 * 1024)} MB)…")
+        log(f"Extracting payload ({length // (1024 * 1024)} MB) from this EXE…")
     with exe_path.open("rb") as src, tmp_zip.open("wb") as dst:
         src.seek(start)
         remaining = length
@@ -102,3 +140,19 @@ def read_overlay_bounds(exe_path: Path) -> tuple[int, int] | None:
     if length <= 0 or length + OVERLAY_TRAILER_SIZE > size:
         return None
     return size - OVERLAY_TRAILER_SIZE - length, length
+
+
+def read_overlay_member(exe_path: Path, member: str) -> bytes | None:
+    """Read one file from the appended overlay zip without extracting the payload."""
+    bounds = read_overlay_bounds(exe_path)
+    if bounds is None:
+        return None
+    start, length = bounds
+    with exe_path.open("rb") as src:
+        view = _OffsetView(src, start, length)
+        with zipfile.ZipFile(view, "r") as zf:
+            try:
+                info = zf.getinfo(member)
+            except KeyError:
+                return None
+            return zf.read(info)

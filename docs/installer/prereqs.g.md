@@ -413,14 +413,16 @@ def install_prerequisites(
         log.add("skipped", "Prerequisites install skipped")
         return
 
-    log.step("Prerequisites")
+    log.step("Install selected tools")
+    log.detail("Order for each tool: bundled installer in this EXE, then winget, then download")
     refresh_path()
 
     if plan.git and not command_exists("git"):
+        log.step("Installing Git")
         git_installer = find_local_dependency(deps, "Git-*-64-bit.exe") or find_local_dependency(deps, GIT_EXE_NAME)
         ok = False
         if git_installer:
-            log.detail(f"Offline Git installer: {git_installer}")
+            log.detail(f"Running bundled silent installer: {git_installer.name}")
             ok = run_silent_setup(
                 git_installer,
                 ["/VERYSILENT", "/NORESTART", "/SUPPRESSMSGBOXES"],
@@ -428,6 +430,7 @@ def install_prerequisites(
             )
             refresh_path()
         if not ok and allow_network:
+            log.detail("Bundled Git installer missing or failed; trying winget")
             try:
                 winget_install(GIT_WINGET_ID, log)
             except RuntimeError as exc:
@@ -444,10 +447,11 @@ def install_prerequisites(
         log.add("skipped", "Git install skipped by user")
 
     if plan.vscode and not any_code_editor_exists():
+        log.step("Installing VS Code")
         vs = find_local_dependency(deps, "VSCode*Setup*x64*.exe") or find_local_dependency(deps, VSCODE_EXE_NAME)
         ok = False
         if vs:
-            log.detail(f"Offline VS Code installer: {vs}")
+            log.detail(f"Running bundled silent installer: {vs.name}")
             ok = run_silent_setup(
                 vs,
                 [
@@ -459,6 +463,7 @@ def install_prerequisites(
             )
             refresh_path()
         if not ok and allow_network:
+            log.detail("Bundled VS Code installer missing or failed; trying winget, then download")
             try:
                 winget_install(VSCODE_WINGET_ID, log)
             except RuntimeError as exc:
@@ -475,16 +480,19 @@ def install_prerequisites(
         log.add("skipped", "VS Code install skipped by user")
 
     if plan.uv and find_uv_exe() is None:
+        log.step("Installing uv")
         uv_zip = find_local_dependency(deps, UV_WINDOWS_ZIP)
         installed = False
         if uv_zip:
             try:
+                log.detail(f"Extracting bundled {uv_zip.name} into %USERPROFILE%\\.local\\bin")
                 install_uv_from_zip(uv_zip, log)
                 installed = True
-                log.add("installed", "Installed uv (offline)")
+                log.add("installed", "Installed uv from the bundled zip")
             except RuntimeError as exc:
                 log.detail(str(exc))
         if not installed and allow_network:
+            log.detail("Bundled uv zip missing or failed; trying winget, then the official install script")
             try:
                 winget_install(UV_WINGET_ID, log)
                 refresh_path()
@@ -518,7 +526,8 @@ def install_prerequisites(
 
     refresh_path()
     if plan.python:
-        log.step("Managed Python (uv python install)")
+        log.step("Installing managed Python")
+        log.detail(f"uv python install {python_version} (uses bundled uv-python-cache when present)")
         ensure_managed_python(version=python_version, deps=deps, log=log, state=state)
     else:
         log.add("skipped", "Managed Python install skipped by user")

@@ -86,10 +86,18 @@ def run_deploy(options: DeployOptions, log: OutcomeLog) -> DeployResult:
         )
 
     try:
-        log.step(f"Install mode: {'Offline' if offline else 'Online'}")
+        mode_label = "Offline (bundle first, network only if something is missing)"
+        if not offline:
+            mode_label = "Online (clone from GitHub; use bundled installers when present)"
+        log.step(f"Install mode: {mode_label}")
         py_ver = options.python_version or pinned_python_version(deps)
         status = detect_status(python_version=py_ver)
-        log.detail(f"Detected git={status.git} uv={status.uv} editor={status.editor} python={status.managed_python}")
+        log.detail(
+            f"Detected on this PC: Git={'yes' if status.git else 'no'}, "
+            f"uv={'yes' if status.uv else 'no'}, "
+            f"editor={'yes' if status.editor else 'no'}, "
+            f"managed Python={'yes' if status.managed_python else 'no'}"
+        )
 
         install_prerequisites(
             options.plan,
@@ -102,7 +110,8 @@ def run_deploy(options: DeployOptions, log: OutcomeLog) -> DeployResult:
 
         root = normalize_install_root(options.install_root)
         root.mkdir(parents=True, exist_ok=True)
-        log.step(f"Ensure install root exists: {root}")
+        log.step("Create install folder")
+        log.detail(f"Repos will live under {root} (harrix-pylib, harrix-pyssg, harrix-swiss-knife)")
 
         hsk = ensure_repos(root, deps=deps, offline=offline, log=log)
 
@@ -117,10 +126,10 @@ def run_deploy(options: DeployOptions, log: OutcomeLog) -> DeployResult:
 
         for name in ("harrix-pylib", "harrix-pyssg", "harrix-swiss-knife"):
             path = root / name
-            log.step(f"uv sync ({name})")
+            log.step(f"Install Python packages ({name})")
             used = uv_sync_with_bundle_cache(path, deps=deps, label=name, log=log)
-            suffix = ", offline uv cache" if used else ""
-            log.add("installed", f"Synced Python deps ({name}{suffix})")
+            how = "bundled uv-cache (offline)" if used else "uv download from the network"
+            log.add("installed", f"uv sync finished for {name} via {how}")
 
         install_hsk_cli(hsk, log)
         apply_config_defaults(hsk, log)

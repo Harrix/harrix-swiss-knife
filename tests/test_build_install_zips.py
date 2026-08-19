@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import struct
 import subprocess
 import sys
 import zipfile
@@ -36,7 +37,9 @@ from harrix_swiss_knife.actions.common.install_zip_builder import (
     uv_isolated_env,
     wipe_dependencies,
 )
+from harrix_swiss_knife.installer.build_info import collect_build_meta, display_build_lines
 from harrix_swiss_knife.installer.constants import STUB_SPEC_VERSION
+from harrix_swiss_knife.installer.icon_assets import find_app_ico, write_padded_ico
 from harrix_swiss_knife.installer.pack_exes import (
     build_payload_zips,
     ensure_installer_stub,
@@ -44,7 +47,12 @@ from harrix_swiss_knife.installer.pack_exes import (
     stub_dir,
     stub_exe_path,
 )
-from harrix_swiss_knife.installer.payload import append_overlay_zip, extract_overlay, read_overlay_bounds
+from harrix_swiss_knife.installer.payload import (
+    append_overlay_zip,
+    extract_overlay,
+    read_overlay_bounds,
+    read_overlay_member,
+)
 from harrix_swiss_knife.installer.wizard import detect_mode_from_argv
 
 
@@ -221,6 +229,7 @@ def test_payload_zips_online_vs_offline_membership(tmp_path: Path) -> None:
     assert "dependencies/download.log" not in names
     assert "install.bat" not in names
     assert "harrix-swiss-knife.ps1" not in names
+    assert "build_meta.json" in names
 
     with zipfile.ZipFile(offline, "r") as zf:
         names = set(zf.namelist())
@@ -246,6 +255,20 @@ def test_append_overlay_magic_trailer(tmp_path: Path) -> None:
     dest = tmp_path / "extracted"
     deps = extract_overlay(out, dest)
     assert (deps / "marker.txt").read_text(encoding="utf-8") == "hello"
+
+
+def test_read_overlay_member(tmp_path: Path) -> None:
+    stub = tmp_path / "stub.exe"
+    stub.write_bytes(b"STUB")
+    zip_path = tmp_path / "payload.zip"
+    with zipfile.ZipFile(zip_path, "w") as zf:
+        zf.writestr("build_meta.json", '{"version": "1.2.3", "built_at": "2026-08-20 00:00"}')
+    out = tmp_path / "app.exe"
+    append_overlay_zip(stub, zip_path, out)
+    raw = read_overlay_member(out, "build_meta.json")
+    assert raw is not None
+    assert b"1.2.3" in raw
+    assert read_overlay_member(out, "missing.txt") is None
 
 
 def test_run_pipeline_exes_only(tmp_path: Path) -> None:
@@ -344,6 +367,42 @@ def test_detect_mode_from_argv() -> None:
 def test_app_icon_exists_for_installer() -> None:
     icon = Path(__file__).resolve().parents[1] / "src" / "harrix_swiss_knife" / "assets" / "app.ico"
     assert icon.is_file()
+    found = find_app_ico()
+    assert found is not None
+    assert found.is_file()
+
+
+def test_write_padded_ico_contains_256(tmp_path: Path) -> None:
+    dest = tmp_path / "padded.ico"
+    write_padded_ico(dest)
+    data = dest.read_bytes()
+    _reserved, itype, count = struct.unpack_from("<HHH", data, 0)
+    assert itype == 1
+    assert count >= 6
+    has_256 = False
+    pos = 6
+    for _ in range(count):
+        width, height, *_rest = struct.unpack_from("<BBBBHHII", data, pos)
+        pos += 16
+        if width == 0 and height == 0:
+            has_256 = True
+    assert has_256
+
+
+def test_display_build_lines_include_version_and_date() -> None:
+    version_line, built_line = display_build_lines(
+        {"version": "0.0.dev0", "built_at": "2026-08-20 00:02", "git": "abc1234"}
+    )
+    assert "0.0.dev0" in version_line
+    assert "abc1234" in version_line
+    assert "2026-08-20 00:02" in built_line
+
+
+def test_collect_build_meta_from_tmp_project(tmp_path: Path) -> None:
+    (tmp_path / "pyproject.toml").write_text('[project]\nversion = "9.9.9"\n', encoding="utf-8")
+    meta = collect_build_meta(tmp_path)
+    assert meta["version"] == "9.9.9"
+    assert meta["built_at"]
 
 
 def test_installer_import_does_not_load_pylib_or_actions() -> None:

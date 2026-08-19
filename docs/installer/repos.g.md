@@ -37,28 +37,34 @@ def ensure_repos(
     offline: bool,
     log: OutcomeLog,
 ) -> Path:
-    log.step("Clone repositories (idempotent)")
+    log.step("Get source repositories")
+    if offline:
+        log.detail("Offline EXE: extract snapshots from the bundled repos/ zip files when present")
+    else:
+        log.detail("Online EXE: git clone from GitHub (or git pull if the folder already exists)")
     hsk_path = install_root / "harrix-swiss-knife"
     for name in REPO_NAMES:
         path = install_root / name
         if repo_ready_or_reset(path, label=name, allow_offline=offline, log=log):
-            log.detail(f"{name} already present")
+            log.detail(f"{name} already present at {path}")
             log.add("already", f"{name} already present")
             if not offline:
+                log.detail(f"Updating {name} with git pull --ff-only (skipped if there are local changes)")
                 update_git_repo(path, label=name, log=log)
             continue
         snap = deps / "repos" / f"{name}.zip"
         if offline and snap.is_file():
-            log.detail(f"Extracting offline snapshot: {snap}")
+            log.detail(f"Extracting {name} from bundled snapshot {snap.name}")
             expand_repo_snapshot(snap, path)
             log.add("installed", f"Extracted {name} from offline snapshot")
             continue
         url = _REPO_URLS[name]
+        log.detail(f"git clone {url}")
         code = _git(["-C", str(install_root), "clone", url], log)
         if code != 0:
             msg = f"git clone {name} failed (exit {code})"
             raise RuntimeError(msg)
-        log.add("installed", f"Cloned {name}")
+        log.add("installed", f"Cloned {name} from GitHub")
     return hsk_path
 ```
 

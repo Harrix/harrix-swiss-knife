@@ -16,6 +16,7 @@ lang: en
 - [🔧 Function `frozen_executable`](#-function-frozen_executable)
 - [🔧 Function `is_frozen`](#-function-is_frozen)
 - [🔧 Function `read_overlay_bounds`](#-function-read_overlay_bounds)
+- [🔧 Function `read_overlay_member`](#-function-read_overlay_member)
 
 </details>
 
@@ -74,7 +75,7 @@ def extract_overlay(
     dest_dir.mkdir(parents=True, exist_ok=True)
     tmp_zip = dest_dir / "_payload.zip"
     if log:
-        log(f"Extracting payload ({length // (1024 * 1024)} MB)…")
+        log(f"Extracting payload ({length // (1024 * 1024)} MB) from this EXE…")
     with exe_path.open("rb") as src, tmp_zip.open("wb") as dst:
         src.seek(start)
         remaining = length
@@ -170,6 +171,35 @@ def read_overlay_bounds(exe_path: Path) -> tuple[int, int] | None:
     if length <= 0 or length + OVERLAY_TRAILER_SIZE > size:
         return None
     return size - OVERLAY_TRAILER_SIZE - length, length
+```
+
+</details>
+
+## 🔧 Function `read_overlay_member`
+
+```python
+def read_overlay_member(exe_path: Path, member: str) -> bytes | None
+```
+
+Read one file from the appended overlay zip without extracting the payload.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def read_overlay_member(exe_path: Path, member: str) -> bytes | None:
+    bounds = read_overlay_bounds(exe_path)
+    if bounds is None:
+        return None
+    start, length = bounds
+    with exe_path.open("rb") as src:
+        view = _OffsetView(src, start, length)
+        with zipfile.ZipFile(view, "r") as zf:
+            try:
+                info = zf.getinfo(member)
+            except KeyError:
+                return None
+            return zf.read(info)
 ```
 
 </details>

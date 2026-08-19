@@ -107,6 +107,9 @@ class InstallerWizard(QWizard):
         icon = load_app_icon()
         if not icon.isNull():
             self.setWindowIcon(icon)
+        header = header_logo_pixmap()
+        if not header.isNull():
+            self.setPixmap(QWizard.WizardPixmap.LogoPixmap, header)
         self.mode = mode
         self.tools_page = ToolsPage(mode)
         self.options_page = OptionsPage()
@@ -140,6 +143,9 @@ def __init__(self, mode: str) -> None:
         icon = load_app_icon()
         if not icon.isNull():
             self.setWindowIcon(icon)
+        header = header_logo_pixmap()
+        if not header.isNull():
+            self.setPixmap(QWizard.WizardPixmap.LogoPixmap, header)
         self.mode = mode
         self.tools_page = ToolsPage(mode)
         self.options_page = OptionsPage()
@@ -269,15 +275,27 @@ class ProgressPage(QWizardPage):
         """Build the install progress UI."""
         super().__init__()
         self.setTitle("Installing")
+        self.setSubTitle("Live status of the current step is shown below.")
         self._mode = mode
         self._worker: _Worker | None = None
         self._done = False
+        self._extracting = False
+        self.status_label = QLabel("Waiting for Install…")
+        status_font = QFont()
+        status_font.setPointSize(11)
+        status_font.setBold(True)
+        self.status_label.setFont(status_font)
+        self.status_label.setWordWrap(True)
+        self.detail_label = QLabel("The installer will show what is running and how (bundle, winget, or download).")
+        self.detail_label.setWordWrap(True)
         self.log_view = QPlainTextEdit()
         self.log_view.setReadOnly(True)
         self.log_view.setFont(QFont("Consolas", 9))
         self.bar = QProgressBar()
         self.bar.setRange(0, 0)
         layout = QVBoxLayout(self)
+        layout.addWidget(self.status_label)
+        layout.addWidget(self.detail_label)
         layout.addWidget(self.bar)
         layout.addWidget(self.log_view)
         self.setCommitPage(True)
@@ -323,6 +341,7 @@ class ProgressPage(QWizardPage):
 
     def _append(self, line: str) -> None:
         self.log_view.appendPlainText(line)
+        self._update_status_from_log(line)
 
     def _on_err(self, message: str) -> None:
         self._append(f"❌ {message}")
@@ -349,13 +368,23 @@ class ProgressPage(QWizardPage):
             return
         self.bar.setRange(0, total)
         self.bar.setValue(min(done, total))
+        if self._extracting and total > _EXTRACT_BYTE_PROGRESS_MIN:
+            done_mb = done // _BYTES_PER_MIB
+            total_mb = max(total // _BYTES_PER_MIB, 1)
+            self.status_label.setText("Extracting installer payload")
+            self.detail_label.setText(f"Copying bundled files from this EXE: {done_mb} / {total_mb} MB")
+        elif self._extracting:
+            self.status_label.setText("Unpacking installer payload")
+            self.detail_label.setText(f"Extracting files: {done} / {total}")
 
     def _start_worker(self, plan: PrerequisitePlan) -> None:
         wizard = self.wizard()
         assert isinstance(wizard, InstallerWizard)  # noqa: S101
         work = Path(tempfile.mkdtemp(prefix="hsk-install-"))
-        self.bar.setRange(0, 100)
-        self.bar.setValue(0)
+        self._extracting = True
+        self.status_label.setText("Starting installation")
+        self.detail_label.setText("Preparing the work folder and reading the bundled payload…")
+        self.bar.setRange(0, 0)
         self._worker = _Worker(
             mode=self._mode,
             install_root=wizard.options_page.install_root(),
@@ -372,6 +401,23 @@ class ProgressPage(QWizardPage):
         wizard.button(QWizard.WizardButton.BackButton).setEnabled(False)
         wizard.button(QWizard.WizardButton.CommitButton).setEnabled(False)
         self._worker.start()
+
+    def _update_status_from_log(self, line: str) -> None:
+        text = line.strip()
+        if text.startswith("==> "):
+            self._extracting = "extract" in text.lower()
+            self.status_label.setText(text[4:])
+            return
+        if text.startswith("Extracting payload"):
+            self._extracting = True
+            self.status_label.setText("Extracting installer payload")
+            self.detail_label.setText(text)
+            return
+        if text.startswith("    "):
+            self.detail_label.setText(text.strip())
+            return
+        if text[:1] in {"✅", "⚠️", "❌", "i", "•"}:
+            self.detail_label.setText(text)
 ```
 
 </details>
@@ -391,15 +437,27 @@ Build the install progress UI.
 def __init__(self, mode: str) -> None:
         super().__init__()
         self.setTitle("Installing")
+        self.setSubTitle("Live status of the current step is shown below.")
         self._mode = mode
         self._worker: _Worker | None = None
         self._done = False
+        self._extracting = False
+        self.status_label = QLabel("Waiting for Install…")
+        status_font = QFont()
+        status_font.setPointSize(11)
+        status_font.setBold(True)
+        self.status_label.setFont(status_font)
+        self.status_label.setWordWrap(True)
+        self.detail_label = QLabel("The installer will show what is running and how (bundle, winget, or download).")
+        self.detail_label.setWordWrap(True)
         self.log_view = QPlainTextEdit()
         self.log_view.setReadOnly(True)
         self.log_view.setFont(QFont("Consolas", 9))
         self.bar = QProgressBar()
         self.bar.setRange(0, 0)
         layout = QVBoxLayout(self)
+        layout.addWidget(self.status_label)
+        layout.addWidget(self.detail_label)
         layout.addWidget(self.bar)
         layout.addWidget(self.log_view)
         self.setCommitPage(True)
@@ -640,15 +698,44 @@ class WelcomePage(QWizardPage):
     def __init__(self, mode: str) -> None:
         """Build the welcome text for the selected mode."""
         super().__init__()
-        self.setTitle("Harrix Swiss Knife")
+        self.setTitle("Welcome")
+        kind = "offline bundle" if mode == "offline" else "online from GitHub"
+        version_line, built_line = display_build_lines()
+        self.setSubTitle(f"{version_line}  ·  {built_line}")
+
+        logo = QLabel()
+        pixmap = welcome_logo_pixmap()
+        if not pixmap.isNull():
+            logo.setPixmap(pixmap)
+            logo.setContentsMargins(8, 8, 16, 8)
+        title = QLabel("Harrix Swiss Knife")
+        title_font = QFont()
+        title_font.setPointSize(18)
+        title_font.setBold(True)
+        title.setFont(title_font)
+        meta = QLabel(f"{version_line}\n{built_line}")
+        meta.setWordWrap(True)
+        text_col = QVBoxLayout()
+        text_col.setSpacing(4)
+        text_col.addWidget(title)
+        text_col.addWidget(meta)
+        header = QHBoxLayout()
+        header.setSpacing(12)
+        if not pixmap.isNull():
+            header.addWidget(logo)
+        header.addLayout(text_col)
+        header.addStretch(1)
+
         label = QLabel(
-            f"This wizard installs Harrix Swiss Knife "
-            f"({'offline bundle' if mode == 'offline' else 'online from GitHub'}).\n\n"
+            f"This wizard installs Harrix Swiss Knife ({kind}).\n\n"
             "You can choose which tools to install, the target folder, and shortcuts."
         )
         label.setWordWrap(True)
         layout = QVBoxLayout(self)
+        layout.addLayout(header)
+        layout.addSpacing(12)
         layout.addWidget(label)
+        layout.addStretch(1)
 ```
 
 </details>
@@ -667,15 +754,44 @@ Build the welcome text for the selected mode.
 ```python
 def __init__(self, mode: str) -> None:
         super().__init__()
-        self.setTitle("Harrix Swiss Knife")
+        self.setTitle("Welcome")
+        kind = "offline bundle" if mode == "offline" else "online from GitHub"
+        version_line, built_line = display_build_lines()
+        self.setSubTitle(f"{version_line}  ·  {built_line}")
+
+        logo = QLabel()
+        pixmap = welcome_logo_pixmap()
+        if not pixmap.isNull():
+            logo.setPixmap(pixmap)
+            logo.setContentsMargins(8, 8, 16, 8)
+        title = QLabel("Harrix Swiss Knife")
+        title_font = QFont()
+        title_font.setPointSize(18)
+        title_font.setBold(True)
+        title.setFont(title_font)
+        meta = QLabel(f"{version_line}\n{built_line}")
+        meta.setWordWrap(True)
+        text_col = QVBoxLayout()
+        text_col.setSpacing(4)
+        text_col.addWidget(title)
+        text_col.addWidget(meta)
+        header = QHBoxLayout()
+        header.setSpacing(12)
+        if not pixmap.isNull():
+            header.addWidget(logo)
+        header.addLayout(text_col)
+        header.addStretch(1)
+
         label = QLabel(
-            f"This wizard installs Harrix Swiss Knife "
-            f"({'offline bundle' if mode == 'offline' else 'online from GitHub'}).\n\n"
+            f"This wizard installs Harrix Swiss Knife ({kind}).\n\n"
             "You can choose which tools to install, the target folder, and shortcuts."
         )
         label.setWordWrap(True)
         layout = QVBoxLayout(self)
+        layout.addLayout(header)
+        layout.addSpacing(12)
         layout.addWidget(label)
+        layout.addStretch(1)
 ```
 
 </details>
@@ -711,21 +827,14 @@ def detect_mode_from_argv(argv: list[str]) -> str:
 def load_app_icon() -> QIcon
 ```
 
-Return the tray app `.ico` for the installer window (and bundled EXE).
+Return a sharp padded multi-size icon for the installer window.
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def load_app_icon() -> QIcon:
-    candidates = [Path(__file__).resolve().parents[1] / "assets" / "app.ico"]
-    meipass = getattr(sys, "_MEIPASS", None)
-    if isinstance(meipass, str):
-        candidates.append(Path(meipass) / "harrix_swiss_knife" / "assets" / "app.ico")
-    for path in candidates:
-        if path.is_file():
-            return QIcon(str(path))
-    return QIcon()
+    return make_window_icon()
 ```
 
 </details>

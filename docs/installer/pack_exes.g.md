@@ -62,6 +62,9 @@ def build_payload_zips(
             exclude_dirs=frozenset(),
             exclude_files=omit_files,
         )
+        meta = collect_build_meta(project_root)
+        write_build_meta(online_stage / "build_meta.json", meta)
+        write_build_meta(offline_stage / "build_meta.json", meta)
         online_zip = stage_base / "online-payload.zip"
         offline_zip = stage_base / "offline-payload.zip"
         _zip_tree(online_stage, online_zip)
@@ -138,9 +141,19 @@ def ensure_installer_stub(project_root: Path, log: LogFn, *, force: bool = False
         str(project_root / "src"),
     ]
     icon = project_root / "src" / "harrix_swiss_knife" / "assets" / "app.ico"
+    padded_ico = work / "app-padded.ico"
     if icon.is_file():
-        cmd.extend(["--icon", str(icon)])
+        try:
+            write_padded_ico(padded_ico)
+            icon_for_exe = padded_ico
+        except Exception as exc:
+            log(f"  Could not rebuild padded ICO ({exc}); using app.ico as-is")
+            icon_for_exe = icon
+        cmd.extend(["--icon", str(icon_for_exe)])
         cmd.extend(["--add-data", f"{icon}{os.pathsep}harrix_swiss_knife/assets"])
+    logo = find_logo_svg() or (project_root / "src" / "harrix_swiss_knife" / "assets" / "logo.svg")
+    if logo.is_file():
+        cmd.extend(["--add-data", f"{logo}{os.pathsep}harrix_swiss_knife/assets"])
     cmd.extend(
         [
             "--collect-all",
