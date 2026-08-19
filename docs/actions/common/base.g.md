@@ -883,7 +883,7 @@ Add a line to the output file and print it to the console.
 
 Args:
 
-- `line` (`str`): The text line to add to the output.
+- [`line`](../../installer/log.g.md#%EF%B8%8F-method-line) (`str`): The text line to add to the output.
 
 <details>
 <summary>Code:</summary>

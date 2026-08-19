@@ -16,7 +16,10 @@ lang: en
   - [⚙️ Method `any_work`](#%EF%B8%8F-method-any_work)
   - [⚙️ Method `from_labels (classmethod)`](#%EF%B8%8F-method-from_labels-classmethod)
 - [🏛️ Class `PipelineResult`](#%EF%B8%8F-class-pipelineresult)
+  - [⚙️ Method `offline_exe (property)`](#%EF%B8%8F-method-offline_exe-property)
+  - [⚙️ Method `online_exe (property)`](#%EF%B8%8F-method-online_exe-property)
 - [🔧 Function `asset_download_url`](#-function-asset_download_url)
+- [🔧 Function `build_install_exes`](#-function-build_install_exes)
 - [🔧 Function `build_install_zips`](#-function-build_install_zips)
 - [🔧 Function `clean_install_logs`](#-function-clean_install_logs)
 - [🔧 Function `cli_argv_for_steps`](#-function-cli_argv_for_steps)
@@ -59,7 +62,7 @@ class BuildSteps:
     installers: bool = True
     repos: bool = True
     uv_cache: bool = True
-    build_zips: bool = True
+    build_zips: bool = True  # builds installer EXEs (name kept for CLI/tests)
     open_install: bool = True
     clean_logs: bool = False
 
@@ -92,7 +95,7 @@ class BuildSteps:
             installers=STEP_INSTALLERS in selected,
             repos=STEP_REPOS in selected,
             uv_cache=STEP_UV_CACHE in selected,
-            build_zips=STEP_BUILD_ZIPS in selected,
+            build_zips=STEP_BUILD_EXES in selected,
             open_install=STEP_OPEN in selected,
             clean_logs=STEP_CLEAN_LOGS in selected,
         )
@@ -166,7 +169,7 @@ def from_labels(cls, labels: Sequence[str]) -> BuildSteps:
             installers=STEP_INSTALLERS in selected,
             repos=STEP_REPOS in selected,
             uv_cache=STEP_UV_CACHE in selected,
-            build_zips=STEP_BUILD_ZIPS in selected,
+            build_zips=STEP_BUILD_EXES in selected,
             open_install=STEP_OPEN in selected,
             clean_logs=STEP_CLEAN_LOGS in selected,
         )
@@ -192,6 +195,52 @@ class PipelineResult:
     lines: list[str]
     online_zip: Path | None = None
     offline_zip: Path | None = None
+
+    @property
+    def offline_exe(self) -> Path | None:
+        """Alias for `offline_zip` (EXE path)."""
+        return self.offline_zip
+
+    @property
+    def online_exe(self) -> Path | None:
+        """Alias for `online_zip` (EXE path)."""
+        return self.online_zip
+```
+
+</details>
+
+### ⚙️ Method `offline_exe (property)`
+
+```python
+def offline_exe(self) -> Path | None
+```
+
+Alias for `offline_zip` (EXE path).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def offline_exe(self) -> Path | None:
+        return self.offline_zip
+```
+
+</details>
+
+### ⚙️ Method `online_exe (property)`
+
+```python
+def online_exe(self) -> Path | None
+```
+
+Alias for `online_zip` (EXE path).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def online_exe(self) -> Path | None:
+        return self.online_zip
 ```
 
 </details>
@@ -231,60 +280,58 @@ def asset_download_url(
 
 </details>
 
+## 🔧 Function `build_install_exes`
+
+```python
+def build_install_exes(project_root: Path, log: LogFn) -> tuple[Path, Path]
+```
+
+Create online and offline installer EXEs under `install/`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def build_install_exes(project_root: Path, log: LogFn) -> tuple[Path, Path]:
+    deps = dependencies_dir(project_root)
+    if not deps.is_dir():
+        msg = f"Not found: {deps}"
+        raise FileNotFoundError(msg)
+
+    omit = redundant_media_zip_names(deps)
+    if omit:
+        log(f"  Omitting redundant media zips: {', '.join(sorted(omit))}")
+
+    online_zip, offline_zip = build_payload_zips(
+        project_root,
+        log,
+        copy_deps_fn=_copy_deps,
+        online_exclude_dirs=ONLINE_EXCLUDE_DIRS,
+        omit_files=omit,
+    )
+    try:
+        return pack_installer_exes(project_root, online_zip, offline_zip, log)
+    finally:
+        online_zip.unlink(missing_ok=True)
+        offline_zip.unlink(missing_ok=True)
+```
+
+</details>
+
 ## 🔧 Function `build_install_zips`
 
 ```python
 def build_install_zips(project_root: Path, log: LogFn) -> tuple[Path, Path]
 ```
 
-Create online and offline install zip archives under `install/`.
+Alias for [`build_install_exes`](#-function-build_install_exes) (older name kept for tests).
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def build_install_zips(project_root: Path, log: LogFn) -> tuple[Path, Path]:
-    root = install_dir(project_root)
-    deps = dependencies_dir(project_root)
-    if not deps.is_dir():
-        msg = f"Not found: {deps}"
-        raise FileNotFoundError(msg)
-
-    required = ("harrix-swiss-knife.ps1", "install.bat", "install-with-log.ps1")
-    for name in required:
-        if not (root / name).is_file():
-            msg = f"Not found: {root / name}"
-            raise FileNotFoundError(msg)
-
-    out_online = root / ONLINE_ZIP_NAME
-    out_offline = root / OFFLINE_ZIP_NAME
-    omit = redundant_media_zip_names(deps)
-    log(f"Building:\n  {out_online}\n  {out_offline}")
-    if omit:
-        log(f"  Omitting redundant media zips: {', '.join(sorted(omit))}")
-
-    stage_base = Path(tempfile.mkdtemp(prefix="hsk-install-zip-"))
-    try:
-        stage_online = stage_base / "online"
-        stage_offline = stage_base / "offline"
-        stage_online.mkdir()
-        stage_offline.mkdir()
-
-        for name in required:
-            shutil.copy2(root / name, stage_online / name)
-            shutil.copy2(root / name, stage_offline / name)
-
-        _copy_deps(deps, stage_online / "dependencies", exclude_dirs=ONLINE_EXCLUDE_DIRS, exclude_files=omit)
-        _zip_dir(stage_online, out_online)
-        log(f"✅ Created: {out_online}")
-
-        _copy_deps(deps, stage_offline / "dependencies", exclude_dirs=frozenset(), exclude_files=omit)
-        _zip_dir(stage_offline, out_offline)
-        log(f"✅ Created: {out_offline}")
-    finally:
-        shutil.rmtree(stage_base, ignore_errors=True)
-
-    return out_online, out_offline
+    return build_install_exes(project_root, log)
 ```
 
 </details>
@@ -341,7 +388,8 @@ def cli_argv_for_steps(steps: BuildSteps) -> list[str]:
     if not steps.uv_cache:
         flags.append("--skip-uv-cache")
     if not steps.build_zips:
-        flags.append("--no-zips")
+        flags.append("--no-exes")
+        flags.append("--no-zips")  # back-compat
     if not steps.open_install:
         flags.append("--no-open")
     if steps.clean_logs:
@@ -889,7 +937,7 @@ def run_pipeline(
         if steps.uv_cache:
             populate_uv_cache(project_root, _log)
         if steps.build_zips:
-            online_zip, offline_zip = build_install_zips(project_root, _log)
+            online_zip, offline_zip = build_install_exes(project_root, _log)
         if steps.clean_logs:
             clean_install_logs(project_root, _log)
         if steps.open_install:
@@ -898,7 +946,7 @@ def run_pipeline(
         _log(f"❌ {exc}")
         return PipelineResult(ok=False, lines=lines, online_zip=online_zip, offline_zip=offline_zip)
 
-    _log("✅ Install zip pipeline finished.")
+    _log("✅ Install EXE pipeline finished.")
     return PipelineResult(ok=True, lines=lines, online_zip=online_zip, offline_zip=offline_zip)
 ```
 
@@ -997,7 +1045,7 @@ def snapshot_repos(project_root: Path, log: LogFn) -> None:
 ## 🔧 Function `steps_from_cli_flags`
 
 ```python
-def steps_from_cli_flags(*, no_wipe: bool = False, skip_binaries: bool = False, skip_installers: bool = False, skip_repos: bool = False, skip_uv_cache: bool = False, no_zips: bool = False, no_open: bool = False, clean_logs: bool = False) -> BuildSteps
+def steps_from_cli_flags(*, no_wipe: bool = False, skip_binaries: bool = False, skip_installers: bool = False, skip_repos: bool = False, skip_uv_cache: bool = False, no_zips: bool = False, no_exes: bool = False, no_open: bool = False, clean_logs: bool = False) -> BuildSteps
 ```
 
 Build step selection from CLI skip flags (default: all on).
@@ -1014,6 +1062,7 @@ def steps_from_cli_flags(
     skip_repos: bool = False,
     skip_uv_cache: bool = False,
     no_zips: bool = False,
+    no_exes: bool = False,
     no_open: bool = False,
     clean_logs: bool = False,
 ) -> BuildSteps:
@@ -1023,7 +1072,7 @@ def steps_from_cli_flags(
         installers=not skip_installers,
         repos=not skip_repos,
         uv_cache=not skip_uv_cache,
-        build_zips=not no_zips,
+        build_zips=not (no_zips or no_exes),
         open_install=not no_open,
         clean_logs=clean_logs,
     )

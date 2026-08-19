@@ -56,7 +56,7 @@ Represents a single field in a template.
 Attributes:
 
 - `name` (`str`): The field name (e.g., `Title`, `Score`).
-- `field_type` (`str`): The field type (e.g., `line`, `url`, `int`, `float`, `date`, `bool`,
+- `field_type` (`str`): The field type (e.g., [`line`](installer/log.g.md#%EF%B8%8F-method-line), `url`, `int`, `float`, `date`, `bool`,
   `multiline`, `combobox`).
 - `placeholder` (`str`): The original placeholder text from the template.
 - `default_value` (`str | None`): Optional default value for the field.
@@ -161,7 +161,7 @@ This class parses templates with placeholders in the format:
 
 `@Link` for `image`/`images` is another field name used for filename base.
 `#1024` after `@Link` enables image optimization with max side 1024 px.
-`@subfolders` on `line` loads combobox options from existing subfolders of `path_target`.
+`@subfolders` on [`line`](installer/log.g.md#%EF%B8%8F-method-line) loads combobox options from existing subfolders of `path_target`.
 `@note_name` marks the field used as note folder/file stem in `city_note` layout.
 `@Images` on `date` fills the date from dropped image filenames (fill-if-empty).
 `@Images!` on `date` always updates the date when new images are added.

@@ -53,7 +53,7 @@ _Figure 1: Screenshot_
 - **Dev**
   - ℹ️ About
   - 🚀 Add to Windows autostart
-  - 🚀 Build install zips ꟲᴸᴵ
+  - 🚀 Build installer EXEs ꟲᴸᴵ
   - 🧹 Clear temp folder
   - 🔗 Create desktop shortcut
   - ⬇️ Download ffmpeg, avifenc, avifdec
@@ -168,89 +168,62 @@ _Figure 1: Screenshot_
 
 ### Prerequisites
 
-The **automated installer** can install Git, uv, VS Code (if no editor is found), and managed CPython. You can install all missing tools, pick them one by one, or skip them. You only need them already installed for the **manual** steps below, or if you skip those tools.
+The **GUI installer** can install Git, uv, VS Code (if no editor is found), and managed CPython. In the wizard you can leave all suggested tools checked, clear some, or skip them. You only need them already installed for the **manual** steps below, or if you uncheck those tools.
 
 On a **very fresh** Windows image, **winget** may be missing until you install **Microsoft App Installer** from the Microsoft Store. Docs: <https://learn.microsoft.com/windows/package-manager/winget/>
 
 ### Quick install (online)
 
-Shared engine: `install\harrix-swiss-knife.ps1` (used by both online and offline launchers). It can detect the parent folder when run from an already-cloned repo, or pick a default automatically (`D:\GitHub`, `C:\GitHub`, Documents\GitHub, or `%USERPROFILE%\harrix-swiss-knife`).
+Copy **`harrix-swiss-knife-online.exe`** to the target PC and double-click it. No Python and no unzip step are required (the EXE carries a frozen wizard). Mode is fixed by which EXE you run (online vs offline).
 
-**Standalone bootstrap** (no clone yet; downloads the script then runs it):
+The wizard:
 
-```powershell
-irm https://raw.githubusercontent.com/Harrix/harrix-swiss-knife/main/install/harrix-swiss-knife.ps1 -OutFile "$env:TEMP\harrix-swiss-knife.ps1"
-& "$env:TEMP\harrix-swiss-knife.ps1"
-```
+1. Shows detected tools and lets you choose Git / uv / VS Code / managed Python
+2. Asks for the install parent folder (defaults: `D:\GitHub`, `C:\GitHub`, Documents\GitHub, or under the user profile) and whether to create desktop / Startup shortcuts
+3. Extracts the embedded payload (progress bar), then installs tools, clones repos, runs `uv sync`, installs the global **`hsk`** CLI, and creates shortcuts
 
-**From an already-cloned repo:**
-
-```powershell
-.\install\harrix-swiss-knife.ps1
-```
-
-**Launcher with log** (recommended):
-
-```powershell
-.\install\install.bat
-```
-
-Or double-click `install\install.bat`. Mode defaults to **Auto** (from a Git checkout → Online). Override with `install.bat -Mode Online` or `install.bat -Mode Offline`. The first window asks **[A] Install all missing tools** (default), **[C] Choose individually** (Git, uv, VS Code, Python), or **[S] Skip all tool installs**. UAC appears **at most once**, and only if Git or VS Code will actually be installed. Skip without a prompt: `install.bat -SkipPrerequisites`. Per-tool skips: `-SkipGit`, `-SkipUv`, `-SkipVsCode`, `-SkipPython`. For other switches (`-InstallRoot`, …), open PowerShell and run `harrix-swiss-knife.ps1` with `-File`.
-
-**How to run the `.ps1` file** if execution policy blocks scripts:
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\install\harrix-swiss-knife.ps1
-```
-
-Optional parameters: `-Mode Auto|Online|Offline` (default Auto), `-InstallRoot "D:\GitHub"`, `-SkipPrerequisites` (do not install Git / uv / VS Code / managed Python), `-SkipGit` / `-SkipUv` / `-SkipVsCode` / `-SkipPython` (skip one tool; skips the menu), `-NonInteractive` (no tool menu), `-SkipBinaries` (still copies ffmpeg/avif from `install\dependencies\` when present; skips network download), `-Force` (re-download ffmpeg/avif binaries), `-NoPauseOnError` (exit immediately after failure; default waits for Enter so the console does not flash closed).
+UAC appears **at most once**, and only if Git or VS Code will actually be installed.
 
 What the online installer does:
 
-1. Asks which tools to install (**all missing**, individual choice, or skip), then installs the selected missing Git / uv / VS Code via **winget** or offline installers
+1. Installs the selected missing Git / uv / VS Code via **bundled installers**, **winget**, or download fallbacks
 2. Installs managed CPython with **`uv python install`** when selected (pin from `.python-version`)
 3. Clones **harrix-pylib**, **harrix-pyssg**, and **harrix-swiss-knife** as siblings (full `git clone`)
 4. Runs `uv sync` in each repo
 5. Runs `uv tool install -e` (global **`hsk`** CLI; ensures `%USERPROFILE%\.local\bin` is on the user PATH)
-6. Creates a **desktop shortcut** and adds the app to **Windows autostart** (Startup folder)
-7. Downloads **ffmpeg** / **libavif** executables into the project root (or copies them from `install\dependencies\` when present)
+6. Creates a **desktop shortcut** and/or **Windows Startup** shortcut when checked (defaults on)
+7. Downloads **ffmpeg** / **libavif** executables into the project root (or copies them from the embedded `dependencies\` when present)
 
 The bundled **Harrix Notes Explorer (HSK)** VS Code extension is **not** installed automatically. Use the tray app (**Dev** → **Install or update Harrix Notes Explorer (HSK) extension**) when you want it in a specific editor.
 
-If the deploy window closes too quickly after an error, run `install.bat` again: the installer waits for Enter after failure when not launched via `install.bat`, and the `.bat` ends with `pause`.
+A live log appears in the wizard; `install.log` is also written under a temp work folder. Keep the window open until the done page.
 
 ### Offline install (local bundle)
 
-Use this when the target machine has slow or blocked internet. Build the offline zip once on a machine with internet, then run the offline launcher on the target.
+Use this when the target machine has slow or blocked internet. Build the offline EXE once on a machine with internet, then run it on the target.
 
 **On the builder machine** (with internet), from a checkout that already has sibling `harrix-pylib` / `harrix-pyssg`:
 
-1. Run **Dev** → **Build install zips** (checkbox steps; defaults refill `install\dependencies\` and write both zips), or:
+1. Run **Dev** → **Build installer EXEs** (checkbox steps; defaults refill `install\dependencies\` and pack both EXEs), or:
 
    ```text
    hsk dev build-install-zips
    ```
 
-   That populates `install\dependencies\` (ignored by Git) with installers, media binaries, repo snapshots, and uv caches, then writes the distributable zips. That step uses an isolated Python/venv, so the tray can stay running. Details: [`DEVELOPMENT.md`](https://github.com/Harrix/harrix-swiss-knife/blob/main/DEVELOPMENT.md#building-windows-install-zip-bundles).
+   That populates `install\dependencies\` (ignored by Git) with installers, media binaries, repo snapshots, and uv caches, freezes a reusable PyInstaller stub if needed, then writes the two EXEs. Uv-cache warm-up uses an isolated Python/venv, so the tray can stay running. Details: [`DEVELOPMENT.md`](https://github.com/Harrix/harrix-swiss-knife/blob/main/DEVELOPMENT.md#building-windows-installer-exes).
 
-2. Copy `install\install-offline-harrix-swiss-knife.zip` to the target machine (or the whole prepared `install\` folder).
+2. Copy `install\harrix-swiss-knife-offline.exe` to the target machine (the online EXE is optional for air-gapped targets).
 
 **On the target machine:**
 
-1. Unzip so you have `install\install.bat` next to `install\dependencies\`
-2. Run:
+1. Double-click `harrix-swiss-knife-offline.exe`
+2. Answer the wizard (tools, folder, shortcuts)
 
-   ```powershell
-   .\install\install.bat
-   ```
-
-   Auto mode uses the repo snapshots when `install\dependencies\repos\harrix-swiss-knife.zip` is present. Force offline with `install.bat -Mode Offline`.
-
-That launches the same `harrix-swiss-knife.ps1`. Offline mode extracts repo snapshots and copies ffmpeg/avif from the bundle (no network download of those tools). Prefer offline installers and uv caches from `install\dependencies\`; falls back to winget/network only when something is missing.
+Offline mode extracts repo snapshots and copies ffmpeg/avif from the bundle (no network download of those tools). Prefer offline installers and uv caches from the embedded payload; falls back to winget/network only when something is missing.
 
 ### Installation steps (manual)
 
-Commands for PowerShell. Manual install does **not** create the desktop shortcut or Windows autostart; after first run use **Dev** → **Create desktop shortcut** and **Dev** → **Add to Windows autostart**, or use the automated installer above.
+Commands for PowerShell. Manual install does **not** create the desktop shortcut or Windows autostart; after first run use **Dev** → **Create desktop shortcut** and **Dev** → **Add to Windows autostart**, or use the GUI installer above.
 
 1. Install [uv](https://docs.astral.sh/uv/) ([Installing and Working with uv (Python) in VSCode](https://github.com/Harrix/harrix.dev-articles-2025-en/blob/main/uv-vscode-python/uv-vscode-python.md)):
    ```shell
@@ -303,7 +276,7 @@ Commands for PowerShell. Manual install does **not** create the desktop shortcut
    uv tool install -e "D:/GitHub/harrix-swiss-knife"
    ```
 
-   The automated installer (`install\harrix-swiss-knife.ps1`) runs this automatically. To reinstall later (for example after `pyproject.toml` changes), use **Dev** → **Install CLI (hsk on PATH)** or `hsk dev install-cli`.
+   The GUI installer runs this automatically. To reinstall later (for example after `pyproject.toml` changes), use **Dev** → **Install CLI (hsk on PATH)** or `hsk dev install-cli`.
 
 10. Install VS Code extension Harrix Notes Explorer (HSK) (local copy of the `vscode\harrix-notes-explorer-hsk` folder). Prefer the tray app (**Dev** → **Install or update Harrix Notes Explorer (HSK) extension**) so **`extensions.json`** is updated; a plain **`Copy-Item`** alone may not register the extension in current VS Code builds. Restart VS Code or Cursor.
 
@@ -381,7 +354,7 @@ Folder arguments are optional (default: current directory) for commands that tak
 - `hsk site pull-submodules` — pull `origin main` in each submodule of `path_site_repo`
 - `hsk site pull-submodules "D:/path/to/site-repo"` — same for an explicit site repo folder
 - `hsk dev action-usage` — show sorted action invocation statistics (unused first)
-- `hsk dev build-install-zips` — Python install-zip pipeline (optional `--no-wipe`, `--skip-*`, `--no-open`; Windows)
+- `hsk dev build-install-zips` — Python installer-EXE pipeline (optional `--no-wipe`, `--skip-*`, `--no-exes`, `--no-open`; Windows; needs PyInstaller in the dev group)
 - `hsk dev install-cli` (global `hsk` on PATH via `uv tool install -e`)
 - `hsk dev private-data export` — pack API keys, `fitness_img`, and exercise/type catalog into `install/private-data-harrix-swiss-knife.zip` (workouts not included)
 - `hsk dev private-data export --zip PATH` — write the personal ZIP to `PATH` instead of the default under `install/`

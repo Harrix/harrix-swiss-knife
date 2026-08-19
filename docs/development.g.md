@@ -13,7 +13,7 @@ lang: en
 
 - [💻 CLI commands](#-cli-commands)
   - [BotHub (Food / Finance AI) on restricted networks](#bothub-food--finance-ai-on-restricted-networks)
-- [📦 Building Windows install zip bundles](#-building-windows-install-zip-bundles)
+- [📦 Building Windows installer EXEs](#-building-windows-installer-exes)
   - [Before you start](#before-you-start)
   - [Steps (checkbox dialog / CLI flags)](#steps-checkbox-dialog--cli-flags)
 - [VS Code extension: Harrix Notes Explorer (HSK)](#vs-code-extension-harrix-notes-explorer-hsk)
@@ -69,15 +69,16 @@ BotHub HTTPS uses `certifi` and optional `SSL_CERT_FILE` (corporate root CA). Pr
 
 Choose the AI backend with `"ai": { "provider": "bothub" }` (`openai`, `anthropic`, `gemini`). Keys live in `api-keys/` — see `api-keys/README.md`.
 
-## 📦 Building Windows install zip bundles
+## 📦 Building Windows installer EXEs
 
-The **builder** that fills `install\dependencies\` and writes the two distributable zips is Python (tray **Dev** → **Build install zips**, or `hsk dev build-install-zips`). The **payload** inside each zip stays PowerShell for a fresh PC with no Python: `install.bat`, `install-with-log.ps1`, `harrix-swiss-knife.ps1`.
+The **builder** that fills `install\dependencies\` and packs the two distributable EXEs is Python (tray **Dev** → **Build installer EXEs**, or `hsk dev build-install-zips`). Target PCs need **no Python**. Each EXE is a frozen PySide6 wizard with an appended zip payload (`HSK1` trailer). After install, the app still runs via repos + `uv` + `pythonw`.
 
 ### Before you start
 
 1. From the tray the pipeline logs in the same place as other actions and opens the result window when it finishes. **uv cache** installs a throwaway CPython and project venvs under `%TEMP%`, so the live `.venv` can stay locked.
 2. Ensure sibling repos exist next to this checkout when you snapshot sources or warm the uv cache: `harrix-pylib`, `harrix-pyssg` (same parent folder as `harrix-swiss-knife`).
-3. **Optional GitHub token** for media binaries and installer downloads: copy `api-keys/github-token.example.txt` → `api-keys/github-token.txt` and paste a read-only PAT. Raises GitHub REST API limits from 60/hour per IP to 5000/hour per account (helps avoid HTTP 403 on shared networks). Env `GITHUB_TOKEN` also works. Form fields: [`api-keys/README.md`](https://github.com/Harrix/harrix-swiss-knife/blob/main/api-keys/README.md#fine-grained-token-preferred).
+3. Install **PyInstaller** with the Windows dev group: `uv sync --group dev` (first stub freeze is slow; later packs reuse `install\.installer-stub\`).
+4. **Optional GitHub token** for media binaries and installer downloads: copy `api-keys/github-token.example.txt` → `api-keys/github-token.txt` and paste a read-only PAT. Raises GitHub REST API limits from 60/hour per IP to 5000/hour per account (helps avoid HTTP 403 on shared networks). Env `GITHUB_TOKEN` also works. Form fields: [`api-keys/README.md`](https://github.com/Harrix/harrix-swiss-knife/blob/main/api-keys/README.md#fine-grained-token-preferred).
 
 ### Steps (checkbox dialog / CLI flags)
 
@@ -88,26 +89,24 @@ The **builder** that fills `install\dependencies\` and writes the two distributa
 | Installers | Installers (`--skip-installers`)                        | Git, uv, VS Code installers → `install\dependencies\`.                                          |
 | Repos      | Repo snapshots (`--skip-repos`)                         | `git archive` → `install\dependencies\repos\`.                                                  |
 | uv cache   | uv cache (`--skip-uv-cache`)                            | Warm `uv-python-cache\` and `uv-cache\` (isolated Python/venv; safe while the tray is running). |
-| Zips       | Build zip archives (`--no-zips`)                        | Writes `install-harrix-swiss-knife.zip` and `install-offline-harrix-swiss-knife.zip`.           |
+| EXEs       | Build installer EXEs (`--no-exes`)                      | Writes `harrix-swiss-knife-online.exe` and `harrix-swiss-knife-offline.exe`.                    |
 | Open       | Open `install/` (`--no-open`)                           | Open Explorer on `install\` when finished.                                                      |
 | Logs       | Clean `*.log` (`--clean-logs`)                          | Optional top-level logs under `install\` and `install\dependencies\`.                           |
 
-All steps except log cleanup are on by default. Example partial rebuild:
+All steps except log cleanup are on by default. Example partial rebuild (reuse dependencies, only re-pack EXEs):
 
 ```text
-hsk dev build-install-zips --no-wipe --skip-binaries --skip-installers --skip-uv-cache
+hsk dev build-install-zips --no-wipe --skip-binaries --skip-installers --skip-repos --skip-uv-cache
 ```
 
-After zip packing, pick up the two zip files from `install\` for distribution.
+After packing, copy the two EXEs from `install\` for distribution (not an `install\` folder zip).
 
-Both zips use the same entry point on the target: **`install.bat`** (mode **Auto**).
+- **Online EXE** — wizard installs tools as needed, clones repos from GitHub, `uv sync`.
+- **Offline EXE** — same wizard; extracts bundled `repos\` + uv caches; prefers bundled installers/binaries.
 
-- Online zip → Auto resolves to Online (`git clone`).
-- Offline zip → Auto resolves to Offline (repo snapshots + uv caches; copies ffmpeg/avif from `dependencies\`).
+Local unpackaged test (no freeze): `python -m harrix_swiss_knife.installer --online` (or `--offline`) with `install\dependencies\` already populated.
 
-Override with `install.bat -Mode Online` or `install.bat -Mode Offline` if needed.
-
-Personal private-data transfer is one tray action **Dev** → **Transfer private data** (choose Export or Import, then which parts), or CLI `hsk dev private-data export` / `hsk dev private-data import`. Parts are API keys and/or exercise catalog plus `fitness_img` (`{English name}.avif`) from `sqlite_fitness` (not `process`/`weight` workouts). Import upserts the catalog by English name and overlays missing/updated images next to existing files without wiping local-only rows, extra images, or workout history. Output defaults to `install\private-data-harrix-swiss-knife.zip` (gitignored). It is **not** part of the public online/offline install zip pipeline above. See `api-keys/README.md` (section Transfer to another machine).
+Personal private-data transfer is one tray action **Dev** → **Transfer private data** (choose Export or Import, then which parts), or CLI `hsk dev private-data export` / `hsk dev private-data import`. Parts are API keys and/or exercise catalog plus `fitness_img` (`{English name}.avif`) from `sqlite_fitness` (not `process`/`weight` workouts). Import upserts the catalog by English name and overlays missing/updated images next to existing files without wiping local-only rows, extra images, or workout history. Output defaults to `install\private-data-harrix-swiss-knife.zip` (gitignored). It is **not** part of the public online/offline installer EXE pipeline above. See `api-keys/README.md` (section Transfer to another machine).
 
 ## VS Code extension: Harrix Notes Explorer (HSK)
 
@@ -140,7 +139,7 @@ npm run check
 
 Current VS Code / Insiders / Cursor track unpacked extensions in **`extensions.json`** next to the extension folders (not only by scanning directories). Copying only the `harrix-notes-explorer-hsk` tree can leave the UI empty until that file lists **`local.harrix-notes-explorer-hsk`**.
 
-The tray action (**Dev** → **Install or update Harrix Notes Explorer (HSK) extension**) copies the tree **and** upserts that ID into each target **`extensions.json`**. The repository deploy script (`install/harrix-swiss-knife.ps1`) does **not** install the extension into editors. If you copy by hand with `Copy-Item` only, either merge the same entry yourself or use **Developer: Install Extension from Location** once (see troubleshooting).
+The tray action (**Dev** → **Install or update Harrix Notes Explorer (HSK) extension**) copies the tree **and** upserts that ID into each target **`extensions.json`**. The GUI installer does **not** install the extension into editors. If you copy by hand with `Copy-Item` only, either merge the same entry yourself or use **Developer: Install Extension from Location** once (see troubleshooting).
 
 From the repo root in PowerShell: remove any existing `harrix-notes-explorer-hsk` folder under that editor’s `extensions` directory, then copy the bundled extension tree (ordinary directory; no symlinks).
 
@@ -248,7 +247,7 @@ Example user settings:
 
 ## Android app (Harrix Swiss Knife)
 
-Optional Android companion app in this monorepo (Gallery Cleaner, Video Cleaner, Photo Editor, Speech to Text with AI). Markdown notes browsing lives in the separate [harrix-notes-android](https://github.com/Harrix/harrix-notes-android) app (**Harrix Notes**). Not part of the Windows install zip pipeline (numbered steps `01` to `06`).
+Optional Android companion app in this monorepo (Gallery Cleaner, Video Cleaner, Photo Editor, Speech to Text with AI). Markdown notes browsing lives in the separate [harrix-notes-android](https://github.com/Harrix/harrix-notes-android) app (**Harrix Notes**). Not part of the Windows installer EXE pipeline.
 
 - Folder: `android/`
 - Package / applicationId: `dev.harrix.hsk` (reverse DNS for <https://harrix.dev>)

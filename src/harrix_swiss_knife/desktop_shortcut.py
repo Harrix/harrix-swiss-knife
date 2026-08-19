@@ -1,4 +1,4 @@
-"""Create Windows shortcuts for Harrix Swiss Knife (`install/harrix-swiss-knife.ps1` logic)."""
+"""Create Windows shortcuts for Harrix Swiss Knife (installer / tray Dev action)."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ import shutil
 import sys
 from pathlib import Path
 
-# Mirrors New-AppShortcut in install/harrix-swiss-knife.ps1
+# Desktop / Startup .lnk pointing at pythonw.exe + main.py
 _SHORTCUT_NAME = "Harrix Swiss Knife.lnk"
 _STAGING_NAME = ".hsk_desktop_shortcut_build.lnk"
 _CSIDL_DESKTOPDIRECTORY = 0x10

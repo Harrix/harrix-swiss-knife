@@ -22,7 +22,7 @@ This repository is licensed under the MIT license (see `LICENSE.md`), but during
 
 </details>
 
-The installer script that performs these downloads is `install/harrix-swiss-knife.ps1`.
+The GUI installer that performs these downloads is the PySide6 package under `src/harrix_swiss_knife/installer/`.
 
 ## Embedded assets (bundled in this repo)
 
@@ -49,12 +49,12 @@ This repository also contains some third-party assets that are bundled into the 
 
 This project supports an “offline bundle” workflow that may place installers and binaries into `install/dependencies/` (this folder is ignored by Git).
 
-- **Online download:** the scripts download binaries from the upstream release pages listed above.
-- **Offline bundle / redistribution:** if you copy and redistribute third-party binaries (for example, by distributing a prepared bundle), you may take on additional license compliance obligations required by those third-party licenses. Review the upstream license terms for each included binary.
+- **Online download:** the installer downloads binaries from the upstream release pages listed above.
+- **Offline bundle / redistribution:** if you copy and redistribute third-party binaries (for example, by distributing a prepared offline EXE), you may take on additional license compliance obligations required by those third-party licenses. Review the upstream license terms for each included binary.
 
 ## Other third-party downloads used by the offline bundle builder
 
-The Python install-zip builder (**Dev** → **Build install zips** / `hsk dev build-install-zips`) may download installers/archives from these upstream sources:
+The Python installer builder (**Dev** → **Build installer EXEs** / `hsk dev build-install-zips`) may download installers/archives from these upstream sources:
 
 - Git for Windows: `https://github.com/git-for-windows/git/releases`
 - Managed CPython (via `uv python install`): archives cached under `install/dependencies/uv-python-cache/` for offline installs; see [uv Python distributions](https://docs.astral.sh/uv/concepts/python-versions/)

@@ -143,7 +143,8 @@ def dev_action_usage() -> None:
 @click.option("--skip-installers", is_flag=True, help="Skip Git/uv/VS Code installer downloads.")
 @click.option("--skip-repos", is_flag=True, help="Skip git archive repo snapshots.")
 @click.option("--skip-uv-cache", is_flag=True, help="Skip uv-python-cache / uv-cache population.")
-@click.option("--no-zips", is_flag=True, help="Skip building the two install zip archives.")
+@click.option("--no-exes", is_flag=True, help="Skip packing the two installer EXEs.")
+@click.option("--no-zips", is_flag=True, help="Alias for --no-exes (legacy).")
 @click.option("--no-open", is_flag=True, help="Do not open install/ when finished.")
 @click.option("--clean-logs", is_flag=True, help="Remove *.log under install/ and install/dependencies/.")
 def dev_build_install_zips(
@@ -153,11 +154,12 @@ def dev_build_install_zips(
     skip_installers: bool,
     skip_repos: bool,
     skip_uv_cache: bool,
+    no_exes: bool,
     no_zips: bool,
     no_open: bool,
     clean_logs: bool,
 ) -> None:
-    """Run the Python install-zip pipeline (Windows) and optionally open `install/`."""
+    """Run the Python installer-EXE pipeline (Windows) and optionally open `install/`."""
     action = OnBuildInstallZips()
     action(
         noninteractive=True,
@@ -166,6 +168,7 @@ def dev_build_install_zips(
         skip_installers=skip_installers,
         skip_repos=skip_repos,
         skip_uv_cache=skip_uv_cache,
+        no_exes=no_exes,
         no_zips=no_zips,
         no_open=no_open,
         clean_logs=clean_logs,

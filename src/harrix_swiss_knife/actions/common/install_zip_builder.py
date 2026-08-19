@@ -1,8 +1,8 @@
-"""Build online/offline install zip bundles under `install/`.
+"""Build online/offline GUI installer EXEs under `install/`.
 
-Replaces the numbered bat/PowerShell builder pipeline. Target-PC payload scripts
-(`install.bat`, `install-with-log.ps1`, `harrix-swiss-knife.ps1`) are copied into
-the zips unchanged.
+Fills `install/dependencies/`, freezes a PySide6 installer stub, and appends
+online/offline payload zips. Target PCs run `harrix-swiss-knife-online.exe` or
+`harrix-swiss-knife-offline.exe` (no bat/ps1 payload).
 
 """
 
@@ -31,6 +31,7 @@ from harrix_swiss_knife.actions.common.github_https import (
     github_download_headers,
     validate_https_url,
 )
+from harrix_swiss_knife.installer.pack_exes import build_payload_zips, pack_installer_exes
 from harrix_swiss_knife.integrations.http_download import download_https_to_path
 from harrix_swiss_knife.integrations.http_transport import https_ssl_context
 
@@ -39,9 +40,12 @@ DOWNLOAD_CHUNK = 256 * 1024
 DOWNLOAD_TIMEOUT = 120
 SIBLING_REPO_NAMES = ("harrix-pylib", "harrix-pyssg")
 HSK_REPO_NAME = "harrix-swiss-knife"
-ONLINE_ZIP_NAME = "install-harrix-swiss-knife.zip"
-OFFLINE_ZIP_NAME = "install-offline-harrix-swiss-knife.zip"
 ONLINE_EXCLUDE_DIRS = frozenset({"repos", "uv-cache", "uv-python-cache"})
+# Back-compat aliases for older tests/docs imports
+ONLINE_ZIP_NAME = "harrix-swiss-knife-online.exe"
+OFFLINE_ZIP_NAME = "harrix-swiss-knife-offline.exe"
+ONLINE_EXE_NAME = ONLINE_ZIP_NAME
+OFFLINE_EXE_NAME = OFFLINE_ZIP_NAME
 MEDIA_EXE_NAMES = ("ffmpeg.exe", "avifenc.exe", "avifdec.exe")
 UV_WINDOWS_ZIP = "uv-x86_64-pc-windows-msvc.zip"
 UV_WINDOWS_URL = f"https://github.com/astral-sh/uv/releases/latest/download/{UV_WINDOWS_ZIP}"
@@ -63,7 +67,7 @@ class BuildSteps:
     installers: bool = True
     repos: bool = True
     uv_cache: bool = True
-    build_zips: bool = True
+    build_zips: bool = True  # builds installer EXEs (name kept for CLI/tests)
     open_install: bool = True
     clean_logs: bool = False
 
@@ -96,7 +100,7 @@ class BuildSteps:
             installers=STEP_INSTALLERS in selected,
             repos=STEP_REPOS in selected,
             uv_cache=STEP_UV_CACHE in selected,
-            build_zips=STEP_BUILD_ZIPS in selected,
+            build_zips=STEP_BUILD_EXES in selected,
             open_install=STEP_OPEN in selected,
             clean_logs=STEP_CLEAN_LOGS in selected,
         )
@@ -110,6 +114,16 @@ class PipelineResult:
     lines: list[str]
     online_zip: Path | None = None
     offline_zip: Path | None = None
+
+    @property
+    def offline_exe(self) -> Path | None:
+        """Alias for `offline_zip` (EXE path)."""
+        return self.offline_zip
+
+    @property
+    def online_exe(self) -> Path | None:
+        """Alias for `online_zip` (EXE path)."""
+        return self.online_zip
 
 
 def asset_download_url(
@@ -134,49 +148,34 @@ def asset_download_url(
     raise ValueError(msg)
 
 
-def build_install_zips(project_root: Path, log: LogFn) -> tuple[Path, Path]:
-    """Create online and offline install zip archives under `install/`."""
-    root = install_dir(project_root)
+def build_install_exes(project_root: Path, log: LogFn) -> tuple[Path, Path]:
+    """Create online and offline installer EXEs under `install/`."""
     deps = dependencies_dir(project_root)
     if not deps.is_dir():
         msg = f"Not found: {deps}"
         raise FileNotFoundError(msg)
 
-    required = ("harrix-swiss-knife.ps1", "install.bat", "install-with-log.ps1")
-    for name in required:
-        if not (root / name).is_file():
-            msg = f"Not found: {root / name}"
-            raise FileNotFoundError(msg)
-
-    out_online = root / ONLINE_ZIP_NAME
-    out_offline = root / OFFLINE_ZIP_NAME
     omit = redundant_media_zip_names(deps)
-    log(f"Building:\n  {out_online}\n  {out_offline}")
     if omit:
         log(f"  Omitting redundant media zips: {', '.join(sorted(omit))}")
 
-    stage_base = Path(tempfile.mkdtemp(prefix="hsk-install-zip-"))
+    online_zip, offline_zip = build_payload_zips(
+        project_root,
+        log,
+        copy_deps_fn=_copy_deps,
+        online_exclude_dirs=ONLINE_EXCLUDE_DIRS,
+        omit_files=omit,
+    )
     try:
-        stage_online = stage_base / "online"
-        stage_offline = stage_base / "offline"
-        stage_online.mkdir()
-        stage_offline.mkdir()
-
-        for name in required:
-            shutil.copy2(root / name, stage_online / name)
-            shutil.copy2(root / name, stage_offline / name)
-
-        _copy_deps(deps, stage_online / "dependencies", exclude_dirs=ONLINE_EXCLUDE_DIRS, exclude_files=omit)
-        _zip_dir(stage_online, out_online)
-        log(f"✅ Created: {out_online}")
-
-        _copy_deps(deps, stage_offline / "dependencies", exclude_dirs=frozenset(), exclude_files=omit)
-        _zip_dir(stage_offline, out_offline)
-        log(f"✅ Created: {out_offline}")
+        return pack_installer_exes(project_root, online_zip, offline_zip, log)
     finally:
-        shutil.rmtree(stage_base, ignore_errors=True)
+        online_zip.unlink(missing_ok=True)
+        offline_zip.unlink(missing_ok=True)
 
-    return out_online, out_offline
+
+def build_install_zips(project_root: Path, log: LogFn) -> tuple[Path, Path]:
+    """Alias for `build_install_exes` (older name kept for tests)."""
+    return build_install_exes(project_root, log)
 
 
 def clean_install_logs(project_root: Path, log: LogFn) -> None:
@@ -207,7 +206,8 @@ def cli_argv_for_steps(steps: BuildSteps) -> list[str]:
     if not steps.uv_cache:
         flags.append("--skip-uv-cache")
     if not steps.build_zips:
-        flags.append("--no-zips")
+        flags.append("--no-exes")
+        flags.append("--no-zips")  # back-compat
     if not steps.open_install:
         flags.append("--no-open")
     if steps.clean_logs:
@@ -603,7 +603,7 @@ def run_pipeline(
         if steps.uv_cache:
             populate_uv_cache(project_root, _log)
         if steps.build_zips:
-            online_zip, offline_zip = build_install_zips(project_root, _log)
+            online_zip, offline_zip = build_install_exes(project_root, _log)
         if steps.clean_logs:
             clean_install_logs(project_root, _log)
         if steps.open_install:
@@ -612,7 +612,7 @@ def run_pipeline(
         _log(f"❌ {exc}")
         return PipelineResult(ok=False, lines=lines, online_zip=online_zip, offline_zip=offline_zip)
 
-    _log("✅ Install zip pipeline finished.")
+    _log("✅ Install EXE pipeline finished.")
     return PipelineResult(ok=True, lines=lines, online_zip=online_zip, offline_zip=offline_zip)
 
 
@@ -688,6 +688,7 @@ def steps_from_cli_flags(
     skip_repos: bool = False,
     skip_uv_cache: bool = False,
     no_zips: bool = False,
+    no_exes: bool = False,
     no_open: bool = False,
     clean_logs: bool = False,
 ) -> BuildSteps:
@@ -698,7 +699,7 @@ def steps_from_cli_flags(
         installers=not skip_installers,
         repos=not skip_repos,
         uv_cache=not skip_uv_cache,
-        build_zips=not no_zips,
+        build_zips=not (no_zips or no_exes),
         open_install=not no_open,
         clean_logs=clean_logs,
     )
@@ -826,7 +827,8 @@ STEP_BINARIES = "Media binaries (ffmpeg, avifenc, avifdec)"
 STEP_INSTALLERS = "Installers (Git, uv, VS Code)"
 STEP_REPOS = "Repo snapshots (git archive of siblings)"
 STEP_UV_CACHE = "uv cache (isolated; safe while tray is running)"
-STEP_BUILD_ZIPS = "Build zip archives"
+STEP_BUILD_EXES = "Build installer EXEs (online + offline)"
+STEP_BUILD_ZIPS = STEP_BUILD_EXES  # back-compat alias for imports
 STEP_OPEN = "Open install/ when finished"
 STEP_CLEAN_LOGS = "Clean *.log under install/"
 
@@ -836,7 +838,7 @@ ALL_STEP_LABELS: tuple[str, ...] = (
     STEP_INSTALLERS,
     STEP_REPOS,
     STEP_UV_CACHE,
-    STEP_BUILD_ZIPS,
+    STEP_BUILD_EXES,
     STEP_OPEN,
     STEP_CLEAN_LOGS,
 )
@@ -847,6 +849,6 @@ DEFAULT_STEP_LABELS: tuple[str, ...] = (
     STEP_INSTALLERS,
     STEP_REPOS,
     STEP_UV_CACHE,
-    STEP_BUILD_ZIPS,
+    STEP_BUILD_EXES,
     STEP_OPEN,
 )

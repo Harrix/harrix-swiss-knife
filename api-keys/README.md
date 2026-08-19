@@ -14,7 +14,7 @@ Local secret files for harrix-swiss-knife. **Not committed to Git** (see root `.
 - [Setup](#setup)
 - [AI providers](#ai-providers)
 - [Transfer to another machine](#transfer-to-another-machine)
-- [Install zips and offline snapshots](#install-zips-and-offline-snapshots)
+- [Installer EXEs and offline snapshots](#installer-exes-and-offline-snapshots)
 
 </details>
 
@@ -37,7 +37,7 @@ Paths in `config.json` use the `snippet:api-keys/...` prefix; `harrix_pylib` loa
 
 ### GitHub token (optional)
 
-Used by Dev → **Download ffmpeg, avifenc, avifdec**, **Build install zips** (`hsk dev build-install-zips`), `install/harrix-swiss-knife.ps1`, and related GitHub API calls. Without a token, unauthenticated GitHub REST API is limited to **60 requests/hour per IP**; with a PAT, **5000/hour per account**. Asset zip downloads themselves are not counted in that API quota; the token mainly avoids HTTP 403 when resolving latest releases on shared networks.
+Used by Dev → **Download ffmpeg, avifenc, avifdec**, **Build installer EXEs** (`hsk dev build-install-zips`), the GUI installer, and related GitHub API calls. Without a token, unauthenticated GitHub REST API is limited to **60 requests/hour per IP**; with a PAT, **5000/hour per account**. Asset zip downloads themselves are not counted in that API quota; the token mainly avoids HTTP 403 when resolving latest releases on shared networks.
 
 1. Copy `github-token.example.txt` → `github-token.txt`.
 2. Create a token (form fields below).
@@ -120,9 +120,9 @@ hsk dev private-data import
 
 If the target fitness database file does not exist yet, install creates it from `recover.sql` (base public exercise seed), then upserts the private catalog from the ZIP on top.
 
-## Install zips and offline snapshots
+## Installer EXEs and offline snapshots
 
 | Artifact                                                                           | Includes `api-keys/`?                                                                                                       |
 | ---------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| `install/install-harrix-swiss-knife.zip`, `install-offline-harrix-swiss-knife.zip` | **No** — only `install/` scripts and `install/dependencies/` (not the repo tree).                                           |
+| `install/harrix-swiss-knife-online.exe`, `harrix-swiss-knife-offline.exe`          | **No** — only embedded `dependencies/` (not the repo tree).                                                                 |
 | `install/dependencies/repos/harrix-swiss-knife.zip` (`git archive HEAD`)           | **No** — whole `api-keys/` is excluded via `.gitattributes` `export-ignore`; secret `*.txt` files are never tracked anyway. |

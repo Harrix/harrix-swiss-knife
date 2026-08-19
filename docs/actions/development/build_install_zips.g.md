@@ -24,13 +24,14 @@ lang: en
 class OnBuildInstallZips(ActionBase)
 ```
 
-Build `install/` zip bundles with selectable steps.
+Build `install/` GUI installer EXEs with selectable steps.
 
 Shows checkboxes for wipe, binaries, installers, repo snapshots, uv cache,
-zip packing, open folder, and log cleanup. From the tray the pipeline runs
+EXE packing, open folder, and log cleanup. From the tray the pipeline runs
 in a worker thread and logs here like other actions. Uv cache uses an isolated
-Python/venv so the live `.venv` can stay locked. Target-PC payload stays
-PowerShell (`install.bat` / `harrix-swiss-knife.ps1`).
+Python/venv so the live `.venv` can stay locked. Target PCs run
+`harrix-swiss-knife-online.exe` or `harrix-swiss-knife-offline.exe`
+(PySide6 wizard; no Python on the target).
 
 <details>
 <summary>Code:</summary>
@@ -39,13 +40,13 @@ PowerShell (`install.bat` / `harrix-swiss-knife.ps1`).
 class OnBuildInstallZips(ActionBase):
 
     icon = "🚀"
-    title = "Build install zips"
+    title = "Build installer EXEs"
     cli_available = True
     cli_hint = "dev build-install-zips"
 
-    @ActionBase.handle_exceptions("build install zips")
+    @ActionBase.handle_exceptions("build installer EXEs")
     def execute(self, *args: Any, noninteractive: bool = False, **kwargs: Any) -> None:  # noqa: ARG002
-        """Run selected install-zip builder steps."""
+        """Run selected installer-EXE builder steps."""
         if sys.platform != "win32":
             self.add_line("❌ This action is only available on Windows.")
             if not noninteractive:
@@ -54,11 +55,7 @@ class OnBuildInstallZips(ActionBase):
 
         project_root = get_project_root()
         install_path = install_dir(project_root)
-        if not install_path.is_dir():
-            self.add_line(f"❌ install folder not found: {install_path}")
-            if not noninteractive:
-                self.show_result()
-            return
+        install_path.mkdir(parents=True, exist_ok=True)
 
         steps = self._resolve_steps(noninteractive=noninteractive, **kwargs)
         if steps is None:
@@ -82,7 +79,7 @@ class OnBuildInstallZips(ActionBase):
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
-    @ActionBase.handle_exceptions("build install zips thread")
+    @ActionBase.handle_exceptions("build installer EXEs thread")
     def in_thread(self) -> PipelineResult:
         """Run the builder in a worker thread; lines go to the usual output."""
         return run_pipeline(
@@ -92,11 +89,11 @@ class OnBuildInstallZips(ActionBase):
             log=self.add_line,
         )
 
-    @ActionBase.handle_exceptions("build install zips thread completion")
+    @ActionBase.handle_exceptions("build installer EXEs thread completion")
     def thread_after(self, result: Any) -> None:
         """Show toast and the result window after the worker finishes."""
         ok = isinstance(result, PipelineResult) and result.ok
-        self.show_toast("Install zips built" if ok else "Install zip build finished (see output)")
+        self.show_toast("Installer EXEs built" if ok else "Installer EXE build finished (see output)")
         self.show_result()
 
     def _resolve_steps(self, *, noninteractive: bool, **kwargs: Any) -> BuildSteps | None:
@@ -111,6 +108,7 @@ class OnBuildInstallZips(ActionBase):
                 skip_repos=bool(kwargs.get("skip_repos")),
                 skip_uv_cache=bool(kwargs.get("skip_uv_cache")),
                 no_zips=bool(kwargs.get("no_zips")),
+                no_exes=bool(kwargs.get("no_exes")),
                 no_open=bool(kwargs.get("no_open")),
                 clean_logs=bool(kwargs.get("clean_logs")),
             )
@@ -146,7 +144,7 @@ class OnBuildInstallZips(ActionBase):
 def execute(self, *args: Any, noninteractive: bool = False, **kwargs: Any) -> None
 ```
 
-Run selected install-zip builder steps.
+Run selected installer-EXE builder steps.
 
 <details>
 <summary>Code:</summary>
@@ -161,11 +159,7 @@ def execute(self, *args: Any, noninteractive: bool = False, **kwargs: Any) -> No
 
         project_root = get_project_root()
         install_path = install_dir(project_root)
-        if not install_path.is_dir():
-            self.add_line(f"❌ install folder not found: {install_path}")
-            if not noninteractive:
-                self.show_result()
-            return
+        install_path.mkdir(parents=True, exist_ok=True)
 
         steps = self._resolve_steps(noninteractive=noninteractive, **kwargs)
         if steps is None:
@@ -229,7 +223,7 @@ Show toast and the result window after the worker finishes.
 ```python
 def thread_after(self, result: Any) -> None:
         ok = isinstance(result, PipelineResult) and result.ok
-        self.show_toast("Install zips built" if ok else "Install zip build finished (see output)")
+        self.show_toast("Installer EXEs built" if ok else "Installer EXE build finished (see output)")
         self.show_result()
 ```
 

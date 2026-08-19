@@ -1,17 +1,22 @@
-"""Tests for the Python install-zip builder helpers."""
+"""Tests for the Python installer-EXE builder helpers."""
 
 from __future__ import annotations
 
 import zipfile
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 
 from harrix_swiss_knife.actions.common.install_zip_builder import (
     DEFAULT_STEP_LABELS,
+    OFFLINE_EXE_NAME,
     OFFLINE_ZIP_NAME,
+    ONLINE_EXCLUDE_DIRS,
+    ONLINE_EXE_NAME,
     ONLINE_ZIP_NAME,
     STEP_BINARIES,
+    STEP_BUILD_EXES,
     STEP_BUILD_ZIPS,
     STEP_INSTALLERS,
     STEP_OPEN,
@@ -19,7 +24,7 @@ from harrix_swiss_knife.actions.common.install_zip_builder import (
     STEP_UV_CACHE,
     STEP_WIPE,
     BuildSteps,
-    build_install_zips,
+    _copy_deps,
     cli_argv_for_steps,
     commit_stage_dir,
     install_dir,
@@ -29,6 +34,9 @@ from harrix_swiss_knife.actions.common.install_zip_builder import (
     uv_isolated_env,
     wipe_dependencies,
 )
+from harrix_swiss_knife.installer.pack_exes import build_payload_zips, pack_installer_exes
+from harrix_swiss_knife.installer.payload import append_overlay_zip, extract_overlay, read_overlay_bounds
+from harrix_swiss_knife.installer.wizard import detect_mode_from_argv
 
 
 def test_build_steps_from_labels_all_defaults() -> None:
@@ -43,8 +51,8 @@ def test_build_steps_from_labels_all_defaults() -> None:
     assert not steps.clean_logs
 
 
-def test_build_steps_zip_only() -> None:
-    steps = BuildSteps.from_labels([STEP_BUILD_ZIPS])
+def test_build_steps_exe_only() -> None:
+    steps = BuildSteps.from_labels([STEP_BUILD_EXES])
     assert not steps.wipe_dependencies
     assert not steps.binaries
     assert steps.build_zips
@@ -66,6 +74,13 @@ def test_steps_from_cli_flags_skip() -> None:
     assert steps.build_zips
 
 
+def test_steps_from_cli_flags_no_exes() -> None:
+    steps = steps_from_cli_flags(no_exes=True)
+    assert not steps.build_zips
+    steps2 = steps_from_cli_flags(no_zips=True)
+    assert not steps2.build_zips
+
+
 def test_cli_argv_for_steps_roundtrip() -> None:
     steps = BuildSteps(
         wipe_dependencies=False,
@@ -84,6 +99,12 @@ def test_cli_argv_for_steps_roundtrip() -> None:
     assert "--no-open" in flags
     assert "--clean-logs" in flags
     assert "--skip-binaries" not in flags
+
+
+def test_cli_argv_includes_no_exes_when_skipped() -> None:
+    steps = BuildSteps(build_zips=False)
+    flags = cli_argv_for_steps(steps)
+    assert "--no-exes" in flags
 
 
 def test_uv_isolated_env_drops_live_venv(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
@@ -147,8 +168,6 @@ def test_redundant_media_zip_names(tmp_path: Path) -> None:
 def _prepare_install_tree(root: Path) -> Path:
     install = root / "install"
     install.mkdir()
-    for name in ("install.bat", "install-with-log.ps1", "harrix-swiss-knife.ps1"):
-        (install / name).write_text(f"#{name}\n", encoding="utf-8")
     deps = install / "dependencies"
     deps.mkdir()
     (deps / "Git-latest-64-bit.exe").write_bytes(b"git")
@@ -167,17 +186,22 @@ def _prepare_install_tree(root: Path) -> Path:
     return install
 
 
-def test_build_install_zips_online_vs_offline_membership(tmp_path: Path) -> None:
+def test_payload_zips_online_vs_offline_membership(tmp_path: Path) -> None:
     _prepare_install_tree(tmp_path)
     lines: list[str] = []
-    online, offline = build_install_zips(tmp_path, lines.append)
-    assert online.name == ONLINE_ZIP_NAME
-    assert offline.name == OFFLINE_ZIP_NAME
+    omit = redundant_media_zip_names(tmp_path / "install" / "dependencies")
+    online, offline = build_payload_zips(
+        tmp_path,
+        lines.append,
+        copy_deps_fn=_copy_deps,
+        online_exclude_dirs=ONLINE_EXCLUDE_DIRS,
+        omit_files=omit,
+    )
+    assert online.name == ".payload-online.zip"
+    assert offline.name == ".payload-offline.zip"
 
     with zipfile.ZipFile(online, "r") as zf:
         names = set(zf.namelist())
-    assert "install.bat" in names
-    assert "harrix-swiss-knife.ps1" in names
     assert "dependencies/ffmpeg.exe" in names
     assert "dependencies/note.txt" in names
     assert "dependencies/Git-latest-64-bit.exe" in names
@@ -186,6 +210,8 @@ def test_build_install_zips_online_vs_offline_membership(tmp_path: Path) -> None
     assert not any(n.startswith("dependencies/uv-python-cache/") for n in names)
     assert "dependencies/windows-artifacts.zip" not in names
     assert "dependencies/download.log" not in names
+    assert "install.bat" not in names
+    assert "harrix-swiss-knife.ps1" not in names
 
     with zipfile.ZipFile(offline, "r") as zf:
         names = set(zf.namelist())
@@ -195,8 +221,32 @@ def test_build_install_zips_online_vs_offline_membership(tmp_path: Path) -> None
     assert "dependencies/windows-artifacts.zip" not in names
 
 
-def test_run_pipeline_zip_only(tmp_path: Path) -> None:
+def test_append_overlay_magic_trailer(tmp_path: Path) -> None:
+    stub = tmp_path / "stub.exe"
+    stub.write_bytes(b"STUBDATA")
+    zip_path = tmp_path / "payload.zip"
+    with zipfile.ZipFile(zip_path, "w") as zf:
+        zf.writestr("dependencies/marker.txt", "hello")
+    out = tmp_path / "online.exe"
+    append_overlay_zip(stub, zip_path, out)
+    bounds = read_overlay_bounds(out)
+    assert bounds is not None
+    _start, length = bounds
+    assert length == zip_path.stat().st_size
+    assert out.read_bytes()[:8] == b"STUBDATA"
+    dest = tmp_path / "extracted"
+    deps = extract_overlay(out, dest)
+    assert (deps / "marker.txt").read_text(encoding="utf-8") == "hello"
+
+
+def test_run_pipeline_exes_only(tmp_path: Path) -> None:
     _prepare_install_tree(tmp_path)
+    stub = tmp_path / "fake-stub.exe"
+    stub.write_bytes(b"FAKESTUB")
+
+    def _fake_stub(project_root: Path, log: object, *, force: bool = False) -> Path:  # noqa: ARG001
+        return stub
+
     steps = BuildSteps(
         wipe_dependencies=False,
         binaries=False,
@@ -207,11 +257,39 @@ def test_run_pipeline_zip_only(tmp_path: Path) -> None:
         open_install=False,
         clean_logs=False,
     )
-    result = run_pipeline(tmp_path, steps)
+    with patch("harrix_swiss_knife.installer.pack_exes.ensure_installer_stub", _fake_stub):
+        result = run_pipeline(tmp_path, steps)
     assert result.ok
     assert result.online_zip is not None
     assert result.offline_zip is not None
+    assert result.online_zip.name == ONLINE_EXE_NAME
+    assert result.offline_zip.name == OFFLINE_EXE_NAME
     assert result.online_zip.is_file()
+    assert read_overlay_bounds(result.online_zip) is not None
+    assert read_overlay_bounds(result.offline_zip) is not None
+
+
+def test_pack_installer_exes_names(tmp_path: Path) -> None:
+    install = tmp_path / "install"
+    install.mkdir()
+    stub = install / "stub.exe"
+    stub.write_bytes(b"STUB")
+    online_zip = install / "o.zip"
+    offline_zip = install / "f.zip"
+    with zipfile.ZipFile(online_zip, "w") as zf:
+        zf.writestr("dependencies/a.txt", "a")
+    with zipfile.ZipFile(offline_zip, "w") as zf:
+        zf.writestr("dependencies/b.txt", "b")
+    lines: list[str] = []
+    with patch(
+        "harrix_swiss_knife.installer.pack_exes.ensure_installer_stub",
+        lambda *_a, **_k: stub,
+    ):
+        online, offline = pack_installer_exes(tmp_path, online_zip, offline_zip, lines.append)
+    assert online.name == ONLINE_EXE_NAME
+    assert offline.name == OFFLINE_EXE_NAME
+    assert ONLINE_ZIP_NAME == ONLINE_EXE_NAME
+    assert OFFLINE_ZIP_NAME == OFFLINE_EXE_NAME
 
 
 def test_run_pipeline_no_steps(tmp_path: Path) -> None:
@@ -231,6 +309,7 @@ def test_default_labels_include_core_steps() -> None:
     assert STEP_REPOS in DEFAULT_STEP_LABELS
     assert STEP_UV_CACHE in DEFAULT_STEP_LABELS
     assert STEP_BUILD_ZIPS in DEFAULT_STEP_LABELS
+    assert STEP_BUILD_EXES in DEFAULT_STEP_LABELS
     assert STEP_OPEN in DEFAULT_STEP_LABELS
 
 
@@ -240,8 +319,14 @@ def test_default_labels_include_core_steps() -> None:
         (STEP_WIPE, "wipe_dependencies"),
         (STEP_BINARIES, "binaries"),
         (STEP_BUILD_ZIPS, "build_zips"),
+        (STEP_BUILD_EXES, "build_zips"),
     ],
 )
 def test_single_label_maps_attribute(label: str, attr: str) -> None:
     steps = BuildSteps.from_labels([label])
     assert getattr(steps, attr) is True
+
+
+def test_detect_mode_from_argv() -> None:
+    assert detect_mode_from_argv(["--offline"]) == "offline"
+    assert detect_mode_from_argv(["--online"]) == "online"
