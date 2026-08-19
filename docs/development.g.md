@@ -15,7 +15,7 @@ lang: en
   - [BotHub (Food / Finance AI) on restricted networks](#bothub-food--finance-ai-on-restricted-networks)
 - [📦 Building Windows install zip bundles](#-building-windows-install-zip-bundles)
   - [Before you start](#before-you-start)
-  - [Steps](#steps)
+  - [Steps (checkbox dialog / CLI flags)](#steps-checkbox-dialog--cli-flags)
 - [VS Code extension: Harrix Notes Explorer (HSK)](#vs-code-extension-harrix-notes-explorer-hsk)
   - [Format and check (Biome)](#format-and-check-biome)
   - [Install (local, copy folder)](#install-local-copy-folder)
@@ -71,27 +71,34 @@ Choose the AI backend with `"ai": { "provider": "bothub" }` (`openai`, `anthropi
 
 ## 📦 Building Windows install zip bundles
 
-Scripts live in `install\`. To refresh installer payloads and produce the distributable zips, run the **download/build steps** below in numeric order (`01` → `05`), or run `install\build-all.bat` once (tray: **Dev** → **Build install zips**, or `hsk dev build-install-zips`). Step **`06`** is optional log cleanup.
+The **builder** that fills `install\dependencies\` and writes the two distributable zips is Python (tray **Dev** → **Build install zips**, or `hsk dev build-install-zips`). The **payload** inside each zip stays PowerShell for a fresh PC with no Python: `install.bat`, `install-with-log.ps1`, `harrix-swiss-knife.ps1`.
 
 ### Before you start
 
-1. **Quit `harrix-swiss-knife` completely** (tray icon → exit, close any terminal running `main.py` from this repo’s `.venv`). While the app uses the project virtualenv, `uv sync` during cache refresh can fail with **Access is denied** when replacing DLLs under `.venv` (for example `matplotlib`). Step 4 (`download-uv-cache` / `build-all`) detects the running tray app, asks you to close it, waits for Enter, and retries.
+1. **Quit `harrix-swiss-knife` completely** before the **uv cache** step (tray → Exit, close any terminal running `main.py` from this repo’s `.venv`). While the app holds the project virtualenv, `uv sync --reinstall` can fail with **Access is denied**. From the tray action the pipeline opens a **new console**, so you can Exit safely after it starts; the console waits for Enter when the tray is still locking files.
 2. Ensure sibling repos exist next to this checkout when you snapshot sources or warm the uv cache: `harrix-pylib`, `harrix-pyssg` (same parent folder as `harrix-swiss-knife`).
-3. Some steps request **UAC elevation** (separate elevated PowerShell window).
-4. **Optional GitHub token** for steps 1–2 (and online installer downloads): copy `api-keys/github-token.example.txt` → `api-keys/github-token.txt` and paste a read-only PAT. Raises GitHub REST API limits from 60/hour per IP to 5000/hour per account (helps avoid HTTP 403 on shared networks). Env `GITHUB_TOKEN` also works; after UAC, prefer the file. Form fields (Public repositories read-only, no extra permissions): [`api-keys/README.md`](https://github.com/Harrix/harrix-swiss-knife/blob/main/api-keys/README.md#fine-grained-token-preferred).
+3. **Optional GitHub token** for media binaries and installer downloads: copy `api-keys/github-token.example.txt` → `api-keys/github-token.txt` and paste a read-only PAT. Raises GitHub REST API limits from 60/hour per IP to 5000/hour per account (helps avoid HTTP 403 on shared networks). Env `GITHUB_TOKEN` also works. Form fields: [`api-keys/README.md`](https://github.com/Harrix/harrix-swiss-knife/blob/main/api-keys/README.md#fine-grained-token-preferred).
 
-### Steps
+### Steps (checkbox dialog / CLI flags)
 
-| Step | Batch file                                        | Zip pipeline | Purpose                                                                                                                                           |
-| ---- | ------------------------------------------------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1    | `install\01_download-bundle-force-binaries.bat`   | Core         | Media binaries + fallback zips → `install\dependencies\` (**elevated**).                                                                          |
-| 2    | `install\02_download-bundle-force-installers.bat` | Core         | Installers (Git, Python, uv, VS Code) → `install\dependencies\` (**elevated**).                                                                   |
-| 3    | `install\03_download-repos.bat`                   | Offline kit  | `git archive` snapshots → `install\dependencies\repos\`.                                                                                          |
-| 4    | `install\04_download-uv-cache.bat`                | Offline kit  | Warm `install\dependencies\uv-cache\` (**quit `harrix-swiss-knife` first**).                                                                      |
-| 5    | `install\05_build-install-zips.bat`               | Core         | Writes `install-harrix-swiss-knife.zip` and `install-offline-harrix-swiss-knife.zip` into `install\`.                                             |
-| 6    | `install\06_clean-logs.bat`                       | Optional     | Logs only: `*.log` under `install\` and `install\dependencies\` (often **after** steps 1–5).                                                      |
+| Step | Tray checkbox / CLI | Purpose |
+| ---- | ------------------- | ------- |
+| Wipe | Wipe `install/dependencies` first (`--no-wipe` to skip) | Delete `install\dependencies\` so downloads rebuild from scratch. |
+| Binaries | Media binaries (`--skip-binaries`) | ffmpeg / avifenc / avifdec → `install\dependencies\`. |
+| Installers | Installers (`--skip-installers`) | Git, uv, VS Code installers → `install\dependencies\`. |
+| Repos | Repo snapshots (`--skip-repos`) | `git archive` → `install\dependencies\repos\`. |
+| uv cache | uv cache (`--skip-uv-cache`) | Warm `uv-python-cache\` and `uv-cache\` (**quit tray first**). |
+| Zips | Build zip archives (`--no-zips`) | Writes `install-harrix-swiss-knife.zip` and `install-offline-harrix-swiss-knife.zip`. |
+| Open | Open `install/` (`--no-open`) | Open Explorer on `install\` when finished. |
+| Logs | Clean `*.log` (`--clean-logs`) | Optional top-level logs under `install\` and `install\dependencies\`. |
 
-After step 5, pick up the two zip files from `install\` for distribution.
+All steps except log cleanup are on by default. Example partial rebuild:
+
+```text
+hsk dev build-install-zips --no-wipe --skip-binaries --skip-installers --skip-uv-cache
+```
+
+After zip packing, pick up the two zip files from `install\` for distribution.
 
 Both zips use the same entry point on the target: **`install.bat`** (mode **Auto**).
 
@@ -99,8 +106,6 @@ Both zips use the same entry point on the target: **`install.bat`** (mode **Auto
 - Offline zip → Auto resolves to Offline (repo snapshots + uv caches; copies ffmpeg/avif from `dependencies\`).
 
 Override with `install.bat -Mode Online` or `install.bat -Mode Offline` if needed.
-
-One-shot builder: `install\build-all.bat` (steps 1–5), **Dev** → **Build install zips**, or `hsk dev build-install-zips`. Those last two skip the final pause and open `install\` in Explorer when finished. Alternative for steps 1–4 only: `.\install\download-bundle.ps1`, then still run step 5 to build the zips.
 
 Personal private-data transfer is one tray action **Dev** → **Transfer private data** (choose Export or Import, then which parts), or CLI `hsk dev private-data export` / `hsk dev private-data import`. Parts are API keys and/or exercise catalog plus `fitness_img` (`{English name}.avif`) from `sqlite_fitness` (not `process`/`weight` workouts). Import upserts the catalog by English name and overlays missing/updated images next to existing files without wiping local-only rows, extra images, or workout history. Output defaults to `install\private-data-harrix-swiss-knife.zip` (gitignored). It is **not** part of the public online/offline install zip pipeline above. See `api-keys/README.md` (section Transfer to another machine).
 

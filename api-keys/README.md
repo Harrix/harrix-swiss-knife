@@ -37,13 +37,13 @@ Paths in `config.json` use the `snippet:api-keys/...` prefix; `harrix_pylib` loa
 
 ### GitHub token (optional)
 
-Used by Dev → **Download ffmpeg, avifenc, avifdec**, install bundle scripts (`install/download-bundle.ps1`, `install/harrix-swiss-knife.ps1`), and related GitHub API calls. Without a token, unauthenticated GitHub REST API is limited to **60 requests/hour per IP**; with a PAT, **5000/hour per account**. Asset zip downloads themselves are not counted in that API quota; the token mainly avoids HTTP 403 when resolving latest releases on shared networks.
+Used by Dev → **Download ffmpeg, avifenc, avifdec**, **Build install zips** (`hsk dev build-install-zips`), `install/harrix-swiss-knife.ps1`, and related GitHub API calls. Without a token, unauthenticated GitHub REST API is limited to **60 requests/hour per IP**; with a PAT, **5000/hour per account**. Asset zip downloads themselves are not counted in that API quota; the token mainly avoids HTTP 403 when resolving latest releases on shared networks.
 
 1. Copy `github-token.example.txt` → `github-token.txt`.
 2. Create a token (form fields below).
 3. Paste the token (one line, `github_pat_…` or `ghp_…`). Do not commit the real file.
 
-Override: set env `GITHUB_TOKEN` (takes precedence over the file). For elevated UAC downloads, prefer the file under `api-keys/` — session env is often missing after elevation.
+Override: set env `GITHUB_TOKEN` (takes precedence over the file).
 
 #### Fine-grained token (preferred)
 

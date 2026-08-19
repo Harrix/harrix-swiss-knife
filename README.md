@@ -225,20 +225,15 @@ Use this when the target machine has slow or blocked internet. Build the offline
 
 **On the builder machine** (with internet), from a checkout that already has sibling `harrix-pylib` / `harrix-pyssg`:
 
-1. Prefer the numbered pipeline in [`DEVELOPMENT.md`](https://github.com/Harrix/harrix-swiss-knife/blob/main/DEVELOPMENT.md#building-windows-install-zip-bundles) (`01` → `05`), **or** one-shot:
+1. Run **Dev** → **Build install zips** (checkbox steps; defaults refill `install\dependencies\` and write both zips), or:
 
-   ```powershell
-   .\install\download-bundle.ps1
+   ```text
+   hsk dev build-install-zips
    ```
 
-   That populates `install\dependencies\` (ignored by Git) with installers, media binaries, repo snapshots, and uv caches.
-2. Build distributable zips:
+   That populates `install\dependencies\` (ignored by Git) with installers, media binaries, repo snapshots, and uv caches, then writes the distributable zips. Quit the tray app when the console asks (uv cache). Details: [`DEVELOPMENT.md`](https://github.com/Harrix/harrix-swiss-knife/blob/main/DEVELOPMENT.md#building-windows-install-zip-bundles).
 
-   ```powershell
-   .\install\05_build-install-zips.bat
-   ```
-
-3. Copy `install\install-offline-harrix-swiss-knife.zip` to the target machine (or the whole prepared `install\` folder).
+2. Copy `install\install-offline-harrix-swiss-knife.zip` to the target machine (or the whole prepared `install\` folder).
 
 **On the target machine:**
 
@@ -386,7 +381,7 @@ Folder arguments are optional (default: current directory) for commands that tak
 - `hsk site pull-submodules` — pull `origin main` in each submodule of `path_site_repo`
 - `hsk site pull-submodules "D:/path/to/site-repo"` — same for an explicit site repo folder
 - `hsk dev action-usage` — show sorted action invocation statistics (unused first)
-- `hsk dev build-install-zips` — run `install/build-all.bat` (steps 1-5) and open `install/` (Windows)
+- `hsk dev build-install-zips` — Python install-zip pipeline (optional `--no-wipe`, `--skip-*`, `--no-open`; Windows)
 - `hsk dev install-cli` (global `hsk` on PATH via `uv tool install -e`)
 - `hsk dev private-data export` — pack API keys, `fitness_img`, and exercise/type catalog into `install/private-data-harrix-swiss-knife.zip` (workouts not included)
 - `hsk dev private-data export --zip PATH` — write the personal ZIP to `PATH` instead of the default under `install/`

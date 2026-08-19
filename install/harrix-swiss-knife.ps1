@@ -350,7 +350,7 @@ function Get-DependenciesDir {
 }
 
 function Get-DependenciesUvCacheDir {
-    # Returns path to install\dependencies\uv-cache when present (populated by download-bundle.ps1).
+    # Returns path to install\dependencies\uv-cache when present (populated by Build install zips).
     # When the cache is available, uv sync can be pointed at it via UV_CACHE_DIR for offline installs.
     $deps = Get-DependenciesDir
     if (-not $deps) { return $null }
@@ -360,7 +360,7 @@ function Get-DependenciesUvCacheDir {
 }
 
 function Get-DependenciesUvPythonCacheDir {
-    # Returns path to install\dependencies\uv-python-cache when present (populated by download-bundle.ps1).
+    # Returns path to install\dependencies\uv-python-cache when present (populated by Build install zips).
     # When available, uv python install uses UV_PYTHON_CACHE_DIR for offline managed CPython installs.
     $deps = Get-DependenciesDir
     if (-not $deps) { return $null }
@@ -490,7 +490,7 @@ function Ensure-UvManagedPython {
 
 function Get-DependenciesRepoSnapshot {
     # Returns path to install\dependencies\repos\<Name>.zip when present, otherwise $null.
-    # Snapshots are produced by download-bundle.ps1 -OnlyRepos via `git archive --format=zip HEAD`,
+    # Snapshots are produced by Build install zips (repo snapshots step) via `git archive --format=zip HEAD`,
     # so they contain tracked content of HEAD without .git history and without gitignored files.
     [CmdletBinding()]
     param(

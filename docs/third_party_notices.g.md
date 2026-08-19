@@ -17,7 +17,7 @@ This repository is licensed under the MIT license (see `LICENSE.md`), but during
 - [FFmpeg (`ffmpeg.exe`)](#ffmpeg-ffmpegexe)
 - [libavif tools (`avifenc.exe`, `avifdec.exe`)](#libavif-tools-avifencexe-avifdecexe)
 - [Online download vs offline bundle (`install/dependencies/`)](#online-download-vs-offline-bundle-installdependencies)
-- [Other third-party downloads used by the offline bundle script](#other-third-party-downloads-used-by-the-offline-bundle-script)
+- [Other third-party downloads used by the offline bundle builder](#other-third-party-downloads-used-by-the-offline-bundle-builder)
 - [Data sources / external services](#data-sources--external-services)
 
 </details>
@@ -52,9 +52,9 @@ This project supports an “offline bundle” workflow that may place installers
 - **Online download:** the scripts download binaries from the upstream release pages listed above.
 - **Offline bundle / redistribution:** if you copy and redistribute third-party binaries (for example, by distributing a prepared bundle), you may take on additional license compliance obligations required by those third-party licenses. Review the upstream license terms for each included binary.
 
-## Other third-party downloads used by the offline bundle script
+## Other third-party downloads used by the offline bundle builder
 
-The offline bundle helper script `install/download-bundle.ps1` may download installers/archives from these upstream sources:
+The Python install-zip builder (**Dev** → **Build install zips** / `hsk dev build-install-zips`) may download installers/archives from these upstream sources:
 
 - Git for Windows: `https://github.com/git-for-windows/git/releases`
 - Managed CPython (via `uv python install`): archives cached under `install/dependencies/uv-python-cache/` for offline installs; see [uv Python distributions](https://docs.astral.sh/uv/concepts/python-versions/)

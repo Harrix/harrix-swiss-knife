@@ -1,30 +1,32 @@
-"""Run `install/build-all.bat` and open the folder with generated zip archives."""
+"""Build online/offline install zip archives via a selectable Python pipeline."""
 
 from __future__ import annotations
 
-import subprocess
 import sys
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from harrix_swiss_knife.actions.common.base import ActionBase
+from harrix_swiss_knife.actions.common.install_zip_builder import (
+    ALL_STEP_LABELS,
+    DEFAULT_STEP_LABELS,
+    STEP_UV_CACHE,
+    BuildSteps,
+    install_dir,
+    run_pipeline,
+    spawn_pipeline_console,
+    steps_from_cli_flags,
+)
 from harrix_swiss_knife.paths import get_project_root
-
-if TYPE_CHECKING:
-    from pathlib import Path
-
-BUILD_ALL_BAT_NAME = "build-all.bat"
-BUILD_ALL_OPEN_FLAG = "/open"
-INSTALL_DIR_NAME = "install"
 
 
 class OnBuildInstallZips(ActionBase):
-    """Run `install/build-all.bat` and open `install/` with the zip archives.
+    """Build `install/` zip bundles with selectable steps.
 
-    Runs zip pipeline steps 1-5 (UAC on the first two). After the script
-    finishes, Explorer opens `install/` (`install-harrix-swiss-knife.zip` and
-    `install-offline-harrix-swiss-knife.zip`). If step 4 asks to close this
-    app, Exit is safe: the console window keeps running and still opens the
-    folder.
+    Shows checkboxes for wipe, binaries, installers, repo snapshots, uv cache,
+    zip packing, open folder, and log cleanup. When run from the tray, the
+    pipeline starts in a **new console** so you can Exit this app if uv cache
+    needs to replace `.venv` files. Target-PC payload stays PowerShell
+    (`install.bat` / `harrix-swiss-knife.ps1`).
 
     """
 
@@ -35,79 +37,108 @@ class OnBuildInstallZips(ActionBase):
 
     @ActionBase.handle_exceptions("build install zips")
     def execute(self, *args: Any, noninteractive: bool = False, **kwargs: Any) -> None:  # noqa: ARG002
-        """Run `install/build-all.bat` then open `install/`."""
+        """Run selected install-zip builder steps."""
         if sys.platform != "win32":
             self.add_line("❌ This action is only available on Windows.")
             if not noninteractive:
                 self.show_result()
             return
 
-        install_dir = install_folder(get_project_root())
-        bat_path = install_dir / BUILD_ALL_BAT_NAME
-        if not bat_path.is_file():
-            self.add_line(f"❌ `{BUILD_ALL_BAT_NAME}` not found: {bat_path}")
+        project_root = get_project_root()
+        install_path = install_dir(project_root)
+        if not install_path.is_dir():
+            self.add_line(f"❌ install folder not found: {install_path}")
             if not noninteractive:
                 self.show_result()
             return
 
-        self._install_dir = install_dir
-        self.add_line(f"$ call {BUILD_ALL_BAT_NAME} {BUILD_ALL_OPEN_FLAG}")
-        self.add_line(f"Working directory: {install_dir}")
-        if noninteractive:
-            self._run_build_all(new_console=False)
+        steps = self._resolve_steps(noninteractive=noninteractive, **kwargs)
+        if steps is None:
+            self.add_line("Cancelled.")
+            if not noninteractive:
+                self.show_result()
+            return
+        if not steps.any_work() and not steps.open_install:
+            self.add_line("❌ No steps selected.")
+            if not noninteractive:
+                self.show_result()
             return
 
-        self.start_thread(self.in_thread, self.thread_after, self.title)
+        self._steps = steps
+        self._project_root = project_root
+        self._noninteractive = noninteractive
 
-    @ActionBase.handle_exceptions("build install zips thread")
-    def in_thread(self) -> int:
-        """Run the zip pipeline in a visible console window."""
-        return self._run_build_all(new_console=True)
-
-    @ActionBase.handle_exceptions("build install zips completion")
-    def thread_after(self, result: Any) -> None:
-        """Show toast and result after the zip pipeline finishes."""
-        code = result if isinstance(result, int) else getattr(self, "_build_exit_code", 1)
-        if code == 0:
-            self.show_toast("Install zips built")
-        else:
-            self.show_toast("Install zip build finished (see output)")
-        self.show_result()
-
-    def _run_build_all(self, *, new_console: bool) -> int:
-        """Run `build-all.bat /open` and return its exit code."""
-        install_dir = self._install_dir
-        creationflags = 0
-        if new_console:
-            creationflags = subprocess.CREATE_NEW_CONSOLE | subprocess.CREATE_NEW_PROCESS_GROUP
-        try:
-            process = subprocess.run(
-                build_all_cmd(),
-                cwd=str(install_dir),
-                check=False,
-                creationflags=creationflags,
-                shell=False,
+        if steps.uv_cache and not noninteractive:
+            self.add_line(
+                "uv cache is selected: the build runs in a new console. "
+                "You can Exit this app if prompted about `.venv` locks."
             )
+
+        if noninteractive:
+            self._run_in_process(interactive=False)
+            return
+
+        # Tray: always use a new console so Exit is safe during uv cache.
+        self._spawn_console()
+
+    def _resolve_steps(self, *, noninteractive: bool, **kwargs: Any) -> BuildSteps | None:
+        if noninteractive or kwargs.get("steps") is not None:
+            raw = kwargs.get("steps")
+            if isinstance(raw, BuildSteps):
+                return raw
+            return steps_from_cli_flags(
+                no_wipe=bool(kwargs.get("no_wipe")),
+                skip_binaries=bool(kwargs.get("skip_binaries")),
+                skip_installers=bool(kwargs.get("skip_installers")),
+                skip_repos=bool(kwargs.get("skip_repos")),
+                skip_uv_cache=bool(kwargs.get("skip_uv_cache")),
+                no_zips=bool(kwargs.get("no_zips")),
+                no_open=bool(kwargs.get("no_open")),
+                clean_logs=bool(kwargs.get("clean_logs")),
+            )
+
+        label = (
+            "Select builder steps. "
+            f"If «{STEP_UV_CACHE}» is on, quit this app when the console asks "
+            "(uv cannot replace `.venv` while the tray holds it)."
+        )
+        selected = self.get_checkbox_selection(
+            self.title,
+            label,
+            list(ALL_STEP_LABELS),
+            list(DEFAULT_STEP_LABELS),
+        )
+        if selected is None:
+            return None
+        return BuildSteps.from_labels(selected)
+
+    def _run_in_process(self, *, interactive: bool) -> None:
+        result = run_pipeline(
+            self._project_root,
+            self._steps,
+            config=dict(self.config),
+            interactive=interactive,
+            log=self.add_line,
+        )
+        if not self._noninteractive:
+            if result.ok:
+                self.show_toast("Install zips built")
+            else:
+                self.show_toast("Install zip build finished (see output)")
+            self.show_result()
+        elif not result.ok:
+            # CLI failure is detected via ❌ lines in result_lines.
+            pass
+
+    def _spawn_console(self) -> None:
+        try:
+            proc = spawn_pipeline_console(self._project_root, self._steps)
         except OSError as exc:
-            self.add_line(f"❌ Failed to start `{BUILD_ALL_BAT_NAME}`: {exc}")
-            self._build_exit_code = 1
-            return 1
-
-        code = int(process.returncode)
-        self._build_exit_code = code
-        if code == 0:
-            self.add_line(f"✅ `{BUILD_ALL_BAT_NAME}` finished. Opened `{install_dir}`.")
-        else:
-            self.add_line(f"❌ `{BUILD_ALL_BAT_NAME}` stopped with exit code {code}.")
-            self.add_line(f"Opened `{install_dir}`.")
-        return code
-
-
-def build_all_cmd() -> list[str]:
-    """Return argv that runs `build-all.bat /open` in `install/` (cwd)."""
-    return ["cmd.exe", "/c", "call", BUILD_ALL_BAT_NAME, BUILD_ALL_OPEN_FLAG]
-
-
-def install_folder(project_root: Path) -> Path:
-    """Return the `install/` directory under the project root."""
-    return project_root / INSTALL_DIR_NAME
+            self.add_line(f"❌ Failed to start console pipeline: {exc}")
+            self.show_result()
+            return
+        self.add_line(f"$ python -c <install_zip_builder> (PID {proc.pid})")
+        self.add_line(f"Working directory: {self._project_root}")
+        self.add_line("Pipeline continues in the new console window.")
+        self.show_toast("Install zip build started in console")
+        self.show_result()

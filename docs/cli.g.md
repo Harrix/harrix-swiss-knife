@@ -224,18 +224,38 @@ def dev_action_usage() -> None:
 ## 🔧 Function `dev_build_install_zips`
 
 ```python
-def dev_build_install_zips() -> None
+def dev_build_install_zips(*, no_wipe: bool, skip_binaries: bool, skip_installers: bool, skip_repos: bool, skip_uv_cache: bool, no_zips: bool, no_open: bool, clean_logs: bool) -> None
 ```
 
-Run `install/build-all.bat` (steps 1–5) and open `install/` (Windows).
+Run the Python install-zip pipeline (Windows) and optionally open `install/`.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def dev_build_install_zips() -> None:
+def dev_build_install_zips(
+    *,
+    no_wipe: bool,
+    skip_binaries: bool,
+    skip_installers: bool,
+    skip_repos: bool,
+    skip_uv_cache: bool,
+    no_zips: bool,
+    no_open: bool,
+    clean_logs: bool,
+) -> None:
     action = OnBuildInstallZips()
-    action(noninteractive=True)
+    action(
+        noninteractive=True,
+        no_wipe=no_wipe,
+        skip_binaries=skip_binaries,
+        skip_installers=skip_installers,
+        skip_repos=skip_repos,
+        skip_uv_cache=skip_uv_cache,
+        no_zips=no_zips,
+        no_open=no_open,
+        clean_logs=clean_logs,
+    )
     _finish_timed_action(action)
 ```
 

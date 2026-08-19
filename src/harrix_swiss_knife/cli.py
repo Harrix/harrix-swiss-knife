@@ -138,10 +138,38 @@ def dev_action_usage() -> None:
 
 
 @dev_group.command("build-install-zips")
-def dev_build_install_zips() -> None:
-    """Run `install/build-all.bat` (steps 1-5) and open `install/` (Windows)."""
+@click.option("--no-wipe", is_flag=True, help="Do not delete install/dependencies first.")
+@click.option("--skip-binaries", is_flag=True, help="Skip media binaries download/extract.")
+@click.option("--skip-installers", is_flag=True, help="Skip Git/uv/VS Code installer downloads.")
+@click.option("--skip-repos", is_flag=True, help="Skip git archive repo snapshots.")
+@click.option("--skip-uv-cache", is_flag=True, help="Skip uv-python-cache / uv-cache population.")
+@click.option("--no-zips", is_flag=True, help="Skip building the two install zip archives.")
+@click.option("--no-open", is_flag=True, help="Do not open install/ when finished.")
+@click.option("--clean-logs", is_flag=True, help="Remove *.log under install/ and install/dependencies/.")
+def dev_build_install_zips(
+    *,
+    no_wipe: bool,
+    skip_binaries: bool,
+    skip_installers: bool,
+    skip_repos: bool,
+    skip_uv_cache: bool,
+    no_zips: bool,
+    no_open: bool,
+    clean_logs: bool,
+) -> None:
+    """Run the Python install-zip pipeline (Windows) and optionally open `install/`."""
     action = OnBuildInstallZips()
-    action(noninteractive=True)
+    action(
+        noninteractive=True,
+        no_wipe=no_wipe,
+        skip_binaries=skip_binaries,
+        skip_installers=skip_installers,
+        skip_repos=skip_repos,
+        skip_uv_cache=skip_uv_cache,
+        no_zips=no_zips,
+        no_open=no_open,
+        clean_logs=clean_logs,
+    )
     _finish_timed_action(action)
 
 
