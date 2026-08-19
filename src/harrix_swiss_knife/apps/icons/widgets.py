@@ -511,12 +511,6 @@ class DraggableIconList(QListWidget):
         set_category_action = menu.addAction("🏷️ Set as category icon")
         is_favorite = str(getattr(family, "id", "")).strip() in self._favorite_family_ids
         favorite_action = menu.addAction("⭐ Remove from favorites" if is_favorite else "⭐ Add to favorites")
-        license_name, license_url = family_license_info(family, self._repo_root)
-        license_action = None
-        if license_name:
-            license_action = menu.addAction(f"License: {license_name}")
-            if not is_openable_license_url(license_url):
-                license_action.setEnabled(False)
 
         is_trademark = getattr(family, "trademark", False)
         toggle_trademark_text = "Remove trademark warning" if is_trademark else "Add trademark warning"
@@ -530,6 +524,13 @@ class DraggableIconList(QListWidget):
             reveal_source_action = menu.addAction("📂 Reveal source in File Explorer")
             open_source_action = menu.addAction("🎨 Open source")
             menu.addSeparator()
+
+        license_name, license_url = family_license_info(family, self._repo_root)
+        license_action = None
+        if license_name:
+            license_action = menu.addAction(f"📜 License: {license_name}")
+            if not is_openable_license_url(license_url):
+                license_action.setEnabled(False)
 
         delete_action = menu.addAction("🗑️ Delete")
         chosen = menu.exec_(self.mapToGlobal(pos))

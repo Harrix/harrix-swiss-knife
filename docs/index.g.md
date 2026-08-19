@@ -198,7 +198,7 @@ irm https://raw.githubusercontent.com/Harrix/harrix-swiss-knife/main/install/har
 .\install\install.bat
 ```
 
-Or double-click `install\install.bat`. Mode defaults to **Auto** (from a git checkout → Online). Override with `install.bat -Mode Online` or `install.bat -Mode Offline`. The elevated window asks **[I] Install missing tools** (default) or **[S] Skip tool installs** if Git / uv / Python / an editor are already installed but not detected. Skip without a prompt: `install.bat -SkipPrerequisites`. For other switches (`-InstallRoot`, …), open PowerShell and run `harrix-swiss-knife.ps1` with `-File`.
+Or double-click `install\install.bat`. Mode defaults to **Auto** (from a Git checkout → Online). Override with `install.bat -Mode Online` or `install.bat -Mode Offline`. The elevated window asks **[I] Install missing tools** (default) or **[S] Skip tool installs** if Git / uv / Python / an editor are already installed but not detected. Skip without a prompt: `install.bat -SkipPrerequisites`. For other switches (`-InstallRoot`, …), open PowerShell and run `harrix-swiss-knife.ps1` with `-File`.
 
 **How to run the `.ps1` file** if execution policy blocks scripts:
 
