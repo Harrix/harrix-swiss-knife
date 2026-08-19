@@ -75,21 +75,32 @@ function New-DirIfMissing([string] $Path) {
     }
 }
 
+function Test-PathPrefix([string] $Path, [string] $Prefix) {
+    # Avoid String.StartsWith(StringComparison): Windows PowerShell 5.1 can throw
+    # "Argument types do not match" by binding the bool/CultureInfo overload.
+    if ([string]::IsNullOrWhiteSpace($Path) -or [string]::IsNullOrWhiteSpace($Prefix)) {
+        return $false
+    }
+    return $Path.ToLowerInvariant().StartsWith($Prefix.ToLowerInvariant())
+}
+
 function Get-HarrixSwissKnifeProcesses([string] $RepoRoot) {
-    $hits = New-Object System.Collections.Generic.List[object]
+    $hits = @()
     $seen = @{}
     $venvScripts = Join-Path $RepoRoot ".venv\Scripts"
+    $venvFull = $null
+    if (Test-Path -LiteralPath $venvScripts) {
+        $venvFull = [string](Resolve-Path -LiteralPath $venvScripts).Path
+    }
     foreach ($name in @("pythonw", "python")) {
         foreach ($p in @(Get-Process -Name $name -ErrorAction SilentlyContinue)) {
             $path = $null
             try { $path = [string]$p.Path } catch { }
-            if ($path -and (Test-Path -LiteralPath $venvScripts)) {
-                $venvFull = (Resolve-Path -LiteralPath $venvScripts).Path
-                if ($path.StartsWith($venvFull, [System.StringComparison]::OrdinalIgnoreCase)) {
-                    if (-not $seen.ContainsKey($p.Id)) {
-                        $seen[$p.Id] = $true
-                        $hits.Add($p) | Out-Null
-                    }
+            if ($venvFull -and (Test-PathPrefix -Path $path -Prefix $venvFull)) {
+                $id = [int]$p.Id
+                if (-not $seen.ContainsKey($id)) {
+                    $seen[$id] = $true
+                    $hits += $p
                 }
             }
         }
@@ -102,10 +113,13 @@ function Get-HarrixSwissKnifeProcesses([string] $RepoRoot) {
                 ($_.CommandLine -match 'harrix_swiss_knife[\\/]+main\.py')
             })
         foreach ($w in $wmi) {
-            $proc = Get-Process -Id $w.ProcessId -ErrorAction SilentlyContinue
-            if ($proc -and -not $seen.ContainsKey($proc.Id)) {
-                $seen[$proc.Id] = $true
-                $hits.Add($proc) | Out-Null
+            $proc = Get-Process -Id ([int]$w.ProcessId) -ErrorAction SilentlyContinue
+            if ($proc) {
+                $id = [int]$proc.Id
+                if (-not $seen.ContainsKey($id)) {
+                    $seen[$id] = $true
+                    $hits += $proc
+                }
             }
         }
     }
