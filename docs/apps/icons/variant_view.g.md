@@ -16,6 +16,7 @@ lang: en
 - [🔧 Function `build_grid_entries`](#-function-build_grid_entries)
 - [🔧 Function `classify_variant_kind`](#-function-classify_variant_kind)
 - [🔧 Function `collect_icon_detail_preview_paths`](#-function-collect_icon_detail_preview_paths)
+- [🔧 Function `view_mode_examples`](#-function-view_mode_examples)
 
 </details>
 
@@ -219,6 +220,52 @@ def collect_icon_detail_preview_paths(
     selected = Path(selected_path)
     add(selected.name, selected if selected.is_file() else None)
     return result
+```
+
+</details>
+
+## 🔧 Function `view_mode_examples`
+
+```python
+def view_mode_examples(families: list[IconFamily], repo_root: Path) -> dict[str, tuple[IconFamily, Path]]
+```
+
+Return one existing file per View mode for the open project.
+
+Picks the first family (catalog order) that has a real file for that mode.
+`All variants` uses the first variant file, falling back to Featured.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def view_mode_examples(
+    families: list[IconFamily],
+    repo_root: Path,
+) -> dict[str, tuple[IconFamily, Path]]:
+    wanted = set(available_variant_view_modes(families))
+    found: dict[str, tuple[IconFamily, Path]] = {}
+    for family in families:
+        if MODE_FEATURED in wanted and MODE_FEATURED not in found:
+            featured = _example_featured_path(family, repo_root)
+            if featured is not None:
+                found[MODE_FEATURED] = (family, featured)
+        for variant in family.variants:
+            kind = classify_variant_kind(variant.name)
+            if kind not in wanted or kind in found:
+                continue
+            path = variant.absolute_path(repo_root, family.folder)
+            if path.is_file():
+                found[kind] = (family, path)
+        if MODE_ALL in wanted and MODE_ALL not in found and family.variants:
+            path = family.variants[0].absolute_path(repo_root, family.folder)
+            if path.is_file():
+                found[MODE_ALL] = (family, path)
+        if wanted <= found.keys():
+            break
+    if MODE_ALL in wanted and MODE_ALL not in found and MODE_FEATURED in found:
+        found[MODE_ALL] = found[MODE_FEATURED]
+    return {mode: found[mode] for mode in wanted if mode in found}
 ```
 
 </details>

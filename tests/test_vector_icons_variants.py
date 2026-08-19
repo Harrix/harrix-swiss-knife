@@ -22,6 +22,7 @@ from harrix_swiss_knife.apps.icons.main import KeyValueTableDialog
 from harrix_swiss_knife.apps.icons.trademark_update import TRADEMARK_WARNING, update_trademark_files
 from harrix_swiss_knife.apps.icons.variant_view import (
     MODE_ALL,
+    MODE_BLACK,
     MODE_COLOR,
     MODE_FEATURED,
     MODE_LINE_16,
@@ -29,6 +30,7 @@ from harrix_swiss_knife.apps.icons.variant_view import (
     GridEntry,
     available_variant_view_modes,
     collect_icon_detail_preview_paths,
+    view_mode_examples,
 )
 from harrix_swiss_knife.apps.icons.widgets import (
     DraggableIconList,
@@ -444,6 +446,47 @@ def test_available_variant_view_modes_hides_missing_kinds() -> None:
 def test_available_variant_view_modes_includes_line_kind() -> None:
     family = _family_with_variants("symbol__ok", ["symbol__ok_line-16"])
     assert available_variant_view_modes([family]) == (MODE_FEATURED, MODE_LINE_16, MODE_ALL)
+
+
+def test_view_mode_examples_use_first_existing_file_per_kind(tmp_path: Path) -> None:
+    first_featured = tmp_path / "a" / "featured-image.svg"
+    first_color = tmp_path / "a" / "img" / "alpha__one.svg"
+    first_white = tmp_path / "a" / "img" / "alpha__one_white.svg"
+    later_white = tmp_path / "b" / "img" / "beta__two_white.svg"
+    _write_svg(first_featured)
+    _write_svg(first_color)
+    _write_svg(first_white)
+    _write_svg(later_white)
+    first = IconFamily(
+        id="alpha__one",
+        title="Alpha",
+        categories=[],
+        tags=[],
+        folder="a",
+        featured="featured-image.svg",
+        featured_hash="",
+        variants=[
+            IconVariant(file="img/alpha__one.svg", name="alpha__one", hash=""),
+            IconVariant(file="img/alpha__one_white.svg", name="alpha__one_white", hash=""),
+        ],
+    )
+    later = IconFamily(
+        id="beta__two",
+        title="Beta",
+        categories=[],
+        tags=[],
+        folder="b",
+        featured="featured-image.svg",
+        featured_hash="",
+        variants=[IconVariant(file="img/beta__two_white.svg", name="beta__two_white", hash="")],
+    )
+    examples = view_mode_examples([first, later], tmp_path)
+    assert examples[MODE_FEATURED][0].id == "alpha__one"
+    assert examples[MODE_FEATURED][1] == first_featured
+    assert examples[MODE_COLOR][1] == first_color
+    assert examples[MODE_WHITE][1] == first_white
+    assert examples[MODE_ALL][1] == first_color
+    assert MODE_BLACK not in examples
 
 
 def test_collect_icon_detail_preview_paths(tmp_path: Path) -> None:

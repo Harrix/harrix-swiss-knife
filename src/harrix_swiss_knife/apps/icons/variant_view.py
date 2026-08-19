@@ -183,6 +183,51 @@ def collect_icon_detail_preview_paths(
     return result
 
 
+def view_mode_examples(
+    families: list[IconFamily],
+    repo_root: Path,
+) -> dict[str, tuple[IconFamily, Path]]:
+    """Return one existing file per View mode for the open project.
+
+    Picks the first family (catalog order) that has a real file for that mode.
+    `All variants` uses the first variant file, falling back to Featured.
+
+    """
+    wanted = set(available_variant_view_modes(families))
+    found: dict[str, tuple[IconFamily, Path]] = {}
+    for family in families:
+        if MODE_FEATURED in wanted and MODE_FEATURED not in found:
+            featured = _example_featured_path(family, repo_root)
+            if featured is not None:
+                found[MODE_FEATURED] = (family, featured)
+        for variant in family.variants:
+            kind = classify_variant_kind(variant.name)
+            if kind not in wanted or kind in found:
+                continue
+            path = variant.absolute_path(repo_root, family.folder)
+            if path.is_file():
+                found[kind] = (family, path)
+        if MODE_ALL in wanted and MODE_ALL not in found and family.variants:
+            path = family.variants[0].absolute_path(repo_root, family.folder)
+            if path.is_file():
+                found[MODE_ALL] = (family, path)
+        if wanted <= found.keys():
+            break
+    if MODE_ALL in wanted and MODE_ALL not in found and MODE_FEATURED in found:
+        found[MODE_ALL] = found[MODE_FEATURED]
+    return {mode: found[mode] for mode in wanted if mode in found}
+
+
+def _example_featured_path(family: IconFamily, repo_root: Path) -> Path | None:
+    path = family.featured_path(repo_root)
+    if path is not None:
+        return path
+    if not family.variants:
+        return None
+    fallback = family.variants[0].absolute_path(repo_root, family.folder)
+    return fallback if fallback.is_file() else None
+
+
 def _featured_entry(family: IconFamily, repo_root: Path, *, is_fallback: bool = False) -> GridEntry | None:
     path = family.featured_path(repo_root)
     if path is None and family.variants:

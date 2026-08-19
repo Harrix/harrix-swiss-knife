@@ -231,6 +231,8 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._default_category_family_ids: dict[str, str] = {}
         self._variant_view_mode = MODE_FEATURED
         self._variant_pixmaps: dict[str, QPixmap] = {}
+        self._view_mode_examples: dict[str, tuple[IconFamily, Path]] = {}
+        self._view_combo_signature: tuple[str, ...] = ()
         self._load_progress_toast: toast_progress_notification.ToastProgressNotification | None = None
         self._catalog_load_thread: QThread | None = None
         self._catalog_load_worker: CatalogLoadWorker | None = None
@@ -383,7 +385,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
             self.count_label.setText("0 icons")
             self._grid_entries = []
             self._loaded_rows = set()
-            self._sync_variant_view_combo([])
+            self._sync_variant_view_combo()
             return
         selected_id = self._selected_family_id
         query = self.search_edit.text()
@@ -394,11 +396,6 @@ class MainWindow(QMainWindow, AppWindowMixin):
         )
         if is_favorites_category(category):
             category = None
-        scope = self._catalog.filter_icons(category=category, folder=folder, query="")
-        if self._nav_source == "category" and is_favorites_category(self._current_category):
-            by_id = {family.id: family for family in scope}
-            scope = [by_id[family_id] for family_id in self._favorite_ids if family_id in by_id]
-        self._sync_variant_view_combo(scope)
         families = self._catalog.filter_icons(
             category=category,
             folder=folder,
@@ -491,6 +488,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
             self._rebuild_folder_menus()
             self._sync_add_vector_menu_title()
         self._sync_sidebar_source()
+        self._sync_variant_view_combo()
         self._apply_filters()
         self._close_load_progress_toast()
         self._refresh_category_icons()
@@ -559,7 +557,8 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._variant_view_label = QLabel("View")
         toolbar.addWidget(self._variant_view_label)
         self.variant_view_combo = QComboBox()
-        self.variant_view_combo.setMinimumWidth(220)
+        self.variant_view_combo.setMinimumWidth(260)
+        self.variant_view_combo.setIconSize(QSize(VIEW_COMBO_ICON_SIZE, VIEW_COMBO_ICON_SIZE))
         for mode_id, label in VARIANT_VIEW_MODES:
             self.variant_view_combo.addItem(label, mode_id)
         self.variant_view_combo.setCurrentIndex(0)
@@ -832,6 +831,9 @@ class MainWindow(QMainWindow, AppWindowMixin):
         category_ids = set(self._category_icons.values()) | set(self._default_category_family_ids.values())
         if category_ids & families:
             self._refresh_category_icons()
+        example_ids = {family.id for family, _path in self._view_mode_examples.values()}
+        if example_ids & families:
+            self._refresh_variant_view_icons()
 
     @staticmethod
     def _folder_display_name(path: Path) -> str:
@@ -1765,6 +1767,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self._flush_thumb_updates()
         self._hide_thumb_status_progress()
         self._refresh_category_icons()
+        self._refresh_variant_view_icons()
         if updated <= 0:
             return
         total = len(self._catalog.icons) if self._catalog else 0
@@ -1969,7 +1972,9 @@ class MainWindow(QMainWindow, AppWindowMixin):
         image = render_icon_to_image(path, _DETAILS_PREVIEW_SIZE)
         if image is None:
             return None
-        return QPixmap.fromImage(image)
+        pixmap = QPixmap.fromImage(image)
+        self._cache_pixmap(self._variant_pixmaps, str(path), pixmap)
+        return pixmap
 
     def _prime_pixmaps_from_cache(self) -> None:
         if self._catalog is None:
@@ -2012,6 +2017,16 @@ class MainWindow(QMainWindow, AppWindowMixin):
                 item.setIcon(QIcon(":/assets/logo.svg"))
                 continue
             item.setIcon(self._category_pixmap_icon(name))
+
+    def _refresh_variant_view_icons(self) -> None:
+        """Update example icons already shown in the View combobox."""
+        if not hasattr(self, "variant_view_combo"):
+            return
+        for index in range(self.variant_view_combo.count()):
+            mode = self.variant_view_combo.itemData(index)
+            if not isinstance(mode, str):
+                continue
+            self.variant_view_combo.setItemIcon(index, self._variant_view_mode_icon(mode))
 
     def _refresh_viewport_pixmaps(self, *, force_families: set[str] | None = None) -> None:
         """Load thumbnails for tiles near the viewport and drop the ones scrolled far away."""
@@ -2383,24 +2398,40 @@ class MainWindow(QMainWindow, AppWindowMixin):
         else:
             self._nav_source = None
 
-    def _sync_variant_view_combo(self, families: list[IconFamily]) -> None:
-        """Show only View modes that exist in the current folder or category."""
+    def _sync_variant_view_combo(self) -> None:
+        """Show View modes for the open project, with one example icon per item."""
         if not hasattr(self, "variant_view_combo"):
             return
+        families = list(self._catalog.icons) if self._catalog is not None else []
         available = available_variant_view_modes(families)
+        examples = view_mode_examples(families, self._repo_root) if self._repo_root is not None and families else {}
+        signature = available + tuple(
+            f"{mode}:{path}" for mode, (_family, path) in sorted(examples.items(), key=lambda item: item[0])
+        )
         if self._variant_view_mode not in available:
             self._variant_view_mode = MODE_FEATURED
         only_featured = available == (MODE_FEATURED,)
         self._variant_view_label.setVisible(not only_featured)
         self.variant_view_combo.setVisible(not only_featured)
         if only_featured:
+            self._view_mode_examples = {}
+            self._view_combo_signature = signature
             return
+        if signature == self._view_combo_signature and self.variant_view_combo.count() == len(available):
+            self._refresh_variant_view_icons()
+            return
+        self._view_mode_examples = examples
+        self._view_combo_signature = signature
         labels = dict(VARIANT_VIEW_MODES)
         self.variant_view_combo.blockSignals(True)  # noqa: FBT003
         self.variant_view_combo.clear()
         selected = 0
         for mode_id in available:
-            self.variant_view_combo.addItem(labels.get(mode_id, mode_id), mode_id)
+            self.variant_view_combo.addItem(
+                self._variant_view_mode_icon(mode_id),
+                labels.get(mode_id, mode_id),
+                mode_id,
+            )
             if mode_id == self._variant_view_mode:
                 selected = self.variant_view_combo.count() - 1
         self.variant_view_combo.setCurrentIndex(selected)
@@ -2461,6 +2492,24 @@ class MainWindow(QMainWindow, AppWindowMixin):
     @staticmethod
     def _variant_thumb_size(icon_size: int) -> int:
         return max(ICON_SIZE_MIN, min(icon_size, (icon_size * 3) // 4 or icon_size))
+
+    def _variant_view_mode_icon(self, mode_id: str) -> QIcon:
+        """Return the example thumbnail for one View combobox item."""
+        example = self._view_mode_examples.get(mode_id)
+        if example is None:
+            return QIcon()
+        family, path = example
+        pixmap = self._preview_pixmap_for_path(family, path)
+        if pixmap is None or pixmap.isNull():
+            return QIcon(self._placeholder)
+        return QIcon(
+            pixmap.scaled(
+                VIEW_COMBO_ICON_SIZE,
+                VIEW_COMBO_ICON_SIZE,
+                Qt.AspectRatioMode.KeepAspectRatio,
+                Qt.TransformationMode.SmoothTransformation,
+            ),
+        )
 
     def _warn_source_not_found(self, family: object, svg_path: str) -> None:
         if not isinstance(family, IconFamily) or self._repo_root is None:
@@ -2544,6 +2593,8 @@ def __init__(self, *, hide_on_close: bool = False) -> None:
         self._default_category_family_ids: dict[str, str] = {}
         self._variant_view_mode = MODE_FEATURED
         self._variant_pixmaps: dict[str, QPixmap] = {}
+        self._view_mode_examples: dict[str, tuple[IconFamily, Path]] = {}
+        self._view_combo_signature: tuple[str, ...] = ()
         self._load_progress_toast: toast_progress_notification.ToastProgressNotification | None = None
         self._catalog_load_thread: QThread | None = None
         self._catalog_load_worker: CatalogLoadWorker | None = None
