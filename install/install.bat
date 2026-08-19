@@ -5,7 +5,8 @@ REM   install.bat
 REM   install.bat -Mode Offline
 REM   install.bat -Mode Online
 REM   install.bat -SkipPrerequisites
-REM The elevated window asks whether to install Git/uv/Python/editor, or skip.
+REM The first window asks [A] all missing / [C] choose / [S] skip.
+REM UAC appears at most once, and only if Git or VS Code will actually be installed.
 
 cd /d "%~dp0"
 

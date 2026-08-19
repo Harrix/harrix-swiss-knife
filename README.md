@@ -165,7 +165,7 @@ _Figure 1: Screenshot_
 
 ### Prerequisites
 
-The **automated installer** installs Git, uv, and (if no editor is found) VS Code when missing. You only need them already installed for the **manual** steps below, or if you run with `-SkipPrerequisites`.
+The **automated installer** can install Git, uv, VS Code (if no editor is found), and managed CPython. You can install all missing tools, pick them one by one, or skip them. You only need them already installed for the **manual** steps below, or if you skip those tools.
 
 On a **very fresh** Windows image, **winget** may be missing until you install **Microsoft App Installer** from the Microsoft Store. Docs: <https://learn.microsoft.com/windows/package-manager/winget/>
 
@@ -186,13 +186,13 @@ irm https://raw.githubusercontent.com/Harrix/harrix-swiss-knife/main/install/har
 .\install\harrix-swiss-knife.ps1
 ```
 
-**Elevated launcher with log** (UAC prompt; recommended on restricted machines):
+**Launcher with log** (recommended):
 
 ```powershell
 .\install\install.bat
 ```
 
-Or double-click `install\install.bat`. Mode defaults to **Auto** (from a Git checkout → Online). Override with `install.bat -Mode Online` or `install.bat -Mode Offline`. The elevated window asks **[I] Install missing tools** (default) or **[S] Skip tool installs** if Git / uv / Python / an editor are already installed but not detected. Skip without a prompt: `install.bat -SkipPrerequisites`. For other switches (`-InstallRoot`, …), open PowerShell and run `harrix-swiss-knife.ps1` with `-File`.
+Or double-click `install\install.bat`. Mode defaults to **Auto** (from a Git checkout → Online). Override with `install.bat -Mode Online` or `install.bat -Mode Offline`. The first window asks **[A] Install all missing tools** (default), **[C] Choose individually** (Git, uv, VS Code, Python), or **[S] Skip all tool installs**. UAC appears **at most once**, and only if Git or VS Code will actually be installed. Skip without a prompt: `install.bat -SkipPrerequisites`. Per-tool skips: `-SkipGit`, `-SkipUv`, `-SkipVsCode`, `-SkipPython`. For other switches (`-InstallRoot`, …), open PowerShell and run `harrix-swiss-knife.ps1` with `-File`.
 
 **How to run the `.ps1` file** if execution policy blocks scripts:
 
@@ -200,12 +200,12 @@ Or double-click `install\install.bat`. Mode defaults to **Auto** (from a Git che
 powershell -NoProfile -ExecutionPolicy Bypass -File .\install\harrix-swiss-knife.ps1
 ```
 
-Optional parameters: `-Mode Auto|Online|Offline` (default Auto), `-InstallRoot "D:\GitHub"`, `-SkipPrerequisites` (do not install Git / uv / VS Code / managed Python), `-NonInteractive` (no skip prompt), `-SkipBinaries` (still copies ffmpeg/avif from `install\dependencies\` when present; skips network download), `-Force` (re-download ffmpeg/avif binaries), `-NoPauseOnError` (exit immediately after failure; default waits for Enter so the console does not flash closed).
+Optional parameters: `-Mode Auto|Online|Offline` (default Auto), `-InstallRoot "D:\GitHub"`, `-SkipPrerequisites` (do not install Git / uv / VS Code / managed Python), `-SkipGit` / `-SkipUv` / `-SkipVsCode` / `-SkipPython` (skip one tool; skips the menu), `-NonInteractive` (no tool menu), `-SkipBinaries` (still copies ffmpeg/avif from `install\dependencies\` when present; skips network download), `-Force` (re-download ffmpeg/avif binaries), `-NoPauseOnError` (exit immediately after failure; default waits for Enter so the console does not flash closed).
 
 What the online installer does:
 
-1. Installs Git and uv via **winget** when missing (plus VS Code if no editor is found)
-2. Installs managed CPython with **`uv python install`** (pin from `.python-version`)
+1. Asks which tools to install (**all missing**, individual choice, or skip), then installs the selected missing Git / uv / VS Code via **winget** or offline installers
+2. Installs managed CPython with **`uv python install`** when selected (pin from `.python-version`)
 3. Clones **harrix-pylib**, **harrix-pyssg**, and **harrix-swiss-knife** as siblings (full `git clone`)
 4. Runs `uv sync` in each repo
 5. Runs `uv tool install -e` (global **`hsk`** CLI; ensures `%USERPROFILE%\.local\bin` is on the user PATH)
@@ -214,7 +214,7 @@ What the online installer does:
 
 The bundled **Harrix Notes Explorer (HSK)** VS Code extension is **not** installed automatically. Use the tray app (**Dev** → **Install or update Harrix Notes Explorer (HSK) extension**) when you want it in a specific editor.
 
-If the deploy window closes too quickly after an error, run `install.bat` again: the elevated PowerShell window waits for Enter after failure, and the `.bat` ends with `pause`.
+If the deploy window closes too quickly after an error, run `install.bat` again: the installer waits for Enter after failure when not launched via `install.bat`, and the `.bat` ends with `pause`.
 
 ### Offline install (local bundle)
 
@@ -239,16 +239,16 @@ Use this when the target machine has slow or blocked internet. Build the offline
 
 **On the target machine:**
 
-1. Unzip so you have `install\install-all-offline.bat` next to `install\dependencies\`
+1. Unzip so you have `install\install.bat` next to `install\dependencies\`
 2. Run:
 
    ```powershell
-   .\install\install-all-offline.bat
+   .\install\install.bat
    ```
 
-That launches the same `harrix-swiss-knife.ps1` with `-UseOfflineRepoSnapshots` and `-SkipBinaries` (copies ffmpeg/avif from the bundle; no network download of those tools). Prefer offline installers and uv caches from `install\dependencies\`; falls back to winget/network only when something is missing.
+   Auto mode uses the repo snapshots when `install\dependencies\repos\harrix-swiss-knife.zip` is present. Force offline with `install.bat -Mode Offline`.
 
-Do **not** use `install.bat` for the offline zip — that is the online launcher (`git clone`).
+That launches the same `harrix-swiss-knife.ps1`. Offline mode extracts repo snapshots and copies ffmpeg/avif from the bundle (no network download of those tools). Prefer offline installers and uv caches from `install\dependencies\`; falls back to winget/network only when something is missing.
 
 ### Installation steps (manual)
 
