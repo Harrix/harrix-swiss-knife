@@ -15,6 +15,12 @@
 
 .PARAMETER SkipPrerequisites
     Skip winget installs for Git, uv, and VS Code (managed Python via uv is also skipped).
+    Use when tools are already installed but not detected (stale PATH). The interactive
+    installer also offers this choice unless -NonInteractive.
+
+.PARAMETER NonInteractive
+    Do not prompt (Auto mode, prerequisite skip, etc.). Use for automation.
+    install.bat does not set this, so a double-click still shows the skip prompt.
 
 .PARAMETER SkipBinaries
     Skip network downloads of ffmpeg.exe, avifenc.exe, avifdec.exe.
@@ -52,6 +58,7 @@ param(
     })]
     [string] $InstallRoot,
     [switch] $SkipPrerequisites,
+    [switch] $NonInteractive,
     [switch] $SkipBinaries,
     [Alias("ForceBinaries")]
     [switch] $Force,
@@ -781,6 +788,59 @@ function Invoke-DeployPauseBeforeExit {
         Write-Host ""
         Read-Host "Press Enter to close this window"
     }
+}
+
+function Test-DeployCanPrompt {
+    if ($NonInteractive -or $env:CI -eq "true") {
+        return $false
+    }
+    return ($Host.Name -eq "ConsoleHost" -and [Environment]::UserInteractive)
+}
+
+function Confirm-SkipPrerequisitesInteractively {
+    # Returns $true when the user chooses to skip Git/uv/Python/editor installs.
+    if (-not (Test-DeployCanPrompt)) {
+        return $false
+    }
+
+    Update-PathFromEnvironment
+    $gitCmd = Get-Command -Name "git" -ErrorAction SilentlyContinue
+    $gitPath = if ($gitCmd -and $gitCmd.Source) { [string]$gitCmd.Source } else { $null }
+    $uvPath = Get-UvExePath
+    $hasEditor = Test-AnyCodeEditorExists
+
+    Write-Step "Prerequisites"
+    Write-Host "Detected on PATH / usual locations (may miss tools until you open a new terminal):" -ForegroundColor DarkGray
+    if ($gitPath) {
+        Write-Host ("    Git:    {0}" -f $gitPath) -ForegroundColor Green
+    }
+    else {
+        Write-Host "    Git:    not found" -ForegroundColor Yellow
+    }
+    if ($uvPath) {
+        Write-Host ("    uv:     {0}" -f $uvPath) -ForegroundColor Green
+    }
+    else {
+        Write-Host "    uv:     not found" -ForegroundColor Yellow
+    }
+    if ($hasEditor) {
+        Write-Host "    Editor: Cursor / VS Code / similar found" -ForegroundColor Green
+    }
+    else {
+        Write-Host "    Editor: not found (VS Code can be installed)" -ForegroundColor Yellow
+    }
+    Write-Host "    Python: managed CPython via uv (no python.org installer)" -ForegroundColor DarkGray
+    Write-Host ""
+    Write-Host "The installer can install missing Git, uv, VS Code, and managed CPython."
+    Write-Host "If they are already installed but not detected, skip this step."
+    Write-Host ""
+    Write-Host "  [I] Install missing tools (default)"
+    Write-Host "  [S] Skip tool installs (I already have Git / uv / Python / editor)"
+    $answer = Read-Host "Choice"
+    if ([string]::IsNullOrWhiteSpace($answer)) {
+        return $false
+    }
+    return ($answer -match '^(?i)(s|skip)$')
 }
 
 function Get-WingetExePath {
@@ -1662,6 +1722,12 @@ try {
     }
 
     if (-not $SkipPrerequisites) {
+        if (Confirm-SkipPrerequisitesInteractively) {
+            $SkipPrerequisites = $true
+        }
+    }
+
+    if (-not $SkipPrerequisites) {
         Write-Step "Prerequisites (winget)"
         Update-PathFromEnvironment
         $script:WingetExe = Get-WingetExePath
@@ -1670,10 +1736,24 @@ try {
             Write-Host "winget was not found (fresh Windows often has no WinGet on PATH until App Installer is installed)." -ForegroundColor Yellow
             Write-Host "Install Microsoft App Installer from Microsoft Store (search for App Installer), then sign out or reboot once." -ForegroundColor Yellow
             Write-Host "Docs: https://learn.microsoft.com/windows/package-manager/winget/" -ForegroundColor Cyan
-            Write-Host "Alternatively install Git, uv, and VS Code yourself, then run this script with -SkipPrerequisites." -ForegroundColor Yellow
-            Invoke-DeployPauseBeforeExit
-            exit 1
+            Write-Host "Or skip tool installs if Git, uv, and Python are already on this machine." -ForegroundColor Yellow
+            $skipAfterWinget = $false
+            if (Test-DeployCanPrompt) {
+                $wingetChoice = Read-Host "Press S to skip tool installs, or Enter to quit"
+                if ($wingetChoice -match '^(?i)(s|skip)$') {
+                    $skipAfterWinget = $true
+                }
+            }
+            if ($skipAfterWinget) {
+                $SkipPrerequisites = $true
+                Add-Outcome -Category "skipped" -Message "Prerequisites install skipped (winget missing; user already has tools)"
+            }
+            else {
+                Invoke-DeployPauseBeforeExit
+                exit 1
+            }
         }
+        if ($script:WingetExe) {
         Write-Host "    Using winget: $script:WingetExe" -ForegroundColor DarkGray
         if (-not (Test-CommandExists "git")) {
             $gitInstaller = Get-LocalDependency -Pattern "Git-*-64-bit.exe"
@@ -1796,9 +1876,10 @@ try {
         Write-Step "Managed Python (uv python install)"
         $pyVersion = Get-PinnedPythonVersion
         Ensure-UvManagedPython -Version $pyVersion
+        }
     }
     else {
-        Add-Outcome -Category "skipped" -Message "Prerequisites install skipped (-SkipPrerequisites)"
+        Add-Outcome -Category "skipped" -Message "Prerequisites install skipped (Git / uv / Python / editor already present or -SkipPrerequisites)"
     }
 
     $resolvedRoot = $InstallRoot

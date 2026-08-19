@@ -4,6 +4,8 @@ REM Examples:
 REM   install.bat
 REM   install.bat -Mode Offline
 REM   install.bat -Mode Online
+REM   install.bat -SkipPrerequisites
+REM The elevated window asks whether to install Git/uv/Python/editor, or skip.
 
 cd /d "%~dp0"
 

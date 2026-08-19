@@ -192,7 +192,7 @@ irm https://raw.githubusercontent.com/Harrix/harrix-swiss-knife/main/install/har
 .\install\install.bat
 ```
 
-Or double-click `install\install.bat`. The `.bat` does not forward parameters; for `-InstallRoot` and other switches, open PowerShell and run `-File` as above.
+Or double-click `install\install.bat`. Mode defaults to **Auto** (from a git checkout → Online). Override with `install.bat -Mode Online` or `install.bat -Mode Offline`. The elevated window asks **[I] Install missing tools** (default) or **[S] Skip tool installs** if Git / uv / Python / an editor are already installed but not detected. Skip without a prompt: `install.bat -SkipPrerequisites`. For other switches (`-InstallRoot`, …), open PowerShell and run `harrix-swiss-knife.ps1` with `-File`.
 
 **How to run the `.ps1` file** if execution policy blocks scripts:
 
@@ -200,7 +200,7 @@ Or double-click `install\install.bat`. The `.bat` does not forward parameters; f
 powershell -NoProfile -ExecutionPolicy Bypass -File .\install\harrix-swiss-knife.ps1
 ```
 
-Optional parameters: `-InstallRoot "D:\GitHub"`, `-SkipPrerequisites`, `-SkipBinaries` (still copies ffmpeg/avif from `install\dependencies\` when present; skips network download), `-Force` (re-download ffmpeg/avif binaries), `-NoPauseOnError` (exit immediately after failure; default waits for Enter so the console does not flash closed).
+Optional parameters: `-Mode Auto|Online|Offline` (default Auto), `-InstallRoot "D:\GitHub"`, `-SkipPrerequisites` (do not install Git / uv / VS Code / managed Python), `-NonInteractive` (no skip prompt), `-SkipBinaries` (still copies ffmpeg/avif from `install\dependencies\` when present; skips network download), `-Force` (re-download ffmpeg/avif binaries), `-NoPauseOnError` (exit immediately after failure; default waits for Enter so the console does not flash closed).
 
 What the online installer does:
 

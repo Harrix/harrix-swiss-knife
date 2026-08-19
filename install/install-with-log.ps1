@@ -2,7 +2,9 @@
 [CmdletBinding()]
 param(
     [ValidateSet("Auto", "Online", "Offline")]
-    [string] $Mode = "Auto"
+    [string] $Mode = "Auto",
+    [switch] $SkipPrerequisites,
+    [switch] $NonInteractive
 )
 
 Set-StrictMode -Version Latest
@@ -19,6 +21,9 @@ $runner = Join-Path $env:TEMP ("harrix-swiss-knife-install-{0}.ps1" -f ([guid]::
 $scriptLiteral = "'" + $script.Replace("'", "''") + "'"
 $logLiteral = "'" + $log.Replace("'", "''") + "'"
 $modeLiteral = "'" + $Mode.Replace("'", "''") + "'"
+$extraSwitches = ""
+if ($SkipPrerequisites) { $extraSwitches += " -SkipPrerequisites" }
+if ($NonInteractive) { $extraSwitches += " -NonInteractive" }
 $runnerContent = @(
     '$ErrorActionPreference = "Continue"',
     '$ScriptPath = ' + $scriptLiteral,
@@ -34,7 +39,7 @@ $runnerContent = @(
     '$exitCode = 0',
     'try {',
     '    Start-Transcript -LiteralPath $TranscriptPath -Force | Out-Null',
-    '    & $ScriptPath -Mode $Mode -NoPauseOnError',
+    '    & $ScriptPath -Mode $Mode -NoPauseOnError' + $extraSwitches,
     '    if ($null -ne $global:LASTEXITCODE) { $exitCode = $global:LASTEXITCODE }',
     '}',
     'catch {',
