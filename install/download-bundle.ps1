@@ -75,6 +75,90 @@ function New-DirIfMissing([string] $Path) {
     }
 }
 
+function Get-HarrixSwissKnifeProcesses([string] $RepoRoot) {
+    $hits = New-Object System.Collections.Generic.List[object]
+    $seen = @{}
+    $venvScripts = Join-Path $RepoRoot ".venv\Scripts"
+    foreach ($name in @("pythonw", "python")) {
+        foreach ($p in @(Get-Process -Name $name -ErrorAction SilentlyContinue)) {
+            $path = $null
+            try { $path = [string]$p.Path } catch { }
+            if ($path -and (Test-Path -LiteralPath $venvScripts)) {
+                $venvFull = (Resolve-Path -LiteralPath $venvScripts).Path
+                if ($path.StartsWith($venvFull, [System.StringComparison]::OrdinalIgnoreCase)) {
+                    if (-not $seen.ContainsKey($p.Id)) {
+                        $seen[$p.Id] = $true
+                        $hits.Add($p) | Out-Null
+                    }
+                }
+            }
+        }
+    }
+    try {
+        $wmi = @(Get-CimInstance Win32_Process -ErrorAction SilentlyContinue |
+            Where-Object {
+                $_.Name -match '^(?i)pythonw?\.exe$' -and
+                $_.CommandLine -and
+                ($_.CommandLine -match 'harrix_swiss_knife[\\/]+main\.py')
+            })
+        foreach ($w in $wmi) {
+            $proc = Get-Process -Id $w.ProcessId -ErrorAction SilentlyContinue
+            if ($proc -and -not $seen.ContainsKey($proc.Id)) {
+                $seen[$proc.Id] = $true
+                $hits.Add($proc) | Out-Null
+            }
+        }
+    }
+    catch { }
+    return @($hits)
+}
+
+function Wait-HarrixSwissKnifeClosed([string] $RepoRoot, [string] $Why) {
+    while ($true) {
+        $running = @(Get-HarrixSwissKnifeProcesses -RepoRoot $RepoRoot)
+        if ($running.Count -eq 0) {
+            return
+        }
+        Write-Host ""
+        Write-Host "Harrix Swiss Knife is still running. $Why" -ForegroundColor Yellow
+        Write-Host "Quit from the tray icon (Exit), then press Enter to retry." -ForegroundColor Yellow
+        foreach ($p in $running) {
+            $exe = ""
+            try { $exe = [string]$p.Path } catch { }
+            Write-Host ("    PID {0} {1} {2}" -f $p.Id, $p.ProcessName, $exe) -ForegroundColor DarkGray
+        }
+        Read-Host "Press Enter after closing Harrix Swiss Knife" | Out-Null
+    }
+}
+
+function Invoke-CmdLogged([string] $Command) {
+    $prevEap = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    $cmdOut = @(& cmd.exe /c $Command 2>&1)
+    $code = $LASTEXITCODE
+    $ErrorActionPreference = $prevEap
+    foreach ($line in $cmdOut) { Write-Host $line }
+    $text = ($cmdOut | ForEach-Object { "$_" }) -join "`n"
+    return @{ Code = [int]$code; Text = $text }
+}
+
+function Invoke-UvWithHskRetry([string] $RepoRoot, [string] $Command, [string] $Label) {
+    while ($true) {
+        Wait-HarrixSwissKnifeClosed -RepoRoot $RepoRoot -Why $Label
+        Write-Host ("    {0}" -f $Command) -ForegroundColor DarkGray
+        $result = Invoke-CmdLogged -Command $Command
+        if ($result.Code -eq 0) {
+            return 0
+        }
+        $locked = ($result.Text -match 'Access is denied|os error 5')
+        if (-not $locked) {
+            return [int]$result.Code
+        }
+        Write-Host ("    {0} failed (Access is denied). Close Harrix Swiss Knife if it is still open." -f $Label) -ForegroundColor Yellow
+        Read-Host "Press Enter to retry" | Out-Null
+    }
+}
+
 function Get-RandomSiblingPath([string] $Path, [string] $Suffix) {
     $dir = Split-Path -Parent $Path
     $leaf = Split-Path -Leaf $Path
@@ -457,6 +541,7 @@ else {
 
 if (-not $SkipUvCache) {
     Write-Step "Populate uv python cache (managed CPython)"
+    Wait-HarrixSwissKnifeClosed -RepoRoot $repo -Why "uv cannot replace Python files while the tray app holds them."
     $pyCacheDir = Join-Path $deps "uv-python-cache"
     New-DirIfMissing $pyCacheDir
 
@@ -483,16 +568,11 @@ if (-not $SkipUvCache) {
         try {
             $env:UV_PYTHON_CACHE_DIR = $pyCacheDir
             Write-Host ("    UV_PYTHON_CACHE_DIR={0}" -f $pyCacheDir) -ForegroundColor DarkGray
-            Write-Host ("    uv python install {0} --reinstall" -f $pyVersion) -ForegroundColor DarkGray
-            $prevEap = $ErrorActionPreference
-            $ErrorActionPreference = "Continue"
-            $cmdOut = @(& cmd.exe /c ("uv python install {0} --reinstall" -f $pyVersion) 2>&1)
-            $code = $LASTEXITCODE
-            foreach ($line in $cmdOut) { Write-Host $line }
-            $ErrorActionPreference = $prevEap
+            # No --reinstall: that reinstalls every 3.13.x patch and fails with Access is denied
+            # when an installed CPython is in use (tray app / .venv).
+            $code = Invoke-UvWithHskRetry -RepoRoot $repo -Command ("uv python install {0}" -f $pyVersion) -Label "uv python install"
             if ($code -ne 0) {
-                Write-Host ("    uv python install exited with code {0}" -f $code) -ForegroundColor Yellow
-                if ($OnlyUvCache) { $script:BundleExitCode = 1 }
+                Write-Host ("    uv python install exited with code {0} (continue; package cache still runs)" -f $code) -ForegroundColor Yellow
             }
             else {
                 Write-Host ("    OK: managed Python {0} cached in uv-python-cache" -f $pyVersion) -ForegroundColor Green
@@ -544,13 +624,7 @@ if (-not $SkipUvCache) {
                 Write-Host ("    uv sync in {0} ({1})" -f $s.Name, $s.Path) -ForegroundColor DarkGray
                 Push-Location $s.Path
                 try {
-                    $prevEap = $ErrorActionPreference
-                    $ErrorActionPreference = "Continue"
-                    # Capture stderr as stdout to avoid PowerShell rendering it as an error record (red text).
-                    $cmdOut = @(& cmd.exe /c "uv sync --reinstall" 2>&1)
-                    $code = $LASTEXITCODE
-                    foreach ($line in $cmdOut) { Write-Host $line }
-                    $ErrorActionPreference = $prevEap
+                    $code = Invoke-UvWithHskRetry -RepoRoot $repo -Command "uv sync --reinstall" -Label ("uv sync ({0})" -f $s.Name)
                     if ($code -ne 0) {
                         Write-Host ("    {0}: uv sync exited with code {1}" -f $s.Name, $code) -ForegroundColor Yellow
                         $allOk = $false

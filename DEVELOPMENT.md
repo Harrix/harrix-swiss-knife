@@ -74,7 +74,7 @@ Scripts live in `install\`. To refresh installer payloads and produce the distri
 
 ### Before you start
 
-1. **Quit `harrix-swiss-knife` completely** (tray icon → exit, close any terminal running `main.py` from this repo’s `.venv`). While the app uses the project virtualenv, `uv sync` during cache refresh can fail with **Access is denied** when replacing DLLs under `.venv` (for example `matplotlib`).
+1. **Quit `harrix-swiss-knife` completely** (tray icon → exit, close any terminal running `main.py` from this repo’s `.venv`). While the app uses the project virtualenv, `uv sync` during cache refresh can fail with **Access is denied** when replacing DLLs under `.venv` (for example `matplotlib`). Step 4 (`download-uv-cache` / `build-all`) detects the running tray app, asks you to close it, waits for Enter, and retries.
 2. Ensure sibling repos exist next to this checkout when you snapshot sources or warm the uv cache: `harrix-pylib`, `harrix-pyssg` (same parent folder as `harrix-swiss-knife`).
 3. Some steps request **UAC elevation** (separate elevated PowerShell window).
 
