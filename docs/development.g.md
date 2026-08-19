@@ -27,7 +27,7 @@ lang: en
 - [Android app (Harrix Swiss Knife)](#android-app-harrix-swiss-knife)
   - [Requirements](#requirements)
   - [AI API keys (Android)](#ai-api-keys-android)
-  - [Optional SDK setup (install scripts)](#optional-sdk-setup-install-scripts)
+  - [Optional SDK setup](#optional-sdk-setup)
   - [Build APK](#build-apk)
   - [Workflow](#workflow)
   - [Phone setup (Samsung Galaxy S24 Ultra)](#phone-setup-samsung-galaxy-s24-ultra)
@@ -256,7 +256,7 @@ Optional Android companion app in this monorepo (Gallery Cleaner, Video Cleaner,
 - JDK 17 (`JAVA_HOME`)
 - Android SDK with `ANDROID_HOME` (or `ANDROID_SDK_ROOT`)
 - SDK packages: `platform-tools`, `platforms;android-35`, `build-tools;35.0.0`
-- `android/local.properties` with `sdk.dir=...` (gitignored; created by the setup script)
+- `android/local.properties` with `sdk.dir=...` (gitignored; created by **Android** → **Install JDK and Android SDK**)
 - For AI utilities (Speech to Text with AI): API key at build time (see [AI API keys (Android)](#ai-api-keys-android))
 
 User `Path` should include `%JAVA_HOME%\bin` and `%ANDROID_HOME%\platform-tools` (and optionally `%ANDROID_HOME%\emulator`, `%ANDROID_HOME%\cmdline-tools\latest\bin`).
@@ -293,24 +293,24 @@ If the key is missing, the project still builds; Speech to Text / Medicine Searc
 
 Prompt Markdown for fix/rewrite is copied from `config/prompts/` into generated app assets on every `preBuild`.
 
-### Optional SDK setup (install scripts)
+### Optional SDK setup
 
-Android tooling is **not** required to use the Windows tray app. For developers who work on the Android module, run once from `install\`:
+Android tooling is **not** required to use the Windows tray app. For developers who work on the Android module, run once:
 
-```text
-install\setup-android-sdk.bat
-```
+- Tray: **Android** → **Install JDK and Android SDK**
+- CLI: `hsk android setup`
+- Optional Android Studio: `hsk android setup --android-studio`
 
-What the script does (idempotent):
+What the action does (idempotent):
 
-1. Ensures JDK 17 (`winget` Microsoft OpenJDK 17, or portable Temurin under `%LOCALAPPDATA%\Java`)
+1. Ensures JDK 17 (existing `JAVA_HOME`, Microsoft JDK, or portable Temurin under `%LOCALAPPDATA%\Java`; usually no UAC)
 2. Installs Android command-line tools under `%LOCALAPPDATA%\Android\Sdk`
 3. Accepts licenses and installs platform-tools, android-35, build-tools 35.0.0
 4. Sets user env: `ANDROID_HOME`, `ANDROID_SDK_ROOT`, `JAVA_HOME`, and updates `Path`
 5. Writes `android/local.properties`
 6. Optionally installs Android Studio via winget (emulator / Layout Inspector; not required to build an APK)
 
-Open a **new** terminal (or restart Cursor) after setup so env vars apply.
+Restart the tray app (and open a **new** terminal) after setup so env vars apply.
 
 ### Build APK
 
@@ -331,7 +331,7 @@ Outputs:
 
 Release is signed with the **debug** keystore so it can be sideloaded like debug. Use a dedicated release keystore before publishing to Play Store.
 
-Via Harrix Swiss Knife (tray **Dev** → **Build Android APK in …**, or CLI):
+Via Harrix Swiss Knife (tray **Android** → **Build Android APK in …**, or CLI):
 
 ```text
 hsk android format android
@@ -354,7 +354,7 @@ adb install -r android\app\build\outputs\apk\debug\HarrixSwissKnife-debug.apk
 
 ### Workflow
 
-- Edit Kotlin/Gradle in **Cursor**; format with `hsk android format android`, check with `hsk android check android`, build with tray **Build Android APK in …** or `hsk android build android …`
+- Edit Kotlin/Gradle in **Cursor**; format with `hsk android format android`, check with `hsk android check android`, build with tray **Android** → **Build Android APK in …** or `hsk android build android …`
 - Quality stack: Spotless (ktlint), Detekt + Compose rules, Android Lint (`./gradlew qualityCheck` from `android/`)
 - Android Studio is optional (File → Open → `android/`) for emulator / Layout Inspector — **not** required and **not** opened during APK build
 

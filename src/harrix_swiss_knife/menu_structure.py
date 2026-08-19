@@ -7,6 +7,7 @@ from typing import Any
 from harrix_swiss_knife.actions.android.android_build import OnAndroidBuild
 from harrix_swiss_knife.actions.android.android_check import OnAndroidCheck
 from harrix_swiss_knife.actions.android.android_format import OnAndroidFormat
+from harrix_swiss_knife.actions.android.android_setup_sdk import OnAndroidSetupSdk
 from harrix_swiss_knife.actions.apps.beautify_and_optimize_icons import OnBeautifyAndOptimizeIcons
 from harrix_swiss_knife.actions.apps.check_images import OnCheckImages
 from harrix_swiss_knife.actions.apps.finance import OnFinance
@@ -151,6 +152,7 @@ def get_menu_structure() -> list[Any]:
             "Android",
             "📱",
             [
+                OnAndroidSetupSdk,
                 OnAndroidFormat,
                 OnAndroidCheck,
                 OnAndroidBuild,

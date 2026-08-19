@@ -48,6 +48,7 @@ def get_menu_structure() -> list[Any]:
             "Android",
             "📱",
             [
+                OnAndroidSetupSdk,
                 OnAndroidFormat,
                 OnAndroidCheck,
                 OnAndroidBuild,

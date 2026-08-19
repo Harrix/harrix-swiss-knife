@@ -82,8 +82,8 @@ class OnAndroidFormat(ActionBase):
         local_props = android_dir / "local.properties"
         if not local_props.is_file() and not resolve_android_home():
             self.add_line(
-                "❌ Android SDK not configured. Run `install\\setup-android-sdk.bat` "
-                "or set ANDROID_HOME and create local.properties in the project."
+                f"❌ Android SDK not configured. {ANDROID_SDK_SETUP_HINT} "
+                "Or set ANDROID_HOME and create local.properties in the project."
             )
             if not noninteractive:
                 self.show_result()
@@ -92,8 +92,7 @@ class OnAndroidFormat(ActionBase):
         java_home = resolve_java_home()
         if java_home is None:
             self.add_line(
-                "❌ JAVA_HOME is not set and no JDK 17 was found. "
-                "Run `install\\setup-android-sdk.bat` or set JAVA_HOME, then restart the app."
+                f"❌ JAVA_HOME is not set and no JDK 17 was found. {ANDROID_SDK_SETUP_HINT} Then restart the app."
             )
             if not noninteractive:
                 self.show_result()
@@ -194,8 +193,8 @@ def execute(
         local_props = android_dir / "local.properties"
         if not local_props.is_file() and not resolve_android_home():
             self.add_line(
-                "❌ Android SDK not configured. Run `install\\setup-android-sdk.bat` "
-                "or set ANDROID_HOME and create local.properties in the project."
+                f"❌ Android SDK not configured. {ANDROID_SDK_SETUP_HINT} "
+                "Or set ANDROID_HOME and create local.properties in the project."
             )
             if not noninteractive:
                 self.show_result()
@@ -204,8 +203,7 @@ def execute(
         java_home = resolve_java_home()
         if java_home is None:
             self.add_line(
-                "❌ JAVA_HOME is not set and no JDK 17 was found. "
-                "Run `install\\setup-android-sdk.bat` or set JAVA_HOME, then restart the app."
+                f"❌ JAVA_HOME is not set and no JDK 17 was found. {ANDROID_SDK_SETUP_HINT} Then restart the app."
             )
             if not noninteractive:
                 self.show_result()

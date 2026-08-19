@@ -15,6 +15,7 @@ from PySide6.QtWidgets import QApplication
 from harrix_swiss_knife import toast_notification
 from harrix_swiss_knife.action_title import strip_md_inline_code_markers
 from harrix_swiss_knife.actions.common.android_gradle import (
+    ANDROID_SDK_SETUP_HINT,
     find_built_apk,
     is_android_project,
     resolve_android_home,
@@ -36,10 +37,10 @@ class OnAndroidBuild(ActionBase):
     `debug`/`release` to override the variant, or `--all` to build every
     configured project; CLI installs on the first authorized adb device.
     Requires Windows, JDK 17, and Android SDK (`ANDROID_HOME` /
-    `local.properties`). Use `install/setup-android-sdk.bat` once to install
-    the toolchain. After a successful build, the result dialog can open the APK
-    folder. If the phone is still waiting for USB debugging authorization,
-    waits for confirmation.
+    `local.properties`). Use **Android** → **Install JDK and Android SDK**
+    (or `hsk android setup`) once to install the toolchain. After a successful
+    build, the result dialog can open the APK folder. If the phone is still
+    waiting for USB debugging authorization, waits for confirmation.
 
     """
 
@@ -146,8 +147,8 @@ class OnAndroidBuild(ActionBase):
         variant_key, gradle_task = resolved
         if not resolve_android_home() and not any((project / "local.properties").is_file() for project in projects):
             self.add_line(
-                "❌ Android SDK not configured. Run `install\\setup-android-sdk.bat` "
-                "or set ANDROID_HOME and create local.properties in the project."
+                f"❌ Android SDK not configured. {ANDROID_SDK_SETUP_HINT} "
+                "Or set ANDROID_HOME and create local.properties in the project."
             )
             if not noninteractive:
                 self.show_result()
@@ -156,8 +157,7 @@ class OnAndroidBuild(ActionBase):
         java_home = resolve_java_home()
         if java_home is None:
             self.add_line(
-                "❌ JAVA_HOME is not set and no JDK 17 was found. "
-                "Run `install\\setup-android-sdk.bat` or set JAVA_HOME, then restart the app."
+                f"❌ JAVA_HOME is not set and no JDK 17 was found. {ANDROID_SDK_SETUP_HINT} Then restart the app."
             )
             if not noninteractive:
                 self.show_result()
@@ -354,7 +354,7 @@ class OnAndroidBuild(ActionBase):
         """Install the APK on the selected (or first) adb device."""
         adb = self._resolve_adb()
         if adb is None:
-            self.add_line("🔵 adb not found - APK not installed (install platform-tools / setup-android-sdk).")
+            self.add_line("🔵 adb not found - APK not installed (install platform-tools / Android SDK setup).")
             return
 
         serial = self._ensure_install_serial(adb, target)
@@ -519,9 +519,9 @@ class OnAndroidBuild(ActionBase):
         if process.returncode != 0:
             self.add_line(f"❌ {gradle_task} failed (exit code {process.returncode}).")
             if "JAVA_HOME" in output:
-                self.add_line("Hint: set JAVA_HOME or run install\\setup-android-sdk.bat, then restart the app.")
+                self.add_line(f"Hint: set JAVA_HOME or {ANDROID_SDK_SETUP_HINT} Then restart the app.")
             else:
-                self.add_line("Hint: run install\\setup-android-sdk.bat if the SDK is not installed.")
+                self.add_line(f"Hint: {ANDROID_SDK_SETUP_HINT}")
             return False
 
         apk_path = find_built_apk(android_dir, variant_key)

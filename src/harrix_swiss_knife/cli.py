@@ -11,7 +11,7 @@ import click
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication
 
-from harrix_swiss_knife.actions.android import OnAndroidBuild, OnAndroidCheck, OnAndroidFormat
+from harrix_swiss_knife.actions.android import OnAndroidBuild, OnAndroidCheck, OnAndroidFormat, OnAndroidSetupSdk
 from harrix_swiss_knife.actions.development import (
     OnInstallCli,
     OnInstallPrivateData,
@@ -57,7 +57,7 @@ def cli() -> None:
 
 @cli.group("android")
 def android_group() -> None:
-    """Android project build, format, and quality checks."""
+    """Android project build, format, quality checks, and SDK setup."""
 
 
 @android_group.command("build")
@@ -107,6 +107,20 @@ def android_format(folder: Path) -> None:
     """Format Android Kotlin/Gradle sources via Spotless (ktlint) in FOLDER."""
     action = OnAndroidFormat()
     action(folder_path=folder, noninteractive=True)
+    _finish_timed_action(action)
+
+
+@android_group.command("setup")
+@click.option(
+    "--android-studio",
+    "install_android_studio",
+    is_flag=True,
+    help="Also install Android Studio via winget (optional; needs admin).",
+)
+def android_setup(*, install_android_studio: bool) -> None:
+    """Install JDK 17 and Android SDK for the `android/` module."""
+    action = OnAndroidSetupSdk()
+    action(install_android_studio=install_android_studio, noninteractive=True)
     _finish_timed_action(action)
 
 

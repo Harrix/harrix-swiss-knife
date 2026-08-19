@@ -16,6 +16,7 @@ lang: en
 - [🔧 Function `android_build`](#-function-android_build)
 - [🔧 Function `android_check`](#-function-android_check)
 - [🔧 Function `android_format`](#-function-android_format)
+- [🔧 Function `android_setup`](#-function-android_setup)
 - [🔧 Function `dev_group`](#-function-dev_group)
 - [🔧 Function `dev_action_usage`](#-function-dev_action_usage)
 - [🔧 Function `dev_install_cli`](#-function-dev_install_cli)
@@ -83,7 +84,7 @@ def cli() -> None:
 def android_group() -> None
 ```
 
-Android project build, format, and quality checks.
+Android project build, format, quality checks, and SDK setup.
 
 <details>
 <summary>Code:</summary>
@@ -154,6 +155,26 @@ Format Android Kotlin/Gradle sources via Spotless (ktlint) in FOLDER.
 def android_format(folder: Path) -> None:
     action = OnAndroidFormat()
     action(folder_path=folder, noninteractive=True)
+    _finish_timed_action(action)
+```
+
+</details>
+
+## 🔧 Function `android_setup`
+
+```python
+def android_setup(*, install_android_studio: bool) -> None
+```
+
+Install JDK 17 and Android SDK for the `android/` module.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def android_setup(*, install_android_studio: bool) -> None:
+    action = OnAndroidSetupSdk()
+    action(install_android_studio=install_android_studio, noninteractive=True)
     _finish_timed_action(action)
 ```
 

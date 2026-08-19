@@ -73,6 +73,7 @@ _Figure 1: Screenshot_
   - 📱 Build Android APK in … ꟲᴸᴵ
   - 🔬 Check Android code in … ꟲᴸᴵ
   - ✨ Format Android code in … ꟲᴸᴵ
+  - 📥 Install JDK and Android SDK ꟲᴸᴵ
 - **VS Code**
   - 🔬 Check VS Code extension ꟲᴸᴵ
   - ✨ Format VS Code extension ꟲᴸᴵ
@@ -368,6 +369,8 @@ Folder arguments are optional (default: current directory) for commands that tak
 - `hsk md add-from-template --template "Book"`
 - `hsk md add-from-template --template "Travel"`
 - `hsk md edit-from-template --template "Movie"` — edit existing Markdown via a markdown_templates entry
+- `hsk android setup` — install JDK 17 and Android SDK (`%LOCALAPPDATA%`; Windows)
+- `hsk android setup --android-studio` — same, plus Android Studio via winget
 - `hsk android format [FOLDER]` — Spotless (ktlint) format (tray uses `paths_android_projects`)
 - `hsk android check [FOLDER]` — Spotless check + Detekt + Android Lint (`qualityCheck`)
 - `hsk android build [FOLDER] [debug|release]` — build APK using `android_build_variant` in `config.json` when variant omitted (default `release`; Windows; JDK 17 + Android SDK; tray also picks Release + install device/AVD)
