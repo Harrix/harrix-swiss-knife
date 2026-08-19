@@ -26,6 +26,8 @@ from PySide6.QtGui import (
     QDropEvent,
     QFont,
     QIcon,
+    QKeyEvent,
+    QKeySequence,
     QPainter,
     QPixmap,
     QResizeEvent,
@@ -107,6 +109,7 @@ class DraggableIconList(QListWidget):
     reveal_requested = Signal(str)
     details_requested = Signal(object, str)  # IconFamily, svg_path
     copy_requested = Signal(str)
+    copy_files_requested = Signal(object)  # list[str]
     copy_contents_requested = Signal(str)
     copy_filename_requested = Signal(str)
     copy_path_requested = Signal(str)
@@ -192,6 +195,16 @@ class DraggableIconList(QListWidget):
             self.setUpdatesEnabled(True)
             self.blockSignals(False)  # noqa: FBT003
 
+    def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
+        """Copy selected icon files when the standard Copy shortcut is pressed."""
+        if event.matches(QKeySequence.StandardKey.Copy):
+            paths = self.selected_file_paths()
+            if paths:
+                self.copy_files_requested.emit(paths)
+                event.accept()
+                return
+        super().keyPressEvent(event)
+
     def preview_paths(self) -> list[Path]:
         """Return all existing icon paths in display order."""
         paths: list[Path] = []
@@ -242,6 +255,18 @@ class DraggableIconList(QListWidget):
     def selected_families(self) -> list[IconFamily]:
         """Return unique selected families in display order."""
         return [family for family, _path in self.selected_keyword_targets()]
+
+    def selected_file_paths(self) -> list[str]:
+        """Return file paths of selected tiles, in display order."""
+        paths: list[str] = []
+        for index in range(self.count()):
+            item = self.item(index)
+            if item is None or not item.isSelected():
+                continue
+            raw = item.data(ROLE_SVG_PATH)
+            if isinstance(raw, str) and raw:
+                paths.append(raw)
+        return paths
 
     def selected_keyword_targets(self) -> list[tuple[IconFamily, str]]:
         """Return unique selected families with an SVG path, in display order."""

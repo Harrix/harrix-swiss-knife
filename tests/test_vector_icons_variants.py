@@ -6,6 +6,8 @@ import json
 from pathlib import Path
 
 import pytest
+from PySide6.QtCore import QEvent, Qt
+from PySide6.QtGui import QKeyEvent
 from PySide6.QtWidgets import QApplication, QWidget
 
 from harrix_swiss_knife.apps.icons.catalog import (
@@ -165,6 +167,28 @@ def test_item_pressed_emits_family_with_variants(qapp: QApplication, tmp_path: P
     assert received[-1].id == family.id
     assert len(received[-1].variants) == 2
     assert received[-1].variants[0].file == "img/building__garage_01.svg"
+
+
+def test_ctrl_c_emits_copy_files_requested(qapp: QApplication, tmp_path: Path) -> None:  # noqa: ARG001
+    repo = _note_repo(tmp_path)
+    family = load_catalog(repo).icons[0]
+    featured = family.featured_path(repo)
+    assert featured is not None
+    lst = DraggableIconList(icon_size=64, dual_line_labels=True)
+    copied: list[list[str]] = []
+    lst.copy_files_requested.connect(copied.append)
+    placeholder = placeholder_pixmap(64)
+    lst.set_grid_entries(
+        [GridEntry(family=family, svg_path=featured)],
+        pixmaps_by_path={str(featured): placeholder},
+        placeholder=placeholder,
+    )
+    item = lst.item(0)
+    assert item is not None
+    lst.setCurrentItem(item)
+    event = QKeyEvent(QEvent.Type.KeyPress, Qt.Key.Key_C, Qt.KeyboardModifier.ControlModifier)
+    lst.keyPressEvent(event)
+    assert copied == [[str(featured)]]
 
 
 def test_rebuild_catalog_title_prefers_yaml_then_h1(tmp_path: Path) -> None:

@@ -806,6 +806,32 @@ class MainWindow(QMainWindow, AppWindowMixin):
             self._visible_family_ids.add(entry.family.id)
             self._visible_families.append(entry.family)
 
+    def _copy_icon_files(self, svg_paths: list[str]) -> None:
+        """Put existing icon files on the clipboard as file URLs."""
+        urls: list[QUrl] = []
+        names: list[str] = []
+        for raw in svg_paths:
+            path = Path(raw)
+            if not path.is_file():
+                continue
+            urls.append(QUrl.fromLocalFile(str(path.resolve())))
+            names.append(path.name)
+        if not urls:
+            missing = Path(svg_paths[0]) if svg_paths else Path()
+            QMessageBox.warning(self, "Vector Icons", f"File not found:\n{missing}")
+            return
+        mime = QMimeData()
+        mime.setUrls(urls)
+        clipboard = QApplication.clipboard()
+        if clipboard is None:
+            QMessageBox.warning(self, "Vector Icons", "Clipboard is not available.")
+            return
+        clipboard.setMimeData(mime)
+        if len(names) == 1:
+            self.statusBar().showMessage(f"Copied file `{names[0]}`")
+            return
+        self.statusBar().showMessage(f"Copied {len(names)} files")
+
     def _entry_pixmap(self, entry: GridEntry) -> QPixmap | None:
         """Return the thumbnail for one tile, from memory, disk cache, or a fresh render."""
         key = str(entry.svg_path)
@@ -1311,6 +1337,11 @@ class MainWindow(QMainWindow, AppWindowMixin):
             return
         self.statusBar().showMessage(f"Copied contents of `{path.name}`")
 
+    def _on_copy_files(self, paths: object) -> None:
+        if not isinstance(paths, list):
+            return
+        self._copy_icon_files([str(item) for item in paths if str(item).strip()])
+
     def _on_copy_filename(self, svg_path: str) -> None:
         name = Path(svg_path).name
         clipboard = QApplication.clipboard()
@@ -1330,18 +1361,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         self.statusBar().showMessage(f"Copied path `{path}`")
 
     def _on_copy_svg(self, svg_path: str) -> None:
-        path = Path(svg_path)
-        if not path.is_file():
-            QMessageBox.warning(self, "Vector Icons", f"File not found:\n{path}")
-            return
-        mime = QMimeData()
-        mime.setUrls([QUrl.fromLocalFile(str(path.resolve()))])
-        clipboard = QApplication.clipboard()
-        if clipboard is None:
-            QMessageBox.warning(self, "Vector Icons", "Clipboard is not available.")
-            return
-        clipboard.setMimeData(mime)
-        self.statusBar().showMessage(f"Copied file `{path.name}`")
+        self._copy_icon_files([svg_path])
 
     def _on_delete_icon(self, family: object) -> None:
         if not isinstance(family, IconFamily) or self._repo_root is None or self._catalog is None:
@@ -2587,6 +2607,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         icon_list.reveal_requested.connect(self._on_reveal_in_explorer)
         icon_list.details_requested.connect(self._on_icon_details)
         icon_list.copy_requested.connect(self._on_copy_svg)
+        icon_list.copy_files_requested.connect(self._on_copy_files)
         icon_list.copy_contents_requested.connect(self._on_copy_contents)
         icon_list.copy_filename_requested.connect(self._on_copy_filename)
         icon_list.copy_path_requested.connect(self._on_copy_path)
