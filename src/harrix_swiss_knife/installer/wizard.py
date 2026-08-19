@@ -6,7 +6,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-from PySide6.QtCore import QThread, Signal
+from PySide6.QtCore import QThread, QTimer, Signal
 from PySide6.QtGui import QFont, QIcon
 from PySide6.QtWidgets import (
     QApplication,
@@ -122,19 +122,20 @@ class ProgressPage(QWizardPage):
         self._worker: _Worker | None = None
         self._done = False
         self._extracting = False
-        self.status_label = QLabel("Waiting for Install…")
+        self.status_label = QLabel("Ready to install")
         status_font = QFont()
         status_font.setPointSize(11)
         status_font.setBold(True)
         self.status_label.setFont(status_font)
         self.status_label.setWordWrap(True)
-        self.detail_label = QLabel("The installer will show what is running and how (bundle, winget, or download).")
+        self.detail_label = QLabel("Installation starts automatically on this page.")
         self.detail_label.setWordWrap(True)
         self.log_view = QPlainTextEdit()
         self.log_view.setReadOnly(True)
         self.log_view.setFont(QFont("Consolas", 9))
         self.bar = QProgressBar()
-        self.bar.setRange(0, 0)
+        self.bar.setRange(0, 1)
+        self.bar.setValue(0)
         layout = QVBoxLayout(self)
         layout.addWidget(self.status_label)
         layout.addWidget(self.detail_label)
@@ -143,20 +144,33 @@ class ProgressPage(QWizardPage):
         self.setCommitPage(True)
         self.setButtonText(QWizard.WizardButton.CommitButton, "Install")
 
+    def initializePage(self) -> None:  # noqa: N802
+        """Start install as soon as this page is shown (do not wait for Install)."""
+        QTimer.singleShot(0, self._begin_if_needed)
+
     def isComplete(self) -> bool:  # noqa: N802
-        """Return whether installation has finished."""
+        """Return whether installation has finished (enables Next after success)."""
         return self._done
 
     def validatePage(self) -> bool:  # noqa: N802
-        """Start installation or relaunch elevated when prerequisites require it."""
-        if self._done:
-            return True
-        if self._worker is not None and self._worker.isRunning():
-            return False
+        """Allow leaving the page only after a successful install."""
+        return self._done
+
+    def _append(self, line: str) -> None:
+        self.log_view.appendPlainText(line)
+        self._update_status_from_log(line)
+
+    def _begin_if_needed(self) -> None:
+        if self._done or self._worker is not None:
+            return
         wizard = self.wizard()
-        assert isinstance(wizard, InstallerWizard)  # noqa: S101
+        if not isinstance(wizard, InstallerWizard):
+            return
         plan = wizard.tools_page.plan()
         if plan.need_elevate and not is_admin():
+            self.status_label.setText("Administrator permission required")
+            self.detail_label.setText("Git or VS Code setup needs elevation. A UAC prompt should appear.")
+            self._append("==> Requesting administrator permission")
             plan_path = write_plan_file(
                 {
                     "mode": self._mode,
@@ -174,16 +188,10 @@ class ProgressPage(QWizardPage):
             rc = relaunch_elevated(["--continue-plan", str(plan_path)])
             if rc <= _SHELL_EXECUTE_MAX_ERROR:
                 QMessageBox.warning(self, "Elevation", f"Could not elevate (ShellExecute={rc}).")
-                return False
-            # Elevated process continues; close this one.
+                return
             QApplication.instance().quit()  # type: ignore[union-attr]
-            return False
+            return
         self._start_worker(plan)
-        return False
-
-    def _append(self, line: str) -> None:
-        self.log_view.appendPlainText(line)
-        self._update_status_from_log(line)
 
     def _on_err(self, message: str) -> None:
         self._append(f"❌ {message}")
@@ -227,6 +235,7 @@ class ProgressPage(QWizardPage):
         self.status_label.setText("Starting installation")
         self.detail_label.setText("Preparing the work folder and reading the bundled payload…")
         self.bar.setRange(0, 0)
+        self._append("==> Starting installation")
         self._worker = _Worker(
             mode=self._mode,
             install_root=wizard.options_page.install_root(),
@@ -472,13 +481,6 @@ def run_wizard(argv: list[str] | None = None) -> int:
         # Jump to progress and start immediately
         wizard.setStartId(wizard.pageIds()[3])
         wizard.show()
-        plan = PrerequisitePlan(
-            git=bool(plan_raw.get("git", True)),
-            uv=bool(plan_raw.get("uv", True)),
-            vscode=bool(plan_raw.get("vscode", True)),
-            python=bool(plan_raw.get("python", True)),
-        )
-        wizard.progress_page._start_worker(plan)  # noqa: SLF001
         return int(app.exec())
 
     mode = detect_mode_from_argv(args)
