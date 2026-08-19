@@ -64,6 +64,7 @@ from PySide6.QtWidgets import (
     QMenu,
     QMessageBox,
     QPushButton,
+    QRadioButton,
     QSizePolicy,
     QTableView,
     QTableWidget,
@@ -1249,8 +1250,8 @@ class MainWindow(
                 self.load_exchange_rates_table()
         elif index == id_charts_tab:  # Charts tab - auto-draw on first visit
             if not self._charts_initialized:
-                self._update_finance_chart()
                 self._charts_initialized = True
+                self._update_finance_chart()
         elif index == id_reports_tab:  # Reports tab
             self.on_generate_report(refresh_summary=True)
         # Note: Transactions tab (index 0) needs no updates - data loaded on startup
@@ -2980,30 +2981,52 @@ class MainWindow(
 
     def _init_chart_controls(self) -> None:
         """Initialize Charts tab date range and comparison month combobox."""
-        current_date: QDate = QDate.currentDate()
-        self.dateEdit_chart_from.setDate(current_date.addYears(-2))
-        self.dateEdit_chart_to.setDate(current_date)
+        chart_widgets = (
+            self.dateEdit_chart_from,
+            self.dateEdit_chart_to,
+            self.comboBox_chart_period,
+            self.comboBox_compare_same_months,
+            self.spinBox_compare_last,
+            self.checkBox_chart_show_labels,
+            self.radioButton_type_of_chart_balance,
+            self.radioButton_expense_and_income,
+            self.radioButton_expense_and_income_compare_last_years,
+            self.radioButton_type_of_chart_category,
+            self.radioButton_type_of_chart_compare_last,
+            self.radioButton_type_of_chart_compare_same_months,
+            self.radioButton_type_of_chart_compare_last_years,
+            self.radioButton_type_of_chart_average_salary,
+        )
+        for widget in chart_widgets:
+            widget.blockSignals(True)  # noqa: FBT003
+        try:
+            current_date: QDate = QDate.currentDate()
+            self.dateEdit_chart_from.setDate(current_date.addYears(-2))
+            self.dateEdit_chart_to.setDate(current_date)
 
-        self.comboBox_compare_same_months.clear()
-        months = [
-            "January",
-            "February",
-            "March",
-            "April",
-            "May",
-            "June",
-            "July",
-            "August",
-            "September",
-            "October",
-            "November",
-            "December",
-        ]
-        self.comboBox_compare_same_months.addItems(months)
-        self.comboBox_compare_same_months.setCurrentIndex(current_date.month() - 1)
+            self.comboBox_compare_same_months.clear()
+            months = [
+                "January",
+                "February",
+                "March",
+                "April",
+                "May",
+                "June",
+                "July",
+                "August",
+                "September",
+                "October",
+                "November",
+                "December",
+            ]
+            self.comboBox_compare_same_months.addItems(months)
+            self.comboBox_compare_same_months.setCurrentIndex(current_date.month() - 1)
 
-        self.radioButton_type_of_chart_balance.setChecked(True)
-        self.comboBox_chart_period.setCurrentIndex(1)
+            self.radioButton_type_of_chart_balance.setChecked(True)
+            self.comboBox_chart_period.setCurrentIndex(1)
+        finally:
+            for widget in chart_widgets:
+                widget.blockSignals(False)  # noqa: FBT003
 
         self._populate_chart_categories_list()
 
@@ -6232,6 +6255,11 @@ class MainWindow(
         """Build and render the finance chart according to the selected chart type."""
         if self.db_manager is None:
             return
+        if not self._charts_initialized:
+            return
+        sender = self.sender()
+        if isinstance(sender, QRadioButton) and not sender.isChecked():
+            return
 
         if (
             self.radioButton_type_of_chart_compare_last_years.isChecked()
@@ -6240,6 +6268,7 @@ class MainWindow(
         ) and not self._prompt_compare_last_years_start():
             return
 
+        self._close_chart_build_toast()
         self._chart_build_toast = toast_countdown_notification.ToastCountdownNotification("Building chart…")
         self._chart_build_toast.start_countdown()
         QApplication.processEvents()

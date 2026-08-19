@@ -128,23 +128,16 @@ Python 3 cannot UTF-8-encode those, and `translate` then raises
 
 ```python
 def install_safe_qt_translate() -> None:
-    global _TRANSLATE_PATCHED
-    if _TRANSLATE_PATCHED:
+    if _TRANSLATE_PATCH_INSTALLED[0]:
         return
 
     original = QCoreApplication.translate
 
-    def translate(*args: object, **kwargs: object) -> str:
-        arg_list = list(args)
-        if len(arg_list) >= 2 and isinstance(arg_list[1], str):
-            arg_list[1] = combine_utf16_surrogates(arg_list[1])
-        source = kwargs.get("sourceText")
-        if isinstance(source, str):
-            kwargs["sourceText"] = combine_utf16_surrogates(source)
-        return original(*arg_list, **kwargs)
+    def translate(context: str, key: str, /, disambiguation: str | None = None, n: int = -1) -> str:
+        return original(context, combine_utf16_surrogates(key), disambiguation, n)
 
-    QCoreApplication.translate = staticmethod(translate)
-    _TRANSLATE_PATCHED = True
+    QCoreApplication.translate = translate  # ty: ignore[invalid-assignment]
+    _TRANSLATE_PATCH_INSTALLED[0] = True
 ```
 
 </details>
