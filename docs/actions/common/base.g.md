@@ -170,14 +170,16 @@ class ActionBase(ABC):
         if self._output_bus is not None:
             self._output_bus.append_line(output_path, line)
 
-        # Clear in-place progress on stderr (real bar or fake placeholder) so logs do not smear into it.
-        try:
-            if getattr(sys.stderr, "isatty", lambda: False)():
-                sys.stderr.write("\r" + " " * 120 + "\r")
-                sys.stderr.flush()
-        except OSError:
-            pass
-        self._fake_progress_active = False
+        # Clear in-place progress only when a placeholder was drawn. Unconditional
+        # `" " * 120` on stderr becomes a blank line in the VS Code terminal.
+        if getattr(self, "_fake_progress_active", False):
+            try:
+                if getattr(sys.stderr, "isatty", lambda: False)():
+                    sys.stderr.write("\r" + " " * 120 + "\r")
+                    sys.stderr.flush()
+            except OSError:
+                pass
+            self._fake_progress_active = False
 
         try:
             print(line)
@@ -895,14 +897,16 @@ def add_line(self, line: str) -> None:
         if self._output_bus is not None:
             self._output_bus.append_line(output_path, line)
 
-        # Clear in-place progress on stderr (real bar or fake placeholder) so logs do not smear into it.
-        try:
-            if getattr(sys.stderr, "isatty", lambda: False)():
-                sys.stderr.write("\r" + " " * 120 + "\r")
-                sys.stderr.flush()
-        except OSError:
-            pass
-        self._fake_progress_active = False
+        # Clear in-place progress only when a placeholder was drawn. Unconditional
+        # `" " * 120` on stderr becomes a blank line in the VS Code terminal.
+        if getattr(self, "_fake_progress_active", False):
+            try:
+                if getattr(sys.stderr, "isatty", lambda: False)():
+                    sys.stderr.write("\r" + " " * 120 + "\r")
+                    sys.stderr.flush()
+            except OSError:
+                pass
+            self._fake_progress_active = False
 
         try:
             print(line)
