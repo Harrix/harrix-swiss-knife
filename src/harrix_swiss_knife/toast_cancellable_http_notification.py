@@ -150,12 +150,13 @@ class ToastCancellableHttpNotification(toast_countdown_notification.ToastCountdo
         self._close_button.raise_()
 
     def _refresh_label_text(self) -> None:
-        """Update label with message, elapsed seconds, and cancel hint."""
+        """Update label with message, elapsed clock, and cancel hint."""
+        elapsed = toast_countdown_notification.format_elapsed_clock(self.elapsed_seconds)
         if self._is_pinned:
-            self.label.setText(f"{self.message}\n{self.elapsed_seconds}s")
+            self.label.setText(f"{self.message}\n{elapsed}")
         else:
             self.label.setText(
-                f"{self.message}\nSeconds elapsed: {self.elapsed_seconds}\n{_CANCEL_HINT}",
+                f"{self.message}\nTime elapsed: {elapsed}\n{_CANCEL_HINT}",
             )
         previous_size = self.size()
         self.adjustSize()

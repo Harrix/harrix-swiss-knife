@@ -16,6 +16,7 @@ lang: en
   - [⚙️ Method `closeEvent`](#%EF%B8%8F-method-closeevent)
   - [⚙️ Method `start_countdown`](#%EF%B8%8F-method-start_countdown)
   - [⚙️ Method `update_time`](#%EF%B8%8F-method-update_time)
+- [🔧 Function `format_elapsed_clock`](#-function-format_elapsed_clock)
 
 </details>
 
@@ -106,11 +107,11 @@ class ToastCountdownNotification(toast_notification_base.ToastNotificationBase):
     def _refresh_label_text(self) -> None:
         """Update the notification text with the current elapsed time.
 
-        Refreshes the label to show the original message and the number of seconds
-        that have elapsed since the countdown started.
+        Refreshes the label to show the original message and clock time
+        (`MM:SS` or `HH:MM:SS`) since the countdown started.
 
         """
-        self.label.setText(f"{self.message}\nSeconds elapsed: {self.elapsed_seconds}")
+        self.label.setText(f"{self.message}\nTime elapsed: {format_elapsed_clock(self.elapsed_seconds)}")
 ```
 
 </details>
@@ -213,6 +214,38 @@ This method is called automatically every second when the timer is active.
 def update_time(self) -> None:
         self.elapsed_seconds = self.elapsed_timer.elapsed() // 1000
         self._refresh_label_text()
+```
+
+</details>
+
+## 🔧 Function `format_elapsed_clock`
+
+```python
+def format_elapsed_clock(seconds: int) -> str
+```
+
+Format elapsed seconds as `MM:SS`, or `HH:MM:SS` after 60 minutes.
+
+Args:
+
+- `seconds` (`int`): Non-negative elapsed time in whole seconds.
+
+Returns:
+
+- `str`: Clock string such as `00:23`, `01:15`, or `01:00:01`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def format_elapsed_clock(seconds: int) -> str:
+    total = max(0, int(seconds))
+    if total >= _SECONDS_PER_HOUR:
+        hours, rem = divmod(total, _SECONDS_PER_HOUR)
+        minutes, secs = divmod(rem, _SECONDS_PER_MINUTE)
+        return f"{hours:02d}:{minutes:02d}:{secs:02d}"
+    minutes, secs = divmod(total, _SECONDS_PER_MINUTE)
+    return f"{minutes:02d}:{secs:02d}"
 ```
 
 </details>

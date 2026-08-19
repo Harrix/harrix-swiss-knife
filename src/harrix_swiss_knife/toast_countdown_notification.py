@@ -11,6 +11,9 @@ from PySide6.QtWidgets import QWidget
 
 from harrix_swiss_knife import toast_notification_base
 
+_SECONDS_PER_MINUTE = 60
+_SECONDS_PER_HOUR = 3600
+
 
 class ToastCountdownNotification(toast_notification_base.ToastNotificationBase):
     """A toast notification that displays an elapsed time counter.
@@ -90,8 +93,29 @@ class ToastCountdownNotification(toast_notification_base.ToastNotificationBase):
     def _refresh_label_text(self) -> None:
         """Update the notification text with the current elapsed time.
 
-        Refreshes the label to show the original message and the number of seconds
-        that have elapsed since the countdown started.
+        Refreshes the label to show the original message and clock time
+        (`MM:SS` or `HH:MM:SS`) since the countdown started.
 
         """
-        self.label.setText(f"{self.message}\nSeconds elapsed: {self.elapsed_seconds}")
+        self.label.setText(f"{self.message}\nTime elapsed: {format_elapsed_clock(self.elapsed_seconds)}")
+
+
+def format_elapsed_clock(seconds: int) -> str:
+    """Format elapsed seconds as `MM:SS`, or `HH:MM:SS` after 60 minutes.
+
+    Args:
+
+    - `seconds` (`int`): Non-negative elapsed time in whole seconds.
+
+    Returns:
+
+    - `str`: Clock string such as `00:23`, `01:15`, or `01:00:01`.
+
+    """
+    total = max(0, int(seconds))
+    if total >= _SECONDS_PER_HOUR:
+        hours, rem = divmod(total, _SECONDS_PER_HOUR)
+        minutes, secs = divmod(rem, _SECONDS_PER_MINUTE)
+        return f"{hours:02d}:{minutes:02d}:{secs:02d}"
+    minutes, secs = divmod(total, _SECONDS_PER_MINUTE)
+    return f"{minutes:02d}:{secs:02d}"

@@ -284,17 +284,17 @@ class ToastProgressNotification(toast_countdown_notification.ToastCountdownNotif
         """Update label with message, elapsed time, and progress summary."""
         if not hasattr(self, "progress_bar"):
             return
-        elapsed = getattr(self, "elapsed_seconds", 0)
+        elapsed = toast_countdown_notification.format_elapsed_clock(getattr(self, "elapsed_seconds", 0))
         cancel_hint = f"\n{_CANCEL_HINT}" if self._cancellable and not self._is_pinned else ""
         if self._is_pinned:
             progress = f"{self._done}/{self._total}" if self._total > 0 else str(self._done)
-            self.label.setText(f"{self.message}\n{elapsed}s · {progress}")
+            self.label.setText(f"{self.message}\n{elapsed} · {progress}")
         elif self._total > 0:
             self.label.setText(
-                f"{self.message}\nSeconds elapsed: {elapsed}\nProgress: {self._done} / {self._total}{cancel_hint}",
+                f"{self.message}\nTime elapsed: {elapsed}\nProgress: {self._done} / {self._total}{cancel_hint}",
             )
         else:
-            self.label.setText(f"{self.message}\nSeconds elapsed: {elapsed}{cancel_hint}")
+            self.label.setText(f"{self.message}\nTime elapsed: {elapsed}{cancel_hint}")
         previous_size = self.size()
         self.adjustSize()
         self.reposition_action_buttons()
