@@ -71,7 +71,7 @@ Choose the AI backend with `"ai": { "provider": "bothub" }` (`openai`, `anthropi
 
 ## 📦 Building Windows install zip bundles
 
-Scripts live in `install\`. To refresh installer payloads and produce the distributable zips, run the **download/build steps** below in numeric order (`01` → `05`), or run `install\build-all.bat` once. Step **`06`** is optional log cleanup.
+Scripts live in `install\`. To refresh installer payloads and produce the distributable zips, run the **download/build steps** below in numeric order (`01` → `05`), or run `install\build-all.bat` once (tray: **Dev** → **Build install zips**, or `hsk dev build-install-zips`). Step **`06`** is optional log cleanup.
 
 ### Before you start
 
@@ -100,7 +100,7 @@ Both zips use the same entry point on the target: **`install.bat`** (mode **Auto
 
 Override with `install.bat -Mode Online` or `install.bat -Mode Offline` if needed.
 
-One-shot builder: `install\build-all.bat` (steps 1–5). Alternative for steps 1–4 only: `.\install\download-bundle.ps1`, then still run step 5 to build the zips.
+One-shot builder: `install\build-all.bat` (steps 1–5), **Dev** → **Build install zips**, or `hsk dev build-install-zips`. Those last two skip the final pause and open `install\` in Explorer when finished. Alternative for steps 1–4 only: `.\install\download-bundle.ps1`, then still run step 5 to build the zips.
 
 Personal private-data transfer is one tray action **Dev** → **Transfer private data** (choose Export or Import, then which parts), or CLI `hsk dev private-data export` / `hsk dev private-data import`. Parts are API keys and/or exercise catalog plus `fitness_img` (`{English name}.avif`) from `sqlite_fitness` (not `process`/`weight` workouts). Import upserts the catalog by English name and overlays missing/updated images next to existing files without wiping local-only rows, extra images, or workout history. Output defaults to `install\private-data-harrix-swiss-knife.zip` (gitignored). It is **not** part of the public online/offline install zip pipeline above. See `api-keys/README.md` (section Transfer to another machine).
 

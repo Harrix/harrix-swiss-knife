@@ -3,9 +3,16 @@ REM Run install zip pipeline steps 01 through 05 in order.
 REM Optional log cleanup: 06_clean-logs.bat (not included here).
 REM Calls the underlying scripts (no per-step "close this window" pause).
 REM Steps 1-2 show a UAC prompt; 3-5 run in this window.
+REM Flags: /nopause skips the final keypress; /open does that and opens this folder.
 
 setlocal EnableExtensions
 cd /d "%~dp0"
+
+set "NOPAUSE="
+set "OPEN_INSTALL="
+:parse_args
+if /i "%~1"=="/nopause" set "NOPAUSE=1" & shift & goto :parse_args
+if /i "%~1"=="/open" set "OPEN_INSTALL=1" & set "NOPAUSE=1" & shift & goto :parse_args
 
 set "EXITCODE=0"
 
@@ -63,8 +70,14 @@ if not "%EXITCODE%"=="0" (
   echo Optional: 06_clean-logs.bat
 )
 
-echo.
-echo Press any key to close this window...
-pause > nul
+if defined OPEN_INSTALL (
+  explorer "%CD%"
+)
+
+if not defined NOPAUSE (
+  echo.
+  echo Press any key to close this window...
+  pause > nul
+)
 
 endlocal & exit /b %EXITCODE%

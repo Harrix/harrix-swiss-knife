@@ -59,6 +59,7 @@ _Figure 1: Screenshot_
 - **Dev**
   - ℹ️ About
   - 🚀 Add to Windows autostart
+  - 🚀 Build install zips ꟲᴸᴵ
   - 🧹 Clear temp folder
   - 🔗 Create desktop shortcut
   - ⬇️ Download ffmpeg, avifenc, avifdec
@@ -391,6 +392,7 @@ Folder arguments are optional (default: current directory) for commands that tak
 - `hsk site pull-submodules` — pull `origin main` in each submodule of `path_site_repo`
 - `hsk site pull-submodules "D:/path/to/site-repo"` — same for an explicit site repo folder
 - `hsk dev action-usage` — show sorted action invocation statistics (unused first)
+- `hsk dev build-install-zips` — run `install/build-all.bat` (steps 1–5) and open `install/` (Windows)
 - `hsk dev install-cli` (global `hsk` on PATH via `uv tool install -e`)
 - `hsk dev private-data export` — pack API keys, `fitness_img`, and exercise/type catalog into `install/private-data-harrix-swiss-knife.zip` (workouts not included)
 - `hsk dev private-data export --zip PATH` — write the personal ZIP to `PATH` instead of the default under `install/`

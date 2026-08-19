@@ -17,6 +17,7 @@ from harrix_swiss_knife.actions.apps.habits import OnHabits
 from harrix_swiss_knife.actions.apps.icons import OnIcons
 from harrix_swiss_knife.actions.development.about_dialog import OnAboutDialog
 from harrix_swiss_knife.actions.development.add_to_autostart import OnAddToAutostart
+from harrix_swiss_knife.actions.development.build_install_zips import OnBuildInstallZips
 from harrix_swiss_knife.actions.development.clear_temp_folder import OnClearTempFolder
 from harrix_swiss_knife.actions.development.create_desktop_shortcut import OnCreateDesktopShortcut
 from harrix_swiss_knife.actions.development.download_optimize_dependencies import OnDownloadOptimizeDependencies
@@ -131,6 +132,7 @@ def get_menu_structure() -> list[Any]:
                 OnAddToAutostart,
                 OnCreateDesktopShortcut,
                 OnDownloadOptimizeDependencies,
+                OnBuildInstallZips,
                 OnUpdateNode,
                 OnNpmManagePackages,
                 OnOpenConfigJson,

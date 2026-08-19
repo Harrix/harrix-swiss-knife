@@ -19,6 +19,7 @@ lang: en
 - [🔧 Function `android_setup`](#-function-android_setup)
 - [🔧 Function `dev_group`](#-function-dev_group)
 - [🔧 Function `dev_action_usage`](#-function-dev_action_usage)
+- [🔧 Function `dev_build_install_zips`](#-function-dev_build_install_zips)
 - [🔧 Function `dev_install_cli`](#-function-dev_install_cli)
 - [🔧 Function `dev_install_harrix_notes_explorer_hsk`](#-function-dev_install_harrix_notes_explorer_hsk)
 - [🔧 Function `dev_install_private_data`](#-function-dev_install_private_data)
@@ -216,6 +217,26 @@ def dev_action_usage() -> None:
     action = OnShowActionUsageStats()
     action(noninteractive=True)
     _exit_if_action_failed(action)
+```
+
+</details>
+
+## 🔧 Function `dev_build_install_zips`
+
+```python
+def dev_build_install_zips() -> None
+```
+
+Run `install/build-all.bat` (steps 1–5) and open `install/` (Windows).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def dev_build_install_zips() -> None:
+    action = OnBuildInstallZips()
+    action(noninteractive=True)
+    _finish_timed_action(action)
 ```
 
 </details>

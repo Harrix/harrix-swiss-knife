@@ -13,6 +13,7 @@ from PySide6.QtWidgets import QApplication
 
 from harrix_swiss_knife.actions.android import OnAndroidBuild, OnAndroidCheck, OnAndroidFormat, OnAndroidSetupSdk
 from harrix_swiss_knife.actions.development import (
+    OnBuildInstallZips,
     OnInstallCli,
     OnShowActionUsageStats,
     OnTransferPrivateData,
@@ -134,6 +135,14 @@ def dev_action_usage() -> None:
     action = OnShowActionUsageStats()
     action(noninteractive=True)
     _exit_if_action_failed(action)
+
+
+@dev_group.command("build-install-zips")
+def dev_build_install_zips() -> None:
+    """Run `install/build-all.bat` (steps 1-5) and open `install/` (Windows)."""
+    action = OnBuildInstallZips()
+    action(noninteractive=True)
+    _finish_timed_action(action)
 
 
 @dev_group.command("install-cli")
