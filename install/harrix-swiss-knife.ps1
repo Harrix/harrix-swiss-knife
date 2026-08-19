@@ -203,11 +203,14 @@ function Test-DbParentDirAccessible {
     if ([string]::IsNullOrWhiteSpace($Path)) {
         return $false
     }
+    # Do not create personal/remote trees (e.g. Dropbox) from a snapshot config.
+    # Only probe write when the directory already exists.
+    if (-not (Test-Path -LiteralPath $Path -PathType Container)) {
+        return $false
+    }
     $prevEap = $ErrorActionPreference
     try {
-        # Do not print errors during probe; just return $false when not writable.
         $ErrorActionPreference = "Stop"
-        New-Item -ItemType Directory -Path $Path -Force -ErrorAction Stop 2>$null | Out-Null
         $probe = Join-Path $Path ".hsk-write-test"
         "ok" | Out-File -LiteralPath $probe -Encoding utf8 -Force -ErrorAction Stop 2>$null
         Remove-Item -LiteralPath $probe -Force -ErrorAction SilentlyContinue
@@ -1528,8 +1531,9 @@ function Get-PyvenvHome {
     foreach ($line in Get-Content -LiteralPath $PyvenvCfgPath -ErrorAction SilentlyContinue) {
         $trimmed = $line.Trim()
         if ($trimmed -match '^\s*home\s*=\s*(.+)\s*$') {
-            $home = $Matches[1].Trim()
-            if ($home) { return $home }
+            # Do not use $home — it aliases read-only automatic $HOME in PowerShell.
+            $venvHome = $Matches[1].Trim()
+            if ($venvHome) { return $venvHome }
         }
     }
     return $null
@@ -1543,14 +1547,14 @@ function Repair-PythonwLauncher {
 
     $pyvenvCfg = Join-Path $ProjectRoot ".venv\pyvenv.cfg"
     $pywTarget = Join-Path $ProjectRoot ".venv\Scripts\pythonw.exe"
-    $home = Get-PyvenvHome -PyvenvCfgPath $pyvenvCfg
-    if (-not $home) {
+    $venvHome = Get-PyvenvHome -PyvenvCfgPath $pyvenvCfg
+    if (-not $venvHome) {
         Write-Host "    pyvenv.cfg home not found; skip pythonw repair" -ForegroundColor DarkGray
         Add-Outcome -Category "skipped" -Message "pythonw.exe repair skipped (pyvenv.cfg home missing)"
         return
     }
 
-    $pywSource = Join-Path $home "pythonw.exe"
+    $pywSource = Join-Path $venvHome "pythonw.exe"
     if (-not (Test-Path -LiteralPath $pywSource)) {
         Write-Host "    Managed pythonw.exe not found ($pywSource); skip repair" -ForegroundColor Yellow
         Add-Outcome -Category "skipped" -Message "pythonw.exe repair skipped (managed pythonw.exe missing)"
@@ -2196,13 +2200,31 @@ try {
     }
 
     Write-Step "Repair pythonw.exe launcher (uv #19226)"
-    Repair-PythonwLauncher -ProjectRoot $hsk
+    try {
+        Repair-PythonwLauncher -ProjectRoot $hsk
+    }
+    catch {
+        Write-Warning "pythonw.exe repair failed: $($_.Exception.Message)"
+        Add-Outcome -Category "failed" -Message "pythonw.exe repair failed: $($_.Exception.Message)"
+    }
 
     Write-Step "Desktop shortcut"
-    New-DesktopShortcut -ProjectRoot $hsk
+    try {
+        New-DesktopShortcut -ProjectRoot $hsk
+    }
+    catch {
+        Write-Warning "Desktop shortcut failed: $($_.Exception.Message)"
+        Add-Outcome -Category "failed" -Message "Desktop shortcut failed: $($_.Exception.Message)"
+    }
 
     Write-Step "Windows autostart (Startup folder)"
-    New-StartupShortcut -ProjectRoot $hsk
+    try {
+        New-StartupShortcut -ProjectRoot $hsk
+    }
+    catch {
+        Write-Warning "Startup shortcut failed: $($_.Exception.Message)"
+        Add-Outcome -Category "failed" -Message "Startup shortcut failed: $($_.Exception.Message)"
+    }
 
     # Copy/download Optimize binaries at the end so a download failure does not block installation.
     # -SkipBinaries still copies from install\dependencies\; it only skips network downloads.
