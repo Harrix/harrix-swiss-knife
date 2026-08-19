@@ -9,6 +9,8 @@ Local secret files for harrix-swiss-knife. **Not committed to Git** (see root `.
 
 - [Files](#files)
   - [GitHub token (optional)](#github-token-optional)
+    - [Fine-grained token (preferred)](#fine-grained-token-preferred)
+    - [Classic token (alternative)](#classic-token-alternative)
 - [Setup](#setup)
 - [AI providers](#ai-providers)
 - [Transfer to another machine](#transfer-to-another-machine)
@@ -38,10 +40,31 @@ Paths in `config.json` use the `snippet:api-keys/...` prefix; `harrix_pylib` loa
 Used by Dev → **Download ffmpeg, avifenc, avifdec**, install bundle scripts (`install/download-bundle.ps1`, `install/harrix-swiss-knife.ps1`), and related GitHub API calls. Without a token, unauthenticated GitHub REST API is limited to **60 requests/hour per IP**; with a PAT, **5000/hour per account**. Asset zip downloads themselves are not counted in that API quota; the token mainly avoids HTTP 403 when resolving latest releases on shared networks.
 
 1. Copy `github-token.example.txt` → `github-token.txt`.
-2. Create a fine-grained PAT at [GitHub.com/settings/personal-access-tokens](https://github.com/settings/personal-access-tokens): **Public repositories (read-only)**; no extra repository or account permissions. Or a classic token with **empty scopes**.
+2. Create a token (form fields below).
 3. Paste the token (one line, `github_pat_…` or `ghp_…`). Do not commit the real file.
 
 Override: set env `GITHUB_TOKEN` (takes precedence over the file). For elevated UAC downloads, prefer the file under `api-keys/` — session env is often missing after elevation.
+
+#### Fine-grained token (preferred)
+
+Open [GitHub.com/settings/personal-access-tokens](https://github.com/settings/personal-access-tokens) → **Generate new token**. Or: **Settings → Developer settings → Personal access tokens → Fine-grained tokens**.
+
+On **New fine-grained personal access token** fill the form as follows:
+
+| Field                 | What to set                                                                                                                                                                          |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Token name**        | Any label, for example `for-harrix-swiss-knife`                                                                                                                                      |
+| **Description**       | Optional. Example: `Public release downloads for HSK`                                                                                                                                |
+| **Resource owner**    | Your GitHub account (not an organization unless you intend that)                                                                                                                     |
+| **Expiration**        | `30 days` works; for a personal machine prefer **90 days** or **No expiration** if offered, so downloads do not start failing with 403 after expiry                                  |
+| **Repository access** | **Public repositories (read-only)**. Do not choose All repositories or Only select repositories                                                                                      |
+| **Permissions**       | Leave empty. Do not click **Add permissions**. Account permissions must stay “No account permissions added yet”. Extra repository permissions (Contents, Metadata, …) are not needed |
+
+Then **Generate token** and copy the value once (`github_pat_…`). GitHub will not show it again.
+
+#### Classic token (alternative)
+
+[GitHub.com/settings/tokens](https://github.com/settings/tokens) → **Generate new token (classic)**. Leave **all scopes unchecked**. Do not enable `repo`, write, or delete. The token starts with `ghp_…`.
 
 ## Setup
 
