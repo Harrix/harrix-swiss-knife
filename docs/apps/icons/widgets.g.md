@@ -19,12 +19,14 @@ lang: en
 - [🏛️ Class `DraggableIconList`](#%EF%B8%8F-class-draggableiconlist)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-1)
   - [⚙️ Method `append_grid_entries`](#%EF%B8%8F-method-append_grid_entries)
+  - [⚙️ Method `keyPressEvent`](#%EF%B8%8F-method-keypressevent)
   - [⚙️ Method `preview_paths`](#%EF%B8%8F-method-preview_paths)
   - [⚙️ Method `reset_row_pixmaps`](#%EF%B8%8F-method-reset_row_pixmaps)
   - [⚙️ Method `resizeEvent`](#%EF%B8%8F-method-resizeevent)
   - [⚙️ Method `schedule_viewport_changed`](#%EF%B8%8F-method-schedule_viewport_changed)
   - [⚙️ Method `select_family`](#%EF%B8%8F-method-select_family)
   - [⚙️ Method `selected_families`](#%EF%B8%8F-method-selected_families)
+  - [⚙️ Method `selected_file_paths`](#%EF%B8%8F-method-selected_file_paths)
   - [⚙️ Method `selected_keyword_targets`](#%EF%B8%8F-method-selected_keyword_targets)
   - [⚙️ Method `set_display_icon_size`](#%EF%B8%8F-method-set_display_icon_size)
   - [⚙️ Method `set_family_items`](#%EF%B8%8F-method-set_family_items)
@@ -206,6 +208,7 @@ class DraggableIconList(QListWidget):
     reveal_requested = Signal(str)
     details_requested = Signal(object, str)  # IconFamily, svg_path
     copy_requested = Signal(str)
+    copy_files_requested = Signal(object)  # list[str]
     copy_contents_requested = Signal(str)
     copy_filename_requested = Signal(str)
     copy_path_requested = Signal(str)
@@ -291,6 +294,16 @@ class DraggableIconList(QListWidget):
             self.setUpdatesEnabled(True)
             self.blockSignals(False)  # noqa: FBT003
 
+    def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
+        """Copy selected icon files when the standard Copy shortcut is pressed."""
+        if event.matches(QKeySequence.StandardKey.Copy):
+            paths = self.selected_file_paths()
+            if paths:
+                self.copy_files_requested.emit(paths)
+                event.accept()
+                return
+        super().keyPressEvent(event)
+
     def preview_paths(self) -> list[Path]:
         """Return all existing icon paths in display order."""
         paths: list[Path] = []
@@ -341,6 +354,18 @@ class DraggableIconList(QListWidget):
     def selected_families(self) -> list[IconFamily]:
         """Return unique selected families in display order."""
         return [family for family, _path in self.selected_keyword_targets()]
+
+    def selected_file_paths(self) -> list[str]:
+        """Return file paths of selected tiles, in display order."""
+        paths: list[str] = []
+        for index in range(self.count()):
+            item = self.item(index)
+            if item is None or not item.isSelected():
+                continue
+            raw = item.data(ROLE_SVG_PATH)
+            if isinstance(raw, str) and raw:
+                paths.append(raw)
+        return paths
 
     def selected_keyword_targets(self) -> list[tuple[IconFamily, str]]:
         """Return unique selected families with an SVG path, in display order."""
@@ -585,12 +610,6 @@ class DraggableIconList(QListWidget):
         set_category_action = menu.addAction("🏷️ Set as category icon")
         is_favorite = str(getattr(family, "id", "")).strip() in self._favorite_family_ids
         favorite_action = menu.addAction("⭐ Remove from favorites" if is_favorite else "⭐ Add to favorites")
-        license_name, license_url = family_license_info(family, self._repo_root)
-        license_action = None
-        if license_name:
-            license_action = menu.addAction(f"License: {license_name}")
-            if not is_openable_license_url(license_url):
-                license_action.setEnabled(False)
 
         is_trademark = getattr(family, "trademark", False)
         toggle_trademark_text = "Remove trademark warning" if is_trademark else "Add trademark warning"
@@ -604,6 +623,13 @@ class DraggableIconList(QListWidget):
             reveal_source_action = menu.addAction("📂 Reveal source in File Explorer")
             open_source_action = menu.addAction("🎨 Open source")
             menu.addSeparator()
+
+        license_name, license_url = family_license_info(family, self._repo_root)
+        license_action = None
+        if license_name:
+            license_action = menu.addAction(f"📜 License: {license_name}")
+            if not is_openable_license_url(license_url):
+                license_action.setEnabled(False)
 
         delete_action = menu.addAction("🗑️ Delete")
         chosen = menu.exec_(self.mapToGlobal(pos))
@@ -750,6 +776,30 @@ def append_grid_entries(
 
 </details>
 
+### ⚙️ Method `keyPressEvent`
+
+```python
+def keyPressEvent(self, event: QKeyEvent) -> None
+```
+
+Copy selected icon files when the standard Copy shortcut is pressed.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
+        if event.matches(QKeySequence.StandardKey.Copy):
+            paths = self.selected_file_paths()
+            if paths:
+                self.copy_files_requested.emit(paths)
+                event.accept()
+                return
+        super().keyPressEvent(event)
+```
+
+</details>
+
 ### ⚙️ Method `preview_paths`
 
 ```python
@@ -881,6 +931,32 @@ Return unique selected families in display order.
 ```python
 def selected_families(self) -> list[IconFamily]:
         return [family for family, _path in self.selected_keyword_targets()]
+```
+
+</details>
+
+### ⚙️ Method `selected_file_paths`
+
+```python
+def selected_file_paths(self) -> list[str]
+```
+
+Return file paths of selected tiles, in display order.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def selected_file_paths(self) -> list[str]:
+        paths: list[str] = []
+        for index in range(self.count()):
+            item = self.item(index)
+            if item is None or not item.isSelected():
+                continue
+            raw = item.data(ROLE_SVG_PATH)
+            if isinstance(raw, str) and raw:
+                paths.append(raw)
+        return paths
 ```
 
 </details>

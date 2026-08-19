@@ -226,6 +226,60 @@ function Copy-IfExists([string] $Src, [string] $DestDir) {
     return $true
 }
 
+function Get-GitHubToken {
+    $envToken = [string]$env:GITHUB_TOKEN
+    if (-not [string]::IsNullOrWhiteSpace($envToken)) {
+        $t = $envToken.Trim()
+        if ($t -and -not $t.StartsWith("paste-your-")) {
+            return $t
+        }
+    }
+    $tokenPath = Join-Path (Resolve-RepoRoot) "api-keys\github-token.txt"
+    if (-not (Test-Path -LiteralPath $tokenPath)) {
+        return $null
+    }
+    try {
+        $line = (Get-Content -LiteralPath $tokenPath -TotalCount 1 -ErrorAction Stop)
+        if ($null -eq $line) { return $null }
+        $t = ([string]$line).Trim()
+        if ([string]::IsNullOrWhiteSpace($t) -or $t.StartsWith("paste-your-")) {
+            return $null
+        }
+        return $t
+    }
+    catch {
+        return $null
+    }
+}
+
+function Test-IsGitHubHostedUrl([string] $Url) {
+    try {
+        $uri = [Uri]$Url
+        $hostName = $uri.Host.ToLowerInvariant()
+        if ([string]::IsNullOrWhiteSpace($hostName)) { return $false }
+        return (
+            $hostName -eq "github.com" -or
+            $hostName.EndsWith(".github.com") -or
+            $hostName -eq "githubusercontent.com" -or
+            $hostName.EndsWith(".githubusercontent.com")
+        )
+    }
+    catch {
+        return $false
+    }
+}
+
+function Get-GitHubDownloadHeaders([string] $Url, [string] $UserAgent) {
+    $headers = @{ "User-Agent" = $UserAgent }
+    if (Test-IsGitHubHostedUrl -Url $Url) {
+        $token = Get-GitHubToken
+        if ($token) {
+            $headers["Authorization"] = "Bearer $token"
+        }
+    }
+    return $headers
+}
+
 function Invoke-Download([string] $Url, [string] $OutFile) {
     if ((-not $Force) -and (Test-Path -LiteralPath $OutFile)) {
         return
@@ -233,7 +287,8 @@ function Invoke-Download([string] $Url, [string] $OutFile) {
     Write-Host "    Download: $Url" -ForegroundColor DarkGray
     $tmp = Get-RandomSiblingPath -Path $OutFile -Suffix ".tmp"
     try {
-        Invoke-WebRequest -Uri $Url -OutFile $tmp -UseBasicParsing -TimeoutSec 1800 -Headers @{ "User-Agent" = "Harrix-Swiss-Knife-Bundle/1.0" }
+        $headers = Get-GitHubDownloadHeaders -Url $Url -UserAgent "Harrix-Swiss-Knife-Bundle/1.0"
+        Invoke-WebRequest -Uri $Url -OutFile $tmp -UseBasicParsing -TimeoutSec 1800 -Headers $headers
         if (-not (Test-NonEmptyFile -Path $tmp)) {
             throw "Downloaded file is empty: $tmp"
         }
@@ -278,8 +333,9 @@ function Get-GitHubJson([string] $Url) {
         "X-GitHub-Api-Version" = "2022-11-28"
         "User-Agent" = "Harrix-Swiss-Knife-Bundle/1.0"
     }
-    if ($env:GITHUB_TOKEN) {
-        $headers["Authorization"] = "Bearer $($env:GITHUB_TOKEN)"
+    $token = Get-GitHubToken
+    if ($token) {
+        $headers["Authorization"] = "Bearer $token"
     }
     return Invoke-RestMethod -Uri $Url -Headers $headers -Method Get
 }
@@ -383,7 +439,7 @@ if (-not $SkipInstallers) {
     try {
         $uvUrl = "https://github.com/astral-sh/uv/releases/latest/download/uv-x86_64-pc-windows-msvc.zip"
         if (-not (Try-Download -Label "uv zip (latest/download)" -Url $uvUrl -OutFile (Join-Path $deps "uv-x86_64-pc-windows-msvc.zip"))) {
-            # Fallback: GitHub API (may 403 if rate limited; set GITHUB_TOKEN if so)
+            # Fallback: GitHub API (may 403 if rate limited; set api-keys\github-token.txt or GITHUB_TOKEN if so)
             $uvRel = Get-LatestRelease "astral-sh" "uv"
             $uvUrl2 = Find-AssetUrl -Release $uvRel -ExactName "uv-x86_64-pc-windows-msvc.zip"
             if (-not $uvUrl2) { throw "Could not find uv windows zip asset." }

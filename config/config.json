@@ -338,6 +338,7 @@
     "vector_icons_keywords": "snippet:config/prompts/vector-icons-keywords.md",
     "vector_icons_add_image": "snippet:config/prompts/vector-icons-add-image.md"
   },
+  "github_token": "snippet:api-keys/github-token.txt",
   "pypi_token": "snippet:api-keys/pypi-token.txt",
   "quick_launcher_markdown_in_panel": true,
   "show_main_window_on_startup": false,

@@ -61,6 +61,7 @@ class AppConfig(TypedDict, total=False):
     anthropic_api_key: str
     gemini: GeminiSettings
     gemini_api_key: str
+    github_token: str
     pypi_token: str
     sqlite_finance: str
     sqlite_fitness: str

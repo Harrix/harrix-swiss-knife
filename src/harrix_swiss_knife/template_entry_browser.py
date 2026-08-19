@@ -61,9 +61,7 @@ class TemplateEntryBrowserWidget(QWidget):
             if needle in item.text(0).casefold():
                 return True
             return any(
-                matches_item(child)
-                for index in range(item.childCount())
-                if (child := item.child(index)) is not None
+                matches_item(child) for index in range(item.childCount()) if (child := item.child(index)) is not None
             )
 
         for index in range(self._tree.topLevelItemCount()):

@@ -19,7 +19,7 @@ $logPath = Join-Path (Join-Path $PSScriptRoot "dependencies") $logName
 
 Write-Host "Starting elevated bundle download ($Kind). UAC prompt may appear."
 Write-Host ("Log file: {0}" -f $logPath)
-Write-Host "If GitHub returns HTTP 403 (rate limit), set user env var GITHUB_TOKEN and retry."
+Write-Host "If GitHub returns HTTP 403 (rate limit), add api-keys\github-token.txt (preferred after UAC) or set user env var GITHUB_TOKEN and retry."
 Write-Host ""
 
 $p = Start-Process `

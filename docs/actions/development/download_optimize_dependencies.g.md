@@ -28,8 +28,9 @@ Download `ffmpeg.exe`, `avifenc.exe`, and `avifdec.exe`.
 
 Fetches the latest Windows builds from AOMediaCodec/libavif and BtbN/FFmpeg-Builds,
 then extracts the executables to the project root for image optimization. Requires
-Windows. HTTPS uses certifi for CA verification; optional GITHUB_TOKEN for API rate
-limits. Extra CA bundle: set SSL_CERT_FILE to a PEM file path (e.g. corporate root CA).
+Windows. HTTPS uses certifi for CA verification; optional GitHub token for API rate
+limits (`GITHUB_TOKEN` env, `github_token` in config, or `api-keys/github-token.txt`).
+Extra CA bundle: set SSL_CERT_FILE to a PEM file path (e.g. corporate root CA).
 
 <details>
 <summary>Code:</summary>
@@ -104,7 +105,9 @@ class OnDownloadOptimizeDependencies(ActionBase):
             except HTTPError as e:
                 self.add_line(f"HTTP error: {e.code} {e.reason}")
                 if e.code == self._HTTP_FORBIDDEN:
-                    self.add_line("If rate limited, set GITHUB_TOKEN environment variable.")
+                    self.add_line(
+                        "If rate limited, add api-keys/github-token.txt (or set GITHUB_TOKEN environment variable)."
+                    )
             except URLError as e:
                 reason_str = str(e.reason)
                 self.add_line(f"Network error: {reason_str}")
@@ -140,7 +143,11 @@ class OnDownloadOptimizeDependencies(ActionBase):
         download_https_to_path(
             url,
             dest,
-            headers={"User-Agent": self._GITHUB_UA},
+            headers=github_download_headers(
+                url,
+                config=dict(self.config),
+                user_agent=self._GITHUB_UA,
+            ),
             timeout=120,
             chunk_size=self._DOWNLOAD_CHUNK,
             should_cancel=self.is_work_cancelled,
@@ -181,7 +188,10 @@ class OnDownloadOptimizeDependencies(ActionBase):
         """Fetch latest release info from GitHub API. Raises on error."""
         url = f"https://api.github.com/repos/{owner}/{repo}/releases/latest"
         validate_https_url(url)
-        req = Request(url, headers=github_api_headers())
+        req = Request(
+            url,
+            headers=github_api_headers(config=dict(self.config), user_agent=self._GITHUB_UA),
+        )
         with urlopen(req, timeout=30, context=https_ssl_context()) as resp:  # noqa: S310
             return json.loads(resp.read().decode())
 
@@ -298,7 +308,9 @@ def in_thread(self) -> str:
             except HTTPError as e:
                 self.add_line(f"HTTP error: {e.code} {e.reason}")
                 if e.code == self._HTTP_FORBIDDEN:
-                    self.add_line("If rate limited, set GITHUB_TOKEN environment variable.")
+                    self.add_line(
+                        "If rate limited, add api-keys/github-token.txt (or set GITHUB_TOKEN environment variable)."
+                    )
             except URLError as e:
                 reason_str = str(e.reason)
                 self.add_line(f"Network error: {reason_str}")

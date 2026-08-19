@@ -1337,11 +1337,6 @@ class MainWindow(QMainWindow, AppWindowMixin):
             return
         self.statusBar().showMessage(f"Copied contents of `{path.name}`")
 
-    def _on_copy_files(self, paths: object) -> None:
-        if not isinstance(paths, list):
-            return
-        self._copy_icon_files([str(item) for item in paths if str(item).strip()])
-
     def _on_copy_filename(self, svg_path: str) -> None:
         name = Path(svg_path).name
         clipboard = QApplication.clipboard()
@@ -1350,6 +1345,11 @@ class MainWindow(QMainWindow, AppWindowMixin):
             return
         clipboard.setText(name)
         self.statusBar().showMessage(f"Copied filename `{name}`")
+
+    def _on_copy_files(self, paths: object) -> None:
+        if not isinstance(paths, list):
+            return
+        self._copy_icon_files([str(item) for item in paths if str(item).strip()])
 
     def _on_copy_path(self, svg_path: str) -> None:
         path = str(Path(svg_path).resolve())

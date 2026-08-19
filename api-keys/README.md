@@ -8,6 +8,7 @@ Local secret files for harrix-swiss-knife. **Not committed to Git** (see root `.
 ## Contents
 
 - [Files](#files)
+  - [GitHub token (optional)](#github-token-optional)
 - [Setup](#setup)
 - [AI providers](#ai-providers)
 - [Transfer to another machine](#transfer-to-another-machine)
@@ -20,6 +21,7 @@ Local secret files for harrix-swiss-knife. **Not committed to Git** (see root `.
 | File                     | Config key                                 | Purpose                                            |
 | ------------------------ | ------------------------------------------ | -------------------------------------------------- |
 | `pypi-token.txt`         | `pypi_token` in `config/config.json`       | PyPI token for publishing Python libraries         |
+| `github-token.txt`       | `github_token` in `config/config.json`     | Optional GitHub PAT for higher API rate limits     |
 | `bothub-api-key.txt`     | `bothub_api_key` in `config/config.json`   | BotHub access token for AI features                |
 | `openai-api-key.txt`     | `openai_api_key` in `config/config.json`   | OpenAI API key (chat + Whisper speech)             |
 | `anthropic-api-key.txt`  | `anthropic_api_key` in `config/config.json`| Anthropic API key (Claude Messages)                |
@@ -31,11 +33,22 @@ For school/corporate Wi-Fi, set optional `ai.proxy` (or legacy `bothub.proxy`) i
 
 Paths in `config.json` use the `snippet:api-keys/...` prefix; `harrix_pylib` loads file contents at runtime.
 
+### GitHub token (optional)
+
+Used by Dev → **Download ffmpeg, avifenc, avifdec**, install bundle scripts (`install/download-bundle.ps1`, `install/harrix-swiss-knife.ps1`), and related GitHub API calls. Without a token, unauthenticated GitHub REST API is limited to **60 requests/hour per IP**; with a PAT, **5000/hour per account**. Asset zip downloads themselves are not counted in that API quota; the token mainly avoids HTTP 403 when resolving latest releases on shared networks.
+
+1. Copy `github-token.example.txt` → `github-token.txt`.
+2. Create a fine-grained PAT at [GitHub.com/settings/personal-access-tokens](https://github.com/settings/personal-access-tokens): **Public repositories (read-only)**; no extra repository or account permissions. Or a classic token with **empty scopes**.
+3. Paste the token (one line, `github_pat_…` or `ghp_…`). Do not commit the real file.
+
+Override: set env `GITHUB_TOKEN` (takes precedence over the file). For elevated UAC downloads, prefer the file under `api-keys/` — session env is often missing after elevation.
+
 ## Setup
 
 1. Copy `pypi-token.example.txt` to `pypi-token.txt` (or move an existing token here).
 2. Replace the placeholder with your real token (one line, no quotes; PyPI tokens usually start with `pypi-`).
-3. Do not commit `api-keys/*` except files listed in `.gitignore` exceptions.
+3. Optionally copy `github-token.example.txt` → `github-token.txt` (see above).
+4. Do not commit `api-keys/*` except files listed in `.gitignore` exceptions.
 
 Add new keys as separate `.txt` files and reference them from `config.json` with `snippet:api-keys/<filename>`.
 

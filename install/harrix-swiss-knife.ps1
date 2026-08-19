@@ -1093,6 +1093,75 @@ function Invoke-WingetInstall {
     throw "winget install --id $PackageId failed (exit $LASTEXITCODE)"
 }
 
+function Get-GitHubToken {
+    $envToken = [string]$env:GITHUB_TOKEN
+    if (-not [string]::IsNullOrWhiteSpace($envToken)) {
+        $t = $envToken.Trim()
+        if ($t -and -not $t.StartsWith("paste-your-")) {
+            return $t
+        }
+    }
+    # Prefer checkout next to install\; also try InstallRoot\harrix-swiss-knife when already cloned.
+    $candidates = @(
+        (Join-Path $PSScriptRoot "..\api-keys\github-token.txt")
+    )
+    if (-not [string]::IsNullOrWhiteSpace($InstallRoot)) {
+        $candidates += (Join-Path $InstallRoot "harrix-swiss-knife\api-keys\github-token.txt")
+    }
+    foreach ($tokenPath in $candidates) {
+        try {
+            $resolved = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($tokenPath)
+        }
+        catch {
+            continue
+        }
+        if (-not (Test-Path -LiteralPath $resolved)) {
+            continue
+        }
+        try {
+            $line = (Get-Content -LiteralPath $resolved -TotalCount 1 -ErrorAction Stop)
+            if ($null -eq $line) { continue }
+            $t = ([string]$line).Trim()
+            if ([string]::IsNullOrWhiteSpace($t) -or $t.StartsWith("paste-your-")) {
+                continue
+            }
+            return $t
+        }
+        catch {
+            continue
+        }
+    }
+    return $null
+}
+
+function Test-IsGitHubHostedUrl([string] $Url) {
+    try {
+        $uri = [Uri]$Url
+        $hostName = $uri.Host.ToLowerInvariant()
+        if ([string]::IsNullOrWhiteSpace($hostName)) { return $false }
+        return (
+            $hostName -eq "github.com" -or
+            $hostName.EndsWith(".github.com") -or
+            $hostName -eq "githubusercontent.com" -or
+            $hostName.EndsWith(".githubusercontent.com")
+        )
+    }
+    catch {
+        return $false
+    }
+}
+
+function Get-GitHubDownloadHeaders([string] $Url) {
+    $headers = @{ "User-Agent" = $GitHubUa }
+    if (Test-IsGitHubHostedUrl -Url $Url) {
+        $token = Get-GitHubToken
+        if ($token) {
+            $headers["Authorization"] = "Bearer $token"
+        }
+    }
+    return $headers
+}
+
 function Get-GitHubReleaseLatest {
     param(
         [string] $Owner,
@@ -1105,8 +1174,9 @@ function Get-GitHubReleaseLatest {
         "X-GitHub-Api-Version" = "2022-11-28"
         "User-Agent"         = $GitHubUa
     }
-    if ($env:GITHUB_TOKEN) {
-        $headers["Authorization"] = "Bearer $($env:GITHUB_TOKEN)"
+    $token = Get-GitHubToken
+    if ($token) {
+        $headers["Authorization"] = "Bearer $token"
     }
     return Invoke-RestMethod -Uri $uri -Headers $headers -Method Get
 }
@@ -1168,7 +1238,8 @@ function Invoke-DirectDownload {
     $prev = $ProgressPreference
     $ProgressPreference = "SilentlyContinue"
     try {
-        Invoke-WebRequest -Uri $Url -OutFile $OutFile -UseBasicParsing -ErrorAction Stop | Out-Null
+        $headers = Get-GitHubDownloadHeaders -Url $Url
+        Invoke-WebRequest -Uri $Url -OutFile $OutFile -UseBasicParsing -Headers $headers -ErrorAction Stop | Out-Null
     }
     finally {
         $ProgressPreference = $prev
@@ -1331,7 +1402,7 @@ function Install-OptimizeBinaries {
                 $rel = Get-GitHubReleaseLatest -Owner "AOMediaCodec" -Repo "libavif"
                 $url = Get-AssetDownloadUrl -Release $rel -ExactName "windows-artifacts.zip"
                 $zipLib = Join-Path $tmpRoot "libavif.zip"
-                Invoke-WebRequest -Uri $url -OutFile $zipLib -Headers @{ "User-Agent" = $GitHubUa } -UseBasicParsing
+                Invoke-WebRequest -Uri $url -OutFile $zipLib -Headers (Get-GitHubDownloadHeaders -Url $url) -UseBasicParsing
             }
             foreach ($exe in @("avifenc.exe", "avifdec.exe")) {
                 if ((Test-Path -LiteralPath (Join-Path $destDir $exe)) -and -not $ForceBins) {
@@ -1382,7 +1453,7 @@ function Install-OptimizeBinaries {
                     $urlF = Get-AssetDownloadUrl -Release $relF -NameContains @("win64", "gpl")
                 }
                 $zipFf = Join-Path $tmpRoot "ffmpeg.zip"
-                Invoke-WebRequest -Uri $urlF -OutFile $zipFf -Headers @{ "User-Agent" = $GitHubUa } -UseBasicParsing
+                Invoke-WebRequest -Uri $urlF -OutFile $zipFf -Headers (Get-GitHubDownloadHeaders -Url $urlF) -UseBasicParsing
             }
 
             if ((Test-Path -LiteralPath (Join-Path $destDir "ffmpeg.exe")) -and -not $ForceBins) {

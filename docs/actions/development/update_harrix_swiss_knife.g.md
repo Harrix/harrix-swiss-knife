@@ -190,7 +190,11 @@ class OnUpdateHarrixSwissKnife(ActionBase):
         download_https_to_path(
             url,
             dest,
-            headers={"User-Agent": self._GITHUB_UA},
+            headers=github_download_headers(
+                url,
+                config=dict(self.config),
+                user_agent=self._GITHUB_UA,
+            ),
             timeout=300,
             chunk_size=256 * 1024,
             should_cancel=self.is_work_cancelled,
@@ -199,7 +203,10 @@ class OnUpdateHarrixSwissKnife(ActionBase):
     def _fetch_github_default_branch(self, owner: str, repo: str) -> str:
         url = f"https://api.github.com/repos/{owner}/{repo}"
         validate_https_url(url)
-        req = Request(url, headers=github_api_headers())
+        req = Request(
+            url,
+            headers=github_api_headers(config=dict(self.config), user_agent=self._GITHUB_UA),
+        )
         with urlopen(req, timeout=60, context=https_ssl_context()) as resp:  # noqa: S310
             data = json.loads(resp.read().decode())
         branch = data.get("default_branch")
