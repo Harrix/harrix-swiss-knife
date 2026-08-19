@@ -39,6 +39,9 @@ lang: en
 - [🔧 Function `markdown_new_note_with_images`](#-function-markdown_new_note_with_images)
 - [🔧 Function `markdown_optimize_images_folder`](#-function-markdown_optimize_images_folder)
 - [🔧 Function `markdown_regenerate_g_md`](#-function-markdown_regenerate_g_md)
+- [🔧 Function `private_data_group`](#-function-private_data_group)
+- [🔧 Function `private_data_export`](#-function-private_data_export)
+- [🔧 Function `private_data_import`](#-function-private_data_import)
 - [🔧 Function `python_group`](#-function-python_group)
 - [🔧 Function `python_check`](#-function-python_check)
 - [🔧 Function `python_check_all`](#-function-python_check_all)
@@ -260,22 +263,17 @@ def dev_install_harrix_notes_explorer_hsk(editor: str, *, with_public: bool) -> 
 ## 🔧 Function `dev_install_private_data`
 
 ```python
-def dev_install_private_data(zip_path: Path | None) -> None
+def dev_install_private_data(zip_path: Path | None, *, api_keys: bool, fitness: bool) -> None
 ```
 
-Install api-keys, fitness_img, and upsert exercise catalog (keeps workouts).
+Alias for `private-data import`.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def dev_install_private_data(zip_path: Path | None) -> None:
-    action = OnInstallPrivateData()
-    kwargs: dict[str, object] = {"noninteractive": True}
-    if zip_path is not None:
-        kwargs["zip_path"] = zip_path
-    action(**kwargs)
-    _exit_if_action_failed(action)
+def dev_install_private_data(zip_path: Path | None, *, api_keys: bool, fitness: bool) -> None:
+    _invoke_transfer_private_data(mode="import", zip_path=zip_path, api_keys=api_keys, fitness=fitness)
 ```
 
 </details>
@@ -283,22 +281,17 @@ def dev_install_private_data(zip_path: Path | None) -> None:
 ## 🔧 Function `dev_pack_private_data`
 
 ```python
-def dev_pack_private_data(zip_path: Path | None) -> None
+def dev_pack_private_data(zip_path: Path | None, *, api_keys: bool, fitness: bool) -> None
 ```
 
-Pack api-keys, fitness_img, and exercise catalog into a personal ZIP.
+Alias for `private-data export`.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def dev_pack_private_data(zip_path: Path | None) -> None:
-    action = OnPackPrivateData()
-    kwargs: dict[str, object] = {"noninteractive": True}
-    if zip_path is not None:
-        kwargs["zip_path"] = zip_path
-    action(**kwargs)
-    _exit_if_action_failed(action)
+def dev_pack_private_data(zip_path: Path | None, *, api_keys: bool, fitness: bool) -> None:
+    _invoke_transfer_private_data(mode="export", zip_path=zip_path, api_keys=api_keys, fitness=fitness)
 ```
 
 </details>
@@ -698,6 +691,59 @@ def markdown_regenerate_g_md(
         format_code_blocks=format_code_blocks,
     )
     _finish_timed_action(action)
+```
+
+</details>
+
+## 🔧 Function `private_data_group`
+
+```python
+def private_data_group() -> None
+```
+
+Export or import personal API keys and fitness catalog/images.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def private_data_group() -> None:
+```
+
+</details>
+
+## 🔧 Function `private_data_export`
+
+```python
+def private_data_export(zip_path: Path | None, *, api_keys: bool, fitness: bool) -> None
+```
+
+Pack selected private data into a personal ZIP (workouts not included).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def private_data_export(zip_path: Path | None, *, api_keys: bool, fitness: bool) -> None:
+    _invoke_transfer_private_data(mode="export", zip_path=zip_path, api_keys=api_keys, fitness=fitness)
+```
+
+</details>
+
+## 🔧 Function `private_data_import`
+
+```python
+def private_data_import(zip_path: Path | None, *, api_keys: bool, fitness: bool) -> None
+```
+
+Install selected private data; overlay images and upsert catalog (keeps workouts).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def private_data_import(zip_path: Path | None, *, api_keys: bool, fitness: bool) -> None:
+    _invoke_transfer_private_data(mode="import", zip_path=zip_path, api_keys=api_keys, fitness=fitness)
 ```
 
 </details>

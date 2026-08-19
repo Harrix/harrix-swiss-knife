@@ -14,9 +14,8 @@ from PySide6.QtWidgets import QApplication
 from harrix_swiss_knife.actions.android import OnAndroidBuild, OnAndroidCheck, OnAndroidFormat, OnAndroidSetupSdk
 from harrix_swiss_knife.actions.development import (
     OnInstallCli,
-    OnInstallPrivateData,
-    OnPackPrivateData,
     OnShowActionUsageStats,
+    OnTransferPrivateData,
 )
 from harrix_swiss_knife.actions.files import OnDiscardGitChanges
 from harrix_swiss_knife.actions.markdown import (
@@ -165,7 +164,7 @@ def dev_install_harrix_notes_explorer_hsk(editor: str, *, with_public: bool) -> 
     _exit_if_action_failed(action)
 
 
-@dev_group.command("install-private-data")
+@dev_group.command("install-private-data", hidden=True)
 @click.option(
     "--zip",
     "zip_path",
@@ -173,17 +172,14 @@ def dev_install_harrix_notes_explorer_hsk(editor: str, *, with_public: bool) -> 
     default=None,
     help="Input ZIP path (default: install/private-data-harrix-swiss-knife.zip).",
 )
-def dev_install_private_data(zip_path: Path | None) -> None:
-    """Install api-keys, fitness_img, and upsert exercise catalog (keeps workouts)."""
-    action = OnInstallPrivateData()
-    kwargs: dict[str, object] = {"noninteractive": True}
-    if zip_path is not None:
-        kwargs["zip_path"] = zip_path
-    action(**kwargs)
-    _exit_if_action_failed(action)
+@click.option("--api-keys", is_flag=True, help="Import API keys only if this flag is set with --fitness omitted.")
+@click.option("--fitness", is_flag=True, help="Import exercise catalog and images only if this flag is set.")
+def dev_install_private_data(zip_path: Path | None, *, api_keys: bool, fitness: bool) -> None:
+    """Alias for `private-data import`."""
+    _invoke_transfer_private_data(mode="import", zip_path=zip_path, api_keys=api_keys, fitness=fitness)
 
 
-@dev_group.command("pack-private-data")
+@dev_group.command("pack-private-data", hidden=True)
 @click.option(
     "--zip",
     "zip_path",
@@ -191,14 +187,11 @@ def dev_install_private_data(zip_path: Path | None) -> None:
     default=None,
     help="Output ZIP path (default: install/private-data-harrix-swiss-knife.zip).",
 )
-def dev_pack_private_data(zip_path: Path | None) -> None:
-    """Pack api-keys, fitness_img, and exercise catalog into a personal ZIP."""
-    action = OnPackPrivateData()
-    kwargs: dict[str, object] = {"noninteractive": True}
-    if zip_path is not None:
-        kwargs["zip_path"] = zip_path
-    action(**kwargs)
-    _exit_if_action_failed(action)
+@click.option("--api-keys", is_flag=True, help="Include API keys only if this flag is set with --fitness omitted.")
+@click.option("--fitness", is_flag=True, help="Include exercise catalog and images only if this flag is set.")
+def dev_pack_private_data(zip_path: Path | None, *, api_keys: bool, fitness: bool) -> None:
+    """Alias for `private-data export`."""
+    _invoke_transfer_private_data(mode="export", zip_path=zip_path, api_keys=api_keys, fitness=fitness)
 
 
 @cli.group("file")
@@ -614,6 +607,57 @@ def markdown_regenerate_g_md(
     _finish_timed_action(action)
 
 
+@dev_group.group("private-data")
+def private_data_group() -> None:
+    """Export or import personal API keys and fitness catalog/images."""
+
+
+@private_data_group.command("export")
+@click.option(
+    "--zip",
+    "zip_path",
+    type=click.Path(path_type=Path),
+    default=None,
+    help="Output ZIP path (default: install/private-data-harrix-swiss-knife.zip).",
+)
+@click.option(
+    "--api-keys",
+    is_flag=True,
+    help="Include API keys. Omit both --api-keys and --fitness to include every part.",
+)
+@click.option(
+    "--fitness",
+    is_flag=True,
+    help="Include exercise catalog and images. Omit both flags to include every part.",
+)
+def private_data_export(zip_path: Path | None, *, api_keys: bool, fitness: bool) -> None:
+    """Pack selected private data into a personal ZIP (workouts not included)."""
+    _invoke_transfer_private_data(mode="export", zip_path=zip_path, api_keys=api_keys, fitness=fitness)
+
+
+@private_data_group.command("import")
+@click.option(
+    "--zip",
+    "zip_path",
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+    default=None,
+    help="Input ZIP path (default: install/private-data-harrix-swiss-knife.zip).",
+)
+@click.option(
+    "--api-keys",
+    is_flag=True,
+    help="Import API keys. Omit both --api-keys and --fitness to import parts present in the ZIP.",
+)
+@click.option(
+    "--fitness",
+    is_flag=True,
+    help="Import exercise catalog and images. Omit both flags to import parts present in the ZIP.",
+)
+def private_data_import(zip_path: Path | None, *, api_keys: bool, fitness: bool) -> None:
+    """Install selected private data; overlay images and upsert catalog (keeps workouts)."""
+    _invoke_transfer_private_data(mode="import", zip_path=zip_path, api_keys=api_keys, fitness=fitness)
+
+
 @cli.group("py")
 def python_group() -> None:
     """Python project checks and formatting (Harrix check, ruff sort, ruff format)."""
@@ -854,6 +898,28 @@ def _finish_timed_action(action: object) -> None:
     add_elapsed = getattr(action, "add_elapsed_time", None)
     if callable(add_elapsed):
         add_elapsed()
+    _exit_if_action_failed(action)
+
+
+def _invoke_transfer_private_data(
+    *,
+    mode: str,
+    zip_path: Path | None,
+    api_keys: bool,
+    fitness: bool,
+) -> None:
+    """Run `OnTransferPrivateData` for CLI export/import (including hidden aliases)."""
+    action = OnTransferPrivateData()
+    kwargs: dict[str, object] = {
+        "noninteractive": True,
+        "mode": mode,
+        "include_api_keys": api_keys,
+        "include_fitness": fitness,
+        "parts_specified": api_keys or fitness,
+    }
+    if zip_path is not None:
+        kwargs["zip_path"] = zip_path
+    action(**kwargs)
     _exit_if_action_failed(action)
 
 

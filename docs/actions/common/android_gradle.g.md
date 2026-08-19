@@ -55,8 +55,8 @@ def add_user_path_entry(entry: str) -> None:
     updated = path_with_user_entry(current, entry)
     if updated != current:
         set_user_environment_value("Path", updated)
-    process_path = os.environ.get("Path") or os.environ.get("PATH") or ""
-    os.environ["Path"] = path_with_user_entry(process_path, entry)
+    process_path = os.environ.get("PATH") or ""
+    os.environ["PATH"] = path_with_user_entry(process_path, entry)
 ```
 
 </details>
@@ -74,7 +74,7 @@ Return the typical Android Studio `studio64.exe` path on Windows.
 
 ```python
 def android_studio_install_path() -> Path:
-    program_files = os.environ.get("ProgramFiles") or r"C:\Program Files"
+    program_files = os.environ.get("PROGRAMFILES") or r"C:\Program Files"
     return Path(program_files) / "Android" / "Android Studio" / "bin" / "studio64.exe"
 ```
 
@@ -274,7 +274,7 @@ def java_home_is_version_17(java_home: str) -> bool:
     if not java_exe.is_file():
         return False
     try:
-        process = subprocess.run(  # noqa: S603
+        process = subprocess.run(
             [str(java_exe), "-version"],
             capture_output=True,
             text=True,

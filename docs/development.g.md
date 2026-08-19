@@ -101,7 +101,7 @@ Override with `install.bat -Mode Online` or `install.bat -Mode Offline` if neede
 
 One-shot builder: `install\build-all.bat` (steps 1–5). Alternative for steps 1–4 only: `.\install\download-bundle.ps1`, then still run step 5 to build the zips.
 
-Personal private-data transfer is done via tray **Dev** → **Pack private data** / **Install private data**, or CLI `hsk dev pack-private-data` / `hsk dev install-private-data`. The ZIP includes `api-keys` secrets, `fitness_img`, and the exercise/type catalog from `sqlite_fitness` (not `process`/`weight` workouts). Install upserts the catalog by English name and overlays images without wiping local-only rows or workout history. Output defaults to `install\private-data-harrix-swiss-knife.zip` (gitignored). It is **not** part of the public online/offline install zip pipeline above. See `api-keys/README.md` (section Transfer to another machine).
+Personal private-data transfer is one tray action **Dev** → **Transfer private data** (choose Export or Import, then which parts), or CLI `hsk dev private-data export` / `hsk dev private-data import`. Parts are API keys and/or exercise catalog plus `fitness_img` (`{English name}.avif`) from `sqlite_fitness` (not `process`/`weight` workouts). Import upserts the catalog by English name and overlays missing/updated images next to existing files without wiping local-only rows, extra images, or workout history. Output defaults to `install\private-data-harrix-swiss-knife.zip` (gitignored). It is **not** part of the public online/offline install zip pipeline above. See `api-keys/README.md` (section Transfer to another machine).
 
 ## VS Code extension: Harrix Notes Explorer (HSK)
 

@@ -93,7 +93,7 @@ class OnAndroidSetupSdk(ActionBase):
             want_studio = self.STUDIO_CHOICE in selected
 
         self._android_dir = android_dir
-        self._install_android_studio = want_studio
+        self._want_android_studio = want_studio
         if noninteractive:
             self.in_thread()
             return
@@ -107,7 +107,7 @@ class OnAndroidSetupSdk(ActionBase):
             self.add_line("❌ android\\ folder is not set.")
             return "Done."
         try:
-            self._run_setup(android_dir, install_android_studio=bool(getattr(self, "_install_android_studio", False)))
+            self._run_setup(android_dir, install_android_studio=bool(getattr(self, "_want_android_studio", False)))
         except DownloadCancelledError:
             self.add_line("❌ Request cancelled by user.")
         except Exception as exc:
@@ -217,7 +217,7 @@ class OnAndroidSetupSdk(ActionBase):
             self.add_line("  winget not found; skip Android Studio. Install it later from Microsoft Store.")
             return
         self.add_line("  Installing Android Studio via winget...")
-        process = subprocess.run(  # noqa: S603
+        process = subprocess.run(
             [
                 winget,
                 "install",
@@ -251,7 +251,7 @@ class OnAndroidSetupSdk(ActionBase):
         env = gradle_env(java_home)
         env["ANDROID_HOME"] = str(sdk_root)
         env["ANDROID_SDK_ROOT"] = str(sdk_root)
-        process = subprocess.run(  # noqa: S603
+        process = subprocess.run(
             [str(sdkmanager), f"--sdk_root={sdk_root}", *self.SDK_PACKAGES],
             cwd=str(sdk_root),
             env=env,
@@ -339,7 +339,7 @@ def execute(
             want_studio = self.STUDIO_CHOICE in selected
 
         self._android_dir = android_dir
-        self._install_android_studio = want_studio
+        self._want_android_studio = want_studio
         if noninteractive:
             self.in_thread()
             return
@@ -366,7 +366,7 @@ def in_thread(self) -> str:
             self.add_line("❌ android\\ folder is not set.")
             return "Done."
         try:
-            self._run_setup(android_dir, install_android_studio=bool(getattr(self, "_install_android_studio", False)))
+            self._run_setup(android_dir, install_android_studio=bool(getattr(self, "_want_android_studio", False)))
         except DownloadCancelledError:
             self.add_line("❌ Request cancelled by user.")
         except Exception as exc:

@@ -98,20 +98,24 @@ If `ai` is omitted, the app keeps the previous BotHub-only behavior.
 
 ## Transfer to another machine
 
-Personal ZIP (gitignored): secrets from this folder, exercise images from `{parent(sqlite_fitness)}/fitness_img`, and the exercise/type catalog from the fitness SQLite database. Workout history (`process`, `weight`) is **not** included. Install upserts the catalog by English exercise/type name and does not wipe local-only exercises or workouts. Not part of the public install bundles.
+Personal ZIP (gitignored): secrets from this folder and/or exercise images from `{parent(sqlite_fitness)}/fitness_img` plus the exercise/type catalog from the fitness SQLite database. Workout history (`process`, `weight`) is **not** included. Export checkboxes (or `--api-keys` / `--fitness`) choose which parts to pack. Import overlays `{English name}.avif` next to existing files (does not delete extras) and upserts the catalog by English name without wiping local-only exercises or workouts. Not part of the public install bundles.
 
-Commands (or tray **Dev** → **Pack private data** / **Install private data**):
+Commands (or tray **Dev** → **Transfer private data**):
 
 ```text
-# Source machine (config.json with real sqlite_fitness required)
-hsk dev pack-private-data
-# optional: hsk dev pack-private-data --zip path\to\out.zip
+# Source machine (config.json with real sqlite_fitness required for --fitness)
+hsk dev private-data export
+# optional: hsk dev private-data export --zip path\to\out.zip
+# optional: hsk dev private-data export --api-keys
+# optional: hsk dev private-data export --fitness
 
 # Copy install\private-data-harrix-swiss-knife.zip to the new machine
 
 # Target machine: set sqlite_fitness in config.json first; close Fitness tracker if open
-hsk dev install-private-data
-# optional: hsk dev install-private-data --zip path\to\in.zip
+hsk dev private-data import
+# optional: hsk dev private-data import --zip path\to\in.zip
+# optional: hsk dev private-data import --api-keys
+# optional: hsk dev private-data import --fitness
 ```
 
 If the target fitness database file does not exist yet, install creates it from `recover.sql` (base public exercise seed), then upserts the private catalog from the ZIP on top.
