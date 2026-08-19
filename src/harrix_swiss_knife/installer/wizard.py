@@ -7,7 +7,7 @@ import tempfile
 from pathlib import Path
 
 from PySide6.QtCore import QThread, Signal
-from PySide6.QtGui import QFont
+from PySide6.QtGui import QFont, QIcon
 from PySide6.QtWidgets import (
     QApplication,
     QCheckBox,
@@ -56,6 +56,9 @@ class InstallerWizard(QWizard):
         self.setWindowTitle(f"Harrix Swiss Knife — {'Offline' if mode == 'offline' else 'Online'} Installer")
         self.setWizardStyle(QWizard.WizardStyle.ModernStyle)
         self.setMinimumSize(720, 520)
+        icon = load_app_icon()
+        if not icon.isNull():
+            self.setWindowIcon(icon)
         self.mode = mode
         self.tools_page = ToolsPage(mode)
         self.options_page = OptionsPage()
@@ -360,10 +363,25 @@ def detect_mode_from_argv(argv: list[str]) -> str:
     return "online"
 
 
+def load_app_icon() -> QIcon:
+    """Return the tray app `.ico` for the installer window (and bundled EXE)."""
+    candidates = [Path(__file__).resolve().parents[1] / "assets" / "app.ico"]
+    meipass = getattr(sys, "_MEIPASS", None)
+    if isinstance(meipass, str):
+        candidates.append(Path(meipass) / "harrix_swiss_knife" / "assets" / "app.ico")
+    for path in candidates:
+        if path.is_file():
+            return QIcon(str(path))
+    return QIcon()
+
+
 def run_wizard(argv: list[str] | None = None) -> int:
     """Run the installer wizard and return the Qt exit code."""
     args = list(sys.argv[1:] if argv is None else argv)
     app = QApplication.instance() or QApplication(sys.argv)
+    icon = load_app_icon()
+    if not icon.isNull():
+        app.setWindowIcon(icon)
 
     if "--continue-plan" in args:
         idx = args.index("--continue-plan")

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import subprocess
+import sys
 import zipfile
 from pathlib import Path
 from unittest.mock import patch
@@ -34,7 +36,14 @@ from harrix_swiss_knife.actions.common.install_zip_builder import (
     uv_isolated_env,
     wipe_dependencies,
 )
-from harrix_swiss_knife.installer.pack_exes import build_payload_zips, pack_installer_exes
+from harrix_swiss_knife.installer.constants import STUB_SPEC_VERSION
+from harrix_swiss_knife.installer.pack_exes import (
+    build_payload_zips,
+    ensure_installer_stub,
+    pack_installer_exes,
+    stub_dir,
+    stub_exe_path,
+)
 from harrix_swiss_knife.installer.payload import append_overlay_zip, extract_overlay, read_overlay_bounds
 from harrix_swiss_knife.installer.wizard import detect_mode_from_argv
 
@@ -330,3 +339,55 @@ def test_single_label_maps_attribute(label: str, attr: str) -> None:
 def test_detect_mode_from_argv() -> None:
     assert detect_mode_from_argv(["--offline"]) == "offline"
     assert detect_mode_from_argv(["--online"]) == "online"
+
+
+def test_app_icon_exists_for_installer() -> None:
+    icon = Path(__file__).resolve().parents[1] / "src" / "harrix_swiss_knife" / "assets" / "app.ico"
+    assert icon.is_file()
+
+
+def test_installer_import_does_not_load_pylib_or_actions() -> None:
+    code = (
+        "import sys\n"
+        "from harrix_swiss_knife.installer import wizard  # noqa: F401\n"
+        "assert 'harrix_pylib' not in sys.modules\n"
+        "assert 'harrix_swiss_knife.actions.common.base' not in sys.modules\n"
+        "assert 'harrix_swiss_knife.actions.common.install_zip_builder' not in sys.modules\n"
+    )
+    proc = subprocess.run(
+        [sys.executable, "-c", code],
+        check=False,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+    )
+    assert proc.returncode == 0, proc.stderr or proc.stdout
+
+
+def test_stub_rebuilds_when_spec_version_changes(tmp_path: Path) -> None:
+    work = stub_dir(tmp_path)
+    dist = work / "dist"
+    dist.mkdir(parents=True)
+    stub = stub_exe_path(tmp_path)
+    stub.write_bytes(b"OLD")
+    (work / "stub-version.txt").write_text("1", encoding="utf-8")
+    lines: list[str] = []
+
+    def _fake_run(*_a: object, **_k: object) -> object:
+        stub.write_bytes(b"NEW")
+
+        class _P:
+            returncode = 0
+            stdout = ""
+            stderr = ""
+
+        return _P()
+
+    with (
+        patch("harrix_swiss_knife.installer.pack_exes.shutil.which", return_value="pyinstaller"),
+        patch("harrix_swiss_knife.installer.pack_exes.subprocess.run", _fake_run),
+    ):
+        out = ensure_installer_stub(tmp_path, lines.append)
+    assert out.read_bytes() == b"NEW"
+    assert (work / "stub-version.txt").read_text(encoding="utf-8") == STUB_SPEC_VERSION

@@ -94,7 +94,9 @@ Freeze the GUI installer stub once (reused across online/offline packs).
 ```python
 def ensure_installer_stub(project_root: Path, log: LogFn, *, force: bool = False) -> Path:
     out = stub_exe_path(project_root)
-    if out.is_file() and not force:
+    version_file = stub_dir(project_root) / "stub-version.txt"
+    stale = (not version_file.is_file()) or version_file.read_text(encoding="utf-8").strip() != STUB_SPEC_VERSION
+    if out.is_file() and not force and not stale:
         log(f"  Reusing installer stub: {out}")
         return out
 
@@ -109,7 +111,7 @@ def ensure_installer_stub(project_root: Path, log: LogFn, *, force: bool = False
     dist.mkdir(exist_ok=True)
     build.mkdir(exist_ok=True)
 
-    # Entry script that only imports the installer package
+    # Entry script that only imports the installer package (not the tray app).
     entry = work / "stub_main.py"
     entry.write_text(
         "from harrix_swiss_knife.installer.wizard import main\n\nif __name__ == '__main__':\n    main()\n",
@@ -134,16 +136,44 @@ def ensure_installer_stub(project_root: Path, log: LogFn, *, force: bool = False
         str(work),
         "--paths",
         str(project_root / "src"),
-        "--collect-all",
-        "PySide6",
-        "--hidden-import",
-        "harrix_swiss_knife.installer",
-        "--hidden-import",
-        "harrix_swiss_knife.installer.wizard",
-        "--hidden-import",
-        "harrix_swiss_knife.desktop_shortcut",
-        str(entry),
     ]
+    icon = project_root / "src" / "harrix_swiss_knife" / "assets" / "app.ico"
+    if icon.is_file():
+        cmd.extend(["--icon", str(icon)])
+        cmd.extend(["--add-data", f"{icon}{os.pathsep}harrix_swiss_knife/assets"])
+    cmd.extend(
+        [
+            "--collect-all",
+            "PySide6",
+            "--collect-data",
+            "certifi",
+            "--collect-submodules",
+            "harrix_swiss_knife.installer",
+            "--hidden-import",
+            "harrix_swiss_knife.desktop_shortcut",
+            "--hidden-import",
+            "harrix_swiss_knife.integrations.http_download",
+            "--hidden-import",
+            "harrix_swiss_knife.integrations.http_transport",
+            "--hidden-import",
+            "clr",
+            "--hidden-import",
+            "pythonnet",
+            "--exclude-module",
+            "harrix_pylib",
+            "--exclude-module",
+            "harrix_pyssg",
+            "--exclude-module",
+            "harrix_swiss_knife.actions",
+            "--exclude-module",
+            "harrix_swiss_knife.apps",
+            "--exclude-module",
+            "harrix_swiss_knife.integrations.ai",
+            "--exclude-module",
+            "harrix_swiss_knife.integrations.bothub_client",
+            str(entry),
+        ]
+    )
     log("==> Freeze installer stub (PyInstaller one-file)")
     log(f"  $ {' '.join(cmd)}")
     env = os.environ.copy()
@@ -166,6 +196,7 @@ def ensure_installer_stub(project_root: Path, log: LogFn, *, force: bool = False
     if proc.returncode != 0 or not out.is_file():
         msg = f"PyInstaller failed (exit {proc.returncode}); stub missing at {out}"
         raise RuntimeError(msg)
+    version_file.write_text(STUB_SPEC_VERSION, encoding="utf-8")
     log(f"✅ Stub ready: {out}")
     return out
 ```

@@ -24,3 +24,8 @@ VSCODE_EXE_NAME = "VSCodeSetup-x64-latest.exe"
 GIT_EXE_NAME = "Git-latest-64-bit.exe"
 
 GITHUB_UA = "Harrix-Swiss-Knife/1.0 (Python; installer)"
+LIBAVIF_ZIP_NAME = "windows-artifacts.zip"
+FFMPEG_ZIP_NAME = "ffmpeg-master-latest-win64-gpl.zip"
+
+# Bump when PyInstaller flags or stub entry imports change (forces stub rebuild).
+STUB_SPEC_VERSION = "3"

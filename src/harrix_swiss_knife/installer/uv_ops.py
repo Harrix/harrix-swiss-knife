@@ -96,11 +96,15 @@ def uv_sync_with_bundle_cache(repo_path: Path, *, deps: Path, label: str, log: O
         msg = "uv was not found"
         raise RuntimeError(msg)
     cache = deps / "uv-cache"
+    python_cache = deps / "uv-python-cache"
     env = os.environ.copy()
     used_offline = False
     if cache.is_dir():
         env["UV_CACHE_DIR"] = str(cache)
         log.detail(f"Using offline uv cache: {cache}")
+    if python_cache.is_dir():
+        env["UV_PYTHON_CACHE_DIR"] = str(python_cache)
+        log.detail(f"Using offline uv python cache: {python_cache}")
     creation = subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0
 
     def _run(args: list[str]) -> int:

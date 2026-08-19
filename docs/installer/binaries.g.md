@@ -47,20 +47,16 @@ def install_optimize_binaries(
             log.add("skipped", f"Optimize binaries incomplete; download skipped: {', '.join(missing)}")
         return
 
-    if not _INSTALL_ZIP_BUILDER_AVAILABLE:
-        log.add("failed", "Optimize binaries download helpers unavailable")
-        return
-
     with tempfile.TemporaryDirectory(prefix="hsk-bins-") as tmp:
         tmp_path = Path(tmp)
         if not all((project_root / n).is_file() for n in ("avifenc.exe", "avifdec.exe")):
             zip_lib = find_local_dependency(deps, LIBAVIF_ZIP_NAME) or find_local_dependency(deps, "libavif*.zip")
             if zip_lib is None:
                 log.detail("Download libavif windows-artifacts…")
-                release = fetch_github_release_latest("AOMediaCodec", "libavif")
-                url = asset_download_url(release, asset_name=LIBAVIF_ZIP_NAME)
+                release = _fetch_github_release_latest("AOMediaCodec", "libavif")
+                url = _asset_download_url(release, asset_name=LIBAVIF_ZIP_NAME)
                 zip_lib = tmp_path / "libavif.zip"
-                download_url(url, zip_lib, force=True)
+                download_https_to_path(url, zip_lib, headers=_github_headers(), timeout=180)
             for exe in ("avifenc.exe", "avifdec.exe"):
                 if (project_root / exe).is_file():
                     continue
@@ -75,13 +71,13 @@ def install_optimize_binaries(
             )
             if zip_ff is None:
                 log.detail("Download FFmpeg…")
-                release = fetch_github_release_latest("BtbN", "FFmpeg-Builds")
+                release = _fetch_github_release_latest("BtbN", "FFmpeg-Builds")
                 try:
-                    url = asset_download_url(release, asset_name=FFMPEG_ZIP_NAME)
+                    url = _asset_download_url(release, asset_name=FFMPEG_ZIP_NAME)
                 except ValueError:
-                    url = asset_download_url(release, name_contains=("win64", "gpl"))
+                    url = _asset_download_url(release, name_contains=("win64", "gpl"))
                 zip_ff = tmp_path / "ffmpeg.zip"
-                download_url(url, zip_ff, force=True)
+                download_https_to_path(url, zip_ff, headers=_github_headers(), timeout=180)
             path = _extract_exe_from_zip(zip_ff, project_root, "ffmpeg.exe")
             if path:
                 log.add("installed", "Extracted ffmpeg.exe")
