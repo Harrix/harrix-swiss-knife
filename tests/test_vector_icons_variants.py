@@ -18,6 +18,7 @@ from harrix_swiss_knife.apps.icons.catalog import (
     rebuild_catalog,
 )
 from harrix_swiss_knife.apps.icons.lightbox import IconLightboxDialog
+from harrix_swiss_knife.apps.icons.main import KeyValueTableDialog
 from harrix_swiss_knife.apps.icons.trademark_update import TRADEMARK_WARNING, update_trademark_files
 from harrix_swiss_knife.apps.icons.variant_view import (
     MODE_ALL,
@@ -466,3 +467,26 @@ def test_collect_icon_detail_preview_paths(tmp_path: Path) -> None:
     assert [label for label, _path in paths] == ["Featured", "building__garage_white", extra.name]
     assert collect_icon_detail_preview_paths(family, tmp_path, str(featured))[0][0] == "Featured"
     assert len(collect_icon_detail_preview_paths(family, tmp_path, str(featured))) == 2
+
+
+def test_icon_details_dialog_has_action_buttons(qapp: QApplication) -> None:  # noqa: ARG001
+    clicked: list[str] = []
+    dialog = KeyValueTableDialog(
+        None,
+        "Icon details",
+        [("ID", "foo")],
+        actions=[
+            ("📂 Reveal in File Explorer", lambda: clicked.append("reveal"), True),
+            ("📝 Open note in editor", lambda: clicked.append("note"), False),
+            ("✏️ Edit icon…", lambda: clicked.append("edit"), True),
+        ],
+    )
+    labels = [btn.text() for btn in dialog.action_buttons]
+    assert labels == [
+        "📂 Reveal in File Explorer",
+        "📝 Open note in editor",
+        "✏️ Edit icon…",
+    ]
+    assert dialog.action_buttons[1].isEnabled() is False
+    dialog.action_buttons[0].click()
+    assert clicked == ["reveal"]
