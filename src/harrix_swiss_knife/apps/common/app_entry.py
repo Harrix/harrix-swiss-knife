@@ -27,6 +27,7 @@ from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication
 
 from harrix_swiss_knife.apps.common import message_box
+from harrix_swiss_knife.apps.common.uic_compile import install_safe_qt_translate
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -56,6 +57,7 @@ def run_app_main(
     """
     app = QApplication(sys.argv)
     app.setWindowIcon(QIcon(icon_path))
+    install_safe_qt_translate()
     try:
         win = main_window_factory()
     except Exception as exc:

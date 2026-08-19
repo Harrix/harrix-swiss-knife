@@ -48,10 +48,11 @@ CLI commands after installation:
 - `ruff check --select I --fix` — sort imports.
 - `winget upgrade OpenJS.NodeJS`: upgrade `Node.js` (tray action **Update `Node.js`**).
 - `pyside6-designer` — Qt Widgets Designer.
-- `pyside6-uic src/harrix_swiss_knife/apps/finance/window.ui -o src/harrix_swiss_knife/apps/finance/window.py` — convert Finance UI file to PY class.
-- `pyside6-uic src/harrix_swiss_knife/apps/fitness/window.ui -o src/harrix_swiss_knife/apps/fitness/window.py` — convert Fitness UI file to PY class.
-- `pyside6-uic src/harrix_swiss_knife/apps/food/window.ui -o src/harrix_swiss_knife/apps/food/window.py` — convert Food UI file to PY class.
-- `pyside6-uic src/harrix_swiss_knife/apps/habits/window.ui -o src/harrix_swiss_knife/apps/habits/window.py` — convert Habits UI file to PY class.
+- Convert `.ui` to PY (also rewrites UTF-16 emoji surrogates from `pyside6-uic`, which crash `QCoreApplication.translate` on Python 3):
+  - `python -c "from harrix_swiss_knife.apps.common.uic_compile import compile_app_ui; compile_app_ui('finance')"`
+  - `python -c "from harrix_swiss_knife.apps.common.uic_compile import compile_app_ui; compile_app_ui('fitness')"`
+  - `python -c "from harrix_swiss_knife.apps.common.uic_compile import compile_app_ui; compile_app_ui('food')"`
+  - `python -c "from harrix_swiss_knife.apps.common.uic_compile import compile_app_ui; compile_app_ui('habits')"`
 - `ruff check --fix` — lint and fix the project's Python files.
 - `ruff check` — lint the project's Python files.
 - `ruff format` — format the project's Python files.

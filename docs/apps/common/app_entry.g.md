@@ -37,6 +37,7 @@ def run_app_main(
 ) -> None:
     app = QApplication(sys.argv)
     app.setWindowIcon(QIcon(icon_path))
+    install_safe_qt_translate()
     try:
         win = main_window_factory()
     except Exception as exc:

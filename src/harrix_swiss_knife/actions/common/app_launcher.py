@@ -10,6 +10,7 @@ from PySide6.QtWidgets import QApplication
 from shiboken6 import isValid
 
 from harrix_swiss_knife.actions.common.base import ActionBase
+from harrix_swiss_knife.apps.common.uic_compile import install_safe_qt_translate
 
 
 class AppLauncherAction(ActionBase):
@@ -49,6 +50,7 @@ class AppLauncherAction(ActionBase):
 
         self._is_creating_window = True
         try:
+            install_safe_qt_translate()
             window = type(self).get_main_window_class()(hide_on_close=type(self).hide_on_close)
             self.main_window = window
             window.destroyed.connect(self._clear_main_window_ref)

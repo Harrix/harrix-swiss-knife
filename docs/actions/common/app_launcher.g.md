@@ -66,6 +66,7 @@ class AppLauncherAction(ActionBase):
 
         self._is_creating_window = True
         try:
+            install_safe_qt_translate()
             window = type(self).get_main_window_class()(hide_on_close=type(self).hide_on_close)
             self.main_window = window
             window.destroyed.connect(self._clear_main_window_ref)
@@ -145,6 +146,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 
         self._is_creating_window = True
         try:
+            install_safe_qt_translate()
             window = type(self).get_main_window_class()(hide_on_close=type(self).hide_on_close)
             self.main_window = window
             window.destroyed.connect(self._clear_main_window_ref)

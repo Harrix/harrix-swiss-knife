@@ -201,6 +201,7 @@ def run_tray_application(log: logging.Logger, *, main_menu_cls: type[MainMenuBas
     app: QApplication = QApplication(sys.argv)
     app.setQuitOnLastWindowClosed(False)
     app.setWindowIcon(QIcon(":/assets/logo.svg"))
+    install_safe_qt_translate()
 
     output_bus = ActionOutputBus()
     placeholder_menu = _make_placeholder_menu()

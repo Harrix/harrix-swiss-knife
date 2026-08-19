@@ -23,6 +23,7 @@ from harrix_swiss_knife.action_hotkeys import load_action_hotkeys
 from harrix_swiss_knife.action_output_bus import ActionOutputBus
 from harrix_swiss_knife.actions.common.quick_launcher_context import QuickLauncherContext, set_quick_launcher_context
 from harrix_swiss_knife.actions.common.quick_launcher_registry import iter_menu_structure
+from harrix_swiss_knife.apps.common.uic_compile import install_safe_qt_translate
 from harrix_swiss_knife.cli_menu import CliContextMenu
 from harrix_swiss_knife.global_hotkey import GlobalHotkeyManager
 from harrix_swiss_knife.main_menu_base import set_menu_tooltips_visible_recursive
@@ -164,6 +165,7 @@ def run_tray_application(log: logging.Logger, *, main_menu_cls: type[MainMenuBas
     app: QApplication = QApplication(sys.argv)
     app.setQuitOnLastWindowClosed(False)
     app.setWindowIcon(QIcon(":/assets/logo.svg"))
+    install_safe_qt_translate()
 
     output_bus = ActionOutputBus()
     placeholder_menu = _make_placeholder_menu()
