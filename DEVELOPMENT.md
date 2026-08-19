@@ -70,7 +70,7 @@ Choose the AI backend with `"ai": { "provider": "bothub" }` (`openai`, `anthropi
 
 ## 📦 Building Windows install zip bundles
 
-Scripts live in `install\`. To refresh installer payloads and produce the distributable zips, run the **download/build steps** below in numeric order (`01` → `05`). Step **`06`** is optional log cleanup.
+Scripts live in `install\`. To refresh installer payloads and produce the distributable zips, run the **download/build steps** below in numeric order (`01` → `05`), or run `install\build-all.bat` once. Step **`06`** is optional log cleanup.
 
 ### Before you start
 
@@ -91,10 +91,14 @@ Scripts live in `install\`. To refresh installer payloads and produce the distri
 
 After step 5, pick up the two zip files from `install\` for distribution.
 
-- Online zip → target runs `install.bat` (clones the repositories).
-- Offline zip → target runs `install-all-offline.bat` (repo snapshots + uv caches; copies ffmpeg/avif from `dependencies\`).
+Both zips use the same entry point on the target: **`install.bat`** (mode **Auto**).
 
-Alternative for steps 1–4 on the builder: `.\install\download-bundle.ps1` (one-shot binaries + installers + repos + uv cache), then still run step 5 to build the zips.
+- Online zip → Auto resolves to Online (`git clone`).
+- Offline zip → Auto resolves to Offline (repo snapshots + uv caches; copies ffmpeg/avif from `dependencies\`).
+
+Override with `install.bat -Mode Online` or `install.bat -Mode Offline` if needed.
+
+One-shot builder: `install\build-all.bat` (steps 1–5). Alternative for steps 1–4 only: `.\install\download-bundle.ps1`, then still run step 5 to build the zips.
 
 Personal private-data transfer (`install\pack-private-data.bat` / `install\install-private-data.bat`) packs only `api-keys` secrets and `fitness_img` into `install\private-data-harrix-swiss-knife.zip`. It is **not** part of the public online/offline install zip pipeline above. See `api-keys/README.md` (section Transfer to another machine).
 
