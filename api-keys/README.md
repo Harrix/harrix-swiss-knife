@@ -98,19 +98,23 @@ If `ai` is omitted, the app keeps the previous BotHub-only behavior.
 
 ## Transfer to another machine
 
-Personal ZIP (gitignored): secrets from this folder plus exercise images from `{parent(sqlite_fitness)}/fitness_img`. Not part of the public install bundles.
+Personal ZIP (gitignored): secrets from this folder, exercise images from `{parent(sqlite_fitness)}/fitness_img`, and the exercise/type catalog from the fitness SQLite database. Workout history (`process`, `weight`) is **not** included. Install upserts the catalog by English exercise/type name and does not wipe local-only exercises or workouts. Not part of the public install bundles.
 
-Commands:
+Commands (or tray **Dev** → **Pack private data** / **Install private data**):
 
 ```text
 # Source machine (config.json with real sqlite_fitness required)
-.\install\pack-private-data.bat
+hsk dev pack-private-data
+# optional: hsk dev pack-private-data --zip path\to\out.zip
 
 # Copy install\private-data-harrix-swiss-knife.zip to the new machine
 
-# Target machine: set sqlite_fitness in config.json first (or pass -FitnessImgDir)
-.\install\install-private-data.bat
+# Target machine: set sqlite_fitness in config.json first; close Fitness tracker if open
+hsk dev install-private-data
+# optional: hsk dev install-private-data --zip path\to\in.zip
 ```
+
+If the target fitness database file does not exist yet, install creates it from `recover.sql` (base public exercise seed), then upserts the private catalog from the ZIP on top.
 
 ## Install zips and offline snapshots
 

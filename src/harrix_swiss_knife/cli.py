@@ -12,7 +12,12 @@ from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication
 
 from harrix_swiss_knife.actions.android import OnAndroidBuild, OnAndroidCheck, OnAndroidFormat
-from harrix_swiss_knife.actions.development import OnInstallCli, OnShowActionUsageStats
+from harrix_swiss_knife.actions.development import (
+    OnInstallCli,
+    OnInstallPrivateData,
+    OnPackPrivateData,
+    OnShowActionUsageStats,
+)
 from harrix_swiss_knife.actions.files import OnDiscardGitChanges
 from harrix_swiss_knife.actions.markdown import (
     OnBeautifyMd,
@@ -143,6 +148,42 @@ def dev_install_harrix_notes_explorer_hsk(editor: str, *, with_public: bool) -> 
     """Install HSK into EDITOR; sync public repo via OnSyncHarrixNotesExplorer first (Windows only)."""
     action = OnInstallHarrixNotesExplorerExtension()
     action(editor=editor, noninteractive=True, with_public=with_public)
+    _exit_if_action_failed(action)
+
+
+@dev_group.command("install-private-data")
+@click.option(
+    "--zip",
+    "zip_path",
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+    default=None,
+    help="Input ZIP path (default: install/private-data-harrix-swiss-knife.zip).",
+)
+def dev_install_private_data(zip_path: Path | None) -> None:
+    """Install api-keys, fitness_img, and upsert exercise catalog (keeps workouts)."""
+    action = OnInstallPrivateData()
+    kwargs: dict[str, object] = {"noninteractive": True}
+    if zip_path is not None:
+        kwargs["zip_path"] = zip_path
+    action(**kwargs)
+    _exit_if_action_failed(action)
+
+
+@dev_group.command("pack-private-data")
+@click.option(
+    "--zip",
+    "zip_path",
+    type=click.Path(path_type=Path),
+    default=None,
+    help="Output ZIP path (default: install/private-data-harrix-swiss-knife.zip).",
+)
+def dev_pack_private_data(zip_path: Path | None) -> None:
+    """Pack api-keys, fitness_img, and exercise catalog into a personal ZIP."""
+    action = OnPackPrivateData()
+    kwargs: dict[str, object] = {"noninteractive": True}
+    if zip_path is not None:
+        kwargs["zip_path"] = zip_path
+    action(**kwargs)
     _exit_if_action_failed(action)
 
 

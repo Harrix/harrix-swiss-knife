@@ -63,7 +63,9 @@ _Figure 1: Screenshot_
   - 🔗 Create desktop shortcut
   - ⬇️ Download ffmpeg, avifenc, avifdec
   - ⌨️ Install CLI (hsk on PATH) ꟲᴸᴵ
+  - 📥 Install private data ꟲᴸᴵ
   - ⚙️ Open `config.json`
+  - 📦 Pack private data ꟲᴸᴵ
   - ⚙️ Settings Editor
   - 📊 Show action usage stats ꟲᴸᴵ
   - 📌 Sync Quick Access folders to Total Commander
@@ -388,6 +390,10 @@ Folder arguments are optional (default: current directory) for commands that tak
 - `hsk site pull-submodules "D:/path/to/site-repo"` — same for an explicit site repo folder
 - `hsk dev action-usage` — show sorted action invocation statistics (unused first)
 - `hsk dev install-cli` (global `hsk` on PATH via `uv tool install -e`)
+- `hsk dev pack-private-data` — pack `api-keys` secrets, `fitness_img`, and exercise/type catalog into `install/private-data-harrix-swiss-knife.zip` (workouts not included)
+- `hsk dev pack-private-data --zip PATH` — write the personal ZIP to `PATH` instead of the default under `install/`
+- `hsk dev install-private-data` — install secrets and images; upsert fitness catalog by English name without modifying `process`/`weight`
+- `hsk dev install-private-data --zip PATH` — install from `PATH` instead of the default ZIP under `install/`
 - `hsk dev install-harrix-notes-explorer-hsk vscode` (Windows only; syncs public repo when `path_harrix_notes_explorer` is set; reload the editor window after install)
 - `hsk dev install-harrix-notes-explorer-hsk insiders`
 - `hsk dev install-harrix-notes-explorer-hsk insiders --with-public` (also install public `harrix-notes-explorer` into the editor profile)

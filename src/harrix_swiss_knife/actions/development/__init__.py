@@ -7,8 +7,10 @@ from harrix_swiss_knife.actions.development.create_desktop_shortcut import OnCre
 from harrix_swiss_knife.actions.development.download_optimize_dependencies import OnDownloadOptimizeDependencies
 from harrix_swiss_knife.actions.development.exit_ import OnExit
 from harrix_swiss_knife.actions.development.install_cli import OnInstallCli
+from harrix_swiss_knife.actions.development.install_private_data import OnInstallPrivateData
 from harrix_swiss_knife.actions.development.npm_manage_packages import OnNpmManagePackages
 from harrix_swiss_knife.actions.development.open_config_json import OnOpenConfigJson
+from harrix_swiss_knife.actions.development.pack_private_data import OnPackPrivateData
 from harrix_swiss_knife.actions.development.settings_editor import OnSettingsEditor
 from harrix_swiss_knife.actions.development.show_action_usage_stats import OnShowActionUsageStats
 from harrix_swiss_knife.actions.development.sync_quick_access_to_total_commander import (
@@ -28,8 +30,10 @@ __all__ = [
     "OnDownloadOptimizeDependencies",
     "OnExit",
     "OnInstallCli",
+    "OnInstallPrivateData",
     "OnNpmManagePackages",
     "OnOpenConfigJson",
+    "OnPackPrivateData",
     "OnSettingsEditor",
     "OnShowActionUsageStats",
     "OnSyncQuickAccessToTotalCommander",

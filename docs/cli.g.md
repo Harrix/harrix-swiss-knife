@@ -20,6 +20,8 @@ lang: en
 - [🔧 Function `dev_action_usage`](#-function-dev_action_usage)
 - [🔧 Function `dev_install_cli`](#-function-dev_install_cli)
 - [🔧 Function `dev_install_harrix_notes_explorer_hsk`](#-function-dev_install_harrix_notes_explorer_hsk)
+- [🔧 Function `dev_install_private_data`](#-function-dev_install_private_data)
+- [🔧 Function `dev_pack_private_data`](#-function-dev_pack_private_data)
 - [🔧 Function `file_group`](#-function-file_group)
 - [🔧 Function `file_discard_git_changes`](#-function-file_discard_git_changes)
 - [🔧 Function `markdown_group`](#-function-markdown_group)
@@ -229,6 +231,52 @@ Install HSK into EDITOR; sync public repo via OnSyncHarrixNotesExplorer first (W
 def dev_install_harrix_notes_explorer_hsk(editor: str, *, with_public: bool) -> None:
     action = OnInstallHarrixNotesExplorerExtension()
     action(editor=editor, noninteractive=True, with_public=with_public)
+    _exit_if_action_failed(action)
+```
+
+</details>
+
+## 🔧 Function `dev_install_private_data`
+
+```python
+def dev_install_private_data(zip_path: Path | None) -> None
+```
+
+Install api-keys, fitness_img, and upsert exercise catalog (keeps workouts).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def dev_install_private_data(zip_path: Path | None) -> None:
+    action = OnInstallPrivateData()
+    kwargs: dict[str, object] = {"noninteractive": True}
+    if zip_path is not None:
+        kwargs["zip_path"] = zip_path
+    action(**kwargs)
+    _exit_if_action_failed(action)
+```
+
+</details>
+
+## 🔧 Function `dev_pack_private_data`
+
+```python
+def dev_pack_private_data(zip_path: Path | None) -> None
+```
+
+Pack api-keys, fitness_img, and exercise catalog into a personal ZIP.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def dev_pack_private_data(zip_path: Path | None) -> None:
+    action = OnPackPrivateData()
+    kwargs: dict[str, object] = {"noninteractive": True}
+    if zip_path is not None:
+        kwargs["zip_path"] = zip_path
+    action(**kwargs)
     _exit_if_action_failed(action)
 ```
 
