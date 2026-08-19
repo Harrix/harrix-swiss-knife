@@ -75,22 +75,22 @@ The **builder** that fills `install\dependencies\` and writes the two distributa
 
 ### Before you start
 
-1. **Quit `harrix-swiss-knife` completely** before the **uv cache** step (tray → Exit, close any terminal running `main.py` from this repo’s `.venv`). While the app holds the project virtualenv, `uv sync --reinstall` can fail with **Access is denied**. From the tray action the pipeline opens a **new console**, so you can Exit safely after it starts; the console waits for Enter when the tray is still locking files.
+1. From the tray the pipeline logs in the same place as other actions and opens the result window when it finishes. **uv cache** installs a throwaway CPython and project venvs under `%TEMP%`, so the live `.venv` can stay locked.
 2. Ensure sibling repos exist next to this checkout when you snapshot sources or warm the uv cache: `harrix-pylib`, `harrix-pyssg` (same parent folder as `harrix-swiss-knife`).
 3. **Optional GitHub token** for media binaries and installer downloads: copy `api-keys/github-token.example.txt` → `api-keys/github-token.txt` and paste a read-only PAT. Raises GitHub REST API limits from 60/hour per IP to 5000/hour per account (helps avoid HTTP 403 on shared networks). Env `GITHUB_TOKEN` also works. Form fields: [`api-keys/README.md`](https://github.com/Harrix/harrix-swiss-knife/blob/main/api-keys/README.md#fine-grained-token-preferred).
 
 ### Steps (checkbox dialog / CLI flags)
 
-| Step       | Tray checkbox / CLI                                     | Purpose                                                                               |
-| ---------- | ------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| Wipe       | Wipe `install/dependencies` first (`--no-wipe` to skip) | Delete `install\dependencies\` so downloads rebuild from scratch.                     |
-| Binaries   | Media binaries (`--skip-binaries`)                      | ffmpeg / avifenc / avifdec → `install\dependencies\`.                                 |
-| Installers | Installers (`--skip-installers`)                        | Git, uv, VS Code installers → `install\dependencies\`.                                |
-| Repos      | Repo snapshots (`--skip-repos`)                         | `git archive` → `install\dependencies\repos\`.                                        |
-| uv cache   | uv cache (`--skip-uv-cache`)                            | Warm `uv-python-cache\` and `uv-cache\` (**quit tray first**).                        |
-| Zips       | Build zip archives (`--no-zips`)                        | Writes `install-harrix-swiss-knife.zip` and `install-offline-harrix-swiss-knife.zip`. |
-| Open       | Open `install/` (`--no-open`)                           | Open Explorer on `install\` when finished.                                            |
-| Logs       | Clean `*.log` (`--clean-logs`)                          | Optional top-level logs under `install\` and `install\dependencies\`.                 |
+| Step       | Tray checkbox / CLI                                     | Purpose                                                                                         |
+| ---------- | ------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| Wipe       | Wipe `install/dependencies` first (`--no-wipe` to skip) | Delete `install\dependencies\` so downloads rebuild from scratch.                               |
+| Binaries   | Media binaries (`--skip-binaries`)                      | ffmpeg / avifenc / avifdec → `install\dependencies\`.                                           |
+| Installers | Installers (`--skip-installers`)                        | Git, uv, VS Code installers → `install\dependencies\`.                                          |
+| Repos      | Repo snapshots (`--skip-repos`)                         | `git archive` → `install\dependencies\repos\`.                                                  |
+| uv cache   | uv cache (`--skip-uv-cache`)                            | Warm `uv-python-cache\` and `uv-cache\` (isolated Python/venv; safe while the tray is running). |
+| Zips       | Build zip archives (`--no-zips`)                        | Writes `install-harrix-swiss-knife.zip` and `install-offline-harrix-swiss-knife.zip`.           |
+| Open       | Open `install/` (`--no-open`)                           | Open Explorer on `install\` when finished.                                                      |
+| Logs       | Clean `*.log` (`--clean-logs`)                          | Optional top-level logs under `install\` and `install\dependencies\`.                           |
 
 All steps except log cleanup are on by default. Example partial rebuild:
 

@@ -20,12 +20,12 @@ lang: en
 - [🔧 Function `build_install_zips`](#-function-build_install_zips)
 - [🔧 Function `clean_install_logs`](#-function-clean_install_logs)
 - [🔧 Function `cli_argv_for_steps`](#-function-cli_argv_for_steps)
+- [🔧 Function `commit_stage_dir`](#-function-commit_stage_dir)
 - [🔧 Function `dependencies_dir`](#-function-dependencies_dir)
 - [🔧 Function `download_url`](#-function-download_url)
 - [🔧 Function `extract_exe_from_zip`](#-function-extract_exe_from_zip)
 - [🔧 Function `fetch_github_release_latest`](#-function-fetch_github_release_latest)
 - [🔧 Function `install_dir`](#-function-install_dir)
-- [🔧 Function `list_hsk_pids`](#-function-list_hsk_pids)
 - [🔧 Function `open_install_folder`](#-function-open_install_folder)
 - [🔧 Function `populate_binaries`](#-function-populate_binaries)
 - [🔧 Function `populate_installers`](#-function-populate_installers)
@@ -34,9 +34,8 @@ lang: en
 - [🔧 Function `run_pipeline`](#-function-run_pipeline)
 - [🔧 Function `sibling_repos`](#-function-sibling_repos)
 - [🔧 Function `snapshot_repos`](#-function-snapshot_repos)
-- [🔧 Function `spawn_pipeline_console`](#-function-spawn_pipeline_console)
 - [🔧 Function `steps_from_cli_flags`](#-function-steps_from_cli_flags)
-- [🔧 Function `wait_until_hsk_closed`](#-function-wait_until_hsk_closed)
+- [🔧 Function `uv_isolated_env`](#-function-uv_isolated_env)
 - [🔧 Function `wipe_dependencies`](#-function-wipe_dependencies)
 
 </details>
@@ -352,6 +351,52 @@ def cli_argv_for_steps(steps: BuildSteps) -> list[str]:
 
 </details>
 
+## 🔧 Function `commit_stage_dir`
+
+```python
+def commit_stage_dir(stage_dir: Path, final_dir: Path) -> None
+```
+
+Replace `final_dir` with `stage_dir` (Windows-safe directory swap).
+
+`Path.replace` on Windows raises `[WinError 5] Access is denied` when the
+destination name still exists or was just deleted. Retry, then copy.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def commit_stage_dir(stage_dir: Path, final_dir: Path) -> None:
+    last_error: OSError | None = None
+    for delay in (0.0, 0.25, 0.5, 1.0, 2.0):
+        if delay:
+            time.sleep(delay)
+        if final_dir.exists():
+            try:
+                shutil.rmtree(final_dir)
+            except OSError as exc:
+                last_error = exc
+                continue
+        try:
+            stage_dir.replace(final_dir)
+        except OSError:
+            try:
+                if final_dir.exists():
+                    shutil.rmtree(final_dir)
+                shutil.copytree(stage_dir, final_dir)
+                shutil.rmtree(stage_dir, ignore_errors=True)
+            except OSError as exc:
+                last_error = exc
+                continue
+        if final_dir.is_dir():
+            return
+        last_error = OSError(f"Swap produced no directory `{final_dir}`")
+    msg = f"Failed to swap `{stage_dir}` -> `{final_dir}`: {last_error}"
+    raise OSError(msg) from last_error
+```
+
+</details>
+
 ## 🔧 Function `dependencies_dir`
 
 ```python
@@ -497,63 +542,6 @@ def install_dir(project_root: Path) -> Path:
 
 </details>
 
-## 🔧 Function `list_hsk_pids`
-
-```python
-def list_hsk_pids(project_root: Path) -> list[int]
-```
-
-Return PIDs of Harrix Swiss Knife processes holding this repo's `.venv`.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def list_hsk_pids(project_root: Path) -> list[int]:
-    if sys.platform != "win32":
-        return []
-    venv_scripts = str((project_root / ".venv" / "Scripts").resolve()).replace("'", "''")
-    # Match tray: python(w) under .venv\\Scripts, or command line with main.py.
-    script = (
-        f"$venv = '{venv_scripts}'; "
-        "$seen = @{}; "
-        "foreach ($name in @('python','pythonw')) { "
-        "  Get-Process -Name $name -ErrorAction SilentlyContinue | ForEach-Object { "
-        "    try { $p = [string]$_.Path } catch { $p = '' }; "
-        "    if ($p -and $venv -and ($p.Length -ge $venv.Length) -and "
-        "($p.Substring(0, $venv.Length) -ieq $venv)) { "
-        "      $seen[[int]$_.Id] = $true "
-        "    } "
-        "  } "
-        "}; "
-        "Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | Where-Object { "
-        "  $_.Name -match '^(?i)pythonw?\\.exe$' -and $_.CommandLine -and "
-        "  ($_.CommandLine -match 'harrix_swiss_knife[\\\\/]+main\\.py') "
-        "} | ForEach-Object { $seen[[int]$_.ProcessId] = $true }; "
-        "$seen.Keys"
-    )
-    try:
-        proc = subprocess.run(
-            ["powershell.exe", "-NoProfile", "-Command", script],
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-            check=False,
-            shell=False,
-        )
-    except OSError:
-        return []
-    pids: set[int] = set()
-    for line in proc.stdout.splitlines():
-        line = line.strip()
-        if line.isdigit():
-            pids.add(int(line))
-    return sorted(pids)
-```
-
-</details>
-
 ## 🔧 Function `open_install_folder`
 
 ```python
@@ -570,15 +558,13 @@ def open_install_folder(project_root: Path, log: LogFn) -> None:
     path = install_dir(project_root)
     path.mkdir(parents=True, exist_ok=True)
     try:
-        import harrix_pylib as h
-
         h.file.open_file_or_folder(path)
     except Exception:
         if sys.platform == "win32":
             os.startfile(str(path))  # noqa: S606
         else:
             raise
-    log(f"📂 Opened `{path}`")
+    log(f"Opened `{path}`")
 ```
 
 </details>
@@ -733,10 +719,13 @@ def populate_installers(
 ## 🔧 Function `populate_uv_cache`
 
 ```python
-def populate_uv_cache(project_root: Path, log: LogFn, *, interactive: bool = True) -> None
+def populate_uv_cache(project_root: Path, log: LogFn) -> None
 ```
 
-Warm `uv-python-cache` and `uv-cache` under `install/dependencies/`.
+Warm `uv-python-cache` and `uv-cache` without touching the live `.venv`.
+
+Installs a throwaway CPython and project venvs under a temp directory, so the
+running tray app can keep its interpreter locked.
 
 <details>
 <summary>Code:</summary>
@@ -745,8 +734,6 @@ Warm `uv-python-cache` and `uv-cache` under `install/dependencies/`.
 def populate_uv_cache(
     project_root: Path,
     log: LogFn,
-    *,
-    interactive: bool = True,
 ) -> None:
     if shutil.which("uv") is None:
         msg = "uv is not on PATH"
@@ -754,83 +741,75 @@ def populate_uv_cache(
 
     deps = dependencies_dir(project_root)
     deps.mkdir(parents=True, exist_ok=True)
-
-    log("==> Populate uv python cache (managed CPython)")
-    wait_until_hsk_closed(
-        project_root,
-        log,
-        why="uv cannot replace Python files while the tray app holds them.",
-        interactive=interactive,
-    )
+    py_version = _python_version(project_root)
     py_cache = deps / "uv-python-cache"
     py_cache.mkdir(parents=True, exist_ok=True)
-    py_version = "3.13"
-    version_file = project_root / ".python-version"
-    if version_file.is_file():
-        line = version_file.read_text(encoding="utf-8").splitlines()
-        if line and line[0].strip():
-            py_version = line[0].strip()
 
-    env = os.environ.copy()
-    env["UV_PYTHON_CACHE_DIR"] = str(py_cache)
-    log(f"  UV_PYTHON_CACHE_DIR={py_cache}")
-    code = _uv_with_hsk_retry(
-        project_root,
-        ["python", "install", py_version],
-        cwd=project_root,
-        env=env,
-        log=log,
-        label="uv python install",
-        interactive=interactive,
-    )
-    if code != 0:
-        log(f"  uv python install exited with code {code} (continue; package cache still runs)")
-    else:
-        log(f"  OK: managed Python {py_version} cached in uv-python-cache")
-
-    log("==> Populate uv cache (sibling repos)")
-    final_dir = deps / "uv-cache"
-    stage_dir = deps / f"uv-cache.stage.{uuid.uuid4().hex}"
-    if stage_dir.exists():
-        shutil.rmtree(stage_dir)
-    stage_dir.mkdir(parents=True)
-
-    env = os.environ.copy()
-    env["UV_CACHE_DIR"] = str(stage_dir)
-    all_ok = True
-    try:
-        for name, path in sibling_repos(project_root):
-            if not (path / "pyproject.toml").is_file():
-                log(f"  Skip {name}: pyproject.toml not found at {path}")
-                all_ok = False
-                continue
-            log(f"  uv sync in {name} ({path})")
-            code = _uv_with_hsk_retry(
-                project_root,
-                ["sync", "--reinstall"],
-                cwd=path,
-                env=env,
-                log=log,
-                label=f"uv sync ({name})",
-                interactive=interactive,
-            )
-            if code != 0:
-                log(f"  {name}: uv sync exited with code {code}")
-                all_ok = False
-            else:
-                log(f"  OK: {name}")
-
-        if all_ok:
-            log("  Swap uv cache (stage -> final)")
-            if final_dir.exists():
-                shutil.rmtree(final_dir)
-            stage_dir.replace(final_dir)
+    log("==> Populate uv python cache (managed CPython, isolated install dir)")
+    with tempfile.TemporaryDirectory(prefix="hsk-uv-warm-") as tmp_raw:
+        tmp = Path(tmp_raw)
+        python_install = tmp / "python-install"
+        python_install.mkdir()
+        env = uv_isolated_env(
+            python_cache_dir=py_cache,
+            python_install_dir=python_install,
+        )
+        log(f"  UV_PYTHON_CACHE_DIR={py_cache}")
+        log(f"  UV_PYTHON_INSTALL_DIR={python_install}")
+        code, _text = _run_uv(
+            ["python", "install", py_version],
+            cwd=project_root,
+            env=env,
+            log=log,
+        )
+        if code != 0:
+            log(f"  uv python install exited with code {code} (continue; package cache still runs)")
         else:
-            msg = "uv cache incomplete; kept previous uv-cache/ if any"
-            raise RuntimeError(msg)
-    finally:
+            log(f"  OK: managed Python {py_version} cached in uv-python-cache")
+
+        log("==> Populate uv cache (sibling repos, isolated venvs)")
+        final_dir = deps / "uv-cache"
+        stage_dir = deps / f"uv-cache.stage.{uuid.uuid4().hex}"
         if stage_dir.exists():
-            shutil.rmtree(stage_dir, ignore_errors=True)
+            shutil.rmtree(stage_dir)
+        stage_dir.mkdir(parents=True)
+        all_ok = True
+        try:
+            for name, path in sibling_repos(project_root):
+                if not (path / "pyproject.toml").is_file():
+                    log(f"  Skip {name}: pyproject.toml not found at {path}")
+                    all_ok = False
+                    continue
+                venv_dir = tmp / "venvs" / name
+                env = uv_isolated_env(
+                    cache_dir=stage_dir,
+                    python_cache_dir=py_cache,
+                    python_install_dir=python_install,
+                    project_environment=venv_dir,
+                )
+                log(f"  uv sync in {name} ({path})")
+                log(f"    UV_PROJECT_ENVIRONMENT={venv_dir}")
+                code, _text = _run_uv(
+                    ["sync", "--python", py_version],
+                    cwd=path,
+                    env=env,
+                    log=log,
+                )
+                if code != 0:
+                    log(f"  {name}: uv sync exited with code {code}")
+                    all_ok = False
+                else:
+                    log(f"  OK: {name}")
+
+            if all_ok:
+                log("  Swap uv cache (stage -> final)")
+                commit_stage_dir(stage_dir, final_dir)
+            else:
+                msg = "uv cache incomplete; kept previous uv-cache/ if any"
+                raise RuntimeError(msg)
+        finally:
+            if stage_dir.exists():
+                shutil.rmtree(stage_dir, ignore_errors=True)
 ```
 
 </details>
@@ -867,7 +846,7 @@ def redundant_media_zip_names(deps: Path) -> set[str]:
 ## 🔧 Function `run_pipeline`
 
 ```python
-def run_pipeline(project_root: Path, steps: BuildSteps, *, config: dict[str, Any] | None = None, interactive: bool = True, log: LogFn | None = None) -> PipelineResult
+def run_pipeline(project_root: Path, steps: BuildSteps, *, config: dict[str, Any] | None = None, log: LogFn | None = None) -> PipelineResult
 ```
 
 Run selected builder steps in order.
@@ -881,7 +860,6 @@ def run_pipeline(
     steps: BuildSteps,
     *,
     config: dict[str, Any] | None = None,
-    interactive: bool = True,
     log: LogFn | None = None,
 ) -> PipelineResult:
     lines: list[str] = []
@@ -909,7 +887,7 @@ def run_pipeline(
         if steps.repos:
             snapshot_repos(project_root, _log)
         if steps.uv_cache:
-            populate_uv_cache(project_root, _log, interactive=interactive)
+            populate_uv_cache(project_root, _log)
         if steps.build_zips:
             online_zip, offline_zip = build_install_zips(project_root, _log)
         if steps.clean_logs:
@@ -983,7 +961,7 @@ def snapshot_repos(project_root: Path, log: LogFn) -> None:
             out = stage_dir / f"{name}.zip"
             log(f"  git archive {name} -> {out}")
             proc = subprocess.run(
-                ["git", "archive", "--format=zip", f"--output={out}", "HEAD"],
+                ["git", "archive", "--format=zip", f"--output={out}", "HEAD"],  # noqa: S607
                 cwd=str(path),
                 capture_output=True,
                 text=True,
@@ -991,6 +969,7 @@ def snapshot_repos(project_root: Path, log: LogFn) -> None:
                 errors="replace",
                 check=False,
                 shell=False,
+                creationflags=_no_window_creationflags(),
             )
             if proc.stdout.strip():
                 log(proc.stdout.strip())
@@ -1004,68 +983,13 @@ def snapshot_repos(project_root: Path, log: LogFn) -> None:
 
         if all_ok:
             log("  Swap repos snapshot (stage -> final)")
-            if final_dir.exists():
-                shutil.rmtree(final_dir)
-            stage_dir.replace(final_dir)
+            commit_stage_dir(stage_dir, final_dir)
         else:
             msg = "Repo snapshot incomplete; kept previous repos/ if any"
             raise RuntimeError(msg)
     finally:
         if stage_dir.exists():
             shutil.rmtree(stage_dir, ignore_errors=True)
-```
-
-</details>
-
-## 🔧 Function `spawn_pipeline_console`
-
-```python
-def spawn_pipeline_console(project_root: Path, steps: BuildSteps) -> subprocess.Popen[Any]
-```
-
-Start the pipeline in a new console window (Windows); returns immediately.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def spawn_pipeline_console(project_root: Path, steps: BuildSteps) -> subprocess.Popen[Any]:
-    if sys.platform != "win32":
-        msg = "New console spawn is only supported on Windows."
-        raise RuntimeError(msg)
-
-    # Run via the same interpreter; -c avoids depending on hsk being on PATH.
-    # New console lets the user Exit the tray while uv cache runs.
-    code = (
-        "from harrix_swiss_knife.actions.common.install_zip_builder import run_pipeline, steps_from_cli_flags; "
-        "from harrix_swiss_knife.paths import get_project_root; "
-        f"steps = steps_from_cli_flags("
-        f"no_wipe={not steps.wipe_dependencies}, "
-        f"skip_binaries={not steps.binaries}, "
-        f"skip_installers={not steps.installers}, "
-        f"skip_repos={not steps.repos}, "
-        f"skip_uv_cache={not steps.uv_cache}, "
-        f"no_zips={not steps.build_zips}, "
-        f"no_open={not steps.open_install}, "
-        f"clean_logs={steps.clean_logs}); "
-        "result = run_pipeline(get_project_root(), steps, interactive=True); "
-        "print(); "
-        "input('Press Enter to close this window… '); "
-        "raise SystemExit(0 if result.ok else 1)"
-    )
-    # Prefer console python.exe when the tray runs under pythonw.exe.
-    python = Path(sys.executable)
-    if python.name.lower() == "pythonw.exe":
-        candidate = python.with_name("python.exe")
-        if candidate.is_file():
-            python = candidate
-    creationflags = subprocess.CREATE_NEW_CONSOLE | subprocess.CREATE_NEW_PROCESS_GROUP
-    return subprocess.Popen(  # noqa: S603
-        [str(python), "-c", code],
-        cwd=str(project_root),
-        creationflags=creationflags,
-        shell=False,
-    )
 ```
 
 </details>
@@ -1107,44 +1031,37 @@ def steps_from_cli_flags(
 
 </details>
 
-## 🔧 Function `wait_until_hsk_closed`
+## 🔧 Function `uv_isolated_env`
 
 ```python
-def wait_until_hsk_closed(project_root: Path, log: LogFn, *, why: str, interactive: bool, exclude_pid: int | None = None) -> None
+def uv_isolated_env(*, cache_dir: Path | None = None, python_cache_dir: Path | None = None, python_install_dir: Path | None = None, project_environment: Path | None = None) -> dict[str, str]
 ```
 
-Block until no HSK tray processes remain (interactive) or raise.
+Env for uv that does not reuse the live tray `.venv` or its interpreter.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def wait_until_hsk_closed(
-    project_root: Path,
-    log: LogFn,
+def uv_isolated_env(
     *,
-    why: str,
-    interactive: bool,
-    exclude_pid: int | None = None,
-) -> None:
-    while True:
-        pids = [pid for pid in list_hsk_pids(project_root) if pid != exclude_pid]
-        # Current process may itself be the tray — exclude self
-        self_pid = os.getpid()
-        pids = [pid for pid in pids if pid != self_pid]
-        if not pids:
-            return
-        log(f"⚠️ Harrix Swiss Knife is still running. {why}")
-        log(f"  PIDs: {', '.join(str(p) for p in pids)}")
-        if not interactive:
-            msg = "Quit the tray app (Exit), then re-run this command."
-            raise RuntimeError(msg)
-        log("Quit from the tray icon (Exit), then press Enter to retry.")
-        try:
-            input()
-        except EOFError as exc:
-            msg = "Tray still running and stdin closed."
-            raise RuntimeError(msg) from exc
+    cache_dir: Path | None = None,
+    python_cache_dir: Path | None = None,
+    python_install_dir: Path | None = None,
+    project_environment: Path | None = None,
+) -> dict[str, str]:
+    env = os.environ.copy()
+    for key in ("VIRTUAL_ENV", "PYTHONHOME", "UV_PYTHON"):
+        env.pop(key, None)
+    if cache_dir is not None:
+        env["UV_CACHE_DIR"] = str(cache_dir)
+    if python_cache_dir is not None:
+        env["UV_PYTHON_CACHE_DIR"] = str(python_cache_dir)
+    if python_install_dir is not None:
+        env["UV_PYTHON_INSTALL_DIR"] = str(python_install_dir)
+    if project_environment is not None:
+        env["UV_PROJECT_ENVIRONMENT"] = str(project_environment)
+    return env
 ```
 
 </details>
@@ -1164,9 +1081,9 @@ Remove `install/dependencies` entirely.
 def wipe_dependencies(project_root: Path, log: LogFn) -> None:
     deps = dependencies_dir(project_root)
     if not deps.exists():
-        log(f"ℹ️ `{deps}` not present (nothing to wipe).")
+        log(f"`{deps}` not present (nothing to wipe).")
         return
-    log(f"🗑️ Removing `{deps}`…")
+    log(f"Removing `{deps}`…")
     shutil.rmtree(deps)
     if deps.exists():
         msg = f"Failed to remove `{deps}`. Close programs using those files and retry."

@@ -231,7 +231,7 @@ Use this when the target machine has slow or blocked internet. Build the offline
    hsk dev build-install-zips
    ```
 
-   That populates `install\dependencies\` (ignored by Git) with installers, media binaries, repo snapshots, and uv caches, then writes the distributable zips. Quit the tray app when the console asks (uv cache). Details: [`DEVELOPMENT.md`](https://github.com/Harrix/harrix-swiss-knife/blob/main/DEVELOPMENT.md#building-windows-install-zip-bundles).
+   That populates `install\dependencies\` (ignored by Git) with installers, media binaries, repo snapshots, and uv caches, then writes the distributable zips. That step uses an isolated Python/venv, so the tray can stay running. Details: [`DEVELOPMENT.md`](https://github.com/Harrix/harrix-swiss-knife/blob/main/DEVELOPMENT.md#building-windows-install-zip-bundles).
 
 2. Copy `install\install-offline-harrix-swiss-knife.zip` to the target machine (or the whole prepared `install\` folder).
 

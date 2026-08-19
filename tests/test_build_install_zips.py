@@ -21,10 +21,12 @@ from harrix_swiss_knife.actions.common.install_zip_builder import (
     BuildSteps,
     build_install_zips,
     cli_argv_for_steps,
+    commit_stage_dir,
     install_dir,
     redundant_media_zip_names,
     run_pipeline,
     steps_from_cli_flags,
+    uv_isolated_env,
     wipe_dependencies,
 )
 
@@ -82,6 +84,41 @@ def test_cli_argv_for_steps_roundtrip() -> None:
     assert "--no-open" in flags
     assert "--clean-logs" in flags
     assert "--skip-binaries" not in flags
+
+
+def test_uv_isolated_env_drops_live_venv(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    monkeypatch.setenv("VIRTUAL_ENV", r"C:\locked\.venv")
+    monkeypatch.setenv("UV_PYTHON", "3.12")
+    cache_dir = tmp_path / "cache"
+    venv_dir = tmp_path / "venv"
+    env = uv_isolated_env(cache_dir=cache_dir, project_environment=venv_dir)
+    assert "VIRTUAL_ENV" not in env
+    assert "UV_PYTHON" not in env
+    assert env["UV_CACHE_DIR"] == str(cache_dir)
+    assert env["UV_PROJECT_ENVIRONMENT"] == str(venv_dir)
+
+
+def test_commit_stage_dir_replaces_existing(tmp_path: Path) -> None:
+    final_dir = tmp_path / "repos"
+    final_dir.mkdir()
+    (final_dir / "old.zip").write_bytes(b"old")
+    stage_dir = tmp_path / "repos.stage.abc"
+    stage_dir.mkdir()
+    (stage_dir / "new.zip").write_bytes(b"new")
+    commit_stage_dir(stage_dir, final_dir)
+    assert not stage_dir.exists()
+    assert (final_dir / "new.zip").read_bytes() == b"new"
+    assert not (final_dir / "old.zip").exists()
+
+
+def test_commit_stage_dir_when_dest_missing(tmp_path: Path) -> None:
+    final_dir = tmp_path / "repos"
+    stage_dir = tmp_path / "repos.stage.abc"
+    stage_dir.mkdir()
+    (stage_dir / "a.zip").write_bytes(b"a")
+    commit_stage_dir(stage_dir, final_dir)
+    assert not stage_dir.exists()
+    assert (final_dir / "a.zip").read_bytes() == b"a"
 
 
 def test_wipe_dependencies(tmp_path: Path) -> None:
@@ -170,7 +207,7 @@ def test_run_pipeline_zip_only(tmp_path: Path) -> None:
         open_install=False,
         clean_logs=False,
     )
-    result = run_pipeline(tmp_path, steps, interactive=False)
+    result = run_pipeline(tmp_path, steps)
     assert result.ok
     assert result.online_zip is not None
     assert result.offline_zip is not None
@@ -178,7 +215,7 @@ def test_run_pipeline_zip_only(tmp_path: Path) -> None:
 
 
 def test_run_pipeline_no_steps(tmp_path: Path) -> None:
-    result = run_pipeline(tmp_path, BuildSteps.from_labels([]), interactive=False)
+    result = run_pipeline(tmp_path, BuildSteps.from_labels([]))
     assert not result.ok
     assert any("No steps" in line for line in result.lines)
 

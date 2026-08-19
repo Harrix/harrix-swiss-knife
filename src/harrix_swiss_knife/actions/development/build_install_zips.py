@@ -9,11 +9,10 @@ from harrix_swiss_knife.actions.common.base import ActionBase
 from harrix_swiss_knife.actions.common.install_zip_builder import (
     ALL_STEP_LABELS,
     DEFAULT_STEP_LABELS,
-    STEP_UV_CACHE,
     BuildSteps,
+    PipelineResult,
     install_dir,
     run_pipeline,
-    spawn_pipeline_console,
     steps_from_cli_flags,
 )
 from harrix_swiss_knife.paths import get_project_root
@@ -23,10 +22,10 @@ class OnBuildInstallZips(ActionBase):
     """Build `install/` zip bundles with selectable steps.
 
     Shows checkboxes for wipe, binaries, installers, repo snapshots, uv cache,
-    zip packing, open folder, and log cleanup. When run from the tray, the
-    pipeline starts in a **new console** so you can Exit this app if uv cache
-    needs to replace `.venv` files. Target-PC payload stays PowerShell
-    (`install.bat` / `harrix-swiss-knife.ps1`).
+    zip packing, open folder, and log cleanup. From the tray the pipeline runs
+    in a worker thread and logs here like other actions. Uv cache uses an isolated
+    Python/venv so the live `.venv` can stay locked. Target-PC payload stays
+    PowerShell (`install.bat` / `harrix-swiss-knife.ps1`).
 
     """
 
@@ -68,18 +67,28 @@ class OnBuildInstallZips(ActionBase):
         self._project_root = project_root
         self._noninteractive = noninteractive
 
-        if steps.uv_cache and not noninteractive:
-            self.add_line(
-                "uv cache is selected: the build runs in a new console. "
-                "You can Exit this app if prompted about `.venv` locks."
-            )
-
         if noninteractive:
-            self._run_in_process(interactive=False)
+            self._run_in_process()
             return
 
-        # Tray: always use a new console so Exit is safe during uv cache.
-        self._spawn_console()
+        self.start_thread(self.in_thread, self.thread_after, self.title)
+
+    @ActionBase.handle_exceptions("build install zips thread")
+    def in_thread(self) -> PipelineResult:
+        """Run the builder in a worker thread; lines go to the usual output."""
+        return run_pipeline(
+            self._project_root,
+            self._steps,
+            config=dict(self.config),
+            log=self.add_line,
+        )
+
+    @ActionBase.handle_exceptions("build install zips thread completion")
+    def thread_after(self, result: Any) -> None:
+        """Show toast and the result window after the worker finishes."""
+        ok = isinstance(result, PipelineResult) and result.ok
+        self.show_toast("Install zips built" if ok else "Install zip build finished (see output)")
+        self.show_result()
 
     def _resolve_steps(self, *, noninteractive: bool, **kwargs: Any) -> BuildSteps | None:
         if noninteractive or kwargs.get("steps") is not None:
@@ -97,11 +106,7 @@ class OnBuildInstallZips(ActionBase):
                 clean_logs=bool(kwargs.get("clean_logs")),
             )
 
-        label = (
-            "Select builder steps. "
-            f"If «{STEP_UV_CACHE}» is on, quit this app when the console asks "
-            "(uv cannot replace `.venv` while the tray holds it)."
-        )
+        label = "Select builder steps. Output is logged here like other actions."
         selected = self.get_checkbox_selection(
             self.title,
             label,
@@ -112,33 +117,13 @@ class OnBuildInstallZips(ActionBase):
             return None
         return BuildSteps.from_labels(selected)
 
-    def _run_in_process(self, *, interactive: bool) -> None:
+    def _run_in_process(self) -> None:
         result = run_pipeline(
             self._project_root,
             self._steps,
             config=dict(self.config),
-            interactive=interactive,
             log=self.add_line,
         )
-        if not self._noninteractive:
-            if result.ok:
-                self.show_toast("Install zips built")
-            else:
-                self.show_toast("Install zip build finished (see output)")
-            self.show_result()
-        elif not result.ok:
+        if not result.ok:
             # CLI failure is detected via ❌ lines in result_lines.
             pass
-
-    def _spawn_console(self) -> None:
-        try:
-            proc = spawn_pipeline_console(self._project_root, self._steps)
-        except OSError as exc:
-            self.add_line(f"❌ Failed to start console pipeline: {exc}")
-            self.show_result()
-            return
-        self.add_line(f"$ python -c <install_zip_builder> (PID {proc.pid})")
-        self.add_line(f"Working directory: {self._project_root}")
-        self.add_line("Pipeline continues in the new console window.")
-        self.show_toast("Install zip build started in console")
-        self.show_result()
