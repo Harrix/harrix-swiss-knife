@@ -29,10 +29,8 @@ lang: en
   - [⚙️ Method `on_check_steps`](#%EF%B8%8F-method-on_check_steps)
   - [⚙️ Method `on_compare_last_months`](#%EF%B8%8F-method-on_compare_last_months)
   - [⚙️ Method `on_compare_same_months`](#%EF%B8%8F-method-on_compare_same_months)
-  - [⚙️ Method `on_exercise_selection_changed`](#%EF%B8%8F-method-on_exercise_selection_changed)
   - [⚙️ Method `on_exercise_selection_changed_list`](#%EF%B8%8F-method-on_exercise_selection_changed_list)
   - [⚙️ Method `on_exercise_type_changed`](#%EF%B8%8F-method-on_exercise_type_changed)
-  - [⚙️ Method `on_exercise_type_selection_changed`](#%EF%B8%8F-method-on_exercise_type_selection_changed)
   - [⚙️ Method `on_export_csv`](#%EF%B8%8F-method-on_export_csv)
   - [⚙️ Method `on_process_selection_changed`](#%EF%B8%8F-method-on_process_selection_changed)
   - [⚙️ Method `on_radio_button_changed`](#%EF%B8%8F-method-on_radio_button_changed)
@@ -164,6 +162,7 @@ class MainWindow(
         self.exercises_frequency_window: int = load_more_count
         self.show_all_records = False
         self.icon_size = 64
+        self.table_icon_size = 32
 
         # Process table pagination state
         self._process_pagination = ScrollPagination()
@@ -1394,10 +1393,6 @@ class MainWindow(
         # Add same months recommendations to label_chart_info
         self._add_same_months_recommendations_to_label(exercise, exercise_type, exercise_unit, yearly_data, years_count)
 
-    def on_exercise_selection_changed(self, _current: QModelIndex, _previous: QModelIndex) -> None:
-        """Update AVIF preview when exercise selection changes in the table."""
-        self._update_exercises_avif()
-
     def on_exercise_selection_changed_list(self) -> None:
         """Handle exercise selection change in the list view."""
         exercise = self._get_current_selected_exercise()
@@ -1570,10 +1565,6 @@ class MainWindow(
 
             # Unblock signals
             self.comboBox_records_select_exercise.blockSignals(False)  # noqa: FBT003
-
-    def on_exercise_type_selection_changed(self, _current: QModelIndex, _previous: QModelIndex) -> None:
-        """Update AVIF preview when exercise type selection changes in the table."""
-        self._update_types_avif()
 
     def on_export_csv(self) -> None:
         """Save current `process` view to a CSV file (semicolon-separated).
@@ -2445,7 +2436,6 @@ class MainWindow(
 
         """
         index_tab_charts = 1
-        index_tab_exercises = 2
         index_tab_weight = 3
         index_tab_statistics = 4
 
@@ -2456,10 +2446,6 @@ class MainWindow(
             if not self._get_selected_chart_exercise():
                 self._select_last_executed_exercise()
             self._update_charts_avif()
-        elif index == index_tab_exercises:  # Exercises tab
-            # Update exercises AVIF when switching to exercises tab
-            self._update_exercises_avif()
-            self._update_types_avif()
         elif index == index_tab_weight:  # Weight tab
             self.set_weight_all_time()
         elif index == index_tab_statistics:  # Statistics tab
@@ -2942,8 +2928,6 @@ class MainWindow(
             self._load_exercise_avif(current_exercise_name, "main")
 
         # Update other AVIFs
-        self._update_exercises_avif()
-        self._update_types_avif()
         self._update_charts_avif()
 
     @requires_database(is_show_warning=False)
@@ -4306,11 +4290,11 @@ class MainWindow(
 
     def _configure_exercise_image_table(self, table_view: QTableView) -> None:
         """Show a fixed first column for the exercise still image."""
-        table_view.setIconSize(QSize(self.icon_size, self.icon_size))
-        table_view.verticalHeader().setDefaultSectionSize(self.icon_size + 8)
+        table_view.setIconSize(QSize(self.table_icon_size, self.table_icon_size))
+        table_view.verticalHeader().setDefaultSectionSize(self.table_icon_size + 8)
         header = table_view.horizontalHeader()
         header.setSectionResizeMode(_EXERCISE_TABLE_IMAGE_COLUMN, header.ResizeMode.Fixed)
-        table_view.setColumnWidth(_EXERCISE_TABLE_IMAGE_COLUMN, self.icon_size + 12)
+        table_view.setColumnWidth(_EXERCISE_TABLE_IMAGE_COLUMN, self.table_icon_size + 12)
 
     def _confirm_delete_with_process_records(self, subject: str, name: str, process_count: int) -> bool:
         """Ask whether to delete an item that still has completed exercise records.
@@ -4468,12 +4452,6 @@ class MainWindow(
 
     def _connect_table_selection_signals(self) -> None:
         """Connect selection change signals for all tables."""
-        # Connect exercises table selection
-        self._connect_table_signals("exercises", self.on_exercise_selection_changed)
-
-        # Connect exercise types table selection
-        self._connect_table_signals("types", self.on_exercise_type_selection_changed)
-
         # Connect statistics table selection
         selection_model = self.tableView_statistics.selectionModel()
         if selection_model:
@@ -5351,7 +5329,7 @@ class MainWindow(
 
         - `exercise_name` (`str`): Name of the exercise to load AVIF for.
         - `label_key` (`str`): Key identifying which label to update
-          (`main`, `exercises`, `types`, `charts`, `statistics`). Defaults to `main`.
+          (`main`, `charts`, `statistics`). Defaults to `main`.
 
         """
         if not self.avif_manager:
@@ -5360,8 +5338,6 @@ class MainWindow(
         # Get the appropriate label widget
         label_widgets = {
             "main": self.label_exercise_avif,
-            "exercises": self.label_exercise_avif_2,
-            "types": self.label_exercise_avif_3,
             "charts": self.label_exercise_avif_4,
             "statistics": self.label_exercise_avif_5,
         }
@@ -5381,12 +5357,6 @@ class MainWindow(
             self._load_exercise_avif(current_exercise_name, "main")
             # Trigger the selection change to update labels
             self.on_exercise_selection_changed_list()
-
-        # Load exercises table AVIF (first row by default)
-        self._update_exercises_avif()
-
-        # Load types combobox AVIF
-        self._update_types_avif()
 
         # Load charts combobox AVIF
         self._update_charts_avif()
@@ -5493,11 +5463,18 @@ class MainWindow(
             f"Failed to save media for '{exercise_name}':\n{error_message}",
         )
 
-    def _on_exercise_preview_media_dropped(self, paths: list[str]) -> None:
-        """Save dropped media for the exercise selected in the exercises table."""
+    def _on_exercise_preview_media_dropped(self, paths: list[str], *, table_name: str = "exercises") -> None:
+        """Save dropped media for the exercise selected in `table_name`.
+
+        Args:
+
+        - `paths` (`list[str]`): Dropped file paths. The first valid path is used.
+        - `table_name` (`str`): Table that provides the selected exercise. Defaults to `exercises`.
+
+        """
         if not paths:
             return
-        exercise_name = self._get_selected_exercise_from_table("exercises")
+        exercise_name = self._get_selected_exercise_from_table(table_name)
         if not exercise_name:
             message_box.warning(self, "Error", "Select an exercise in the table")
             return
@@ -5732,10 +5709,9 @@ class MainWindow(
         if not self.avif_manager:
             return
         self._exercise_icon_cache.pop(exercise_name, None)
-        for label_key in ("main", "exercises", "types", "charts", "statistics"):
+        for label_key in ("main", "charts", "statistics"):
             if self.avif_manager.get_current_exercise(label_key) == exercise_name:
                 self._load_exercise_avif(exercise_name, label_key)
-        self._update_exercises_avif()
         self._update_list_view_exercise_icon(exercise_name)
         self._update_table_exercise_icons(exercise_name)
 
@@ -5995,10 +5971,15 @@ class MainWindow(
         """)
 
     def _setup_exercise_media_widgets(self) -> None:
-        """Install preview drop handlers for exercise media files."""
+        """Install drop handlers so media can be assigned from the exercise tables."""
         install_url_drop_handlers(
-            self.label_exercise_avif_2,
+            self.tableView_exercises,
             self._on_exercise_preview_media_dropped,
+            filter_path=is_exercise_media_path,
+        )
+        install_url_drop_handlers(
+            self.tableView_exercise_types,
+            lambda paths: self._on_exercise_preview_media_dropped(paths, table_name="types"),
             filter_path=is_exercise_media_path,
         )
 
@@ -6474,9 +6455,6 @@ class MainWindow(
             elif exercises:
                 self._select_exercise_in_list(exercises[0])
 
-            # Update types AVIF after combobox update
-            self._update_types_avif()
-
         except Exception:
             logger.exception("Error updating comboboxes")
 
@@ -6487,12 +6465,6 @@ class MainWindow(
         self.label_filter_to.setEnabled(enabled)
         self.dateEdit_filter_from.setEnabled(enabled)
         self.dateEdit_filter_to.setEnabled(enabled)
-
-    def _update_exercises_avif(self) -> None:
-        """Update AVIF for exercises table selection."""
-        exercise_name = self._get_selected_exercise_from_table("exercises")
-        if isinstance(exercise_name, str):
-            self._load_exercise_avif(exercise_name, "exercises")
 
     def _update_form_from_process_selection(self, _exercise_name: str, type_name: str, value_str: str) -> None:
         """Update form fields after process selection change.
@@ -6607,12 +6579,6 @@ class MainWindow(
                 item = source.item(row, _EXERCISE_TABLE_IMAGE_COLUMN)
                 if item is not None:
                     item.setIcon(icon)
-
-    def _update_types_avif(self) -> None:
-        """Update AVIF for types table selection."""
-        exercise_name = self._get_selected_exercise_from_table("types")
-        if isinstance(exercise_name, str):
-            self._load_exercise_avif(exercise_name, "types")
 ```
 
 </details>
@@ -6679,6 +6645,7 @@ def __init__(self, *, hide_on_close: bool = False) -> None:  # noqa: D107
         self.exercises_frequency_window: int = load_more_count
         self.show_all_records = False
         self.icon_size = 64
+        self.table_icon_size = 32
 
         # Process table pagination state
         self._process_pagination = ScrollPagination()
@@ -8106,24 +8073,6 @@ def on_compare_same_months(self) -> None:
 
 </details>
 
-### ⚙️ Method `on_exercise_selection_changed`
-
-```python
-def on_exercise_selection_changed(self, _current: QModelIndex, _previous: QModelIndex) -> None
-```
-
-Update AVIF preview when exercise selection changes in the table.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def on_exercise_selection_changed(self, _current: QModelIndex, _previous: QModelIndex) -> None:
-        self._update_exercises_avif()
-```
-
-</details>
-
 ### ⚙️ Method `on_exercise_selection_changed_list`
 
 ```python
@@ -8319,24 +8268,6 @@ def on_exercise_type_changed(self, _index: int = -1) -> None:
 
             # Unblock signals
             self.comboBox_records_select_exercise.blockSignals(False)  # noqa: FBT003
-```
-
-</details>
-
-### ⚙️ Method `on_exercise_type_selection_changed`
-
-```python
-def on_exercise_type_selection_changed(self, _current: QModelIndex, _previous: QModelIndex) -> None
-```
-
-Update AVIF preview when exercise type selection changes in the table.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def on_exercise_type_selection_changed(self, _current: QModelIndex, _previous: QModelIndex) -> None:
-        self._update_types_avif()
 ```
 
 </details>
@@ -9335,7 +9266,6 @@ Args:
 ```python
 def on_tab_changed(self, index: int) -> None:
         index_tab_charts = 1
-        index_tab_exercises = 2
         index_tab_weight = 3
         index_tab_statistics = 4
 
@@ -9346,10 +9276,6 @@ def on_tab_changed(self, index: int) -> None:
             if not self._get_selected_chart_exercise():
                 self._select_last_executed_exercise()
             self._update_charts_avif()
-        elif index == index_tab_exercises:  # Exercises tab
-            # Update exercises AVIF when switching to exercises tab
-            self._update_exercises_avif()
-            self._update_types_avif()
         elif index == index_tab_weight:  # Weight tab
             self.set_weight_all_time()
         elif index == index_tab_statistics:  # Statistics tab
@@ -10017,8 +9943,6 @@ def update_all(
             self._load_exercise_avif(current_exercise_name, "main")
 
         # Update other AVIFs
-        self._update_exercises_avif()
-        self._update_types_avif()
         self._update_charts_avif()
 ```
 

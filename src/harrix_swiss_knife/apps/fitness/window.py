@@ -88,9 +88,7 @@ class Ui_MainWindow(object):
         self.label_exercise_avif_4.setText(QCoreApplication.translate("MainWindow", u"No exercise selected", None))
         self.label_chart_info.setText("")
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_charts), QCoreApplication.translate("MainWindow", u"Charts", None))
-        self.label_exercise_avif_2.setText(QCoreApplication.translate("MainWindow", u"No exercise selected", None))
         self.label_exercises_table.setText(QCoreApplication.translate("MainWindow", u"Exercises:", None))
-        self.label_exercise_avif_3.setText(QCoreApplication.translate("MainWindow", u"No exercise selected", None))
         self.label_exercise_types_table.setText(QCoreApplication.translate("MainWindow", u"Exercise Types:", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_2), QCoreApplication.translate("MainWindow", u"Exercises", None))
         self.groupBox_4.setTitle(QCoreApplication.translate("MainWindow", u"Add New Weight", None))
@@ -674,100 +672,36 @@ class Ui_MainWindow(object):
         self.splitter_2.setChildrenCollapsible(False)
         self.widget_top = QWidget(self.splitter_2)
         self.widget_top.setObjectName(u"widget_top")
-        self.horizontalLayout_2 = QHBoxLayout(self.widget_top)
-        self.horizontalLayout_2.setObjectName(u"horizontalLayout_2")
-        self.horizontalLayout_2.setContentsMargins(0, 0, 0, 0)
-        self.frame_2 = QFrame(self.widget_top)
-        self.frame_2.setObjectName(u"frame_2")
-        self.frame_2.setMinimumSize(QSize(250, 0))
-        self.frame_2.setMaximumSize(QSize(250, 16777215))
-        self.frame_2.setFrameShape(QFrame.Shape.StyledPanel)
-        self.frame_2.setFrameShadow(QFrame.Shadow.Raised)
-        self.verticalLayout_15 = QVBoxLayout(self.frame_2)
-        self.verticalLayout_15.setObjectName(u"verticalLayout_15")
-        self.label_exercise_avif_2 = QLabel(self.frame_2)
-        self.label_exercise_avif_2.setObjectName(u"label_exercise_avif_2")
-        self.label_exercise_avif_2.setMinimumSize(QSize(0, 150))
-        self.label_exercise_avif_2.setStyleSheet(u"border: 1px solid gray;")
-        self.label_exercise_avif_2.setScaledContents(False)
-        self.label_exercise_avif_2.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
-        self.verticalLayout_15.addWidget(self.label_exercise_avif_2)
-
-        self.verticalSpacer_2 = QSpacerItem(20, 581, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
-
-        self.verticalLayout_15.addItem(self.verticalSpacer_2)
-
-
-        self.horizontalLayout_2.addWidget(self.frame_2)
-
-        self.widget_exercises_table = QWidget(self.widget_top)
-        self.widget_exercises_table.setObjectName(u"widget_exercises_table")
-        self.verticalLayout_exercises_table = QVBoxLayout(self.widget_exercises_table)
+        self.verticalLayout_exercises_table = QVBoxLayout(self.widget_top)
         self.verticalLayout_exercises_table.setSpacing(4)
         self.verticalLayout_exercises_table.setObjectName(u"verticalLayout_exercises_table")
         self.verticalLayout_exercises_table.setContentsMargins(0, 0, 0, 0)
-        self.label_exercises_table = QLabel(self.widget_exercises_table)
+        self.label_exercises_table = QLabel(self.widget_top)
         self.label_exercises_table.setObjectName(u"label_exercises_table")
 
         self.verticalLayout_exercises_table.addWidget(self.label_exercises_table)
 
-        self.tableView_exercises = QTableView(self.widget_exercises_table)
+        self.tableView_exercises = QTableView(self.widget_top)
         self.tableView_exercises.setObjectName(u"tableView_exercises")
 
         self.verticalLayout_exercises_table.addWidget(self.tableView_exercises)
 
-
-        self.horizontalLayout_2.addWidget(self.widget_exercises_table)
-
         self.splitter_2.addWidget(self.widget_top)
         self.widget_bottom = QWidget(self.splitter_2)
         self.widget_bottom.setObjectName(u"widget_bottom")
-        self.horizontalLayout_3 = QHBoxLayout(self.widget_bottom)
-        self.horizontalLayout_3.setObjectName(u"horizontalLayout_3")
-        self.horizontalLayout_3.setContentsMargins(0, 0, 0, 0)
-        self.frame_3 = QFrame(self.widget_bottom)
-        self.frame_3.setObjectName(u"frame_3")
-        self.frame_3.setMinimumSize(QSize(250, 0))
-        self.frame_3.setMaximumSize(QSize(250, 16777215))
-        self.frame_3.setFrameShape(QFrame.Shape.StyledPanel)
-        self.frame_3.setFrameShadow(QFrame.Shadow.Raised)
-        self.verticalLayout_12 = QVBoxLayout(self.frame_3)
-        self.verticalLayout_12.setObjectName(u"verticalLayout_12")
-        self.label_exercise_avif_3 = QLabel(self.frame_3)
-        self.label_exercise_avif_3.setObjectName(u"label_exercise_avif_3")
-        self.label_exercise_avif_3.setMinimumSize(QSize(0, 150))
-        self.label_exercise_avif_3.setStyleSheet(u"border: 1px solid gray;")
-        self.label_exercise_avif_3.setScaledContents(False)
-        self.label_exercise_avif_3.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
-        self.verticalLayout_12.addWidget(self.label_exercise_avif_3)
-
-        self.verticalSpacer_3 = QSpacerItem(20, 608, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
-
-        self.verticalLayout_12.addItem(self.verticalSpacer_3)
-
-
-        self.horizontalLayout_3.addWidget(self.frame_3)
-
-        self.widget_exercise_types_table = QWidget(self.widget_bottom)
-        self.widget_exercise_types_table.setObjectName(u"widget_exercise_types_table")
-        self.verticalLayout_exercise_types_table = QVBoxLayout(self.widget_exercise_types_table)
+        self.verticalLayout_exercise_types_table = QVBoxLayout(self.widget_bottom)
         self.verticalLayout_exercise_types_table.setSpacing(4)
         self.verticalLayout_exercise_types_table.setObjectName(u"verticalLayout_exercise_types_table")
         self.verticalLayout_exercise_types_table.setContentsMargins(0, 0, 0, 0)
-        self.label_exercise_types_table = QLabel(self.widget_exercise_types_table)
+        self.label_exercise_types_table = QLabel(self.widget_bottom)
         self.label_exercise_types_table.setObjectName(u"label_exercise_types_table")
 
         self.verticalLayout_exercise_types_table.addWidget(self.label_exercise_types_table)
 
-        self.tableView_exercise_types = QTableView(self.widget_exercise_types_table)
+        self.tableView_exercise_types = QTableView(self.widget_bottom)
         self.tableView_exercise_types.setObjectName(u"tableView_exercise_types")
 
         self.verticalLayout_exercise_types_table.addWidget(self.tableView_exercise_types)
-
-
-        self.horizontalLayout_3.addWidget(self.widget_exercise_types_table)
 
         self.splitter_2.addWidget(self.widget_bottom)
 

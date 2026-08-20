@@ -164,7 +164,7 @@ class AvifManager:
         - `exercise_name` (`str`): Name of the exercise to load AVIF for.
         - `label_widget` (`QLabel`): Label widget to display the AVIF.
         - `label_key` (`str`): Key identifying which label to update
-          (`main`, `exercises`, `types`, `charts`, `statistics`). Defaults to `main`.
+          (`main`, `charts`, `statistics`, and other `AvifLabelKey` values). Defaults to `main`.
 
         """
         key = self._normalize_label_key(label_key)
