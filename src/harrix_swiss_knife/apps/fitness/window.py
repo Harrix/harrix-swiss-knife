@@ -87,7 +87,6 @@ class Ui_MainWindow(object):
         self.groupBox_7.setTitle(QCoreApplication.translate("MainWindow", u"Commands", None))
         self.pushButton_exercise_add.setText(QCoreApplication.translate("MainWindow", u"Add Exercise", None))
         self.pushButton_exercises_refresh.setText(QCoreApplication.translate("MainWindow", u"Refresh Table", None))
-        self.pushButton_translate_with_ai.setText(QCoreApplication.translate("MainWindow", u"Translate with AI", None))
         self.label_exercise_avif_2.setText(QCoreApplication.translate("MainWindow", u"No exercise selected", None))
         self.groupBox_8.setTitle(QCoreApplication.translate("MainWindow", u"Commands", None))
         self.pushButton_type_add.setText(QCoreApplication.translate("MainWindow", u"Add Exercise Type", None))
@@ -691,11 +690,6 @@ class Ui_MainWindow(object):
         self.pushButton_exercises_refresh.setObjectName(u"pushButton_exercises_refresh")
 
         self.verticalLayout_11.addWidget(self.pushButton_exercises_refresh)
-
-        self.pushButton_translate_with_ai = QPushButton(self.groupBox_7)
-        self.pushButton_translate_with_ai.setObjectName(u"pushButton_translate_with_ai")
-
-        self.verticalLayout_11.addWidget(self.pushButton_translate_with_ai)
 
 
         self.verticalLayout_15.addWidget(self.groupBox_7)

@@ -908,13 +908,6 @@
                     </property>
                    </widget>
                   </item>
-                  <item>
-                   <widget class="QPushButton" name="pushButton_translate_with_ai">
-                    <property name="text">
-                     <string>Translate with AI</string>
-                    </property>
-                   </widget>
-                  </item>
                  </layout>
                 </widget>
                </item>

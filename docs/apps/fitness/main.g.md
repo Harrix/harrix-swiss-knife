@@ -44,7 +44,6 @@ lang: en
   - [⚙️ Method `on_statistics_selection_changed`](#%EF%B8%8F-method-on_statistics_selection_changed)
   - [⚙️ Method `on_tab_changed`](#%EF%B8%8F-method-on_tab_changed)
   - [⚙️ Method `on_toggle_show_all_records`](#%EF%B8%8F-method-on_toggle_show_all_records)
-  - [⚙️ Method `on_translate_with_ai`](#%EF%B8%8F-method-on_translate_with_ai)
   - [⚙️ Method `on_weight_selection_changed`](#%EF%B8%8F-method-on_weight_selection_changed)
   - [⚙️ Method `resizeEvent`](#%EF%B8%8F-method-resizeevent)
   - [⚙️ Method `set_chart_all_time`](#%EF%B8%8F-method-set_chart_all_time)
@@ -2503,54 +2502,6 @@ class MainWindow(
         # Reload the process table with the appropriate data
         self.load_process_table()
 
-    @requires_database()
-    def on_translate_with_ai(self) -> None:
-        """Fill missing `name_local` values for exercises and types via BotHub."""
-        if self.db_manager is None:
-            logger.error("❌ Database manager is not initialized")
-            return
-
-        limit = self._fitness_names_translate_local_limit()
-        exercise_names = self.db_manager.get_exercise_names_missing_name_local(limit=limit)
-        remaining = max(limit - len(exercise_names), 0)
-        type_names = (
-            self.db_manager.get_exercise_type_names_missing_name_local(limit=remaining) if remaining > 0 else []
-        )
-        names = list(dict.fromkeys([*exercise_names, *type_names]))
-        if not names:
-            message_box.information(
-                self,
-                "Translation",
-                "All exercises and exercise types already have a local name.",
-            )
-            return
-
-        self.pushButton_translate_with_ai.setEnabled(False)
-
-        def on_success(translations: dict[str, str]) -> None:
-            if self.db_manager is None:
-                return
-            updated_exercises = 0
-            updated_types = 0
-            for name, name_local in translations.items():
-                updated_exercises += self.db_manager.update_exercise_name_local_by_name(name, name_local)
-                updated_types += self.db_manager.update_exercise_type_name_local_by_type(name, name_local)
-            self.update_all(is_preserve_selections=True)
-            message_box.information(
-                self,
-                "Translation",
-                f"Updated local names: {updated_exercises} exercise(s), {updated_types} type(s).",
-            )
-
-        request_names_local_batch_translation(
-            self,
-            app_config=self._app_config,
-            bothub_state=self._bothub_state,
-            names=names,
-            on_success=on_success,
-            on_finished=lambda: self.pushButton_translate_with_ai.setEnabled(True),
-        )
-
     def on_weight_selection_changed(self, _current: QModelIndex, _previous: QModelIndex) -> None:
         """Update form fields when weight selection changes in the table.
 
@@ -4420,7 +4371,6 @@ class MainWindow(
         self.pushButton_exercise_add.clicked.connect(self.on_add_exercise)
         self.pushButton_type_add.clicked.connect(self.on_add_type)
         self.pushButton_weight_add.clicked.connect(self.on_add_weight)
-        self.pushButton_translate_with_ai.clicked.connect(self.on_translate_with_ai)
         self._setup_exercise_media_widgets()
         self.pushButton_select_exercise.clicked.connect(self.on_select_exercise_button_clicked)
 
@@ -4803,14 +4753,6 @@ class MainWindow(
         QTimer.singleShot(50, self._adjust_process_table_columns)
         QTimer.singleShot(55, self._update_layout_for_window_size)
         QTimer.singleShot(60, self._apply_sets_splitter_sizes)
-
-    def _fitness_names_translate_local_limit(self) -> int:
-        """Return max unique names per AI batch for local-name translation."""
-        raw = self._app_config.get("fitness_names_translate_local_limit", 250)
-        try:
-            return max(int(raw), 1)
-        except (TypeError, ValueError):
-            return 250
 
     def _focus_and_select_spinbox_count(self) -> None:
         """Move focus to spinBox_count and select all text.
@@ -6058,7 +6000,6 @@ class MainWindow(
         self.pushButton_select_exercise.setText(f"🏋️ {self.pushButton_select_exercise.text()}")
         self.pushButton_exercise_add.setText(f"➕ {self.pushButton_exercise_add.text()}")  # noqa: RUF001
         self.pushButton_exercises_refresh.setText(f"🔄 {self.pushButton_exercises_refresh.text()}")
-        self.pushButton_translate_with_ai.setText(f"🤖 {self.pushButton_translate_with_ai.text()}")
         self.pushButton_type_add.setText(f"➕ {self.pushButton_type_add.text()}")  # noqa: RUF001
         self.pushButton_types_refresh.setText(f"🔄 {self.pushButton_types_refresh.text()}")
         self.pushButton_weight_add.setText(f"➕ {self.pushButton_weight_add.text()}")  # noqa: RUF001
@@ -9396,67 +9337,6 @@ def on_toggle_show_all_records(self) -> None:
 
         # Reload the process table with the appropriate data
         self.load_process_table()
-```
-
-</details>
-
-### ⚙️ Method `on_translate_with_ai`
-
-```python
-def on_translate_with_ai(self) -> None
-```
-
-Fill missing `name_local` values for exercises and types via BotHub.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def on_translate_with_ai(self) -> None:
-        if self.db_manager is None:
-            logger.error("❌ Database manager is not initialized")
-            return
-
-        limit = self._fitness_names_translate_local_limit()
-        exercise_names = self.db_manager.get_exercise_names_missing_name_local(limit=limit)
-        remaining = max(limit - len(exercise_names), 0)
-        type_names = (
-            self.db_manager.get_exercise_type_names_missing_name_local(limit=remaining) if remaining > 0 else []
-        )
-        names = list(dict.fromkeys([*exercise_names, *type_names]))
-        if not names:
-            message_box.information(
-                self,
-                "Translation",
-                "All exercises and exercise types already have a local name.",
-            )
-            return
-
-        self.pushButton_translate_with_ai.setEnabled(False)
-
-        def on_success(translations: dict[str, str]) -> None:
-            if self.db_manager is None:
-                return
-            updated_exercises = 0
-            updated_types = 0
-            for name, name_local in translations.items():
-                updated_exercises += self.db_manager.update_exercise_name_local_by_name(name, name_local)
-                updated_types += self.db_manager.update_exercise_type_name_local_by_type(name, name_local)
-            self.update_all(is_preserve_selections=True)
-            message_box.information(
-                self,
-                "Translation",
-                f"Updated local names: {updated_exercises} exercise(s), {updated_types} type(s).",
-            )
-
-        request_names_local_batch_translation(
-            self,
-            app_config=self._app_config,
-            bothub_state=self._bothub_state,
-            names=names,
-            on_success=on_success,
-            on_finished=lambda: self.pushButton_translate_with_ai.setEnabled(True),
-        )
 ```
 
 </details>
