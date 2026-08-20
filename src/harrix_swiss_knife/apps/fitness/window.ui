@@ -902,22 +902,11 @@
                    </widget>
                   </item>
                   <item>
-                   <layout class="QHBoxLayout" name="horizontalLayout_20">
-                    <item>
-                     <widget class="QPushButton" name="pushButton_exercises_delete">
-                      <property name="text">
-                       <string>Delete selected</string>
-                      </property>
-                     </widget>
-                    </item>
-                    <item>
-                     <widget class="QPushButton" name="pushButton_exercises_refresh">
-                      <property name="text">
-                       <string>Refresh Table</string>
-                      </property>
-                     </widget>
-                    </item>
-                   </layout>
+                   <widget class="QPushButton" name="pushButton_exercises_refresh">
+                    <property name="text">
+                     <string>Refresh Table</string>
+                    </property>
+                   </widget>
                   </item>
                   <item>
                    <widget class="QPushButton" name="pushButton_translate_with_ai">
@@ -1009,22 +998,11 @@
                    </widget>
                   </item>
                   <item>
-                   <layout class="QHBoxLayout" name="horizontalLayout_21">
-                    <item>
-                     <widget class="QPushButton" name="pushButton_types_delete">
-                      <property name="text">
-                       <string>Delete selected</string>
-                      </property>
-                     </widget>
-                    </item>
-                    <item>
-                     <widget class="QPushButton" name="pushButton_types_refresh">
-                      <property name="text">
-                       <string>Refresh Table</string>
-                      </property>
-                     </widget>
-                    </item>
-                   </layout>
+                   <widget class="QPushButton" name="pushButton_types_refresh">
+                    <property name="text">
+                     <string>Refresh Table</string>
+                    </property>
+                   </widget>
                   </item>
                  </layout>
                 </widget>

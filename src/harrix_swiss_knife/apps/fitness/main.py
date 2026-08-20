@@ -6130,11 +6130,9 @@ class MainWindow(
         self._update_clear_filter_button_visibility()
         self.pushButton_select_exercise.setText(f"🏋️ {self.pushButton_select_exercise.text()}")
         self.pushButton_exercise_add.setText(f"➕ {self.pushButton_exercise_add.text()}")  # noqa: RUF001
-        self.pushButton_exercises_delete.setText(f"🗑️ {self.pushButton_exercises_delete.text()}")
         self.pushButton_exercises_refresh.setText(f"🔄 {self.pushButton_exercises_refresh.text()}")
         self.pushButton_translate_with_ai.setText(f"🤖 {self.pushButton_translate_with_ai.text()}")
         self.pushButton_type_add.setText(f"➕ {self.pushButton_type_add.text()}")  # noqa: RUF001
-        self.pushButton_types_delete.setText(f"🗑️ {self.pushButton_types_delete.text()}")
         self.pushButton_types_refresh.setText(f"🔄 {self.pushButton_types_refresh.text()}")
         self.pushButton_weight_add.setText(f"➕ {self.pushButton_weight_add.text()}")  # noqa: RUF001
         self.pushButton_weight_delete.setText(f"🗑️ {self.pushButton_weight_delete.text()}")

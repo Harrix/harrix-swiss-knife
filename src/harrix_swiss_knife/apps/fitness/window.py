@@ -86,13 +86,11 @@ class Ui_MainWindow(object):
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_charts), QCoreApplication.translate("MainWindow", u"Charts", None))
         self.groupBox_7.setTitle(QCoreApplication.translate("MainWindow", u"Commands", None))
         self.pushButton_exercise_add.setText(QCoreApplication.translate("MainWindow", u"Add Exercise", None))
-        self.pushButton_exercises_delete.setText(QCoreApplication.translate("MainWindow", u"Delete selected", None))
         self.pushButton_exercises_refresh.setText(QCoreApplication.translate("MainWindow", u"Refresh Table", None))
         self.pushButton_translate_with_ai.setText(QCoreApplication.translate("MainWindow", u"Translate with AI", None))
         self.label_exercise_avif_2.setText(QCoreApplication.translate("MainWindow", u"No exercise selected", None))
         self.groupBox_8.setTitle(QCoreApplication.translate("MainWindow", u"Commands", None))
         self.pushButton_type_add.setText(QCoreApplication.translate("MainWindow", u"Add Exercise Type", None))
-        self.pushButton_types_delete.setText(QCoreApplication.translate("MainWindow", u"Delete selected", None))
         self.pushButton_types_refresh.setText(QCoreApplication.translate("MainWindow", u"Refresh Table", None))
         self.label_exercise_avif_3.setText(QCoreApplication.translate("MainWindow", u"No exercise selected", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_2), QCoreApplication.translate("MainWindow", u"Exercises", None))
@@ -689,20 +687,10 @@ class Ui_MainWindow(object):
 
         self.verticalLayout_11.addWidget(self.pushButton_exercise_add)
 
-        self.horizontalLayout_20 = QHBoxLayout()
-        self.horizontalLayout_20.setObjectName(u"horizontalLayout_20")
-        self.pushButton_exercises_delete = QPushButton(self.groupBox_7)
-        self.pushButton_exercises_delete.setObjectName(u"pushButton_exercises_delete")
-
-        self.horizontalLayout_20.addWidget(self.pushButton_exercises_delete)
-
         self.pushButton_exercises_refresh = QPushButton(self.groupBox_7)
         self.pushButton_exercises_refresh.setObjectName(u"pushButton_exercises_refresh")
 
-        self.horizontalLayout_20.addWidget(self.pushButton_exercises_refresh)
-
-
-        self.verticalLayout_11.addLayout(self.horizontalLayout_20)
+        self.verticalLayout_11.addWidget(self.pushButton_exercises_refresh)
 
         self.pushButton_translate_with_ai = QPushButton(self.groupBox_7)
         self.pushButton_translate_with_ai.setObjectName(u"pushButton_translate_with_ai")
@@ -756,20 +744,10 @@ class Ui_MainWindow(object):
 
         self.verticalLayout_13.addWidget(self.pushButton_type_add)
 
-        self.horizontalLayout_21 = QHBoxLayout()
-        self.horizontalLayout_21.setObjectName(u"horizontalLayout_21")
-        self.pushButton_types_delete = QPushButton(self.groupBox_8)
-        self.pushButton_types_delete.setObjectName(u"pushButton_types_delete")
-
-        self.horizontalLayout_21.addWidget(self.pushButton_types_delete)
-
         self.pushButton_types_refresh = QPushButton(self.groupBox_8)
         self.pushButton_types_refresh.setObjectName(u"pushButton_types_refresh")
 
-        self.horizontalLayout_21.addWidget(self.pushButton_types_refresh)
-
-
-        self.verticalLayout_13.addLayout(self.horizontalLayout_21)
+        self.verticalLayout_13.addWidget(self.pushButton_types_refresh)
 
 
         self.verticalLayout_12.addWidget(self.groupBox_8)
