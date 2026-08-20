@@ -4402,13 +4402,15 @@ class MainWindow(
         self.actionRefresh_Set_Table.triggered.connect(self.update_all)
         self.actionShow_All_Set_Records.triggered.connect(self.on_toggle_show_all_records)
         self.actionExport_Set_Table.triggered.connect(self.on_export_csv)
+        self.actionAdd_Exercise.triggered.connect(self.on_add_exercise)
+        self.actionRefresh_Exercises_Table.triggered.connect(self.update_all)
+        self.actionAdd_Exercise_Type.triggered.connect(self.on_add_type)
+        self.actionRefresh_Types_Table.triggered.connect(self.update_all)
 
         # Connect process table selection change signal
         # Note: This will be connected later in show_tables() after model is created
 
         # Add buttons
-        self.pushButton_exercise_add.clicked.connect(self.on_add_exercise)
-        self.pushButton_type_add.clicked.connect(self.on_add_type)
         self.pushButton_weight_add.clicked.connect(self.on_add_weight)
         self._setup_exercise_media_widgets()
         self.pushButton_select_exercise.clicked.connect(self.on_select_exercise_button_clicked)
@@ -6037,10 +6039,6 @@ class MainWindow(
         self.pushButton_clear_filter.setFixedSize(clear_h, clear_h)
         self._update_clear_filter_button_visibility()
         self.pushButton_select_exercise.setText(f"🏋️ {self.pushButton_select_exercise.text()}")
-        self.pushButton_exercise_add.setText(f"➕ {self.pushButton_exercise_add.text()}")  # noqa: RUF001
-        self.pushButton_exercises_refresh.setText(f"🔄 {self.pushButton_exercises_refresh.text()}")
-        self.pushButton_type_add.setText(f"➕ {self.pushButton_type_add.text()}")  # noqa: RUF001
-        self.pushButton_types_refresh.setText(f"🔄 {self.pushButton_types_refresh.text()}")
         self.pushButton_weight_add.setText(f"➕ {self.pushButton_weight_add.text()}")  # noqa: RUF001
         self.pushButton_weight_delete.setText(f"🗑️ {self.pushButton_weight_delete.text()}")
         self.pushButton_weight_refresh.setText(f"🔄 {self.pushButton_weight_refresh.text()}")
@@ -6081,13 +6079,16 @@ class MainWindow(
             self.tableView_exercise_types.setCurrentIndex(index)
 
         context_menu = QMenu(self)
+        context_menu.addAction(self.actionAdd_Exercise_Type)
+        context_menu.addAction(self.actionRefresh_Types_Table)
+        context_menu.addSeparator()
         edit_action = context_menu.addAction("✏️ Edit")
         delete_action = context_menu.addAction("🗑️ Delete")
         reveal_action = context_menu.addAction("📂 Reveal in File Explorer")
         export_action = context_menu.addAction("📤 Export to CSV")
 
         action = context_menu.exec_(self.tableView_exercise_types.mapToGlobal(position))
-        if action is None:
+        if action is None or action in {self.actionAdd_Exercise_Type, self.actionRefresh_Types_Table}:
             return
         if action == edit_action:
             self._open_exercise_type_edit_dialog()
@@ -6112,13 +6113,16 @@ class MainWindow(
             self.tableView_exercises.setCurrentIndex(index)
 
         context_menu = QMenu(self)
+        context_menu.addAction(self.actionAdd_Exercise)
+        context_menu.addAction(self.actionRefresh_Exercises_Table)
+        context_menu.addSeparator()
         edit_action = context_menu.addAction("✏️ Edit")
         delete_action = context_menu.addAction("🗑️ Delete")
         reveal_action = context_menu.addAction("📂 Reveal in File Explorer")
         export_action = context_menu.addAction("📤 Export to CSV")
 
         action = context_menu.exec_(self.tableView_exercises.mapToGlobal(position))
-        if action is None:
+        if action is None or action in {self.actionAdd_Exercise, self.actionRefresh_Exercises_Table}:
             return
         if action == edit_action:
             self._open_exercise_edit_dialog()

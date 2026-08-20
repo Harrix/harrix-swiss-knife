@@ -889,29 +889,6 @@
               </property>
               <layout class="QVBoxLayout" name="verticalLayout_15">
                <item>
-                <widget class="QGroupBox" name="groupBox_7">
-                 <property name="title">
-                  <string>Commands</string>
-                 </property>
-                 <layout class="QVBoxLayout" name="verticalLayout_11">
-                  <item>
-                   <widget class="QPushButton" name="pushButton_exercise_add">
-                    <property name="text">
-                     <string>Add Exercise</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item>
-                   <widget class="QPushButton" name="pushButton_exercises_refresh">
-                    <property name="text">
-                     <string>Refresh Table</string>
-                    </property>
-                   </widget>
-                  </item>
-                 </layout>
-                </widget>
-               </item>
-               <item>
                 <widget class="QLabel" name="label_exercise_avif_2">
                  <property name="minimumSize">
                   <size>
@@ -977,29 +954,6 @@
                <enum>QFrame::Shadow::Raised</enum>
               </property>
               <layout class="QVBoxLayout" name="verticalLayout_12">
-               <item>
-                <widget class="QGroupBox" name="groupBox_8">
-                 <property name="title">
-                  <string>Commands</string>
-                 </property>
-                 <layout class="QVBoxLayout" name="verticalLayout_13">
-                  <item>
-                   <widget class="QPushButton" name="pushButton_type_add">
-                    <property name="text">
-                     <string>Add Exercise Type</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item>
-                   <widget class="QPushButton" name="pushButton_types_refresh">
-                    <property name="text">
-                     <string>Refresh Table</string>
-                    </property>
-                   </widget>
-                  </item>
-                 </layout>
-                </widget>
-               </item>
                <item>
                 <widget class="QLabel" name="label_exercise_avif_3">
                  <property name="minimumSize">
@@ -1450,6 +1404,12 @@
     <addaction name="actionShow_All_Set_Records"/>
     <addaction name="actionRefresh_Set_Table"/>
     <addaction name="actionExport_Set_Table"/>
+    <addaction name="separator"/>
+    <addaction name="actionAdd_Exercise"/>
+    <addaction name="actionRefresh_Exercises_Table"/>
+    <addaction name="separator"/>
+    <addaction name="actionAdd_Exercise_Type"/>
+    <addaction name="actionRefresh_Types_Table"/>
    </widget>
    <widget class="QMenu" name="menuHelp">
     <property name="title">
@@ -1484,6 +1444,26 @@
   <action name="actionExport_Set_Table">
    <property name="text">
     <string>📤 Export Set Table</string>
+   </property>
+  </action>
+  <action name="actionAdd_Exercise">
+   <property name="text">
+    <string>➕ Add Exercise</string>
+   </property>
+  </action>
+  <action name="actionRefresh_Exercises_Table">
+   <property name="text">
+    <string>🔄 Refresh Exercises Table</string>
+   </property>
+  </action>
+  <action name="actionAdd_Exercise_Type">
+   <property name="text">
+    <string>➕ Add Exercise Type</string>
+   </property>
+  </action>
+  <action name="actionRefresh_Types_Table">
+   <property name="text">
+    <string>🔄 Refresh Types Table</string>
    </property>
   </action>
  </widget>
