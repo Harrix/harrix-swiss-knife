@@ -223,13 +223,13 @@ Use this when the target machine has slow or blocked internet. Build the offline
 
 **On the builder machine** (with internet), from a checkout that already has sibling `harrix-pylib` / `harrix-pyssg`:
 
-1. Run **Dev** → **Build installer EXEs** (checkbox steps; defaults refill `install\dependencies\` and pack both EXEs), or:
+1. Run **Dev** → **Build installer EXEs** (checkbox steps; tray defaults to a **quick rebuild** when `install\dependencies\` already exists, or a **full rebuild** when empty), or:
 
    ```text
    hsk dev build-install-zips
    ```
 
-   That populates `install\dependencies\` (ignored by Git) with installers, media binaries, repo snapshots, and uv caches, freezes a reusable PyInstaller stub if needed, then writes the two EXEs. Uv-cache warm-up uses an isolated Python/venv, so the tray can stay running. Details: [`DEVELOPMENT.md`](https://github.com/Harrix/harrix-swiss-knife/blob/main/DEVELOPMENT.md#building-windows-installer-exes).
+   A full rebuild populates `install\dependencies\` (ignored by Git) with installers, media binaries, repo snapshots, and uv caches (often tens of minutes for uv cache), freezes a reusable PyInstaller stub if needed, then writes the two EXEs. Iterative re-packs skip those heavy steps by default in the tray. Details: [`DEVELOPMENT.md`](https://github.com/Harrix/harrix-swiss-knife/blob/main/DEVELOPMENT.md#building-windows-installer-exes).
 
 2. Copy `install\harrix-swiss-knife-offline.exe` to the target machine (the online EXE is optional for air-gapped targets).
 

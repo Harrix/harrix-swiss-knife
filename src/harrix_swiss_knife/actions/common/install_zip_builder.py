@@ -162,7 +162,6 @@ def build_install_exes(project_root: Path, log: LogFn) -> tuple[Path, Path]:
     online_zip, offline_zip = build_payload_zips(
         project_root,
         log,
-        copy_deps_fn=_copy_deps,
         online_exclude_dirs=ONLINE_EXCLUDE_DIRS,
         omit_files=omit,
     )
@@ -248,6 +247,38 @@ def commit_stage_dir(stage_dir: Path, final_dir: Path) -> None:
         last_error = OSError(f"Swap produced no directory `{final_dir}`")
     msg = f"Failed to swap `{stage_dir}` -> `{final_dir}`: {last_error}"
     raise OSError(msg) from last_error
+
+
+def default_tray_step_labels(project_root: Path) -> list[str]:
+    """Return tray checkbox defaults: full rebuild when empty, quick rebuild when deps exist.
+
+    When `install/dependencies` already has binaries, installers, and/or a uv cache,
+    skip wipe and those heavy steps by default. Always leave repos + EXE pack + open on.
+    CLI with no flags still uses the full `BuildSteps()` / `DEFAULT_STEP_LABELS` path.
+
+    """
+    deps = dependencies_dir(project_root)
+    if not deps.is_dir():
+        return list(DEFAULT_STEP_LABELS)
+
+    has_binaries = any(_nonempty_file(deps / name) for name in MEDIA_EXE_NAMES)
+    has_installers = any(_nonempty_file(deps / name) for name in (GIT_EXE_NAME, UV_WINDOWS_ZIP, VSCODE_EXE_NAME))
+    uv_cache = deps / "uv-cache"
+    has_uv_cache = uv_cache.is_dir() and any(uv_cache.iterdir())
+
+    if not (has_binaries or has_installers or has_uv_cache):
+        return list(DEFAULT_STEP_LABELS)
+
+    selected: list[str] = []
+    if not has_binaries:
+        selected.append(STEP_BINARIES)
+    if not has_installers:
+        selected.append(STEP_INSTALLERS)
+    selected.append(STEP_REPOS)
+    if not has_uv_cache:
+        selected.append(STEP_UV_CACHE)
+    selected.extend((STEP_BUILD_EXES, STEP_OPEN))
+    return selected
 
 
 def dependencies_dir(project_root: Path) -> Path:
@@ -372,8 +403,11 @@ def populate_binaries(
     try:
         release = fetch_github_release_latest("AOMediaCodec", "libavif", config=config, project_root=project_root)
         url = asset_download_url(release, asset_name=LIBAVIF_ZIP_NAME)
-        download_url(url, deps / LIBAVIF_ZIP_NAME, config=config, project_root=project_root, force=force)
-        log(f"  Downloaded {LIBAVIF_ZIP_NAME}")
+        dest = deps / LIBAVIF_ZIP_NAME
+        if download_url(url, dest, config=config, project_root=project_root, force=force):
+            log(f"  Downloaded {LIBAVIF_ZIP_NAME}")
+        else:
+            log(f"  Keep existing {LIBAVIF_ZIP_NAME}")
     except (HTTPError, URLError, ValueError, OSError) as exc:
         log(f"  Skip libavif zip: {exc}")
 
@@ -383,8 +417,11 @@ def populate_binaries(
             url = asset_download_url(release, asset_name=FFMPEG_ZIP_NAME)
         except ValueError:
             url = asset_download_url(release, name_contains=("win64", "gpl", ".zip"))
-        download_url(url, deps / FFMPEG_ZIP_NAME, config=config, project_root=project_root, force=force)
-        log(f"  Downloaded {FFMPEG_ZIP_NAME}")
+        dest = deps / FFMPEG_ZIP_NAME
+        if download_url(url, dest, config=config, project_root=project_root, force=force):
+            log(f"  Downloaded {FFMPEG_ZIP_NAME}")
+        else:
+            log(f"  Keep existing {FFMPEG_ZIP_NAME}")
     except (HTTPError, URLError, ValueError, OSError) as exc:
         log(f"  Skip FFmpeg zip: {exc}")
 
@@ -436,8 +473,11 @@ def populate_installers(
     try:
         release = fetch_github_release_latest("git-for-windows", "git", config=config, project_root=project_root)
         url = asset_download_url(release, name_contains=("64-bit.exe",))
-        download_url(url, deps / GIT_EXE_NAME, config=config, project_root=project_root, force=force)
-        log(f"  OK: {GIT_EXE_NAME}")
+        dest = deps / GIT_EXE_NAME
+        if download_url(url, dest, config=config, project_root=project_root, force=force):
+            log(f"  OK: {GIT_EXE_NAME}")
+        else:
+            log(f"  Keep existing {GIT_EXE_NAME}")
     except (HTTPError, URLError, ValueError, OSError) as exc:
         log(f"  Skip Git: {exc}")
 
@@ -452,15 +492,20 @@ def populate_installers(
         try:
             release = fetch_github_release_latest("astral-sh", "uv", config=config, project_root=project_root)
             url = asset_download_url(release, asset_name=UV_WINDOWS_ZIP)
-            download_url(url, uv_dest, config=config, project_root=project_root, force=force)
-            log(f"  OK: {UV_WINDOWS_ZIP} (API)")
+            if download_url(url, uv_dest, config=config, project_root=project_root, force=force):
+                log(f"  OK: {UV_WINDOWS_ZIP} (API)")
+            else:
+                log(f"  Keep existing {UV_WINDOWS_ZIP}")
         except (HTTPError, URLError, ValueError, OSError) as exc:
             log(f"  Skip uv: {exc}")
 
     log("==> Download VS Code user installer")
     try:
-        download_url(VSCODE_URL, deps / VSCODE_EXE_NAME, config=config, project_root=project_root, force=force)
-        log(f"  OK: {VSCODE_EXE_NAME}")
+        dest = deps / VSCODE_EXE_NAME
+        if download_url(VSCODE_URL, dest, config=config, project_root=project_root, force=force):
+            log(f"  OK: {VSCODE_EXE_NAME}")
+        else:
+            log(f"  Keep existing {VSCODE_EXE_NAME}")
     except (HTTPError, URLError, ValueError, OSError) as exc:
         log(f"  Skip VS Code: {exc}")
 
@@ -595,9 +640,9 @@ def run_pipeline(
         if steps.wipe_dependencies:
             wipe_dependencies(project_root, _log)
         if steps.binaries:
-            populate_binaries(project_root, _log, config=config, force=True)
+            populate_binaries(project_root, _log, config=config, force=steps.wipe_dependencies)
         if steps.installers:
-            populate_installers(project_root, _log, config=config, force=True)
+            populate_installers(project_root, _log, config=config, force=steps.wipe_dependencies)
         if steps.repos:
             snapshot_repos(project_root, _log)
         if steps.uv_cache:
@@ -849,6 +894,16 @@ DEFAULT_STEP_LABELS: tuple[str, ...] = (
     STEP_INSTALLERS,
     STEP_REPOS,
     STEP_UV_CACHE,
+    STEP_BUILD_EXES,
+    STEP_OPEN,
+)
+
+# Same as DEFAULT — used by the tray "Full rebuild" preset.
+FULL_REBUILD_STEP_LABELS: tuple[str, ...] = DEFAULT_STEP_LABELS
+
+# Fast tray preset: refresh repo snapshots and re-pack EXEs only.
+QUICK_REBUILD_STEP_LABELS: tuple[str, ...] = (
+    STEP_REPOS,
     STEP_BUILD_EXES,
     STEP_OPEN,
 )

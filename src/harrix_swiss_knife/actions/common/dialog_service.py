@@ -278,8 +278,14 @@ class ActionDialogService:
         *,
         enable_extension_filter: bool = False,
         disabled_choices: list[str] | None = None,
+        selection_presets: list[tuple[str, list[str]]] | None = None,
     ) -> list[str] | None:
-        """Return checkbox-selected items, or `None` on cancel."""
+        """Return checkbox-selected items, or `None` on cancel.
+
+        `selection_presets` is a list of `(button_label, labels_to_check)` applied
+        when the user clicks a preset button (other choices are unchecked).
+
+        """
         if not choices:
             self._add_line("❌ No choices provided.")
             return None
@@ -293,6 +299,7 @@ class ActionDialogService:
         layout = QVBoxLayout()
 
         label_widget = QLabel(label)
+        label_widget.setWordWrap(True)
         layout.addWidget(label_widget)
 
         scroll_area = QScrollArea()
@@ -345,6 +352,13 @@ class ActionDialogService:
             for checkbox in checkboxes:
                 if checkbox.isEnabled():
                     checkbox.setChecked(False)
+
+        def apply_preset(labels: list[str]) -> None:
+            wanted = set(labels)
+            for checkbox in checkboxes:
+                if not checkbox.isEnabled():
+                    continue
+                checkbox.setChecked(checkbox.text() in wanted)
 
         def _extension_key_for_choice(choice: str) -> str:
             return Path(choice).suffix.lower()
@@ -435,6 +449,19 @@ class ActionDialogService:
         selection_buttons_layout.addWidget(select_all_button)
         selection_buttons_layout.addWidget(deselect_all_button)
         selection_buttons_layout.addWidget(extension_filter_button)
+        if selection_presets:
+            for preset_label, preset_labels in selection_presets:
+                preset_button = QPushButton(preset_label)
+                labels_snapshot = list(preset_labels)
+
+                def _make_handler(labels: list[str]) -> object:
+                    def _handler() -> None:
+                        apply_preset(labels)
+
+                    return _handler
+
+                preset_button.clicked.connect(_make_handler(labels_snapshot))
+                selection_buttons_layout.addWidget(preset_button)
         selection_buttons_layout.addStretch()
 
         layout.addLayout(selection_buttons_layout)

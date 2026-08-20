@@ -18,6 +18,7 @@ from harrix_swiss_knife.actions.common.install_zip_builder import (
     ONLINE_EXCLUDE_DIRS,
     ONLINE_EXE_NAME,
     ONLINE_ZIP_NAME,
+    QUICK_REBUILD_STEP_LABELS,
     STEP_BINARIES,
     STEP_BUILD_EXES,
     STEP_BUILD_ZIPS,
@@ -27,9 +28,10 @@ from harrix_swiss_knife.actions.common.install_zip_builder import (
     STEP_UV_CACHE,
     STEP_WIPE,
     BuildSteps,
-    _copy_deps,
     cli_argv_for_steps,
     commit_stage_dir,
+    default_tray_step_labels,
+    download_url,
     install_dir,
     redundant_media_zip_names,
     run_pipeline,
@@ -41,6 +43,7 @@ from harrix_swiss_knife.installer.build_info import collect_build_meta, display_
 from harrix_swiss_knife.installer.constants import STUB_SPEC_VERSION
 from harrix_swiss_knife.installer.icon_assets import find_app_ico, write_padded_ico
 from harrix_swiss_knife.installer.pack_exes import (
+    _zip_tree,
     build_payload_zips,
     ensure_installer_stub,
     pack_installer_exes,
@@ -207,6 +210,33 @@ def _prepare_install_tree(root: Path) -> Path:
     return install
 
 
+def test_default_tray_step_labels_full_when_empty(tmp_path: Path) -> None:
+    assert default_tray_step_labels(tmp_path) == list(DEFAULT_STEP_LABELS)
+
+
+def test_default_tray_step_labels_quick_when_populated(tmp_path: Path) -> None:
+    deps = tmp_path / "install" / "dependencies"
+    deps.mkdir(parents=True)
+    (deps / "ffmpeg.exe").write_bytes(b"ff")
+    (deps / "Git-latest-64-bit.exe").write_bytes(b"git")
+    uv_cache = deps / "uv-cache"
+    uv_cache.mkdir()
+    (uv_cache / "x").write_bytes(b"1")
+    labels = default_tray_step_labels(tmp_path)
+    assert STEP_WIPE not in labels
+    assert STEP_BINARIES not in labels
+    assert STEP_INSTALLERS not in labels
+    assert STEP_UV_CACHE not in labels
+    assert labels == list(QUICK_REBUILD_STEP_LABELS)
+
+
+def test_download_url_skips_existing_when_not_forced(tmp_path: Path) -> None:
+    dest = tmp_path / "file.bin"
+    dest.write_bytes(b"keep-me")
+    assert download_url("https://example.invalid/x", dest, force=False) is False
+    assert dest.read_bytes() == b"keep-me"
+
+
 def test_payload_zips_online_vs_offline_membership(tmp_path: Path) -> None:
     _prepare_install_tree(tmp_path)
     lines: list[str] = []
@@ -214,7 +244,6 @@ def test_payload_zips_online_vs_offline_membership(tmp_path: Path) -> None:
     online, offline = build_payload_zips(
         tmp_path,
         lines.append,
-        copy_deps_fn=_copy_deps,
         online_exclude_dirs=ONLINE_EXCLUDE_DIRS,
         omit_files=omit,
     )
@@ -237,10 +266,12 @@ def test_payload_zips_online_vs_offline_membership(tmp_path: Path) -> None:
 
     with zipfile.ZipFile(offline, "r") as zf:
         names = set(zf.namelist())
+        info = zf.getinfo("dependencies/uv-cache/c.bin")
     assert "dependencies/repos/harrix-swiss-knife.zip" in names
     assert "dependencies/uv-cache/c.bin" in names
     assert "dependencies/uv-python-cache/p.bin" in names
     assert "dependencies/windows-artifacts.zip" not in names
+    assert info.compress_type == zipfile.ZIP_STORED
 
 
 def test_append_overlay_magic_trailer(tmp_path: Path) -> None:
@@ -259,6 +290,17 @@ def test_append_overlay_magic_trailer(tmp_path: Path) -> None:
     dest = tmp_path / "extracted"
     deps = extract_overlay(out, dest)
     assert (deps / "marker.txt").read_text(encoding="utf-8") == "hello"
+
+
+def test_zip_tree_fast_deflate(tmp_path: Path) -> None:
+    src = tmp_path / "tree"
+    src.mkdir()
+    (src / "a.txt").write_text("hello", encoding="utf-8")
+    out = tmp_path / "out.zip"
+    _zip_tree(src, out)
+    with zipfile.ZipFile(out, "r") as zf:
+        info = zf.getinfo("a.txt")
+    assert info.compress_type == zipfile.ZIP_DEFLATED
 
 
 def test_extract_overlay_handles_paths_over_max_path(tmp_path: Path) -> None:

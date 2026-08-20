@@ -22,10 +22,13 @@ lang: en
 ## 🔧 Function `build_payload_zips`
 
 ```python
-def build_payload_zips(project_root: Path, log: LogFn, *, copy_deps_fn: Callable[..., None], online_exclude_dirs: frozenset[str], omit_files: set[str]) -> tuple[Path, Path]
+def build_payload_zips(project_root: Path, log: LogFn, *, copy_deps_fn: Callable[..., None] | None = None, online_exclude_dirs: frozenset[str], omit_files: set[str]) -> tuple[Path, Path]
 ```
 
 Create temporary online/offline zips containing only `dependencies/`.
+
+Zips directly from `install/dependencies` (no full tree copy). `copy_deps_fn`
+is kept for call-site compatibility and ignored.
 
 <details>
 <summary>Code:</summary>
@@ -35,50 +38,41 @@ def build_payload_zips(
     project_root: Path,
     log: LogFn,
     *,
-    copy_deps_fn: Callable[..., None],
+    copy_deps_fn: Callable[..., None] | None = None,
     online_exclude_dirs: frozenset[str],
     omit_files: set[str],
 ) -> tuple[Path, Path]:
+    del copy_deps_fn  # unused; kept so call sites need not change
     deps = project_root / "install" / "dependencies"
     if not deps.is_dir():
         msg = f"Not found: {deps}"
         raise FileNotFoundError(msg)
 
-    stage_base = Path(tempfile.mkdtemp(prefix="hsk-payload-zip-"))
-    try:
-        online_stage = stage_base / "online"
-        offline_stage = stage_base / "offline"
-        online_stage.mkdir()
-        offline_stage.mkdir()
-        copy_deps_fn(
-            deps,
-            online_stage / "dependencies",
-            exclude_dirs=online_exclude_dirs,
-            exclude_files=omit_files,
-        )
-        copy_deps_fn(
-            deps,
-            offline_stage / "dependencies",
-            exclude_dirs=frozenset(),
-            exclude_files=omit_files,
-        )
-        meta = collect_build_meta(project_root)
-        write_build_meta(online_stage / "build_meta.json", meta)
-        write_build_meta(offline_stage / "build_meta.json", meta)
-        online_zip = stage_base / "online-payload.zip"
-        offline_zip = stage_base / "offline-payload.zip"
-        _zip_tree(online_stage, online_zip)
-        _zip_tree(offline_stage, offline_zip)
-        # Move zips next to install for append (keep until pack finishes)
-        install = project_root / "install"
-        out_online = install / ".payload-online.zip"
-        out_offline = install / ".payload-offline.zip"
-        shutil.copy2(online_zip, out_online)
-        shutil.copy2(offline_zip, out_offline)
-        log(f"  Payload zips: {out_online.name}, {out_offline.name}")
-        return out_online, out_offline
-    finally:
-        shutil.rmtree(stage_base, ignore_errors=True)
+    install = project_root / "install"
+    out_online = install / ".payload-online.zip"
+    out_offline = install / ".payload-offline.zip"
+    meta = collect_build_meta(project_root)
+    meta_json = json.dumps(meta, indent=2, ensure_ascii=False) + "\n"
+
+    log("==> Build payload zips (direct from dependencies/, compresslevel=1)")
+    _zip_dependencies(
+        deps,
+        out_online,
+        exclude_dirs=online_exclude_dirs,
+        exclude_files=omit_files,
+        build_meta_json=meta_json,
+    )
+    log(f"  Online payload: {out_online.name} ({out_online.stat().st_size // (1024 * 1024)} MB)")
+    _zip_dependencies(
+        deps,
+        out_offline,
+        exclude_dirs=frozenset(),
+        exclude_files=omit_files,
+        build_meta_json=meta_json,
+    )
+    log(f"  Offline payload: {out_offline.name} ({out_offline.stat().st_size // (1024 * 1024)} MB)")
+    log(f"  Payload zips: {out_online.name}, {out_offline.name}")
+    return out_online, out_offline
 ```
 
 </details>

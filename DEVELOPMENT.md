@@ -93,11 +93,15 @@ The **builder** that fills `install\dependencies\` and packs the two distributab
 | Open       | Open `install/` (`--no-open`)                           | Open Explorer on `install\` when finished.                                                      |
 | Logs       | Clean `*.log` (`--clean-logs`)                          | Optional top-level logs under `install\` and `install\dependencies\`.                           |
 
-All steps except log cleanup are on by default. Example partial rebuild (reuse dependencies, only re-pack EXEs):
+All steps except log cleanup are on by default for **CLI** (`hsk dev build-install-zips` with no flags) and for a **first** tray build when `install/dependencies` is empty. A full rebuild spends most of its time on **uv cache** (often tens of minutes).
+
+When `install/dependencies` already has binaries, installers, or a uv cache, the **tray** dialog defaults to a **quick rebuild:** repo snapshots + pack EXEs + open folder (no wipe, no re-download, no uv-cache warm-up). Use the **Full rebuild (slow)** preset when you need a clean dependencies refresh. Example CLI partial rebuild:
 
 ```text
 hsk dev build-install-zips --no-wipe --skip-binaries --skip-installers --skip-repos --skip-uv-cache
 ```
+
+Without wipe, existing installer and binary files are kept (download force is off). Payload packing zips `dependencies/` in place (no double copy) with fast compression; `uv-cache` / `uv-python-cache` are stored uncompressed inside the zip to save time.
 
 After packing, copy the two EXEs from `install\` for distribution (not an `install\` folder zip).
 

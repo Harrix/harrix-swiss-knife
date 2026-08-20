@@ -57,7 +57,7 @@ class OnBuildInstallZips(ActionBase):
         install_path = install_dir(project_root)
         install_path.mkdir(parents=True, exist_ok=True)
 
-        steps = self._resolve_steps(noninteractive=noninteractive, **kwargs)
+        steps = self._resolve_steps(project_root, noninteractive=noninteractive, **kwargs)
         if steps is None:
             self.add_line("Cancelled.")
             if not noninteractive:
@@ -96,7 +96,7 @@ class OnBuildInstallZips(ActionBase):
         self.show_toast("Installer EXEs built" if ok else "Installer EXE build finished (see output)")
         self.show_result()
 
-    def _resolve_steps(self, *, noninteractive: bool, **kwargs: Any) -> BuildSteps | None:
+    def _resolve_steps(self, project_root: Path, *, noninteractive: bool, **kwargs: Any) -> BuildSteps | None:
         if noninteractive or kwargs.get("steps") is not None:
             raw = kwargs.get("steps")
             if isinstance(raw, BuildSteps):
@@ -113,12 +113,25 @@ class OnBuildInstallZips(ActionBase):
                 clean_logs=bool(kwargs.get("clean_logs")),
             )
 
-        label = "Select builder steps. Output is logged here like other actions."
+        tray_defaults = default_tray_step_labels(project_root)
+        quick = tray_defaults != list(DEFAULT_STEP_LABELS)
+        label = (
+            "Select builder steps. Output is logged here like other actions.\n"
+            "Full rebuild (uv cache) can take tens of minutes; quick rebuild re-packs EXEs in minutes."
+        )
+        if quick:
+            label += "\nDefaults: quick rebuild (existing install/dependencies detected)."
+        else:
+            label += "\nDefaults: full rebuild (dependencies missing or empty)."
         selected = self.get_checkbox_selection(
             self.title,
             label,
             list(ALL_STEP_LABELS),
-            list(DEFAULT_STEP_LABELS),
+            tray_defaults,
+            selection_presets=[
+                ("⚡ Quick rebuild", list(QUICK_REBUILD_STEP_LABELS)),
+                ("🐢 Full rebuild (slow)", list(FULL_REBUILD_STEP_LABELS)),
+            ],
         )
         if selected is None:
             return None
@@ -161,7 +174,7 @@ def execute(self, *args: Any, noninteractive: bool = False, **kwargs: Any) -> No
         install_path = install_dir(project_root)
         install_path.mkdir(parents=True, exist_ok=True)
 
-        steps = self._resolve_steps(noninteractive=noninteractive, **kwargs)
+        steps = self._resolve_steps(project_root, noninteractive=noninteractive, **kwargs)
         if steps is None:
             self.add_line("Cancelled.")
             if not noninteractive:
