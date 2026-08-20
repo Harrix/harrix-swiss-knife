@@ -110,7 +110,11 @@ After packing, copy the two EXEs from `install\` for distribution (not an `insta
 - **Online EXE** — wizard installs tools as needed, clones repos from GitHub, `uv sync`, optionally installs the Python VS Code extension.
 - **Offline EXE** — same wizard; extracts bundled `repos\` + uv caches + VSIX; prefers bundled installers/binaries.
 
+Default install parent is `C:\harrix-swiss-knife` (or an existing `D:\GitHub` / `C:\GitHub` / Documents\GitHub). Sibling repos land directly under that folder. Installer `uv sync` forces `UV_LINK_MODE=copy` so offline cache hardlinks do not copy elevated SYSTEM-only DACLs into `.venv`; after sync the wizard resets/grants ACLs and probes `import harrix_swiss_knife`, `PySide6`, and `shiboken6` before creating shortcuts.
+
 Local unpackaged test (no freeze): `python -m harrix_swiss_knife.installer --online` (or `--offline`) with `install\dependencies\` already populated.
+
+VM smoke (after a fresh offline install): in a normal (non-elevated) PowerShell, run the venv Python `import PySide6, shiboken6` and start the tray via `pythonw …\main.py`.
 
 Personal private-data transfer is one tray action **Dev** → **Transfer private data** (choose Export or Import, then which parts), or CLI `hsk dev private-data export` / `hsk dev private-data import`. Parts are API keys and/or exercise catalog plus `fitness_img` (`{English name}.avif`) from `sqlite_fitness` (not `process`/`weight` workouts). Import upserts the catalog by English name and overlays missing/updated images next to existing files without wiping local-only rows, extra images, or workout history. Output defaults to `install\private-data-harrix-swiss-knife.zip` (gitignored). It is **not** part of the public online/offline installer EXE pipeline above. See `api-keys/README.md` (section Transfer to another machine).
 

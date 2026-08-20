@@ -187,7 +187,7 @@ Copy **`harrix-swiss-knife-online.exe`** to the target PC and double-click it. N
 The wizard:
 
 1. Shows detected tools and lets you choose Git / uv / VS Code / managed Python
-2. Asks for the install parent folder (defaults: `D:\GitHub`, `C:\GitHub`, Documents\GitHub, or under the user profile) and whether to create desktop / Startup shortcuts
+2. Asks for the install parent folder (defaults: existing `D:\GitHub` / `C:\GitHub` / Documents\GitHub, else `C:\harrix-swiss-knife`, or under the user profile) and whether to create desktop / Startup shortcuts
 3. Extracts the embedded payload (progress bar), then installs tools, clones repos, runs `uv sync`, installs the global **`hsk`** CLI, and creates shortcuts
 
 UAC appears **once, at launch**. The EXE carries a `requireAdministrator` manifest, so Windows asks before the wizard window opens, and the installer never restarts itself mid-run.
@@ -213,9 +213,9 @@ Use **Apps & Features** (Harrix Swiss Knife), the desktop shortcut **Uninstall H
 & ".\.venv\Scripts\pythonw.exe" ".\launch_uninstall.py"
 ```
 
-(from the `harrix-swiss-knife` folder). The wizard removes the app repos, shortcuts, the Apps & Features entry, and the global `hsk` CLI. **Databases, `api-keys`, and fitness images are moved** to `Harrix Swiss Knife Data` next to the install parent (for example `C:\GitHub\Harrix Swiss Knife Data`). Git, uv, VS Code, and managed Python are not removed.
+(from the `harrix-swiss-knife` folder). The wizard removes the app repos, shortcuts, the Apps & Features entry, and the global `hsk` CLI. **Databases, `api-keys`, and fitness images are moved** to `Harrix Swiss Knife Data` next to the install parent (for example `C:\harrix-swiss-knife\Harrix Swiss Knife Data`). Git, uv, VS Code, and managed Python are not removed.
 
-Default install parent is `C:\GitHub` (or `D:\GitHub` / `Documents\GitHub` when those folders already exist). Prefer that over Program Files — the app must write into `.venv` as a normal user.
+Default install parent is `C:\harrix-swiss-knife` when no `GitHub` folder already exists (`D:\GitHub` / `C:\GitHub` / `Documents\GitHub` are reused when present). Layout: `C:\harrix-swiss-knife\{harrix-swiss-knife,harrix-pylib,harrix-pyssg}`. Prefer that over Program Files — the app must write into `.venv` as a normal user.
 
 A live log appears in the wizard; the Finished page shows a summary. `install.log` is copied into the install folder when setup succeeds.
 

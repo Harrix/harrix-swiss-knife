@@ -22,17 +22,21 @@ DEEPEST_VENV_RELATIVE = 200
 _LONG_PATHS_KEY = r"SYSTEM\CurrentControlSet\Control\FileSystem"
 _LONG_PATHS_VALUE = "LongPathsEnabled"
 
-
-_FALLBACK_CREATE_PARENT = Path(r"C:\GitHub")
+# Preferred bundle parent: C:\harrix-swiss-knife\{harrix-swiss-knife,harrix-pylib,harrix-pyssg}
+_FALLBACK_CREATE_PARENT = Path(r"C:\harrix-swiss-knife")
 
 
 def default_install_root_parent() -> Path:
-    r"""Prefer `D:\GitHub`, `C:\GitHub`, Documents\GitHub, else create `C:\GitHub`.
+    r"""Prefer existing GitHub folders, else create `C:\harrix-swiss-knife`.
 
-    Falls back to `%USERPROFILE%\harrix-swiss-knife` only when `C:\GitHub` cannot be created.
+    Order:
+
+    1. `D:\GitHub`, `C:\GitHub`, `Documents\GitHub` when already present
+    2. Create `C:\harrix-swiss-knife` (admin installer)
+    3. Fall back to `%USERPROFILE%\harrix-swiss-knife`
 
     """
-    for candidate in _github_parent_candidates():
+    for candidate in _preferred_parent_candidates():
         if candidate.is_dir():
             return candidate.resolve()
     try:
@@ -98,20 +102,26 @@ def long_paths_enabled() -> bool:
 
 
 def normalize_install_root(selected: Path) -> Path:
-    r"""Accept …\GitHub or …\harrix-swiss-knife; otherwise append GitHub."""
+    r"""Accept a parent for the three repos; do not nest under an extra `GitHub`.
+
+    Kept as-is when the leaf is `GitHub` or `harrix-swiss-knife` (including
+    `C:\harrix-swiss-knife` on the system drive). Otherwise append `GitHub` only
+    for generic drive roots such as `D:\` so sibling repos still share a folder.
+
+    """
     p = selected.resolve()
-    leaf = p.name
-    program_files = (
-        os.environ.get("PROGRAMFILES") or os.environ.get("ProgramFiles") or r"C:\Program Files"  # noqa: SIM112
-    )
-    under_pf = str(p).lower().startswith(program_files.lower())
-    under_user = str(p).lower().startswith(str(Path.home()).lower())
-    if leaf.lower() == "github" or (leaf.lower() == "harrix-swiss-knife" and (under_pf or under_user)):
+    leaf = p.name.lower()
+    if leaf in {"github", "harrix-swiss-knife"}:
         p.mkdir(parents=True, exist_ok=True)
         return p
-    gh = p / "GitHub"
-    gh.mkdir(parents=True, exist_ok=True)
-    return gh.resolve()
+    # Bare drive root like `D:\` → `D:\GitHub`
+    if len(p.parts) <= 1:
+        gh = p / "GitHub"
+        gh.mkdir(parents=True, exist_ok=True)
+        return gh.resolve()
+    # Any other explicit folder is used as the install parent as chosen.
+    p.mkdir(parents=True, exist_ok=True)
+    return p
 
 
 def venv_path_headroom(install_root: Path) -> int:
@@ -125,7 +135,16 @@ def venv_path_headroom(install_root: Path) -> int:
     return MAX_WINDOWS_PATH - len(str(install_root).rstrip("\\/")) - 1 - longest_repo
 
 
-def _github_parent_candidates() -> list[Path]:
-    """Return preferred install parents in priority order."""
+def _preferred_parent_candidates() -> list[Path]:
+    """Return preferred install parents in priority order (existing dirs only)."""
     docs = Path.home() / "Documents" / "GitHub"
-    return [Path(r"D:\GitHub"), Path(r"C:\GitHub"), docs]
+    return [
+        Path(r"D:\GitHub"),
+        Path(r"C:\GitHub"),
+        docs,
+        Path(r"C:\harrix-swiss-knife"),
+    ]
+
+
+# Back-compat alias used by older tests.
+_github_parent_candidates = _preferred_parent_candidates

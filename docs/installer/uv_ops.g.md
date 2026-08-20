@@ -12,6 +12,7 @@ lang: en
 ## Contents
 
 - [🔧 Function `ensure_project_importable`](#-function-ensure_project_importable)
+- [🔧 Function `ensure_runtime_imports`](#-function-ensure_runtime_imports)
 - [🔧 Function `ensure_uv_tool_bin_on_path`](#-function-ensure_uv_tool_bin_on_path)
 - [🔧 Function `install_hsk_cli`](#-function-install_hsk_cli)
 - [🔧 Function `uv_sync_with_bundle_cache`](#-function-uv_sync_with_bundle_cache)
@@ -92,6 +93,57 @@ def ensure_project_importable(hsk_path: Path, *, log: OutcomeLog) -> None:
         msg = f"harrix_swiss_knife still not importable after editable install: {detail}"
         raise RuntimeError(msg)
     log.add("installed", "Forced editable install of harrix-swiss-knife into the project venv")
+```
+
+</details>
+
+## 🔧 Function `ensure_runtime_imports`
+
+```python
+def ensure_runtime_imports(hsk_path: Path, *, log: OutcomeLog) -> None
+```
+
+Verify tray runtime imports after ACL repair (PySide6 / shiboken6 / app).
+
+Must run after ACL reset: elevated `uv sync` can leave package files readable
+only by Administrators until inheritance is restored. Fail the install if a
+normal-user-readable probe cannot import the GUI stack.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def ensure_runtime_imports(hsk_path: Path, *, log: OutcomeLog) -> None:
+    python = hsk_path / ".venv" / "Scripts" / "python.exe"
+    if not python.is_file():
+        msg = f"venv python.exe missing for runtime probe: {python}"
+        raise RuntimeError(msg)
+    log.step("Verify tray runtime imports")
+    log.detail(f"Interpreter: {python}")
+    code = "import harrix_swiss_knife\nimport PySide6\nimport shiboken6\nprint(getattr(PySide6, '__version__', 'ok'))\n"
+    creation = subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0
+    probe = subprocess.run(
+        [str(python), "-c", code],
+        cwd=str(hsk_path),
+        check=False,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        creationflags=creation,
+    )
+    if probe.stdout.strip():
+        log.detail(probe.stdout.strip()[:500])
+    if probe.returncode == 0:
+        log.add("installed", "Verified: harrix_swiss_knife, PySide6, and shiboken6 import OK")
+        return
+    detail = (probe.stderr or probe.stdout or "").strip()[:2000]
+    log.detail(detail)
+    msg = (
+        "Runtime import probe failed after ACL repair "
+        f"(harrix_swiss_knife / PySide6 / shiboken6): {detail or f'exit {probe.returncode}'}"
+    )
+    raise RuntimeError(msg)
 ```
 
 </details>
@@ -212,6 +264,10 @@ def uv_sync_with_bundle_cache(repo_path: Path, *, deps: Path, label: str, log: O
     cache = deps / "uv-cache"
     python_cache = deps / "uv-python-cache"
     env = os.environ.copy()
+    # Windows default is hardlink: elevated offline cache files keep SYSTEM-only DACLs
+    # that inherit into `.venv` and break normal-user imports of PySide6/shiboken6.
+    env["UV_LINK_MODE"] = "copy"
+    log.detail("UV_LINK_MODE=copy (avoid inheriting cache ACLs via hardlinks)")
     used_offline = False
     if cache.is_dir():
         env["UV_CACHE_DIR"] = str(cache)

@@ -258,7 +258,8 @@ class OptionsPage(QWizardPage):
         row.addWidget(self.path_edit)
         row.addWidget(browse)
         self.hint = QLabel(
-            "Recommended: `C:\\GitHub` or `D:\\GitHub` (writable). "
+            "Recommended: `C:\\harrix-swiss-knife` (writable). "
+            "`D:\\GitHub` / `C:\\GitHub` also work. "
             "Do not install under Program Files — the app needs to write into `.venv`."
         )
         self.hint.setWordWrap(True)
@@ -301,7 +302,7 @@ class OptionsPage(QWizardPage):
             f"`{root}` leaves only {headroom} characters for files inside `.venv`, "
             f"but some packages need about {DEEPEST_VENV_RELATIVE}.\n\n"
             "Enable Windows long-path support now, or press No and pick a shorter folder "
-            "such as `C:\\GitHub`.",
+            "such as `C:\\harrix-swiss-knife`.",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.Yes,
         )
@@ -346,7 +347,8 @@ def __init__(self) -> None:
         row.addWidget(self.path_edit)
         row.addWidget(browse)
         self.hint = QLabel(
-            "Recommended: `C:\\GitHub` or `D:\\GitHub` (writable). "
+            "Recommended: `C:\\harrix-swiss-knife` (writable). "
+            "`D:\\GitHub` / `C:\\GitHub` also work. "
             "Do not install under Program Files — the app needs to write into `.venv`."
         )
         self.hint.setWordWrap(True)
@@ -417,7 +419,7 @@ def validatePage(self) -> bool:  # noqa: N802
             f"`{root}` leaves only {headroom} characters for files inside `.venv`, "
             f"but some packages need about {DEEPEST_VENV_RELATIVE}.\n\n"
             "Enable Windows long-path support now, or press No and pick a shorter folder "
-            "such as `C:\\GitHub`.",
+            "such as `C:\\harrix-swiss-knife`.",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.Yes,
         )

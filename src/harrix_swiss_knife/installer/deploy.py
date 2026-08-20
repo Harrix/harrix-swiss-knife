@@ -26,7 +26,11 @@ from harrix_swiss_knife.installer.prereqs import (
 )
 from harrix_swiss_knife.installer.pythonw_repair import repair_pythonw_launcher
 from harrix_swiss_knife.installer.repos import ensure_repos
-from harrix_swiss_knife.installer.uv_ops import install_hsk_cli, uv_sync_with_bundle_cache
+from harrix_swiss_knife.installer.uv_ops import (
+    ensure_runtime_imports,
+    install_hsk_cli,
+    uv_sync_with_bundle_cache,
+)
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -139,7 +143,9 @@ def run_deploy(options: DeployOptions, log: OutcomeLog) -> DeployResult:
             how = "bundled uv-cache (offline)" if used else "uv download from the network"
             log.add("installed", f"uv sync finished for {name} via {how}")
 
-        repair_install_tree_acls(root, log)
+        if not repair_install_tree_acls(root, log):
+            _raise_acl_repair_failed()
+        ensure_runtime_imports(hsk, log=log)
 
         install_hsk_cli(hsk, log)
         apply_config_defaults(hsk, log)
@@ -224,3 +230,9 @@ def run_deploy(options: DeployOptions, log: OutcomeLog) -> DeployResult:
 def suggest_install_root() -> Path:
     """Return the default install parent folder."""
     return default_install_root_parent()
+
+
+def _raise_acl_repair_failed() -> None:
+    """Fail deploy when ACL reset/grant left package files unreadable."""
+    msg = "ACL repair failed: package files under the install root may be unreadable for a normal (non-elevated) user"
+    raise RuntimeError(msg)

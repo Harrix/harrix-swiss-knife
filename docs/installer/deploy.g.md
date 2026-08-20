@@ -170,7 +170,9 @@ def run_deploy(options: DeployOptions, log: OutcomeLog) -> DeployResult:
             how = "bundled uv-cache (offline)" if used else "uv download from the network"
             log.add("installed", f"uv sync finished for {name} via {how}")
 
-        repair_install_tree_acls(root, log)
+        if not repair_install_tree_acls(root, log):
+            _raise_acl_repair_failed()
+        ensure_runtime_imports(hsk, log=log)
 
         install_hsk_cli(hsk, log)
         apply_config_defaults(hsk, log)
