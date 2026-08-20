@@ -209,7 +209,7 @@ class MainWindow(
         self.exercises_frequency_window: int = load_more_count
         self.show_all_records = False
         self.icon_size = 64
-        self.table_icon_size = 32
+        self.table_icon_size = 64
 
         # Process table pagination state
         self._process_pagination = ScrollPagination()
@@ -4409,8 +4409,10 @@ class MainWindow(
         self.actionShow_All_Set_Records.triggered.connect(self.on_toggle_show_all_records)
         self.actionExport_Set_Table.triggered.connect(self.on_export_csv)
         self.actionAdd_Exercise.triggered.connect(self.on_add_exercise)
+        self.pushButton_exercise_add.clicked.connect(self.on_add_exercise)
         self.actionRefresh_Exercises_Table.triggered.connect(self.update_all)
         self.actionAdd_Exercise_Type.triggered.connect(self.on_add_type)
+        self.pushButton_type_add.clicked.connect(self.on_add_type)
         self.actionRefresh_Types_Table.triggered.connect(self.update_all)
 
         # Connect process table selection change signal
@@ -6062,6 +6064,8 @@ class MainWindow(
         self.pushButton_clear_filter.setFixedSize(clear_h, clear_h)
         self._update_clear_filter_button_visibility()
         self.pushButton_select_exercise.setText(f"🏋️ {self.pushButton_select_exercise.text()}")
+        self.pushButton_exercise_add.setText(f"➕ {self.pushButton_exercise_add.text()}")  # noqa: RUF001
+        self.pushButton_type_add.setText(f"➕ {self.pushButton_type_add.text()}")  # noqa: RUF001
         self.pushButton_weight_add.setText(f"➕ {self.pushButton_weight_add.text()}")  # noqa: RUF001
         self.pushButton_weight_delete.setText(f"🗑️ {self.pushButton_weight_delete.text()}")
         self.pushButton_weight_refresh.setText(f"🔄 {self.pushButton_weight_refresh.text()}")

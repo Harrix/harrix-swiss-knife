@@ -94,7 +94,9 @@ class Ui_MainWindow(object):
         self.label_chart_info.setText("")
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_charts), QCoreApplication.translate("MainWindow", u"Charts", None))
         self.label_exercises_table.setText(QCoreApplication.translate("MainWindow", u"Exercises:", None))
+        self.pushButton_exercise_add.setText(QCoreApplication.translate("MainWindow", u"Add Exercise", None))
         self.label_exercise_types_table.setText(QCoreApplication.translate("MainWindow", u"Exercise Types:", None))
+        self.pushButton_type_add.setText(QCoreApplication.translate("MainWindow", u"Add Exercise Type", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_2), QCoreApplication.translate("MainWindow", u"Exercises", None))
         self.groupBox_4.setTitle(QCoreApplication.translate("MainWindow", u"Add New Weight", None))
         self.dateEdit_weight.setDisplayFormat(QCoreApplication.translate("MainWindow", u"yyyy-MM-dd", None))
@@ -686,6 +688,25 @@ class Ui_MainWindow(object):
 
         self.verticalLayout_exercises_table.addWidget(self.label_exercises_table)
 
+        self.horizontalLayout_exercises_add = QHBoxLayout()
+        self.horizontalLayout_exercises_add.setObjectName(u"horizontalLayout_exercises_add")
+        self.pushButton_exercise_add = QPushButton(self.widget_top)
+        self.pushButton_exercise_add.setObjectName(u"pushButton_exercise_add")
+        sizePolicy3 = QSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Fixed)
+        sizePolicy3.setHorizontalStretch(0)
+        sizePolicy3.setVerticalStretch(0)
+        sizePolicy3.setHeightForWidth(self.pushButton_exercise_add.sizePolicy().hasHeightForWidth())
+        self.pushButton_exercise_add.setSizePolicy(sizePolicy3)
+
+        self.horizontalLayout_exercises_add.addWidget(self.pushButton_exercise_add)
+
+        self.horizontalSpacer_exercises_add = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+
+        self.horizontalLayout_exercises_add.addItem(self.horizontalSpacer_exercises_add)
+
+
+        self.verticalLayout_exercises_table.addLayout(self.horizontalLayout_exercises_add)
+
         self.tableView_exercises = QTableView(self.widget_top)
         self.tableView_exercises.setObjectName(u"tableView_exercises")
 
@@ -702,6 +723,22 @@ class Ui_MainWindow(object):
         self.label_exercise_types_table.setObjectName(u"label_exercise_types_table")
 
         self.verticalLayout_exercise_types_table.addWidget(self.label_exercise_types_table)
+
+        self.horizontalLayout_types_add = QHBoxLayout()
+        self.horizontalLayout_types_add.setObjectName(u"horizontalLayout_types_add")
+        self.pushButton_type_add = QPushButton(self.widget_bottom)
+        self.pushButton_type_add.setObjectName(u"pushButton_type_add")
+        sizePolicy3.setHeightForWidth(self.pushButton_type_add.sizePolicy().hasHeightForWidth())
+        self.pushButton_type_add.setSizePolicy(sizePolicy3)
+
+        self.horizontalLayout_types_add.addWidget(self.pushButton_type_add)
+
+        self.horizontalSpacer_types_add = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+
+        self.horizontalLayout_types_add.addItem(self.horizontalSpacer_types_add)
+
+
+        self.verticalLayout_exercise_types_table.addLayout(self.horizontalLayout_types_add)
 
         self.tableView_exercise_types = QTableView(self.widget_bottom)
         self.tableView_exercise_types.setObjectName(u"tableView_exercise_types")
@@ -1064,7 +1101,9 @@ def retranslateUi(self, MainWindow):
         self.label_chart_info.setText("")
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_charts), QCoreApplication.translate("MainWindow", u"Charts", None))
         self.label_exercises_table.setText(QCoreApplication.translate("MainWindow", u"Exercises:", None))
+        self.pushButton_exercise_add.setText(QCoreApplication.translate("MainWindow", u"Add Exercise", None))
         self.label_exercise_types_table.setText(QCoreApplication.translate("MainWindow", u"Exercise Types:", None))
+        self.pushButton_type_add.setText(QCoreApplication.translate("MainWindow", u"Add Exercise Type", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_2), QCoreApplication.translate("MainWindow", u"Exercises", None))
         self.groupBox_4.setTitle(QCoreApplication.translate("MainWindow", u"Add New Weight", None))
         self.dateEdit_weight.setDisplayFormat(QCoreApplication.translate("MainWindow", u"yyyy-MM-dd", None))
@@ -1672,6 +1711,25 @@ def setupUi(self, MainWindow):
 
         self.verticalLayout_exercises_table.addWidget(self.label_exercises_table)
 
+        self.horizontalLayout_exercises_add = QHBoxLayout()
+        self.horizontalLayout_exercises_add.setObjectName(u"horizontalLayout_exercises_add")
+        self.pushButton_exercise_add = QPushButton(self.widget_top)
+        self.pushButton_exercise_add.setObjectName(u"pushButton_exercise_add")
+        sizePolicy3 = QSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Fixed)
+        sizePolicy3.setHorizontalStretch(0)
+        sizePolicy3.setVerticalStretch(0)
+        sizePolicy3.setHeightForWidth(self.pushButton_exercise_add.sizePolicy().hasHeightForWidth())
+        self.pushButton_exercise_add.setSizePolicy(sizePolicy3)
+
+        self.horizontalLayout_exercises_add.addWidget(self.pushButton_exercise_add)
+
+        self.horizontalSpacer_exercises_add = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+
+        self.horizontalLayout_exercises_add.addItem(self.horizontalSpacer_exercises_add)
+
+
+        self.verticalLayout_exercises_table.addLayout(self.horizontalLayout_exercises_add)
+
         self.tableView_exercises = QTableView(self.widget_top)
         self.tableView_exercises.setObjectName(u"tableView_exercises")
 
@@ -1688,6 +1746,22 @@ def setupUi(self, MainWindow):
         self.label_exercise_types_table.setObjectName(u"label_exercise_types_table")
 
         self.verticalLayout_exercise_types_table.addWidget(self.label_exercise_types_table)
+
+        self.horizontalLayout_types_add = QHBoxLayout()
+        self.horizontalLayout_types_add.setObjectName(u"horizontalLayout_types_add")
+        self.pushButton_type_add = QPushButton(self.widget_bottom)
+        self.pushButton_type_add.setObjectName(u"pushButton_type_add")
+        sizePolicy3.setHeightForWidth(self.pushButton_type_add.sizePolicy().hasHeightForWidth())
+        self.pushButton_type_add.setSizePolicy(sizePolicy3)
+
+        self.horizontalLayout_types_add.addWidget(self.pushButton_type_add)
+
+        self.horizontalSpacer_types_add = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+
+        self.horizontalLayout_types_add.addItem(self.horizontalSpacer_types_add)
+
+
+        self.verticalLayout_exercise_types_table.addLayout(self.horizontalLayout_types_add)
 
         self.tableView_exercise_types = QTableView(self.widget_bottom)
         self.tableView_exercise_types.setObjectName(u"tableView_exercise_types")
