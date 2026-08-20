@@ -206,12 +206,12 @@ class MainWindow(
             "exercises": (
                 self.tableView_exercises,
                 "exercises",
-                ["Exercise", "Unit of Measurement", "Type Required", "Calories per Unit", "Local"],
+                ["", "Exercise", "Unit of Measurement", "Type Required", "Calories per Unit", "Local"],
             ),
             "types": (
                 self.tableView_exercise_types,
                 "types",
-                ["Exercise", "Exercise Type", "Calories Modifier", "Local"],
+                ["", "Exercise", "Exercise Type", "Calories Modifier", "Local"],
             ),
             "weight": (self.tableView_weight, "weight", ["Weight", "Date"]),
             "statistics": (self.tableView_statistics, "statistics", ["Exercise", "Type", "Value", "Unit", "Date"]),
@@ -2800,8 +2800,10 @@ class MainWindow(
             light_green = QColor(240, 255, 240)  # Light green background
 
             for row in exercises_data:
+                exercise_name = row[1]
                 transformed_row = [
-                    row[1],
+                    self._get_exercise_icon(str(exercise_name or "")) or QIcon(),
+                    exercise_name,
                     row[2],
                     str(row[3]),
                     f"{row[4]:.1f}",
@@ -2823,7 +2825,16 @@ class MainWindow(
             light_orange = QColor(255, 248, 220)  # Light orange background
 
             for row in types_data:
-                transformed_row = [row[1], row[2], f"{row[3]:.1f}", row[4] or "", row[0], light_orange]
+                exercise_name = row[1]
+                transformed_row = [
+                    self._get_exercise_icon(str(exercise_name or "")) or QIcon(),
+                    exercise_name,
+                    row[2],
+                    f"{row[3]:.1f}",
+                    row[4] or "",
+                    row[0],
+                    light_orange,
+                ]
                 types_transformed_data.append(transformed_row)
 
             self.models["types"] = self._create_colored_table_model(
@@ -2848,34 +2859,28 @@ class MainWindow(
             self.tableView_weight.setColumnWidth(0, 100)  # Weight
             # Date column will stretch automatically
 
-            # Configure exercises table header - mixed approach: interactive + stretch last
+            # Configure exercises table header - image + interactive + stretch last
+            self._configure_exercise_image_table(self.tableView_exercises)
             exercises_header = self.tableView_exercises.horizontalHeader()
-            # Set first columns to interactive (resizable)
-            for i in range(exercises_header.count() - 1):
+            for i in range(1, exercises_header.count() - 1):
                 exercises_header.setSectionResizeMode(i, exercises_header.ResizeMode.Interactive)
-            # Set last column to stretch to fill remaining space
             exercises_header.setSectionResizeMode(exercises_header.count() - 1, exercises_header.ResizeMode.Stretch)
-            # Set default column widths for resizable columns
-            self.tableView_exercises.setColumnWidth(0, 200)  # Exercise name
-            self.tableView_exercises.setColumnWidth(1, 120)  # Unit
-            self.tableView_exercises.setColumnWidth(2, 100)  # Type Required
-            self.tableView_exercises.setColumnWidth(3, 120)  # Calories per Unit
-            # Local column will stretch automatically
+            self.tableView_exercises.setColumnWidth(1, 200)  # Exercise name
+            self.tableView_exercises.setColumnWidth(2, 120)  # Unit
+            self.tableView_exercises.setColumnWidth(3, 100)  # Type Required
+            self.tableView_exercises.setColumnWidth(4, 120)  # Calories per Unit
 
-            # Configure exercise types table header - mixed approach: interactive + stretch last
+            # Configure exercise types table header - image + interactive + stretch last
+            self._configure_exercise_image_table(self.tableView_exercise_types)
             exercise_types_header = self.tableView_exercise_types.horizontalHeader()
-            # Set first columns to interactive (resizable)
-            for i in range(exercise_types_header.count() - 1):
+            for i in range(1, exercise_types_header.count() - 1):
                 exercise_types_header.setSectionResizeMode(i, exercise_types_header.ResizeMode.Interactive)
-            # Set last column to stretch to fill remaining space
             exercise_types_header.setSectionResizeMode(
                 exercise_types_header.count() - 1, exercise_types_header.ResizeMode.Stretch
             )
-            # Set default column widths for resizable columns
-            self.tableView_exercise_types.setColumnWidth(0, 200)  # Exercise
-            self.tableView_exercise_types.setColumnWidth(1, 150)  # Exercise Type
-            self.tableView_exercise_types.setColumnWidth(2, 120)  # Calories Modifier
-            # Local column will stretch automatically
+            self.tableView_exercise_types.setColumnWidth(1, 200)  # Exercise
+            self.tableView_exercise_types.setColumnWidth(2, 150)  # Exercise Type
+            self.tableView_exercise_types.setColumnWidth(3, 120)  # Calories Modifier
 
             # Connect selection change signals after models are set
             self._connect_table_selection_signals()
@@ -4298,6 +4303,14 @@ class MainWindow(
         if toast is not None:
             toast.close()
 
+    def _configure_exercise_image_table(self, table_view: QTableView) -> None:
+        """Show a fixed first column for the exercise still image."""
+        table_view.setIconSize(QSize(self.icon_size, self.icon_size))
+        table_view.verticalHeader().setDefaultSectionSize(self.icon_size + 8)
+        header = table_view.horizontalHeader()
+        header.setSectionResizeMode(_EXERCISE_TABLE_IMAGE_COLUMN, header.ResizeMode.Fixed)
+        table_view.setColumnWidth(_EXERCISE_TABLE_IMAGE_COLUMN, self.icon_size + 12)
+
     def _confirm_delete_with_process_records(self, subject: str, name: str, process_count: int) -> bool:
         """Ask whether to delete an item that still has completed exercise records.
 
@@ -5069,7 +5082,7 @@ class MainWindow(
 
         Args:
 
-        - `table_name` (`str`): Name of the table (`exercises` or `statistics`).
+        - `table_name` (`str`): Name of the table (`exercises` or `types`).
 
         Returns:
 
@@ -5082,18 +5095,19 @@ class MainWindow(
         table_view = self.table_config[table_name][0]
         current_index = table_view.currentIndex()
 
+        name_column = self._table_exercise_name_column(table_name)
         if not current_index.isValid():
             # Get first row exercise name as default
             model = self.models[table_name]
             if model and model.rowCount() > 0:
-                first_index = model.index(0, 0)
+                first_index = model.index(0, name_column)
                 return model.data(first_index, Qt.ItemDataRole.DisplayRole)
             return None
 
-        # Get exercise name from selected row (first column)
+        # Get exercise name from selected row
         model = self.models[table_name]
         if model:
-            exercise_index = model.index(current_index.row(), 0)
+            exercise_index = model.index(current_index.row(), name_column)
             return model.data(exercise_index, Qt.ItemDataRole.DisplayRole)
 
         return None
@@ -5559,14 +5573,14 @@ class MainWindow(
             return
 
         row = index.row()
-        old_name = str(model.data(model.index(row, 0)) or "").strip()
-        unit = str(model.data(model.index(row, 1)) or "")
-        is_type_required = str(model.data(model.index(row, 2)) or "0") == "1"
+        old_name = str(model.data(model.index(row, _EXERCISE_TABLE_NAME_COLUMN)) or "").strip()
+        unit = str(model.data(model.index(row, 2)) or "")
+        is_type_required = str(model.data(model.index(row, 3)) or "0") == "1"
         try:
-            calories = float(model.data(model.index(row, 3)) or 0.0)
+            calories = float(model.data(model.index(row, 4)) or 0.0)
         except (TypeError, ValueError):
             calories = 0.0
-        name_local = str(model.data(model.index(row, 4)) or "")
+        name_local = str(model.data(model.index(row, 5)) or "")
 
         dialog = ExerciseAddDialog(
             self,
@@ -5633,13 +5647,13 @@ class MainWindow(
             return
 
         row = index.row()
-        exercise_name = str(model.data(model.index(row, 0)) or "").strip()
-        type_name = str(model.data(model.index(row, 1)) or "").strip()
+        exercise_name = str(model.data(model.index(row, _EXERCISE_TABLE_NAME_COLUMN)) or "").strip()
+        type_name = str(model.data(model.index(row, 2)) or "").strip()
         try:
-            calories_modifier = float(model.data(model.index(row, 2)) or 1.0)
+            calories_modifier = float(model.data(model.index(row, 3)) or 1.0)
         except (TypeError, ValueError):
             calories_modifier = 1.0
-        name_local = str(model.data(model.index(row, 3)) or "")
+        name_local = str(model.data(model.index(row, 4)) or "")
 
         exercises = self.db_manager.get_exercises_by_frequency(self.exercises_frequency_window)
         if exercise_name and exercise_name not in exercises:
@@ -5704,6 +5718,7 @@ class MainWindow(
                 self._load_exercise_avif(exercise_name, label_key)
         self._update_exercises_avif()
         self._update_list_view_exercise_icon(exercise_name)
+        self._update_table_exercise_icons(exercise_name)
 
     def _reset_process_pagination_state(self) -> None:
         """Reset pagination counters and color map for process table."""
@@ -6333,6 +6348,12 @@ class MainWindow(
         finally:
             self._syncing_selection = False
 
+    def _table_exercise_name_column(self, table_name: str) -> int:
+        """Return the exercise-name column for a table that may have a leading image."""
+        if table_name in {"exercises", "types"}:
+            return _EXERCISE_TABLE_NAME_COLUMN
+        return 0
+
     def _transform_process_data(self, rows: list[list], *, append_state: bool = False) -> list[list]:
         """Transform process rows for table display with date-based coloring."""
         date_to_color: dict[str, QColor] = dict(self._process_date_color_map) if append_state else {}
@@ -6547,6 +6568,27 @@ class MainWindow(
             if isinstance(exercise_name, str):
                 self._load_exercise_avif(exercise_name, "statistics")
 
+    def _update_table_exercise_icons(self, exercise_name: str) -> None:
+        """Refresh the image column for one exercise in Exercises and Types tables."""
+        if not exercise_name:
+            return
+        icon = self._get_exercise_icon(exercise_name) or QIcon()
+        for table_name in ("exercises", "types"):
+            proxy = self.models.get(table_name)
+            if proxy is None:
+                continue
+            source = proxy.sourceModel()
+            if not isinstance(source, QStandardItemModel):
+                continue
+            name_column = self._table_exercise_name_column(table_name)
+            for row in range(source.rowCount()):
+                name = source.data(source.index(row, name_column))
+                if str(name or "") != exercise_name:
+                    continue
+                item = source.item(row, _EXERCISE_TABLE_IMAGE_COLUMN)
+                if item is not None:
+                    item.setIcon(icon)
+
     def _update_types_avif(self) -> None:
         """Update AVIF for types table selection."""
         exercise_name = self._get_selected_exercise_from_table("types")
@@ -6660,12 +6702,12 @@ def __init__(self, *, hide_on_close: bool = False) -> None:  # noqa: D107
             "exercises": (
                 self.tableView_exercises,
                 "exercises",
-                ["Exercise", "Unit of Measurement", "Type Required", "Calories per Unit", "Local"],
+                ["", "Exercise", "Unit of Measurement", "Type Required", "Calories per Unit", "Local"],
             ),
             "types": (
                 self.tableView_exercise_types,
                 "types",
-                ["Exercise", "Exercise Type", "Calories Modifier", "Local"],
+                ["", "Exercise", "Exercise Type", "Calories Modifier", "Local"],
             ),
             "weight": (self.tableView_weight, "weight", ["Weight", "Date"]),
             "statistics": (self.tableView_statistics, "statistics", ["Exercise", "Type", "Value", "Unit", "Date"]),
@@ -9800,8 +9842,10 @@ def show_tables(self) -> None:
             light_green = QColor(240, 255, 240)  # Light green background
 
             for row in exercises_data:
+                exercise_name = row[1]
                 transformed_row = [
-                    row[1],
+                    self._get_exercise_icon(str(exercise_name or "")) or QIcon(),
+                    exercise_name,
                     row[2],
                     str(row[3]),
                     f"{row[4]:.1f}",
@@ -9823,7 +9867,16 @@ def show_tables(self) -> None:
             light_orange = QColor(255, 248, 220)  # Light orange background
 
             for row in types_data:
-                transformed_row = [row[1], row[2], f"{row[3]:.1f}", row[4] or "", row[0], light_orange]
+                exercise_name = row[1]
+                transformed_row = [
+                    self._get_exercise_icon(str(exercise_name or "")) or QIcon(),
+                    exercise_name,
+                    row[2],
+                    f"{row[3]:.1f}",
+                    row[4] or "",
+                    row[0],
+                    light_orange,
+                ]
                 types_transformed_data.append(transformed_row)
 
             self.models["types"] = self._create_colored_table_model(
@@ -9848,34 +9901,28 @@ def show_tables(self) -> None:
             self.tableView_weight.setColumnWidth(0, 100)  # Weight
             # Date column will stretch automatically
 
-            # Configure exercises table header - mixed approach: interactive + stretch last
+            # Configure exercises table header - image + interactive + stretch last
+            self._configure_exercise_image_table(self.tableView_exercises)
             exercises_header = self.tableView_exercises.horizontalHeader()
-            # Set first columns to interactive (resizable)
-            for i in range(exercises_header.count() - 1):
+            for i in range(1, exercises_header.count() - 1):
                 exercises_header.setSectionResizeMode(i, exercises_header.ResizeMode.Interactive)
-            # Set last column to stretch to fill remaining space
             exercises_header.setSectionResizeMode(exercises_header.count() - 1, exercises_header.ResizeMode.Stretch)
-            # Set default column widths for resizable columns
-            self.tableView_exercises.setColumnWidth(0, 200)  # Exercise name
-            self.tableView_exercises.setColumnWidth(1, 120)  # Unit
-            self.tableView_exercises.setColumnWidth(2, 100)  # Type Required
-            self.tableView_exercises.setColumnWidth(3, 120)  # Calories per Unit
-            # Local column will stretch automatically
+            self.tableView_exercises.setColumnWidth(1, 200)  # Exercise name
+            self.tableView_exercises.setColumnWidth(2, 120)  # Unit
+            self.tableView_exercises.setColumnWidth(3, 100)  # Type Required
+            self.tableView_exercises.setColumnWidth(4, 120)  # Calories per Unit
 
-            # Configure exercise types table header - mixed approach: interactive + stretch last
+            # Configure exercise types table header - image + interactive + stretch last
+            self._configure_exercise_image_table(self.tableView_exercise_types)
             exercise_types_header = self.tableView_exercise_types.horizontalHeader()
-            # Set first columns to interactive (resizable)
-            for i in range(exercise_types_header.count() - 1):
+            for i in range(1, exercise_types_header.count() - 1):
                 exercise_types_header.setSectionResizeMode(i, exercise_types_header.ResizeMode.Interactive)
-            # Set last column to stretch to fill remaining space
             exercise_types_header.setSectionResizeMode(
                 exercise_types_header.count() - 1, exercise_types_header.ResizeMode.Stretch
             )
-            # Set default column widths for resizable columns
-            self.tableView_exercise_types.setColumnWidth(0, 200)  # Exercise
-            self.tableView_exercise_types.setColumnWidth(1, 150)  # Exercise Type
-            self.tableView_exercise_types.setColumnWidth(2, 120)  # Calories Modifier
-            # Local column will stretch automatically
+            self.tableView_exercise_types.setColumnWidth(1, 200)  # Exercise
+            self.tableView_exercise_types.setColumnWidth(2, 150)  # Exercise Type
+            self.tableView_exercise_types.setColumnWidth(3, 120)  # Calories Modifier
 
             # Connect selection change signals after models are set
             self._connect_table_selection_signals()

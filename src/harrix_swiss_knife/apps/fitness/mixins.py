@@ -56,11 +56,11 @@ class AutoSaveOperations(AutoSaveMixin):
         - `row_id` (`str`): Database ID of the row.
 
         """
-        name = model.data(model.index(row, 0)) or ""
-        unit = model.data(model.index(row, 1)) or ""
-        is_type_required_str = model.data(model.index(row, 2)) or "0"
-        calories_per_unit_str = model.data(model.index(row, 3)) or "0"
-        name_local = model.data(model.index(row, 4)) or ""
+        name = model.data(model.index(row, 1)) or ""
+        unit = model.data(model.index(row, 2)) or ""
+        is_type_required_str = model.data(model.index(row, 3)) or "0"
+        calories_per_unit_str = model.data(model.index(row, 4)) or "0"
+        name_local = model.data(model.index(row, 5)) or ""
 
         # Validate exercise name
         if not name.strip():
@@ -161,10 +161,10 @@ class AutoSaveOperations(AutoSaveMixin):
         - `row_id` (`str`): Database ID of the row.
 
         """
-        exercise_name = model.data(model.index(row, 0)) or ""
-        type_name = model.data(model.index(row, 1)) or ""
-        calories_modifier_str = model.data(model.index(row, 2)) or "1.0"
-        name_local = model.data(model.index(row, 3)) or ""
+        exercise_name = model.data(model.index(row, 1)) or ""
+        type_name = model.data(model.index(row, 2)) or ""
+        calories_modifier_str = model.data(model.index(row, 3)) or "1.0"
+        name_local = model.data(model.index(row, 4)) or ""
 
         # Validate inputs
         if not exercise_name.strip():

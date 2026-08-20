@@ -25,6 +25,7 @@ def create_colored_table_proxy_model(data: Sequence[Sequence[object]], headers: 
 Create a colored proxy model with ID and color columns excluded from display.
 
 By default the ID is at index `-2` and the color at `-1` (last column).
+A `QIcon` cell value is shown as decoration without display text.
 
 <details>
 <summary>Code:</summary>
@@ -49,12 +50,7 @@ def create_colored_table_proxy_model(
         row_id = row_list[id_idx]
 
         display_indices = [i for i in range(row_len) if i not in {id_idx, color_idx}]
-        items = []
-        for col_idx in display_indices:
-            value = row_list[col_idx]
-            item = QStandardItem(str(value) if value is not None else "")
-            item.setBackground(QBrush(row_color))
-            items.append(item)
+        items = [_colored_standard_item(row_list[col_idx], row_color) for col_idx in display_indices]
 
         model.appendRow(items)
         model.setVerticalHeaderItem(row_idx, QStandardItem(str(row_id)))
