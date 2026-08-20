@@ -112,6 +112,8 @@ After packing, copy the two EXEs from `install\` for distribution (not an `insta
 
 Default install parent is `C:\harrix-swiss-knife` (or an existing `D:\GitHub` / `C:\GitHub` / Documents\GitHub). Sibling repos land directly under that folder. Installer `uv sync` forces `UV_LINK_MODE=copy` so offline cache hardlinks do not copy elevated SYSTEM-only DACLs into `.venv`; after sync the wizard resets/grants ACLs and probes `import harrix_swiss_knife`, `PySide6`, and `shiboken6` before creating shortcuts.
 
+After install, `config/config.json` is filled with stack paths for this machine: `path_github` (install parent), `paths_python_projects` / `paths_python_libraries` / `paths_git` (the three siblings), `paths_android_projects`, `paths_python_project_creation`, `paths_combine_for_ai`, and local `sqlite_*` under `data/databases/`. Personal folders (notes, photos, vector icons, sites, Markdown template targets, editor workspaces, …) stay as `<YOUR_…>` placeholders until you set them in Settings.
+
 Local unpackaged test (no freeze): `python -m harrix_swiss_knife.installer --online` (or `--offline`) with `install\dependencies\` already populated.
 
 VM smoke (after a fresh offline install): in a normal (non-elevated) PowerShell, run the venv Python `import PySide6, shiboken6` and start the tray via `pythonw …\main.py`.

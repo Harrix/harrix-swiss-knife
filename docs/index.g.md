@@ -215,7 +215,7 @@ Use **Apps & Features** (Harrix Swiss Knife), the desktop shortcut **Uninstall H
 
 (from the `harrix-swiss-knife` folder). The wizard removes the app repos, shortcuts, the Apps & Features entry, and the global `hsk` CLI. **Databases, `api-keys`, and fitness images are moved** to `Harrix Swiss Knife Data` next to the install parent (for example `C:\harrix-swiss-knife\Harrix Swiss Knife Data`). Git, uv, VS Code, and managed Python are not removed.
 
-Default install parent is `C:\harrix-swiss-knife` when no `GitHub` folder already exists (`D:\GitHub` / `C:\GitHub` / `Documents\GitHub` are reused when present). Layout: `C:\harrix-swiss-knife\{harrix-swiss-knife,harrix-pylib,harrix-pyssg}`. Prefer that over Program Files — the app must write into `.venv` as a normal user.
+Default install parent is `C:\harrix-swiss-knife` when no `GitHub` folder already exists (`D:\GitHub` / `C:\GitHub` / `Documents\GitHub` are reused when present). Layout: `C:\harrix-swiss-knife\{harrix-swiss-knife,harrix-pylib,harrix-pyssg}`. Prefer that over Program Files — the app must write into `.venv` as a normal user. The installer writes stack paths into `config.json` (sibling repos, DBs under `data/databases/`); personal note/photo/site folders remain for you to configure.
 
 A live log appears in the wizard; the Finished page shows a summary. `install.log` is copied into the install folder when setup succeeds.
 

@@ -19,6 +19,7 @@ from harrix_swiss_knife.installer.acl import (
 )
 from harrix_swiss_knife.installer.arp import ARP_KEY_NAME, register_uninstall, unregister_uninstall
 from harrix_swiss_knife.installer.build_info import summarize_dependency_artifacts
+from harrix_swiss_knife.installer.config_defaults import apply_config_defaults, is_unset_config_path
 from harrix_swiss_knife.installer.deploy import DeployResult
 from harrix_swiss_knife.installer.finish_report import format_install_report
 from harrix_swiss_knife.installer.log import OutcomeLog
@@ -333,3 +334,53 @@ def test_run_uninstall_unregisters_arp(tmp_path: Path) -> None:
         result = run_uninstall(UninstallOptions(hsk_path=hsk, remove_sibling_repos=False), log)
     assert result.ok
     unreg.assert_called_once()
+
+
+def test_is_unset_config_path() -> None:
+    assert is_unset_config_path("")
+    assert is_unset_config_path("<YOUR_GITHUB_FOLDER>/harrix-swiss-knife")
+    assert is_unset_config_path(None)
+    assert not is_unset_config_path(str(Path(__file__).resolve()))
+
+
+def test_apply_config_defaults_sets_stack_paths(tmp_path: Path) -> None:
+    root = tmp_path / "harrix-swiss-knife-root"
+    hsk = root / "harrix-swiss-knife"
+    pylib = root / "harrix-pylib"
+    pyssg = root / "harrix-pyssg"
+    for path in (hsk, pylib, pyssg):
+        path.mkdir(parents=True)
+    (hsk / "android").mkdir()
+    cfg_dir = hsk / "config"
+    cfg_dir.mkdir()
+    (cfg_dir / "config.example.json").write_text(
+        json.dumps(
+            {
+                "show_main_window_on_startup": False,
+                "path_github": "<YOUR_GITHUB_FOLDER>",
+                "paths_python_projects": ["<YOUR_GITHUB_FOLDER>/harrix-swiss-knife"],
+                "paths_python_libraries": [],
+                "sqlite_finance": "<YOUR_FINANCE_DB>",
+                "sqlite_fitness": "<YOUR_FITNESS_DB>",
+                "sqlite_habits": "<YOUR_HABITS_DB>",
+                "sqlite_food": "<YOUR_FOOD_DB>",
+            }
+        ),
+        encoding="utf-8",
+    )
+    log = OutcomeLog()
+    apply_config_defaults(hsk, log)
+    data = json.loads((cfg_dir / "config.json").read_text(encoding="utf-8"))
+    assert data["show_main_window_on_startup"] is True
+    assert Path(data["path_github"]) == root.resolve()
+    assert [Path(p).name for p in data["paths_python_projects"]] == [
+        "harrix-pylib",
+        "harrix-pyssg",
+        "harrix-swiss-knife",
+    ]
+    assert {Path(p).name for p in data["paths_python_libraries"]} == {"harrix-pylib", "harrix-pyssg"}
+    assert data["paths_android_projects"] == [(hsk / "android").resolve().as_posix()]
+    assert data["paths_python_project_creation"] == [root.resolve().as_posix()]
+    assert data["paths_combine_for_ai"][0]["base_folder"] == hsk.resolve().as_posix()
+    assert "finance.db" in data["sqlite_finance"]
+    assert (hsk / "data" / "databases").is_dir()
