@@ -36,15 +36,18 @@ class OnCreateDesktopShortcut(ActionBase):
             return
 
         project_root = h.dev.get_project_root()
-        pyw = project_root / ".venv" / "Scripts" / "pythonw.exe"
+        scripts = project_root / ".venv" / "Scripts"
+        gui_exe = scripts / "harrix-swiss-knife.exe"
+        pyw = scripts / "pythonw.exe"
+        launch_py = project_root / "launch_tray.py"
         main_py = project_root / "src" / "harrix_swiss_knife" / "main.py"
+        has_script_launch = pyw.is_file() and (launch_py.is_file() or main_py.is_file())
 
-        if not pyw.is_file():
-            self.add_line(f"❌ pythonw.exe not found: {pyw}")
-            self.show_result()
-            return
-        if not main_py.is_file():
-            self.add_line(f"❌ main.py not found: {main_py}")
+        if not gui_exe.is_file() and not has_script_launch:
+            if not pyw.is_file():
+                self.add_line(f"❌ pythonw.exe not found: {pyw}")
+            else:
+                self.add_line(f"❌ launch_tray.py / main.py not found under {project_root}")
             self.show_result()
             return
 

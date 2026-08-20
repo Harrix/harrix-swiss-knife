@@ -77,13 +77,13 @@ class OutcomeLog:
         """Emit a step header line."""
         self.line(f"==> {message}")
 
-    def summary_lines(self) -> list[str]:
+    def summary_lines(self, *, action_label: str = "What was installed:") -> list[str]:
         """Build human-readable summary lines from collected outcomes."""
         lines: list[str] = ["", "Summary"]
         for title, items in (
             ("What already existed:", self.already),
             ("What was skipped:", self.skipped),
-            ("What was installed:", self.installed),
+            (action_label, self.installed),
             ("What failed (installation continued):", self.failed),
         ):
             if items:
@@ -203,7 +203,7 @@ def step(self, message: str) -> None:
 ### ⚙️ Method `summary_lines`
 
 ```python
-def summary_lines(self) -> list[str]
+def summary_lines(self, *, action_label: str = 'What was installed:') -> list[str]
 ```
 
 Build human-readable summary lines from collected outcomes.
@@ -212,12 +212,12 @@ Build human-readable summary lines from collected outcomes.
 <summary>Code:</summary>
 
 ```python
-def summary_lines(self) -> list[str]:
+def summary_lines(self, *, action_label: str = "What was installed:") -> list[str]:
         lines: list[str] = ["", "Summary"]
         for title, items in (
             ("What already existed:", self.already),
             ("What was skipped:", self.skipped),
-            ("What was installed:", self.installed),
+            (action_label, self.installed),
             ("What failed (installation continued):", self.failed),
         ):
             if items:

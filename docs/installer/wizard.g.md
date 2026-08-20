@@ -28,10 +28,13 @@ lang: en
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-4)
   - [⚙️ Method `initializePage`](#%EF%B8%8F-method-initializepage-1)
   - [⚙️ Method `plan`](#%EF%B8%8F-method-plan)
-- [🏛️ Class `WelcomePage`](#%EF%B8%8F-class-welcomepage)
+- [🏛️ Class `UninstallWindow`](#%EF%B8%8F-class-uninstallwindow)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-5)
+- [🏛️ Class `WelcomePage`](#%EF%B8%8F-class-welcomepage)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-6)
 - [🔧 Function `detect_mode_from_argv`](#-function-detect_mode_from_argv)
 - [🔧 Function `load_app_icon`](#-function-load_app_icon)
+- [🔧 Function `run_uninstall_wizard`](#-function-run_uninstall_wizard)
 - [🔧 Function `run_wizard`](#-function-run_wizard)
 - [🔧 Function `main`](#-function-main)
 
@@ -724,6 +727,232 @@ def plan(self) -> PrerequisitePlan:
 
 </details>
 
+## 🏛️ Class `UninstallWindow`
+
+```python
+class UninstallWindow(QWidget)
+```
+
+Simple uninstall UI: confirm path, show preserved data, run removal.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class UninstallWindow(QWidget):
+
+    def __init__(self, hsk_path: Path) -> None:
+        """Build the uninstall form for `hsk_path`."""
+        super().__init__()
+        self.setWindowTitle("Uninstall Harrix Swiss Knife")
+        self.setMinimumSize(640, 480)
+        icon = load_app_icon()
+        if not icon.isNull():
+            self.setWindowIcon(icon)
+        self._worker: _UninstallWorker | None = None
+        self._done = False
+
+        self.path_edit = QLineEdit(str(hsk_path))
+        browse = QPushButton("Browse…")
+        browse.clicked.connect(self._browse)
+        path_row = QHBoxLayout()
+        path_row.addWidget(self.path_edit)
+        path_row.addWidget(browse)
+
+        self.siblings_cb = QCheckBox("Also remove sibling repos harrix-pylib and harrix-pyssg")
+        self.siblings_cb.setChecked(True)
+
+        preserve = default_preserve_dir(hsk_path)
+        self.info = QLabel(
+            "This removes the app folders, desktop/startup shortcuts, and the global `hsk` CLI.\n"
+            "Git, uv, VS Code, and Python are left installed.\n\n"
+            f"Databases, api-keys, and fitness images are moved to:\n{preserve}"
+        )
+        self.info.setWordWrap(True)
+
+        self.preserve_list = QPlainTextEdit()
+        self.preserve_list.setReadOnly(True)
+        self.preserve_list.setMaximumHeight(120)
+        self._refresh_preserve_list()
+
+        self.log_view = QPlainTextEdit()
+        self.log_view.setReadOnly(True)
+        self.log_view.setFont(QFont("Consolas", 9))
+        self.bar = QProgressBar()
+        self.bar.setRange(0, 1)
+        self.bar.setValue(0)
+
+        self.start_btn = QPushButton("Uninstall")
+        self.start_btn.clicked.connect(self._start)
+        self.close_btn = QPushButton("Close")
+        self.close_btn.clicked.connect(self.close)
+        buttons = QHBoxLayout()
+        buttons.addStretch(1)
+        buttons.addWidget(self.start_btn)
+        buttons.addWidget(self.close_btn)
+
+        layout = QVBoxLayout(self)
+        layout.addWidget(QLabel("Install folder (harrix-swiss-knife):"))
+        layout.addLayout(path_row)
+        layout.addWidget(self.siblings_cb)
+        layout.addWidget(self.info)
+        layout.addWidget(QLabel("Items that will be preserved:"))
+        layout.addWidget(self.preserve_list)
+        layout.addWidget(self.bar)
+        layout.addWidget(self.log_view)
+        layout.addLayout(buttons)
+        self.path_edit.textChanged.connect(self._refresh_preserve_list)
+
+    def _browse(self) -> None:
+        path = QFileDialog.getExistingDirectory(self, "Select harrix-swiss-knife folder", self.path_edit.text())
+        if path:
+            self.path_edit.setText(path)
+
+    def _on_err(self, message: str) -> None:
+        self._done = True
+        self.bar.setRange(0, 1)
+        self.bar.setValue(0)
+        self.start_btn.setEnabled(True)
+        QMessageBox.critical(self, "Uninstall failed", message)
+
+    def _on_ok(self, result: object) -> None:
+        self._done = True
+        self.bar.setRange(0, 1)
+        self.bar.setValue(1)
+        preserved = getattr(result, "preserved_dir", None)
+        msg = "Uninstall finished."
+        if preserved is not None:
+            msg += f"\n\nPreserved data:\n{preserved}"
+        QMessageBox.information(self, "Uninstall finished", msg)
+
+    def _refresh_preserve_list(self) -> None:
+        hsk = Path(self.path_edit.text().strip())
+        if not hsk.is_dir():
+            self.preserve_list.setPlainText("(folder not found)")
+            return
+        items = list_paths_to_preserve(hsk)
+        if not items:
+            self.preserve_list.setPlainText("(no databases or api-keys under this folder)")
+            return
+        root = hsk.resolve()
+        lines = []
+        for path in items:
+            try:
+                lines.append(str(path.relative_to(root)))
+            except ValueError:
+                lines.append(str(path))
+        self.preserve_list.setPlainText("\n".join(lines))
+        preserve = default_preserve_dir(hsk)
+        self.info.setText(
+            "This removes the app folders, desktop/startup shortcuts, and the global `hsk` CLI.\n"
+            "Git, uv, VS Code, and Python are left installed.\n\n"
+            f"Databases, api-keys, and fitness images are moved to:\n{preserve}"
+        )
+
+    def _start(self) -> None:
+        if self._done or self._worker is not None:
+            return
+        hsk = Path(self.path_edit.text().strip())
+        answer = QMessageBox.question(
+            self,
+            "Confirm uninstall",
+            f"Uninstall Harrix Swiss Knife from:\n{hsk}\n\nDatabases will be kept.",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if answer != QMessageBox.StandardButton.Yes:
+            return
+        self.start_btn.setEnabled(False)
+        self.bar.setRange(0, 0)
+        self._worker = _UninstallWorker(
+            hsk_path=hsk,
+            remove_siblings=self.siblings_cb.isChecked(),
+            parent=self,
+        )
+        self._worker.log_line.connect(self.log_view.appendPlainText)
+        self._worker.finished_ok.connect(self._on_ok)
+        self._worker.finished_err.connect(self._on_err)
+        self._worker.start()
+```
+
+</details>
+
+### ⚙️ Method `__init__`
+
+```python
+def __init__(self, hsk_path: Path) -> None
+```
+
+Build the uninstall form for `hsk_path`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def __init__(self, hsk_path: Path) -> None:
+        super().__init__()
+        self.setWindowTitle("Uninstall Harrix Swiss Knife")
+        self.setMinimumSize(640, 480)
+        icon = load_app_icon()
+        if not icon.isNull():
+            self.setWindowIcon(icon)
+        self._worker: _UninstallWorker | None = None
+        self._done = False
+
+        self.path_edit = QLineEdit(str(hsk_path))
+        browse = QPushButton("Browse…")
+        browse.clicked.connect(self._browse)
+        path_row = QHBoxLayout()
+        path_row.addWidget(self.path_edit)
+        path_row.addWidget(browse)
+
+        self.siblings_cb = QCheckBox("Also remove sibling repos harrix-pylib and harrix-pyssg")
+        self.siblings_cb.setChecked(True)
+
+        preserve = default_preserve_dir(hsk_path)
+        self.info = QLabel(
+            "This removes the app folders, desktop/startup shortcuts, and the global `hsk` CLI.\n"
+            "Git, uv, VS Code, and Python are left installed.\n\n"
+            f"Databases, api-keys, and fitness images are moved to:\n{preserve}"
+        )
+        self.info.setWordWrap(True)
+
+        self.preserve_list = QPlainTextEdit()
+        self.preserve_list.setReadOnly(True)
+        self.preserve_list.setMaximumHeight(120)
+        self._refresh_preserve_list()
+
+        self.log_view = QPlainTextEdit()
+        self.log_view.setReadOnly(True)
+        self.log_view.setFont(QFont("Consolas", 9))
+        self.bar = QProgressBar()
+        self.bar.setRange(0, 1)
+        self.bar.setValue(0)
+
+        self.start_btn = QPushButton("Uninstall")
+        self.start_btn.clicked.connect(self._start)
+        self.close_btn = QPushButton("Close")
+        self.close_btn.clicked.connect(self.close)
+        buttons = QHBoxLayout()
+        buttons.addStretch(1)
+        buttons.addWidget(self.start_btn)
+        buttons.addWidget(self.close_btn)
+
+        layout = QVBoxLayout(self)
+        layout.addWidget(QLabel("Install folder (harrix-swiss-knife):"))
+        layout.addLayout(path_row)
+        layout.addWidget(self.siblings_cb)
+        layout.addWidget(self.info)
+        layout.addWidget(QLabel("Items that will be preserved:"))
+        layout.addWidget(self.preserve_list)
+        layout.addWidget(self.bar)
+        layout.addWidget(self.log_view)
+        layout.addLayout(buttons)
+        self.path_edit.textChanged.connect(self._refresh_preserve_list)
+```
+
+</details>
+
 ## 🏛️ Class `WelcomePage`
 
 ```python
@@ -882,6 +1111,48 @@ def load_app_icon() -> QIcon:
 
 </details>
 
+## 🔧 Function `run_uninstall_wizard`
+
+```python
+def run_uninstall_wizard(argv: list[str] | None = None) -> int
+```
+
+Run the uninstall UI and return the Qt exit code.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def run_uninstall_wizard(argv: list[str] | None = None) -> int:
+    args = [a for a in (sys.argv[1:] if argv is None else argv) if a != "--uninstall"]
+    hint: Path | None = None
+    for arg in args:
+        if arg.startswith("-"):
+            continue
+        candidate = Path(arg)
+        if candidate.is_dir():
+            hint = candidate
+            break
+    hsk = detect_hsk_path(hint)
+    app = QApplication.instance() or QApplication(sys.argv)
+    icon = load_app_icon()
+    if not icon.isNull():
+        app.setWindowIcon(icon)
+    if hsk is None:
+        QMessageBox.critical(
+            None,
+            "Uninstall",
+            "Could not find a harrix-swiss-knife install folder.\nPass the folder path as an argument or browse to it.",
+        )
+        # Still show UI with empty/default path for browsing.
+        hsk = Path.home() / "harrix-swiss-knife" / "harrix-swiss-knife"
+    window = UninstallWindow(hsk)
+    window.show()
+    return int(app.exec())
+```
+
+</details>
+
 ## 🔧 Function `run_wizard`
 
 ```python
@@ -896,6 +1167,8 @@ Run the installer wizard and return the Qt exit code.
 ```python
 def run_wizard(argv: list[str] | None = None) -> int:
     args = list(sys.argv[1:] if argv is None else argv)
+    if "--uninstall" in args:
+        return run_uninstall_wizard(args)
     if _elevate_before_ui(args):
         return 0
     app = QApplication.instance() or QApplication(sys.argv)

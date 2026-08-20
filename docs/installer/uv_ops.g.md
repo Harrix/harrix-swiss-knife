@@ -11,9 +11,88 @@ lang: en
 
 ## Contents
 
+- [🔧 Function `ensure_project_importable`](#-function-ensure_project_importable)
 - [🔧 Function `ensure_uv_tool_bin_on_path`](#-function-ensure_uv_tool_bin_on_path)
 - [🔧 Function `install_hsk_cli`](#-function-install_hsk_cli)
 - [🔧 Function `uv_sync_with_bundle_cache`](#-function-uv_sync_with_bundle_cache)
+
+</details>
+
+## 🔧 Function `ensure_project_importable`
+
+```python
+def ensure_project_importable(hsk_path: Path, *, log: OutcomeLog) -> None
+```
+
+Fail the install early if the tray app cannot import after `uv sync`.
+
+Shortcuts launch `pythonw.exe …/src/harrix_swiss_knife/main.py`. That only works
+when either the project is installed into the venv or `main.py` can find `src/` on
+`sys.path`. Verify the venv import first; if it fails, force an editable reinstall.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def ensure_project_importable(hsk_path: Path, *, log: OutcomeLog) -> None:
+    python = hsk_path / ".venv" / "Scripts" / "python.exe"
+    if not python.is_file():
+        msg = f"venv python.exe missing after uv sync: {python}"
+        raise RuntimeError(msg)
+    creation = subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0
+    probe = subprocess.run(
+        [str(python), "-c", "import harrix_swiss_knife"],
+        cwd=str(hsk_path),
+        check=False,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        creationflags=creation,
+    )
+    if probe.returncode == 0:
+        log.detail("Verified: `import harrix_swiss_knife` works in the project venv")
+        return
+    log.detail("`import harrix_swiss_knife` failed after uv sync; forcing editable install…")
+    if probe.stderr.strip():
+        log.detail(probe.stderr.strip()[:1500])
+    uv = find_uv_exe()
+    if uv is None:
+        msg = "uv was not found while repairing project install"
+        raise RuntimeError(msg)
+    repair = subprocess.run(
+        [str(uv), "pip", "install", "-e", str(hsk_path)],
+        cwd=str(hsk_path),
+        check=False,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        creationflags=creation,
+    )
+    if repair.stdout.strip():
+        log.detail(repair.stdout.strip()[:1500])
+    if repair.stderr.strip():
+        log.detail(repair.stderr.strip()[:1500])
+    if repair.returncode != 0:
+        msg = "Could not install harrix-swiss-knife into the project venv"
+        raise RuntimeError(msg)
+    probe2 = subprocess.run(
+        [str(python), "-c", "import harrix_swiss_knife"],
+        cwd=str(hsk_path),
+        check=False,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        creationflags=creation,
+    )
+    if probe2.returncode != 0:
+        detail = (probe2.stderr or probe2.stdout or "").strip()[:1500]
+        msg = f"harrix_swiss_knife still not importable after editable install: {detail}"
+        raise RuntimeError(msg)
+    log.add("installed", "Forced editable install of harrix-swiss-knife into the project venv")
+```
 
 </details>
 
@@ -171,6 +250,8 @@ def uv_sync_with_bundle_cache(repo_path: Path, *, deps: Path, label: str, log: O
     if code != 0:
         msg = f"uv sync failed in {label} (exit {code})"
         raise RuntimeError(msg)
+    if label == "harrix-swiss-knife":
+        ensure_project_importable(repo_path, log=log)
     return used_offline
 ```
 

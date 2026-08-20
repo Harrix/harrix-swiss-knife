@@ -10,17 +10,25 @@ from __future__ import annotations
 import logging
 import sys
 import traceback
+from pathlib import Path
 from typing import TYPE_CHECKING
 
-from harrix_swiss_knife import main_menu_base
-from harrix_swiss_knife.app_startup import (
+# Desktop / Startup shortcuts launch `pythonw.exe …/src/harrix_swiss_knife/main.py`.
+# That puts the package directory on `sys.path`, not `src/`, so without an editable
+# venv install the package is invisible until `src/` is added here.
+_SRC_ROOT = Path(__file__).resolve().parent.parent
+if str(_SRC_ROOT) not in sys.path:
+    sys.path.insert(0, str(_SRC_ROOT))
+
+from harrix_swiss_knife import main_menu_base  # noqa: E402
+from harrix_swiss_knife.app_startup import (  # noqa: E402
     install_diagnostic_handlers,
     log_startup_context,
     run_tray_application,
     setup_file_logging,
     show_fatal_error_dialog,
 )
-from harrix_swiss_knife.menu_structure import get_menu_structure
+from harrix_swiss_knife.menu_structure import get_menu_structure  # noqa: E402
 
 if TYPE_CHECKING:
     from harrix_swiss_knife.action_output_bus import ActionOutputBus
@@ -44,6 +52,37 @@ class MainMenu(main_menu_base.MainMenuBase):
         self.add_menu_structure(self.menu, get_menu_structure())
 
 
+def _report_bootstrap_failure(exc: BaseException) -> None:
+    """Show and log failures that happen before Qt logging is ready (e.g. under pythonw)."""
+    import os  # noqa: PLC0415
+
+    tb = "".join(traceback.format_exception(type(exc), exc, exc.__traceback__))
+    print(tb, file=sys.stderr, end="")
+    log_path = Path("startup-crash.log")
+    candidates = [_SRC_ROOT.parent / "logs"]
+    appdata = os.environ.get("LOCALAPPDATA") or os.environ.get("APPDATA")
+    if appdata:
+        candidates.append(Path(appdata) / "harrix-swiss-knife" / "logs")
+    candidates.append(Path.home() / ".harrix-swiss-knife" / "logs")
+    for folder in candidates:
+        try:
+            folder.mkdir(parents=True, exist_ok=True)
+            path = folder / "startup-crash.log"
+            path.write_text(tb, encoding="utf-8")
+            log_path = path
+            break
+        except OSError:
+            continue
+    message = f"Harrix Swiss Knife failed to start.\n\n{exc}\n\nLog: {log_path}"
+    if sys.platform == "win32":
+        try:
+            import ctypes  # noqa: PLC0415
+
+            ctypes.windll.user32.MessageBoxW(None, message[:1024], "Harrix Swiss Knife", 0x10)
+        except Exception:
+            logging.getLogger(__name__).debug("Native error dialog failed", exc_info=True)
+
+
 def main() -> None:
     """Run the Harrix Swiss Knife application (tray icon and optional main window)."""
     log_path = setup_file_logging()
@@ -64,4 +103,10 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except SystemExit:
+        raise
+    except Exception as exc:
+        _report_bootstrap_failure(exc)
+        raise SystemExit(1) from exc

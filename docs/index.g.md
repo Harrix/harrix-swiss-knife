@@ -20,6 +20,7 @@ lang: en
 - [🛠️ Deploy on an empty machine (Windows)](#%EF%B8%8F-deploy-on-an-empty-machine-windows)
   - [Prerequisites](#prerequisites)
   - [Quick install (online)](#quick-install-online)
+  - [Uninstall](#uninstall)
   - [Offline install (local bundle)](#offline-install-local-bundle)
   - [Installation steps (manual)](#installation-steps-manual)
   - [Running from command line](#running-from-command-line)
@@ -69,6 +70,7 @@ _Figure 1: Screenshot_
   - 📊 Show action usage stats ꟲᴸᴵ
   - 📌 Sync Quick Access folders to Total Commander
   - 📦 Transfer private data ꟲᴸᴵ
+  - 🗑️ Uninstall Harrix Swiss Knife…
   - ⬆️ Update Harrix Swiss Knife from GitHub…
   - 📥 Update Node.js
   - 📥 Update uv
@@ -199,8 +201,19 @@ What the online installer does:
 5. Runs `uv tool install -e` (global **`hsk`** CLI; ensures `%USERPROFILE%\.local\bin` is on the user PATH)
 6. Creates a **desktop shortcut** and/or **Windows Startup** shortcut when checked (defaults on)
 7. Downloads **ffmpeg** / **libavif** executables into the project root (or copies them from the embedded `dependencies\` when present)
+8. Creates a desktop shortcut **Uninstall Harrix Swiss Knife** (databases are kept on uninstall)
 
 The bundled **Harrix Notes Explorer (HSK)** VS Code extension is **not** installed automatically. Use the tray app (**Dev** → **Install or update Harrix Notes Explorer (HSK) extension**) when you want it in a specific editor.
+
+### Uninstall
+
+Use the desktop shortcut **Uninstall Harrix Swiss Knife**, or **Dev** → **Uninstall Harrix Swiss Knife…**, or:
+
+```powershell
+& ".\.venv\Scripts\pythonw.exe" ".\launch_uninstall.py"
+```
+
+(from the `harrix-swiss-knife` folder). The wizard removes the app repos, shortcuts, and the global `hsk` CLI. **Databases, `api-keys`, and fitness images are moved** to `Harrix Swiss Knife Data` next to the install parent (for example `C:\Users\Admin\harrix-swiss-knife\Harrix Swiss Knife Data`). Git, uv, VS Code, and managed Python are not removed.
 
 A live log appears in the wizard; `install.log` is also written under a temp work folder. Keep the window open until the done page.
 

@@ -58,13 +58,13 @@ class OutcomeLog:
         """Emit a step header line."""
         self.line(f"==> {message}")
 
-    def summary_lines(self) -> list[str]:
+    def summary_lines(self, *, action_label: str = "What was installed:") -> list[str]:
         """Build human-readable summary lines from collected outcomes."""
         lines: list[str] = ["", "Summary"]
         for title, items in (
             ("What already existed:", self.already),
             ("What was skipped:", self.skipped),
-            ("What was installed:", self.installed),
+            (action_label, self.installed),
             ("What failed (installation continued):", self.failed),
         ):
             if items:

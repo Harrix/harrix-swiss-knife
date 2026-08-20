@@ -27,6 +27,7 @@ def get_menu_structure() -> list[Any]:
                 OnAboutDialog,
                 OnAddToAutostart,
                 OnCreateDesktopShortcut,
+                OnUninstall,
                 OnDownloadOptimizeDependencies,
                 OnBuildInstallZips,
                 OnUpdateNode,

@@ -8,7 +8,11 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from harrix_swiss_knife.desktop_shortcut import create_desktop_shortcut, create_startup_shortcut
+from harrix_swiss_knife.desktop_shortcut import (
+    create_desktop_shortcut,
+    create_startup_shortcut,
+    create_uninstall_shortcut,
+)
 from harrix_swiss_knife.installer.binaries import install_optimize_binaries
 from harrix_swiss_knife.installer.config_defaults import apply_config_defaults
 from harrix_swiss_knife.installer.paths import default_install_root_parent, normalize_install_root
@@ -151,6 +155,13 @@ def run_deploy(options: DeployOptions, log: OutcomeLog) -> DeployResult:
             except OSError as exc:
                 log.add("failed", f"Startup shortcut failed: {exc}")
 
+        log.step("Uninstall shortcut")
+        try:
+            create_uninstall_shortcut(hsk)
+            log.add("installed", "Desktop uninstall shortcut created")
+        except OSError as exc:
+            log.add("failed", f"Uninstall shortcut failed: {exc}")
+
         try:
             install_optimize_binaries(hsk, deps=deps, skip_download=offline, log=log)
         except Exception as exc:
@@ -158,10 +169,11 @@ def run_deploy(options: DeployOptions, log: OutcomeLog) -> DeployResult:
 
         log.step("Done")
         pyw = hsk / ".venv" / "Scripts" / "pythonw.exe"
-        main_py = hsk / "src" / "harrix_swiss_knife" / "main.py"
+        launch_py = hsk / "launch_tray.py"
         log.line("")
         log.line(f"Install root:    {root}")
-        log.line(f'Run tray app:    "{pyw}" "{main_py}"')
+        log.line(f'Run tray app:    "{pyw}" "{launch_py}"')
+        log.line(f'Uninstall:       "{pyw}" "{hsk / "launch_uninstall.py"}"')
         log.line("CLI examples:    hsk md --help")
         for line in log.summary_lines():
             log.line(line)

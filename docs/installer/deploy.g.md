@@ -189,6 +189,13 @@ def run_deploy(options: DeployOptions, log: OutcomeLog) -> DeployResult:
             except OSError as exc:
                 log.add("failed", f"Startup shortcut failed: {exc}")
 
+        log.step("Uninstall shortcut")
+        try:
+            create_uninstall_shortcut(hsk)
+            log.add("installed", "Desktop uninstall shortcut created")
+        except OSError as exc:
+            log.add("failed", f"Uninstall shortcut failed: {exc}")
+
         try:
             install_optimize_binaries(hsk, deps=deps, skip_download=offline, log=log)
         except Exception as exc:
@@ -196,10 +203,11 @@ def run_deploy(options: DeployOptions, log: OutcomeLog) -> DeployResult:
 
         log.step("Done")
         pyw = hsk / ".venv" / "Scripts" / "pythonw.exe"
-        main_py = hsk / "src" / "harrix_swiss_knife" / "main.py"
+        launch_py = hsk / "launch_tray.py"
         log.line("")
         log.line(f"Install root:    {root}")
-        log.line(f'Run tray app:    "{pyw}" "{main_py}"')
+        log.line(f'Run tray app:    "{pyw}" "{launch_py}"')
+        log.line(f'Uninstall:       "{pyw}" "{hsk / "launch_uninstall.py"}"')
         log.line("CLI examples:    hsk md --help")
         for line in log.summary_lines():
             log.line(line)
