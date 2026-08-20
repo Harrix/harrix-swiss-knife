@@ -13,8 +13,10 @@ lang: en
 
 - [🏛️ Class `DonePage`](#%EF%B8%8F-class-donepage)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
+  - [⚙️ Method `set_report`](#%EF%B8%8F-method-set_report)
 - [🏛️ Class `InstallerWizard`](#%EF%B8%8F-class-installerwizard)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-1)
+  - [⚙️ Method `show_install_report`](#%EF%B8%8F-method-show_install_report)
 - [🏛️ Class `OptionsPage`](#%EF%B8%8F-class-optionspage)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-2)
   - [⚙️ Method `install_root`](#%EF%B8%8F-method-install_root)
@@ -55,13 +57,30 @@ Final wizard page shown after installation completes.
 class DonePage(QWizardPage):
 
     def __init__(self) -> None:
-        """Build the completion page."""
+        """Build the completion page with a scrollable install report."""
         super().__init__()
         self.setTitle("Finished")
         self.label = QLabel("Installation finished. You can close this window.")
         self.label.setWordWrap(True)
+        self.report = QPlainTextEdit()
+        self.report.setReadOnly(True)
+        self.report.setFont(QFont("Consolas", 9))
+        self.report.setPlainText("Waiting for installation to finish…")
+        copy_btn = QPushButton("Copy report")
+        copy_btn.clicked.connect(self._copy_report)
         layout = QVBoxLayout(self)
         layout.addWidget(self.label)
+        layout.addWidget(self.report)
+        layout.addWidget(copy_btn)
+
+    def set_report(self, text: str) -> None:
+        """Show the install summary on this page."""
+        self.report.setPlainText(text)
+
+    def _copy_report(self) -> None:
+        clip = QApplication.clipboard()
+        if clip is not None:
+            clip.setText(self.report.toPlainText())
 ```
 
 </details>
@@ -72,7 +91,7 @@ class DonePage(QWizardPage):
 def __init__(self) -> None
 ```
 
-Build the completion page.
+Build the completion page with a scrollable install report.
 
 <details>
 <summary>Code:</summary>
@@ -83,8 +102,34 @@ def __init__(self) -> None:
         self.setTitle("Finished")
         self.label = QLabel("Installation finished. You can close this window.")
         self.label.setWordWrap(True)
+        self.report = QPlainTextEdit()
+        self.report.setReadOnly(True)
+        self.report.setFont(QFont("Consolas", 9))
+        self.report.setPlainText("Waiting for installation to finish…")
+        copy_btn = QPushButton("Copy report")
+        copy_btn.clicked.connect(self._copy_report)
         layout = QVBoxLayout(self)
         layout.addWidget(self.label)
+        layout.addWidget(self.report)
+        layout.addWidget(copy_btn)
+```
+
+</details>
+
+### ⚙️ Method `set_report`
+
+```python
+def set_report(self, text: str) -> None
+```
+
+Show the install summary on this page.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def set_report(self, text: str) -> None:
+        self.report.setPlainText(text)
 ```
 
 </details>
@@ -119,11 +164,16 @@ class InstallerWizard(QWizard):
         self.tools_page = ToolsPage(mode)
         self.options_page = OptionsPage()
         self.progress_page = ProgressPage(mode)
+        self.done_page = DonePage()
         self.addPage(WelcomePage(mode))
         self.addPage(self.tools_page)
         self.addPage(self.options_page)
         self.addPage(self.progress_page)
-        self.addPage(DonePage())
+        self.addPage(self.done_page)
+
+    def show_install_report(self, result: DeployResult) -> None:
+        """Populate the Finished page from a successful deploy result."""
+        self.done_page.set_report(format_install_report(result))
 ```
 
 </details>
@@ -155,11 +205,30 @@ def __init__(self, mode: str) -> None:
         self.tools_page = ToolsPage(mode)
         self.options_page = OptionsPage()
         self.progress_page = ProgressPage(mode)
+        self.done_page = DonePage()
         self.addPage(WelcomePage(mode))
         self.addPage(self.tools_page)
         self.addPage(self.options_page)
         self.addPage(self.progress_page)
-        self.addPage(DonePage())
+        self.addPage(self.done_page)
+```
+
+</details>
+
+### ⚙️ Method `show_install_report`
+
+```python
+def show_install_report(self, result: DeployResult) -> None
+```
+
+Populate the Finished page from a successful deploy result.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def show_install_report(self, result: DeployResult) -> None:
+        self.done_page.set_report(format_install_report(result))
 ```
 
 </details>
@@ -188,6 +257,11 @@ class OptionsPage(QWizardPage):
         row = QHBoxLayout()
         row.addWidget(self.path_edit)
         row.addWidget(browse)
+        self.hint = QLabel(
+            "Recommended: `C:\\GitHub` or `D:\\GitHub` (writable). "
+            "Do not install under Program Files — the app needs to write into `.venv`."
+        )
+        self.hint.setWordWrap(True)
         self.desktop_cb = QCheckBox("Create desktop shortcut")
         self.desktop_cb.setChecked(True)
         self.startup_cb = QCheckBox("Add to Windows Startup")
@@ -195,6 +269,7 @@ class OptionsPage(QWizardPage):
         layout = QVBoxLayout(self)
         layout.addWidget(QLabel("Install parent folder (repos will be cloned/extracted here):"))
         layout.addLayout(row)
+        layout.addWidget(self.hint)
         layout.addWidget(self.desktop_cb)
         layout.addWidget(self.startup_cb)
 
@@ -204,13 +279,26 @@ class OptionsPage(QWizardPage):
 
     def validatePage(self) -> bool:  # noqa: N802
         """Block folders so deep that `uv sync` could not write every packaged file."""
-        headroom = venv_path_headroom(self.install_root())
+        root = self.install_root()
+        if is_under_program_files(root):
+            answer = QMessageBox.warning(
+                self,
+                "Program Files is not recommended",
+                "Installing under Program Files usually breaks the tray app: "
+                "`.venv` must stay writable for a normal (non-admin) user.\n\n"
+                "Continue anyway?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No,
+            )
+            if answer != QMessageBox.StandardButton.Yes:
+                return False
+        headroom = venv_path_headroom(root)
         if headroom >= DEEPEST_VENV_RELATIVE or long_paths_enabled():
             return True
         answer = QMessageBox.question(
             self,
             "Folder path is too long",
-            f"`{self.install_root()}` leaves only {headroom} characters for files inside `.venv`, "
+            f"`{root}` leaves only {headroom} characters for files inside `.venv`, "
             f"but some packages need about {DEEPEST_VENV_RELATIVE}.\n\n"
             "Enable Windows long-path support now, or press No and pick a shorter folder "
             "such as `C:\\GitHub`.",
@@ -257,6 +345,11 @@ def __init__(self) -> None:
         row = QHBoxLayout()
         row.addWidget(self.path_edit)
         row.addWidget(browse)
+        self.hint = QLabel(
+            "Recommended: `C:\\GitHub` or `D:\\GitHub` (writable). "
+            "Do not install under Program Files — the app needs to write into `.venv`."
+        )
+        self.hint.setWordWrap(True)
         self.desktop_cb = QCheckBox("Create desktop shortcut")
         self.desktop_cb.setChecked(True)
         self.startup_cb = QCheckBox("Add to Windows Startup")
@@ -264,6 +357,7 @@ def __init__(self) -> None:
         layout = QVBoxLayout(self)
         layout.addWidget(QLabel("Install parent folder (repos will be cloned/extracted here):"))
         layout.addLayout(row)
+        layout.addWidget(self.hint)
         layout.addWidget(self.desktop_cb)
         layout.addWidget(self.startup_cb)
 ```
@@ -301,13 +395,26 @@ Block folders so deep that `uv sync` could not write every packaged file.
 
 ```python
 def validatePage(self) -> bool:  # noqa: N802
-        headroom = venv_path_headroom(self.install_root())
+        root = self.install_root()
+        if is_under_program_files(root):
+            answer = QMessageBox.warning(
+                self,
+                "Program Files is not recommended",
+                "Installing under Program Files usually breaks the tray app: "
+                "`.venv` must stay writable for a normal (non-admin) user.\n\n"
+                "Continue anyway?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No,
+            )
+            if answer != QMessageBox.StandardButton.Yes:
+                return False
+        headroom = venv_path_headroom(root)
         if headroom >= DEEPEST_VENV_RELATIVE or long_paths_enabled():
             return True
         answer = QMessageBox.question(
             self,
             "Folder path is too long",
-            f"`{self.install_root()}` leaves only {headroom} characters for files inside `.venv`, "
+            f"`{root}` leaves only {headroom} characters for files inside `.venv`, "
             f"but some packages need about {DEEPEST_VENV_RELATIVE}.\n\n"
             "Enable Windows long-path support now, or press No and pick a shorter folder "
             "such as `C:\\GitHub`.",
@@ -410,12 +517,14 @@ class ProgressPage(QWizardPage):
             wizard.button(QWizard.WizardButton.BackButton).setEnabled(True)
             wizard.button(QWizard.WizardButton.CommitButton).setEnabled(True)
 
-    def _on_ok(self, _result: object) -> None:
+    def _on_ok(self, result: object) -> None:
         self._done = True
         self.bar.setRange(0, 1)
         self.bar.setValue(1)
         self.completeChanged.emit()
         wizard = self.wizard()
+        if isinstance(wizard, InstallerWizard) and isinstance(result, DeployResult):
+            wizard.show_install_report(result)
         if wizard:
             wizard.next()
 
@@ -464,8 +573,16 @@ class ProgressPage(QWizardPage):
         text = line.strip()
         if not text:
             return
+        mode = progress_mode_for_log_line(line, extracting=self._extracting)
+        if mode is ProgressBarMode.INDETERMINATE:
+            self._extracting = False
+            self.bar.setRange(0, 0)
+        elif mode is ProgressBarMode.DETERMINATE:
+            self._extracting = True
         if text.startswith("==> "):
             self._extracting = "extract" in text.lower()
+            if not self._extracting:
+                self.bar.setRange(0, 0)
             self.status_label.setText(text[4:])
             return
         if text.startswith("Extracting payload"):
@@ -603,12 +720,14 @@ class ToolsPage(QWizardPage):
         self.uv_cb = QCheckBox("Install uv")
         self.vscode_cb = QCheckBox("Install VS Code (if no editor found)")
         self.python_cb = QCheckBox("Install managed Python via uv")
+        self.python_ext_cb = QCheckBox("Install Python extension (VS Code / Cursor)")
         layout = QVBoxLayout(self)
         layout.addWidget(self.status_label)
         layout.addWidget(self.git_cb)
         layout.addWidget(self.uv_cb)
         layout.addWidget(self.vscode_cb)
         layout.addWidget(self.python_cb)
+        layout.addWidget(self.python_ext_cb)
 
     def initializePage(self) -> None:  # noqa: N802
         """Populate tool checkboxes from detected system status."""
@@ -627,6 +746,7 @@ class ToolsPage(QWizardPage):
         self.uv_cb.setChecked(plan.uv)
         self.vscode_cb.setChecked(plan.vscode)
         self.python_cb.setChecked(plan.python)
+        self.python_ext_cb.setChecked(plan.python_extension)
 
     def plan(self) -> PrerequisitePlan:
         """Return the user's selected prerequisite install plan."""
@@ -635,6 +755,7 @@ class ToolsPage(QWizardPage):
             uv=self.uv_cb.isChecked(),
             vscode=self.vscode_cb.isChecked(),
             python=self.python_cb.isChecked(),
+            python_extension=self.python_ext_cb.isChecked(),
         )
 ```
 
@@ -662,12 +783,14 @@ def __init__(self, mode: str) -> None:
         self.uv_cb = QCheckBox("Install uv")
         self.vscode_cb = QCheckBox("Install VS Code (if no editor found)")
         self.python_cb = QCheckBox("Install managed Python via uv")
+        self.python_ext_cb = QCheckBox("Install Python extension (VS Code / Cursor)")
         layout = QVBoxLayout(self)
         layout.addWidget(self.status_label)
         layout.addWidget(self.git_cb)
         layout.addWidget(self.uv_cb)
         layout.addWidget(self.vscode_cb)
         layout.addWidget(self.python_cb)
+        layout.addWidget(self.python_ext_cb)
 ```
 
 </details>
@@ -700,6 +823,7 @@ def initializePage(self) -> None:  # noqa: N802
         self.uv_cb.setChecked(plan.uv)
         self.vscode_cb.setChecked(plan.vscode)
         self.python_cb.setChecked(plan.python)
+        self.python_ext_cb.setChecked(plan.python_extension)
 ```
 
 </details>
@@ -722,6 +846,7 @@ def plan(self) -> PrerequisitePlan:
             uv=self.uv_cb.isChecked(),
             vscode=self.vscode_cb.isChecked(),
             python=self.python_cb.isChecked(),
+            python_extension=self.python_ext_cb.isChecked(),
         )
 ```
 
@@ -819,11 +944,16 @@ class UninstallWindow(QWidget):
         self._done = True
         self.bar.setRange(0, 1)
         self.bar.setValue(1)
-        preserved = getattr(result, "preserved_dir", None)
-        msg = "Uninstall finished."
-        if preserved is not None:
-            msg += f"\n\nPreserved data:\n{preserved}"
-        QMessageBox.information(self, "Uninstall finished", msg)
+        if isinstance(result, UninstallResult):
+            report = format_uninstall_report(result)
+            self.log_view.appendPlainText(report)
+            QMessageBox.information(self, "Uninstall finished", report[:1500])
+        else:
+            preserved = getattr(result, "preserved_dir", None)
+            msg = "Uninstall finished."
+            if preserved is not None:
+                msg += f"\n\nPreserved data:\n{preserved}"
+            QMessageBox.information(self, "Uninstall finished", msg)
 
     def _refresh_preserve_list(self) -> None:
         hsk = Path(self.path_edit.text().strip())
@@ -1117,14 +1247,16 @@ def load_app_icon() -> QIcon:
 def run_uninstall_wizard(argv: list[str] | None = None) -> int
 ```
 
-Run the uninstall UI and return the Qt exit code.
+Run the uninstall UI (or silent uninstall) and return the process exit code.
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def run_uninstall_wizard(argv: list[str] | None = None) -> int:
-    args = [a for a in (sys.argv[1:] if argv is None else argv) if a != "--uninstall"]
+    raw = list(sys.argv[1:] if argv is None else argv)
+    silent = "--silent" in raw
+    args = [a for a in raw if a not in {"--uninstall", "--silent"}]
     hint: Path | None = None
     for arg in args:
         if arg.startswith("-"):
@@ -1134,6 +1266,37 @@ def run_uninstall_wizard(argv: list[str] | None = None) -> int:
             hint = candidate
             break
     hsk = detect_hsk_path(hint)
+
+    if silent:
+        if hsk is None:
+            print("Could not find harrix-swiss-knife install folder", file=sys.stderr)
+            return 1
+        if sys.platform == "win32" and not is_admin() and "--no-elevate" not in raw:
+            try:
+                rc = relaunch_elevated(["--uninstall", "--silent", str(hsk)])
+            except (OSError, RuntimeError):
+                rc = 0
+            if rc > _SHELL_EXECUTE_MAX_ERROR:
+                return 0
+        log = OutcomeLog()
+        result = run_uninstall(
+            UninstallOptions(hsk_path=hsk, remove_sibling_repos=True),
+            log,
+        )
+        print(format_uninstall_report(result))
+        return 0 if result.ok else 1
+
+    if sys.platform == "win32" and not is_admin() and "--no-elevate" not in raw:
+        elevate_args = ["--uninstall"]
+        if hsk is not None:
+            elevate_args.append(str(hsk))
+        try:
+            rc = relaunch_elevated(elevate_args)
+        except (OSError, RuntimeError):
+            rc = 0
+        if rc > _SHELL_EXECUTE_MAX_ERROR:
+            return 0
+
     app = QApplication.instance() or QApplication(sys.argv)
     icon = load_app_icon()
     if not icon.isNull():

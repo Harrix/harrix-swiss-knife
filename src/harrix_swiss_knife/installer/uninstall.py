@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from harrix_swiss_knife.desktop_shortcut import remove_app_shortcuts
+from harrix_swiss_knife.installer.arp import unregister_uninstall
 from harrix_swiss_knife.installer.constants import HSK_REPO_NAME, REPO_NAMES
 from harrix_swiss_knife.installer.prereqs import find_uv_exe
 
@@ -199,6 +200,9 @@ def run_uninstall(options: UninstallOptions, log: OutcomeLog) -> UninstallResult
 
         log.step("Remove global hsk CLI (uv tool)")
         _uninstall_cli(log)
+
+        log.step("Remove Apps & Features entry")
+        unregister_uninstall(log)
 
         install_root = hsk.parent
         to_remove = [hsk]

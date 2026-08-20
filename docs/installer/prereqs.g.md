@@ -73,6 +73,7 @@ class PrerequisitePlan:
     uv: bool = True
     vscode: bool = True
     python: bool = True
+    python_extension: bool = True
 
     @property
     def need_elevate(self) -> bool:
@@ -173,6 +174,8 @@ def default_plan_from_detection(status: DetectionStatus) -> PrerequisitePlan:
         uv=not status.uv,
         vscode=not status.editor,
         python=not status.managed_python,
+        # Default on whenever an editor exists or VS Code will be installed.
+        python_extension=True,
     )
 ```
 
@@ -409,7 +412,7 @@ def install_prerequisites(
     state: dict[str, bool],
     allow_network: bool,
 ) -> None:
-    if not (plan.git or plan.uv or plan.vscode or plan.python):
+    if not (plan.git or plan.uv or plan.vscode or plan.python or plan.python_extension):
         log.add("skipped", "Prerequisites install skipped")
         return
 
@@ -531,6 +534,14 @@ def install_prerequisites(
         ensure_managed_python(version=python_version, deps=deps, log=log, state=state)
     else:
         log.add("skipped", "Managed Python install skipped by user")
+
+    refresh_path()
+    if plan.python_extension:
+        from harrix_swiss_knife.installer.vscode_ext import install_vscode_python_extension  # noqa: PLC0415
+
+        install_vscode_python_extension(deps=deps, log=log, allow_network=allow_network)
+    else:
+        log.add("skipped", "Python extension install skipped by user")
 ```
 
 </details>

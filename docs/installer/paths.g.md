@@ -14,6 +14,7 @@ lang: en
 - [🔧 Function `default_install_root_parent`](#-function-default_install_root_parent)
 - [🔧 Function `detect_dev_checkout_parent`](#-function-detect_dev_checkout_parent)
 - [🔧 Function `enable_long_paths`](#-function-enable_long_paths)
+- [🔧 Function `is_under_program_files`](#-function-is_under_program_files)
 - [🔧 Function `long_paths_enabled`](#-function-long_paths_enabled)
 - [🔧 Function `normalize_install_root`](#-function-normalize_install_root)
 - [🔧 Function `venv_path_headroom`](#-function-venv_path_headroom)
@@ -26,20 +27,25 @@ lang: en
 def default_install_root_parent() -> Path
 ```
 
-Prefer `D:\GitHub`, `C:\GitHub`, Documents\GitHub, else `%USERPROFILE%\harrix-swiss-knife`.
+Prefer `D:\GitHub`, `C:\GitHub`, Documents\GitHub, else create `C:\GitHub`.
+
+Falls back to `%USERPROFILE%\harrix-swiss-knife` only when `C:\GitHub` cannot be created.
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def default_install_root_parent() -> Path:
-    docs = Path.home() / "Documents" / "GitHub"
-    for candidate in (Path(r"D:\GitHub"), Path(r"C:\GitHub"), docs):
+    for candidate in _github_parent_candidates():
         if candidate.is_dir():
             return candidate.resolve()
-    bundle = Path.home() / "harrix-swiss-knife"
-    bundle.mkdir(parents=True, exist_ok=True)
-    return bundle.resolve()
+    try:
+        _FALLBACK_CREATE_PARENT.mkdir(parents=True, exist_ok=True)
+        return _FALLBACK_CREATE_PARENT.resolve()
+    except OSError:
+        bundle = Path.home() / "harrix-swiss-knife"
+        bundle.mkdir(parents=True, exist_ok=True)
+        return bundle.resolve()
 ```
 
 </details>
@@ -96,6 +102,27 @@ def enable_long_paths() -> bool:
     except OSError:
         return False
     return True
+```
+
+</details>
+
+## 🔧 Function `is_under_program_files`
+
+```python
+def is_under_program_files(path: Path) -> bool
+```
+
+Return whether `path` is under Program Files (not recommended for this app).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def is_under_program_files(path: Path) -> bool:
+    program_files = (
+        os.environ.get("PROGRAMFILES") or os.environ.get("ProgramFiles") or r"C:\Program Files"  # noqa: SIM112
+    )
+    return str(path.resolve()).lower().startswith(program_files.lower())
 ```
 
 </details>

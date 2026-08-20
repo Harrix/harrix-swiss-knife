@@ -150,6 +150,7 @@ def run_deploy(options: DeployOptions, log: OutcomeLog) -> DeployResult:
         root.mkdir(parents=True, exist_ok=True)
         log.step("Create install folder")
         log.detail(f"Repos will live under {root} (harrix-pylib, harrix-pyssg, harrix-swiss-knife)")
+        repair_install_tree_acls(root, log)
 
         hsk = ensure_repos(root, deps=deps, offline=offline, log=log)
 
@@ -168,6 +169,8 @@ def run_deploy(options: DeployOptions, log: OutcomeLog) -> DeployResult:
             used = uv_sync_with_bundle_cache(path, deps=deps, label=name, log=log)
             how = "bundled uv-cache (offline)" if used else "uv download from the network"
             log.add("installed", f"uv sync finished for {name} via {how}")
+
+        repair_install_tree_acls(root, log)
 
         install_hsk_cli(hsk, log)
         apply_config_defaults(hsk, log)
@@ -200,6 +203,23 @@ def run_deploy(options: DeployOptions, log: OutcomeLog) -> DeployResult:
             install_optimize_binaries(hsk, deps=deps, skip_download=offline, log=log)
         except Exception as exc:
             log.add("failed", f"Optimize binaries install failed: {exc}")
+
+        meta = load_build_meta()
+        register_uninstall(
+            install_root=root,
+            hsk_path=hsk,
+            version=meta.get("version") or "unknown",
+            log=log,
+        )
+
+        # Keep a durable copy of the install log next to the app.
+        try:
+            if log._file is not None and log._file.is_file():  # noqa: SLF001
+                dest_log = hsk / "install.log"
+                shutil.copy2(log._file, dest_log)  # noqa: SLF001
+                log.detail(f"Copied install log to {dest_log}")
+        except OSError as exc:
+            log.detail(f"Could not copy install.log: {exc}")
 
         log.step("Done")
         pyw = hsk / ".venv" / "Scripts" / "pythonw.exe"

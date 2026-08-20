@@ -23,15 +23,25 @@ _LONG_PATHS_KEY = r"SYSTEM\CurrentControlSet\Control\FileSystem"
 _LONG_PATHS_VALUE = "LongPathsEnabled"
 
 
+_FALLBACK_CREATE_PARENT = Path(r"C:\GitHub")
+
+
 def default_install_root_parent() -> Path:
-    r"""Prefer `D:\GitHub`, `C:\GitHub`, Documents\GitHub, else `%USERPROFILE%\harrix-swiss-knife`."""
-    docs = Path.home() / "Documents" / "GitHub"
-    for candidate in (Path(r"D:\GitHub"), Path(r"C:\GitHub"), docs):
+    r"""Prefer `D:\GitHub`, `C:\GitHub`, Documents\GitHub, else create `C:\GitHub`.
+
+    Falls back to `%USERPROFILE%\harrix-swiss-knife` only when `C:\GitHub` cannot be created.
+
+    """
+    for candidate in _github_parent_candidates():
         if candidate.is_dir():
             return candidate.resolve()
-    bundle = Path.home() / "harrix-swiss-knife"
-    bundle.mkdir(parents=True, exist_ok=True)
-    return bundle.resolve()
+    try:
+        _FALLBACK_CREATE_PARENT.mkdir(parents=True, exist_ok=True)
+        return _FALLBACK_CREATE_PARENT.resolve()
+    except OSError:
+        bundle = Path.home() / "harrix-swiss-knife"
+        bundle.mkdir(parents=True, exist_ok=True)
+        return bundle.resolve()
 
 
 def detect_dev_checkout_parent(project_hint: Path | None = None) -> Path | None:
@@ -62,6 +72,14 @@ def enable_long_paths() -> bool:
     except OSError:
         return False
     return True
+
+
+def is_under_program_files(path: Path) -> bool:
+    """Return whether `path` is under Program Files (not recommended for this app)."""
+    program_files = (
+        os.environ.get("PROGRAMFILES") or os.environ.get("ProgramFiles") or r"C:\Program Files"  # noqa: SIM112
+    )
+    return str(path.resolve()).lower().startswith(program_files.lower())
 
 
 def long_paths_enabled() -> bool:
@@ -105,3 +123,9 @@ def venv_path_headroom(install_root: Path) -> int:
     """
     longest_repo = max(len(name) for name in REPO_NAMES)
     return MAX_WINDOWS_PATH - len(str(install_root).rstrip("\\/")) - 1 - longest_repo
+
+
+def _github_parent_candidates() -> list[Path]:
+    """Return preferred install parents in priority order."""
+    docs = Path.home() / "Documents" / "GitHub"
+    return [Path(r"D:\GitHub"), Path(r"C:\GitHub"), docs]

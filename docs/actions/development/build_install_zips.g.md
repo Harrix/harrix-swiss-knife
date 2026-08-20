@@ -117,7 +117,8 @@ class OnBuildInstallZips(ActionBase):
         quick = tray_defaults != list(DEFAULT_STEP_LABELS)
         label = (
             "Select builder steps. Output is logged here like other actions.\n"
-            "Full rebuild (uv cache) can take tens of minutes; quick rebuild re-packs EXEs in minutes."
+            "Full rebuild (uv cache) can take tens of minutes; quick rebuild re-packs EXEs in minutes.\n"
+            "Existing files under install/dependencies are reused (presence only — not version-checked)."
         )
         if quick:
             label += "\nDefaults: quick rebuild (existing install/dependencies detected)."

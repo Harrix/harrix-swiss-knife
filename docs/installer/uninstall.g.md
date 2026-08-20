@@ -277,6 +277,9 @@ def run_uninstall(options: UninstallOptions, log: OutcomeLog) -> UninstallResult
         log.step("Remove global hsk CLI (uv tool)")
         _uninstall_cli(log)
 
+        log.step("Remove Apps & Features entry")
+        unregister_uninstall(log)
+
         install_root = hsk.parent
         to_remove = [hsk]
         if options.remove_sibling_repos:

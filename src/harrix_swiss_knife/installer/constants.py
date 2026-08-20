@@ -23,6 +23,10 @@ VSCODE_URL = "https://update.code.visualstudio.com/latest/win32-x64-user/stable"
 VSCODE_EXE_NAME = "VSCodeSetup-x64-latest.exe"
 GIT_EXE_NAME = "Git-latest-64-bit.exe"
 
+# VS Code Python extension (Marketplace id) bundled as VSIX for offline installs.
+VSCODE_PYTHON_EXTENSION_ID = "ms-python.python"
+VSCODE_EXTENSIONS_DIR_NAME = "vscode-extensions"
+
 GITHUB_UA = "Harrix-Swiss-Knife/1.0 (Python; installer)"
 LIBAVIF_ZIP_NAME = "windows-artifacts.zip"
 FFMPEG_ZIP_NAME = "ffmpeg-master-latest-win64-gpl.zip"

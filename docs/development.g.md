@@ -86,7 +86,7 @@ The **builder** that fills `install\dependencies\` and packs the two distributab
 | ---------- | ------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
 | Wipe       | Wipe `install/dependencies` first (`--no-wipe` to skip) | Delete `install\dependencies\` so downloads rebuild from scratch.                               |
 | Binaries   | Media binaries (`--skip-binaries`)                      | ffmpeg / avifenc / avifdec → `install\dependencies\`.                                           |
-| Installers | Installers (`--skip-installers`)                        | Git, uv, VS Code installers → `install\dependencies\`.                                          |
+| Installers | Installers (`--skip-installers`)                        | Git, uv, VS Code installers + Python VSIX pack → `install\dependencies\`.                       |
 | Repos      | Repo snapshots (`--skip-repos`)                         | `git archive` → `install\dependencies\repos\`.                                                  |
 | uv cache   | uv cache (`--skip-uv-cache`)                            | Warm `uv-python-cache\` and `uv-cache\` (isolated Python/venv; safe while the tray is running). |
 | EXEs       | Build installer EXEs (`--no-exes`)                      | Writes `harrix-swiss-knife-online.exe` and `harrix-swiss-knife-offline.exe`.                    |
@@ -101,12 +101,14 @@ When `install/dependencies` already has binaries, installers, or a uv cache, the
 hsk dev build-install-zips --no-wipe --skip-binaries --skip-installers --skip-repos --skip-uv-cache
 ```
 
-Without wipe, existing installer and binary files are kept (download force is off). Payload packing zips `dependencies/` in place (no double copy) with fast compression; `uv-cache` / `uv-python-cache` are stored uncompressed inside the zip to save time.
+Without wipe, existing installer and binary files are kept (download force is off). **Presence only** — the builder does not compare versions, URLs, or hashes against GitHub latest. Use **Full rebuild (slow)** / wipe when Git, uv, VS Code, VSIX, or uv-cache must be refreshed. Payload packing zips `dependencies/` in place (no double copy) with fast compression; `uv-cache` / `uv-python-cache` are stored uncompressed inside the zip to save time.
+
+The **Installers** step also downloads the VS Code **Python** extension (`ms-python.python`) plus its Marketplace dependencies as VSIX files under `install\dependencies\vscode-extensions\` for offline installs.
 
 After packing, copy the two EXEs from `install\` for distribution (not an `install\` folder zip).
 
-- **Online EXE** — wizard installs tools as needed, clones repos from GitHub, `uv sync`.
-- **Offline EXE** — same wizard; extracts bundled `repos\` + uv caches; prefers bundled installers/binaries.
+- **Online EXE** — wizard installs tools as needed, clones repos from GitHub, `uv sync`, optionally installs the Python VS Code extension.
+- **Offline EXE** — same wizard; extracts bundled `repos\` + uv caches + VSIX; prefers bundled installers/binaries.
 
 Local unpackaged test (no freeze): `python -m harrix_swiss_knife.installer --online` (or `--offline`) with `install\dependencies\` already populated.
 

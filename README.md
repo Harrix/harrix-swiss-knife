@@ -201,15 +201,17 @@ The bundled **Harrix Notes Explorer (HSK)** VS Code extension is **not** install
 
 ### Uninstall
 
-Use the desktop shortcut **Uninstall Harrix Swiss Knife**, or **Dev** → **Uninstall Harrix Swiss Knife…**, or:
+Use **Apps & Features** (Harrix Swiss Knife), the desktop shortcut **Uninstall Harrix Swiss Knife**, or **Dev** → **Uninstall Harrix Swiss Knife…**, or:
 
 ```powershell
 & ".\.venv\Scripts\pythonw.exe" ".\launch_uninstall.py"
 ```
 
-(from the `harrix-swiss-knife` folder). The wizard removes the app repos, shortcuts, and the global `hsk` CLI. **Databases, `api-keys`, and fitness images are moved** to `Harrix Swiss Knife Data` next to the install parent (for example `C:\Users\Admin\harrix-swiss-knife\Harrix Swiss Knife Data`). Git, uv, VS Code, and managed Python are not removed.
+(from the `harrix-swiss-knife` folder). The wizard removes the app repos, shortcuts, the Apps & Features entry, and the global `hsk` CLI. **Databases, `api-keys`, and fitness images are moved** to `Harrix Swiss Knife Data` next to the install parent (for example `C:\GitHub\Harrix Swiss Knife Data`). Git, uv, VS Code, and managed Python are not removed.
 
-A live log appears in the wizard; `install.log` is also written under a temp work folder. Keep the window open until the done page.
+Default install parent is `C:\GitHub` (or `D:\GitHub` / `Documents\GitHub` when those folders already exist). Prefer that over Program Files — the app must write into `.venv` as a normal user.
+
+A live log appears in the wizard; the Finished page shows a summary. `install.log` is copied into the install folder when setup succeeds.
 
 ### Offline install (local bundle)
 
@@ -223,7 +225,7 @@ Use this when the target machine has slow or blocked internet. Build the offline
    hsk dev build-install-zips
    ```
 
-   A full rebuild populates `install\dependencies\` (ignored by Git) with installers, media binaries, repo snapshots, and uv caches (often tens of minutes for uv cache), freezes a reusable PyInstaller stub if needed, then writes the two EXEs. Iterative re-packs skip those heavy steps by default in the tray. Details: [`DEVELOPMENT.md`](https://github.com/Harrix/harrix-swiss-knife/blob/main/DEVELOPMENT.md#building-windows-installer-exes).
+   A full rebuild populates `install\dependencies\` (ignored by Git) with installers, media binaries, VS Code Python VSIX files, repo snapshots, and uv caches (often tens of minutes for uv cache), freezes a reusable PyInstaller stub if needed, then writes the two EXEs. Iterative re-packs skip those heavy steps by default in the tray (existing files are reused by presence, not version-checked). Details: [`DEVELOPMENT.md`](https://github.com/Harrix/harrix-swiss-knife/blob/main/DEVELOPMENT.md#building-windows-installer-exes).
 
 2. Copy `install\harrix-swiss-knife-offline.exe` to the target machine (the online EXE is optional for air-gapped targets).
 

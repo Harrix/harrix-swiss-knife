@@ -13,12 +13,16 @@ from harrix_swiss_knife.installer.payload import frozen_executable, is_frozen, r
 
 
 def collect_build_meta(project_root: Path) -> dict[str, str]:
-    """Collect version, Git hash, and local build timestamp for a pack run."""
-    return {
+    """Collect version, Git hash, build timestamp, and key payload artifact sizes."""
+    meta = {
         "version": read_pyproject_version(project_root),
         "built_at": datetime.now(tz=UTC).astimezone().strftime("%Y-%m-%d %H:%M"),
         "git": git_short_hash(project_root),
     }
+    artifacts = summarize_dependency_artifacts(project_root / "install" / "dependencies")
+    if artifacts:
+        meta["artifacts"] = artifacts
+    return meta
 
 
 def display_build_lines(meta: dict[str, str] | None = None) -> tuple[str, str]:
@@ -85,10 +89,46 @@ def read_pyproject_version(project_root: Path) -> str:
     return str(version) if version else "unknown"
 
 
+def summarize_dependency_artifacts(deps: Path) -> str:
+    """Return a short `name=size` list of key files under `dependencies/`."""
+    if not deps.is_dir():
+        return ""
+    names = (
+        "Git-latest-64-bit.exe",
+        "uv-x86_64-pc-windows-msvc.zip",
+        "VSCodeSetup-x64-latest.exe",
+        "ffmpeg.exe",
+        "avifenc.exe",
+        "avifdec.exe",
+    )
+    parts: list[str] = []
+    for name in names:
+        path = deps / name
+        if path.is_file() and path.stat().st_size > 0:
+            parts.append(f"{name}={_human_size(path.stat().st_size)}")
+    ext_dir = deps / "vscode-extensions"
+    if ext_dir.is_dir():
+        vsixes = sorted(p for p in ext_dir.glob("*.vsix") if p.is_file() and p.stat().st_size > 0)
+        parts.extend(f"vscode-extensions/{path.name}={_human_size(path.stat().st_size)}" for path in vsixes)
+    for cache_name in ("uv-cache", "uv-python-cache", "repos"):
+        cache = deps / cache_name
+        if cache.is_dir() and any(cache.iterdir()):
+            parts.append(f"{cache_name}/={'present'}")
+    return "; ".join(parts)
+
+
 def write_build_meta(path: Path, meta: dict[str, str]) -> None:
     """Write `build_meta.json`."""
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(meta, indent=2) + "\n", encoding="utf-8")
+
+
+def _human_size(size: int) -> str:
+    if size < _BYTES_PER_KIB:
+        return f"{size}B"
+    if size < _BYTES_PER_MIB:
+        return f"{size // _BYTES_PER_KIB}KB"
+    return f"{size // _BYTES_PER_MIB}MB"
 
 
 def _local_meta_paths() -> list[Path]:
@@ -114,6 +154,10 @@ def _project_root_guess() -> Path | None:
         if (root / "pyproject.toml").is_file():
             return root
     return None
+
+
+_BYTES_PER_KIB = 1024
+_BYTES_PER_MIB = 1024 * 1024
 
 
 _REPO_ROOT_PARENT_DEPTH = 4

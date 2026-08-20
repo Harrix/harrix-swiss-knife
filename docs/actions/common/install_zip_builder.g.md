@@ -817,6 +817,16 @@ def populate_installers(
             log(f"  Keep existing {VSCODE_EXE_NAME}")
     except (HTTPError, URLError, ValueError, OSError) as exc:
         log(f"  Skip VS Code: {exc}")
+
+    from harrix_swiss_knife.installer.vscode_ext import populate_vscode_python_extensions  # noqa: PLC0415
+
+    populate_vscode_python_extensions(
+        project_root,
+        log,
+        download_url=download_url,
+        config=config,
+        force=force,
+    )
 ```
 
 </details>
