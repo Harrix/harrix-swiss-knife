@@ -94,7 +94,9 @@ class Ui_MainWindow(object):
         self.label_chart_info.setText("")
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_charts), QCoreApplication.translate("MainWindow", u"Charts", None))
         self.label_exercise_avif_2.setText(QCoreApplication.translate("MainWindow", u"No exercise selected", None))
+        self.label_exercises_table.setText(QCoreApplication.translate("MainWindow", u"Exercises:", None))
         self.label_exercise_avif_3.setText(QCoreApplication.translate("MainWindow", u"No exercise selected", None))
+        self.label_exercise_types_table.setText(QCoreApplication.translate("MainWindow", u"Exercise Types:", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_2), QCoreApplication.translate("MainWindow", u"Exercises", None))
         self.groupBox_4.setTitle(QCoreApplication.translate("MainWindow", u"Add New Weight", None))
         self.dateEdit_weight.setDisplayFormat(QCoreApplication.translate("MainWindow", u"yyyy-MM-dd", None))
@@ -704,10 +706,24 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout_2.addWidget(self.frame_2)
 
-        self.tableView_exercises = QTableView(self.widget_top)
+        self.widget_exercises_table = QWidget(self.widget_top)
+        self.widget_exercises_table.setObjectName(u"widget_exercises_table")
+        self.verticalLayout_exercises_table = QVBoxLayout(self.widget_exercises_table)
+        self.verticalLayout_exercises_table.setSpacing(4)
+        self.verticalLayout_exercises_table.setObjectName(u"verticalLayout_exercises_table")
+        self.verticalLayout_exercises_table.setContentsMargins(0, 0, 0, 0)
+        self.label_exercises_table = QLabel(self.widget_exercises_table)
+        self.label_exercises_table.setObjectName(u"label_exercises_table")
+
+        self.verticalLayout_exercises_table.addWidget(self.label_exercises_table)
+
+        self.tableView_exercises = QTableView(self.widget_exercises_table)
         self.tableView_exercises.setObjectName(u"tableView_exercises")
 
-        self.horizontalLayout_2.addWidget(self.tableView_exercises)
+        self.verticalLayout_exercises_table.addWidget(self.tableView_exercises)
+
+
+        self.horizontalLayout_2.addWidget(self.widget_exercises_table)
 
         self.splitter_2.addWidget(self.widget_top)
         self.widget_bottom = QWidget(self.splitter_2)
@@ -739,10 +755,24 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout_3.addWidget(self.frame_3)
 
-        self.tableView_exercise_types = QTableView(self.widget_bottom)
+        self.widget_exercise_types_table = QWidget(self.widget_bottom)
+        self.widget_exercise_types_table.setObjectName(u"widget_exercise_types_table")
+        self.verticalLayout_exercise_types_table = QVBoxLayout(self.widget_exercise_types_table)
+        self.verticalLayout_exercise_types_table.setSpacing(4)
+        self.verticalLayout_exercise_types_table.setObjectName(u"verticalLayout_exercise_types_table")
+        self.verticalLayout_exercise_types_table.setContentsMargins(0, 0, 0, 0)
+        self.label_exercise_types_table = QLabel(self.widget_exercise_types_table)
+        self.label_exercise_types_table.setObjectName(u"label_exercise_types_table")
+
+        self.verticalLayout_exercise_types_table.addWidget(self.label_exercise_types_table)
+
+        self.tableView_exercise_types = QTableView(self.widget_exercise_types_table)
         self.tableView_exercise_types.setObjectName(u"tableView_exercise_types")
 
-        self.horizontalLayout_3.addWidget(self.tableView_exercise_types)
+        self.verticalLayout_exercise_types_table.addWidget(self.tableView_exercise_types)
+
+
+        self.horizontalLayout_3.addWidget(self.widget_exercise_types_table)
 
         self.splitter_2.addWidget(self.widget_bottom)
 
@@ -1100,7 +1130,9 @@ def retranslateUi(self, MainWindow):
         self.label_chart_info.setText("")
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_charts), QCoreApplication.translate("MainWindow", u"Charts", None))
         self.label_exercise_avif_2.setText(QCoreApplication.translate("MainWindow", u"No exercise selected", None))
+        self.label_exercises_table.setText(QCoreApplication.translate("MainWindow", u"Exercises:", None))
         self.label_exercise_avif_3.setText(QCoreApplication.translate("MainWindow", u"No exercise selected", None))
+        self.label_exercise_types_table.setText(QCoreApplication.translate("MainWindow", u"Exercise Types:", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_2), QCoreApplication.translate("MainWindow", u"Exercises", None))
         self.groupBox_4.setTitle(QCoreApplication.translate("MainWindow", u"Add New Weight", None))
         self.dateEdit_weight.setDisplayFormat(QCoreApplication.translate("MainWindow", u"yyyy-MM-dd", None))
@@ -1726,10 +1758,24 @@ def setupUi(self, MainWindow):
 
         self.horizontalLayout_2.addWidget(self.frame_2)
 
-        self.tableView_exercises = QTableView(self.widget_top)
+        self.widget_exercises_table = QWidget(self.widget_top)
+        self.widget_exercises_table.setObjectName(u"widget_exercises_table")
+        self.verticalLayout_exercises_table = QVBoxLayout(self.widget_exercises_table)
+        self.verticalLayout_exercises_table.setSpacing(4)
+        self.verticalLayout_exercises_table.setObjectName(u"verticalLayout_exercises_table")
+        self.verticalLayout_exercises_table.setContentsMargins(0, 0, 0, 0)
+        self.label_exercises_table = QLabel(self.widget_exercises_table)
+        self.label_exercises_table.setObjectName(u"label_exercises_table")
+
+        self.verticalLayout_exercises_table.addWidget(self.label_exercises_table)
+
+        self.tableView_exercises = QTableView(self.widget_exercises_table)
         self.tableView_exercises.setObjectName(u"tableView_exercises")
 
-        self.horizontalLayout_2.addWidget(self.tableView_exercises)
+        self.verticalLayout_exercises_table.addWidget(self.tableView_exercises)
+
+
+        self.horizontalLayout_2.addWidget(self.widget_exercises_table)
 
         self.splitter_2.addWidget(self.widget_top)
         self.widget_bottom = QWidget(self.splitter_2)
@@ -1761,10 +1807,24 @@ def setupUi(self, MainWindow):
 
         self.horizontalLayout_3.addWidget(self.frame_3)
 
-        self.tableView_exercise_types = QTableView(self.widget_bottom)
+        self.widget_exercise_types_table = QWidget(self.widget_bottom)
+        self.widget_exercise_types_table.setObjectName(u"widget_exercise_types_table")
+        self.verticalLayout_exercise_types_table = QVBoxLayout(self.widget_exercise_types_table)
+        self.verticalLayout_exercise_types_table.setSpacing(4)
+        self.verticalLayout_exercise_types_table.setObjectName(u"verticalLayout_exercise_types_table")
+        self.verticalLayout_exercise_types_table.setContentsMargins(0, 0, 0, 0)
+        self.label_exercise_types_table = QLabel(self.widget_exercise_types_table)
+        self.label_exercise_types_table.setObjectName(u"label_exercise_types_table")
+
+        self.verticalLayout_exercise_types_table.addWidget(self.label_exercise_types_table)
+
+        self.tableView_exercise_types = QTableView(self.widget_exercise_types_table)
         self.tableView_exercise_types.setObjectName(u"tableView_exercise_types")
 
-        self.horizontalLayout_3.addWidget(self.tableView_exercise_types)
+        self.verticalLayout_exercise_types_table.addWidget(self.tableView_exercise_types)
+
+
+        self.horizontalLayout_3.addWidget(self.widget_exercise_types_table)
 
         self.splitter_2.addWidget(self.widget_bottom)
 
