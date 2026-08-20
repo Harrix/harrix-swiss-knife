@@ -2785,6 +2785,7 @@ class MainWindow(
 
     def show_tables(self) -> None:
         """Populate all QTableViews using database manager methods."""
+        self._hide_exercise_list_hover_preview()
         if not self._validate_database_connection():
             logger.warning("Database connection not available for showing tables")
             return
@@ -5214,6 +5215,24 @@ class MainWindow(
             self.listView_exercises,
             get_avif_manager=lambda: self.avif_manager,
             parent=self,
+        )
+        self._exercise_list_hover.add_view(
+            self.tableView_exercises,
+            lambda pos: exercise_at_table_image(
+                self.tableView_exercises,
+                pos,
+                image_column=_EXERCISE_TABLE_IMAGE_COLUMN,
+                name_column=_EXERCISE_TABLE_NAME_COLUMN,
+            ),
+        )
+        self._exercise_list_hover.add_view(
+            self.tableView_exercise_types,
+            lambda pos: exercise_at_table_image(
+                self.tableView_exercise_types,
+                pos,
+                image_column=_EXERCISE_TABLE_IMAGE_COLUMN,
+                name_column=_EXERCISE_TABLE_NAME_COLUMN,
+            ),
         )
 
     def _init_filter_controls(self) -> None:
@@ -9827,6 +9846,7 @@ Populate all QTableViews using database manager methods.
 
 ```python
 def show_tables(self) -> None:
+        self._hide_exercise_list_hover_preview()
         if not self._validate_database_connection():
             logger.warning("Database connection not available for showing tables")
             return

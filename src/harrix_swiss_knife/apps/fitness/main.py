@@ -92,7 +92,10 @@ from harrix_swiss_knife.apps.common.qt_main_window import AppWindowMixin
 from harrix_swiss_knife.apps.common.scroll_pagination import ScrollPagination, on_scroll_load_more
 from harrix_swiss_knife.apps.common.table_models import create_table_proxy_model
 from harrix_swiss_knife.apps.common.ui_helpers import reveal_in_file_explorer
-from harrix_swiss_knife.apps.common.widgets.exercise_list_hover_preview import ExerciseListHoverPreview
+from harrix_swiss_knife.apps.common.widgets.exercise_list_hover_preview import (
+    ExerciseListHoverPreview,
+    exercise_at_table_image,
+)
 from harrix_swiss_knife.apps.common.widgets.path_drop_helpers import install_url_drop_handlers
 from harrix_swiss_knife.apps.fitness import database_manager, window
 from harrix_swiss_knife.apps.fitness.exercise_add_dialog import ExerciseAddDialog
@@ -2827,6 +2830,7 @@ class MainWindow(
 
     def show_tables(self) -> None:
         """Populate all QTableViews using database manager methods."""
+        self._hide_exercise_list_hover_preview()
         if not self._validate_database_connection():
             logger.warning("Database connection not available for showing tables")
             return
@@ -5256,6 +5260,24 @@ class MainWindow(
             self.listView_exercises,
             get_avif_manager=lambda: self.avif_manager,
             parent=self,
+        )
+        self._exercise_list_hover.add_view(
+            self.tableView_exercises,
+            lambda pos: exercise_at_table_image(
+                self.tableView_exercises,
+                pos,
+                image_column=_EXERCISE_TABLE_IMAGE_COLUMN,
+                name_column=_EXERCISE_TABLE_NAME_COLUMN,
+            ),
+        )
+        self._exercise_list_hover.add_view(
+            self.tableView_exercise_types,
+            lambda pos: exercise_at_table_image(
+                self.tableView_exercise_types,
+                pos,
+                image_column=_EXERCISE_TABLE_IMAGE_COLUMN,
+                name_column=_EXERCISE_TABLE_NAME_COLUMN,
+            ),
         )
 
     def _init_filter_controls(self) -> None:
