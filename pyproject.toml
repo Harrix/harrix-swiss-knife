@@ -28,9 +28,10 @@ dependencies = [
 ]
 
 [project.scripts]
-harrix-swiss-knife = "harrix_swiss_knife.main:main"
 hsk = "harrix_swiss_knife.cli:main"
 
+# GUI only (pythonw wrapper, no console window). Declaring the same name in
+# `[project.scripts]` too made the generated `harrix-swiss-knife.exe` ambiguous.
 [project.gui-scripts]
 harrix-swiss-knife = "harrix_swiss_knife.main:main"
 

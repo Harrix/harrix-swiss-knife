@@ -28,14 +28,17 @@ from harrix_swiss_knife.installer.paths import (
     is_under_program_files,
     normalize_install_root,
 )
+from harrix_swiss_knife.installer.payload import cleanup_work_dir
 from harrix_swiss_knife.installer.progress_ui import ProgressBarMode, progress_mode_for_log_line
 from harrix_swiss_knife.installer.uninstall import UninstallOptions, run_uninstall
 from harrix_swiss_knife.installer.uv_ops import ensure_runtime_imports, uv_sync_with_bundle_cache
 from harrix_swiss_knife.installer.vscode_ext import (
     FALLBACK_PYTHON_EXTENSION_IDS,
+    clear_obsolete_markers,
     install_order_for_vsixes,
     marketplace_vsix_url,
     read_extension_dependencies,
+    verify_extensions_enabled,
 )
 
 
@@ -334,6 +337,53 @@ def test_run_uninstall_unregisters_arp(tmp_path: Path) -> None:
         result = run_uninstall(UninstallOptions(hsk_path=hsk, remove_sibling_repos=False), log)
     assert result.ok
     unreg.assert_called_once()
+
+
+def test_cleanup_work_dir_removes_short_root(tmp_path: Path) -> None:
+    short_root = tmp_path / "hsk-setup"
+    work = short_root / "abc123"
+    (work / "payload").mkdir(parents=True)
+    (work / "install.log").write_text("log", encoding="utf-8")
+    cleanup_work_dir(work)
+    assert not work.exists()
+    assert not short_root.exists()
+
+
+def test_cleanup_work_dir_keeps_short_root_with_other_installs(tmp_path: Path) -> None:
+    short_root = tmp_path / "hsk-setup"
+    work = short_root / "abc123"
+    other = short_root / "def456"
+    work.mkdir(parents=True)
+    other.mkdir()
+    cleanup_work_dir(work)
+    assert not work.exists()
+    assert other.is_dir()
+
+
+def test_clear_obsolete_markers(tmp_path: Path, monkeypatch) -> None:
+    ext_root = tmp_path / ".vscode" / "extensions"
+    ext_root.mkdir(parents=True)
+    obsolete = ext_root / ".obsolete"
+    obsolete.write_text(
+        json.dumps({"ms-python.python-2026.1.0": True, "other.ext-1.0.0": True}),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(
+        "harrix_swiss_knife.installer.vscode_ext.editor_extension_dirs",
+        lambda: [ext_root],
+    )
+    log = OutcomeLog()
+    assert clear_obsolete_markers(["ms-python.python"], log) == 1
+    assert json.loads(obsolete.read_text(encoding="utf-8")) == {"other.ext-1.0.0": True}
+
+
+def test_verify_extensions_enabled_reports_missing() -> None:
+    log = OutcomeLog()
+    proc = MagicMock(returncode=0, stdout="ms-python.python\nms-python.debugpy\n", stderr="")
+    with patch("harrix_swiss_knife.installer.vscode_ext.subprocess.run", return_value=proc):
+        missing = verify_extensions_enabled(Path("code.cmd"), ["ms-python.python", "ms-python.vscode-pylance"], log)
+    assert missing == ["ms-python.vscode-pylance"]
+    assert any("does not list" in m for m in log.failed)
 
 
 def test_is_unset_config_path() -> None:

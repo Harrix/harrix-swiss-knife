@@ -13,8 +13,8 @@ lang: en
 
 - [🔧 Function `create_desktop_shortcut`](#-function-create_desktop_shortcut)
 - [🔧 Function `create_startup_shortcut`](#-function-create_startup_shortcut)
-- [🔧 Function `create_uninstall_shortcut`](#-function-create_uninstall_shortcut)
 - [🔧 Function `remove_app_shortcuts`](#-function-remove_app_shortcuts)
+- [🔧 Function `remove_desktop_uninstall_shortcut`](#-function-remove_desktop_uninstall_shortcut)
 
 </details>
 
@@ -75,75 +75,13 @@ def create_startup_shortcut(project_root: Path) -> Path:
 
 </details>
 
-## 🔧 Function `create_uninstall_shortcut`
-
-```python
-def create_uninstall_shortcut(project_root: Path) -> Path
-```
-
-Create or update a desktop shortcut that launches the uninstall wizard.
-
-Raises:
-
-- `OSError`: On non-Windows platforms or when shortcut creation fails.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def create_uninstall_shortcut(project_root: Path) -> Path:
-    if sys.platform != "win32":
-        msg = "Uninstall shortcut is only supported on Windows"
-        raise OSError(msg)
-
-    root = project_root.resolve()
-    pyw = root / ".venv" / "Scripts" / "pythonw.exe"
-    launch_py = root / "launch_uninstall.py"
-    if not pyw.is_file():
-        msg = f"pythonw.exe not found: {pyw}"
-        raise OSError(msg)
-    if not launch_py.is_file():
-        msg = f"launch_uninstall.py not found: {launch_py}"
-        raise OSError(msg)
-
-    destination = _get_shell_folder(_CSIDL_DESKTOPDIRECTORY, "Desktop")
-    final_lnk = destination / UNINSTALL_SHORTCUT_NAME
-    staging = root / "temp" / _UNINSTALL_STAGING_NAME
-    staging.parent.mkdir(parents=True, exist_ok=True)
-    try:
-        _write_shortcut_file(
-            staging,
-            target=pyw,
-            arguments=f'"{launch_py}"',
-            working_directory=root,
-            description="Uninstall Harrix Swiss Knife (keeps databases)",
-            icon_location=_resolve_icon_location(root),
-        )
-        if final_lnk.exists():
-            final_lnk.unlink()
-        shutil.move(str(staging), str(final_lnk))
-    except Exception as e:
-        msg = f"Could not create uninstall shortcut: {e}"
-        raise OSError(msg) from e
-    finally:
-        if staging.exists():
-            staging.unlink(missing_ok=True)
-
-    if not final_lnk.is_file():
-        msg = f"Shortcut file was not created: {final_lnk}"
-        raise OSError(msg)
-    return final_lnk
-```
-
-</details>
-
 ## 🔧 Function `remove_app_shortcuts`
 
 ```python
 def remove_app_shortcuts() -> list[Path]
 ```
 
-Delete desktop, startup, and uninstall shortcuts. Return paths that were removed.
+Delete desktop, startup, and legacy uninstall shortcuts. Return paths that were removed.
 
 <details>
 <summary>Code:</summary>
@@ -169,6 +107,31 @@ def remove_app_shortcuts() -> list[Path]:
         except OSError:
             continue
     return removed
+```
+
+</details>
+
+## 🔧 Function `remove_desktop_uninstall_shortcut`
+
+```python
+def remove_desktop_uninstall_shortcut() -> Path | None
+```
+
+Delete the legacy desktop uninstall shortcut. Return its path when removed.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def remove_desktop_uninstall_shortcut() -> Path | None:
+    if sys.platform != "win32":
+        return None
+    with contextlib.suppress(OSError):
+        lnk = _get_shell_folder(_CSIDL_DESKTOPDIRECTORY, "Desktop") / UNINSTALL_SHORTCUT_NAME
+        if lnk.is_file():
+            lnk.unlink()
+            return lnk
+    return None
 ```
 
 </details>

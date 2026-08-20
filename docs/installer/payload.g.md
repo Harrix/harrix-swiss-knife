@@ -12,6 +12,7 @@ lang: en
 ## Contents
 
 - [🔧 Function `append_overlay_zip`](#-function-append_overlay_zip)
+- [🔧 Function `cleanup_work_dir`](#-function-cleanup_work_dir)
 - [🔧 Function `create_work_dir`](#-function-create_work_dir)
 - [🔧 Function `extract_overlay`](#-function-extract_overlay)
 - [🔧 Function `frozen_executable`](#-function-frozen_executable)
@@ -50,6 +51,37 @@ def append_overlay_zip(stub_exe: Path, zip_path: Path, out_exe: Path) -> None:
 
 </details>
 
+## 🔧 Function `cleanup_work_dir`
+
+```python
+def cleanup_work_dir(work_dir: Path) -> None
+```
+
+Delete the installer work folder and the `C:\hsk-setup` root when it is empty.
+
+Called after a successful install; failed installs keep the folder (and
+`install.log`) for diagnostics.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def cleanup_work_dir(work_dir: Path) -> None:
+    shutil.rmtree(long_path(work_dir), ignore_errors=True)
+    parent = work_dir.parent
+    if parent.name.lower() != _SHORT_ROOT_NAME:
+        return
+    try:
+        next(parent.iterdir())
+    except StopIteration:
+        with contextlib.suppress(OSError):
+            parent.rmdir()
+    except OSError:
+        return
+```
+
+</details>
+
 ## 🔧 Function `create_work_dir`
 
 ```python
@@ -68,7 +100,7 @@ Deep `uv-cache` paths plus the long `%LOCALAPPDATA%\Temp` prefix overflow
 def create_work_dir() -> Path:
     if sys.platform == "win32":
         drive = os.environ.get("SYSTEMDRIVE", "C:")
-        short_root = Path(f"{drive}\\") / "hsk-setup"
+        short_root = Path(f"{drive}\\") / _SHORT_ROOT_NAME
         try:
             short_root.mkdir(parents=True, exist_ok=True)
             return Path(tempfile.mkdtemp(prefix="", dir=str(short_root)))

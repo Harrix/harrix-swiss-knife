@@ -194,12 +194,9 @@ def run_deploy(options: DeployOptions, log: OutcomeLog) -> DeployResult:
             except OSError as exc:
                 log.add("failed", f"Startup shortcut failed: {exc}")
 
-        log.step("Uninstall shortcut")
-        try:
-            create_uninstall_shortcut(hsk)
-            log.add("installed", "Desktop uninstall shortcut created")
-        except OSError as exc:
-            log.add("failed", f"Uninstall shortcut failed: {exc}")
+        removed_lnk = remove_desktop_uninstall_shortcut()
+        if removed_lnk is not None:
+            log.add("installed", f"Removed legacy desktop uninstall shortcut ({removed_lnk.name})")
 
         try:
             install_optimize_binaries(hsk, deps=deps, skip_download=offline, log=log)

@@ -8,11 +8,11 @@ import shutil
 import sys
 from pathlib import Path
 
-# Desktop / Startup .lnk pointing at the GUI entry or pythonw.exe + launcher
+# Desktop / Startup .lnk pointing at pythonw.exe + launcher
 SHORTCUT_NAME = "Harrix Swiss Knife.lnk"
+# Older installs put an uninstall shortcut on the Desktop; it is only cleaned up now.
 UNINSTALL_SHORTCUT_NAME = "Uninstall Harrix Swiss Knife.lnk"
 _STAGING_NAME = ".hsk_desktop_shortcut_build.lnk"
-_UNINSTALL_STAGING_NAME = ".hsk_uninstall_shortcut_build.lnk"
 _CSIDL_DESKTOPDIRECTORY = 0x10
 _CSIDL_STARTUP = 0x07
 
@@ -52,59 +52,8 @@ def create_startup_shortcut(project_root: Path) -> Path:
     )
 
 
-def create_uninstall_shortcut(project_root: Path) -> Path:
-    """Create or update a desktop shortcut that launches the uninstall wizard.
-
-    Raises:
-
-    - `OSError`: On non-Windows platforms or when shortcut creation fails.
-
-    """
-    if sys.platform != "win32":
-        msg = "Uninstall shortcut is only supported on Windows"
-        raise OSError(msg)
-
-    root = project_root.resolve()
-    pyw = root / ".venv" / "Scripts" / "pythonw.exe"
-    launch_py = root / "launch_uninstall.py"
-    if not pyw.is_file():
-        msg = f"pythonw.exe not found: {pyw}"
-        raise OSError(msg)
-    if not launch_py.is_file():
-        msg = f"launch_uninstall.py not found: {launch_py}"
-        raise OSError(msg)
-
-    destination = _get_shell_folder(_CSIDL_DESKTOPDIRECTORY, "Desktop")
-    final_lnk = destination / UNINSTALL_SHORTCUT_NAME
-    staging = root / "temp" / _UNINSTALL_STAGING_NAME
-    staging.parent.mkdir(parents=True, exist_ok=True)
-    try:
-        _write_shortcut_file(
-            staging,
-            target=pyw,
-            arguments=f'"{launch_py}"',
-            working_directory=root,
-            description="Uninstall Harrix Swiss Knife (keeps databases)",
-            icon_location=_resolve_icon_location(root),
-        )
-        if final_lnk.exists():
-            final_lnk.unlink()
-        shutil.move(str(staging), str(final_lnk))
-    except Exception as e:
-        msg = f"Could not create uninstall shortcut: {e}"
-        raise OSError(msg) from e
-    finally:
-        if staging.exists():
-            staging.unlink(missing_ok=True)
-
-    if not final_lnk.is_file():
-        msg = f"Shortcut file was not created: {final_lnk}"
-        raise OSError(msg)
-    return final_lnk
-
-
 def remove_app_shortcuts() -> list[Path]:
-    """Delete desktop, startup, and uninstall shortcuts. Return paths that were removed."""
+    """Delete desktop, startup, and legacy uninstall shortcuts. Return paths that were removed."""
     if sys.platform != "win32":
         return []
     removed: list[Path] = []
@@ -126,6 +75,18 @@ def remove_app_shortcuts() -> list[Path]:
     return removed
 
 
+def remove_desktop_uninstall_shortcut() -> Path | None:
+    """Delete the legacy desktop uninstall shortcut. Return its path when removed."""
+    if sys.platform != "win32":
+        return None
+    with contextlib.suppress(OSError):
+        lnk = _get_shell_folder(_CSIDL_DESKTOPDIRECTORY, "Desktop") / UNINSTALL_SHORTCUT_NAME
+        if lnk.is_file():
+            lnk.unlink()
+            return lnk
+    return None
+
+
 def _create_app_shortcut(project_root: Path, *, destination: Path, kind: str) -> Path:
     if sys.platform != "win32":
         msg = f"{kind} shortcut is only supported on Windows"
@@ -133,26 +94,25 @@ def _create_app_shortcut(project_root: Path, *, destination: Path, kind: str) ->
 
     root = project_root.resolve()
     scripts = root / ".venv" / "Scripts"
-    gui_exe = scripts / "harrix-swiss-knife.exe"
     pyw = scripts / "pythonw.exe"
     launch_py = root / "launch_tray.py"
     main_py = root / "src" / "harrix_swiss_knife" / "main.py"
 
-    if gui_exe.is_file():
-        target = gui_exe
-        arguments = ""
-    elif pyw.is_file() and launch_py.is_file():
-        target = pyw
-        arguments = f'"{launch_py}"'
-    elif pyw.is_file() and main_py.is_file():
-        target = pyw
-        arguments = f'"{main_py}"'
+    # `pythonw.exe launch_tray.py` is preferred over the generated
+    # `harrix-swiss-knife.exe` wrapper: it puts `src/` on `sys.path` and shows a
+    # dialog plus `startup-crash.log` when the import fails.
+    if not pyw.is_file():
+        msg = f"pythonw.exe not found: {pyw}"
+        raise OSError(msg)
+    if launch_py.is_file():
+        launcher = launch_py
+    elif main_py.is_file():
+        launcher = main_py
     else:
-        if not pyw.is_file():
-            msg = f"pythonw.exe not found: {pyw}"
-            raise OSError(msg)
         msg = f"Launcher not found (expected {launch_py} or {main_py})"
         raise OSError(msg)
+    target = pyw
+    arguments = f'"{launcher}"'
 
     if not destination.is_dir():
         msg = f"{kind} folder not found: {destination}"

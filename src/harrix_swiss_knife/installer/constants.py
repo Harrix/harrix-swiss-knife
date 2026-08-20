@@ -32,4 +32,4 @@ LIBAVIF_ZIP_NAME = "windows-artifacts.zip"
 FFMPEG_ZIP_NAME = "ffmpeg-master-latest-win64-gpl.zip"
 
 # Bump when PyInstaller flags or stub entry imports change (forces stub rebuild).
-STUB_SPEC_VERSION = "8"
+STUB_SPEC_VERSION = "9"

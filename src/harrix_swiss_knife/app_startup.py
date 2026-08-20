@@ -33,8 +33,12 @@ from harrix_swiss_knife.tray_icon import TrayIcon
 
 if TYPE_CHECKING:
     from types import TracebackType
+    from typing import TextIO
 
     from harrix_swiss_knife.main_menu_base import MainMenuBase
+
+# Keeps the faulthandler target alive when there is no console to dump into.
+_FAULTHANDLER_FILE: TextIO | None = None
 
 
 # Harmless Qt noise: phantom displays, and QSvg warnings from stock/Illustrator dumps.
@@ -72,20 +76,24 @@ def install_diagnostic_handlers(log: logging.Logger) -> None:
     """Route uncaught errors, thread failures, segfaults, and Qt messages to stderr and log.
 
     Console (stderr) receives only WARNING and above; full INFO logs stay in the file handler.
+    Shortcuts run the app through `pythonw.exe` (or the GUI script wrapper), where
+    `sys.stderr` is `None`, so every console hookup here stays optional.
 
     """
+    stderr = _usable_stderr()
     root = logging.getLogger()
-    stderr_handler: logging.Handler | None = None
-    for h_ in root.handlers:
-        if isinstance(h_, logging.StreamHandler) and h_.stream is sys.stderr:
-            stderr_handler = h_
-            break
-    if stderr_handler is None:
-        stream_handler = logging.StreamHandler(sys.stderr)
-        stream_handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s"))
-        root.addHandler(stream_handler)
-        stderr_handler = stream_handler
-    stderr_handler.setLevel(logging.WARNING)
+    if stderr is not None:
+        stderr_handler: logging.Handler | None = None
+        for h_ in root.handlers:
+            if isinstance(h_, logging.StreamHandler) and h_.stream is stderr:
+                stderr_handler = h_
+                break
+        if stderr_handler is None:
+            stream_handler = logging.StreamHandler(stderr)
+            stream_handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s"))
+            root.addHandler(stream_handler)
+            stderr_handler = stream_handler
+        stderr_handler.setLevel(logging.WARNING)
 
     def _excepthook(
         exc_type: type[BaseException],
@@ -115,7 +123,7 @@ def install_diagnostic_handlers(log: logging.Logger) -> None:
 
         threading.excepthook = _thread_excepthook
 
-    faulthandler.enable(file=sys.stderr, all_threads=True)
+    _enable_faulthandler(log)
 
     _qt_msg_levels = {
         QtMsgType.QtWarningMsg: logging.WARNING,
@@ -256,6 +264,26 @@ def show_fatal_error_dialog(text: str) -> None:
         logging.getLogger(__name__).debug("Failed to show Qt error dialog.", exc_info=True)
 
 
+def _enable_faulthandler(log: logging.Logger) -> None:
+    """Dump native crashes to stderr, or to `<logs>/faulthandler.log` when there is no console."""
+    global _FAULTHANDLER_FILE  # noqa: PLW0603
+    stderr = _usable_stderr()
+    if stderr is not None:
+        try:
+            faulthandler.enable(file=stderr, all_threads=True)
+        except (AttributeError, OSError, RuntimeError, ValueError):
+            log.debug("faulthandler could not use stderr", exc_info=True)
+        else:
+            return
+    try:
+        crash_file = (get_log_dir() / "faulthandler.log").open("a", encoding="utf-8", buffering=1)
+        faulthandler.enable(file=crash_file, all_threads=True)
+    except (OSError, RuntimeError, ValueError):
+        log.debug("faulthandler not enabled (no usable stderr or log file)", exc_info=True)
+    else:
+        _FAULTHANDLER_FILE = crash_file
+
+
 def _log_startup_phase(log: logging.Logger, label: str, startup_t0: float) -> None:
     """Log a startup phase with elapsed seconds since tray bootstrap began."""
     log.info("%s (+%.3fs)", label, perf_counter() - startup_t0)
@@ -271,3 +299,14 @@ def _make_placeholder_menu() -> CliContextMenu:
     exit_action.triggered.connect(QApplication.quit)
     menu.addAction(exit_action)
     return menu
+
+
+def _usable_stderr() -> TextIO | None:
+    """Return `sys.stderr` when it can be written to, else `None` (pythonw has no console)."""
+    stream = sys.stderr
+    if stream is None:
+        return None
+    write = getattr(stream, "write", None)
+    if not callable(write):
+        return None
+    return stream

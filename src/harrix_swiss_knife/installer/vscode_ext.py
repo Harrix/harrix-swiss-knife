@@ -30,6 +30,53 @@ FALLBACK_PYTHON_EXTENSION_IDS: tuple[str, ...] = (
 )
 
 
+def clear_obsolete_markers(extension_ids: list[str], log: OutcomeLog) -> int:
+    """Drop `.obsolete` uninstall markers so freshly installed VSIX files stay visible.
+
+    VS Code / Cursor write `{publisher.name}-{version}: true` into `.obsolete` when an
+    extension is uninstalled in the UI; a later `--install-extension` can leave the
+    marker in place and the extension then shows up as disabled.
+
+    """
+    cleared = 0
+    prefixes = tuple(f"{ext_id.lower()}-" for ext_id in extension_ids)
+    for ext_root in editor_extension_dirs():
+        obsolete_path = ext_root / ".obsolete"
+        if not obsolete_path.is_file():
+            continue
+        try:
+            data = json.loads(obsolete_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        if not isinstance(data, dict):
+            continue
+        stale = [key for key in data if str(key).lower().startswith(prefixes)]
+        if not stale:
+            continue
+        for key in stale:
+            data.pop(key, None)
+        try:
+            obsolete_path.write_text(json.dumps(data, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+        except OSError as exc:
+            log.detail(f"Could not update {obsolete_path}: {exc}")
+            continue
+        cleared += len(stale)
+        log.detail(f"Cleared {len(stale)} uninstall marker(s) in {obsolete_path}")
+    return cleared
+
+
+def editor_extension_dirs() -> list[Path]:
+    """Return existing per-user extension folders of VS Code-family editors."""
+    home = Path.home()
+    candidates = (
+        home / ".vscode" / "extensions",
+        home / ".vscode-insiders" / "extensions",
+        home / ".cursor" / "extensions",
+        home / ".vscode-oss" / "extensions",
+    )
+    return [path for path in candidates if path.is_dir()]
+
+
 def find_editor_cli() -> Path | None:
     """Return `code.cmd` / `Code.exe` / Cursor CLI if present."""
     for name in ("code", "code.cmd", "cursor", "cursor.cmd"):
@@ -96,11 +143,15 @@ def install_vscode_python_extension(
 
     vsixes = install_order_for_vsixes(deps)
     if vsixes:
+        extension_ids = [vsix.stem for vsix in vsixes]
+        clear_obsolete_markers(extension_ids, log)
         ok_all = True
         for vsix in vsixes:
             log.detail(f"Installing {vsix.name} via {editor.name}")
             if not _install_extension(editor, str(vsix), log):
                 ok_all = False
+        clear_obsolete_markers(extension_ids, log)
+        verify_extensions_enabled(editor, extension_ids, log)
         if ok_all:
             log.add("installed", "Python extension (VSIX bundle) installed")
         else:
@@ -111,7 +162,10 @@ def install_vscode_python_extension(
         log.add("failed", "Python extension VSIX missing from offline payload")
         return
     log.detail(f"No bundled VSIX; installing {PYTHON_EXTENSION_ID} from Marketplace")
+    clear_obsolete_markers([PYTHON_EXTENSION_ID], log)
     if _install_extension(editor, PYTHON_EXTENSION_ID, log):
+        clear_obsolete_markers([PYTHON_EXTENSION_ID], log)
+        verify_extensions_enabled(editor, [PYTHON_EXTENSION_ID], log)
         log.add("installed", f"Python extension installed ({PYTHON_EXTENSION_ID})")
     else:
         log.add("failed", "Python extension Marketplace install failed")
@@ -224,6 +278,23 @@ def read_extension_dependencies(vsix: Path) -> list[str]:
     return ordered
 
 
+def verify_extensions_enabled(editor: Path, extension_ids: list[str], log: OutcomeLog) -> list[str]:
+    """Log which requested extensions the editor reports, and return the missing ones."""
+    listed = _list_installed_extensions(editor, log)
+    if listed is None:
+        return []
+    missing = [ext_id for ext_id in extension_ids if ext_id.lower() not in listed]
+    if missing:
+        log.add("failed", f"Editor does not list: {', '.join(missing)} (install or enable manually)")
+    else:
+        log.detail(f"Editor lists all requested extensions ({len(extension_ids)})")
+    log.detail(
+        "If Python still looks disabled, click Trust in the editor: an untrusted folder "
+        "runs extensions in Restricted Mode."
+    )
+    return missing
+
+
 def vscode_extensions_dir(deps: Path) -> Path:
     """Return `dependencies/vscode-extensions/`."""
     return deps / VSCODE_EXTENSIONS_DIR_NAME
@@ -255,6 +326,29 @@ def _install_extension(editor: Path, target: str, log: OutcomeLog) -> bool:
     if out:
         log.detail(out[:1500])
     return proc.returncode == 0
+
+
+def _list_installed_extensions(editor: Path, log: OutcomeLog) -> set[str] | None:
+    """Return lowercase extension ids reported by `--list-extensions`, or `None` on failure."""
+    creation = subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0
+    try:
+        proc = subprocess.run(
+            [str(editor), "--list-extensions"],
+            check=False,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            creationflags=creation,
+            timeout=120,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        log.detail(f"list-extensions failed: {exc}")
+        return None
+    if proc.returncode != 0:
+        log.detail(f"list-extensions exit {proc.returncode}")
+        return None
+    return {line.strip().lower() for line in (proc.stdout or "").splitlines() if line.strip()}
 
 
 def _unwrap_marketplace_vsix(path: Path) -> None:

@@ -195,13 +195,13 @@ What the online installer does:
 5. Runs `uv tool install -e` (global **`hsk`** CLI; ensures `%USERPROFILE%\.local\bin` is on the user PATH)
 6. Creates a **desktop shortcut** and/or **Windows Startup** shortcut when checked (defaults on)
 7. Downloads **ffmpeg** / **libavif** executables into the project root (or copies them from the embedded `dependencies\` when present)
-8. Creates a desktop shortcut **Uninstall Harrix Swiss Knife** (databases are kept on uninstall)
+8. Registers the app in **Apps & Features** for uninstall (databases are kept on uninstall)
 
 The bundled **Harrix Notes Explorer (HSK)** VS Code extension is **not** installed automatically. Use the tray app (**Dev** → **Install or update Harrix Notes Explorer (HSK) extension**) when you want it in a specific editor.
 
 ### Uninstall
 
-Use **Apps & Features** (Harrix Swiss Knife), the desktop shortcut **Uninstall Harrix Swiss Knife**, or **Dev** → **Uninstall Harrix Swiss Knife…**, or:
+Use **Apps & Features** (Harrix Swiss Knife), **Dev** → **Uninstall Harrix Swiss Knife…**, or:
 
 ```powershell
 & ".\.venv\Scripts\pythonw.exe" ".\launch_uninstall.py"
@@ -211,7 +211,9 @@ Use **Apps & Features** (Harrix Swiss Knife), the desktop shortcut **Uninstall H
 
 Default install parent is `C:\harrix-swiss-knife` when no `GitHub` folder already exists (`D:\GitHub` / `C:\GitHub` / `Documents\GitHub` are reused when present). Layout: `C:\harrix-swiss-knife\{harrix-swiss-knife,harrix-pylib,harrix-pyssg}`. Prefer that over Program Files — the app must write into `.venv` as a normal user. The installer writes stack paths into `config.json` (sibling repos, DBs under `data/databases/`); personal note/photo/site folders remain for you to configure.
 
-A live log appears in the wizard; the Finished page shows a summary. `install.log` is copied into the install folder when setup succeeds.
+A live log appears in the wizard; the Finished page shows a summary. `install.log` is copied into the install folder when setup succeeds, and the temporary `C:\hsk-setup` work folder is deleted (kept only when the install fails).
+
+Shortcuts run `"<install>\.venv\Scripts\pythonw.exe" "<install>\launch_tray.py"`. The `.venv\Scripts\` folder also holds generated entry-point wrappers (`hsk.exe` for the CLI, `harrix-swiss-knife.exe` for the GUI, `harrix-pyssg.exe` from the `harrix-pyssg` dependency); shortcuts avoid them because `pythonw.exe` + `launch_tray.py` also reports import errors in a dialog and in `logs\startup-crash.log`.
 
 ### Offline install (local bundle)
 

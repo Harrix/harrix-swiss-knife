@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import os
 import shutil
 import struct
@@ -22,6 +23,7 @@ _LONG_PATH_PREFIX = "\\\\?\\"
 _COPY_CHUNK = 1024 * 1024
 _LOG_EVERY = 200
 _NAME_PARTS_MAX = 3
+_SHORT_ROOT_NAME = "hsk-setup"
 
 
 class _OffsetView:
@@ -76,6 +78,26 @@ def append_overlay_zip(stub_exe: Path, zip_path: Path, out_exe: Path) -> None:
         out.write(OVERLAY_MAGIC)
 
 
+def cleanup_work_dir(work_dir: Path) -> None:
+    r"""Delete the installer work folder and the `C:\hsk-setup` root when it is empty.
+
+    Called after a successful install; failed installs keep the folder (and
+    `install.log`) for diagnostics.
+
+    """
+    shutil.rmtree(long_path(work_dir), ignore_errors=True)
+    parent = work_dir.parent
+    if parent.name.lower() != _SHORT_ROOT_NAME:
+        return
+    try:
+        next(parent.iterdir())
+    except StopIteration:
+        with contextlib.suppress(OSError):
+            parent.rmdir()
+    except OSError:
+        return
+
+
 def create_work_dir() -> Path:
     r"""Create a short-path work folder so deep payload entries stay manageable.
 
@@ -85,7 +107,7 @@ def create_work_dir() -> Path:
     """
     if sys.platform == "win32":
         drive = os.environ.get("SYSTEMDRIVE", "C:")
-        short_root = Path(f"{drive}\\") / "hsk-setup"
+        short_root = Path(f"{drive}\\") / _SHORT_ROOT_NAME
         try:
             short_root.mkdir(parents=True, exist_ok=True)
             return Path(tempfile.mkdtemp(prefix="", dir=str(short_root)))

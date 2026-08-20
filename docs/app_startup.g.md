@@ -65,24 +65,28 @@ def install_diagnostic_handlers(log: logging.Logger) -> None
 Route uncaught errors, thread failures, segfaults, and Qt messages to stderr and log.
 
 Console (stderr) receives only WARNING and above; full INFO logs stay in the file handler.
+Shortcuts run the app through `pythonw.exe` (or the GUI script wrapper), where
+`sys.stderr` is `None`, so every console hookup here stays optional.
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def install_diagnostic_handlers(log: logging.Logger) -> None:
+    stderr = _usable_stderr()
     root = logging.getLogger()
-    stderr_handler: logging.Handler | None = None
-    for h_ in root.handlers:
-        if isinstance(h_, logging.StreamHandler) and h_.stream is sys.stderr:
-            stderr_handler = h_
-            break
-    if stderr_handler is None:
-        stream_handler = logging.StreamHandler(sys.stderr)
-        stream_handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s"))
-        root.addHandler(stream_handler)
-        stderr_handler = stream_handler
-    stderr_handler.setLevel(logging.WARNING)
+    if stderr is not None:
+        stderr_handler: logging.Handler | None = None
+        for h_ in root.handlers:
+            if isinstance(h_, logging.StreamHandler) and h_.stream is stderr:
+                stderr_handler = h_
+                break
+        if stderr_handler is None:
+            stream_handler = logging.StreamHandler(stderr)
+            stream_handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s"))
+            root.addHandler(stream_handler)
+            stderr_handler = stream_handler
+        stderr_handler.setLevel(logging.WARNING)
 
     def _excepthook(
         exc_type: type[BaseException],
@@ -112,7 +116,7 @@ def install_diagnostic_handlers(log: logging.Logger) -> None:
 
         threading.excepthook = _thread_excepthook
 
-    faulthandler.enable(file=sys.stderr, all_threads=True)
+    _enable_faulthandler(log)
 
     _qt_msg_levels = {
         QtMsgType.QtWarningMsg: logging.WARNING,

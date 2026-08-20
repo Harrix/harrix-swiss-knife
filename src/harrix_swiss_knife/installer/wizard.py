@@ -45,6 +45,7 @@ from harrix_swiss_knife.installer.paths import (
     venv_path_headroom,
 )
 from harrix_swiss_knife.installer.payload import (
+    cleanup_work_dir,
     create_work_dir,
     extract_overlay,
     frozen_executable,
@@ -697,6 +698,9 @@ class _Worker(QThread):
                     self.log_line.emit("==> Cleaning up")
                     self.log_line.emit("    Removing the extracted payload from the temporary work folder.")
                     shutil.rmtree(long_path(payload_dir), ignore_errors=True)
+                # install.log is already copied next to the app, so drop the whole work folder.
+                log.set_log(self.log_line.emit)
+                cleanup_work_dir(self._work_dir)
                 self.finished_ok.emit(result)
             else:
                 self.finished_err.emit(result.error or "Deploy failed")
