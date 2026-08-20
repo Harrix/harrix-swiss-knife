@@ -62,7 +62,6 @@ from PySide6.QtWidgets import (
     QMainWindow,
     QMenu,
     QMessageBox,
-    QPushButton,
     QRadioButton,
     QSizePolicy,
     QTableView,
@@ -87,7 +86,6 @@ from harrix_swiss_knife.apps.common.delegates.name_local_list_delegate import (
 )
 from harrix_swiss_knife.apps.common.dialogs.exercise_selection_dialog import ExerciseSelectionDialog
 from harrix_swiss_knife.apps.common.exercise_media import (
-    MEDIA_FILE_FILTER,
     is_exercise_media_path,
 )
 from harrix_swiss_knife.apps.common.qt_main_window import AppWindowMixin
@@ -694,32 +692,6 @@ class MainWindow(
 
         except Exception as e:
             message_box.warning(self, "Database Error", f"Failed to add weight: {e}")
-
-    @requires_database()
-    def on_apply_exercise_media(self) -> None:
-        """Optimize and save media for the exercise selected in the exercises table."""
-        exercise_name = self._get_selected_exercise_from_table("exercises")
-        if not exercise_name:
-            message_box.warning(self, "Error", "Select an exercise in the table")
-            return
-
-        media_path, _ = QFileDialog.getOpenFileName(
-            self,
-            "Select exercise media",
-            "",
-            MEDIA_FILE_FILTER,
-        )
-        if not media_path:
-            return
-        if not is_exercise_media_path(media_path):
-            message_box.warning(self, "Error", "Unsupported media type")
-            return
-
-        self._start_exercise_media_save(
-            exercise_name,
-            media_path,
-            success_message=f"Media saved for '{exercise_name}'",
-        )
 
     @requires_database()
     def on_chart_exercise_changed(
@@ -6086,11 +6058,7 @@ class MainWindow(
         """)
 
     def _setup_exercise_media_widgets(self) -> None:
-        """Add apply-media button and preview drop handlers for exercise AVIF files."""
-        self.pushButton_exercise_media_apply = QPushButton("🖼️ Apply media to selected", self.groupBox_7)
-        self.pushButton_exercise_media_apply.clicked.connect(self.on_apply_exercise_media)
-        self.verticalLayout_11.addWidget(self.pushButton_exercise_media_apply)
-
+        """Install preview drop handlers for exercise media files."""
         install_url_drop_handlers(
             self.label_exercise_avif_2,
             self._on_exercise_preview_media_dropped,

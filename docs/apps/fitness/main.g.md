@@ -24,7 +24,6 @@ lang: en
   - [⚙️ Method `on_add_record`](#%EF%B8%8F-method-on_add_record)
   - [⚙️ Method `on_add_type`](#%EF%B8%8F-method-on_add_type)
   - [⚙️ Method `on_add_weight`](#%EF%B8%8F-method-on_add_weight)
-  - [⚙️ Method `on_apply_exercise_media`](#%EF%B8%8F-method-on_apply_exercise_media)
   - [⚙️ Method `on_chart_exercise_changed`](#%EF%B8%8F-method-on_chart_exercise_changed)
   - [⚙️ Method `on_chart_type_changed`](#%EF%B8%8F-method-on_chart_type_changed)
   - [⚙️ Method `on_check_steps`](#%EF%B8%8F-method-on_check_steps)
@@ -652,32 +651,6 @@ class MainWindow(
 
         except Exception as e:
             message_box.warning(self, "Database Error", f"Failed to add weight: {e}")
-
-    @requires_database()
-    def on_apply_exercise_media(self) -> None:
-        """Optimize and save media for the exercise selected in the exercises table."""
-        exercise_name = self._get_selected_exercise_from_table("exercises")
-        if not exercise_name:
-            message_box.warning(self, "Error", "Select an exercise in the table")
-            return
-
-        media_path, _ = QFileDialog.getOpenFileName(
-            self,
-            "Select exercise media",
-            "",
-            MEDIA_FILE_FILTER,
-        )
-        if not media_path:
-            return
-        if not is_exercise_media_path(media_path):
-            message_box.warning(self, "Error", "Unsupported media type")
-            return
-
-        self._start_exercise_media_save(
-            exercise_name,
-            media_path,
-            success_message=f"Media saved for '{exercise_name}'",
-        )
 
     @requires_database()
     def on_chart_exercise_changed(
@@ -6044,11 +6017,7 @@ class MainWindow(
         """)
 
     def _setup_exercise_media_widgets(self) -> None:
-        """Add apply-media button and preview drop handlers for exercise AVIF files."""
-        self.pushButton_exercise_media_apply = QPushButton("🖼️ Apply media to selected", self.groupBox_7)
-        self.pushButton_exercise_media_apply.clicked.connect(self.on_apply_exercise_media)
-        self.verticalLayout_11.addWidget(self.pushButton_exercise_media_apply)
-
+        """Install preview drop handlers for exercise media files."""
         install_url_drop_handlers(
             self.label_exercise_avif_2,
             self._on_exercise_preview_media_dropped,
@@ -7327,45 +7296,6 @@ def on_add_weight(self) -> None:
 
         except Exception as e:
             message_box.warning(self, "Database Error", f"Failed to add weight: {e}")
-```
-
-</details>
-
-### ⚙️ Method `on_apply_exercise_media`
-
-```python
-def on_apply_exercise_media(self) -> None
-```
-
-Optimize and save media for the exercise selected in the exercises table.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def on_apply_exercise_media(self) -> None:
-        exercise_name = self._get_selected_exercise_from_table("exercises")
-        if not exercise_name:
-            message_box.warning(self, "Error", "Select an exercise in the table")
-            return
-
-        media_path, _ = QFileDialog.getOpenFileName(
-            self,
-            "Select exercise media",
-            "",
-            MEDIA_FILE_FILTER,
-        )
-        if not media_path:
-            return
-        if not is_exercise_media_path(media_path):
-            message_box.warning(self, "Error", "Unsupported media type")
-            return
-
-        self._start_exercise_media_save(
-            exercise_name,
-            media_path,
-            success_message=f"Media saved for '{exercise_name}'",
-        )
 ```
 
 </details>
