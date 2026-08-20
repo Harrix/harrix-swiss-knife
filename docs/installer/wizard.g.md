@@ -18,11 +18,12 @@ lang: en
 - [🏛️ Class `OptionsPage`](#%EF%B8%8F-class-optionspage)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-2)
   - [⚙️ Method `install_root`](#%EF%B8%8F-method-install_root)
+  - [⚙️ Method `validatePage`](#%EF%B8%8F-method-validatepage)
 - [🏛️ Class `ProgressPage`](#%EF%B8%8F-class-progresspage)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-3)
   - [⚙️ Method `initializePage`](#%EF%B8%8F-method-initializepage)
   - [⚙️ Method `isComplete`](#%EF%B8%8F-method-iscomplete)
-  - [⚙️ Method `validatePage`](#%EF%B8%8F-method-validatepage)
+  - [⚙️ Method `validatePage`](#%EF%B8%8F-method-validatepage-1)
 - [🏛️ Class `ToolsPage`](#%EF%B8%8F-class-toolspage)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-4)
   - [⚙️ Method `initializePage`](#%EF%B8%8F-method-initializepage-1)
@@ -198,6 +199,32 @@ class OptionsPage(QWizardPage):
         """Return the selected install parent folder."""
         return Path(self.path_edit.text().strip())
 
+    def validatePage(self) -> bool:  # noqa: N802
+        """Block folders so deep that `uv sync` could not write every packaged file."""
+        headroom = venv_path_headroom(self.install_root())
+        if headroom >= DEEPEST_VENV_RELATIVE or long_paths_enabled():
+            return True
+        answer = QMessageBox.question(
+            self,
+            "Folder path is too long",
+            f"`{self.install_root()}` leaves only {headroom} characters for files inside `.venv`, "
+            f"but some packages need about {DEEPEST_VENV_RELATIVE}.\n\n"
+            "Enable Windows long-path support now, or press No and pick a shorter folder "
+            "such as `C:\\GitHub`.",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.Yes,
+        )
+        if answer != QMessageBox.StandardButton.Yes:
+            return False
+        if enable_long_paths():
+            return True
+        QMessageBox.warning(
+            self,
+            "Long paths",
+            "Could not enable long-path support (administrator rights are required). Please choose a shorter folder.",
+        )
+        return False
+
     def _browse(self) -> None:
         path = QFileDialog.getExistingDirectory(self, "Select install folder", self.path_edit.text())
         if path:
@@ -254,6 +281,46 @@ Return the selected install parent folder.
 ```python
 def install_root(self) -> Path:
         return Path(self.path_edit.text().strip())
+```
+
+</details>
+
+### ⚙️ Method `validatePage`
+
+```python
+def validatePage(self) -> bool
+```
+
+Block folders so deep that `uv sync` could not write every packaged file.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def validatePage(self) -> bool:  # noqa: N802
+        headroom = venv_path_headroom(self.install_root())
+        if headroom >= DEEPEST_VENV_RELATIVE or long_paths_enabled():
+            return True
+        answer = QMessageBox.question(
+            self,
+            "Folder path is too long",
+            f"`{self.install_root()}` leaves only {headroom} characters for files inside `.venv`, "
+            f"but some packages need about {DEEPEST_VENV_RELATIVE}.\n\n"
+            "Enable Windows long-path support now, or press No and pick a shorter folder "
+            "such as `C:\\GitHub`.",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.Yes,
+        )
+        if answer != QMessageBox.StandardButton.Yes:
+            return False
+        if enable_long_paths():
+            return True
+        QMessageBox.warning(
+            self,
+            "Long paths",
+            "Could not enable long-path support (administrator rights are required). Please choose a shorter folder.",
+        )
+        return False
 ```
 
 </details>
@@ -327,29 +394,7 @@ class ProgressPage(QWizardPage):
             return
         plan = wizard.tools_page.plan()
         if plan.need_elevate and not is_admin():
-            self.status_label.setText("Administrator permission required")
-            self.detail_label.setText("Git or VS Code setup needs elevation. A UAC prompt should appear.")
-            self._append("==> Requesting administrator permission")
-            plan_path = write_plan_file(
-                {
-                    "mode": self._mode,
-                    "install_root": str(wizard.options_page.install_root()),
-                    "plan": {
-                        "git": plan.git,
-                        "uv": plan.uv,
-                        "vscode": plan.vscode,
-                        "python": plan.python,
-                    },
-                    "desktop": wizard.options_page.desktop_cb.isChecked(),
-                    "startup": wizard.options_page.startup_cb.isChecked(),
-                }
-            )
-            rc = relaunch_elevated(["--continue-plan", str(plan_path)])
-            if rc <= _SHELL_EXECUTE_MAX_ERROR:
-                QMessageBox.warning(self, "Elevation", f"Could not elevate (ShellExecute={rc}).")
-                return
-            QApplication.instance().quit()  # type: ignore[union-attr]
-            return
+            self._append("⚠️ Running without administrator rights; Git or VS Code setup may fail.")
         self._start_worker(plan)
 
     def _on_err(self, message: str) -> None:
@@ -389,7 +434,7 @@ class ProgressPage(QWizardPage):
     def _start_worker(self, plan: PrerequisitePlan) -> None:
         wizard = self.wizard()
         assert isinstance(wizard, InstallerWizard)  # noqa: S101
-        work = Path(tempfile.mkdtemp(prefix="hsk-install-"))
+        work = create_work_dir()
         self._extracting = True
         self.status_label.setText("Starting installation")
         self.detail_label.setText("Preparing the work folder and reading the bundled payload…")
@@ -414,6 +459,8 @@ class ProgressPage(QWizardPage):
 
     def _update_status_from_log(self, line: str) -> None:
         text = line.strip()
+        if not text:
+            return
         if text.startswith("==> "):
             self._extracting = "extract" in text.lower()
             self.status_label.setText(text[4:])
@@ -423,10 +470,7 @@ class ProgressPage(QWizardPage):
             self.status_label.setText("Extracting installer payload")
             self.detail_label.setText(text)
             return
-        if text.startswith("    "):
-            self.detail_label.setText(text.strip())
-            return
-        if text[:1] in {"✅", "⚠️", "❌", "i", "•"}:
+        if line.startswith("  ") or text[:1] in {"✅", "⚠️", "❌", "i", "•"}:
             self.detail_label.setText(text)
 ```
 
@@ -852,29 +896,12 @@ Run the installer wizard and return the Qt exit code.
 ```python
 def run_wizard(argv: list[str] | None = None) -> int:
     args = list(sys.argv[1:] if argv is None else argv)
+    if _elevate_before_ui(args):
+        return 0
     app = QApplication.instance() or QApplication(sys.argv)
     icon = load_app_icon()
     if not icon.isNull():
         app.setWindowIcon(icon)
-
-    if "--continue-plan" in args:
-        idx = args.index("--continue-plan")
-        plan_path = Path(args[idx + 1])
-        data = read_plan_file(plan_path)
-        mode = str(data.get("mode", "online"))
-        wizard = InstallerWizard(mode)
-        wizard.options_page.path_edit.setText(str(data.get("install_root", suggest_install_root())))
-        wizard.options_page.desktop_cb.setChecked(bool(data.get("desktop", True)))
-        wizard.options_page.startup_cb.setChecked(bool(data.get("startup", True)))
-        plan_raw = data.get("plan") or {}
-        wizard.tools_page.git_cb.setChecked(bool(plan_raw.get("git", True)))
-        wizard.tools_page.uv_cb.setChecked(bool(plan_raw.get("uv", True)))
-        wizard.tools_page.vscode_cb.setChecked(bool(plan_raw.get("vscode", True)))
-        wizard.tools_page.python_cb.setChecked(bool(plan_raw.get("python", True)))
-        # Jump to progress and start immediately
-        wizard.setStartId(wizard.pageIds()[3])
-        wizard.show()
-        return int(app.exec())
 
     mode = detect_mode_from_argv(args)
     wizard = InstallerWizard(mode)

@@ -129,6 +129,8 @@ def ensure_installer_stub(project_root: Path, log: LogFn, *, force: bool = False
         "--clean",
         "--onefile",
         "--windowed",
+        # Windows prompts for UAC on launch, so the wizard never restarts itself.
+        "--uac-admin",
         "--name",
         STUB_EXE_NAME.removesuffix(".exe"),
         "--distpath",

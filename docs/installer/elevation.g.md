@@ -12,9 +12,7 @@ lang: en
 ## Contents
 
 - [🔧 Function `is_admin`](#-function-is_admin)
-- [🔧 Function `read_plan_file`](#-function-read_plan_file)
 - [🔧 Function `relaunch_elevated`](#-function-relaunch_elevated)
-- [🔧 Function `write_plan_file`](#-function-write_plan_file)
 
 </details>
 
@@ -37,24 +35,6 @@ def is_admin() -> bool:
         return bool(ctypes.windll.shell32.IsUserAnAdmin())
     except OSError:
         return False
-```
-
-</details>
-
-## 🔧 Function `read_plan_file`
-
-```python
-def read_plan_file(path: Path) -> dict
-```
-
-Load an elevated-install continuation plan from JSON.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def read_plan_file(path: Path) -> dict:
-    return json.loads(path.read_text(encoding="utf-8"))
 ```
 
 </details>
@@ -93,26 +73,6 @@ def relaunch_elevated(extra_args: list[str]) -> int:
             1,
         )
     )
-```
-
-</details>
-
-## 🔧 Function `write_plan_file`
-
-```python
-def write_plan_file(plan_dict: dict) -> Path
-```
-
-Write an elevated-install continuation plan to a temp JSON file.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def write_plan_file(plan_dict: dict) -> Path:
-    path = Path(tempfile.gettempdir()) / f"hsk-install-plan-{os.getpid()}.json"
-    path.write_text(json.dumps(plan_dict, indent=2), encoding="utf-8")
-    return path
 ```
 
 </details>

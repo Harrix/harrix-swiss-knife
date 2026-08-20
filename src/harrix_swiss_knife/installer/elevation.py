@@ -3,11 +3,8 @@
 from __future__ import annotations
 
 import ctypes
-import json
 import os
 import sys
-import tempfile
-from pathlib import Path
 
 
 def is_admin() -> bool:
@@ -18,11 +15,6 @@ def is_admin() -> bool:
         return bool(ctypes.windll.shell32.IsUserAnAdmin())
     except OSError:
         return False
-
-
-def read_plan_file(path: Path) -> dict:
-    """Load an elevated-install continuation plan from JSON."""
-    return json.loads(path.read_text(encoding="utf-8"))
 
 
 def relaunch_elevated(extra_args: list[str]) -> int:
@@ -48,13 +40,6 @@ def relaunch_elevated(extra_args: list[str]) -> int:
             1,
         )
     )
-
-
-def write_plan_file(plan_dict: dict) -> Path:
-    """Write an elevated-install continuation plan to a temp JSON file."""
-    path = Path(tempfile.gettempdir()) / f"hsk-install-plan-{os.getpid()}.json"
-    path.write_text(json.dumps(plan_dict, indent=2), encoding="utf-8")
-    return path
 
 
 def _quote(arg: str) -> str:

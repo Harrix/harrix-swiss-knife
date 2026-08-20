@@ -13,7 +13,10 @@ lang: en
 
 - [🔧 Function `default_install_root_parent`](#-function-default_install_root_parent)
 - [🔧 Function `detect_dev_checkout_parent`](#-function-detect_dev_checkout_parent)
+- [🔧 Function `enable_long_paths`](#-function-enable_long_paths)
+- [🔧 Function `long_paths_enabled`](#-function-long_paths_enabled)
 - [🔧 Function `normalize_install_root`](#-function-normalize_install_root)
+- [🔧 Function `venv_path_headroom`](#-function-venv_path_headroom)
 
 </details>
 
@@ -72,6 +75,59 @@ def detect_dev_checkout_parent(project_hint: Path | None = None) -> Path | None:
 
 </details>
 
+## 🔧 Function `enable_long_paths`
+
+```python
+def enable_long_paths() -> bool
+```
+
+Turn on system-wide long-path support. Needs admin rights; returns whether it worked.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def enable_long_paths() -> bool:
+    if winreg is None:
+        return False
+    try:
+        with winreg.CreateKeyEx(winreg.HKEY_LOCAL_MACHINE, _LONG_PATHS_KEY, 0, winreg.KEY_SET_VALUE) as key:
+            winreg.SetValueEx(key, _LONG_PATHS_VALUE, 0, winreg.REG_DWORD, 1)
+    except OSError:
+        return False
+    return True
+```
+
+</details>
+
+## 🔧 Function `long_paths_enabled`
+
+```python
+def long_paths_enabled() -> bool
+```
+
+Return whether Windows accepts paths longer than `MAX_WINDOWS_PATH`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def long_paths_enabled() -> bool:
+    if winreg is None:
+        return True
+    try:
+        with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, _LONG_PATHS_KEY) as key:
+            value, _ = winreg.QueryValueEx(key, _LONG_PATHS_VALUE)
+    except OSError:
+        return False
+    try:
+        return bool(int(value))
+    except (TypeError, ValueError):
+        return False
+```
+
+</details>
+
 ## 🔧 Function `normalize_install_root`
 
 ```python
@@ -98,6 +154,28 @@ def normalize_install_root(selected: Path) -> Path:
     gh = p / "GitHub"
     gh.mkdir(parents=True, exist_ok=True)
     return gh.resolve()
+```
+
+</details>
+
+## 🔧 Function `venv_path_headroom`
+
+```python
+def venv_path_headroom(install_root: Path) -> int
+```
+
+Characters left for files inside a repo `.venv` when installing into [`install_root`](wizard.g.md#%EF%B8%8F-method-install_root).
+
+Compare the result with `DEEPEST_VENV_RELATIVE` to see whether `uv sync` can
+write every packaged file without long-path support.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def venv_path_headroom(install_root: Path) -> int:
+    longest_repo = max(len(name) for name in REPO_NAMES)
+    return MAX_WINDOWS_PATH - len(str(install_root).rstrip("\\/")) - 1 - longest_repo
 ```
 
 </details>

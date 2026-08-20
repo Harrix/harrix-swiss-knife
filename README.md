@@ -182,7 +182,7 @@ The wizard:
 2. Asks for the install parent folder (defaults: `D:\GitHub`, `C:\GitHub`, Documents\GitHub, or under the user profile) and whether to create desktop / Startup shortcuts
 3. Extracts the embedded payload (progress bar), then installs tools, clones repos, runs `uv sync`, installs the global **`hsk`** CLI, and creates shortcuts
 
-UAC appears **at most once**, and only if Git or VS Code will actually be installed.
+UAC appears **once, at launch**. The EXE carries a `requireAdministrator` manifest, so Windows asks before the wizard window opens, and the installer never restarts itself mid-run.
 
 What the online installer does:
 

@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import os
+import shutil
 import struct
 import sys
+import tempfile
 import zipfile
 from collections.abc import Callable
 from pathlib import Path
@@ -13,6 +16,12 @@ from harrix_swiss_knife.installer.constants import OVERLAY_MAGIC, OVERLAY_TRAILE
 
 LogFn = Callable[[str], None]
 ProgressFn = Callable[[int, int], None]
+
+# `\\?\` lifts the 260-character MAX_PATH limit; uv-cache entries easily exceed it.
+_LONG_PATH_PREFIX = "\\\\?\\"
+_COPY_CHUNK = 1024 * 1024
+_LOG_EVERY = 200
+_NAME_PARTS_MAX = 3
 
 
 class _OffsetView:
@@ -67,6 +76,24 @@ def append_overlay_zip(stub_exe: Path, zip_path: Path, out_exe: Path) -> None:
         out.write(OVERLAY_MAGIC)
 
 
+def create_work_dir() -> Path:
+    r"""Create a short-path work folder so deep payload entries stay manageable.
+
+    Deep `uv-cache` paths plus the long `%LOCALAPPDATA%\Temp` prefix overflow
+    `MAX_PATH` for tools that do not opt into long paths, so prefer a short root.
+
+    """
+    if sys.platform == "win32":
+        drive = os.environ.get("SYSTEMDRIVE", "C:")
+        short_root = Path(f"{drive}\\") / "hsk-setup"
+        try:
+            short_root.mkdir(parents=True, exist_ok=True)
+            return Path(tempfile.mkdtemp(prefix="", dir=str(short_root)))
+        except OSError:
+            pass
+    return Path(tempfile.mkdtemp(prefix="hsk-install-"))
+
+
 def extract_overlay(
     exe_path: Path,
     dest_dir: Path,
@@ -80,17 +107,16 @@ def extract_overlay(
         msg = f"No HSK payload overlay in `{exe_path}`"
         raise RuntimeError(msg)
     start, length = bounds
-    dest_dir.mkdir(parents=True, exist_ok=True)
+    _make_dirs(dest_dir)
     tmp_zip = dest_dir / "_payload.zip"
     if log:
-        log(f"Extracting payload ({length // (1024 * 1024)} MB) from this EXE…")
+        log(f"Extracting payload ({length // _COPY_CHUNK} MB) from this EXE…")
     with exe_path.open("rb") as src, tmp_zip.open("wb") as dst:
         src.seek(start)
         remaining = length
         done = 0
-        chunk_size = 1024 * 1024
         while remaining > 0:
-            chunk = src.read(min(chunk_size, remaining))
+            chunk = src.read(min(_COPY_CHUNK, remaining))
             if not chunk:
                 break
             dst.write(chunk)
@@ -99,14 +125,14 @@ def extract_overlay(
             if progress:
                 progress(done, length)
     with zipfile.ZipFile(tmp_zip, "r") as zf:
-        members = zf.namelist()
-        total = max(len(members), 1)
-        for index, name in enumerate(members, start=1):
-            zf.extract(name, dest_dir)
+        infos = zf.infolist()
+        total = max(len(infos), 1)
+        for index, info in enumerate(infos, start=1):
+            _extract_member(zf, info, dest_dir)
             if progress:
                 progress(index, total)
-            if log and index % 50 == 0:
-                log(f"  Extracted {index}/{total} entries…")
+            if log and (index % _LOG_EVERY == 0 or index == total):
+                log(f"    Extracted {index}/{total} files: {_display_name(info.filename)}")
     tmp_zip.unlink(missing_ok=True)
     deps = dest_dir / "dependencies"
     if deps.is_dir():
@@ -123,6 +149,16 @@ def frozen_executable() -> Path:
 def is_frozen() -> bool:
     """Return whether the installer is running as a frozen executable."""
     return bool(getattr(sys, "frozen", False))
+
+
+def long_path(path: Path) -> str:
+    """Return a filesystem path string that is not limited by Windows `MAX_PATH`."""
+    absolute = str(Path(path).resolve())
+    if sys.platform != "win32" or absolute.startswith(_LONG_PATH_PREFIX):
+        return absolute
+    if absolute.startswith("\\\\"):
+        return _LONG_PATH_PREFIX + "UNC" + absolute[1:]
+    return _LONG_PATH_PREFIX + absolute
 
 
 def read_overlay_bounds(exe_path: Path) -> tuple[int, int] | None:
@@ -156,3 +192,30 @@ def read_overlay_member(exe_path: Path, member: str) -> bytes | None:
             except KeyError:
                 return None
             return zf.read(info)
+
+
+def _display_name(name: str) -> str:
+    """Shorten a zip member name for one log line."""
+    parts = [part for part in name.replace("\\", "/").split("/") if part]
+    if len(parts) <= _NAME_PARTS_MAX:
+        return "/".join(parts)
+    return ".../" + "/".join(parts[-2:])
+
+
+def _extract_member(zf: zipfile.ZipFile, info: zipfile.ZipInfo, dest_dir: Path) -> None:
+    """Extract one member, tolerating paths longer than `MAX_PATH`."""
+    parts = [part for part in info.filename.replace("\\", "/").split("/") if part not in {"", ".", ".."}]
+    if not parts:
+        return
+    target = dest_dir.joinpath(*parts)
+    if info.is_dir():
+        _make_dirs(target)
+        return
+    _make_dirs(target.parent)
+    with zf.open(info, "r") as src, open(long_path(target), "wb") as dst:  # noqa: PTH123
+        shutil.copyfileobj(src, dst, _COPY_CHUNK)
+
+
+def _make_dirs(path: Path) -> None:
+    """Create a directory tree, tolerating paths longer than `MAX_PATH`."""
+    Path(long_path(path)).mkdir(parents=True, exist_ok=True)

@@ -125,7 +125,7 @@ def _git(args: list[str], log: OutcomeLog) -> int:
         return 1
     creation = subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0
     proc = subprocess.run(
-        [git_exe, *args],
+        [git_exe, "-c", "core.longpaths=true", *args],
         check=False,
         capture_output=True,
         text=True,

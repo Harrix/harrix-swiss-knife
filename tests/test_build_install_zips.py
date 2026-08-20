@@ -47,13 +47,17 @@ from harrix_swiss_knife.installer.pack_exes import (
     stub_dir,
     stub_exe_path,
 )
+from harrix_swiss_knife.installer.paths import DEEPEST_VENV_RELATIVE, venv_path_headroom
 from harrix_swiss_knife.installer.payload import (
     append_overlay_zip,
     extract_overlay,
+    long_path,
     read_overlay_bounds,
     read_overlay_member,
 )
 from harrix_swiss_knife.installer.wizard import detect_mode_from_argv
+
+_MAX_PATH = 260
 
 
 def test_build_steps_from_labels_all_defaults() -> None:
@@ -255,6 +259,39 @@ def test_append_overlay_magic_trailer(tmp_path: Path) -> None:
     dest = tmp_path / "extracted"
     deps = extract_overlay(out, dest)
     assert (deps / "marker.txt").read_text(encoding="utf-8") == "hello"
+
+
+def test_extract_overlay_handles_paths_over_max_path(tmp_path: Path) -> None:
+    deep = "dependencies/uv-cache/" + "/".join(f"segment-{index:02d}-padding-padding" for index in range(10))
+    member = f"{deep}/qrc_qmake_Qt_labs_assetdownloader_init.cpp.obj"
+    assert len(member) > _MAX_PATH
+    stub = tmp_path / "stub.exe"
+    stub.write_bytes(b"STUB")
+    zip_path = tmp_path / "payload.zip"
+    with zipfile.ZipFile(zip_path, "w") as zf:
+        zf.writestr(member, "object")
+    out = tmp_path / "offline.exe"
+    append_overlay_zip(stub, zip_path, out)
+    deps = extract_overlay(out, tmp_path / "extracted")
+    target = deps.joinpath(*member.split("/")[1:])
+    assert Path(long_path(target)).read_text(encoding="utf-8") == "object"
+
+
+def test_venv_path_headroom_shrinks_with_deeper_roots() -> None:
+    short = venv_path_headroom(Path(r"C:\GitHub"))
+    deep = venv_path_headroom(Path(r"C:\Users\a-very-long-user-name\Documents\Projects\GitHub"))
+    assert short > DEEPEST_VENV_RELATIVE
+    assert deep < short
+    assert venv_path_headroom(Path("C:\\GitHub\\")) == short
+
+
+def test_long_path_prefixes_only_on_windows(tmp_path: Path) -> None:
+    result = long_path(tmp_path / "file.txt")
+    if sys.platform == "win32":
+        assert result.startswith("\\\\?\\")
+        assert long_path(Path(result)) == result
+    else:
+        assert not result.startswith("\\\\?\\")
 
 
 def test_read_overlay_member(tmp_path: Path) -> None:

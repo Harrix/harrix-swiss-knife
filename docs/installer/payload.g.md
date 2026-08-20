@@ -12,9 +12,11 @@ lang: en
 ## Contents
 
 - [🔧 Function `append_overlay_zip`](#-function-append_overlay_zip)
+- [🔧 Function `create_work_dir`](#-function-create_work_dir)
 - [🔧 Function `extract_overlay`](#-function-extract_overlay)
 - [🔧 Function `frozen_executable`](#-function-frozen_executable)
 - [🔧 Function `is_frozen`](#-function-is_frozen)
+- [🔧 Function `long_path`](#-function-long_path)
 - [🔧 Function `read_overlay_bounds`](#-function-read_overlay_bounds)
 - [🔧 Function `read_overlay_member`](#-function-read_overlay_member)
 
@@ -48,6 +50,35 @@ def append_overlay_zip(stub_exe: Path, zip_path: Path, out_exe: Path) -> None:
 
 </details>
 
+## 🔧 Function `create_work_dir`
+
+```python
+def create_work_dir() -> Path
+```
+
+Create a short-path work folder so deep payload entries stay manageable.
+
+Deep `uv-cache` paths plus the long `%LOCALAPPDATA%\Temp` prefix overflow
+`MAX_PATH` for tools that do not opt into long paths, so prefer a short root.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def create_work_dir() -> Path:
+    if sys.platform == "win32":
+        drive = os.environ.get("SYSTEMDRIVE", "C:")
+        short_root = Path(f"{drive}\\") / "hsk-setup"
+        try:
+            short_root.mkdir(parents=True, exist_ok=True)
+            return Path(tempfile.mkdtemp(prefix="", dir=str(short_root)))
+        except OSError:
+            pass
+    return Path(tempfile.mkdtemp(prefix="hsk-install-"))
+```
+
+</details>
+
 ## 🔧 Function `extract_overlay`
 
 ```python
@@ -72,17 +103,16 @@ def extract_overlay(
         msg = f"No HSK payload overlay in `{exe_path}`"
         raise RuntimeError(msg)
     start, length = bounds
-    dest_dir.mkdir(parents=True, exist_ok=True)
+    _make_dirs(dest_dir)
     tmp_zip = dest_dir / "_payload.zip"
     if log:
-        log(f"Extracting payload ({length // (1024 * 1024)} MB) from this EXE…")
+        log(f"Extracting payload ({length // _COPY_CHUNK} MB) from this EXE…")
     with exe_path.open("rb") as src, tmp_zip.open("wb") as dst:
         src.seek(start)
         remaining = length
         done = 0
-        chunk_size = 1024 * 1024
         while remaining > 0:
-            chunk = src.read(min(chunk_size, remaining))
+            chunk = src.read(min(_COPY_CHUNK, remaining))
             if not chunk:
                 break
             dst.write(chunk)
@@ -91,14 +121,14 @@ def extract_overlay(
             if progress:
                 progress(done, length)
     with zipfile.ZipFile(tmp_zip, "r") as zf:
-        members = zf.namelist()
-        total = max(len(members), 1)
-        for index, name in enumerate(members, start=1):
-            zf.extract(name, dest_dir)
+        infos = zf.infolist()
+        total = max(len(infos), 1)
+        for index, info in enumerate(infos, start=1):
+            _extract_member(zf, info, dest_dir)
             if progress:
                 progress(index, total)
-            if log and index % 50 == 0:
-                log(f"  Extracted {index}/{total} entries…")
+            if log and (index % _LOG_EVERY == 0 or index == total):
+                log(f"    Extracted {index}/{total} files: {_display_name(info.filename)}")
     tmp_zip.unlink(missing_ok=True)
     deps = dest_dir / "dependencies"
     if deps.is_dir():
@@ -141,6 +171,29 @@ Return whether the installer is running as a frozen executable.
 ```python
 def is_frozen() -> bool:
     return bool(getattr(sys, "frozen", False))
+```
+
+</details>
+
+## 🔧 Function `long_path`
+
+```python
+def long_path(path: Path) -> str
+```
+
+Return a filesystem path string that is not limited by Windows `MAX_PATH`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def long_path(path: Path) -> str:
+    absolute = str(Path(path).resolve())
+    if sys.platform != "win32" or absolute.startswith(_LONG_PATH_PREFIX):
+        return absolute
+    if absolute.startswith("\\\\"):
+        return _LONG_PATH_PREFIX + "UNC" + absolute[1:]
+    return _LONG_PATH_PREFIX + absolute
 ```
 
 </details>
