@@ -214,6 +214,34 @@ def test_pack_fitness_includes_all_folder_images_and_missing_names(tmp_path: Pat
     present = inspect_private_data_zip(output_zip)
     assert not present.api_keys
     assert present.fitness
+    leftover_dirs = [
+        path for path in output_zip.parent.iterdir() if path.is_dir() and path.name.startswith(".hsk-private-data-")
+    ]
+    assert leftover_dirs == []
+
+
+def test_pack_removes_leftover_adjacent_stage_folder(tmp_path: Path) -> None:
+    """A previous empty `.hsk-private-data-pack-*` folder next to the ZIP must go."""
+    leftover = tmp_path / ".hsk-private-data-pack-private-data-harrix-swiss-knife"
+    leftover.mkdir()
+    project_root = tmp_path / "src-machine"
+    api_dir = project_root / "api-keys"
+    api_dir.mkdir(parents=True)
+    (api_dir / "openai-api-key.txt").write_text("secret\n", encoding="utf-8")
+    db_path = tmp_path / "unused" / "fitness.db"
+    _create_schema_only_db(db_path)
+    output_zip = tmp_path / "private-data-harrix-swiss-knife.zip"
+    pack_private_data(
+        project_root=project_root,
+        sqlite_fitness=str(db_path),
+        output_zip=output_zip,
+        selection=PrivateDataSelection(api_keys=True, fitness=False),
+    )
+    assert not leftover.exists()
+    leftover_dirs = [
+        path for path in tmp_path.iterdir() if path.is_dir() and path.name.startswith(".hsk-private-data-")
+    ]
+    assert leftover_dirs == []
 
 
 def test_install_overlays_missing_images_next_to_existing(tmp_path: Path) -> None:

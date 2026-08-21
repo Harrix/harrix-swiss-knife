@@ -286,10 +286,8 @@ def install_private_data(
             create_empty_fitness_database(db_path, recover_sql_path)
             created_database = True
 
-    stage_root = zip_path.parent / f".hsk-private-data-install-{zip_path.stem}"
-    if stage_root.exists():
-        shutil.rmtree(stage_root, ignore_errors=True)
-    stage_root.mkdir(parents=True, exist_ok=True)
+    _cleanup_adjacent_stage_dirs(zip_path)
+    stage_root = Path(tempfile.mkdtemp(prefix="hsk-private-data-install-"))
 
     key_count = 0
     img_count = 0
@@ -312,8 +310,7 @@ def install_private_data(
                 fitness_img_dir=fitness_img_dir,
             )
     finally:
-        if stage_root.exists():
-            shutil.rmtree(stage_root, ignore_errors=True)
+        _remove_tree(stage_root)
 
     return InstallPrivateDataResult(
         api_keys_count=key_count,
@@ -400,10 +397,8 @@ def pack_private_data(
         names = [str(exercise["name"]) for exercise in exercises]
         fitness_files, missing_images = collect_fitness_image_files(fitness_img_dir, names)
 
-    stage_root = output_zip.parent / f".hsk-private-data-pack-{output_zip.stem}"
-    if stage_root.exists():
-        shutil.rmtree(stage_root, ignore_errors=True)
-    stage_root.mkdir(parents=True, exist_ok=True)
+    _cleanup_adjacent_stage_dirs(output_zip)
+    stage_root = Path(tempfile.mkdtemp(prefix="hsk-private-data-pack-"))
 
     try:
         if wanted.api_keys:
@@ -460,8 +455,7 @@ def pack_private_data(
                 if file_path.is_file():
                     archive.write(file_path, file_path.relative_to(stage_root).as_posix())
     finally:
-        if stage_root.exists():
-            shutil.rmtree(stage_root, ignore_errors=True)
+        _remove_tree(stage_root)
 
     return PackPrivateDataResult(
         zip_path=output_zip,

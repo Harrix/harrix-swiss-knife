@@ -8,10 +8,14 @@ Fitness images are `{exercise English name}.avif` under `fitness_img/` next to t
 
 from __future__ import annotations
 
+import contextlib
 import json
 import re
 import shutil
 import sqlite3
+import stat
+import tempfile
+import time
 import zipfile
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -35,6 +39,10 @@ ZIP_API_KEYS_DIR = "api-keys"
 ZIP_FITNESS_IMG_DIR = "fitness_img"
 ZIP_CATALOG_NAME = "fitness_catalog.json"
 ZIP_MANIFEST_NAME = "manifest.json"
+_STAGE_INSTALL_PREFIX = ".hsk-private-data-install-"
+_STAGE_PACK_PREFIX = ".hsk-private-data-pack-"
+_REMOVE_TREE_ATTEMPTS = 5
+_REMOVE_TREE_RETRY_S = 0.05
 
 
 @dataclass(frozen=True)
@@ -185,10 +193,8 @@ def install_private_data(
             create_empty_fitness_database(db_path, recover_sql_path)
             created_database = True
 
-    stage_root = zip_path.parent / f".hsk-private-data-install-{zip_path.stem}"
-    if stage_root.exists():
-        shutil.rmtree(stage_root, ignore_errors=True)
-    stage_root.mkdir(parents=True, exist_ok=True)
+    _cleanup_adjacent_stage_dirs(zip_path)
+    stage_root = Path(tempfile.mkdtemp(prefix="hsk-private-data-install-"))
 
     key_count = 0
     img_count = 0
@@ -211,8 +217,7 @@ def install_private_data(
                 fitness_img_dir=fitness_img_dir,
             )
     finally:
-        if stage_root.exists():
-            shutil.rmtree(stage_root, ignore_errors=True)
+        _remove_tree(stage_root)
 
     return InstallPrivateDataResult(
         api_keys_count=key_count,
@@ -273,10 +278,8 @@ def pack_private_data(
         names = [str(exercise["name"]) for exercise in exercises]
         fitness_files, missing_images = collect_fitness_image_files(fitness_img_dir, names)
 
-    stage_root = output_zip.parent / f".hsk-private-data-pack-{output_zip.stem}"
-    if stage_root.exists():
-        shutil.rmtree(stage_root, ignore_errors=True)
-    stage_root.mkdir(parents=True, exist_ok=True)
+    _cleanup_adjacent_stage_dirs(output_zip)
+    stage_root = Path(tempfile.mkdtemp(prefix="hsk-private-data-pack-"))
 
     try:
         if wanted.api_keys:
@@ -333,8 +336,7 @@ def pack_private_data(
                 if file_path.is_file():
                     archive.write(file_path, file_path.relative_to(stage_root).as_posix())
     finally:
-        if stage_root.exists():
-            shutil.rmtree(stage_root, ignore_errors=True)
+        _remove_tree(stage_root)
 
     return PackPrivateDataResult(
         zip_path=output_zip,
@@ -361,6 +363,27 @@ def selection_from_part_flags(*, api_keys: bool, fitness: bool) -> PrivateDataSe
     if not api_keys and not fitness:
         return PrivateDataSelection(api_keys=True, fitness=True)
     return PrivateDataSelection(api_keys=api_keys, fitness=fitness)
+
+
+def _cleanup_adjacent_stage_dirs(zip_path: Path) -> None:
+    """Remove leftover `.hsk-private-data-*` folders next to a ZIP.
+
+    Args:
+
+    - `zip_path` (`Path`): Pack or install ZIP whose sibling stage folders to drop.
+
+    """
+    parent = zip_path.parent
+    if not parent.is_dir():
+        return
+    leftovers = [
+        child
+        for child in parent.iterdir()
+        if child.is_dir()
+        and (child.name.startswith(_STAGE_PACK_PREFIX) or child.name.startswith(_STAGE_INSTALL_PREFIX))
+    ]
+    for child in leftovers:
+        _remove_tree(child)
 
 
 def _install_api_keys(stage_api: Path, dest_api: Path) -> int:
@@ -409,6 +432,41 @@ def _install_fitness_data(
         _copied, missing_images = collect_fitness_image_files(fitness_img_dir, names)
 
     return len(img_files), missing_images, stats
+
+
+def _remove_tree(path: Path) -> None:
+    """Delete a directory tree, retrying Windows locks and leftover empty folders.
+
+    Args:
+
+    - `path` (`Path`): Directory to remove.
+
+    """
+    if not path.exists():
+        return
+
+    def _onerror(_func: object, name: str, _exc: object) -> None:
+        target = Path(name)
+        with contextlib.suppress(OSError):
+            target.chmod(stat.S_IWRITE)
+            if target.is_file() or target.is_symlink():
+                target.unlink()
+            elif target.is_dir():
+                target.rmdir()
+
+    for _ in range(_REMOVE_TREE_ATTEMPTS):
+        if not path.exists():
+            return
+        try:
+            shutil.rmtree(path, onerror=_onerror)
+        except OSError:
+            time.sleep(_REMOVE_TREE_RETRY_S)
+        else:
+            return
+    shutil.rmtree(path, ignore_errors=True)
+    if path.is_dir() and not any(path.iterdir()):
+        with contextlib.suppress(OSError):
+            path.rmdir()
 
 
 def _zip_member_posix(name: str) -> str:
