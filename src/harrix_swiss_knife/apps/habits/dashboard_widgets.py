@@ -331,6 +331,16 @@ class MonthCalendarGrid(QWidget):
                     border-color: #93C5FD;
                     color: #1D4ED8;
                 }
+                QPushButton:disabled {
+                    background: #F3F4F6;
+                    border: 1px solid #E5E7EB;
+                    color: #D1D5DB;
+                }
+                QPushButton:disabled:hover {
+                    background: #F3F4F6;
+                    border-color: #E5E7EB;
+                    color: #D1D5DB;
+                }
                 """
             )
         self._prev_btn.setToolTip("Previous month")
@@ -386,7 +396,7 @@ class MonthCalendarGrid(QWidget):
         self._allows_number = allows_number
         self._today = today or _local_today()
         self._title.setText(f"{_month_short(month)} {year}")
-        self._next_btn.setEnabled((self._year, self._month) < (self._today.year, self._today.month))
+        self._sync_next_month_button()
         self._rebuild_grid()
 
     def _clear_grid(self) -> None:
@@ -452,6 +462,12 @@ class MonthCalendarGrid(QWidget):
                 cell_layout.addWidget(day_label)
                 self._grid.addWidget(cell, row_index, column_index)
                 self._day_cells.append((circle, day_label, date_str))
+
+    def _sync_next_month_button(self) -> None:
+        """Disable the next-month button when the shown month is already current."""
+        can_go_next = (self._year, self._month) < (self._today.year, self._today.month)
+        self._next_btn.setEnabled(can_go_next)
+        self._next_btn.setCursor(Qt.CursorShape.PointingHandCursor if can_go_next else Qt.CursorShape.ArrowCursor)
 
 
 class ProgressRing(QWidget):

@@ -343,6 +343,8 @@ def test_month_calendar_blocks_future_dates(qapp: QApplication) -> None:
 
     next_btn = next(button for button in grid.findChildren(QPushButton) if button.toolTip() == "Next month")
     assert not next_btn.isEnabled()
+    assert next_btn.cursor().shape() == Qt.CursorShape.ArrowCursor
+    assert "QPushButton:disabled" in next_btn.styleSheet()
 
     changed: list[tuple[int, int]] = []
     grid.month_changed.connect(lambda year, month: changed.append((year, month)))
@@ -352,6 +354,7 @@ def test_month_calendar_blocks_future_dates(qapp: QApplication) -> None:
     grid.set_month(2026, 7, {}, today=today)
     next_btn = next(button for button in grid.findChildren(QPushButton) if button.toolTip() == "Next month")
     assert next_btn.isEnabled()
+    assert next_btn.cursor().shape() == Qt.CursorShape.PointingHandCursor
 
 
 def test_alternative_habit_day_choices() -> None:
