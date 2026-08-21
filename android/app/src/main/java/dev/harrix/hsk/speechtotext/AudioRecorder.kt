@@ -25,8 +25,8 @@ data class WaveformBucket(
 )
 
 /**
- * Records microphone audio to mono 16-bit WAV for BotHub, with live envelopes
- * and continue-from-file support (desktop Speech to Text parity).
+ * Records microphone audio to mono 16-bit WAV for waveform and continue-recording.
+ * Upload compression to AAC/M4A happens in [AudioCompress] (desktop Speech to Text parity).
  */
 class AudioRecorder(
     private val context: Context,

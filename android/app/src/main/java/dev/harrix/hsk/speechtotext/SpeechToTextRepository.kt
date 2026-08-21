@@ -41,20 +41,27 @@ class SpeechToTextRepository(
         mimeType: String = AudioRecorder.MIME_WAV,
     ): String {
         requireApiKey(forSpeech = true)
-        val bytes = audioFile.readBytes()
-        if (bytes.size < AudioRecorder.MIN_AUDIO_BYTES) {
-            throw BothubApiException("Recording is too short or empty")
+        val upload = AudioCompress.prepareForUpload(audioFile, mimeType)
+        return try {
+            val bytes = upload.file.readBytes()
+            if (bytes.size < AudioRecorder.MIN_AUDIO_BYTES) {
+                throw BothubApiException("Recording is too short or empty")
+            }
+            val transcribed =
+                client.chatCompletion(
+                    model = BothubConfig.speechModel,
+                    text = BothubPrompts.TRANSCRIPTION,
+                    audio = bytes to upload.mimeType,
+                )
+            if (transcribed.isBlank()) {
+                throw BothubApiException("Empty transcription from AI")
+            }
+            transcribed
+        } finally {
+            if (upload.temporary && upload.file.absolutePath != audioFile.absolutePath) {
+                upload.file.delete()
+            }
         }
-        val transcribed =
-            client.chatCompletion(
-                model = BothubConfig.speechModel,
-                text = BothubPrompts.TRANSCRIPTION,
-                audio = bytes to mimeType,
-            )
-        if (transcribed.isBlank()) {
-            throw BothubApiException("Empty transcription from AI")
-        }
-        return transcribed
     }
 
     fun fixText(text: String): String {

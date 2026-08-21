@@ -12,6 +12,7 @@ import androidx.lifecycle.viewModelScope
 import dev.harrix.hsk.R
 import dev.harrix.hsk.ai.AiConfig
 import dev.harrix.hsk.bothub.BothubConfig
+import dev.harrix.hsk.speechtotext.AudioCompress
 import dev.harrix.hsk.speechtotext.AudioRecorder
 import dev.harrix.hsk.speechtotext.AudioRecorderException
 import dev.harrix.hsk.speechtotext.PendingSpeechRecording
@@ -387,11 +388,19 @@ class SpeechToTextViewModel(
                 val preservedOutcome =
                     withContext(Dispatchers.IO) {
                         runCatching {
-                            pendingStore.save(
-                                source = file,
-                                mimeType = mimeType,
-                                durationSeconds = recordingDurationSeconds.floatValue,
-                            )
+                            val upload = AudioCompress.prepareForUpload(file, mimeType)
+                            val pending =
+                                pendingStore.save(
+                                    source = upload.file,
+                                    mimeType = upload.mimeType,
+                                    durationSeconds = recordingDurationSeconds.floatValue,
+                                )
+                            if (upload.temporary &&
+                                upload.file.absolutePath != pending.file.absolutePath
+                            ) {
+                                upload.file.delete()
+                            }
+                            pending
                         }
                     }
                 if (preservedOutcome.isFailure) {
@@ -401,10 +410,11 @@ class SpeechToTextViewModel(
                     phase.value = failedRecordingPhase()
                     return@launch
                 }
-                pendingRecording.value = preservedOutcome.getOrThrow()
+                val pending = preservedOutcome.getOrThrow()
+                pendingRecording.value = pending
                 val transcribedOutcome =
                     withContext(Dispatchers.IO) {
-                        runCatching { repository.transcribe(file, mimeType) }
+                        runCatching { repository.transcribe(pending.file, pending.mimeType) }
                     }
                 if (transcribedOutcome.isFailure) {
                     errorMessage.value =
