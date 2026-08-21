@@ -118,6 +118,7 @@ fun SpeechToTextScreen(
     viewModel: SpeechToTextViewModel = viewModel(),
 ) {
     val composerPhase by viewModel.composerPhase
+    val composerBusy by viewModel.composerBusy
     var errorMessage by viewModel.errorMessage
     var infoMessage by viewModel.infoMessage
     var hasApiKey by viewModel.hasApiKey
@@ -368,6 +369,7 @@ fun SpeechToTextScreen(
                 ComposerBar(
                     phase = composerPhase,
                     hasApiKey = hasApiKey,
+                    busy = composerBusy,
                     buckets = waveformBuckets,
                     durationLabel = AudioRecorder.formatDuration(recordingDurationSeconds),
                     onStart = { startOrRequestMic(MicAction.Start) },
@@ -681,6 +683,7 @@ private fun SpeechMessageDetail(
 private fun ComposerBar(
     phase: ComposerPhase,
     hasApiKey: Boolean,
+    busy: Boolean,
     buckets: List<WaveformBucket>,
     durationLabel: String,
     onStart: () -> Unit,
@@ -714,7 +717,7 @@ private fun ComposerBar(
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
                         RecordStartButton(
-                            enabled = hasApiKey,
+                            enabled = hasApiKey && !busy,
                             onClick = onStart,
                         )
                         Text(
@@ -745,7 +748,11 @@ private fun ComposerBar(
                             .fillMaxWidth()
                             .height(72.dp),
                     )
-                    Button(onClick = onStop, modifier = Modifier.fillMaxWidth()) {
+                    Button(
+                        onClick = onStop,
+                        enabled = !busy,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
                         Icon(
                             imageVector = Icons.Filled.Stop,
                             contentDescription = null,
@@ -754,7 +761,11 @@ private fun ComposerBar(
                         Spacer(modifier = Modifier.size(8.dp))
                         Text(stringResource(R.string.speech_to_text_stop))
                     }
-                    OutlinedButton(onClick = onCancelRecording, modifier = Modifier.fillMaxWidth()) {
+                    OutlinedButton(
+                        onClick = onCancelRecording,
+                        enabled = !busy,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
                         Text(stringResource(R.string.speech_to_text_cancel_recording))
                     }
                 }
@@ -782,13 +793,14 @@ private fun ComposerBar(
                     ) {
                         Button(
                             onClick = onRecognize,
-                            enabled = hasApiKey,
+                            enabled = hasApiKey && !busy,
                             modifier = Modifier.weight(1f),
                         ) {
                             Text(stringResource(R.string.speech_to_text_recognize))
                         }
                         OutlinedButton(
                             onClick = onRecordNew,
+                            enabled = !busy,
                             modifier = Modifier.weight(1f),
                         ) {
                             Icon(
@@ -800,7 +812,11 @@ private fun ComposerBar(
                             Text(stringResource(R.string.speech_to_text_record_new))
                         }
                     }
-                    OutlinedButton(onClick = onSaveDraft, modifier = Modifier.fillMaxWidth()) {
+                    OutlinedButton(
+                        onClick = onSaveDraft,
+                        enabled = !busy,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
                         Icon(
                             imageVector = Icons.Filled.Save,
                             contentDescription = null,
@@ -817,18 +833,21 @@ private fun ComposerBar(
                             onClick = onContinue,
                             icon = Icons.Filled.PlayArrow,
                             label = stringResource(R.string.speech_to_text_continue),
+                            enabled = !busy,
                         )
                         CompactBottomActionButton(
                             onClick = onRerecord,
                             icon = Icons.Filled.Refresh,
                             label = stringResource(R.string.speech_to_text_rerecord),
                             outlined = true,
+                            enabled = !busy,
                         )
                         CompactBottomActionButton(
                             onClick = onDiscard,
                             icon = Icons.Filled.Delete,
                             label = stringResource(R.string.speech_to_text_discard_recording),
                             outlined = true,
+                            enabled = !busy,
                         )
                     }
                 }

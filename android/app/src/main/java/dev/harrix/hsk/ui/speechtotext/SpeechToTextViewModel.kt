@@ -60,6 +60,7 @@ class SpeechToTextViewModel(
 
     val items = mutableStateListOf<SpeechQueueItem>()
     val composerPhase = mutableStateOf(ComposerPhase.Idle)
+    val composerBusy = mutableStateOf(false)
     val errorMessage = mutableStateOf<String?>(null)
     val infoMessage = mutableStateOf<String?>(null)
     val hasApiKey = mutableStateOf(isAiConfigured())
@@ -143,37 +144,49 @@ class SpeechToTextViewModel(
     }
 
     fun stopRecording() {
-        if (composerPhase.value != ComposerPhase.Recording) {
+        if (composerPhase.value != ComposerPhase.Recording || composerBusy.value) {
             return
         }
+        composerBusy.value = true
         stopDurationTicker()
-        val stopped =
-            try {
-                audioRecorder.stop()
-            } catch (e: AudioRecorderException) {
-                errorMessage.value = e.message
-                composerPhase.value =
-                    if (draftFile != null) {
-                        ComposerPhase.Recorded
-                    } else {
-                        ComposerPhase.Idle
-                    }
-                return
-            }
-        draftFile = stopped.first
-        draftMime = stopped.second
-        recordingDurationSeconds.floatValue = audioRecorder.durationSeconds()
-        composerPhase.value = ComposerPhase.Recorded
+        viewModelScope.launch {
+            val outcome =
+                withContext(Dispatchers.IO) {
+                    runCatching { audioRecorder.stop() }
+                }
+            outcome
+                .onSuccess { stopped ->
+                    draftFile = stopped.first
+                    draftMime = stopped.second
+                    recordingDurationSeconds.floatValue = audioRecorder.durationSeconds()
+                    composerPhase.value = ComposerPhase.Recorded
+                }.onFailure { e ->
+                    errorMessage.value = e.message
+                    composerPhase.value =
+                        if (draftFile != null) {
+                            ComposerPhase.Recorded
+                        } else {
+                            ComposerPhase.Idle
+                        }
+                }
+            composerBusy.value = false
+        }
     }
 
     fun continueRecording() {
-        if (composerPhase.value != ComposerPhase.Recorded || !audioRecorder.canContinue()) {
+        if (composerBusy.value ||
+            composerPhase.value != ComposerPhase.Recorded ||
+            !audioRecorder.canContinue()
+        ) {
             return
         }
         startRecording(append = true)
     }
 
     fun rerecord() {
+        if (composerBusy.value) {
+            return
+        }
         clearDraftAudio()
         waveformBuckets.clear()
         recordingDurationSeconds.floatValue = 0f
@@ -183,7 +196,7 @@ class SpeechToTextViewModel(
     }
 
     fun cancelRecording() {
-        if (composerPhase.value != ComposerPhase.Recording) {
+        if (composerPhase.value != ComposerPhase.Recording || composerBusy.value) {
             return
         }
         stopDurationTicker()
@@ -195,7 +208,7 @@ class SpeechToTextViewModel(
     }
 
     fun discardDraft() {
-        if (composerPhase.value != ComposerPhase.Recorded) {
+        if (composerBusy.value || composerPhase.value != ComposerPhase.Recorded) {
             return
         }
         clearDraftAudio()
@@ -217,9 +230,18 @@ class SpeechToTextViewModel(
     }
 
     private fun enqueueDraft(onEnqueued: (SpeechQueueItem) -> Unit) {
-        val file = draftFile?.takeIf { it.isFile } ?: return
+        if (composerBusy.value) {
+            return
+        }
+        val file = draftFile?.takeIf { it.isFile }
+        if (file == null) {
+            errorMessage.value =
+                getApplication<Application>().getString(R.string.speech_to_text_recording_missing)
+            return
+        }
         val duration = recordingDurationSeconds.floatValue
         val mime = draftMime
+        composerBusy.value = true
         viewModelScope.launch {
             val outcome =
                 withContext(Dispatchers.IO) {
@@ -231,17 +253,21 @@ class SpeechToTextViewModel(
                         )
                     }
                 }
-            outcome
-                .onSuccess { item ->
-                    clearDraftAudio()
-                    waveformBuckets.clear()
-                    recordingDurationSeconds.floatValue = 0f
-                    composerPhase.value = ComposerPhase.Idle
-                    items.add(item)
-                    onEnqueued(item)
-                }.onFailure { e ->
-                    errorMessage.value = e.message ?: e.toString()
-                }
+            try {
+                outcome
+                    .onSuccess { item ->
+                        clearDraftAudio()
+                        waveformBuckets.clear()
+                        recordingDurationSeconds.floatValue = 0f
+                        composerPhase.value = ComposerPhase.Idle
+                        items.add(item)
+                        onEnqueued(item)
+                    }.onFailure { e ->
+                        errorMessage.value = e.message ?: e.toString()
+                    }
+            } finally {
+                composerBusy.value = false
+            }
         }
     }
 
@@ -412,6 +438,7 @@ class SpeechToTextViewModel(
         waveformBuckets.clear()
         recordingDurationSeconds.floatValue = 0f
         composerPhase.value = ComposerPhase.Idle
+        composerBusy.value = false
         hasApiKey.value = isAiConfigured()
     }
 

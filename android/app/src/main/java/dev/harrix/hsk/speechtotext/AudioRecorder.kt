@@ -183,10 +183,12 @@ class AudioRecorder(
     private fun releaseCapture() {
         val recorder = audioRecord
         audioRecord = null
+        // Stop first so the write thread can leave read(); release only after join.
+        // Releasing while read() is still running can block join() for the full timeout.
         runCatching { recorder?.stop() }
-        recorder?.release()
         writeThread?.join(2_000)
         writeThread = null
+        runCatching { recorder?.release() }
     }
 
     private fun writeLoop(

@@ -71,19 +71,16 @@ class SpeechToTextQueueStore(
         require(source.isFile) { "Recording file missing" }
         rootDir.mkdirs()
         val id = UUID.randomUUID().toString()
-        val upload = AudioCompress.prepareForUpload(source, mimeType)
+        val storedMime = mimeType.ifBlank { AudioCompress.mimeFromName(source) }
         val extension =
             when {
-                upload.mimeType.contains("m4a", ignoreCase = true) -> ".m4a"
-                upload.mimeType.contains("wav", ignoreCase = true) -> ".wav"
+                storedMime.contains("m4a", ignoreCase = true) -> ".m4a"
+                storedMime.contains("wav", ignoreCase = true) -> ".wav"
                 else -> source.extension.ifBlank { "wav" }.let { ".$it" }
             }
         val destination = File(rootDir, "$id$extension")
-        if (upload.file.absolutePath != destination.absolutePath) {
-            upload.file.copyTo(destination, overwrite = true)
-            if (upload.temporary && upload.file.absolutePath != source.absolutePath) {
-                upload.file.delete()
-            }
+        if (source.absolutePath != destination.absolutePath) {
+            source.copyTo(destination, overwrite = true)
         }
         check(destination.isFile && destination.length() > MIN_VALID_FILE_BYTES) {
             "Could not store speech recording"
@@ -92,7 +89,7 @@ class SpeechToTextQueueStore(
             SpeechQueueItem(
                 id = id,
                 audioFile = destination,
-                mimeType = upload.mimeType,
+                mimeType = storedMime,
                 audioDurationSeconds = audioDurationSeconds.coerceAtLeast(0f),
                 status = SpeechMessageStatus.Recorded,
                 createdAtMs = System.currentTimeMillis(),

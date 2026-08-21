@@ -48,6 +48,9 @@ def export_ticktick_habits_json(db_path: Path | None = None) -> dict[str, Any]
 
 Return habit names and achieved dates from a TickTick SQLite file.
 
+Only check-ins with Status completed (`2`) count as Done. Rows without a
+`Status` column are treated as Done (legacy test snapshots).
+
 Args:
 
 - `db_path` (`Path | None`): `TickTick.db`. Defaults to the desktop AppData path.

@@ -220,6 +220,7 @@
     <string name="speech_to_text_status_error">Ошибка распознавания</string>
     <string name="speech_to_text_slow_warning">Распознавание идёт дольше обычного. Можно отменить и записать заново.</string>
     <string name="speech_to_text_empty_queue">Пока нет сообщений. Начните запись ниже.</string>
+    <string name="speech_to_text_recording_missing">Файл записи не найден. Запишите снова.</string>
     <string name="photo_editor_share_label">Harrix Photo Editor</string>
     <string name="photo_editor_title">Photo Editor</string>
     <string name="photo_editor_close">Выйти из Photo Editor</string>

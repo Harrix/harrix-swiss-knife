@@ -220,6 +220,7 @@
     <string name="speech_to_text_status_error">Recognition failed</string>
     <string name="speech_to_text_slow_warning">Recognition is taking longer than usual. You can cancel and record again.</string>
     <string name="speech_to_text_empty_queue">No messages yet. Start recording below.</string>
+    <string name="speech_to_text_recording_missing">Recording file is missing. Record again.</string>
     <string name="photo_editor_share_label">Harrix Photo Editor</string>
     <string name="photo_editor_title">Photo Editor</string>
     <string name="photo_editor_close">Keluar dari Photo Editor</string>
