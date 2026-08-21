@@ -18,6 +18,7 @@ from harrix_swiss_knife.actions.common.private_data import (
     find_importable_fitness_private_data_zip,
     inspect_private_data_zip,
     install_private_data,
+    list_api_key_files_in_zip,
     pack_private_data,
     resolve_api_key_files_for_pack,
     selection_from_part_flags,
@@ -200,6 +201,52 @@ def test_pack_api_keys_subset_omits_other_secrets(tmp_path: Path) -> None:
     assert f"{ZIP_API_KEYS_DIR}/openai-api-key.txt" in names
     assert f"{ZIP_API_KEYS_DIR}/github-token.txt" in names
     assert f"{ZIP_API_KEYS_DIR}/bothub-api-key.txt" not in names
+
+
+def test_list_api_key_files_in_zip_skips_examples(tmp_path: Path) -> None:
+    """ZIP listing returns secret key names and ignores `*.example.txt`."""
+    zip_path = tmp_path / "keys.zip"
+    with zipfile.ZipFile(zip_path, "w") as archive:
+        archive.writestr(f"{ZIP_API_KEYS_DIR}/openai-api-key.txt", "o\n")
+        archive.writestr(f"{ZIP_API_KEYS_DIR}/bothub-api-key.txt", "b\n")
+        archive.writestr(f"{ZIP_API_KEYS_DIR}/openai-api-key.example.txt", "x\n")
+        archive.writestr(f"{ZIP_FITNESS_IMG_DIR}/Pull-ups.avif", b"avif")
+    assert list_api_key_files_in_zip(zip_path) == ["bothub-api-key.txt", "openai-api-key.txt"]
+
+
+def test_install_api_keys_subset_skips_other_secrets(tmp_path: Path) -> None:
+    """Import can copy only the checked API key files from the ZIP."""
+    source_root = tmp_path / "src-machine"
+    api_dir = source_root / "api-keys"
+    api_dir.mkdir(parents=True)
+    (api_dir / "openai-api-key.txt").write_text("openai\n", encoding="utf-8")
+    (api_dir / "bothub-api-key.txt").write_text("bothub\n", encoding="utf-8")
+    db_path = tmp_path / "unused" / "fitness.db"
+    _create_schema_only_db(db_path)
+    zip_path = tmp_path / "out.zip"
+    pack_private_data(
+        project_root=source_root,
+        sqlite_fitness=str(db_path),
+        output_zip=zip_path,
+        selection=PrivateDataSelection(api_keys=True, fitness=False),
+    )
+    target_root = tmp_path / "target"
+    target_root.mkdir()
+    result = install_private_data(
+        project_root=target_root,
+        sqlite_fitness=str(db_path),
+        zip_path=zip_path,
+        recover_sql_path=RECOVER_SQL,
+        selection=PrivateDataSelection(
+            api_keys=True,
+            fitness=False,
+            api_key_files=("openai-api-key.txt",),
+        ),
+    )
+    assert result.api_keys_count == 1
+    dest = target_root / "api-keys"
+    assert (dest / "openai-api-key.txt").read_text(encoding="utf-8") == "openai\n"
+    assert not (dest / "bothub-api-key.txt").exists()
 
 
 def test_pack_api_keys_only_omits_fitness(tmp_path: Path) -> None:

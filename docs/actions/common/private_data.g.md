@@ -20,6 +20,7 @@ lang: en
 - [🔧 Function `find_importable_fitness_private_data_zip`](#-function-find_importable_fitness_private_data_zip)
 - [🔧 Function `inspect_private_data_zip`](#-function-inspect_private_data_zip)
 - [🔧 Function `install_private_data`](#-function-install_private_data)
+- [🔧 Function `list_api_key_files_in_zip`](#-function-list_api_key_files_in_zip)
 - [🔧 Function `list_api_key_secret_files`](#-function-list_api_key_secret_files)
 - [🔧 Function `pack_private_data`](#-function-pack_private_data)
 - [🔧 Function `resolve_api_key_files_for_pack`](#-function-resolve_api_key_files_for_pack)
@@ -301,7 +302,11 @@ def install_private_data(
             archive.extractall(stage_root)
 
         if include_api_keys:
-            key_count = _install_api_keys(stage_root / ZIP_API_KEYS_DIR, project_root / ZIP_API_KEYS_DIR)
+            key_count = _install_api_keys(
+                stage_root / ZIP_API_KEYS_DIR,
+                project_root / ZIP_API_KEYS_DIR,
+                selected_names=wanted.api_key_files,
+            )
 
         if include_fitness:
             if db_path is None or fitness_img_dir is None:
@@ -323,6 +328,45 @@ def install_private_data(
         fitness_img_dir=fitness_img_dir,
         created_database=created_database,
         missing_exercise_images=tuple(missing_images),
+    )
+```
+
+</details>
+
+## 🔧 Function `list_api_key_files_in_zip`
+
+```python
+def list_api_key_files_in_zip(zip_path: Path) -> list[str]
+```
+
+Return secret API key filenames stored under `api-keys/` in a ZIP.
+
+Args:
+
+- `zip_path` (`Path`): Private-data ZIP.
+
+Returns:
+
+- `list[str]`: Filenames (not `*.example.txt`), sorted.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def list_api_key_files_in_zip(zip_path: Path) -> list[str]:
+    if not zip_path.is_file():
+        msg = f"ZIP not found: {zip_path}"
+        raise FileNotFoundError(msg)
+    prefix = f"{ZIP_API_KEYS_DIR}/"
+    with zipfile.ZipFile(zip_path, "r") as archive:
+        names = [_zip_member_posix(name) for name in archive.namelist()]
+    return sorted(
+        Path(name).name
+        for name in names
+        if name.startswith(prefix)
+        and name.count("/") == 1
+        and name.lower().endswith(".txt")
+        and not Path(name).name.endswith(".example.txt")
     )
 ```
 

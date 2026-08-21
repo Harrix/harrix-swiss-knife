@@ -788,7 +788,7 @@ def private_data_export(
 ## 🔧 Function `private_data_import`
 
 ```python
-def private_data_import(zip_path: Path | None, *, api_keys: bool, fitness: bool) -> None
+def private_data_import(zip_path: Path | None, *, api_keys: bool, fitness: bool, api_key_files: tuple[str, ...]) -> None
 ```
 
 Install selected private data; overlay images and upsert catalog (keeps workouts).
@@ -797,8 +797,20 @@ Install selected private data; overlay images and upsert catalog (keeps workouts
 <summary>Code:</summary>
 
 ```python
-def private_data_import(zip_path: Path | None, *, api_keys: bool, fitness: bool) -> None:
-    _invoke_transfer_private_data(mode="import", zip_path=zip_path, api_keys=api_keys, fitness=fitness)
+def private_data_import(
+    zip_path: Path | None,
+    *,
+    api_keys: bool,
+    fitness: bool,
+    api_key_files: tuple[str, ...],
+) -> None:
+    _invoke_transfer_private_data(
+        mode="import",
+        zip_path=zip_path,
+        api_keys=api_keys or bool(api_key_files),
+        fitness=fitness,
+        api_key_files=api_key_files,
+    )
 ```
 
 </details>

@@ -207,7 +207,11 @@ def install_private_data(
             archive.extractall(stage_root)
 
         if include_api_keys:
-            key_count = _install_api_keys(stage_root / ZIP_API_KEYS_DIR, project_root / ZIP_API_KEYS_DIR)
+            key_count = _install_api_keys(
+                stage_root / ZIP_API_KEYS_DIR,
+                project_root / ZIP_API_KEYS_DIR,
+                selected_names=wanted.api_key_files,
+            )
 
         if include_fitness:
             if db_path is None or fitness_img_dir is None:
@@ -229,6 +233,34 @@ def install_private_data(
         fitness_img_dir=fitness_img_dir,
         created_database=created_database,
         missing_exercise_images=tuple(missing_images),
+    )
+
+
+def list_api_key_files_in_zip(zip_path: Path) -> list[str]:
+    """Return secret API key filenames stored under `api-keys/` in a ZIP.
+
+    Args:
+
+    - `zip_path` (`Path`): Private-data ZIP.
+
+    Returns:
+
+    - `list[str]`: Filenames (not `*.example.txt`), sorted.
+
+    """
+    if not zip_path.is_file():
+        msg = f"ZIP not found: {zip_path}"
+        raise FileNotFoundError(msg)
+    prefix = f"{ZIP_API_KEYS_DIR}/"
+    with zipfile.ZipFile(zip_path, "r") as archive:
+        names = [_zip_member_posix(name) for name in archive.namelist()]
+    return sorted(
+        Path(name).name
+        for name in names
+        if name.startswith(prefix)
+        and name.count("/") == 1
+        and name.lower().endswith(".txt")
+        and not Path(name).name.endswith(".example.txt")
     )
 
 
@@ -419,11 +451,35 @@ def _cleanup_adjacent_stage_dirs(zip_path: Path) -> None:
         _remove_tree(child)
 
 
-def _install_api_keys(stage_api: Path, dest_api: Path) -> int:
-    """Copy secret `*.txt` files from the extracted ZIP into `api-keys`."""
+def _install_api_keys(
+    stage_api: Path,
+    dest_api: Path,
+    *,
+    selected_names: Sequence[str] | None = None,
+) -> int:
+    """Copy secret `*.txt` files from the extracted ZIP into `api-keys`.
+
+    Args:
+
+    - `stage_api` (`Path`): Extracted `api-keys` folder from the ZIP.
+    - `dest_api` (`Path`): Project `api-keys` folder.
+    - `selected_names` (`Sequence[str] | None`): Filenames to copy, or all.
+
+    Returns:
+
+    - `int`: Number of files copied.
+
+    """
     dest_api.mkdir(parents=True, exist_ok=True)
     key_files = sorted(path for path in stage_api.iterdir() if path.is_file() and path.suffix.lower() == ".txt")
-    if not key_files:
+    if selected_names:
+        wanted = {str(name).strip() for name in selected_names if str(name).strip()}
+        key_files = [path for path in key_files if path.name in wanted]
+        if not key_files:
+            missing = ", ".join(sorted(wanted))
+            msg = f"ZIP {ZIP_API_KEYS_DIR}/ has none of the selected API key file(s): {missing}"
+            raise FileNotFoundError(msg)
+    elif not key_files:
         msg = f"ZIP {ZIP_API_KEYS_DIR}/ has no *.txt files"
         raise FileNotFoundError(msg)
     for key_file in key_files:

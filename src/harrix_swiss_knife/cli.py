@@ -711,9 +711,27 @@ def private_data_export(
     is_flag=True,
     help="Import exercise catalog and images. Omit both flags to import parts present in the ZIP.",
 )
-def private_data_import(zip_path: Path | None, *, api_keys: bool, fitness: bool) -> None:
+@click.option(
+    "--api-key",
+    "api_key_files",
+    multiple=True,
+    help="Import only this filename from the ZIP api-keys/ folder (repeatable). Implies --api-keys.",
+)
+def private_data_import(
+    zip_path: Path | None,
+    *,
+    api_keys: bool,
+    fitness: bool,
+    api_key_files: tuple[str, ...],
+) -> None:
     """Install selected private data; overlay images and upsert catalog (keeps workouts)."""
-    _invoke_transfer_private_data(mode="import", zip_path=zip_path, api_keys=api_keys, fitness=fitness)
+    _invoke_transfer_private_data(
+        mode="import",
+        zip_path=zip_path,
+        api_keys=api_keys or bool(api_key_files),
+        fitness=fitness,
+        api_key_files=api_key_files,
+    )
 
 
 @cli.group("py")

@@ -25,6 +25,7 @@ lang: en
   - [⚙️ Method `get_choice_from_icons`](#%EF%B8%8F-method-get_choice_from_icons)
   - [⚙️ Method `get_choice_from_list`](#%EF%B8%8F-method-get_choice_from_list)
   - [⚙️ Method `get_choice_from_list_with_descriptions`](#%EF%B8%8F-method-get_choice_from_list_with_descriptions)
+  - [⚙️ Method `get_dual_checkbox_selection`](#%EF%B8%8F-method-get_dual_checkbox_selection)
   - [⚙️ Method `get_existing_directory`](#%EF%B8%8F-method-get_existing_directory)
   - [⚙️ Method `get_folder_with_choice_option`](#%EF%B8%8F-method-get_folder_with_choice_option)
   - [⚙️ Method `get_max_image_size_option`](#%EF%B8%8F-method-get_max_image_size_option)
@@ -321,6 +322,36 @@ class ActionBase(ABC):
             strip_md_inline_code_markers(title),
             label,
             choices,
+        )
+
+    def get_dual_checkbox_selection(
+        self,
+        title: str,
+        *,
+        section1_title: str,
+        section1_label: str,
+        section1_choices: list[str],
+        section1_default_selected: list[str] | None = None,
+        section1_disabled_choices: list[str] | None = None,
+        section2_title: str,
+        section2_label: str,
+        section2_choices: list[str],
+        section2_default_selected: list[str] | None = None,
+        section2_disabled_choices: list[str] | None = None,
+    ) -> tuple[list[str], list[str]] | None:
+        """Dialog wrapper. Prefer `self.dialogs.get_dual_checkbox_selection()`."""
+        return self.dialogs.get_dual_checkbox_selection(
+            strip_md_inline_code_markers(title),
+            section1_title=section1_title,
+            section1_label=section1_label,
+            section1_choices=section1_choices,
+            section1_default_selected=section1_default_selected,
+            section1_disabled_choices=section1_disabled_choices,
+            section2_title=section2_title,
+            section2_label=section2_label,
+            section2_choices=section2_choices,
+            section2_default_selected=section2_default_selected,
+            section2_disabled_choices=section2_disabled_choices,
         )
 
     def get_existing_directory(self, title: str, default_path: str) -> Path | None:
@@ -1169,6 +1200,50 @@ def get_choice_from_list_with_descriptions(
             strip_md_inline_code_markers(title),
             label,
             choices,
+        )
+```
+
+</details>
+
+### ⚙️ Method `get_dual_checkbox_selection`
+
+```python
+def get_dual_checkbox_selection(self, title: str, *, section1_title: str, section1_label: str, section1_choices: list[str], section1_default_selected: list[str] | None = None, section1_disabled_choices: list[str] | None = None, section2_title: str, section2_label: str, section2_choices: list[str], section2_default_selected: list[str] | None = None, section2_disabled_choices: list[str] | None = None) -> tuple[list[str], list[str]] | None
+```
+
+Dialog wrapper. Prefer `self.dialogs.get_dual_checkbox_selection()`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_dual_checkbox_selection(
+        self,
+        title: str,
+        *,
+        section1_title: str,
+        section1_label: str,
+        section1_choices: list[str],
+        section1_default_selected: list[str] | None = None,
+        section1_disabled_choices: list[str] | None = None,
+        section2_title: str,
+        section2_label: str,
+        section2_choices: list[str],
+        section2_default_selected: list[str] | None = None,
+        section2_disabled_choices: list[str] | None = None,
+    ) -> tuple[list[str], list[str]] | None:
+        return self.dialogs.get_dual_checkbox_selection(
+            strip_md_inline_code_markers(title),
+            section1_title=section1_title,
+            section1_label=section1_label,
+            section1_choices=section1_choices,
+            section1_default_selected=section1_default_selected,
+            section1_disabled_choices=section1_disabled_choices,
+            section2_title=section2_title,
+            section2_label=section2_label,
+            section2_choices=section2_choices,
+            section2_default_selected=section2_default_selected,
+            section2_disabled_choices=section2_disabled_choices,
         )
 ```
 

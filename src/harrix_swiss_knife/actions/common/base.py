@@ -333,6 +333,36 @@ class ActionBase(ABC):
             choices,
         )
 
+    def get_dual_checkbox_selection(
+        self,
+        title: str,
+        *,
+        section1_title: str,
+        section1_label: str,
+        section1_choices: list[str],
+        section1_default_selected: list[str] | None = None,
+        section1_disabled_choices: list[str] | None = None,
+        section2_title: str,
+        section2_label: str,
+        section2_choices: list[str],
+        section2_default_selected: list[str] | None = None,
+        section2_disabled_choices: list[str] | None = None,
+    ) -> tuple[list[str], list[str]] | None:
+        """Dialog wrapper. Prefer `self.dialogs.get_dual_checkbox_selection()`."""
+        return self.dialogs.get_dual_checkbox_selection(
+            strip_md_inline_code_markers(title),
+            section1_title=section1_title,
+            section1_label=section1_label,
+            section1_choices=section1_choices,
+            section1_default_selected=section1_default_selected,
+            section1_disabled_choices=section1_disabled_choices,
+            section2_title=section2_title,
+            section2_label=section2_label,
+            section2_choices=section2_choices,
+            section2_default_selected=section2_default_selected,
+            section2_disabled_choices=section2_disabled_choices,
+        )
+
     def get_existing_directory(self, title: str, default_path: str) -> Path | None:
         """Dialog wrapper. Prefer `self.dialogs.get_existing_directory()`."""
         return self.dialogs.get_existing_directory(strip_md_inline_code_markers(title), default_path)
