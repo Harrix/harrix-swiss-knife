@@ -13,6 +13,7 @@ lang: en
 
 - [🏛️ Class `IconLightboxCanvas`](#%EF%B8%8F-class-iconlightboxcanvas)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
+  - [⚙️ Method `mouseDoubleClickEvent`](#%EF%B8%8F-method-mousedoubleclickevent)
   - [⚙️ Method `mouseMoveEvent`](#%EF%B8%8F-method-mousemoveevent)
   - [⚙️ Method `mousePressEvent`](#%EF%B8%8F-method-mousepressevent)
   - [⚙️ Method `mouseReleaseEvent`](#%EF%B8%8F-method-mousereleaseevent)
@@ -60,6 +61,17 @@ class IconLightboxCanvas(QWidget):
         self._drag_start: QPointF | None = None
         self._drag_origin = QPointF()
         self._did_drag = False
+
+    def mouseDoubleClickEvent(self, event: QMouseEvent) -> None:  # noqa: N802
+        """Close the lightbox on a left double-click (image or backdrop)."""
+        if event.button() == Qt.MouseButton.LeftButton:
+            self._drag_start = None
+            self._did_drag = False
+            self.setCursor(Qt.CursorShape.ArrowCursor)
+            self.backdrop_clicked.emit()
+            event.accept()
+            return
+        super().mouseDoubleClickEvent(event)
 
     def mouseMoveEvent(self, event: QMouseEvent) -> None:  # noqa: N802
         """Pan the enlarged icon while dragging."""
@@ -181,6 +193,31 @@ def __init__(self, parent: QWidget | None = None) -> None:
         self._drag_start: QPointF | None = None
         self._drag_origin = QPointF()
         self._did_drag = False
+```
+
+</details>
+
+### ⚙️ Method `mouseDoubleClickEvent`
+
+```python
+def mouseDoubleClickEvent(self, event: QMouseEvent) -> None
+```
+
+Close the lightbox on a left double-click (image or backdrop).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def mouseDoubleClickEvent(self, event: QMouseEvent) -> None:  # noqa: N802
+        if event.button() == Qt.MouseButton.LeftButton:
+            self._drag_start = None
+            self._did_drag = False
+            self.setCursor(Qt.CursorShape.ArrowCursor)
+            self.backdrop_clicked.emit()
+            event.accept()
+            return
+        super().mouseDoubleClickEvent(event)
 ```
 
 </details>

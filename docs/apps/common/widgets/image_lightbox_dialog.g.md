@@ -14,6 +14,7 @@ lang: en
 - [🏛️ Class `ImageLightboxDialog`](#%EF%B8%8F-class-imagelightboxdialog)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `keyPressEvent`](#%EF%B8%8F-method-keypressevent)
+  - [⚙️ Method `mouseDoubleClickEvent`](#%EF%B8%8F-method-mousedoubleclickevent)
   - [⚙️ Method `mouseReleaseEvent`](#%EF%B8%8F-method-mousereleaseevent)
   - [⚙️ Method `resizeEvent`](#%EF%B8%8F-method-resizeevent)
 - [🔧 Function `show_image_lightbox`](#-function-show_image_lightbox)
@@ -106,6 +107,13 @@ class ImageLightboxDialog(QDialog):
             self.accept()
             return
         super().keyPressEvent(event)
+
+    def mouseDoubleClickEvent(self, event: QMouseEvent) -> None:  # noqa: N802
+        """Close the lightbox on a left double-click (image or backdrop)."""
+        if event.button() == Qt.MouseButton.LeftButton:
+            self.accept()
+            return
+        super().mouseDoubleClickEvent(event)
 
     def mouseReleaseEvent(self, event: QMouseEvent) -> None:  # noqa: N802
         """Close when clicking the dimmed backdrop (not the close button)."""
@@ -227,6 +235,27 @@ def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
             self.accept()
             return
         super().keyPressEvent(event)
+```
+
+</details>
+
+### ⚙️ Method `mouseDoubleClickEvent`
+
+```python
+def mouseDoubleClickEvent(self, event: QMouseEvent) -> None
+```
+
+Close the lightbox on a left double-click (image or backdrop).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def mouseDoubleClickEvent(self, event: QMouseEvent) -> None:  # noqa: N802
+        if event.button() == Qt.MouseButton.LeftButton:
+            self.accept()
+            return
+        super().mouseDoubleClickEvent(event)
 ```
 
 </details>

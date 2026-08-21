@@ -8,7 +8,8 @@ from pathlib import Path
 import pytest
 from PySide6.QtCore import QEvent, Qt
 from PySide6.QtGui import QKeyEvent
-from PySide6.QtWidgets import QApplication, QWidget
+from PySide6.QtTest import QTest
+from PySide6.QtWidgets import QApplication, QDialog, QWidget
 
 from harrix_swiss_knife.apps.icons.catalog import (
     IconFamily,
@@ -370,6 +371,19 @@ def test_icon_lightbox_navigates_and_zooms(tmp_path: Path, qapp: QApplication) -
     assert dialog.current_index == 1
     dialog.canvas.zoom_by(2.0)
     assert dialog.canvas.zoom == 2.0
+    dialog.close()
+
+
+def test_icon_lightbox_double_click_closes(tmp_path: Path, qapp: QApplication) -> None:
+    """A left double-click on the canvas accepts and hides the lightbox."""
+    svg = tmp_path / "icon.svg"
+    _write_svg(svg)
+    dialog = IconLightboxDialog([svg])
+    dialog.show()
+    qapp.processEvents()
+    QTest.mouseDClick(dialog.canvas, Qt.MouseButton.LeftButton)
+    qapp.processEvents()
+    assert dialog.result() == QDialog.DialogCode.Accepted
     dialog.close()
 
 

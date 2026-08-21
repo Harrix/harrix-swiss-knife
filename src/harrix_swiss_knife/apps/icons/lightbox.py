@@ -55,6 +55,17 @@ class IconLightboxCanvas(QWidget):
         self._drag_origin = QPointF()
         self._did_drag = False
 
+    def mouseDoubleClickEvent(self, event: QMouseEvent) -> None:  # noqa: N802
+        """Close the lightbox on a left double-click (image or backdrop)."""
+        if event.button() == Qt.MouseButton.LeftButton:
+            self._drag_start = None
+            self._did_drag = False
+            self.setCursor(Qt.CursorShape.ArrowCursor)
+            self.backdrop_clicked.emit()
+            event.accept()
+            return
+        super().mouseDoubleClickEvent(event)
+
     def mouseMoveEvent(self, event: QMouseEvent) -> None:  # noqa: N802
         """Pan the enlarged icon while dragging."""
         if self._drag_start is not None:
