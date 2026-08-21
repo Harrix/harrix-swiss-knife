@@ -34,6 +34,7 @@ lang: en
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-5)
 - [🏛️ Class `WelcomePage`](#%EF%B8%8F-class-welcomepage)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-6)
+- [🔧 Function `append_log_line`](#-function-append_log_line)
 - [🔧 Function `detect_mode_from_argv`](#-function-detect_mode_from_argv)
 - [🔧 Function `load_app_icon`](#-function-load_app_icon)
 - [🔧 Function `run_uninstall_wizard`](#-function-run_uninstall_wizard)
@@ -495,7 +496,7 @@ class ProgressPage(QWizardPage):
         return self._done
 
     def _append(self, line: str) -> None:
-        self.log_view.appendPlainText(line)
+        append_log_line(self.log_view, line)
         self._update_status_from_log(line)
 
     def _begin_if_needed(self) -> None:
@@ -948,7 +949,7 @@ class UninstallWindow(QWidget):
         self.bar.setValue(1)
         if isinstance(result, UninstallResult):
             report = format_uninstall_report(result)
-            self.log_view.appendPlainText(report)
+            append_log_line(self.log_view, report)
             QMessageBox.information(self, "Uninstall finished", report[:1500])
         else:
             preserved = getattr(result, "preserved_dir", None)
@@ -1001,7 +1002,7 @@ class UninstallWindow(QWidget):
             remove_siblings=self.siblings_cb.isChecked(),
             parent=self,
         )
-        self._worker.log_line.connect(self.log_view.appendPlainText)
+        self._worker.log_line.connect(lambda line: append_log_line(self.log_view, line))
         self._worker.finished_ok.connect(self._on_ok)
         self._worker.finished_err.connect(self._on_err)
         self._worker.start()
@@ -1196,6 +1197,31 @@ def __init__(self, mode: str) -> None:
         layout.addSpacing(12)
         layout.addWidget(label)
         layout.addStretch(1)
+```
+
+</details>
+
+## 🔧 Function `append_log_line`
+
+```python
+def append_log_line(view: QPlainTextEdit, line: str) -> None
+```
+
+Append a log line and scroll the view to the newest text.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def append_log_line(view: QPlainTextEdit, line: str) -> None:
+    view.appendPlainText(line)
+
+    def _scroll_to_end() -> None:
+        bar = view.verticalScrollBar()
+        bar.setValue(bar.maximum())
+
+    # Layout updates after append; scroll on the next event-loop tick.
+    QTimer.singleShot(0, _scroll_to_end)
 ```
 
 </details>

@@ -256,7 +256,7 @@ class ProgressPage(QWizardPage):
         return self._done
 
     def _append(self, line: str) -> None:
-        self.log_view.appendPlainText(line)
+        append_log_line(self.log_view, line)
         self._update_status_from_log(line)
 
     def _begin_if_needed(self) -> None:
@@ -493,7 +493,7 @@ class UninstallWindow(QWidget):
         self.bar.setValue(1)
         if isinstance(result, UninstallResult):
             report = format_uninstall_report(result)
-            self.log_view.appendPlainText(report)
+            append_log_line(self.log_view, report)
             QMessageBox.information(self, "Uninstall finished", report[:1500])
         else:
             preserved = getattr(result, "preserved_dir", None)
@@ -546,7 +546,7 @@ class UninstallWindow(QWidget):
             remove_siblings=self.siblings_cb.isChecked(),
             parent=self,
         )
-        self._worker.log_line.connect(self.log_view.appendPlainText)
+        self._worker.log_line.connect(lambda line: append_log_line(self.log_view, line))
         self._worker.finished_ok.connect(self._on_ok)
         self._worker.finished_err.connect(self._on_err)
         self._worker.start()
@@ -706,6 +706,18 @@ class _Worker(QThread):
                 self.finished_err.emit(result.error or "Deploy failed")
         except Exception as exc:
             self.finished_err.emit(str(exc))
+
+
+def append_log_line(view: QPlainTextEdit, line: str) -> None:
+    """Append a log line and scroll the view to the newest text."""
+    view.appendPlainText(line)
+
+    def _scroll_to_end() -> None:
+        bar = view.verticalScrollBar()
+        bar.setValue(bar.maximum())
+
+    # Layout updates after append; scroll on the next event-loop tick.
+    QTimer.singleShot(0, _scroll_to_end)
 
 
 def detect_mode_from_argv(argv: list[str]) -> str:
