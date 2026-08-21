@@ -35,6 +35,7 @@ from PySide6.QtCore import (
     QTimer,
 )
 from PySide6.QtGui import (
+    QAction,
     QBrush,
     QCloseEvent,
     QColor,
@@ -1650,6 +1651,22 @@ class MainWindow(
 
         except Exception as e:
             message_box.warning(self, "Export Error", f"Failed to export CSV: {e}")
+
+    def on_open_exercise_images_folder(self) -> None:
+        """Open the `fitness_img` folder that stores exercise AVIF media."""
+        img_dir = self._resolve_exercise_images_dir()
+        if img_dir is None:
+            message_box.warning(
+                self,
+                "Exercise Images",
+                "Exercise images folder path is not available.",
+            )
+            return
+        try:
+            img_dir.mkdir(parents=True, exist_ok=True)
+            h.file.open_file_or_folder(img_dir)
+        except OSError as exc:
+            message_box.warning(self, "Exercise Images", f"Could not open folder:\n{exc}")
 
     @requires_database()
     def on_process_selection_changed(self, current: QModelIndex, _previous: QModelIndex) -> None:
@@ -4383,6 +4400,7 @@ class MainWindow(
 
         """
         self._connect_exit_about_actions()
+        self._setup_open_exercise_images_action()
 
         self.pushButton_add.clicked.connect(self.on_add_record)
         self.spinBox_count.lineEdit().returnPressed.connect(self.pushButton_add.click)
@@ -5834,6 +5852,15 @@ class MainWindow(
         self._process_pagination.reset()
         self._process_date_color_map = {}
 
+    def _resolve_exercise_images_dir(self) -> Path | None:
+        """Return the `fitness_img` directory next to the fitness database."""
+        if self.avif_manager is not None:
+            return Path(self.avif_manager.avif_dir)
+        db_path = self._resolve_database_path()
+        if db_path is None:
+            return None
+        return db_path.parent / "fitness_img"
+
     def _reveal_exercise_media_in_explorer(self, exercise_name: str) -> None:
         """Open File Explorer with the exercise AVIF selected."""
         if not exercise_name:
@@ -6096,6 +6123,16 @@ class MainWindow(
             lambda paths: self._on_exercise_preview_media_dropped(paths, table_name="types"),
             filter_path=is_exercise_media_path,
         )
+
+    def _setup_open_exercise_images_action(self) -> None:
+        """Add File → Open exercise images folder next to the database action."""
+        menu_file = getattr(self, "menuFile", None)
+        if menu_file is None:
+            return
+        action = QAction("📂 Open exercise images folder", self)
+        action.setObjectName("actionOpenExerciseImagesFolder")
+        action.triggered.connect(self.on_open_exercise_images_folder)
+        menu_file.insertAction(self.actionExit, action)
 
     def _setup_process_table_header(self) -> None:
         """Configure process table header and column widths."""
