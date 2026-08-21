@@ -5,11 +5,17 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from harrix_swiss_knife.installer.build_info import display_build_lines, load_build_meta
+from harrix_swiss_knife.toast_countdown_notification import format_elapsed_clock
 
 if TYPE_CHECKING:
     from harrix_swiss_knife.installer.deploy import DeployResult
     from harrix_swiss_knife.installer.log import OutcomeLog
     from harrix_swiss_knife.installer.uninstall import UninstallResult
+
+
+def format_elapsed_display(elapsed_seconds: float) -> str:
+    """Format installer elapsed time like toast clocks (`MM:SS` / `HH:MM:SS`)."""
+    return format_elapsed_clock(int(elapsed_seconds + 0.5))
 
 
 def format_install_report(result: DeployResult) -> str:
@@ -41,7 +47,7 @@ def format_install_report(result: DeployResult) -> str:
     lines.extend(_outcome_block(result.outcomes))
     if result.elapsed_seconds:
         lines.append("")
-        lines.append(f"Elapsed: {result.elapsed_seconds:0.1f}s")
+        lines.append(f"Elapsed: {format_elapsed_display(result.elapsed_seconds)}")
     return "\n".join(lines)
 
 
@@ -55,7 +61,7 @@ def format_uninstall_report(result: UninstallResult) -> str:
     lines.extend(_outcome_block(result.outcomes, action_label="What was removed:"))
     if result.elapsed_seconds:
         lines.append("")
-        lines.append(f"Elapsed: {result.elapsed_seconds:0.1f}s")
+        lines.append(f"Elapsed: {format_elapsed_display(result.elapsed_seconds)}")
     return "\n".join(lines)
 
 

@@ -321,6 +321,7 @@ def test_format_install_report() -> None:
     assert "Installation finished." in text
     assert "C:\\harrix-swiss-knife" in text
     assert "Desktop shortcut created" in text
+    assert "Elapsed: 00:13" in text
 
 
 def test_run_uninstall_unregisters_arp(tmp_path: Path) -> None:

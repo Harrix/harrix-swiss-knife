@@ -11,8 +11,27 @@ lang: en
 
 ## Contents
 
+- [🔧 Function `format_elapsed_display`](#-function-format_elapsed_display)
 - [🔧 Function `format_install_report`](#-function-format_install_report)
 - [🔧 Function `format_uninstall_report`](#-function-format_uninstall_report)
+
+</details>
+
+## 🔧 Function `format_elapsed_display`
+
+```python
+def format_elapsed_display(elapsed_seconds: float) -> str
+```
+
+Format installer elapsed time like toast clocks (`MM:SS` / `HH:MM:SS`).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def format_elapsed_display(elapsed_seconds: float) -> str:
+    return format_elapsed_clock(int(elapsed_seconds + 0.5))
+```
 
 </details>
 
@@ -56,7 +75,7 @@ def format_install_report(result: DeployResult) -> str:
     lines.extend(_outcome_block(result.outcomes))
     if result.elapsed_seconds:
         lines.append("")
-        lines.append(f"Elapsed: {result.elapsed_seconds:0.1f}s")
+        lines.append(f"Elapsed: {format_elapsed_display(result.elapsed_seconds)}")
     return "\n".join(lines)
 ```
 
@@ -83,7 +102,7 @@ def format_uninstall_report(result: UninstallResult) -> str:
     lines.extend(_outcome_block(result.outcomes, action_label="What was removed:"))
     if result.elapsed_seconds:
         lines.append("")
-        lines.append(f"Elapsed: {result.elapsed_seconds:0.1f}s")
+        lines.append(f"Elapsed: {format_elapsed_display(result.elapsed_seconds)}")
     return "\n".join(lines)
 ```
 

@@ -18,6 +18,7 @@ from harrix_swiss_knife.installer.arp import register_uninstall
 from harrix_swiss_knife.installer.binaries import install_optimize_binaries
 from harrix_swiss_knife.installer.build_info import load_build_meta
 from harrix_swiss_knife.installer.config_defaults import apply_config_defaults
+from harrix_swiss_knife.installer.finish_report import format_elapsed_display
 from harrix_swiss_knife.installer.paths import default_install_root_parent, normalize_install_root
 from harrix_swiss_knife.installer.prereqs import (
     PrerequisitePlan,
@@ -204,7 +205,7 @@ def run_deploy(options: DeployOptions, log: OutcomeLog) -> DeployResult:
         for line in log.summary_lines():
             log.line(line)
         elapsed = time.perf_counter() - started
-        log.line(f"\n⏱️ Elapsed: {elapsed:0.1f}s")
+        log.line(f"\n⏱️ Elapsed: {format_elapsed_display(elapsed)}")
         return DeployResult(
             ok=True,
             install_root=root,

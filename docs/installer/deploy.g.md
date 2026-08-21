@@ -231,7 +231,7 @@ def run_deploy(options: DeployOptions, log: OutcomeLog) -> DeployResult:
         for line in log.summary_lines():
             log.line(line)
         elapsed = time.perf_counter() - started
-        log.line(f"\n⏱️ Elapsed: {elapsed:0.1f}s")
+        log.line(f"\n⏱️ Elapsed: {format_elapsed_display(elapsed)}")
         return DeployResult(
             ok=True,
             install_root=root,
