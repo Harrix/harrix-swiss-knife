@@ -6,7 +6,7 @@ import calendar
 from datetime import UTC, date, datetime
 from typing import TYPE_CHECKING, Literal
 
-from PySide6.QtCore import QPointF, QRectF, Qt, Signal
+from PySide6.QtCore import QEvent, QObject, QPointF, QRectF, Qt, Signal
 from PySide6.QtGui import QColor, QFont, QPainter, QPen
 from PySide6.QtWidgets import (
     QFrame,
@@ -25,7 +25,6 @@ from harrix_swiss_knife.qt_emoji_icon import create_emoji_icon
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from PySide6.QtCore import QEvent
     from PySide6.QtGui import QEnterEvent, QMouseEvent, QPaintEvent
 
 
@@ -346,12 +345,16 @@ class MonthCalendarGrid(QWidget):
         self._prev_btn.setToolTip("Previous month")
         self._next_btn.setToolTip("Next month")
         self._title = QLabel("")
+        self._title.setObjectName("habitDashCalendarTitle")
         self._title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._title.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._title.setToolTip("Double-click to return to the current month")
         title_font = QFont(self._title.font())
         title_font.setPointSize(12)
         title_font.setBold(True)
         self._title.setFont(title_font)
         self._title.setStyleSheet("color: #111827;")
+        self._title.installEventFilter(self)
         header.addWidget(self._prev_btn)
         header.addWidget(self._title, 1)
         header.addWidget(self._next_btn)
@@ -379,6 +382,13 @@ class MonthCalendarGrid(QWidget):
             self._grid.setColumnStretch(column, 1)
         root.addLayout(self._grid)
         self._day_cells: list[tuple[CheckCircle | None, QLabel, str | None]] = []
+
+    def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
+        """Return to the current month when the title is double-clicked."""
+        if watched is self._title and event.type() == QEvent.Type.MouseButtonDblClick:
+            self._on_title_double_clicked()
+            return True
+        return super().eventFilter(watched, event)
 
     def set_month(
         self,
@@ -421,6 +431,12 @@ class MonthCalendarGrid(QWidget):
         if month < 1:
             month = MONTHS_IN_YEAR
             year -= 1
+        self.month_changed.emit(year, month)
+
+    def _on_title_double_clicked(self) -> None:
+        year, month = self._today.year, self._today.month
+        if (self._year, self._month) == (year, month):
+            return
         self.month_changed.emit(year, month)
 
     def _rebuild_grid(self) -> None:

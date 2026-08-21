@@ -12,6 +12,7 @@ from PySide6.QtGui import QImage, QPainter, QStandardItem, QStandardItemModel
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import (
     QApplication,
+    QLabel,
     QLineEdit,
     QPushButton,
     QScrollArea,
@@ -355,6 +356,25 @@ def test_month_calendar_blocks_future_dates(qapp: QApplication) -> None:
     next_btn = next(button for button in grid.findChildren(QPushButton) if button.toolTip() == "Next month")
     assert next_btn.isEnabled()
     assert next_btn.cursor().shape() == Qt.CursorShape.PointingHandCursor
+
+
+def test_month_calendar_title_double_click_returns_to_today(qapp: QApplication) -> None:
+    """Double-clicking the month title jumps back to the current month."""
+    assert qapp is not None
+    today = date(2026, 8, 15)
+    grid = MonthCalendarGrid()
+    grid.set_month(2026, 6, {}, today=today)
+    changed: list[tuple[int, int]] = []
+    grid.month_changed.connect(lambda year, month: changed.append((year, month)))
+    title = grid.findChild(QLabel, "habitDashCalendarTitle")
+    assert title is not None
+    QTest.mouseDClick(title, Qt.MouseButton.LeftButton)
+    assert changed == [(2026, 8)]
+
+    grid.set_month(2026, 8, {}, today=today)
+    changed.clear()
+    QTest.mouseDClick(title, Qt.MouseButton.LeftButton)
+    assert changed == []
 
 
 def test_alternative_habit_day_choices() -> None:

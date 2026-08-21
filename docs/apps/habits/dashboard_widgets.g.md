@@ -36,6 +36,7 @@ lang: en
   - [⚙️ Method `set_habit_data`](#%EF%B8%8F-method-set_habit_data)
 - [🏛️ Class `MonthCalendarGrid`](#%EF%B8%8F-class-monthcalendargrid)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-3)
+  - [⚙️ Method `eventFilter`](#%EF%B8%8F-method-eventfilter)
   - [⚙️ Method `set_month`](#%EF%B8%8F-method-set_month)
 - [🏛️ Class `ProgressRing`](#%EF%B8%8F-class-progressring)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-4)
@@ -863,12 +864,16 @@ class MonthCalendarGrid(QWidget):
         self._prev_btn.setToolTip("Previous month")
         self._next_btn.setToolTip("Next month")
         self._title = QLabel("")
+        self._title.setObjectName("habitDashCalendarTitle")
         self._title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._title.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._title.setToolTip("Double-click to return to the current month")
         title_font = QFont(self._title.font())
         title_font.setPointSize(12)
         title_font.setBold(True)
         self._title.setFont(title_font)
         self._title.setStyleSheet("color: #111827;")
+        self._title.installEventFilter(self)
         header.addWidget(self._prev_btn)
         header.addWidget(self._title, 1)
         header.addWidget(self._next_btn)
@@ -896,6 +901,13 @@ class MonthCalendarGrid(QWidget):
             self._grid.setColumnStretch(column, 1)
         root.addLayout(self._grid)
         self._day_cells: list[tuple[CheckCircle | None, QLabel, str | None]] = []
+
+    def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
+        """Return to the current month when the title is double-clicked."""
+        if watched is self._title and event.type() == QEvent.Type.MouseButtonDblClick:
+            self._on_title_double_clicked()
+            return True
+        return super().eventFilter(watched, event)
 
     def set_month(
         self,
@@ -938,6 +950,12 @@ class MonthCalendarGrid(QWidget):
         if month < 1:
             month = MONTHS_IN_YEAR
             year -= 1
+        self.month_changed.emit(year, month)
+
+    def _on_title_double_clicked(self) -> None:
+        year, month = self._today.year, self._today.month
+        if (self._year, self._month) == (year, month):
+            return
         self.month_changed.emit(year, month)
 
     def _rebuild_grid(self) -> None:
@@ -1049,12 +1067,16 @@ def __init__(self, parent: QWidget | None = None) -> None:  # noqa: D107
         self._prev_btn.setToolTip("Previous month")
         self._next_btn.setToolTip("Next month")
         self._title = QLabel("")
+        self._title.setObjectName("habitDashCalendarTitle")
         self._title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._title.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._title.setToolTip("Double-click to return to the current month")
         title_font = QFont(self._title.font())
         title_font.setPointSize(12)
         title_font.setBold(True)
         self._title.setFont(title_font)
         self._title.setStyleSheet("color: #111827;")
+        self._title.installEventFilter(self)
         header.addWidget(self._prev_btn)
         header.addWidget(self._title, 1)
         header.addWidget(self._next_btn)
@@ -1082,6 +1104,27 @@ def __init__(self, parent: QWidget | None = None) -> None:  # noqa: D107
             self._grid.setColumnStretch(column, 1)
         root.addLayout(self._grid)
         self._day_cells: list[tuple[CheckCircle | None, QLabel, str | None]] = []
+```
+
+</details>
+
+### ⚙️ Method `eventFilter`
+
+```python
+def eventFilter(self, watched: QObject, event: QEvent) -> bool
+```
+
+Return to the current month when the title is double-clicked.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
+        if watched is self._title and event.type() == QEvent.Type.MouseButtonDblClick:
+            self._on_title_double_clicked()
+            return True
+        return super().eventFilter(watched, event)
 ```
 
 </details>
