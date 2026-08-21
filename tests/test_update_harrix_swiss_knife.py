@@ -111,3 +111,51 @@ def test_worker_run_downloads_all_zips_before_applying(tmp_path: Path) -> None:
         "apply:harrix-swiss-knife",
         "apply:harrix-pylib",
     ]
+
+
+def test_worker_finished_does_not_offer_restart_when_nothing_updated() -> None:
+    action = OnUpdateHarrixSwissKnife()
+    action._updated_project_names = []
+    action.add_line = MagicMock()
+    action.show_toast = MagicMock()
+    action.show_result = MagicMock()
+    action.get_yes_no_question = MagicMock()
+
+    action._worker_finished([])
+
+    action.get_yes_no_question.assert_not_called()
+
+
+def test_worker_finished_restarts_when_user_accepts() -> None:
+    action = OnUpdateHarrixSwissKnife()
+    action._updated_project_names = ["harrix-swiss-knife"]
+    action.add_line = MagicMock()
+    action.show_toast = MagicMock()
+    action.show_result = MagicMock()
+    action.get_yes_no_question = MagicMock(return_value=True)
+
+    with patch(
+        "harrix_swiss_knife.actions.development.update_harrix_swiss_knife.restart_current_application",
+        return_value=True,
+    ) as restart:
+        action._worker_finished([])
+
+    action.get_yes_no_question.assert_called_once()
+    restart.assert_called_once()
+
+
+def test_worker_finished_skips_restart_when_user_declines() -> None:
+    action = OnUpdateHarrixSwissKnife()
+    action._updated_project_names = ["harrix-swiss-knife"]
+    action.add_line = MagicMock()
+    action.show_toast = MagicMock()
+    action.show_result = MagicMock()
+    action.get_yes_no_question = MagicMock(return_value=False)
+
+    with patch(
+        "harrix_swiss_knife.actions.development.update_harrix_swiss_knife.restart_current_application"
+    ) as restart:
+        action._worker_finished([])
+
+    action.get_yes_no_question.assert_called_once()
+    restart.assert_not_called()
