@@ -1,5 +1,5 @@
 -- Recover / recreate Food database schema and seed data
--- Generated from working food.db (food_items catalog only; food_log left empty)
+-- Generated from working food.db (food_items catalog only, food_log left empty)
 
 PRAGMA foreign_keys = OFF;
 

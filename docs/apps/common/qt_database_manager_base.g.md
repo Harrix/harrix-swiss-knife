@@ -116,8 +116,9 @@ class QtSqliteDatabaseManagerBase:
     @staticmethod
     def create_database_from_sql(db_filename: str, sql_file_path: str) -> bool:
         """Create a new database from an SQL file."""
+        db_path = Path(db_filename)
+        created_new_file = not db_path.exists()
         try:
-            db_path = Path(db_filename)
             db_path.parent.mkdir(parents=True, exist_ok=True)
 
             sql_path = Path(sql_file_path)
@@ -125,7 +126,11 @@ class QtSqliteDatabaseManagerBase:
                 logger.error("SQL file not found: %s", sql_file_path)
                 return False
 
-            sql_content = sql_path.read_text(encoding="utf-8")
+            sql_content = QtSqliteDatabaseManagerBase._strip_sql_line_comments(sql_path.read_text(encoding="utf-8"))
+            statements = [stmt for raw in sql_content.split(";") if (stmt := raw.strip())]
+            if not statements:
+                logger.error("SQL file has no executable statements: %s", sql_file_path)
+                return False
 
             temp_connection_name = qsqlite_temp_connection_name()
             temp_db, open_err = try_add_open_qsqlite(temp_connection_name, db_filename)
@@ -136,7 +141,6 @@ class QtSqliteDatabaseManagerBase:
             query: QSqlQuery | None = None
             try:
                 query = QSqlQuery(temp_db)
-                statements = [stmt.strip() for stmt in sql_content.split(";") if stmt.strip()]
                 for statement in statements:
                     if not query.exec(statement):
                         error_msg = query.lastError().text() if query.lastError().isValid() else "Unknown error"
@@ -157,6 +161,9 @@ class QtSqliteDatabaseManagerBase:
         except Exception:
             logger.exception("Error creating database from SQL file")
             return False
+        finally:
+            if created_new_file and db_path.is_file() and db_path.stat().st_size == 0:
+                db_path.unlink(missing_ok=True)
 
     def execute_query(self, query_text: str, params: dict[str, Any] | None = None) -> QSqlQuery | None:
         """Prepare and execute `query_text` with optional bound `params`."""
@@ -381,6 +388,45 @@ class QtSqliteDatabaseManagerBase:
             db_filename=self._db_filename,
         )
         self._db_closed = False
+
+    @staticmethod
+    def _strip_sql_line_comments(sql: str) -> str:
+        """Remove `--` comments so `;` inside comments cannot break statement splitting.
+
+        Respects single-quoted string literals (including SQL `''` escapes). Double-quoted
+        identifiers are treated like strings for this purpose.
+
+        """
+        lines: list[str] = []
+        for line in sql.splitlines():
+            out: list[str] = []
+            in_string = False
+            quote = ""
+            i = 0
+            while i < len(line):
+                ch = line[i]
+                if in_string:
+                    out.append(ch)
+                    if ch == quote:
+                        if quote == "'" and i + 1 < len(line) and line[i + 1] == "'":
+                            out.append(line[i + 1])
+                            i += 2
+                            continue
+                        in_string = False
+                    i += 1
+                    continue
+                if ch in {"'", '"'}:
+                    in_string = True
+                    quote = ch
+                    out.append(ch)
+                    i += 1
+                    continue
+                if ch == "-" and i + 1 < len(line) and line[i + 1] == "-":
+                    break
+                out.append(ch)
+                i += 1
+            lines.append("".join(out))
+        return "\n".join(lines)
 ```
 
 </details>
@@ -446,8 +492,9 @@ Create a new database from an SQL file.
 
 ```python
 def create_database_from_sql(db_filename: str, sql_file_path: str) -> bool:
+        db_path = Path(db_filename)
+        created_new_file = not db_path.exists()
         try:
-            db_path = Path(db_filename)
             db_path.parent.mkdir(parents=True, exist_ok=True)
 
             sql_path = Path(sql_file_path)
@@ -455,7 +502,11 @@ def create_database_from_sql(db_filename: str, sql_file_path: str) -> bool:
                 logger.error("SQL file not found: %s", sql_file_path)
                 return False
 
-            sql_content = sql_path.read_text(encoding="utf-8")
+            sql_content = QtSqliteDatabaseManagerBase._strip_sql_line_comments(sql_path.read_text(encoding="utf-8"))
+            statements = [stmt for raw in sql_content.split(";") if (stmt := raw.strip())]
+            if not statements:
+                logger.error("SQL file has no executable statements: %s", sql_file_path)
+                return False
 
             temp_connection_name = qsqlite_temp_connection_name()
             temp_db, open_err = try_add_open_qsqlite(temp_connection_name, db_filename)
@@ -466,7 +517,6 @@ def create_database_from_sql(db_filename: str, sql_file_path: str) -> bool:
             query: QSqlQuery | None = None
             try:
                 query = QSqlQuery(temp_db)
-                statements = [stmt.strip() for stmt in sql_content.split(";") if stmt.strip()]
                 for statement in statements:
                     if not query.exec(statement):
                         error_msg = query.lastError().text() if query.lastError().isValid() else "Unknown error"
@@ -487,6 +537,9 @@ def create_database_from_sql(db_filename: str, sql_file_path: str) -> bool:
         except Exception:
             logger.exception("Error creating database from SQL file")
             return False
+        finally:
+            if created_new_file and db_path.is_file() and db_path.stat().st_size == 0:
+                db_path.unlink(missing_ok=True)
 ```
 
 </details>
