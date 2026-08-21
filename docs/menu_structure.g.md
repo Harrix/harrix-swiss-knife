@@ -187,7 +187,6 @@ def get_menu_structure() -> list[Any]:
         OnFitness,
         OnFood,
         OnHabits,
-        OnShowTickTickHabitsJson,
         OnIcons,
         "-",
         OnQuickLauncher,

@@ -1740,6 +1740,8 @@ class MainWindow(
         add_habit_action.triggered.connect(self._habit_dashboard.add_habit)
         refresh_action = self.menuCommands.addAction("🔄 Refresh")
         refresh_action.triggered.connect(self._habit_dashboard.refresh)
+        ticktick_action = self.menuCommands.addAction("📋 Show TickTick habits JSON")
+        ticktick_action.triggered.connect(self._show_ticktick_habits_json)
         self.tabWidget.currentChanged.connect(self._on_tab_changed)
 
         self.pushButton_habits_delete.setText(f"🗑️ {self.pushButton_habits_delete.text()}")
@@ -1899,6 +1901,30 @@ class MainWindow(
             self._toggle_show_archived_habits()
             # Refresh pivot table to rebuild columns
             self.load_process_habits_table(ignore_filter=False)
+
+    def _show_ticktick_habits_json(self) -> None:
+        """Load TickTick desktop habits and show them as JSON."""
+        try:
+            payload = export_ticktick_habits_json()
+        except (FileNotFoundError, OSError, ValueError, sqlite3.Error) as exc:
+            message_box.warning(self, "TickTick habits JSON", str(exc))
+            return
+
+        text = json.dumps(payload, ensure_ascii=False, indent=2)
+        dialog = QDialog(self)
+        dialog.setWindowTitle("TickTick habits JSON")
+        dialog.resize(900, 640)
+        layout = QVBoxLayout(dialog)
+        editor = QPlainTextEdit()
+        editor.setReadOnly(True)
+        editor.setPlainText(text)
+        layout.addWidget(editor)
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok)
+        copy_button = buttons.addButton("📋 Copy", QDialogButtonBox.ButtonRole.ActionRole)
+        copy_button.clicked.connect(lambda: QApplication.clipboard().setText(text))
+        buttons.accepted.connect(dialog.accept)
+        layout.addWidget(buttons)
+        dialog.exec()
 
     def _shutdown_window_resources(self) -> None:
         """Release timers, models, charts, and database before window destruction."""
