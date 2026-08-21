@@ -19,7 +19,7 @@ from harrix_swiss_knife.apps.icons.catalog import (
     open_icons_folder,
     rebuild_catalog,
 )
-from harrix_swiss_knife.apps.icons.lightbox import IconLightboxDialog, svg_preview_html
+from harrix_swiss_knife.apps.icons.lightbox import IconLightboxDialog
 from harrix_swiss_knife.apps.icons.main import KeyValueTableDialog
 from harrix_swiss_knife.apps.icons.trademark_update import TRADEMARK_WARNING, update_trademark_files
 from harrix_swiss_knife.apps.icons.variant_view import (
@@ -332,22 +332,25 @@ def test_icon_variant_absolute_path(tmp_path: Path) -> None:
     assert path.is_file()
 
 
-def test_svg_preview_html_embeds_file_url(tmp_path: Path) -> None:
+def test_icon_lightbox_stays_inside_parent_window(tmp_path: Path, qapp: QApplication) -> None:
     svg = tmp_path / "icon.svg"
     _write_svg(svg)
-    html = svg_preview_html(svg)
-    assert "icon.svg" in html
-    assert "object-fit:contain" in html
-
-
-def test_icon_lightbox_shows_svg_as_document(tmp_path: Path, qapp: QApplication) -> None:
-    svg = tmp_path / "icon.svg"
-    _write_svg(svg)
-    dialog = IconLightboxDialog([svg])
-    dialog.resize(800, 600)
+    owner = QWidget()
+    owner.resize(640, 480)
+    owner.show()
     qapp.processEvents()
-    assert dialog.canvas.shows_svg_document()
+
+    dialog = IconLightboxDialog([svg], parent=owner)
+    assert dialog.parent() is owner
+    assert dialog.size() == owner.size()
+    assert not (dialog.windowFlags() & Qt.WindowType.WindowStaysOnTopHint)
+
+    owner.resize(800, 600)
+    qapp.processEvents()
+    assert dialog.size() == owner.size()
+
     dialog.close()
+    owner.close()
 
 
 def test_icon_lightbox_navigates_and_zooms(tmp_path: Path, qapp: QApplication) -> None:  # noqa: ARG001
@@ -368,21 +371,6 @@ def test_icon_lightbox_navigates_and_zooms(tmp_path: Path, qapp: QApplication) -
     dialog.canvas.zoom_by(2.0)
     assert dialog.canvas.zoom == 2.0
     dialog.close()
-
-
-def test_icon_lightbox_fits_parent_window(tmp_path: Path, qapp: QApplication) -> None:
-    svg = tmp_path / "icon.svg"
-    _write_svg(svg)
-    owner = QWidget()
-    owner.resize(640, 480)
-    owner.show()
-    qapp.processEvents()
-
-    dialog = IconLightboxDialog([svg], parent=owner)
-    assert dialog.size() == owner.size()
-
-    dialog.close()
-    owner.close()
 
 
 def test_icon_lightbox_backdrop_swatches_have_no_labels(tmp_path: Path, qapp: QApplication) -> None:  # noqa: ARG001

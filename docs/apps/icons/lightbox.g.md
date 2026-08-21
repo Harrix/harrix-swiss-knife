@@ -17,20 +17,18 @@ lang: en
   - [⚙️ Method `mousePressEvent`](#%EF%B8%8F-method-mousepressevent)
   - [⚙️ Method `mouseReleaseEvent`](#%EF%B8%8F-method-mousereleaseevent)
   - [⚙️ Method `paintEvent`](#%EF%B8%8F-method-paintevent)
-  - [⚙️ Method `resizeEvent`](#%EF%B8%8F-method-resizeevent)
   - [⚙️ Method `set_path`](#%EF%B8%8F-method-set_path)
-  - [⚙️ Method `shows_svg_document`](#%EF%B8%8F-method-shows_svg_document)
   - [⚙️ Method `wheelEvent`](#%EF%B8%8F-method-wheelevent)
   - [⚙️ Method `zoom (property)`](#%EF%B8%8F-method-zoom-property)
   - [⚙️ Method `zoom_by`](#%EF%B8%8F-method-zoom_by)
 - [🏛️ Class `IconLightboxDialog`](#%EF%B8%8F-class-iconlightboxdialog)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-1)
   - [⚙️ Method `current_index (property)`](#%EF%B8%8F-method-current_index-property)
+  - [⚙️ Method `eventFilter`](#%EF%B8%8F-method-eventfilter)
   - [⚙️ Method `keyPressEvent`](#%EF%B8%8F-method-keypressevent)
-  - [⚙️ Method `resizeEvent`](#%EF%B8%8F-method-resizeevent-1)
+  - [⚙️ Method `resizeEvent`](#%EF%B8%8F-method-resizeevent)
   - [⚙️ Method `show_next`](#%EF%B8%8F-method-show_next)
   - [⚙️ Method `show_previous`](#%EF%B8%8F-method-show_previous)
-- [🔧 Function `svg_preview_html`](#-function-svg_preview_html)
 
 </details>
 
@@ -40,7 +38,7 @@ lang: en
 class IconLightboxCanvas(QWidget)
 ```
 
-Zoom and drag one icon: live SVG in a browser view, raster for other formats.
+Paint, zoom, and drag one high-resolution icon preview.
 
 <details>
 <summary>Code:</summary>
@@ -57,14 +55,11 @@ class IconLightboxCanvas(QWidget):
         self.setCursor(Qt.CursorShape.ArrowCursor)
         self._path: Path | None = None
         self._image = None
-        self._svg_renderer: QSvgRenderer | None = None
-        self._web: QWebEngineView | None = None
         self._zoom = 1.0
         self._offset = QPointF()
         self._drag_start: QPointF | None = None
         self._drag_origin = QPointF()
         self._did_drag = False
-        self._render_size = 0
 
     def mouseMoveEvent(self, event: QMouseEvent) -> None:  # noqa: N802
         """Pan the enlarged icon while dragging."""
@@ -73,7 +68,6 @@ class IconLightboxCanvas(QWidget):
             if abs(delta.x()) + abs(delta.y()) >= _DRAG_THRESHOLD:
                 self._did_drag = True
             self._offset = self._drag_origin + delta
-            self._layout_svg_view()
             self.update()
             event.accept()
             return
@@ -110,35 +104,21 @@ class IconLightboxCanvas(QWidget):
         super().mouseReleaseEvent(event)
 
     def paintEvent(self, event: QPaintEvent) -> None:  # noqa: ARG002, N802
-        """Draw a raster fallback, or a vector SVG when the browser view is unused."""
-        if self._web is not None and not self._web.isHidden():
-            return
+        """Draw the preview over the transparent canvas."""
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing, on=True)
         painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, on=True)
-        if self._svg_renderer is not None and self._svg_renderer.isValid():
-            self._svg_renderer.render(painter, fitted_content_rect(self._svg_renderer, self._image_rect()))
-        elif self._image is not None and not self._image.isNull():
+        if self._image is not None and not self._image.isNull():
             painter.drawImage(self._image_rect(), self._image)
         painter.end()
-
-    def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802
-        """Re-render at the new fitted resolution."""
-        super().resizeEvent(event)
-        self._render()
 
     def set_path(self, path: Path) -> None:
         """Load a new icon and reset its viewport."""
         self._path = path
         self._zoom = 1.0
         self._offset = QPointF()
-        self._render_size = 0
-        self._render()
+        self._image = render_icon_to_image(path, _PREVIEW_RENDER_SIZE)
         self.update()
-
-    def shows_svg_document(self) -> bool:
-        """Return whether the current icon is shown as a live SVG document."""
-        return self._web is not None and not self._web.isHidden()
 
     def wheelEvent(self, event: QWheelEvent) -> None:  # noqa: N802
         """Zoom around the mouse pointer."""
@@ -165,68 +145,15 @@ class IconLightboxCanvas(QWidget):
         relative = pointer - center - self._offset
         self._offset = pointer - center - relative * (new_zoom / old_zoom)
         self._zoom = new_zoom
-        self._render()
         self.update()
 
     def _base_side(self) -> float:
         return max(64.0, min(self.width(), self.height()) - _SCREEN_MARGIN * 2)
 
-    def _hide_svg_view(self) -> None:
-        if self._web is not None:
-            self._web.hide()
-
     def _image_rect(self) -> QRectF:
         side = self._base_side() * self._zoom
         center = QPointF(self.rect().center()) + self._offset
         return QRectF(center.x() - side / 2, center.y() - side / 2, side, side)
-
-    def _is_svg_path(self) -> bool:
-        return self._path is not None and self._path.suffix.casefold() in _SVG_SUFFIXES
-
-    def _layout_svg_view(self) -> None:
-        if self._web is None or self._web.isHidden():
-            return
-        self._web.setGeometry(self._image_rect().toRect())
-
-    def _render(self) -> None:
-        if self._path is None:
-            return
-        if self._is_svg_path() and self._show_svg_browser():
-            self._image = None
-            self._svg_renderer = None
-            self._layout_svg_view()
-            return
-        self._hide_svg_view()
-        if self._is_svg_path():
-            self._image = None
-            self._svg_renderer = QSvgRenderer(str(self._path))
-            if not self._svg_renderer.isValid():
-                self._svg_renderer = None
-            return
-        if self.width() <= 0 or self.height() <= 0:
-            return
-        self._svg_renderer = None
-        size = min(_MAX_RENDER_SIZE, max(64, round(self._base_side() * self._zoom)))
-        if size == self._render_size and self._image is not None:
-            return
-        self._image = render_icon_to_image(self._path, size)
-        self._render_size = size
-
-    def _show_svg_browser(self) -> bool:
-        if self._path is None:
-            return False
-        if self._web is None:
-            view = _LightboxSvgView(self)
-            view.setContextMenuPolicy(Qt.ContextMenuPolicy.NoContextMenu)
-            view.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-            page = view.page()
-            page.setBackgroundColor(Qt.GlobalColor.transparent)
-            settings = page.settings()
-            settings.setAttribute(QWebEngineSettings.WebAttribute.LocalContentCanAccessFileUrls, True)  # noqa: FBT003
-            self._web = view
-        self._web.setHtml(svg_preview_html(self._path), QUrl.fromLocalFile(str(self._path.resolve())))
-        self._web.show()
-        return True
 ```
 
 </details>
@@ -249,14 +176,11 @@ def __init__(self, parent: QWidget | None = None) -> None:
         self.setCursor(Qt.CursorShape.ArrowCursor)
         self._path: Path | None = None
         self._image = None
-        self._svg_renderer: QSvgRenderer | None = None
-        self._web: QWebEngineView | None = None
         self._zoom = 1.0
         self._offset = QPointF()
         self._drag_start: QPointF | None = None
         self._drag_origin = QPointF()
         self._did_drag = False
-        self._render_size = 0
 ```
 
 </details>
@@ -279,7 +203,6 @@ def mouseMoveEvent(self, event: QMouseEvent) -> None:  # noqa: N802
             if abs(delta.x()) + abs(delta.y()) >= _DRAG_THRESHOLD:
                 self._did_drag = True
             self._offset = self._drag_origin + delta
-            self._layout_svg_view()
             self.update()
             event.accept()
             return
@@ -352,42 +275,19 @@ def mouseReleaseEvent(self, event: QMouseEvent) -> None:  # noqa: N802
 def paintEvent(self, event: QPaintEvent) -> None
 ```
 
-Draw a raster fallback, or a vector SVG when the browser view is unused.
+Draw the preview over the transparent canvas.
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def paintEvent(self, event: QPaintEvent) -> None:  # noqa: ARG002, N802
-        if self._web is not None and not self._web.isHidden():
-            return
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing, on=True)
         painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, on=True)
-        if self._svg_renderer is not None and self._svg_renderer.isValid():
-            self._svg_renderer.render(painter, fitted_content_rect(self._svg_renderer, self._image_rect()))
-        elif self._image is not None and not self._image.isNull():
+        if self._image is not None and not self._image.isNull():
             painter.drawImage(self._image_rect(), self._image)
         painter.end()
-```
-
-</details>
-
-### ⚙️ Method `resizeEvent`
-
-```python
-def resizeEvent(self, event: QResizeEvent) -> None
-```
-
-Re-render at the new fitted resolution.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802
-        super().resizeEvent(event)
-        self._render()
 ```
 
 </details>
@@ -408,27 +308,8 @@ def set_path(self, path: Path) -> None:
         self._path = path
         self._zoom = 1.0
         self._offset = QPointF()
-        self._render_size = 0
-        self._render()
+        self._image = render_icon_to_image(path, _PREVIEW_RENDER_SIZE)
         self.update()
-```
-
-</details>
-
-### ⚙️ Method `shows_svg_document`
-
-```python
-def shows_svg_document(self) -> bool
-```
-
-Return whether the current icon is shown as a live SVG document.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def shows_svg_document(self) -> bool:
-        return self._web is not None and not self._web.isHidden()
 ```
 
 </details>
@@ -496,7 +377,6 @@ def zoom_by(self, factor: float, *, anchor: QPointF | None = None) -> None:
         relative = pointer - center - self._offset
         self._offset = pointer - center - relative * (new_zoom / old_zoom)
         self._zoom = new_zoom
-        self._render()
         self.update()
 ```
 
@@ -524,25 +404,22 @@ class IconLightboxDialog(QDialog):
         parent: QWidget | None = None,
     ) -> None:
         """Build a modal lightbox fitted to its application window."""
-        super().__init__(parent)
+        owner = parent.window() if parent is not None else None
+        super().__init__(owner)
         self._paths = [path for path in paths if path.is_file()]
         self._index = max(0, min(current_index, len(self._paths) - 1))
         qt_modality.set_owner_window_modal(self)
-        self.setWindowFlags(
-            Qt.WindowType.Dialog | Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowStaysOnTopHint
-        )
-        self.setStyleSheet("IconLightboxDialog { background-color: white; }")
-
-        owner = parent.window() if parent is not None else None
+        self.setWindowFlags(Qt.WindowType.Dialog | Qt.WindowType.FramelessWindowHint)
         if owner is not None:
-            top_left = owner.mapToGlobal(QPoint(0, 0))
-            self.setGeometry(top_left.x(), top_left.y(), owner.width(), owner.height())
+            owner.installEventFilter(self)
+            self._fit_to_owner()
         else:
             screen = QGuiApplication.primaryScreen()
             if screen is not None:
                 self.setGeometry(screen.availableGeometry())
             else:
                 self.resize(1280, 720)
+        self.setStyleSheet("IconLightboxDialog { background-color: white; }")
 
         self.canvas = IconLightboxCanvas(self)
         self.canvas.backdrop_clicked.connect(self.accept)
@@ -581,6 +458,13 @@ class IconLightboxDialog(QDialog):
         """Current path index."""
         return self._index
 
+    def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
+        """Keep the overlay aligned with the owner window."""
+        owner = self.parentWidget()
+        if watched is owner and event.type() in {QEvent.Type.Resize, QEvent.Type.Move}:
+            self._fit_to_owner()
+        return super().eventFilter(watched, event)
+
     def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
         """Handle Escape and left/right navigation."""
         if event.key() == Qt.Key.Key_Escape:
@@ -610,6 +494,16 @@ class IconLightboxDialog(QDialog):
         if len(self._paths) > 1:
             self._index = (self._index - 1) % len(self._paths)
             self._show_current()
+
+    def _fit_to_owner(self) -> None:
+        owner = self.parentWidget()
+        if owner is None:
+            return
+        if self.isWindow():
+            top_left = owner.mapToGlobal(QPoint(0, 0))
+            self.setGeometry(top_left.x(), top_left.y(), owner.width(), owner.height())
+            return
+        self.setGeometry(owner.rect())
 
     def _make_backdrop_button(self, *, color: str) -> QPushButton:
         button = QPushButton(self)
@@ -706,25 +600,22 @@ def __init__(
         current_index: int = 0,
         parent: QWidget | None = None,
     ) -> None:
-        super().__init__(parent)
+        owner = parent.window() if parent is not None else None
+        super().__init__(owner)
         self._paths = [path for path in paths if path.is_file()]
         self._index = max(0, min(current_index, len(self._paths) - 1))
         qt_modality.set_owner_window_modal(self)
-        self.setWindowFlags(
-            Qt.WindowType.Dialog | Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowStaysOnTopHint
-        )
-        self.setStyleSheet("IconLightboxDialog { background-color: white; }")
-
-        owner = parent.window() if parent is not None else None
+        self.setWindowFlags(Qt.WindowType.Dialog | Qt.WindowType.FramelessWindowHint)
         if owner is not None:
-            top_left = owner.mapToGlobal(QPoint(0, 0))
-            self.setGeometry(top_left.x(), top_left.y(), owner.width(), owner.height())
+            owner.installEventFilter(self)
+            self._fit_to_owner()
         else:
             screen = QGuiApplication.primaryScreen()
             if screen is not None:
                 self.setGeometry(screen.availableGeometry())
             else:
                 self.resize(1280, 720)
+        self.setStyleSheet("IconLightboxDialog { background-color: white; }")
 
         self.canvas = IconLightboxCanvas(self)
         self.canvas.backdrop_clicked.connect(self.accept)
@@ -775,6 +666,27 @@ Current path index.
 ```python
 def current_index(self) -> int:
         return self._index
+```
+
+</details>
+
+### ⚙️ Method `eventFilter`
+
+```python
+def eventFilter(self, watched: QObject, event: QEvent) -> bool
+```
+
+Keep the overlay aligned with the owner window.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
+        owner = self.parentWidget()
+        if watched is owner and event.type() in {QEvent.Type.Resize, QEvent.Type.Move}:
+            self._fit_to_owner()
+        return super().eventFilter(watched, event)
 ```
 
 </details>
@@ -861,31 +773,6 @@ def show_previous(self) -> None:
         if len(self._paths) > 1:
             self._index = (self._index - 1) % len(self._paths)
             self._show_current()
-```
-
-</details>
-
-## 🔧 Function `svg_preview_html`
-
-```python
-def svg_preview_html(path: Path) -> str
-```
-
-Return HTML that shows `path` as a live SVG in a browser view.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def svg_preview_html(path: Path) -> str:
-    src = escape(QUrl.fromLocalFile(str(path.resolve())).toString(), quote=True)
-    return (
-        "<!DOCTYPE html><html><head><meta charset='utf-8'>"
-        "<style>html,body{margin:0;width:100%;height:100%;background:transparent;overflow:hidden;}"
-        "body{display:flex;align-items:center;justify-content:center;}"
-        "img{max-width:100%;max-height:100%;object-fit:contain;user-select:none;-webkit-user-drag:none;}"
-        f"</style></head><body><img src='{src}' alt=''></body></html>"
-    )
 ```
 
 </details>
