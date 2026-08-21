@@ -19,7 +19,7 @@ from harrix_swiss_knife.apps.icons.catalog import (
     open_icons_folder,
     rebuild_catalog,
 )
-from harrix_swiss_knife.apps.icons.lightbox import IconLightboxDialog
+from harrix_swiss_knife.apps.icons.lightbox import IconLightboxDialog, svg_preview_html
 from harrix_swiss_knife.apps.icons.main import KeyValueTableDialog
 from harrix_swiss_knife.apps.icons.trademark_update import TRADEMARK_WARNING, update_trademark_files
 from harrix_swiss_knife.apps.icons.variant_view import (
@@ -330,6 +330,24 @@ def test_icon_variant_absolute_path(tmp_path: Path) -> None:
     variant = IconVariant(file="img/building__garage_01.svg", name="building__garage_01", hash="1")
     path = variant.absolute_path(repo, "icons/building__garage")
     assert path.is_file()
+
+
+def test_svg_preview_html_embeds_file_url(tmp_path: Path) -> None:
+    svg = tmp_path / "icon.svg"
+    _write_svg(svg)
+    html = svg_preview_html(svg)
+    assert "icon.svg" in html
+    assert "object-fit:contain" in html
+
+
+def test_icon_lightbox_shows_svg_as_document(tmp_path: Path, qapp: QApplication) -> None:
+    svg = tmp_path / "icon.svg"
+    _write_svg(svg)
+    dialog = IconLightboxDialog([svg])
+    dialog.resize(800, 600)
+    qapp.processEvents()
+    assert dialog.canvas.shows_svg_document()
+    dialog.close()
 
 
 def test_icon_lightbox_navigates_and_zooms(tmp_path: Path, qapp: QApplication) -> None:  # noqa: ARG001

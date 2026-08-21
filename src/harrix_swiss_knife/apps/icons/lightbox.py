@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+from html import escape
 from typing import TYPE_CHECKING
 
-from PySide6.QtCore import QPoint, QPointF, QRectF, QSize, Qt, Signal
+from PySide6.QtCore import QEvent, QPoint, QPointF, QRectF, QSize, Qt, QUrl, Signal
 from PySide6.QtGui import (
     QGuiApplication,
     QKeyEvent,
@@ -16,10 +17,13 @@ from PySide6.QtGui import (
     QShortcut,
     QWheelEvent,
 )
+from PySide6.QtSvg import QSvgRenderer
+from PySide6.QtWebEngineCore import QWebEngineSettings
+from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWidgets import QDialog, QLabel, QPushButton, QWidget
 
 from harrix_swiss_knife import qt_modality
-from harrix_swiss_knife.apps.icons.vector_render import render_icon_to_image
+from harrix_swiss_knife.apps.icons.vector_render import fitted_content_rect, render_icon_to_image
 from harrix_swiss_knife.qt_emoji_icon import CLOSE_BUTTON_EMOJI, create_emoji_icon
 
 if TYPE_CHECKING:
@@ -35,10 +39,11 @@ _MIN_ZOOM = 0.25
 _MAX_ZOOM = 8.0
 _MAX_RENDER_SIZE = 4096
 _DRAG_THRESHOLD = 3.0
+_SVG_SUFFIXES = frozenset({".svg"})
 
 
 class IconLightboxCanvas(QWidget):
-    """Paint, zoom, and drag one vector icon."""
+    """Zoom and drag one icon: live SVG in a browser view, raster for other formats."""
 
     backdrop_clicked = Signal()
 
@@ -49,6 +54,8 @@ class IconLightboxCanvas(QWidget):
         self.setCursor(Qt.CursorShape.ArrowCursor)
         self._path: Path | None = None
         self._image = None
+        self._svg_renderer: QSvgRenderer | None = None
+        self._web: QWebEngineView | None = None
         self._zoom = 1.0
         self._offset = QPointF()
         self._drag_start: QPointF | None = None
@@ -63,6 +70,7 @@ class IconLightboxCanvas(QWidget):
             if abs(delta.x()) + abs(delta.y()) >= _DRAG_THRESHOLD:
                 self._did_drag = True
             self._offset = self._drag_origin + delta
+            self._layout_svg_view()
             self.update()
             event.accept()
             return
@@ -99,11 +107,15 @@ class IconLightboxCanvas(QWidget):
         super().mouseReleaseEvent(event)
 
     def paintEvent(self, event: QPaintEvent) -> None:  # noqa: ARG002, N802
-        """Draw the icon over the transparent canvas."""
+        """Draw a raster fallback, or a vector SVG when the browser view is unused."""
+        if self._web is not None and not self._web.isHidden():
+            return
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing, on=True)
         painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, on=True)
-        if self._image is not None and not self._image.isNull():
+        if self._svg_renderer is not None and self._svg_renderer.isValid():
+            self._svg_renderer.render(painter, fitted_content_rect(self._svg_renderer, self._image_rect()))
+        elif self._image is not None and not self._image.isNull():
             painter.drawImage(self._image_rect(), self._image)
         painter.end()
 
@@ -120,6 +132,10 @@ class IconLightboxCanvas(QWidget):
         self._render_size = 0
         self._render()
         self.update()
+
+    def shows_svg_document(self) -> bool:
+        """Return whether the current icon is shown as a live SVG document."""
+        return self._web is not None and not self._web.isHidden()
 
     def wheelEvent(self, event: QWheelEvent) -> None:  # noqa: N802
         """Zoom around the mouse pointer."""
@@ -152,19 +168,62 @@ class IconLightboxCanvas(QWidget):
     def _base_side(self) -> float:
         return max(64.0, min(self.width(), self.height()) - _SCREEN_MARGIN * 2)
 
+    def _hide_svg_view(self) -> None:
+        if self._web is not None:
+            self._web.hide()
+
     def _image_rect(self) -> QRectF:
         side = self._base_side() * self._zoom
         center = QPointF(self.rect().center()) + self._offset
         return QRectF(center.x() - side / 2, center.y() - side / 2, side, side)
 
-    def _render(self) -> None:
-        if self._path is None or self.width() <= 0 or self.height() <= 0:
+    def _is_svg_path(self) -> bool:
+        return self._path is not None and self._path.suffix.casefold() in _SVG_SUFFIXES
+
+    def _layout_svg_view(self) -> None:
+        if self._web is None or self._web.isHidden():
             return
+        self._web.setGeometry(self._image_rect().toRect())
+
+    def _render(self) -> None:
+        if self._path is None:
+            return
+        if self._is_svg_path() and self._show_svg_browser():
+            self._image = None
+            self._svg_renderer = None
+            self._layout_svg_view()
+            return
+        self._hide_svg_view()
+        if self._is_svg_path():
+            self._image = None
+            self._svg_renderer = QSvgRenderer(str(self._path))
+            if not self._svg_renderer.isValid():
+                self._svg_renderer = None
+            return
+        if self.width() <= 0 or self.height() <= 0:
+            return
+        self._svg_renderer = None
         size = min(_MAX_RENDER_SIZE, max(64, round(self._base_side() * self._zoom)))
         if size == self._render_size and self._image is not None:
             return
         self._image = render_icon_to_image(self._path, size)
         self._render_size = size
+
+    def _show_svg_browser(self) -> bool:
+        if self._path is None:
+            return False
+        if self._web is None:
+            view = _LightboxSvgView(self)
+            view.setContextMenuPolicy(Qt.ContextMenuPolicy.NoContextMenu)
+            view.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+            page = view.page()
+            page.setBackgroundColor(Qt.GlobalColor.transparent)
+            settings = page.settings()
+            settings.setAttribute(QWebEngineSettings.WebAttribute.LocalContentCanAccessFileUrls, True)  # noqa: FBT003
+            self._web = view
+        self._web.setHtml(svg_preview_html(self._path), QUrl.fromLocalFile(str(self._path.resolve())))
+        self._web.show()
+        return True
 
 
 class IconLightboxDialog(QDialog):
@@ -337,3 +396,76 @@ class IconLightboxDialog(QDialog):
         self._previous_button.setVisible(show_navigation)
         self._next_button.setVisible(show_navigation)
         self._position_controls()
+
+
+class _LightboxSvgView(QWebEngineView):
+    """Browser view that forwards pan/zoom input to the lightbox canvas."""
+
+    def mouseMoveEvent(self, event: QMouseEvent) -> None:  # noqa: N802
+        if self._forward_mouse(event):
+            return
+        super().mouseMoveEvent(event)
+
+    def mousePressEvent(self, event: QMouseEvent) -> None:  # noqa: N802
+        if self._forward_mouse(event):
+            return
+        super().mousePressEvent(event)
+
+    def mouseReleaseEvent(self, event: QMouseEvent) -> None:  # noqa: N802
+        if self._forward_mouse(event):
+            return
+        super().mouseReleaseEvent(event)
+
+    def wheelEvent(self, event: QWheelEvent) -> None:  # noqa: N802
+        canvas = self.parent()
+        if isinstance(canvas, IconLightboxCanvas):
+            mapped = QWheelEvent(
+                event.position() + QPointF(self.pos()),
+                event.globalPosition(),
+                event.pixelDelta(),
+                event.angleDelta(),
+                event.buttons(),
+                event.modifiers(),
+                event.phase(),
+                event.inverted(),
+            )
+            canvas.wheelEvent(mapped)
+            event.accept()
+            return
+        super().wheelEvent(event)
+
+    def _forward_mouse(self, event: QMouseEvent) -> bool:
+        canvas = self.parent()
+        if not isinstance(canvas, IconLightboxCanvas):
+            return False
+        mapped = QMouseEvent(
+            event.type(),
+            event.position() + QPointF(self.pos()),
+            event.globalPosition(),
+            event.button(),
+            event.buttons(),
+            event.modifiers(),
+        )
+        event_type = event.type()
+        if event_type == QEvent.Type.MouseButtonPress:
+            canvas.mousePressEvent(mapped)
+        elif event_type == QEvent.Type.MouseButtonRelease:
+            canvas.mouseReleaseEvent(mapped)
+        elif event_type == QEvent.Type.MouseMove:
+            canvas.mouseMoveEvent(mapped)
+        else:
+            return False
+        event.accept()
+        return True
+
+
+def svg_preview_html(path: Path) -> str:
+    """Return HTML that shows `path` as a live SVG in a browser view."""
+    src = escape(QUrl.fromLocalFile(str(path.resolve())).toString(), quote=True)
+    return (
+        "<!DOCTYPE html><html><head><meta charset='utf-8'>"
+        "<style>html,body{margin:0;width:100%;height:100%;background:transparent;overflow:hidden;}"
+        "body{display:flex;align-items:center;justify-content:center;}"
+        "img{max-width:100%;max-height:100%;object-fit:contain;user-select:none;-webkit-user-drag:none;}"
+        f"</style></head><body><img src='{src}' alt=''></body></html>"
+    )
