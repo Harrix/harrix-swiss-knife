@@ -44,7 +44,7 @@ class PythonProjectChecksMixin(ActionBase):
         for tool, args in self._UV_CHECKS:
             label = f"{tool} {args}".strip()
             self.add_line(f"🔵 [{project_name}] {label}")
-            ok, output = self._run_uv_command(project_path, tool, args)
+            ok, output = self._run_project_module(project_path, tool, args)
             if output:
                 self.add_line(output)
             if ok:
@@ -83,39 +83,38 @@ class PythonProjectChecksMixin(ActionBase):
         checker.harrix_check_python_common()
         return getattr(checker, "last_error_count", 0) == 0
 
-    def _run_uv_command(self, project_path: Path, tool: str, args: str) -> tuple[bool, str]:
+    def _run_project_module(self, project_path: Path, tool: str, args: str) -> tuple[bool, str]:
+        """Run `python -m <tool>` from the project's `.venv` without `uv run`.
+
+        `uv run` on Windows often flashes a console. Qt tests also map real
+        Windows unless `QT_QPA_PLATFORM=offscreen`.
+
+        Args:
+
+        - `project_path` (`Path`): Project root that contains `.venv`.
+        - `tool` (`str`): Module name (`ty`, `ruff`, `pytest`).
+        - `args` (`str`): Extra arguments, space-separated.
+
+        Returns:
+
+        - `tuple[bool, str]`: Success flag and combined command output.
+
+        """
         pyproject = project_path / "pyproject.toml"
         if not pyproject.is_file():
             return False, f"❌ Missing pyproject.toml in {project_path}"
 
-        venv_dir = project_path / ".venv"
-        if not venv_dir.is_dir():
-            return False, f"❌ Missing .venv in {project_path}"
+        python = venv_python(project_path)
+        if not python.is_file():
+            return False, f"❌ Missing {python}"
 
-        command = ["uv", "run", tool, *args.split()]
+        command = venv_module_argv(project_path, tool, *args.split())
         env = os.environ.copy()
         env.pop("VIRTUAL_ENV", None)
-        creationflags = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
-        try:
-            process = subprocess.run(
-                command,
-                capture_output=True,
-                text=True,
-                encoding="utf-8",
-                cwd=project_path,
-                env=env,
-                check=False,
-                creationflags=creationflags,
-                timeout=_UV_CHECK_TIMEOUT,
-            )
-        except subprocess.TimeoutExpired:
-            return False, f"Command timed out after {_UV_CHECK_TIMEOUT} seconds: {' '.join(command)}"
-        except OSError as e:
-            return False, f"Error executing command: {e!s}"
-
-        output_parts = [(process.stdout or "").strip(), (process.stderr or "").strip()]
-        output = "\n".join(filter(None, output_parts))
-        return process.returncode == 0, output
+        if tool == "pytest":
+            env.setdefault("QT_QPA_PLATFORM", QT_OFFSCREEN_PLATFORM)
+        returncode, output = run_argv_output(command, cwd=project_path, env=env, timeout=_UV_CHECK_TIMEOUT)
+        return returncode == 0, output
 ```
 
 </details>
@@ -139,7 +138,7 @@ def check_single_python_project(self, project_path: Path) -> list[str]:
         for tool, args in self._UV_CHECKS:
             label = f"{tool} {args}".strip()
             self.add_line(f"🔵 [{project_name}] {label}")
-            ok, output = self._run_uv_command(project_path, tool, args)
+            ok, output = self._run_project_module(project_path, tool, args)
             if output:
                 self.add_line(output)
             if ok:

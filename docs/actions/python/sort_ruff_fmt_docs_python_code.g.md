@@ -131,8 +131,8 @@ class OnSortRuffFmtDocsPythonCode(ActionBase):
         """
         # Sort imports and format with Ruff (single tool for both steps).
         self.add_line("🔵 Format and sort imports")
-        commands = "uv run --active ruff check --select I --fix . && uv run --active ruff format"
-        self.add_line(h.dev.run_command(commands, cwd=folder_path, is_shell=True))
+        self.add_line(self._run_venv_ruff(folder_path, "check", "--select", "I", "--fix", "."))
+        self.add_line(self._run_venv_ruff(folder_path, "format"))
 
         # Sort Python code elements (skip per-file ruff: pipeline already runs ruff format).
         self.add_line("🔵 Sort Python code elements")
@@ -157,7 +157,7 @@ class OnSortRuffFmtDocsPythonCode(ActionBase):
             self.add_line(f"⚠️ Skip docstring Markdown formatting due to error: {e!s}")
 
         self.add_line("🔵 Format with Ruff after docstring updates")
-        self.add_line(h.dev.run_command(["uv", "run", "--active", "ruff", "format"], cwd=folder_path))
+        self.add_line(self._run_venv_ruff(folder_path, "format"))
 
         if Path(folder_path).resolve() == h.dev.get_project_root().resolve():
             self.add_line("🔵 Update README List of commands")
@@ -194,6 +194,26 @@ class OnSortRuffFmtDocsPythonCode(ActionBase):
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
         self.show_toast(f"{self.title} completed")
         self.show_result()
+
+    def _run_venv_ruff(self, folder_path: str, *ruff_args: str) -> str:
+        """Run `ruff` via the project's `.venv` Python, without `uv run`.
+
+        Args:
+
+        - `folder_path` (`str`): Project root that contains `.venv`.
+        - `ruff_args` (`str`): Arguments after `python -m ruff`.
+
+        Returns:
+
+        - `str`: Combined stdout and stderr from Ruff.
+
+        """
+        project_path = Path(folder_path)
+        python = venv_python(project_path)
+        if not python.is_file():
+            return f"❌ Missing {python}"
+        _code, output = run_argv_output(venv_module_argv(project_path, "ruff", *ruff_args), cwd=folder_path)
+        return output
 ```
 
 </details>
@@ -312,8 +332,8 @@ Note:
 def format_and_sort_python_common(self, folder_path: str, *, is_include_docs_generation: bool = True) -> None:
         # Sort imports and format with Ruff (single tool for both steps).
         self.add_line("🔵 Format and sort imports")
-        commands = "uv run --active ruff check --select I --fix . && uv run --active ruff format"
-        self.add_line(h.dev.run_command(commands, cwd=folder_path, is_shell=True))
+        self.add_line(self._run_venv_ruff(folder_path, "check", "--select", "I", "--fix", "."))
+        self.add_line(self._run_venv_ruff(folder_path, "format"))
 
         # Sort Python code elements (skip per-file ruff: pipeline already runs ruff format).
         self.add_line("🔵 Sort Python code elements")
@@ -338,7 +358,7 @@ def format_and_sort_python_common(self, folder_path: str, *, is_include_docs_gen
             self.add_line(f"⚠️ Skip docstring Markdown formatting due to error: {e!s}")
 
         self.add_line("🔵 Format with Ruff after docstring updates")
-        self.add_line(h.dev.run_command(["uv", "run", "--active", "ruff", "format"], cwd=folder_path))
+        self.add_line(self._run_venv_ruff(folder_path, "format"))
 
         if Path(folder_path).resolve() == h.dev.get_project_root().resolve():
             self.add_line("🔵 Update README List of commands")

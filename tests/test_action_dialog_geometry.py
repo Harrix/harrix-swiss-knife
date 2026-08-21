@@ -18,6 +18,7 @@ from PySide6.QtWidgets import (
 from harrix_swiss_knife.actions.common.dialog_geometry import (
     MIN_DIALOG_HEIGHT,
     apply_adaptive_dialog_size,
+    available_max_height,
     fit_widget_height,
     list_content_height,
 )
@@ -79,7 +80,7 @@ def test_many_items_dialog_reaches_default_height(qapp: QApplication) -> None:  
     dialog, size = _build_list_dialog(choices)
     try:
         assert size.width() == _DEFAULT.width()
-        assert size.height() == _DEFAULT.height()
+        assert size.height() == min(_DEFAULT.height(), available_max_height(dialog))
     finally:
         dialog.close()
 

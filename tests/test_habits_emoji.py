@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from collections.abc import Iterator
 from pathlib import Path
 
@@ -123,6 +124,10 @@ def _render_habit_icon_badge(emoji: str) -> QImage:
     return image
 
 
+@pytest.mark.skipif(
+    os.environ.get("QT_QPA_PLATFORM", "").startswith("offscreen"),
+    reason="offscreen QPA does not paint emoji fonts",
+)
 def test_habit_icon_badge_paints_centered_emoji(qapp: QApplication) -> None:
     """List badge draws the habit emoji instead of an empty colored circle."""
     assert qapp is not None
