@@ -22,6 +22,7 @@ lang: en
 - [🔧 Function `install_private_data`](#-function-install_private_data)
 - [🔧 Function `list_api_key_secret_files`](#-function-list_api_key_secret_files)
 - [🔧 Function `pack_private_data`](#-function-pack_private_data)
+- [🔧 Function `resolve_api_key_files_for_pack`](#-function-resolve_api_key_files_for_pack)
 - [🔧 Function `resolve_fitness_paths`](#-function-resolve_fitness_paths)
 - [🔧 Function `selection_from_part_flags`](#-function-selection_from_part_flags)
 
@@ -71,6 +72,7 @@ class PackPrivateDataResult:
     fitness_img_count: int
     exercises_count: int
     types_count: int
+    api_key_files: tuple[str, ...] = ()
     missing_exercise_images: tuple[str, ...] = ()
 ```
 
@@ -92,6 +94,7 @@ class PrivateDataSelection:
 
     api_keys: bool = True
     fitness: bool = True
+    api_key_files: tuple[str, ...] = ()
 
     def any_selected(self) -> bool:
         """Return whether at least one part is selected."""
@@ -377,7 +380,7 @@ def pack_private_data(
     key_files: list[Path] = []
     if wanted.api_keys:
         api_keys_dir = project_root / ZIP_API_KEYS_DIR
-        key_files = list_api_key_secret_files(api_keys_dir)
+        key_files = resolve_api_key_files_for_pack(api_keys_dir, wanted.api_key_files)
         if not key_files:
             msg = f"No secret *.txt files found in {api_keys_dir} (excluding *.example.txt)."
             raise FileNotFoundError(msg)
@@ -460,11 +463,53 @@ def pack_private_data(
     return PackPrivateDataResult(
         zip_path=output_zip,
         api_keys_count=len(key_files),
+        api_key_files=tuple(path.name for path in key_files),
         fitness_img_count=len(fitness_files),
         exercises_count=len(exercises),
         types_count=types_count,
         missing_exercise_images=tuple(missing_images),
     )
+```
+
+</details>
+
+## 🔧 Function `resolve_api_key_files_for_pack`
+
+```python
+def resolve_api_key_files_for_pack(api_keys_dir: Path, selected_names: Sequence[str] | None = None) -> list[Path]
+```
+
+Return secret key files to pack, optionally filtered by filename.
+
+Empty `selected_names` means every secret `*.txt` in `api-keys/`.
+
+Args:
+
+- `api_keys_dir` (`Path`): Project `api-keys` folder.
+- `selected_names` (`Sequence[str] | None`): Filenames to include, or all.
+
+Returns:
+
+- `list[Path]`: Key files in directory order.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def resolve_api_key_files_for_pack(
+    api_keys_dir: Path,
+    selected_names: Sequence[str] | None = None,
+) -> list[Path]:
+    all_files = list_api_key_secret_files(api_keys_dir)
+    if not selected_names:
+        return all_files
+    wanted = {str(name).strip() for name in selected_names if str(name).strip()}
+    available = {path.name for path in all_files}
+    missing = sorted(wanted - available)
+    if missing:
+        msg = f"Unknown API key file(s): {', '.join(missing)}"
+        raise FileNotFoundError(msg)
+    return [path for path in all_files if path.name in wanted]
 ```
 
 </details>

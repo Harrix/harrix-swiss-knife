@@ -758,7 +758,7 @@ def private_data_group() -> None:
 ## 🔧 Function `private_data_export`
 
 ```python
-def private_data_export(zip_path: Path | None, *, api_keys: bool, fitness: bool) -> None
+def private_data_export(zip_path: Path | None, *, api_keys: bool, fitness: bool, api_key_files: tuple[str, ...]) -> None
 ```
 
 Pack selected private data into a personal ZIP (workouts not included).
@@ -767,8 +767,20 @@ Pack selected private data into a personal ZIP (workouts not included).
 <summary>Code:</summary>
 
 ```python
-def private_data_export(zip_path: Path | None, *, api_keys: bool, fitness: bool) -> None:
-    _invoke_transfer_private_data(mode="export", zip_path=zip_path, api_keys=api_keys, fitness=fitness)
+def private_data_export(
+    zip_path: Path | None,
+    *,
+    api_keys: bool,
+    fitness: bool,
+    api_key_files: tuple[str, ...],
+) -> None:
+    _invoke_transfer_private_data(
+        mode="export",
+        zip_path=zip_path,
+        api_keys=api_keys or bool(api_key_files),
+        fitness=fitness,
+        api_key_files=api_key_files,
+    )
 ```
 
 </details>

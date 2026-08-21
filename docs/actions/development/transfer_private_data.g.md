@@ -25,7 +25,8 @@ class OnTransferPrivateData(ActionBase)
 Export or import personal private data for another machine.
 
 Choose **Export** or **Import**, then which parts: API keys and/or exercise
-catalog plus `fitness_img` (`{English name}.avif`). Workout tables
+catalog plus `fitness_img` (`{English name}.avif`). Export also asks which
+`api-keys/*.txt` files to include. Workout tables
 (`process`, `weight`) are never included. Import overlays images next to
 existing files and upserts the catalog by English name.
 
@@ -83,6 +84,7 @@ class OnTransferPrivateData(ActionBase):
                 include_api_keys=bool(kwargs.get("include_api_keys")),
                 include_fitness=bool(kwargs.get("include_fitness")),
                 parts_specified=bool(kwargs.get("parts_specified")),
+                api_key_files=_kwargs_api_key_files(kwargs),
             )
             return
         if mode == "import":
@@ -122,6 +124,67 @@ class OnTransferPrivateData(ActionBase):
             api_keys=self.PART_API_KEYS in selected,
             fitness=self.PART_FITNESS in selected,
         )
+
+    def _resolve_export_api_key_files(
+        self,
+        project_root: Path,
+        selection: PrivateDataSelection,
+        *,
+        noninteractive: bool,
+        requested_names: tuple[str, ...],
+    ) -> PrivateDataSelection | None:
+        """Ask which `api-keys/*.txt` files to pack, or apply CLI names.
+
+        Args:
+
+        - `project_root` (`Path`): Application project root.
+        - `selection` (`PrivateDataSelection`): Parts chosen for export.
+        - `noninteractive` (`bool`): Skip the checkbox dialog and use CLI names.
+        - `requested_names` (`tuple[str, ...]`): Filenames from `--api-key`.
+
+        Returns:
+
+        - `PrivateDataSelection | None`: Selection with filenames, or `None` on cancel.
+
+        """
+        if not selection.api_keys:
+            return selection
+        api_keys_dir = project_root / ZIP_API_KEYS_DIR
+        try:
+            key_files = list_api_key_secret_files(api_keys_dir)
+        except FileNotFoundError as exc:
+            self.add_line(f"❌ {exc}")
+            self.show_result()
+            return None
+        names = [path.name for path in key_files]
+        if not names:
+            self.add_line(f"❌ No secret *.txt files found in {api_keys_dir} (excluding *.example.txt).")
+            self.show_result()
+            return None
+        if noninteractive:
+            if not requested_names:
+                return selection
+            unknown = sorted(set(requested_names) - set(names))
+            if unknown:
+                self.add_line(f"❌ Unknown API key file(s): {', '.join(unknown)}")
+                self.show_result()
+                return None
+            return replace(selection, api_key_files=requested_names)
+        selected = self.get_checkbox_selection(
+            self.title,
+            "Choose which API key files to export.",
+            names,
+            default_selected=names,
+        )
+        if selected is None:
+            self.add_line("Cancelled.")
+            self.show_result()
+            return None
+        if not selected:
+            self.add_line("❌ Select at least one API key file.")
+            self.show_result()
+            return None
+        return replace(selection, api_key_files=tuple(selected))
 
     def _resolve_export_selection(
         self,
@@ -217,12 +280,21 @@ class OnTransferPrivateData(ActionBase):
         include_api_keys: bool,
         include_fitness: bool,
         parts_specified: bool,
+        api_key_files: tuple[str, ...],
     ) -> None:
         selection = self._resolve_export_selection(
             noninteractive=noninteractive,
             include_api_keys=include_api_keys,
             include_fitness=include_fitness,
             parts_specified=parts_specified,
+        )
+        if selection is None:
+            return
+        selection = self._resolve_export_api_key_files(
+            project_root,
+            selection,
+            noninteractive=noninteractive,
+            requested_names=api_key_files,
         )
         if selection is None:
             return
@@ -246,7 +318,8 @@ class OnTransferPrivateData(ActionBase):
         )
         size_mb = result.zip_path.stat().st_size / (1024 * 1024)
         if selection.api_keys:
-            self.add_line(f"Exported {result.api_keys_count} API key file(s).")
+            names = ", ".join(result.api_key_files)
+            self.add_line(f"Exported {result.api_keys_count} API key file(s): {names}")
         if selection.fitness:
             self.add_line(f"Exported {result.fitness_img_count} fitness image file(s).")
             self.add_line(f"Exported catalog: {result.exercises_count} exercise(s), {result.types_count} type(s).")
@@ -375,6 +448,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
                 include_api_keys=bool(kwargs.get("include_api_keys")),
                 include_fitness=bool(kwargs.get("include_fitness")),
                 parts_specified=bool(kwargs.get("parts_specified")),
+                api_key_files=_kwargs_api_key_files(kwargs),
             )
             return
         if mode == "import":

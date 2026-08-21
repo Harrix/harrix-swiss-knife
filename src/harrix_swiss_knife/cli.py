@@ -670,9 +670,27 @@ def private_data_group() -> None:
     is_flag=True,
     help="Include exercise catalog and images. Omit both flags to include every part.",
 )
-def private_data_export(zip_path: Path | None, *, api_keys: bool, fitness: bool) -> None:
+@click.option(
+    "--api-key",
+    "api_key_files",
+    multiple=True,
+    help="Export only this filename from api-keys/ (repeatable). Implies --api-keys.",
+)
+def private_data_export(
+    zip_path: Path | None,
+    *,
+    api_keys: bool,
+    fitness: bool,
+    api_key_files: tuple[str, ...],
+) -> None:
     """Pack selected private data into a personal ZIP (workouts not included)."""
-    _invoke_transfer_private_data(mode="export", zip_path=zip_path, api_keys=api_keys, fitness=fitness)
+    _invoke_transfer_private_data(
+        mode="export",
+        zip_path=zip_path,
+        api_keys=api_keys or bool(api_key_files),
+        fitness=fitness,
+        api_key_files=api_key_files,
+    )
 
 
 @private_data_group.command("import")
@@ -947,6 +965,7 @@ def _invoke_transfer_private_data(
     zip_path: Path | None,
     api_keys: bool,
     fitness: bool,
+    api_key_files: tuple[str, ...] = (),
 ) -> None:
     """Run `OnTransferPrivateData` for CLI export/import (including hidden aliases)."""
     action = OnTransferPrivateData()
@@ -955,7 +974,8 @@ def _invoke_transfer_private_data(
         "mode": mode,
         "include_api_keys": api_keys,
         "include_fitness": fitness,
-        "parts_specified": api_keys or fitness,
+        "parts_specified": api_keys or fitness or bool(api_key_files),
+        "api_key_files": api_key_files,
     }
     if zip_path is not None:
         kwargs["zip_path"] = zip_path

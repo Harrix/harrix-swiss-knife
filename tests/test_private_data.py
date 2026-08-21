@@ -6,6 +6,8 @@ import sqlite3
 import zipfile
 from pathlib import Path
 
+import pytest
+
 from harrix_swiss_knife.actions.common.private_data import (
     ZIP_API_KEYS_DIR,
     ZIP_CATALOG_NAME,
@@ -17,6 +19,7 @@ from harrix_swiss_knife.actions.common.private_data import (
     inspect_private_data_zip,
     install_private_data,
     pack_private_data,
+    resolve_api_key_files_for_pack,
     selection_from_part_flags,
 )
 from harrix_swiss_knife.apps.common.avif_manager import AvifManager
@@ -152,6 +155,51 @@ def test_collect_fitness_image_files_reports_missing_names(tmp_path: Path) -> No
     names = {path.name for path in files}
     assert names == {"Pull-ups.avif", "notes.txt"}
     assert missing == ["Squats"]
+
+
+def test_resolve_api_key_files_for_pack_filters_names(tmp_path: Path) -> None:
+    """Empty names pack every secret; a list packs only those files."""
+    api_dir = tmp_path / "api-keys"
+    api_dir.mkdir()
+    (api_dir / "openai-api-key.txt").write_text("o\n", encoding="utf-8")
+    (api_dir / "bothub-api-key.txt").write_text("b\n", encoding="utf-8")
+    (api_dir / "openai-api-key.example.txt").write_text("x\n", encoding="utf-8")
+    all_files = resolve_api_key_files_for_pack(api_dir, ())
+    assert [path.name for path in all_files] == ["bothub-api-key.txt", "openai-api-key.txt"]
+    subset = resolve_api_key_files_for_pack(api_dir, ["openai-api-key.txt"])
+    assert [path.name for path in subset] == ["openai-api-key.txt"]
+    with pytest.raises(FileNotFoundError, match=r"missing-key\.txt"):
+        resolve_api_key_files_for_pack(api_dir, ["missing-key.txt"])
+
+
+def test_pack_api_keys_subset_omits_other_secrets(tmp_path: Path) -> None:
+    """Export can include only the checked API key files."""
+    project_root = tmp_path / "src-machine"
+    api_dir = project_root / "api-keys"
+    api_dir.mkdir(parents=True)
+    (api_dir / "openai-api-key.txt").write_text("openai\n", encoding="utf-8")
+    (api_dir / "bothub-api-key.txt").write_text("bothub\n", encoding="utf-8")
+    (api_dir / "github-token.txt").write_text("github\n", encoding="utf-8")
+    db_path = tmp_path / "unused" / "fitness.db"
+    _create_schema_only_db(db_path)
+    output_zip = tmp_path / "out.zip"
+    result = pack_private_data(
+        project_root=project_root,
+        sqlite_fitness=str(db_path),
+        output_zip=output_zip,
+        selection=PrivateDataSelection(
+            api_keys=True,
+            fitness=False,
+            api_key_files=("openai-api-key.txt", "github-token.txt"),
+        ),
+    )
+    assert result.api_keys_count == 2
+    assert result.api_key_files == ("github-token.txt", "openai-api-key.txt")
+    with zipfile.ZipFile(output_zip) as archive:
+        names = set(archive.namelist())
+    assert f"{ZIP_API_KEYS_DIR}/openai-api-key.txt" in names
+    assert f"{ZIP_API_KEYS_DIR}/github-token.txt" in names
+    assert f"{ZIP_API_KEYS_DIR}/bothub-api-key.txt" not in names
 
 
 def test_pack_api_keys_only_omits_fitness(tmp_path: Path) -> None:
