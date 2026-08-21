@@ -15,6 +15,7 @@ from harrix_swiss_knife.actions.apps.fitness import OnFitness
 from harrix_swiss_knife.actions.apps.food import OnFood
 from harrix_swiss_knife.actions.apps.habits import OnHabits
 from harrix_swiss_knife.actions.apps.icons import OnIcons
+from harrix_swiss_knife.actions.apps.show_ticktick_habits_json import OnShowTickTickHabitsJson
 from harrix_swiss_knife.actions.development.about_dialog import OnAboutDialog
 from harrix_swiss_knife.actions.development.add_to_autostart import OnAddToAutostart
 from harrix_swiss_knife.actions.development.build_install_zips import OnBuildInstallZips
@@ -292,6 +293,7 @@ def get_menu_structure() -> list[Any]:
         OnFitness,
         OnFood,
         OnHabits,
+        OnShowTickTickHabitsJson,
         OnIcons,
         "-",
         OnQuickLauncher,

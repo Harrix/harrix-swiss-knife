@@ -162,6 +162,7 @@ _Figure 1: Screenshot_
 - 🏃🏻 Fitness tracker
 - 🍔 Food tracker
 - ✅ Habit tracker
+- 📋 Show TickTick habits JSON
 - 🎨 Vector Icons
 - ⚡ Quick launcher…
 - × Exit
