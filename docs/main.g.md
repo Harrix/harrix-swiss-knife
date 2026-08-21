@@ -80,6 +80,12 @@ Run the Harrix Swiss Knife application (tray icon and optional main window).
 
 ```python
 def main() -> None:
+    from harrix_swiss_knife.uv_locate import refresh_path  # noqa: PLC0415
+
+    # Desktop shortcuts often inherit Explorer's PATH from before the installer
+    # added `%USERPROFILE%\\.local\\bin` (uv / hsk). Refresh before any actions.
+    refresh_path()
+
     log_path = setup_file_logging()
     log = logging.getLogger("harrix_swiss_knife")
     install_diagnostic_handlers(log)

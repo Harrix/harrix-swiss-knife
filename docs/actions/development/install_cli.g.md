@@ -45,8 +45,11 @@ class OnInstallCli(ActionBase):
     @ActionBase.handle_exceptions("install CLI")
     def execute(self, *args: Any, noninteractive: bool = False, **kwargs: Any) -> None:  # noqa: ARG002
         """Run `uv tool install -e` for this repository."""
-        if shutil.which("uv") is None:
-            self.add_line("❌ uv not found on PATH. Install uv first: https://docs.astral.sh/uv/")
+        refresh_path()
+        if find_uv_exe() is None:
+            self.add_line(
+                "❌ uv not found on PATH or in common install locations. Install uv first: https://docs.astral.sh/uv/"
+            )
             if not noninteractive:
                 self.show_result()
             return
@@ -84,7 +87,8 @@ class OnInstallCli(ActionBase):
     def _install_cli_work(self) -> None:
         """Install or reinstall the uv tool (shared by GUI thread and CLI)."""
         project_root = self._project_root
-        uv = shutil.which("uv") or "uv"
+        uv_path = find_uv_exe()
+        uv = str(uv_path) if uv_path is not None else "uv"
         tool_list = self._run_uv([uv, "tool", "list"])
         reinstall = "harrix-swiss-knife" in tool_list
         cmd = [uv, "tool", "install"]
@@ -140,8 +144,11 @@ Run `uv tool install -e` for this repository.
 
 ```python
 def execute(self, *args: Any, noninteractive: bool = False, **kwargs: Any) -> None:  # noqa: ARG002
-        if shutil.which("uv") is None:
-            self.add_line("❌ uv not found on PATH. Install uv first: https://docs.astral.sh/uv/")
+        refresh_path()
+        if find_uv_exe() is None:
+            self.add_line(
+                "❌ uv not found on PATH or in common install locations. Install uv first: https://docs.astral.sh/uv/"
+            )
             if not noninteractive:
                 self.show_result()
             return

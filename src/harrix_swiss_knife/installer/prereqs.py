@@ -24,6 +24,7 @@ from harrix_swiss_knife.installer.constants import (
     VSCODE_WINGET_ID,
 )
 from harrix_swiss_knife.integrations.http_download import download_https_to_path
+from harrix_swiss_knife.uv_locate import find_uv_exe, refresh_path
 
 if sys.platform == "win32":
     import winreg
@@ -206,29 +207,6 @@ def find_local_dependency(deps: Path, pattern: str) -> Path | None:
         return files[0]
     if len(files) > 1:
         return files[0]
-    return None
-
-
-def find_uv_exe() -> Path | None:
-    """Locate the `uv` executable on PATH or common install locations."""
-    which = shutil.which("uv")
-    if which:
-        return Path(which)
-    home = Path.home()
-    local = Path(os.environ.get("LOCALAPPDATA", ""))
-    pf = _program_files()
-    pf86 = _program_files_x86()
-    candidates = [
-        home / ".local" / "bin" / "uv.exe",
-        local / "Programs" / "uv" / "uv.exe",
-        local / "Microsoft" / "WinGet" / "Links" / "uv.exe",
-        local / "Microsoft" / "WindowsApps" / "uv.exe",
-        pf / "uv" / "uv.exe",
-        pf86 / "uv" / "uv.exe",
-    ]
-    for path in candidates:
-        if path.is_file():
-            return path
     return None
 
 
@@ -469,32 +447,6 @@ def managed_python_exists(uv_exe: Path, version: str) -> bool:
     if not py_dir.is_dir():
         return False
     return any(p.is_dir() and p.name.startswith(f"cpython-{version}") for p in py_dir.iterdir())
-
-
-def refresh_path() -> None:
-    """Refresh process PATH from the environment and Windows registry."""
-    machine = os.environ.get("Path", "")  # noqa: SIM112
-    user = ""
-    if winreg is not None:
-        try:
-            with winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Environment") as key:
-                user, _ = winreg.QueryValueEx(key, "Path")
-        except OSError:
-            user = os.environ.get("Path", "")  # noqa: SIM112
-    else:
-        user = os.environ.get("Path", "")  # noqa: SIM112
-    parts = [p for p in (machine, user) if p]
-    if winreg is not None:
-        try:
-            with winreg.OpenKey(
-                winreg.HKEY_LOCAL_MACHINE,
-                r"SYSTEM\CurrentControlSet\Control\Session Manager\Environment",
-            ) as key:
-                machine_reg, _ = winreg.QueryValueEx(key, "Path")
-                parts = [machine_reg, user]
-        except OSError:
-            pass
-    os.environ["Path"] = ";".join(parts)  # noqa: SIM112
 
 
 def run_silent_setup(path: Path, args: list[str], log: OutcomeLog) -> bool:

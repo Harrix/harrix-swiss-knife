@@ -40,8 +40,11 @@ class OnUpgradeUvPython(ActionBase):
     @ActionBase.handle_exceptions("uv python upgrade")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Run `uv python upgrade`."""
-        if shutil.which("uv") is None:
-            self.add_line("❌ uv not found on PATH. Install uv first: https://docs.astral.sh/uv/")
+        refresh_path()
+        if find_uv_exe() is None:
+            self.add_line(
+                "❌ uv not found on PATH or in common install locations. Install uv first: https://docs.astral.sh/uv/"
+            )
             self.show_result()
             return
         self.start_thread(self.in_thread, self.thread_after, self.title)
@@ -49,7 +52,10 @@ class OnUpgradeUvPython(ActionBase):
     @ActionBase.handle_exceptions("uv python upgrade thread")
     def in_thread(self) -> str | None:
         """Execute `uv python upgrade` in a worker thread."""
-        return h.dev.run_command(["uv", "python", "upgrade"])
+        uv = find_uv_exe()
+        if uv is None:
+            return "❌ uv not found"
+        return h.dev.run_command([str(uv), "python", "upgrade"], is_shell=False)
 
     @ActionBase.handle_exceptions("uv python upgrade thread completion")
     def thread_after(self, result: Any) -> None:
@@ -74,8 +80,11 @@ Run `uv python upgrade`.
 
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        if shutil.which("uv") is None:
-            self.add_line("❌ uv not found on PATH. Install uv first: https://docs.astral.sh/uv/")
+        refresh_path()
+        if find_uv_exe() is None:
+            self.add_line(
+                "❌ uv not found on PATH or in common install locations. Install uv first: https://docs.astral.sh/uv/"
+            )
             self.show_result()
             return
         self.start_thread(self.in_thread, self.thread_after, self.title)
@@ -96,7 +105,10 @@ Execute `uv python upgrade` in a worker thread.
 
 ```python
 def in_thread(self) -> str | None:
-        return h.dev.run_command(["uv", "python", "upgrade"])
+        uv = find_uv_exe()
+        if uv is None:
+            return "❌ uv not found"
+        return h.dev.run_command([str(uv), "python", "upgrade"], is_shell=False)
 ```
 
 </details>
