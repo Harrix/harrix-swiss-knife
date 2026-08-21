@@ -63,6 +63,7 @@ class OnUpdateHarrixSwissKnife(ActionBase):
             self.add_line("Nothing to update (no valid project paths).")
             self.show_result()
             return
+        self._updated_project_names = []
         self.start_thread(lambda: self._worker_run(steps), self._worker_finished, self.title, cancellable=True)
 
     def _apply_extracted_zip(
@@ -81,6 +82,7 @@ class OnUpdateHarrixSwissKnife(ActionBase):
             if kept:
                 self.add_line(f"✅ {repo_name}: kept {', '.join(kept)}.")
             self.add_line(f"✅ {repo_name}: updated from ZIP.")
+            self._mark_updated(repo_name)
         except OSError as e:
             self.add_line(f"❌ {repo_name}: ZIP update failed: {e}")
         return []
@@ -298,6 +300,31 @@ class OnUpdateHarrixSwissKnife(ActionBase):
             return None, "Root JSON value must be an object"
         return cast("dict[str, Any]", data), None
 
+    def _mark_updated(self, repo_name: str) -> None:
+        """Record that `repo_name` was updated so a restart can be offered."""
+        names = getattr(self, "_updated_project_names", None)
+        if names is None:
+            self._updated_project_names = []
+            names = self._updated_project_names
+        if repo_name not in names:
+            names.append(repo_name)
+
+    def _offer_restart_after_update(self) -> None:
+        """Ask whether to restart, then start a new process and quit."""
+        names = getattr(self, "_updated_project_names", None)
+        if not names:
+            return
+        listed = ", ".join(names)
+        if not self.get_yes_no_question(
+            self.title,
+            f"Updated: {listed}.\n\nRestart Harrix Swiss Knife now so the new code is loaded?",
+            default_yes=True,
+        ):
+            return
+        if not restart_current_application():
+            self.add_line("❌ Could not start a new process. Restart the app manually.")
+            self.show_result()
+
     def _resolve_github_branch(self, owner: str, repo: str) -> str:
         """Return the GitHub default branch, or `main` when the API is unavailable."""
         try:
@@ -389,8 +416,11 @@ class OnUpdateHarrixSwissKnife(ActionBase):
             self._write_config_json_pretty(cfg_path, merged)
             self.add_line(f"✅ Merged {cfg_path} with your key selection.")
 
+        if getattr(self, "_updated_project_names", None):
+            self.add_line("Restart the app to load the new code.")
         self.show_toast("Harrix projects update finished")
         self.show_result()
+        self._offer_restart_after_update()
 
     def _worker_git_pull(self, repo: Path, commit_message: str | None) -> list[OnUpdateHarrixSwissKnife._MergeTask]:
         tasks: list[OnUpdateHarrixSwissKnife._MergeTask] = []
@@ -425,6 +455,7 @@ class OnUpdateHarrixSwissKnife(ActionBase):
             self.add_line(f"❌ {repo.name}: git pull failed (exit {pull_p.returncode}).")
             return tasks
         self.add_line(f"✅ {repo.name}: pull completed.")
+        self._mark_updated(repo.name)
 
         if swiss:
             incoming, inc_err = self._load_json_dict(cfg)
@@ -541,6 +572,7 @@ class OnUpdateHarrixSwissKnife(ActionBase):
             )
 
         self.add_line("✅ harrix-swiss-knife: tree updated from ZIP.")
+        self._mark_updated("harrix-swiss-knife")
         return tasks
 
     @staticmethod
@@ -585,6 +617,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
             self.add_line("Nothing to update (no valid project paths).")
             self.show_result()
             return
+        self._updated_project_names = []
         self.start_thread(lambda: self._worker_run(steps), self._worker_finished, self.title, cancellable=True)
 ```
 
