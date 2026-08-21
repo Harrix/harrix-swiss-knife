@@ -31,7 +31,9 @@ lang: en
   - [⚙️ Method `set_habit`](#%EF%B8%8F-method-set_habit)
 - [🏛️ Class `HabitRow`](#%EF%B8%8F-class-habitrow)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-2)
+  - [⚙️ Method `contextMenuEvent`](#%EF%B8%8F-method-contextmenuevent)
   - [⚙️ Method `habit_id`](#%EF%B8%8F-method-habit_id)
+  - [⚙️ Method `mouseDoubleClickEvent`](#%EF%B8%8F-method-mousedoubleclickevent)
   - [⚙️ Method `mousePressEvent`](#%EF%B8%8F-method-mousepressevent-1)
   - [⚙️ Method `set_habit_data`](#%EF%B8%8F-method-set_habit_data)
 - [🏛️ Class `MonthCalendarGrid`](#%EF%B8%8F-class-monthcalendargrid)
@@ -563,6 +565,8 @@ Selectable habit list row with week check circles.
 class HabitRow(QFrame):
 
     selected = Signal(int)
+    edit_requested = Signal(int)
+    context_menu_requested = Signal(int, QPoint)  # habit_id, global pos
     day_toggled = Signal(int, int)  # habit_id, day_index 0..6
     day_value_set = Signal(int, int, object)  # habit_id, day_index, value (int | None)
 
@@ -581,15 +585,18 @@ class HabitRow(QFrame):
         root.setSpacing(12)
 
         self._icon = HabitIconBadge(size=40)
+        self._icon.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, on=True)
         root.addWidget(self._icon)
 
         text_col = QVBoxLayout()
         text_col.setSpacing(2)
         self._name_label = QLabel("")
         self._name_label.setAutoFillBackground(False)
+        self._name_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, on=True)
         self._name_label.setStyleSheet("background: transparent; color: #111827; font-size: 14px; font-weight: 700;")
         self._meta_label = QLabel("")
         self._meta_label.setAutoFillBackground(False)
+        self._meta_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, on=True)
         self._meta_label.setStyleSheet("background: transparent; color: #6B7280; font-size: 12px;")
         text_col.addWidget(self._name_label)
         text_col.addWidget(self._meta_label)
@@ -606,9 +613,27 @@ class HabitRow(QFrame):
             self._checks_layout.addWidget(circle)
         root.addLayout(self._checks_layout)
 
+    def contextMenuEvent(self, event: QContextMenuEvent) -> None:  # noqa: N802
+        """Select the habit and ask the dashboard to show the row menu."""
+        if self._habit_id >= 0:
+            self.selected.emit(self._habit_id)
+            self.context_menu_requested.emit(self._habit_id, event.globalPos())
+        super().contextMenuEvent(event)
+
     def habit_id(self) -> int:
         """Return bound habit ID."""
         return self._habit_id
+
+    def mouseDoubleClickEvent(self, event: QMouseEvent) -> None:  # noqa: N802
+        """Open habit editing when double-clicking the row, but not a day circle."""
+        if (
+            event.button() == Qt.MouseButton.LeftButton
+            and self._habit_id >= 0
+            and not self._widget_is_check_circle(self.childAt(event.position().toPoint()))
+        ):
+            self.selected.emit(self._habit_id)
+            self.edit_requested.emit(self._habit_id)
+        super().mouseDoubleClickEvent(event)
 
     def mousePressEvent(self, event: QMouseEvent) -> None:  # noqa: N802
         """Select this habit when clicking the row (not only circles)."""
@@ -663,6 +688,14 @@ class HabitRow(QFrame):
     def _on_day_value_set(self, day_index: int, value: object) -> None:
         if self._habit_id >= 0:
             self.day_value_set.emit(self._habit_id, day_index, value)
+
+    def _widget_is_check_circle(self, widget: QWidget | None) -> bool:
+        current = widget
+        while current is not None and current is not self:
+            if isinstance(current, CheckCircle):
+                return True
+            current = current.parentWidget()
+        return False
 ```
 
 </details>
@@ -694,15 +727,18 @@ def __init__(self, parent: QWidget | None = None) -> None:  # noqa: D107
         root.setSpacing(12)
 
         self._icon = HabitIconBadge(size=40)
+        self._icon.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, on=True)
         root.addWidget(self._icon)
 
         text_col = QVBoxLayout()
         text_col.setSpacing(2)
         self._name_label = QLabel("")
         self._name_label.setAutoFillBackground(False)
+        self._name_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, on=True)
         self._name_label.setStyleSheet("background: transparent; color: #111827; font-size: 14px; font-weight: 700;")
         self._meta_label = QLabel("")
         self._meta_label.setAutoFillBackground(False)
+        self._meta_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, on=True)
         self._meta_label.setStyleSheet("background: transparent; color: #6B7280; font-size: 12px;")
         text_col.addWidget(self._name_label)
         text_col.addWidget(self._meta_label)
@@ -722,6 +758,27 @@ def __init__(self, parent: QWidget | None = None) -> None:  # noqa: D107
 
 </details>
 
+### ⚙️ Method `contextMenuEvent`
+
+```python
+def contextMenuEvent(self, event: QContextMenuEvent) -> None
+```
+
+Select the habit and ask the dashboard to show the row menu.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def contextMenuEvent(self, event: QContextMenuEvent) -> None:  # noqa: N802
+        if self._habit_id >= 0:
+            self.selected.emit(self._habit_id)
+            self.context_menu_requested.emit(self._habit_id, event.globalPos())
+        super().contextMenuEvent(event)
+```
+
+</details>
+
 ### ⚙️ Method `habit_id`
 
 ```python
@@ -736,6 +793,31 @@ Return bound habit ID.
 ```python
 def habit_id(self) -> int:
         return self._habit_id
+```
+
+</details>
+
+### ⚙️ Method `mouseDoubleClickEvent`
+
+```python
+def mouseDoubleClickEvent(self, event: QMouseEvent) -> None
+```
+
+Open habit editing when double-clicking the row, but not a day circle.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def mouseDoubleClickEvent(self, event: QMouseEvent) -> None:  # noqa: N802
+        if (
+            event.button() == Qt.MouseButton.LeftButton
+            and self._habit_id >= 0
+            and not self._widget_is_check_circle(self.childAt(event.position().toPoint()))
+        ):
+            self.selected.emit(self._habit_id)
+            self.edit_requested.emit(self._habit_id)
+        super().mouseDoubleClickEvent(event)
 ```
 
 </details>

@@ -7,8 +7,8 @@ from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 
 import pytest
-from PySide6.QtCore import QRectF, Qt
-from PySide6.QtGui import QImage, QPainter, QStandardItem, QStandardItemModel
+from PySide6.QtCore import QPoint, QRectF, Qt
+from PySide6.QtGui import QContextMenuEvent, QImage, QPainter, QStandardItem, QStandardItemModel
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import (
     QApplication,
@@ -239,6 +239,52 @@ def test_set_habit_checkin_four_kinds(habits_db: DatabaseManager) -> None:
     assert habits_db.set_habit_checkin(habit_id, day, None)
     assert habits_db.get_habit_value_on_date(habit_id, day) is None
     assert not habits_db.is_habit_done_on_date(habit_id, day)
+
+
+def test_habit_row_double_click_requests_edit(qapp: QApplication) -> None:
+    """Double-click on the habit name area asks to open the edit dialog."""
+    assert qapp is not None
+    row = HabitRow()
+    row.set_habit_data(7, "Walk", 0, 0, [None] * 7, selected=False)
+    row.resize(400, 64)
+    selected: list[int] = []
+    edited: list[int] = []
+    row.selected.connect(selected.append)
+    row.edit_requested.connect(edited.append)
+    QTest.mouseDClick(row, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier, QPoint(90, 32))
+    assert selected[-1] == 7
+    assert edited == [7]
+
+
+def test_habit_row_double_click_on_circle_does_not_edit(qapp: QApplication) -> None:
+    """Double-clicking a week circle must not open habit editing."""
+    assert qapp is not None
+    row = HabitRow()
+    row.set_habit_data(7, "Walk", 0, 0, [None] * 7, selected=False)
+    row.resize(400, 64)
+    row.show()
+    edited: list[int] = []
+    row.edit_requested.connect(edited.append)
+    circle = row.findChildren(CheckCircle)[0]
+    pos = circle.mapTo(row, circle.rect().center())
+    QTest.mouseDClick(row, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier, pos)
+    assert edited == []
+
+
+def test_habit_row_context_menu_requests_edit_command(qapp: QApplication) -> None:
+    """Right-click on a habit row asks the dashboard to show the edit command."""
+    assert qapp is not None
+    row = HabitRow()
+    row.set_habit_data(7, "Walk", 0, 0, [None] * 7, selected=False)
+    row.resize(400, 64)
+    selected: list[int] = []
+    menus: list[tuple[int, QPoint]] = []
+    row.selected.connect(selected.append)
+    row.context_menu_requested.connect(lambda hid, pos: menus.append((hid, pos)))
+    local = QPoint(90, 32)
+    row.contextMenuEvent(QContextMenuEvent(QContextMenuEvent.Reason.Mouse, local, row.mapToGlobal(local)))
+    assert selected == [7]
+    assert menus[0][0] == 7
 
 
 def test_habit_row_day_value_set_signal(qapp: QApplication) -> None:

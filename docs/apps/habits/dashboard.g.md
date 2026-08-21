@@ -385,6 +385,18 @@ class HabitDashboardWidget(QWidget):
 
     # --- Interactions ----------------------------------------------------
 
+    def _on_habit_edit_requested(self, habit_id: int) -> None:
+        self._on_habit_selected(habit_id)
+        self._edit_selected_habit()
+
+    def _on_habit_row_context_menu(self, habit_id: int, global_pos: QPoint) -> None:
+        self._on_habit_selected(habit_id)
+        menu = QMenu(self)
+        act_edit = menu.addAction("Edit habit")
+        chosen = menu.exec_(global_pos)
+        if chosen == act_edit:
+            self._edit_selected_habit()
+
     def _on_habit_selected(self, habit_id: int) -> None:
         self._selected_habit_id = habit_id
         for hid, row in self._habit_rows.items():
@@ -458,6 +470,8 @@ class HabitDashboardWidget(QWidget):
                 allows_number=_habit_allows_number(row),
             )
             habit_row.selected.connect(self._on_habit_selected)
+            habit_row.edit_requested.connect(self._on_habit_edit_requested)
+            habit_row.context_menu_requested.connect(self._on_habit_row_context_menu)
             habit_row.day_toggled.connect(self._on_week_day_toggled)
             habit_row.day_value_set.connect(self._on_week_day_value_set)
             self._habit_rows[habit_id] = habit_row
