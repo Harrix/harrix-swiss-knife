@@ -18,6 +18,7 @@ import dev.harrix.hsk.speechtotext.AudioRecorderException
 import dev.harrix.hsk.speechtotext.PendingSpeechRecording
 import dev.harrix.hsk.speechtotext.SpeechToTextPendingStore
 import dev.harrix.hsk.speechtotext.SpeechToTextRepository
+import dev.harrix.hsk.speechtotext.SpeechUploadAudio
 import dev.harrix.hsk.speechtotext.WaveformBucket
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -227,25 +228,39 @@ class SpeechToTextViewModel(
         processRecording(pending.file, pending.mimeType)
     }
 
-    fun suggestedAudioFileName(): String = "hsk-speech-${LocalDateTime.now().format(AUDIO_FILE_TIMESTAMP)}.wav"
+    fun suggestedAudioFileName(): String = "hsk-speech-${LocalDateTime.now().format(AUDIO_FILE_TIMESTAMP)}.m4a"
 
     fun saveCurrentRecording(destination: Uri) {
+        val pending = pendingStore.load()
         val source =
             recordedFile?.takeIf { it.isFile }
-                ?: pendingStore.load()?.file?.takeIf { it.isFile }
+                ?: pending?.file?.takeIf { it.isFile }
         if (source == null) {
             errorMessage.value =
                 getApplication<Application>().getString(R.string.speech_to_text_save_audio_failed)
             return
         }
+        val sourceMime =
+            if (recordedFile?.absolutePath == source.absolutePath) {
+                recordedMime
+            } else {
+                pending?.mimeType ?: AudioRecorder.MIME_WAV
+            }
         viewModelScope.launch {
             val result =
                 withContext(Dispatchers.IO) {
                     runCatching {
-                        val resolver = getApplication<Application>().contentResolver
-                        resolver.openOutputStream(destination, "wt")?.use { output ->
-                            source.inputStream().use { input -> input.copyTo(output) }
-                        } ?: error("Could not open destination")
+                        val upload = resolveSaveUpload(pending, source, sourceMime)
+                        try {
+                            val resolver = getApplication<Application>().contentResolver
+                            resolver.openOutputStream(destination, "wt")?.use { output ->
+                                upload.file.inputStream().use { input -> input.copyTo(output) }
+                            } ?: error("Could not open destination")
+                        } finally {
+                            if (upload.temporary && upload.file.absolutePath != source.absolutePath) {
+                                upload.file.delete()
+                            }
+                        }
                     }
                 }
             result
@@ -443,6 +458,23 @@ class SpeechToTextViewModel(
                         phase.value = failedRecordingPhase()
                     }
             }
+    }
+
+    private fun resolveSaveUpload(
+        pending: PendingSpeechRecording?,
+        source: File,
+        sourceMime: String,
+    ): SpeechUploadAudio {
+        val pendingM4a =
+            pending?.file?.takeIf {
+                it.isFile && pending.mimeType.contains("m4a", ignoreCase = true)
+            }
+        if (pendingM4a != null) {
+            return SpeechUploadAudio(pendingM4a, AudioRecorder.MIME_M4A)
+        }
+        val upload = AudioCompress.prepareForUpload(source, sourceMime)
+        check(upload.mimeType == AudioRecorder.MIME_M4A) { "Could not compress recording" }
+        return upload
     }
 
     private fun failedRecordingPhase(): SpeechToTextPhase = if (audioRecorder.canContinue()) {

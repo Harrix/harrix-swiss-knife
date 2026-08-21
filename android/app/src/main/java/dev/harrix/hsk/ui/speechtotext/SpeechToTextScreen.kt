@@ -187,7 +187,7 @@ fun SpeechToTextScreen(
 
     val saveAudioLauncher =
         rememberLauncherForActivityResult(
-            ActivityResultContracts.CreateDocument(AudioRecorder.MIME_WAV),
+            ActivityResultContracts.CreateDocument(AudioRecorder.MIME_M4A),
         ) { uri ->
             if (uri != null) {
                 viewModel.saveCurrentRecording(uri)
