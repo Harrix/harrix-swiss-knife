@@ -24,6 +24,40 @@ def add_copy_button(box: QMessageBox) -> QAbstractButton:
     return copy_btn
 
 
+def ask_retry(
+    parent: QWidget | None,
+    title: str,
+    text: str,
+    *,
+    critical: bool = False,
+) -> bool:
+    """Ask whether to resend a failed or cancelled AI request.
+
+    Args:
+
+    - `parent` (`QWidget | None`): Parent for modality.
+    - `title` (`str`): Dialog title.
+    - `text` (`str`): Explanation (error message or cancel note).
+    - `critical` (`bool`): When `True`, use a critical icon. Defaults to `False`.
+
+    Returns:
+
+    - `bool`: `True` when the user chose Retry.
+
+    """
+    box = QMessageBox(parent)
+    box.setIcon(QMessageBox.Icon.Critical if critical else QMessageBox.Icon.Warning)
+    box.setWindowTitle(title)
+    box.setText(text)
+    retry_button = box.addButton("Retry", QMessageBox.ButtonRole.AcceptRole)
+    box.addButton("Close", QMessageBox.ButtonRole.RejectRole)
+    box.setDefaultButton(retry_button)
+    prepare_box(box)
+    qt_modality.set_owner_window_modal(box)
+    box.exec()
+    return box.clickedButton() is retry_button
+
+
 def clipboard_text_from_box(box: QMessageBox) -> str:
     """Build plain text for the clipboard from the dialog fields."""
     custom = getattr(box, _CLIPBOARD_TEXT_ATTR, None)

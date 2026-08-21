@@ -11,9 +11,41 @@ lang: en
 
 ## Contents
 
+- [🏛️ Class `BothubRequestSpec`](#%EF%B8%8F-class-bothubrequestspec)
 - [🏛️ Class `BothubRequestState`](#%EF%B8%8F-class-bothubrequeststate)
 - [🔧 Function `run_bothub_request`](#-function-run_bothub_request)
 - [🔧 Function `run_bothub_request_blocking`](#-function-run_bothub_request_blocking)
+
+</details>
+
+## 🏛️ Class `BothubRequestSpec`
+
+```python
+class BothubRequestSpec
+```
+
+Everything needed to start or retry one BotHub request.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class BothubRequestSpec:
+
+    parent: QWidget | None
+    config: dict[str, Any]
+    prompt_text: str
+    on_success: Callable[[str], None]
+    images: list[tuple[bytes, str]] | None = None
+    audio: tuple[bytes, str] | None = None
+    model: str | None = None
+    toast_message: str = "Requesting AI…"
+    is_busy: Callable[[], bool] | None = None
+    state: BothubRequestState | None = None
+    on_error: Callable[[str], None] | None = None
+    on_cancelled: Callable[[], None] | None = None
+    offer_retry: bool = True
+```
 
 </details>
 
@@ -40,7 +72,7 @@ class BothubRequestState:
 ## 🔧 Function `run_bothub_request`
 
 ```python
-def run_bothub_request(parent: QWidget | None, config: dict[str, Any], prompt_text: str, on_success: Callable[[str], None], *, images: list[tuple[bytes, str]] | None = None, image: tuple[bytes, str] | None = None, audio: tuple[bytes, str] | None = None, model: str | None = None, toast_message: str = 'Requesting AI…', is_busy: Callable[[], bool] | None = None, state: BothubRequestState | None = None, on_error: Callable[[str], None] | None = None, on_cancelled: Callable[[], None] | None = None) -> bool
+def run_bothub_request(parent: QWidget | None, config: dict[str, Any], prompt_text: str, on_success: Callable[[str], None], *, images: list[tuple[bytes, str]] | None = None, image: tuple[bytes, str] | None = None, audio: tuple[bytes, str] | None = None, model: str | None = None, toast_message: str = 'Requesting AI…', is_busy: Callable[[], bool] | None = None, state: BothubRequestState | None = None, on_error: Callable[[str], None] | None = None, on_cancelled: Callable[[], None] | None = None, offer_retry: bool = True) -> bool
 ```
 
 Validate config, show toast, start worker. Returns `True` if the request started.
@@ -59,7 +91,11 @@ Args:
 - `is_busy`: If provided and returns `True`, the request is not started.
 - `state`: Optional holder updated with worker/toast refs; cleared on completion.
 - `on_error`: If set, called with the error message instead of the default critical dialog.
+  When `offer_retry` is `True`, called only after the user closes the retry dialog.
 - `on_cancelled`: If set, called when the user cancels the in-flight request.
+  When `offer_retry` is `True`, called only after the user closes the retry dialog.
+- `offer_retry`: When `True` (default), error and cancel show Retry / Close before
+  finishing. Defaults to `True`.
 
 <details>
 <summary>Code:</summary>
@@ -80,106 +116,28 @@ def run_bothub_request(
     state: BothubRequestState | None = None,
     on_error: Callable[[str], None] | None = None,
     on_cancelled: Callable[[], None] | None = None,
+    offer_retry: bool = True,
 ) -> bool:
-    if is_busy is not None and is_busy():
-        return False
-
-    for_speech = audio is not None
-    api_key = validate_api_key(config, parent=parent, for_speech=for_speech)
-    if api_key is None:
-        return False
-
-    provider = get_active_provider(config, for_speech=for_speech)
-    api_key, base_url, default_model, proxy_url = get_connection_params(config, for_speech=for_speech)
-    resolved_model = model if model is not None else default_model
-    settings = get_provider_settings(config, provider)
-    max_tokens_raw = settings.get("max_tokens")
-    max_tokens = int(max_tokens_raw) if max_tokens_raw is not None else None
-
-    toast_parent = _resolve_toast_parent(parent)
-    toast = toast_cancellable_http_notification.ToastCancellableHttpNotification(
-        toast_message,
-        parent=toast_parent,
-    )
-    toast.start_countdown()
-
     image_list = list(images or [])
     if image is not None:
         image_list.append(image)
 
-    worker = BothubChatWorker(
-        api_key=api_key,
-        base_url=base_url,
-        model=resolved_model,
+    spec = BothubRequestSpec(
+        parent=parent,
+        config=config,
         prompt_text=prompt_text,
+        on_success=on_success,
         images=image_list or None,
         audio=audio,
-        proxy_url=proxy_url,
-        cancellable=True,
-        provider=provider,
-        max_tokens=max_tokens,
+        model=model,
+        toast_message=toast_message,
+        is_busy=is_busy,
+        state=state,
+        on_error=on_error,
+        on_cancelled=on_cancelled,
+        offer_retry=offer_retry,
     )
-    _track_bothub_worker(worker)
-
-    if state is not None:
-        state.worker = worker
-        state.toast = toast
-
-    request_finished = False
-
-    def finalize_toast() -> None:
-        toast.mark_completed()
-        if state is not None and state.toast is not None:
-            state.toast.close()
-            state.toast = None
-        else:
-            toast.close()
-
-    def on_worker_success(response_text: str) -> None:
-        nonlocal request_finished
-        if request_finished:
-            return
-        request_finished = True
-        finalize_toast()
-        _release_bothub_worker(worker)
-        if state is not None:
-            state.worker = None
-        on_success(response_text)
-
-    def on_worker_error(message: str) -> None:
-        nonlocal request_finished
-        if request_finished:
-            return
-        request_finished = True
-        finalize_toast()
-        _release_bothub_worker(worker)
-        if state is not None:
-            state.worker = None
-        if on_error is not None:
-            on_error(message)
-        else:
-            message_box.critical(parent, "AI Error", message)
-
-    def on_worker_cancelled() -> None:
-        nonlocal request_finished
-        if request_finished:
-            return
-        request_finished = True
-        finalize_toast()
-        _release_bothub_worker(worker)
-        if state is not None:
-            state.worker = None
-        print("❌ Request cancelled by user.")
-        if on_cancelled is not None:
-            on_cancelled()
-
-    toast.cancel_requested.connect(worker.cancel)
-
-    worker.finished_success.connect(on_worker_success)
-    worker.finished_error.connect(on_worker_error)
-    worker.finished_cancelled.connect(on_worker_cancelled)
-    worker.start()
-    return True
+    return _start_bothub_request(spec)
 ```
 
 </details>
@@ -187,13 +145,14 @@ def run_bothub_request(
 ## 🔧 Function `run_bothub_request_blocking`
 
 ```python
-def run_bothub_request_blocking(parent: QWidget | None, config: dict[str, Any], prompt_text: str, *, images: list[tuple[bytes, str]] | None = None, image: tuple[bytes, str] | None = None, audio: tuple[bytes, str] | None = None, model: str | None = None, toast_message: str = 'Requesting AI…', state: BothubRequestState | None = None) -> str | None
+def run_bothub_request_blocking(parent: QWidget | None, config: dict[str, Any], prompt_text: str, *, images: list[tuple[bytes, str]] | None = None, image: tuple[bytes, str] | None = None, audio: tuple[bytes, str] | None = None, model: str | None = None, toast_message: str = 'Requesting AI…', state: BothubRequestState | None = None, offer_retry: bool = True) -> str | None
 ```
 
 Run an AI request and block the UI thread until it finishes.
 
 Returns assistant text on success, or `None` on cancel / validation failure.
-Errors are shown via the default critical dialog unless the request is cancelled.
+When `offer_retry` is `True`, errors and cancels show a Retry dialog first.
+Errors after Close are not shown again (already shown in the retry dialog).
 
 <details>
 <summary>Code:</summary>
@@ -210,6 +169,7 @@ def run_bothub_request_blocking(
     model: str | None = None,
     toast_message: str = "Requesting AI…",
     state: BothubRequestState | None = None,
+    offer_retry: bool = True,
 ) -> str | None:
     loop = QEventLoop()
     outcome: dict[str, str | None] = {"text": None}
@@ -219,7 +179,9 @@ def run_bothub_request_blocking(
         loop.quit()
 
     def on_error(message: str) -> None:
-        message_box.critical(parent, "AI Error", message)
+        # With offer_retry, the message was already shown in the retry dialog.
+        if not offer_retry:
+            message_box.critical(parent, "AI Error", message)
         loop.quit()
 
     def on_cancelled() -> None:
@@ -238,6 +200,7 @@ def run_bothub_request_blocking(
         state=state,
         on_error=on_error,
         on_cancelled=on_cancelled,
+        offer_retry=offer_retry,
     )
     if not started:
         return None

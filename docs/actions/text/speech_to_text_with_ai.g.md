@@ -88,10 +88,30 @@ class OnSpeechToTextWithAI(ActionBase):
         dialog.release_multimedia()
         return audio_path or None
 
-    def _handle_process_failure(self, store: SpeechToTextPendingStore, message: str) -> None:
+    def _handle_process_failure(
+        self,
+        store: SpeechToTextPendingStore,
+        message: str,
+        *,
+        show_retry_dialog: bool = True,
+    ) -> None:
+        """Keep the pending recording after a failed or cancelled send.
+
+        Args:
+
+        - `store` (`SpeechToTextPendingStore`): Pending audio store.
+        - `message` (`str`): Error or cancel explanation.
+        - `show_retry_dialog` (`bool`): When `False`, keep the file silently after the
+          global AI retry dialog was already closed. Defaults to `True`.
+
+        """
         pending = store.load()
         if pending is None:
             message_box.critical(None, "Speech to text", message)
+            return
+
+        if not show_retry_dialog:
+            # Global Retry / Close already handled this turn; keep file for next launch.
             return
 
         choice = _ask_pending_choice(
@@ -165,10 +185,15 @@ class OnSpeechToTextWithAI(ActionBase):
                 toast_message="Fixing text…",
                 is_busy=lambda: bothub_state.worker is not None,
                 state=bothub_state,
-                on_error=lambda message: self._handle_process_failure(store, message),
+                on_error=lambda message: self._handle_process_failure(
+                    store,
+                    message,
+                    show_retry_dialog=False,
+                ),
                 on_cancelled=lambda: self._handle_process_failure(
                     store,
                     "Request cancelled. The unsent recording was kept.",
+                    show_retry_dialog=False,
                 ),
             )
 
@@ -182,10 +207,15 @@ class OnSpeechToTextWithAI(ActionBase):
             toast_message="Recognizing speech…",
             is_busy=lambda: bothub_state.worker is not None,
             state=bothub_state,
-            on_error=lambda message: self._handle_process_failure(store, message),
+            on_error=lambda message: self._handle_process_failure(
+                store,
+                message,
+                show_retry_dialog=False,
+            ),
             on_cancelled=lambda: self._handle_process_failure(
                 store,
                 "Request cancelled. The unsent recording was kept.",
+                show_retry_dialog=False,
             ),
         )
         if not started:

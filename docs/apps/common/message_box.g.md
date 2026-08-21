@@ -12,6 +12,7 @@ lang: en
 ## Contents
 
 - [🔧 Function `add_copy_button`](#-function-add_copy_button)
+- [🔧 Function `ask_retry`](#-function-ask_retry)
 - [🔧 Function `clipboard_text_from_box`](#-function-clipboard_text_from_box)
 - [🔧 Function `critical`](#-function-critical)
 - [🔧 Function `information`](#-function-information)
@@ -42,6 +43,51 @@ def add_copy_button(box: QMessageBox) -> QAbstractButton:
 
     copy_btn.clicked.connect(_copy_box_text)
     return copy_btn
+```
+
+</details>
+
+## 🔧 Function `ask_retry`
+
+```python
+def ask_retry(parent: QWidget | None, title: str, text: str, *, critical: bool = False) -> bool
+```
+
+Ask whether to resend a failed or cancelled AI request.
+
+Args:
+
+- `parent` (`QWidget | None`): Parent for modality.
+- `title` (`str`): Dialog title.
+- `text` (`str`): Explanation (error message or cancel note).
+- [`critical`](#-function-critical) (`bool`): When `True`, use a critical icon. Defaults to `False`.
+
+Returns:
+
+- `bool`: `True` when the user chose Retry.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def ask_retry(
+    parent: QWidget | None,
+    title: str,
+    text: str,
+    *,
+    critical: bool = False,
+) -> bool:
+    box = QMessageBox(parent)
+    box.setIcon(QMessageBox.Icon.Critical if critical else QMessageBox.Icon.Warning)
+    box.setWindowTitle(title)
+    box.setText(text)
+    retry_button = box.addButton("Retry", QMessageBox.ButtonRole.AcceptRole)
+    box.addButton("Close", QMessageBox.ButtonRole.RejectRole)
+    box.setDefaultButton(retry_button)
+    prepare_box(box)
+    qt_modality.set_owner_window_modal(box)
+    box.exec()
+    return box.clickedButton() is retry_button
 ```
 
 </details>

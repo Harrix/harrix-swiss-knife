@@ -23,6 +23,7 @@ from harrix_swiss_knife.integrations.bothub.image_ocr import (
 )
 from harrix_swiss_knife.integrations.bothub.prompts import build_prompt, get_prompt_template
 from harrix_swiss_knife.integrations.bothub.qt_runner import (
+    BothubRequestSpec,
     BothubRequestState,
     run_bothub_request,
     run_bothub_request_blocking,
@@ -54,6 +55,7 @@ __all__ = [
     "IMAGE_OCR_PROMPT_MISSING_MSG",
     "PROMPT_MISSING_MSG",
     "BothubChatWorker",
+    "BothubRequestSpec",
     "BothubRequestState",
     "audio_bytes_and_mime",
     "audio_format_from_suffix",
