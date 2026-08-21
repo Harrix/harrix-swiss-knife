@@ -54,8 +54,11 @@ Modal dialogs are faded with opacity `0` instead of `hide()`, because
 hiding a modal `QDialog` ends its `exec()` loop as Rejected (e.g. Fill
 with AI source dialog while capturing a screenshot).
 
-Owners of those dialogs are also faded (not `hide()` / `show()`), so Windows
-does not reshuffle Z-order and leave a `WindowModal` box behind its parent.
+When any modal dialog is visible, every other visible top-level window is
+also faded (not `hide()` / `show()`). `hide()` of a sibling such as
+Fitness, then `show()` after capture, often puts that window above a
+still-living `WindowModal` `QMessageBox`, which then blocks clicks while
+staying invisible.
 
 Modality is also set to NonModal and mouse events are ignored on faded
 dialogs. Note: Qt does not fully drop ApplicationModal blocking for a
@@ -138,10 +141,10 @@ Restore Windows previously concealed by [`hide_app_windows`](#-function-hide_app
 
 After a fullscreen capture overlay, other apps may sit on top of the Z-order.
 Restored widgets are raised and the topmost modal dialog is activated so the
-user returns to Fill with AI / New Markdown without hunting the taskbar.
+user returns to Fill with AI / New Markdown / an error `QMessageBox`.
 
-Non-modal (`hide`) Windows are restored first; opacity-concealed modals and
-their owners are restored afterward so they stay above the owner chain.
+Non-modal (`hide`) Windows are restored first; opacity-concealed owners
+next; modal dialogs last so they stay above the owner chain.
 
 <details>
 <summary>Code:</summary>
@@ -149,19 +152,18 @@ their owners are restored afterward so they stay above the owner chain.
 ```python
 def restore_app_windows(widgets: list[ConcealedWindow]) -> None:
     hide_items = [item for item in widgets if item.mode == "hide"]
-    opacity_items = [item for item in widgets if item.mode == "opacity"]
+    opacity_owners, opacity_modals = _split_opacity_items(widgets)
 
     for item in hide_items:
         item.widget.show()
         item.widget.raise_()
 
-    for item in opacity_items:
-        item.widget.setAttribute(
-            Qt.WidgetAttribute.WA_TransparentForMouseEvents,
-            item.transparent_for_mouse,
-        )
-        item.widget.setWindowModality(item.modality)
-        item.widget.setWindowOpacity(item.opacity)
+    for item in [*opacity_owners, *opacity_modals]:
+        _restore_opacity_item(item)
+
+    for item in opacity_owners:
+        item.widget.raise_()
+    for item in opacity_modals:
         item.widget.raise_()
 
     QApplication.processEvents()
@@ -172,6 +174,7 @@ def restore_app_windows(widgets: list[ConcealedWindow]) -> None:
         QApplication.processEvents()
         # Show/raise of owners can land after the first raise; pin the modal again.
         _bring_to_foreground(focus_target)
+        _schedule_foreground(focus_target)
 
     QApplication.processEvents()
 ```

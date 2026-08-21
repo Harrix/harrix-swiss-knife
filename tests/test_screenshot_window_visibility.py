@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QApplication, QDialog, QWidget
+from PySide6.QtWidgets import QApplication, QDialog, QMessageBox, QWidget
 
 from harrix_swiss_knife.screenshot.window_visibility import (
     ConcealedWindow,
@@ -101,6 +101,53 @@ def test_hide_app_windows_hides_non_modal_top_level(qapp: QApplication) -> None:
     window.close()
 
 
+def test_hide_app_windows_fades_sibling_when_modal_exists(qapp: QApplication) -> None:  # noqa: ARG001
+    """A later hide()/show() of Fitness must not land above a WindowModal error box."""
+    sibling = QWidget()
+    sibling.setWindowTitle("sibling-fitness")
+    sibling.show()
+    owner = QWidget()
+    owner.setWindowTitle("owner-window")
+    owner.show()
+    dialog = QDialog(owner)
+    dialog.setWindowModality(Qt.WindowModality.WindowModal)
+    dialog.show()
+    QApplication.processEvents()
+
+    concealed = hide_app_windows()
+    sibling_item = next(item for item in concealed if item.widget is sibling)
+    assert sibling_item.mode == "opacity"
+    assert sibling.isVisible()
+    assert sibling.windowOpacity() == 0.0
+
+    restore_app_windows(concealed)
+    assert sibling.windowOpacity() == 1.0
+    assert dialog.windowModality() == Qt.WindowModality.WindowModal
+
+    dialog.close()
+    owner.close()
+    sibling.close()
+
+
+def test_pick_focus_target_uses_saved_modality(qapp: QApplication) -> None:  # noqa: ARG001
+    """After fade-out the dialog is NonModal; restore must still prefer it."""
+    owner = QWidget()
+    owner.show()
+    dialog = QDialog(owner)
+    dialog.setWindowModality(Qt.WindowModality.NonModal)
+    dialog.show()
+    QApplication.processEvents()
+
+    widgets = [
+        ConcealedWindow(owner, "opacity"),
+        ConcealedWindow(dialog, "opacity", modality=Qt.WindowModality.WindowModal),
+    ]
+    assert _pick_focus_target(widgets) is dialog
+
+    dialog.close()
+    owner.close()
+
+
 def test_restore_app_windows_prefers_modal_dialog_for_focus(qapp: QApplication) -> None:  # noqa: ARG001
     plain = QWidget()
     plain.show()
@@ -117,3 +164,29 @@ def test_restore_app_windows_prefers_modal_dialog_for_focus(qapp: QApplication) 
 
     plain.close()
     modal.close()
+
+
+def test_restore_keeps_message_box_reachable(qapp: QApplication) -> None:  # noqa: ARG001
+    """WindowModal QMessageBox must stay visible and modal after conceal/restore."""
+    owner = QWidget()
+    owner.setWindowTitle("fitness-owner")
+    owner.show()
+    box = QMessageBox(owner)
+    box.setWindowTitle("Error")
+    box.setText("Database error")
+    box.setWindowModality(Qt.WindowModality.WindowModal)
+    box.show()
+    QApplication.processEvents()
+
+    concealed = hide_app_windows()
+    restore_app_windows(concealed)
+    QApplication.processEvents()
+
+    assert box.isVisible()
+    assert box.windowOpacity() == 1.0
+    assert box.windowModality() == Qt.WindowModality.WindowModal
+    assert box.isModal()
+    assert not box.testAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+
+    box.close()
+    owner.close()
