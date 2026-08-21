@@ -274,6 +274,26 @@ def test_habit_dashboard_list_scrolls(qapp: QApplication) -> None:
     assert scroll.verticalScrollBarPolicy() == Qt.ScrollBarPolicy.ScrollBarAsNeeded
 
 
+def test_habit_dashboard_empty_shows_add_button(habits_db: DatabaseManager, qapp: QApplication) -> None:
+    """Empty dashboard shows a large Add habit button instead of the list."""
+    assert qapp is not None
+    dashboard = HabitDashboardWidget()
+    dashboard.set_database(habits_db)
+
+    empty = dashboard.findChild(QWidget, "habitDashEmptyState")
+    button = dashboard.findChild(QPushButton, "habitDashAddHabitButton")
+    assert empty is not None
+    assert button is not None
+    assert not empty.isHidden()
+    assert button.text().endswith("Add habit")
+    assert button.minimumHeight() >= 64
+    assert button.minimumWidth() >= 280
+
+    assert habits_db.add_habit("Walk", is_bool=True)
+    dashboard.refresh()
+    assert empty.isHidden()
+
+
 def test_month_calendar_day_value_set_signal(qapp: QApplication) -> None:
     """Month circles forward picker values for the selected date."""
     assert qapp is not None

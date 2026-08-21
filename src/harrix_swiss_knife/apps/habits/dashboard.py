@@ -19,6 +19,7 @@ from PySide6.QtWidgets import (
     QPushButton,
     QScrollArea,
     QSplitter,
+    QStackedWidget,
     QVBoxLayout,
     QWidget,
 )
@@ -86,8 +87,19 @@ class HabitDashboardWidget(QWidget):
         if self._db is None:
             self._clear_habit_list()
             self._show_empty_detail()
+            self._set_empty_state_visible(visible=True)
             return
 
+        habits = self._db.get_habits(include_archived=False)
+        if not habits:
+            self._week_dates = _last_seven_days(_local_today())
+            self._clear_habit_list()
+            self._selected_habit_id = None
+            self._show_empty_detail()
+            self._set_empty_state_visible(visible=True)
+            return
+
+        self._set_empty_state_visible(visible=False)
         self._week_dates = _last_seven_days(_local_today())
         self._update_week_bar()
         self._rebuild_habit_list()
@@ -97,6 +109,64 @@ class HabitDashboardWidget(QWidget):
         """Attach database manager and refresh."""
         self._db = db_manager
         self.refresh()
+
+    def _build_empty_state(self) -> QWidget:
+        """Build a full-dashboard call-to-action shown when there are no habits."""
+        pane = QFrame()
+        pane.setObjectName("habitDashEmptyState")
+        pane.setStyleSheet(
+            """
+            QFrame#habitDashEmptyState {
+                background: #F8FAFC;
+                border: 1px solid #E5E7EB;
+                border-radius: 16px;
+            }
+            """
+        )
+        layout = QVBoxLayout(pane)
+        layout.setContentsMargins(32, 48, 32, 48)
+        layout.setSpacing(16)
+
+        title = QLabel("No habits yet")
+        title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        title.setStyleSheet("color: #111827; font-size: 28px; font-weight: 800;")
+
+        subtitle = QLabel("Add your first habit to start tracking days, streaks, and check-ins.")
+        subtitle.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        subtitle.setWordWrap(True)
+        subtitle.setStyleSheet("color: #6B7280; font-size: 16px;")
+
+        button = QPushButton("➕ Add habit")  # noqa: RUF001
+        button.setObjectName("habitDashAddHabitButton")
+        button.setCursor(Qt.CursorShape.PointingHandCursor)
+        button.setMinimumSize(280, 64)
+        button.setStyleSheet(
+            """
+            QPushButton#habitDashAddHabitButton {
+                background: #3B82F6;
+                color: #FFFFFF;
+                font-size: 20px;
+                font-weight: 700;
+                border: none;
+                border-radius: 14px;
+                padding: 16px 32px;
+            }
+            QPushButton#habitDashAddHabitButton:hover {
+                background: #2563EB;
+            }
+            QPushButton#habitDashAddHabitButton:pressed {
+                background: #1D4ED8;
+            }
+            """
+        )
+        button.clicked.connect(self.add_habit)
+
+        layout.addStretch(1)
+        layout.addWidget(title)
+        layout.addWidget(subtitle)
+        layout.addWidget(button, 0, Qt.AlignmentFlag.AlignHCenter)
+        layout.addStretch(1)
+        return pane
 
     def _build_left_pane(self) -> QWidget:
         pane = QFrame()
@@ -224,8 +294,8 @@ class HabitDashboardWidget(QWidget):
         root.setSpacing(0)
 
         splitter = QSplitter(Qt.Orientation.Horizontal)
+        splitter.setObjectName("habitDashSplitter")
         splitter.setChildrenCollapsible(False)
-        root.addWidget(splitter)
 
         left = self._build_left_pane()
         right = self._build_right_pane()
@@ -234,6 +304,13 @@ class HabitDashboardWidget(QWidget):
         splitter.setStretchFactor(0, 3)
         splitter.setStretchFactor(1, 2)
         splitter.setSizes([720, 480])
+
+        self._stack = QStackedWidget()
+        self._empty_state = self._build_empty_state()
+        self._stack.addWidget(splitter)
+        self._stack.addWidget(self._empty_state)
+        root.addWidget(self._stack)
+        self._set_empty_state_visible(visible=True)
 
     def _clear_habit_list(self) -> None:
         while self._list_layout.count() > 1:
@@ -373,10 +450,6 @@ class HabitDashboardWidget(QWidget):
         self._clear_habit_list()
         habits = self._db.get_habits(include_archived=False)
         if not habits:
-            empty = QLabel("No habits yet. Use Commands → Add habit to add one.")
-            empty.setStyleSheet("color: #9CA3AF; font-size: 13px; padding: 24px;")
-            empty.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            self._list_layout.insertWidget(0, empty)
             self._selected_habit_id = None
             return
 
@@ -474,6 +547,20 @@ class HabitDashboardWidget(QWidget):
             return
         self.refresh()
         self.data_changed.emit()
+
+    def _set_empty_state_visible(self, *, visible: bool) -> None:
+        """Show the Add habit call-to-action instead of the habit list.
+
+        Args:
+
+        - `visible` (`bool`): When `True`, show the empty-state button page.
+
+        """
+        stack = getattr(self, "_stack", None)
+        empty = getattr(self, "_empty_state", None)
+        if stack is None or empty is None:
+            return
+        stack.setCurrentWidget(empty if visible else stack.widget(0))
 
     def _show_empty_detail(self) -> None:
         self._detail_name.setText("Select a habit")
