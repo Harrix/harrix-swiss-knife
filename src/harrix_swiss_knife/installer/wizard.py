@@ -125,9 +125,41 @@ class InstallerWizard(QWizard):
         self.addPage(self.progress_page)
         self.addPage(self.done_page)
 
+    def accept(self) -> None:
+        """Finish the wizard; confirm first if installation is still running."""
+        if not self._confirm_abort_if_installing():
+            return
+        super().accept()
+
+    def is_install_running(self) -> bool:
+        """Return whether the install worker thread is still active."""
+        return self.progress_page.is_worker_running()
+
+    def reject(self) -> None:
+        """Cancel/close the wizard; confirm first if installation is still running."""
+        if not self._confirm_abort_if_installing():
+            return
+        super().reject()
+
     def show_install_report(self, result: DeployResult) -> None:
         """Populate the Finished page from a successful deploy result."""
         self.done_page.set_report(format_install_report(result))
+
+    def _confirm_abort_if_installing(self) -> bool:
+        """Return whether it is OK to close; ask when deploy is still running."""
+        if not self.is_install_running():
+            return True
+        answer = QMessageBox.question(
+            self,
+            "Cancel installation?",
+            "Installation is still in progress.\n\n"
+            "If you cancel now, files that were already installed will remain on disk "
+            "and must be removed manually.\n\n"
+            "Are you sure you want to cancel?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        return answer == QMessageBox.StandardButton.Yes
 
 
 class OptionsPage(QWizardPage):
@@ -250,6 +282,11 @@ class ProgressPage(QWizardPage):
     def isComplete(self) -> bool:  # noqa: N802
         """Return whether installation has finished (enables Next after success)."""
         return self._done
+
+    def is_worker_running(self) -> bool:
+        """Return whether the background install thread is still active."""
+        worker = self._worker
+        return worker is not None and worker.isRunning()
 
     def validatePage(self) -> bool:  # noqa: N802
         """Allow leaving the page only after a successful install."""

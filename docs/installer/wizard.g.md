@@ -16,6 +16,9 @@ lang: en
   - [⚙️ Method `set_report`](#%EF%B8%8F-method-set_report)
 - [🏛️ Class `InstallerWizard`](#%EF%B8%8F-class-installerwizard)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-1)
+  - [⚙️ Method `accept`](#%EF%B8%8F-method-accept)
+  - [⚙️ Method `is_install_running`](#%EF%B8%8F-method-is_install_running)
+  - [⚙️ Method `reject`](#%EF%B8%8F-method-reject)
   - [⚙️ Method `show_install_report`](#%EF%B8%8F-method-show_install_report)
 - [🏛️ Class `OptionsPage`](#%EF%B8%8F-class-optionspage)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-2)
@@ -25,6 +28,7 @@ lang: en
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-3)
   - [⚙️ Method `initializePage`](#%EF%B8%8F-method-initializepage)
   - [⚙️ Method `isComplete`](#%EF%B8%8F-method-iscomplete)
+  - [⚙️ Method `is_worker_running`](#%EF%B8%8F-method-is_worker_running)
   - [⚙️ Method `validatePage`](#%EF%B8%8F-method-validatepage-1)
 - [🏛️ Class `ToolsPage`](#%EF%B8%8F-class-toolspage)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-4)
@@ -172,9 +176,41 @@ class InstallerWizard(QWizard):
         self.addPage(self.progress_page)
         self.addPage(self.done_page)
 
+    def accept(self) -> None:
+        """Finish the wizard; confirm first if installation is still running."""
+        if not self._confirm_abort_if_installing():
+            return
+        super().accept()
+
+    def is_install_running(self) -> bool:
+        """Return whether the install worker thread is still active."""
+        return self.progress_page.is_worker_running()
+
+    def reject(self) -> None:
+        """Cancel/close the wizard; confirm first if installation is still running."""
+        if not self._confirm_abort_if_installing():
+            return
+        super().reject()
+
     def show_install_report(self, result: DeployResult) -> None:
         """Populate the Finished page from a successful deploy result."""
         self.done_page.set_report(format_install_report(result))
+
+    def _confirm_abort_if_installing(self) -> bool:
+        """Return whether it is OK to close; ask when deploy is still running."""
+        if not self.is_install_running():
+            return True
+        answer = QMessageBox.question(
+            self,
+            "Cancel installation?",
+            "Installation is still in progress.\n\n"
+            "If you cancel now, files that were already installed will remain on disk "
+            "and must be removed manually.\n\n"
+            "Are you sure you want to cancel?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        return answer == QMessageBox.StandardButton.Yes
 ```
 
 </details>
@@ -212,6 +248,64 @@ def __init__(self, mode: str) -> None:
         self.addPage(self.options_page)
         self.addPage(self.progress_page)
         self.addPage(self.done_page)
+```
+
+</details>
+
+### ⚙️ Method `accept`
+
+```python
+def accept(self) -> None
+```
+
+Finish the wizard; confirm first if installation is still running.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def accept(self) -> None:
+        if not self._confirm_abort_if_installing():
+            return
+        super().accept()
+```
+
+</details>
+
+### ⚙️ Method `is_install_running`
+
+```python
+def is_install_running(self) -> bool
+```
+
+Return whether the install worker thread is still active.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def is_install_running(self) -> bool:
+        return self.progress_page.is_worker_running()
+```
+
+</details>
+
+### ⚙️ Method `reject`
+
+```python
+def reject(self) -> None
+```
+
+Cancel/close the wizard; confirm first if installation is still running.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def reject(self) -> None:
+        if not self._confirm_abort_if_installing():
+            return
+        super().reject()
 ```
 
 </details>
@@ -491,6 +585,11 @@ class ProgressPage(QWizardPage):
         """Return whether installation has finished (enables Next after success)."""
         return self._done
 
+    def is_worker_running(self) -> bool:
+        """Return whether the background install thread is still active."""
+        worker = self._worker
+        return worker is not None and worker.isRunning()
+
     def validatePage(self) -> bool:  # noqa: N802
         """Allow leaving the page only after a successful install."""
         return self._done
@@ -676,6 +775,25 @@ Return whether installation has finished (enables Next after success).
 ```python
 def isComplete(self) -> bool:  # noqa: N802
         return self._done
+```
+
+</details>
+
+### ⚙️ Method `is_worker_running`
+
+```python
+def is_worker_running(self) -> bool
+```
+
+Return whether the background install thread is still active.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def is_worker_running(self) -> bool:
+        worker = self._worker
+        return worker is not None and worker.isRunning()
 ```
 
 </details>

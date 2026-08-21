@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import sys
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import TYPE_CHECKING, Literal
 
 from PySide6.QtCore import Qt, QTimer
@@ -38,6 +38,8 @@ class ConcealedWindow:
     opacity: float = 1.0
     modality: Qt.WindowModality = Qt.WindowModality.NonModal
     transparent_for_mouse: bool = False
+    was_active: bool = False
+    stay_on_top: bool = False
 
 
 def hide_app_windows() -> list[ConcealedWindow]:
@@ -69,14 +71,19 @@ def hide_app_windows() -> list[ConcealedWindow]:
 
     candidates = [widget for widget in app.topLevelWidgets() if widget.isVisible() and not is_screenshot_ui(widget)]
     opacity_targets = _opacity_conceal_targets(candidates)
+    active = _active_top_level()
 
     concealed: list[ConcealedWindow] = []
     for widget in candidates:
+        was_active = widget is active
+        stay_on_top = _has_stay_on_top(widget)
         if widget in opacity_targets:
-            concealed.append(_conceal_with_opacity(widget))
+            concealed.append(
+                replace(_conceal_with_opacity(widget), was_active=was_active, stay_on_top=stay_on_top),
+            )
         else:
             widget.hide()
-            concealed.append(ConcealedWindow(widget, "hide"))
+            concealed.append(ConcealedWindow(widget, "hide", was_active=was_active, stay_on_top=stay_on_top))
 
     QApplication.processEvents()
     return concealed
@@ -96,11 +103,13 @@ def restore_app_windows(widgets: list[ConcealedWindow]) -> None:
     """Restore Windows previously concealed by `hide_app_windows` and bring them forward.
 
     After a fullscreen capture overlay, other apps may sit on top of the Z-order.
-    Restored widgets are raised and the topmost modal dialog is activated so the
-    user returns to Fill with AI / New Markdown / an error `QMessageBox`.
+    Restored widgets are raised and the window that started the capture (or its
+    modal dialog) is activated so the user returns to Finance / Fill with AI /
+    an error `QMessageBox` — not a stay-on-top sibling such as the command cards.
 
     Non-modal (`hide`) Windows are restored first; opacity-concealed owners
-    next; modal dialogs last so they stay above the owner chain.
+    next; modal dialogs last so they stay above the owner chain. Stay-on-top
+    is cleared on siblings of the focus target so they cannot cover it.
 
     """
     hide_items = [item for item in widgets if item.mode == "hide"]
@@ -122,6 +131,7 @@ def restore_app_windows(widgets: list[ConcealedWindow]) -> None:
 
     focus_target = _pick_focus_target(widgets)
     if focus_target is not None:
+        _drop_stay_on_top_except(widgets, focus_target)
         _bring_to_foreground(focus_target)
         QApplication.processEvents()
         # Show/raise of owners can land after the first raise; pin the modal again.
@@ -129,6 +139,26 @@ def restore_app_windows(widgets: list[ConcealedWindow]) -> None:
         _schedule_foreground(focus_target)
 
     QApplication.processEvents()
+
+
+def _active_top_level() -> QWidget | None:
+    """Return the top-level window that was focused when capture started.
+
+    Returns:
+
+    - `QWidget | None`: Active modal or window, or `None` when Qt has no focus.
+
+    """
+    app = QApplication.instance()
+    if app is None:
+        return None
+    widget = app.activeModalWidget() or app.activeWindow()
+    if widget is None or not isValid(widget):
+        return None
+    top = widget.window()
+    if top is None or not isValid(top):
+        return None
+    return top
 
 
 def _bring_to_foreground(widget: QWidget) -> None:
@@ -167,6 +197,24 @@ def _conceal_with_opacity(widget: QWidget) -> ConcealedWindow:
     )
 
 
+def _drop_stay_on_top_except(widgets: list[ConcealedWindow], focus_target: QWidget) -> None:
+    """Clear stay-on-top on siblings so they cannot cover the restored focus window.
+
+    The command-cards overlay uses `WindowStaysOnTopHint`. After capture, raising
+    Finance or its modal is not enough: the overlay would still paint in front.
+
+    Args:
+
+    - `widgets` (`list[ConcealedWindow]`): Concealed Windows from `hide_app_windows`.
+    - `focus_target` (`QWidget`): Window that should stay in front after restore.
+
+    """
+    for item in widgets:
+        if item.widget is focus_target or not item.stay_on_top:
+            continue
+        _set_stays_on_top(item.widget, enabled=False)
+
+
 def _force_foreground(widget: QWidget) -> None:
     """Ask the OS to put the widget's native window in the foreground."""
     if sys.platform != "win32":
@@ -196,6 +244,21 @@ def _force_foreground(widget: QWidget) -> None:
             user32.AttachThreadInput(current_thread, other_thread, False)  # noqa: FBT003
     except (AttributeError, OSError, TypeError, ValueError):
         return
+
+
+def _has_stay_on_top(widget: QWidget) -> bool:
+    """Return whether `widget` has `WindowStaysOnTopHint`.
+
+    Args:
+
+    - `widget` (`QWidget`): Top-level window.
+
+    Returns:
+
+    - `bool`: `True` when the window is flagged to stay above others.
+
+    """
+    return bool(widget.windowFlags() & Qt.WindowType.WindowStaysOnTopHint)
 
 
 def _is_modal_dialog(widget: QWidget) -> bool:
@@ -234,10 +297,13 @@ def _opacity_conceal_targets(candidates: list[QWidget]) -> set[QWidget]:
 
 
 def _pick_focus_target(widgets: list[ConcealedWindow]) -> QWidget | None:
-    """Prefer the last modal dialog; otherwise the last restored visible widget.
+    """Prefer the active modal, then any modal, then the window that started capture.
 
     A `QMessageBox` can be unmapped by `setWindowModality` during conceal. It
     must still win focus so restore can `show()` it above Fitness.
+
+    Without a modal, return to the window that was active when capture started
+    (Finance), not the last widget in `topLevelWidgets()` (often the cards overlay).
 
     Args:
 
@@ -248,14 +314,22 @@ def _pick_focus_target(widgets: list[ConcealedWindow]) -> QWidget | None:
     - `QWidget | None`: Window that should be activated after restore.
 
     """
-    focus_target: QWidget | None = None
+    last_visible: QWidget | None = None
+    active: QWidget | None = None
     for item in widgets:
+        if item.was_active:
+            active = item.widget
         if item.widget.isVisible():
-            focus_target = item.widget
+            last_visible = item.widget
+    for item in reversed(widgets):
+        if _item_is_modal(item) and item.was_active:
+            return item.widget
     for item in reversed(widgets):
         if _item_is_modal(item):
             return item.widget
-    return focus_target
+    if active is not None:
+        return active
+    return last_visible
 
 
 def _restore_opacity_item(item: ConcealedWindow) -> None:
@@ -291,6 +365,31 @@ def _schedule_foreground(widget: QWidget) -> None:
 
     for delay_ms in _REPIN_MODAL_DELAYS_MS:
         QTimer.singleShot(delay_ms, _pin)
+
+
+def _set_stays_on_top(widget: QWidget, *, enabled: bool) -> None:
+    """Toggle `WindowStaysOnTopHint` without losing geometry or visibility.
+
+    Args:
+
+    - `widget` (`QWidget`): Top-level window.
+    - `enabled` (`bool`): Whether the window should stay above others.
+
+    """
+    if not isValid(widget):
+        return
+    if _has_stay_on_top(widget) == enabled:
+        return
+    was_visible = widget.isVisible()
+    geometry = widget.geometry()
+    flags = widget.windowFlags()
+    if enabled:
+        widget.setWindowFlags(flags | Qt.WindowType.WindowStaysOnTopHint)
+    else:
+        widget.setWindowFlags(flags & ~Qt.WindowType.WindowStaysOnTopHint)
+    widget.setGeometry(geometry)
+    if was_visible:
+        widget.show()
 
 
 def _split_opacity_items(widgets: list[ConcealedWindow]) -> tuple[list[ConcealedWindow], list[ConcealedWindow]]:
