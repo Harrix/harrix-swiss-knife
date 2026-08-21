@@ -34,6 +34,7 @@ import androidx.compose.material.icons.filled.AutoFixHigh
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Save
@@ -375,6 +376,7 @@ fun SpeechToTextScreen(
                     onContinue = { startOrRequestMic(MicAction.Continue) },
                     onRerecord = { startOrRequestMic(MicAction.Rerecord) },
                     onRecognize = { viewModel.enqueueDraftAndRecognize() },
+                    onRecordNew = { viewModel.enqueueDraftAndRecordNew() },
                     onSaveDraft = {
                         saveTargetId = null
                         saveAudioLauncher.launch(viewModel.suggestedAudioFileName())
@@ -687,6 +689,7 @@ private fun ComposerBar(
     onContinue: () -> Unit,
     onRerecord: () -> Unit,
     onRecognize: () -> Unit,
+    onRecordNew: () -> Unit,
     onSaveDraft: () -> Unit,
     onDiscard: () -> Unit,
     modifier: Modifier = Modifier,
@@ -773,12 +776,29 @@ private fun ComposerBar(
                             .fillMaxWidth()
                             .height(72.dp),
                     )
-                    Button(
-                        onClick = onRecognize,
-                        enabled = hasApiKey,
+                    Row(
                         modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        Text(stringResource(R.string.speech_to_text_recognize))
+                        Button(
+                            onClick = onRecognize,
+                            enabled = hasApiKey,
+                            modifier = Modifier.weight(1f),
+                        ) {
+                            Text(stringResource(R.string.speech_to_text_recognize))
+                        }
+                        OutlinedButton(
+                            onClick = onRecordNew,
+                            modifier = Modifier.weight(1f),
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Mic,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp),
+                            )
+                            Spacer(modifier = Modifier.size(6.dp))
+                            Text(stringResource(R.string.speech_to_text_record_new))
+                        }
                     }
                     OutlinedButton(onClick = onSaveDraft, modifier = Modifier.fillMaxWidth()) {
                         Icon(

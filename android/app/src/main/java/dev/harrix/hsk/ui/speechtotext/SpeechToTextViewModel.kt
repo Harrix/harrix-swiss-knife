@@ -205,6 +205,18 @@ class SpeechToTextViewModel(
     }
 
     fun enqueueDraftAndRecognize() {
+        enqueueDraft { item ->
+            recognize(item.id)
+        }
+    }
+
+    fun enqueueDraftAndRecordNew() {
+        enqueueDraft {
+            startRecording(append = false)
+        }
+    }
+
+    private fun enqueueDraft(onEnqueued: (SpeechQueueItem) -> Unit) {
         val file = draftFile?.takeIf { it.isFile } ?: return
         val duration = recordingDurationSeconds.floatValue
         val mime = draftMime
@@ -226,7 +238,7 @@ class SpeechToTextViewModel(
                     recordingDurationSeconds.floatValue = 0f
                     composerPhase.value = ComposerPhase.Idle
                     items.add(item)
-                    recognize(item.id)
+                    onEnqueued(item)
                 }.onFailure { e ->
                     errorMessage.value = e.message ?: e.toString()
                 }
