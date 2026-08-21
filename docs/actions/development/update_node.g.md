@@ -27,7 +27,9 @@ class OnUpdateNode(ActionBase)
 Update `Node.js` to the latest version via winget.
 
 Upgrades whichever OpenJS Node.js packages are installed via winget
-(`OpenJS.NodeJS.LTS` and/or `OpenJS.NodeJS`). Available only on Windows.
+(`OpenJS.NodeJS.LTS` and/or `OpenJS.NodeJS`). If `node` is missing from
+PATH, asks whether to install `OpenJS.NodeJS.LTS` via winget. Available
+only on Windows.
 
 <details>
 <summary>Code:</summary>
@@ -49,15 +51,36 @@ class OnUpdateNode(ActionBase):
             self.add_line("This action is only available on Windows (winget).")
             self.show_result()
             return
+        refresh_path()
         if not shutil.which("winget"):
             self.add_line("winget was not found on PATH. Install App Installer from Microsoft Store.")
             self.show_result()
             return
+
+        self._do_install = False
+        if not self._node_on_path():
+            confirmed = self.get_yes_no_question(
+                self.title,
+                (
+                    "Node.js was not found on this computer.\n\n"
+                    f"Install Node.js LTS via winget (`{_DEFAULT_INSTALL_ID}`)?"
+                ),
+                default_yes=True,
+            )
+            if not confirmed:
+                self.add_line("ℹ️ Cancelled. Node.js was not installed.")  # noqa: RUF001
+                self.show_result()
+                return
+            self._do_install = True
+
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
     @ActionBase.handle_exceptions("node.js update thread")
     def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
+        if getattr(self, "_do_install", False):
+            return self._install_node_lts()
+
         blocks: list[str] = []
         node_version = self._node_version_line()
         if node_version:
@@ -87,6 +110,8 @@ class OnUpdateNode(ActionBase):
         lower = text.casefold()
         if "already the latest" in lower:
             toast = "Node.js is already up to date"
+        elif "installed node.js lts" in lower or "=== winget install" in lower:
+            toast = "Node.js install finished (see details)"
         elif "not installed via winget" in lower:
             toast = "Node.js not found via winget (see details)"
         else:
@@ -117,7 +142,7 @@ class OnUpdateNode(ActionBase):
                         "(installer, nvm, fnm, Chocolatey, etc.)."
                     ),
                     "To let this action update Node.js, install it with winget, for example:",
-                    "  winget install -e --id OpenJS.NodeJS.LTS --source winget",
+                    f"  winget install -e --id {_DEFAULT_INSTALL_ID} --source winget",
                     "or:",
                     "  winget install -e --id OpenJS.NodeJS --source winget",
                 ]
@@ -127,17 +152,41 @@ class OnUpdateNode(ActionBase):
                 [
                     "`node` was not found on PATH either.",
                     "Install Node.js with winget, for example:",
-                    "  winget install -e --id OpenJS.NodeJS.LTS --source winget",
+                    f"  winget install -e --id {_DEFAULT_INSTALL_ID} --source winget",
                 ]
             )
         return "\n".join(lines)
+
+    def _install_node_lts(self) -> str:
+        """Install Node.js LTS via winget and report the new `node -v` if available."""
+        install_out = self._winget_install(_DEFAULT_INSTALL_ID)
+        refresh_path()
+        blocks = [
+            f"=== winget install ({_DEFAULT_INSTALL_ID}) ===\n{install_out}",
+            "=== Summary ===\nInstalled Node.js LTS via winget (see log above).",
+        ]
+        node_version = self._node_version_line()
+        if node_version:
+            blocks.append(f"=== Current node ===\n{node_version}")
+        else:
+            blocks.append(
+                "=== Current node ===\n"
+                "`node` is not on PATH yet. Open a new terminal or sign out/in, "
+                "then run `node -v`."
+            )
+        return "\n\n".join(blocks)
+
+    @staticmethod
+    def _node_on_path() -> bool:
+        """Return whether a `node` executable is visible on PATH."""
+        return shutil.which("node") is not None
 
     @staticmethod
     def _node_version_line() -> str:
         """Return `node -v` output, or empty string if node is missing."""
         if not shutil.which("node"):
             return ""
-        return h.dev.run_command(["node", "-v"]).strip()
+        return h.dev.run_command(["node", "-v"], is_shell=False).strip()
 
     @staticmethod
     def _output_means_already_latest(text: str) -> bool:
@@ -156,6 +205,11 @@ class OnUpdateNode(ActionBase):
         if self._output_means_not_installed(output):
             return f"{package_id}: not installed via winget under this id."
         return f"{package_id}: winget upgrade finished (see log above)."
+
+    def _winget_install(self, package_id: str) -> str:
+        """Run silent winget install for `package_id`."""
+        cmd = f"winget install -e --id {package_id} {self._WINGET_FLAGS}"
+        return h.dev.run_command(cmd, is_shell=True)
 
     def _winget_package_installed(self, package_id: str) -> bool:
         """Return whether winget reports `package_id` as installed."""
@@ -191,10 +245,28 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
             self.add_line("This action is only available on Windows (winget).")
             self.show_result()
             return
+        refresh_path()
         if not shutil.which("winget"):
             self.add_line("winget was not found on PATH. Install App Installer from Microsoft Store.")
             self.show_result()
             return
+
+        self._do_install = False
+        if not self._node_on_path():
+            confirmed = self.get_yes_no_question(
+                self.title,
+                (
+                    "Node.js was not found on this computer.\n\n"
+                    f"Install Node.js LTS via winget (`{_DEFAULT_INSTALL_ID}`)?"
+                ),
+                default_yes=True,
+            )
+            if not confirmed:
+                self.add_line("ℹ️ Cancelled. Node.js was not installed.")  # noqa: RUF001
+                self.show_result()
+                return
+            self._do_install = True
+
         self.start_thread(self.in_thread, self.thread_after, self.title)
 ```
 
@@ -213,6 +285,9 @@ Execute code in a separate thread. For performing long-running operations.
 
 ```python
 def in_thread(self) -> str | None:
+        if getattr(self, "_do_install", False):
+            return self._install_node_lts()
+
         blocks: list[str] = []
         node_version = self._node_version_line()
         if node_version:
@@ -255,6 +330,8 @@ def thread_after(self, result: Any) -> None:
         lower = text.casefold()
         if "already the latest" in lower:
             toast = "Node.js is already up to date"
+        elif "installed node.js lts" in lower or "=== winget install" in lower:
+            toast = "Node.js install finished (see details)"
         elif "not installed via winget" in lower:
             toast = "Node.js not found via winget (see details)"
         else:
