@@ -12,11 +12,14 @@ from harrix_swiss_knife.actions.common.private_data import (
     ZIP_FITNESS_IMG_DIR,
     PrivateDataSelection,
     collect_fitness_image_files,
+    default_private_data_zip_path,
+    find_importable_fitness_private_data_zip,
     inspect_private_data_zip,
     install_private_data,
     pack_private_data,
     selection_from_part_flags,
 )
+from harrix_swiss_knife.apps.common.avif_manager import AvifManager
 
 RECOVER_SQL = Path(__file__).resolve().parents[1] / "src/harrix_swiss_knife/apps/fitness/recover.sql"
 
@@ -87,6 +90,57 @@ def test_selection_from_part_flags_defaults_to_all() -> None:
     keys_only = selection_from_part_flags(api_keys=True, fitness=False)
     assert keys_only.api_keys
     assert not keys_only.fitness
+
+
+def test_avif_manager_has_any_exercise_avif(tmp_path: Path) -> None:
+    """Detect at least one `.avif` under fitness_img."""
+    manager = AvifManager(tmp_path / "missing")
+    assert not manager.has_any_exercise_avif()
+    img_dir = tmp_path / "fitness_img"
+    img_dir.mkdir()
+    manager = AvifManager(img_dir)
+    assert not manager.has_any_exercise_avif()
+    (img_dir / "Walk.avif").write_bytes(b"x")
+    assert manager.has_any_exercise_avif()
+
+
+def test_find_importable_fitness_private_data_zip(tmp_path: Path) -> None:
+    """Offer Transfer private data only when the default ZIP contains fitness parts."""
+    project_root = tmp_path / "project"
+    project_root.mkdir()
+    assert find_importable_fitness_private_data_zip(project_root) is None
+
+    source_root = tmp_path / "source"
+    source_root.mkdir()
+    source_db = tmp_path / "source-data" / "fitness.db"
+    _create_schema_only_db(source_db)
+    _insert_exercise(source_db, name="Walk", name_local="Ходьба")
+    _write_avif(source_db.parent / "fitness_img" / "Walk.avif", "walk")
+    packed = tmp_path / "packed.zip"
+    pack_private_data(
+        project_root=source_root,
+        sqlite_fitness=str(source_db),
+        output_zip=packed,
+        selection=PrivateDataSelection(api_keys=False, fitness=True),
+    )
+
+    default_zip = default_private_data_zip_path(project_root)
+    default_zip.parent.mkdir(parents=True)
+    default_zip.write_bytes(packed.read_bytes())
+    assert find_importable_fitness_private_data_zip(project_root) == default_zip
+
+    keys_only = tmp_path / "keys.zip"
+    api_dir = source_root / "api-keys"
+    api_dir.mkdir(parents=True)
+    (api_dir / "openai-api-key.txt").write_text("secret\n", encoding="utf-8")
+    pack_private_data(
+        project_root=source_root,
+        sqlite_fitness=str(source_db),
+        output_zip=keys_only,
+        selection=PrivateDataSelection(api_keys=True, fitness=False),
+    )
+    default_zip.write_bytes(keys_only.read_bytes())
+    assert find_importable_fitness_private_data_zip(project_root) is None
 
 
 def test_collect_fitness_image_files_reports_missing_names(tmp_path: Path) -> None:

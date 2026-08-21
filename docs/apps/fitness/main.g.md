@@ -4749,6 +4749,7 @@ class MainWindow(
         QTimer.singleShot(50, self._adjust_process_table_columns)
         QTimer.singleShot(55, self._update_layout_for_window_size)
         QTimer.singleShot(60, self._apply_sets_splitter_sizes)
+        QTimer.singleShot(120, self._maybe_prompt_missing_exercise_images)
 
     def _focus_and_select_spinbox_count(self) -> None:
         """Move focus to spinBox_count and select all text.
@@ -5098,6 +5099,26 @@ class MainWindow(
         if self._exercise_list_hover is not None:
             self._exercise_list_hover.hide_preview()
 
+    def _import_exercise_images_from_private_data(self, zip_path: Path) -> None:
+        """Import exercise catalog and images via Transfer private data.
+
+        Args:
+
+        - `zip_path` (`Path`): Private-data ZIP that contains fitness images.
+
+        """
+        from harrix_swiss_knife.actions.development.transfer_private_data import (  # noqa: PLC0415
+            OnTransferPrivateData,
+        )
+
+        action = OnTransferPrivateData()
+        action(
+            mode="import",
+            zip_path=str(zip_path),
+            include_fitness=True,
+            parts_specified=True,
+        )
+
     def _init_avif_manager(self) -> None:
         """Initialize AVIF manager after database is ready."""
         if not self.db_manager:
@@ -5409,6 +5430,50 @@ class MainWindow(
     def _mark_exercises_changed(self) -> None:
         """Mark that exercises data has changed and needs refresh."""
         self._exercises_changed = True
+
+    def _maybe_prompt_missing_exercise_images(self) -> None:
+        """Tell the user how to add exercise images when none were found at startup."""
+        if self._is_closing:
+            return
+        manager = self.avif_manager
+        if manager is None or manager.has_any_exercise_avif():
+            return
+
+        from harrix_swiss_knife.actions.common.private_data import (  # noqa: PLC0415
+            find_importable_fitness_private_data_zip,
+        )
+
+        add_hint = (
+            "No exercise images were found.\n\n"
+            "You can add them by dropping a photo or video onto an exercise "
+            "(or in the add/edit exercise dialog)."
+        )
+        zip_path = find_importable_fitness_private_data_zip(get_project_root())
+        if zip_path is None:
+            message_box.information(
+                self,
+                "Exercise Images",
+                f"{add_hint}\n\n"
+                "You can also import a catalog and images with Transfer private data "
+                "from the Development menu.",
+            )
+            return
+
+        reply = message_box.question(
+            self,
+            "Exercise Images",
+            f"{add_hint}\n\n"
+            "A private-data ZIP with exercise images was found. "
+            "Import it now with Transfer private data?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.Yes,
+        )
+        if reply != QMessageBox.StandardButton.Yes:
+            return
+        self._import_exercise_images_from_private_data(zip_path)
+        if manager.has_any_exercise_avif():
+            self.update_all()
+            self._load_initial_avifs()
 
     def _on_chart_exercise_list_double_clicked(self, _index: QModelIndex) -> None:
         """Handle double-click on chart exercise list to open Sets tab.

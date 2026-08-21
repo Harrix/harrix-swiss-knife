@@ -17,6 +17,7 @@ lang: en
   - [⚙️ Method `delete_exercise_avif`](#%EF%B8%8F-method-delete_exercise_avif)
   - [⚙️ Method `get_current_exercise`](#%EF%B8%8F-method-get_current_exercise)
   - [⚙️ Method `get_exercise_avif_path`](#%EF%B8%8F-method-get_exercise_avif_path)
+  - [⚙️ Method `has_any_exercise_avif`](#%EF%B8%8F-method-has_any_exercise_avif)
   - [⚙️ Method `load_avif_pixmap`](#%EF%B8%8F-method-load_avif_pixmap)
   - [⚙️ Method `load_exercise_avif`](#%EF%B8%8F-method-load_exercise_avif)
   - [⚙️ Method `rename_exercise_avif`](#%EF%B8%8F-method-rename_exercise_avif)
@@ -157,6 +158,12 @@ class AvifManager:
 
         avif_path = self.avif_dir / f"{exercise_name}.avif"
         return avif_path if avif_path.exists() else None
+
+    def has_any_exercise_avif(self) -> bool:
+        """Return whether `fitness_img` contains at least one `.avif` file."""
+        if not self.avif_dir.is_dir():
+            return False
+        return any(path.is_file() for path in self.avif_dir.rglob("*.avif"))
 
     def load_avif_pixmap(self, avif_path: Path) -> QPixmap | None:
         """Load a pixmap from an AVIF file, falling back to Pillow if needed.
@@ -525,6 +532,26 @@ def get_exercise_avif_path(self, exercise_name: str) -> Path | None:
 
         avif_path = self.avif_dir / f"{exercise_name}.avif"
         return avif_path if avif_path.exists() else None
+```
+
+</details>
+
+### ⚙️ Method `has_any_exercise_avif`
+
+```python
+def has_any_exercise_avif(self) -> bool
+```
+
+Return whether `fitness_img` contains at least one `.avif` file.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def has_any_exercise_avif(self) -> bool:
+        if not self.avif_dir.is_dir():
+            return False
+        return any(path.is_file() for path in self.avif_dir.rglob("*.avif"))
 ```
 
 </details>

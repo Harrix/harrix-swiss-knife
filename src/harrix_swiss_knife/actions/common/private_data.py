@@ -98,6 +98,28 @@ def default_private_data_zip_path(project_root: Path) -> Path:
     return project_root / "install" / DEFAULT_PRIVATE_DATA_ZIP_NAME
 
 
+def find_importable_fitness_private_data_zip(project_root: Path) -> Path | None:
+    """Return the default private-data ZIP when it contains fitness catalog or images.
+
+    Args:
+
+    - `project_root` (`Path`): Application project root (contains `install/`).
+
+    Returns:
+
+    - `Path | None`: ZIP path when it can supply exercise images, otherwise `None`.
+
+    """
+    zip_path = default_private_data_zip_path(project_root)
+    if not zip_path.is_file():
+        return None
+    try:
+        present = inspect_private_data_zip(zip_path)
+    except (OSError, ValueError, zipfile.BadZipFile):
+        return None
+    return zip_path if present.fitness else None
+
+
 def inspect_private_data_zip(zip_path: Path) -> PrivateDataSelection:
     """Return which parts a private-data ZIP contains."""
     if not zip_path.is_file():

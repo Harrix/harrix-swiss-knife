@@ -17,6 +17,7 @@ lang: en
   - [⚙️ Method `any_selected`](#%EF%B8%8F-method-any_selected)
 - [🔧 Function `collect_fitness_image_files`](#-function-collect_fitness_image_files)
 - [🔧 Function `default_private_data_zip_path`](#-function-default_private_data_zip_path)
+- [🔧 Function `find_importable_fitness_private_data_zip`](#-function-find_importable_fitness_private_data_zip)
 - [🔧 Function `inspect_private_data_zip`](#-function-inspect_private_data_zip)
 - [🔧 Function `install_private_data`](#-function-install_private_data)
 - [🔧 Function `list_api_key_secret_files`](#-function-list_api_key_secret_files)
@@ -161,6 +162,39 @@ Return default ZIP path under `install/`.
 ```python
 def default_private_data_zip_path(project_root: Path) -> Path:
     return project_root / "install" / DEFAULT_PRIVATE_DATA_ZIP_NAME
+```
+
+</details>
+
+## 🔧 Function `find_importable_fitness_private_data_zip`
+
+```python
+def find_importable_fitness_private_data_zip(project_root: Path) -> Path | None
+```
+
+Return the default private-data ZIP when it contains fitness catalog or images.
+
+Args:
+
+- `project_root` (`Path`): Application project root (contains `install/`).
+
+Returns:
+
+- `Path | None`: ZIP path when it can supply exercise images, otherwise `None`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def find_importable_fitness_private_data_zip(project_root: Path) -> Path | None:
+    zip_path = default_private_data_zip_path(project_root)
+    if not zip_path.is_file():
+        return None
+    try:
+        present = inspect_private_data_zip(zip_path)
+    except (OSError, ValueError, zipfile.BadZipFile):
+        return None
+    return zip_path if present.fitness else None
 ```
 
 </details>

@@ -137,6 +137,12 @@ class AvifManager:
         avif_path = self.avif_dir / f"{exercise_name}.avif"
         return avif_path if avif_path.exists() else None
 
+    def has_any_exercise_avif(self) -> bool:
+        """Return whether `fitness_img` contains at least one `.avif` file."""
+        if not self.avif_dir.is_dir():
+            return False
+        return any(path.is_file() for path in self.avif_dir.rglob("*.avif"))
+
     def load_avif_pixmap(self, avif_path: Path) -> QPixmap | None:
         """Load a pixmap from an AVIF file, falling back to Pillow if needed.
 
