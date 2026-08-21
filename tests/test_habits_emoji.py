@@ -12,6 +12,8 @@ from PySide6.QtWidgets import QApplication
 
 from harrix_swiss_knife.apps.habits.dashboard_widgets import HabitIconBadge
 from harrix_swiss_knife.apps.habits.database_manager import DatabaseManager
+from harrix_swiss_knife.apps.habits.habit_edit_dialog import HabitEditDialog
+from harrix_swiss_knife.apps.habits.habit_emoji_ai import parse_habit_emoji_response
 from harrix_swiss_knife.apps.habits.habit_emojis import default_habit_emoji, normalize_habit_emoji
 
 RECOVER_SQL = Path(__file__).resolve().parents[1] / "src/harrix_swiss_knife/apps/habits/recover.sql"
@@ -54,6 +56,28 @@ def habits_db(tmp_path: Path, qapp: QApplication) -> Iterator[DatabaseManager]: 
     db = DatabaseManager(str(db_path))
     yield db
     db.close()
+
+
+def test_parse_habit_emoji_response_extracts_single_emoji() -> None:
+    """AI replies may wrap the emoji in fences, quotes, or extra words."""
+    assert parse_habit_emoji_response("🏃") == "🏃"
+    assert parse_habit_emoji_response("```\n💧\n```") == "💧"
+    assert parse_habit_emoji_response('Emoji: "📚"') == "📚"
+    assert parse_habit_emoji_response("no emoji here") == ""
+
+
+def test_habit_edit_ai_emoji_button_requires_name(qapp: QApplication) -> None:
+    """The AI emoji button stays disabled until a habit name is entered."""
+    assert qapp is not None
+    dialog = HabitEditDialog(app_config={})
+    assert not dialog._ai_emoji_button.isEnabled()
+    dialog._name_edit.setText("Walk")
+    assert dialog._ai_emoji_button.isEnabled()
+    dialog._name_edit.clear()
+    assert not dialog._ai_emoji_button.isEnabled()
+
+    named = HabitEditDialog(name="Read", app_config={})
+    assert named._ai_emoji_button.isEnabled()
 
 
 def test_default_habit_emoji_is_stable() -> None:
