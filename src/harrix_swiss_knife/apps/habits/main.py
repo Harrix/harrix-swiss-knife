@@ -78,6 +78,11 @@ from harrix_swiss_knife.apps.habits.delegates import (
     YesNoComboDelegate,
 )
 from harrix_swiss_knife.apps.habits.habit_emoji_picker_dialog import HabitEmojiPickerDialog
+from harrix_swiss_knife.apps.habits.habits_backup import export_hsk_habits_json, write_habits_backup
+from harrix_swiss_knife.apps.habits.habits_ticktick_sync import (
+    build_habits_ticktick_sync_preview,
+    format_habits_ticktick_sync_preview,
+)
 from harrix_swiss_knife.apps.habits.mixins import (
     AutoSaveOperations,
     ChartOperations,
@@ -1367,6 +1372,33 @@ class MainWindow(
         if table_name == "habits":
             self._schedule_habits_refresh(0)
 
+    def _backup_habits(self) -> None:
+        """Save habit tracker data and TickTick habits into a dated backup folder."""
+        if self.db_manager is None:
+            message_box.warning(self, "Backup habits", "Database is not initialized")
+            return
+
+        hsk_db_path = Path(str(self._app_config.get("sqlite_habits", "")))
+        start_dir = str(hsk_db_path.parent) if hsk_db_path.parent.is_dir() else ""
+        dest = QFileDialog.getExistingDirectory(self, "Backup habits", start_dir)
+        if not dest:
+            return
+
+        try:
+            folder, ticktick_error = write_habits_backup(
+                Path(dest),
+                hsk_db_path=hsk_db_path,
+                db_manager=self.db_manager,
+            )
+        except OSError as exc:
+            message_box.warning(self, "Backup habits", str(exc))
+            return
+
+        text = f"Saved to:\n{folder}"
+        if ticktick_error:
+            text = f"{text}\n\nTickTick was not backed up:\n{ticktick_error}"
+        message_box.information(self, "Backup habits", text)
+
     def _cleanup_process_habit_delegates(self) -> None:
         """Remove process_habits table delegates before window destruction."""
         table_view = self.tableView_process_habits
@@ -1785,8 +1817,10 @@ class MainWindow(
         add_habit_action.triggered.connect(self._habit_dashboard.add_habit)
         refresh_action = self.menuCommands.addAction("🔄 Refresh")
         refresh_action.triggered.connect(self._habit_dashboard.refresh)
-        ticktick_action = self.menuCommands.addAction("📋 Show TickTick habits JSON")
-        ticktick_action.triggered.connect(self._show_ticktick_habits_json)
+        backup_action = self.menuCommands.addAction("💾 Backup habits")
+        backup_action.triggered.connect(self._backup_habits)
+        ticktick_action = self.menuCommands.addAction("📋 TickTick sync preview")
+        ticktick_action.triggered.connect(self._show_ticktick_sync_preview)
         self.tabWidget.currentChanged.connect(self._on_tab_changed)
 
         self.pushButton_habits_delete.setText(f"🗑️ {self.pushButton_habits_delete.text()}")
@@ -1947,26 +1981,35 @@ class MainWindow(
             # Refresh pivot table to rebuild columns
             self.load_process_habits_table(ignore_filter=False)
 
-    def _show_ticktick_habits_json(self) -> None:
-        """Load TickTick desktop habits and show them as JSON."""
-        try:
-            payload = export_ticktick_habits_json()
-        except (FileNotFoundError, OSError, ValueError, sqlite3.Error) as exc:
-            message_box.warning(self, "TickTick habits JSON", str(exc))
+    def _show_ticktick_sync_preview(self) -> None:
+        """Show a dry-run HSK ↔ TickTick habit sync report (no writes)."""
+        if self.db_manager is None:
+            message_box.warning(self, "TickTick sync preview", "Database is not initialized")
             return
 
-        text = json.dumps(payload, ensure_ascii=False, indent=2)
+        hsk_db_path = Path(str(self._app_config.get("sqlite_habits", "")))
+        try:
+            ticktick_payload = export_ticktick_habits_json()
+        except (FileNotFoundError, OSError, ValueError, sqlite3.Error) as exc:
+            message_box.warning(self, "TickTick sync preview", str(exc))
+            return
+
+        hsk_payload = export_hsk_habits_json(self.db_manager, database_path=str(hsk_db_path))
+        report = build_habits_ticktick_sync_preview(hsk_payload, ticktick_payload)
+        summary = format_habits_ticktick_sync_preview(report)
+        full_text = summary + "\n\n" + json.dumps(report, ensure_ascii=False, indent=2)
+
         dialog = QDialog(self)
-        dialog.setWindowTitle("TickTick habits JSON")
+        dialog.setWindowTitle("TickTick sync preview")
         dialog.resize(900, 640)
         layout = QVBoxLayout(dialog)
         editor = QPlainTextEdit()
         editor.setReadOnly(True)
-        editor.setPlainText(text)
+        editor.setPlainText(full_text)
         layout.addWidget(editor)
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok)
         copy_button = buttons.addButton("📋 Copy", QDialogButtonBox.ButtonRole.ActionRole)
-        copy_button.clicked.connect(lambda: QApplication.clipboard().setText(text))
+        copy_button.clicked.connect(lambda: QApplication.clipboard().setText(full_text))
         buttons.accepted.connect(dialog.accept)
         layout.addWidget(buttons)
         dialog.exec()

@@ -10,6 +10,8 @@ from typing import Any
 
 TICKTICK_DB_RELATIVE = Path("Tick_Tick") / "TickTick.db"
 _STAMP_LENGTH = 8
+# TickTick task/habit Status: Normal=0, Completed=2 (same as Open API tasks).
+_TICKTICK_DONE_STATUS = 2
 
 
 def default_ticktick_db_path() -> Path:
@@ -26,6 +28,9 @@ def default_ticktick_db_path() -> Path:
 
 def export_ticktick_habits_json(db_path: Path | None = None) -> dict[str, Any]:
     """Return habit names and achieved dates from a TickTick SQLite file.
+
+    Only check-ins with Status completed (`2`) count as Done. Rows without a
+    `Status` column are treated as Done (legacy test snapshots).
 
     Args:
 
@@ -121,16 +126,30 @@ def _copy_ticktick_db_snapshot(source: Path, tmp_dir: Path) -> Path:
 
 
 def _load_check_in_dates(connection: sqlite3.Connection) -> dict[str, list[str]]:
-    """Return ISO dates grouped by habit ID, sorted and unique."""
+    """Return Done ISO dates grouped by habit ID, sorted and unique."""
     _require_table(connection, "HabitCheckInModel")
+    columns = _table_columns(connection, "HabitCheckInModel")
+    has_status = "Status" in columns
+    if has_status:
+        rows = connection.execute(
+            """
+            SELECT HabitId, CheckinStamp
+            FROM HabitCheckInModel
+            WHERE CheckinStamp IS NOT NULL
+              AND TRIM(CAST(CheckinStamp AS TEXT)) != ''
+              AND Status = ?
+            """,
+            (_TICKTICK_DONE_STATUS,),
+        )
+    else:
+        rows = connection.execute(
+            """
+            SELECT HabitId, CheckinStamp
+            FROM HabitCheckInModel
+            WHERE CheckinStamp IS NOT NULL AND TRIM(CAST(CheckinStamp AS TEXT)) != ''
+            """
+        )
     grouped: dict[str, set[str]] = {}
-    rows = connection.execute(
-        """
-        SELECT HabitId, CheckinStamp
-        FROM HabitCheckInModel
-        WHERE CheckinStamp IS NOT NULL AND TRIM(CAST(CheckinStamp AS TEXT)) != ''
-        """
-    )
     for row in rows:
         iso = stamp_to_iso_date(row["CheckinStamp"])
         if iso is None:
@@ -176,3 +195,8 @@ def _require_table(connection: sqlite3.Connection, table_name: str) -> None:
     if found is None:
         msg = f"TickTick database has no {table_name} table."
         raise ValueError(msg)
+
+
+def _table_columns(connection: sqlite3.Connection, table_name: str) -> set[str]:
+    """Return column names for `table_name`."""
+    return {str(row[1]) for row in connection.execute(f"PRAGMA table_info({table_name})")}
