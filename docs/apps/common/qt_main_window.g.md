@@ -14,6 +14,7 @@ lang: en
 - [🏛️ Class `AppWindowMixin`](#%EF%B8%8F-class-appwindowmixin)
   - [⚙️ Method `on_about`](#%EF%B8%8F-method-on_about)
   - [⚙️ Method `on_exit`](#%EF%B8%8F-method-on_exit)
+  - [⚙️ Method `on_reveal_database`](#%EF%B8%8F-method-on_reveal_database)
 - [🔧 Function `apply_app_window_size_and_position`](#-function-apply_app_window_size_and_position)
 
 </details>
@@ -76,6 +77,28 @@ class AppWindowMixin:
         """Close the application window."""
         self.close()  # type: ignore[attr-defined]
 
+    def on_reveal_database(self) -> None:
+        """Open the system file manager with this app's SQLite database selected."""
+        db_path = self._resolve_database_path()
+        if db_path is None:
+            message_box.warning(
+                cast("QWidget", self),
+                "Database",
+                "Database path is not available.",
+            )
+            return
+        if not db_path.is_file():
+            message_box.warning(
+                cast("QWidget", self),
+                "Database",
+                f"Database file was not found:\n{db_path}",
+            )
+            return
+        try:
+            reveal_in_file_explorer(db_path)
+        except (FileNotFoundError, OSError) as exc:
+            message_box.warning(cast("QWidget", self), "Database", str(exc))
+
     def _apply_exit_about_menu_emojis(self) -> None:
         """Prefix Exit and About menu actions with emoji icons."""
         self.actionExit.setText(f"🚪 {self.actionExit.text()}")
@@ -85,6 +108,7 @@ class AppWindowMixin:
         """Wire Exit and About menu actions to their handlers."""
         self.actionExit.triggered.connect(self.on_exit)
         self.actionAbout.triggered.connect(self.on_about)
+        self._setup_reveal_database_action()
 
     def _copy_table_selection_to_clipboard(self, table_view: QTableView) -> None:
         """Copy selected cells from `table_view` to clipboard as tab-separated text.
@@ -271,6 +295,35 @@ class AppWindowMixin:
         old_bar.hide()
         old_bar.setFixedHeight(0)
 
+    def _resolve_database_path(self) -> Path | None:
+        """Return the open SQLite database path when the app has one.
+
+        Returns:
+
+        - `Path | None`: Absolute path to the database file, or `None`.
+
+        """
+        db_manager = getattr(self, "db_manager", None)
+        if db_manager is None:
+            return None
+        filename = getattr(db_manager, "_db_filename", None)
+        if not filename:
+            return None
+        return Path(str(filename)).expanduser()
+
+    def _setup_reveal_database_action(self) -> None:
+        """Add File → Show database in folder for tracker apps with SQLite."""
+        if not hasattr(self, "db_manager"):
+            return
+        menu_file = getattr(self, "menuFile", None)
+        if menu_file is None:
+            return
+        menu = cast("QMenu", menu_file)
+        action = QAction("📂 Show database in folder", cast("QWidget", self))
+        action.setObjectName("actionShowDatabaseInFolder")
+        action.triggered.connect(self.on_reveal_database)
+        menu.insertAction(self.actionExit, action)
+
     def _setup_window_size_and_position(self, *, standard_width: int = 1920) -> None:
         """Set window size and position based on screen resolution and characteristics.
 
@@ -364,6 +417,42 @@ Close the application window.
 ```python
 def on_exit(self) -> None:
         self.close()  # type: ignore[attr-defined]
+```
+
+</details>
+
+### ⚙️ Method `on_reveal_database`
+
+```python
+def on_reveal_database(self) -> None
+```
+
+Open the system file manager with this app's SQLite database selected.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def on_reveal_database(self) -> None:
+        db_path = self._resolve_database_path()
+        if db_path is None:
+            message_box.warning(
+                cast("QWidget", self),
+                "Database",
+                "Database path is not available.",
+            )
+            return
+        if not db_path.is_file():
+            message_box.warning(
+                cast("QWidget", self),
+                "Database",
+                f"Database file was not found:\n{db_path}",
+            )
+            return
+        try:
+            reveal_in_file_explorer(db_path)
+        except (FileNotFoundError, OSError) as exc:
+            message_box.warning(cast("QWidget", self), "Database", str(exc))
 ```
 
 </details>
