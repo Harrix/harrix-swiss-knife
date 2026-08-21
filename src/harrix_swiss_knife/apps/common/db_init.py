@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, Protocol, TypeVar
 from PySide6.QtWidgets import QFileDialog
 
 from harrix_swiss_knife.apps.common import message_box
+from harrix_swiss_knife.apps.common.db_git import ensure_sqlite_folder_git_repo
 from harrix_swiss_knife.apps.common.qt_database_manager_base import QtSqliteDatabaseManagerBase
 
 if TYPE_CHECKING:
@@ -45,6 +46,9 @@ def init_tracker_database(
 ) -> TDbManager:
     """Open tracker SQLite database from config, creating from `recover.sql` if needed.
 
+    After a successful open (new or existing file), if the database folder has no
+    `.git`, create a repository and commit the SQLite file.
+
     Args:
 
     - `parent` (`QWidget`): Parent widget for dialogs.
@@ -75,6 +79,7 @@ def init_tracker_database(
             temp_db_manager = db_manager_class(str(filename))
             if has_required_tables(temp_db_manager):
                 logger.info("%s", f"Database opened successfully: {filename}")
+                ensure_sqlite_folder_git_repo(filename)
                 if on_opened is not None:
                     on_opened(temp_db_manager)
                 return temp_db_manager
@@ -119,6 +124,7 @@ def init_tracker_database(
     try:
         db_manager = db_manager_class(str(filename))
         logger.info("%s", f"Database opened successfully: {filename}")
+        ensure_sqlite_folder_git_repo(filename)
     except (OSError, RuntimeError, ConnectionError) as exc:
         message_box.critical(parent, "Error", f"Failed to open database: {exc}")
         raise
