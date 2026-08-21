@@ -38,11 +38,26 @@ _MAX_ACTION_CLASS_STEM_LEN = 80
 TEMP_RESERVED_DIR_NAMES = frozenset({"action_output", "images", "optimized_images"})
 
 
-def clear_directory_contents(directory: Path) -> None:
-    """Remove all files and subdirectories inside `directory`; the directory itself remains."""
+def clear_directory_contents(
+    directory: Path,
+    *,
+    keep_names: frozenset[str] | set[str] | None = None,
+) -> None:
+    """Remove files and subdirectories inside `directory`; the directory itself remains.
+
+    Args:
+
+    - `directory` (`Path`): Folder whose children are removed.
+    - `keep_names` (`frozenset[str] | set[str] | None`): Top-level child names to leave
+      untouched (for example `.venv` or `data` during an in-place ZIP update).
+
+    """
     if not directory.is_dir():
         return
+    keep = keep_names or frozenset()
     for child in list(directory.iterdir()):
+        if child.name in keep:
+            continue
         if child.is_dir():
             shutil.rmtree(child, ignore_errors=True)
         else:

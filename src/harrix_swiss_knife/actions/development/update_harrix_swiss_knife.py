@@ -9,7 +9,7 @@ import subprocess
 import zipfile
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Any, Literal, TypedDict, cast
+from typing import Any, ClassVar, Literal, TypedDict, cast
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
@@ -30,8 +30,10 @@ class OnUpdateHarrixSwissKnife(ActionBase):
     For `harrix-swiss-knife`, `harrix-pylib`, and `harrix-pyssg` paths taken from
     `paths_python_projects`: if `.git` exists, runs `git pull --ff-only` (optional
     commit when the tree is dirty). Without `.git`, downloads the default branch ZIP
-    from GitHub and replaces the tree. Swiss Knife keeps `temp/` and merges
-    `config/config.json` with a checkbox dialog (default: keep local values).
+    from GitHub and replaces the tree. Swiss Knife keeps `.venv`, `data/`, `temp/`,
+    `logs/`, and `api-keys/`, and merges `config/config.json` with a checkbox dialog
+    (default: keep local values). ZIP downloads for all repos run before any tree is
+    replaced, so a Swiss Knife update cannot break later HTTPS calls mid-run.
 
     """
 
@@ -44,6 +46,11 @@ class OnUpdateHarrixSwissKnife(ActionBase):
     _GIT_DIRTY_COMMIT = "Commit all changes and pull"
     _GIT_DIRTY_SKIP = "Skip this repository"
     _GIT_DIRTY_CANCEL = "Cancel entire update"
+    # Local runtime / user data that must survive an in-place ZIP replace while the
+    # tray app is still running from `.venv`.
+    _SWISS_KEEP_ON_ZIP: ClassVar[frozenset[str]] = frozenset({".venv", "data", "temp", "logs", "api-keys"})
+    _SIBLING_KEEP_ON_ZIP: ClassVar[frozenset[str]] = frozenset({".venv"})
+    _DEFAULT_BRANCH_FALLBACK = "main"
 
     @ActionBase.handle_exceptions("update Harrix Swiss Knife stack")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
@@ -56,6 +63,26 @@ class OnUpdateHarrixSwissKnife(ActionBase):
             self.show_result()
             return
         self.start_thread(lambda: self._worker_run(steps), self._worker_finished, self.title, cancellable=True)
+
+    def _apply_extracted_zip(
+        self, dest: Path, src_root: Path, tmp_path: Path
+    ) -> list[OnUpdateHarrixSwissKnife._MergeTask]:
+        """Replace `dest` from an already extracted GitHub tree."""
+        repo_name = dest.name
+        cfg = dest / "config" / "config.json"
+        if repo_name == "harrix-swiss-knife":
+            return self._worker_zip_swiss_knife(dest, src_root, cfg, tmp_path)
+        self.add_line(f"🔵 {repo_name}: replacing directory contents…")
+        try:
+            clear_directory_contents(dest, keep_names=self._SIBLING_KEEP_ON_ZIP)
+            self._copy_tree_contents(src_root, dest)
+            kept = sorted(name for name in self._SIBLING_KEEP_ON_ZIP if (dest / name).exists())
+            if kept:
+                self.add_line(f"✅ {repo_name}: kept {', '.join(kept)}.")
+            self.add_line(f"✅ {repo_name}: updated from ZIP.")
+        except OSError as e:
+            self.add_line(f"❌ {repo_name}: ZIP update failed: {e}")
+        return []
 
     @staticmethod
     def _build_swiss_config_merged(
@@ -184,6 +211,29 @@ class OnUpdateHarrixSwissKnife(ActionBase):
             return all(OnUpdateHarrixSwissKnife._deep_equal_json(x, y) for x, y in zip(a_list, b_list, strict=True))
         return a == b
 
+    def _download_and_extract_zip(self, dest: Path, owner: str, work_dir: Path) -> Path | None:
+        """Download and extract a GitHub ZIP; return the single top-level folder."""
+        repo_name = dest.name
+        branch = self._resolve_github_branch(owner, repo_name)
+        zip_url = f"https://github.com/{owner}/{repo_name}/archive/refs/heads/{branch}.zip"
+        self.add_line(f"⬇️ {repo_name}: downloading {zip_url} …")
+        try:
+            work_dir.mkdir(parents=True, exist_ok=True)
+            zip_path = work_dir / f"{repo_name}.zip"
+            self._download_https_to_path(zip_url, zip_path)
+            extract_root = work_dir / "extracted"
+            extract_root.mkdir(parents=True, exist_ok=True)
+            with zipfile.ZipFile(zip_path, "r") as zf:
+                zf.extractall(extract_root)
+            members = [p for p in extract_root.iterdir() if p.name]
+            if len(members) != 1 or not members[0].is_dir():
+                self.add_line(f"❌ {repo_name}: unexpected ZIP layout.")
+                return None
+            return members[0]
+        except (OSError, ValueError, URLError, HTTPError) as e:
+            self.add_line(f"❌ {repo_name}: ZIP download/extract failed: {e}")
+            return None
+
     def _download_https_to_path(self, url: str, dest: Path) -> None:
         validate_https_url(url)
         download_https_to_path(
@@ -232,8 +282,6 @@ class OnUpdateHarrixSwissKnife(ActionBase):
         )
 
     @staticmethod
-    @staticmethod
-    @staticmethod
     def _load_json_dict(path: Path) -> tuple[dict[str, Any] | None, str | None]:
         if not path.is_file():
             return None, None
@@ -248,6 +296,16 @@ class OnUpdateHarrixSwissKnife(ActionBase):
         if not isinstance(data, dict):
             return None, "Root JSON value must be an object"
         return cast("dict[str, Any]", data), None
+
+    def _resolve_github_branch(self, owner: str, repo: str) -> str:
+        """Return the GitHub default branch, or `main` when the API is unavailable."""
+        try:
+            return self._fetch_github_default_branch(owner, repo)
+        except (OSError, ValueError, URLError, HTTPError, json.JSONDecodeError) as e:
+            self.add_line(
+                f"⚠️ {repo}: could not resolve default branch ({e}); falling back to `{self._DEFAULT_BRANCH_FALLBACK}`."
+            )
+            return self._DEFAULT_BRANCH_FALLBACK
 
     @staticmethod
     def _restore_config_dir_except_json(backup: Path, dest_config: Path) -> None:
@@ -398,16 +456,35 @@ class OnUpdateHarrixSwissKnife(ActionBase):
         owner = str(self.config.get("github_user") or "Harrix").strip() or "Harrix"
         merge_tasks: list[OnUpdateHarrixSwissKnife._MergeTask] = []
 
-        for step in steps:
-            self.raise_if_work_cancelled()
-            path = step["path"]
-            if step["kind"] == "skip":
-                self.add_line(f"⏭️ {path.name}: {step.get('skip_reason') or 'skipped'}")
-                continue
-            if step["kind"] == "git_pull":
-                merge_tasks.extend(self._worker_git_pull(path, step.get("commit_message")))
-            elif step["kind"] == "zip":
-                merge_tasks.extend(self._worker_zip_update(path, owner))
+        # Download every ZIP before replacing any tree. Replacing harrix-swiss-knife
+        # first would delete the running `.venv` (certifi CA files) and break later
+        # HTTPS calls for sibling repos.
+        with TemporaryDirectory() as tmp:
+            tmp_root = Path(tmp)
+            extracted: dict[Path, Path] = {}
+            for step in steps:
+                self.raise_if_work_cancelled()
+                if step["kind"] != "zip":
+                    continue
+                path = step["path"]
+                src_root = self._download_and_extract_zip(path, owner, tmp_root / path.name)
+                if src_root is not None:
+                    extracted[path] = src_root
+
+            for step in steps:
+                self.raise_if_work_cancelled()
+                path = step["path"]
+                if step["kind"] == "skip":
+                    self.add_line(f"⏭️ {path.name}: {step.get('skip_reason') or 'skipped'}")
+                    continue
+                if step["kind"] == "git_pull":
+                    merge_tasks.extend(self._worker_git_pull(path, step.get("commit_message")))
+                    continue
+                if step["kind"] == "zip":
+                    src_root = extracted.get(path)
+                    if src_root is None:
+                        continue
+                    merge_tasks.extend(self._apply_extracted_zip(path, src_root, tmp_root / f"apply-{path.name}"))
 
         return merge_tasks
 
@@ -419,25 +496,19 @@ class OnUpdateHarrixSwissKnife(ActionBase):
         if local_err:
             self.add_line(f"⚠️ harrix-swiss-knife: could not read local config.json: {local_err}")
 
-        temp_bak = tmp_path / "temp_bak"
         cfg_bak = tmp_path / "config_bak"
-        temp_dir = dest / "temp"
         config_dir = dest / "config"
-
-        if temp_dir.is_dir():
-            shutil.copytree(temp_dir, temp_bak, dirs_exist_ok=True)
+        tmp_path.mkdir(parents=True, exist_ok=True)
         if config_dir.is_dir():
             shutil.copytree(config_dir, cfg_bak, dirs_exist_ok=True)
 
         self.add_line("🔵 harrix-swiss-knife: replacing directory contents (ZIP)…")
-        clear_directory_contents(dest)
+        clear_directory_contents(dest, keep_names=self._SWISS_KEEP_ON_ZIP)
         self._copy_tree_contents(src_root, dest)
 
-        if temp_bak.is_dir():
-            if temp_dir.exists():
-                shutil.rmtree(temp_dir, ignore_errors=True)
-            shutil.copytree(temp_bak, temp_dir, dirs_exist_ok=True)
-            self.add_line("✅ Restored temp/ from backup.")
+        kept = sorted(name for name in self._SWISS_KEEP_ON_ZIP if (dest / name).exists())
+        if kept:
+            self.add_line(f"✅ Preserved: {', '.join(kept)}.")
 
         if cfg_bak.is_dir():
             config_dir.mkdir(parents=True, exist_ok=True)
@@ -469,47 +540,6 @@ class OnUpdateHarrixSwissKnife(ActionBase):
             )
 
         self.add_line("✅ harrix-swiss-knife: tree updated from ZIP.")
-        return tasks
-
-    def _worker_zip_update(self, dest: Path, owner: str) -> list[OnUpdateHarrixSwissKnife._MergeTask]:
-        tasks: list[OnUpdateHarrixSwissKnife._MergeTask] = []
-        repo_name = dest.name
-        cfg = dest / "config" / "config.json"
-
-        try:
-            branch = self._fetch_github_default_branch(owner, repo_name)
-        except (OSError, ValueError, URLError, HTTPError, json.JSONDecodeError) as e:
-            self.add_line(f"❌ {repo_name}: could not resolve default branch: {e}")
-            return tasks
-
-        zip_url = f"https://github.com/{owner}/{repo_name}/archive/refs/heads/{branch}.zip"
-        self.add_line(f"⬇️ {repo_name}: downloading {zip_url} …")
-
-        try:
-            with TemporaryDirectory() as tmp:
-                tmp_path = Path(tmp)
-                zip_path = tmp_path / f"{repo_name}.zip"
-                self._download_https_to_path(zip_url, zip_path)
-                extract_root = tmp_path / "extracted"
-                extract_root.mkdir(parents=True, exist_ok=True)
-                with zipfile.ZipFile(zip_path, "r") as zf:
-                    zf.extractall(extract_root)
-                members = [p for p in extract_root.iterdir() if p.name]
-                if len(members) != 1 or not members[0].is_dir():
-                    self.add_line(f"❌ {repo_name}: unexpected ZIP layout.")
-                    return tasks
-                src_root = members[0]
-
-                if repo_name == "harrix-swiss-knife":
-                    tasks.extend(self._worker_zip_swiss_knife(dest, src_root, cfg, tmp_path))
-                else:
-                    self.add_line(f"🔵 {repo_name}: replacing directory contents…")
-                    clear_directory_contents(dest)
-                    self._copy_tree_contents(src_root, dest)
-                    self.add_line(f"✅ {repo_name}: updated from ZIP.")
-        except (OSError, ValueError, URLError, HTTPError) as e:
-            self.add_line(f"❌ {repo_name}: ZIP update failed: {e}")
-
         return tasks
 
     @staticmethod
