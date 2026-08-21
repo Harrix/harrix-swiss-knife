@@ -181,7 +181,8 @@
     <string name="speech_to_text_widget_label">Speech to Text</string>
     <string name="speech_to_text_widget_description">Відкрити Speech to Text with AI</string>
     <string name="speech_to_text_close">Exit Speech to Text</string>
-    <string name="speech_to_text_idle_message">Record speech, then recognize. You can start the next recording while previous ones are still processing.</string>
+    <string name="speech_to_text_back">Back to recordings</string>
+    <string name="speech_to_text_idle_message">Tap Start recording when ready. You can start the next recording while previous ones are still processing.</string>
     <string name="speech_to_text_starting">Запуск запису…</string>
     <string name="speech_to_text_stop">Stop</string>
     <string name="speech_to_text_cancel_recording">Cancel</string>

@@ -10,8 +10,8 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -24,6 +24,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.ShortText
 import androidx.compose.material.icons.filled.AutoFixHigh
 import androidx.compose.material.icons.filled.Close
@@ -66,7 +68,7 @@ import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -122,13 +124,17 @@ fun SpeechToTextScreen(
     val tickTickUnavailableMessage = stringResource(R.string.speech_to_text_ticktick_unavailable)
 
     var pendingMicAction by remember { mutableStateOf<MicAction?>(null) }
-    var pendingOpenAutoStart by remember { mutableStateOf(true) }
-    var openAutoStartRequested by remember { mutableStateOf(false) }
     var saveTargetId by remember { mutableStateOf<String?>(null) }
+    var selectedItemId by remember { mutableStateOf<String?>(null) }
+    val selectedItem = items.firstOrNull { it.id == selectedItemId }
 
-    fun leave() {
+    fun leaveUtility() {
         viewModel.leaveScreen()
         onClose()
+    }
+
+    fun closeDetail() {
+        selectedItemId = null
     }
 
     fun showToast(message: String) {
@@ -183,7 +189,6 @@ fun SpeechToTextScreen(
                     MicAction.Start, null -> viewModel.startRecording()
                 }
             } else {
-                pendingOpenAutoStart = false
                 viewModel.errorMessage.value =
                     context.getString(R.string.speech_to_text_permission_denied)
             }
@@ -222,25 +227,17 @@ fun SpeechToTextScreen(
         }
     }
 
-    BackHandler { leave() }
-
-    val canAutoStartRecording =
-        pendingOpenAutoStart &&
-            !openAutoStartRequested &&
-            composerPhase == ComposerPhase.Idle &&
-            hasApiKey &&
-            errorMessage == null
-    LaunchedEffect(canAutoStartRecording) {
-        if (!canAutoStartRecording) {
-            return@LaunchedEffect
+    LaunchedEffect(selectedItemId, items.size) {
+        if (selectedItemId != null && items.none { it.id == selectedItemId }) {
+            selectedItemId = null
         }
-        openAutoStartRequested = true
-        startOrRequestMic(MicAction.Start)
     }
 
-    LaunchedEffect(composerPhase) {
-        if (composerPhase != ComposerPhase.Idle) {
-            pendingOpenAutoStart = false
+    BackHandler {
+        if (selectedItemId != null) {
+            closeDetail()
+        } else {
+            leaveUtility()
         }
     }
 
@@ -266,93 +263,117 @@ fun SpeechToTextScreen(
                 windowInsets = hskTopAppBarWindowInsets(),
                 expandedHeight = HskTopAppBarHeight,
                 navigationIcon = {
-                    IconButton(onClick = { leave() }) {
-                        Icon(
-                            imageVector = Icons.Filled.Close,
-                            contentDescription = stringResource(R.string.speech_to_text_close),
-                        )
+                    if (selectedItem != null) {
+                        IconButton(onClick = { closeDetail() }) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = stringResource(R.string.speech_to_text_back),
+                            )
+                        }
+                    } else {
+                        IconButton(onClick = { leaveUtility() }) {
+                            Icon(
+                                imageVector = Icons.Filled.Close,
+                                contentDescription = stringResource(R.string.speech_to_text_close),
+                            )
+                        }
                     }
                 },
             )
         },
     ) { innerPadding ->
-        Column(
-            modifier =
-            Modifier
-                .padding(innerPadding)
-                .fillMaxSize()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-        ) {
-            if (!hasApiKey) {
-                Text(
-                    text = stringResource(R.string.speech_to_text_missing_api_key),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-            }
-
+        if (selectedItem != null) {
+            SpeechMessageDetail(
+                item = selectedItem,
+                averageRecognitionMs = averageRecognitionMs,
+                hasApiKey = hasApiKey,
+                modifier =
+                Modifier
+                    .padding(innerPadding)
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                onRecognize = { viewModel.recognize(selectedItem.id) },
+                onCancel = { viewModel.cancelRecognition(selectedItem.id) },
+                onDelete = {
+                    viewModel.deleteItem(selectedItem.id)
+                    closeDetail()
+                },
+                onTextChange = { viewModel.updateItemText(selectedItem.id, it) },
+                onCopy = {
+                    clipboard.setText(AnnotatedString(selectedItem.text))
+                    showToast(copiedMessage)
+                },
+                onShare = { shareResultText(selectedItem.text) },
+                onSendToTickTick = { sendResultToTickTick(selectedItem.text) },
+                onRewrite = { viewModel.rewriteItem(selectedItem.id) },
+                onSingleLine = { viewModel.collapseItemToSingleLine(selectedItem.id) },
+                onSave = {
+                    saveTargetId = selectedItem.id
+                    saveAudioLauncher.launch(viewModel.suggestedAudioFileName(selectedItem.id))
+                },
+            )
+        } else {
             Column(
                 modifier =
                 Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
-                    .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+                    .padding(innerPadding)
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
             ) {
-                if (items.isEmpty()) {
+                if (!hasApiKey) {
                     Text(
-                        text = stringResource(R.string.speech_to_text_empty_queue),
+                        text = stringResource(R.string.speech_to_text_missing_api_key),
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp),
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.fillMaxWidth(),
                     )
+                    Spacer(modifier = Modifier.height(12.dp))
                 }
-                items.asReversed().forEach { item ->
-                    SpeechMessageCard(
-                        item = item,
-                        averageRecognitionMs = averageRecognitionMs,
-                        hasApiKey = hasApiKey,
-                        onRecognize = { viewModel.recognize(item.id) },
-                        onCancel = { viewModel.cancelRecognition(item.id) },
-                        onDelete = { viewModel.deleteItem(item.id) },
-                        onTextChange = { viewModel.updateItemText(item.id, it) },
-                        onCopy = {
-                            clipboard.setText(AnnotatedString(item.text))
-                            showToast(copiedMessage)
-                        },
-                        onShare = { shareResultText(item.text) },
-                        onSendToTickTick = { sendResultToTickTick(item.text) },
-                        onRewrite = { viewModel.rewriteItem(item.id) },
-                        onSingleLine = { viewModel.collapseItemToSingleLine(item.id) },
-                        onSave = {
-                            saveTargetId = item.id
-                            saveAudioLauncher.launch(viewModel.suggestedAudioFileName(item.id))
-                        },
-                    )
-                }
-            }
 
-            Spacer(modifier = Modifier.height(12.dp))
-            ComposerBar(
-                phase = composerPhase,
-                hasApiKey = hasApiKey,
-                buckets = waveformBuckets,
-                durationLabel = AudioRecorder.formatDuration(recordingDurationSeconds),
-                onStart = { startOrRequestMic(MicAction.Start) },
-                onStop = { viewModel.stopRecording() },
-                onCancelRecording = { viewModel.cancelRecording() },
-                onContinue = { startOrRequestMic(MicAction.Continue) },
-                onRerecord = { startOrRequestMic(MicAction.Rerecord) },
-                onRecognize = { viewModel.enqueueDraftAndRecognize() },
-                onSaveDraft = {
-                    saveTargetId = null
-                    saveAudioLauncher.launch(viewModel.suggestedAudioFileName())
-                },
-                onDiscard = { viewModel.discardDraft() },
-            )
+                Column(
+                    modifier =
+                    Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    if (items.isEmpty()) {
+                        Text(
+                            text = stringResource(R.string.speech_to_text_empty_queue),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp),
+                        )
+                    }
+                    items.asReversed().forEach { item ->
+                        SpeechMessageRow(
+                            item = item,
+                            averageRecognitionMs = averageRecognitionMs,
+                            onClick = { selectedItemId = item.id },
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+                ComposerBar(
+                    phase = composerPhase,
+                    hasApiKey = hasApiKey,
+                    buckets = waveformBuckets,
+                    durationLabel = AudioRecorder.formatDuration(recordingDurationSeconds),
+                    onStart = { startOrRequestMic(MicAction.Start) },
+                    onStop = { viewModel.stopRecording() },
+                    onCancelRecording = { viewModel.cancelRecording() },
+                    onContinue = { startOrRequestMic(MicAction.Continue) },
+                    onRerecord = { startOrRequestMic(MicAction.Rerecord) },
+                    onRecognize = { viewModel.enqueueDraftAndRecognize() },
+                    onSaveDraft = {
+                        saveTargetId = null
+                        saveAudioLauncher.launch(viewModel.suggestedAudioFileName())
+                    },
+                    onDiscard = { viewModel.discardDraft() },
+                )
+            }
         }
     }
 
@@ -367,6 +388,282 @@ fun SpeechToTextScreen(
                 }
             },
         )
+    }
+}
+
+@Composable
+private fun SpeechMessageRow(
+    item: SpeechQueueItem,
+    averageRecognitionMs: Long,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val isSlow =
+        item.status == SpeechMessageStatus.Processing &&
+            averageRecognitionMs > 0L &&
+            item.recognitionElapsedMs > averageRecognitionMs
+    val containerColor =
+        when {
+            item.status == SpeechMessageStatus.Done -> DoneCardGreen.copy(alpha = 0.18f)
+            isSlow -> SlowWarningAmber.copy(alpha = 0.22f)
+            item.status == SpeechMessageStatus.Error -> MaterialTheme.colorScheme.errorContainer
+            else -> MaterialTheme.colorScheme.surfaceVariant
+        }
+    val preview =
+        when (item.status) {
+            SpeechMessageStatus.Done ->
+                item.text.ifBlank { stringResource(R.string.speech_to_text_result_label) }
+
+            SpeechMessageStatus.Processing ->
+                stringResource(R.string.speech_to_text_recognizing) +
+                    " · " +
+                    formatElapsed(item.recognitionElapsedMs)
+
+            SpeechMessageStatus.Cancelled -> stringResource(R.string.speech_to_text_status_cancelled)
+
+            SpeechMessageStatus.Error ->
+                item.errorMessage.ifBlank {
+                    stringResource(R.string.speech_to_text_status_error)
+                }
+
+            SpeechMessageStatus.Recorded -> stringResource(R.string.speech_to_text_status_recorded)
+        }
+    Surface(
+        modifier =
+        modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(12.dp),
+        color = containerColor,
+    ) {
+        Row(
+            modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(
+                text = AudioRecorder.formatDuration(item.audioDurationSeconds),
+                style = MaterialTheme.typography.labelLarge,
+            )
+            if (item.status == SpeechMessageStatus.Processing) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(18.dp),
+                    strokeWidth = 2.dp,
+                    color = if (isSlow) SlowWarningAmber else MaterialTheme.colorScheme.primary,
+                )
+            }
+            Text(
+                text = preview,
+                style = MaterialTheme.typography.bodyMedium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
+                color =
+                when {
+                    item.status == SpeechMessageStatus.Error -> MaterialTheme.colorScheme.error
+                    isSlow -> SlowWarningAmber
+                    else -> MaterialTheme.colorScheme.onSurface
+                },
+            )
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+@Composable
+private fun SpeechMessageDetail(
+    item: SpeechQueueItem,
+    averageRecognitionMs: Long,
+    hasApiKey: Boolean,
+    onRecognize: () -> Unit,
+    onCancel: () -> Unit,
+    onDelete: () -> Unit,
+    onTextChange: (String) -> Unit,
+    onCopy: () -> Unit,
+    onShare: () -> Unit,
+    onSendToTickTick: () -> Unit,
+    onRewrite: () -> Unit,
+    onSingleLine: () -> Unit,
+    onSave: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val isSlow =
+        item.status == SpeechMessageStatus.Processing &&
+            averageRecognitionMs > 0L &&
+            item.recognitionElapsedMs > averageRecognitionMs
+    Column(
+        modifier = modifier.verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = AudioRecorder.formatDuration(item.audioDurationSeconds),
+                style = MaterialTheme.typography.titleMedium,
+            )
+            IconButton(onClick = onDelete) {
+                Icon(
+                    imageVector = Icons.Filled.Delete,
+                    contentDescription = stringResource(R.string.speech_to_text_delete_message),
+                )
+            }
+        }
+
+        when (item.status) {
+            SpeechMessageStatus.Processing -> {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    CircularProgressIndicator(
+                        color = if (isSlow) SlowWarningAmber else MaterialTheme.colorScheme.primary,
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = formatElapsed(item.recognitionElapsedMs),
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                    Text(
+                        text = stringResource(R.string.speech_to_text_recognizing),
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                    if (isSlow) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = stringResource(R.string.speech_to_text_slow_warning),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = SlowWarningAmber,
+                        )
+                    }
+                }
+                OutlinedButton(onClick = onCancel, modifier = Modifier.fillMaxWidth()) {
+                    Text(stringResource(R.string.speech_to_text_cancel_recognition))
+                }
+            }
+
+            SpeechMessageStatus.Done -> {
+                OutlinedTextField(
+                    value = item.text,
+                    onValueChange = onTextChange,
+                    modifier = Modifier.fillMaxWidth().height(180.dp),
+                    textStyle = MaterialTheme.typography.bodyMedium,
+                    label = { Text(stringResource(R.string.speech_to_text_result_label)) },
+                )
+                if (item.lastRecognitionDurationMs > 0L) {
+                    Text(
+                        text = formatElapsed(item.lastRecognitionDurationMs),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    CompactBottomActionButton(
+                        onClick = onCopy,
+                        icon = Icons.Filled.ContentCopy,
+                        label = stringResource(R.string.speech_to_text_copy),
+                    )
+                    CompactBottomActionButton(
+                        onClick = onShare,
+                        icon = Icons.Filled.Share,
+                        label = stringResource(R.string.speech_to_text_share),
+                        outlined = true,
+                    )
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    CompactBottomActionButton(
+                        onClick = onRewrite,
+                        icon = Icons.Filled.AutoFixHigh,
+                        label = stringResource(R.string.speech_to_text_rewrite),
+                        outlined = true,
+                        enabled = hasApiKey,
+                    )
+                    CompactBottomActionButton(
+                        onClick = onSingleLine,
+                        icon = Icons.AutoMirrored.Filled.ShortText,
+                        label = stringResource(R.string.speech_to_text_single_line),
+                        outlined = true,
+                    )
+                }
+                OutlinedButton(onClick = onSendToTickTick, modifier = Modifier.fillMaxWidth()) {
+                    Icon(
+                        imageVector = Icons.Filled.TaskAlt,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Spacer(modifier = Modifier.size(6.dp))
+                    Text(stringResource(R.string.speech_to_text_send_to_ticktick))
+                }
+                OutlinedButton(onClick = onSave, modifier = Modifier.fillMaxWidth()) {
+                    Icon(
+                        imageVector = Icons.Filled.Save,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Spacer(modifier = Modifier.size(6.dp))
+                    Text(stringResource(R.string.speech_to_text_save_audio))
+                }
+            }
+
+            SpeechMessageStatus.Recorded,
+            SpeechMessageStatus.Cancelled,
+            SpeechMessageStatus.Error,
+            -> {
+                val statusText =
+                    when (item.status) {
+                        SpeechMessageStatus.Cancelled ->
+                            stringResource(R.string.speech_to_text_status_cancelled)
+
+                        SpeechMessageStatus.Error ->
+                            item.errorMessage.ifBlank {
+                                stringResource(R.string.speech_to_text_status_error)
+                            }
+
+                        else -> stringResource(R.string.speech_to_text_status_recorded)
+                    }
+                Text(
+                    text = statusText,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color =
+                    if (item.status == SpeechMessageStatus.Error) {
+                        MaterialTheme.colorScheme.error
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
+                )
+                Button(
+                    onClick = onRecognize,
+                    enabled = hasApiKey,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(stringResource(R.string.speech_to_text_recognize))
+                }
+                OutlinedButton(onClick = onSave, modifier = Modifier.fillMaxWidth()) {
+                    Icon(
+                        imageVector = Icons.Filled.Save,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Spacer(modifier = Modifier.size(6.dp))
+                    Text(stringResource(R.string.speech_to_text_save_audio))
+                }
+            }
+        }
     }
 }
 
@@ -506,210 +803,6 @@ private fun ComposerBar(
                             label = stringResource(R.string.speech_to_text_discard_recording),
                             outlined = true,
                         )
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun SpeechMessageCard(
-    item: SpeechQueueItem,
-    averageRecognitionMs: Long,
-    hasApiKey: Boolean,
-    onRecognize: () -> Unit,
-    onCancel: () -> Unit,
-    onDelete: () -> Unit,
-    onTextChange: (String) -> Unit,
-    onCopy: () -> Unit,
-    onShare: () -> Unit,
-    onSendToTickTick: () -> Unit,
-    onRewrite: () -> Unit,
-    onSingleLine: () -> Unit,
-    onSave: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val isSlow =
-        item.status == SpeechMessageStatus.Processing &&
-            averageRecognitionMs > 0L &&
-            item.recognitionElapsedMs > averageRecognitionMs
-    val containerColor =
-        when {
-            item.status == SpeechMessageStatus.Done -> DoneCardGreen.copy(alpha = 0.18f)
-            isSlow -> SlowWarningAmber.copy(alpha = 0.22f)
-            item.status == SpeechMessageStatus.Error -> MaterialTheme.colorScheme.errorContainer
-            else -> MaterialTheme.colorScheme.surfaceVariant
-        }
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        color = containerColor,
-    ) {
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = AudioRecorder.formatDuration(item.audioDurationSeconds),
-                    style = MaterialTheme.typography.labelLarge,
-                )
-                IconButton(onClick = onDelete) {
-                    Icon(
-                        imageVector = Icons.Filled.Delete,
-                        contentDescription = stringResource(R.string.speech_to_text_delete_message),
-                    )
-                }
-            }
-
-            when (item.status) {
-                SpeechMessageStatus.Processing -> {
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                    ) {
-                        CircularProgressIndicator(
-                            color = if (isSlow) SlowWarningAmber else MaterialTheme.colorScheme.primary,
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = formatElapsed(item.recognitionElapsedMs),
-                            style = MaterialTheme.typography.titleMedium,
-                        )
-                        Text(
-                            text = stringResource(R.string.speech_to_text_recognizing),
-                            style = MaterialTheme.typography.bodyMedium,
-                        )
-                        if (isSlow) {
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = stringResource(R.string.speech_to_text_slow_warning),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = SlowWarningAmber,
-                                textAlign = TextAlign.Center,
-                            )
-                        }
-                    }
-                    OutlinedButton(onClick = onCancel, modifier = Modifier.fillMaxWidth()) {
-                        Text(stringResource(R.string.speech_to_text_cancel_recognition))
-                    }
-                }
-
-                SpeechMessageStatus.Done -> {
-                    OutlinedTextField(
-                        value = item.text,
-                        onValueChange = onTextChange,
-                        modifier = Modifier.fillMaxWidth().height(140.dp),
-                        textStyle = MaterialTheme.typography.bodyMedium,
-                        label = { Text(stringResource(R.string.speech_to_text_result_label)) },
-                    )
-                    if (item.lastRecognitionDurationMs > 0L) {
-                        Text(
-                            text = formatElapsed(item.lastRecognitionDurationMs),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        CompactBottomActionButton(
-                            onClick = onCopy,
-                            icon = Icons.Filled.ContentCopy,
-                            label = stringResource(R.string.speech_to_text_copy),
-                        )
-                        CompactBottomActionButton(
-                            onClick = onShare,
-                            icon = Icons.Filled.Share,
-                            label = stringResource(R.string.speech_to_text_share),
-                            outlined = true,
-                        )
-                    }
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        CompactBottomActionButton(
-                            onClick = onRewrite,
-                            icon = Icons.Filled.AutoFixHigh,
-                            label = stringResource(R.string.speech_to_text_rewrite),
-                            outlined = true,
-                            enabled = hasApiKey,
-                        )
-                        CompactBottomActionButton(
-                            onClick = onSingleLine,
-                            icon = Icons.AutoMirrored.Filled.ShortText,
-                            label = stringResource(R.string.speech_to_text_single_line),
-                            outlined = true,
-                        )
-                    }
-                    OutlinedButton(onClick = onSendToTickTick, modifier = Modifier.fillMaxWidth()) {
-                        Icon(
-                            imageVector = Icons.Filled.TaskAlt,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp),
-                        )
-                        Spacer(modifier = Modifier.size(6.dp))
-                        Text(stringResource(R.string.speech_to_text_send_to_ticktick))
-                    }
-                    OutlinedButton(onClick = onSave, modifier = Modifier.fillMaxWidth()) {
-                        Icon(
-                            imageVector = Icons.Filled.Save,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp),
-                        )
-                        Spacer(modifier = Modifier.size(6.dp))
-                        Text(stringResource(R.string.speech_to_text_save_audio))
-                    }
-                }
-
-                SpeechMessageStatus.Recorded,
-                SpeechMessageStatus.Cancelled,
-                SpeechMessageStatus.Error,
-                -> {
-                    val statusText =
-                        when (item.status) {
-                            SpeechMessageStatus.Cancelled ->
-                                stringResource(R.string.speech_to_text_status_cancelled)
-
-                            SpeechMessageStatus.Error ->
-                                item.errorMessage.ifBlank {
-                                    stringResource(R.string.speech_to_text_status_error)
-                                }
-
-                            else -> stringResource(R.string.speech_to_text_status_recorded)
-                        }
-                    Text(
-                        text = statusText,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color =
-                        if (item.status == SpeechMessageStatus.Error) {
-                            MaterialTheme.colorScheme.error
-                        } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                        },
-                    )
-                    Button(
-                        onClick = onRecognize,
-                        enabled = hasApiKey,
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Text(stringResource(R.string.speech_to_text_recognize))
-                    }
-                    OutlinedButton(onClick = onSave, modifier = Modifier.fillMaxWidth()) {
-                        Icon(
-                            imageVector = Icons.Filled.Save,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp),
-                        )
-                        Spacer(modifier = Modifier.size(6.dp))
-                        Text(stringResource(R.string.speech_to_text_save_audio))
                     }
                 }
             }
