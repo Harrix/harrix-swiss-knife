@@ -129,6 +129,39 @@ def test_hide_app_windows_fades_sibling_when_modal_exists(qapp: QApplication) ->
     sibling.close()
 
 
+def test_pick_focus_target_prefers_active_window_over_last_visible(qapp: QApplication) -> None:  # noqa: ARG001
+    """Return to Finance, not the last top-level widget (command cards)."""
+    cards = QWidget()
+    cards.show()
+    finance = QWidget()
+    finance.show()
+    QApplication.processEvents()
+
+    widgets = [
+        ConcealedWindow(cards, "hide"),
+        ConcealedWindow(finance, "hide", was_active=True),
+    ]
+    assert _pick_focus_target(widgets) is finance
+
+    cards.close()
+    finance.close()
+
+
+def test_hide_app_windows_records_stay_on_top(qapp: QApplication) -> None:  # noqa: ARG001
+    """Stay-on-top command cards are remembered so restore can drop the hint."""
+    cards = QWidget()
+    cards.setWindowFlags(Qt.WindowType.WindowStaysOnTopHint)
+    cards.show()
+    QApplication.processEvents()
+
+    concealed = hide_app_windows()
+    match = next(item for item in concealed if item.widget is cards)
+    assert match.stay_on_top
+
+    restore_app_windows(concealed)
+    cards.close()
+
+
 def test_pick_focus_target_uses_saved_modality(qapp: QApplication) -> None:  # noqa: ARG001
     """After fade-out the dialog is NonModal; restore must still prefer it."""
     owner = QWidget()
@@ -190,3 +223,44 @@ def test_restore_keeps_message_box_reachable(qapp: QApplication) -> None:  # noq
 
     box.close()
     owner.close()
+
+
+def test_restore_clears_stay_on_top_on_sibling_of_focus(qapp: QApplication) -> None:  # noqa: ARG001
+    """Command cards stay-on-top must not cover Finance after a screenshot."""
+    cards = QWidget()
+    cards.setWindowFlags(Qt.WindowType.WindowStaysOnTopHint)
+    cards.show()
+    finance = QWidget()
+    finance.show()
+    QApplication.processEvents()
+
+    widgets = [
+        ConcealedWindow(cards, "hide", stay_on_top=True),
+        ConcealedWindow(finance, "hide", was_active=True),
+    ]
+    restore_app_windows(widgets)
+    QApplication.processEvents()
+
+    assert not (cards.windowFlags() & Qt.WindowType.WindowStaysOnTopHint)
+    assert cards.isVisible()
+    assert finance.isVisible()
+
+    cards.close()
+    finance.close()
+
+
+def test_restore_keeps_stay_on_top_on_focus_window(qapp: QApplication) -> None:  # noqa: ARG001
+    """A stay-on-top window that started capture keeps the hint."""
+    cards = QWidget()
+    cards.setWindowFlags(Qt.WindowType.WindowStaysOnTopHint)
+    cards.show()
+    QApplication.processEvents()
+
+    widgets = [ConcealedWindow(cards, "hide", was_active=True, stay_on_top=True)]
+    restore_app_windows(widgets)
+    QApplication.processEvents()
+
+    assert cards.windowFlags() & Qt.WindowType.WindowStaysOnTopHint
+    assert cards.isVisible()
+
+    cards.close()

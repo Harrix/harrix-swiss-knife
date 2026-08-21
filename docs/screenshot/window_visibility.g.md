@@ -38,6 +38,8 @@ class ConcealedWindow:
     opacity: float = 1.0
     modality: Qt.WindowModality = Qt.WindowModality.NonModal
     transparent_for_mouse: bool = False
+    was_active: bool = False
+    stay_on_top: bool = False
 ```
 
 </details>
@@ -80,14 +82,19 @@ def hide_app_windows() -> list[ConcealedWindow]:
 
     candidates = [widget for widget in app.topLevelWidgets() if widget.isVisible() and not is_screenshot_ui(widget)]
     opacity_targets = _opacity_conceal_targets(candidates)
+    active = _active_top_level()
 
     concealed: list[ConcealedWindow] = []
     for widget in candidates:
+        was_active = widget is active
+        stay_on_top = _has_stay_on_top(widget)
         if widget in opacity_targets:
-            concealed.append(_conceal_with_opacity(widget))
+            concealed.append(
+                replace(_conceal_with_opacity(widget), was_active=was_active, stay_on_top=stay_on_top),
+            )
         else:
             widget.hide()
-            concealed.append(ConcealedWindow(widget, "hide"))
+            concealed.append(ConcealedWindow(widget, "hide", was_active=was_active, stay_on_top=stay_on_top))
 
     QApplication.processEvents()
     return concealed
@@ -140,11 +147,13 @@ def restore_app_windows(widgets: list[ConcealedWindow]) -> None
 Restore Windows previously concealed by [`hide_app_windows`](#-function-hide_app_windows) and bring them forward.
 
 After a fullscreen capture overlay, other apps may sit on top of the Z-order.
-Restored widgets are raised and the topmost modal dialog is activated so the
-user returns to Fill with AI / New Markdown / an error `QMessageBox`.
+Restored widgets are raised and the window that started the capture (or its
+modal dialog) is activated so the user returns to Finance / Fill with AI /
+an error `QMessageBox` — not a stay-on-top sibling such as the command cards.
 
 Non-modal (`hide`) Windows are restored first; opacity-concealed owners
-next; modal dialogs last so they stay above the owner chain.
+next; modal dialogs last so they stay above the owner chain. Stay-on-top
+is cleared on siblings of the focus target so they cannot cover it.
 
 <details>
 <summary>Code:</summary>
@@ -170,6 +179,7 @@ def restore_app_windows(widgets: list[ConcealedWindow]) -> None:
 
     focus_target = _pick_focus_target(widgets)
     if focus_target is not None:
+        _drop_stay_on_top_except(widgets, focus_target)
         _bring_to_foreground(focus_target)
         QApplication.processEvents()
         # Show/raise of owners can land after the first raise; pin the modal again.

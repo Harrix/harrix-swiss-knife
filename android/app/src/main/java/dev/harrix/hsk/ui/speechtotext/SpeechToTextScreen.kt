@@ -11,7 +11,10 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -31,7 +34,6 @@ import androidx.compose.material.icons.filled.AutoFixHigh
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Save
@@ -67,7 +69,9 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
@@ -99,7 +103,11 @@ private val WaveformLiveFill = Color(0xD266BB6A)
 private val WaveformOutline = Color(0xFF81C784)
 private val DoneCardGreen = Color(0xFF2E7D32)
 private val SlowWarningAmber = Color(0xFFFFA000)
+private val RecordButtonRed = Color(0xFFE53935)
+private val RecordButtonRedPressed = Color(0xFFC62828)
+private val RecordButtonRedDisabled = Color(0xFFEF9A9A)
 private const val TickTickPackage = "com.ticktick.task"
+private val RecordButtonSize = 56.dp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -697,23 +705,22 @@ private fun ComposerBar(
         ) {
             when (phase) {
                 ComposerPhase.Idle -> {
-                    Text(
-                        text = stringResource(R.string.speech_to_text_idle_message),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Button(
-                        onClick = onStart,
-                        enabled = hasApiKey,
+                    Column(
                         modifier = Modifier.fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
-                        Icon(
-                            imageVector = Icons.Filled.Mic,
-                            contentDescription = null,
-                            modifier = Modifier.size(20.dp),
+                        RecordStartButton(
+                            enabled = hasApiKey,
+                            onClick = onStart,
                         )
-                        Spacer(modifier = Modifier.size(8.dp))
-                        Text(stringResource(R.string.speech_to_text_start_recording))
+                        Text(
+                            text = stringResource(R.string.speech_to_text_idle_message),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
                     }
                 }
 
@@ -806,6 +813,56 @@ private fun ComposerBar(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun RecordStartButton(
+    enabled: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val pressed by interactionSource.collectIsPressedAsState()
+    val red =
+        when {
+            !enabled -> RecordButtonRedDisabled
+            pressed -> RecordButtonRedPressed
+            else -> RecordButtonRed
+        }
+    val label = stringResource(R.string.speech_to_text_start_recording)
+    Box(
+        modifier =
+        modifier
+            .size(RecordButtonSize)
+            .clickable(
+                enabled = enabled,
+                interactionSource = interactionSource,
+                indication = null,
+                role = Role.Button,
+                onClickLabel = label,
+                onClick = onClick,
+            ),
+        contentAlignment = Alignment.Center,
+    ) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val center = Offset(size.width / 2f, size.height / 2f)
+            val scale = size.minDimension / 56f
+            val outerRadius = 23f * scale
+            val ringWidth = 2.5f * scale
+            val innerRadius = 16f * scale
+            drawCircle(
+                color = red,
+                radius = outerRadius,
+                center = center,
+                style = Stroke(width = ringWidth),
+            )
+            drawCircle(
+                color = red,
+                radius = innerRadius,
+                center = center,
+            )
         }
     }
 }
