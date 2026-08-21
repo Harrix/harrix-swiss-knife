@@ -23,10 +23,21 @@ class BothubClient(
         text: String,
         audio: Pair<ByteArray, String>? = null,
         images: List<Pair<ByteArray, String>>? = null,
+        cancellationKey: String? = null,
     ): String = try {
-        aiClient.chatCompletion(model = model, text = text, audio = audio, images = images)
+        aiClient.chatCompletion(
+            model = model,
+            text = text,
+            audio = audio,
+            images = images,
+            cancellationKey = cancellationKey,
+        )
     } catch (error: AiApiException) {
         throw BothubApiException(error.message ?: "AI request failed", error)
+    }
+
+    fun cancel(cancellationKey: String) {
+        aiClient.cancel(cancellationKey)
     }
 
     companion object {

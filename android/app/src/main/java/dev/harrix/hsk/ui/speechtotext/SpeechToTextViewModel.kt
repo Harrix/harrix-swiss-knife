@@ -5,6 +5,7 @@ import android.net.Uri
 import android.os.Handler
 import android.os.Looper
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.AndroidViewModel
@@ -15,8 +16,9 @@ import dev.harrix.hsk.bothub.BothubConfig
 import dev.harrix.hsk.speechtotext.AudioCompress
 import dev.harrix.hsk.speechtotext.AudioRecorder
 import dev.harrix.hsk.speechtotext.AudioRecorderException
-import dev.harrix.hsk.speechtotext.PendingSpeechRecording
-import dev.harrix.hsk.speechtotext.SpeechToTextPendingStore
+import dev.harrix.hsk.speechtotext.SpeechMessageStatus
+import dev.harrix.hsk.speechtotext.SpeechQueueItem
+import dev.harrix.hsk.speechtotext.SpeechToTextQueueStore
 import dev.harrix.hsk.speechtotext.SpeechToTextRepository
 import dev.harrix.hsk.speechtotext.SpeechUploadAudio
 import dev.harrix.hsk.speechtotext.WaveformBucket
@@ -30,14 +32,10 @@ import java.io.File
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
-enum class SpeechToTextPhase {
+enum class ComposerPhase {
     Idle,
     Recording,
     Recorded,
-    Recognizing,
-    Fixing,
-    Result,
-    Rewriting,
 }
 
 class SpeechToTextViewModel(
@@ -45,26 +43,39 @@ class SpeechToTextViewModel(
 ) : AndroidViewModel(application) {
     private val audioRecorder = AudioRecorder(application.applicationContext)
     private val repository = SpeechToTextRepository(application.applicationContext)
-    private val pendingStore = SpeechToTextPendingStore(application.applicationContext)
+    private val queueStore = SpeechToTextQueueStore(application.applicationContext)
     private val mainHandler = Handler(Looper.getMainLooper())
+    private val recognition =
+        SpeechRecognitionCoordinator(
+            scope = viewModelScope,
+            repository = repository,
+            queueStore = queueStore,
+            onItemChanged = { item ->
+                replaceItem(item)
+                persistItem(item)
+            },
+            onAverageChanged = { averageRecognitionMs.longValue = it },
+            onErrorMessage = { errorMessage.value = it },
+        )
 
-    val phase = mutableStateOf(SpeechToTextPhase.Idle)
-    val resultText = mutableStateOf("")
+    val items = mutableStateListOf<SpeechQueueItem>()
+    val composerPhase = mutableStateOf(ComposerPhase.Idle)
     val errorMessage = mutableStateOf<String?>(null)
     val infoMessage = mutableStateOf<String?>(null)
     val hasApiKey = mutableStateOf(isAiConfigured())
-    val pendingRecording = mutableStateOf<PendingSpeechRecording?>(pendingStore.load())
     val recordingDurationSeconds = mutableFloatStateOf(0f)
     val waveformBuckets = mutableStateListOf<WaveformBucket>()
+    val averageRecognitionMs = mutableLongStateOf(queueStore.averageRecognitionMs() ?: 0L)
 
-    private var recordedFile: File? = null
-    private var recordedMime: String = AudioRecorder.MIME_WAV
-    private var workJob: Job? = null
+    private var draftFile: File? = null
+    private var draftMime: String = AudioRecorder.MIME_WAV
     private var durationJob: Job? = null
+    private var elapsedTickerJob: Job? = null
     private val pendingEnvelopes = ArrayDeque<WaveformBucket>()
     private var envelopeFlushPosted = false
 
     init {
+        items.addAll(queueStore.loadAll())
         audioRecorder.setEnvelopeListener { bucket ->
             synchronized(pendingEnvelopes) {
                 pendingEnvelopes.addLast(bucket)
@@ -86,12 +97,13 @@ class SpeechToTextViewModel(
                             }
                         }
                     }
-                if (phase.value != SpeechToTextPhase.Recording || batch.isEmpty()) {
+                if (composerPhase.value != ComposerPhase.Recording || batch.isEmpty()) {
                     return@post
                 }
                 waveformBuckets.addAll(batch)
             }
         }
+        startElapsedTicker()
     }
 
     fun clearError() {
@@ -103,36 +115,35 @@ class SpeechToTextViewModel(
     }
 
     fun startRecording(append: Boolean = false) {
-        if (phase.value == SpeechToTextPhase.Recording || isBusyNetwork()) {
+        if (composerPhase.value == ComposerPhase.Recording) {
             return
         }
         errorMessage.value = null
         infoMessage.value = null
         try {
-            val appendFile = if (append) recordedFile else null
+            val appendFile = if (append) draftFile else null
             if (!append) {
-                recordedFile?.delete()
-                recordedFile = null
+                clearDraftAudio()
                 waveformBuckets.clear()
-                resultText.value = ""
             }
-            recordedFile = audioRecorder.start(appendTo = appendFile)
-            phase.value = SpeechToTextPhase.Recording
+            draftFile = audioRecorder.start(appendTo = appendFile)
+            draftMime = AudioRecorder.MIME_WAV
+            composerPhase.value = ComposerPhase.Recording
             startDurationTicker()
         } catch (e: AudioRecorderException) {
             errorMessage.value = e.message
-            phase.value =
-                if (recordedFile != null) {
-                    SpeechToTextPhase.Recorded
+            composerPhase.value =
+                if (draftFile != null) {
+                    ComposerPhase.Recorded
                 } else {
-                    SpeechToTextPhase.Idle
+                    ComposerPhase.Idle
                 }
             stopDurationTicker()
         }
     }
 
     fun stopRecording() {
-        if (phase.value != SpeechToTextPhase.Recording) {
+        if (composerPhase.value != ComposerPhase.Recording) {
             return
         }
         stopDurationTicker()
@@ -141,117 +152,220 @@ class SpeechToTextViewModel(
                 audioRecorder.stop()
             } catch (e: AudioRecorderException) {
                 errorMessage.value = e.message
-                phase.value =
-                    when {
-                        recordedFile != null -> SpeechToTextPhase.Recorded
-                        resultText.value.isBlank() -> SpeechToTextPhase.Idle
-                        else -> SpeechToTextPhase.Result
+                composerPhase.value =
+                    if (draftFile != null) {
+                        ComposerPhase.Recorded
+                    } else {
+                        ComposerPhase.Idle
                     }
                 return
             }
-        recordedFile = stopped.first
-        recordedMime = stopped.second
+        draftFile = stopped.first
+        draftMime = stopped.second
         recordingDurationSeconds.floatValue = audioRecorder.durationSeconds()
-        phase.value = SpeechToTextPhase.Recorded
+        composerPhase.value = ComposerPhase.Recorded
     }
 
     fun continueRecording() {
-        if (phase.value != SpeechToTextPhase.Recorded || !audioRecorder.canContinue()) {
+        if (composerPhase.value != ComposerPhase.Recorded || !audioRecorder.canContinue()) {
             return
         }
         startRecording(append = true)
     }
 
     fun rerecord() {
-        if (isBusyNetwork()) {
-            return
-        }
-        audioRecorder.clear()
-        recordedFile = null
+        clearDraftAudio()
         waveformBuckets.clear()
         recordingDurationSeconds.floatValue = 0f
-        resultText.value = ""
         errorMessage.value = null
         infoMessage.value = null
         startRecording(append = false)
     }
 
-    fun recognizeRecording() {
-        if (phase.value != SpeechToTextPhase.Recorded) {
+    fun cancelRecording() {
+        if (composerPhase.value != ComposerPhase.Recording) {
             return
         }
-        val file = recordedFile
-        if (file == null || !file.isFile) {
-            errorMessage.value = "Recording file missing"
-            phase.value = SpeechToTextPhase.Idle
-            return
-        }
-        processRecording(file, recordedMime)
-    }
-
-    fun discardPendingRecording() {
-        if (isBusyNetwork()) {
-            return
-        }
-        val pending = pendingStore.load()
-        pendingStore.clear()
-        pendingRecording.value = null
-        if (pending != null && recordedFile?.absolutePath == pending.file.absolutePath) {
-            recordedFile = null
-            waveformBuckets.clear()
-            recordingDurationSeconds.floatValue = 0f
-            if (phase.value == SpeechToTextPhase.Recorded) {
-                phase.value =
-                    if (resultText.value.isBlank()) {
-                        SpeechToTextPhase.Idle
-                    } else {
-                        SpeechToTextPhase.Result
-                    }
-            }
-        }
-    }
-
-    fun retryPendingRecording() {
-        if (isBusyNetwork() || workJob?.isActive == true) {
-            return
-        }
-        val pending = pendingStore.load()
-        if (pending == null) {
-            pendingRecording.value = null
-            return
-        }
-        recordedFile = pending.file
-        recordedMime = pending.mimeType
-        recordingDurationSeconds.floatValue = pending.durationSeconds
+        stopDurationTicker()
+        audioRecorder.cancel()
+        draftFile = null
         waveformBuckets.clear()
-        errorMessage.value = null
-        processRecording(pending.file, pending.mimeType)
+        recordingDurationSeconds.floatValue = 0f
+        composerPhase.value = ComposerPhase.Idle
     }
 
-    fun suggestedAudioFileName(): String = "hsk-speech-${LocalDateTime.now().format(AUDIO_FILE_TIMESTAMP)}.m4a"
-
-    fun saveCurrentRecording(destination: Uri) {
-        val pending = pendingStore.load()
-        val source =
-            recordedFile?.takeIf { it.isFile }
-                ?: pending?.file?.takeIf { it.isFile }
-        if (source == null) {
-            errorMessage.value =
-                getApplication<Application>().getString(R.string.speech_to_text_save_audio_failed)
+    fun discardDraft() {
+        if (composerPhase.value != ComposerPhase.Recorded) {
             return
         }
-        val sourceMime =
-            if (recordedFile?.absolutePath == source.absolutePath) {
-                recordedMime
-            } else {
-                pending?.mimeType ?: AudioRecorder.MIME_WAV
-            }
+        clearDraftAudio()
+        waveformBuckets.clear()
+        recordingDurationSeconds.floatValue = 0f
+        composerPhase.value = ComposerPhase.Idle
+    }
+
+    fun enqueueDraftAndRecognize() {
+        val file = draftFile?.takeIf { it.isFile } ?: return
+        val duration = recordingDurationSeconds.floatValue
+        val mime = draftMime
+        viewModelScope.launch {
+            val outcome =
+                withContext(Dispatchers.IO) {
+                    runCatching {
+                        queueStore.addFromRecording(
+                            source = file,
+                            mimeType = mime,
+                            audioDurationSeconds = duration,
+                        )
+                    }
+                }
+            outcome
+                .onSuccess { item ->
+                    clearDraftAudio()
+                    waveformBuckets.clear()
+                    recordingDurationSeconds.floatValue = 0f
+                    composerPhase.value = ComposerPhase.Idle
+                    items.add(item)
+                    recognize(item.id)
+                }.onFailure { e ->
+                    errorMessage.value = e.message ?: e.toString()
+                }
+        }
+    }
+
+    fun recognize(id: String) {
+        val item = items.firstOrNull { it.id == id } ?: return
+        if (!hasApiKey.value) {
+            errorMessage.value =
+                getApplication<Application>().getString(R.string.speech_to_text_missing_api_key)
+            return
+        }
+        recognition.recognize(item)
+    }
+
+    fun cancelRecognition(id: String) {
+        recognition.cancel(id)
+        val index = items.indexOfFirst { it.id == id }
+        if (index < 0) {
+            return
+        }
+        val current = items[index]
+        if (current.status != SpeechMessageStatus.Processing) {
+            return
+        }
+        val cancelled =
+            current.copy(
+                status = SpeechMessageStatus.Cancelled,
+                recognitionStartedAtMs = 0L,
+                recognitionElapsedMs = 0L,
+            )
+        replaceItem(cancelled)
+        persistItem(cancelled)
+    }
+
+    fun deleteItem(id: String) {
+        recognition.cancel(id)
+        val index = items.indexOfFirst { it.id == id }
+        if (index < 0) {
+            return
+        }
+        items.removeAt(index)
+        viewModelScope.launch(Dispatchers.IO) {
+            queueStore.delete(id)
+        }
+    }
+
+    fun updateItemText(
+        id: String,
+        text: String,
+    ) {
+        val index = items.indexOfFirst { it.id == id }
+        if (index < 0) {
+            return
+        }
+        val updated = items[index].copy(text = text)
+        replaceItem(updated)
+        persistItem(updated)
+    }
+
+    fun collapseItemToSingleLine(id: String) {
+        val index = items.indexOfFirst { it.id == id }
+        if (index < 0) {
+            return
+        }
+        val current = items[index]
+        if (current.text.isBlank()) {
+            return
+        }
+        updateItemText(id, SpeechToTextRepository.toSingleLine(current.text))
+    }
+
+    fun rewriteItem(id: String) {
+        val item = items.firstOrNull { it.id == id } ?: return
+        if (!hasApiKey.value) {
+            errorMessage.value =
+                getApplication<Application>().getString(R.string.speech_to_text_missing_api_key)
+            return
+        }
+        recognition.rewrite(item)
+    }
+
+    fun suggestedAudioFileName(id: String? = null): String {
+        val stamp = LocalDateTime.now().format(AUDIO_FILE_TIMESTAMP)
+        return if (id != null) {
+            "hsk-speech-$stamp-$id.m4a"
+        } else {
+            "hsk-speech-$stamp.m4a"
+        }
+    }
+
+    fun saveItemAudio(
+        id: String,
+        destination: Uri,
+    ) {
+        val item = items.firstOrNull { it.id == id } ?: return
         viewModelScope.launch {
             val result =
                 withContext(Dispatchers.IO) {
                     runCatching {
-                        val upload = resolveSaveUpload(pending, source, sourceMime)
+                        val upload = resolveSaveUpload(item)
                         try {
+                            val resolver = getApplication<Application>().contentResolver
+                            resolver.openOutputStream(destination, "wt")?.use { output ->
+                                upload.file.inputStream().use { input -> input.copyTo(output) }
+                            } ?: error("Could not open destination")
+                        } finally {
+                            if (upload.temporary &&
+                                upload.file.absolutePath != item.audioFile.absolutePath
+                            ) {
+                                upload.file.delete()
+                            }
+                        }
+                    }
+                }
+            result
+                .onSuccess {
+                    infoMessage.value =
+                        getApplication<Application>().getString(R.string.speech_to_text_audio_saved)
+                }.onFailure {
+                    errorMessage.value =
+                        getApplication<Application>()
+                            .getString(R.string.speech_to_text_save_audio_failed)
+                }
+        }
+    }
+
+    fun saveDraftAudio(destination: Uri) {
+        val source = draftFile?.takeIf { it.isFile } ?: return
+        viewModelScope.launch {
+            val result =
+                withContext(Dispatchers.IO) {
+                    runCatching {
+                        val upload = AudioCompress.prepareForUpload(source, draftMime)
+                        try {
+                            check(upload.mimeType == AudioRecorder.MIME_M4A) {
+                                "Could not compress recording"
+                            }
                             val resolver = getApplication<Application>().contentResolver
                             resolver.openOutputStream(destination, "wt")?.use { output ->
                                 upload.file.inputStream().use { input -> input.copyTo(output) }
@@ -275,103 +389,66 @@ class SpeechToTextViewModel(
         }
     }
 
-    fun cancelRecording() {
-        if (phase.value != SpeechToTextPhase.Recording) {
-            return
-        }
-        stopDurationTicker()
-        audioRecorder.cancel()
-        recordedFile = null
-        waveformBuckets.clear()
-        recordingDurationSeconds.floatValue = 0f
-        phase.value =
-            if (resultText.value.isBlank()) {
-                SpeechToTextPhase.Idle
-            } else {
-                SpeechToTextPhase.Result
-            }
-    }
-
-    fun discardRecording() {
-        if (phase.value != SpeechToTextPhase.Recorded) {
-            return
-        }
-        audioRecorder.clear()
-        recordedFile = null
-        waveformBuckets.clear()
-        recordingDurationSeconds.floatValue = 0f
-        phase.value =
-            if (resultText.value.isBlank()) {
-                SpeechToTextPhase.Idle
-            } else {
-                SpeechToTextPhase.Result
-            }
-    }
-
-    fun recordNew() {
-        if (isBusyNetwork()) {
-            return
-        }
-        resultText.value = ""
-        errorMessage.value = null
-        infoMessage.value = null
-        audioRecorder.clear()
-        recordedFile = null
-        waveformBuckets.clear()
-        recordingDurationSeconds.floatValue = 0f
-        startRecording(append = false)
-    }
-
-    fun rewrite() {
-        val text = resultText.value
-        if (text.isBlank() || isBusyNetwork()) {
-            return
-        }
-        errorMessage.value = null
-        workJob?.cancel()
-        workJob =
-            viewModelScope.launch {
-                phase.value = SpeechToTextPhase.Rewriting
-                val result =
-                    withContext(Dispatchers.IO) {
-                        runCatching { repository.rewrite(text) }
-                    }
-                result
-                    .onSuccess { rewritten ->
-                        resultText.value = rewritten
-                        phase.value = SpeechToTextPhase.Result
-                    }.onFailure { e ->
-                        errorMessage.value = e.message ?: e.toString()
-                        phase.value = SpeechToTextPhase.Result
-                    }
-            }
-    }
-
-    fun collapseToSingleLine() {
-        val current = resultText.value
-        if (current.isBlank()) {
-            return
-        }
-        resultText.value = SpeechToTextRepository.toSingleLine(current)
-    }
-
-    fun resetSession() {
-        workJob?.cancel()
-        workJob = null
+    fun resetComposerOnly() {
         stopDurationTicker()
         if (audioRecorder.isRecording) {
             audioRecorder.cancel()
         } else {
             audioRecorder.clear()
         }
-        recordedFile = null
+        draftFile = null
         waveformBuckets.clear()
         recordingDurationSeconds.floatValue = 0f
-        phase.value = SpeechToTextPhase.Idle
-        resultText.value = ""
-        errorMessage.value = null
-        infoMessage.value = null
+        composerPhase.value = ComposerPhase.Idle
         hasApiKey.value = isAiConfigured()
+    }
+
+    fun leaveScreen() {
+        recognition.cancelAll()
+        items.forEachIndexed { index, item ->
+            if (item.status == SpeechMessageStatus.Processing) {
+                val restored =
+                    item.copy(
+                        status = SpeechMessageStatus.Recorded,
+                        recognitionStartedAtMs = 0L,
+                        recognitionElapsedMs = 0L,
+                    )
+                items[index] = restored
+                persistItem(restored)
+            }
+        }
+        resetComposerOnly()
+    }
+
+    private fun resolveSaveUpload(item: SpeechQueueItem): SpeechUploadAudio {
+        if (item.mimeType.contains("m4a", ignoreCase = true) && item.audioFile.isFile) {
+            return SpeechUploadAudio(item.audioFile, AudioRecorder.MIME_M4A)
+        }
+        val upload = AudioCompress.prepareForUpload(item.audioFile, item.mimeType)
+        check(upload.mimeType == AudioRecorder.MIME_M4A) { "Could not compress recording" }
+        return upload
+    }
+
+    private fun replaceItem(item: SpeechQueueItem) {
+        val index = items.indexOfFirst { it.id == item.id }
+        if (index >= 0) {
+            items[index] = item
+        }
+    }
+
+    private fun persistItem(item: SpeechQueueItem) {
+        viewModelScope.launch(Dispatchers.IO) {
+            queueStore.update(item)
+        }
+    }
+
+    private fun clearDraftAudio() {
+        if (audioRecorder.isRecording) {
+            audioRecorder.cancel()
+        } else {
+            audioRecorder.clear()
+        }
+        draftFile = null
     }
 
     private fun isAiConfigured(): Boolean = AiConfig.supportsSpeech && AiConfig.hasSpeechApiKey && BothubConfig.hasApiKey
@@ -380,7 +457,7 @@ class SpeechToTextViewModel(
         durationJob?.cancel()
         durationJob =
             viewModelScope.launch {
-                while (isActive && phase.value == SpeechToTextPhase.Recording) {
+                while (isActive && composerPhase.value == ComposerPhase.Recording) {
                     recordingDurationSeconds.floatValue = audioRecorder.durationSeconds()
                     delay(200)
                 }
@@ -392,113 +469,31 @@ class SpeechToTextViewModel(
         durationJob = null
     }
 
-    private fun processRecording(
-        file: File,
-        mimeType: String,
-    ) {
-        workJob?.cancel()
-        phase.value = SpeechToTextPhase.Recognizing
-        workJob =
+    private fun startElapsedTicker() {
+        elapsedTickerJob?.cancel()
+        elapsedTickerJob =
             viewModelScope.launch {
-                val preservedOutcome =
-                    withContext(Dispatchers.IO) {
-                        runCatching {
-                            val upload = AudioCompress.prepareForUpload(file, mimeType)
-                            val pending =
-                                pendingStore.save(
-                                    source = upload.file,
-                                    mimeType = upload.mimeType,
-                                    durationSeconds = recordingDurationSeconds.floatValue,
-                                )
-                            if (upload.temporary &&
-                                upload.file.absolutePath != pending.file.absolutePath
-                            ) {
-                                upload.file.delete()
+                while (isActive) {
+                    val now = System.currentTimeMillis()
+                    items.forEachIndexed { index, item ->
+                        if (item.status == SpeechMessageStatus.Processing &&
+                            item.recognitionStartedAtMs > 0L
+                        ) {
+                            val elapsed = (now - item.recognitionStartedAtMs).coerceAtLeast(0L)
+                            if (elapsed != item.recognitionElapsedMs) {
+                                items[index] = item.copy(recognitionElapsedMs = elapsed)
                             }
-                            pending
                         }
                     }
-                if (preservedOutcome.isFailure) {
-                    errorMessage.value =
-                        preservedOutcome.exceptionOrNull()?.message
-                            ?: preservedOutcome.exceptionOrNull()?.toString()
-                    phase.value = failedRecordingPhase()
-                    return@launch
+                    delay(250)
                 }
-                val pending = preservedOutcome.getOrThrow()
-                pendingRecording.value = pending
-                val transcribedOutcome =
-                    withContext(Dispatchers.IO) {
-                        runCatching { repository.transcribe(pending.file, pending.mimeType) }
-                    }
-                if (transcribedOutcome.isFailure) {
-                    errorMessage.value =
-                        transcribedOutcome.exceptionOrNull()?.message
-                            ?: transcribedOutcome.exceptionOrNull()?.toString()
-                    phase.value = failedRecordingPhase()
-                    return@launch
-                }
-                val transcribed = transcribedOutcome.getOrThrow()
-                phase.value = SpeechToTextPhase.Fixing
-                val fixedOutcome =
-                    withContext(Dispatchers.IO) {
-                        runCatching { repository.fixText(transcribed) }
-                    }
-                fixedOutcome
-                    .onSuccess { fixed ->
-                        withContext(Dispatchers.IO) {
-                            pendingStore.clear()
-                        }
-                        pendingRecording.value = null
-                        cleanupRecording(file)
-                        resultText.value = fixed
-                        phase.value = SpeechToTextPhase.Result
-                    }.onFailure { e ->
-                        errorMessage.value = e.message ?: e.toString()
-                        phase.value = failedRecordingPhase()
-                    }
             }
     }
-
-    private fun resolveSaveUpload(
-        pending: PendingSpeechRecording?,
-        source: File,
-        sourceMime: String,
-    ): SpeechUploadAudio {
-        val pendingM4a =
-            pending?.file?.takeIf {
-                it.isFile && pending.mimeType.contains("m4a", ignoreCase = true)
-            }
-        if (pendingM4a != null) {
-            return SpeechUploadAudio(pendingM4a, AudioRecorder.MIME_M4A)
-        }
-        val upload = AudioCompress.prepareForUpload(source, sourceMime)
-        check(upload.mimeType == AudioRecorder.MIME_M4A) { "Could not compress recording" }
-        return upload
-    }
-
-    private fun failedRecordingPhase(): SpeechToTextPhase = if (audioRecorder.canContinue()) {
-        SpeechToTextPhase.Recorded
-    } else {
-        SpeechToTextPhase.Idle
-    }
-
-    private fun cleanupRecording(file: File) {
-        file.delete()
-        if (recordedFile == file) {
-            recordedFile = null
-        }
-        waveformBuckets.clear()
-        recordingDurationSeconds.floatValue = 0f
-    }
-
-    private fun isBusyNetwork(): Boolean = phase.value == SpeechToTextPhase.Recognizing ||
-        phase.value == SpeechToTextPhase.Fixing ||
-        phase.value == SpeechToTextPhase.Rewriting
 
     override fun onCleared() {
         audioRecorder.setEnvelopeListener(null)
-        resetSession()
+        elapsedTickerJob?.cancel()
+        leaveScreen()
         super.onCleared()
     }
 

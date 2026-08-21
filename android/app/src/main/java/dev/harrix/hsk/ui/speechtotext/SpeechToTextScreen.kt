@@ -72,15 +72,17 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import dev.harrix.hsk.R
 import dev.harrix.hsk.speechtotext.AudioRecorder
+import dev.harrix.hsk.speechtotext.SpeechMessageStatus
+import dev.harrix.hsk.speechtotext.SpeechQueueItem
 import dev.harrix.hsk.speechtotext.WaveformBucket
 import dev.harrix.hsk.ui.AutoFitText
 import dev.harrix.hsk.ui.CompactBottomActionButton
-import dev.harrix.hsk.ui.adaptiveBottomBarWidth
 import dev.harrix.hsk.ui.theme.HskTopAppBarHeight
 import dev.harrix.hsk.ui.theme.hskScaffoldContainerColor
 import dev.harrix.hsk.ui.theme.hskScaffoldContentWindowInsets
 import dev.harrix.hsk.ui.theme.hskTopAppBarColors
 import dev.harrix.hsk.ui.theme.hskTopAppBarWindowInsets
+
 private enum class MicAction {
     Start,
     Continue,
@@ -93,6 +95,8 @@ private val WaveformCenter = Color(0xFF616161)
 private val WaveformFill = Color(0xC84CAF50)
 private val WaveformLiveFill = Color(0xD266BB6A)
 private val WaveformOutline = Color(0xFF81C784)
+private val DoneCardGreen = Color(0xFF2E7D32)
+private val SlowWarningAmber = Color(0xFFFFA000)
 private const val TickTickPackage = "com.ticktick.task"
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -102,14 +106,14 @@ fun SpeechToTextScreen(
     modifier: Modifier = Modifier,
     viewModel: SpeechToTextViewModel = viewModel(),
 ) {
-    var phase by viewModel.phase
-    var resultText by viewModel.resultText
+    val composerPhase by viewModel.composerPhase
     var errorMessage by viewModel.errorMessage
     var infoMessage by viewModel.infoMessage
     var hasApiKey by viewModel.hasApiKey
-    val pendingRecording by viewModel.pendingRecording
     val recordingDurationSeconds by viewModel.recordingDurationSeconds
+    val averageRecognitionMs by viewModel.averageRecognitionMs
     val waveformBuckets = viewModel.waveformBuckets
+    val items = viewModel.items
     val context = LocalContext.current
     val clipboard = LocalClipboardManager.current
     val copiedMessage = stringResource(R.string.speech_to_text_copied)
@@ -120,10 +124,10 @@ fun SpeechToTextScreen(
     var pendingMicAction by remember { mutableStateOf<MicAction?>(null) }
     var pendingOpenAutoStart by remember { mutableStateOf(true) }
     var openAutoStartRequested by remember { mutableStateOf(false) }
-    var pendingReplaceMicAction by remember { mutableStateOf<MicAction?>(null) }
+    var saveTargetId by remember { mutableStateOf<String?>(null) }
 
     fun leave() {
-        viewModel.resetSession()
+        viewModel.leaveScreen()
         onClose()
     }
 
@@ -190,8 +194,14 @@ fun SpeechToTextScreen(
             ActivityResultContracts.CreateDocument(AudioRecorder.MIME_M4A),
         ) { uri ->
             if (uri != null) {
-                viewModel.saveCurrentRecording(uri)
+                val id = saveTargetId
+                if (id != null) {
+                    viewModel.saveItemAudio(id, uri)
+                } else {
+                    viewModel.saveDraftAudio(uri)
+                }
             }
+            saveTargetId = null
         }
 
     fun startOrRequestMic(action: MicAction = MicAction.Start) {
@@ -212,36 +222,13 @@ fun SpeechToTextScreen(
         }
     }
 
-    fun requestStartRecording(action: MicAction = MicAction.Start) {
-        if (pendingRecording != null && action != MicAction.Continue) {
-            pendingReplaceMicAction = action
-            return
-        }
-        startOrRequestMic(action)
-    }
+    BackHandler { leave() }
 
-    BackHandler {
-        when (phase) {
-            SpeechToTextPhase.Recording,
-            SpeechToTextPhase.Recorded,
-            -> leave()
-
-            SpeechToTextPhase.Recognizing,
-            SpeechToTextPhase.Fixing,
-            SpeechToTextPhase.Rewriting,
-            -> Unit
-
-            else -> leave()
-        }
-    }
-
-    // Start capture once when the utility opens.
     val canAutoStartRecording =
         pendingOpenAutoStart &&
             !openAutoStartRequested &&
-            phase == SpeechToTextPhase.Idle &&
+            composerPhase == ComposerPhase.Idle &&
             hasApiKey &&
-            pendingRecording == null &&
             errorMessage == null
     LaunchedEffect(canAutoStartRecording) {
         if (!canAutoStartRecording) {
@@ -251,8 +238,8 @@ fun SpeechToTextScreen(
         startOrRequestMic(MicAction.Start)
     }
 
-    LaunchedEffect(phase) {
-        if (phase != SpeechToTextPhase.Idle) {
+    LaunchedEffect(composerPhase) {
+        if (composerPhase != ComposerPhase.Idle) {
             pendingOpenAutoStart = false
         }
     }
@@ -279,13 +266,7 @@ fun SpeechToTextScreen(
                 windowInsets = hskTopAppBarWindowInsets(),
                 expandedHeight = HskTopAppBarHeight,
                 navigationIcon = {
-                    IconButton(
-                        onClick = { leave() },
-                        enabled =
-                        phase != SpeechToTextPhase.Recognizing &&
-                            phase != SpeechToTextPhase.Fixing &&
-                            phase != SpeechToTextPhase.Rewriting,
-                    ) {
+                    IconButton(onClick = { leave() }) {
                         Icon(
                             imageVector = Icons.Filled.Close,
                             contentDescription = stringResource(R.string.speech_to_text_close),
@@ -311,118 +292,68 @@ fun SpeechToTextScreen(
                 )
                 Spacer(modifier = Modifier.height(12.dp))
             }
-            pendingRecording?.let { pending ->
-                PendingRecordingBanner(
-                    durationLabel = AudioRecorder.formatDuration(pending.durationSeconds),
-                    retryEnabled =
-                    hasApiKey &&
-                        (
-                            phase == SpeechToTextPhase.Idle ||
-                                phase == SpeechToTextPhase.Recorded ||
-                                phase == SpeechToTextPhase.Result
-                            ),
-                    discardEnabled =
-                    phase != SpeechToTextPhase.Recognizing &&
-                        phase != SpeechToTextPhase.Fixing &&
-                        phase != SpeechToTextPhase.Rewriting,
-                    onRetry = { viewModel.retryPendingRecording() },
-                    onDiscard = {
-                        pendingOpenAutoStart = false
-                        viewModel.discardPendingRecording()
-                    },
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-            }
 
-            when (phase) {
-                SpeechToTextPhase.Idle -> {
-                    val idleStarting =
-                        hasApiKey &&
-                            pendingRecording == null &&
-                            errorMessage == null &&
-                            pendingOpenAutoStart
-                    IdleContent(
-                        starting = idleStarting,
-                        showStartButton =
-                        hasApiKey &&
-                            !idleStarting &&
-                            (pendingRecording != null || !pendingOpenAutoStart),
-                        onStartRecording = { requestStartRecording(MicAction.Start) },
+            Column(
+                modifier =
+                Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                if (items.isEmpty()) {
+                    Text(
+                        text = stringResource(R.string.speech_to_text_empty_queue),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp),
                     )
                 }
-
-                SpeechToTextPhase.Recording -> {
-                    RecordingContent(
-                        buckets = waveformBuckets,
-                        durationLabel = AudioRecorder.formatDuration(recordingDurationSeconds),
-                        live = true,
-                        onStop = { viewModel.stopRecording() },
-                        onCancel = { leave() },
-                    )
-                }
-
-                SpeechToTextPhase.Recorded -> {
-                    RecordedContent(
-                        buckets = waveformBuckets,
-                        durationLabel = AudioRecorder.formatDuration(recordingDurationSeconds),
-                        onContinue = { startOrRequestMic(MicAction.Continue) },
-                        onRerecord = { requestStartRecording(MicAction.Rerecord) },
-                        onRecognize = { viewModel.recognizeRecording() },
-                        onSave = {
-                            saveAudioLauncher.launch(viewModel.suggestedAudioFileName())
-                        },
-                        onDiscard = { leave() },
-                    )
-                }
-
-                SpeechToTextPhase.Recognizing,
-                SpeechToTextPhase.Fixing,
-                SpeechToTextPhase.Rewriting,
-                -> {
-                    BusyContent(phase = phase)
-                }
-
-                SpeechToTextPhase.Result -> {
-                    ResultContent(
-                        text = resultText,
-                        onTextChange = { resultText = it },
+                items.asReversed().forEach { item ->
+                    SpeechMessageCard(
+                        item = item,
+                        averageRecognitionMs = averageRecognitionMs,
+                        hasApiKey = hasApiKey,
+                        onRecognize = { viewModel.recognize(item.id) },
+                        onCancel = { viewModel.cancelRecognition(item.id) },
+                        onDelete = { viewModel.deleteItem(item.id) },
+                        onTextChange = { viewModel.updateItemText(item.id, it) },
                         onCopy = {
-                            clipboard.setText(AnnotatedString(resultText))
+                            clipboard.setText(AnnotatedString(item.text))
                             showToast(copiedMessage)
                         },
-                        onShare = { shareResultText(resultText) },
-                        onSendToTickTick = { sendResultToTickTick(resultText) },
-                        onRewrite = { viewModel.rewrite() },
-                        onRecordNew = { requestStartRecording(MicAction.Start) },
-                        onSingleLine = { viewModel.collapseToSingleLine() },
+                        onShare = { shareResultText(item.text) },
+                        onSendToTickTick = { sendResultToTickTick(item.text) },
+                        onRewrite = { viewModel.rewriteItem(item.id) },
+                        onSingleLine = { viewModel.collapseItemToSingleLine(item.id) },
+                        onSave = {
+                            saveTargetId = item.id
+                            saveAudioLauncher.launch(viewModel.suggestedAudioFileName(item.id))
+                        },
                     )
                 }
             }
-        }
-    }
 
-    pendingReplaceMicAction?.let { action ->
-        AlertDialog(
-            onDismissRequest = { pendingReplaceMicAction = null },
-            title = { Text(stringResource(R.string.speech_to_text_pending_replace_title)) },
-            text = { Text(stringResource(R.string.speech_to_text_pending_replace_message)) },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        pendingReplaceMicAction = null
-                        viewModel.discardPendingRecording()
-                        startOrRequestMic(action)
-                    },
-                ) {
-                    Text(stringResource(R.string.speech_to_text_pending_replace_confirm))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { pendingReplaceMicAction = null }) {
-                    Text(stringResource(R.string.speech_to_text_pending_replace_cancel))
-                }
-            },
-        )
+            Spacer(modifier = Modifier.height(12.dp))
+            ComposerBar(
+                phase = composerPhase,
+                hasApiKey = hasApiKey,
+                buckets = waveformBuckets,
+                durationLabel = AudioRecorder.formatDuration(recordingDurationSeconds),
+                onStart = { startOrRequestMic(MicAction.Start) },
+                onStop = { viewModel.stopRecording() },
+                onCancelRecording = { viewModel.cancelRecording() },
+                onContinue = { startOrRequestMic(MicAction.Continue) },
+                onRerecord = { startOrRequestMic(MicAction.Rerecord) },
+                onRecognize = { viewModel.enqueueDraftAndRecognize() },
+                onSaveDraft = {
+                    saveTargetId = null
+                    saveAudioLauncher.launch(viewModel.suggestedAudioFileName())
+                },
+                onDiscard = { viewModel.discardDraft() },
+            )
+        }
     }
 
     errorMessage?.let { message ->
@@ -440,167 +371,142 @@ fun SpeechToTextScreen(
 }
 
 @Composable
-private fun PendingRecordingBanner(
+private fun ComposerBar(
+    phase: ComposerPhase,
+    hasApiKey: Boolean,
+    buckets: List<WaveformBucket>,
     durationLabel: String,
-    retryEnabled: Boolean,
-    discardEnabled: Boolean,
-    onRetry: () -> Unit,
+    onStart: () -> Unit,
+    onStop: () -> Unit,
+    onCancelRecording: () -> Unit,
+    onContinue: () -> Unit,
+    onRerecord: () -> Unit,
+    onRecognize: () -> Unit,
+    onSaveDraft: () -> Unit,
     onDiscard: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.tertiaryContainer,
-        contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+        tonalElevation = 2.dp,
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(modifier = Modifier.weight(1f).padding(start = 4.dp)) {
-                Text(
-                    text = stringResource(R.string.speech_to_text_pending_recording),
-                    style = MaterialTheme.typography.titleSmall,
-                )
-                Text(
-                    text = durationLabel,
-                    style = MaterialTheme.typography.bodySmall,
-                )
-            }
-            IconButton(
-                onClick = onDiscard,
-                enabled = discardEnabled,
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.Close,
-                    contentDescription = stringResource(R.string.speech_to_text_pending_discard),
-                )
-            }
-            Button(
-                onClick = onRetry,
-                enabled = retryEnabled,
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.Refresh,
-                    contentDescription = null,
-                )
-                Spacer(modifier = Modifier.size(8.dp))
-                Text(stringResource(R.string.speech_to_text_pending_retry))
-            }
-        }
-    }
-}
-
-@Composable
-private fun IdleContent(
-    starting: Boolean,
-    showStartButton: Boolean,
-    onStartRecording: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Column(
-        modifier = modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Text(
-            text = stringResource(R.string.speech_to_text_idle_message),
-            style = MaterialTheme.typography.bodyLarge,
-            textAlign = TextAlign.Center,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.fillMaxWidth(),
-        )
-        if (starting) {
-            Spacer(modifier = Modifier.height(24.dp))
-            CircularProgressIndicator()
-            Spacer(modifier = Modifier.height(12.dp))
-            Text(
-                text = stringResource(R.string.speech_to_text_starting),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        } else if (showStartButton) {
-            Spacer(modifier = Modifier.height(24.dp))
-            Button(onClick = onStartRecording) {
-                Icon(
-                    imageVector = Icons.Filled.Mic,
-                    contentDescription = null,
-                    modifier = Modifier.size(20.dp),
-                )
-                Spacer(modifier = Modifier.size(8.dp))
-                Text(stringResource(R.string.speech_to_text_start_recording))
-            }
-        }
-    }
-}
-
-@Composable
-private fun RecordingContent(
-    buckets: List<WaveformBucket>,
-    durationLabel: String,
-    live: Boolean,
-    onStop: () -> Unit,
-    onCancel: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Column(modifier = modifier.fillMaxSize()) {
         Column(
             modifier =
             Modifier
-                .weight(1f)
                 .fillMaxWidth()
-                .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally,
+                .padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Text(
-                text = stringResource(R.string.speech_to_text_recording),
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.error,
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = durationLabel,
-                style = MaterialTheme.typography.headlineMedium,
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-            WaveformView(
-                buckets = buckets,
-                live = live,
-                modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .height(96.dp),
-            )
-        }
-        Spacer(modifier = Modifier.height(12.dp))
-        Box(
-            modifier = Modifier.fillMaxWidth(),
-            contentAlignment = Alignment.Center,
-        ) {
-            Column(
-                modifier = Modifier.adaptiveBottomBarWidth(),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Button(
-                    onClick = onStop,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.Stop,
-                        contentDescription = null,
-                        modifier = Modifier.size(20.dp),
+            when (phase) {
+                ComposerPhase.Idle -> {
+                    Text(
+                        text = stringResource(R.string.speech_to_text_idle_message),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                    Spacer(modifier = Modifier.size(8.dp))
-                    Text(stringResource(R.string.speech_to_text_stop))
+                    Button(
+                        onClick = onStart,
+                        enabled = hasApiKey,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Mic,
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp),
+                        )
+                        Spacer(modifier = Modifier.size(8.dp))
+                        Text(stringResource(R.string.speech_to_text_start_recording))
+                    }
                 }
-                OutlinedButton(
-                    onClick = onCancel,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text(stringResource(R.string.speech_to_text_cancel_recording))
+
+                ComposerPhase.Recording -> {
+                    Text(
+                        text = stringResource(R.string.speech_to_text_recording),
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                    Text(
+                        text = durationLabel,
+                        style = MaterialTheme.typography.headlineSmall,
+                    )
+                    WaveformView(
+                        buckets = buckets,
+                        live = true,
+                        modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .height(72.dp),
+                    )
+                    Button(onClick = onStop, modifier = Modifier.fillMaxWidth()) {
+                        Icon(
+                            imageVector = Icons.Filled.Stop,
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp),
+                        )
+                        Spacer(modifier = Modifier.size(8.dp))
+                        Text(stringResource(R.string.speech_to_text_stop))
+                    }
+                    OutlinedButton(onClick = onCancelRecording, modifier = Modifier.fillMaxWidth()) {
+                        Text(stringResource(R.string.speech_to_text_cancel_recording))
+                    }
+                }
+
+                ComposerPhase.Recorded -> {
+                    Text(
+                        text = stringResource(R.string.speech_to_text_recorded_ready),
+                        style = MaterialTheme.typography.titleSmall,
+                    )
+                    Text(
+                        text = durationLabel,
+                        style = MaterialTheme.typography.headlineSmall,
+                    )
+                    WaveformView(
+                        buckets = buckets,
+                        live = false,
+                        modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .height(72.dp),
+                    )
+                    Button(
+                        onClick = onRecognize,
+                        enabled = hasApiKey,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(stringResource(R.string.speech_to_text_recognize))
+                    }
+                    OutlinedButton(onClick = onSaveDraft, modifier = Modifier.fillMaxWidth()) {
+                        Icon(
+                            imageVector = Icons.Filled.Save,
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp),
+                        )
+                        Spacer(modifier = Modifier.size(8.dp))
+                        Text(stringResource(R.string.speech_to_text_save_audio))
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        CompactBottomActionButton(
+                            onClick = onContinue,
+                            icon = Icons.Filled.PlayArrow,
+                            label = stringResource(R.string.speech_to_text_continue),
+                        )
+                        CompactBottomActionButton(
+                            onClick = onRerecord,
+                            icon = Icons.Filled.Refresh,
+                            label = stringResource(R.string.speech_to_text_rerecord),
+                            outlined = true,
+                        )
+                        CompactBottomActionButton(
+                            onClick = onDiscard,
+                            icon = Icons.Filled.Delete,
+                            label = stringResource(R.string.speech_to_text_discard_recording),
+                            outlined = true,
+                        )
+                    }
                 }
             }
         }
@@ -608,94 +514,203 @@ private fun RecordingContent(
 }
 
 @Composable
-private fun RecordedContent(
-    buckets: List<WaveformBucket>,
-    durationLabel: String,
-    onContinue: () -> Unit,
-    onRerecord: () -> Unit,
+private fun SpeechMessageCard(
+    item: SpeechQueueItem,
+    averageRecognitionMs: Long,
+    hasApiKey: Boolean,
     onRecognize: () -> Unit,
+    onCancel: () -> Unit,
+    onDelete: () -> Unit,
+    onTextChange: (String) -> Unit,
+    onCopy: () -> Unit,
+    onShare: () -> Unit,
+    onSendToTickTick: () -> Unit,
+    onRewrite: () -> Unit,
+    onSingleLine: () -> Unit,
     onSave: () -> Unit,
-    onDiscard: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier = modifier.fillMaxSize()) {
-        Column(
-            modifier =
-            Modifier
-                .weight(1f)
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Text(
-                text = stringResource(R.string.speech_to_text_recorded_ready),
-                style = MaterialTheme.typography.titleMedium,
-                textAlign = TextAlign.Center,
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = durationLabel,
-                style = MaterialTheme.typography.headlineMedium,
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-            WaveformView(
-                buckets = buckets,
-                live = false,
-                modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .height(96.dp),
-            )
+    val isSlow =
+        item.status == SpeechMessageStatus.Processing &&
+            averageRecognitionMs > 0L &&
+            item.recognitionElapsedMs > averageRecognitionMs
+    val containerColor =
+        when {
+            item.status == SpeechMessageStatus.Done -> DoneCardGreen.copy(alpha = 0.18f)
+            isSlow -> SlowWarningAmber.copy(alpha = 0.22f)
+            item.status == SpeechMessageStatus.Error -> MaterialTheme.colorScheme.errorContainer
+            else -> MaterialTheme.colorScheme.surfaceVariant
         }
-        Spacer(modifier = Modifier.height(12.dp))
-        Box(
-            modifier = Modifier.fillMaxWidth(),
-            contentAlignment = Alignment.Center,
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        color = containerColor,
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Column(
-                modifier = Modifier.adaptiveBottomBarWidth(),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Button(
-                    onClick = onRecognize,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text(stringResource(R.string.speech_to_text_recognize))
-                }
-                OutlinedButton(
-                    onClick = onSave,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
+                Text(
+                    text = AudioRecorder.formatDuration(item.audioDurationSeconds),
+                    style = MaterialTheme.typography.labelLarge,
+                )
+                IconButton(onClick = onDelete) {
                     Icon(
-                        imageVector = Icons.Filled.Save,
-                        contentDescription = null,
-                        modifier = Modifier.size(20.dp),
+                        imageVector = Icons.Filled.Delete,
+                        contentDescription = stringResource(R.string.speech_to_text_delete_message),
                     )
-                    Spacer(modifier = Modifier.size(8.dp))
-                    Text(stringResource(R.string.speech_to_text_save_audio))
                 }
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    CompactBottomActionButton(
-                        onClick = onContinue,
-                        icon = Icons.Filled.PlayArrow,
-                        label = stringResource(R.string.speech_to_text_continue),
+            }
+
+            when (item.status) {
+                SpeechMessageStatus.Processing -> {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        CircularProgressIndicator(
+                            color = if (isSlow) SlowWarningAmber else MaterialTheme.colorScheme.primary,
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = formatElapsed(item.recognitionElapsedMs),
+                            style = MaterialTheme.typography.titleMedium,
+                        )
+                        Text(
+                            text = stringResource(R.string.speech_to_text_recognizing),
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                        if (isSlow) {
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = stringResource(R.string.speech_to_text_slow_warning),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = SlowWarningAmber,
+                                textAlign = TextAlign.Center,
+                            )
+                        }
+                    }
+                    OutlinedButton(onClick = onCancel, modifier = Modifier.fillMaxWidth()) {
+                        Text(stringResource(R.string.speech_to_text_cancel_recognition))
+                    }
+                }
+
+                SpeechMessageStatus.Done -> {
+                    OutlinedTextField(
+                        value = item.text,
+                        onValueChange = onTextChange,
+                        modifier = Modifier.fillMaxWidth().height(140.dp),
+                        textStyle = MaterialTheme.typography.bodyMedium,
+                        label = { Text(stringResource(R.string.speech_to_text_result_label)) },
                     )
-                    CompactBottomActionButton(
-                        onClick = onRerecord,
-                        icon = Icons.Filled.Refresh,
-                        label = stringResource(R.string.speech_to_text_rerecord),
-                        outlined = true,
+                    if (item.lastRecognitionDurationMs > 0L) {
+                        Text(
+                            text = formatElapsed(item.lastRecognitionDurationMs),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        CompactBottomActionButton(
+                            onClick = onCopy,
+                            icon = Icons.Filled.ContentCopy,
+                            label = stringResource(R.string.speech_to_text_copy),
+                        )
+                        CompactBottomActionButton(
+                            onClick = onShare,
+                            icon = Icons.Filled.Share,
+                            label = stringResource(R.string.speech_to_text_share),
+                            outlined = true,
+                        )
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        CompactBottomActionButton(
+                            onClick = onRewrite,
+                            icon = Icons.Filled.AutoFixHigh,
+                            label = stringResource(R.string.speech_to_text_rewrite),
+                            outlined = true,
+                            enabled = hasApiKey,
+                        )
+                        CompactBottomActionButton(
+                            onClick = onSingleLine,
+                            icon = Icons.AutoMirrored.Filled.ShortText,
+                            label = stringResource(R.string.speech_to_text_single_line),
+                            outlined = true,
+                        )
+                    }
+                    OutlinedButton(onClick = onSendToTickTick, modifier = Modifier.fillMaxWidth()) {
+                        Icon(
+                            imageVector = Icons.Filled.TaskAlt,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                        )
+                        Spacer(modifier = Modifier.size(6.dp))
+                        Text(stringResource(R.string.speech_to_text_send_to_ticktick))
+                    }
+                    OutlinedButton(onClick = onSave, modifier = Modifier.fillMaxWidth()) {
+                        Icon(
+                            imageVector = Icons.Filled.Save,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                        )
+                        Spacer(modifier = Modifier.size(6.dp))
+                        Text(stringResource(R.string.speech_to_text_save_audio))
+                    }
+                }
+
+                SpeechMessageStatus.Recorded,
+                SpeechMessageStatus.Cancelled,
+                SpeechMessageStatus.Error,
+                -> {
+                    val statusText =
+                        when (item.status) {
+                            SpeechMessageStatus.Cancelled ->
+                                stringResource(R.string.speech_to_text_status_cancelled)
+
+                            SpeechMessageStatus.Error ->
+                                item.errorMessage.ifBlank {
+                                    stringResource(R.string.speech_to_text_status_error)
+                                }
+
+                            else -> stringResource(R.string.speech_to_text_status_recorded)
+                        }
+                    Text(
+                        text = statusText,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color =
+                        if (item.status == SpeechMessageStatus.Error) {
+                            MaterialTheme.colorScheme.error
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
                     )
-                    CompactBottomActionButton(
-                        onClick = onDiscard,
-                        icon = Icons.Filled.Delete,
-                        label = stringResource(R.string.speech_to_text_discard_recording),
-                        outlined = true,
-                    )
+                    Button(
+                        onClick = onRecognize,
+                        enabled = hasApiKey,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(stringResource(R.string.speech_to_text_recognize))
+                    }
+                    OutlinedButton(onClick = onSave, modifier = Modifier.fillMaxWidth()) {
+                        Icon(
+                            imageVector = Icons.Filled.Save,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                        )
+                        Spacer(modifier = Modifier.size(6.dp))
+                        Text(stringResource(R.string.speech_to_text_save_audio))
+                    }
                 }
             }
         }
@@ -770,125 +785,9 @@ private fun WaveformView(
     }
 }
 
-@Composable
-private fun BusyContent(
-    phase: SpeechToTextPhase,
-    modifier: Modifier = Modifier,
-) {
-    val messageRes =
-        when (phase) {
-            SpeechToTextPhase.Recognizing -> R.string.speech_to_text_recognizing
-            SpeechToTextPhase.Fixing -> R.string.speech_to_text_fixing
-            SpeechToTextPhase.Rewriting -> R.string.speech_to_text_rewriting
-            else -> R.string.speech_to_text_recognizing
-        }
-    Box(
-        modifier = modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center,
-    ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            CircularProgressIndicator()
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                text = stringResource(messageRes),
-                style = MaterialTheme.typography.bodyLarge,
-            )
-        }
-    }
-}
-
-@Composable
-private fun ResultContent(
-    text: String,
-    onTextChange: (String) -> Unit,
-    onCopy: () -> Unit,
-    onShare: () -> Unit,
-    onSendToTickTick: () -> Unit,
-    onRewrite: () -> Unit,
-    onRecordNew: () -> Unit,
-    onSingleLine: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Column(modifier = modifier.fillMaxSize()) {
-        OutlinedTextField(
-            value = text,
-            onValueChange = onTextChange,
-            modifier =
-            Modifier
-                .weight(1f)
-                .fillMaxWidth(),
-            textStyle = MaterialTheme.typography.bodyLarge,
-            label = { Text(stringResource(R.string.speech_to_text_result_label)) },
-        )
-        Spacer(modifier = Modifier.height(12.dp))
-        Box(
-            modifier = Modifier.fillMaxWidth(),
-            contentAlignment = Alignment.Center,
-        ) {
-            Column(
-                modifier = Modifier.adaptiveBottomBarWidth(),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Button(
-                    onClick = onRecordNew,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.Mic,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp),
-                    )
-                    Spacer(modifier = Modifier.size(6.dp))
-                    Text(stringResource(R.string.speech_to_text_record_new))
-                }
-                OutlinedButton(
-                    onClick = onSendToTickTick,
-                    enabled = text.isNotBlank(),
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.TaskAlt,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp),
-                    )
-                    Spacer(modifier = Modifier.size(6.dp))
-                    Text(stringResource(R.string.speech_to_text_send_to_ticktick))
-                }
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    CompactBottomActionButton(
-                        onClick = onCopy,
-                        icon = Icons.Filled.ContentCopy,
-                        label = stringResource(R.string.speech_to_text_copy),
-                    )
-                    CompactBottomActionButton(
-                        onClick = onShare,
-                        icon = Icons.Filled.Share,
-                        label = stringResource(R.string.speech_to_text_share),
-                        enabled = text.isNotBlank(),
-                        outlined = true,
-                    )
-                }
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    CompactBottomActionButton(
-                        onClick = onRewrite,
-                        icon = Icons.Filled.AutoFixHigh,
-                        label = stringResource(R.string.speech_to_text_rewrite),
-                        outlined = true,
-                    )
-                    CompactBottomActionButton(
-                        onClick = onSingleLine,
-                        icon = Icons.AutoMirrored.Filled.ShortText,
-                        label = stringResource(R.string.speech_to_text_single_line),
-                        outlined = true,
-                    )
-                }
-            }
-        }
-    }
+private fun formatElapsed(elapsedMs: Long): String {
+    val totalSeconds = (elapsedMs / 1000L).coerceAtLeast(0L).toInt()
+    val minutes = totalSeconds / 60
+    val seconds = totalSeconds % 60
+    return "%d:%02d".format(minutes, seconds)
 }

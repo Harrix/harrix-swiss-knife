@@ -181,7 +181,7 @@
     <string name="speech_to_text_widget_label">Speech to Text</string>
     <string name="speech_to_text_widget_description">Open Speech to Text with AI</string>
     <string name="speech_to_text_close">Exit Speech to Text</string>
-    <string name="speech_to_text_idle_message">La grabación comienza automáticamente. Hable y luego detenga. Puede continuar o volver a grabar antes del reconocimiento.</string>
+    <string name="speech_to_text_idle_message">Record speech, then recognize. You can start the next recording while previous ones are still processing.</string>
     <string name="speech_to_text_starting">Iniciando grabación…</string>
     <string name="speech_to_text_stop">Stop</string>
     <string name="speech_to_text_cancel_recording">Cancel</string>
@@ -211,14 +211,15 @@
     <string name="speech_to_text_error_ok">OK</string>
     <string name="speech_to_text_permission_denied">Microphone permission is required to record speech.</string>
     <string name="speech_to_text_missing_api_key">AI API key is missing. Create api-keys/bothub-api-key.txt (or set BOTHUB_API_KEY) and rebuild the APK.</string>
-    <string name="speech_to_text_pending_recording">Grabación no enviada</string>
-    <string name="speech_to_text_pending_retry">Reintentar envío</string>
-    <string name="speech_to_text_pending_discard">Discard unsent recording</string>
     <string name="speech_to_text_start_recording">Start recording</string>
-    <string name="speech_to_text_pending_replace_title">Replace unsent recording?</string>
-    <string name="speech_to_text_pending_replace_message">Starting a new recording will delete the unsent audio. You can still retry sending it instead.</string>
-    <string name="speech_to_text_pending_replace_confirm">Delete and record</string>
-    <string name="speech_to_text_pending_replace_cancel">Cancel</string>    <string name="photo_editor_share_label">Harrix Photo Editor</string>
+    <string name="speech_to_text_cancel_recognition">Cancel recognition</string>
+    <string name="speech_to_text_delete_message">Delete message</string>
+    <string name="speech_to_text_status_recorded">Ready to recognize</string>
+    <string name="speech_to_text_status_cancelled">Cancelled</string>
+    <string name="speech_to_text_status_error">Recognition failed</string>
+    <string name="speech_to_text_slow_warning">Recognition is taking longer than usual. You can cancel and record again.</string>
+    <string name="speech_to_text_empty_queue">No messages yet. Start recording below.</string>
+    <string name="photo_editor_share_label">Harrix Photo Editor</string>
     <string name="photo_editor_title">Photo Editor</string>
     <string name="photo_editor_close">Salir de Photo Editor</string>
     <string name="photo_editor_back_to_gallery">Volver a la galería</string>

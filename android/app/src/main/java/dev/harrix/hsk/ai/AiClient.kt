@@ -1,6 +1,7 @@
 package dev.harrix.hsk.ai
 
 import android.util.Base64
+import okhttp3.Call
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
@@ -9,7 +10,9 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
+import kotlin.coroutines.cancellation.CancellationException
 
 class AiApiException(
     message: String,
@@ -23,12 +26,15 @@ class AiApiException(
 class AiClient(
     private val httpClient: OkHttpClient = defaultHttpClient(),
 ) {
+    private val activeCalls = ConcurrentHashMap<String, Call>()
+
     fun chatCompletion(
         model: String,
         text: String,
         audio: Pair<ByteArray, String>? = null,
         images: List<Pair<ByteArray, String>>? = null,
         forSpeech: Boolean = audio != null,
+        cancellationKey: String? = null,
     ): String {
         val provider = if (forSpeech) AiConfig.speechProvider else AiConfig.provider
         val apiKey = if (forSpeech) AiConfig.speechApiKey else AiConfig.apiKey
@@ -45,7 +51,7 @@ class AiClient(
         return when (provider) {
             AiConfig.PROVIDER_OPENAI ->
                 if (audio != null) {
-                    openaiTranscribe(apiKey, baseUrl, model, text, audio)
+                    openaiTranscribe(apiKey, baseUrl, model, text, audio, cancellationKey)
                 } else {
                     openaiChat(
                         apiKey,
@@ -55,14 +61,15 @@ class AiClient(
                         audio = null,
                         images = images,
                         allowAudioAsImageUrl = false,
+                        cancellationKey = cancellationKey,
                     )
                 }
 
             AiConfig.PROVIDER_ANTHROPIC ->
-                anthropicMessages(apiKey, baseUrl, model, text, images)
+                anthropicMessages(apiKey, baseUrl, model, text, images, cancellationKey)
 
             AiConfig.PROVIDER_GEMINI ->
-                geminiGenerate(apiKey, baseUrl, model, text, audio, images)
+                geminiGenerate(apiKey, baseUrl, model, text, audio, images, cancellationKey)
 
             else ->
                 openaiChat(
@@ -73,8 +80,14 @@ class AiClient(
                     audio,
                     images,
                     allowAudioAsImageUrl = true,
+                    cancellationKey = cancellationKey,
                 )
         }
+    }
+
+    /** Cancel an in-flight request previously started with [cancellationKey]. */
+    fun cancel(cancellationKey: String) {
+        activeCalls.remove(cancellationKey)?.cancel()
     }
 
     private fun openaiChat(
@@ -85,6 +98,7 @@ class AiClient(
         audio: Pair<ByteArray, String>?,
         images: List<Pair<ByteArray, String>>?,
         allowAudioAsImageUrl: Boolean,
+        cancellationKey: String? = null,
     ): String {
         val messageContent =
             buildOpenAiMessageContent(text, audio, images, allowAudioAsImageUrl)
@@ -109,6 +123,7 @@ class AiClient(
                     "Authorization" to "Bearer ${apiKey.trim()}",
                     "Accept" to "application/json",
                 ),
+                cancellationKey = cancellationKey,
             )
         return parseOpenAiChatResponse(raw)
     }
@@ -119,6 +134,7 @@ class AiClient(
         model: String,
         prompt: String,
         audio: Pair<ByteArray, String>,
+        cancellationKey: String? = null,
     ): String {
         val (bytes, mime) = audio
         val filename = filenameForMime(mime)
@@ -144,7 +160,7 @@ class AiClient(
                 .header("Accept", "application/json")
                 .post(bodyBuilder.build())
                 .build()
-        val raw = execute(request)
+        val raw = execute(request, cancellationKey)
         return parseWhisperResponse(raw)
     }
 
@@ -154,6 +170,7 @@ class AiClient(
         model: String,
         text: String,
         images: List<Pair<ByteArray, String>>?,
+        cancellationKey: String? = null,
     ): String {
         val content = JSONArray()
         images.orEmpty().forEach { (bytes, mime) ->
@@ -194,6 +211,7 @@ class AiClient(
                     "anthropic-version" to "2023-06-01",
                     "Accept" to "application/json",
                 ),
+                cancellationKey = cancellationKey,
             )
         return parseAnthropicResponse(raw)
     }
@@ -205,6 +223,7 @@ class AiClient(
         text: String,
         audio: Pair<ByteArray, String>?,
         images: List<Pair<ByteArray, String>>?,
+        cancellationKey: String? = null,
     ): String {
         val parts = JSONArray().put(JSONObject().put("text", text))
         images.orEmpty().forEach { (bytes, mime) ->
@@ -248,6 +267,7 @@ class AiClient(
                 url = url,
                 payload = payload,
                 headers = mapOf("Accept" to "application/json"),
+                cancellationKey = cancellationKey,
             )
         return parseGeminiResponse(raw)
     }
@@ -298,6 +318,7 @@ class AiClient(
         url: String,
         payload: JSONObject,
         headers: Map<String, String>,
+        cancellationKey: String? = null,
     ): String {
         val body = payload.toString().toRequestBody(JSON_MEDIA_TYPE)
         val builder =
@@ -307,23 +328,67 @@ class AiClient(
                 .header("Content-Type", "application/json")
                 .post(body)
         headers.forEach { (name, value) -> builder.header(name, value) }
-        return execute(builder.build())
+        return execute(builder.build(), cancellationKey)
     }
 
-    private fun execute(request: Request): String {
-        val httpResult =
+    private fun execute(
+        request: Request,
+        cancellationKey: String? = null,
+    ): String {
+        val call = httpClient.newCall(request)
+        if (cancellationKey != null) {
+            activeCalls[cancellationKey]?.cancel()
+            activeCalls[cancellationKey] = call
+        }
+        return try {
+            runCall(call)
+        } finally {
+            if (cancellationKey != null) {
+                activeCalls.remove(cancellationKey, call)
+            }
+        }
+    }
+
+    private fun runCall(call: Call): String {
+        val result =
             runCatching {
-                httpClient.newCall(request).execute().use { response ->
+                call.execute().use { response ->
                     response.code to response.body?.string().orEmpty()
                 }
-            }.getOrElse { error ->
-                throw AiApiException(error.message ?: "Network error", error)
             }
-        val (code, raw) = httpResult
+        return result.fold(
+            onSuccess = { (code, raw) ->
+                ensureNotCanceled(call)
+                requireSuccessfulHttp(code, raw)
+            },
+            onFailure = { error -> mapCallFailure(call, error) },
+        )
+    }
+
+    private fun ensureNotCanceled(call: Call) {
+        if (call.isCanceled()) {
+            throw CancellationException("AI request cancelled")
+        }
+    }
+
+    private fun requireSuccessfulHttp(
+        code: Int,
+        raw: String,
+    ): String {
         if (code !in 200..299) {
             throw AiApiException("HTTP $code: ${raw.take(500)}")
         }
         return raw
+    }
+
+    private fun mapCallFailure(
+        call: Call,
+        error: Throwable,
+    ): String {
+        if (call.isCanceled() || error is CancellationException) {
+            throw CancellationException("AI request cancelled", error)
+        }
+        throw AiApiException(error.message ?: "Network error", error)
     }
 
     private fun parseOpenAiChatResponse(raw: String): String {

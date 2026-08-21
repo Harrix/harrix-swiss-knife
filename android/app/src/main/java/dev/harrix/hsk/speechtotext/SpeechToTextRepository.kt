@@ -39,6 +39,7 @@ class SpeechToTextRepository(
     fun transcribe(
         audioFile: File,
         mimeType: String = AudioRecorder.MIME_WAV,
+        cancellationKey: String? = null,
     ): String {
         requireApiKey(forSpeech = true)
         val upload = AudioCompress.prepareForUpload(audioFile, mimeType)
@@ -52,6 +53,7 @@ class SpeechToTextRepository(
                     model = BothubConfig.speechModel,
                     text = BothubPrompts.TRANSCRIPTION,
                     audio = bytes to upload.mimeType,
+                    cancellationKey = cancellationKey,
                 )
             if (transcribed.isBlank()) {
                 throw BothubApiException("Empty transcription from AI")
@@ -64,12 +66,16 @@ class SpeechToTextRepository(
         }
     }
 
-    fun fixText(text: String): String {
+    fun fixText(
+        text: String,
+        cancellationKey: String? = null,
+    ): String {
         requireApiKey()
         val fixed =
             client.chatCompletion(
                 model = BothubConfig.model,
                 text = BothubPrompts.buildTextFixPrompt(context, text),
+                cancellationKey = cancellationKey,
             )
         if (fixed.isBlank()) {
             throw BothubApiException("Empty response from AI")
@@ -77,17 +83,25 @@ class SpeechToTextRepository(
         return fixed
     }
 
-    fun rewrite(text: String): String {
+    fun rewrite(
+        text: String,
+        cancellationKey: String? = null,
+    ): String {
         requireApiKey()
         val rewritten =
             client.chatCompletion(
                 model = BothubConfig.model,
                 text = BothubPrompts.buildTextRewritePrompt(context, text),
+                cancellationKey = cancellationKey,
             )
         if (rewritten.isBlank()) {
             throw BothubApiException("Empty response from AI")
         }
         return rewritten
+    }
+
+    fun cancel(cancellationKey: String) {
+        client.cancel(cancellationKey)
     }
 
     companion object {
