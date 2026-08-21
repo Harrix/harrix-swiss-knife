@@ -35,11 +35,15 @@
   "hotkeys": [
     {
       "action": "OnQuickLauncher",
-      "hotkeys": ["Ctrl+Shift+F1"]
+      "hotkeys": [
+        "Ctrl+Shift+F1"
+      ]
     },
     {
       "action": "OnScreenshotRegion",
-      "hotkeys": ["Ctrl+Shift+F2"]
+      "hotkeys": [
+        "Ctrl+Shift+F2"
+      ]
     }
   ],
   "quick_launcher_markdown_in_panel": true,
@@ -181,7 +185,10 @@
     "snippet:config/beginning-of-article.md",
     "snippet:config/beginning-of-md-en.md"
   ],
-  "npm_packages": ["npm-check-updates", "prettier"],
+  "npm_packages": [
+    "npm-check-updates",
+    "prettier"
+  ],
   "path_3d": "<YOUR_DOWNLOADS_FOLDER>",
   "path_articles": "<YOUR_ARTICLES_FOLDER>",
   "path_books": "<YOUR_BOOKS_FOLDER>",
@@ -209,18 +216,37 @@
   "paths_combine_for_ai": [
     {
       "base_folder": "<YOUR_GITHUB_FOLDER>/harrix-swiss-knife",
-      "files": ["<YOUR_GITHUB_FOLDER>/harrix-swiss-knife/src/**/*.py"],
+      "files": [
+        "<YOUR_GITHUB_FOLDER>/harrix-swiss-knife/src/**/*.py"
+      ],
       "name": "example-project"
     }
   ],
-  "paths_git": ["<YOUR_PATH>"],
-  "paths_notes": ["<YOUR_PATH>"],
-  "paths_notes_for_summaries": ["<YOUR_PATH>"],
-  "paths_android_projects": ["<YOUR_GITHUB_FOLDER>/harrix-swiss-knife/android"],
-  "paths_python_libraries": ["<YOUR_GITHUB_FOLDER>/harrix-pylib", "<YOUR_GITHUB_FOLDER>/harrix-pyssg"],
-  "paths_python_project_creation": ["<YOUR_PATH>"],
-  "paths_python_projects": ["<YOUR_GITHUB_FOLDER>/harrix-swiss-knife"],
-  "paths_quotes": ["<YOUR_PATH>"],
+  "paths_git": [
+    "<YOUR_PATH>"
+  ],
+  "paths_notes": [
+    "<YOUR_PATH>"
+  ],
+  "paths_notes_for_summaries": [
+    "<YOUR_PATH>"
+  ],
+  "paths_android_projects": [
+    "<YOUR_GITHUB_FOLDER>/harrix-swiss-knife/android"
+  ],
+  "paths_python_libraries": [
+    "<YOUR_GITHUB_FOLDER>/harrix-pylib",
+    "<YOUR_GITHUB_FOLDER>/harrix-pyssg"
+  ],
+  "paths_python_project_creation": [
+    "<YOUR_PATH>"
+  ],
+  "paths_python_projects": [
+    "<YOUR_GITHUB_FOLDER>/harrix-swiss-knife"
+  ],
+  "paths_quotes": [
+    "<YOUR_PATH>"
+  ],
   "paths_sites": [
     {
       "input": "<YOUR_SITE_CONTENT>",
@@ -232,9 +258,10 @@
   "path_html_theme": "<YOUR_SLICED_HTML_THEME>",
   "path_site_repo": "<YOUR_SITE_GIT_REPO>",
   "site_name": "harrix.dev",
-  "github_user": "Harrix",
   "site_default_language": "ru",
-  "paths_with_featured_image": ["<YOUR_PATH>"],
+  "paths_with_featured_image": [
+    "<YOUR_PATH>"
+  ],
   "ai": {
     "provider": "bothub",
     "speech_provider": "",
@@ -267,6 +294,7 @@
     "speech_model": "gemini-2.5-flash"
   },
   "gemini_api_key": "snippet:api-keys/gemini-api-key.txt",
+  "ticktick_api_key": "snippet:api-keys/ticktick-api-key.txt",
   "prompts": {
     "finance_purchases_to_tsv": "snippet:config/prompts/finance-purchases-to-tsv.md",
     "finance_category_translate_local": "snippet:config/prompts/finance-category-translate-local.md",

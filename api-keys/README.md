@@ -20,14 +20,15 @@ Local secret files for harrix-swiss-knife. **Not committed to Git** (see root `.
 
 ## Files
 
-| File                     | Config key                                 | Purpose                                            |
-| ------------------------ | ------------------------------------------ | -------------------------------------------------- |
-| `pypi-token.txt`         | `pypi_token` in `config/config.json`       | PyPI token for publishing Python libraries         |
-| `github-token.txt`       | `github_token` in `config/config.json`     | Optional GitHub PAT for higher API rate limits     |
-| `bothub-api-key.txt`     | `bothub_api_key` in `config/config.json`   | BotHub access token for AI features                |
-| `openai-api-key.txt`     | `openai_api_key` in `config/config.json`   | OpenAI API key (chat + Whisper speech)             |
-| `anthropic-api-key.txt`  | `anthropic_api_key` in `config/config.json`| Anthropic API key (Claude Messages)                |
-| `gemini-api-key.txt`     | `gemini_api_key` in `config/config.json`   | Google Gemini API key                              |
+| File                    | Config key                                  | Purpose                                             |
+| ----------------------- | ------------------------------------------- | --------------------------------------------------- |
+| `pypi-token.txt`        | `pypi_token` in `config/config.json`        | PyPI token for publishing Python libraries          |
+| `github-token.txt`      | `github_token` in `config/config.json`      | Optional GitHub PAT for higher API rate limits      |
+| `bothub-api-key.txt`    | `bothub_api_key` in `config/config.json`    | BotHub access token for AI features                 |
+| `openai-api-key.txt`    | `openai_api_key` in `config/config.json`    | OpenAI API key (chat + Whisper speech)              |
+| `anthropic-api-key.txt` | `anthropic_api_key` in `config/config.json` | Anthropic API key (Claude Messages)                 |
+| `gemini-api-key.txt`    | `gemini_api_key` in `config/config.json`    | Google Gemini API key                               |
+| `ticktick-api-key.txt`  | `ticktick_api_key` in `config/config.json`  | TickTick personal API token (`tp_…`) for habit sync |
 
 AI keys are also read by the Android Gradle build (`android/app/build.gradle.kts`) for the **active** provider from `config.json` → `ai.provider` (override with env). See [`DEVELOPMENT.md`](../DEVELOPMENT.md#ai-api-keys-android).
 

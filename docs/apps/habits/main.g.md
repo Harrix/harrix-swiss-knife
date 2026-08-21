@@ -1689,6 +1689,10 @@ class MainWindow(
         if widget is self.tab_charts:
             QTimer.singleShot(0, self._set_charts_splitter_size)
 
+    def _refresh_after_ticktick_sync(self) -> None:
+        """Reload dashboard and tables after TickTick sync writes."""
+        self.refresh_habits_and_process_habits()
+
     def _refresh_habit_dashboard(self) -> None:
         """Reload Habitify-like dashboard from the current database."""
         dashboard = getattr(self, "_habit_dashboard", None)
@@ -1769,8 +1773,8 @@ class MainWindow(
         refresh_action.triggered.connect(self._habit_dashboard.refresh)
         backup_action = self.menuCommands.addAction("💾 Backup habits")
         backup_action.triggered.connect(self._backup_habits)
-        ticktick_action = self.menuCommands.addAction("📋 TickTick sync preview")
-        ticktick_action.triggered.connect(self._show_ticktick_sync_preview)
+        ticktick_action = self.menuCommands.addAction("🔄 Sync with TickTick")
+        ticktick_action.triggered.connect(self._sync_with_ticktick)
         self.tabWidget.currentChanged.connect(self._on_tab_changed)
 
         self.pushButton_habits_delete.setText(f"🗑️ {self.pushButton_habits_delete.text()}")
@@ -1931,39 +1935,6 @@ class MainWindow(
             # Refresh pivot table to rebuild columns
             self.load_process_habits_table(ignore_filter=False)
 
-    def _show_ticktick_sync_preview(self) -> None:
-        """Show a dry-run HSK ↔ TickTick habit sync report (no writes)."""
-        if self.db_manager is None:
-            message_box.warning(self, "TickTick sync preview", "Database is not initialized")
-            return
-
-        hsk_db_path = Path(str(self._app_config.get("sqlite_habits", "")))
-        try:
-            ticktick_payload = export_ticktick_habits_json()
-        except (FileNotFoundError, OSError, ValueError, sqlite3.Error) as exc:
-            message_box.warning(self, "TickTick sync preview", str(exc))
-            return
-
-        hsk_payload = export_hsk_habits_json(self.db_manager, database_path=str(hsk_db_path))
-        report = build_habits_ticktick_sync_preview(hsk_payload, ticktick_payload)
-        summary = format_habits_ticktick_sync_preview(report)
-        full_text = summary + "\n\n" + json.dumps(report, ensure_ascii=False, indent=2)
-
-        dialog = QDialog(self)
-        dialog.setWindowTitle("TickTick sync preview")
-        dialog.resize(900, 640)
-        layout = QVBoxLayout(dialog)
-        editor = QPlainTextEdit()
-        editor.setReadOnly(True)
-        editor.setPlainText(full_text)
-        layout.addWidget(editor)
-        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok)
-        copy_button = buttons.addButton("📋 Copy", QDialogButtonBox.ButtonRole.ActionRole)
-        copy_button.clicked.connect(lambda: QApplication.clipboard().setText(full_text))
-        buttons.accepted.connect(dialog.accept)
-        layout.addWidget(buttons)
-        dialog.exec()
-
     def _shutdown_window_resources(self) -> None:
         """Release timers, models, charts, and database before window destruction."""
         self._is_closing = True
@@ -1981,6 +1952,101 @@ class MainWindow(
         if self.db_manager:
             self.db_manager.close()
             self.db_manager = None
+
+    def _sync_with_ticktick(self) -> None:
+        """Synchronize habits with TickTick using the Open API (after confirmation)."""
+        if self.db_manager is None:
+            message_box.warning(self, "Sync with TickTick", "Database is not initialized")
+            return
+
+        token = resolve_ticktick_api_token(config=self._app_config, project_root=get_project_root())
+        if not token:
+            message_box.warning(
+                self,
+                "Sync with TickTick",
+                "TickTick API token not found.\n"
+                "Add api-keys/ticktick-api-key.txt (or ticktick-apy-key.txt)\n"
+                "or set ticktick_api_key in config.json.",
+            )
+            return
+
+        hsk_db_path = Path(str(self._app_config.get("sqlite_habits", "")))
+        today = datetime.now(UTC).astimezone().date()
+        to_stamp = iso_to_ticktick_stamp(today.isoformat())
+
+        try:
+            client = TickTickHabitsClient(token)
+            ticktick_payload = client.export_habits_payload(to_stamp=to_stamp)
+        except (TickTickApiError, OSError, ValueError) as exc:
+            message_box.warning(self, "Sync with TickTick", str(exc))
+            return
+
+        hsk_payload = export_hsk_habits_json(self.db_manager, database_path=str(hsk_db_path))
+        report = build_habits_ticktick_sync_preview(hsk_payload, ticktick_payload, today=today)
+        summary = format_habits_ticktick_sync_preview(
+            report,
+            title="TickTick sync plan (will write to HSK and TickTick)",
+        )
+        totals = report["transfer_totals"]
+        creates = report["habit_counts"]["only_hsk"] + report["habit_counts"]["only_ticktick"]
+        work = totals["to_ticktick_done"] + totals["to_hsk_done"] + totals["gap_not_done_to_hsk"] + creates
+        if work == 0 and report["habit_counts"]["name_conflicts"] == 0:
+            message_box.information(self, "Sync with TickTick", summary + "\n\nNothing to sync.")
+            return
+
+        answer = message_box.question(
+            self,
+            "Sync with TickTick",
+            summary + "\n\nApply this sync now?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if answer != QMessageBox.StandardButton.Yes:
+            return
+
+        progress = QProgressDialog("Syncing with TickTick…", "Cancel", 0, 1, self)
+        progress.setWindowTitle("Sync with TickTick")
+        progress.setWindowModality(Qt.WindowModality.WindowModal)
+        progress.setMinimumDuration(0)
+        progress.setValue(0)
+
+        cancelled = False
+
+        def on_progress(current: int, total: int, message: str) -> None:
+            nonlocal cancelled
+            progress.setMaximum(max(total, 1))
+            progress.setValue(current)
+            progress.setLabelText(message)
+            QApplication.processEvents()
+            if progress.wasCanceled():
+                cancelled = True
+                msg = "Sync cancelled by user"
+                raise TickTickApiError(msg)
+
+        try:
+            result = apply_habits_ticktick_sync(
+                self.db_manager,
+                report,
+                client,
+                progress=on_progress,
+            )
+        except TickTickApiError as exc:
+            progress.close()
+            if cancelled:
+                message_box.warning(self, "Sync with TickTick", str(exc))
+            else:
+                message_box.warning(self, "Sync with TickTick", str(exc))
+            self._refresh_after_ticktick_sync()
+            return
+        finally:
+            progress.close()
+
+        text = format_habits_ticktick_sync_result(result)
+        if result.get("error_count"):
+            message_box.warning(self, "Sync with TickTick", text)
+        else:
+            message_box.information(self, "Sync with TickTick", text)
+        self._refresh_after_ticktick_sync()
 
     def _toggle_show_archived_habits(self) -> None:
         self.show_archived_habits = not self.show_archived_habits

@@ -53,6 +53,7 @@
     "medium_low": 2100
   },
   "food_log_translate_names_limit": 250,
+  "github_token": "snippet:api-keys/github-token.txt",
   "github_user": "Harrix",
   "harrix_notes_explorer_publisher": "harrix",
   "hotkeys": [
@@ -336,10 +337,9 @@
     "text_fix_ru": "snippet:config/prompts/text-fix-ru.md",
     "text_fix_ru_clipboard": "snippet:config/prompts/text-fix-ru-clipboard.md",
     "text_rewrite_ru": "snippet:config/prompts/text-rewrite-ru.md",
-    "vector_icons_keywords": "snippet:config/prompts/vector-icons-keywords.md",
-    "vector_icons_add_image": "snippet:config/prompts/vector-icons-add-image.md"
+    "vector_icons_add_image": "snippet:config/prompts/vector-icons-add-image.md",
+    "vector_icons_keywords": "snippet:config/prompts/vector-icons-keywords.md"
   },
-  "github_token": "snippet:api-keys/github-token.txt",
   "pypi_token": "snippet:api-keys/pypi-token.txt",
   "quick_launcher_markdown_in_panel": true,
   "show_main_window_on_startup": false,
@@ -351,6 +351,7 @@
   "sqlite_habits": "D:/Dropbox/Databases/habits.db",
   "start_pattern_jupyter_notebooks": "jupyter-notebook-",
   "start_pattern_py_projects": "python-project-",
+  "ticktick_api_key": "snippet:api-keys/ticktick-api-key.txt",
   "vector_icons_recent_folders_max": 12,
   "vscode_workspace_articles": "D:/Dropbox/Programs/vscode_workspaces/_content__harrix-dev.code-workspace",
   "vscode_workspace_notes": "D:/Dropbox/Programs/vscode_workspaces/Notes.code-workspace"
