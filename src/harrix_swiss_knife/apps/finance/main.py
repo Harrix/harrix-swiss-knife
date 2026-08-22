@@ -85,13 +85,18 @@ from harrix_swiss_knife.apps.common.apps_config import get_apps_list_limits
 from harrix_swiss_knife.apps.common.chart_colors import generate_pastel_qcolors
 from harrix_swiss_knife.apps.common.date_edit_quick import attach_date_edit_quick_controls
 from harrix_swiss_knife.apps.common.db_init import init_tracker_database
+from harrix_swiss_knife.apps.common.dialogs.simple_recording_dialog import SimpleRecordingDialog
 from harrix_swiss_knife.apps.common.qt_main_window import AppWindowMixin
 from harrix_swiss_knife.apps.common.scroll_pagination import ScrollPagination, on_scroll_load_more
 from harrix_swiss_knife.apps.common.table_models import create_table_proxy_model
 from harrix_swiss_knife.apps.common.widgets.image_picker import ImagePicker, ImagePickerMode
 from harrix_swiss_knife.apps.finance import database_manager, window
 from harrix_swiss_knife.apps.finance.account_edit_dialog import AccountEditDialog
-from harrix_swiss_knife.apps.finance.ai_source_dialog import AiSourceDialog
+from harrix_swiss_knife.apps.finance.ai_source_dialog import (
+    AiSourceDialog,
+    create_finance_dashboard_photo_dialog,
+    create_finance_dashboard_text_dialog,
+)
 from harrix_swiss_knife.apps.finance.amount_expression_dialog import AmountExpressionDialog
 from harrix_swiss_knife.apps.finance.balance_check_worker import BalanceCheckResult, BalanceCheckWorker
 from harrix_swiss_knife.apps.finance.categories_table import create_categories_table_proxy_model
@@ -121,6 +126,7 @@ from harrix_swiss_knife.apps.finance.exchange_rates_operations import (
     _require_db_filename_for_worker,
 )
 from harrix_swiss_knife.apps.finance.exchange_validation import validate_exchange_data
+from harrix_swiss_knife.apps.finance.finance_dashboard import FinanceDashboardWidget, pick_today_expense_display
 from harrix_swiss_knife.apps.finance.mixins import (
     AutoSaveOperations,
     ChartOperations,
@@ -164,8 +170,11 @@ from harrix_swiss_knife.apps.finance.transaction_translate_preview_dialog import
 from harrix_swiss_knife.apps.finance.widgets import ClickableCategoryLabel
 from harrix_swiss_knife.integrations.bothub import (
     BothubRequestState,
+    audio_bytes_and_mime,
     build_prompt,
+    build_transcription_prompt,
     get_max_image_side,
+    get_speech_model,
     run_bothub_request,
     show_bothub_prompt_build_error,
 )
@@ -228,6 +237,7 @@ class MainWindow(
         super().__init__()
         try_apply_system_backdrop(self, backdrop=SystemBackdrop.MICA)
         self.setupUi(self)
+        self._finance_dashboard: FinanceDashboardWidget | None = None
         self._setup_ui()
         self.setWindowIcon(QIcon(":/assets/logo.svg"))
         self._init_hide_on_close(hide_on_close=hide_on_close)
@@ -723,29 +733,7 @@ class MainWindow(
 
         raw_text = source_dialog.get_raw_text()
         images_data = source_dialog.get_images_bytes_and_mime()
-
-        try:
-            prompt_text = build_prompt(self._app_config, "finance_purchases_to_tsv", {"RAW_DATA": raw_text})
-        except ValueError as exc:
-            show_bothub_prompt_build_error(self, exc)
-            return
-
-        def on_success(response_text: str) -> None:
-            self._open_text_input_dialog(
-                self.dateEdit.date(),
-                initial_text=response_text,
-                focus_text_on_show=False,
-            )
-
-        run_bothub_request(
-            self,
-            self._app_config,
-            prompt_text,
-            on_success,
-            images=images_data or None,
-            is_busy=lambda: self._bothub_state.worker is not None,
-            state=self._bothub_state,
-        )
+        self._send_purchases_to_ai(raw_text, images_data)
 
     @requires_database()
     def on_add_category(self) -> None:
@@ -1164,6 +1152,39 @@ class MainWindow(
         except Exception as e:
             message_box.warning(self, "Export Error", f"Failed to export CSV: {e}")
 
+    def on_finance_dashboard_add_photo(self) -> None:
+        """Open a large photo-only form and send the receipt to AI."""
+        if self.db_manager is None:
+            message_box.warning(self, "Error", "Database connection not available")
+            return
+        source_dialog = create_finance_dashboard_photo_dialog(
+            self,
+            max_image_side=get_max_image_side(self._app_config),
+        )
+        if source_dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+        self._send_purchases_to_ai(
+            source_dialog.get_raw_text(),
+            source_dialog.get_images_bytes_and_mime(),
+        )
+
+    def on_finance_dashboard_add_text(self) -> None:
+        """Open a large text-only form and send the description to AI."""
+        if self.db_manager is None:
+            message_box.warning(self, "Error", "Database connection not available")
+            return
+        source_dialog = create_finance_dashboard_text_dialog(self)
+        if source_dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+        self._send_purchases_to_ai(source_dialog.get_raw_text())
+
+    def on_finance_dashboard_add_voice(self) -> None:
+        """Open a large recording form and send speech to AI."""
+        if self.db_manager is None:
+            message_box.warning(self, "Error", "Database connection not available")
+            return
+        self._run_finance_add_by_voice(large_ui=True)
+
     def on_select_only_expense_chart_categories(self) -> None:
         """Check only expense categories in the Charts category list."""
         self._select_only_chart_categories(0)
@@ -1246,20 +1267,32 @@ class MainWindow(
         if self._ui_refresh_scheduler.dirty:
             self._ui_refresh_scheduler.flush()
 
-        # Update relevant data when switching to different tabs
-        id_exchange_rates_tab: int = 4
-        id_charts_tab: int = 5
-        id_reports_tab: int = 6
-        if index == id_exchange_rates_tab:  # Exchange Rates tab - lazy loading
+        tab_name = self._tab_object_name(index)
+        if tab_name == "tab_finance_dashboard":
+            self._refresh_summary_if_needed()
+            return
+        if tab_name == "tab_transactions":
+            # Hidden tabs report a dummy width; apply sizes after Transactions is shown.
+            QTimer.singleShot(0, self._setup_transactions_table_column_widths)
+            QTimer.singleShot(50, self._setup_transactions_table_column_widths)
+            return
+        if tab_name in {"tab_accounts", "tab_categories", "tab_currencies"}:
+            QTimer.singleShot(0, self._refresh_visible_table_column_widths)
+            QTimer.singleShot(50, self._refresh_visible_table_column_widths)
+            return
+        if tab_name == "tab_exchange_rates":
             if not self.exchange_rates_loaded:
                 self.load_exchange_rates_table()
-        elif index == id_charts_tab:  # Charts tab - auto-draw on first visit
+            QTimer.singleShot(0, self._refresh_visible_table_column_widths)
+            QTimer.singleShot(50, self._refresh_visible_table_column_widths)
+            return
+        if tab_name == "tab_charts":
             if not self._charts_initialized:
                 self._charts_initialized = True
                 self._update_finance_chart()
-        elif index == id_reports_tab:  # Reports tab
+            return
+        if tab_name == "tab_reports":
             self.on_generate_report(refresh_summary=True)
-        # Note: Transactions tab (index 0) needs no updates - data loaded on startup
 
     @requires_database()
     def on_translate_with_ai(self) -> None:
@@ -1355,9 +1388,7 @@ class MainWindow(
         self._refresh_summary_if_needed()
 
         # If exchange rates tab is currently active, reload the data
-        current_tab_index: int = self.tabWidget.currentIndex()
-        id_exchange_rates_tab = 4
-        if current_tab_index == id_exchange_rates_tab:  # Exchange Rates tab
+        if self._is_current_tab("tab_exchange_rates"):
             self.load_exchange_rates_table()
         else:
             # Mark exchange rates as not loaded to force reload when tab is accessed
@@ -1484,10 +1515,16 @@ class MainWindow(
                 return lines
 
             expense_today_lines: list[str] = _expense_lines_for_date(today_str)
+            zero_today = f"{format_amount('0.00')}{currency_symbol}"
             if expense_today_lines:
                 self.label_today_expense.setText("\n".join(expense_today_lines))
             else:
-                self.label_today_expense.setText(f"{format_amount('0.00')}{currency_symbol}")
+                self.label_today_expense.setText(zero_today)
+            self._update_finance_dashboard_today_expense(
+                expense_today_lines,
+                default_code=db.get_default_currency(),
+                zero_text=zero_today,
+            )
 
             expense_yesterday_lines: list[str] = _expense_lines_for_date(yesterday_str)
             if expense_yesterday_lines:
@@ -1502,6 +1539,7 @@ class MainWindow(
             self.label_total_expenses.setText(f"Total Expenses: {format_amount('0.00')}₽")
             self.label_today_expense.setText(f"{format_amount('0.00')}₽")
             self.label_yesterday_expense.setText(f"{format_amount('0.00')}₽")
+            self._update_finance_dashboard_today_expense([], default_code="", zero_text=f"{format_amount('0.00')}₽")
 
     def _add_average_salary_series_controls(self) -> None:
         """Add compact series checkboxes under the Average Salary chart."""
@@ -3081,6 +3119,10 @@ class MainWindow(
         # Setup exchange rates controls
         self._setup_exchange_rates_controls()
 
+    def _is_current_tab(self, object_name: str) -> bool:
+        """Return whether the current tab widget has `object_name`."""
+        return self._tab_object_name() == object_name
+
     def _load_accounts_table(self) -> None:
         """Load accounts table."""
         accounts_data: list = self.db_manager.get_all_accounts()
@@ -3978,11 +4020,10 @@ class MainWindow(
           close progress_dialog and show QMessageBox.
 
         """
-        id_exchange_rates_tab: int = 4
 
         def _reload_if_tab_active() -> None:
             self._mark_exchange_rates_changed()
-            if self.tabWidget.currentIndex() == id_exchange_rates_tab:
+            if self._is_current_tab("tab_exchange_rates"):
                 self.load_exchange_rates_table()
 
         if startup:
@@ -4829,6 +4870,29 @@ class MainWindow(
             self._load_transactions_table()
             self._connect_table_auto_save_signals()
 
+    def _refresh_visible_table_column_widths(self) -> None:
+        """Re-apply stretch/fixed column modes after a hidden tab becomes visible."""
+        if self._is_current_tab("tab_transactions"):
+            self._setup_transactions_table_column_widths()
+            return
+        tables: list[tuple[QTableView, bool]] = [
+            (self.tableView_accounts, False),
+            (self.tableView_categories, True),
+            (self.tableView_currencies, True),
+            (self.tableView_exchange, False),
+            (self.tableView_exchange_rates, True),
+        ]
+        for table_view, stretch_last in tables:
+            if not table_view.isVisible() or table_view.model() is None:
+                continue
+            header = table_view.horizontalHeader()
+            if header.count() <= 0:
+                continue
+            for i in range(header.count()):
+                header.setSectionResizeMode(i, header.ResizeMode.Stretch)
+            if not stretch_last:
+                header.setStretchLastSection(False)
+
     def _report_transaction_translate_completion(self, *, prefix: str = "") -> None:
         """Report remaining untranslated rows and offer another batch."""
         if self.db_manager is None:
@@ -4911,6 +4975,42 @@ class MainWindow(
             category_aliases=category_aliases,
         )
         self._apply_category_suggestions(suggested)
+
+    def _run_finance_add_by_voice(self, *, large_ui: bool = False) -> None:
+        """Record speech, transcribe via BotHub, then parse purchases into TSV."""
+        recording_dialog = SimpleRecordingDialog(self, large_ui=large_ui)
+        if recording_dialog.exec() != QDialog.DialogCode.Accepted:
+            recording_dialog.release_multimedia()
+            return
+
+        audio_path = recording_dialog.get_audio_path()
+        recording_dialog.release_multimedia()
+        if not audio_path:
+            return
+
+        try:
+            audio_data = audio_bytes_and_mime(audio_path)
+        except ValueError as exc:
+            message_box.critical(self, "Audio Error", str(exc))
+            return
+
+        def on_transcription_success(transcribed_text: str) -> None:
+            if not transcribed_text.strip():
+                message_box.critical(self, "BotHub Error", "Empty transcription from BotHub.")
+                return
+            self._send_purchases_to_ai(transcribed_text)
+
+        run_bothub_request(
+            self,
+            self._app_config,
+            build_transcription_prompt(),
+            on_transcription_success,
+            audio=audio_data,
+            model=get_speech_model(self._app_config),
+            toast_message="Recognizing speech…",
+            is_busy=lambda: self._bothub_state.worker is not None,
+            state=self._bothub_state,
+        )
 
     def _save_table_column_widths(self, table_view: QTableView) -> list[int]:
         """Save column widths for a table view.
@@ -5011,6 +5111,35 @@ class MainWindow(
                 if item.data(Qt.ItemDataRole.UserRole + 1) == category_type
                 else Qt.CheckState.Unchecked
             )
+
+    def _send_purchases_to_ai(
+        self,
+        raw_text: str,
+        images_data: list[tuple[bytes, str]] | None = None,
+    ) -> None:
+        """Send purchase text and optional images to BotHub, then open the preview dialog."""
+        try:
+            prompt_text = build_prompt(self._app_config, "finance_purchases_to_tsv", {"RAW_DATA": raw_text})
+        except ValueError as exc:
+            show_bothub_prompt_build_error(self, exc)
+            return
+
+        def on_success(response_text: str) -> None:
+            self._open_text_input_dialog(
+                self.dateEdit.date(),
+                initial_text=response_text,
+                focus_text_on_show=False,
+            )
+
+        run_bothub_request(
+            self,
+            self._app_config,
+            prompt_text,
+            on_success,
+            images=images_data or None,
+            is_busy=lambda: self._bothub_state.worker is not None,
+            state=self._bothub_state,
+        )
 
     def _set_balance_check_action_cell(
         self,
@@ -5222,6 +5351,16 @@ class MainWindow(
         self.lineEdit_description.textEdited.connect(self._on_description_text_edited)
         self.description_completer.activated.connect(self._on_autocomplete_selected)
 
+    def _setup_finance_dashboard_tab(self) -> None:
+        """Fill the first Finance tab with the quick-add dashboard."""
+        self._finance_dashboard = FinanceDashboardWidget(self)
+        self._finance_dashboard.add_photo_requested.connect(self.on_finance_dashboard_add_photo)
+        self._finance_dashboard.add_voice_requested.connect(self.on_finance_dashboard_add_voice)
+        self._finance_dashboard.add_text_requested.connect(self.on_finance_dashboard_add_text)
+        self.verticalLayout_finance_dashboard.setContentsMargins(0, 0, 0, 0)
+        self.verticalLayout_finance_dashboard.addWidget(self._finance_dashboard)
+        self.tabWidget.setCurrentWidget(self.tab_finance_dashboard)
+
     def _setup_status_bar(self) -> None:
         """Ensure status bar is visible and readable on Windows 11 Mica backdrop."""
         status_bar = self.statusBar()
@@ -5253,6 +5392,8 @@ class MainWindow(
 
     def _setup_transactions_table_column_widths(self) -> None:
         """Configure column resize modes for the transactions table."""
+        if not self.tableView_transactions.isVisible():
+            return
         header = self.tableView_transactions.horizontalHeader()
         if header.count() > 0:
             for i in range(header.count() - 2):
@@ -5339,6 +5480,7 @@ class MainWindow(
         self.label_total_expenses.setWordWrap(True)
         self.label_today_expense.setWordWrap(True)
         self.label_yesterday_expense.setWordWrap(True)
+        self._setup_finance_dashboard_tab()
 
         # Set emoji for exchange rate buttons
         self.pushButton_exchange_update.setText(f"🔄 {self.pushButton_exchange_update.text()}")
@@ -6075,6 +6217,11 @@ class MainWindow(
             # This will be handled by the lambda connection above
             pass
 
+    def _tab_object_name(self, index: int | None = None) -> str:
+        """Return the object name of the tab at `index`, or the current tab."""
+        widget = self.tabWidget.widget(self.tabWidget.currentIndex() if index is None else index)
+        return widget.objectName() if widget is not None else ""
+
     def _transactions_filter_is_active(self) -> bool:
         """Return `True` when any transaction table filter is applied."""
         if self.comboBox_filter_type.currentText().strip() in {"Expense", "Income"}:
@@ -6422,6 +6569,23 @@ class MainWindow(
                 self._draw_category_chart(category_series, period, currency_symbol)
         finally:
             self._close_chart_build_toast()
+
+    def _update_finance_dashboard_today_expense(
+        self,
+        lines: list[str],
+        *,
+        default_code: str,
+        zero_text: str,
+    ) -> None:
+        """Refresh the dashboard spend figure from today's expense lines."""
+        if self._finance_dashboard is None:
+            return
+        amount_text, extra_text = pick_today_expense_display(
+            lines,
+            default_code=default_code,
+            zero_text=zero_text,
+        )
+        self._finance_dashboard.set_today_expense(amount_text, extra_text)
 
 
 if __name__ == "__main__":
