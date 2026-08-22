@@ -117,7 +117,7 @@ def test_fitness_window_inserts_dashboard_as_first_tab() -> None:
     assert window.tab_charts.objectName() == "tab_charts"
     assert window.tab_5.objectName() == "tab_5"
     assert window.tab_4.objectName() == "tab_4"
-    assert tabs.tabText(0) == "Dashboard"
+    assert tabs.tabText(0) == "Quick"
     assert tabs.tabText(1) == "Sets"
     assert tabs.currentWidget() is window.tab_fitness_dashboard
     window.close()

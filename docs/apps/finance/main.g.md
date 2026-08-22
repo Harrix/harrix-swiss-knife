@@ -5229,8 +5229,13 @@ class MainWindow(
         self._finance_dashboard.add_voice_requested.connect(self.on_finance_dashboard_add_voice)
         self._finance_dashboard.add_text_requested.connect(self.on_finance_dashboard_add_text)
         self.verticalLayout_finance_dashboard.setContentsMargins(0, 0, 0, 0)
-        self.verticalLayout_finance_dashboard.addWidget(self._finance_dashboard)
-        self.tabWidget.setCurrentWidget(self.tab_finance_dashboard)
+        self.verticalLayout_finance_dashboard.addWidget(self._finance_dashboard, 1)
+        install_open_quick_tab_checkbox(
+            self,
+            app="finance",
+            tab_layout=self.verticalLayout_finance_dashboard,
+            tab_widget=self.tabWidget,
+        )
 
     def _setup_status_bar(self) -> None:
         """Ensure status bar is visible and readable on Windows 11 Mica backdrop."""

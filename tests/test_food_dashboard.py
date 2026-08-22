@@ -77,7 +77,7 @@ def test_food_window_inserts_dashboard_as_first_tab() -> None:
     assert window.tab_food_dashboard.objectName() == "tab_food_dashboard"
     assert window.tab_food.objectName() == "tab_food"
     assert window.tab_food_stats.objectName() == "tab_food_stats"
-    assert tabs.tabText(0) == "Dashboard"
+    assert tabs.tabText(0) == "Quick"
     assert tabs.tabText(1) == "Food"
     assert tabs.tabText(2) == "Food Statistics"
     assert tabs.currentWidget() is window.tab_food_dashboard

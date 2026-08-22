@@ -87,6 +87,7 @@ from harrix_swiss_knife.apps.common.date_edit_quick import attach_date_edit_quic
 from harrix_swiss_knife.apps.common.db_init import init_tracker_database
 from harrix_swiss_knife.apps.common.dialogs.simple_recording_dialog import SimpleRecordingDialog
 from harrix_swiss_knife.apps.common.qt_main_window import AppWindowMixin
+from harrix_swiss_knife.apps.common.quick_tab_startup import install_open_quick_tab_checkbox
 from harrix_swiss_knife.apps.common.scroll_pagination import ScrollPagination, on_scroll_load_more
 from harrix_swiss_knife.apps.common.table_models import create_table_proxy_model
 from harrix_swiss_knife.apps.common.widgets.image_picker import ImagePicker, ImagePickerMode
@@ -5358,8 +5359,13 @@ class MainWindow(
         self._finance_dashboard.add_voice_requested.connect(self.on_finance_dashboard_add_voice)
         self._finance_dashboard.add_text_requested.connect(self.on_finance_dashboard_add_text)
         self.verticalLayout_finance_dashboard.setContentsMargins(0, 0, 0, 0)
-        self.verticalLayout_finance_dashboard.addWidget(self._finance_dashboard)
-        self.tabWidget.setCurrentWidget(self.tab_finance_dashboard)
+        self.verticalLayout_finance_dashboard.addWidget(self._finance_dashboard, 1)
+        install_open_quick_tab_checkbox(
+            self,
+            app="finance",
+            tab_layout=self.verticalLayout_finance_dashboard,
+            tab_widget=self.tabWidget,
+        )
 
     def _setup_status_bar(self) -> None:
         """Ensure status bar is visible and readable on Windows 11 Mica backdrop."""

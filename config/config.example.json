@@ -64,10 +64,13 @@
     "medium_low": 2100
   },
   "apps": {
+    "fitness_image_max_size": 330,
     "initial_count": 1000,
     "load_more_count": 500,
     "local_language": "ru",
-    "fitness_image_max_size": 330
+    "open_quick_tab_on_startup_finance": true,
+    "open_quick_tab_on_startup_fitness": true,
+    "open_quick_tab_on_startup_food": true
   },
   "android_build_variant": "release",
   "optimize_images_folder_max_size": 1024,

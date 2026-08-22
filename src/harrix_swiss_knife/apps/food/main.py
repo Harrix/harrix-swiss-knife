@@ -59,6 +59,7 @@ from harrix_swiss_knife.apps.common.date_edit_quick import attach_date_edit_quic
 from harrix_swiss_knife.apps.common.db_init import init_tracker_database
 from harrix_swiss_knife.apps.common.dialogs.simple_recording_dialog import SimpleRecordingDialog
 from harrix_swiss_knife.apps.common.qt_main_window import AppWindowMixin
+from harrix_swiss_knife.apps.common.quick_tab_startup import install_open_quick_tab_checkbox
 from harrix_swiss_knife.apps.common.scroll_pagination import ScrollPagination, on_scroll_load_more
 from harrix_swiss_knife.apps.common.table_models import create_table_proxy_model
 from harrix_swiss_knife.apps.common.widgets.image_picker import ImagePicker, ImagePickerMode
@@ -2793,8 +2794,13 @@ class MainWindow(
         self._food_dashboard.add_voice_requested.connect(self.on_food_dashboard_add_voice)
         self._food_dashboard.add_text_requested.connect(self.on_food_dashboard_add_text)
         self.verticalLayout_food_dashboard.setContentsMargins(0, 0, 0, 0)
-        self.verticalLayout_food_dashboard.addWidget(self._food_dashboard)
-        self.tabWidget.setCurrentWidget(self.tab_food_dashboard)
+        self.verticalLayout_food_dashboard.addWidget(self._food_dashboard, 1)
+        install_open_quick_tab_checkbox(
+            self,
+            app="food",
+            tab_layout=self.verticalLayout_food_dashboard,
+            tab_widget=self.tabWidget,
+        )
 
     def _setup_ui(self) -> None:
         """Set up additional UI elements after basic initialization."""

@@ -2726,8 +2726,13 @@ class MainWindow(
         self._food_dashboard.add_voice_requested.connect(self.on_food_dashboard_add_voice)
         self._food_dashboard.add_text_requested.connect(self.on_food_dashboard_add_text)
         self.verticalLayout_food_dashboard.setContentsMargins(0, 0, 0, 0)
-        self.verticalLayout_food_dashboard.addWidget(self._food_dashboard)
-        self.tabWidget.setCurrentWidget(self.tab_food_dashboard)
+        self.verticalLayout_food_dashboard.addWidget(self._food_dashboard, 1)
+        install_open_quick_tab_checkbox(
+            self,
+            app="food",
+            tab_layout=self.verticalLayout_food_dashboard,
+            tab_widget=self.tabWidget,
+        )
 
     def _setup_ui(self) -> None:
         """Set up additional UI elements after basic initialization."""

@@ -6658,9 +6658,14 @@ class MainWindow(
         self._fitness_dashboard.add_voice_requested.connect(self.on_fitness_dashboard_add_voice)
         self._fitness_dashboard.exercise_changed.connect(self.on_fitness_dashboard_exercise_changed)
         self.verticalLayout_fitness_dashboard.setContentsMargins(0, 0, 0, 0)
-        self.verticalLayout_fitness_dashboard.addWidget(self._fitness_dashboard)
+        self.verticalLayout_fitness_dashboard.addWidget(self._fitness_dashboard, 1)
         self._attach_fitness_dashboard_hover()
-        self.tabWidget.setCurrentWidget(self.tab_fitness_dashboard)
+        install_open_quick_tab_checkbox(
+            self,
+            app="fitness",
+            tab_layout=self.verticalLayout_fitness_dashboard,
+            tab_widget=self.tabWidget,
+        )
 
     def _setup_open_exercise_images_action(self) -> None:
         """Add File → Open exercise images folder next to the database action."""

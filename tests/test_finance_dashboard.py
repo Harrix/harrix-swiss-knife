@@ -87,7 +87,7 @@ def test_finance_window_inserts_dashboard_as_first_tab() -> None:
     assert window.tab_exchange_rates.objectName() == "tab_exchange_rates"
     assert window.tab_charts.objectName() == "tab_charts"
     assert window.tab_reports.objectName() == "tab_reports"
-    assert tabs.tabText(0) == "Dashboard"
+    assert tabs.tabText(0) == "Quick"
     assert tabs.tabText(1) == "Transactions"
     assert tabs.currentWidget() is window.tab_finance_dashboard
     window.close()

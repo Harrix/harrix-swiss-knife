@@ -22,7 +22,7 @@
       </property>
       <widget class="QWidget" name="tab_food_dashboard">
        <attribute name="title">
-        <string>Dashboard</string>
+        <string>Quick</string>
        </attribute>
        <layout class="QVBoxLayout" name="verticalLayout_food_dashboard"/>
       </widget>
