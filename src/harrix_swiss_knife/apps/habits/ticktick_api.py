@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 
 _TICKTICK_API_BASE = "https://api.ticktick.com/open/v1"
 _TICKTICK_DONE_STATUS = 2
-_DEFAULT_FROM_STAMP = 20200101
+FALLBACK_FROM_STAMP = 20000101
 _TOKEN_FILENAMES = ("ticktick-api-key.txt", "ticktick-apy-key.txt")
 _STAMP_LENGTH = 8
 
@@ -79,7 +79,7 @@ class TickTickHabitsClient:
             raise TickTickApiError(msg)
         return payload
 
-    def export_habits_payload(self, *, to_stamp: int, from_stamp: int = _DEFAULT_FROM_STAMP) -> dict[str, Any]:
+    def export_habits_payload(self, *, to_stamp: int, from_stamp: int = FALLBACK_FROM_STAMP) -> dict[str, Any]:
         """Return a payload shaped like `export_ticktick_habits_json` from the API."""
         habits = self.list_habits()
         habit_ids = [str(h.get("id") or "") for h in habits if h.get("id")]

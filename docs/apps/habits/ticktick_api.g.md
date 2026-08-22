@@ -104,7 +104,7 @@ class TickTickHabitsClient:
             raise TickTickApiError(msg)
         return payload
 
-    def export_habits_payload(self, *, to_stamp: int, from_stamp: int = _DEFAULT_FROM_STAMP) -> dict[str, Any]:
+    def export_habits_payload(self, *, to_stamp: int, from_stamp: int = FALLBACK_FROM_STAMP) -> dict[str, Any]:
         """Return a payload shaped like `export_ticktick_habits_json` from the API."""
         habits = self.list_habits()
         habit_ids = [str(h.get("id") or "") for h in habits if h.get("id")]
@@ -322,7 +322,7 @@ def create_boolean_habit(self, name: str) -> dict[str, Any]:
 ### ⚙️ Method `export_habits_payload`
 
 ```python
-def export_habits_payload(self, *, to_stamp: int, from_stamp: int = _DEFAULT_FROM_STAMP) -> dict[str, Any]
+def export_habits_payload(self, *, to_stamp: int, from_stamp: int = FALLBACK_FROM_STAMP) -> dict[str, Any]
 ```
 
 Return a payload shaped like [`export_ticktick_habits_json`](ticktick_habits.g.md#-function-export_ticktick_habits_json) from the API.
@@ -331,7 +331,7 @@ Return a payload shaped like [`export_ticktick_habits_json`](ticktick_habits.g.m
 <summary>Code:</summary>
 
 ```python
-def export_habits_payload(self, *, to_stamp: int, from_stamp: int = _DEFAULT_FROM_STAMP) -> dict[str, Any]:
+def export_habits_payload(self, *, to_stamp: int, from_stamp: int = FALLBACK_FROM_STAMP) -> dict[str, Any]:
         habits = self.list_habits()
         habit_ids = [str(h.get("id") or "") for h in habits if h.get("id")]
         dates_by_id = self.get_done_dates_by_habit(habit_ids, from_stamp=from_stamp, to_stamp=to_stamp)

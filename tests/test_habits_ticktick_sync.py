@@ -3,11 +3,17 @@
 from __future__ import annotations
 
 from datetime import date
+from pathlib import Path
+from unittest.mock import MagicMock
 
 from harrix_swiss_knife.apps.habits.habits_ticktick_sync import (
     build_habits_ticktick_sync_preview,
     format_habits_ticktick_sync_preview,
+    from_stamp_for_api_export,
+    load_ticktick_sync_payload,
 )
+from harrix_swiss_knife.apps.habits.ticktick_api import FALLBACK_FROM_STAMP, iso_to_ticktick_stamp
+from tests.test_ticktick_habits import _create_ticktick_db
 
 
 def _hsk_habit(
@@ -168,3 +174,59 @@ def test_format_preview_mentions_dry_run() -> None:
     text = format_habits_ticktick_sync_preview(report)
     assert "dry-run" in text
     assert "Matched by name: 0" in text
+
+
+def test_pre_2020_dates_already_in_ticktick_do_not_transfer() -> None:
+    """History imported from TickTick must not be pushed back when both sides have it."""
+    report = build_habits_ticktick_sync_preview(
+        {"habits": [_hsk_habit(habit_id=1, name="English", values={"2017-05-09": 1})]},
+        {"habits": [_tt_habit(habit_id="t1", name="English", dates=["2017-05-09"])]},
+        today=date(2026, 8, 22),
+    )
+    assert report["matched"][0]["to_ticktick_done_dates"] == []
+    assert report["date_range"]["from"] == "2017-05-09"
+    assert report["date_range"]["hsk_earliest"] == "2017-05-09"
+    assert report["date_range"]["ticktick_earliest"] == "2017-05-09"
+
+
+def test_from_stamp_uses_earliest_of_both_sides() -> None:
+    stamp = from_stamp_for_api_export(
+        {"habits": [_hsk_habit(habit_id=1, name="English", values={"2018-01-01": 1})]},
+        {"habits": [_tt_habit(habit_id="t1", name="English", dates=["2017-05-09"])]},
+    )
+    assert stamp == iso_to_ticktick_stamp("2017-05-09")
+
+
+def test_from_stamp_falls_back_when_empty() -> None:
+    assert from_stamp_for_api_export({"habits": []}) == FALLBACK_FROM_STAMP
+
+
+def test_load_ticktick_sync_payload_prefers_local_sqlite(tmp_path: Path) -> None:
+    db_path = tmp_path / "TickTick.db"
+    _create_ticktick_db(db_path)
+    client = MagicMock()
+    client.export_habits_payload.side_effect = AssertionError("Open API must not be used")
+
+    payload = load_ticktick_sync_payload(
+        hsk_payload={"habits": []},
+        to_stamp=iso_to_ticktick_stamp("2026-08-22"),
+        client=client,
+        ticktick_db_path=db_path,
+    )
+    assert payload["source"] == "local-sqlite"
+    assert payload["habits"][0]["name"] == "English"
+    client.export_habits_payload.assert_not_called()
+
+
+def test_load_ticktick_sync_payload_falls_back_to_api(tmp_path: Path) -> None:
+    client = MagicMock()
+    client.export_habits_payload.return_value = {"database": "ticktick-open-api", "habits": []}
+    payload = load_ticktick_sync_payload(
+        hsk_payload={"habits": [_hsk_habit(habit_id=1, name="English", values={"2017-05-09": 1})]},
+        to_stamp=iso_to_ticktick_stamp("2026-08-22"),
+        client=client,
+        ticktick_db_path=tmp_path / "missing.db",
+    )
+    assert payload["source"] == "open-api"
+    client.export_habits_payload.assert_called_once()
+    assert client.export_habits_payload.call_args.kwargs["from_stamp"] == iso_to_ticktick_stamp("2017-05-09")

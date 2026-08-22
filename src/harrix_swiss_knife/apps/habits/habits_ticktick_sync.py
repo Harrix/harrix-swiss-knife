@@ -5,10 +5,12 @@ from __future__ import annotations
 from datetime import UTC, date, datetime, timedelta
 from typing import TYPE_CHECKING, Any
 
-from harrix_swiss_knife.apps.habits.ticktick_api import iso_to_ticktick_stamp
+from harrix_swiss_knife.apps.habits.ticktick_api import FALLBACK_FROM_STAMP, iso_to_ticktick_stamp
+from harrix_swiss_knife.apps.habits.ticktick_habits import export_ticktick_habits_json
 
 if TYPE_CHECKING:
     from collections.abc import Callable
+    from pathlib import Path
 
     from harrix_swiss_knife.apps.habits.database_manager import DatabaseManager
     from harrix_swiss_knife.apps.habits.ticktick_api import TickTickHabitsClient
@@ -21,7 +23,7 @@ _ERROR_LIMIT = 30
 def apply_habits_ticktick_sync(
     db_manager: DatabaseManager,
     report: dict[str, Any],
-    client: TickTickHabitsClient,
+    client: TickTickHabitsClient | None,
     *,
     progress: Callable[[int, int, str], None] | None = None,
 ) -> dict[str, Any]:
@@ -31,7 +33,8 @@ def apply_habits_ticktick_sync(
 
     - `db_manager` (`DatabaseManager`): Open habits database.
     - `report` (`dict[str, Any]`): Plan from `build_habits_ticktick_sync_preview`.
-    - `client` (`TickTickHabitsClient`): Authenticated TickTick API client.
+    - `client` (`TickTickHabitsClient | None`): Authenticated TickTick API client.
+      Required only when the plan writes to TickTick.
     - `progress` (`Callable | None`): Optional `(current, total, message)` callback.
 
     Returns:
@@ -100,6 +103,9 @@ def apply_habits_ticktick_sync(
             continue
         for day in item.get("to_ticktick_done_dates") or []:
             _tick(f"{name}: TickTick Done {day}")
+            if client is None:
+                errors.append(f"{name}: TickTick Done {day}: API client is not available")
+                continue
             try:
                 client.checkin_done(tt_id, iso_to_ticktick_stamp(str(day)))
                 applied["to_ticktick_done"] += 1
@@ -109,6 +115,9 @@ def apply_habits_ticktick_sync(
     for item in report.get("only_hsk") or []:
         name = str(item.get("name") or "").strip()
         _tick(f"Create in TickTick: {name}")
+        if client is None:
+            errors.append(f"{name}: create in TickTick: API client is not available")
+            continue
         try:
             created = client.create_boolean_habit(name)
             tt_id = str(created.get("id") or "")
@@ -159,6 +168,7 @@ def build_habits_ticktick_sync_preview(
 
     """
     as_of = today or datetime.now(UTC).astimezone().date()
+    date_range = earliest_iso_dates(hsk_payload, ticktick_payload)
     hsk_by_name, hsk_dupes = _index_habits(hsk_payload.get("habits") or [], source="hsk")
     tt_by_name, tt_dupes = _index_habits(ticktick_payload.get("habits") or [], source="ticktick")
 
@@ -200,6 +210,8 @@ def build_habits_ticktick_sync_preview(
         "today": as_of.isoformat(),
         "hsk_database": hsk_payload.get("database"),
         "ticktick_database": ticktick_payload.get("database"),
+        "ticktick_source": _ticktick_source_label(ticktick_payload),
+        "date_range": date_range,
         "habit_counts": {
             "hsk": len(hsk_payload.get("habits") or []),
             "ticktick": len(ticktick_payload.get("habits") or []),
@@ -213,6 +225,34 @@ def build_habits_ticktick_sync_preview(
         "only_hsk": create_in_ticktick,
         "only_ticktick": create_in_hsk,
         "name_conflicts": name_conflicts,
+    }
+
+
+def earliest_iso_dates(
+    hsk_payload: dict[str, Any],
+    ticktick_payload: dict[str, Any] | None = None,
+) -> dict[str, str | None]:
+    """Return the earliest check-in ISO dates from HSK and TickTick payloads.
+
+    Args:
+
+    - `hsk_payload` (`dict[str, Any]`): Export from `export_hsk_habits_json`.
+    - `ticktick_payload` (`dict[str, Any] | None`): Export from TickTick local
+      SQLite or Open API.
+
+    Returns:
+
+    - `dict[str, str | None]`: `hsk_earliest`, `ticktick_earliest`, and `from`
+      (`min` of the two when both exist).
+
+    """
+    hsk_earliest = _earliest_iso_from_hsk(hsk_payload)
+    tt_earliest = _earliest_iso_from_ticktick(ticktick_payload)
+    candidates = [day for day in (hsk_earliest, tt_earliest) if day]
+    return {
+        "hsk_earliest": hsk_earliest,
+        "ticktick_earliest": tt_earliest,
+        "from": min(candidates) if candidates else None,
     }
 
 
@@ -231,25 +271,46 @@ def format_habits_ticktick_sync_preview(report: dict[str, Any], *, title: str | 
     """
     counts = report["habit_counts"]
     totals = report["transfer_totals"]
+    date_range = report.get("date_range") or {}
     lines = [
         title or "TickTick sync preview (dry-run, no writes)",
         f"Today: {report['today']}",
-        "",
-        "Habits:",
-        f"  HSK total: {counts['hsk']}",
-        f"  TickTick total: {counts['ticktick']}",
-        f"  Matched by name: {counts['matched']}",
-        f"  Only in HSK (would create in TickTick): {counts['only_hsk']}",
-        f"  Only in TickTick (would create in HSK): {counts['only_ticktick']}",
-        f"  Name conflicts: {counts['name_conflicts']}",
-        "",
-        "Values that would transfer:",
-        f"  → TickTick Done: {totals['to_ticktick_done']}",
-        f"  → HSK Done (write 1): {totals['to_hsk_done']}",
-        f"  → HSK Not done gap fill (write 0): {totals['gap_not_done_to_hsk']}",
-        f"  Protected numeric (HSK > 0 kept): {totals['protected_numeric']}",
-        f"  HSK Not done after last Done (left as-is): {totals['hsk_not_done_after_last_done']}",
     ]
+    source = str(report.get("ticktick_source") or "").strip()
+    if source:
+        lines.append(f"TickTick source: {source}")
+    hsk_earliest = date_range.get("hsk_earliest")
+    tt_earliest = date_range.get("ticktick_earliest")
+    if hsk_earliest or tt_earliest:
+        lines.extend(
+            [
+                f"  Earliest HSK: {hsk_earliest or '—'}",
+                f"  Earliest TickTick: {tt_earliest or '—'}",
+            ]
+        )
+    lines.extend(
+        [
+            "",
+            "Habits:",
+        ]
+    )
+    lines.extend(
+        [
+            f"  HSK total: {counts['hsk']}",
+            f"  TickTick total: {counts['ticktick']}",
+            f"  Matched by name: {counts['matched']}",
+            f"  Only in HSK (would create in TickTick): {counts['only_hsk']}",
+            f"  Only in TickTick (would create in HSK): {counts['only_ticktick']}",
+            f"  Name conflicts: {counts['name_conflicts']}",
+            "",
+            "Values that would transfer:",
+            f"  → TickTick Done: {totals['to_ticktick_done']}",
+            f"  → HSK Done (write 1): {totals['to_hsk_done']}",
+            f"  → HSK Not done gap fill (write 0): {totals['gap_not_done_to_hsk']}",
+            f"  Protected numeric (HSK > 0 kept): {totals['protected_numeric']}",
+            f"  HSK Not done after last Done (left as-is): {totals['hsk_not_done_after_last_done']}",
+        ]
+    )
     if report["name_conflicts"]:
         lines.append("")
         lines.append("Name conflicts:")
@@ -312,6 +373,84 @@ def format_habits_ticktick_sync_result(result: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
+def from_stamp_for_api_export(
+    hsk_payload: dict[str, Any],
+    ticktick_payload: dict[str, Any] | None = None,
+) -> int:
+    """Return TickTick `YYYYMMDD` lower bound from the earliest known dates.
+
+    Args:
+
+    - `hsk_payload` (`dict[str, Any]`): HSK export used when local TickTick
+      history is unavailable.
+    - `ticktick_payload` (`dict[str, Any] | None`): Optional TickTick export
+      already loaded (for example a partial local snapshot).
+
+    Returns:
+
+    - `int`: `min(HSK earliest, TickTick earliest)`, or `FALLBACK_FROM_STAMP`.
+
+    """
+    range_from = earliest_iso_dates(hsk_payload, ticktick_payload).get("from")
+    if range_from is None:
+        return FALLBACK_FROM_STAMP
+    return iso_to_ticktick_stamp(range_from)
+
+
+def load_ticktick_sync_payload(
+    *,
+    hsk_payload: dict[str, Any],
+    to_stamp: int,
+    client: TickTickHabitsClient | None = None,
+    ticktick_db_path: Path | None = None,
+) -> dict[str, Any]:
+    """Load TickTick habits from local desktop SQLite, or Open API as fallback.
+
+    Local `TickTick.db` has the full check-in history, including pre-2020 years.
+    The Open API is used only when that file is missing or unreadable.
+
+    Args:
+
+    - `hsk_payload` (`dict[str, Any]`): HSK export used to compute the API
+      `from` stamp when falling back.
+    - `to_stamp` (`int`): Inclusive API upper bound (`YYYYMMDD`).
+    - `client` (`TickTickHabitsClient | None`): Required for the API fallback.
+    - `ticktick_db_path` (`Path | None`): TickTick SQLite file. Defaults to the
+      desktop AppData path.
+
+    Returns:
+
+    - `dict[str, Any]`: Payload shaped like `export_ticktick_habits_json`.
+
+    Raises:
+
+    - `FileNotFoundError`: Local database is missing and no API client is given.
+    - `OSError`: Local database cannot be read and no API client is given.
+    - `ValueError`: Local database is invalid and no API client is given.
+
+    """
+    try:
+        payload = export_ticktick_habits_json(ticktick_db_path)
+    except (FileNotFoundError, OSError, ValueError):
+        if client is None:
+            raise
+        from_stamp = from_stamp_for_api_export(hsk_payload)
+        payload = client.export_habits_payload(to_stamp=to_stamp, from_stamp=from_stamp)
+        payload["source"] = "open-api"
+        return payload
+    payload["source"] = "local-sqlite"
+    return payload
+
+
+def _consider_iso(day: object, earliest: str | None) -> str | None:
+    text = str(day or "").strip()
+    if _parse_iso(text) is None:
+        return earliest
+    if earliest is None or text < earliest:
+        return text
+    return earliest
+
+
 def _count_apply_steps(report: dict[str, Any]) -> int:
     total = len(report.get("only_ticktick") or [])
     hsk_writes = 0
@@ -339,6 +478,28 @@ def _dates_between(start: date, end: date) -> list[date]:
         days.append(current)
         current += timedelta(days=1)
     return days
+
+
+def _earliest_iso_from_hsk(payload: dict[str, Any]) -> str | None:
+    earliest: str | None = None
+    for habit in payload.get("habits") or []:
+        values = habit.get("values")
+        if isinstance(values, dict):
+            for day in values:
+                earliest = _consider_iso(day, earliest)
+        for day in habit.get("dates") or []:
+            earliest = _consider_iso(day, earliest)
+    return earliest
+
+
+def _earliest_iso_from_ticktick(payload: dict[str, Any] | None) -> str | None:
+    if payload is None:
+        return None
+    earliest: str | None = None
+    for habit in payload.get("habits") or []:
+        for day in habit.get("dates") or []:
+            earliest = _consider_iso(day, earliest)
+    return earliest
 
 
 def _hsk_done_dates(values: dict[str, int]) -> set[str]:
@@ -491,3 +652,17 @@ def _preview_matched_habit(
         "protected_numeric_dates": protected_numeric,
         "hsk_not_done_after_last_done_dates": hsk_not_done_after,
     }
+
+
+def _ticktick_source_label(payload: dict[str, Any]) -> str:
+    source = str(payload.get("source") or "").strip()
+    if source == "open-api":
+        return "TickTick Open API"
+    if source == "local-sqlite":
+        return "local TickTick SQLite"
+    database = str(payload.get("database") or "").strip()
+    if database == "ticktick-open-api":
+        return "TickTick Open API"
+    if database:
+        return "local TickTick SQLite"
+    return ""
