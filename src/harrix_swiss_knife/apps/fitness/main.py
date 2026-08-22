@@ -104,6 +104,14 @@ from harrix_swiss_knife.apps.common.widgets.exercise_list_hover_preview import (
 from harrix_swiss_knife.apps.common.widgets.path_drop_helpers import install_url_drop_handlers
 from harrix_swiss_knife.apps.fitness import database_manager, window
 from harrix_swiss_knife.apps.fitness.ai_source_dialog import create_fitness_dashboard_text_dialog
+from harrix_swiss_knife.apps.fitness.dumbbell_weight_types import (
+    DUMBBELL_WEIGHT_TEMPLATE_EXERCISE,
+    ExerciseWeightSnapshot,
+    WeightTypeSpec,
+    exercises_needing_weight_sync,
+    is_template_exercise,
+    missing_weight_types,
+)
 from harrix_swiss_knife.apps.fitness.exercise_add_dialog import ExerciseAddDialog
 from harrix_swiss_knife.apps.fitness.exercise_media_worker import ExerciseMediaSaveWorker
 from harrix_swiss_knife.apps.fitness.exercise_type_add_dialog import ExerciseTypeAddDialog
@@ -140,7 +148,11 @@ from harrix_swiss_knife.integrations.bothub import (
 )
 from harrix_swiss_knife.keyboard_layout_search import text_matches_autocomplete
 from harrix_swiss_knife.paths import get_config_path_str, get_project_root
-from harrix_swiss_knife.qt_emoji_icon import apply_emoji_dialog_buttons, set_action_text_with_emoji_icon
+from harrix_swiss_knife.qt_emoji_icon import (
+    apply_emoji_dialog_buttons,
+    apply_leading_emoji_icons,
+    set_action_text_with_emoji_icon,
+)
 from harrix_swiss_knife.win11_backdrop import SystemBackdrop, try_apply_system_backdrop
 
 logger = logging.getLogger(__name__)
@@ -536,6 +548,47 @@ class MainWindow(
     def load_process_table(self) -> None:
         """Load process table data with appropriate limit based on show_all_records flag."""
         self._load_process_page(reset=True)
+
+    @requires_database()
+    def on_add_dumbbell_weight_types(self) -> None:
+        """Copy template dumbbell weights onto the selected exercise and require types."""
+        if self.db_manager is None:
+            logger.error("❌ Database manager is not initialized")
+            return
+
+        record_id = self._get_selected_row_id("exercises")
+        if record_id is None:
+            message_box.warning(self, "Error", "Select an exercise")
+            return
+
+        exercise_name = self.db_manager.get_exercise_name_by_id(record_id) or ""
+        if is_template_exercise(exercise_name):
+            message_box.information(
+                self,
+                "Dumbbell Weight Types",
+                f"'{DUMBBELL_WEIGHT_TEMPLATE_EXERCISE}' is the template exercise.",
+            )
+            return
+
+        template = self._get_dumbbell_weight_template_specs()
+        if template is None:
+            return
+
+        added = self._copy_template_weight_types(record_id, template, require_type=True)
+        self._mark_exercises_changed()
+        self.update_all()
+        if added:
+            message_box.information(
+                self,
+                "Dumbbell Weight Types",
+                f"Added {added} dumbbell weight type(s) to '{exercise_name}' and marked types as required.",
+            )
+            return
+        message_box.information(
+            self,
+            "Dumbbell Weight Types",
+            f"'{exercise_name}' already has the template dumbbell weights. Types are now required.",
+        )
 
     @requires_database()
     def on_add_exercise(self) -> None:
@@ -2500,6 +2553,58 @@ class MainWindow(
         # Only update AVIF if not in check_steps mode (since check_steps always shows Steps exercise)
         if self.current_statistics_mode != "check_steps":
             self._update_statistics_avif()
+
+    @requires_database()
+    def on_sync_dumbbell_weight_types(self) -> None:
+        """Add new template dumbbell weights to exercises that already use those types."""
+        if self.db_manager is None:
+            logger.error("❌ Database manager is not initialized")
+            return
+
+        template = self._get_dumbbell_weight_template_specs()
+        if template is None:
+            return
+
+        snapshots: list[ExerciseWeightSnapshot] = []
+        for row in self.db_manager.get_all_exercises():
+            exercise_id = int(row[0])
+            name = str(row[1] or "").strip()
+            specs = self.db_manager.get_exercise_weight_type_specs(exercise_id)
+            snapshots.append(
+                ExerciseWeightSnapshot(
+                    exercise_id=exercise_id,
+                    name=name,
+                    type_names=tuple(spec.name for spec in specs),
+                )
+            )
+
+        targets = exercises_needing_weight_sync(snapshots, template)
+        if not targets:
+            message_box.information(
+                self,
+                "Dumbbell Weight Types",
+                "Matching exercises already have the template dumbbell weights.",
+            )
+            return
+
+        added_total = 0
+        updated_exercises = 0
+        for exercise, missing in targets:
+            added = self._copy_template_weight_types(exercise.exercise_id, missing, require_type=False)
+            if added:
+                added_total += added
+                updated_exercises += 1
+
+        if added_total:
+            self._mark_exercises_changed()
+            self.update_all()
+            message_box.information(
+                self,
+                "Dumbbell Weight Types",
+                f"Added {added_total} dumbbell weight type(s) to {updated_exercises} exercise(s).",
+            )
+            return
+        message_box.warning(self, "Dumbbell Weight Types", "Failed to add dumbbell weight types.")
 
     def on_tab_changed(self, index: int) -> None:
         """React to `QTabWidget` index change.
@@ -4523,6 +4628,7 @@ class MainWindow(
         """
         self._connect_exit_about_actions()
         self._setup_open_exercise_images_action()
+        self._setup_sync_dumbbell_weight_types_action()
 
         self.pushButton_add.clicked.connect(self.on_add_record)
         self.spinBox_count.lineEdit().returnPressed.connect(self.pushButton_add.click)
@@ -4653,6 +4759,44 @@ class MainWindow(
 
         # Connect weight table selection
         self._connect_table_signals("weight", self.on_weight_selection_changed)
+
+    def _copy_template_weight_types(
+        self,
+        exercise_id: int,
+        template: list[WeightTypeSpec],
+        *,
+        require_type: bool,
+    ) -> int:
+        """Add missing template weight types to one exercise.
+
+        Args:
+
+        - `exercise_id` (`int`): Target exercise ID.
+        - `template` (`list[WeightTypeSpec]`): Types to copy.
+        - `require_type` (`bool`): Whether to set `is_type_required`.
+
+        Returns:
+
+        - `int`: Number of types that were inserted.
+
+        """
+        if self.db_manager is None:
+            return 0
+        existing_names = [spec.name for spec in self.db_manager.get_exercise_weight_type_specs(exercise_id)]
+        added = 0
+        for spec in missing_weight_types(existing_names, template):
+            if self.db_manager.add_exercise_type(
+                exercise_id,
+                spec.name,
+                spec.calories_modifier,
+                name_local=spec.name_local,
+            ):
+                added += 1
+            else:
+                logger.error("Failed to add type %s to exercise %s", spec.name, exercise_id)
+        if require_type and not self.db_manager.set_exercise_type_required(exercise_id, required=True):
+            logger.error("Failed to set is_type_required for exercise %s", exercise_id)
+        return added
 
     def _create_colored_process_table_model(
         self,
@@ -5010,6 +5154,34 @@ class MainWindow(
             # Fallback to display text
             return item.text()
         return None
+
+    def _get_dumbbell_weight_template_specs(self) -> list[WeightTypeSpec] | None:
+        """Load weight types from the dumbbell template exercise.
+
+        Returns:
+
+        - `list[WeightTypeSpec] | None`: Template types, or `None` when they cannot be loaded.
+
+        """
+        if self.db_manager is None:
+            return None
+        template_id = self.db_manager.get_id("exercises", "name", DUMBBELL_WEIGHT_TEMPLATE_EXERCISE)
+        if template_id is None:
+            message_box.warning(
+                self,
+                "Dumbbell Weight Types",
+                f"Template exercise '{DUMBBELL_WEIGHT_TEMPLATE_EXERCISE}' was not found.",
+            )
+            return None
+        specs = self.db_manager.get_exercise_weight_type_specs(template_id)
+        if not specs:
+            message_box.warning(
+                self,
+                "Dumbbell Weight Types",
+                f"Template exercise '{DUMBBELL_WEIGHT_TEMPLATE_EXERCISE}' has no weight types.",
+            )
+            return None
+        return specs
 
     def _get_exercise_avif_path(self, exercise_name: str) -> Path | None:
         """Get the path to the AVIF file for the given exercise.
@@ -6586,6 +6758,18 @@ class MainWindow(
             process_header.setSectionResizeMode(i, process_header.ResizeMode.Interactive)
         self._adjust_process_table_columns()
 
+    def _setup_sync_dumbbell_weight_types_action(self) -> None:
+        """Add Commands → Sync dumbbell weight types after the types-table actions."""
+        menu = getattr(self, "menuCommanda", None)
+        if menu is None:
+            return
+        action = QAction("🏋️ Sync dumbbell weight types", self)
+        action.setObjectName("actionSyncDumbbellWeightTypes")
+        action.triggered.connect(self.on_sync_dumbbell_weight_types)
+        menu.addSeparator()
+        menu.addAction(action)
+        set_action_text_with_emoji_icon(action, action.text())
+
     def _setup_ui(self) -> None:
         """Set up additional UI elements after basic initialization."""
         self._place_menu_bar_on_tab_row()
@@ -6695,6 +6879,14 @@ class MainWindow(
         delete_action = context_menu.addAction("🗑️ Delete")
         reveal_action = context_menu.addAction("📂 Reveal in File Explorer")
         export_action = context_menu.addAction("📤 Export to CSV")
+        context_menu.addSeparator()
+        add_weights_action = context_menu.addAction("🏋️ Add dumbbell weight types")
+        record_id = self._get_selected_row_id("exercises")
+        selected_name = ""
+        if record_id is not None and self.db_manager is not None:
+            selected_name = self.db_manager.get_exercise_name_by_id(record_id) or ""
+        add_weights_action.setEnabled(record_id is not None and not is_template_exercise(selected_name))
+        apply_leading_emoji_icons(context_menu)
 
         action = context_menu.exec_(self.tableView_exercises.mapToGlobal(position))
         if action is None or action in {self.actionAdd_Exercise, self.actionRefresh_Exercises_Table}:
@@ -6708,6 +6900,8 @@ class MainWindow(
             self._reveal_exercise_media_in_explorer(exercise_name or "")
         elif action == export_action:
             self.on_export_csv()
+        elif action == add_weights_action:
+            self.on_add_dumbbell_weight_types()
 
     def _show_monthly_goal_congratulations(self, exercise: str, type_name: str, current_value: float) -> None:
         """Show congratulations message for achieving monthly goal.

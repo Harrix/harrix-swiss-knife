@@ -8,6 +8,7 @@ from datetime import UTC, datetime
 from typing import Any, NoReturn
 
 from harrix_swiss_knife.apps.common.qt_database_manager_base import QtSqliteDatabaseManagerBase
+from harrix_swiss_knife.apps.fitness.dumbbell_weight_types import WeightTypeSpec
 
 logger = logging.getLogger(__name__)
 
@@ -720,6 +721,45 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             return rows[0][0]
         return "times"
 
+    def get_exercise_weight_type_specs(self, exercise_id: int) -> list[WeightTypeSpec]:
+        """Return type name, calories modifier, and local name for one exercise.
+
+        Args:
+
+        - `exercise_id` (`int`): Exercise ID.
+
+        Returns:
+
+        - `list[WeightTypeSpec]`: Types belonging to the exercise.
+
+        """
+        rows = self.get_rows(
+            """
+            SELECT type, calories_modifier, IFNULL(name_local, '')
+            FROM types
+            WHERE _id_exercises = :ex_id
+            ORDER BY type
+            """,
+            {"ex_id": exercise_id},
+        )
+        specs: list[WeightTypeSpec] = []
+        for row in rows:
+            name = str(row[0] or "").strip()
+            if not name:
+                continue
+            try:
+                modifier = float(row[1] or 1.0)
+            except (TypeError, ValueError):
+                modifier = 1.0
+            specs.append(
+                WeightTypeSpec(
+                    name=name,
+                    calories_modifier=modifier,
+                    name_local=str(row[2] or "").strip(),
+                )
+            )
+        return specs
+
     def get_exercises_by_frequency(self, limit: int = 500) -> list[str]:
         """Return exercise names ordered by frequency in recent `limit` rows.
 
@@ -1152,6 +1192,24 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         """
         rows = self.get_rows("SELECT is_type_required FROM exercises WHERE _id = :ex_id", {"ex_id": exercise_id})
         return bool(rows and rows[0][0] == 1)
+
+    def set_exercise_type_required(self, exercise_id: int, *, required: bool) -> bool:
+        """Set `is_type_required` for one exercise.
+
+        Args:
+
+        - `exercise_id` (`int`): Exercise ID.
+        - `required` (`bool`): Whether a type must be chosen when logging a set.
+
+        Returns:
+
+        - `bool`: `True` if the update succeeded.
+
+        """
+        return self.execute_simple_query(
+            "UPDATE exercises SET is_type_required = :itr WHERE _id = :id",
+            {"itr": 1 if required else 0, "id": exercise_id},
+        )
 
     def update_exercise(
         self,
