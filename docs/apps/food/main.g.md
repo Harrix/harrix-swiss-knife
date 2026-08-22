@@ -24,6 +24,9 @@ lang: en
   - [⚙️ Method `on_export_csv`](#%EF%B8%8F-method-on_export_csv)
   - [⚙️ Method `on_food_add_by_voice`](#%EF%B8%8F-method-on_food_add_by_voice)
   - [⚙️ Method `on_food_add_with_ai`](#%EF%B8%8F-method-on_food_add_with_ai)
+  - [⚙️ Method `on_food_dashboard_add_photo`](#%EF%B8%8F-method-on_food_dashboard_add_photo)
+  - [⚙️ Method `on_food_dashboard_add_text`](#%EF%B8%8F-method-on_food_dashboard_add_text)
+  - [⚙️ Method `on_food_dashboard_add_voice`](#%EF%B8%8F-method-on_food_dashboard_add_voice)
   - [⚙️ Method `on_food_item_double_clicked`](#%EF%B8%8F-method-on_food_item_double_clicked)
   - [⚙️ Method `on_food_log_table_cell_clicked`](#%EF%B8%8F-method-on_food_log_table_cell_clicked)
   - [⚙️ Method `on_food_stats_all_time`](#%EF%B8%8F-method-on_food_stats_all_time)
@@ -98,6 +101,7 @@ class MainWindow(
         super().__init__()
         try_apply_system_backdrop(self, backdrop=SystemBackdrop.MICA)
         self.setupUi(self)
+        self._food_dashboard: FoodDashboardWidget | None = None
         self._setup_ui()
 
         # Set window icon
@@ -501,61 +505,7 @@ class MainWindow(
 
     def on_food_add_by_voice(self) -> None:
         """Record speech, transcribe via BotHub, convert to food log TSV, then open preview dialog."""
-        recording_dialog = SimpleRecordingDialog(self)
-        if recording_dialog.exec() != QDialog.DialogCode.Accepted:
-            recording_dialog.release_multimedia()
-            return
-
-        audio_path = recording_dialog.get_audio_path()
-        recording_dialog.release_multimedia()
-        if not audio_path:
-            return
-
-        try:
-            audio_data = audio_bytes_and_mime(audio_path)
-        except ValueError as exc:
-            message_box.critical(self, "Audio Error", str(exc))
-            return
-
-        def on_transcription_success(transcribed_text: str) -> None:
-            if not transcribed_text.strip():
-                message_box.critical(self, "BotHub Error", "Empty transcription from BotHub.")
-                return
-
-            try:
-                prompt_text = build_prompt(
-                    self._app_config,
-                    "food_voice_log_to_tsv",
-                    {"RAW_DATA": transcribed_text},
-                )
-            except ValueError as exc:
-                show_bothub_prompt_build_error(self, exc)
-                return
-
-            def on_tsv_success(response_text: str) -> None:
-                self._open_text_input_dialog(
-                    self.dateEdit_food.date(),
-                    initial_text=response_text,
-                    focus_text_on_show=False,
-                )
-
-            self._start_bothub_worker(
-                prompt_text,
-                on_tsv_success,
-                toast_message="Parsing food log…",
-            )
-
-        run_bothub_request(
-            self,
-            self._app_config,
-            build_transcription_prompt(),
-            on_transcription_success,
-            audio=audio_data,
-            model=get_speech_model(self._app_config),
-            toast_message="Recognizing speech…",
-            is_busy=lambda: self._bothub_state.worker is not None,
-            state=self._bothub_state,
-        )
+        self._run_food_add_by_voice()
 
     @requires_database()
     def on_food_add_with_ai(
@@ -579,23 +529,40 @@ class MainWindow(
             self._open_text_input_dialog(self.dateEdit_food.date())
             return
 
-        raw_text = source_dialog.get_raw_text()
-        images_data = source_dialog.get_images_bytes_and_mime()
+        self._send_food_log_to_ai(
+            source_dialog.get_raw_text(),
+            source_dialog.get_images_bytes_and_mime(),
+        )
 
-        try:
-            prompt_text = build_prompt(self._app_config, "food_log_to_tsv", {"RAW_DATA": raw_text})
-        except ValueError as exc:
-            show_bothub_prompt_build_error(self, exc)
+    def on_food_dashboard_add_photo(self) -> None:
+        """Open a large photo-only form and send the image to AI."""
+        if not self._validate_database_connection():
+            message_box.warning(self, "Error", "Database connection not available")
             return
+        source_dialog = create_food_dashboard_photo_dialog(
+            self,
+            max_image_side=get_max_image_side(self._app_config),
+        )
+        if source_dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+        self._send_food_log_to_ai(
+            source_dialog.get_raw_text(),
+            source_dialog.get_images_bytes_and_mime(),
+        )
 
-        def on_success(response_text: str) -> None:
-            self._open_text_input_dialog(
-                self.dateEdit_food.date(),
-                initial_text=response_text,
-                focus_text_on_show=False,
-            )
+    def on_food_dashboard_add_text(self) -> None:
+        """Open a large text-only form and send the description to AI."""
+        if not self._validate_database_connection():
+            message_box.warning(self, "Error", "Database connection not available")
+            return
+        source_dialog = create_food_dashboard_text_dialog(self)
+        if source_dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+        self._send_food_log_to_ai(source_dialog.get_raw_text())
 
-        self._start_bothub_worker(prompt_text, on_success, images=images_data or None)
+    def on_food_dashboard_add_voice(self) -> None:
+        """Open a large recording form and send speech to AI."""
+        self._run_food_add_by_voice(large_ui=True)
 
     def on_food_item_double_clicked(self, _index: QModelIndex) -> None:
         """Handle double click on food item in the list view.
@@ -1078,6 +1045,8 @@ class MainWindow(
 
         if not self._validate_database_connection():
             self.label_food_today.setText("0 kcal\n0,0 liters")
+            if self._food_dashboard is not None:
+                self._food_dashboard.set_today_calories(0)
             return
 
         try:
@@ -1086,9 +1055,13 @@ class MainWindow(
             drinks_liters = drinks_weight / 1000 if drinks_weight else 0.0
             drinks_liters_str = f"{drinks_liters:.1f}"
             self.label_food_today.setText(f"{calories:.1f} kcal \n{drinks_liters_str} liters")
+            if self._food_dashboard is not None:
+                self._food_dashboard.set_today_calories(calories)
         except Exception:
             logger.exception("Error getting food calories for today")
             self.label_food_today.setText("0 kcal\n0,0 liters")
+            if self._food_dashboard is not None:
+                self._food_dashboard.set_today_calories(0)
 
     def update_food_data(self) -> None:
         """Refresh food-related data only.
@@ -2240,8 +2213,11 @@ class MainWindow(
         if current_widget is None:
             return
 
-        # Check if the current tab is the food stats tab
-        if current_widget.objectName() == "tab_food_stats":
+        tab_name = current_widget.objectName()
+        if tab_name == "tab_food_dashboard":
+            self.update_food_calories_today()
+            return
+        if tab_name == "tab_food_stats":
             self._update_kcal_per_day_table()
             self._update_food_calories_chart()
 
@@ -2565,6 +2541,85 @@ class MainWindow(
         self._food_log_dates_with_totals = set()
         self._food_log_date_color_map = {}
 
+    def _run_food_add_by_voice(self, *, large_ui: bool = False) -> None:
+        """Record speech, transcribe via BotHub, convert to food log TSV, then open preview dialog."""
+        recording_dialog = SimpleRecordingDialog(self, large_ui=large_ui)
+        if recording_dialog.exec() != QDialog.DialogCode.Accepted:
+            recording_dialog.release_multimedia()
+            return
+
+        audio_path = recording_dialog.get_audio_path()
+        recording_dialog.release_multimedia()
+        if not audio_path:
+            return
+
+        try:
+            audio_data = audio_bytes_and_mime(audio_path)
+        except ValueError as exc:
+            message_box.critical(self, "Audio Error", str(exc))
+            return
+
+        def on_transcription_success(transcribed_text: str) -> None:
+            if not transcribed_text.strip():
+                message_box.critical(self, "BotHub Error", "Empty transcription from BotHub.")
+                return
+
+            try:
+                prompt_text = build_prompt(
+                    self._app_config,
+                    "food_voice_log_to_tsv",
+                    {"RAW_DATA": transcribed_text},
+                )
+            except ValueError as exc:
+                show_bothub_prompt_build_error(self, exc)
+                return
+
+            def on_tsv_success(response_text: str) -> None:
+                self._open_text_input_dialog(
+                    self.dateEdit_food.date(),
+                    initial_text=response_text,
+                    focus_text_on_show=False,
+                )
+
+            self._start_bothub_worker(
+                prompt_text,
+                on_tsv_success,
+                toast_message="Parsing food log…",
+            )
+
+        run_bothub_request(
+            self,
+            self._app_config,
+            build_transcription_prompt(),
+            on_transcription_success,
+            audio=audio_data,
+            model=get_speech_model(self._app_config),
+            toast_message="Recognizing speech…",
+            is_busy=lambda: self._bothub_state.worker is not None,
+            state=self._bothub_state,
+        )
+
+    def _send_food_log_to_ai(
+        self,
+        raw_text: str,
+        images_data: list[tuple[bytes, str]] | None = None,
+    ) -> None:
+        """Send food source text and optional images to BotHub, then open the preview dialog."""
+        try:
+            prompt_text = build_prompt(self._app_config, "food_log_to_tsv", {"RAW_DATA": raw_text})
+        except ValueError as exc:
+            show_bothub_prompt_build_error(self, exc)
+            return
+
+        def on_success(response_text: str) -> None:
+            self._open_text_input_dialog(
+                self.dateEdit_food.date(),
+                initial_text=response_text,
+                focus_text_on_show=False,
+            )
+
+        self._start_bothub_worker(prompt_text, on_success, images=images_data or None)
+
     @requires_database()
     def _set_date_for_selected_food_log_records(self, record_ids: list[int]) -> None:
         """Set the same date on several food log rows after user picks a date in a dialog."""
@@ -2657,6 +2712,16 @@ class MainWindow(
         self.lineEdit_food_manual_name.textEdited.connect(self._on_food_name_text_edited)
         self.food_completer.activated.connect(self._on_autocomplete_selected)
 
+    def _setup_food_dashboard_tab(self) -> None:
+        """Fill the first Food tab with the quick-add dashboard."""
+        self._food_dashboard = FoodDashboardWidget(self)
+        self._food_dashboard.add_photo_requested.connect(self.on_food_dashboard_add_photo)
+        self._food_dashboard.add_voice_requested.connect(self.on_food_dashboard_add_voice)
+        self._food_dashboard.add_text_requested.connect(self.on_food_dashboard_add_text)
+        self.verticalLayout_food_dashboard.setContentsMargins(0, 0, 0, 0)
+        self.verticalLayout_food_dashboard.addWidget(self._food_dashboard)
+        self.tabWidget.setCurrentWidget(self.tab_food_dashboard)
+
     def _setup_ui(self) -> None:
         """Set up additional UI elements after basic initialization."""
         self._place_menu_bar_on_tab_row()
@@ -2717,8 +2782,11 @@ class MainWindow(
         # Keep default period as "Days" for food stats
         # (but date range will be set to last month)
 
-        # Set focus to the food name input field for quick data entry
-        self.lineEdit_food_manual_name.setFocus()
+        self._setup_food_dashboard_tab()
+
+        # Keep keyboard focus on the Food tab form only while that tab is current
+        if self.tabWidget.currentWidget() is self.tab_food:
+            self.lineEdit_food_manual_name.setFocus()
 
         # Initialize add button appearance
         self._update_add_button_appearance()
@@ -3572,6 +3640,7 @@ def __init__(self, *, hide_on_close: bool = False) -> None:  # noqa: D107
         super().__init__()
         try_apply_system_backdrop(self, backdrop=SystemBackdrop.MICA)
         self.setupUi(self)
+        self._food_dashboard: FoodDashboardWidget | None = None
         self._setup_ui()
 
         # Set window icon
@@ -4106,61 +4175,7 @@ Record speech, transcribe via BotHub, convert to food log TSV, then open preview
 
 ```python
 def on_food_add_by_voice(self) -> None:
-        recording_dialog = SimpleRecordingDialog(self)
-        if recording_dialog.exec() != QDialog.DialogCode.Accepted:
-            recording_dialog.release_multimedia()
-            return
-
-        audio_path = recording_dialog.get_audio_path()
-        recording_dialog.release_multimedia()
-        if not audio_path:
-            return
-
-        try:
-            audio_data = audio_bytes_and_mime(audio_path)
-        except ValueError as exc:
-            message_box.critical(self, "Audio Error", str(exc))
-            return
-
-        def on_transcription_success(transcribed_text: str) -> None:
-            if not transcribed_text.strip():
-                message_box.critical(self, "BotHub Error", "Empty transcription from BotHub.")
-                return
-
-            try:
-                prompt_text = build_prompt(
-                    self._app_config,
-                    "food_voice_log_to_tsv",
-                    {"RAW_DATA": transcribed_text},
-                )
-            except ValueError as exc:
-                show_bothub_prompt_build_error(self, exc)
-                return
-
-            def on_tsv_success(response_text: str) -> None:
-                self._open_text_input_dialog(
-                    self.dateEdit_food.date(),
-                    initial_text=response_text,
-                    focus_text_on_show=False,
-                )
-
-            self._start_bothub_worker(
-                prompt_text,
-                on_tsv_success,
-                toast_message="Parsing food log…",
-            )
-
-        run_bothub_request(
-            self,
-            self._app_config,
-            build_transcription_prompt(),
-            on_transcription_success,
-            audio=audio_data,
-            model=get_speech_model(self._app_config),
-            toast_message="Recognizing speech…",
-            is_busy=lambda: self._bothub_state.worker is not None,
-            state=self._bothub_state,
-        )
+        self._run_food_add_by_voice()
 ```
 
 </details>
@@ -4197,23 +4212,82 @@ def on_food_add_with_ai(
             self._open_text_input_dialog(self.dateEdit_food.date())
             return
 
-        raw_text = source_dialog.get_raw_text()
-        images_data = source_dialog.get_images_bytes_and_mime()
+        self._send_food_log_to_ai(
+            source_dialog.get_raw_text(),
+            source_dialog.get_images_bytes_and_mime(),
+        )
+```
 
-        try:
-            prompt_text = build_prompt(self._app_config, "food_log_to_tsv", {"RAW_DATA": raw_text})
-        except ValueError as exc:
-            show_bothub_prompt_build_error(self, exc)
+</details>
+
+### ⚙️ Method `on_food_dashboard_add_photo`
+
+```python
+def on_food_dashboard_add_photo(self) -> None
+```
+
+Open a large photo-only form and send the image to AI.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def on_food_dashboard_add_photo(self) -> None:
+        if not self._validate_database_connection():
+            message_box.warning(self, "Error", "Database connection not available")
             return
+        source_dialog = create_food_dashboard_photo_dialog(
+            self,
+            max_image_side=get_max_image_side(self._app_config),
+        )
+        if source_dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+        self._send_food_log_to_ai(
+            source_dialog.get_raw_text(),
+            source_dialog.get_images_bytes_and_mime(),
+        )
+```
 
-        def on_success(response_text: str) -> None:
-            self._open_text_input_dialog(
-                self.dateEdit_food.date(),
-                initial_text=response_text,
-                focus_text_on_show=False,
-            )
+</details>
 
-        self._start_bothub_worker(prompt_text, on_success, images=images_data or None)
+### ⚙️ Method `on_food_dashboard_add_text`
+
+```python
+def on_food_dashboard_add_text(self) -> None
+```
+
+Open a large text-only form and send the description to AI.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def on_food_dashboard_add_text(self) -> None:
+        if not self._validate_database_connection():
+            message_box.warning(self, "Error", "Database connection not available")
+            return
+        source_dialog = create_food_dashboard_text_dialog(self)
+        if source_dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+        self._send_food_log_to_ai(source_dialog.get_raw_text())
+```
+
+</details>
+
+### ⚙️ Method `on_food_dashboard_add_voice`
+
+```python
+def on_food_dashboard_add_voice(self) -> None
+```
+
+Open a large recording form and send speech to AI.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def on_food_dashboard_add_voice(self) -> None:
+        self._run_food_add_by_voice(large_ui=True)
 ```
 
 </details>
@@ -4967,6 +5041,8 @@ def update_food_calories_today(self) -> None:
 
         if not self._validate_database_connection():
             self.label_food_today.setText("0 kcal\n0,0 liters")
+            if self._food_dashboard is not None:
+                self._food_dashboard.set_today_calories(0)
             return
 
         try:
@@ -4975,9 +5051,13 @@ def update_food_calories_today(self) -> None:
             drinks_liters = drinks_weight / 1000 if drinks_weight else 0.0
             drinks_liters_str = f"{drinks_liters:.1f}"
             self.label_food_today.setText(f"{calories:.1f} kcal \n{drinks_liters_str} liters")
+            if self._food_dashboard is not None:
+                self._food_dashboard.set_today_calories(calories)
         except Exception:
             logger.exception("Error getting food calories for today")
             self.label_food_today.setText("0 kcal\n0,0 liters")
+            if self._food_dashboard is not None:
+                self._food_dashboard.set_today_calories(0)
 ```
 
 </details>

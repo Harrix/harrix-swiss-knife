@@ -61,6 +61,7 @@ class TextImageSourceDialog(QDialog):
         max_image_side: int | None = None,
         initial_image_paths: list[str] | None = None,
         initial_image_path: str | None = None,
+        large_ui: bool = False,
     ) -> None:
         """Initialize the text/image source dialog."""
         super().__init__(parent)
@@ -79,6 +80,7 @@ class TextImageSourceDialog(QDialog):
         self._accept_button_emoji = accept_button_emoji
         self._accept_button_style = accept_button_style
         self._max_image_side = max_image_side
+        self._large_ui = large_ui
 
         paths = list(initial_image_paths or [])
         if initial_image_path and initial_image_path not in paths:
@@ -160,7 +162,10 @@ class TextImageSourceDialog(QDialog):
 
     def _setup_ui(self) -> None:
         self.setWindowTitle(self._title)
-        self.setMinimumSize(640, 520)
+        if self._large_ui:
+            self.setMinimumSize(800, 680)
+        else:
+            self.setMinimumSize(640, 520)
         qt_modality.set_owner_window_modal(self)
 
         layout = QVBoxLayout(self)
@@ -174,7 +179,7 @@ class TextImageSourceDialog(QDialog):
             self.text_edit = QPlainTextEdit()
             if self._placeholder:
                 self.text_edit.setPlaceholderText(self._placeholder)
-            self.text_edit.setMinimumHeight(120)
+            self.text_edit.setMinimumHeight(260 if self._large_ui else 120)
             self.text_edit.textChanged.connect(self._update_ok_enabled)
             self.text_edit.installEventFilter(self)
             layout.addWidget(self.text_edit)
@@ -188,6 +193,8 @@ class TextImageSourceDialog(QDialog):
                 fallback_text_edit=self.text_edit,
             )
             self.image_widget.image_changed.connect(self._update_ok_enabled)
+            if self._large_ui:
+                self.image_widget.setMinimumHeight(280)
             layout.addWidget(self.image_widget)
 
         button_layout = QHBoxLayout()
@@ -214,6 +221,14 @@ class TextImageSourceDialog(QDialog):
         button_layout.addWidget(self._ok_button)
 
         layout.addLayout(button_layout)
+        if self._large_ui:
+            self.setStyleSheet(
+                """
+                QLabel { font-size: 20px; }
+                QPlainTextEdit { font-size: 22px; }
+                QPushButton { min-height: 52px; font-size: 18px; padding: 8px 20px; }
+                """
+            )
         self._update_ok_enabled()
 
     def _update_ok_enabled(self) -> None:

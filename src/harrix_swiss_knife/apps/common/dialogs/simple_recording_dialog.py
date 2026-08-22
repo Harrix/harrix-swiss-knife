@@ -31,9 +31,10 @@ if TYPE_CHECKING:
 class SimpleRecordingDialog(QDialog):
     """Modal dialog that records audio and lets the user save or recognize it."""
 
-    def __init__(self, parent: QWidget | None = None) -> None:
+    def __init__(self, parent: QWidget | None = None, *, large_ui: bool = False) -> None:
         """Initialize the simple recording dialog."""
         super().__init__(parent)
+        self._large_ui = large_ui
         self._audio_path = ""
         self._auto_start_scheduled = False
         self._finalize_pending = False
@@ -222,7 +223,10 @@ class SimpleRecordingDialog(QDialog):
 
     def _setup_ui(self) -> None:
         self.setWindowTitle("Recording")
-        self.setMinimumSize(480, 260)
+        if self._large_ui:
+            self.setMinimumSize(720, 420)
+        else:
+            self.setMinimumSize(480, 260)
         qt_modality.set_owner_window_modal(self)
 
         layout = QVBoxLayout(self)
@@ -236,7 +240,7 @@ class SimpleRecordingDialog(QDialog):
 
         self._level_widget = AudioLevelWidget()
         self._level_widget.setStyleSheet("background-color: #1e1e1e; border: 1px solid #424242; border-radius: 6px;")
-        self._level_widget.setMinimumHeight(96)
+        self._level_widget.setMinimumHeight(140 if self._large_ui else 96)
         layout.addWidget(self._level_widget)
 
         self._status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -282,6 +286,15 @@ class SimpleRecordingDialog(QDialog):
         controls.addWidget(self._recognize_button, alignment=Qt.AlignmentFlag.AlignBottom)
 
         layout.addLayout(controls)
+        if self._large_ui:
+            self.setStyleSheet(
+                """
+                QLabel { font-size: 18px; }
+                QComboBox { min-height: 40px; font-size: 18px; }
+                QPushButton { min-height: 48px; font-size: 18px; padding: 8px 16px; }
+                """
+            )
+            self._stop_caption.setStyleSheet(f"{RECORD_CAPTION_STOP_STYLE} QLabel {{ font-size: 20px; }}")
         self._update_stop_button()
 
     def _start_recording_with_current_device(self) -> None:
