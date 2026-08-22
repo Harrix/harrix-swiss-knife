@@ -145,16 +145,22 @@ def next_table_sort_order(
 ## 🔧 Function `sort_table_by_header_click`
 
 ```python
-def sort_table_by_header_click(table: QTableView, section: int, *, skip_section: int = 0) -> tuple[int, Qt.SortOrder] | None
+def sort_table_by_header_click(table: QTableView, section: int, *, skip_section: int = 0, current_section: int | None = None, current_order: Qt.SortOrder | None = None) -> tuple[int, Qt.SortOrder] | None
 ```
 
 Sort a table from a header click, ignoring `skip_section`.
+
+Pass `current_section` and `current_order` from the last applied sort. The
+header indicator cannot be used after a real click: `QHeaderView` already
+toggles it when the indicator is shown.
 
 Args:
 
 - `table` (`QTableView`): Table whose proxy/source model supports `sort`.
 - `section` (`int`): Clicked logical column.
 - `skip_section` (`int`): Column that must not sort (image column). Defaults to `0`.
+- `current_section` (`int | None`): Last sorted column, or `None` if unknown.
+- `current_order` (`Qt.SortOrder | None`): Last sort direction, or `None` if unknown.
 
 Returns:
 
@@ -169,11 +175,17 @@ def sort_table_by_header_click(
     section: int,
     *,
     skip_section: int = 0,
+    current_section: int | None = None,
+    current_order: Qt.SortOrder | None = None,
 ) -> tuple[int, Qt.SortOrder] | None:
     if section == skip_section:
         return None
     header = table.horizontalHeader()
-    order = next_table_sort_order(header.sortIndicatorSection(), header.sortIndicatorOrder(), section)
+    if current_section is None:
+        current_section = -1
+    if current_order is None:
+        current_order = Qt.SortOrder.AscendingOrder
+    order = next_table_sort_order(current_section, current_order, section)
     table.sortByColumn(section, order)
     header.setSortIndicatorShown(True)
     header.setSortIndicator(section, order)

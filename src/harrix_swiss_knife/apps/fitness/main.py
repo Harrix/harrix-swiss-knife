@@ -5646,13 +5646,16 @@ class MainWindow(
 
     def _on_exercise_table_header_clicked(self, table_key: str, section: int) -> None:
         table_view, _, _ = self.table_config[table_key]
+        stored = self._exercise_table_sort.get(table_key)
+        current_section, current_order = stored if stored is not None else (None, None)
         result = sort_table_by_header_click(
             table_view,
             section,
             skip_section=_EXERCISE_TABLE_IMAGE_COLUMN,
+            current_section=current_section,
+            current_order=current_order,
         )
         if result is None:
-            stored = self._exercise_table_sort.get(table_key)
             header = table_view.horizontalHeader()
             if stored is None:
                 header.setSortIndicator(-1, Qt.SortOrder.AscendingOrder)

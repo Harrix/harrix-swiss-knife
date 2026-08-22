@@ -58,7 +58,14 @@ def test_sort_table_by_header_click_skips_image_and_toggles(qapp: QApplication) 
     assert first == (1, Qt.SortOrder.AscendingOrder)
     assert [proxy.index(row, 1).data() for row in range(3)] == ["Alpha", "Mike", "Zulu"]
 
-    second = sort_table_by_header_click(table, 1, skip_section=0)
+    header.setSortIndicator(1, Qt.SortOrder.DescendingOrder)
+    second = sort_table_by_header_click(
+        table,
+        1,
+        skip_section=0,
+        current_section=first[0],
+        current_order=first[1],
+    )
     assert second == (1, Qt.SortOrder.DescendingOrder)
     assert [proxy.index(row, 1).data() for row in range(3)] == ["Zulu", "Mike", "Alpha"]
 
