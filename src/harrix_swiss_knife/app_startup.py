@@ -25,6 +25,7 @@ from harrix_swiss_knife.actions.common.quick_launcher_context import QuickLaunch
 from harrix_swiss_knife.actions.common.quick_launcher_registry import iter_menu_structure
 from harrix_swiss_knife.apps.common.uic_compile import install_safe_qt_translate
 from harrix_swiss_knife.cli_menu import CliContextMenu
+from harrix_swiss_knife.config_model import get_show_main_window_on_startup
 from harrix_swiss_knife.global_hotkey import GlobalHotkeyManager
 from harrix_swiss_knife.main_menu_base import set_menu_tooltips_visible_recursive
 from harrix_swiss_knife.menu_structure import get_menu_structure
@@ -189,7 +190,7 @@ def run_tray_application(log: logging.Logger, *, main_menu_cls: type[MainMenuBas
     if not tray_icon.isVisible():
         log.warning("Tray icon failed to become visible. Windows may hide tray icons by default.")
 
-    show_main_window: bool = config.get("show_main_window_on_startup", True)
+    show_main_window = get_show_main_window_on_startup(config)
 
     def finish_startup() -> None:
         _log_startup_phase(log, "Building main menu", startup_t0)

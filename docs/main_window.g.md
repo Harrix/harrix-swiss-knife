@@ -64,6 +64,7 @@ class MainWindow(QMainWindow):
 
         root_layout.addLayout(self._build_header_row())
         root_layout.addWidget(self._build_body_widget(), stretch=1)
+        root_layout.addLayout(self._build_footer_row())
         self._build_sections_from_menu(menu)
         self._populate_list_from_sections()
         self._setup_window_size_and_position()
@@ -240,6 +241,16 @@ class MainWindow(QMainWindow):
 
         return cards_pane
 
+    def _build_footer_row(self) -> QHBoxLayout:
+        footer_row = QHBoxLayout()
+        self._startup_checkbox = QCheckBox("Show at program startup")
+        self._startup_checkbox.setToolTip("Open this window when Harrix Swiss Knife starts")
+        self._startup_checkbox.setChecked(get_show_main_window_on_startup())
+        self._startup_checkbox.toggled.connect(self._on_show_on_startup_toggled)
+        footer_row.addWidget(self._startup_checkbox)
+        footer_row.addStretch(1)
+        return footer_row
+
     def _build_header_row(self) -> QHBoxLayout:
         header_row = QHBoxLayout()
         header_row.setSpacing(8)
@@ -410,6 +421,16 @@ class MainWindow(QMainWindow):
         self._apply_list_search(query)
         self._apply_card_search(query)
 
+    def _on_show_on_startup_toggled(self, checked: bool) -> None:  # noqa: FBT001
+        """Persist the startup checkbox to `show_main_window_on_startup`."""
+        try:
+            set_show_main_window_on_startup(enabled=checked)
+        except (OSError, TypeError, ValueError) as exc:
+            self._startup_checkbox.blockSignals(True)  # noqa: FBT003
+            self._startup_checkbox.setChecked(get_show_main_window_on_startup())
+            self._startup_checkbox.blockSignals(False)  # noqa: FBT003
+            message_box.warning(self, "Settings", f"Could not save config.json:\n{exc}")
+
     def _populate_list_from_sections(self) -> None:
         """Fill the list using the same Main / submenu order as the cards, without Recent."""
         self.list_widget.clear()
@@ -528,6 +549,7 @@ def __init__(self, menu: QMenu) -> None:
 
         root_layout.addLayout(self._build_header_row())
         root_layout.addWidget(self._build_body_widget(), stretch=1)
+        root_layout.addLayout(self._build_footer_row())
         self._build_sections_from_menu(menu)
         self._populate_list_from_sections()
         self._setup_window_size_and_position()

@@ -13,7 +13,7 @@
   "bothub": {
     "base_url": "https://bothub.chat/api/v2/openai/v1",
     "max_image_side": 1600,
-    "model": "gpt-5.5",
+    "model": "gpt-5.4",
     "proxy": "",
     "speech_model": "gemini-3.1-flash-lite-preview"
   },
@@ -21,7 +21,7 @@
   "bothub_ru": {
     "base_url": "https://openai.bothub.ru/v1",
     "max_image_side": 1600,
-    "model": "gpt-5.5",
+    "model": "gpt-5.4",
     "speech_model": "gemini-3.1-flash-lite-preview"
   },
   "bothub_ru_api_key": "snippet:api-keys/bothub-ru-api-key.txt",

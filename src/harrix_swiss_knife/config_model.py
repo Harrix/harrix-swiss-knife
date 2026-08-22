@@ -2,11 +2,16 @@
 
 from __future__ import annotations
 
+import json
+from pathlib import Path
 from typing import Any, NotRequired, TypedDict
 
 import harrix_pylib as h
 
 from harrix_swiss_knife.paths import get_config_path_str
+
+SHOW_MAIN_WINDOW_ON_STARTUP_DEFAULT = True
+SHOW_MAIN_WINDOW_ON_STARTUP_KEY = "show_main_window_on_startup"
 
 
 class AiSettings(TypedDict, total=False):
@@ -135,6 +140,18 @@ class PersonalDataSettings(TypedDict, total=False):
     author_email: str
 
 
+def get_show_main_window_on_startup(config: dict[str, Any] | None = None) -> bool:
+    """Return whether the commands window should open when the app starts."""
+    data = config
+    if data is None:
+        try:
+            data = load_app_config()
+        except (OSError, TypeError, ValueError):
+            return SHOW_MAIN_WINDOW_ON_STARTUP_DEFAULT
+    value = data.get(SHOW_MAIN_WINDOW_ON_STARTUP_KEY, SHOW_MAIN_WINDOW_ON_STARTUP_DEFAULT)
+    return value if isinstance(value, bool) else SHOW_MAIN_WINDOW_ON_STARTUP_DEFAULT
+
+
 def load_app_config(config_path: str | None = None) -> dict[str, Any]:
     """Load config JSON and return a plain dict after soft validation."""
     path = config_path or get_config_path_str()
@@ -144,6 +161,18 @@ def load_app_config(config_path: str | None = None) -> dict[str, Any]:
         raise TypeError(msg)
     validate_app_config(loaded)
     return loaded
+
+
+def set_show_main_window_on_startup(*, enabled: bool, config_path: str | None = None) -> None:
+    """Write `show_main_window_on_startup` to `config.json`."""
+    path = Path(config_path or get_config_path_str())
+    with path.open(encoding="utf-8") as handle:
+        data = json.load(handle)
+    if not isinstance(data, dict):
+        msg = f"Config root must be a JSON object: {path}"
+        raise TypeError(msg)
+    data[SHOW_MAIN_WINDOW_ON_STARTUP_KEY] = bool(enabled)
+    path.write_text(h.dev.dumps_pretty_json(data), encoding="utf-8")
 
 
 def validate_app_config(config: dict[str, Any]) -> list[str]:

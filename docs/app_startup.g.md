@@ -221,7 +221,7 @@ def run_tray_application(log: logging.Logger, *, main_menu_cls: type[MainMenuBas
     if not tray_icon.isVisible():
         log.warning("Tray icon failed to become visible. Windows may hide tray icons by default.")
 
-    show_main_window: bool = config.get("show_main_window_on_startup", True)
+    show_main_window = get_show_main_window_on_startup(config)
 
     def finish_startup() -> None:
         _log_startup_phase(log, "Building main menu", startup_t0)

@@ -8,7 +8,13 @@ from typing import TYPE_CHECKING
 import harrix_pylib as h
 import pytest
 
-from harrix_swiss_knife.config_model import load_app_config, validate_app_config
+from harrix_swiss_knife.config_model import (
+    SHOW_MAIN_WINDOW_ON_STARTUP_KEY,
+    get_show_main_window_on_startup,
+    load_app_config,
+    set_show_main_window_on_startup,
+    validate_app_config,
+)
 from harrix_swiss_knife.paths import ensure_local_config
 
 if TYPE_CHECKING:
@@ -57,3 +63,17 @@ def test_load_app_config_and_ensure_local(monkeypatch: pytest.MonkeyPatch, tmp_p
     assert path.name == "config.json"
     loaded = load_app_config(str(path))
     assert loaded["editor-notes"] == "code"
+
+
+def test_show_main_window_on_startup_defaults_and_writes(tmp_path: Path) -> None:
+    path = tmp_path / "config.json"
+    path.write_text(json.dumps({"editor-notes": "code"}), encoding="utf-8")
+    assert get_show_main_window_on_startup({}) is True
+    assert get_show_main_window_on_startup({SHOW_MAIN_WINDOW_ON_STARTUP_KEY: False}) is False
+    set_show_main_window_on_startup(enabled=False, config_path=str(path))
+    written = json.loads(path.read_text(encoding="utf-8"))
+    assert written[SHOW_MAIN_WINDOW_ON_STARTUP_KEY] is False
+    set_show_main_window_on_startup(enabled=True, config_path=str(path))
+    written = json.loads(path.read_text(encoding="utf-8"))
+    assert written[SHOW_MAIN_WINDOW_ON_STARTUP_KEY] is True
+    assert written["editor-notes"] == "code"

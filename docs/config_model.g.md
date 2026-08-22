@@ -20,7 +20,9 @@ lang: en
 - [🏛️ Class `HotkeyEntry`](#%EF%B8%8F-class-hotkeyentry)
 - [🏛️ Class `OpenAISettings`](#%EF%B8%8F-class-openaisettings)
 - [🏛️ Class `PersonalDataSettings`](#%EF%B8%8F-class-personaldatasettings)
+- [🔧 Function `get_show_main_window_on_startup`](#-function-get_show_main_window_on_startup)
 - [🔧 Function `load_app_config`](#-function-load_app_config)
+- [🔧 Function `set_show_main_window_on_startup`](#-function-set_show_main_window_on_startup)
 - [🔧 Function `validate_app_config`](#-function-validate_app_config)
 
 </details>
@@ -266,6 +268,31 @@ class PersonalDataSettings(TypedDict, total=False):
 
 </details>
 
+## 🔧 Function `get_show_main_window_on_startup`
+
+```python
+def get_show_main_window_on_startup(config: dict[str, Any] | None = None) -> bool
+```
+
+Return whether the commands window should open when the app starts.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_show_main_window_on_startup(config: dict[str, Any] | None = None) -> bool:
+    data = config
+    if data is None:
+        try:
+            data = load_app_config()
+        except (OSError, TypeError, ValueError):
+            return SHOW_MAIN_WINDOW_ON_STARTUP_DEFAULT
+    value = data.get(SHOW_MAIN_WINDOW_ON_STARTUP_KEY, SHOW_MAIN_WINDOW_ON_STARTUP_DEFAULT)
+    return value if isinstance(value, bool) else SHOW_MAIN_WINDOW_ON_STARTUP_DEFAULT
+```
+
+</details>
+
 ## 🔧 Function `load_app_config`
 
 ```python
@@ -286,6 +313,31 @@ def load_app_config(config_path: str | None = None) -> dict[str, Any]:
         raise TypeError(msg)
     validate_app_config(loaded)
     return loaded
+```
+
+</details>
+
+## 🔧 Function `set_show_main_window_on_startup`
+
+```python
+def set_show_main_window_on_startup(*, enabled: bool, config_path: str | None = None) -> None
+```
+
+Write `show_main_window_on_startup` to `config.json`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def set_show_main_window_on_startup(*, enabled: bool, config_path: str | None = None) -> None:
+    path = Path(config_path or get_config_path_str())
+    with path.open(encoding="utf-8") as handle:
+        data = json.load(handle)
+    if not isinstance(data, dict):
+        msg = f"Config root must be a JSON object: {path}"
+        raise TypeError(msg)
+    data[SHOW_MAIN_WINDOW_ON_STARTUP_KEY] = bool(enabled)
+    path.write_text(h.dev.dumps_pretty_json(data), encoding="utf-8")
 ```
 
 </details>

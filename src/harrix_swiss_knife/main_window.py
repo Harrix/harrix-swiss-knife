@@ -13,6 +13,7 @@ from PySide6.QtCore import QEvent, QObject, QPoint, Qt, QTimer
 from PySide6.QtGui import QAction, QCloseEvent, QCursor, QResizeEvent, QShowEvent
 from PySide6.QtWidgets import (
     QApplication,
+    QCheckBox,
     QHBoxLayout,
     QLabel,
     QLineEdit,
@@ -28,8 +29,10 @@ from PySide6.QtWidgets import (
 )
 
 from harrix_swiss_knife.action_usage import list_recent_gui_action_names
+from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.qt_main_window import apply_app_window_size_and_position
 from harrix_swiss_knife.cli_menu import get_action_identity_parts, show_action_item_context_menu
+from harrix_swiss_knife.config_model import get_show_main_window_on_startup, set_show_main_window_on_startup
 from harrix_swiss_knife.keyboard_layout_search import command_matches_search
 from harrix_swiss_knife.qt_command_section import (
     apply_opaque_white,
@@ -77,6 +80,7 @@ class MainWindow(QMainWindow):
 
         root_layout.addLayout(self._build_header_row())
         root_layout.addWidget(self._build_body_widget(), stretch=1)
+        root_layout.addLayout(self._build_footer_row())
         self._build_sections_from_menu(menu)
         self._populate_list_from_sections()
         self._setup_window_size_and_position()
@@ -253,6 +257,16 @@ class MainWindow(QMainWindow):
 
         return cards_pane
 
+    def _build_footer_row(self) -> QHBoxLayout:
+        footer_row = QHBoxLayout()
+        self._startup_checkbox = QCheckBox("Show at program startup")
+        self._startup_checkbox.setToolTip("Open this window when Harrix Swiss Knife starts")
+        self._startup_checkbox.setChecked(get_show_main_window_on_startup())
+        self._startup_checkbox.toggled.connect(self._on_show_on_startup_toggled)
+        footer_row.addWidget(self._startup_checkbox)
+        footer_row.addStretch(1)
+        return footer_row
+
     def _build_header_row(self) -> QHBoxLayout:
         header_row = QHBoxLayout()
         header_row.setSpacing(8)
@@ -422,6 +436,16 @@ class MainWindow(QMainWindow):
         self._clear_button.setVisible(bool(text))
         self._apply_list_search(query)
         self._apply_card_search(query)
+
+    def _on_show_on_startup_toggled(self, checked: bool) -> None:  # noqa: FBT001
+        """Persist the startup checkbox to `show_main_window_on_startup`."""
+        try:
+            set_show_main_window_on_startup(enabled=checked)
+        except (OSError, TypeError, ValueError) as exc:
+            self._startup_checkbox.blockSignals(True)  # noqa: FBT003
+            self._startup_checkbox.setChecked(get_show_main_window_on_startup())
+            self._startup_checkbox.blockSignals(False)  # noqa: FBT003
+            message_box.warning(self, "Settings", f"Could not save config.json:\n{exc}")
 
     def _populate_list_from_sections(self) -> None:
         """Fill the list using the same Main / submenu order as the cards, without Recent."""
