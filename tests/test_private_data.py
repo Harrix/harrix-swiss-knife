@@ -11,7 +11,9 @@ import pytest
 from harrix_swiss_knife.actions.common.private_data import (
     ZIP_API_KEYS_DIR,
     ZIP_CATALOG_NAME,
+    ZIP_FINANCE_CATALOG_NAME,
     ZIP_FITNESS_IMG_DIR,
+    ZIP_FOOD_CATALOG_NAME,
     PrivateDataSelection,
     collect_fitness_image_files,
     default_private_data_zip_path,
@@ -87,13 +89,17 @@ def _write_avif(path: Path, marker: str) -> None:
 
 
 def test_selection_from_part_flags_defaults_to_all() -> None:
-    """Omitting both flags selects every part."""
+    """Omitting every flag selects every part."""
     both = selection_from_part_flags(api_keys=False, fitness=False)
     assert both.api_keys
     assert both.fitness
+    assert both.finance
+    assert both.food
     keys_only = selection_from_part_flags(api_keys=True, fitness=False)
     assert keys_only.api_keys
     assert not keys_only.fitness
+    assert not keys_only.finance
+    assert not keys_only.food
 
 
 def test_avif_manager_has_any_exercise_avif(tmp_path: Path) -> None:
@@ -428,3 +434,154 @@ def test_install_api_keys_only_does_not_touch_fitness(tmp_path: Path) -> None:
     assert result.fitness_db_path is None
     assert (dest_api / "openai-api-key.txt").read_text(encoding="utf-8") == "from-zip\n"
     assert (dest_api / "keep-me.txt").read_text(encoding="utf-8") == "stay\n"
+
+
+_FINANCE_SCHEMA_SQL = """
+CREATE TABLE currencies (
+    _id INTEGER PRIMARY KEY AUTOINCREMENT,
+    code TEXT NOT NULL UNIQUE,
+    name TEXT NOT NULL,
+    symbol TEXT NOT NULL,
+    subdivision INTEGER NOT NULL DEFAULT 100,
+    ticker TEXT
+);
+CREATE TABLE categories (
+    _id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    type INTEGER NOT NULL,
+    icon TEXT,
+    name_local TEXT
+);
+CREATE TABLE standard_items (
+    _id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL UNIQUE,
+    name_en TEXT,
+    _id_categories INTEGER NOT NULL
+);
+CREATE TABLE transactions (
+    _id INTEGER PRIMARY KEY AUTOINCREMENT,
+    amount INTEGER NOT NULL,
+    description TEXT NOT NULL,
+    _id_categories INTEGER NOT NULL,
+    _id_currencies INTEGER NOT NULL,
+    date TEXT NOT NULL
+);
+"""
+
+_FOOD_SCHEMA_SQL = """
+CREATE TABLE food_items (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL UNIQUE,
+    name_en TEXT,
+    is_drink INTEGER NOT NULL DEFAULT 0,
+    calories_per_100g REAL,
+    default_portion_weight REAL,
+    default_portion_calories REAL
+);
+CREATE TABLE food_log (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    datetime TEXT NOT NULL,
+    food_item_id INTEGER,
+    name TEXT NOT NULL
+);
+"""
+
+
+def _create_finance_db(db_path: Path) -> Path:
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    with sqlite3.connect(str(db_path)) as conn:
+        conn.executescript(_FINANCE_SCHEMA_SQL)
+        conn.execute("INSERT INTO currencies (code, name, symbol, subdivision) VALUES ('USD', 'US Dollar', '$', 100)")
+        conn.execute("INSERT INTO categories (name, type, icon, name_local) VALUES ('Food', 0, '🍔', 'Еда')")
+        category_id = int(conn.execute("SELECT _id FROM categories WHERE name = 'Food'").fetchone()[0])
+        conn.execute(
+            "INSERT INTO standard_items (name, name_en, _id_categories) VALUES ('Вода', 'Water', ?)",
+            (category_id,),
+        )
+        conn.execute(
+            """
+            INSERT INTO transactions (amount, description, _id_categories, _id_currencies, date)
+            VALUES (50, 'Keep me', ?, 1, '2024-01-01')
+            """,
+            (category_id,),
+        )
+        conn.commit()
+    return db_path
+
+
+def _create_food_db(db_path: Path) -> Path:
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    with sqlite3.connect(str(db_path)) as conn:
+        conn.executescript(_FOOD_SCHEMA_SQL)
+        conn.execute(
+            """
+            INSERT INTO food_items (name, name_en, is_drink, calories_per_100g)
+            VALUES ('Банан', 'Banana', 0, 89)
+            """
+        )
+        item_id = int(conn.execute("SELECT id FROM food_items WHERE name = 'Банан'").fetchone()[0])
+        conn.execute(
+            "INSERT INTO food_log (datetime, food_item_id, name) VALUES ('2024-01-01T12:00:00', ?, 'Банан')",
+            (item_id,),
+        )
+        conn.commit()
+    return db_path
+
+
+def test_pack_and_install_finance_and_food_catalogs(tmp_path: Path) -> None:
+    """Finance and food catalogs transfer by name and leave history tables alone."""
+    source_root = tmp_path / "source"
+    source_root.mkdir()
+    source_finance = _create_finance_db(tmp_path / "source-data" / "finance.db")
+    source_food = _create_food_db(tmp_path / "source-data" / "food.db")
+    zip_path = tmp_path / "catalogs.zip"
+    result = pack_private_data(
+        project_root=source_root,
+        sqlite_fitness="",
+        sqlite_finance=str(source_finance),
+        sqlite_food=str(source_food),
+        output_zip=zip_path,
+        selection=PrivateDataSelection(api_keys=False, fitness=False, finance=True, food=True),
+    )
+    assert result.finance_currencies_count == 1
+    assert result.finance_categories_count == 1
+    assert result.finance_standard_items_count == 1
+    assert result.food_items_count == 1
+    with zipfile.ZipFile(zip_path) as archive:
+        names = set(archive.namelist())
+    assert ZIP_FINANCE_CATALOG_NAME in names
+    assert ZIP_FOOD_CATALOG_NAME in names
+    assert ZIP_CATALOG_NAME not in names
+    present = inspect_private_data_zip(zip_path)
+    assert present.finance
+    assert present.food
+    assert not present.fitness
+
+    target_finance = _create_finance_db(tmp_path / "target-data" / "finance.db")
+    target_food = _create_food_db(tmp_path / "target-data" / "food.db")
+    with sqlite3.connect(str(target_finance)) as conn:
+        conn.execute("UPDATE categories SET icon = 'old' WHERE name = 'Food'")
+        conn.commit()
+    with sqlite3.connect(str(target_food)) as conn:
+        conn.execute("UPDATE food_items SET calories_per_100g = 1 WHERE name = 'Банан'")
+        conn.commit()
+
+    installed = install_private_data(
+        project_root=tmp_path / "target",
+        sqlite_fitness="",
+        sqlite_finance=str(target_finance),
+        sqlite_food=str(target_food),
+        zip_path=zip_path,
+        recover_sql_path=RECOVER_SQL,
+        selection=PrivateDataSelection(api_keys=False, fitness=False, finance=True, food=True),
+    )
+    assert installed.finance_stats.categories_updated == 1
+    assert installed.food_stats.food_items_updated == 1
+    with sqlite3.connect(str(target_finance)) as conn:
+        icon = conn.execute("SELECT icon FROM categories WHERE name = 'Food'").fetchone()[0]
+        assert icon == "🍔"
+        assert int(conn.execute("SELECT COUNT(*) FROM transactions").fetchone()[0]) == 1
+    with sqlite3.connect(str(target_food)) as conn:
+        calories = conn.execute("SELECT calories_per_100g FROM food_items WHERE name = 'Банан'").fetchone()[0]
+        assert float(calories) == 89
+        assert int(conn.execute("SELECT COUNT(*) FROM food_log").fetchone()[0]) == 1

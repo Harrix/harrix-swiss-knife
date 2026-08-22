@@ -307,7 +307,7 @@ def dev_install_harrix_notes_explorer_hsk(editor: str, *, with_public: bool) -> 
 ## 🔧 Function `dev_install_private_data`
 
 ```python
-def dev_install_private_data(zip_path: Path | None, *, api_keys: bool, fitness: bool) -> None
+def dev_install_private_data(zip_path: Path | None, *, api_keys: bool, fitness: bool, finance: bool, food: bool) -> None
 ```
 
 Alias for `private-data import`.
@@ -316,8 +316,22 @@ Alias for `private-data import`.
 <summary>Code:</summary>
 
 ```python
-def dev_install_private_data(zip_path: Path | None, *, api_keys: bool, fitness: bool) -> None:
-    _invoke_transfer_private_data(mode="import", zip_path=zip_path, api_keys=api_keys, fitness=fitness)
+def dev_install_private_data(
+    zip_path: Path | None,
+    *,
+    api_keys: bool,
+    fitness: bool,
+    finance: bool,
+    food: bool,
+) -> None:
+    _invoke_transfer_private_data(
+        mode="import",
+        zip_path=zip_path,
+        api_keys=api_keys,
+        fitness=fitness,
+        finance=finance,
+        food=food,
+    )
 ```
 
 </details>
@@ -325,7 +339,7 @@ def dev_install_private_data(zip_path: Path | None, *, api_keys: bool, fitness: 
 ## 🔧 Function `dev_pack_private_data`
 
 ```python
-def dev_pack_private_data(zip_path: Path | None, *, api_keys: bool, fitness: bool) -> None
+def dev_pack_private_data(zip_path: Path | None, *, api_keys: bool, fitness: bool, finance: bool, food: bool) -> None
 ```
 
 Alias for `private-data export`.
@@ -334,8 +348,22 @@ Alias for `private-data export`.
 <summary>Code:</summary>
 
 ```python
-def dev_pack_private_data(zip_path: Path | None, *, api_keys: bool, fitness: bool) -> None:
-    _invoke_transfer_private_data(mode="export", zip_path=zip_path, api_keys=api_keys, fitness=fitness)
+def dev_pack_private_data(
+    zip_path: Path | None,
+    *,
+    api_keys: bool,
+    fitness: bool,
+    finance: bool,
+    food: bool,
+) -> None:
+    _invoke_transfer_private_data(
+        mode="export",
+        zip_path=zip_path,
+        api_keys=api_keys,
+        fitness=fitness,
+        finance=finance,
+        food=food,
+    )
 ```
 
 </details>
@@ -765,7 +793,7 @@ def markdown_regenerate_g_md(
 def private_data_group() -> None
 ```
 
-Export or import personal API keys and fitness catalog/images.
+Export or import personal API keys and tracker catalogs.
 
 <details>
 <summary>Code:</summary>
@@ -779,10 +807,10 @@ def private_data_group() -> None:
 ## 🔧 Function `private_data_export`
 
 ```python
-def private_data_export(zip_path: Path | None, *, api_keys: bool, fitness: bool, api_key_files: tuple[str, ...]) -> None
+def private_data_export(zip_path: Path | None, *, api_keys: bool, fitness: bool, finance: bool, food: bool, api_key_files: tuple[str, ...]) -> None
 ```
 
-Pack selected private data into a personal ZIP (workouts not included).
+Pack selected private data into a personal ZIP (history not included).
 
 <details>
 <summary>Code:</summary>
@@ -793,6 +821,8 @@ def private_data_export(
     *,
     api_keys: bool,
     fitness: bool,
+    finance: bool,
+    food: bool,
     api_key_files: tuple[str, ...],
 ) -> None:
     _invoke_transfer_private_data(
@@ -800,6 +830,8 @@ def private_data_export(
         zip_path=zip_path,
         api_keys=api_keys or bool(api_key_files),
         fitness=fitness,
+        finance=finance,
+        food=food,
         api_key_files=api_key_files,
     )
 ```
@@ -809,10 +841,10 @@ def private_data_export(
 ## 🔧 Function `private_data_import`
 
 ```python
-def private_data_import(zip_path: Path | None, *, api_keys: bool, fitness: bool, api_key_files: tuple[str, ...]) -> None
+def private_data_import(zip_path: Path | None, *, api_keys: bool, fitness: bool, finance: bool, food: bool, api_key_files: tuple[str, ...]) -> None
 ```
 
-Install selected private data; overlay images and upsert catalog (keeps workouts).
+Install selected private data; upsert catalogs and keep history tables.
 
 <details>
 <summary>Code:</summary>
@@ -823,6 +855,8 @@ def private_data_import(
     *,
     api_keys: bool,
     fitness: bool,
+    finance: bool,
+    food: bool,
     api_key_files: tuple[str, ...],
 ) -> None:
     _invoke_transfer_private_data(
@@ -830,6 +864,8 @@ def private_data_import(
         zip_path=zip_path,
         api_keys=api_keys or bool(api_key_files),
         fitness=fitness,
+        finance=finance,
+        food=food,
         api_key_files=api_key_files,
     )
 ```

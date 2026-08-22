@@ -1,8 +1,9 @@
-"""Pack and install personal private data ZIP (api-keys, fitness images, catalog).
+"""Pack and install personal private data ZIP (api-keys and tracker catalogs).
 
-Not part of public install bundles. Workout tables `process` and `weight` are never
-included. Catalog upsert preserves existing exercise/type IDs on the target machine.
-Fitness images are `{exercise English name}.avif` under `fitness_img/` next to the DB.
+Not part of public install bundles. History tables are never included: fitness
+`process`/`weight`, finance transactions/accounts, and food `food_log`. Catalog
+upsert preserves existing IDs on the target machine. Fitness images are
+`{exercise English name}.avif` under `fitness_img/` next to the DB.
 
 """
 
@@ -17,11 +18,18 @@ import stat
 import tempfile
 import time
 import zipfile
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from harrix_swiss_knife.apps.finance.catalog_sync import (
+    FinanceCatalogUpsertStats,
+    create_empty_finance_database,
+    export_finance_catalog,
+    load_finance_catalog_json,
+    upsert_finance_catalog,
+)
 from harrix_swiss_knife.apps.fitness.catalog_sync import (
     CatalogUpsertStats,
     create_empty_fitness_database,
@@ -29,15 +37,24 @@ from harrix_swiss_knife.apps.fitness.catalog_sync import (
     load_fitness_catalog_json,
     upsert_fitness_catalog,
 )
+from harrix_swiss_knife.apps.food.catalog_sync import (
+    FoodCatalogUpsertStats,
+    create_empty_food_database,
+    export_food_catalog,
+    load_food_catalog_json,
+    upsert_food_catalog,
+)
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import Callable, Sequence
 
 DEFAULT_PRIVATE_DATA_ZIP_NAME = "private-data-harrix-swiss-knife.zip"
 _PLACEHOLDER_RE = re.compile(r"<YOUR_")
 ZIP_API_KEYS_DIR = "api-keys"
 ZIP_FITNESS_IMG_DIR = "fitness_img"
 ZIP_CATALOG_NAME = "fitness_catalog.json"
+ZIP_FINANCE_CATALOG_NAME = "finance_catalog.json"
+ZIP_FOOD_CATALOG_NAME = "food_catalog.json"
 ZIP_MANIFEST_NAME = "manifest.json"
 _STAGE_INSTALL_PREFIX = ".hsk-private-data-install-"
 _STAGE_PACK_PREFIX = ".hsk-private-data-pack-"
@@ -56,6 +73,12 @@ class InstallPrivateDataResult:
     fitness_img_dir: Path | None
     created_database: bool
     missing_exercise_images: tuple[str, ...] = ()
+    finance_stats: FinanceCatalogUpsertStats = field(default_factory=FinanceCatalogUpsertStats)
+    food_stats: FoodCatalogUpsertStats = field(default_factory=FoodCatalogUpsertStats)
+    finance_db_path: Path | None = None
+    food_db_path: Path | None = None
+    created_finance_database: bool = False
+    created_food_database: bool = False
 
 
 @dataclass(frozen=True)
@@ -69,6 +92,10 @@ class PackPrivateDataResult:
     types_count: int
     api_key_files: tuple[str, ...] = ()
     missing_exercise_images: tuple[str, ...] = ()
+    finance_currencies_count: int = 0
+    finance_categories_count: int = 0
+    finance_standard_items_count: int = 0
+    food_items_count: int = 0
 
 
 @dataclass(frozen=True)
@@ -77,11 +104,13 @@ class PrivateDataSelection:
 
     api_keys: bool = True
     fitness: bool = True
+    finance: bool = False
+    food: bool = False
     api_key_files: tuple[str, ...] = ()
 
     def any_selected(self) -> bool:
         """Return whether at least one part is selected."""
-        return self.api_keys or self.fitness
+        return self.api_keys or self.fitness or self.finance or self.food
 
 
 def collect_fitness_image_files(
@@ -143,7 +172,14 @@ def inspect_private_data_zip(zip_path: Path) -> PrivateDataSelection:
     )
     has_catalog = ZIP_CATALOG_NAME in names
     has_images = any(name.startswith(f"{ZIP_FITNESS_IMG_DIR}/") and not name.endswith("/") for name in names)
-    return PrivateDataSelection(api_keys=has_api_keys, fitness=has_catalog or has_images)
+    has_finance = ZIP_FINANCE_CATALOG_NAME in names
+    has_food = ZIP_FOOD_CATALOG_NAME in names
+    return PrivateDataSelection(
+        api_keys=has_api_keys,
+        fitness=has_catalog or has_images,
+        finance=has_finance,
+        food=has_food,
+    )
 
 
 def install_private_data(
@@ -153,12 +189,17 @@ def install_private_data(
     zip_path: Path,
     recover_sql_path: Path,
     selection: PrivateDataSelection | None = None,
+    sqlite_finance: str = "",
+    sqlite_food: str = "",
+    finance_recover_sql_path: Path | None = None,
+    food_recover_sql_path: Path | None = None,
 ) -> InstallPrivateDataResult:
     """Install selected parts from a private-data ZIP.
 
     API keys overwrite matching `api-keys/*.txt`. Fitness images overlay
     `{name}.avif` into the target `fitness_img` (existing extra files stay).
-    Catalog upserts by English name. Never writes `process` or `weight`.
+    Catalogs upsert by stable names. Never writes workout, transaction, or
+    food-log history.
 
     """
     if not zip_path.is_file():
@@ -173,13 +214,21 @@ def install_private_data(
 
     include_api_keys = wanted.api_keys and present.api_keys
     include_fitness = wanted.fitness and present.fitness
+    include_finance = wanted.finance and present.finance
+    include_food = wanted.food and present.food
     if wanted.api_keys and not present.api_keys:
         msg = f"ZIP has no API keys: {zip_path}"
         raise FileNotFoundError(msg)
     if wanted.fitness and not present.fitness:
         msg = f"ZIP has no exercise catalog or images: {zip_path}"
         raise FileNotFoundError(msg)
-    if not include_api_keys and not include_fitness:
+    if wanted.finance and not present.finance:
+        msg = f"ZIP has no finance catalog: {zip_path}"
+        raise FileNotFoundError(msg)
+    if wanted.food and not present.food:
+        msg = f"ZIP has no food catalog: {zip_path}"
+        raise FileNotFoundError(msg)
+    if not include_api_keys and not include_fitness and not include_finance and not include_food:
         msg = "Nothing to import from this ZIP with the current selection."
         raise ValueError(msg)
 
@@ -188,12 +237,31 @@ def install_private_data(
     created_database = False
     if include_fitness:
         db_path, fitness_img_dir = resolve_fitness_paths(sqlite_fitness)
-        if not db_path.is_file():
-            if not recover_sql_path.is_file():
-                msg = f"recover.sql not found: {recover_sql_path}"
-                raise FileNotFoundError(msg)
-            create_empty_fitness_database(db_path, recover_sql_path)
-            created_database = True
+        created_database = _ensure_sqlite_database(
+            db_path,
+            recover_sql_path,
+            create=create_empty_fitness_database,
+        )
+
+    finance_db_path: Path | None = None
+    created_finance_database = False
+    if include_finance:
+        finance_db_path = resolve_configured_sqlite_path(sqlite_finance, setting_name="sqlite_finance")
+        created_finance_database = _ensure_sqlite_database(
+            finance_db_path,
+            finance_recover_sql_path,
+            create=create_empty_finance_database,
+        )
+
+    food_db_path: Path | None = None
+    created_food_database = False
+    if include_food:
+        food_db_path = resolve_configured_sqlite_path(sqlite_food, setting_name="sqlite_food")
+        created_food_database = _ensure_sqlite_database(
+            food_db_path,
+            food_recover_sql_path,
+            create=create_empty_food_database,
+        )
 
     _cleanup_adjacent_stage_dirs(zip_path)
     stage_root = Path(tempfile.mkdtemp(prefix="hsk-private-data-install-"))
@@ -201,6 +269,8 @@ def install_private_data(
     key_count = 0
     img_count = 0
     stats = CatalogUpsertStats()
+    finance_stats = FinanceCatalogUpsertStats()
+    food_stats = FoodCatalogUpsertStats()
     missing_images: list[str] = []
     try:
         with zipfile.ZipFile(zip_path, "r") as archive:
@@ -222,6 +292,28 @@ def install_private_data(
                 db_path=db_path,
                 fitness_img_dir=fitness_img_dir,
             )
+        if include_finance:
+            if finance_db_path is None:
+                msg = "Finance database path is not resolved."
+                raise ValueError(msg)
+            finance_stats = _install_json_catalog(
+                stage_root / ZIP_FINANCE_CATALOG_NAME,
+                db_path=finance_db_path,
+                load_catalog=load_finance_catalog_json,
+                upsert_catalog=upsert_finance_catalog,
+                locked_label="finance",
+            )
+        if include_food:
+            if food_db_path is None:
+                msg = "Food database path is not resolved."
+                raise ValueError(msg)
+            food_stats = _install_json_catalog(
+                stage_root / ZIP_FOOD_CATALOG_NAME,
+                db_path=food_db_path,
+                load_catalog=load_food_catalog_json,
+                upsert_catalog=upsert_food_catalog,
+                locked_label="food",
+            )
     finally:
         _remove_tree(stage_root)
 
@@ -233,6 +325,12 @@ def install_private_data(
         fitness_img_dir=fitness_img_dir,
         created_database=created_database,
         missing_exercise_images=tuple(missing_images),
+        finance_stats=finance_stats,
+        food_stats=food_stats,
+        finance_db_path=finance_db_path,
+        food_db_path=food_db_path,
+        created_finance_database=created_finance_database,
+        created_food_database=created_food_database,
     )
 
 
@@ -282,6 +380,8 @@ def pack_private_data(
     sqlite_fitness: str,
     output_zip: Path,
     selection: PrivateDataSelection | None = None,
+    sqlite_finance: str = "",
+    sqlite_food: str = "",
 ) -> PackPrivateDataResult:
     """Pack selected private-data parts into `output_zip`."""
     wanted = selection if selection is not None else PrivateDataSelection()
@@ -312,6 +412,23 @@ def pack_private_data(
         names = [str(exercise["name"]) for exercise in exercises]
         fitness_files, missing_images = collect_fitness_image_files(fitness_img_dir, names)
 
+    finance_catalog: dict[str, Any] | None = None
+    finance_db_path: Path | None = None
+    if wanted.finance:
+        finance_db_path = resolve_configured_sqlite_path(sqlite_finance, setting_name="sqlite_finance")
+        finance_catalog = export_finance_catalog(finance_db_path)
+
+    food_catalog: dict[str, Any] | None = None
+    food_db_path: Path | None = None
+    if wanted.food:
+        food_db_path = resolve_configured_sqlite_path(sqlite_food, setting_name="sqlite_food")
+        food_catalog = export_food_catalog(food_db_path)
+
+    finance_currencies_count = len(finance_catalog["currencies"]) if finance_catalog is not None else 0
+    finance_categories_count = len(finance_catalog["categories"]) if finance_catalog is not None else 0
+    finance_standard_items_count = len(finance_catalog["standard_items"]) if finance_catalog is not None else 0
+    food_items_count = len(food_catalog["food_items"]) if food_catalog is not None else 0
+
     _cleanup_adjacent_stage_dirs(output_zip)
     stage_root = Path(tempfile.mkdtemp(prefix="hsk-private-data-pack-"))
 
@@ -339,16 +456,40 @@ def pack_private_data(
                 encoding="utf-8",
             )
 
+        if wanted.finance:
+            if finance_catalog is None:
+                msg = "Finance catalog is not resolved."
+                raise ValueError(msg)
+            (stage_root / ZIP_FINANCE_CATALOG_NAME).write_text(
+                json.dumps(finance_catalog, ensure_ascii=False, indent=2) + "\n",
+                encoding="utf-8",
+            )
+
+        if wanted.food:
+            if food_catalog is None:
+                msg = "Food catalog is not resolved."
+                raise ValueError(msg)
+            (stage_root / ZIP_FOOD_CATALOG_NAME).write_text(
+                json.dumps(food_catalog, ensure_ascii=False, indent=2) + "\n",
+                encoding="utf-8",
+            )
+
         manifest: dict[str, Any] = {
             "created_utc": datetime.now(UTC).isoformat(),
             "parts": {
                 "api_keys": wanted.api_keys,
                 "fitness": wanted.fitness,
+                "finance": wanted.finance,
+                "food": wanted.food,
             },
             "api_keys_count": len(key_files),
             "fitness_img_count": len(fitness_files),
             "exercises_count": len(exercises),
             "types_count": types_count,
+            "finance_currencies_count": finance_currencies_count,
+            "finance_categories_count": finance_categories_count,
+            "finance_standard_items_count": finance_standard_items_count,
+            "food_items_count": food_items_count,
             "api_key_files": [path.name for path in key_files],
             "missing_exercise_images": missing_images,
         }
@@ -356,6 +497,10 @@ def pack_private_data(
             manifest["fitness_img_source"] = str(fitness_img_dir)
         if db_path is not None:
             manifest["fitness_db_source"] = str(db_path)
+        if finance_db_path is not None:
+            manifest["finance_db_source"] = str(finance_db_path)
+        if food_db_path is not None:
+            manifest["food_db_source"] = str(food_db_path)
         (stage_root / ZIP_MANIFEST_NAME).write_text(
             json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
             encoding="utf-8",
@@ -380,6 +525,10 @@ def pack_private_data(
         exercises_count=len(exercises),
         types_count=types_count,
         missing_exercise_images=tuple(missing_images),
+        finance_currencies_count=finance_currencies_count,
+        finance_categories_count=finance_categories_count,
+        finance_standard_items_count=finance_standard_items_count,
+        food_items_count=food_items_count,
     )
 
 
@@ -413,21 +562,31 @@ def resolve_api_key_files_for_pack(
     return [path for path in all_files if path.name in wanted]
 
 
+def resolve_configured_sqlite_path(value: str, *, setting_name: str) -> Path:
+    """Return a configured SQLite path, rejecting empty values and placeholders."""
+    if not value.strip() or _PLACEHOLDER_RE.search(value):
+        msg = f"config.json must set a real {setting_name} path (not a <YOUR_...> placeholder)."
+        raise ValueError(msg)
+    return Path(value).expanduser()
+
+
 def resolve_fitness_paths(sqlite_fitness: str) -> tuple[Path, Path]:
     """Return `(db_path, fitness_img_dir)` from config `sqlite_fitness` value."""
-    if not sqlite_fitness.strip() or _PLACEHOLDER_RE.search(sqlite_fitness):
-        msg = "config.json must set a real sqlite_fitness path (not a <YOUR_...> placeholder)."
-        raise ValueError(msg)
-    db_path = Path(sqlite_fitness).expanduser()
-    img_dir = db_path.parent / "fitness_img"
-    return db_path, img_dir
+    db_path = resolve_configured_sqlite_path(sqlite_fitness, setting_name="sqlite_fitness")
+    return db_path, db_path.parent / "fitness_img"
 
 
-def selection_from_part_flags(*, api_keys: bool, fitness: bool) -> PrivateDataSelection:
-    """Build a selection; when both flags are false, include every part."""
-    if not api_keys and not fitness:
-        return PrivateDataSelection(api_keys=True, fitness=True)
-    return PrivateDataSelection(api_keys=api_keys, fitness=fitness)
+def selection_from_part_flags(
+    *,
+    api_keys: bool,
+    fitness: bool,
+    finance: bool = False,
+    food: bool = False,
+) -> PrivateDataSelection:
+    """Build a selection; when every flag is false, include every part."""
+    if not api_keys and not fitness and not finance and not food:
+        return PrivateDataSelection(api_keys=True, fitness=True, finance=True, food=True)
+    return PrivateDataSelection(api_keys=api_keys, fitness=fitness, finance=finance, food=food)
 
 
 def _cleanup_adjacent_stage_dirs(zip_path: Path) -> None:
@@ -449,6 +608,28 @@ def _cleanup_adjacent_stage_dirs(zip_path: Path) -> None:
     ]
     for child in leftovers:
         _remove_tree(child)
+
+
+def _ensure_sqlite_database(
+    db_path: Path,
+    recover_sql_path: Path | None,
+    *,
+    create: Callable[[Path, Path], None],
+) -> bool:
+    """Create `db_path` from recover SQL when the file is missing.
+
+    Returns:
+
+    - `bool`: `True` when a new database file was created.
+
+    """
+    if db_path.is_file():
+        return False
+    if recover_sql_path is None or not recover_sql_path.is_file():
+        msg = f"recover.sql not found: {recover_sql_path}"
+        raise FileNotFoundError(msg)
+    create(db_path, recover_sql_path)
+    return True
 
 
 def _install_api_keys(
@@ -521,6 +702,29 @@ def _install_fitness_data(
         _copied, missing_images = collect_fitness_image_files(fitness_img_dir, names)
 
     return len(img_files), missing_images, stats
+
+
+def _install_json_catalog(
+    catalog_file: Path,
+    *,
+    db_path: Path,
+    load_catalog: Callable[[Path], dict[str, Any]],
+    upsert_catalog: Callable[[Path, dict[str, Any]], Any],
+    locked_label: str,
+) -> Any:
+    """Load a catalog JSON from the extracted ZIP and upsert it into `db_path`."""
+    if not catalog_file.is_file():
+        msg = f"ZIP is missing {catalog_file.name}"
+        raise FileNotFoundError(msg)
+    catalog = load_catalog(catalog_file)
+    try:
+        return upsert_catalog(db_path, catalog)
+    except sqlite3.Error as exc:
+        err_text = str(exc).lower()
+        if "locked" in err_text or "busy" in err_text:
+            msg = f"Cannot write {locked_label} database (is the tracker open?): {db_path}\n{exc}"
+            raise OSError(msg) from exc
+        raise
 
 
 def _remove_tree(path: Path) -> None:

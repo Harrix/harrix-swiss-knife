@@ -213,11 +213,29 @@ def dev_install_harrix_notes_explorer_hsk(editor: str, *, with_public: bool) -> 
     default=None,
     help="Input ZIP path (default: install/private-data-harrix-swiss-knife.zip).",
 )
-@click.option("--api-keys", is_flag=True, help="Import API keys only if this flag is set with --fitness omitted.")
+@click.option(
+    "--api-keys", is_flag=True, help="Import API keys only if this flag is set with other part flags omitted."
+)
 @click.option("--fitness", is_flag=True, help="Import exercise catalog and images only if this flag is set.")
-def dev_install_private_data(zip_path: Path | None, *, api_keys: bool, fitness: bool) -> None:
+@click.option("--finance", is_flag=True, help="Import finance catalog only if this flag is set.")
+@click.option("--food", is_flag=True, help="Import food catalog only if this flag is set.")
+def dev_install_private_data(
+    zip_path: Path | None,
+    *,
+    api_keys: bool,
+    fitness: bool,
+    finance: bool,
+    food: bool,
+) -> None:
     """Alias for `private-data import`."""
-    _invoke_transfer_private_data(mode="import", zip_path=zip_path, api_keys=api_keys, fitness=fitness)
+    _invoke_transfer_private_data(
+        mode="import",
+        zip_path=zip_path,
+        api_keys=api_keys,
+        fitness=fitness,
+        finance=finance,
+        food=food,
+    )
 
 
 @dev_group.command("pack-private-data", hidden=True)
@@ -228,11 +246,29 @@ def dev_install_private_data(zip_path: Path | None, *, api_keys: bool, fitness: 
     default=None,
     help="Output ZIP path (default: install/private-data-harrix-swiss-knife.zip).",
 )
-@click.option("--api-keys", is_flag=True, help="Include API keys only if this flag is set with --fitness omitted.")
+@click.option(
+    "--api-keys", is_flag=True, help="Include API keys only if this flag is set with other part flags omitted."
+)
 @click.option("--fitness", is_flag=True, help="Include exercise catalog and images only if this flag is set.")
-def dev_pack_private_data(zip_path: Path | None, *, api_keys: bool, fitness: bool) -> None:
+@click.option("--finance", is_flag=True, help="Include finance catalog only if this flag is set.")
+@click.option("--food", is_flag=True, help="Include food catalog only if this flag is set.")
+def dev_pack_private_data(
+    zip_path: Path | None,
+    *,
+    api_keys: bool,
+    fitness: bool,
+    finance: bool,
+    food: bool,
+) -> None:
     """Alias for `private-data export`."""
-    _invoke_transfer_private_data(mode="export", zip_path=zip_path, api_keys=api_keys, fitness=fitness)
+    _invoke_transfer_private_data(
+        mode="export",
+        zip_path=zip_path,
+        api_keys=api_keys,
+        fitness=fitness,
+        finance=finance,
+        food=food,
+    )
 
 
 @dev_group.command("setup-data-for-hsk")
@@ -665,7 +701,7 @@ def markdown_regenerate_g_md(
 
 @dev_group.group("private-data")
 def private_data_group() -> None:
-    """Export or import personal API keys and fitness catalog/images."""
+    """Export or import personal API keys and tracker catalogs."""
 
 
 @private_data_group.command("export")
@@ -679,12 +715,22 @@ def private_data_group() -> None:
 @click.option(
     "--api-keys",
     is_flag=True,
-    help="Include API keys. Omit both --api-keys and --fitness to include every part.",
+    help="Include API keys. Omit all part flags to include every part.",
 )
 @click.option(
     "--fitness",
     is_flag=True,
-    help="Include exercise catalog and images. Omit both flags to include every part.",
+    help="Include exercise catalog and images. Omit all part flags to include every part.",
+)
+@click.option(
+    "--finance",
+    is_flag=True,
+    help="Include finance catalog (categories, currencies, standard items).",
+)
+@click.option(
+    "--food",
+    is_flag=True,
+    help="Include food catalog (food items).",
 )
 @click.option(
     "--api-key",
@@ -697,14 +743,18 @@ def private_data_export(
     *,
     api_keys: bool,
     fitness: bool,
+    finance: bool,
+    food: bool,
     api_key_files: tuple[str, ...],
 ) -> None:
-    """Pack selected private data into a personal ZIP (workouts not included)."""
+    """Pack selected private data into a personal ZIP (history not included)."""
     _invoke_transfer_private_data(
         mode="export",
         zip_path=zip_path,
         api_keys=api_keys or bool(api_key_files),
         fitness=fitness,
+        finance=finance,
+        food=food,
         api_key_files=api_key_files,
     )
 
@@ -720,12 +770,22 @@ def private_data_export(
 @click.option(
     "--api-keys",
     is_flag=True,
-    help="Import API keys. Omit both --api-keys and --fitness to import parts present in the ZIP.",
+    help="Import API keys. Omit all part flags to import parts present in the ZIP.",
 )
 @click.option(
     "--fitness",
     is_flag=True,
-    help="Import exercise catalog and images. Omit both flags to import parts present in the ZIP.",
+    help="Import exercise catalog and images. Omit all part flags to import parts present in the ZIP.",
+)
+@click.option(
+    "--finance",
+    is_flag=True,
+    help="Import finance catalog (categories, currencies, standard items).",
+)
+@click.option(
+    "--food",
+    is_flag=True,
+    help="Import food catalog (food items).",
 )
 @click.option(
     "--api-key",
@@ -738,14 +798,18 @@ def private_data_import(
     *,
     api_keys: bool,
     fitness: bool,
+    finance: bool,
+    food: bool,
     api_key_files: tuple[str, ...],
 ) -> None:
-    """Install selected private data; overlay images and upsert catalog (keeps workouts)."""
+    """Install selected private data; upsert catalogs and keep history tables."""
     _invoke_transfer_private_data(
         mode="import",
         zip_path=zip_path,
         api_keys=api_keys or bool(api_key_files),
         fitness=fitness,
+        finance=finance,
+        food=food,
         api_key_files=api_key_files,
     )
 
@@ -999,6 +1063,8 @@ def _invoke_transfer_private_data(
     zip_path: Path | None,
     api_keys: bool,
     fitness: bool,
+    finance: bool = False,
+    food: bool = False,
     api_key_files: tuple[str, ...] = (),
 ) -> None:
     """Run `OnTransferPrivateData` for CLI export/import (including hidden aliases)."""
@@ -1008,7 +1074,9 @@ def _invoke_transfer_private_data(
         "mode": mode,
         "include_api_keys": api_keys,
         "include_fitness": fitness,
-        "parts_specified": api_keys or fitness or bool(api_key_files),
+        "include_finance": finance,
+        "include_food": food,
+        "parts_specified": api_keys or fitness or finance or food or bool(api_key_files),
         "api_key_files": api_key_files,
     }
     if zip_path is not None:

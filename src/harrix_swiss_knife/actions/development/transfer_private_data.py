@@ -1,4 +1,4 @@
-"""Export or import personal private data (API keys and fitness catalog/images)."""
+"""Export or import personal private data (API keys and tracker catalogs)."""
 
 from __future__ import annotations
 
@@ -24,10 +24,10 @@ from harrix_swiss_knife.paths import get_project_root
 class OnTransferPrivateData(ActionBase):
     """Export or import personal private data for another machine.
 
-    Choose **Export** or **Import**, then one dialog: data types (API keys and/or
-    exercise catalog plus `fitness_img`) and which `api-keys/*.txt` files.
-    Workout tables (`process`, `weight`) are never included. Import overlays
-    images next to existing files and upserts the catalog by English name.
+    Choose **Export** or **Import**, then one dialog: data types (API keys,
+    exercise catalog plus `fitness_img`, finance catalog, food catalog) and
+    which `api-keys/*.txt` files. History tables are never included. Import
+    overlays images next to existing files and upserts catalogs by name.
 
     """
 
@@ -40,6 +40,9 @@ class OnTransferPrivateData(ActionBase):
     CHOICE_IMPORT = "Import"
     PART_API_KEYS = "API keys"
     PART_FITNESS = "Exercise catalog and images"
+    PART_FINANCE = "Finance catalog"
+    PART_FOOD = "Food catalog"
+    _DATA_PARTS = (PART_API_KEYS, PART_FITNESS, PART_FINANCE, PART_FOOD)
 
     @ActionBase.handle_exceptions("transfer private data")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
@@ -49,7 +52,11 @@ class OnTransferPrivateData(ActionBase):
         project_root = get_project_root()
         default_zip = default_private_data_zip_path(project_root)
         sqlite_fitness = str(self.config.get("sqlite_fitness") or "")
+        sqlite_finance = str(self.config.get("sqlite_finance") or "")
+        sqlite_food = str(self.config.get("sqlite_food") or "")
         recover_sql = project_root / "src" / "harrix_swiss_knife" / "apps" / "fitness" / "recover.sql"
+        finance_recover_sql = project_root / "src" / "harrix_swiss_knife" / "apps" / "finance" / "recover.sql"
+        food_recover_sql = project_root / "src" / "harrix_swiss_knife" / "apps" / "food" / "recover.sql"
 
         if not mode:
             if noninteractive:
@@ -74,10 +81,14 @@ class OnTransferPrivateData(ActionBase):
                 project_root=project_root,
                 default_zip=default_zip,
                 sqlite_fitness=sqlite_fitness,
+                sqlite_finance=sqlite_finance,
+                sqlite_food=sqlite_food,
                 noninteractive=noninteractive,
                 zip_arg=kwargs.get("zip_path"),
                 include_api_keys=bool(kwargs.get("include_api_keys")),
                 include_fitness=bool(kwargs.get("include_fitness")),
+                include_finance=bool(kwargs.get("include_finance")),
+                include_food=bool(kwargs.get("include_food")),
                 parts_specified=bool(kwargs.get("parts_specified")),
                 api_key_files=_kwargs_api_key_files(kwargs),
             )
@@ -87,11 +98,17 @@ class OnTransferPrivateData(ActionBase):
                 project_root=project_root,
                 default_zip=default_zip,
                 sqlite_fitness=sqlite_fitness,
+                sqlite_finance=sqlite_finance,
+                sqlite_food=sqlite_food,
                 recover_sql=recover_sql,
+                finance_recover_sql=finance_recover_sql,
+                food_recover_sql=food_recover_sql,
                 noninteractive=noninteractive,
                 zip_arg=kwargs.get("zip_path"),
                 include_api_keys=bool(kwargs.get("include_api_keys")),
                 include_fitness=bool(kwargs.get("include_fitness")),
+                include_finance=bool(kwargs.get("include_finance")),
+                include_food=bool(kwargs.get("include_food")),
                 parts_specified=bool(kwargs.get("parts_specified")),
                 api_key_files=_kwargs_api_key_files(kwargs),
             )
@@ -158,7 +175,7 @@ class OnTransferPrivateData(ActionBase):
             self.title,
             section1_title="Data",
             section1_label=parts_label,
-            section1_choices=[self.PART_API_KEYS, self.PART_FITNESS],
+            section1_choices=list(self._DATA_PARTS),
             section1_default_selected=part_defaults,
             section1_disabled_choices=part_disabled,
             section2_title="API keys",
@@ -174,7 +191,9 @@ class OnTransferPrivateData(ActionBase):
         parts, keys = selected
         want_keys = self.PART_API_KEYS in parts or bool(keys)
         want_fitness = self.PART_FITNESS in parts
-        if not want_keys and not want_fitness:
+        want_finance = self.PART_FINANCE in parts
+        want_food = self.PART_FOOD in parts
+        if not want_keys and not want_fitness and not want_finance and not want_food:
             self.add_line("❌ Select at least one data type or API key file.")
             self.show_result()
             return None
@@ -189,6 +208,8 @@ class OnTransferPrivateData(ActionBase):
         return PrivateDataSelection(
             api_keys=want_keys,
             fitness=want_fitness,
+            finance=want_finance,
+            food=want_food,
             api_key_files=tuple(keys),
         )
 
@@ -216,19 +237,26 @@ class OnTransferPrivateData(ActionBase):
         noninteractive: bool,
         include_api_keys: bool,
         include_fitness: bool,
+        include_finance: bool,
+        include_food: bool,
         parts_specified: bool,
         requested_names: tuple[str, ...],
     ) -> PrivateDataSelection | None:
         key_names = self._local_api_key_names(project_root)
         if noninteractive or parts_specified:
-            selection = selection_from_part_flags(api_keys=include_api_keys, fitness=include_fitness)
+            selection = selection_from_part_flags(
+                api_keys=include_api_keys,
+                fitness=include_fitness,
+                finance=include_finance,
+                food=include_food,
+            )
             return self._apply_cli_api_key_files(
                 selection,
                 available_names=key_names,
                 requested_names=requested_names,
             )
         part_disabled = [] if key_names else [self.PART_API_KEYS]
-        part_defaults = [self.PART_FITNESS]
+        part_defaults = [self.PART_FITNESS, self.PART_FINANCE, self.PART_FOOD]
         if key_names:
             part_defaults.insert(0, self.PART_API_KEYS)
         return self._interactive_parts_and_keys(
@@ -247,16 +275,25 @@ class OnTransferPrivateData(ActionBase):
         noninteractive: bool,
         include_api_keys: bool,
         include_fitness: bool,
+        include_finance: bool,
+        include_food: bool,
         parts_specified: bool,
         requested_names: tuple[str, ...],
     ) -> PrivateDataSelection | None:
         key_names = list_api_key_files_in_zip(zip_path) if present.api_keys else []
         if noninteractive or parts_specified:
-            wanted = selection_from_part_flags(api_keys=include_api_keys, fitness=include_fitness)
+            wanted = selection_from_part_flags(
+                api_keys=include_api_keys,
+                fitness=include_fitness,
+                finance=include_finance,
+                food=include_food,
+            )
             if not parts_specified:
                 wanted = PrivateDataSelection(
                     api_keys=wanted.api_keys and present.api_keys,
                     fitness=wanted.fitness and present.fitness,
+                    finance=wanted.finance and present.finance,
+                    food=wanted.food and present.food,
                 )
             return self._apply_cli_api_key_files(
                 wanted,
@@ -265,14 +302,17 @@ class OnTransferPrivateData(ActionBase):
             )
         part_disabled: list[str] = []
         part_defaults: list[str] = []
-        if present.api_keys:
-            part_defaults.append(self.PART_API_KEYS)
-        else:
-            part_disabled.append(self.PART_API_KEYS)
-        if present.fitness:
-            part_defaults.append(self.PART_FITNESS)
-        else:
-            part_disabled.append(self.PART_FITNESS)
+        present_by_part = {
+            self.PART_API_KEYS: present.api_keys,
+            self.PART_FITNESS: present.fitness,
+            self.PART_FINANCE: present.finance,
+            self.PART_FOOD: present.food,
+        }
+        for part in self._DATA_PARTS:
+            if present_by_part[part]:
+                part_defaults.append(part)
+            else:
+                part_disabled.append(part)
         return self._interactive_parts_and_keys(
             parts_label="Choose which data to import. Missing parts in this ZIP are disabled.",
             keys_label="Choose which API key files to import from this ZIP.",
@@ -310,10 +350,14 @@ class OnTransferPrivateData(ActionBase):
         project_root: Path,
         default_zip: Path,
         sqlite_fitness: str,
+        sqlite_finance: str,
+        sqlite_food: str,
         noninteractive: bool,
         zip_arg: object,
         include_api_keys: bool,
         include_fitness: bool,
+        include_finance: bool,
+        include_food: bool,
         parts_specified: bool,
         api_key_files: tuple[str, ...],
     ) -> None:
@@ -322,6 +366,8 @@ class OnTransferPrivateData(ActionBase):
             noninteractive=noninteractive,
             include_api_keys=include_api_keys,
             include_fitness=include_fitness,
+            include_finance=include_finance,
+            include_food=include_food,
             parts_specified=parts_specified,
             requested_names=api_key_files,
         )
@@ -342,6 +388,8 @@ class OnTransferPrivateData(ActionBase):
         result = pack_private_data(
             project_root=project_root,
             sqlite_fitness=sqlite_fitness,
+            sqlite_finance=sqlite_finance,
+            sqlite_food=sqlite_food,
             output_zip=output_zip,
             selection=selection,
         )
@@ -355,8 +403,17 @@ class OnTransferPrivateData(ActionBase):
             if result.missing_exercise_images:
                 missing = ", ".join(result.missing_exercise_images)
                 self.add_line(f"No AVIF for {len(result.missing_exercise_images)} exercise(s): {missing}")
+        if selection.finance:
+            self.add_line(
+                "Exported finance catalog: "
+                f"{result.finance_currencies_count} currency(ies), "
+                f"{result.finance_categories_count} categor(ies), "
+                f"{result.finance_standard_items_count} standard item(s)."
+            )
+        if selection.food:
+            self.add_line(f"Exported food catalog: {result.food_items_count} food item(s).")
         self.add_line(f"ZIP: `{result.zip_path}` ({size_mb:.1f} MB)")
-        self.add_line("Workout history (process/weight) is not included.")
+        self.add_line("History (workouts, transactions, food log) is not included.")
         self.show_toast(f"{self.title} completed")
         self.show_result()
 
@@ -366,11 +423,17 @@ class OnTransferPrivateData(ActionBase):
         project_root: Path,
         default_zip: Path,
         sqlite_fitness: str,
+        sqlite_finance: str,
+        sqlite_food: str,
         recover_sql: Path,
+        finance_recover_sql: Path,
+        food_recover_sql: Path,
         noninteractive: bool,
         zip_arg: object,
         include_api_keys: bool,
         include_fitness: bool,
+        include_finance: bool,
+        include_food: bool,
         parts_specified: bool,
         api_key_files: tuple[str, ...],
     ) -> None:
@@ -391,6 +454,8 @@ class OnTransferPrivateData(ActionBase):
             noninteractive=noninteractive,
             include_api_keys=include_api_keys,
             include_fitness=include_fitness,
+            include_finance=include_finance,
+            include_food=include_food,
             parts_specified=parts_specified,
             requested_names=api_key_files,
         )
@@ -400,12 +465,20 @@ class OnTransferPrivateData(ActionBase):
         result = install_private_data(
             project_root=project_root,
             sqlite_fitness=sqlite_fitness,
+            sqlite_finance=sqlite_finance,
+            sqlite_food=sqlite_food,
             zip_path=zip_path,
             recover_sql_path=recover_sql,
+            finance_recover_sql_path=finance_recover_sql,
+            food_recover_sql_path=food_recover_sql,
             selection=selection,
         )
         if result.created_database and result.fitness_db_path is not None:
             self.add_line(f"Created fitness database from recover.sql: `{result.fitness_db_path}`")
+        if result.created_finance_database and result.finance_db_path is not None:
+            self.add_line(f"Created finance database from recover.sql: `{result.finance_db_path}`")
+        if result.created_food_database and result.food_db_path is not None:
+            self.add_line(f"Created food database from recover.sql: `{result.food_db_path}`")
         if selection.api_keys:
             self.add_line(f"Imported {result.api_keys_count} API key file(s).")
         if selection.fitness:
@@ -426,6 +499,32 @@ class OnTransferPrivateData(ActionBase):
                 self.add_line(f"Fitness DB: `{result.fitness_db_path}`")
             self.add_line("Workout history (process/weight) was not modified.")
             self.add_line("If Fitness is open, restart that window to see catalog and image changes.")
+        if selection.finance:
+            finance_stats = result.finance_stats
+            self.add_line(
+                "Finance catalog upsert: "
+                f"{finance_stats.currencies_inserted} currency(ies) inserted, "
+                f"{finance_stats.currencies_updated} updated; "
+                f"{finance_stats.categories_inserted} categor(ies) inserted, "
+                f"{finance_stats.categories_updated} updated; "
+                f"{finance_stats.standard_items_inserted} standard item(s) inserted, "
+                f"{finance_stats.standard_items_updated} updated."
+            )
+            if result.finance_db_path is not None:
+                self.add_line(f"Finance DB: `{result.finance_db_path}`")
+            self.add_line("Transactions and accounts were not modified.")
+            self.add_line("If Finance is open, restart that window to see catalog changes.")
+        if selection.food:
+            food_stats = result.food_stats
+            self.add_line(
+                "Food catalog upsert: "
+                f"{food_stats.food_items_inserted} food item(s) inserted, "
+                f"{food_stats.food_items_updated} updated."
+            )
+            if result.food_db_path is not None:
+                self.add_line(f"Food DB: `{result.food_db_path}`")
+            self.add_line("Food log was not modified.")
+            self.add_line("If Food is open, restart that window to see catalog changes.")
         self.show_toast(f"{self.title} completed")
         self.show_result()
 
