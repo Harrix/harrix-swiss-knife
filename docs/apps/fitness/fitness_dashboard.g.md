@@ -64,6 +64,8 @@ Quick-add card: circular exercise list, large value field, and today's sets.
 class FitnessDashboardWidget(QWidget):
 
     add_requested = Signal()
+    add_text_requested = Signal()
+    add_voice_requested = Signal()
     exercise_changed = Signal(str)
 
     def __init__(self, parent: QWidget | None = None) -> None:  # noqa: D107
@@ -182,6 +184,14 @@ class FitnessDashboardWidget(QWidget):
         """Return the numeric value entered for the next set."""
         return int(self._value_spin.value())
 
+    def _build_action_button(self, text: str, object_name: str) -> QPushButton:
+        button = QPushButton(text)
+        button.setObjectName(object_name)
+        button.setCursor(Qt.CursorShape.PointingHandCursor)
+        button.setMinimumSize(280, 56)
+        _apply_pixel_font(button, pixel_size=20, weight=QFont.Weight.Bold)
+        return button
+
     def _build_ui(self) -> None:
         outer = QVBoxLayout(self)
         outer.setContentsMargins(8, 8, 8, 8)
@@ -242,13 +252,12 @@ class FitnessDashboardWidget(QWidget):
         _apply_pixel_font(self._type_combo, pixel_size=16)
         self._type_combo.hide()
 
-        add_button = QPushButton("➕ Add")  # noqa: RUF001
-        add_button.setObjectName("fitnessDashAddButton")
-        add_button.setCursor(Qt.CursorShape.PointingHandCursor)
-        add_button.setMinimumSize(280, 64)
-        add_button.setStyleSheet(_ADD_BUTTON_STYLE)
-        _apply_pixel_font(add_button, pixel_size=20, weight=QFont.Weight.Bold)
+        add_button = self._build_action_button("➕ Add", "fitnessDashAddButton")  # noqa: RUF001
+        voice_button = self._build_action_button("🎙️ Speak", "fitnessDashAddVoiceButton")
+        text_button = self._build_action_button("📝 Write text", "fitnessDashAddTextButton")
         add_button.clicked.connect(self.add_requested.emit)
+        voice_button.clicked.connect(self.add_voice_requested.emit)
+        text_button.clicked.connect(self.add_text_requested.emit)
 
         self._sets_value = QLabel("0")
         self._sets_value.setObjectName("fitnessDashSetsValue")
@@ -267,7 +276,15 @@ class FitnessDashboardWidget(QWidget):
         center_layout.addWidget(self._value_spin, 0, Qt.AlignmentFlag.AlignHCenter)
         center_layout.addWidget(self._unit_label)
         center_layout.addWidget(self._type_combo, 0, Qt.AlignmentFlag.AlignHCenter)
-        center_layout.addWidget(add_button, 0, Qt.AlignmentFlag.AlignHCenter)
+        buttons = QWidget()
+        buttons.setStyleSheet(_ADD_BUTTON_STYLE)
+        buttons_layout = QVBoxLayout(buttons)
+        buttons_layout.setContentsMargins(0, 0, 0, 0)
+        buttons_layout.setSpacing(10)
+        buttons_layout.addWidget(add_button, 0, Qt.AlignmentFlag.AlignHCenter)
+        buttons_layout.addWidget(voice_button, 0, Qt.AlignmentFlag.AlignHCenter)
+        buttons_layout.addWidget(text_button, 0, Qt.AlignmentFlag.AlignHCenter)
+        center_layout.addWidget(buttons, 0, Qt.AlignmentFlag.AlignHCenter)
         center_layout.addStretch(1)
         center_layout.addWidget(self._sets_value)
         center_layout.addWidget(sets_hint)

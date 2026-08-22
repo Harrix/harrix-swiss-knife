@@ -72,6 +72,7 @@ from PySide6.QtWidgets import (
 from harrix_swiss_knife import (
     resources_rc,  # noqa: F401
     toast_countdown_notification,
+    toast_notification,
 )
 from harrix_swiss_knife.apps.common import achievement_dialog, avif_manager, message_box
 from harrix_swiss_knife.apps.common.app_entry import run_app_main
@@ -86,6 +87,8 @@ from harrix_swiss_knife.apps.common.delegates.name_local_list_delegate import (
     NameLocalListDelegate,
 )
 from harrix_swiss_knife.apps.common.dialogs.exercise_selection_dialog import ExerciseSelectionDialog
+from harrix_swiss_knife.apps.common.dialogs.simple_recording_dialog import SimpleRecordingDialog
+from harrix_swiss_knife.apps.common.dialogs.text_input_dialog import TextInputDialog
 from harrix_swiss_knife.apps.common.exercise_media import (
     is_exercise_media_path,
 )
@@ -99,6 +102,7 @@ from harrix_swiss_knife.apps.common.widgets.exercise_list_hover_preview import (
 )
 from harrix_swiss_knife.apps.common.widgets.path_drop_helpers import install_url_drop_handlers
 from harrix_swiss_knife.apps.fitness import database_manager, window
+from harrix_swiss_knife.apps.fitness.ai_source_dialog import create_fitness_dashboard_text_dialog
 from harrix_swiss_knife.apps.fitness.exercise_add_dialog import ExerciseAddDialog
 from harrix_swiss_knife.apps.fitness.exercise_media_worker import ExerciseMediaSaveWorker
 from harrix_swiss_knife.apps.fitness.exercise_type_add_dialog import ExerciseTypeAddDialog
@@ -115,7 +119,24 @@ from harrix_swiss_knife.apps.fitness.mixins import (
     requires_database,
 )
 from harrix_swiss_knife.apps.fitness.progress_calculator import ExerciseProgressCalculator
-from harrix_swiss_knife.integrations.bothub import BothubRequestState
+from harrix_swiss_knife.apps.fitness.sets_ai import (
+    ExerciseCatalogEntry,
+    ParsedSetRow,
+    build_exercise_catalog,
+    format_exercise_catalog,
+    match_exercise,
+    match_type,
+    parse_sets_tsv,
+)
+from harrix_swiss_knife.integrations.bothub import (
+    BothubRequestState,
+    audio_bytes_and_mime,
+    build_prompt,
+    build_transcription_prompt,
+    get_speech_model,
+    run_bothub_request,
+    show_bothub_prompt_build_error,
+)
 from harrix_swiss_knife.keyboard_layout_search import text_matches_autocomplete
 from harrix_swiss_knife.paths import get_config_path_str, get_project_root
 from harrix_swiss_knife.qt_emoji_icon import apply_emoji_dialog_buttons, set_action_text_with_emoji_icon
@@ -1613,6 +1634,20 @@ class MainWindow(
             QDate.currentDate().toString("yyyy-MM-dd"),
             increment_date=False,
         )
+
+    def on_fitness_dashboard_add_text(self) -> None:
+        """Open a large text form and send the description to AI."""
+        if not self._validate_database_connection():
+            message_box.warning(self, "Error", "Database connection not available")
+            return
+        source_dialog = create_fitness_dashboard_text_dialog(self)
+        if source_dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+        self._send_sets_to_ai(source_dialog.get_raw_text(), prompt_key="fitness_sets_to_tsv")
+
+    def on_fitness_dashboard_add_voice(self) -> None:
+        """Open a large recording form and send speech to AI."""
+        self._run_fitness_add_by_voice(large_ui=True)
 
     def on_fitness_dashboard_exercise_changed(self, exercise: str) -> None:
         """Load unit, types, and last value for the dashboard exercise."""
@@ -4895,6 +4930,26 @@ class MainWindow(
         QTimer.singleShot(60, self._apply_sets_splitter_sizes)
         QTimer.singleShot(120, self._maybe_prompt_missing_exercise_images)
 
+    def _fitness_prompt_replacements(self, raw_text: str) -> dict[str, str]:
+        """Build BotHub placeholders for set-logging prompts."""
+        selected_exercise = ""
+        selected_type = ""
+        if self._fitness_dashboard is not None:
+            selected_exercise = self._fitness_dashboard.selected_exercise()
+            selected_type = self._fitness_dashboard.selected_type()
+        catalog = []
+        if self.db_manager is not None and self._validate_database_connection():
+            catalog = build_exercise_catalog(
+                self.db_manager.get_all_exercises(),
+                self.db_manager.get_all_exercise_types(),
+            )
+        return {
+            "RAW_DATA": raw_text,
+            "EXERCISES": format_exercise_catalog(catalog),
+            "SELECTED_EXERCISE": selected_exercise or "(none)",
+            "SELECTED_TYPE": selected_type or "(none)",
+        }
+
     def _focus_and_select_spinbox_count(self) -> None:
         """Move focus to spinBox_count and select all text.
 
@@ -5427,6 +5482,40 @@ class MainWindow(
         last_weight = self._get_last_weight()
         self.doubleSpinBox_weight.setValue(last_weight)
         self.dateEdit_weight.setDate(QDate.currentDate())
+
+    def _insert_parsed_set_row(
+        self,
+        row: ParsedSetRow,
+        date_str: str,
+        catalog: list[ExerciseCatalogEntry],
+    ) -> str | None:
+        """Insert one parsed set. Return an error message, or `None` on success."""
+        if self.db_manager is None:
+            return f"{row.exercise}: database is not available"
+        entry = match_exercise(row.exercise, catalog)
+        if entry is None:
+            return f"{row.exercise}: exercise not found in catalog"
+        type_name = match_type(row.type_name, entry)
+        if type_name is None:
+            return f"{entry.name}: type '{row.type_name}' not found"
+        if entry.type_required and not type_name:
+            return f"{entry.name}: exercise type is required"
+        ex_id = self.db_manager.get_id("exercises", "name", entry.name)
+        if ex_id is None:
+            return f"{entry.name}: exercise not found in database"
+        if type_name:
+            type_rows = self.db_manager.get_rows(
+                "SELECT _id FROM types WHERE type = :name AND _id_exercises = :ex_id",
+                {"name": type_name, "ex_id": ex_id},
+            )
+            if not type_rows:
+                return f"{entry.name}: type '{type_name}' not found"
+            type_id = type_rows[0][0]
+        else:
+            type_id = -1
+        if not self.db_manager.add_process_record(ex_id, type_id, row.value, date_str):
+            return f"{entry.name}: failed to add process record"
+        return None
 
     def _load_default_exercise_chart(self) -> None:
         """Load default exercise chart on first set to charts tab."""
@@ -5965,6 +6054,32 @@ class MainWindow(
         self._mark_exercises_changed()
         self.update_all()
 
+    def _open_sets_preview_dialog(self, initial_text: str) -> None:
+        """Show the TSV preview dialog and save accepted set rows."""
+        dialog = TextInputDialog(
+            self,
+            title="Add sets",
+            description=(
+                "Review and edit set rows before saving. One set per line: "
+                "Exercise, Type, Value (tab-separated). Type may be empty. "
+                "Exercise names must match the catalog."
+            ),
+            placeholder="Pull-up\t\t12\nSquat\t\t20\n",
+            show_date=True,
+            default_date=QDate.currentDate(),
+            initial_text=initial_text,
+            focus_text_on_show=False,
+            min_width=800,
+            min_height=480,
+        )
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+        text = dialog.get_text()
+        date_str = dialog.get_date()
+        if not text or not date_str:
+            return
+        self._process_set_items(parse_sets_tsv(text), date_str)
+
     def _process_filter_is_active(self) -> bool:
         """Return whether any process table filter is currently applied."""
         if self.comboBox_filter_exercise.currentText().strip():
@@ -5972,6 +6087,59 @@ class MainWindow(
         if self.comboBox_filter_type.currentText().strip():
             return True
         return self.checkBox_use_date_filter.isChecked()
+
+    @requires_database()
+    def _process_set_items(self, rows: list[ParsedSetRow], date_str: str) -> None:
+        """Insert parsed set rows for `date_str` and refresh the UI."""
+        if self.db_manager is None:
+            return
+        if not rows:
+            message_box.information(self, "No Sets", "No valid set rows found.")
+            return
+
+        catalog = build_exercise_catalog(
+            self.db_manager.get_all_exercises(),
+            self.db_manager.get_all_exercise_types(),
+        )
+        success_count = 0
+        last_exercise = ""
+        last_type = ""
+        errors: list[str] = []
+
+        for row in rows:
+            error = self._insert_parsed_set_row(row, date_str, catalog)
+            if error:
+                errors.append(error)
+                continue
+            success_count += 1
+            entry = match_exercise(row.exercise, catalog)
+            if entry is not None:
+                last_exercise = entry.name
+                last_type = match_type(row.type_name, entry) or ""
+
+        if success_count > 0:
+            self.show_tables()
+            self._update_comboboxes(
+                selected_exercise=last_exercise or None,
+                selected_type=last_type or None,
+            )
+            self.update_filter_comboboxes()
+            self.update_sets_count_today()
+            self.on_exercise_selection_changed_list()
+
+        if errors:
+            max_errors = 10
+            error_text = f"Added {success_count} set(s).\n\nErrors:\n" + "\n".join(errors[:max_errors])
+            if len(errors) > max_errors:
+                error_text += f"\n... and {len(errors) - max_errors} more errors"
+            message_box.warning(self, "Results", error_text)
+        elif success_count > 0:
+            toast = toast_notification.ToastNotification(
+                f"Successfully added {success_count} set(s).",
+                duration=2000,
+                parent=self,
+            )
+            toast.present()
 
     def _refresh_exercise_media_ui(self, exercise_name: str) -> None:
         """Reload labels/icons after AVIF for `exercise_name` changed."""
@@ -6034,6 +6202,45 @@ class MainWindow(
             reveal_in_file_explorer(avif_path)
         except (FileNotFoundError, OSError) as error:
             message_box.warning(self, "Error", f"Could not open File Explorer:\n{error}")
+
+    def _run_fitness_add_by_voice(self, *, large_ui: bool = False) -> None:
+        """Record speech, transcribe via BotHub, then parse sets into TSV."""
+        if not self._validate_database_connection():
+            message_box.warning(self, "Error", "Database connection not available")
+            return
+        recording_dialog = SimpleRecordingDialog(self, large_ui=large_ui)
+        if recording_dialog.exec() != QDialog.DialogCode.Accepted:
+            recording_dialog.release_multimedia()
+            return
+
+        audio_path = recording_dialog.get_audio_path()
+        recording_dialog.release_multimedia()
+        if not audio_path:
+            return
+
+        try:
+            audio_data = audio_bytes_and_mime(audio_path)
+        except ValueError as exc:
+            message_box.critical(self, "Audio Error", str(exc))
+            return
+
+        def on_transcription_success(transcribed_text: str) -> None:
+            if not transcribed_text.strip():
+                message_box.critical(self, "BotHub Error", "Empty transcription from BotHub.")
+                return
+            self._send_sets_to_ai(transcribed_text, prompt_key="fitness_voice_sets_to_tsv")
+
+        run_bothub_request(
+            self,
+            self._app_config,
+            build_transcription_prompt(),
+            on_transcription_success,
+            audio=audio_data,
+            model=get_speech_model(self._app_config),
+            toast_message="Recognizing speech…",
+            is_busy=lambda: self._bothub_state.worker is not None,
+            state=self._bothub_state,
+        )
 
     def _schedule_chart_update(self, delay_ms: int = 50) -> None:
         """Schedule a chart update with the specified delay.
@@ -6169,6 +6376,27 @@ class MainWindow(
         except Exception:
             logger.exception("Error selecting last executed exercise")
 
+    def _send_sets_to_ai(self, raw_text: str, *, prompt_key: str) -> None:
+        """Send workout text to BotHub, then open the set preview dialog."""
+        try:
+            prompt_text = build_prompt(self._app_config, prompt_key, self._fitness_prompt_replacements(raw_text))
+        except ValueError as exc:
+            show_bothub_prompt_build_error(self, exc)
+            return
+
+        def on_success(response_text: str) -> None:
+            self._open_sets_preview_dialog(response_text)
+
+        run_bothub_request(
+            self,
+            self._app_config,
+            prompt_text,
+            on_success,
+            is_busy=lambda: self._bothub_state.worker is not None,
+            state=self._bothub_state,
+            toast_message="Parsing sets…",
+        )
+
     @requires_database()
     def _set_date_for_selected_process_records(self, record_ids: list[int]) -> None:
         """Set the same date on several process rows after user picks a date in a dialog."""
@@ -6285,6 +6513,8 @@ class MainWindow(
         """Fill the first Fitness tab with the quick-add dashboard."""
         self._fitness_dashboard = FitnessDashboardWidget(self)
         self._fitness_dashboard.add_requested.connect(self.on_fitness_dashboard_add)
+        self._fitness_dashboard.add_text_requested.connect(self.on_fitness_dashboard_add_text)
+        self._fitness_dashboard.add_voice_requested.connect(self.on_fitness_dashboard_add_voice)
         self._fitness_dashboard.exercise_changed.connect(self.on_fitness_dashboard_exercise_changed)
         self.verticalLayout_fitness_dashboard.setContentsMargins(0, 0, 0, 0)
         self.verticalLayout_fitness_dashboard.addWidget(self._fitness_dashboard)

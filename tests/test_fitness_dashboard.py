@@ -50,17 +50,27 @@ def test_fitness_dashboard_widget_lists_exercises_and_adds_value() -> None:
     exercise_list = widget.findChild(QListView, "fitnessDashExerciseList")
     value_spin = widget.findChild(QSpinBox, "fitnessDashValueSpin")
     add_button = widget.findChild(QPushButton, "fitnessDashAddButton")
+    voice_button = widget.findChild(QPushButton, "fitnessDashAddVoiceButton")
+    text_button = widget.findChild(QPushButton, "fitnessDashAddTextButton")
     type_combo = widget.findChild(QComboBox, "fitnessDashTypeCombo")
     assert exercise_list is not None
     assert value_spin is not None
     assert add_button is not None
+    assert voice_button is not None
+    assert text_button is not None
     assert type_combo is not None
     assert "Add" in add_button.text()
+    assert "Speak" in voice_button.text()
+    assert "Write text" in text_button.text()
 
     clicked: list[str] = []
     widget.add_requested.connect(lambda: clicked.append("add"))
+    widget.add_voice_requested.connect(lambda: clicked.append("voice"))
+    widget.add_text_requested.connect(lambda: clicked.append("text"))
     add_button.click()
-    assert clicked == ["add"]
+    voice_button.click()
+    text_button.click()
+    assert clicked == ["add", "voice", "text"]
 
     widget.set_exercises(
         [
