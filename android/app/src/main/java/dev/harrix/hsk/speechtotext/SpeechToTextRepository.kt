@@ -105,6 +105,8 @@ class SpeechToTextRepository(
     }
 
     companion object {
+        fun isMultiline(text: String): Boolean = text.trim().lines().size > 1
+
         fun toSingleLine(text: String): String = text
             .lineSequence()
             .map { it.trim() }

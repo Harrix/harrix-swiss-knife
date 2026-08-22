@@ -81,6 +81,7 @@ import dev.harrix.hsk.R
 import dev.harrix.hsk.speechtotext.AudioRecorder
 import dev.harrix.hsk.speechtotext.SpeechMessageStatus
 import dev.harrix.hsk.speechtotext.SpeechQueueItem
+import dev.harrix.hsk.speechtotext.SpeechToTextRepository
 import dev.harrix.hsk.speechtotext.WaveformBucket
 import dev.harrix.hsk.ui.AutoFitText
 import dev.harrix.hsk.ui.CompactBottomActionButton
@@ -605,12 +606,14 @@ private fun SpeechMessageDetail(
                         outlined = true,
                         enabled = hasApiKey,
                     )
-                    CompactBottomActionButton(
-                        onClick = onSingleLine,
-                        icon = Icons.AutoMirrored.Filled.ShortText,
-                        label = stringResource(R.string.speech_to_text_single_line),
-                        outlined = true,
-                    )
+                    if (SpeechToTextRepository.isMultiline(item.text)) {
+                        CompactBottomActionButton(
+                            onClick = onSingleLine,
+                            icon = Icons.AutoMirrored.Filled.ShortText,
+                            label = stringResource(R.string.speech_to_text_single_line),
+                            outlined = true,
+                        )
+                    }
                 }
                 OutlinedButton(onClick = onSendToTickTick, modifier = Modifier.fillMaxWidth()) {
                     Icon(

@@ -12,6 +12,8 @@ def test_is_multiline_text() -> None:
     assert not is_multiline_text("")
     assert not is_multiline_text("one line")
     assert not is_multiline_text("one line\n")
+    assert not is_multiline_text("one line\n\n")
+    assert not is_multiline_text("  one line  \n")
     assert is_multiline_text("line one\nline two")
     assert is_multiline_text("a\n\nb")
 

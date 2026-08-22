@@ -114,8 +114,8 @@ def append_result_action_buttons(dialog: QDialog, button_layout: QHBoxLayout, *,
 
 Add optional rerun/rewrite buttons and in-place remove-paragraphs action.
 
-The "To single line" button is created only when requested, and shown only while
-`remove_paragraphs_source_text` has more than one line.
+The "To single line" button is created only when requested and the source text
+has more than one line after trimming.
 
 <details>
 <summary>Code:</summary>
@@ -145,6 +145,8 @@ def append_result_action_buttons(
 
     if not remove_paragraphs_button or on_remove_paragraphs is None:
         return None
+    if not is_multiline_text(remove_paragraphs_source_text):
+        return None
 
     remove_paragraphs_btn = make_emoji_push_button(
         REMOVE_PARAGRAPHS_BUTTON_LABEL,
@@ -152,7 +154,6 @@ def append_result_action_buttons(
     )
     remove_paragraphs_btn.clicked.connect(on_remove_paragraphs)
     button_layout.addWidget(remove_paragraphs_btn)
-    remove_paragraphs_btn.setVisible(is_multiline_text(remove_paragraphs_source_text))
     return remove_paragraphs_btn
 ```
 
@@ -182,14 +183,16 @@ def collapse_text_to_single_line(text: str) -> str:
 def is_multiline_text(text: str) -> bool
 ```
 
-Return `True` when `text` contains more than one line.
+Return `True` when trimmed `text` contains more than one line.
+
+A trailing newline alone does not count as a second line.
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def is_multiline_text(text: str) -> bool:
-    return len(text.splitlines()) > 1
+    return len(text.strip().splitlines()) > 1
 ```
 
 </details>
