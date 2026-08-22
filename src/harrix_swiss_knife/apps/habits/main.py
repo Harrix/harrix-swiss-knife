@@ -2020,7 +2020,19 @@ class MainWindow(
         hsk_payload = export_hsk_habits_json(self.db_manager, database_path=str(hsk_db_path))
 
         token = resolve_ticktick_api_token(config=self._app_config, project_root=get_project_root())
-        client = TickTickHabitsClient(token) if token else None
+        if not token:
+            message_box.warning(
+                self,
+                "Sync with TickTick",
+                "TickTick API token not found.\n"
+                "Cloud habit history is required because the local TickTick\n"
+                "SQLite file is an incomplete cache.\n"
+                "Add api-keys/ticktick-api-key.txt (or ticktick-apy-key.txt)\n"
+                "or set ticktick_api_key in config.json.",
+            )
+            return
+
+        client = TickTickHabitsClient(token)
         try:
             ticktick_payload = load_ticktick_sync_payload(
                 hsk_payload=hsk_payload,
@@ -2028,13 +2040,7 @@ class MainWindow(
                 client=client,
             )
         except (FileNotFoundError, OSError, TickTickApiError, ValueError) as exc:
-            extra = ""
-            if client is None:
-                extra = (
-                    "\n\nAdd api-keys/ticktick-api-key.txt (or ticktick-apy-key.txt)\n"
-                    "or set ticktick_api_key in config.json to fall back to the Open API."
-                )
-            message_box.warning(self, "Sync with TickTick", f"{exc}{extra}")
+            message_box.warning(self, "Sync with TickTick", str(exc))
             return
 
         report = build_habits_ticktick_sync_preview(hsk_payload, ticktick_payload, today=today)
@@ -2047,18 +2053,6 @@ class MainWindow(
         work = totals["to_ticktick_done"] + totals["to_hsk_done"] + totals["gap_not_done_to_hsk"] + creates
         if work == 0 and report["habit_counts"]["name_conflicts"] == 0:
             message_box.information(self, "Sync with TickTick", summary + "\n\nNothing to sync.")
-            return
-
-        need_ticktick_api = totals["to_ticktick_done"] > 0 or report["habit_counts"]["only_hsk"] > 0
-        if need_ticktick_api and client is None:
-            message_box.warning(
-                self,
-                "Sync with TickTick",
-                "TickTick API token not found.\n"
-                "Writes to TickTick need a token.\n"
-                "Add api-keys/ticktick-api-key.txt (or ticktick-apy-key.txt)\n"
-                "or set ticktick_api_key in config.json.",
-            )
             return
 
         answer = message_box.question(

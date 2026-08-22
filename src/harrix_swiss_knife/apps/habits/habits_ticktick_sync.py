@@ -404,17 +404,20 @@ def load_ticktick_sync_payload(
     client: TickTickHabitsClient | None = None,
     ticktick_db_path: Path | None = None,
 ) -> dict[str, Any]:
-    """Load TickTick habits from local desktop SQLite, or Open API as fallback.
+    """Load TickTick habits from Open API and local desktop SQLite.
 
-    Local `TickTick.db` has the full check-in history, including pre-2020 years.
-    The Open API is used only when that file is missing or unreadable.
+    Desktop `TickTick.db` is an incomplete cache: the app UI can show cloud
+    history that is missing from SQLite. Open API check-ins use
+    `min(HSK earliest, local earliest)` as the lower bound. Dates from both
+    sources are unioned when both are available.
 
     Args:
 
     - `hsk_payload` (`dict[str, Any]`): HSK export used to compute the API
-      `from` stamp when falling back.
+      `from` stamp.
     - `to_stamp` (`int`): Inclusive API upper bound (`YYYYMMDD`).
-    - `client` (`TickTickHabitsClient | None`): Required for the API fallback.
+    - `client` (`TickTickHabitsClient | None`): Open API client. Required for
+      cloud history.
     - `ticktick_db_path` (`Path | None`): TickTick SQLite file. Defaults to the
       desktop AppData path.
 
@@ -429,17 +432,80 @@ def load_ticktick_sync_payload(
     - `ValueError`: Local database is invalid and no API client is given.
 
     """
+    local_payload: dict[str, Any] | None = None
+    local_error: Exception | None = None
     try:
-        payload = export_ticktick_habits_json(ticktick_db_path)
-    except (FileNotFoundError, OSError, ValueError):
-        if client is None:
-            raise
-        from_stamp = from_stamp_for_api_export(hsk_payload)
-        payload = client.export_habits_payload(to_stamp=to_stamp, from_stamp=from_stamp)
-        payload["source"] = "open-api"
-        return payload
-    payload["source"] = "local-sqlite"
-    return payload
+        local_payload = export_ticktick_habits_json(ticktick_db_path)
+        local_payload["source"] = "local-sqlite"
+    except (FileNotFoundError, OSError, ValueError) as exc:
+        local_error = exc
+
+    if client is None:
+        if local_payload is not None:
+            return local_payload
+        if local_error is not None:
+            raise local_error
+        msg = "TickTick data not available"
+        raise FileNotFoundError(msg)
+
+    from_stamp = from_stamp_for_api_export(hsk_payload, local_payload)
+    api_payload = client.export_habits_payload(to_stamp=to_stamp, from_stamp=from_stamp)
+    api_payload["source"] = "open-api"
+    if local_payload is None:
+        return api_payload
+    return merge_ticktick_sync_payloads(local_payload, api_payload)
+
+
+def merge_ticktick_sync_payloads(*payloads: dict[str, Any]) -> dict[str, Any]:
+    """Union TickTick habit dates from local SQLite and Open API by name.
+
+    Args:
+
+    - `payloads` (`dict[str, Any]`): One or more TickTick habit exports.
+
+    Returns:
+
+    - `dict[str, Any]`: Combined payload. Open API habit ids win when present.
+
+    """
+    habits_by_name: dict[str, dict[str, Any]] = {}
+    sources: list[str] = []
+    databases: list[str] = []
+    for payload in payloads:
+        source = str(payload.get("source") or "").strip()
+        if source and source not in sources:
+            sources.append(source)
+        database = str(payload.get("database") or "").strip()
+        if database and database not in databases:
+            databases.append(database)
+        prefer_ids = source == "open-api" or database == "ticktick-open-api"
+        for habit in payload.get("habits") or []:
+            name = str(habit.get("name") or "").strip()
+            if not name:
+                continue
+            incoming_dates = {str(day) for day in (habit.get("dates") or []) if day}
+            current = habits_by_name.get(name)
+            if current is None:
+                merged = dict(habit)
+                merged["name"] = name
+                merged["dates"] = sorted(incoming_dates)
+                merged["date_count"] = len(merged["dates"])
+                habits_by_name[name] = merged
+                continue
+            dates = set(current.get("dates") or []) | incoming_dates
+            current["dates"] = sorted(dates)
+            current["date_count"] = len(dates)
+            if prefer_ids and habit.get("id"):
+                current["id"] = habit.get("id")
+            current_total = int(current.get("total_check_ins") or 0)
+            incoming_total = int(habit.get("total_check_ins") or 0)
+            current["total_check_ins"] = max(current_total, incoming_total)
+    return {
+        "database": " + ".join(databases),
+        "source": "+".join(sources),
+        "habit_count": len(habits_by_name),
+        "habits": list(habits_by_name.values()),
+    }
 
 
 def _consider_iso(day: object, earliest: str | None) -> str | None:
@@ -656,11 +722,15 @@ def _preview_matched_habit(
 
 def _ticktick_source_label(payload: dict[str, Any]) -> str:
     source = str(payload.get("source") or "").strip()
+    if "open-api" in source and "local-sqlite" in source:
+        return "TickTick Open API + local SQLite"
     if source == "open-api":
         return "TickTick Open API"
     if source == "local-sqlite":
         return "local TickTick SQLite"
     database = str(payload.get("database") or "").strip()
+    if "ticktick-open-api" in database and "TickTick.db" in database:
+        return "TickTick Open API + local SQLite"
     if database == "ticktick-open-api":
         return "TickTick Open API"
     if database:

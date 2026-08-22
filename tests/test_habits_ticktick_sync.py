@@ -11,6 +11,7 @@ from harrix_swiss_knife.apps.habits.habits_ticktick_sync import (
     format_habits_ticktick_sync_preview,
     from_stamp_for_api_export,
     load_ticktick_sync_payload,
+    merge_ticktick_sync_payloads,
 )
 from harrix_swiss_knife.apps.habits.ticktick_api import FALLBACK_FROM_STAMP, iso_to_ticktick_stamp
 from tests.test_ticktick_habits import _create_ticktick_db
@@ -201,21 +202,40 @@ def test_from_stamp_falls_back_when_empty() -> None:
     assert from_stamp_for_api_export({"habits": []}) == FALLBACK_FROM_STAMP
 
 
-def test_load_ticktick_sync_payload_prefers_local_sqlite(tmp_path: Path) -> None:
+def test_load_ticktick_sync_payload_uses_local_without_client(tmp_path: Path) -> None:
     db_path = tmp_path / "TickTick.db"
     _create_ticktick_db(db_path)
-    client = MagicMock()
-    client.export_habits_payload.side_effect = AssertionError("Open API must not be used")
-
     payload = load_ticktick_sync_payload(
         hsk_payload={"habits": []},
         to_stamp=iso_to_ticktick_stamp("2026-08-22"),
-        client=client,
+        client=None,
         ticktick_db_path=db_path,
     )
     assert payload["source"] == "local-sqlite"
     assert payload["habits"][0]["name"] == "English"
-    client.export_habits_payload.assert_not_called()
+
+
+def test_load_ticktick_sync_payload_merges_api_and_local(tmp_path: Path) -> None:
+    db_path = tmp_path / "TickTick.db"
+    _create_ticktick_db(db_path)
+    client = MagicMock()
+    client.export_habits_payload.return_value = {
+        "database": "ticktick-open-api",
+        "habits": [_tt_habit(habit_id="api-h1", name="English", dates=["2016-02-11", "2024-08-21"])],
+    }
+    payload = load_ticktick_sync_payload(
+        hsk_payload={"habits": [_hsk_habit(habit_id=1, name="English", values={"2016-02-11": 1})]},
+        to_stamp=iso_to_ticktick_stamp("2026-08-22"),
+        client=client,
+        ticktick_db_path=db_path,
+    )
+    english = next(habit for habit in payload["habits"] if habit["name"] == "English")
+    assert payload["source"] == "local-sqlite+open-api"
+    assert english["id"] == "api-h1"
+    assert "2016-02-11" in english["dates"]
+    assert "2024-08-22" in english["dates"]
+    client.export_habits_payload.assert_called_once()
+    assert client.export_habits_payload.call_args.kwargs["from_stamp"] == iso_to_ticktick_stamp("2016-02-11")
 
 
 def test_load_ticktick_sync_payload_falls_back_to_api(tmp_path: Path) -> None:
@@ -230,3 +250,22 @@ def test_load_ticktick_sync_payload_falls_back_to_api(tmp_path: Path) -> None:
     assert payload["source"] == "open-api"
     client.export_habits_payload.assert_called_once()
     assert client.export_habits_payload.call_args.kwargs["from_stamp"] == iso_to_ticktick_stamp("2017-05-09")
+
+
+def test_merge_ticktick_payloads_unions_dates_and_prefers_api_id() -> None:
+    merged = merge_ticktick_sync_payloads(
+        {
+            "source": "local-sqlite",
+            "database": "C:/TickTick.db",
+            "habits": [_tt_habit(habit_id="local-1", name="English", dates=["2024-08-21"])],
+        },
+        {
+            "source": "open-api",
+            "database": "ticktick-open-api",
+            "habits": [_tt_habit(habit_id="api-1", name="English", dates=["2016-02-11"])],
+        },
+    )
+    english = merged["habits"][0]
+    assert english["id"] == "api-1"
+    assert english["dates"] == ["2016-02-11", "2024-08-21"]
+    assert merged["source"] == "local-sqlite+open-api"
