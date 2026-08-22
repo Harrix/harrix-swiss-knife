@@ -281,7 +281,7 @@ class FitnessDashboardWidget(QWidget):
         _apply_pixel_font(self._unit_label, pixel_size=16)
         self._unit_label.hide()
 
-        self._type_combo = QComboBox()
+        self._type_combo = _DashboardTypeCombo()
         self._type_combo.setObjectName("fitnessDashTypeCombo")
         self._type_combo.setMinimumWidth(280)
         self._type_combo.setStyleSheet(_TYPE_STYLE)

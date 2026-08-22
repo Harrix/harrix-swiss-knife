@@ -75,6 +75,9 @@ def test_fitness_dashboard_widget_lists_exercises_and_adds_value() -> None:
     assert widget.value() == 15
     assert widget.selected_type() == "Weighted"
     assert not type_combo.isHidden()
+    combo_style = type_combo.styleSheet()
+    assert "::drop-down" in combo_style
+    assert "image: none" in combo_style
     unit = widget.findChild(QLabel, "fitnessDashUnitLabel")
     sets = widget.findChild(QLabel, "fitnessDashSetsValue")
     assert unit is not None

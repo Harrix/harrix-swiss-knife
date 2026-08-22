@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from PySide6.QtCore import QModelIndex, QSize, Qt, Signal
-from PySide6.QtGui import QFont, QIcon, QStandardItem, QStandardItemModel
+from PySide6.QtCore import QModelIndex, QPoint, QSize, Qt, Signal
+from PySide6.QtGui import QColor, QFont, QIcon, QPainter, QPaintEvent, QPen, QStandardItem, QStandardItemModel
 from PySide6.QtWidgets import (
     QComboBox,
     QFrame,
@@ -76,9 +76,32 @@ QComboBox#fitnessDashTypeCombo {
     background: #FFFFFF;
     border: 1px solid #D1D5DB;
     border-radius: 12px;
-    padding: 8px 12px;
+    padding: 8px 32px 8px 12px;
     color: #111827;
     min-height: 28px;
+}
+QComboBox#fitnessDashTypeCombo:focus,
+QComboBox#fitnessDashTypeCombo:on {
+    border-color: #3B82F6;
+}
+QComboBox#fitnessDashTypeCombo::drop-down {
+    subcontrol-origin: padding;
+    subcontrol-position: center right;
+    width: 28px;
+    border: none;
+    background: transparent;
+}
+QComboBox#fitnessDashTypeCombo::down-arrow {
+    image: none;
+    width: 0;
+    height: 0;
+}
+QComboBox#fitnessDashTypeCombo QAbstractItemView {
+    background: #FFFFFF;
+    border: 1px solid #D1D5DB;
+    outline: none;
+    selection-background-color: #DBEAFE;
+    selection-color: #111827;
 }
 """
 
@@ -333,7 +356,7 @@ class FitnessDashboardWidget(QWidget):
         _apply_pixel_font(self._unit_label, pixel_size=16)
         self._unit_label.hide()
 
-        self._type_combo = QComboBox()
+        self._type_combo = _DashboardTypeCombo()
         self._type_combo.setObjectName("fitnessDashTypeCombo")
         self._type_combo.setMinimumWidth(280)
         self._type_combo.setStyleSheet(_TYPE_STYLE)
@@ -388,6 +411,34 @@ class FitnessDashboardWidget(QWidget):
             name = str(value) if value else ""
         self._exercise_title.setText(name or "Select an exercise")
         self.exercise_changed.emit(name)
+
+
+class _DashboardTypeCombo(QComboBox):
+    """QComboBox that paints a flat chevron instead of the native 3D arrow button."""
+
+    def paintEvent(self, event: QPaintEvent) -> None:  # noqa: N802
+        """Draw the combo, then a simple down arrow on the right."""
+        super().paintEvent(event)
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        painter.setPen(
+            QPen(
+                QColor("#6B7280"),
+                1.8,
+                Qt.PenStyle.SolidLine,
+                Qt.PenCapStyle.RoundCap,
+                Qt.PenJoinStyle.RoundJoin,
+            )
+        )
+        center_x = self.rect().right() - 16
+        center_y = self.rect().center().y()
+        painter.drawPolyline(
+            [
+                QPoint(center_x - 5, center_y - 2),
+                QPoint(center_x, center_y + 3),
+                QPoint(center_x + 5, center_y - 2),
+            ]
+        )
 
 
 def format_today_sets(count: int) -> str:
