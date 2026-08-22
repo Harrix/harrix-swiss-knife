@@ -13,7 +13,6 @@ lang: en
 
 - [🔧 Function `build_config_updates`](#-function-build_config_updates)
 - [🔧 Function `is_config_placeholder_path`](#-function-is_config_placeholder_path)
-- [🔧 Function `suggest_data_for_hsk_root`](#-function-suggest_data_for_hsk_root)
 
 </details>
 
@@ -79,28 +78,6 @@ def is_config_placeholder_path(value: object) -> bool:
     if not isinstance(value, str) or not value.strip():
         return True
     return bool(_PLACEHOLDER_RE.search(value))
-```
-
-</details>
-
-## 🔧 Function `suggest_data_for_hsk_root`
-
-```python
-def suggest_data_for_hsk_root(config: dict[str, Any] | None = None) -> Path
-```
-
-Suggest `…/data-for-hsk` next to the install stack (`path_github` or project parent).
-
-<details>
-<summary>Code:</summary>
-
-```python
-def suggest_data_for_hsk_root(config: dict[str, Any] | None = None) -> Path:
-    cfg = config or {}
-    github = cfg.get("path_github")
-    if isinstance(github, str) and github.strip() and not is_config_placeholder_path(github):
-        return Path(github).expanduser().resolve() / _DATA_FOR_HSK_DIR_NAME
-    return get_project_root().parent / _DATA_FOR_HSK_DIR_NAME
 ```
 
 </details>

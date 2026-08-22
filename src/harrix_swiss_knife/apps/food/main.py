@@ -1274,12 +1274,14 @@ class MainWindow(
         """Adjust food log table column widths proportionally to window size."""
         if not hasattr(self, "tableView_food_log") or not self.tableView_food_log.model():
             return
+        # Hidden tabs report a dummy width; wait until Food is actually shown.
+        if not self.tableView_food_log.isVisible():
+            return
 
         # Get current table width (approximate available width for table)
         table_width = self.tableView_food_log.width()
         if table_width <= 0:
-            # Fallback to window width if table width is not available
-            table_width = self.width() * 0.7  # Assume table takes ~70% of window width
+            return
 
         # Ensure minimum table width for better appearance
         table_width = max(table_width, 800)
@@ -2283,6 +2285,11 @@ class MainWindow(
         tab_name = current_widget.objectName()
         if tab_name == "tab_food_dashboard":
             self.update_food_calories_today()
+            return
+        if tab_name == "tab_food":
+            # Splitter/table get a real width only after the hidden tab is shown.
+            QTimer.singleShot(0, self._adjust_food_log_table_columns)
+            QTimer.singleShot(50, self._adjust_food_log_table_columns)
             return
         if tab_name == "tab_food_stats":
             self._update_kcal_per_day_table()

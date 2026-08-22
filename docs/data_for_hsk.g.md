@@ -16,6 +16,7 @@ lang: en
 - [🔧 Function `create_data_for_hsk`](#-function-create_data_for_hsk)
 - [🔧 Function `needs_data_for_hsk_setup`](#-function-needs_data_for_hsk_setup)
 - [🔧 Function `read_notes_folder_names`](#-function-read_notes_folder_names)
+- [🔧 Function `suggest_data_for_hsk_root`](#-function-suggest_data_for_hsk_root)
 
 </details>
 
@@ -212,6 +213,28 @@ def read_notes_folder_names(config: dict[str, Any]) -> tuple[str, ...]:
         if names:
             return tuple(names)
     return DEFAULT_DATA_FOR_HSK_NOTES_FOLDERS
+```
+
+</details>
+
+## 🔧 Function `suggest_data_for_hsk_root`
+
+```python
+def suggest_data_for_hsk_root(config: dict[str, Any] | None = None) -> Path
+```
+
+Suggest `…/data-for-hsk` next to the install stack (`path_github` or project parent).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def suggest_data_for_hsk_root(config: dict[str, Any] | None = None) -> Path:
+    cfg = config or {}
+    github = cfg.get("path_github")
+    if isinstance(github, str) and github.strip() and not is_config_placeholder_path(github):
+        return Path(github).expanduser().resolve() / "data-for-hsk"
+    return get_project_root().parent / "data-for-hsk"
 ```
 
 </details>
