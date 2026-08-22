@@ -2346,11 +2346,11 @@ class MainWindow(QMainWindow, AppWindowMixin):
         if not hasattr(self, "_add_vector_action"):
             return
         if self._is_note_repo_open():
-            self._add_vector_action.setText("📥 Add Vector Image…")
+            set_action_text_with_emoji_icon(self._add_vector_action, "📥 Add Vector Image…")
             self._add_variants_action.setEnabled(True)
             note_repo = True
         else:
-            self._add_vector_action.setText("📥 Add Vector Images…")
+            set_action_text_with_emoji_icon(self._add_vector_action, "📥 Add Vector Images…")
             self._add_variants_action.setEnabled(False)
             note_repo = False
         if hasattr(self, "_check_images_action"):

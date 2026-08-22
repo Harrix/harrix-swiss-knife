@@ -23,7 +23,7 @@ lang: en
 class CategoryAddDialog(QDialog)
 ```
 
-Modal dialog to enter category name, local name, and type.
+Modal dialog to enter category name, local name, type, and icon.
 
 <details>
 <summary>Code:</summary>
@@ -42,7 +42,7 @@ class CategoryAddDialog(QDialog):
         super().__init__(parent)
         self._app_config = app_config or {}
         self._bothub_state = bothub_state or BothubRequestState()
-        self._result: tuple[str, int, str] | None = None
+        self._result: tuple[str, int, str, str] | None = None
 
         self.setWindowTitle("Add Category")
         qt_modality.set_owner_window_modal(self)
@@ -79,6 +79,16 @@ class CategoryAddDialog(QDialog):
         type_row.addWidget(self._type_combo, 1)
         form_layout.addLayout(type_row)
 
+        icon_row = QHBoxLayout()
+        icon_row.addWidget(QLabel("Icon:", form_group))
+        self._icon_row = EmojiChoiceRow(
+            form_group,
+            presets=FINANCE_EMOJI_PRESETS,
+            allow_empty=True,
+        )
+        icon_row.addWidget(self._icon_row, 1)
+        form_layout.addLayout(icon_row)
+
         layout.addWidget(form_group)
 
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
@@ -89,8 +99,8 @@ class CategoryAddDialog(QDialog):
 
         self._name_edit.setFocus()
 
-    def get_result(self) -> tuple[str, int, str] | None:
-        """Return `(name, category_type, name_local)` when accepted, else `None`."""
+    def get_result(self) -> tuple[str, int, str, str] | None:
+        """Return `(name, category_type, icon, name_local)` when accepted, else `None`."""
         return self._result
 
     def _on_accept(self) -> None:
@@ -98,7 +108,12 @@ class CategoryAddDialog(QDialog):
         if not name:
             message_box.warning(self, "Validation Error", "Enter category name")
             return
-        self._result = (name, self._type_combo.currentIndex(), self._name_local_edit.text().strip())
+        self._result = (
+            name,
+            self._type_combo.currentIndex(),
+            self._icon_row.emoji(),
+            self._name_local_edit.text().strip(),
+        )
         self.accept()
 
     def _on_translate_clicked(self) -> None:
@@ -136,7 +151,7 @@ def __init__(
         super().__init__(parent)
         self._app_config = app_config or {}
         self._bothub_state = bothub_state or BothubRequestState()
-        self._result: tuple[str, int, str] | None = None
+        self._result: tuple[str, int, str, str] | None = None
 
         self.setWindowTitle("Add Category")
         qt_modality.set_owner_window_modal(self)
@@ -173,6 +188,16 @@ def __init__(
         type_row.addWidget(self._type_combo, 1)
         form_layout.addLayout(type_row)
 
+        icon_row = QHBoxLayout()
+        icon_row.addWidget(QLabel("Icon:", form_group))
+        self._icon_row = EmojiChoiceRow(
+            form_group,
+            presets=FINANCE_EMOJI_PRESETS,
+            allow_empty=True,
+        )
+        icon_row.addWidget(self._icon_row, 1)
+        form_layout.addLayout(icon_row)
+
         layout.addWidget(form_group)
 
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
@@ -189,16 +214,16 @@ def __init__(
 ### ⚙️ Method `get_result`
 
 ```python
-def get_result(self) -> tuple[str, int, str] | None
+def get_result(self) -> tuple[str, int, str, str] | None
 ```
 
-Return `(name, category_type, name_local)` when accepted, else `None`.
+Return `(name, category_type, icon, name_local)` when accepted, else `None`.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def get_result(self) -> tuple[str, int, str] | None:
+def get_result(self) -> tuple[str, int, str, str] | None:
         return self._result
 ```
 

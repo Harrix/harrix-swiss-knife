@@ -19,6 +19,7 @@ lang: en
 - [🔧 Function `create_emoji_icon`](#-function-create_emoji_icon)
 - [🔧 Function `make_emoji_push_button`](#-function-make_emoji_push_button)
 - [🔧 Function `paint_centered_emoji`](#-function-paint_centered_emoji)
+- [🔧 Function `set_action_text_with_emoji_icon`](#-function-set_action_text_with_emoji_icon)
 - [🔧 Function `split_leading_emoji`](#-function-split_leading_emoji)
 
 </details>
@@ -29,7 +30,7 @@ lang: en
 def add_emoji_action(menu: QMenu, label: str, emoji: str, *, icon_size: int = DEFAULT_EMOJI_MENU_ICON_SIZE) -> QAction
 ```
 
-Add a menu action with `emoji` as a `QIcon` and `label` as the text.
+Add a menu action with [`emoji`](apps/common/emoji_picker_dialog.g.md#%EF%B8%8F-method-emoji) as a `QIcon` and `label` as the text.
 
 <details>
 <summary>Code:</summary>
@@ -55,7 +56,7 @@ def add_emoji_action(
 def apply_emoji_action_icon(action: QAction, emoji: str, *, icon_size: int = DEFAULT_EMOJI_MENU_ICON_SIZE) -> None
 ```
 
-Set `emoji` as the action icon without changing its text.
+Set [`emoji`](apps/common/emoji_picker_dialog.g.md#%EF%B8%8F-method-emoji) as the action icon without changing its text.
 
 <details>
 <summary>Code:</summary>
@@ -220,7 +221,7 @@ def make_emoji_push_button(
 def paint_centered_emoji(painter: QPainter, emoji: str, rect: QRectF, *, fill: float = 0.9) -> None
 ```
 
-Draw ``emoji`` centered in ``rect``, scaled to ``fill`` of the shorter side.
+Draw `[`emoji`](apps/common/emoji_picker_dialog.g.md#%EF%B8%8F-method-emoji)` centered in ``rect``, scaled to ``fill`` of the shorter side.
 
 <details>
 <summary>Code:</summary>
@@ -253,6 +254,30 @@ def paint_centered_emoji(
     y = rect.y() + (rect.height() - fitted.height()) / 2.0
     painter.drawText(QPointF(x - fitted.left(), y - fitted.top()), emoji)
     painter.restore()
+```
+
+</details>
+
+## 🔧 Function `set_action_text_with_emoji_icon`
+
+```python
+def set_action_text_with_emoji_icon(action: QAction, text: str, *, icon_size: int = DEFAULT_EMOJI_MENU_ICON_SIZE) -> None
+```
+
+Set action text and move a leading emoji onto the icon when present.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def set_action_text_with_emoji_icon(
+    action: QAction,
+    text: str,
+    *,
+    icon_size: int = DEFAULT_EMOJI_MENU_ICON_SIZE,
+) -> None:
+    action.setText(text)
+    apply_leading_emoji_icon(action, icon_size=icon_size)
 ```
 
 </details>

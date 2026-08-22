@@ -2501,9 +2501,12 @@ class MainWindow(
 
         # Update button text to reflect current state
         if self.show_all_records:
-            self.actionShow_All_Set_Records.setText(f"📋 Show Last {self.count_records_to_show} Set Records")
+            set_action_text_with_emoji_icon(
+                self.actionShow_All_Set_Records,
+                f"📋 Show Last {self.count_records_to_show} Set Records",
+            )
         else:
-            self.actionShow_All_Set_Records.setText("📋 Show All Set Records")
+            set_action_text_with_emoji_icon(self.actionShow_All_Set_Records, "📋 Show All Set Records")
 
         # Reload the process table with the appropriate data
         self.load_process_table()
@@ -2919,7 +2922,7 @@ class MainWindow(
 
         # Reset show_all_records flag to default (show limited records)
         self.show_all_records = False
-        self.actionShow_All_Set_Records.setText("📋 Show All Set Records")
+        set_action_text_with_emoji_icon(self.actionShow_All_Set_Records, "📋 Show All Set Records")
 
         if is_preserve_selections and current_exercise is None:
             current_exercise = self._get_current_selected_exercise()
@@ -9509,9 +9512,12 @@ def on_toggle_show_all_records(self) -> None:
 
         # Update button text to reflect current state
         if self.show_all_records:
-            self.actionShow_All_Set_Records.setText(f"📋 Show Last {self.count_records_to_show} Set Records")
+            set_action_text_with_emoji_icon(
+                self.actionShow_All_Set_Records,
+                f"📋 Show Last {self.count_records_to_show} Set Records",
+            )
         else:
-            self.actionShow_All_Set_Records.setText("📋 Show All Set Records")
+            set_action_text_with_emoji_icon(self.actionShow_All_Set_Records, "📋 Show All Set Records")
 
         # Reload the process table with the appropriate data
         self.load_process_table()
@@ -10101,7 +10107,7 @@ def update_all(
 
         # Reset show_all_records flag to default (show limited records)
         self.show_all_records = False
-        self.actionShow_All_Set_Records.setText("📋 Show All Set Records")
+        set_action_text_with_emoji_icon(self.actionShow_All_Set_Records, "📋 Show All Set Records")
 
         if is_preserve_selections and current_exercise is None:
             current_exercise = self._get_current_selected_exercise()

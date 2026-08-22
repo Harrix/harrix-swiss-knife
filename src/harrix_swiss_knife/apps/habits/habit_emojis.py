@@ -2,56 +2,9 @@
 
 from __future__ import annotations
 
-HABIT_EMOJI_PRESETS: tuple[str, ...] = (
-    "✅",
-    "🏃",
-    "🚶",
-    "🚴",
-    "🏋️",
-    "🧘",
-    "💧",
-    "🥗",
-    "🍎",
-    "☕",
-    "📚",
-    "✍️",
-    "🧠",
-    "💤",
-    "🌅",
-    "🌙",
-    "🧹",
-    "🧺",
-    "💊",
-    "🦷",
-    "🧴",
-    "🎧",
-    "🎸",
-    "🎨",
-    "📷",
-    "💻",
-    "📧",
-    "📞",
-    "💰",
-    "🛒",
-    "🌱",
-    "🌳",
-    "🐶",
-    "🐱",
-    "❤️",
-    "🔥",
-    "⭐",
-    "🎯",
-    "📌",
-    "🗓️",
-    "⏰",
-    "📝",
-    "📖",
-    "🧩",
-    "🎮",
-    "⚽",
-    "🎾",
-    "🏊",
-)
+from harrix_swiss_knife.apps.common.emoji_presets import POPULAR_EMOJI_PRESETS
+
+HABIT_EMOJI_PRESETS: tuple[str, ...] = POPULAR_EMOJI_PRESETS
 
 
 def default_habit_emoji(habit_id: int) -> str:

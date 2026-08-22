@@ -92,7 +92,7 @@ class CategoryEditDialog(QDialog):
             "id": self.category_data.get("id"),
             "name": name,
             "type": self.type_combo.currentIndex(),
-            "icon": self.icon_edit.text().strip(),
+            "icon": self._icon_row.emoji(),
             "name_local": self.name_local_edit.text().strip(),
         }
         self.accept()
@@ -112,7 +112,7 @@ class CategoryEditDialog(QDialog):
         self.name_edit.setText(str(self.category_data.get("name", "")))
         category_type = int(self.category_data.get("type", 0) or 0)
         self.type_combo.setCurrentIndex(0 if category_type == 0 else 1)
-        self.icon_edit.setText(str(self.category_data.get("icon", "") or ""))
+        self._icon_row.set_emoji(str(self.category_data.get("icon", "") or ""))
         self.name_local_edit.setText(str(self.category_data.get("name_local", "") or ""))
         self.name_edit.setFocus()
         self.name_edit.selectAll()
@@ -149,9 +149,13 @@ class CategoryEditDialog(QDialog):
 
         icon_layout = QHBoxLayout()
         icon_layout.addWidget(QLabel("Icon:"))
-        self.icon_edit = QLineEdit()
-        self.icon_edit.setPlaceholderText("Emoji or short icon")
-        icon_layout.addWidget(self.icon_edit, 1)
+        self._icon_row = EmojiChoiceRow(
+            self,
+            current_emoji=str(self.category_data.get("icon", "") or ""),
+            presets=FINANCE_EMOJI_PRESETS,
+            allow_empty=True,
+        )
+        icon_layout.addWidget(self._icon_row, 1)
         layout.addLayout(icon_layout)
 
         button_layout = QHBoxLayout()

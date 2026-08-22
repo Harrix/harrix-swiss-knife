@@ -9,6 +9,7 @@ from harrix_swiss_knife.qt_emoji_icon import (
     add_emoji_action,
     apply_leading_emoji_icon,
     apply_leading_emoji_icons,
+    set_action_text_with_emoji_icon,
     split_leading_emoji,
 )
 
@@ -72,4 +73,14 @@ def test_add_emoji_action_keeps_plain_label(qapp: QApplication) -> None:
     menu = QMenu()
     action = add_emoji_action(menu, "Edit habit", "✏️")
     assert action.text() == "Edit habit"
+    assert not action.icon().isNull()
+
+
+def test_set_action_text_with_emoji_icon_does_not_duplicate_prefix(qapp: QApplication) -> None:
+    assert qapp is not None
+    menu = QMenu()
+    action = menu.addAction("📋 Show All Set Records")
+    apply_leading_emoji_icon(action)
+    set_action_text_with_emoji_icon(action, "📋 Show Last 10 Set Records")
+    assert action.text() == "Show Last 10 Set Records"
     assert not action.icon().isNull()

@@ -167,6 +167,17 @@ def paint_centered_emoji(
     painter.restore()
 
 
+def set_action_text_with_emoji_icon(
+    action: QAction,
+    text: str,
+    *,
+    icon_size: int = DEFAULT_EMOJI_MENU_ICON_SIZE,
+) -> None:
+    """Set action text and move a leading emoji onto the icon when present."""
+    action.setText(text)
+    apply_leading_emoji_icon(action, icon_size=icon_size)
+
+
 def split_leading_emoji(text: str) -> tuple[str, str]:
     """Split `emoji rest` menu text into `(emoji, rest)`.
 

@@ -176,6 +176,7 @@ from harrix_swiss_knife.qt_emoji_icon import (
     apply_emoji_dialog_buttons,
     create_emoji_icon,
     make_emoji_push_button,
+    set_action_text_with_emoji_icon,
 )
 from harrix_swiss_knife.win11_backdrop import SystemBackdrop, try_apply_system_backdrop
 
@@ -756,14 +757,14 @@ class MainWindow(
         result = dialog.get_result()
         if result is None:
             return
-        name, category_type, name_local = result
+        name, category_type, icon, name_local = result
 
         if not self.db_manager:
             self._show_error("Error", "Database not initialized")
             return
 
         try:
-            if self.db_manager.add_category(name, category_type, name_local=name_local):
+            if self.db_manager.add_category(name, category_type, icon, name_local=name_local):
                 self._mark_categories_changed()
                 self.update_all()
             else:
@@ -1208,11 +1209,15 @@ class MainWindow(
 
         # Update button text and icon
         if self.show_all_transactions:
-            self.action_transactions_show_all_records.setText(
-                f"📊 Show Last {self.count_transactions_to_show} Transactions"
+            set_action_text_with_emoji_icon(
+                self.action_transactions_show_all_records,
+                f"📊 Show Last {self.count_transactions_to_show} Transactions",
             )
         else:
-            self.action_transactions_show_all_records.setText("📊 Show All Transactions")
+            set_action_text_with_emoji_icon(
+                self.action_transactions_show_all_records,
+                "📊 Show All Transactions",
+            )
 
         self._load_transactions_page(reset=True)
 

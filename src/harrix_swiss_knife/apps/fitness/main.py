@@ -114,7 +114,7 @@ from harrix_swiss_knife.apps.fitness.progress_calculator import ExerciseProgress
 from harrix_swiss_knife.integrations.bothub import BothubRequestState
 from harrix_swiss_knife.keyboard_layout_search import text_matches_autocomplete
 from harrix_swiss_knife.paths import get_config_path_str, get_project_root
-from harrix_swiss_knife.qt_emoji_icon import apply_emoji_dialog_buttons
+from harrix_swiss_knife.qt_emoji_icon import apply_emoji_dialog_buttons, set_action_text_with_emoji_icon
 from harrix_swiss_knife.win11_backdrop import SystemBackdrop, try_apply_system_backdrop
 
 logger = logging.getLogger(__name__)
@@ -2548,9 +2548,12 @@ class MainWindow(
 
         # Update button text to reflect current state
         if self.show_all_records:
-            self.actionShow_All_Set_Records.setText(f"📋 Show Last {self.count_records_to_show} Set Records")
+            set_action_text_with_emoji_icon(
+                self.actionShow_All_Set_Records,
+                f"📋 Show Last {self.count_records_to_show} Set Records",
+            )
         else:
-            self.actionShow_All_Set_Records.setText("📋 Show All Set Records")
+            set_action_text_with_emoji_icon(self.actionShow_All_Set_Records, "📋 Show All Set Records")
 
         # Reload the process table with the appropriate data
         self.load_process_table()
@@ -2966,7 +2969,7 @@ class MainWindow(
 
         # Reset show_all_records flag to default (show limited records)
         self.show_all_records = False
-        self.actionShow_All_Set_Records.setText("📋 Show All Set Records")
+        set_action_text_with_emoji_icon(self.actionShow_All_Set_Records, "📋 Show All Set Records")
 
         if is_preserve_selections and current_exercise is None:
             current_exercise = self._get_current_selected_exercise()
