@@ -23,6 +23,7 @@ from harrix_swiss_knife.apps.common.delegates.name_local_list_delegate import (
     NameLocalLayout,
     NameLocalListDelegate,
 )
+from harrix_swiss_knife.apps.fitness.exercise_favorites import format_favorite_exercise_label
 
 _DASHBOARD_ICON_SIZE = 96
 _DASHBOARD_LOCAL_FONT_SCALE = 0.9
@@ -135,6 +136,7 @@ class FitnessDashboardExercise:
     name: str
     name_local: str = ""
     icon: QIcon | None = None
+    is_favorite: bool = False
 
 
 class FitnessDashboardWidget(QWidget):
@@ -199,7 +201,7 @@ class FitnessDashboardWidget(QWidget):
         selected_row = 0
         name_font = self._list.font()
         for row, item in enumerate(items):
-            row_item = QStandardItem(item.name)
+            row_item = QStandardItem(format_favorite_exercise_label(item.name, favorite=item.is_favorite))
             if item.icon is not None and not item.icon.isNull():
                 row_item.setIcon(item.icon)
             row_item.setFont(name_font)

@@ -524,7 +524,7 @@ class MainWindow(
         result = dialog.get_result()
         if result is None:
             return
-        exercise, unit, is_type_required, calories_per_unit, name_local, media_path = result
+        exercise, unit, is_type_required, calories_per_unit, name_local, is_favorite, media_path = result
 
         if self.db_manager.exercise_name_exists(exercise):
             message_box.warning(self, "Error", f"Exercise '{exercise}' already exists")
@@ -537,6 +537,7 @@ class MainWindow(
                 is_type_required=is_type_required,
                 calories_per_unit=calories_per_unit,
                 name_local=name_local,
+                is_favorite=is_favorite,
             ):
                 self._mark_exercises_changed()
                 self.update_all()
@@ -3047,6 +3048,7 @@ class MainWindow(
             previous_exercise = self._get_selected_chart_exercise()
             # Update exercise list view - sort by last execution date
             exercises = self.db_manager.get_exercises_by_last_execution()
+            favorite_names = self.db_manager.get_favorite_exercise_names()
 
             # Create model for exercise list view
             exercise_model = QStandardItemModel()
@@ -3056,7 +3058,11 @@ class MainWindow(
                     goal_info = self._get_exercise_today_goal_info(exercise)
 
                     # Create display text with goal info if available
-                    display_text = f"{exercise} {goal_info}" if goal_info else exercise
+                    display_text = format_favorite_exercise_label(
+                        exercise,
+                        favorite=exercise in favorite_names,
+                        extra=goal_info,
+                    )
                     item = QStandardItem(display_text)
 
                     # Store original exercise name in item data for later retrieval
@@ -4243,9 +4249,14 @@ class MainWindow(
             return
 
         name_locals = self.db_manager.get_exercise_name_local_map() if self.db_manager else {}
+        favorite_names = self.db_manager.get_favorite_exercise_names() if self.db_manager else set()
         for exercise in exercise_names:
             goal_info = self._get_exercise_today_goal_info(exercise)
-            display_text = f"{exercise} {goal_info}" if goal_info else exercise
+            display_text = format_favorite_exercise_label(
+                exercise,
+                favorite=exercise in favorite_names,
+                extra=goal_info,
+            )
             item = QStandardItem(display_text)
 
             icon = self._get_exercise_icon(exercise)
@@ -4643,6 +4654,10 @@ class MainWindow(
 
         # Connect double-click signal for chart exercise list to open Sets tab
         self.listView_chart_exercise.doubleClicked.connect(self._on_chart_exercise_list_double_clicked)
+        self.listView_chart_exercise.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.listView_chart_exercise.customContextMenuRequested.connect(
+            partial(self._show_exercise_list_favorite_menu, self.listView_chart_exercise)
+        )
 
         # Add context menu for process table
         self.tableView_process.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
@@ -4906,6 +4921,20 @@ class MainWindow(
         header.sectionClicked.connect(
             lambda section, key=table_key: self._on_exercise_table_header_clicked(key, section)
         )
+
+    def _favorite_menu_action(self, menu: QMenu, exercise_name: str) -> QAction:
+        """Add an add/remove favorite action for `exercise_name`."""
+        is_fav = False
+        enabled = False
+        if exercise_name and self.db_manager is not None:
+            exercise_id = self.db_manager.get_id("exercises", "name", exercise_name)
+            if exercise_id is not None:
+                enabled = True
+                is_fav = self.db_manager.is_exercise_favorite(exercise_id)
+        label = "⭐ Remove from favorites" if is_fav else "⭐ Add to favorites"
+        action = menu.addAction(label)
+        action.setEnabled(enabled)
+        return action
 
     def _fetch_process_rows(self, limit: int | None, offset: int) -> list[list[Any]]:
         """Fetch process rows with optional filters and pagination."""
@@ -5512,6 +5541,10 @@ class MainWindow(
 
         # Disable editing for exercises list
         self.listView_exercises.setEditTriggers(QListView.EditTrigger.NoEditTriggers)
+        self.listView_exercises.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.listView_exercises.customContextMenuRequested.connect(
+            partial(self._show_exercise_list_favorite_menu, self.listView_exercises)
+        )
 
         # Initialize labels with default values
         self.label_exercise.setText("No exercise selected")
@@ -6048,6 +6081,7 @@ class MainWindow(
         except (TypeError, ValueError):
             calories = 0.0
         name_local = str(model.data(model.index(row, 5)) or "")
+        is_favorite = self.db_manager.is_exercise_favorite(record_id)
 
         dialog = ExerciseAddDialog(
             self,
@@ -6059,6 +6093,7 @@ class MainWindow(
                 "is_type_required": is_type_required,
                 "calories_per_unit": calories,
                 "name_local": name_local,
+                "is_favorite": is_favorite,
             },
         )
         if dialog.exec() != dialog.DialogCode.Accepted:
@@ -6066,7 +6101,7 @@ class MainWindow(
         result = dialog.get_result()
         if result is None:
             return
-        new_name, new_unit, new_type_required, new_calories, new_name_local, media_path = result
+        new_name, new_unit, new_type_required, new_calories, new_name_local, new_favorite, media_path = result
 
         if self.db_manager.exercise_name_exists(new_name, exclude_id=record_id):
             message_box.warning(self, "Error", f"Exercise '{new_name}' already exists")
@@ -6080,6 +6115,7 @@ class MainWindow(
                 is_type_required=new_type_required,
                 calories_per_unit=new_calories,
                 name_local=new_name_local,
+                is_favorite=new_favorite,
             ):
                 message_box.warning(self, "Database Error", "Failed to save exercise")
                 return
@@ -6291,6 +6327,7 @@ class MainWindow(
             return
         self._hide_exercise_list_hover_preview()
         name_locals = self.db_manager.get_exercise_name_local_map() if self.db_manager else {}
+        favorite_names = self.db_manager.get_favorite_exercise_names() if self.db_manager else set()
         edge = self._fitness_dashboard.icon_size
         icon_size = QSize(edge, edge)
         items = [
@@ -6298,6 +6335,7 @@ class MainWindow(
                 name=name,
                 name_local=name_locals.get(name, ""),
                 icon=self._get_exercise_preview_icon(name, icon_size),
+                is_favorite=name in favorite_names,
             )
             for name in exercises
         ]
@@ -6657,6 +6695,10 @@ class MainWindow(
         self._fitness_dashboard.add_text_requested.connect(self.on_fitness_dashboard_add_text)
         self._fitness_dashboard.add_voice_requested.connect(self.on_fitness_dashboard_add_voice)
         self._fitness_dashboard.exercise_changed.connect(self.on_fitness_dashboard_exercise_changed)
+        self._fitness_dashboard.exercise_list.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self._fitness_dashboard.exercise_list.customContextMenuRequested.connect(
+            partial(self._show_exercise_list_favorite_menu, self._fitness_dashboard.exercise_list)
+        )
         self.verticalLayout_fitness_dashboard.setContentsMargins(0, 0, 0, 0)
         self.verticalLayout_fitness_dashboard.addWidget(self._fitness_dashboard, 1)
         self._attach_fitness_dashboard_hover()
@@ -6751,6 +6793,23 @@ class MainWindow(
         self._apply_sets_splitter_sizes()
         self._setup_fitness_dashboard_tab()
 
+    def _show_exercise_list_favorite_menu(self, list_view: QListView, position: QPoint) -> None:
+        """Show add/remove favorite menu for an exercise list view."""
+        index = list_view.indexAt(position)
+        if not index.isValid():
+            return
+        list_view.setCurrentIndex(index)
+        name = index.data(Qt.ItemDataRole.UserRole)
+        exercise_name = str(name) if name else ""
+        if not exercise_name:
+            return
+        context_menu = QMenu(self)
+        favorite_action = self._favorite_menu_action(context_menu, exercise_name)
+        apply_leading_emoji_icons(context_menu)
+        action = context_menu.exec_(list_view.mapToGlobal(position))
+        if action == favorite_action:
+            self._toggle_exercise_favorite_by_name(exercise_name)
+
     def _show_exercise_types_context_menu(self, position: QPoint) -> None:
         """Show context menu for exercise types table.
 
@@ -6797,20 +6856,22 @@ class MainWindow(
         if index.isValid():
             self.tableView_exercises.setCurrentIndex(index)
 
+        record_id = self._get_selected_row_id("exercises")
+        selected_name = ""
+        if record_id is not None and self.db_manager is not None:
+            selected_name = self.db_manager.get_exercise_name_by_id(record_id) or ""
+
         context_menu = QMenu(self)
         context_menu.addAction(self.actionAdd_Exercise)
         context_menu.addAction(self.actionRefresh_Exercises_Table)
         context_menu.addSeparator()
         edit_action = context_menu.addAction("✏️ Edit")
+        favorite_action = self._favorite_menu_action(context_menu, selected_name)
         delete_action = context_menu.addAction("🗑️ Delete")
         reveal_action = context_menu.addAction("📂 Reveal in File Explorer")
         export_action = context_menu.addAction("📤 Export to CSV")
         context_menu.addSeparator()
         add_weights_action = context_menu.addAction("🏋️ Add dumbbell weight types")
-        record_id = self._get_selected_row_id("exercises")
-        selected_name = ""
-        if record_id is not None and self.db_manager is not None:
-            selected_name = self.db_manager.get_exercise_name_by_id(record_id) or ""
         add_weights_action.setEnabled(record_id is not None and not is_template_exercise(selected_name))
         apply_leading_emoji_icons(context_menu)
 
@@ -6819,6 +6880,8 @@ class MainWindow(
             return
         if action == edit_action:
             self._open_exercise_edit_dialog()
+        elif action == favorite_action:
+            self._toggle_exercise_favorite_by_name(selected_name)
         elif action == delete_action:
             self.delete_record("exercises")
         elif action == reveal_action:
@@ -7072,6 +7135,21 @@ class MainWindow(
         if table_name in {"exercises", "types"}:
             return _EXERCISE_TABLE_NAME_COLUMN
         return 0
+
+    def _toggle_exercise_favorite_by_name(self, exercise_name: str) -> None:
+        """Pin or unpin an exercise and rebuild lists so favorites stay on top."""
+        if not exercise_name or self.db_manager is None:
+            return
+        exercise_id = self.db_manager.get_id("exercises", "name", exercise_name)
+        if exercise_id is None:
+            return
+        current = self.db_manager.is_exercise_favorite(exercise_id)
+        if not self.db_manager.set_exercise_favorite(exercise_id, favorite=not current):
+            message_box.warning(self, "Database Error", "Failed to update favorite")
+            return
+        self._mark_exercises_changed()
+        self.update_all(is_preserve_selections=True, current_exercise=exercise_name)
+        self.update_chart_comboboxes()
 
     def _transform_process_data(self, rows: list[list], *, append_state: bool = False) -> list[list]:
         """Transform process rows for table display with date-based coloring."""
@@ -7835,7 +7913,7 @@ def on_add_exercise(self) -> None:
         result = dialog.get_result()
         if result is None:
             return
-        exercise, unit, is_type_required, calories_per_unit, name_local, media_path = result
+        exercise, unit, is_type_required, calories_per_unit, name_local, is_favorite, media_path = result
 
         if self.db_manager.exercise_name_exists(exercise):
             message_box.warning(self, "Error", f"Exercise '{exercise}' already exists")
@@ -7848,6 +7926,7 @@ def on_add_exercise(self) -> None:
                 is_type_required=is_type_required,
                 calories_per_unit=calories_per_unit,
                 name_local=name_local,
+                is_favorite=is_favorite,
             ):
                 self._mark_exercises_changed()
                 self.update_all()
@@ -10887,6 +10966,7 @@ def update_chart_comboboxes(self) -> None:
             previous_exercise = self._get_selected_chart_exercise()
             # Update exercise list view - sort by last execution date
             exercises = self.db_manager.get_exercises_by_last_execution()
+            favorite_names = self.db_manager.get_favorite_exercise_names()
 
             # Create model for exercise list view
             exercise_model = QStandardItemModel()
@@ -10896,7 +10976,11 @@ def update_chart_comboboxes(self) -> None:
                     goal_info = self._get_exercise_today_goal_info(exercise)
 
                     # Create display text with goal info if available
-                    display_text = f"{exercise} {goal_info}" if goal_info else exercise
+                    display_text = format_favorite_exercise_label(
+                        exercise,
+                        favorite=exercise in favorite_names,
+                        extra=goal_info,
+                    )
                     item = QStandardItem(display_text)
 
                     # Store original exercise name in item data for later retrieval

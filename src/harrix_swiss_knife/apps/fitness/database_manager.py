@@ -9,6 +9,7 @@ from typing import Any, NoReturn
 
 from harrix_swiss_knife.apps.common.qt_database_manager_base import QtSqliteDatabaseManagerBase
 from harrix_swiss_knife.apps.fitness.dumbbell_weight_types import WeightTypeSpec
+from harrix_swiss_knife.apps.fitness.exercise_favorites import prefer_favorite_names
 
 logger = logging.getLogger(__name__)
 
@@ -46,6 +47,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         is_type_required: bool,
         calories_per_unit: float = 0.0,
         name_local: str = "",
+        is_favorite: bool = False,
     ) -> bool:
         """Add a new exercise to the database.
 
@@ -56,6 +58,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         - `is_type_required` (`bool`): Whether exercise type is required.
         - `calories_per_unit` (`float`): Calories burned per unit. Defaults to `0.0`.
         - `name_local` (`str`): Local-language exercise name. Defaults to `""`.
+        - `is_favorite` (`bool`): Whether the exercise is pinned as a favorite. Defaults to `False`.
 
         Returns:
 
@@ -63,8 +66,8 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         """
         query = (
-            "INSERT INTO exercises (name, unit, is_type_required, calories_per_unit, name_local) "
-            "VALUES (:name, :unit, :is_type_required, :calories_per_unit, :name_local)"
+            "INSERT INTO exercises (name, unit, is_type_required, calories_per_unit, name_local, is_favorite) "
+            "VALUES (:name, :unit, :is_type_required, :calories_per_unit, :name_local, :is_favorite)"
         )
         params = {
             "name": name,
@@ -72,6 +75,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             "is_type_required": 1 if is_type_required else 0,
             "calories_per_unit": calories_per_unit,
             "name_local": name_local or None,
+            "is_favorite": 1 if is_favorite else 0,
         }
         return self.execute_simple_query(query, params)
 
@@ -393,7 +397,8 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         """
         return self.get_rows(
-            "SELECT _id, name, unit, is_type_required, calories_per_unit, IFNULL(name_local, '') FROM exercises"
+            "SELECT _id, name, unit, is_type_required, calories_per_unit, IFNULL(name_local, '') "
+            "FROM exercises ORDER BY is_favorite DESC, name ASC"
         )
 
     def get_all_process_records(self) -> list[list[Any]]:
@@ -793,7 +798,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         # Preserve exercises not present in sorted_exercises.
         remainder = [name for name in all_exercises.values() if name not in sorted_exercises]
-        return sorted_exercises + remainder
+        return prefer_favorite_names(sorted_exercises + remainder, self.get_favorite_exercise_names())
 
     def get_exercises_by_last_execution(self) -> list[str]:
         """Return exercise names ordered by last execution date (most recent first).
@@ -822,7 +827,13 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             """
         )
 
-        return [row[1] for row in last_execution]
+        return prefer_favorite_names([row[1] for row in last_execution], self.get_favorite_exercise_names())
+
+    def get_favorite_exercise_names(self) -> set[str]:
+        """Return English names of exercises marked as favorites."""
+        return {
+            str(row[0]) for row in self.get_rows("SELECT name FROM exercises WHERE is_favorite = 1") if row and row[0]
+        }
 
     def get_filtered_process_records(
         self,
@@ -1178,6 +1189,16 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         rows = self.get_rows(query, {"date_from": date_from, "date_to": date_to})
         return [(float(row[0]), row[1]) for row in rows]
 
+    def is_exercise_favorite(self, exercise_id: int) -> bool:
+        """Return whether the exercise is pinned as a favorite."""
+        rows = self.get_rows("SELECT is_favorite FROM exercises WHERE _id = :id", {"id": exercise_id})
+        if not rows or not rows[0]:
+            return False
+        try:
+            return int(rows[0][0] or 0) != 0
+        except (TypeError, ValueError):
+            return False
+
     def is_exercise_type_required(self, exercise_id: int) -> bool:
         """Check if exercise type is required for a given exercise.
 
@@ -1192,6 +1213,13 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         """
         rows = self.get_rows("SELECT is_type_required FROM exercises WHERE _id = :ex_id", {"ex_id": exercise_id})
         return bool(rows and rows[0][0] == 1)
+
+    def set_exercise_favorite(self, exercise_id: int, *, favorite: bool) -> bool:
+        """Pin or unpin an exercise as a favorite."""
+        return self.execute_simple_query(
+            "UPDATE exercises SET is_favorite = :fav WHERE _id = :id",
+            {"fav": 1 if favorite else 0, "id": exercise_id},
+        )
 
     def set_exercise_type_required(self, exercise_id: int, *, required: bool) -> bool:
         """Set `is_type_required` for one exercise.
@@ -1220,6 +1248,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         is_type_required: bool,
         calories_per_unit: float = 0.0,
         name_local: str = "",
+        is_favorite: bool | None = None,
     ) -> bool:
         """Update an existing exercise.
 
@@ -1231,6 +1260,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         - `is_type_required` (`bool`): Whether exercise type is required.
         - `calories_per_unit` (`float`): Calories burned per unit. Defaults to `0.0`.
         - `name_local` (`str`): Local-language exercise name. Defaults to `""`.
+        - `is_favorite` (`bool | None`): Favorite flag, or `None` to leave it unchanged.
 
         Returns:
 
@@ -1239,10 +1269,9 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         """
         query = (
             "UPDATE exercises SET name = :n, unit = :u, "
-            "is_type_required = :itr, calories_per_unit = :cpu, name_local = :nl "
-            "WHERE _id = :id"
+            "is_type_required = :itr, calories_per_unit = :cpu, name_local = :nl"
         )
-        params = {
+        params: dict[str, Any] = {
             "n": name,
             "u": unit,
             "itr": 1 if is_type_required else 0,
@@ -1250,6 +1279,10 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             "nl": name_local or None,
             "id": exercise_id,
         }
+        if is_favorite is not None:
+            query += ", is_favorite = :fav"
+            params["fav"] = 1 if is_favorite else 0
+        query += " WHERE _id = :id"
         return self.execute_simple_query(query, params)
 
     def update_exercise_name_local_by_name(self, name: str, name_local: str) -> int:
@@ -1418,15 +1451,20 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         return self.execute_simple_query(query, params)
 
     def _ensure_name_local_columns(self) -> None:
-        """Ensure `name_local` exists on `exercises` and `types`."""
-        self._ensure_table_text_column("exercises", "name_local")
-        self._ensure_table_text_column("types", "name_local")
+        """Ensure optional columns exist on `exercises` and `types`."""
+        self._ensure_table_column("exercises", "name_local", "TEXT")
+        self._ensure_table_column("types", "name_local", "TEXT")
+        self._ensure_table_column("exercises", "is_favorite", "INTEGER NOT NULL DEFAULT 0")
 
-    def _ensure_table_text_column(self, table_name: str, column_name: str) -> None:
-        """Add a TEXT column when missing (`exercises` / `types` only)."""
-        allowed_tables = {"exercises", "types"}
-        allowed_columns = {"name_local"}
-        if table_name not in allowed_tables or column_name not in allowed_columns:
+    def _ensure_table_column(self, table_name: str, column_name: str, column_ddl: str) -> None:
+        """Add an allow-listed column when it is missing."""
+        allowed = {
+            ("exercises", "name_local"): "TEXT",
+            ("types", "name_local"): "TEXT",
+            ("exercises", "is_favorite"): "INTEGER NOT NULL DEFAULT 0",
+        }
+        expected_ddl = allowed.get((table_name, column_name))
+        if expected_ddl is None or expected_ddl != column_ddl:
             logger.error("Refusing to alter unexpected table/column: %s.%s", table_name, column_name)
             return
         try:
@@ -1437,7 +1475,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             }
             if column_name in columns:
                 return
-            if not self.execute_simple_query(f"ALTER TABLE {table_name} ADD COLUMN {column_name} TEXT"):
+            if not self.execute_simple_query(f"ALTER TABLE {table_name} ADD COLUMN {column_name} {column_ddl}"):
                 logger.error("Failed to add %s.%s column", table_name, column_name)
         except Exception:
             logger.exception("Could not ensure %s.%s column", table_name, column_name)

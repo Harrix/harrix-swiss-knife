@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont, QStandardItemModel
 from PySide6.QtWidgets import QApplication, QComboBox, QLabel, QListView, QMainWindow, QPushButton, QSpinBox
 
@@ -62,7 +63,7 @@ def test_fitness_dashboard_widget_lists_exercises_and_adds_value() -> None:
 
     widget.set_exercises(
         [
-            FitnessDashboardExercise(name="Pull-up", name_local="Подтягивания"),
+            FitnessDashboardExercise(name="Pull-up", name_local="Подтягивания", is_favorite=True),
             FitnessDashboardExercise(name="Squat"),
         ],
         selected="Squat",
@@ -91,6 +92,8 @@ def test_fitness_dashboard_widget_lists_exercises_and_adds_value() -> None:
     assert isinstance(model, QStandardItemModel)
     first = model.item(0)
     assert first is not None
+    assert first.text() == "⭐ Pull-up"
+    assert first.data(Qt.ItemDataRole.UserRole) == "Pull-up"
     assert first.font().pixelSize() >= 22
     assert first.font().weight() == QFont.Weight.Normal
     delegate = exercise_list.itemDelegate()

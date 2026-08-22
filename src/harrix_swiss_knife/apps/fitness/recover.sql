@@ -5,6 +5,7 @@ CREATE TABLE "exercises" (
 	"is_type_required"	INTEGER NOT NULL DEFAULT 0,
 	calories_per_unit REAL DEFAULT 0,
 	"name_local"	TEXT,
+	"is_favorite"	INTEGER NOT NULL DEFAULT 0,
 	PRIMARY KEY("_id" AUTOINCREMENT)
 );
 

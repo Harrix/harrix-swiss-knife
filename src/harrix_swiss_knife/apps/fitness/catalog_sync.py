@@ -256,8 +256,10 @@ def upsert_fitness_catalog(db_path: Path, catalog: dict[str, Any]) -> CatalogUps
 
 
 def _ensure_name_local_columns(conn: sqlite3.Connection) -> None:
-    """Add `name_local` to `exercises` / `types` when missing (older DBs)."""
+    """Add optional columns to `exercises` / `types` when missing (older DBs)."""
     for table in ("exercises", "types"):
         cols = {row[1] for row in conn.execute(f"PRAGMA table_info({table})").fetchall()}
         if "name_local" not in cols:
             conn.execute(f"ALTER TABLE {table} ADD COLUMN name_local TEXT")
+        if table == "exercises" and "is_favorite" not in cols:
+            conn.execute("ALTER TABLE exercises ADD COLUMN is_favorite INTEGER NOT NULL DEFAULT 0")
