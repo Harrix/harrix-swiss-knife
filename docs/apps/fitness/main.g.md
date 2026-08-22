@@ -483,6 +483,10 @@ class MainWindow(
             return
         exercise, unit, is_type_required, calories_per_unit, name_local, media_path = result
 
+        if self.db_manager.exercise_name_exists(exercise):
+            message_box.warning(self, "Error", f"Exercise '{exercise}' already exists")
+            return
+
         try:
             if self.db_manager.add_exercise(
                 exercise,
@@ -494,11 +498,7 @@ class MainWindow(
                 self._mark_exercises_changed()
                 self.update_all()
                 if media_path:
-                    self._start_exercise_media_save(
-                        exercise,
-                        media_path,
-                        success_message=f"Media saved for '{exercise}'",
-                    )
+                    self._start_exercise_media_save(exercise, media_path)
             else:
                 message_box.warning(self, "Error", "Failed to add exercise")
         except Exception as e:
@@ -552,6 +552,14 @@ class MainWindow(
             ex_id = self.db_manager.get_id("exercises", "name", exercise)
             if ex_id is None:
                 message_box.warning(self, "Error", f"Exercise '{exercise}' not found")
+                return
+
+            if self.db_manager.exercise_type_name_exists(ex_id, type_name):
+                message_box.warning(
+                    self,
+                    "Error",
+                    f"Exercise type '{type_name}' already exists for '{exercise}'",
+                )
                 return
 
             if self.db_manager.add_exercise_type(ex_id, type_name, calories_modifier, name_local=name_local):
@@ -5898,6 +5906,10 @@ class MainWindow(
             return
         new_name, new_unit, new_type_required, new_calories, new_name_local, media_path = result
 
+        if self.db_manager.exercise_name_exists(new_name, exclude_id=record_id):
+            message_box.warning(self, "Error", f"Exercise '{new_name}' already exists")
+            return
+
         try:
             if not self.db_manager.update_exercise(
                 record_id,
@@ -5913,10 +5925,7 @@ class MainWindow(
             message_box.warning(self, "Database Error", f"Failed to save exercise: {e}")
             return
 
-        if self.avif_manager is not None and old_name and old_name != new_name:
-            self.avif_manager.rename_exercise_avif(old_name, new_name)
-            self._exercise_icon_cache.pop(old_name, None)
-            self._exercise_icon_cache.pop(new_name, None)
+        self._rename_exercise_media(old_name, new_name)
 
         self._mark_exercises_changed()
         self.update_all()
@@ -5978,6 +5987,14 @@ class MainWindow(
         ex_id = self.db_manager.get_id("exercises", "name", new_exercise)
         if ex_id is None:
             message_box.warning(self, "Error", f"Exercise '{new_exercise}' not found")
+            return
+
+        if self.db_manager.exercise_type_name_exists(ex_id, new_type_name, exclude_id=record_id):
+            message_box.warning(
+                self,
+                "Error",
+                f"Exercise type '{new_type_name}' already exists for '{new_exercise}'",
+            )
             return
 
         try:
@@ -6123,6 +6140,16 @@ class MainWindow(
             for name in exercises
         ]
         self._fitness_dashboard.set_exercises(items, selected=selected)
+
+    def _rename_exercise_media(self, old_name: str, new_name: str) -> None:
+        """Rename the exercise AVIF when the English name changes."""
+        previous = old_name.strip()
+        updated = new_name.strip()
+        if not previous or previous == updated or self.avif_manager is None:
+            return
+        self.avif_manager.rename_exercise_avif(previous, updated)
+        self._exercise_icon_cache.pop(previous, None)
+        self._refresh_exercise_media_ui(updated)
 
     def _reset_process_pagination_state(self) -> None:
         """Reset pagination counters and color map for process table."""
@@ -7567,6 +7594,10 @@ def on_add_exercise(self) -> None:
             return
         exercise, unit, is_type_required, calories_per_unit, name_local, media_path = result
 
+        if self.db_manager.exercise_name_exists(exercise):
+            message_box.warning(self, "Error", f"Exercise '{exercise}' already exists")
+            return
+
         try:
             if self.db_manager.add_exercise(
                 exercise,
@@ -7578,11 +7609,7 @@ def on_add_exercise(self) -> None:
                 self._mark_exercises_changed()
                 self.update_all()
                 if media_path:
-                    self._start_exercise_media_save(
-                        exercise,
-                        media_path,
-                        success_message=f"Media saved for '{exercise}'",
-                    )
+                    self._start_exercise_media_save(exercise, media_path)
             else:
                 message_box.warning(self, "Error", "Failed to add exercise")
         except Exception as e:
@@ -7662,6 +7689,14 @@ def on_add_type(self) -> None:
             ex_id = self.db_manager.get_id("exercises", "name", exercise)
             if ex_id is None:
                 message_box.warning(self, "Error", f"Exercise '{exercise}' not found")
+                return
+
+            if self.db_manager.exercise_type_name_exists(ex_id, type_name):
+                message_box.warning(
+                    self,
+                    "Error",
+                    f"Exercise type '{type_name}' already exists for '{exercise}'",
+                )
                 return
 
             if self.db_manager.add_exercise_type(ex_id, type_name, calories_modifier, name_local=name_local):

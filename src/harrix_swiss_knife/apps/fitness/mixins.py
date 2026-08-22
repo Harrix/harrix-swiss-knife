@@ -80,6 +80,9 @@ class AutoSaveOperations(AutoSaveMixin):
         # Update database
         old_name = self.db_manager.get_exercise_name_by_id(int(row_id))
         new_name = name.strip()
+        if self.db_manager.exercise_name_exists(new_name, exclude_id=int(row_id)):
+            message_box.warning(None, "Validation Error", f"Exercise '{new_name}' already exists")
+            return
         if not self.db_manager.update_exercise(
             int(row_id),
             new_name,
@@ -90,13 +93,9 @@ class AutoSaveOperations(AutoSaveMixin):
         ):
             message_box.warning(None, "Database Error", "Failed to save exercise record")
         else:
-            avif_mgr = getattr(self, "avif_manager", None)
-            icon_cache = getattr(self, "_exercise_icon_cache", None)
-            if avif_mgr is not None and isinstance(old_name, str) and old_name and old_name != new_name:
-                avif_mgr.rename_exercise_avif(old_name, new_name)
-                if isinstance(icon_cache, dict):
-                    icon_cache.pop(old_name, None)
-                    icon_cache.pop(new_name, None)
+            rename_media = getattr(self, "_rename_exercise_media", None)
+            if callable(rename_media) and isinstance(old_name, str):
+                rename_media(old_name, new_name)
             # Update related UI elements
             self._update_comboboxes()
             self.update_filter_comboboxes()
@@ -186,6 +185,14 @@ class AutoSaveOperations(AutoSaveMixin):
         ex_id = self.db_manager.get_id("exercises", "name", exercise_name)
         if ex_id is None:
             message_box.warning(None, "Validation Error", f"Exercise '{exercise_name}' not found")
+            return
+
+        if self.db_manager.exercise_type_name_exists(ex_id, type_name.strip(), exclude_id=int(row_id)):
+            message_box.warning(
+                None,
+                "Validation Error",
+                f"Exercise type '{type_name.strip()}' already exists for '{exercise_name}'",
+            )
             return
 
         # Update database

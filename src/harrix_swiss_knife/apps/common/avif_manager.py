@@ -308,12 +308,19 @@ class AvifManager:
 
         destination = self.avif_dir / f"{new}.avif"
         try:
-            if destination.exists() and destination != source:
-                destination.unlink()
-            source.rename(destination)
+            if source.resolve() == destination.resolve():
+                if source.name != destination.name:
+                    temp = source.with_name(f"{source.stem}.__rename__.avif")
+                    source.rename(temp)
+                    temp.rename(destination)
+            else:
+                if destination.exists():
+                    destination.unlink()
+                source.rename(destination)
         except OSError:
             logger.exception("Failed to rename exercise AVIF %s -> %s", source, destination)
             return False
+        self._retarget_exercise_name(old, new)
         return True
 
     def _next_avif_frame(self, label_key: str | AvifLabelKey) -> None:
@@ -379,6 +386,12 @@ class AvifManager:
             Qt.AspectRatioMode.KeepAspectRatio,
             Qt.TransformationMode.SmoothTransformation,
         )
+
+    def _retarget_exercise_name(self, old_name: str, new_name: str) -> None:
+        """Point loaded label slots from `old_name` to `new_name` after a file rename."""
+        for data in self.avif_data.values():
+            if data.get("exercise") == old_name:
+                data["exercise"] = new_name
 
 
 def load_image_pixmap(file_path: Path | str) -> QPixmap | None:

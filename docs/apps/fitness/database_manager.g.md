@@ -27,6 +27,8 @@ lang: en
   - [⚙️ Method `delete_process_records_for_type`](#%EF%B8%8F-method-delete_process_records_for_type)
   - [⚙️ Method `delete_types_for_exercise`](#%EF%B8%8F-method-delete_types_for_exercise)
   - [⚙️ Method `delete_weight_record`](#%EF%B8%8F-method-delete_weight_record)
+  - [⚙️ Method `exercise_name_exists`](#%EF%B8%8F-method-exercise_name_exists)
+  - [⚙️ Method `exercise_type_name_exists`](#%EF%B8%8F-method-exercise_type_name_exists)
   - [⚙️ Method `get_all_exercise_types`](#%EF%B8%8F-method-get_all_exercise_types)
   - [⚙️ Method `get_all_exercises`](#%EF%B8%8F-method-get_all_exercises)
   - [⚙️ Method `get_all_process_records`](#%EF%B8%8F-method-get_all_process_records)
@@ -68,6 +70,7 @@ lang: en
   - [⚙️ Method `update_process_record`](#%EF%B8%8F-method-update_process_record)
   - [⚙️ Method `update_process_records_date`](#%EF%B8%8F-method-update_process_records_date)
   - [⚙️ Method `update_weight_record`](#%EF%B8%8F-method-update_weight_record)
+- [🔧 Function `catalog_name_taken`](#-function-catalog_name_taken)
 
 </details>
 
@@ -392,6 +395,48 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         """
         query = "DELETE FROM weight WHERE _id = :id"
         return self.execute_simple_query(query, {"id": record_id})
+
+    def exercise_name_exists(self, name: str, *, exclude_id: int | None = None) -> bool:
+        """Return whether an exercise already uses `name`.
+
+        Args:
+
+        - `name` (`str`): Exercise name to check.
+        - `exclude_id` (`int | None`): Exercise ID to ignore (when renaming). Defaults to `None`.
+
+        Returns:
+
+        - `bool`: `True` when another exercise has the same name.
+
+        """
+        rows = self.get_rows("SELECT _id, name FROM exercises")
+        return catalog_name_taken(rows, name, exclude_id=exclude_id)
+
+    def exercise_type_name_exists(
+        self,
+        exercise_id: int,
+        type_name: str,
+        *,
+        exclude_id: int | None = None,
+    ) -> bool:
+        """Return whether this exercise already has a type named `type_name`.
+
+        Args:
+
+        - `exercise_id` (`int`): Exercise that owns the types.
+        - `type_name` (`str`): Type name to check.
+        - `exclude_id` (`int | None`): Type ID to ignore (when renaming). Defaults to `None`.
+
+        Returns:
+
+        - `bool`: `True` when another type of this exercise has the same name.
+
+        """
+        rows = self.get_rows(
+            "SELECT _id, type FROM types WHERE _id_exercises = :ex",
+            {"ex": exercise_id},
+        )
+        return catalog_name_taken(rows, type_name, exclude_id=exclude_id)
 
     def get_all_exercise_types(self) -> list[list[Any]]:
         r"""Get all exercise types with exercise names.
@@ -1896,6 +1941,72 @@ def delete_weight_record(self, record_id: int) -> bool:
 
 </details>
 
+### ⚙️ Method `exercise_name_exists`
+
+```python
+def exercise_name_exists(self, name: str, *, exclude_id: int | None = None) -> bool
+```
+
+Return whether an exercise already uses `name`.
+
+Args:
+
+- `name` (`str`): Exercise name to check.
+- `exclude_id` (`int | None`): Exercise ID to ignore (when renaming). Defaults to `None`.
+
+Returns:
+
+- `bool`: `True` when another exercise has the same name.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def exercise_name_exists(self, name: str, *, exclude_id: int | None = None) -> bool:
+        rows = self.get_rows("SELECT _id, name FROM exercises")
+        return catalog_name_taken(rows, name, exclude_id=exclude_id)
+```
+
+</details>
+
+### ⚙️ Method `exercise_type_name_exists`
+
+```python
+def exercise_type_name_exists(self, exercise_id: int, type_name: str, *, exclude_id: int | None = None) -> bool
+```
+
+Return whether this exercise already has a type named `type_name`.
+
+Args:
+
+- `exercise_id` (`int`): Exercise that owns the types.
+- `type_name` (`str`): Type name to check.
+- `exclude_id` (`int | None`): Type ID to ignore (when renaming). Defaults to `None`.
+
+Returns:
+
+- `bool`: `True` when another type of this exercise has the same name.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def exercise_type_name_exists(
+        self,
+        exercise_id: int,
+        type_name: str,
+        *,
+        exclude_id: int | None = None,
+    ) -> bool:
+        rows = self.get_rows(
+            "SELECT _id, type FROM types WHERE _id_exercises = :ex",
+            {"ex": exercise_id},
+        )
+        return catalog_name_taken(rows, type_name, exclude_id=exclude_id)
+```
+
+</details>
+
 ### ⚙️ Method `get_all_exercise_types`
 
 ```python
@@ -3386,6 +3497,51 @@ def update_weight_record(self, record_id: int, value: float, date: str) -> bool:
         query = "UPDATE weight SET value = :v, date = :d WHERE _id = :id"
         params = {"v": value, "d": date, "id": record_id}
         return self.execute_simple_query(query, params)
+```
+
+</details>
+
+## 🔧 Function `catalog_name_taken`
+
+```python
+def catalog_name_taken(rows: list[list[Any]], candidate: str, *, exclude_id: int | None = None) -> bool
+```
+
+Return whether `candidate` matches a name in `(_id, name)` rows.
+
+Args:
+
+- `rows` (`list[list[Any]]`): Rows whose first two values are ID and name.
+- `candidate` (`str`): Name to look up.
+- `exclude_id` (`int | None`): ID to ignore. Defaults to `None`.
+
+Returns:
+
+- `bool`: `True` when another row already uses this name.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def catalog_name_taken(
+    rows: list[list[Any]],
+    candidate: str,
+    *,
+    exclude_id: int | None = None,
+) -> bool:
+    folded = candidate.strip().casefold()
+    if not folded:
+        return False
+    for row in rows:
+        try:
+            row_id, name, *_rest = row
+        except ValueError:
+            continue
+        if exclude_id is not None and int(row_id) == exclude_id:
+            continue
+        if str(name or "").strip().casefold() == folded:
+            return True
+    return False
 ```
 
 </details>
