@@ -16,6 +16,7 @@ lang: en
   - [⚙️ Method `on_exit`](#%EF%B8%8F-method-on_exit)
   - [⚙️ Method `on_reveal_database`](#%EF%B8%8F-method-on_reveal_database)
 - [🔧 Function `apply_app_window_size_and_position`](#-function-apply_app_window_size_and_position)
+- [🔧 Function `resolve_window_menu_bar`](#-function-resolve_window_menu_bar)
 
 </details>
 
@@ -107,9 +108,13 @@ class AppWindowMixin:
 
     def _apply_menu_bar_emoji_icons(self) -> None:
         """Move leading emoji from File / Commands / Help action text onto icons."""
-        menu_bar = cast("QMainWindow", self).menuBar()
+        menu_bar = resolve_window_menu_bar(cast("QWidget", self))
         if menu_bar is not None:
             apply_leading_emoji_icons(menu_bar)
+        for name in ("menuFile", "menuCommands", "menuCommanda", "menuHelp"):
+            menu = getattr(self, name, None)
+            if isinstance(menu, QMenu):
+                apply_leading_emoji_icons(menu)
 
     def _connect_exit_about_actions(self) -> None:
         """Wire Exit and About menu actions to their handlers."""
@@ -504,6 +509,41 @@ def apply_app_window_size_and_position(widget: QWidget, *, standard_width: int =
         window_width,
         window_height,
     )
+```
+
+</details>
+
+## 🔧 Function `resolve_window_menu_bar`
+
+```python
+def resolve_window_menu_bar(window: QWidget) -> QMenuBar | None
+```
+
+Return the visible app menu bar, including the tab-row corner bar.
+
+Generated UI files assign `self.menuBar` to a `QMenuBar`, which shadows
+`QMainWindow.menuBar()`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def resolve_window_menu_bar(window: QWidget) -> QMenuBar | None:
+    tab_widget = getattr(window, "tabWidget", None)
+    if isinstance(tab_widget, QTabWidget):
+        corner = tab_widget.cornerWidget(Qt.Corner.TopLeftCorner)
+        if corner is not None:
+            children = corner.findChildren(QMenuBar)
+            if children:
+                return children[0]
+    menu_bar = getattr(window, "menuBar", None)
+    if isinstance(menu_bar, QMenuBar):
+        return menu_bar
+    if callable(menu_bar):
+        resolved = menu_bar()
+        if isinstance(resolved, QMenuBar):
+            return resolved
+    return None
 ```
 
 </details>
