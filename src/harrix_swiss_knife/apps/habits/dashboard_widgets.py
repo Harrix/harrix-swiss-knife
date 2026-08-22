@@ -6,9 +6,10 @@ import calendar
 from datetime import UTC, date, datetime
 from typing import TYPE_CHECKING, Literal
 
-from PySide6.QtCore import QEvent, QObject, QPoint, QPointF, QRectF, Qt, Signal
-from PySide6.QtGui import QColor, QFont, QPainter, QPen
+from PySide6.QtCore import QEvent, QMimeData, QObject, QPoint, QPointF, QRectF, Qt, Signal
+from PySide6.QtGui import QColor, QDrag, QFont, QPainter, QPen
 from PySide6.QtWidgets import (
+    QApplication,
     QFrame,
     QGridLayout,
     QHBoxLayout,
@@ -26,7 +27,16 @@ from harrix_swiss_knife.qt_emoji_icon import add_emoji_action, apply_emoji_actio
 if TYPE_CHECKING:
     from collections.abc import Mapping, Sequence
 
-    from PySide6.QtGui import QContextMenuEvent, QEnterEvent, QMouseEvent, QPaintEvent
+    from PySide6.QtGui import (
+        QContextMenuEvent,
+        QDragEnterEvent,
+        QDragLeaveEvent,
+        QDragMoveEvent,
+        QDropEvent,
+        QEnterEvent,
+        QMouseEvent,
+        QPaintEvent,
+    )
 
 
 # Design tokens from the Habitify-like screenshot TZ
@@ -65,6 +75,7 @@ CALENDAR_NAV_BUTTON_STYLE = """
 """
 
 HabitDayState = Literal["absent", "zero", "one", "number"]
+HABIT_ID_MIME = "application/x-hsk-habit-id"
 
 HABIT_ICON_COLORS: tuple[QColor, ...] = (
     QColor("#FCE7F3"),  # pink
@@ -223,6 +234,8 @@ class HabitRow(QFrame):
         super().__init__(parent)
         self._habit_id = -1
         self._selected = False
+        self._drag_press_pos: QPoint | None = None
+        self._drag_from_circle = False
         self.setObjectName("habitRow")
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
@@ -284,11 +297,34 @@ class HabitRow(QFrame):
             self.edit_requested.emit(self._habit_id)
         super().mouseDoubleClickEvent(event)
 
+    def mouseMoveEvent(self, event: QMouseEvent) -> None:  # noqa: N802
+        """Start a row drag after the cursor moves past the drag distance."""
+        if (
+            event.buttons() & Qt.MouseButton.LeftButton
+            and self._drag_press_pos is not None
+            and not self._drag_from_circle
+            and self._habit_id >= 0
+        ):
+            delta = event.position().toPoint() - self._drag_press_pos
+            if delta.manhattanLength() >= QApplication.startDragDistance():
+                self._start_habit_drag()
+                self._drag_press_pos = None
+        super().mouseMoveEvent(event)
+
     def mousePressEvent(self, event: QMouseEvent) -> None:  # noqa: N802
         """Select this habit when clicking the row (not only circles)."""
         if event.button() == Qt.MouseButton.LeftButton and self._habit_id >= 0:
-            self.selected.emit(self._habit_id)
+            self._drag_press_pos = event.position().toPoint()
+            self._drag_from_circle = self._widget_is_check_circle(self.childAt(self._drag_press_pos))
+            if not self._drag_from_circle:
+                self.selected.emit(self._habit_id)
         super().mousePressEvent(event)
+
+    def mouseReleaseEvent(self, event: QMouseEvent) -> None:  # noqa: N802
+        """Forget a press that did not become a drag."""
+        self._drag_press_pos = None
+        self._drag_from_circle = False
+        super().mouseReleaseEvent(event)
 
     def set_habit_data(
         self,
@@ -338,6 +374,16 @@ class HabitRow(QFrame):
         if self._habit_id >= 0:
             self.day_value_set.emit(self._habit_id, day_index, value)
 
+    def _start_habit_drag(self) -> None:
+        """Drag this habit ID so the list host can reorder rows."""
+        drag = QDrag(self)
+        drag.setMimeData(encode_habit_id_mime(self._habit_id))
+        pixmap = self.grab()
+        drag.setPixmap(pixmap)
+        if self._drag_press_pos is not None:
+            drag.setHotSpot(self._drag_press_pos)
+        drag.exec(Qt.DropAction.MoveAction)
+
     def _widget_is_check_circle(self, widget: QWidget | None) -> bool:
         current = widget
         while current is not None and current is not self:
@@ -345,6 +391,88 @@ class HabitRow(QFrame):
                 return True
             current = current.parentWidget()
         return False
+
+
+class HabitRowListHost(QWidget):
+    """Scroll-area body that accepts habit-row drops and emits a new ID order."""
+
+    habits_reordered = Signal(object)  # list[int]
+
+    def __init__(self, parent: QWidget | None = None) -> None:  # noqa: D107
+        super().__init__(parent)
+        self.setObjectName("habitDashListHost")
+        self.setAcceptDrops(True)
+        self.setAutoFillBackground(True)
+        self.setStyleSheet("QWidget#habitDashListHost { background: #FFFFFF; }")
+        self._drop_line = QFrame(self)
+        self._drop_line.setObjectName("habitDashDropLine")
+        self._drop_line.setFixedHeight(2)
+        self._drop_line.setStyleSheet("background: #3B82F6;")
+        self._drop_line.hide()
+
+    def dragEnterEvent(self, event: QDragEnterEvent) -> None:  # noqa: N802
+        """Accept an internal habit-row drag."""
+        if decode_habit_id_mime(event.mimeData()) is None:
+            event.ignore()
+            return
+        event.acceptProposedAction()
+
+    def dragLeaveEvent(self, event: QDragLeaveEvent) -> None:  # noqa: N802
+        """Hide the insert line when the drag leaves the list."""
+        self._drop_line.hide()
+        super().dragLeaveEvent(event)
+
+    def dragMoveEvent(self, event: QDragMoveEvent) -> None:  # noqa: N802
+        """Show an insert line at the drop index under the cursor."""
+        if decode_habit_id_mime(event.mimeData()) is None:
+            event.ignore()
+            return
+        event.acceptProposedAction()
+        self._move_drop_line(int(event.position().y()))
+
+    def dropEvent(self, event: QDropEvent) -> None:  # noqa: N802
+        """Emit reordered habit ids when a row is dropped onto a new index."""
+        self._drop_line.hide()
+        moved_id = decode_habit_id_mime(event.mimeData())
+        if moved_id is None:
+            event.ignore()
+            return
+        rows = self.habit_rows()
+        current_ids = [row.habit_id() for row in rows]
+        insert_index = habit_drop_insert_index(
+            [row.geometry().center().y() for row in rows],
+            int(event.position().y()),
+        )
+        new_ids = reorder_habit_ids(current_ids, moved_id, insert_index)
+        event.acceptProposedAction()
+        if new_ids != current_ids:
+            self.habits_reordered.emit(new_ids)
+
+    def habit_rows(self) -> list[HabitRow]:
+        """Return habit rows in layout order, skipping the trailing stretch."""
+        layout = self.layout()
+        if layout is None:
+            return []
+        rows: list[HabitRow] = []
+        for index in range(layout.count()):
+            item = layout.itemAt(index)
+            widget = item.widget() if item is not None else None
+            if isinstance(widget, HabitRow):
+                rows.append(widget)
+        return rows
+
+    def _move_drop_line(self, y: int) -> None:
+        rows = self.habit_rows()
+        insert_index = habit_drop_insert_index([row.geometry().center().y() for row in rows], y)
+        if insert_index < len(rows):
+            line_y = rows[insert_index].geometry().top()
+        elif rows:
+            line_y = rows[-1].geometry().bottom() - 1
+        else:
+            line_y = 0
+        self._drop_line.setGeometry(0, line_y, self.width(), 2)
+        self._drop_line.show()
+        self._drop_line.raise_()
 
 
 class MonthCalendarGrid(QWidget):
@@ -734,6 +862,27 @@ def calendar_month_for_year(year: int, month: int, today: date) -> tuple[int, in
     return year, month
 
 
+def decode_habit_id_mime(mime: QMimeData | None) -> int | None:
+    """Return a habit ID from an internal dashboard drag, or `None`."""
+    if mime is None or not mime.hasFormat(HABIT_ID_MIME):
+        return None
+    raw = bytes(mime.data(HABIT_ID_MIME).data()).decode("utf-8").strip()
+    try:
+        habit_id = int(raw)
+    except ValueError:
+        return None
+    if habit_id < 0:
+        return None
+    return habit_id
+
+
+def encode_habit_id_mime(habit_id: int) -> QMimeData:
+    """Pack a habit ID for an internal dashboard row drag."""
+    mime = QMimeData()
+    mime.setData(HABIT_ID_MIME, str(habit_id).encode("utf-8"))
+    return mime
+
+
 def habit_accent_color(habit_id: int) -> QColor:
     """Return a soft background color for a habit icon."""
     return HABIT_ICON_COLORS[habit_id % len(HABIT_ICON_COLORS)]
@@ -748,6 +897,23 @@ def habit_day_state(value: int | None) -> HabitDayState:
     if value == 1:
         return "one"
     return "number"
+
+
+def habit_drop_insert_index(row_mid_y: Sequence[int], y: int) -> int:
+    """Return the insert index for a drop at vertical position `y`.
+
+    Args:
+
+    - `row_mid_y` (`Sequence[int]`): Vertical midpoints of rows in current order.
+    - `y` (`int`): Cursor y in the list host.
+
+    Returns:
+
+    - `int`: Index before the first row whose midpoint is below `y`, or
+      `len(row_mid_y)` to append.
+
+    """
+    return next((index for index, mid in enumerate(row_mid_y) if y < mid), len(row_mid_y))
 
 
 def habit_glyph(habit_id: int) -> str:
@@ -810,6 +976,33 @@ def paint_habit_day_circle(
     painter.setFont(draw_font)
     painter.setPen(QColor("white"))
     painter.drawText(rect, int(Qt.AlignmentFlag.AlignCenter), display)
+
+
+def reorder_habit_ids(habit_ids: Sequence[int], moved_id: int, insert_index: int) -> list[int]:
+    """Move `moved_id` so it lands at `insert_index` in the pre-remove list.
+
+    Args:
+
+    - `habit_ids` (`Sequence[int]`): Current visible order.
+    - `moved_id` (`int`): Habit being dragged.
+    - `insert_index` (`int`): Index from `habit_drop_insert_index` before the
+      ID is removed.
+
+    Returns:
+
+    - `list[int]`: New order. Unchanged when `moved_id` is missing.
+
+    """
+    ids = list(habit_ids)
+    try:
+        old_index = ids.index(moved_id)
+    except ValueError:
+        return ids
+    ids.pop(old_index)
+    dest = insert_index if insert_index <= old_index else insert_index - 1
+    dest = max(0, min(dest, len(ids)))
+    ids.insert(dest, moved_id)
+    return ids
 
 
 def style_calendar_nav_button(button: QPushButton) -> None:

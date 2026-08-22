@@ -361,5 +361,8 @@
   "ticktick_api_key": "snippet:api-keys/ticktick-api-key.txt",
   "vector_icons_recent_folders_max": 12,
   "vscode_workspace_articles": "D:/Dropbox/Programs/vscode_workspaces/_content__harrix-dev.code-workspace",
-  "vscode_workspace_notes": "D:/Dropbox/Programs/vscode_workspaces/Notes.code-workspace"
+  "vscode_workspace_notes": "D:/Dropbox/Programs/vscode_workspaces/Notes.code-workspace",
+  "ai": {
+    "provider": "bothub.ru"
+  }
 }

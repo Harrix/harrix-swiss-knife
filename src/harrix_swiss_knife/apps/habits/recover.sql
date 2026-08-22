@@ -4,6 +4,7 @@ CREATE TABLE "habits" (
 	"is_bool"	INTEGER,
 	"is_archived"	INTEGER NOT NULL DEFAULT 0,
 	"emoji"	TEXT NOT NULL DEFAULT '',
+	"sort_order"	INTEGER NOT NULL DEFAULT 0,
 	PRIMARY KEY("_id" AUTOINCREMENT)
 );
 

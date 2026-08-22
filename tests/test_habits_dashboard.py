@@ -28,8 +28,12 @@ from harrix_swiss_knife.apps.habits.dashboard_widgets import (
     MonthCalendarGrid,
     absent_dates_in_month,
     calendar_month_for_year,
+    decode_habit_id_mime,
+    encode_habit_id_mime,
     habit_day_state,
+    habit_drop_insert_index,
     paint_habit_day_circle,
+    reorder_habit_ids,
 )
 from harrix_swiss_knife.apps.habits.database_manager import DatabaseManager
 from harrix_swiss_knife.apps.habits.delegates.process_habit_bool_delegate import ProcessHabitBoolDelegate
@@ -642,3 +646,98 @@ def test_habit_day_picker_sits_above_circle(qapp: QApplication) -> None:
 
     HabitDayPickerPopup.hide_active()
     host.close()
+
+
+def test_reorder_habit_ids_moves_item_and_adjusts_insert_index() -> None:
+    """Drop index is computed before the dragged row is removed."""
+    assert reorder_habit_ids([1, 2, 3], 1, 3) == [2, 3, 1]
+    assert reorder_habit_ids([1, 2, 3], 3, 0) == [3, 1, 2]
+    assert reorder_habit_ids([1, 2, 3], 2, 1) == [1, 2, 3]
+    assert reorder_habit_ids([1, 2, 3], 2, 2) == [1, 2, 3]
+    assert reorder_habit_ids([1, 2, 3], 99, 0) == [1, 2, 3]
+
+
+def test_habit_drop_insert_index_uses_row_midpoints() -> None:
+    assert habit_drop_insert_index([10, 30, 50], 5) == 0
+    assert habit_drop_insert_index([10, 30, 50], 25) == 1
+    assert habit_drop_insert_index([10, 30, 50], 60) == 3
+
+
+def test_habit_id_mime_round_trip(qapp: QApplication) -> None:
+    assert qapp is not None
+    assert decode_habit_id_mime(encode_habit_id_mime(42)) == 42
+    assert decode_habit_id_mime(encode_habit_id_mime(-1)) is None
+
+
+def test_get_habits_follows_saved_sort_order(habits_db: DatabaseManager) -> None:
+    """New habits append; reorder_habits changes dashboard order."""
+    assert habits_db.add_habit("A", is_bool=True)
+    assert habits_db.add_habit("B", is_bool=True)
+    assert habits_db.add_habit("C", is_bool=True)
+    ids = [int(row[0]) for row in habits_db.get_habits()]
+    names = [str(row[1]) for row in habits_db.get_habits()]
+    assert names == ["A", "B", "C"]
+    assert habits_db.reorder_habits([ids[1], ids[2], ids[0]])
+    assert [str(row[1]) for row in habits_db.get_habits()] == ["B", "C", "A"]
+    assert habits_db.add_habit("D", is_bool=True)
+    assert [str(row[1]) for row in habits_db.get_habits()] == ["B", "C", "A", "D"]
+
+
+def test_ensure_habits_schema_adds_sort_order(tmp_path: Path, qapp: QApplication) -> None:  # noqa: ARG001
+    """Migration adds sort_order and copies _id so current order stays."""
+    sql_path = tmp_path / "old_habits.sql"
+    sql_path.write_text(
+        """
+        CREATE TABLE "habits" (
+            "_id" INTEGER NOT NULL,
+            "name" TEXT NOT NULL,
+            "is_bool" INTEGER,
+            "is_archived" INTEGER NOT NULL DEFAULT 0,
+            "emoji" TEXT NOT NULL DEFAULT '',
+            PRIMARY KEY("_id" AUTOINCREMENT)
+        );
+        CREATE TABLE "process_habits" (
+            "_id" INTEGER NOT NULL,
+            "_id_habit" INTEGER NOT NULL,
+            "value" INTEGER NOT NULL,
+            "date" TEXT NOT NULL,
+            PRIMARY KEY("_id" AUTOINCREMENT)
+        );
+        """,
+        encoding="utf-8",
+    )
+    db_path = tmp_path / "old_habits.sqlite"
+    assert DatabaseManager.create_database_from_sql(str(db_path), str(sql_path))
+    db = DatabaseManager(str(db_path))
+    try:
+        assert db.execute_simple_query(
+            "INSERT INTO habits (name, is_bool, is_archived, emoji) VALUES (:name, :is_bool, :is_archived, :emoji)",
+            {"name": "First", "is_bool": 1, "is_archived": 0, "emoji": "A"},
+        )
+        assert db.execute_simple_query(
+            "INSERT INTO habits (name, is_bool, is_archived, emoji) VALUES (:name, :is_bool, :is_archived, :emoji)",
+            {"name": "Second", "is_bool": 1, "is_archived": 0, "emoji": "B"},
+        )
+        assert db.ensure_habits_schema()
+        cols = {str(row[1]) for row in db.get_rows("PRAGMA table_info(habits)") if len(row) > 1}
+        assert "sort_order" in cols
+        rows = db.get_rows("SELECT _id, sort_order, name FROM habits ORDER BY _id")
+        assert rows[0][0] == rows[0][1]
+        assert rows[1][0] == rows[1][1]
+        assert [str(row[1]) for row in db.get_habits()] == ["First", "Second"]
+    finally:
+        db.close()
+
+
+def test_dashboard_saves_reordered_habits(habits_db: DatabaseManager, qapp: QApplication) -> None:
+    """Dashboard writes sort_order and rebuilds the list in that order."""
+    assert qapp is not None
+    assert habits_db.add_habit("A", is_bool=True)
+    assert habits_db.add_habit("B", is_bool=True)
+    assert habits_db.add_habit("C", is_bool=True)
+    ids = [int(row[0]) for row in habits_db.get_habits()]
+    dashboard = HabitDashboardWidget()
+    dashboard.set_database(habits_db)
+    dashboard._on_habits_reordered([ids[2], ids[0], ids[1]])
+    assert [str(row[1]) for row in habits_db.get_habits()] == ["C", "A", "B"]
+    assert [row.habit_id() for row in dashboard._list_host.habit_rows()] == [ids[2], ids[0], ids[1]]

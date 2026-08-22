@@ -35,6 +35,7 @@ lang: en
   - [⚙️ Method `get_habits_years`](#%EF%B8%8F-method-get_habits_years)
   - [⚙️ Method `get_limited_process_habits_records`](#%EF%B8%8F-method-get_limited_process_habits_records)
   - [⚙️ Method `is_habit_done_on_date`](#%EF%B8%8F-method-is_habit_done_on_date)
+  - [⚙️ Method `reorder_habits`](#%EF%B8%8F-method-reorder_habits)
   - [⚙️ Method `set_habit_archived`](#%EF%B8%8F-method-set_habit_archived)
   - [⚙️ Method `set_habit_checkin`](#%EF%B8%8F-method-set_habit_checkin)
   - [⚙️ Method `toggle_habit_checkin`](#%EF%B8%8F-method-toggle_habit_checkin)
@@ -92,11 +93,12 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         """
         cleaned_emoji = (emoji or "").strip()
-        query = "INSERT INTO habits (name, is_bool, emoji) VALUES (:name, :is_bool, :emoji)"
+        query = "INSERT INTO habits (name, is_bool, emoji, sort_order) VALUES (:name, :is_bool, :emoji, :sort_order)"
         params = {
             "name": name,
             "is_bool": 1 if is_bool is True else (0 if is_bool is False else None),
             "emoji": cleaned_emoji,
+            "sort_order": self._next_habit_sort_order(),
         }
         if not self.execute_simple_query(query, params):
             return False
@@ -208,6 +210,11 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
                 "ALTER TABLE habits ADD COLUMN emoji TEXT NOT NULL DEFAULT ''"
             ):
                 return False
+            if "sort_order" not in existing:
+                if not self.execute_simple_query("ALTER TABLE habits ADD COLUMN sort_order INTEGER NOT NULL DEFAULT 0"):
+                    return False
+                if not self._backfill_habit_sort_orders():
+                    return False
             return self._backfill_habit_emojis()
         except Exception:
             logger.exception("Failed to ensure habits schema")
@@ -221,7 +228,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         - `list[list[Any]]`: List of habit records [\_id, name, is_bool, is_archived, emoji].
 
         """
-        return self.get_rows("SELECT _id, name, is_bool, is_archived, emoji FROM habits")
+        return self.get_rows(f"SELECT {_HABIT_COLUMNS} FROM habits ORDER BY {_HABIT_ORDER_BY}")
 
     def get_all_process_habits_records(self) -> list[list[Any]]:
         r"""Get all process habits records with habit names.
@@ -304,7 +311,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
     def get_habit_by_id(self, habit_id: int) -> list[Any] | None:
         """Return one habit row ``[_id, name, is_bool, is_archived, emoji]`` or ``None``."""
         rows = self.get_rows(
-            "SELECT _id, name, is_bool, is_archived, emoji FROM habits WHERE _id = :id",
+            f"SELECT {_HABIT_COLUMNS} FROM habits WHERE _id = :id",
             {"id": habit_id},
         )
         if rows:
@@ -486,7 +493,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         """Get habits with optional inclusion of archived ones."""
         if include_archived:
             return self.get_all_habits()
-        return self.get_rows("SELECT _id, name, is_bool, is_archived, emoji FROM habits WHERE is_archived = 0")
+        return self.get_rows(f"SELECT {_HABIT_COLUMNS} FROM habits WHERE is_archived = 0 ORDER BY {_HABIT_ORDER_BY}")
 
     def get_habits_years(self) -> list[int]:
         """Get distinct years from process_habits table in descending order.
@@ -547,6 +554,27 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             return int(rows[0][0]) > 0
         except (TypeError, ValueError):
             return False
+
+    def reorder_habits(self, habit_ids: Sequence[int]) -> bool:
+        """Save dashboard list order as `sort_order` values 0, 1, … for `habit_ids`.
+
+        Args:
+
+        - `habit_ids` (`Sequence[int]`): Habit primary keys in the desired display
+          order. Archived habits not listed keep their current `sort_order`.
+
+        Returns:
+
+        - `bool`: `True` if every update succeeded.
+
+        """
+        for index, habit_id in enumerate(habit_ids):
+            if not self.execute_simple_query(
+                "UPDATE habits SET sort_order = :ord WHERE _id = :id",
+                {"ord": index, "id": habit_id},
+            ):
+                return False
+        return True
 
     def set_habit_archived(self, habit_id: int, *, is_archived: bool) -> bool:
         """Archive/unarchive a habit by ID."""
@@ -784,6 +812,17 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             ):
                 return False
         return True
+
+    def _backfill_habit_sort_orders(self) -> bool:
+        """Copy `_id` into `sort_order` so existing habits keep insertion order."""
+        return self.execute_simple_query("UPDATE habits SET sort_order = _id")
+
+    def _next_habit_sort_order(self) -> int:
+        """Return the next `sort_order` so a new habit is appended."""
+        rows = self.get_rows("SELECT COALESCE(MAX(sort_order), -1) FROM habits")
+        if not rows or rows[0][0] is None:
+            return 0
+        return int(rows[0][0]) + 1
 ```
 
 </details>
@@ -838,11 +877,12 @@ Returns:
 ```python
 def add_habit(self, name: str, *, is_bool: bool | None = None, emoji: str = "") -> bool:
         cleaned_emoji = (emoji or "").strip()
-        query = "INSERT INTO habits (name, is_bool, emoji) VALUES (:name, :is_bool, :emoji)"
+        query = "INSERT INTO habits (name, is_bool, emoji, sort_order) VALUES (:name, :is_bool, :emoji, :sort_order)"
         params = {
             "name": name,
             "is_bool": 1 if is_bool is True else (0 if is_bool is False else None),
             "emoji": cleaned_emoji,
+            "sort_order": self._next_habit_sort_order(),
         }
         if not self.execute_simple_query(query, params):
             return False
@@ -1016,6 +1056,11 @@ def ensure_habits_schema(self) -> bool:
                 "ALTER TABLE habits ADD COLUMN emoji TEXT NOT NULL DEFAULT ''"
             ):
                 return False
+            if "sort_order" not in existing:
+                if not self.execute_simple_query("ALTER TABLE habits ADD COLUMN sort_order INTEGER NOT NULL DEFAULT 0"):
+                    return False
+                if not self._backfill_habit_sort_orders():
+                    return False
             return self._backfill_habit_emojis()
         except Exception:
             logger.exception("Failed to ensure habits schema")
@@ -1041,7 +1086,7 @@ Returns:
 
 ```python
 def get_all_habits(self) -> list[list[Any]]:
-        return self.get_rows("SELECT _id, name, is_bool, is_archived, emoji FROM habits")
+        return self.get_rows(f"SELECT {_HABIT_COLUMNS} FROM habits ORDER BY {_HABIT_ORDER_BY}")
 ```
 
 </details>
@@ -1174,7 +1219,7 @@ Return one habit row ``[_id, name, is_bool, is_archived, emoji]`` or ``None``.
 ```python
 def get_habit_by_id(self, habit_id: int) -> list[Any] | None:
         rows = self.get_rows(
-            "SELECT _id, name, is_bool, is_archived, emoji FROM habits WHERE _id = :id",
+            f"SELECT {_HABIT_COLUMNS} FROM habits WHERE _id = :id",
             {"id": habit_id},
         )
         if rows:
@@ -1460,7 +1505,7 @@ Get habits with optional inclusion of archived ones.
 def get_habits(self, *, include_archived: bool = False) -> list[list[Any]]:
         if include_archived:
             return self.get_all_habits()
-        return self.get_rows("SELECT _id, name, is_bool, is_archived, emoji FROM habits WHERE is_archived = 0")
+        return self.get_rows(f"SELECT {_HABIT_COLUMNS} FROM habits WHERE is_archived = 0 ORDER BY {_HABIT_ORDER_BY}")
 ```
 
 </details>
@@ -1559,6 +1604,39 @@ def is_habit_done_on_date(self, habit_id: int, date_str: str) -> bool:
             return int(rows[0][0]) > 0
         except (TypeError, ValueError):
             return False
+```
+
+</details>
+
+### ⚙️ Method `reorder_habits`
+
+```python
+def reorder_habits(self, habit_ids: Sequence[int]) -> bool
+```
+
+Save dashboard list order as `sort_order` values 0, 1, … for `habit_ids`.
+
+Args:
+
+- `habit_ids` (`Sequence[int]`): Habit primary keys in the desired display
+  order. Archived habits not listed keep their current `sort_order`.
+
+Returns:
+
+- `bool`: `True` if every update succeeded.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def reorder_habits(self, habit_ids: Sequence[int]) -> bool:
+        for index, habit_id in enumerate(habit_ids):
+            if not self.execute_simple_query(
+                "UPDATE habits SET sort_order = :ord WHERE _id = :id",
+                {"ord": index, "id": habit_id},
+            ):
+                return False
+        return True
 ```
 
 </details>

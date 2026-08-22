@@ -190,10 +190,8 @@ class HabitDashboardWidget(QWidget):
             QScrollArea > QWidget > QWidget { background: #FFFFFF; }
             """
         )
-        self._list_host = QWidget()
-        self._list_host.setObjectName("habitDashListHost")
-        self._list_host.setAutoFillBackground(True)
-        self._list_host.setStyleSheet("QWidget#habitDashListHost { background: #FFFFFF; }")
+        self._list_host = HabitRowListHost()
+        self._list_host.habits_reordered.connect(self._on_habits_reordered)
         self._list_layout = QVBoxLayout(self._list_host)
         self._list_layout.setContentsMargins(0, 0, 0, 0)
         self._list_layout.setSpacing(0)
@@ -442,6 +440,18 @@ class HabitDashboardWidget(QWidget):
                 allows_number=_habit_allows_number(habit),
             )
         self._refresh_detail()
+
+    def _on_habits_reordered(self, habit_ids: object) -> None:
+        if self._db is None or not isinstance(habit_ids, list):
+            return
+        ordered_ids = [int(habit_id) for habit_id in habit_ids]
+        if not ordered_ids:
+            return
+        if not self._db.reorder_habits(ordered_ids):
+            QMessageBox.warning(self, "Database Error", "Failed to save habit order.")
+            return
+        self._rebuild_habit_list()
+        self.data_changed.emit()
 
     def _on_week_day_toggled(self, habit_id: int, day_index: int) -> None:
         if self._db is None or day_index < 0 or day_index >= len(self._week_dates):
