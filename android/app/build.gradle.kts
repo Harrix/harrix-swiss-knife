@@ -371,7 +371,7 @@ val copyBothubPrompts =
         description =
             "Copy BotHub prompt Markdown from monorepo config/prompts into generated assets"
         from(rootProject.projectDir.parentFile.resolve("config/prompts")) {
-            include("text-fix-ru.md", "text-rewrite-ru.md", "medicine-search.md")
+            include("text-fix-ru.md", "text-rewrite-ru.md", "medicine-search.md", "speech-transcription.md")
         }
         into(bothubPromptsAssetsDir.map { it.dir("prompts") })
     }

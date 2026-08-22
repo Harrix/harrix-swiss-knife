@@ -43,7 +43,11 @@ def test_validate_audio_bytes_rejects_small_payload() -> None:
 
 
 def test_build_transcription_prompt_is_non_empty() -> None:
-    assert build_transcription_prompt().strip()
+    prompt = build_transcription_prompt()
+    assert prompt.strip()
+    assert "Russian" in prompt
+    assert "English" in prompt
+    assert "IT" in prompt
 
 
 def test_get_speech_model_from_config() -> None:

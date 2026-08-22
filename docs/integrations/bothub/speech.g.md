@@ -71,14 +71,19 @@ def audio_format_from_suffix(suffix: str) -> str | None:
 def build_transcription_prompt() -> str
 ```
 
-Return the built-in prompt for speech-to-text requests.
+Return the speech-to-text prompt from `config/prompts`, or the built-in fallback.
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def build_transcription_prompt() -> str:
-    return TRANSCRIPTION_PROMPT
+    path = get_project_root() / TRANSCRIPTION_PROMPT_PATH
+    try:
+        text = path.read_text(encoding="utf-8").strip()
+    except OSError:
+        text = ""
+    return text or TRANSCRIPTION_PROMPT
 ```
 
 </details>

@@ -4,12 +4,15 @@ import android.content.Context
 import java.io.IOException
 
 /**
- * BotHub prompt templates. Fix/rewrite/medicine markdown is loaded from assets
+ * BotHub prompt templates. Fix/rewrite/medicine/transcription markdown is loaded from assets
  * (synced from `config/prompts/` at Gradle preBuild).
  */
 object BothubPrompts {
     const val TRANSCRIPTION =
         "Transcribe the speech in this audio accurately and verbatim. " +
+            "The speech is usually Russian, with occasional English words mixed in, especially IT terms. " +
+            "Write those English words as English, not as Russian transliteration. " +
+            "For example: API, Docker, commit, pull request, backend. " +
             "Return only the transcribed text without comments or formatting."
 
     const val PHOTO_ONLY_QUERY =
@@ -22,8 +25,15 @@ object BothubPrompts {
     private const val ASSET_FIX = "prompts/text-fix-ru.md"
     private const val ASSET_REWRITE = "prompts/text-rewrite-ru.md"
     private const val ASSET_MEDICINE_SEARCH = "prompts/medicine-search.md"
+    private const val ASSET_TRANSCRIPTION = "prompts/speech-transcription.md"
     private const val EMPTY_MEDICINES_MARKER = "(список лекарств не задан)"
     private const val EMPTY_HISTORY_MARKER = "(нет предыдущих сообщений)"
+
+    fun transcriptionPrompt(context: Context): String = try {
+        loadAsset(context, ASSET_TRANSCRIPTION)
+    } catch (_: BothubApiException) {
+        TRANSCRIPTION
+    }
 
     fun buildTextFixPrompt(
         context: Context,

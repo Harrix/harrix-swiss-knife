@@ -4,8 +4,15 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from harrix_swiss_knife.paths import get_project_root
+
+TRANSCRIPTION_PROMPT_PATH = Path("config") / "prompts" / "speech-transcription.md"
+
 TRANSCRIPTION_PROMPT = (
     "Transcribe the speech in this audio accurately and verbatim. "
+    "The speech is usually Russian, with occasional English words mixed in, especially IT terms. "
+    "Write those English words as English, not as Russian transliteration. "
+    "For example: API, Docker, commit, pull request, backend. "
     "Return only the transcribed text without comments or formatting."
 )
 
@@ -44,8 +51,13 @@ def audio_format_from_suffix(suffix: str) -> str | None:
 
 
 def build_transcription_prompt() -> str:
-    """Return the built-in prompt for speech-to-text requests."""
-    return TRANSCRIPTION_PROMPT
+    """Return the speech-to-text prompt from `config/prompts`, or the built-in fallback."""
+    path = get_project_root() / TRANSCRIPTION_PROMPT_PATH
+    try:
+        text = path.read_text(encoding="utf-8").strip()
+    except OSError:
+        text = ""
+    return text or TRANSCRIPTION_PROMPT
 
 
 def validate_audio_bytes(data: bytes, label: str = "audio") -> None:

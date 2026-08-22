@@ -51,7 +51,7 @@ class SpeechToTextRepository(
             val transcribed =
                 client.chatCompletion(
                     model = BothubConfig.speechModel,
-                    text = BothubPrompts.TRANSCRIPTION,
+                    text = BothubPrompts.transcriptionPrompt(context),
                     audio = bytes to upload.mimeType,
                     cancellationKey = cancellationKey,
                 )
