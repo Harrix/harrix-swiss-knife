@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from PySide6.QtCore import Qt, Signal
+from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QFrame, QLabel, QPushButton, QVBoxLayout, QWidget
 
 _DASH_BUTTON_STYLE = """
@@ -11,8 +12,6 @@ QPushButton#foodDashAddVoiceButton,
 QPushButton#foodDashAddTextButton {
     background: #3B82F6;
     color: #FFFFFF;
-    font-size: 20px;
-    font-weight: 700;
     border: none;
     border-radius: 14px;
     padding: 16px 32px;
@@ -58,6 +57,7 @@ class FoodDashboardWidget(QWidget):
         button.setObjectName(object_name)
         button.setCursor(Qt.CursorShape.PointingHandCursor)
         button.setMinimumSize(280, 64)
+        _apply_pixel_font(button, pixel_size=20, weight=QFont.Weight.Bold)
         return button
 
     def _build_ui(self) -> None:
@@ -81,12 +81,14 @@ class FoodDashboardWidget(QWidget):
 
         title = QLabel("Add food")
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        title.setStyleSheet("color: #111827; font-size: 28px; font-weight: 800;")
+        title.setStyleSheet("color: #111827;")
+        _apply_pixel_font(title, pixel_size=28, weight=QFont.Weight.ExtraBold)
 
         subtitle = QLabel("Log a meal with a photo, voice, or text.")
         subtitle.setAlignment(Qt.AlignmentFlag.AlignCenter)
         subtitle.setWordWrap(True)
-        subtitle.setStyleSheet("color: #6B7280; font-size: 16px;")
+        subtitle.setStyleSheet("color: #6B7280;")
+        _apply_pixel_font(subtitle, pixel_size=16)
 
         photo_button = self._build_action_button("📷 Add photo", "foodDashAddPhotoButton")
         voice_button = self._build_action_button("🎙️ Speak", "foodDashAddVoiceButton")
@@ -98,12 +100,14 @@ class FoodDashboardWidget(QWidget):
         self._calories_value = QLabel("0")
         self._calories_value.setObjectName("foodDashCaloriesValue")
         self._calories_value.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self._calories_value.setStyleSheet("color: #111827; font-size: 64px; font-weight: 800;")
+        self._calories_value.setStyleSheet("color: #111827;")
+        _apply_pixel_font(self._calories_value, pixel_size=64, weight=QFont.Weight.ExtraBold)
 
         calories_hint = QLabel("kcal today")
         calories_hint.setObjectName("foodDashCaloriesHint")
         calories_hint.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        calories_hint.setStyleSheet("color: #6B7280; font-size: 20px; font-weight: 600;")
+        calories_hint.setStyleSheet("color: #6B7280;")
+        _apply_pixel_font(calories_hint, pixel_size=20, weight=QFont.Weight.DemiBold)
 
         buttons = QWidget()
         buttons.setStyleSheet(_DASH_BUTTON_STYLE)
@@ -139,3 +143,15 @@ def format_today_calories(kcal: float) -> str:
 
     """
     return str(round(kcal))
+
+
+def _apply_pixel_font(
+    widget: QWidget,
+    *,
+    pixel_size: int,
+    weight: QFont.Weight = QFont.Weight.Normal,
+) -> None:
+    font = widget.font()
+    font.setPixelSize(pixel_size)
+    font.setWeight(weight)
+    widget.setFont(font)
