@@ -24,7 +24,6 @@ lang: en
   - [⚙️ Method `set_value`](#%EF%B8%8F-method-set_value)
   - [⚙️ Method `value`](#%EF%B8%8F-method-value)
 - [🔧 Function `format_today_sets`](#-function-format_today_sets)
-- [🔧 Function `make_circular_icon`](#-function-make_circular_icon)
 
 </details>
 
@@ -55,7 +54,7 @@ class FitnessDashboardExercise:
 class FitnessDashboardWidget(QWidget)
 ```
 
-Quick-add card: circular exercise list, large value field, and today's sets.
+Quick-add card: exercise list, large value field, and today's sets.
 
 <details>
 <summary>Code:</summary>
@@ -110,11 +109,12 @@ class FitnessDashboardWidget(QWidget):
         self._list.blockSignals(True)  # noqa: FBT003
         self._model.clear()
         selected_row = 0
+        name_font = self._list.font()
         for row, item in enumerate(items):
-            letter = item.name[:1] if item.name else ""
-            icon = make_circular_icon(item.icon, _DASHBOARD_ICON_SIZE, letter=letter)
             row_item = QStandardItem(item.name)
-            row_item.setIcon(icon)
+            if item.icon is not None and not item.icon.isNull():
+                row_item.setIcon(item.icon)
+            row_item.setFont(name_font)
             row_item.setEditable(False)
             row_item.setData(item.name, Qt.ItemDataRole.UserRole)
             if item.name_local.strip():
@@ -214,6 +214,7 @@ class FitnessDashboardWidget(QWidget):
         self._list.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self._list.setMinimumWidth(300)
         self._list.setStyleSheet(_LIST_STYLE)
+        _apply_pixel_font(self._list, pixel_size=_DASHBOARD_NAME_PIXEL_SIZE, weight=QFont.Weight.Bold)
         self._list.selectionModel().currentChanged.connect(self._on_exercise_index_changed)
 
         center = QWidget()
@@ -412,11 +413,12 @@ def set_exercises(
         self._list.blockSignals(True)  # noqa: FBT003
         self._model.clear()
         selected_row = 0
+        name_font = self._list.font()
         for row, item in enumerate(items):
-            letter = item.name[:1] if item.name else ""
-            icon = make_circular_icon(item.icon, _DASHBOARD_ICON_SIZE, letter=letter)
             row_item = QStandardItem(item.name)
-            row_item.setIcon(icon)
+            if item.icon is not None and not item.icon.isNull():
+                row_item.setIcon(item.icon)
+            row_item.setFont(name_font)
             row_item.setEditable(False)
             row_item.setData(item.name, Qt.ItemDataRole.UserRole)
             if item.name_local.strip():
@@ -573,69 +575,6 @@ Returns:
 ```python
 def format_today_sets(count: int) -> str:
     return str(max(0, int(count)))
-```
-
-</details>
-
-## 🔧 Function `make_circular_icon`
-
-```python
-def make_circular_icon(source: QIcon | QPixmap | None, size: int, *, letter: str = '') -> QIcon
-```
-
-Clip `source` to a circle, or draw a letter placeholder when missing.
-
-Args:
-
-- `source` (`QIcon | QPixmap | None`): Square exercise image, if any.
-- `size` (`int`): Output width and height in pixels.
-- `letter` (`str`): Fallback initial drawn on a gray circle.
-
-Returns:
-
-- `QIcon`: Circular icon suitable for a list decoration.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def make_circular_icon(source: QIcon | QPixmap | None, size: int, *, letter: str = "") -> QIcon:
-    size = max(size, 16)
-    pixmap = QPixmap(size, size)
-    pixmap.fill(Qt.GlobalColor.transparent)
-    painter = QPainter(pixmap)
-    painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-
-    source_pixmap = _source_pixmap(source, size)
-    if source_pixmap is not None:
-        path = QPainterPath()
-        path.addEllipse(0, 0, size, size)
-        painter.setClipPath(path)
-        scaled = source_pixmap.scaled(
-            size,
-            size,
-            Qt.AspectRatioMode.KeepAspectRatioByExpanding,
-            Qt.TransformationMode.SmoothTransformation,
-        )
-        x_offset = (size - scaled.width()) // 2
-        y_offset = (size - scaled.height()) // 2
-        painter.drawPixmap(x_offset, y_offset, scaled)
-        painter.end()
-        return QIcon(pixmap)
-
-    painter.setPen(Qt.PenStyle.NoPen)
-    painter.setBrush(QColor("#E5E7EB"))
-    painter.drawEllipse(0, 0, size, size)
-    initial = letter.strip()[:1].upper()
-    if initial:
-        painter.setPen(QColor("#6B7280"))
-        font = painter.font()
-        font.setPixelSize(max(size // 2, 12))
-        font.setWeight(QFont.Weight.DemiBold)
-        painter.setFont(font)
-        painter.drawText(pixmap.rect(), int(Qt.AlignmentFlag.AlignCenter), initial)
-    painter.end()
-    return QIcon(pixmap)
 ```
 
 </details>

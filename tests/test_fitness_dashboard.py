@@ -1,15 +1,14 @@
-"""Tests for the Fitness dashboard tab and circular exercise list."""
+"""Tests for the Fitness dashboard tab and exercise list."""
 
 from __future__ import annotations
 
-from PySide6.QtGui import QColor, QPixmap
+from PySide6.QtGui import QStandardItemModel
 from PySide6.QtWidgets import QApplication, QComboBox, QLabel, QListView, QMainWindow, QPushButton, QSpinBox
 
 from harrix_swiss_knife.apps.fitness.fitness_dashboard import (
     FitnessDashboardExercise,
     FitnessDashboardWidget,
     format_today_sets,
-    make_circular_icon,
 )
 from harrix_swiss_knife.apps.fitness.window import Ui_MainWindow
 
@@ -29,18 +28,6 @@ def test_format_today_sets_is_non_negative_integer_text() -> None:
     assert format_today_sets(0) == "0"
     assert format_today_sets(12) == "12"
     assert format_today_sets(-3) == "0"
-
-
-def test_make_circular_icon_clips_corners() -> None:
-    """Circular icons keep a transparent corner outside the image circle."""
-    assert _qapp() is not None
-    source = QPixmap(64, 64)
-    source.fill(QColor("#EF4444"))
-    icon = make_circular_icon(source, 64)
-    image = icon.pixmap(64, 64).toImage()
-    assert not image.isNull()
-    assert image.pixelColor(0, 0).alpha() == 0
-    assert image.pixelColor(32, 32).alpha() == 255
 
 
 def test_fitness_dashboard_widget_lists_exercises_and_adds_value() -> None:
@@ -93,6 +80,12 @@ def test_fitness_dashboard_widget_lists_exercises_and_adds_value() -> None:
     assert sets is not None
     assert unit.text() == "reps"
     assert sets.text() == "7"
+    assert exercise_list.font().pixelSize() >= 22
+    model = exercise_list.model()
+    assert isinstance(model, QStandardItemModel)
+    first = model.item(0)
+    assert first is not None
+    assert first.font().pixelSize() >= 22
 
 
 def test_fitness_window_inserts_dashboard_as_first_tab() -> None:
@@ -116,13 +109,3 @@ def test_fitness_window_inserts_dashboard_as_first_tab() -> None:
     assert tabs.tabText(1) == "Sets"
     assert tabs.currentWidget() is window.tab_fitness_dashboard
     window.close()
-
-
-def test_fitness_dashboard_placeholder_icon_uses_letter() -> None:
-    """Missing images still get a circular letter badge."""
-    assert _qapp() is not None
-    icon = make_circular_icon(None, 48, letter="bench")
-    image = icon.pixmap(48, 48).toImage()
-    assert not image.isNull()
-    assert image.pixelColor(0, 0).alpha() == 0
-    assert image.pixelColor(24, 24).alpha() == 255
