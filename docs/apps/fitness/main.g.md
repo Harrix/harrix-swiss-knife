@@ -155,6 +155,9 @@ class MainWindow(
             "weight": None,
             "statistics": None,
         }
+        self._exercise_table_sort: dict[str, tuple[int, Qt.SortOrder]] = {
+            "types": (_EXERCISE_TABLE_NAME_COLUMN, Qt.SortOrder.AscendingOrder),
+        }
 
         # Process table display mode flag
         initial_count, load_more_count = get_apps_list_limits(self._app_config)
@@ -2885,6 +2888,8 @@ class MainWindow(
             self.tableView_exercise_types.setColumnWidth(1, 200)  # Exercise
             self.tableView_exercise_types.setColumnWidth(2, 150)  # Exercise Type
             self.tableView_exercise_types.setColumnWidth(3, 120)  # Calories Modifier
+            self._apply_stored_exercise_table_sort("exercises")
+            self._apply_stored_exercise_table_sort("types")
 
             # Connect selection change signals after models are set
             self._connect_table_selection_signals()
@@ -4207,6 +4212,18 @@ class MainWindow(
             middle = remaining - right
         self.splitter.setSizes([left, middle, right])
 
+    def _apply_stored_exercise_table_sort(self, table_key: str) -> None:
+        """Re-apply the last header sort after a table model refresh."""
+        stored = self._exercise_table_sort.get(table_key)
+        if stored is None:
+            return
+        table_view, _, _ = self.table_config[table_key]
+        column, order = stored
+        table_view.sortByColumn(column, order)
+        header = table_view.horizontalHeader()
+        header.setSortIndicatorShown(True)
+        header.setSortIndicator(column, order)
+
     def _calculate_exercise_recommendations(
         self, _exercise_name: str, monthly_data: list, _months_count: int, _exercise_unit: str
     ) -> dict:
@@ -4460,11 +4477,13 @@ class MainWindow(
         self.tableView_exercises.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.tableView_exercises.customContextMenuRequested.connect(self._show_exercises_context_menu)
         self.tableView_exercises.doubleClicked.connect(self._on_exercises_table_double_clicked)
+        self._enable_exercise_table_header_sorting(self.tableView_exercises, "exercises")
 
         # Add context menu for exercise types table
         self.tableView_exercise_types.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.tableView_exercise_types.customContextMenuRequested.connect(self._show_exercise_types_context_menu)
         self.tableView_exercise_types.doubleClicked.connect(self._on_exercise_types_table_double_clicked)
+        self._enable_exercise_table_header_sorting(self.tableView_exercise_types, "types")
 
         # Add context menu for weight table
         self.tableView_weight.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
@@ -4661,6 +4680,15 @@ class MainWindow(
         if self.exercises_list_model is not None:
             self.exercises_list_model.deleteLater()
         self.exercises_list_model = None
+
+    def _enable_exercise_table_header_sorting(self, table_view: QTableView, table_key: str) -> None:
+        """Allow header clicks to sort every column except the image column."""
+        header = table_view.horizontalHeader()
+        header.setSectionsClickable(True)
+        header.setSortIndicatorShown(True)
+        header.sectionClicked.connect(
+            lambda section, key=table_key: self._on_exercise_table_header_clicked(key, section)
+        )
 
     def _fetch_process_rows(self, limit: int | None, offset: int) -> list[list[Any]]:
         """Fetch process rows with optional filters and pagination."""
@@ -5568,6 +5596,23 @@ class MainWindow(
             paths[0],
             success_message=f"Media saved for '{exercise_name}'",
         )
+
+    def _on_exercise_table_header_clicked(self, table_key: str, section: int) -> None:
+        table_view, _, _ = self.table_config[table_key]
+        result = sort_table_by_header_click(
+            table_view,
+            section,
+            skip_section=_EXERCISE_TABLE_IMAGE_COLUMN,
+        )
+        if result is None:
+            stored = self._exercise_table_sort.get(table_key)
+            header = table_view.horizontalHeader()
+            if stored is None:
+                header.setSortIndicator(-1, Qt.SortOrder.AscendingOrder)
+            else:
+                header.setSortIndicator(*stored)
+            return
+        self._exercise_table_sort[table_key] = result
 
     def _on_exercise_types_table_double_clicked(self, index: QModelIndex) -> None:
         """Open exercise-type edit dialog on double-click."""
@@ -6742,6 +6787,9 @@ def __init__(self, *, hide_on_close: bool = False) -> None:  # noqa: D107
             "types": None,
             "weight": None,
             "statistics": None,
+        }
+        self._exercise_table_sort: dict[str, tuple[int, Qt.SortOrder]] = {
+            "types": (_EXERCISE_TABLE_NAME_COLUMN, Qt.SortOrder.AscendingOrder),
         }
 
         # Process table display mode flag
@@ -10005,6 +10053,8 @@ def show_tables(self) -> None:
             self.tableView_exercise_types.setColumnWidth(1, 200)  # Exercise
             self.tableView_exercise_types.setColumnWidth(2, 150)  # Exercise Type
             self.tableView_exercise_types.setColumnWidth(3, 120)  # Calories Modifier
+            self._apply_stored_exercise_table_sort("exercises")
+            self._apply_stored_exercise_table_sort("types")
 
             # Connect selection change signals after models are set
             self._connect_table_selection_signals()

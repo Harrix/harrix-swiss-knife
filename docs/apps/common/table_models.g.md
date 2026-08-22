@@ -13,6 +13,8 @@ lang: en
 
 - [🔧 Function `create_colored_table_proxy_model`](#-function-create_colored_table_proxy_model)
 - [🔧 Function `create_table_proxy_model`](#-function-create_table_proxy_model)
+- [🔧 Function `next_table_sort_order`](#-function-next_table_sort_order)
+- [🔧 Function `sort_table_by_header_click`](#-function-sort_table_by_header_click)
 
 </details>
 
@@ -97,6 +99,85 @@ def create_table_proxy_model(
     proxy = QSortFilterProxyModel()
     proxy.setSourceModel(model)
     return proxy
+```
+
+</details>
+
+## 🔧 Function `next_table_sort_order`
+
+```python
+def next_table_sort_order(current_section: int, current_order: Qt.SortOrder, clicked_section: int) -> Qt.SortOrder
+```
+
+Return the sort order after a header click.
+
+A new column starts ascending. A second click on the same column reverses
+the current order.
+
+Args:
+
+- `current_section` (`int`): Column that currently has the sort indicator, or `-1`.
+- `current_order` (`Qt.SortOrder`): Current sort direction.
+- `clicked_section` (`int`): Column the user clicked.
+
+Returns:
+
+- `Qt.SortOrder`: Order to apply to `clicked_section`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def next_table_sort_order(
+    current_section: int,
+    current_order: Qt.SortOrder,
+    clicked_section: int,
+) -> Qt.SortOrder:
+    if clicked_section == current_section:
+        if current_order == Qt.SortOrder.AscendingOrder:
+            return Qt.SortOrder.DescendingOrder
+        return Qt.SortOrder.AscendingOrder
+    return Qt.SortOrder.AscendingOrder
+```
+
+</details>
+
+## 🔧 Function `sort_table_by_header_click`
+
+```python
+def sort_table_by_header_click(table: QTableView, section: int, *, skip_section: int = 0) -> tuple[int, Qt.SortOrder] | None
+```
+
+Sort a table from a header click, ignoring `skip_section`.
+
+Args:
+
+- `table` (`QTableView`): Table whose proxy/source model supports `sort`.
+- `section` (`int`): Clicked logical column.
+- `skip_section` (`int`): Column that must not sort (image column). Defaults to `0`.
+
+Returns:
+
+- `tuple[int, Qt.SortOrder] | None`: Applied column and order, or `None` when skipped.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def sort_table_by_header_click(
+    table: QTableView,
+    section: int,
+    *,
+    skip_section: int = 0,
+) -> tuple[int, Qt.SortOrder] | None:
+    if section == skip_section:
+        return None
+    header = table.horizontalHeader()
+    order = next_table_sort_order(header.sortIndicatorSection(), header.sortIndicatorOrder(), section)
+    table.sortByColumn(section, order)
+    header.setSortIndicatorShown(True)
+    header.setSortIndicator(section, order)
+    return section, order
 ```
 
 </details>

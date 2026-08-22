@@ -4,11 +4,13 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from PySide6.QtCore import QSortFilterProxyModel
+from PySide6.QtCore import QSortFilterProxyModel, Qt
 from PySide6.QtGui import QBrush, QIcon, QStandardItem, QStandardItemModel
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
+
+    from PySide6.QtWidgets import QTableView
 
 
 def create_colored_table_proxy_model(
@@ -72,6 +74,63 @@ def create_table_proxy_model(
     proxy = QSortFilterProxyModel()
     proxy.setSourceModel(model)
     return proxy
+
+
+def next_table_sort_order(
+    current_section: int,
+    current_order: Qt.SortOrder,
+    clicked_section: int,
+) -> Qt.SortOrder:
+    """Return the sort order after a header click.
+
+    A new column starts ascending. A second click on the same column reverses
+    the current order.
+
+    Args:
+
+    - `current_section` (`int`): Column that currently has the sort indicator, or `-1`.
+    - `current_order` (`Qt.SortOrder`): Current sort direction.
+    - `clicked_section` (`int`): Column the user clicked.
+
+    Returns:
+
+    - `Qt.SortOrder`: Order to apply to `clicked_section`.
+
+    """
+    if clicked_section == current_section:
+        if current_order == Qt.SortOrder.AscendingOrder:
+            return Qt.SortOrder.DescendingOrder
+        return Qt.SortOrder.AscendingOrder
+    return Qt.SortOrder.AscendingOrder
+
+
+def sort_table_by_header_click(
+    table: QTableView,
+    section: int,
+    *,
+    skip_section: int = 0,
+) -> tuple[int, Qt.SortOrder] | None:
+    """Sort a table from a header click, ignoring `skip_section`.
+
+    Args:
+
+    - `table` (`QTableView`): Table whose proxy/source model supports `sort`.
+    - `section` (`int`): Clicked logical column.
+    - `skip_section` (`int`): Column that must not sort (image column). Defaults to `0`.
+
+    Returns:
+
+    - `tuple[int, Qt.SortOrder] | None`: Applied column and order, or `None` when skipped.
+
+    """
+    if section == skip_section:
+        return None
+    header = table.horizontalHeader()
+    order = next_table_sort_order(header.sortIndicatorSection(), header.sortIndicatorOrder(), section)
+    table.sortByColumn(section, order)
+    header.setSortIndicatorShown(True)
+    header.setSortIndicator(section, order)
+    return section, order
 
 
 def _colored_standard_item(value: object, row_color: object) -> QStandardItem:
