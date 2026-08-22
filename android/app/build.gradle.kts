@@ -287,6 +287,69 @@ val aiSpeechModel =
         desktopConfig = desktopConfig,
     )
 
+val bothubEmbeddedApiKey = resolveProviderApiKey("bothub", localProps, desktopConfig)
+val bothubEmbeddedBaseUrl =
+    resolveProviderSetting(
+        provider = "bothub",
+        field = "base_url",
+        envName = "BOTHUB_BASE_URL",
+        propertyName = "bothub.base_url",
+        default = providerDefaults.getValue("bothub").defaultBaseUrl,
+        localProps = localProps,
+        desktopConfig = desktopConfig,
+    )
+val bothubEmbeddedModel =
+    resolveProviderSetting(
+        provider = "bothub",
+        field = "model",
+        envName = "BOTHUB_MODEL",
+        propertyName = "bothub.model",
+        default = providerDefaults.getValue("bothub").defaultModel,
+        localProps = localProps,
+        desktopConfig = desktopConfig,
+    )
+val bothubEmbeddedSpeechModel =
+    resolveProviderSetting(
+        provider = "bothub",
+        field = "speech_model",
+        envName = "BOTHUB_SPEECH_MODEL",
+        propertyName = "bothub.speech_model",
+        default = providerDefaults.getValue("bothub").defaultSpeechModel,
+        localProps = localProps,
+        desktopConfig = desktopConfig,
+    )
+val bothubRuEmbeddedApiKey = resolveProviderApiKey("bothub.ru", localProps, desktopConfig)
+val bothubRuEmbeddedBaseUrl =
+    resolveProviderSetting(
+        provider = "bothub.ru",
+        field = "base_url",
+        envName = "BOTHUB_RU_BASE_URL",
+        propertyName = "bothub_ru.base_url",
+        default = providerDefaults.getValue("bothub.ru").defaultBaseUrl,
+        localProps = localProps,
+        desktopConfig = desktopConfig,
+    )
+val bothubRuEmbeddedModel =
+    resolveProviderSetting(
+        provider = "bothub.ru",
+        field = "model",
+        envName = "BOTHUB_RU_MODEL",
+        propertyName = "bothub_ru.model",
+        default = providerDefaults.getValue("bothub.ru").defaultModel,
+        localProps = localProps,
+        desktopConfig = desktopConfig,
+    )
+val bothubRuEmbeddedSpeechModel =
+    resolveProviderSetting(
+        provider = "bothub.ru",
+        field = "speech_model",
+        envName = "BOTHUB_RU_SPEECH_MODEL",
+        propertyName = "bothub_ru.speech_model",
+        default = providerDefaults.getValue("bothub.ru").defaultSpeechModel,
+        localProps = localProps,
+        desktopConfig = desktopConfig,
+    )
+
 // Backward-compatible BotHub BuildConfig fields (active chat provider values).
 val bothubApiKey = aiApiKey
 val bothubBaseUrl = aiBaseUrl
@@ -338,6 +401,42 @@ android {
         buildConfigField("String", "AI_SPEECH_API_KEY", escapeBuildConfigString(aiSpeechApiKey))
         buildConfigField("String", "AI_SPEECH_BASE_URL", escapeBuildConfigString(aiSpeechBaseUrl))
         buildConfigField("String", "AI_SPEECH_MODEL", escapeBuildConfigString(aiSpeechModel))
+        buildConfigField(
+            "String",
+            "AI_BOTHUB_API_KEY",
+            escapeBuildConfigString(bothubEmbeddedApiKey),
+        )
+        buildConfigField(
+            "String",
+            "AI_BOTHUB_BASE_URL",
+            escapeBuildConfigString(bothubEmbeddedBaseUrl),
+        )
+        buildConfigField("String", "AI_BOTHUB_MODEL", escapeBuildConfigString(bothubEmbeddedModel))
+        buildConfigField(
+            "String",
+            "AI_BOTHUB_SPEECH_MODEL",
+            escapeBuildConfigString(bothubEmbeddedSpeechModel),
+        )
+        buildConfigField(
+            "String",
+            "AI_BOTHUB_RU_API_KEY",
+            escapeBuildConfigString(bothubRuEmbeddedApiKey),
+        )
+        buildConfigField(
+            "String",
+            "AI_BOTHUB_RU_BASE_URL",
+            escapeBuildConfigString(bothubRuEmbeddedBaseUrl),
+        )
+        buildConfigField(
+            "String",
+            "AI_BOTHUB_RU_MODEL",
+            escapeBuildConfigString(bothubRuEmbeddedModel),
+        )
+        buildConfigField(
+            "String",
+            "AI_BOTHUB_RU_SPEECH_MODEL",
+            escapeBuildConfigString(bothubRuEmbeddedSpeechModel),
+        )
 
         buildConfigField("String", "BOTHUB_API_KEY", escapeBuildConfigString(bothubApiKey))
         buildConfigField("String", "BOTHUB_BASE_URL", escapeBuildConfigString(bothubBaseUrl))

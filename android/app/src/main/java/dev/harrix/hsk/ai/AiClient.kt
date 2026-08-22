@@ -36,27 +36,34 @@ class AiClient(
         forSpeech: Boolean = audio != null,
         cancellationKey: String? = null,
     ): String {
+        val switched = BothubFailover.prepare(forSpeech)
         val provider = if (forSpeech) AiConfig.speechProvider else AiConfig.provider
         val apiKey = if (forSpeech) AiConfig.speechApiKey else AiConfig.apiKey
         val baseUrl = if (forSpeech) AiConfig.speechBaseUrl else AiConfig.baseUrl
+        val resolvedModel =
+            if (switched != null) {
+                if (forSpeech) AiConfig.speechModel else AiConfig.model
+            } else {
+                model
+            }
         if (!AiConfig.isUsableApiKey(apiKey)) {
             throw AiApiException(missingKeyMessage(provider))
         }
         if (forSpeech && provider == AiConfig.PROVIDER_ANTHROPIC) {
             throw AiApiException(
                 "Anthropic does not support speech-to-text. " +
-                    "Set ai.speech_provider to openai, gemini, or bothub, then rebuild the APK.",
+                    "Set ai.speech_provider to openai, gemini, bothub, or bothub.ru, then rebuild the APK.",
             )
         }
         return when (provider) {
             AiConfig.PROVIDER_OPENAI ->
                 if (audio != null) {
-                    openaiTranscribe(apiKey, baseUrl, model, text, audio, cancellationKey)
+                    openaiTranscribe(apiKey, baseUrl, resolvedModel, text, audio, cancellationKey)
                 } else {
                     openaiChat(
                         apiKey,
                         baseUrl,
-                        model,
+                        resolvedModel,
                         text,
                         audio = null,
                         images = images,
@@ -66,16 +73,16 @@ class AiClient(
                 }
 
             AiConfig.PROVIDER_ANTHROPIC ->
-                anthropicMessages(apiKey, baseUrl, model, text, images, cancellationKey)
+                anthropicMessages(apiKey, baseUrl, resolvedModel, text, images, cancellationKey)
 
             AiConfig.PROVIDER_GEMINI ->
-                geminiGenerate(apiKey, baseUrl, model, text, audio, images, cancellationKey)
+                geminiGenerate(apiKey, baseUrl, resolvedModel, text, audio, images, cancellationKey)
 
             else ->
                 openaiChat(
                     apiKey,
                     baseUrl,
-                    model,
+                    resolvedModel,
                     text,
                     audio,
                     images,

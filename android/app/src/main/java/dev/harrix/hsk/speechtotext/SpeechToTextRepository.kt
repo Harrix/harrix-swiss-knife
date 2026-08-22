@@ -21,7 +21,7 @@ class SpeechToTextRepository(
             when {
                 forSpeech && !AiConfig.supportsSpeech ->
                     "Anthropic does not support speech-to-text. " +
-                        "Set ai.speech_provider to openai, gemini, or bothub, then rebuild the APK."
+                        "Set ai.speech_provider to openai, gemini, bothub, or bothub.ru, then rebuild the APK."
 
                 forSpeech && !AiConfig.hasSpeechApiKey ->
                     AiClient.missingKeyMessage(AiConfig.speechProvider)
