@@ -10,6 +10,7 @@ from harrix_swiss_knife.apps.habits.habits_ticktick_sync import (
     build_habits_ticktick_sync_preview,
     format_habits_ticktick_sync_preview,
     from_stamp_for_api_export,
+    habits_ticktick_sync_needs_apply,
     load_ticktick_sync_payload,
     merge_ticktick_sync_payloads,
 )
@@ -179,6 +180,7 @@ def test_format_preview_mentions_dry_run() -> None:
     assert "dry-run" in text
     assert "Matched by name: 0" in text
     assert "TickTick habits missing icon: 0" in text
+    assert not habits_ticktick_sync_needs_apply(report)
 
 
 def test_preview_lists_empty_icon_res_and_skips_absent_key() -> None:
@@ -188,6 +190,7 @@ def test_preview_lists_empty_icon_res_and_skips_absent_key() -> None:
         today=date(2026, 8, 1),
     )
     assert missing["missing_icons"] == [{"name": "English", "ticktick_id": "t1"}]
+    assert habits_ticktick_sync_needs_apply(missing)
     text = format_habits_ticktick_sync_preview(missing)
     assert "TickTick habits missing icon: 1" in text
     assert "TickTick habits missing icon (set default reading icon):" in text

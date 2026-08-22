@@ -81,6 +81,7 @@ from harrix_swiss_knife.apps.habits.habits_ticktick_sync import (
     build_habits_ticktick_sync_preview,
     format_habits_ticktick_sync_preview,
     format_habits_ticktick_sync_result,
+    habits_ticktick_sync_needs_apply,
     load_ticktick_sync_payload,
 )
 from harrix_swiss_knife.apps.habits.mixins import (
@@ -2168,10 +2169,7 @@ class MainWindow(
             return
         if analysis_cancelled or report is None:
             return
-        totals = report["transfer_totals"]
-        creates = report["habit_counts"]["only_hsk"] + report["habit_counts"]["only_ticktick"]
-        work = totals["to_ticktick_done"] + totals["to_hsk_done"] + totals["gap_not_done_to_hsk"] + creates
-        if work == 0 and report["habit_counts"]["name_conflicts"] == 0:
+        if not habits_ticktick_sync_needs_apply(report):
             message_box.information(self, "Sync with TickTick", summary + "\n\nNothing to sync.")
             return
 

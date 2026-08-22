@@ -17,6 +17,7 @@ lang: en
 - [🔧 Function `format_habits_ticktick_sync_preview`](#-function-format_habits_ticktick_sync_preview)
 - [🔧 Function `format_habits_ticktick_sync_result`](#-function-format_habits_ticktick_sync_result)
 - [🔧 Function `from_stamp_for_api_export`](#-function-from_stamp_for_api_export)
+- [🔧 Function `habits_ticktick_sync_needs_apply`](#-function-habits_ticktick_sync_needs_apply)
 - [🔧 Function `load_ticktick_sync_payload`](#-function-load_ticktick_sync_payload)
 - [🔧 Function `merge_ticktick_sync_payloads`](#-function-merge_ticktick_sync_payloads)
 
@@ -491,6 +492,46 @@ def from_stamp_for_api_export(
     if range_from is None:
         return FALLBACK_FROM_STAMP
     return iso_to_ticktick_stamp(range_from)
+```
+
+</details>
+
+## 🔧 Function `habits_ticktick_sync_needs_apply`
+
+```python
+def habits_ticktick_sync_needs_apply(report: dict[str, Any]) -> bool
+```
+
+Return whether the plan should be offered for apply.
+
+Missing TickTick icons count as work: they are written on apply even when no
+check-ins or habit creates are pending.
+
+Args:
+
+- `report` (`dict[str, Any]`): Output of [`build_habits_ticktick_sync_preview`](#-function-build_habits_ticktick_sync_preview).
+
+Returns:
+
+- `bool`: `True` when apply would write, or when name conflicts should be
+  shown.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def habits_ticktick_sync_needs_apply(report: dict[str, Any]) -> bool:
+    totals = report.get("transfer_totals") or {}
+    counts = report.get("habit_counts") or {}
+    work = (
+        int(totals.get("to_ticktick_done") or 0)
+        + int(totals.get("to_hsk_done") or 0)
+        + int(totals.get("gap_not_done_to_hsk") or 0)
+        + int(counts.get("only_hsk") or 0)
+        + int(counts.get("only_ticktick") or 0)
+        + len(report.get("missing_icons") or [])
+    )
+    return work > 0 or int(counts.get("name_conflicts") or 0) > 0
 ```
 
 </details>
