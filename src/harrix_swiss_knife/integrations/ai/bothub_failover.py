@@ -9,6 +9,8 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import urlsplit
 from urllib.request import Request
 
+import harrix_pylib as h
+
 from harrix_swiss_knife.integrations.ai.config import (
     ProviderName,
     get_api_key,
@@ -62,7 +64,7 @@ def persist_ai_provider(
     ai["provider"] = provider
     if speech_provider is not None:
         ai["speech_provider"] = speech_provider
-    path.write_text(json.dumps(raw, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    path.write_text(h.dev.dumps_pretty_json(raw), encoding="utf-8")
 
 
 def prepare_bothub_router(

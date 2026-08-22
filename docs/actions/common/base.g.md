@@ -795,9 +795,7 @@ class ActionBase(ABC):
 
         config[key] = value
 
-        with Path.open(config_path, "w", encoding="utf8") as f:
-            json.dump(config, f, ensure_ascii=False, indent=2)
-            f.write("\n")
+        config_path.write_text(h.dev.dumps_pretty_json(config), encoding="utf-8")
 
     def _write_output_path(self) -> Path:
         """Path for `add_line` on this thread (worker threads keep their run's file)."""

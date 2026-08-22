@@ -106,3 +106,17 @@ def test_persist_ai_provider_rewrites_only_ai_keys(tmp_path: Path) -> None:
     assert data["ai"]["speech_provider"] == ""
     assert data["bothub_api_key"] == "snippet:api-keys/bothub-api-key.txt"
     assert data["editor"] == "cursor"
+
+
+def test_persist_ai_provider_keeps_compact_short_arrays(tmp_path: Path) -> None:
+    path = tmp_path / "config.json"
+    path.write_text(
+        '{\n  "block_drives": ["E", "F"],\n  "npm_packages": ["npm-check-updates", "prettier"],\n'
+        '  "ai": {"provider": "bothub"}\n}\n',
+        encoding="utf-8",
+    )
+    persist_ai_provider("bothub.ru", config_path=path)
+    text = path.read_text(encoding="utf-8")
+    assert '"block_drives": ["E", "F"]' in text
+    assert '"npm_packages": ["npm-check-updates", "prettier"]' in text
+    assert '"provider": "bothub.ru"' in text

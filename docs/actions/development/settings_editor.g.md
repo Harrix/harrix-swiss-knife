@@ -175,9 +175,7 @@ class SettingsEditorDialog(QDialog):
         new_config.update({k: v for k, v in self.categories.items() if k != "General"})
 
         try:
-            with Path(self.config_path).open("w", encoding="utf-8") as f:
-                json.dump(new_config, f, indent=2, ensure_ascii=False)
-                f.write("\n")
+            Path(self.config_path).write_text(h.dev.dumps_pretty_json(new_config), encoding="utf-8")
             self.accept()
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Failed to save config: {e}")

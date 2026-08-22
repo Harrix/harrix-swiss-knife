@@ -578,7 +578,7 @@ class OnUpdateHarrixSwissKnife(ActionBase):
     @staticmethod
     def _write_config_json_pretty(path: Path, data: dict[str, Any]) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
-        text = json.dumps(data, indent=2, ensure_ascii=False) + "\n"
+        text = h.dev.dumps_pretty_json(data)
         path.write_text(text, encoding="utf-8")
 
     class _UpdateStep(TypedDict):
