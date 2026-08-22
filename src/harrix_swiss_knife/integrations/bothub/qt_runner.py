@@ -11,10 +11,12 @@ from PySide6.QtWidgets import QApplication, QWidget
 
 from harrix_swiss_knife import toast_cancellable_http_notification, toast_notification_base
 from harrix_swiss_knife.apps.common import message_box
+from harrix_swiss_knife.integrations.ai.bothub_failover import prepare_bothub_router
 from harrix_swiss_knife.integrations.ai.config import get_provider_settings
 from harrix_swiss_knife.integrations.bothub.config import (
     get_active_provider,
     get_connection_params,
+    get_proxy_url,
     validate_api_key,
 )
 from harrix_swiss_knife.integrations.bothub.worker import BothubChatWorker
@@ -257,6 +259,9 @@ def _start_bothub_request(spec: BothubRequestSpec) -> bool:
         return False
 
     for_speech = spec.audio is not None
+    switched_to = prepare_bothub_router(spec.config, for_speech=for_speech, proxy_url=get_proxy_url(spec.config))
+    if switched_to is not None:
+        spec.toast_message = f"Requesting AI via {switched_to}…"
     api_key = validate_api_key(spec.config, parent=spec.parent, for_speech=for_speech)
     if api_key is None:
         return False

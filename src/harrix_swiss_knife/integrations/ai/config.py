@@ -6,9 +6,15 @@ from typing import Any, Literal
 
 from harrix_swiss_knife.integrations.http_transport import resolve_proxy_url
 
-ProviderName = Literal["bothub", "openai", "anthropic", "gemini"]
+ProviderName = Literal["bothub", "bothub.ru", "openai", "anthropic", "gemini"]
 
-PROVIDERS: tuple[ProviderName, ...] = ("bothub", "openai", "anthropic", "gemini")
+PROVIDERS: tuple[ProviderName, ...] = ("bothub", "bothub.ru", "openai", "anthropic", "gemini")
+BOTHUB_ROUTERS: tuple[ProviderName, ...] = ("bothub", "bothub.ru")
+_PROVIDER_ALIASES: dict[str, ProviderName] = {
+    "bothub.ru": "bothub.ru",
+    "bothub_ru": "bothub.ru",
+    "bothub-ru": "bothub.ru",
+}
 
 _DEFAULTS: dict[ProviderName, dict[str, Any]] = {
     "bothub": {
@@ -18,6 +24,14 @@ _DEFAULTS: dict[ProviderName, dict[str, Any]] = {
         "api_key_config": "bothub_api_key",
         "settings_key": "bothub",
         "example_key_file": "api-keys/bothub-api-key.txt",
+    },
+    "bothub.ru": {
+        "base_url": "https://openai.bothub.ru/v1",
+        "model": "gpt-5.4",
+        "speech_model": "gemini-3.1-flash-lite-preview",
+        "api_key_config": "bothub_ru_api_key",
+        "settings_key": "bothub_ru",
+        "example_key_file": "api-keys/bothub-ru-api-key.txt",
     },
     "openai": {
         "base_url": "https://api.openai.com/v1",
@@ -58,6 +72,7 @@ def get_api_key_missing_message(provider: ProviderName) -> str:
     example = _DEFAULTS[provider]["example_key_file"]
     label = {
         "bothub": "BotHub",
+        "bothub.ru": "BotHub.ru",
         "openai": "OpenAI",
         "anthropic": "Anthropic",
         "gemini": "Gemini",
@@ -141,11 +156,26 @@ def get_speech_provider(config: dict[str, Any]) -> ProviderName:
     return normalize_provider(speech)
 
 
+def is_bothub_router(provider: ProviderName) -> bool:
+    """Return whether `provider` is a BotHub site router (`bothub` or `bothub.ru`)."""
+    return provider in BOTHUB_ROUTERS
+
+
 def normalize_provider(value: str | None) -> ProviderName:
     """Normalize a provider ID; unknown values fall back to bothub."""
     name = (value or "bothub").strip().lower()
+    alias = _PROVIDER_ALIASES.get(name)
+    if alias is not None:
+        return alias
     if name in PROVIDERS:
         return name  # type: ignore[return-value]
+    return "bothub"
+
+
+def other_bothub_router(provider: ProviderName) -> ProviderName:
+    """Return the other BotHub site when `provider` is a BotHub router."""
+    if provider == "bothub":
+        return "bothub.ru"
     return "bothub"
 
 

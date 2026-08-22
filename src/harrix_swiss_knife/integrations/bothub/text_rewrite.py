@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from harrix_swiss_knife.integrations.bothub.config import get_active_provider, get_connection_params
+from harrix_swiss_knife.integrations.ai.bothub_failover import prepare_bothub_router
+from harrix_swiss_knife.integrations.bothub.config import get_active_provider, get_connection_params, get_proxy_url
 from harrix_swiss_knife.integrations.bothub.prompts import build_prompt, get_prompt_template
 from harrix_swiss_knife.integrations.bothub_client import chat_completion
 
@@ -37,6 +38,7 @@ def rewrite_text_sync(input_text: str, config: dict[str, Any]) -> str:
 
     """
     prompt_text = build_text_rewrite_prompt(input_text, config)
+    prepare_bothub_router(config, proxy_url=get_proxy_url(config))
     provider = get_active_provider(config)
     api_key, base_url, model, proxy_url = get_connection_params(config)
     return chat_completion(

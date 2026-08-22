@@ -74,7 +74,7 @@ def validate_api_key(
                 "AI Speech",
                 (
                     "Anthropic does not support speech-to-text.\n\n"
-                    'Set ai.speech_provider to "openai", "gemini", or "bothub".'
+                    'Set ai.speech_provider to "openai", "gemini", "bothub", or "bothub.ru".'
                 ),
             )
         return None

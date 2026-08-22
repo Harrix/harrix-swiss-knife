@@ -19,7 +19,9 @@ lang: en
 - [🔧 Function `get_provider_settings`](#-function-get_provider_settings)
 - [🔧 Function `get_speech_model_for_provider`](#-function-get_speech_model_for_provider)
 - [🔧 Function `get_speech_provider`](#-function-get_speech_provider)
+- [🔧 Function `is_bothub_router`](#-function-is_bothub_router)
 - [🔧 Function `normalize_provider`](#-function-normalize_provider)
+- [🔧 Function `other_bothub_router`](#-function-other_bothub_router)
 - [🔧 Function `provider_supports_speech`](#-function-provider_supports_speech)
 
 </details>
@@ -59,6 +61,7 @@ def get_api_key_missing_message(provider: ProviderName) -> str:
     example = _DEFAULTS[provider]["example_key_file"]
     label = {
         "bothub": "BotHub",
+        "bothub.ru": "BotHub.ru",
         "openai": "OpenAI",
         "anthropic": "Anthropic",
         "gemini": "Gemini",
@@ -222,6 +225,24 @@ def get_speech_provider(config: dict[str, Any]) -> ProviderName:
 
 </details>
 
+## 🔧 Function `is_bothub_router`
+
+```python
+def is_bothub_router(provider: ProviderName) -> bool
+```
+
+Return whether `provider` is a BotHub site router (`bothub` or `bothub.ru`).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def is_bothub_router(provider: ProviderName) -> bool:
+    return provider in BOTHUB_ROUTERS
+```
+
+</details>
+
 ## 🔧 Function `normalize_provider`
 
 ```python
@@ -236,8 +257,31 @@ Normalize a provider ID; unknown values fall back to bothub.
 ```python
 def normalize_provider(value: str | None) -> ProviderName:
     name = (value or "bothub").strip().lower()
+    alias = _PROVIDER_ALIASES.get(name)
+    if alias is not None:
+        return alias
     if name in PROVIDERS:
         return name  # type: ignore[return-value]
+    return "bothub"
+```
+
+</details>
+
+## 🔧 Function `other_bothub_router`
+
+```python
+def other_bothub_router(provider: ProviderName) -> ProviderName
+```
+
+Return the other BotHub site when `provider` is a BotHub router.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def other_bothub_router(provider: ProviderName) -> ProviderName:
+    if provider == "bothub":
+        return "bothub.ru"
     return "bothub"
 ```
 

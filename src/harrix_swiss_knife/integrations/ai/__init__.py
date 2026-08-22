@@ -1,9 +1,10 @@
-"""Multi-provider AI chat client (BotHub, OpenAI, Anthropic, Gemini)."""
+"""Multi-provider AI chat client (BotHub, BotHub.ru, OpenAI, Anthropic, Gemini)."""
 
 from __future__ import annotations
 
 from harrix_swiss_knife.integrations.ai.client import chat_completion
 from harrix_swiss_knife.integrations.ai.config import (
+    BOTHUB_ROUTERS,
     PROVIDERS,
     ProviderName,
     get_api_key,
@@ -13,11 +14,13 @@ from harrix_swiss_knife.integrations.ai.config import (
     get_provider_settings,
     get_speech_model_for_provider,
     get_speech_provider,
+    is_bothub_router,
 )
 from harrix_swiss_knife.integrations.ai.errors import AiApiError, RequestCancelledError
 from harrix_swiss_knife.integrations.ai.text_utils import strip_markdown_fences
 
 __all__ = [
+    "BOTHUB_ROUTERS",
     "PROVIDERS",
     "AiApiError",
     "ProviderName",
@@ -30,5 +33,6 @@ __all__ = [
     "get_provider_settings",
     "get_speech_model_for_provider",
     "get_speech_provider",
+    "is_bothub_router",
     "strip_markdown_fences",
 ]

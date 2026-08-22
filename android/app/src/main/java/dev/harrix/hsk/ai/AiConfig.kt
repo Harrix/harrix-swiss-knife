@@ -49,6 +49,7 @@ object AiConfig {
         PROVIDER_OPENAI -> "https://api.openai.com/v1"
         PROVIDER_ANTHROPIC -> "https://api.anthropic.com"
         PROVIDER_GEMINI -> "https://generativelanguage.googleapis.com/v1beta"
+        PROVIDER_BOTHUB_RU -> "https://openai.bothub.ru/v1"
         else -> "https://bothub.chat/api/v2/openai/v1"
     }
 
@@ -67,6 +68,7 @@ object AiConfig {
     }
 
     const val PROVIDER_BOTHUB = "bothub"
+    const val PROVIDER_BOTHUB_RU = "bothub.ru"
     const val PROVIDER_OPENAI = "openai"
     const val PROVIDER_ANTHROPIC = "anthropic"
     const val PROVIDER_GEMINI = "gemini"

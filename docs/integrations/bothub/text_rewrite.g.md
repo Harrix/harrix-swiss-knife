@@ -76,6 +76,7 @@ Raises:
 ```python
 def rewrite_text_sync(input_text: str, config: dict[str, Any]) -> str:
     prompt_text = build_text_rewrite_prompt(input_text, config)
+    prepare_bothub_router(config, proxy_url=get_proxy_url(config))
     provider = get_active_provider(config)
     api_key, base_url, model, proxy_url = get_connection_params(config)
     return chat_completion(

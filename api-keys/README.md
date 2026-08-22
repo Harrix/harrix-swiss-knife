@@ -24,7 +24,8 @@ Local secret files for harrix-swiss-knife. **Not committed to Git** (see root `.
 | ----------------------- | ------------------------------------------- | --------------------------------------------------- |
 | `pypi-token.txt`        | `pypi_token` in `config/config.json`        | PyPI token for publishing Python libraries          |
 | `github-token.txt`      | `github_token` in `config/config.json`      | Optional GitHub PAT for higher API rate limits      |
-| `bothub-api-key.txt`    | `bothub_api_key` in `config/config.json`    | BotHub access token for AI features                 |
+| `bothub-api-key.txt`    | `bothub_api_key` in `config/config.json`    | BotHub (bothub.chat) access token for AI features   |
+| `bothub-ru-api-key.txt` | `bothub_ru_api_key` in `config/config.json` | BotHub.ru (`openai.bothub.ru`) access token         |
 | `openai-api-key.txt`    | `openai_api_key` in `config/config.json`    | OpenAI API key (chat + Whisper speech)              |
 | `anthropic-api-key.txt` | `anthropic_api_key` in `config/config.json` | Anthropic API key (Claude Messages)                 |
 | `gemini-api-key.txt`    | `gemini_api_key` in `config/config.json`    | Google Gemini API key                               |
@@ -89,10 +90,11 @@ Choose the backend in `config/config.json`:
 }
 ```
 
-Supported `provider` values: `bothub`, `openai`, `anthropic`, `gemini`.
+Supported `provider` values: `bothub`, `bothub.ru`, `openai`, `anthropic`, `gemini`.
 
 - `speech_provider` empty means the same as `provider`.
-- Anthropic has no speech-to-text API: set `speech_provider` to `openai`, `gemini`, or `bothub` for voice features.
+- Anthropic has no speech-to-text API: set `speech_provider` to `openai`, `gemini`, `bothub`, or `bothub.ru` for voice features.
+- `bothub` and `bothub.ru` are interchangeable routers. Before each AI request the app probes the current site (`bothub.chat` or `bothub.ru`). If it is unreachable and the other key is set, `ai.provider` is rewritten once to the other router and the request is sent there. A failed request on the fallback does not switch again; the next independent AI call can failover again.
 - Copy the matching `*-api-key.example.txt` → `*-api-key.txt` and paste the key (one line).
 
 If `ai` is omitted, the app keeps the previous BotHub-only behavior.

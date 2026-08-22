@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from harrix_swiss_knife.integrations.ai.anthropic import anthropic_messages
+from harrix_swiss_knife.integrations.ai.bothub_failover import prepare_bothub_router
 from harrix_swiss_knife.integrations.ai.config import (
     ProviderName,
     get_chat_provider,
@@ -44,7 +45,7 @@ def chat_completion(
 
     Args:
 
-    - `provider`: `bothub`, `openai`, `anthropic`, or `gemini`.
+    - `provider`: `bothub`, `bothub.ru`, `openai`, `anthropic`, or `gemini`.
     - `api_key`: Provider access token.
     - `base_url`: API base URL.
     - `model`: Model ID (or Whisper model for OpenAI speech).
@@ -66,7 +67,10 @@ def chat_completion(
         image_list.append(image)
 
     if provider == "anthropic" and audio is not None:
-        msg = 'Anthropic does not support speech-to-text. Set ai.speech_provider to "openai", "gemini", or "bothub".'
+        msg = (
+            "Anthropic does not support speech-to-text. "
+            'Set ai.speech_provider to "openai", "gemini", "bothub", or "bothub.ru".'
+        )
         raise AiApiError(msg)
 
     if provider == "openai" and audio is not None:
@@ -82,19 +86,20 @@ def chat_completion(
             on_connection=on_connection,
         )
 
-    if provider in {"bothub", "openai"}:
+    if provider in {"bothub", "bothub.ru", "openai"}:
+        bothub_audio = provider in {"bothub", "bothub.ru"}
         return openai_chat_completion(
             api_key=api_key,
             base_url=base_url,
             model=model,
             text=text,
             images=image_list or None,
-            audio=audio if provider == "bothub" else None,
+            audio=audio if bothub_audio else None,
             timeout_sec=timeout_sec,
             proxy_url=proxy_url,
             should_cancel=should_cancel,
             on_connection=on_connection,
-            allow_audio_as_image_url=provider == "bothub",
+            allow_audio_as_image_url=bothub_audio,
         )
 
     if provider == "anthropic":
@@ -146,6 +151,7 @@ def chat_completion_from_config(
 ) -> str:
     """Resolve provider from config and run `chat_completion`."""
     use_speech = for_speech if for_speech is not None else audio is not None
+    prepare_bothub_router(config, for_speech=use_speech, proxy_url=proxy_url)
     provider = get_speech_provider(config) if use_speech else get_chat_provider(config)
     api_key, base_url, default_model, resolved_proxy = get_connection_params_for_provider(
         config,

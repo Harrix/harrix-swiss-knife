@@ -61,6 +61,7 @@ fun normalizeProvider(value: String): String {
     val name = value.trim().lowercase()
     return when (name) {
         "bothub", "openai", "anthropic", "gemini" -> name
+        "bothub.ru", "bothub_ru", "bothub-ru" -> "bothub.ru"
         else -> "bothub"
     }
 }
@@ -93,6 +94,16 @@ val providerDefaults =
                 keyFile = "api-keys/bothub-api-key.txt",
                 envKey = "BOTHUB_API_KEY",
                 defaultBaseUrl = "https://bothub.chat/api/v2/openai/v1",
+                defaultModel = "gpt-5.4",
+                defaultSpeechModel = "gemini-3.1-flash-lite-preview",
+            ),
+        "bothub.ru" to
+            ProviderDefaults(
+                settingsKey = "bothub_ru",
+                apiKeyConfig = "bothub_ru_api_key",
+                keyFile = "api-keys/bothub-ru-api-key.txt",
+                envKey = "BOTHUB_RU_API_KEY",
+                defaultBaseUrl = "https://openai.bothub.ru/v1",
                 defaultModel = "gpt-5.4",
                 defaultSpeechModel = "gemini-3.1-flash-lite-preview",
             ),

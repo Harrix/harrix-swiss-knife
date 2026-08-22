@@ -32,6 +32,9 @@ def test_normalize_provider_unknown_falls_back_to_bothub() -> None:
     assert normalize_provider("unknown") == "bothub"
     assert normalize_provider("") == "bothub"
     assert normalize_provider("OpenAI") == "openai"
+    assert normalize_provider("bothub.ru") == "bothub.ru"
+    assert normalize_provider("bothub_ru") == "bothub.ru"
+    assert normalize_provider("bothub-ru") == "bothub.ru"
 
 
 def test_get_chat_provider_defaults_to_bothub() -> None:
@@ -48,6 +51,7 @@ def test_get_speech_provider_falls_back_to_chat() -> None:
 
 def test_provider_supports_speech() -> None:
     assert provider_supports_speech("bothub")
+    assert provider_supports_speech("bothub.ru")
     assert provider_supports_speech("openai")
     assert provider_supports_speech("gemini")
     assert not provider_supports_speech("anthropic")
@@ -95,6 +99,24 @@ def test_get_connection_params_uses_active_provider(monkeypatch: pytest.MonkeyPa
     assert "generativelanguage" in base_url
     assert model == "gemini-2.5-flash"
     assert get_speech_model(config) == "gemini-2.5-flash"
+
+
+def test_get_connection_params_for_bothub_ru(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("HTTPS_PROXY", raising=False)
+    monkeypatch.delenv("HTTP_PROXY", raising=False)
+    monkeypatch.delenv("https_proxy", raising=False)
+    monkeypatch.delenv("http_proxy", raising=False)
+
+    config = {
+        "ai": {"provider": "bothub.ru"},
+        "bothub_ru": {"base_url": "https://openai.bothub.ru/v1", "model": "gpt-5.5"},
+        "bothub_ru_api_key": "ru-key",
+    }
+    assert get_chat_provider(config) == "bothub.ru"
+    api_key, base_url, model, _ = get_connection_params_for_provider(config, "bothub.ru")
+    assert api_key == "ru-key"
+    assert base_url == "https://openai.bothub.ru/v1"
+    assert model == "gpt-5.5"
 
 
 def test_get_max_image_side_prefers_ai() -> None:

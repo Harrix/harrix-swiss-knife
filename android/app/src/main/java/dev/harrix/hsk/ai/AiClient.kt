@@ -573,6 +573,7 @@ class AiClient(
                     AiConfig.PROVIDER_OPENAI -> "api-keys/openai-api-key.txt"
                     AiConfig.PROVIDER_ANTHROPIC -> "api-keys/anthropic-api-key.txt"
                     AiConfig.PROVIDER_GEMINI -> "api-keys/gemini-api-key.txt"
+                    AiConfig.PROVIDER_BOTHUB_RU -> "api-keys/bothub-ru-api-key.txt"
                     else -> "api-keys/bothub-api-key.txt"
                 }
             return "AI API key is missing for provider '$provider'. " +

@@ -291,11 +291,11 @@ Provider selection (same as desktop `config/config.json` → `ai.provider`):
 3. `config/config.json` → `ai.provider`
 4. Default: `bothub`
 
-Supported providers: `bothub`, `openai`, `anthropic`, `gemini`. Optional `ai.speech_provider` (empty = same as chat). Anthropic has no STT — set speech to `openai`, `gemini`, or `bothub`.
+Supported providers: `bothub`, `bothub.ru`, `openai`, `anthropic`, `gemini`. Optional `ai.speech_provider` (empty = same as chat). Anthropic has no STT — set speech to `openai`, `gemini`, `bothub`, or `bothub.ru`.
 
 API key resolution for the active provider:
 
-1. Provider env (`BOTHUB_API_KEY`, `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`)
+1. Provider env (`BOTHUB_API_KEY`, `BOTHUB_RU_API_KEY`, `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`)
 2. `local.properties` → `bothub.api_key` / `openai.api_key` / …
 3. `config/config.json` key (`bothub_api_key`, …) including `snippet:api-keys/…`
 4. File under `api-keys/` (same as desktop)

@@ -55,6 +55,8 @@ class AppConfig(TypedDict, total=False):
     ai: AiSettings
     bothub: BothubSettings
     bothub_api_key: str
+    bothub_ru: BothubSettings
+    bothub_ru_api_key: str
     openai: OpenAISettings
     openai_api_key: str
     anthropic: AnthropicSettings

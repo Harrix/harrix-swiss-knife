@@ -276,6 +276,12 @@
     "proxy": ""
   },
   "bothub_api_key": "snippet:api-keys/bothub-api-key.txt",
+  "bothub_ru": {
+    "base_url": "https://openai.bothub.ru/v1",
+    "model": "gpt-5.4",
+    "speech_model": "gemini-3.1-flash-lite-preview"
+  },
+  "bothub_ru_api_key": "snippet:api-keys/bothub-ru-api-key.txt",
   "openai": {
     "base_url": "https://api.openai.com/v1",
     "model": "gpt-4.1",
