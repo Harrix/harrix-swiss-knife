@@ -67,6 +67,30 @@ def habits_db(tmp_path: Path, qapp: QApplication) -> Iterator[DatabaseManager]: 
     db.close()
 
 
+def test_upsert_habit_checkins_inserts_and_updates(habits_db: DatabaseManager) -> None:
+    """Batch upsert inserts missing days, updates existing, and drops extra rows."""
+    assert habits_db.add_habit("Walk", is_bool=True, emoji="🚶")
+    walk_id = int(habits_db.get_habits()[0][0])
+    assert habits_db.add_process_habit_record(walk_id, 0, "2026-08-01")
+    assert habits_db.add_process_habit_record(walk_id, 0, "2026-08-01")
+    written = habits_db.upsert_habit_checkins(
+        [
+            (walk_id, "2026-08-01", 1),
+            (walk_id, "2026-08-02", 0),
+            (walk_id, "2026-08-03", 1),
+        ]
+    )
+    assert written == 3
+    assert habits_db.get_habit_value_on_date(walk_id, "2026-08-01") == 1
+    assert habits_db.get_habit_value_on_date(walk_id, "2026-08-02") == 0
+    assert habits_db.get_habit_value_on_date(walk_id, "2026-08-03") == 1
+    rows = habits_db.get_rows(
+        "SELECT COUNT(*) FROM process_habits WHERE _id_habit = :id AND date = :d",
+        {"id": walk_id, "d": "2026-08-01"},
+    )
+    assert rows[0][0] == 1
+
+
 def test_export_hsk_habits_json_includes_values(habits_db: DatabaseManager) -> None:
     """HSK backup lists habit metadata and the latest value per date."""
     assert habits_db.add_habit("Walk", is_bool=True, emoji="🚶")

@@ -48,7 +48,7 @@ def test_apply_sync_writes_hsk_and_calls_ticktick() -> None:
         today=date(2026, 8, 5),
     )
     db = MagicMock()
-    db.set_habit_checkin.return_value = True
+    db.upsert_habit_checkins.return_value = 3
     client = MagicMock()
 
     result = apply_habits_ticktick_sync(db, report, client)
@@ -57,7 +57,7 @@ def test_apply_sync_writes_hsk_and_calls_ticktick() -> None:
     assert result["applied"]["to_hsk_done"] == 2
     assert result["applied"]["to_ticktick_done"] == 1
     client.checkin_done.assert_called()
-    db.set_habit_checkin.assert_called()
+    db.upsert_habit_checkins.assert_called_once()
 
 
 def test_apply_sync_creates_missing_habits() -> None:
@@ -69,7 +69,7 @@ def test_apply_sync_creates_missing_habits() -> None:
     db = MagicMock()
     db.add_habit.return_value = True
     db.get_rows.return_value = [[99]]
-    db.set_habit_checkin.return_value = True
+    db.upsert_habit_checkins.return_value = 1
     client = MagicMock()
     client.create_boolean_habit.return_value = {"id": "new-tt"}
 

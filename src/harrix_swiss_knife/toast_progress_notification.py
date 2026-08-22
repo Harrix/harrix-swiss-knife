@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from PySide6.QtCore import QSize, Qt, Signal
-from PySide6.QtWidgets import QProgressBar, QPushButton, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QLabel, QProgressBar, QPushButton, QVBoxLayout, QWidget
 
 from harrix_swiss_knife import toast_countdown_notification, toast_notification_base
 
@@ -44,6 +44,7 @@ class ToastProgressNotification(toast_countdown_notification.ToastCountdownNotif
         self._cancellable = cancellable
         self._cancelled = False
         self._completed = False
+        self._detail = ""
         super().__init__(message, parent)
 
         self._progress_container = QWidget(self)
@@ -54,11 +55,17 @@ class ToastProgressNotification(toast_countdown_notification.ToastCountdownNotif
         self.progress_bar.setFormat("%v / %m")
         self.progress_bar.setMinimumWidth(220)
         self.progress_bar.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.detail_label = QLabel(self._progress_container)
+        self.detail_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+        self.detail_label.setWordWrap(True)
+        self.detail_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+        self.detail_label.hide()
 
         container_layout = QVBoxLayout(self._progress_container)
         container_layout.setContentsMargins(0, 0, 0, 0)
         container_layout.setSpacing(0)
         container_layout.addWidget(self.progress_bar)
+        container_layout.addWidget(self.detail_label)
 
         layout = self.layout()
         if isinstance(layout, QVBoxLayout):
@@ -111,6 +118,22 @@ class ToastProgressNotification(toast_countdown_notification.ToastCountdownNotif
         """Reposition close and collapse buttons when the toast is resized."""
         super().resizeEvent(event)
         self._position_close_button()
+
+    def set_detail(self, text: str) -> None:
+        """Set the status line under the progress bar.
+
+        Args:
+
+        - `text` (`str`): Current operation, for example a habit name. Empty hides the line.
+
+        """
+        self._detail = str(text or "").strip()
+        self._refresh_detail_label()
+        previous_size = self.size()
+        self.adjustSize()
+        self.reposition_action_buttons()
+        if self.size() != previous_size:
+            self.restack_group(pinned=self.is_pinned)
 
     def set_progress(self, done: int, total: int | None = None) -> None:
         """Update progress values and refresh the progress bar.
@@ -185,6 +208,7 @@ class ToastProgressNotification(toast_countdown_notification.ToastCountdownNotif
             top_pad = 2
             bottom_pad = 8
             font_size = "9pt"
+            detail_font = "8pt"
             label_padding = "8px 12px 4px 12px"
         else:
             radius = 10
@@ -194,6 +218,7 @@ class ToastProgressNotification(toast_countdown_notification.ToastCountdownNotif
             top_pad = 4
             bottom_pad = 14
             font_size = "11pt"
+            detail_font = "10pt"
             label_padding = "15px 20px 6px 20px"
 
         self._progress_container.setStyleSheet(
@@ -227,6 +252,16 @@ class ToastProgressNotification(toast_countdown_notification.ToastCountdownNotif
             "margin: 0px;"
             "}",
         )
+        if hasattr(self, "detail_label"):
+            self.detail_label.setStyleSheet(
+                "background-color: transparent;"
+                "color: rgba(220, 220, 220, 255);"
+                f"font-size: {detail_font};"
+                "font-weight: normal;"
+                "padding: 4px 0px 0px 0px;"
+                "border: none;",
+            )
+            self._refresh_detail_label()
         self.label.setStyleSheet(
             "background-color: rgba(40, 40, 40, 230);"
             "color: white;"
@@ -262,6 +297,17 @@ class ToastProgressNotification(toast_countdown_notification.ToastCountdownNotif
             label_geom.y() + margin,
         )
         self._close_button.raise_()
+
+    def _refresh_detail_label(self) -> None:
+        """Show or hide the status line under the progress bar."""
+        if not hasattr(self, "detail_label"):
+            return
+        if self._detail:
+            self.detail_label.setText(self._detail)
+            self.detail_label.show()
+        else:
+            self.detail_label.clear()
+            self.detail_label.hide()
 
     def _refresh_label_text(self) -> None:
         """Update label with message, elapsed time, and progress summary."""

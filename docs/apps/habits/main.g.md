@@ -2004,24 +2004,28 @@ class MainWindow(
         if answer != QMessageBox.StandardButton.Yes:
             return
 
-        progress = QProgressDialog("Syncing with TickTick…", "Cancel", 0, 1, self)
-        progress.setWindowTitle("Sync with TickTick")
-        progress.setWindowModality(Qt.WindowModality.WindowModal)
-        progress.setMinimumDuration(0)
-        progress.setValue(0)
-
         cancelled = False
+        toast = ToastProgressNotification(
+            "Syncing with TickTick…",
+            total=1,
+            parent=self,
+            cancellable=True,
+        )
+
+        def _mark_cancelled() -> None:
+            nonlocal cancelled
+            cancelled = True
+
+        toast.cancel_requested.connect(_mark_cancelled)
+        toast.start_countdown()
 
         def on_progress(current: int, total: int, message: str) -> None:
-            nonlocal cancelled
-            progress.setMaximum(max(total, 1))
-            progress.setValue(current)
-            progress.setLabelText(message)
-            QApplication.processEvents()
-            if progress.wasCanceled():
-                cancelled = True
+            if cancelled:
                 msg = "Sync cancelled by user"
                 raise TickTickApiError(msg)
+            toast.set_progress(current, total)
+            toast.set_detail(message)
+            toast.pump_events()
 
         try:
             result = apply_habits_ticktick_sync(
@@ -2031,15 +2035,14 @@ class MainWindow(
                 progress=on_progress,
             )
         except TickTickApiError as exc:
-            progress.close()
-            if cancelled:
-                message_box.warning(self, "Sync with TickTick", str(exc))
-            else:
-                message_box.warning(self, "Sync with TickTick", str(exc))
+            toast.mark_completed()
+            toast.close()
+            message_box.warning(self, "Sync with TickTick", str(exc))
             self._refresh_after_ticktick_sync()
             return
         finally:
-            progress.close()
+            toast.mark_completed()
+            toast.close()
 
         text = format_habits_ticktick_sync_result(result)
         if result.get("error_count"):

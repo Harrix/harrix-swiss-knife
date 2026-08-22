@@ -57,3 +57,14 @@ def test_progress_toast_cancel_emits_once(qapp: QApplication) -> None:  # noqa: 
     toast.close()
     toast.close()
     assert cancelled == [1]
+
+
+def test_progress_toast_detail_line(qapp: QApplication) -> None:  # noqa: ARG001
+    toast = ToastProgressNotification("Syncing…", total=4)
+    assert toast.detail_label.isHidden()
+    toast.set_detail("English: TickTick Done 2026-08-01")
+    assert not toast.detail_label.isHidden()
+    assert toast.detail_label.text() == "English: TickTick Done 2026-08-01"
+    toast.set_detail("")
+    assert toast.detail_label.isHidden()
+    toast.close()

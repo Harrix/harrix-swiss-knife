@@ -49,6 +49,7 @@ def apply_habits_ticktick_sync(
         "gap_not_done_to_hsk": 0,
     }
     errors: list[str] = []
+    hsk_writes: list[tuple[int, str, int]] = []
 
     def _tick(message: str) -> None:
         nonlocal current
@@ -56,26 +57,47 @@ def apply_habits_ticktick_sync(
         if progress is not None:
             progress(current, max(steps, 1), message)
 
+    for item in report.get("only_ticktick") or []:
+        name = str(item.get("name") or "").strip()
+        _tick(f"Create in HSK: {name}")
+        if not db_manager.add_habit(name, is_bool=True):
+            errors.append(f"{name}: failed to create habit in HSK")
+            continue
+        habit_id = _latest_habit_id_by_name(db_manager, name)
+        if habit_id is None:
+            errors.append(f"{name}: created in HSK but id not found")
+            continue
+        applied["created_in_hsk"] += 1
+        hsk_writes.extend((habit_id, str(day), 1) for day in item.get("done_dates") or [])
+        hsk_writes.extend((habit_id, str(day), 0) for day in item.get("gap_not_done_dates") or [])
+
     for item in report.get("matched") or []:
         name = str(item.get("name") or "")
         hsk_id = item.get("hsk_id")
-        tt_id = str(item.get("ticktick_id") or "")
-        if hsk_id is None or not tt_id:
-            errors.append(f"{name}: missing habit id")
+        if hsk_id is None:
+            errors.append(f"{name}: missing HSK habit id")
             continue
         habit_id = int(hsk_id)
-        for day in item.get("to_hsk_done_dates") or []:
-            _tick(f"{name}: HSK Done {day}")
-            if db_manager.set_habit_checkin(habit_id, str(day), 1):
-                applied["to_hsk_done"] += 1
-            else:
-                errors.append(f"{name}: failed HSK Done {day}")
-        for day in item.get("gap_not_done_to_hsk_dates") or []:
-            _tick(f"{name}: HSK Not done {day}")
-            if db_manager.set_habit_checkin(habit_id, str(day), 0):
-                applied["gap_not_done_to_hsk"] += 1
-            else:
-                errors.append(f"{name}: failed HSK Not done {day}")
+        hsk_writes.extend((habit_id, str(day), 1) for day in item.get("to_hsk_done_dates") or [])
+        hsk_writes.extend((habit_id, str(day), 0) for day in item.get("gap_not_done_to_hsk_dates") or [])
+
+    if hsk_writes:
+        done_count = sum(1 for _habit_id, _day, value in hsk_writes if value >= _DONE_MIN)
+        zero_count = len(hsk_writes) - done_count
+        _tick(f"Writing {len(hsk_writes)} HSK values")
+        try:
+            db_manager.upsert_habit_checkins(hsk_writes)
+            applied["to_hsk_done"] += done_count
+            applied["gap_not_done_to_hsk"] += zero_count
+        except (OSError, RuntimeError, ValueError) as exc:
+            errors.append(f"HSK batch write failed: {exc}")
+
+    for item in report.get("matched") or []:
+        name = str(item.get("name") or "")
+        tt_id = str(item.get("ticktick_id") or "")
+        if not tt_id:
+            errors.append(f"{name}: missing TickTick habit id")
+            continue
         for day in item.get("to_ticktick_done_dates") or []:
             _tick(f"{name}: TickTick Done {day}")
             try:
@@ -104,30 +126,6 @@ def apply_habits_ticktick_sync(
                 applied["to_ticktick_done"] += 1
             except (OSError, ValueError, RuntimeError) as exc:
                 errors.append(f"{name}: TickTick Done {day}: {exc}")
-
-    for item in report.get("only_ticktick") or []:
-        name = str(item.get("name") or "").strip()
-        _tick(f"Create in HSK: {name}")
-        if not db_manager.add_habit(name, is_bool=True):
-            errors.append(f"{name}: failed to create habit in HSK")
-            continue
-        habit_id = _latest_habit_id_by_name(db_manager, name)
-        if habit_id is None:
-            errors.append(f"{name}: created in HSK but id not found")
-            continue
-        applied["created_in_hsk"] += 1
-        for day in item.get("done_dates") or []:
-            _tick(f"{name}: HSK Done {day}")
-            if db_manager.set_habit_checkin(habit_id, str(day), 1):
-                applied["to_hsk_done"] += 1
-            else:
-                errors.append(f"{name}: failed HSK Done {day}")
-        for day in item.get("gap_not_done_dates") or []:
-            _tick(f"{name}: HSK Not done {day}")
-            if db_manager.set_habit_checkin(habit_id, str(day), 0):
-                applied["gap_not_done_to_hsk"] += 1
-            else:
-                errors.append(f"{name}: failed HSK Not done {day}")
 
     return {
         "applied": applied,
@@ -315,15 +313,19 @@ def format_habits_ticktick_sync_result(result: dict[str, Any]) -> str:
 
 
 def _count_apply_steps(report: dict[str, Any]) -> int:
-    total = 0
+    total = len(report.get("only_ticktick") or [])
+    hsk_writes = 0
     for item in report.get("matched") or []:
-        total += len(item.get("to_hsk_done_dates") or [])
-        total += len(item.get("gap_not_done_to_hsk_dates") or [])
+        hsk_writes += len(item.get("to_hsk_done_dates") or [])
+        hsk_writes += len(item.get("gap_not_done_to_hsk_dates") or [])
         total += len(item.get("to_ticktick_done_dates") or [])
+    for item in report.get("only_ticktick") or []:
+        hsk_writes += len(item.get("done_dates") or [])
+        hsk_writes += len(item.get("gap_not_done_dates") or [])
+    if hsk_writes:
+        total += 1
     for item in report.get("only_hsk") or []:
         total += 1 + len(item.get("done_dates") or [])
-    for item in report.get("only_ticktick") or []:
-        total += 1 + len(item.get("done_dates") or []) + len(item.get("gap_not_done_dates") or [])
     return total
 
 

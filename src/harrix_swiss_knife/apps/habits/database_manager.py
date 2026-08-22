@@ -11,6 +11,8 @@ from harrix_swiss_knife.apps.habits.habit_emojis import default_habit_emoji, nor
 
 logger = logging.getLogger(__name__)
 
+_CHECKIN_SQL_CHUNK = 200
+
 
 class DatabaseManager(QtSqliteDatabaseManagerBase):
     """Manage the connection and operations for a habits tracking database.
@@ -612,6 +614,101 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         }
         return self.execute_simple_query(query, params)
 
+    def upsert_habit_checkins(self, records: list[tuple[int, str, int]]) -> int:
+        """Set many habit/date values in one SQLite transaction.
+
+        The latest value for each `(habit_id, date)` wins. Existing latest rows
+        are updated, extra rows for those days are deleted, and missing days
+        are inserted with one multi-row `INSERT` per chunk.
+
+        Args:
+
+        - `records` (`list[tuple[int, str, int]]`): `(habit_id, YYYY-MM-DD, value)`.
+
+        Returns:
+
+        - `int`: Number of unique habit/date pairs written.
+
+        """
+        merged: dict[tuple[int, str], int] = {}
+        for habit_id, date_str, value in records:
+            merged[(int(habit_id), str(date_str))] = int(value)
+        if not merged:
+            return 0
+
+        habit_ids = sorted({habit_id for habit_id, _date in merged})
+        id_params = {f"hid{index}": habit_id for index, habit_id in enumerate(habit_ids)}
+        id_placeholders = ", ".join(f":hid{index}" for index in range(len(habit_ids)))
+        rows = self.get_rows(
+            f"""
+            SELECT _id, _id_habit, date
+            FROM process_habits
+            WHERE _id_habit IN ({id_placeholders})
+            ORDER BY _id ASC
+            """,
+            id_params,
+        )
+        latest: dict[tuple[int, str], int] = {}
+        extra_ids: list[int] = []
+        for row in rows:
+            if not row or row[0] is None or row[1] is None or not row[2]:
+                continue
+            key = (int(row[1]), str(row[2]))
+            if key not in merged:
+                continue
+            record_id = int(row[0])
+            previous = latest.get(key)
+            if previous is not None:
+                extra_ids.append(previous)
+            latest[key] = record_id
+
+        updates = [(latest[key], value) for key, value in merged.items() if key in latest]
+        inserts = [
+            (habit_id, value, date_str)
+            for (habit_id, date_str), value in merged.items()
+            if (habit_id, date_str) not in latest
+        ]
+
+        with self.sql_transaction():
+            for chunk in _chunks(extra_ids, _CHECKIN_SQL_CHUNK):
+                params = {f"id{index}": record_id for index, record_id in enumerate(chunk)}
+                placeholders = ", ".join(f":id{index}" for index in range(len(chunk)))
+                if not self.execute_simple_query(f"DELETE FROM process_habits WHERE _id IN ({placeholders})", params):
+                    msg = "Failed to delete extra process_habits rows during batch upsert"
+                    raise RuntimeError(msg)
+            for chunk in _chunks(updates, _CHECKIN_SQL_CHUNK):
+                params: dict[str, Any] = {}
+                cases: list[str] = []
+                ids: list[str] = []
+                for index, (record_id, value) in enumerate(chunk):
+                    params[f"id{index}"] = record_id
+                    params[f"v{index}"] = value
+                    cases.append(f"WHEN :id{index} THEN :v{index}")
+                    ids.append(f":id{index}")
+                query = (
+                    "UPDATE process_habits SET value = CASE _id "
+                    + " ".join(cases)
+                    + " END WHERE _id IN ("
+                    + ", ".join(ids)
+                    + ")"
+                )
+                if not self.execute_simple_query(query, params):
+                    msg = "Failed to update process_habits rows during batch upsert"
+                    raise RuntimeError(msg)
+            for chunk in _chunks(inserts, _CHECKIN_SQL_CHUNK):
+                params = {}
+                values_sql: list[str] = []
+                for index, (habit_id, value, date_str) in enumerate(chunk):
+                    params[f"h{index}"] = habit_id
+                    params[f"v{index}"] = value
+                    params[f"d{index}"] = date_str
+                    values_sql.append(f"(:h{index}, :v{index}, :d{index})")
+                query = "INSERT INTO process_habits (_id_habit, value, date) VALUES " + ", ".join(values_sql)
+                if not self.execute_simple_query(query, params):
+                    msg = "Failed to insert process_habits rows during batch upsert"
+                    raise RuntimeError(msg)
+        return len(merged)
+
     def _backfill_habit_emojis(self) -> bool:
         """Assign preset emoji to habits that still have an empty emoji value."""
         rows = self.get_rows("SELECT _id FROM habits WHERE emoji IS NULL OR TRIM(emoji) = ''")
@@ -625,6 +722,13 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             ):
                 return False
         return True
+
+
+def _chunks(items: list[Any], size: int) -> list[list[Any]]:
+    """Split `items` into consecutive slices of at most `size`."""
+    if size <= 0:
+        return [items] if items else []
+    return [items[index : index + size] for index in range(0, len(items), size)]
 
 
 def _parse_iso_date(value: str) -> date | None:
