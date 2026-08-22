@@ -15,6 +15,7 @@ lang: en
 - [🔧 Function `count_icon_grid_first_row`](#-function-count_icon_grid_first_row)
 - [🔧 Function `create_command_section`](#-function-create_command_section)
 - [🔧 Function `fit_icon_grid_height`](#-function-fit_icon_grid_height)
+- [🔧 Function `grow_qfont`](#-function-grow_qfont)
 - [🔧 Function `measure_icon_grid_height`](#-function-measure_icon_grid_height)
 - [🔧 Function `prepare_icon_grid`](#-function-prepare_icon_grid)
 - [🔧 Function `style_transparent_icon_grid`](#-function-style_transparent_icon_grid)
@@ -110,7 +111,7 @@ def create_command_section(*, title: str | None = None) -> tuple[QFrame, QLabel 
         label = QLabel(title)
         font = QFont(label.font())
         font.setBold(True)
-        font.setPointSize(font.pointSize() + 1)
+        grow_qfont(font)
         label.setFont(font)
         layout.addWidget(label)
 
@@ -142,6 +143,48 @@ def fit_icon_grid_height(grid: QListWidget) -> None:
     grid.setFixedHeight(height)
     grid.verticalScrollBar().setRange(0, 0)
     grid.horizontalScrollBar().setRange(0, 0)
+```
+
+</details>
+
+## 🔧 Function `grow_qfont`
+
+```python
+def grow_qfont(font: QFont, *, delta: int = 1, fallback_point_size: int = 10) -> QFont
+```
+
+Increase font size without calling `setPointSize` on a pixel-sized font.
+
+Windows system fonts often have `pointSize() == -1` and a pixel size instead.
+Passing that value to `QFont.setPointSize` logs
+`Point size <= 0 (-1)`.
+
+Args:
+
+- `font` (`QFont`): Font to grow in place.
+- `delta` (`int`): Size increment. Defaults to `1`.
+- `fallback_point_size` (`int`): Point size used when the font has neither
+  a point size nor a pixel size. Defaults to `10`.
+
+Returns:
+
+- `QFont`: The same `font` instance after the size change.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def grow_qfont(font: QFont, *, delta: int = 1, fallback_point_size: int = 10) -> QFont:
+    point_size = font.pointSize()
+    if point_size > 0:
+        font.setPointSize(point_size + delta)
+        return font
+    pixel_size = font.pixelSize()
+    if pixel_size > 0:
+        font.setPixelSize(pixel_size + delta)
+        return font
+    font.setPointSize(max(1, fallback_point_size + delta))
+    return font
 ```
 
 </details>

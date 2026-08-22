@@ -11,8 +11,67 @@ lang: en
 
 ## Contents
 
+- [🔧 Function `ensure_folder_git_repo`](#-function-ensure_folder_git_repo)
 - [🔧 Function `ensure_sqlite_folder_git_repo`](#-function-ensure_sqlite_folder_git_repo)
 - [🔧 Function `sqlite_folder_git_commit_message`](#-function-sqlite_folder_git_commit_message)
+
+</details>
+
+## 🔧 Function `ensure_folder_git_repo`
+
+```python
+def ensure_folder_git_repo(folder: Path) -> bool
+```
+
+Create a Git repo in `folder` with an initial `.gitkeep` commit when `.git` is missing.
+
+Args:
+
+- `folder` (`Path`): Directory to initialize as a Git repository.
+
+Returns:
+
+- `bool`: `True` when a new repository was created and committed.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def ensure_folder_git_repo(folder: Path) -> bool:
+    resolved = Path(folder).expanduser().resolve()
+    if not resolved.is_dir():
+        resolved.mkdir(parents=True, exist_ok=True)
+    if (resolved / ".git").exists():
+        return False
+    if shutil.which("git") is None:
+        logger.warning("git is not on PATH; skipped repository for %s", resolved)
+        return False
+
+    gitkeep = resolved / ".gitkeep"
+    if not gitkeep.is_file():
+        gitkeep.write_text("", encoding="utf-8")
+
+    code, output = run_argv_output(["git", "init"], cwd=resolved)
+    if code != 0:
+        logger.warning("git init failed in %s: %s", resolved, output)
+        return False
+
+    _ensure_git_identity(resolved)
+    code, output = run_argv_output(["git", "add", "--", ".gitkeep"], cwd=resolved)
+    if code != 0:
+        logger.warning("git add failed for %s: %s", resolved, output)
+        return False
+
+    day = datetime.now(tz=UTC).astimezone().date()
+    message = f"➕ Add .gitkeep ({day.isoformat()})"  # noqa: RUF001
+    code, output = run_argv_output(["git", "commit", "-m", message], cwd=resolved)
+    if code != 0:
+        logger.warning("git commit failed in %s: %s", resolved, output)
+        return False
+
+    logger.info("Created git repository in %s (%s)", resolved, message)
+    return True
+```
 
 </details>
 

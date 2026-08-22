@@ -8,6 +8,10 @@ import shutil
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from harrix_swiss_knife.data_for_hsk_config import (
+    DEFAULT_DATA_FOR_HSK_NOTES_FOLDERS,
+    build_config_updates,
+)
 from harrix_swiss_knife.installer.constants import HSK_REPO_NAME, REPO_NAMES
 
 if TYPE_CHECKING:
@@ -45,7 +49,7 @@ def apply_config_defaults(hsk_path: Path, log: OutcomeLog) -> None:
     log.add("installed", "Configured show_main_window_on_startup=true")
 
     _apply_stack_paths(data, install_root=install_root, siblings=siblings, hsk=hsk, log=log)
-    _apply_database_paths(data=data, hsk_path=hsk, log=log)
+    _apply_data_for_hsk_paths(data=data, install_root=install_root, log=log)
 
     config_path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
@@ -62,21 +66,21 @@ def is_unset_config_path(value: object) -> bool:
         return True
 
 
-def _apply_database_paths(*, data: dict[str, Any], hsk_path: Path, log: OutcomeLog) -> None:
-    log.step("Default databases paths (fresh PC fallback)")
-    db_dir = hsk_path / "data" / "databases"
-    db_dir.mkdir(parents=True, exist_ok=True)
-    apps = (
-        ("sqlite_finance", "finance.db"),
-        ("sqlite_fitness", "fitness.db"),
-        ("sqlite_habits", "habits.db"),
-        ("sqlite_food", "food.db"),
+def _apply_data_for_hsk_paths(*, data: dict[str, Any], install_root: Path, log: OutcomeLog) -> None:
+    """Point personal data paths at `<install_root>/data-for-hsk` (folders created on first tray run)."""
+    log.step("Default data-for-hsk paths (personal data outside repo)")
+    data_root = (install_root / "data-for-hsk").resolve()
+    updates = build_config_updates(data_root, DEFAULT_DATA_FOR_HSK_NOTES_FOLDERS)
+    updates.pop("data_for_hsk_setup_done", None)
+    for key, value in updates.items():
+        if key.startswith("sqlite_") and not is_unset_config_path(data.get(key)):
+            continue
+        data[key] = value
+        log.add("installed", f"Set {key}={value}")
+    log.add(
+        "skipped",
+        "Create databases and Notes on first tray start (Dev → Set up data-for-hsk) or when prompted",
     )
-    for key, filename in apps:
-        if is_unset_config_path(data.get(key)):
-            new_path = (db_dir / filename).as_posix()
-            data[key] = new_path
-            log.add("installed", f"Set {key}={new_path}")
 
 
 def _apply_stack_paths(
@@ -128,9 +132,6 @@ def _apply_stack_paths(
         }
     ]
     log.add("installed", f"Set paths_combine_for_ai for {HSK_REPO_NAME}")
-
-    data["paths_git"] = project_paths
-    log.add("installed", f"Set paths_git={project_paths}")
 
 
 def _ensure_config_json(hsk_path: Path, log: OutcomeLog) -> Path | None:

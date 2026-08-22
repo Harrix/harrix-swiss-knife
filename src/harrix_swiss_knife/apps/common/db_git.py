@@ -15,6 +15,53 @@ _FALLBACK_GIT_NAME = "Harrix Swiss Knife"
 _FALLBACK_GIT_EMAIL = "harrix-swiss-knife@local"
 
 
+def ensure_folder_git_repo(folder: Path) -> bool:
+    """Create a Git repo in `folder` with an initial `.gitkeep` commit when `.git` is missing.
+
+    Args:
+
+    - `folder` (`Path`): Directory to initialize as a Git repository.
+
+    Returns:
+
+    - `bool`: `True` when a new repository was created and committed.
+
+    """
+    resolved = Path(folder).expanduser().resolve()
+    if not resolved.is_dir():
+        resolved.mkdir(parents=True, exist_ok=True)
+    if (resolved / ".git").exists():
+        return False
+    if shutil.which("git") is None:
+        logger.warning("git is not on PATH; skipped repository for %s", resolved)
+        return False
+
+    gitkeep = resolved / ".gitkeep"
+    if not gitkeep.is_file():
+        gitkeep.write_text("", encoding="utf-8")
+
+    code, output = run_argv_output(["git", "init"], cwd=resolved)
+    if code != 0:
+        logger.warning("git init failed in %s: %s", resolved, output)
+        return False
+
+    _ensure_git_identity(resolved)
+    code, output = run_argv_output(["git", "add", "--", ".gitkeep"], cwd=resolved)
+    if code != 0:
+        logger.warning("git add failed for %s: %s", resolved, output)
+        return False
+
+    day = datetime.now(tz=UTC).astimezone().date()
+    message = f"➕ Add .gitkeep ({day.isoformat()})"  # noqa: RUF001
+    code, output = run_argv_output(["git", "commit", "-m", message], cwd=resolved)
+    if code != 0:
+        logger.warning("git commit failed in %s: %s", resolved, output)
+        return False
+
+    logger.info("Created git repository in %s (%s)", resolved, message)
+    return True
+
+
 def ensure_sqlite_folder_git_repo(db_path: Path) -> bool:
     """Create a Git repo in the database folder and commit the SQLite file if needed.
 

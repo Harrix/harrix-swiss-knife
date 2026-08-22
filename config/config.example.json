@@ -32,6 +32,16 @@
     "purgecss.config.js"
   ],
   "compact_mode": false,
+  "data_for_hsk_notes_folders": [
+    "Notes",
+    "Notes-Diaries",
+    "Notes-External",
+    "Notes-Health",
+    "Notes-Lists",
+    "Notes-Places",
+    "Notes-Temp"
+  ],
+  "data_for_hsk_root": "<YOUR_GITHUB_FOLDER>/data-for-hsk",
   "hotkeys": [
     {
       "action": "OnQuickLauncher",
@@ -190,19 +200,19 @@
     "prettier"
   ],
   "path_3d": "<YOUR_DOWNLOADS_FOLDER>",
-  "path_articles": "<YOUR_ARTICLES_FOLDER>",
+  "path_articles": "<YOUR_GITHUB_FOLDER>/data-for-hsk/Notes/Notes",
   "path_books": "<YOUR_BOOKS_FOLDER>",
-  "path_cases": "<YOUR_CASES_FOLDER>",
-  "path_diary": "<YOUR_DIARY_FOLDER>",
-  "path_dream": "<YOUR_DREAM_FOLDER>",
-  "path_memories": "<YOUR_MEMORIES_FOLDER>",
+  "path_cases": "<YOUR_GITHUB_FOLDER>/data-for-hsk/Notes/Notes-External",
+  "path_diary": "<YOUR_GITHUB_FOLDER>/data-for-hsk/Notes/Notes-Diaries",
+  "path_dream": "<YOUR_GITHUB_FOLDER>/data-for-hsk/Notes/Notes-Diaries",
+  "path_memories": "<YOUR_GITHUB_FOLDER>/data-for-hsk/Notes/Notes-Diaries",
   "path_github": "<YOUR_GITHUB_FOLDER>",
   "path_harrix_notes_explorer": "<YOUR_HARRIX_NOTES_EXPLORER_REPO>",
   "path_image_viewer": "<YOUR_IMAGE_VIEWER_EXE>",
-  "path_last_note_folder": "<YOUR_LAST_NOTE_FOLDER>",
-  "path_notes": "<YOUR_NOTES_FOLDER>",
+  "path_last_note_folder": "<YOUR_GITHUB_FOLDER>/data-for-hsk/Notes/Notes",
+  "path_notes": "<YOUR_GITHUB_FOLDER>/data-for-hsk/Notes/Notes",
   "path_photos": "<YOUR_PHOTOS_FOLDER>",
-  "path_quotes": "<YOUR_QUOTES_FOLDER>",
+  "path_quotes": "<YOUR_GITHUB_FOLDER>/data-for-hsk/Notes/Notes-Lists",
   "path_totalcmd_ini": "<YOUR_TOTALCMD_WINCMD_INI>",
   "path_vector_icons": "<YOUR_GITHUB_FOLDER>/Harrix-Vector-Icons",
   "path_vector_icons_ai": "<YOUR_GITHUB_FOLDER>/Harrix-Vector-Icons-ai",
@@ -223,13 +233,27 @@
     }
   ],
   "paths_git": [
-    "<YOUR_PATH>"
+    "<YOUR_GITHUB_FOLDER>/data-for-hsk/Notes/Notes",
+    "<YOUR_GITHUB_FOLDER>/data-for-hsk/Notes/Notes-Diaries",
+    "<YOUR_GITHUB_FOLDER>/data-for-hsk/Notes/Notes-External",
+    "<YOUR_GITHUB_FOLDER>/data-for-hsk/Notes/Notes-Health",
+    "<YOUR_GITHUB_FOLDER>/data-for-hsk/Notes/Notes-Lists",
+    "<YOUR_GITHUB_FOLDER>/data-for-hsk/Notes/Notes-Places",
+    "<YOUR_GITHUB_FOLDER>/data-for-hsk/Notes/Notes-Temp",
+    "<YOUR_GITHUB_FOLDER>/data-for-hsk/databases"
   ],
   "paths_notes": [
-    "<YOUR_PATH>"
+    "<YOUR_GITHUB_FOLDER>/data-for-hsk/Notes/Notes",
+    "<YOUR_GITHUB_FOLDER>/data-for-hsk/Notes/Notes-Diaries",
+    "<YOUR_GITHUB_FOLDER>/data-for-hsk/Notes/Notes-External",
+    "<YOUR_GITHUB_FOLDER>/data-for-hsk/Notes/Notes-Health",
+    "<YOUR_GITHUB_FOLDER>/data-for-hsk/Notes/Notes-Lists",
+    "<YOUR_GITHUB_FOLDER>/data-for-hsk/Notes/Notes-Places",
+    "<YOUR_GITHUB_FOLDER>/data-for-hsk/Notes/Notes-Temp"
   ],
   "paths_notes_for_summaries": [
-    "<YOUR_PATH>"
+    "<YOUR_GITHUB_FOLDER>/data-for-hsk/Notes/Notes",
+    "<YOUR_GITHUB_FOLDER>/data-for-hsk/Notes/Notes-Diaries"
   ],
   "paths_android_projects": [
     "<YOUR_GITHUB_FOLDER>/harrix-swiss-knife/android"
@@ -327,10 +351,10 @@
   "github_token": "snippet:api-keys/github-token.txt",
   "pypi_token": "snippet:api-keys/pypi-token.txt",
   "show_main_window_on_startup": false,
-  "sqlite_finance": "<YOUR_FINANCE_DB>",
-  "sqlite_fitness": "<YOUR_FITNESS_DB>",
-  "sqlite_food": "<YOUR_FOOD_DB>",
-  "sqlite_habits": "<YOUR_HABITS_DB>",
+  "sqlite_finance": "<YOUR_GITHUB_FOLDER>/data-for-hsk/databases/finance.db",
+  "sqlite_fitness": "<YOUR_GITHUB_FOLDER>/data-for-hsk/databases/fitness.db",
+  "sqlite_food": "<YOUR_GITHUB_FOLDER>/data-for-hsk/databases/food.db",
+  "sqlite_habits": "<YOUR_GITHUB_FOLDER>/data-for-hsk/databases/habits.db",
   "start_pattern_jupyter_notebooks": "jupyter-notebook-",
   "start_pattern_py_projects": "python-project-",
   "vscode_workspace_articles": "<YOUR_ARTICLES_CODE_WORKSPACE>",

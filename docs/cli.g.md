@@ -24,6 +24,7 @@ lang: en
 - [🔧 Function `dev_install_harrix_notes_explorer_hsk`](#-function-dev_install_harrix_notes_explorer_hsk)
 - [🔧 Function `dev_install_private_data`](#-function-dev_install_private_data)
 - [🔧 Function `dev_pack_private_data`](#-function-dev_pack_private_data)
+- [🔧 Function `dev_setup_data_for_hsk`](#-function-dev_setup_data_for_hsk)
 - [🔧 Function `file_group`](#-function-file_group)
 - [🔧 Function `file_discard_git_changes`](#-function-file_discard_git_changes)
 - [🔧 Function `markdown_group`](#-function-markdown_group)
@@ -335,6 +336,26 @@ Alias for `private-data export`.
 ```python
 def dev_pack_private_data(zip_path: Path | None, *, api_keys: bool, fitness: bool) -> None:
     _invoke_transfer_private_data(mode="export", zip_path=zip_path, api_keys=api_keys, fitness=fitness)
+```
+
+</details>
+
+## 🔧 Function `dev_setup_data_for_hsk`
+
+```python
+def dev_setup_data_for_hsk(parent_dir: Path) -> None
+```
+
+Create `data-for-hsk` with databases, Notes folders, and Git repos.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def dev_setup_data_for_hsk(parent_dir: Path) -> None:
+    action = OnSetupDataForHsk()
+    action(noninteractive=True, parent_dir=parent_dir)
+    _exit_if_action_failed(action)
 ```
 
 </details>

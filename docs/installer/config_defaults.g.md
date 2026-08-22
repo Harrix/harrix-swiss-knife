@@ -54,7 +54,7 @@ def apply_config_defaults(hsk_path: Path, log: OutcomeLog) -> None:
     log.add("installed", "Configured show_main_window_on_startup=true")
 
     _apply_stack_paths(data, install_root=install_root, siblings=siblings, hsk=hsk, log=log)
-    _apply_database_paths(data=data, hsk_path=hsk, log=log)
+    _apply_data_for_hsk_paths(data=data, install_root=install_root, log=log)
 
     config_path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 ```

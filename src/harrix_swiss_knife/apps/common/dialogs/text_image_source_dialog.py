@@ -224,9 +224,9 @@ class TextImageSourceDialog(QDialog):
         if self._large_ui:
             self.setStyleSheet(
                 """
-                QLabel { font-size: 20px; }
-                QPlainTextEdit { font-size: 22px; }
-                QPushButton { min-height: 52px; font-size: 18px; padding: 8px 20px; }
+                QLabel { font-size: 15pt; }
+                QPlainTextEdit { font-size: 16pt; }
+                QPushButton { min-height: 52px; font-size: 14pt; padding: 8px 20px; }
                 """
             )
         self._update_ok_enabled()

@@ -433,5 +433,9 @@ def test_apply_config_defaults_sets_stack_paths(tmp_path: Path) -> None:
     assert data["paths_android_projects"] == [(hsk / "android").resolve().as_posix()]
     assert data["paths_python_project_creation"] == [root.resolve().as_posix()]
     assert data["paths_combine_for_ai"][0]["base_folder"] == hsk.resolve().as_posix()
+    data_root = (root / "data-for-hsk").resolve()
+    assert Path(data["data_for_hsk_root"]) == data_root
     assert "finance.db" in data["sqlite_finance"]
-    assert (hsk / "data" / "databases").is_dir()
+    assert data["sqlite_finance"].startswith(data_root.as_posix())
+    assert data["path_notes"] == (data_root / "Notes" / "Notes").as_posix()
+    assert "data-for-hsk/databases" in data["paths_git"][-1]

@@ -15,6 +15,7 @@ from harrix_swiss_knife.actions.android import OnAndroidBuild, OnAndroidCheck, O
 from harrix_swiss_knife.actions.development import (
     OnBuildInstallZips,
     OnInstallCli,
+    OnSetupDataForHsk,
     OnShowActionUsageStats,
     OnTransferPrivateData,
 )
@@ -232,6 +233,21 @@ def dev_install_private_data(zip_path: Path | None, *, api_keys: bool, fitness: 
 def dev_pack_private_data(zip_path: Path | None, *, api_keys: bool, fitness: bool) -> None:
     """Alias for `private-data export`."""
     _invoke_transfer_private_data(mode="export", zip_path=zip_path, api_keys=api_keys, fitness=fitness)
+
+
+@dev_group.command("setup-data-for-hsk")
+@click.option(
+    "--parent",
+    "parent_dir",
+    type=click.Path(exists=True, file_okay=False, path_type=Path),
+    required=True,
+    help="Parent folder where `data-for-hsk` will be created.",
+)
+def dev_setup_data_for_hsk(parent_dir: Path) -> None:
+    """Create `data-for-hsk` with databases, Notes folders, and Git repos."""
+    action = OnSetupDataForHsk()
+    action(noninteractive=True, parent_dir=parent_dir)
+    _exit_if_action_failed(action)
 
 
 @cli.group("file")

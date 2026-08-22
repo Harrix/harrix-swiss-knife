@@ -66,6 +66,7 @@ _Figure 1: Screenshot_
   - ⬇️ Download ffmpeg, avifenc, avifdec
   - ⌨️ Install CLI (hsk on PATH) ꟲᴸᴵ
   - ⚙️ Open `config.json`
+  - 📁 Set up data-for-hsk ꟲᴸᴵ
   - ⚙️ Settings Editor
   - 📊 Show action usage stats ꟲᴸᴵ
   - 📌 Sync Quick Access folders to Total Commander

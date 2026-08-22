@@ -235,6 +235,28 @@ def run_tray_application(log: logging.Logger, *, main_menu_cls: type[MainMenuBas
             log.info("Showing main window on startup")
             tray_icon.ensure_main_window().show_window()
 
+        _offer_data_for_hsk_setup_if_needed(config, log)
+
+    def _offer_data_for_hsk_setup_if_needed(cfg: dict, startup_log: logging.Logger) -> None:
+        if not needs_data_for_hsk_setup(cfg):
+            return
+        reply = QMessageBox.question(
+            None,
+            "Set up personal data folder?",
+            (
+                "Harrix Swiss Knife can create a `data-for-hsk` folder with SQLite databases "
+                "and Notes subfolders outside the application directory.\n\n"
+                "Recommended before using Finance, Food, Fitness, Habits, and note actions.\n\n"
+                "You can also run Dev → Set up data-for-hsk later."
+            ),
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.Yes,
+        )
+        if reply != QMessageBox.StandardButton.Yes:
+            startup_log.info("User skipped data-for-hsk setup on first run")
+            return
+        run_setup_data_for_hsk_dialog(cfg, parent=None, log=startup_log)
+
     QTimer.singleShot(0, finish_startup)
     QTimer.singleShot(0, prune_action_output_dir)
 

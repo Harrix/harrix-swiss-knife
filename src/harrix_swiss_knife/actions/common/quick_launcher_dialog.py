@@ -31,6 +31,7 @@ from harrix_swiss_knife.qt_action_card_grid import CARD_ICON_SIZE, configure_act
 from harrix_swiss_knife.qt_command_section import (
     apply_opaque_white,
     create_command_section,
+    grow_qfont,
     measure_icon_grid_height,
     style_transparent_icon_grid,
 )
@@ -82,7 +83,7 @@ class QuickLauncherDialog(QDialog):
 
         title = QLabel("Quick launcher")
         title_font = QFont(title.font())
-        title_font.setPointSize(title_font.pointSize() + 1)
+        grow_qfont(title_font)
         title_font.setBold(True)
         title.setFont(title_font)
         title.setCursor(Qt.CursorShape.OpenHandCursor)

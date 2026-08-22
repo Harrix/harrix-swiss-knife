@@ -23,9 +23,11 @@ from harrix_swiss_knife.action_hotkeys import load_action_hotkeys
 from harrix_swiss_knife.action_output_bus import ActionOutputBus
 from harrix_swiss_knife.actions.common.quick_launcher_context import QuickLauncherContext, set_quick_launcher_context
 from harrix_swiss_knife.actions.common.quick_launcher_registry import iter_menu_structure
+from harrix_swiss_knife.actions.development.setup_data_for_hsk import run_setup_data_for_hsk_dialog
 from harrix_swiss_knife.apps.common.uic_compile import install_safe_qt_translate
 from harrix_swiss_knife.cli_menu import CliContextMenu
 from harrix_swiss_knife.config_model import get_show_main_window_on_startup
+from harrix_swiss_knife.data_for_hsk import needs_data_for_hsk_setup
 from harrix_swiss_knife.global_hotkey import GlobalHotkeyManager
 from harrix_swiss_knife.main_menu_base import set_menu_tooltips_visible_recursive
 from harrix_swiss_knife.menu_structure import get_menu_structure
@@ -203,6 +205,28 @@ def run_tray_application(log: logging.Logger, *, main_menu_cls: type[MainMenuBas
         if show_main_window:
             log.info("Showing main window on startup")
             tray_icon.ensure_main_window().show_window()
+
+        _offer_data_for_hsk_setup_if_needed(config, log)
+
+    def _offer_data_for_hsk_setup_if_needed(cfg: dict, startup_log: logging.Logger) -> None:
+        if not needs_data_for_hsk_setup(cfg):
+            return
+        reply = QMessageBox.question(
+            None,
+            "Set up personal data folder?",
+            (
+                "Harrix Swiss Knife can create a `data-for-hsk` folder with SQLite databases "
+                "and Notes subfolders outside the application directory.\n\n"
+                "Recommended before using Finance, Food, Fitness, Habits, and note actions.\n\n"
+                "You can also run Dev → Set up data-for-hsk later."
+            ),
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.Yes,
+        )
+        if reply != QMessageBox.StandardButton.Yes:
+            startup_log.info("User skipped data-for-hsk setup on first run")
+            return
+        run_setup_data_for_hsk_dialog(cfg, parent=None, log=startup_log)
 
     QTimer.singleShot(0, finish_startup)
     QTimer.singleShot(0, prune_action_output_dir)
