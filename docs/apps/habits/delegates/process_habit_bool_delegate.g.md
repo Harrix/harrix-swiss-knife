@@ -407,7 +407,7 @@ Map model storage to absent / checked / unchecked.
 
 Args:
 
-- [`value`](../dashboard_widgets.g.md#%EF%B8%8F-method-value) (`object`): Display/edit value from the model.
+- `value` (`object`): Display/edit value from the model.
 - `record_id` (`object`): First element of UserRole tuple, or `None` if no DB row.
 
 Returns:

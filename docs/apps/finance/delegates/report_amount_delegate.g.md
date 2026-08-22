@@ -192,7 +192,7 @@ Format display text with spaces for thousands separator and subscript decimals.
 
 Args:
 
-- [`value`](../../habits/dashboard_widgets.g.md#%EF%B8%8F-method-value) (`object`): The value to format for display.
+- `value` (`object`): The value to format for display.
 - `_locale` (`QLocale`): The locale for formatting (unused in this implementation).
 
 Returns:

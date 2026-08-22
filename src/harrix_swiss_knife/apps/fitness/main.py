@@ -102,6 +102,10 @@ from harrix_swiss_knife.apps.fitness import database_manager, window
 from harrix_swiss_knife.apps.fitness.exercise_add_dialog import ExerciseAddDialog
 from harrix_swiss_knife.apps.fitness.exercise_media_worker import ExerciseMediaSaveWorker
 from harrix_swiss_knife.apps.fitness.exercise_type_add_dialog import ExerciseTypeAddDialog
+from harrix_swiss_knife.apps.fitness.fitness_dashboard import (
+    FitnessDashboardExercise,
+    FitnessDashboardWidget,
+)
 from harrix_swiss_knife.apps.fitness.mixins import (
     AutoSaveOperations,
     ChartOperations,
@@ -163,6 +167,7 @@ class MainWindow(
     def __init__(self, *, hide_on_close: bool = False) -> None:  # noqa: D107
         super().__init__()
         try_apply_system_backdrop(self, backdrop=SystemBackdrop.MICA)
+        self._fitness_dashboard: FitnessDashboardWidget | None = None
         self.setupUi(self)
         # Install event filter for chart info label to handle double-click
         self.label_chart_info.installEventFilter(self)
@@ -553,74 +558,13 @@ class MainWindow(
         if not exercise:
             message_box.warning(self, "Error", "Please select an exercise")
             return
-
-        if self.db_manager is None:
-            logger.error("❌ Database manager is not initialized")
-            return
-
-        try:
-            ex_id = self.db_manager.get_id("exercises", "name", exercise)
-            if ex_id is None:
-                message_box.warning(self, "Error", f"Exercise '{exercise}' not found in database")
-                return
-
-            type_name = self.comboBox_type.currentText()
-
-            # Check if exercise type is required
-            if self.db_manager.is_exercise_type_required(ex_id) and not type_name.strip():
-                message_box.warning(self, "Error", f"Exercise type is required for '{exercise}'. Please select a type.")
-                return
-
-            if type_name:
-                type_rows = self.db_manager.get_rows(
-                    "SELECT _id FROM types WHERE type = :name AND _id_exercises = :ex_id",
-                    {"name": type_name, "ex_id": ex_id},
-                )
-                type_id = type_rows[0][0] if type_rows else None
-            else:
-                type_id = -1
-
-            # Store current date before adding record
-            value = str(self.spinBox_count.value())
-            date_str = self.dateEdit.date().toString("yyyy-MM-dd")
-
-            # Get current value as float for record checking
-            current_value = float(value)
-
-            # Check for records before adding the new record
-            record_info = self._check_for_new_records(
-                ex_id, type_id if type_id is not None else -1, current_value, type_name
-            )
-
-            # Use database manager method
-            if self.db_manager.add_process_record(ex_id, type_id or -1, value, date_str):
-                # Show congratulations if new record was set
-                if record_info:
-                    self._show_record_congratulations(exercise, record_info)
-
-                # Check if monthly goal was achieved
-                monthly_goal_achieved, current_progress = self._check_for_monthly_goal_achievement(
-                    ex_id, current_value, date_str
-                )
-                if monthly_goal_achieved:
-                    self._show_monthly_goal_congratulations(exercise, type_name, current_progress)
-
-                # Apply date increment logic
-                self._increment_date_widget(self.dateEdit)
-
-                # Update UI without resetting the date
-                self.show_tables()
-                self._update_comboboxes(selected_exercise=exercise, selected_type=type_name)
-                self.update_filter_comboboxes()
-                self.update_sets_count_today()
-
-                # Update the exercise info to reflect today's new total
-                self.on_exercise_selection_changed_list()
-            else:
-                message_box.warning(self, "Error", "Failed to add process record")
-
-        except Exception as e:
-            message_box.warning(self, "Database Error", f"Failed to add record: {e}")
+        self._commit_process_record(
+            exercise,
+            self.comboBox_type.currentText(),
+            str(self.spinBox_count.value()),
+            self.dateEdit.date().toString("yyyy-MM-dd"),
+            increment_date=True,
+        )
 
     @requires_database()
     def on_add_type(self) -> None:
@@ -691,9 +635,7 @@ class MainWindow(
                 self.show_tables()
 
                 # Update weight chart if we're on the weight tab
-                current_tab_index = self.tabWidget.currentIndex()
-                weight_tab_index = 3
-                if current_tab_index == weight_tab_index:
+                if self.tabWidget.currentWidget() is self.tab_5:
                     self.update_weight_chart()
             else:
                 message_box.warning(self, "Error", "Failed to add weight record")
@@ -1655,6 +1597,27 @@ class MainWindow(
         except Exception as e:
             message_box.warning(self, "Export Error", f"Failed to export CSV: {e}")
 
+    @requires_database()
+    def on_fitness_dashboard_add(self) -> None:
+        """Insert today's process record from the dashboard value field."""
+        if self._fitness_dashboard is None:
+            return
+        exercise = self._fitness_dashboard.selected_exercise()
+        if not exercise:
+            message_box.warning(self, "Error", "Please select an exercise")
+            return
+        self._commit_process_record(
+            exercise,
+            self._fitness_dashboard.selected_type(),
+            str(self._fitness_dashboard.value()),
+            QDate.currentDate().toString("yyyy-MM-dd"),
+            increment_date=False,
+        )
+
+    def on_fitness_dashboard_exercise_changed(self, exercise: str) -> None:
+        """Load unit, types, and last value for the dashboard exercise."""
+        self._load_fitness_dashboard_exercise_details(exercise)
+
     def on_open_exercise_images_folder(self) -> None:
         """Open the `fitness_img` folder that stores exercise AVIF media."""
         img_dir = self._resolve_exercise_images_dir()
@@ -2502,20 +2465,21 @@ class MainWindow(
         - `index` (`int`): The index of the newly selected tab.
 
         """
-        index_tab_charts = 1
-        index_tab_weight = 3
-        index_tab_statistics = 4
-
-        # Note: Main tab (index 0) needs no updates - data loaded on startup
-        if index == index_tab_charts:  # Exercise Chart tab
+        widget = self.tabWidget.widget(index)
+        if widget is self.tab:
+            QTimer.singleShot(0, self._apply_sets_splitter_sizes)
+            QTimer.singleShot(0, self._adjust_process_table_columns)
+            QTimer.singleShot(50, self._adjust_process_table_columns)
+            return
+        if widget is self.tab_charts:  # Exercise Chart tab
             self.update_chart_comboboxes()
             self._load_default_exercise_chart()
             if not self._get_selected_chart_exercise():
                 self._select_last_executed_exercise()
             self._update_charts_avif()
-        elif index == index_tab_weight:  # Weight tab
+        elif widget is self.tab_5:  # Weight tab
             self.set_weight_all_time()
-        elif index == index_tab_statistics:  # Statistics tab
+        elif widget is self.tab_4:  # Statistics tab
             self._load_default_statistics()
             # If statistics is already initialized, update with current exercise
             if hasattr(self, "_statistics_initialized"):
@@ -3296,14 +3260,20 @@ class MainWindow(
 
         if not self._validate_database_connection():
             self.label_count_sets_today.setText("0")
+            if self._fitness_dashboard is not None:
+                self._fitness_dashboard.set_today_sets(0)
             return
 
         try:
             count = self.db_manager.get_sets_count_today()
             self.label_count_sets_today.setText(str(count))
+            if self._fitness_dashboard is not None:
+                self._fitness_dashboard.set_today_sets(count)
         except Exception:
             logger.exception("Error getting sets count for today")
             self.label_count_sets_today.setText("0")
+            if self._fitness_dashboard is not None:
+                self._fitness_dashboard.set_today_sets(0)
 
     @requires_database(is_show_warning=False)
     def update_statistics_exercise_combobox(self, _index: int = -1) -> None:
@@ -4167,6 +4137,8 @@ class MainWindow(
         """Adjust process table column widths proportionally to window size."""
         if not hasattr(self, "tableView_process") or not self.tableView_process.model():
             return
+        if not self.tableView_process.isVisible():
+            return
 
         # Get current table width
         table_width = self.tableView_process.width()
@@ -4245,6 +4217,8 @@ class MainWindow(
     def _apply_sets_splitter_sizes(self) -> None:
         """Restore Sets-tab splitter widths so the exercise list is not squeezed."""
         if getattr(self, "_is_closing", False) or not hasattr(self, "splitter"):
+            return
+        if not self.tab.isVisible():
             return
 
         total = self.splitter.width()
@@ -4371,6 +4345,80 @@ class MainWindow(
         self._exercise_media_toast = None
         if toast is not None:
             toast.close()
+
+    @requires_database()
+    def _commit_process_record(
+        self,
+        exercise: str,
+        type_name: str,
+        value: str,
+        date_str: str,
+        *,
+        increment_date: bool,
+    ) -> None:
+        """Insert a process record and refresh Sets plus dashboard widgets.
+
+        Args:
+
+        - `exercise` (`str`): Exercise name.
+        - `type_name` (`str`): Optional type name.
+        - `value` (`str`): Quantity to store.
+        - `date_str` (`str`): Date in `YYYY-MM-DD` format.
+        - `increment_date` (`bool`): Advance the Sets-tab date after a successful insert.
+
+        """
+        if self.db_manager is None:
+            logger.error("❌ Database manager is not initialized")
+            return
+
+        try:
+            ex_id = self.db_manager.get_id("exercises", "name", exercise)
+            if ex_id is None:
+                message_box.warning(self, "Error", f"Exercise '{exercise}' not found in database")
+                return
+
+            if self.db_manager.is_exercise_type_required(ex_id) and not type_name.strip():
+                message_box.warning(self, "Error", f"Exercise type is required for '{exercise}'. Please select a type.")
+                return
+
+            if type_name:
+                type_rows = self.db_manager.get_rows(
+                    "SELECT _id FROM types WHERE type = :name AND _id_exercises = :ex_id",
+                    {"name": type_name, "ex_id": ex_id},
+                )
+                type_id = type_rows[0][0] if type_rows else None
+            else:
+                type_id = -1
+
+            current_value = float(value)
+            record_info = self._check_for_new_records(
+                ex_id, type_id if type_id is not None else -1, current_value, type_name
+            )
+
+            if self.db_manager.add_process_record(ex_id, type_id or -1, value, date_str):
+                if record_info:
+                    self._show_record_congratulations(exercise, record_info)
+
+                monthly_goal_achieved, current_progress = self._check_for_monthly_goal_achievement(
+                    ex_id, current_value, date_str
+                )
+                if monthly_goal_achieved:
+                    self._show_monthly_goal_congratulations(exercise, type_name, current_progress)
+
+                if increment_date:
+                    self._increment_date_widget(self.dateEdit)
+
+                self.show_tables()
+                self._update_comboboxes(selected_exercise=exercise, selected_type=type_name)
+                self.update_filter_comboboxes()
+                self.update_sets_count_today()
+                self.on_exercise_selection_changed_list()
+                if self.tabWidget.currentWidget() is self.tab_fitness_dashboard and self._fitness_dashboard is not None:
+                    QTimer.singleShot(0, self._fitness_dashboard.focus_value)
+            else:
+                message_box.warning(self, "Error", "Failed to add process record")
+        except Exception as e:
+            message_box.warning(self, "Database Error", f"Failed to add record: {e}")
 
     def _configure_exercise_image_table(self, table_view: QTableView) -> None:
         """Show a fixed first column for the exercise still image."""
@@ -5468,6 +5516,44 @@ class MainWindow(
 
         self.avif_manager.load_exercise_avif(exercise_name, label_widget, label_key)
 
+    def _load_fitness_dashboard_exercise_details(self, exercise: str) -> None:
+        """Fill dashboard unit, types, and last value for `exercise`."""
+        if self._fitness_dashboard is None:
+            return
+        if not exercise or self.db_manager is None or not self._validate_database_connection():
+            self._fitness_dashboard.set_types([])
+            self._fitness_dashboard.set_unit("")
+            return
+
+        ex_id = self.db_manager.get_id("exercises", "name", exercise)
+        if ex_id is None:
+            self._fitness_dashboard.set_types([])
+            self._fitness_dashboard.set_unit("")
+            return
+
+        self._fitness_dashboard.set_unit(self.db_manager.get_exercise_unit(exercise))
+        types = self.db_manager.get_exercise_types(ex_id)
+        last_type = ""
+        last_record = self.db_manager.get_last_exercise_record(ex_id)
+        if last_record:
+            last_type, last_value = last_record
+            if ex_id == self.id_steps:
+                self._fitness_dashboard.set_value(0)
+            else:
+                try:
+                    self._fitness_dashboard.set_value(int(float(last_value)))
+                except (ValueError, TypeError):
+                    logger.exception(
+                        "Could not convert last value '%s' to int for exercise '%s'",
+                        last_value,
+                        exercise,
+                    )
+        elif ex_id == self.id_steps:
+            self._fitness_dashboard.set_value(0)
+        self._fitness_dashboard.set_types(types, selected=last_type)
+        if self.tabWidget.currentWidget() is self.tab_fitness_dashboard:
+            QTimer.singleShot(0, self._fitness_dashboard.focus_value)
+
     def _load_initial_avifs(self) -> None:
         """Load AVIF for all labels after complete UI initialization."""
         # Load main exercise AVIF
@@ -5898,6 +5984,26 @@ class MainWindow(
         self._update_list_view_exercise_icon(exercise_name)
         self._update_table_exercise_icons(exercise_name)
 
+    def _refresh_fitness_dashboard_exercises(
+        self,
+        exercises: list[str],
+        *,
+        selected: str | None = None,
+    ) -> None:
+        """Rebuild the dashboard exercise list from frequency-sorted names."""
+        if self._fitness_dashboard is None:
+            return
+        name_locals = self.db_manager.get_exercise_name_local_map() if self.db_manager else {}
+        items = [
+            FitnessDashboardExercise(
+                name=name,
+                name_local=name_locals.get(name, ""),
+                icon=self._get_exercise_icon(name),
+            )
+            for name in exercises
+        ]
+        self._fitness_dashboard.set_exercises(items, selected=selected)
+
     def _reset_process_pagination_state(self) -> None:
         """Reset pagination counters and color map for process table."""
         self._process_pagination.reset()
@@ -6175,6 +6281,15 @@ class MainWindow(
             filter_path=is_exercise_media_path,
         )
 
+    def _setup_fitness_dashboard_tab(self) -> None:
+        """Fill the first Fitness tab with the quick-add dashboard."""
+        self._fitness_dashboard = FitnessDashboardWidget(self)
+        self._fitness_dashboard.add_requested.connect(self.on_fitness_dashboard_add)
+        self._fitness_dashboard.exercise_changed.connect(self.on_fitness_dashboard_exercise_changed)
+        self.verticalLayout_fitness_dashboard.setContentsMargins(0, 0, 0, 0)
+        self.verticalLayout_fitness_dashboard.addWidget(self._fitness_dashboard)
+        self.tabWidget.setCurrentWidget(self.tab_fitness_dashboard)
+
     def _setup_open_exercise_images_action(self) -> None:
         """Add File → Open exercise images folder next to the database action."""
         menu_file = getattr(self, "menuFile", None)
@@ -6245,6 +6360,7 @@ class MainWindow(
         self.splitter.setStretchFactor(1, 2)  # exercise list
         self.splitter.setStretchFactor(2, 3)  # process filters + table
         self._apply_sets_splitter_sizes()
+        self._setup_fitness_dashboard_tab()
 
     def _show_exercise_types_context_menu(self, position: QPoint) -> None:
         """Show context menu for exercise types table.
@@ -6636,6 +6752,11 @@ class MainWindow(
                 self.exercises_list_model.clear()
                 self._append_exercises_to_list_view(exercises)
                 self._filter_exercises_list(self.lineEdit_exercises_filter.text())
+            dashboard_selected = self._fitness_dashboard.selected_exercise() if self._fitness_dashboard else ""
+            self._refresh_fitness_dashboard_exercises(
+                exercises,
+                selected=dashboard_selected or selected_exercise,
+            )
 
             # Unblock signals
             if selection_model:

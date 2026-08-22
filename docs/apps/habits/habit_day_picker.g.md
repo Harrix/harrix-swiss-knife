@@ -1079,7 +1079,7 @@ def __init__(self, parent: QWidget | None = None) -> None:  # noqa: D107
 def set_value(self, value: int) -> None
 ```
 
-Show `[`value`](dashboard_widgets.g.md#%EF%B8%8F-method-value)` in the editor.
+Show ``value`` in the editor.
 
 <details>
 <summary>Code:</summary>

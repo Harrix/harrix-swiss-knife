@@ -914,7 +914,7 @@ Add a new process habit record.
 Args:
 
 - [`habit_id`](dashboard_widgets.g.md#%EF%B8%8F-method-habit_id) (`int`): Habit ID.
-- [`value`](dashboard_widgets.g.md#%EF%B8%8F-method-value) (`int`): Habit value.
+- `value` (`int`): Habit value.
 - `date` (`str`): Date in YYYY-MM-DD format.
 
 Returns:
@@ -1801,7 +1801,7 @@ Args:
 
 - `record_id` (`int`): Record ID.
 - [`habit_id`](dashboard_widgets.g.md#%EF%B8%8F-method-habit_id) (`int`): Habit ID.
-- [`value`](dashboard_widgets.g.md#%EF%B8%8F-method-value) (`int`): Habit value.
+- `value` (`int`): Habit value.
 - `date` (`str`): Date in YYYY-MM-DD format.
 
 Returns:

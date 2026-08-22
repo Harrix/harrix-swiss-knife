@@ -68,7 +68,7 @@ def build_config_updates(data_root: Path, notes_folders: tuple[str, ...] | list[
 def is_config_placeholder_path(value: object) -> bool
 ```
 
-Return whether [`value`](apps/habits/dashboard_widgets.g.md#%EF%B8%8F-method-value) is empty or contains a `<YOUR_…>` placeholder.
+Return whether `value` is empty or contains a `<YOUR_…>` placeholder.
 
 <details>
 <summary>Code:</summary>
