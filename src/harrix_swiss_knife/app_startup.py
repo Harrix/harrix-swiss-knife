@@ -50,6 +50,7 @@ _QT_IGNORED_SUBSTRINGS = (
     "Could not resolve property:",
     "Invalid path data; path truncated",
     "is undefined!",
+    "QFont::setPointSize: Point size <= 0",
 )
 
 

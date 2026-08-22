@@ -18,6 +18,7 @@ _NAME_LOCAL_COLOR = QColor("#888888")
 _NAME_LOCAL_FONT_SCALE = 0.85
 _NAME_LOCAL_MIN_PIXEL_SIZE = 12
 _NAME_LOCAL_MIN_POINT_SIZE = 7.0
+_NAME_LOCAL_FALLBACK_POINT_SIZE = 9.0
 _LINE_GAP = 1
 _LIST_EDGE_PAD = 4
 _LIST_ICON_TEXT_GAP = 8
@@ -146,10 +147,12 @@ class NameLocalListDelegate(QStyledItemDelegate):
         if pixel > 0:
             local_font.setPixelSize(max(_NAME_LOCAL_MIN_PIXEL_SIZE, round(pixel * self._local_font_scale)))
             return local_font
-        base_size = base_font.pointSizeF()
-        if base_size <= 0:
-            base_size = float(base_font.pointSize() or 9)
-        local_font.setPointSizeF(max(_NAME_LOCAL_MIN_POINT_SIZE, base_size * self._local_font_scale))
+        point = base_font.pointSizeF()
+        if point <= 0:
+            point = float(base_font.pointSize())
+        if point <= 0:
+            point = _NAME_LOCAL_FALLBACK_POINT_SIZE
+        local_font.setPointSizeF(max(_NAME_LOCAL_MIN_POINT_SIZE, point * self._local_font_scale))
         return local_font
 
     def _name_local(self, index: QModelIndex | QPersistentModelIndex) -> str | None:

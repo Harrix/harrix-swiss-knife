@@ -167,10 +167,16 @@ class CategorySuggestDelegate(QStyledItemDelegate):
             return
 
         local_font = QFont(option.font)
-        base_size = option.font.pointSizeF()
-        if base_size <= 0:
-            base_size = float(option.font.pointSize() or 9)
-        local_font.setPointSizeF(max(_NAME_LOCAL_MIN_POINT_SIZE, base_size * _NAME_LOCAL_FONT_SCALE))
+        pixel = option.font.pixelSize()
+        if pixel > 0:
+            local_font.setPixelSize(max(_NAME_LOCAL_MIN_PIXEL_SIZE, round(pixel * _NAME_LOCAL_FONT_SCALE)))
+        else:
+            base_size = option.font.pointSizeF()
+            if base_size <= 0:
+                base_size = float(option.font.pointSize())
+            if base_size <= 0:
+                base_size = _NAME_LOCAL_FALLBACK_POINT_SIZE
+            local_font.setPointSizeF(max(_NAME_LOCAL_MIN_POINT_SIZE, base_size * _NAME_LOCAL_FONT_SCALE))
         local_metrics = QFontMetrics(local_font)
         local_text = f" ({name_local})"
 

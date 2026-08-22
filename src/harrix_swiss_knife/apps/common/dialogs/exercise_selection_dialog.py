@@ -34,7 +34,9 @@ if TYPE_CHECKING:
 
 _NAME_LOCAL_COLOR = QColor("#888888")
 _NAME_LOCAL_FONT_SCALE = 0.85
+_NAME_LOCAL_MIN_PIXEL_SIZE = 12
 _NAME_LOCAL_MIN_POINT_SIZE = 7.0
+_NAME_LOCAL_FALLBACK_POINT_SIZE = 9.0
 
 
 class ExerciseSelectionDialog(QDialog):
@@ -348,10 +350,16 @@ class _ExercisePreviewTile(QFrame):
         self.local_label.setWordWrap(True)
         self.local_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, on=True)
         local_font = QFont(self.local_label.font())
-        base_size = local_font.pointSizeF()
-        if base_size <= 0:
-            base_size = float(local_font.pointSize() or 9)
-        local_font.setPointSizeF(max(_NAME_LOCAL_MIN_POINT_SIZE, base_size * _NAME_LOCAL_FONT_SCALE))
+        pixel = local_font.pixelSize()
+        if pixel > 0:
+            local_font.setPixelSize(max(_NAME_LOCAL_MIN_PIXEL_SIZE, round(pixel * _NAME_LOCAL_FONT_SCALE)))
+        else:
+            base_size = local_font.pointSizeF()
+            if base_size <= 0:
+                base_size = float(local_font.pointSize())
+            if base_size <= 0:
+                base_size = _NAME_LOCAL_FALLBACK_POINT_SIZE
+            local_font.setPointSizeF(max(_NAME_LOCAL_MIN_POINT_SIZE, base_size * _NAME_LOCAL_FONT_SCALE))
         self.local_label.setFont(local_font)
         palette = self.local_label.palette()
         palette.setColor(QPalette.ColorRole.WindowText, _NAME_LOCAL_COLOR)
