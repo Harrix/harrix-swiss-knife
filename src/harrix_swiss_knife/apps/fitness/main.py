@@ -190,6 +190,7 @@ class MainWindow(
         super().__init__()
         try_apply_system_backdrop(self, backdrop=SystemBackdrop.MICA)
         self._fitness_dashboard: FitnessDashboardWidget | None = None
+        self._exercise_list_hover: ExerciseListHoverPreview | None = None
         self.setupUi(self)
         # Install event filter for chart info label to handle double-click
         self.label_chart_info.installEventFilter(self)
@@ -219,7 +220,6 @@ class MainWindow(
 
         # Cache of exercise icons keyed by exercise name
         self._exercise_icon_cache: dict[str, tuple[float, QIcon | None]] = {}
-        self._exercise_list_hover: ExerciseListHoverPreview | None = None
 
         # Table models dictionary
         self.models: dict[str, QSortFilterProxyModel | None] = {
@@ -4284,6 +4284,16 @@ class MainWindow(
         header.setSortIndicatorShown(True)
         header.setSortIndicator(column, order)
 
+    def _attach_fitness_dashboard_hover(self) -> None:
+        """Watch dashboard list icons once both the list and hover preview exist."""
+        if self._exercise_list_hover is None or self._fitness_dashboard is None:
+            return
+        dashboard_list = self._fitness_dashboard.exercise_list
+        self._exercise_list_hover.add_view(
+            dashboard_list,
+            lambda pos: exercise_at_list_icon(dashboard_list, pos),
+        )
+
     def _calculate_exercise_recommendations(
         self, _exercise_name: str, monthly_data: list, _months_count: int, _exercise_unit: str
     ) -> dict:
@@ -5435,6 +5445,7 @@ class MainWindow(
                 name_column=_EXERCISE_TABLE_NAME_COLUMN,
             ),
         )
+        self._attach_fitness_dashboard_hover()
 
     def _init_filter_controls(self) -> None:
         """Prepare widgets on the `Filters` group box.
@@ -6528,12 +6539,7 @@ class MainWindow(
         self._fitness_dashboard.exercise_changed.connect(self.on_fitness_dashboard_exercise_changed)
         self.verticalLayout_fitness_dashboard.setContentsMargins(0, 0, 0, 0)
         self.verticalLayout_fitness_dashboard.addWidget(self._fitness_dashboard)
-        if self._exercise_list_hover is not None:
-            dashboard_list = self._fitness_dashboard.exercise_list
-            self._exercise_list_hover.add_view(
-                dashboard_list,
-                lambda pos: exercise_at_list_icon(dashboard_list, pos),
-            )
+        self._attach_fitness_dashboard_hover()
         self.tabWidget.setCurrentWidget(self.tab_fitness_dashboard)
 
     def _setup_open_exercise_images_action(self) -> None:
