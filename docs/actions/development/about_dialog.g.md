@@ -35,7 +35,6 @@ class OnAboutDialog(ActionBase):
 
     icon = "ℹ️"  # noqa: RUF001
     title = "About"
-    show_in_compact_mode = True
 
     @ActionBase.handle_exceptions("about dialog")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002

@@ -48,7 +48,6 @@
     "api-keys/**",
     "purgecss.config.js"
   ],
-  "compact_mode": false,
   "editor": "cursor",
   "editor-notes": "code-insiders",
   "finance_standard_items_translate_names_limit": 250,

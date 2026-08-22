@@ -38,7 +38,6 @@ Attributes:
 
 - `menu` (`QMenu`): The main menu object for the application, initialized in `__init__`.
 - [`config`](actions/common/base.g.md#%EF%B8%8F-method-config-property) (`dict`): The configuration dictionary loaded from the config file.
-- `compact_mode` (`bool`): Whether compact mode is enabled. Defaults to `False`.
 
 <details>
 <summary>Code:</summary>
@@ -54,7 +53,6 @@ class MainMenuBase:
             self.config = h.dev.config_load(get_config_path_str())
         else:
             self.config = config
-        self.compact_mode = self.config.get("compact_mode", False)
 
     def add_items(self, menu: QMenu, items: list[MenuListItem]) -> None:
         """Add multiple items to the given menu with sorting by title within groups.
@@ -65,10 +63,6 @@ class MainMenuBase:
         - `items` (`list`): List of callables or separators. Use `-` string for separator.
 
         """
-        # Filter items based on compact mode if enabled
-        if self.compact_mode:
-            items = self._filter_items_for_compact_mode(items)
-
         # Split the list into groups by separators
         groups: list[list[MenuListItem]] = []
         current_group: list[MenuListItem] = []
@@ -146,9 +140,7 @@ class MainMenuBase:
                 # Create menu and populate it recursively
                 menu = self.new_menu(title, icon)
                 self.add_menu_structure(menu, items)
-                # Filter menus in compact mode - only add menus that have visible items
-                if not self.compact_mode or self._menu_has_visible_items(menu):
-                    menus_to_add.append(menu)
+                menus_to_add.append(menu)
             # Check if element is a separator
             elif element == "-":
                 # If we have menus and no items yet, add separator after menus
@@ -313,64 +305,6 @@ class MainMenuBase:
 
         setattr(self, f"action_{class_action.__name__}", action)
         menu.addAction(action)
-
-    def _filter_items_for_compact_mode(self, items: list[MenuListItem]) -> list[MenuListItem]:
-        """Filter items for compact mode, keeping only those with `show_in_compact_mode == True`.
-
-        Args:
-
-        - `items` (`list`): List of callables or separators.
-
-        Returns:
-
-        - `list`: Filtered list containing only items that should be shown in compact mode.
-
-        """
-        filtered_items: list[MenuListItem] = []
-        for item in items:
-            if item == "-":
-                # Keep separators for now, will be cleaned up later if needed
-                filtered_items.append(item)
-            elif hasattr(item, "show_in_compact_mode") and getattr(item, "show_in_compact_mode", False):
-                filtered_items.append(item)
-            # Skip items that don't have show_in_compact_mode = True
-
-        # Clean up consecutive separators and leading/trailing separators
-        cleaned_items: list[MenuListItem] = []
-        prev_was_separator = True  # Start as True to remove leading separators
-
-        for item in filtered_items:
-            if item == "-":
-                if not prev_was_separator:
-                    cleaned_items.append(item)
-                    prev_was_separator = True
-            else:
-                cleaned_items.append(item)
-                prev_was_separator = False
-
-        # Remove trailing separator if exists
-        if cleaned_items and cleaned_items[-1] == "-":
-            cleaned_items.pop()
-
-        return cleaned_items
-
-    def _menu_has_visible_items(self, menu: QMenu) -> bool:
-        """Check if a menu has any visible items in compact mode.
-
-        Args:
-
-        - `menu` (`QMenu`): The menu to check.
-
-        Returns:
-
-        - `bool`: `True` if the menu has visible items, `False` otherwise.
-
-        """
-        # This is a simple check - in a more complex implementation,
-        # we could recursively check the menu's actual actions
-        # For now, we assume that if a menu exists, it might have visible items
-        # A better approach would be to check if the menu was populated with any visible actions
-        return menu.actions() != []
 ````
 
 </details>
@@ -394,7 +328,6 @@ def __init__(self, *, output_bus: object | None = None, config: dict | None = No
             self.config = h.dev.config_load(get_config_path_str())
         else:
             self.config = config
-        self.compact_mode = self.config.get("compact_mode", False)
 ```
 
 </details>
@@ -417,10 +350,6 @@ Args:
 
 ```python
 def add_items(self, menu: QMenu, items: list[MenuListItem]) -> None:
-        # Filter items based on compact mode if enabled
-        if self.compact_mode:
-            items = self._filter_items_for_compact_mode(items)
-
         # Split the list into groups by separators
         groups: list[list[MenuListItem]] = []
         current_group: list[MenuListItem] = []
@@ -510,9 +439,7 @@ def add_menu_structure(self, parent_menu: QMenu, structure: list) -> None:
                 # Create menu and populate it recursively
                 menu = self.new_menu(title, icon)
                 self.add_menu_structure(menu, items)
-                # Filter menus in compact mode - only add menus that have visible items
-                if not self.compact_mode or self._menu_has_visible_items(menu):
-                    menus_to_add.append(menu)
+                menus_to_add.append(menu)
             # Check if element is a separator
             elif element == "-":
                 # If we have menus and no items yet, add separator after menus

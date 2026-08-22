@@ -31,7 +31,6 @@
     "api-keys/**",
     "purgecss.config.js"
   ],
-  "compact_mode": false,
   "data_for_hsk_notes_folders": [
     "Notes",
     "Notes-Diaries",

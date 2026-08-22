@@ -19,7 +19,6 @@ class OnExit(ActionBase):
 
     icon = "×"  # noqa: RUF001
     title = "Exit"
-    show_in_compact_mode = True
 
     def __init__(self, **kwargs) -> None:  # noqa: ANN003
         """Initialize the OnExit action."""

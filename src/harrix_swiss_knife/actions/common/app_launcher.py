@@ -19,7 +19,6 @@ class AppLauncherAction(ActionBase):
     main_window_module: ClassVar[str] = ""
     main_window_class_name: ClassVar[str] = "MainWindow"
     _resolved_main_window_class: ClassVar[type | None] = None
-    show_in_compact_mode: ClassVar[bool] = True
 
     hide_on_close: ClassVar[bool] = False
 
