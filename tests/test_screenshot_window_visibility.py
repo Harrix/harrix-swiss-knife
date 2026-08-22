@@ -264,3 +264,27 @@ def test_restore_keeps_stay_on_top_on_focus_window(qapp: QApplication) -> None: 
     assert cards.isVisible()
 
     cards.close()
+
+
+def test_restore_without_activate_shows_windows_and_drops_stay_on_top(qapp: QApplication) -> None:  # noqa: ARG001
+    """Preview takes the foreground, so restored Windows must not steal focus."""
+    cards = QWidget()
+    cards.setWindowFlags(Qt.WindowType.WindowStaysOnTopHint)
+    cards.show()
+    finance = QWidget()
+    finance.show()
+    QApplication.processEvents()
+
+    widgets = [
+        ConcealedWindow(cards, "hide", stay_on_top=True),
+        ConcealedWindow(finance, "hide", was_active=True),
+    ]
+    restore_app_windows(widgets, activate=False)
+    QApplication.processEvents()
+
+    assert cards.isVisible()
+    assert finance.isVisible()
+    assert not (cards.windowFlags() & Qt.WindowType.WindowStaysOnTopHint)
+
+    cards.close()
+    finance.close()

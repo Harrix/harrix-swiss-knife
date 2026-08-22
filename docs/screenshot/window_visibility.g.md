@@ -12,6 +12,7 @@ lang: en
 ## Contents
 
 - [🏛️ Class `ConcealedWindow`](#%EF%B8%8F-class-concealedwindow)
+- [🔧 Function `bring_window_to_foreground`](#-function-bring_window_to_foreground)
 - [🔧 Function `hide_app_windows`](#-function-hide_app_windows)
 - [🔧 Function `is_screenshot_ui`](#-function-is_screenshot_ui)
 - [🔧 Function `mark_screenshot_ui`](#-function-mark_screenshot_ui)
@@ -40,6 +41,34 @@ class ConcealedWindow:
     transparent_for_mouse: bool = False
     was_active: bool = False
     stay_on_top: bool = False
+```
+
+</details>
+
+## 🔧 Function `bring_window_to_foreground`
+
+```python
+def bring_window_to_foreground(widget: QWidget, *, delays_ms: tuple[int, ...] | None = None) -> None
+```
+
+Raise `widget` now and again after Windows focus races.
+
+Args:
+
+- `widget` (`QWidget`): Window that should stay in front.
+- `delays_ms` (`tuple[int, ...] | None`): Extra pin delays. Defaults to
+  `_REPIN_MODAL_DELAYS_MS`. Pass `()` to raise once without a timer.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def bring_window_to_foreground(widget: QWidget, *, delays_ms: tuple[int, ...] | None = None) -> None:
+    _bring_to_foreground(widget)
+    if delays_ms is None:
+        delays_ms = _REPIN_MODAL_DELAYS_MS
+    if delays_ms:
+        _schedule_foreground(widget, delays_ms=delays_ms)
 ```
 
 </details>
@@ -141,7 +170,7 @@ def mark_screenshot_ui(widget: QWidget) -> None:
 ## 🔧 Function `restore_app_windows`
 
 ```python
-def restore_app_windows(widgets: list[ConcealedWindow]) -> None
+def restore_app_windows(widgets: list[ConcealedWindow], *, activate: bool = True) -> None
 ```
 
 Restore Windows previously concealed by [`hide_app_windows`](#-function-hide_app_windows) and bring them forward.
@@ -155,11 +184,20 @@ Non-modal (`hide`) Windows are restored first; opacity-concealed owners
 next; modal dialogs last so they stay above the owner chain. Stay-on-top
 is cleared on siblings of the focus target so they cannot cover it.
 
+When `activate` is `False`, Windows are shown again but not focused. Use that
+when a screenshot preview will take the foreground next.
+
+Args:
+
+- `widgets` (`list[ConcealedWindow]`): Concealed Windows from [`hide_app_windows`](#-function-hide_app_windows).
+- `activate` (`bool`): If `True`, focus the window that started capture.
+  Defaults to `True`.
+
 <details>
 <summary>Code:</summary>
 
 ```python
-def restore_app_windows(widgets: list[ConcealedWindow]) -> None:
+def restore_app_windows(widgets: list[ConcealedWindow], *, activate: bool = True) -> None:
     hide_items = [item for item in widgets if item.mode == "hide"]
     opacity_owners, opacity_modals = _split_opacity_items(widgets)
 
@@ -176,6 +214,11 @@ def restore_app_windows(widgets: list[ConcealedWindow]) -> None:
         item.widget.raise_()
 
     QApplication.processEvents()
+
+    if not activate:
+        _drop_stay_on_top_except(widgets, None)
+        QApplication.processEvents()
+        return
 
     focus_target = _pick_focus_target(widgets)
     if focus_target is not None:

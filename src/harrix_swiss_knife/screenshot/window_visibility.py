@@ -27,6 +27,7 @@ _SWP_NOMOVE = 0x0002
 _SWP_SHOWWINDOW = 0x0040
 _ASFW_ANY = -1
 _REPIN_MODAL_DELAYS_MS = (0, 50)
+PREVIEW_FOREGROUND_DELAYS_MS = (0, 50, 150)
 
 
 @dataclass(frozen=True)
@@ -40,6 +41,23 @@ class ConcealedWindow:
     transparent_for_mouse: bool = False
     was_active: bool = False
     stay_on_top: bool = False
+
+
+def bring_window_to_foreground(widget: QWidget, *, delays_ms: tuple[int, ...] | None = None) -> None:
+    """Raise `widget` now and again after Windows focus races.
+
+    Args:
+
+    - `widget` (`QWidget`): Window that should stay in front.
+    - `delays_ms` (`tuple[int, ...] | None`): Extra pin delays. Defaults to
+      `_REPIN_MODAL_DELAYS_MS`. Pass `()` to raise once without a timer.
+
+    """
+    _bring_to_foreground(widget)
+    if delays_ms is None:
+        delays_ms = _REPIN_MODAL_DELAYS_MS
+    if delays_ms:
+        _schedule_foreground(widget, delays_ms=delays_ms)
 
 
 def hide_app_windows() -> list[ConcealedWindow]:
@@ -99,7 +117,7 @@ def mark_screenshot_ui(widget: QWidget) -> None:
     widget.setProperty(HSK_SCREENSHOT_UI_PROP, True)  # noqa: FBT003
 
 
-def restore_app_windows(widgets: list[ConcealedWindow]) -> None:
+def restore_app_windows(widgets: list[ConcealedWindow], *, activate: bool = True) -> None:
     """Restore Windows previously concealed by `hide_app_windows` and bring them forward.
 
     After a fullscreen capture overlay, other apps may sit on top of the Z-order.
@@ -110,6 +128,15 @@ def restore_app_windows(widgets: list[ConcealedWindow]) -> None:
     Non-modal (`hide`) Windows are restored first; opacity-concealed owners
     next; modal dialogs last so they stay above the owner chain. Stay-on-top
     is cleared on siblings of the focus target so they cannot cover it.
+
+    When `activate` is `False`, Windows are shown again but not focused. Use that
+    when a screenshot preview will take the foreground next.
+
+    Args:
+
+    - `widgets` (`list[ConcealedWindow]`): Concealed Windows from `hide_app_windows`.
+    - `activate` (`bool`): If `True`, focus the window that started capture.
+      Defaults to `True`.
 
     """
     hide_items = [item for item in widgets if item.mode == "hide"]
@@ -128,6 +155,11 @@ def restore_app_windows(widgets: list[ConcealedWindow]) -> None:
         item.widget.raise_()
 
     QApplication.processEvents()
+
+    if not activate:
+        _drop_stay_on_top_except(widgets, None)
+        QApplication.processEvents()
+        return
 
     focus_target = _pick_focus_target(widgets)
     if focus_target is not None:
@@ -197,7 +229,7 @@ def _conceal_with_opacity(widget: QWidget) -> ConcealedWindow:
     )
 
 
-def _drop_stay_on_top_except(widgets: list[ConcealedWindow], focus_target: QWidget) -> None:
+def _drop_stay_on_top_except(widgets: list[ConcealedWindow], focus_target: QWidget | None) -> None:
     """Clear stay-on-top on siblings so they cannot cover the restored focus window.
 
     The command-cards overlay uses `WindowStaysOnTopHint`. After capture, raising
@@ -206,11 +238,14 @@ def _drop_stay_on_top_except(widgets: list[ConcealedWindow], focus_target: QWidg
     Args:
 
     - `widgets` (`list[ConcealedWindow]`): Concealed Windows from `hide_app_windows`.
-    - `focus_target` (`QWidget`): Window that should stay in front after restore.
+    - `focus_target` (`QWidget | None`): Window that should stay in front after
+      restore. When `None`, drop stay-on-top on every concealed window.
 
     """
     for item in widgets:
-        if item.widget is focus_target or not item.stay_on_top:
+        if focus_target is not None and item.widget is focus_target:
+            continue
+        if not item.stay_on_top:
             continue
         _set_stays_on_top(item.widget, enabled=False)
 
@@ -350,12 +385,13 @@ def _restore_opacity_item(item: ConcealedWindow) -> None:
         item.widget.show()
 
 
-def _schedule_foreground(widget: QWidget) -> None:
+def _schedule_foreground(widget: QWidget, *, delays_ms: tuple[int, ...] = _REPIN_MODAL_DELAYS_MS) -> None:
     """Pin `widget` again after Windows finishes activating the capture overlay's owner.
 
     Args:
 
     - `widget` (`QWidget`): Modal dialog that must stay above its owner.
+    - `delays_ms` (`tuple[int, ...]`): Timer delays in milliseconds.
 
     """
 
@@ -363,7 +399,7 @@ def _schedule_foreground(widget: QWidget) -> None:
         if isValid(widget) and widget.isVisible():
             _bring_to_foreground(widget)
 
-    for delay_ms in _REPIN_MODAL_DELAYS_MS:
+    for delay_ms in delays_ms:
         QTimer.singleShot(delay_ms, _pin)
 
 

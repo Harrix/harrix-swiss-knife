@@ -16,7 +16,7 @@ Capture a screen region with a ShareX-like workflow.
 
 Hides application Windows for the whole session, freezes the desktop for region
 selection, copies the cropped region to the clipboard, restores Windows, and
-optionally shows a preview.
+optionally shows a preview in the foreground.
 
 When `show_shutter_button` is `True`, arrange and close buttons are embedded in
 the selection overlay. Clicking the arrange button removes the overlay so the
@@ -55,10 +55,13 @@ def capture_region(
         _wait_ms(_HIDE_SETTLE_MS)
         image = _capture_loop(with_controls=show_shutter_button)
     finally:
-        restore_app_windows(hidden)
+        show_preview_now = show_preview and image is not None and not image.isNull()
+        restore_app_windows(hidden, activate=not show_preview_now)
 
     if show_preview and image is not None and not image.isNull():
         dialog = ScreenshotPreviewDialog(image)
+        dialog.show()
+        bring_window_to_foreground(dialog, delays_ms=PREVIEW_FOREGROUND_DELAYS_MS)
         dialog.exec()
 
     return image
