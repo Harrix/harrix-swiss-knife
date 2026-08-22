@@ -950,9 +950,12 @@ class MainWindow(
 
         # Update menu action text
         if self.show_all_food_records:
-            self.action_show_all_records.setText(f"📊 Show Last {self.count_food_records_to_show}")
+            set_action_text_with_emoji_icon(
+                self.action_show_all_records,
+                f"📊 Show Last {self.count_food_records_to_show}",
+            )
         else:
-            self.action_show_all_records.setText("📊 Show All Records")
+            set_action_text_with_emoji_icon(self.action_show_all_records, "📊 Show All Records")
 
         # Refresh the food log table
         self._update_food_log_table()
@@ -4755,9 +4758,12 @@ def on_show_all_records_clicked(self) -> None:
 
         # Update menu action text
         if self.show_all_food_records:
-            self.action_show_all_records.setText(f"📊 Show Last {self.count_food_records_to_show}")
+            set_action_text_with_emoji_icon(
+                self.action_show_all_records,
+                f"📊 Show Last {self.count_food_records_to_show}",
+            )
         else:
-            self.action_show_all_records.setText("📊 Show All Records")
+            set_action_text_with_emoji_icon(self.action_show_all_records, "📊 Show All Records")
 
         # Refresh the food log table
         self._update_food_log_table()

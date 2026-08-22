@@ -177,7 +177,7 @@ Args:
 - `title` (`str`): Window title. Defaults to `"Add Habit"`.
 - `name` (`str`): Initial habit name. Defaults to `""`.
 - `is_bool` (`bool`): Initial boolean habit flag. Defaults to `True`.
-- `emoji` (`str`): Initial emoji. Defaults to `""`.
+- [`emoji`](../common/emoji_picker_dialog.g.md#%EF%B8%8F-method-emoji) (`str`): Initial emoji. Defaults to `""`.
 - [`habit_id`](dashboard_widgets.g.md#%EF%B8%8F-method-habit_id) (`int | None`): Habit ID used for emoji fallback. Defaults to `None`.
 - `app_config` (`dict[str, Any] | None`): App config for AI emoji suggestions.
   Defaults to `None` (load `config.json`).

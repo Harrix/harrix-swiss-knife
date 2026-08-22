@@ -865,7 +865,7 @@ Args:
 
 - `name` (`str`): Habit name.
 - `is_bool` (`bool | None`): Whether habit accepts only 0 or 1 values. Defaults to `None`.
-- `emoji` (`str`): Habit emoji. Defaults to `""` (assigned after insert when empty).
+- [`emoji`](../common/emoji_picker_dialog.g.md#%EF%B8%8F-method-emoji) (`str`): Habit emoji. Defaults to `""` (assigned after insert when empty).
 
 Returns:
 
@@ -1752,7 +1752,7 @@ Args:
 - `name` (`str`): Habit name.
 - `is_bool` (`bool | None`): Whether habit accepts only 0 or 1 values. Defaults to `None`.
 - `is_archived` (`bool | None`): Whether habit is archived. Defaults to `None` (do not change).
-- `emoji` (`str | None`): Habit emoji. Defaults to `None` (do not change).
+- [`emoji`](../common/emoji_picker_dialog.g.md#%EF%B8%8F-method-emoji) (`str | None`): Habit emoji. Defaults to `None` (do not change).
 
 Returns:
 
