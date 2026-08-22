@@ -40,6 +40,7 @@ class OnUpdateHarrixSwissKnife(ActionBase):
 
     icon = "⬆️"
     title = "Update Harrix Swiss Knife from GitHub…"
+    bold_title = True
 
     _PROJECT_NAMES = ("harrix-swiss-knife", "harrix-pylib", "harrix-pyssg")
     _GITHUB_UA = "Harrix-Swiss-Knife/1.0 (Python; urllib)"
