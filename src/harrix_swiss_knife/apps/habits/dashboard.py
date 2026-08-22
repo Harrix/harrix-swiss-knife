@@ -540,6 +540,7 @@ class HabitDashboardWidget(QWidget):
         self._stat_streak.set_value(f"{streak} Days")
 
         day_values = self._db.get_habit_values_between(habit_id, month_start, month_end)
+        self._calendar.set_available_years(self._db.get_habit_years(habit_id))
         self._calendar.set_month(
             year,
             month,
@@ -583,6 +584,7 @@ class HabitDashboardWidget(QWidget):
         self._stat_rate.set_value("-")
         self._stat_streak.set_value("-")
         today = _local_today()
+        self._calendar.set_available_years([])
         self._calendar.set_month(today.year, today.month, {}, today=today)
         self._log_title.setText(f"Habit Log on {_month_name(today.month)}.")
 

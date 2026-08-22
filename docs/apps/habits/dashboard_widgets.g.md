@@ -39,6 +39,7 @@ lang: en
 - [🏛️ Class `MonthCalendarGrid`](#%EF%B8%8F-class-monthcalendargrid)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-3)
   - [⚙️ Method `eventFilter`](#%EF%B8%8F-method-eventfilter)
+  - [⚙️ Method `set_available_years`](#%EF%B8%8F-method-set_available_years)
   - [⚙️ Method `set_month`](#%EF%B8%8F-method-set_month)
 - [🏛️ Class `ProgressRing`](#%EF%B8%8F-class-progressring)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-4)
@@ -50,6 +51,7 @@ lang: en
 - [🏛️ Class `WeekDayHeader`](#%EF%B8%8F-class-weekdayheader)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-6)
   - [⚙️ Method `set_day`](#%EF%B8%8F-method-set_day)
+- [🔧 Function `calendar_month_for_year`](#-function-calendar_month_for_year)
 - [🔧 Function `habit_accent_color`](#-function-habit_accent_color)
 - [🔧 Function `habit_day_state`](#-function-habit_day_state)
 - [🔧 Function `habit_glyph`](#-function-habit_glyph)
@@ -902,6 +904,7 @@ class MonthCalendarGrid(QWidget):
         super().__init__(parent)
         self._year = 0
         self._month = 0
+        self._available_years: list[int] = []
         self._day_values: dict[str, int] = {}
         self._allows_number = False
         self._today = _local_today()
@@ -949,7 +952,9 @@ class MonthCalendarGrid(QWidget):
         self._title.setObjectName("habitDashCalendarTitle")
         self._title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._title.setCursor(Qt.CursorShape.PointingHandCursor)
-        self._title.setToolTip("Double-click to return to the current month")
+        self._title.setToolTip("Double-click for the current month. Right-click to choose a year.")
+        self._title.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self._title.customContextMenuRequested.connect(self._on_title_context_menu)
         title_font = QFont(self._title.font())
         title_font.setPointSize(12)
         title_font.setBold(True)
@@ -991,6 +996,17 @@ class MonthCalendarGrid(QWidget):
             return True
         return super().eventFilter(watched, event)
 
+    def set_available_years(self, years: Sequence[int]) -> None:
+        """Set check-in years shown in the title context menu.
+
+        Args:
+
+        - `years` (`Sequence[int]`): Years from the habit database, any order.
+
+        """
+        unique = {int(year) for year in years if year}
+        self._available_years = sorted(unique, reverse=True)
+
     def set_month(
         self,
         year: int,
@@ -1009,6 +1025,25 @@ class MonthCalendarGrid(QWidget):
         self._title.setText(f"{_month_short(month)} {year}")
         self._sync_next_month_button()
         self._rebuild_grid()
+
+    def _build_title_menu(self) -> QMenu:
+        """Build the month-title context menu for current month and years."""
+        menu = QMenu(self)
+        current_action = menu.addAction("Show current month and year")
+        on_current = (self._year, self._month) == (self._today.year, self._today.month)
+        current_action.setEnabled(not on_current)
+        current_action.triggered.connect(self._on_title_double_clicked)
+
+        year_menu = menu.addMenu("Year")
+        if not self._available_years:
+            empty = year_menu.addAction("No years in database")
+            empty.setEnabled(False)
+        for year in self._available_years:
+            action = year_menu.addAction(str(year))
+            action.setCheckable(True)
+            action.setChecked(year == self._year)
+            action.triggered.connect(lambda _checked=False, selected=year: self._on_year_selected(selected))
+        return menu
 
     def _clear_grid(self) -> None:
         while self._grid.count():
@@ -1034,11 +1069,20 @@ class MonthCalendarGrid(QWidget):
             year -= 1
         self.month_changed.emit(year, month)
 
+    def _on_title_context_menu(self, pos: QPoint) -> None:
+        self._build_title_menu().exec(self._title.mapToGlobal(pos))
+
     def _on_title_double_clicked(self) -> None:
         year, month = self._today.year, self._today.month
         if (self._year, self._month) == (year, month):
             return
         self.month_changed.emit(year, month)
+
+    def _on_year_selected(self, year: int) -> None:
+        next_year, next_month = calendar_month_for_year(year, self._month, self._today)
+        if (self._year, self._month) == (next_year, next_month):
+            return
+        self.month_changed.emit(next_year, next_month)
 
     def _rebuild_grid(self) -> None:
         self._clear_grid()
@@ -1105,6 +1149,7 @@ def __init__(self, parent: QWidget | None = None) -> None:  # noqa: D107
         super().__init__(parent)
         self._year = 0
         self._month = 0
+        self._available_years: list[int] = []
         self._day_values: dict[str, int] = {}
         self._allows_number = False
         self._today = _local_today()
@@ -1152,7 +1197,9 @@ def __init__(self, parent: QWidget | None = None) -> None:  # noqa: D107
         self._title.setObjectName("habitDashCalendarTitle")
         self._title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._title.setCursor(Qt.CursorShape.PointingHandCursor)
-        self._title.setToolTip("Double-click to return to the current month")
+        self._title.setToolTip("Double-click for the current month. Right-click to choose a year.")
+        self._title.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self._title.customContextMenuRequested.connect(self._on_title_context_menu)
         title_font = QFont(self._title.font())
         title_font.setPointSize(12)
         title_font.setBold(True)
@@ -1207,6 +1254,29 @@ def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
             self._on_title_double_clicked()
             return True
         return super().eventFilter(watched, event)
+```
+
+</details>
+
+### ⚙️ Method `set_available_years`
+
+```python
+def set_available_years(self, years: Sequence[int]) -> None
+```
+
+Set check-in years shown in the title context menu.
+
+Args:
+
+- `years` (`Sequence[int]`): Years from the habit database, any order.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def set_available_years(self, years: Sequence[int]) -> None:
+        unique = {int(year) for year in years if year}
+        self._available_years = sorted(unique, reverse=True)
 ```
 
 </details>
@@ -1592,6 +1662,38 @@ def set_day(self, caption: str, ratio: float, *, is_today: bool) -> None:
             self._label.setStyleSheet("color: #2563EB; font-size: 11px; font-weight: 700;")
         else:
             self._label.setStyleSheet("color: #6B7280; font-size: 11px;")
+```
+
+</details>
+
+## 🔧 Function `calendar_month_for_year`
+
+```python
+def calendar_month_for_year(year: int, month: int, today: date) -> tuple[int, int]
+```
+
+Return a display month in `year`, keeping `month` when it is not in the future.
+
+Args:
+
+- `year` (`int`): Year chosen from the calendar menu.
+- `month` (`int`): Currently visible month.
+- `today` (`date`): Local today; future months are clamped to this date.
+
+Returns:
+
+- `tuple[int, int]`: `(year, month)` to show.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def calendar_month_for_year(year: int, month: int, today: date) -> tuple[int, int]:
+    if year > today.year:
+        return today.year, today.month
+    if year == today.year and month > today.month:
+        return year, today.month
+    return year, month
 ```
 
 </details>

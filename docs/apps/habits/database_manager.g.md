@@ -30,6 +30,7 @@ lang: en
   - [⚙️ Method `get_habit_total_checkins`](#%EF%B8%8F-method-get_habit_total_checkins)
   - [⚙️ Method `get_habit_value_on_date`](#%EF%B8%8F-method-get_habit_value_on_date)
   - [⚙️ Method `get_habit_values_between`](#%EF%B8%8F-method-get_habit_values_between)
+  - [⚙️ Method `get_habit_years`](#%EF%B8%8F-method-get_habit_years)
   - [⚙️ Method `get_habits`](#%EF%B8%8F-method-get_habits)
   - [⚙️ Method `get_habits_years`](#%EF%B8%8F-method-get_habits_years)
   - [⚙️ Method `get_limited_process_habits_records`](#%EF%B8%8F-method-get_limited_process_habits_records)
@@ -457,6 +458,29 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             except (TypeError, ValueError):
                 continue
         return result
+
+    def get_habit_years(self, habit_id: int) -> list[int]:
+        """Return distinct check-in years for one habit, newest first.
+
+        Args:
+
+        - `habit_id` (`int`): Habit primary key.
+
+        Returns:
+
+        - `list[int]`: Years from `process_habits` for this habit.
+
+        """
+        rows = self.get_rows(
+            """
+            SELECT DISTINCT CAST(strftime('%Y', date) AS INTEGER) AS year
+            FROM process_habits
+            WHERE _id_habit = :habit_id AND date IS NOT NULL
+            ORDER BY year DESC
+            """,
+            {"habit_id": habit_id},
+        )
+        return [int(row[0]) for row in rows if row[0] is not None]
 
     def get_habits(self, *, include_archived: bool = False) -> list[list[Any]]:
         """Get habits with optional inclusion of archived ones."""
@@ -1382,6 +1406,41 @@ def get_habit_values_between(self, habit_id: int, date_from: str, date_to: str) 
             except (TypeError, ValueError):
                 continue
         return result
+```
+
+</details>
+
+### ⚙️ Method `get_habit_years`
+
+```python
+def get_habit_years(self, habit_id: int) -> list[int]
+```
+
+Return distinct check-in years for one habit, newest first.
+
+Args:
+
+- [`habit_id`](dashboard_widgets.g.md#%EF%B8%8F-method-habit_id) (`int`): Habit primary key.
+
+Returns:
+
+- `list[int]`: Years from `process_habits` for this habit.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_habit_years(self, habit_id: int) -> list[int]:
+        rows = self.get_rows(
+            """
+            SELECT DISTINCT CAST(strftime('%Y', date) AS INTEGER) AS year
+            FROM process_habits
+            WHERE _id_habit = :habit_id AND date IS NOT NULL
+            ORDER BY year DESC
+            """,
+            {"habit_id": habit_id},
+        )
+        return [int(row[0]) for row in rows if row[0] is not None]
 ```
 
 </details>

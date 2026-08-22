@@ -420,6 +420,29 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
                 continue
         return result
 
+    def get_habit_years(self, habit_id: int) -> list[int]:
+        """Return distinct check-in years for one habit, newest first.
+
+        Args:
+
+        - `habit_id` (`int`): Habit primary key.
+
+        Returns:
+
+        - `list[int]`: Years from `process_habits` for this habit.
+
+        """
+        rows = self.get_rows(
+            """
+            SELECT DISTINCT CAST(strftime('%Y', date) AS INTEGER) AS year
+            FROM process_habits
+            WHERE _id_habit = :habit_id AND date IS NOT NULL
+            ORDER BY year DESC
+            """,
+            {"habit_id": habit_id},
+        )
+        return [int(row[0]) for row in rows if row[0] is not None]
+
     def get_habits(self, *, include_archived: bool = False) -> list[list[Any]]:
         """Get habits with optional inclusion of archived ones."""
         if include_archived:

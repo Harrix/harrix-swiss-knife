@@ -26,6 +26,7 @@ from harrix_swiss_knife.apps.habits.dashboard_widgets import (
     CheckCircle,
     HabitRow,
     MonthCalendarGrid,
+    calendar_month_for_year,
     habit_day_state,
     paint_habit_day_circle,
 )
@@ -402,6 +403,59 @@ def test_month_calendar_blocks_future_dates(qapp: QApplication) -> None:
     next_btn = next(button for button in grid.findChildren(QPushButton) if button.toolTip() == "Next month")
     assert next_btn.isEnabled()
     assert next_btn.cursor().shape() == Qt.CursorShape.PointingHandCursor
+
+
+def test_get_habit_years_for_one_habit(habits_db: DatabaseManager) -> None:
+    """Years in the title menu come from that habit's check-ins only."""
+    assert habits_db.add_habit("English", is_bool=True)
+    assert habits_db.add_habit("Walk", is_bool=True)
+    habits = {str(row[1]): int(row[0]) for row in habits_db.get_habits()}
+    english_id = habits["English"]
+    walk_id = habits["Walk"]
+    assert habits_db.set_habit_checkin(english_id, "2017-05-09", 1)
+    assert habits_db.set_habit_checkin(english_id, "2026-08-01", 1)
+    assert habits_db.set_habit_checkin(walk_id, "2024-01-01", 1)
+    assert habits_db.get_habit_years(english_id) == [2026, 2017]
+    assert habits_db.get_habit_years(walk_id) == [2024]
+
+
+def test_calendar_month_for_year_keeps_month_unless_future() -> None:
+    """Choosing a year keeps the visible month, but never goes past today."""
+    today = date(2026, 8, 22)
+    assert calendar_month_for_year(2017, 8, today) == (2017, 8)
+    assert calendar_month_for_year(2026, 3, today) == (2026, 3)
+    assert calendar_month_for_year(2026, 11, today) == (2026, 8)
+    assert calendar_month_for_year(2027, 1, today) == (2026, 8)
+
+
+def test_month_calendar_title_menu_jumps_to_current_month_and_year(qapp: QApplication) -> None:
+    """Title menu can return to today or jump to a year from the database."""
+    assert qapp is not None
+    today = date(2026, 8, 15)
+    grid = MonthCalendarGrid()
+    grid.set_month(2017, 5, {}, today=today)
+    grid.set_available_years([2026, 2017])
+    changed: list[tuple[int, int]] = []
+    grid.month_changed.connect(lambda year, month: changed.append((year, month)))
+
+    menu = grid._build_title_menu()
+    current = next(action for action in menu.actions() if action.text() == "Show current month and year")
+    assert current.isEnabled()
+    current.trigger()
+    assert changed == [(2026, 8)]
+
+    changed.clear()
+    grid.set_month(2026, 8, {}, today=today)
+    menu = grid._build_title_menu()
+    current = next(action for action in menu.actions() if action.text() == "Show current month and year")
+    assert not current.isEnabled()
+    year_menu = next(action for action in menu.actions() if action.menu() is not None).menu()
+    assert year_menu is not None
+    years = [action.text() for action in year_menu.actions()]
+    assert years == ["2026", "2017"]
+    year_2017 = next(action for action in year_menu.actions() if action.text() == "2017")
+    year_2017.trigger()
+    assert changed == [(2017, 8)]
 
 
 def test_month_calendar_title_double_click_returns_to_today(qapp: QApplication) -> None:
