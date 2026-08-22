@@ -38,6 +38,31 @@ COLOR_SUCCESS = QColor("#22C55E")
 COLOR_RATE = QColor("#F97316")
 COLOR_STREAK = QColor("#EF4444")
 MONTHS_IN_YEAR = 12
+CALENDAR_NAV_BUTTON_STYLE = """
+    QPushButton {
+        background: #F9FAFB;
+        border: 1px solid #D1D5DB;
+        border-radius: 8px;
+        color: #374151;
+        font-size: 18px;
+        font-weight: 700;
+    }
+    QPushButton:hover {
+        background: #EFF6FF;
+        border-color: #93C5FD;
+        color: #1D4ED8;
+    }
+    QPushButton:disabled {
+        background: #F3F4F6;
+        border: 1px solid #E5E7EB;
+        color: #D1D5DB;
+    }
+    QPushButton:disabled:hover {
+        background: #F3F4F6;
+        border-color: #E5E7EB;
+        color: #D1D5DB;
+    }
+"""
 
 HabitDayState = Literal["absent", "zero", "one", "number"]
 
@@ -346,36 +371,8 @@ class MonthCalendarGrid(QWidget):
         header = QHBoxLayout()
         self._prev_btn = QPushButton("←")
         self._next_btn = QPushButton("→")
-        for btn in (self._prev_btn, self._next_btn):
-            btn.setFixedSize(34, 34)
-            btn.setCursor(Qt.CursorShape.PointingHandCursor)
-            btn.setStyleSheet(
-                """
-                QPushButton {
-                    background: #F9FAFB;
-                    border: 1px solid #D1D5DB;
-                    border-radius: 8px;
-                    color: #374151;
-                    font-size: 18px;
-                    font-weight: 700;
-                }
-                QPushButton:hover {
-                    background: #EFF6FF;
-                    border-color: #93C5FD;
-                    color: #1D4ED8;
-                }
-                QPushButton:disabled {
-                    background: #F3F4F6;
-                    border: 1px solid #E5E7EB;
-                    color: #D1D5DB;
-                }
-                QPushButton:disabled:hover {
-                    background: #F3F4F6;
-                    border-color: #E5E7EB;
-                    color: #D1D5DB;
-                }
-                """
-            )
+        style_calendar_nav_button(self._prev_btn)
+        style_calendar_nav_button(self._next_btn)
         self._prev_btn.setToolTip("Previous month")
         self._next_btn.setToolTip("Next month")
         self._title = QLabel("")
@@ -812,6 +809,13 @@ def paint_habit_day_circle(
     painter.setFont(draw_font)
     painter.setPen(QColor("white"))
     painter.drawText(rect, int(Qt.AlignmentFlag.AlignCenter), display)
+
+
+def style_calendar_nav_button(button: QPushButton) -> None:
+    """Apply dashboard-style prev/next arrow look to a calendar nav button."""
+    button.setFixedSize(34, 34)
+    button.setCursor(Qt.CursorShape.PointingHandCursor)
+    button.setStyleSheet(CALENDAR_NAV_BUTTON_STYLE)
 
 
 def weekday_short(weekday: int) -> str:

@@ -49,6 +49,14 @@ class Ui_MainWindow(object):
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_sets_of_habits), QCoreApplication.translate("MainWindow", u"Habits", None))
         self.label_filter_habit.setText(QCoreApplication.translate("MainWindow", u"Habit:", None))
         self.label_filter_habit_year.setText(QCoreApplication.translate("MainWindow", u"Year:", None))
+#if QT_CONFIG(tooltip)
+        self.pushButton_charts_heatmap_prev_year.setToolTip(QCoreApplication.translate("MainWindow", u"Previous year", None))
+#endif // QT_CONFIG(tooltip)
+        self.pushButton_charts_heatmap_prev_year.setText(QCoreApplication.translate("MainWindow", u"\u2190", None))
+#if QT_CONFIG(tooltip)
+        self.pushButton_charts_heatmap_next_year.setToolTip(QCoreApplication.translate("MainWindow", u"Next year", None))
+#endif // QT_CONFIG(tooltip)
+        self.pushButton_charts_heatmap_next_year.setText(QCoreApplication.translate("MainWindow", u"\u2192", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_charts), QCoreApplication.translate("MainWindow", u"Charts", None))
         self.menuFile.setTitle(QCoreApplication.translate("MainWindow", u"File", None))
         self.menuCommands.setTitle(QCoreApplication.translate("MainWindow", u"Commands", None))
@@ -268,7 +276,36 @@ class Ui_MainWindow(object):
         self.verticalLayout_24.addWidget(self.listView_filter_habit_year)
 
         self.splitter_charts.addWidget(self.layoutWidget)
-        self.scrollArea_charts_process_habits = QScrollArea(self.splitter_charts)
+        self.widget_charts_heatmap = QWidget(self.splitter_charts)
+        self.widget_charts_heatmap.setObjectName(u"widget_charts_heatmap")
+        self.verticalLayout_charts_heatmap = QVBoxLayout(self.widget_charts_heatmap)
+        self.verticalLayout_charts_heatmap.setSpacing(8)
+        self.verticalLayout_charts_heatmap.setObjectName(u"verticalLayout_charts_heatmap")
+        self.verticalLayout_charts_heatmap.setContentsMargins(0, 0, 0, 0)
+        self.horizontalLayout_charts_heatmap_year = QHBoxLayout()
+        self.horizontalLayout_charts_heatmap_year.setObjectName(u"horizontalLayout_charts_heatmap_year")
+        self.pushButton_charts_heatmap_prev_year = QPushButton(self.widget_charts_heatmap)
+        self.pushButton_charts_heatmap_prev_year.setObjectName(u"pushButton_charts_heatmap_prev_year")
+        self.pushButton_charts_heatmap_prev_year.setMinimumSize(QSize(34, 34))
+        self.pushButton_charts_heatmap_prev_year.setMaximumSize(QSize(34, 34))
+
+        self.horizontalLayout_charts_heatmap_year.addWidget(self.pushButton_charts_heatmap_prev_year)
+
+        self.horizontalSpacer_charts_heatmap_year = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+
+        self.horizontalLayout_charts_heatmap_year.addItem(self.horizontalSpacer_charts_heatmap_year)
+
+        self.pushButton_charts_heatmap_next_year = QPushButton(self.widget_charts_heatmap)
+        self.pushButton_charts_heatmap_next_year.setObjectName(u"pushButton_charts_heatmap_next_year")
+        self.pushButton_charts_heatmap_next_year.setMinimumSize(QSize(34, 34))
+        self.pushButton_charts_heatmap_next_year.setMaximumSize(QSize(34, 34))
+
+        self.horizontalLayout_charts_heatmap_year.addWidget(self.pushButton_charts_heatmap_next_year)
+
+
+        self.verticalLayout_charts_heatmap.addLayout(self.horizontalLayout_charts_heatmap_year)
+
+        self.scrollArea_charts_process_habits = QScrollArea(self.widget_charts_heatmap)
         self.scrollArea_charts_process_habits.setObjectName(u"scrollArea_charts_process_habits")
         self.scrollArea_charts_process_habits.setMinimumSize(QSize(0, 301))
         self.scrollArea_charts_process_habits.setWidgetResizable(True)
@@ -278,7 +315,10 @@ class Ui_MainWindow(object):
         self.verticalLayout_charts_process_habits_content = QVBoxLayout(self.scrollAreaWidgetContents_charts_process_habits)
         self.verticalLayout_charts_process_habits_content.setObjectName(u"verticalLayout_charts_process_habits_content")
         self.scrollArea_charts_process_habits.setWidget(self.scrollAreaWidgetContents_charts_process_habits)
-        self.splitter_charts.addWidget(self.scrollArea_charts_process_habits)
+
+        self.verticalLayout_charts_heatmap.addWidget(self.scrollArea_charts_process_habits)
+
+        self.splitter_charts.addWidget(self.widget_charts_heatmap)
 
         self.horizontalLayout_charts.addWidget(self.splitter_charts)
 

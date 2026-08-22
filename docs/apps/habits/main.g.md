@@ -41,6 +41,7 @@ lang: en
 - [🔧 Function `habit_heatmap_month_separated_positions`](#-function-habit_heatmap_month_separated_positions)
 - [🔧 Function `habit_heatmap_week_start`](#-function-habit_heatmap_week_start)
 - [🔧 Function `habit_heatmap_weekday_index`](#-function-habit_heatmap_weekday_index)
+- [🔧 Function `heatmap_year_after_step`](#-function-heatmap_year_after_step)
 - [🔧 Function `numeric_habit_heatmap_cell_labels`](#-function-numeric_habit_heatmap_cell_labels)
 
 </details>
@@ -154,6 +155,7 @@ class MainWindow(
         self._init_habits_table_delegates()
         self._init_habits_filter_list()
         self._init_habits_year_list()
+        self._init_heatmap_year_nav()
         self.update_all()
 
         # Set window size and position based on screen resolution
@@ -663,6 +665,7 @@ class MainWindow(
         self.load_process_habits_table(ignore_filter=False)
         # Update heatmap with selected year
         self.update_habit_calendar_heatmap(habit_name, year=year)
+        self._sync_heatmap_year_nav_buttons()
 
     def on_habit_year_selection_changed(self, current: QModelIndex, _previous: QModelIndex) -> None:
         """Handle habit year list view selection change.
@@ -1309,6 +1312,7 @@ class MainWindow(
 
             if selection_model:
                 selection_model.blockSignals(False)  # noqa: FBT003
+            self._sync_heatmap_year_nav_buttons()
 
         except Exception:
             logger.exception("Error updating habits year list view")
@@ -1489,6 +1493,19 @@ class MainWindow(
             return self.habits_year_list_model.data(current_index) or ""
         return ""
 
+    def _habit_filter_years(self) -> list[int]:
+        """Return calendar years listed in the Charts year filter."""
+        if self.habits_year_list_model is None:
+            return []
+        years: list[int] = []
+        for row in range(self.habits_year_list_model.rowCount()):
+            text = self.habits_year_list_model.data(self.habits_year_list_model.index(row, 0)) or ""
+            try:
+                years.append(int(text))
+            except (TypeError, ValueError):
+                continue
+        return years
+
     def _habit_heatmap_figure(self) -> Figure:
         """Create a heatmap figure sized to the visible charts pane."""
         viewport = self.scrollArea_charts_process_habits.viewport()
@@ -1620,6 +1637,17 @@ class MainWindow(
         # Optional: Show a brief notification (you can remove this if not needed)
         # You could add a toast notification here if you have one
 
+    def _init_heatmap_year_nav(self) -> None:
+        """Style and connect Calendar Heatmap prev/next year buttons."""
+        prev_btn = self.pushButton_charts_heatmap_prev_year
+        next_btn = self.pushButton_charts_heatmap_next_year
+        style_calendar_nav_button(prev_btn)
+        style_calendar_nav_button(next_btn)
+        prev_btn.clicked.connect(self._on_heatmap_prev_year)
+        next_btn.clicked.connect(self._on_heatmap_next_year)
+        self.verticalLayout_charts_heatmap.setStretch(1, 1)
+        self._sync_heatmap_year_nav_buttons()
+
     # Add to MainWindow class (near other small helpers)
 
     def _on_dashboard_data_changed(self) -> None:
@@ -1629,6 +1657,12 @@ class MainWindow(
         self.show_tables()
         self.update_habits_filter_combobox()
         self.update_habits_year_combobox()
+
+    def _on_heatmap_next_year(self) -> None:
+        self._step_heatmap_year(1)
+
+    def _on_heatmap_prev_year(self) -> None:
+        self._step_heatmap_year(-1)
 
     def _on_process_habits_table_clicked(self, index: QModelIndex) -> None:
         """Handle click on process habits table.
@@ -1716,6 +1750,16 @@ class MainWindow(
             timer.timeout.connect(self.refresh_habits_and_process_habits)
             self._habits_refresh_timer = timer
         timer.start(delay_ms)
+
+    def _select_habit_year_text(self, year_text: str) -> None:
+        """Select a year row in the Charts year filter."""
+        if self.habits_year_list_model is None:
+            return
+        for row in range(self.habits_year_list_model.rowCount()):
+            index = self.habits_year_list_model.index(row, 0)
+            if self.habits_year_list_model.data(index) == year_text:
+                self.listView_filter_habit_year.setCurrentIndex(index)
+                return
 
     def _set_charts_splitter_size(self) -> None:
         """Set initial width for heatmap filters to 150 pixels."""
@@ -1954,6 +1998,29 @@ class MainWindow(
         if self.db_manager:
             self.db_manager.close()
             self.db_manager = None
+
+    def _step_heatmap_year(self, step: int) -> None:
+        next_year = heatmap_year_after_step(
+            self._get_selected_habit_year(),
+            self._habit_filter_years(),
+            step=step,
+            today_year=datetime.now(UTC).astimezone().date().year,
+        )
+        if next_year is None:
+            return
+        self._select_habit_year_text(str(next_year))
+
+    def _sync_heatmap_year_nav_buttons(self) -> None:
+        """Enable heatmap year arrows only when another year is available."""
+        prev_btn = getattr(self, "pushButton_charts_heatmap_prev_year", None)
+        next_btn = getattr(self, "pushButton_charts_heatmap_next_year", None)
+        if prev_btn is None or next_btn is None:
+            return
+        selected = self._get_selected_habit_year()
+        years = self._habit_filter_years()
+        today_year = datetime.now(UTC).astimezone().date().year
+        prev_btn.setEnabled(heatmap_year_after_step(selected, years, step=-1, today_year=today_year) is not None)
+        next_btn.setEnabled(heatmap_year_after_step(selected, years, step=1, today_year=today_year) is not None)
 
     def _sync_with_ticktick(self) -> None:
         """Synchronize habits with TickTick (local SQLite read, Open API writes)."""
@@ -2243,6 +2310,7 @@ def __init__(self, *, hide_on_close: bool = False) -> None:  # noqa: D107  (inhe
         self._init_habits_table_delegates()
         self._init_habits_filter_list()
         self._init_habits_year_list()
+        self._init_heatmap_year_nav()
         self.update_all()
 
         # Set window size and position based on screen resolution
@@ -2898,6 +2966,7 @@ def on_habit_year_changed(self, index: QModelIndex) -> None:
         self.load_process_habits_table(ignore_filter=False)
         # Update heatmap with selected year
         self.update_habit_calendar_heatmap(habit_name, year=year)
+        self._sync_heatmap_year_nav_buttons()
 ```
 
 </details>
@@ -3666,6 +3735,7 @@ def update_habits_year_combobox(self) -> None:
 
             if selection_model:
                 selection_model.blockSignals(False)  # noqa: FBT003
+            self._sync_heatmap_year_nav_buttons()
 
         except Exception:
             logger.exception("Error updating habits year list view")
@@ -3843,6 +3913,55 @@ Return 0-based heatmap row for ``day`` (Sunday-first by default).
 ```python
 def habit_heatmap_weekday_index(day: date, *, week_starts_on: int = HEATMAP_WEEK_STARTS_ON) -> int:
     return (day.weekday() - week_starts_on) % 7
+```
+
+</details>
+
+## 🔧 Function `heatmap_year_after_step`
+
+```python
+def heatmap_year_after_step(selected: str, years: list[int], *, step: int, today_year: int) -> int | None
+```
+
+Return the next filter year after a heatmap prev/next step.
+
+Args:
+
+- `selected` (`str`): Current year-filter text, including `Last 365 days`.
+- `years` (`list[int]`): Years shown in the Charts year list.
+- [`step`](../../installer/log.g.md#%EF%B8%8F-method-step) (`int`): `-1` for previous year, `1` for next year.
+- `today_year` (`int`): Current calendar year; later years are ignored.
+
+Returns:
+
+- `int | None`: Year to select, or `None` when the step is not available.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def heatmap_year_after_step(
+    selected: str,
+    years: list[int],
+    *,
+    step: int,
+    today_year: int,
+) -> int | None:
+    years_sorted = sorted({int(year) for year in years if year})
+    years_sorted = [year for year in years_sorted if year <= today_year]
+    if not years_sorted:
+        return None
+    if selected == "Last 365 days" or not str(selected).strip():
+        return years_sorted[-1] if step < 0 else None
+    try:
+        current = int(selected)
+    except (TypeError, ValueError):
+        current = today_year
+    if step < 0:
+        older = [year for year in years_sorted if year < current]
+        return older[-1] if older else None
+    newer = [year for year in years_sorted if year > current]
+    return newer[0] if newer else None
 ```
 
 </details>
