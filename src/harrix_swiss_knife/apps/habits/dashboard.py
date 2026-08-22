@@ -35,6 +35,7 @@ from harrix_swiss_knife.apps.habits.dashboard_widgets import (
     MonthCalendarGrid,
     StatCard,
     WeekDayHeader,
+    absent_dates_in_month,
     weekday_short,
 )
 from harrix_swiss_knife.apps.habits.habit_edit_dialog import HabitEditDialog
@@ -270,6 +271,7 @@ class HabitDashboardWidget(QWidget):
         self._calendar = MonthCalendarGrid()
         self._calendar.day_toggled.connect(self._on_calendar_day_toggled)
         self._calendar.day_value_set.connect(self._on_calendar_day_value_set)
+        self._calendar.fill_absent_not_done.connect(self._on_calendar_fill_absent_not_done)
         self._calendar.month_changed.connect(self._on_calendar_month_changed)
         layout.addWidget(self._calendar)
 
@@ -362,6 +364,26 @@ class HabitDashboardWidget(QWidget):
         if self._db is None or self._selected_habit_id is None:
             return
         self._set_date_value(self._selected_habit_id, date_str, value)
+
+    def _on_calendar_fill_absent_not_done(self) -> None:
+        if self._db is None or self._selected_habit_id is None:
+            return
+        habit_id = self._selected_habit_id
+        year, month = self._calendar_year, self._calendar_month
+        last_day = calendar.monthrange(year, month)[1]
+        month_start = f"{year:04d}-{month:02d}-01"
+        month_end = f"{year:04d}-{month:02d}-{last_day:02d}"
+        day_values = self._db.get_habit_values_between(habit_id, month_start, month_end)
+        dates = absent_dates_in_month(year, month, day_values, _local_today())
+        if not dates:
+            return
+        try:
+            self._db.upsert_habit_checkins([(habit_id, date_str, 0) for date_str in dates])
+        except RuntimeError:
+            QMessageBox.warning(self, "Database Error", "Failed to fill empty days.")
+            return
+        self.refresh()
+        self.data_changed.emit()
 
     def _on_calendar_month_changed(self, year: int, month: int) -> None:
         self._calendar_year = year

@@ -51,6 +51,7 @@ lang: en
 - [🏛️ Class `WeekDayHeader`](#%EF%B8%8F-class-weekdayheader)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-6)
   - [⚙️ Method `set_day`](#%EF%B8%8F-method-set_day)
+- [🔧 Function `absent_dates_in_month`](#-function-absent_dates_in_month)
 - [🔧 Function `calendar_month_for_year`](#-function-calendar_month_for_year)
 - [🔧 Function `habit_accent_color`](#-function-habit_accent_color)
 - [🔧 Function `habit_day_state`](#-function-habit_day_state)
@@ -898,6 +899,7 @@ class MonthCalendarGrid(QWidget):
 
     day_toggled = Signal(str)  # YYYY-MM-DD
     day_value_set = Signal(str, object)  # YYYY-MM-DD, value (int | None)
+    fill_absent_not_done = Signal()
     month_changed = Signal(int, int)  # year, month
 
     def __init__(self, parent: QWidget | None = None) -> None:  # noqa: D107
@@ -952,7 +954,7 @@ class MonthCalendarGrid(QWidget):
         self._title.setObjectName("habitDashCalendarTitle")
         self._title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._title.setCursor(Qt.CursorShape.PointingHandCursor)
-        self._title.setToolTip("Double-click for the current month. Right-click to choose a year.")
+        self._title.setToolTip("Double-click for the current month. Right-click to choose a year or fill empty days.")
         self._title.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self._title.customContextMenuRequested.connect(self._on_title_context_menu)
         title_font = QFont(self._title.font())
@@ -1026,6 +1028,9 @@ class MonthCalendarGrid(QWidget):
         self._sync_next_month_button()
         self._rebuild_grid()
 
+    def _absent_dates_this_month(self) -> list[str]:
+        return absent_dates_in_month(self._year, self._month, self._day_values, self._today)
+
     def _build_title_menu(self) -> QMenu:
         """Build the month-title context menu for current month and years."""
         menu = QMenu(self)
@@ -1033,6 +1038,10 @@ class MonthCalendarGrid(QWidget):
         on_current = (self._year, self._month) == (self._today.year, self._today.month)
         current_action.setEnabled(not on_current)
         current_action.triggered.connect(self._on_title_double_clicked)
+
+        fill_action = menu.addAction("Fill No record days with Not done")
+        fill_action.setEnabled(bool(self._absent_dates_this_month()))
+        fill_action.triggered.connect(lambda _checked=False: self.fill_absent_not_done.emit())
 
         year_menu = menu.addMenu("Year")
         if not self._available_years:
@@ -1070,7 +1079,8 @@ class MonthCalendarGrid(QWidget):
         self.month_changed.emit(year, month)
 
     def _on_title_context_menu(self, pos: QPoint) -> None:
-        self._build_title_menu().exec(self._title.mapToGlobal(pos))
+        menu = self._build_title_menu()
+        menu.popup(self._title.mapToGlobal(pos))
 
     def _on_title_double_clicked(self) -> None:
         year, month = self._today.year, self._today.month
@@ -1197,7 +1207,7 @@ def __init__(self, parent: QWidget | None = None) -> None:  # noqa: D107
         self._title.setObjectName("habitDashCalendarTitle")
         self._title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._title.setCursor(Qt.CursorShape.PointingHandCursor)
-        self._title.setToolTip("Double-click for the current month. Right-click to choose a year.")
+        self._title.setToolTip("Double-click for the current month. Right-click to choose a year or fill empty days.")
         self._title.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self._title.customContextMenuRequested.connect(self._on_title_context_menu)
         title_font = QFont(self._title.font())
@@ -1662,6 +1672,51 @@ def set_day(self, caption: str, ratio: float, *, is_today: bool) -> None:
             self._label.setStyleSheet("color: #2563EB; font-size: 11px; font-weight: 700;")
         else:
             self._label.setStyleSheet("color: #6B7280; font-size: 11px;")
+```
+
+</details>
+
+## 🔧 Function `absent_dates_in_month`
+
+```python
+def absent_dates_in_month(year: int, month: int, day_values: Mapping[str, int], today: date) -> list[str]
+```
+
+Return dates in the month that have no record and are not in the future.
+
+Args:
+
+- `year` (`int`): Visible calendar year.
+- `month` (`int`): Visible calendar month.
+- `day_values` (`Mapping[str, int]`): Stored values keyed by `YYYY-MM-DD`.
+- `today` (`date`): Local today; later days are skipped.
+
+Returns:
+
+- `list[str]`: Dates to fill with Not done (`0`).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def absent_dates_in_month(
+    year: int,
+    month: int,
+    day_values: Mapping[str, int],
+    today: date,
+) -> list[str]:
+    if year < 1 or not 1 <= month <= MONTHS_IN_YEAR:
+        return []
+    last_day = calendar.monthrange(year, month)[1]
+    dates: list[str] = []
+    for day in range(1, last_day + 1):
+        cell = date(year, month, day)
+        if cell > today:
+            break
+        date_str = cell.isoformat()
+        if date_str not in day_values:
+            dates.append(date_str)
+    return dates
 ```
 
 </details>

@@ -26,6 +26,7 @@ from harrix_swiss_knife.apps.habits.dashboard_widgets import (
     CheckCircle,
     HabitRow,
     MonthCalendarGrid,
+    absent_dates_in_month,
     calendar_month_for_year,
     habit_day_state,
     paint_habit_day_circle,
@@ -419,6 +420,17 @@ def test_get_habit_years_for_one_habit(habits_db: DatabaseManager) -> None:
     assert habits_db.get_habit_years(walk_id) == [2024]
 
 
+def test_absent_dates_in_month_skips_records_and_future_days() -> None:
+    """Only No record days up to today are filled with Not done."""
+    today = date(2026, 8, 4)
+    values = {"2026-08-01": 1, "2026-08-03": 0}
+    assert absent_dates_in_month(2026, 8, values, today) == ["2026-08-02", "2026-08-04"]
+    assert absent_dates_in_month(2020, 2, {"2020-02-05": 1, "2020-02-10": 0}, today) == [
+        f"2020-02-{day:02d}" for day in range(1, 30) if day not in {5, 10}
+    ]
+    assert absent_dates_in_month(0, 8, {}, today) == []
+
+
 def test_calendar_month_for_year_keeps_month_unless_future() -> None:
     """Choosing a year keeps the visible month, but never goes past today."""
     today = date(2026, 8, 22)
@@ -456,6 +468,48 @@ def test_month_calendar_title_menu_jumps_to_current_month_and_year(qapp: QApplic
     year_2017 = next(action for action in year_menu.actions() if action.text() == "2017")
     year_2017.trigger()
     assert changed == [(2017, 8)]
+
+
+def test_month_calendar_title_menu_fills_absent_days_with_not_done(qapp: QApplication) -> None:
+    """Title menu can fill No record days; the action is off when none remain."""
+    assert qapp is not None
+    today = date(2026, 8, 3)
+    grid = MonthCalendarGrid()
+    grid.set_month(2026, 8, {"2026-08-01": 1}, today=today)
+    filled: list[bool] = []
+    grid.fill_absent_not_done.connect(lambda: filled.append(True))
+
+    menu = grid._build_title_menu()
+    fill = next(action for action in menu.actions() if action.text() == "Fill No record days with Not done")
+    assert fill.isEnabled()
+    fill.trigger()
+    assert filled == [True]
+
+    grid.set_month(2026, 8, {"2026-08-01": 1, "2026-08-02": 0, "2026-08-03": 1}, today=today)
+    menu = grid._build_title_menu()
+    fill = next(action for action in menu.actions() if action.text() == "Fill No record days with Not done")
+    assert not fill.isEnabled()
+
+
+def test_habit_dashboard_fills_absent_month_days(habits_db: DatabaseManager, qapp: QApplication) -> None:
+    """Dashboard writes Not done for empty days and keeps existing values."""
+    assert qapp is not None
+    assert habits_db.add_habit("Walk", is_bool=True)
+    habit_id = int(habits_db.get_habits()[0][0])
+    assert habits_db.set_habit_checkin(habit_id, "2020-02-05", 1)
+    assert habits_db.set_habit_checkin(habit_id, "2020-02-10", 0)
+
+    dashboard = HabitDashboardWidget()
+    dashboard.set_database(habits_db)
+    dashboard._calendar_year = 2020
+    dashboard._calendar_month = 2
+    dashboard._on_calendar_fill_absent_not_done()
+
+    values = habits_db.get_habit_values_between(habit_id, "2020-02-01", "2020-02-29")
+    assert values["2020-02-05"] == 1
+    assert values["2020-02-10"] == 0
+    assert len(values) == 29
+    assert all(values[f"2020-02-{day:02d}"] == 0 for day in range(1, 30) if day not in {5, 10})
 
 
 def test_month_calendar_title_double_click_returns_to_today(qapp: QApplication) -> None:
