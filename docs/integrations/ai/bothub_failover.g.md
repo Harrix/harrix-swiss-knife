@@ -110,11 +110,8 @@ def prepare_bothub_router(
     _apply_router_in_memory(config, alternate)
     writer = persist or (lambda provider, speech: persist_ai_provider(provider, speech_provider=speech))
     speech_to_write = _speech_provider_after_switch(config, alternate)
-    try:
+    with suppress(OSError, TypeError, ValueError, json.JSONDecodeError):
         writer(alternate, speech_to_write)
-    except (OSError, TypeError, ValueError, json.JSONDecodeError):
-        # Still use the in-memory router for this request.
-        pass
     return alternate
 ```
 
@@ -145,8 +142,10 @@ Returns:
 
 ```python
 def probe_bothub_site(url: str, proxy_url: str | None = None) -> bool:
+    if urlsplit(url).scheme != "https":
+        return False
     opener = build_https_opener(proxy_url)
-    request = Request(url, method="GET", headers={"User-Agent": _PROBE_UA})
+    request = Request(url, method="GET", headers={"User-Agent": _PROBE_UA})  # noqa: S310
     try:
         with opener.open(request, timeout=_PROBE_TIMEOUT_SEC) as response:
             response.read(64)

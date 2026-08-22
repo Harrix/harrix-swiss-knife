@@ -99,6 +99,7 @@ from harrix_swiss_knife.apps.habits.ticktick_api import (
     resolve_ticktick_api_token,
 )
 from harrix_swiss_knife.paths import get_config_path_str, get_project_root
+from harrix_swiss_knife.qt_emoji_icon import apply_leading_emoji_icons
 from harrix_swiss_knife.toast_progress_notification import ToastProgressNotification
 from harrix_swiss_knife.win11_backdrop import SystemBackdrop, try_apply_system_backdrop
 
@@ -1873,6 +1874,7 @@ class MainWindow(
         backup_action.triggered.connect(self._backup_habits)
         ticktick_action = self.menuCommands.addAction("🔄 Sync with TickTick")
         ticktick_action.triggered.connect(self._sync_with_ticktick)
+        self._apply_menu_bar_emoji_icons()
         self.tabWidget.currentChanged.connect(self._on_tab_changed)
 
         self.pushButton_habits_delete.setText(f"🗑️ {self.pushButton_habits_delete.text()}")
@@ -1924,6 +1926,7 @@ class MainWindow(
         has_habit = habit_id is not None
         archive_action.setEnabled(bool(has_habit and not is_archived))
         unarchive_action.setEnabled(bool(has_habit and is_archived))
+        apply_leading_emoji_icons(context_menu)
 
         action = context_menu.exec_(self.listView_filter_habit.mapToGlobal(position))
         if action is None:
@@ -1958,6 +1961,7 @@ class MainWindow(
             toggle_action = context_menu.addAction("🙈 Hide archived habits")
         else:
             toggle_action = context_menu.addAction("👀 Show archived habits")
+        apply_leading_emoji_icons(context_menu)
 
         action = context_menu.exec_(self.listView_filter_habit_year.mapToGlobal(position))
         if action is None:
@@ -2010,6 +2014,7 @@ class MainWindow(
             toggle_archived_action = context_menu.addAction("🙈 Hide archived habits")
         else:
             toggle_archived_action = context_menu.addAction("👀 Show archived habits")
+        apply_leading_emoji_icons(context_menu)
 
         # Execute the context menu and get the selected action
         action = context_menu.exec_(self.tableView_process_habits.mapToGlobal(position))

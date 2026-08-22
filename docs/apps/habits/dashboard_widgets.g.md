@@ -1007,16 +1007,17 @@ class MonthCalendarGrid(QWidget):
     def _build_title_menu(self) -> QMenu:
         """Build the month-title context menu for current month and years."""
         menu = QMenu(self)
-        current_action = menu.addAction("Show current month and year")
+        current_action = add_emoji_action(menu, "Show current month and year", "📅")
         on_current = (self._year, self._month) == (self._today.year, self._today.month)
         current_action.setEnabled(not on_current)
         current_action.triggered.connect(self._on_title_double_clicked)
 
-        fill_action = menu.addAction("Fill No record days with Not done")
+        fill_action = add_emoji_action(menu, "Fill No record days with Not done", "✅")
         fill_action.setEnabled(bool(self._absent_dates_this_month()))
         fill_action.triggered.connect(lambda _checked=False: self.fill_absent_not_done.emit())
 
         year_menu = menu.addMenu("Year")
+        apply_emoji_action_icon(year_menu.menuAction(), "📆")
         if not self._available_years:
             empty = year_menu.addAction("No years in database")
             empty.setEnabled(False)

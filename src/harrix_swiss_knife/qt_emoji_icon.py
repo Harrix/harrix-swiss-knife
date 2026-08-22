@@ -9,11 +9,14 @@ glyph's tight bounding rect and centers the result without clipping.
 
 from __future__ import annotations
 
+import unicodedata
+
 from PySide6.QtCore import QPointF, QRectF, Qt
-from PySide6.QtGui import QFont, QFontMetricsF, QIcon, QPainter, QPixmap
-from PySide6.QtWidgets import QDialogButtonBox, QPushButton, QWidget
+from PySide6.QtGui import QAction, QFont, QFontMetricsF, QIcon, QPainter, QPixmap
+from PySide6.QtWidgets import QDialogButtonBox, QMenu, QMenuBar, QPushButton, QWidget
 
 DEFAULT_EMOJI_BUTTON_ICON_SIZE = 18
+DEFAULT_EMOJI_MENU_ICON_SIZE = 18
 
 OK_BUTTON_EMOJI = "✅"
 CANCEL_BUTTON_EMOJI = "❌"
@@ -21,6 +24,39 @@ SAVE_BUTTON_EMOJI = "💾"
 CLOSE_BUTTON_EMOJI = "❌"
 COPY_BUTTON_EMOJI = "📋"
 DELETE_BUTTON_EMOJI = "🗑️"
+
+_EMOJI_CODE_RANGES = (
+    (0x200D, 0x200D),
+    (0x20E3, 0x20E3),
+    (0x2100, 0x27BF),
+    (0xFE00, 0xFE0F),
+    (0x1F000, 0x1FAFF),
+    (0x1F3FB, 0x1F3FF),
+)
+
+
+def add_emoji_action(
+    menu: QMenu,
+    label: str,
+    emoji: str,
+    *,
+    icon_size: int = DEFAULT_EMOJI_MENU_ICON_SIZE,
+) -> QAction:
+    """Add a menu action with `emoji` as a `QIcon` and `label` as the text."""
+    action = menu.addAction(label)
+    apply_emoji_action_icon(action, emoji, icon_size=icon_size)
+    return action
+
+
+def apply_emoji_action_icon(
+    action: QAction,
+    emoji: str,
+    *,
+    icon_size: int = DEFAULT_EMOJI_MENU_ICON_SIZE,
+) -> None:
+    """Set `emoji` as the action icon without changing its text."""
+    if emoji:
+        action.setIcon(create_emoji_icon(emoji, icon_size))
 
 
 def apply_emoji_dialog_buttons(
@@ -38,6 +74,41 @@ def apply_emoji_dialog_buttons(
         button = buttons.button(standard_button)
         if button is not None:
             button.setIcon(create_emoji_icon(emoji, icon_size))
+
+
+def apply_leading_emoji_icon(
+    action: QAction,
+    *,
+    icon_size: int = DEFAULT_EMOJI_MENU_ICON_SIZE,
+) -> bool:
+    """Move a leading emoji from `action` text onto its `QIcon`.
+
+    Returns:
+
+    - `bool`: `True` when an emoji prefix was converted.
+
+    """
+    emoji, rest = split_leading_emoji(action.text())
+    if not emoji:
+        return False
+    apply_emoji_action_icon(action, emoji, icon_size=icon_size)
+    action.setText(rest)
+    return True
+
+
+def apply_leading_emoji_icons(
+    menu: QMenu | QMenuBar,
+    *,
+    icon_size: int = DEFAULT_EMOJI_MENU_ICON_SIZE,
+) -> None:
+    """Convert leading emoji prefixes on `menu` actions into `QIcon`s."""
+    for action in menu.actions():
+        if action.isSeparator():
+            continue
+        apply_leading_emoji_icon(action, icon_size=icon_size)
+        submenu = action.menu()
+        if isinstance(submenu, QMenu):
+            apply_leading_emoji_icons(submenu, icon_size=icon_size)
 
 
 def create_emoji_icon(emoji: str, size: int = 64) -> QIcon:
@@ -94,3 +165,37 @@ def paint_centered_emoji(
     y = rect.y() + (rect.height() - fitted.height()) / 2.0
     painter.drawText(QPointF(x - fitted.left(), y - fitted.top()), emoji)
     painter.restore()
+
+
+def split_leading_emoji(text: str) -> tuple[str, str]:
+    """Split `emoji rest` menu text into `(emoji, rest)`.
+
+    Returns `("", text)` when the first token is not an emoji.
+
+    """
+    raw = text.strip()
+    if not raw:
+        return "", text
+    first, _sep, rest = raw.partition(" ")
+    if _is_emoji_token(first):
+        return first, rest
+    return "", text
+
+
+def _is_emoji_codepoint(code: int) -> bool:
+    return any(start <= code <= end for start, end in _EMOJI_CODE_RANGES)
+
+
+def _is_emoji_token(token: str) -> bool:
+    if not token:
+        return False
+    has_symbol = False
+    for char in token:
+        category = unicodedata.category(char)
+        if _is_emoji_codepoint(ord(char)) or category in {"So", "Sk"}:
+            has_symbol = True
+            continue
+        if category in {"Mn", "Me"}:
+            continue
+        return False
+    return has_symbol

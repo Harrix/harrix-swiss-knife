@@ -376,6 +376,7 @@ def show_action_identity_context_menu(
         copy_cli.triggered.connect(
             lambda *_args, cmd=cli_copy_command: copy_cli_command_to_clipboard(cmd),
         )
+    apply_leading_emoji_icons(menu)
     menu.exec_(global_pos)
 ```
 
@@ -423,6 +424,7 @@ def show_copy_cli_menu(*, parent: QWidget | None, global_pos: QPoint, cli_copy_c
     copy_action.triggered.connect(
         lambda *_args, cmd=cli_copy_command: copy_cli_command_to_clipboard(cmd),
     )
+    apply_leading_emoji_icons(menu)
     menu.exec_(global_pos)
 ```
 

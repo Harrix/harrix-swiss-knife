@@ -11,10 +11,65 @@ lang: en
 
 ## Contents
 
+- [🔧 Function `add_emoji_action`](#-function-add_emoji_action)
+- [🔧 Function `apply_emoji_action_icon`](#-function-apply_emoji_action_icon)
 - [🔧 Function `apply_emoji_dialog_buttons`](#-function-apply_emoji_dialog_buttons)
+- [🔧 Function `apply_leading_emoji_icon`](#-function-apply_leading_emoji_icon)
+- [🔧 Function `apply_leading_emoji_icons`](#-function-apply_leading_emoji_icons)
 - [🔧 Function `create_emoji_icon`](#-function-create_emoji_icon)
 - [🔧 Function `make_emoji_push_button`](#-function-make_emoji_push_button)
 - [🔧 Function `paint_centered_emoji`](#-function-paint_centered_emoji)
+- [🔧 Function `split_leading_emoji`](#-function-split_leading_emoji)
+
+</details>
+
+## 🔧 Function `add_emoji_action`
+
+```python
+def add_emoji_action(menu: QMenu, label: str, emoji: str, *, icon_size: int = DEFAULT_EMOJI_MENU_ICON_SIZE) -> QAction
+```
+
+Add a menu action with `emoji` as a `QIcon` and `label` as the text.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def add_emoji_action(
+    menu: QMenu,
+    label: str,
+    emoji: str,
+    *,
+    icon_size: int = DEFAULT_EMOJI_MENU_ICON_SIZE,
+) -> QAction:
+    action = menu.addAction(label)
+    apply_emoji_action_icon(action, emoji, icon_size=icon_size)
+    return action
+```
+
+</details>
+
+## 🔧 Function `apply_emoji_action_icon`
+
+```python
+def apply_emoji_action_icon(action: QAction, emoji: str, *, icon_size: int = DEFAULT_EMOJI_MENU_ICON_SIZE) -> None
+```
+
+Set `emoji` as the action icon without changing its text.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def apply_emoji_action_icon(
+    action: QAction,
+    emoji: str,
+    *,
+    icon_size: int = DEFAULT_EMOJI_MENU_ICON_SIZE,
+) -> None:
+    if emoji:
+        action.setIcon(create_emoji_icon(emoji, icon_size))
+```
 
 </details>
 
@@ -44,6 +99,65 @@ def apply_emoji_dialog_buttons(
         button = buttons.button(standard_button)
         if button is not None:
             button.setIcon(create_emoji_icon(emoji, icon_size))
+```
+
+</details>
+
+## 🔧 Function `apply_leading_emoji_icon`
+
+```python
+def apply_leading_emoji_icon(action: QAction, *, icon_size: int = DEFAULT_EMOJI_MENU_ICON_SIZE) -> bool
+```
+
+Move a leading emoji from `action` text onto its `QIcon`.
+
+Returns:
+
+- `bool`: `True` when an emoji prefix was converted.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def apply_leading_emoji_icon(
+    action: QAction,
+    *,
+    icon_size: int = DEFAULT_EMOJI_MENU_ICON_SIZE,
+) -> bool:
+    emoji, rest = split_leading_emoji(action.text())
+    if not emoji:
+        return False
+    apply_emoji_action_icon(action, emoji, icon_size=icon_size)
+    action.setText(rest)
+    return True
+```
+
+</details>
+
+## 🔧 Function `apply_leading_emoji_icons`
+
+```python
+def apply_leading_emoji_icons(menu: QMenu | QMenuBar, *, icon_size: int = DEFAULT_EMOJI_MENU_ICON_SIZE) -> None
+```
+
+Convert leading emoji prefixes on `menu` actions into `QIcon`s.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def apply_leading_emoji_icons(
+    menu: QMenu | QMenuBar,
+    *,
+    icon_size: int = DEFAULT_EMOJI_MENU_ICON_SIZE,
+) -> None:
+    for action in menu.actions():
+        if action.isSeparator():
+            continue
+        apply_leading_emoji_icon(action, icon_size=icon_size)
+        submenu = action.menu()
+        if isinstance(submenu, QMenu):
+            apply_leading_emoji_icons(submenu, icon_size=icon_size)
 ```
 
 </details>
@@ -139,6 +253,32 @@ def paint_centered_emoji(
     y = rect.y() + (rect.height() - fitted.height()) / 2.0
     painter.drawText(QPointF(x - fitted.left(), y - fitted.top()), emoji)
     painter.restore()
+```
+
+</details>
+
+## 🔧 Function `split_leading_emoji`
+
+```python
+def split_leading_emoji(text: str) -> tuple[str, str]
+```
+
+Split `emoji rest` menu text into `(emoji, rest)`.
+
+Returns `("", text)` when the first token is not an emoji.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def split_leading_emoji(text: str) -> tuple[str, str]:
+    raw = text.strip()
+    if not raw:
+        return "", text
+    first, _sep, rest = raw.partition(" ")
+    if _is_emoji_token(first):
+        return first, rest
+    return "", text
 ```
 
 </details>

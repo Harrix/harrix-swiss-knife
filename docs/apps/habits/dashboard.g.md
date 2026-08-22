@@ -373,9 +373,9 @@ class HabitDashboardWidget(QWidget):
         if self._db is None or self._selected_habit_id is None:
             return
         menu = QMenu(self)
-        act_edit = menu.addAction("Edit habit")
-        act_archive = menu.addAction("Archive habit")
-        act_delete = menu.addAction("Delete habit")
+        act_edit = add_emoji_action(menu, "Edit habit", "✏️")
+        act_archive = add_emoji_action(menu, "Archive habit", "🗄")
+        act_delete = add_emoji_action(menu, "Delete habit", "🗑️")
         chosen = menu.exec_(self._detail_more.mapToGlobal(self._detail_more.rect().bottomLeft()))
         habit_id = self._selected_habit_id
         if chosen == act_edit:
@@ -413,7 +413,7 @@ class HabitDashboardWidget(QWidget):
     def _on_habit_row_context_menu(self, habit_id: int, global_pos: QPoint) -> None:
         self._on_habit_selected(habit_id)
         menu = QMenu(self)
-        act_edit = menu.addAction("Edit habit")
+        act_edit = add_emoji_action(menu, "Edit habit", "✏️")
         chosen = menu.exec_(global_pos)
         if chosen == act_edit:
             self._edit_selected_habit()

@@ -36,6 +36,7 @@ from PySide6.QtWidgets import (
 
 from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.ui_helpers import reveal_in_file_explorer
+from harrix_swiss_knife.qt_emoji_icon import apply_leading_emoji_icons
 
 if TYPE_CHECKING:
     from PySide6.QtGui import QCloseEvent, QKeyEvent
@@ -119,9 +120,16 @@ class AppWindowMixin:
             message_box.warning(cast("QWidget", self), "Database", str(exc))
 
     def _apply_exit_about_menu_emojis(self) -> None:
-        """Prefix Exit and About menu actions with emoji icons."""
+        """Prefix Exit and About with emoji, then turn menu-bar prefixes into icons."""
         self.actionExit.setText(f"🚪 {self.actionExit.text()}")
         self.actionAbout.setText(f"ℹ️ {self.actionAbout.text()}")  # noqa: RUF001
+        self._apply_menu_bar_emoji_icons()
+
+    def _apply_menu_bar_emoji_icons(self) -> None:
+        """Move leading emoji from File / Commands / Help action text onto icons."""
+        menu_bar = cast("QMainWindow", self).menuBar()
+        if menu_bar is not None:
+            apply_leading_emoji_icons(menu_bar)
 
     def _connect_exit_about_actions(self) -> None:
         """Wire Exit and About menu actions to their handlers."""

@@ -5194,6 +5194,7 @@ class MainWindow(
         self.action_categories_refresh.setText(f"🔄 {self.action_categories_refresh.text()}")
         self.action_copy_categories_as_text.setText(f"📋 {self.action_copy_categories_as_text.text()}")
         self.action_standard_items.setText(f"📋 {self.action_standard_items.text()}")
+        self._apply_menu_bar_emoji_icons()
         self.groupBox_filter.setTitle("")
         self.groupBox_filter.setStyleSheet(
             "QGroupBox#groupBox_filter { border: none; margin-top: 0px; padding-top: 0px; }"
