@@ -11,9 +11,11 @@ import contextlib
 import logging
 import warnings
 from calendar import monthrange
+from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, date, datetime, timedelta
 from functools import partial
 from pathlib import Path
+from time import sleep
 from typing import Any, cast
 
 import dayplot as dp
@@ -2017,7 +2019,6 @@ class MainWindow(
         hsk_db_path = Path(str(self._app_config.get("sqlite_habits", "")))
         today = datetime.now(UTC).astimezone().date()
         to_stamp = iso_to_ticktick_stamp(today.isoformat())
-        hsk_payload = export_hsk_habits_json(self.db_manager, database_path=str(hsk_db_path))
 
         token = resolve_ticktick_api_token(config=self._app_config, project_root=get_project_root())
         if not token:
@@ -2033,21 +2034,73 @@ class MainWindow(
             return
 
         client = TickTickHabitsClient(token)
-        try:
-            ticktick_payload = load_ticktick_sync_payload(
-                hsk_payload=hsk_payload,
-                to_stamp=to_stamp,
-                client=client,
-            )
-        except (FileNotFoundError, OSError, TickTickApiError, ValueError) as exc:
-            message_box.warning(self, "Sync with TickTick", str(exc))
-            return
-
-        report = build_habits_ticktick_sync_preview(hsk_payload, ticktick_payload, today=today)
-        summary = format_habits_ticktick_sync_preview(
-            report,
-            title="TickTick sync plan (will write to HSK and TickTick)",
+        analysis_cancelled = False
+        analysis_error: Exception | None = None
+        analysis_toast = ToastProgressNotification(
+            "Analyzing TickTick sync…",
+            total=0,
+            parent=self,
+            cancellable=True,
         )
+
+        def _mark_analysis_cancelled() -> None:
+            nonlocal analysis_cancelled
+            analysis_cancelled = True
+
+        analysis_toast.cancel_requested.connect(_mark_analysis_cancelled)
+        analysis_toast.start_countdown()
+        report: dict[str, Any] | None = None
+        summary = ""
+
+        def _analysis_step(detail: str) -> bool:
+            if analysis_cancelled:
+                return False
+            analysis_toast.set_detail(detail)
+            analysis_toast.pump_events()
+            return not analysis_cancelled
+
+        try:
+            if _analysis_step("Reading HSK habits"):
+                hsk_payload = export_hsk_habits_json(self.db_manager, database_path=str(hsk_db_path))
+                if _analysis_step("Reading TickTick habits"):
+                    pool = ThreadPoolExecutor(max_workers=1)
+                    try:
+                        future = pool.submit(
+                            load_ticktick_sync_payload,
+                            hsk_payload=hsk_payload,
+                            to_stamp=to_stamp,
+                            client=client,
+                        )
+                        while not future.done():
+                            analysis_toast.pump_events()
+                            if analysis_cancelled:
+                                break
+                            sleep(0.05)
+                        if not analysis_cancelled:
+                            ticktick_payload = future.result()
+                            if _analysis_step("Building sync plan"):
+                                report = build_habits_ticktick_sync_preview(
+                                    hsk_payload,
+                                    ticktick_payload,
+                                    today=today,
+                                )
+                                summary = format_habits_ticktick_sync_preview(
+                                    report,
+                                    title="TickTick sync plan (will write to HSK and TickTick)",
+                                )
+                    finally:
+                        pool.shutdown(wait=False)
+        except (FileNotFoundError, OSError, TickTickApiError, ValueError) as exc:
+            analysis_error = exc
+        finally:
+            analysis_toast.mark_completed()
+            analysis_toast.close()
+
+        if analysis_error is not None:
+            message_box.warning(self, "Sync with TickTick", str(analysis_error))
+            return
+        if analysis_cancelled or report is None:
+            return
         totals = report["transfer_totals"]
         creates = report["habit_counts"]["only_hsk"] + report["habit_counts"]["only_ticktick"]
         work = totals["to_ticktick_done"] + totals["to_hsk_done"] + totals["gap_not_done_to_hsk"] + creates
