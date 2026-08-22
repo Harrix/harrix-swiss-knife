@@ -29,6 +29,7 @@ lang: en
   - [⚙️ Method `user_moved (property)`](#%EF%B8%8F-method-user_moved-property)
 - [🔧 Function `compute_toast_stack_positions`](#-function-compute_toast_stack_positions)
 - [🔧 Function `event_targets_widget`](#-function-event_targets_widget)
+- [🔧 Function `format_toast_cancel_hint_html`](#-function-format_toast_cancel_hint_html)
 - [🔧 Function `make_action_icon`](#-function-make_action_icon)
 - [🔧 Function `process_events_allowing_widget`](#-function-process_events_allowing_widget)
 
@@ -802,6 +803,36 @@ def event_targets_widget(watched: QObject, root: QWidget) -> bool:
             return True
         current = current.parent()
     return False
+```
+
+</details>
+
+## 🔧 Function `format_toast_cancel_hint_html`
+
+```python
+def format_toast_cancel_hint_html(body: str, hint: str, *, compact: bool = False) -> str
+```
+
+Return rich text with `hint` on a smaller line under `body`.
+
+Args:
+
+- `body` (`str`): Main toast lines, separated by newlines.
+- `hint` (`str`): Cancel hint such as `Press Esc to cancel`.
+- `compact` (`bool`): Use the compact hint size. Defaults to `False`.
+
+Returns:
+
+- `str`: HTML for a `QLabel` with `RichText` format.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def format_toast_cancel_hint_html(body: str, hint: str, *, compact: bool = False) -> str:
+    size = CANCEL_HINT_FONT_SIZE_COMPACT if compact else CANCEL_HINT_FONT_SIZE
+    lines = "<br>".join(escape(part) for part in body.split("\n"))
+    return f'{lines}<br><span style="font-size: {size}; font-weight: normal;">{escape(hint)}</span>'
 ```
 
 </details>

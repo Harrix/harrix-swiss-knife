@@ -59,6 +59,16 @@ def test_progress_toast_cancel_emits_once(qapp: QApplication) -> None:  # noqa: 
     assert cancelled == [1]
 
 
+def test_progress_toast_cancel_hint_uses_smaller_font(qapp: QApplication) -> None:  # noqa: ARG001
+    toast = ToastProgressNotification("Opening folder…", cancellable=True)
+    toast._refresh_label_text()
+    html = toast.label.text()
+    assert "Press Esc to cancel" in html
+    assert "font-size: 10pt" in html
+    assert "font-weight: normal" in html
+    toast.close()
+
+
 def test_progress_toast_detail_line(qapp: QApplication) -> None:  # noqa: ARG001
     toast = ToastProgressNotification("Syncing…", total=4)
     assert toast.detail_label.isHidden()

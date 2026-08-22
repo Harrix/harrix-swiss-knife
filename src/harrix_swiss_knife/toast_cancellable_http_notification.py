@@ -153,10 +153,16 @@ class ToastCancellableHttpNotification(toast_countdown_notification.ToastCountdo
         """Update label with message, elapsed clock, and cancel hint."""
         elapsed = toast_countdown_notification.format_elapsed_clock(self.elapsed_seconds)
         if self._is_pinned:
+            self.label.setTextFormat(Qt.TextFormat.PlainText)
             self.label.setText(f"{self.message}\n{elapsed}")
         else:
+            self.label.setTextFormat(Qt.TextFormat.RichText)
             self.label.setText(
-                f"{self.message}\nTime elapsed: {elapsed}\n{_CANCEL_HINT}",
+                toast_notification_base.format_toast_cancel_hint_html(
+                    f"{self.message}\nTime elapsed: {elapsed}",
+                    _CANCEL_HINT,
+                    compact=False,
+                ),
             )
         previous_size = self.size()
         self.adjustSize()

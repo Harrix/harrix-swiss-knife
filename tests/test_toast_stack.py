@@ -4,7 +4,12 @@ from __future__ import annotations
 
 from PySide6.QtCore import QRect, QSize
 
-from harrix_swiss_knife.toast_notification_base import SCREEN_MARGIN, STACK_GAP, compute_toast_stack_positions
+from harrix_swiss_knife.toast_notification_base import (
+    SCREEN_MARGIN,
+    STACK_GAP,
+    compute_toast_stack_positions,
+    format_toast_cancel_hint_html,
+)
 
 
 def test_single_toast_uses_home_center() -> None:
@@ -55,3 +60,13 @@ def test_pinned_stack_grows_upward_from_bottom_right() -> None:
     assert points[1].y() == newer_y
     assert points[0].y() == newer_y - STACK_GAP - older.height()
     assert points[0].x() == 1000 - 180 - SCREEN_MARGIN
+
+
+def test_format_toast_cancel_hint_html_uses_smaller_font() -> None:
+    html = format_toast_cancel_hint_html("Hello <x>\nLine 2", "Press Esc to cancel")
+    assert "Hello &lt;x&gt;<br>Line 2<br>" in html
+    assert "font-size: 10pt" in html
+    assert "font-weight: normal" in html
+    assert "Press Esc to cancel" in html
+    compact = format_toast_cancel_hint_html("Body", "Press Esc to cancel", compact=True)
+    assert "font-size: 8pt" in compact

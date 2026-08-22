@@ -21,6 +21,16 @@ def qapp() -> QApplication:
     return app
 
 
+def test_cancellable_toast_cancel_hint_uses_smaller_font(qapp: QApplication) -> None:  # noqa: ARG001
+    toast = ToastCancellableHttpNotification("Requesting BotHub…")
+    toast._refresh_label_text()
+    html = toast.label.text()
+    assert "Press Esc to stop the request" in html
+    assert "font-size: 10pt" in html
+    assert "font-weight: normal" in html
+    toast.close()
+
+
 def test_cancellable_toast_is_window_modal(qapp: QApplication) -> None:  # noqa: ARG001
     toast = ToastCancellableHttpNotification("Requesting BotHub…")
     assert toast.windowModality() == Qt.WindowModality.WindowModal

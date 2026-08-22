@@ -8,6 +8,7 @@ that can be displayed temporarily on screen with customizable messages.
 from __future__ import annotations
 
 import itertools
+from html import escape
 from typing import TYPE_CHECKING
 
 from PySide6.QtCore import QEvent, QEventLoop, QObject, QPoint, QRect, QSize, Qt
@@ -23,6 +24,8 @@ _EXPAND_SYMBOL = "\u25a1"
 DEFAULT_ACTION_BUTTON_SIDE = 24
 COMPACT_ACTION_BUTTON_SIDE = 18
 ACTION_BUTTON_GAP = 2
+CANCEL_HINT_FONT_SIZE = "10pt"
+CANCEL_HINT_FONT_SIZE_COMPACT = "8pt"
 
 STACK_GAP = 8
 SCREEN_MARGIN = 20
@@ -445,6 +448,25 @@ def event_targets_widget(watched: QObject, root: QWidget) -> bool:
             return True
         current = current.parent()
     return False
+
+
+def format_toast_cancel_hint_html(body: str, hint: str, *, compact: bool = False) -> str:
+    """Return rich text with `hint` on a smaller line under `body`.
+
+    Args:
+
+    - `body` (`str`): Main toast lines, separated by newlines.
+    - `hint` (`str`): Cancel hint such as `Press Esc to cancel`.
+    - `compact` (`bool`): Use the compact hint size. Defaults to `False`.
+
+    Returns:
+
+    - `str`: HTML for a `QLabel` with `RichText` format.
+
+    """
+    size = CANCEL_HINT_FONT_SIZE_COMPACT if compact else CANCEL_HINT_FONT_SIZE
+    lines = "<br>".join(escape(part) for part in body.split("\n"))
+    return f'{lines}<br><span style="font-size: {size}; font-weight: normal;">{escape(hint)}</span>'
 
 
 def make_action_icon(side: int, symbol: str) -> QIcon:

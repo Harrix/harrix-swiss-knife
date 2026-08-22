@@ -314,16 +314,26 @@ class ToastProgressNotification(toast_countdown_notification.ToastCountdownNotif
         if not hasattr(self, "progress_bar"):
             return
         elapsed = toast_countdown_notification.format_elapsed_clock(getattr(self, "elapsed_seconds", 0))
-        cancel_hint = f"\n{_CANCEL_HINT}" if self._cancellable and not self._is_pinned else ""
+        show_hint = self._cancellable and not self._is_pinned
         if self._is_pinned:
             progress = f"{self._done}/{self._total}" if self._total > 0 else str(self._done)
-            self.label.setText(f"{self.message}\n{elapsed} · {progress}")
+            body = f"{self.message}\n{elapsed} · {progress}"
         elif self._total > 0:
+            body = f"{self.message}\nTime elapsed: {elapsed}\nProgress: {self._done} / {self._total}"
+        else:
+            body = f"{self.message}\nTime elapsed: {elapsed}"
+        if show_hint:
+            self.label.setTextFormat(Qt.TextFormat.RichText)
             self.label.setText(
-                f"{self.message}\nTime elapsed: {elapsed}\nProgress: {self._done} / {self._total}{cancel_hint}",
+                toast_notification_base.format_toast_cancel_hint_html(
+                    body,
+                    _CANCEL_HINT,
+                    compact=self._is_pinned,
+                ),
             )
         else:
-            self.label.setText(f"{self.message}\nTime elapsed: {elapsed}{cancel_hint}")
+            self.label.setTextFormat(Qt.TextFormat.PlainText)
+            self.label.setText(body)
         previous_size = self.size()
         self.adjustSize()
         self.reposition_action_buttons()
