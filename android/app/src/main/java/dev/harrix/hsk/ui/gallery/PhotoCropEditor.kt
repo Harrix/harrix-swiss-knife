@@ -730,9 +730,15 @@ fun PhotoCropEditor(
                                         Offset(point.x * side, point.y * side)
                                     }
                                 if (points.size == 1) {
+                                    val radius = stroke.radius * side
+                                    drawCircle(
+                                        color = BlurBrushColor.copy(alpha = 0.06f),
+                                        radius = radius * 1.35f,
+                                        center = points.first(),
+                                    )
                                     drawCircle(
                                         color = BlurBrushColor.copy(alpha = 0.12f),
-                                        radius = stroke.radius * side,
+                                        radius = radius * 0.72f,
                                         center = points.first(),
                                     )
                                 } else if (points.isNotEmpty()) {
@@ -743,12 +749,23 @@ fun PhotoCropEditor(
                                                 lineTo(point.x, point.y)
                                             }
                                         }
+                                    val radius = stroke.radius * side
+                                    drawPath(
+                                        path = brushPath,
+                                        color = BlurBrushColor.copy(alpha = 0.06f),
+                                        style =
+                                        Stroke(
+                                            width = radius * 2.7f,
+                                            cap = StrokeCap.Round,
+                                            join = StrokeJoin.Round,
+                                        ),
+                                    )
                                     drawPath(
                                         path = brushPath,
                                         color = BlurBrushColor.copy(alpha = 0.12f),
                                         style =
                                         Stroke(
-                                            width = stroke.radius * side * 2f,
+                                            width = radius * 1.44f,
                                             cap = StrokeCap.Round,
                                             join = StrokeJoin.Round,
                                         ),

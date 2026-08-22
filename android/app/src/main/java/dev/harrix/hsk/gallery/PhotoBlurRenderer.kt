@@ -9,6 +9,8 @@ import android.graphics.ImageDecoder
 import android.graphics.Matrix
 import android.graphics.Paint
 import android.graphics.Path
+import android.graphics.PorterDuff
+import android.graphics.PorterDuffXfermode
 import android.graphics.RectF
 import android.net.Uri
 import android.os.Build
@@ -120,7 +122,59 @@ internal object PhotoBlurRenderer {
         if (blurred !== downsampled) {
             downsampled.recycle()
         }
+        val working =
+            ensureMutableArgb(blurred) ?: run {
+                blurred.recycle()
+                return false
+            }
+        if (working !== blurred) {
+            blurred.recycle()
+        }
+        val mask =
+            createStrokeMask(working.width, working.height, strokes) ?: run {
+                working.recycle()
+                return false
+            }
+        if (mask.width <= 1 || mask.height <= 1) {
+            mask.recycle()
+            working.recycle()
+            return true
+        }
+        val feathered =
+            featherMask(mask, strokes, working.width) ?: mask
+        if (feathered !== mask) {
+            mask.recycle()
+        }
+        Canvas(working).drawBitmap(
+            feathered,
+            0f,
+            0f,
+            Paint().apply {
+                xfermode = PorterDuffXfermode(PorterDuff.Mode.DST_IN)
+            },
+        )
+        feathered.recycle()
+        Canvas(bitmap).drawBitmap(
+            working,
+            null,
+            RectF(0f, 0f, bitmap.width.toFloat(), bitmap.height.toFloat()),
+            Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG),
+        )
+        working.recycle()
+        return true
+    }
 
+    private fun createStrokeMask(
+        width: Int,
+        height: Int,
+        strokes: List<NormalizedBlurStroke>,
+    ): Bitmap? {
+        val mask =
+            try {
+                Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+            } catch (_: OutOfMemoryError) {
+                return null
+            }
         val clip = Path()
         val strokePaint =
             Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -132,28 +186,69 @@ internal object PhotoBlurRenderer {
             addStrokeToPath(
                 destination = clip,
                 stroke = stroke,
-                bitmapWidth = bitmap.width,
-                bitmapHeight = bitmap.height,
+                bitmapWidth = width,
+                bitmapHeight = height,
                 strokePaint = strokePaint,
             )
         }
         if (clip.isEmpty) {
-            blurred.recycle()
-            return true
+            mask.recycle()
+            return Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888)
         }
-
-        val canvas = Canvas(bitmap)
-        val checkpoint = canvas.save()
-        canvas.clipPath(clip)
-        canvas.drawBitmap(
-            blurred,
-            null,
-            RectF(0f, 0f, bitmap.width.toFloat(), bitmap.height.toFloat()),
-            Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG),
+        Canvas(mask).drawPath(
+            clip,
+            Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = Color.WHITE
+                style = Paint.Style.FILL
+            },
         )
-        canvas.restoreToCount(checkpoint)
-        blurred.recycle()
-        return true
+        return mask
+    }
+
+    private fun featherMask(
+        mask: Bitmap,
+        strokes: List<NormalizedBlurStroke>,
+        workingWidth: Int,
+    ): Bitmap? {
+        val radiusPx =
+            strokes.maxOfOrNull { stroke ->
+                stroke.radius.coerceIn(
+                    PhotoEditSaver.MIN_BLUR_BRUSH_RADIUS,
+                    PhotoEditSaver.MAX_BLUR_BRUSH_RADIUS,
+                ) * workingWidth
+            } ?: return mask
+        val featherPx = (radiusPx * FEATHER_RADIUS_FRACTION).coerceIn(MIN_FEATHER_PX, MAX_FEATHER_PX)
+        val scale = (2f / featherPx).coerceIn(MIN_FEATHER_SCALE, MAX_FEATHER_SCALE)
+        val tinyWidth = (mask.width * scale).roundToInt().coerceAtLeast(1)
+        val tinyHeight = (mask.height * scale).roundToInt().coerceAtLeast(1)
+        val tiny =
+            try {
+                Bitmap.createScaledBitmap(mask, tinyWidth, tinyHeight, true)
+            } catch (_: OutOfMemoryError) {
+                return null
+            }
+        val feathered =
+            try {
+                Bitmap.createScaledBitmap(tiny, mask.width, mask.height, true)
+            } catch (_: OutOfMemoryError) {
+                tiny.recycle()
+                return null
+            }
+        if (tiny !== feathered) {
+            tiny.recycle()
+        }
+        return feathered
+    }
+
+    private fun ensureMutableArgb(bitmap: Bitmap): Bitmap? {
+        if (bitmap.config == Bitmap.Config.ARGB_8888 && bitmap.isMutable) {
+            return bitmap
+        }
+        return try {
+            bitmap.copy(Bitmap.Config.ARGB_8888, true)
+        } catch (_: OutOfMemoryError) {
+            null
+        }
     }
 
     /**
@@ -315,4 +410,9 @@ internal object PhotoBlurRenderer {
     }
 
     private const val MAX_BLUR_WORKING_SIDE = 1600
+    private const val FEATHER_RADIUS_FRACTION = 0.42f
+    private const val MIN_FEATHER_PX = 6f
+    private const val MAX_FEATHER_PX = 72f
+    private const val MIN_FEATHER_SCALE = 0.06f
+    private const val MAX_FEATHER_SCALE = 0.4f
 }
