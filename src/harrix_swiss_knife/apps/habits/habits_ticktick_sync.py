@@ -5,7 +5,11 @@ from __future__ import annotations
 from datetime import UTC, date, datetime, timedelta
 from typing import TYPE_CHECKING, Any
 
-from harrix_swiss_knife.apps.habits.ticktick_api import FALLBACK_FROM_STAMP, iso_to_ticktick_stamp
+from harrix_swiss_knife.apps.habits.ticktick_api import (
+    FALLBACK_FROM_STAMP,
+    iso_to_ticktick_stamp,
+    ticktick_habit_icon_is_missing,
+)
 from harrix_swiss_knife.apps.habits.ticktick_habits import export_ticktick_habits_json
 
 if TYPE_CHECKING:
@@ -50,6 +54,7 @@ def apply_habits_ticktick_sync(
         "to_ticktick_done": 0,
         "to_hsk_done": 0,
         "gap_not_done_to_hsk": 0,
+        "fixed_icons": 0,
     }
     errors: list[str] = []
     hsk_writes: list[tuple[int, str, int]] = []
@@ -94,6 +99,22 @@ def apply_habits_ticktick_sync(
             applied["gap_not_done_to_hsk"] += zero_count
         except (OSError, RuntimeError, ValueError) as exc:
             errors.append(f"HSK batch write failed: {exc}")
+
+    for item in report.get("missing_icons") or []:
+        name = str(item.get("name") or "").strip()
+        tt_id = str(item.get("ticktick_id") or "").strip()
+        _tick(f"Set TickTick icon: {name}")
+        if client is None:
+            errors.append(f"{name}: set TickTick icon: API client is not available")
+            continue
+        if not tt_id:
+            errors.append(f"{name}: missing TickTick habit id for icon")
+            continue
+        try:
+            client.ensure_habit_icon(tt_id)
+            applied["fixed_icons"] += 1
+        except (OSError, ValueError, RuntimeError) as exc:
+            errors.append(f"{name}: set TickTick icon: {exc}")
 
     for item in report.get("matched") or []:
         name = str(item.get("name") or "")
@@ -224,6 +245,7 @@ def build_habits_ticktick_sync_preview(
         "matched": matched,
         "only_hsk": create_in_ticktick,
         "only_ticktick": create_in_hsk,
+        "missing_icons": _missing_ticktick_icons(ticktick_payload),
         "name_conflicts": name_conflicts,
     }
 
@@ -302,6 +324,7 @@ def format_habits_ticktick_sync_preview(report: dict[str, Any], *, title: str | 
             f"  Only in HSK (would create in TickTick): {counts['only_hsk']}",
             f"  Only in TickTick (would create in HSK): {counts['only_ticktick']}",
             f"  Name conflicts: {counts['name_conflicts']}",
+            f"  TickTick habits missing icon: {len(report.get('missing_icons') or [])}",
             "",
             "Values that would transfer:",
             f"  → TickTick Done: {totals['to_ticktick_done']}",
@@ -336,6 +359,14 @@ def format_habits_ticktick_sync_preview(report: dict[str, Any], *, title: str | 
         leftover = len(report["only_ticktick"]) - _SUMMARY_LIST_LIMIT
         if leftover > 0:
             lines.append(f"  … and {leftover} more")
+    if report.get("missing_icons"):
+        lines.append("")
+        lines.append("TickTick habits missing icon (set default reading icon):")
+        preview = report["missing_icons"][:_SUMMARY_LIST_LIMIT]
+        lines.extend(f"  - {item['name']}" for item in preview)
+        leftover = len(report["missing_icons"]) - _SUMMARY_LIST_LIMIT
+        if leftover > 0:
+            lines.append(f"  … and {leftover} more")
     return "\n".join(lines)
 
 
@@ -360,6 +391,7 @@ def format_habits_ticktick_sync_result(result: dict[str, Any]) -> str:
         "",
         "TickTick ← from HSK:",
         f"  Habits created: {created_tt}",
+        f"  Default icons set: {int(applied.get('fixed_icons', 0))}",
         f"  Values transferred (Done): {tt_values_changed}",
         "",
         f"Total values changed: {hsk_values_changed + tt_values_changed}",
@@ -497,6 +529,8 @@ def merge_ticktick_sync_payloads(*payloads: dict[str, Any]) -> dict[str, Any]:
             current["date_count"] = len(dates)
             if prefer_ids and habit.get("id"):
                 current["id"] = habit.get("id")
+            if "icon_res" in habit:
+                current["icon_res"] = habit.get("icon_res")
             current_total = int(current.get("total_check_ins") or 0)
             incoming_total = int(habit.get("total_check_ins") or 0)
             current["total_check_ins"] = max(current_total, incoming_total)
@@ -531,6 +565,7 @@ def _count_apply_steps(report: dict[str, Any]) -> int:
         total += 1
     for item in report.get("only_hsk") or []:
         total += 1 + len(item.get("done_dates") or [])
+    total += len(report.get("missing_icons") or [])
     return total
 
 
@@ -603,6 +638,24 @@ def _latest_habit_id_by_name(db_manager: DatabaseManager, name: str) -> int | No
     if not rows or rows[0][0] is None:
         return None
     return int(rows[0][0])
+
+
+def _missing_ticktick_icons(ticktick_payload: dict[str, Any]) -> list[dict[str, Any]]:
+    """Return TickTick habits whose `icon_res` is present but empty."""
+    missing: list[dict[str, Any]] = []
+    for habit in ticktick_payload.get("habits") or []:
+        if "icon_res" not in habit:
+            continue
+        habit_id = str(habit.get("id") or "").strip()
+        if not habit_id or not ticktick_habit_icon_is_missing(habit.get("icon_res")):
+            continue
+        missing.append(
+            {
+                "name": str(habit.get("name") or "").strip(),
+                "ticktick_id": habit_id,
+            }
+        )
+    return missing
 
 
 def _parse_iso(day: str) -> date | None:

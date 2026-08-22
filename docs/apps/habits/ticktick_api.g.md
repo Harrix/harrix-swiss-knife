@@ -16,11 +16,13 @@ lang: en
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `checkin_done`](#%EF%B8%8F-method-checkin_done)
   - [⚙️ Method `create_boolean_habit`](#%EF%B8%8F-method-create_boolean_habit)
+  - [⚙️ Method `ensure_habit_icon`](#%EF%B8%8F-method-ensure_habit_icon)
   - [⚙️ Method `export_habits_payload`](#%EF%B8%8F-method-export_habits_payload)
   - [⚙️ Method `get_done_dates_by_habit`](#%EF%B8%8F-method-get_done_dates_by_habit)
   - [⚙️ Method `list_habits`](#%EF%B8%8F-method-list_habits)
 - [🔧 Function `iso_to_ticktick_stamp`](#-function-iso_to_ticktick_stamp)
 - [🔧 Function `resolve_ticktick_api_token`](#-function-resolve_ticktick_api_token)
+- [🔧 Function `ticktick_habit_icon_is_missing`](#-function-ticktick_habit_icon_is_missing)
 
 </details>
 
@@ -91,6 +93,8 @@ class TickTickHabitsClient:
             "/habit",
             body={
                 "name": name,
+                "iconRes": DEFAULT_HABIT_ICON_RES,
+                "color": DEFAULT_HABIT_COLOR,
                 "type": "Boolean",
                 "goal": 1.0,
                 "step": 1.0,
@@ -103,6 +107,30 @@ class TickTickHabitsClient:
             msg = "TickTick create habit returned unexpected payload"
             raise TickTickApiError(msg)
         return payload
+
+    def ensure_habit_icon(
+        self,
+        habit_id: str,
+        *,
+        icon_res: str = DEFAULT_HABIT_ICON_RES,
+        color: str = DEFAULT_HABIT_COLOR,
+    ) -> None:
+        """Set a built-in TickTick icon so the desktop app can open the habit editor.
+
+        An empty `iconRes` makes TickTick look up `assets/habits/.png` and crash.
+
+        Args:
+
+        - `habit_id` (`str`): TickTick habit ID.
+        - `icon_res` (`str`): Built-in icon key. Defaults to `habit_reading`.
+        - `color` (`str`): Habit color. Defaults to the TickTick docs blue.
+
+        """
+        self._request(
+            "POST",
+            f"/habit/{habit_id}",
+            body={"iconRes": icon_res, "color": color},
+        )
 
     def export_habits_payload(self, *, to_stamp: int, from_stamp: int = FALLBACK_FROM_STAMP) -> dict[str, Any]:
         """Return a payload shaped like `export_ticktick_habits_json` from the API."""
@@ -119,6 +147,7 @@ class TickTickHabitsClient:
                 {
                     "id": habit_id,
                     "name": str(habit.get("name") or ""),
+                    "icon_res": str(habit.get("iconRes") or "").strip(),
                     "type": str(habit.get("type") or ""),
                     "archived": archived,
                     "archived_time": None,
@@ -303,6 +332,8 @@ def create_boolean_habit(self, name: str) -> dict[str, Any]:
             "/habit",
             body={
                 "name": name,
+                "iconRes": DEFAULT_HABIT_ICON_RES,
+                "color": DEFAULT_HABIT_COLOR,
                 "type": "Boolean",
                 "goal": 1.0,
                 "step": 1.0,
@@ -315,6 +346,42 @@ def create_boolean_habit(self, name: str) -> dict[str, Any]:
             msg = "TickTick create habit returned unexpected payload"
             raise TickTickApiError(msg)
         return payload
+```
+
+</details>
+
+### ⚙️ Method `ensure_habit_icon`
+
+```python
+def ensure_habit_icon(self, habit_id: str, *, icon_res: str = DEFAULT_HABIT_ICON_RES, color: str = DEFAULT_HABIT_COLOR) -> None
+```
+
+Set a built-in TickTick icon so the desktop app can open the habit editor.
+
+An empty `iconRes` makes TickTick look up `assets/habits/.png` and crash.
+
+Args:
+
+- [`habit_id`](dashboard_widgets.g.md#%EF%B8%8F-method-habit_id) (`str`): TickTick habit ID.
+- `icon_res` (`str`): Built-in icon key. Defaults to `habit_reading`.
+- `color` (`str`): Habit color. Defaults to the TickTick docs blue.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def ensure_habit_icon(
+        self,
+        habit_id: str,
+        *,
+        icon_res: str = DEFAULT_HABIT_ICON_RES,
+        color: str = DEFAULT_HABIT_COLOR,
+    ) -> None:
+        self._request(
+            "POST",
+            f"/habit/{habit_id}",
+            body={"iconRes": icon_res, "color": color},
+        )
 ```
 
 </details>
@@ -345,6 +412,7 @@ def export_habits_payload(self, *, to_stamp: int, from_stamp: int = FALLBACK_FRO
                 {
                     "id": habit_id,
                     "name": str(habit.get("name") or ""),
+                    "icon_res": str(habit.get("iconRes") or "").strip(),
                     "type": str(habit.get("type") or ""),
                     "archived": archived,
                     "archived_time": None,
@@ -508,6 +576,24 @@ def resolve_ticktick_api_token(
         if token:
             return token
     return ""
+```
+
+</details>
+
+## 🔧 Function `ticktick_habit_icon_is_missing`
+
+```python
+def ticktick_habit_icon_is_missing(icon_res: object) -> bool
+```
+
+Return whether TickTick would try to load `assets/habits/.png`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def ticktick_habit_icon_is_missing(icon_res: object) -> bool:
+    return not str(icon_res or "").strip()
 ```
 
 </details>

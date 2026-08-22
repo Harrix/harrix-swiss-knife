@@ -18,6 +18,8 @@ if TYPE_CHECKING:
 
 _TICKTICK_API_BASE = "https://api.ticktick.com/open/v1"
 _TICKTICK_DONE_STATUS = 2
+DEFAULT_HABIT_COLOR = "#4D8CF5"
+DEFAULT_HABIT_ICON_RES = "habit_reading"
 FALLBACK_FROM_STAMP = 20000101
 _TOKEN_FILENAMES = ("ticktick-api-key.txt", "ticktick-apy-key.txt")
 _STAMP_LENGTH = 8
@@ -66,6 +68,8 @@ class TickTickHabitsClient:
             "/habit",
             body={
                 "name": name,
+                "iconRes": DEFAULT_HABIT_ICON_RES,
+                "color": DEFAULT_HABIT_COLOR,
                 "type": "Boolean",
                 "goal": 1.0,
                 "step": 1.0,
@@ -78,6 +82,30 @@ class TickTickHabitsClient:
             msg = "TickTick create habit returned unexpected payload"
             raise TickTickApiError(msg)
         return payload
+
+    def ensure_habit_icon(
+        self,
+        habit_id: str,
+        *,
+        icon_res: str = DEFAULT_HABIT_ICON_RES,
+        color: str = DEFAULT_HABIT_COLOR,
+    ) -> None:
+        """Set a built-in TickTick icon so the desktop app can open the habit editor.
+
+        An empty `iconRes` makes TickTick look up `assets/habits/.png` and crash.
+
+        Args:
+
+        - `habit_id` (`str`): TickTick habit ID.
+        - `icon_res` (`str`): Built-in icon key. Defaults to `habit_reading`.
+        - `color` (`str`): Habit color. Defaults to the TickTick docs blue.
+
+        """
+        self._request(
+            "POST",
+            f"/habit/{habit_id}",
+            body={"iconRes": icon_res, "color": color},
+        )
 
     def export_habits_payload(self, *, to_stamp: int, from_stamp: int = FALLBACK_FROM_STAMP) -> dict[str, Any]:
         """Return a payload shaped like `export_ticktick_habits_json` from the API."""
@@ -94,6 +122,7 @@ class TickTickHabitsClient:
                 {
                     "id": habit_id,
                     "name": str(habit.get("name") or ""),
+                    "icon_res": str(habit.get("iconRes") or "").strip(),
                     "type": str(habit.get("type") or ""),
                     "archived": archived,
                     "archived_time": None,
@@ -242,6 +271,11 @@ def resolve_ticktick_api_token(
         if token:
             return token
     return ""
+
+
+def ticktick_habit_icon_is_missing(icon_res: object) -> bool:
+    """Return whether TickTick would try to load `assets/habits/.png`."""
+    return not str(icon_res or "").strip()
 
 
 def _normalize_token(raw: str) -> str:

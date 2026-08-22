@@ -36,8 +36,8 @@ def _hsk_habit(
     }
 
 
-def _tt_habit(*, habit_id: str, name: str, dates: list[str]) -> dict:
-    return {
+def _tt_habit(*, habit_id: str, name: str, dates: list[str], icon_res: str | None = None) -> dict:
+    habit = {
         "id": habit_id,
         "name": name,
         "type": "Boolean",
@@ -48,6 +48,9 @@ def _tt_habit(*, habit_id: str, name: str, dates: list[str]) -> dict:
         "dates": dates,
         "date_count": len(dates),
     }
+    if icon_res is not None:
+        habit["icon_res"] = icon_res
+    return habit
 
 
 def test_match_by_exact_name_and_done_wins_zero() -> None:
@@ -175,6 +178,33 @@ def test_format_preview_mentions_dry_run() -> None:
     text = format_habits_ticktick_sync_preview(report)
     assert "dry-run" in text
     assert "Matched by name: 0" in text
+    assert "TickTick habits missing icon: 0" in text
+
+
+def test_preview_lists_empty_icon_res_and_skips_absent_key() -> None:
+    missing = build_habits_ticktick_sync_preview(
+        {"habits": [_hsk_habit(habit_id=1, name="English", values={})]},
+        {"habits": [_tt_habit(habit_id="t1", name="English", dates=[], icon_res="")]},
+        today=date(2026, 8, 1),
+    )
+    assert missing["missing_icons"] == [{"name": "English", "ticktick_id": "t1"}]
+    text = format_habits_ticktick_sync_preview(missing)
+    assert "TickTick habits missing icon: 1" in text
+    assert "TickTick habits missing icon (set default reading icon):" in text
+
+    present = build_habits_ticktick_sync_preview(
+        {"habits": [_hsk_habit(habit_id=1, name="English", values={})]},
+        {"habits": [_tt_habit(habit_id="t1", name="English", dates=[], icon_res="habit_reading")]},
+        today=date(2026, 8, 1),
+    )
+    assert present["missing_icons"] == []
+
+    local_only = build_habits_ticktick_sync_preview(
+        {"habits": [_hsk_habit(habit_id=1, name="English", values={})]},
+        {"habits": [_tt_habit(habit_id="t1", name="English", dates=[])]},
+        today=date(2026, 8, 1),
+    )
+    assert local_only["missing_icons"] == []
 
 
 def test_pre_2020_dates_already_in_ticktick_do_not_transfer() -> None:
@@ -269,3 +299,19 @@ def test_merge_ticktick_payloads_unions_dates_and_prefers_api_id() -> None:
     assert english["id"] == "api-1"
     assert english["dates"] == ["2016-02-11", "2024-08-21"]
     assert merged["source"] == "local-sqlite+open-api"
+
+
+def test_merge_ticktick_payloads_copies_icon_res_from_api() -> None:
+    merged = merge_ticktick_sync_payloads(
+        {
+            "source": "local-sqlite",
+            "database": "C:/TickTick.db",
+            "habits": [_tt_habit(habit_id="local-1", name="English", dates=["2024-08-21"])],
+        },
+        {
+            "source": "open-api",
+            "database": "ticktick-open-api",
+            "habits": [_tt_habit(habit_id="api-1", name="English", dates=["2016-02-11"], icon_res="")],
+        },
+    )
+    assert merged["habits"][0]["icon_res"] == ""
