@@ -28,11 +28,31 @@ from PySide6.QtWidgets import (
 
 from harrix_swiss_knife.actions.common.base import ActionBase
 from harrix_swiss_knife.actions.common.dialog_geometry import text_content_height
+from harrix_swiss_knife.actions.common.text_result_dialog import OPEN_FOLDER_BUTTON_EMOJI
 from harrix_swiss_knife.apps.common.qt_main_window import apply_app_window_size_and_position
 from harrix_swiss_knife.paths import get_config_path_str
+from harrix_swiss_knife.qt_emoji_icon import make_emoji_push_button
 
 if TYPE_CHECKING:
     from PySide6.QtGui import QResizeEvent, QShowEvent
+
+OPEN_FOLDER_BUTTON_OBJECT_NAME = "settingsOpenFolderButton"
+
+_FILE_PATH_KEYS = frozenset({"path_totalcmd_ini"})
+_FILE_PATH_KEY_PREFIXES = ("sqlite_", "vscode_workspace")
+_FILE_PATH_SUFFIXES = frozenset(
+    {
+        ".code-workspace",
+        ".db",
+        ".ini",
+        ".json",
+        ".md",
+        ".sqlite",
+        ".txt",
+        ".yaml",
+        ".yml",
+    }
+)
 
 
 class OnSettingsEditor(ActionBase):
@@ -171,6 +191,13 @@ class SettingsEditorDialog(QDialog):
                 self.settings_layout.addWidget(title)
                 self._render_settings(cat_name, matching_settings)
 
+    def _open_folder_path(self, path_text: str) -> None:
+        folder = folder_path_from_text(path_text)
+        if folder is None:
+            QMessageBox.warning(self, "Open folder", "Folder does not exist.")
+            return
+        h.file.open_file_or_folder(folder)
+
     def _render_category(self, cat_name: str) -> None:
         title = QLabel(f"<h2>{cat_name}</h2>")
         self.settings_layout.addWidget(title)
@@ -191,7 +218,23 @@ class SettingsEditorDialog(QDialog):
                 self.input_widgets[widget_key] = widget
             elif isinstance(value, (int, float, str)):
                 widget = QLineEdit(str(value))
-                setting_layout.addWidget(widget)
+                if isinstance(value, str) and is_folder_path_setting(key, value):
+                    row = QHBoxLayout()
+                    row.setContentsMargins(0, 0, 0, 0)
+                    row.addWidget(widget, 1)
+                    open_button = make_emoji_push_button("", OPEN_FOLDER_BUTTON_EMOJI)
+                    open_button.setObjectName(OPEN_FOLDER_BUTTON_OBJECT_NAME)
+                    open_button.setToolTip("Open folder")
+                    open_button.setFixedWidth(36)
+                    open_button.clicked.connect(lambda _checked=False, line=widget: self._open_folder_path(line.text()))
+                    widget.textChanged.connect(
+                        lambda text, button=open_button: button.setEnabled(folder_path_from_text(text) is not None),
+                    )
+                    open_button.setEnabled(folder_path_from_text(widget.text()) is not None)
+                    row.addWidget(open_button)
+                    setting_layout.addLayout(row)
+                else:
+                    setting_layout.addWidget(widget)
                 self.input_widgets[widget_key] = widget
             else:
                 # Lists or complex objects
@@ -277,3 +320,35 @@ class SettingsEditorDialog(QDialog):
 
         if self.list_categories.count() > 0:
             self.list_categories.setCurrentRow(0)
+
+
+def folder_path_from_text(text: str) -> Path | None:
+    """Return an existing directory for `text`, or `None` if it is not a folder."""
+    stripped = text.strip()
+    if not stripped or stripped.startswith("snippet:"):
+        return None
+    path = Path(stripped).expanduser()
+    try:
+        if path.is_dir():
+            return path
+    except OSError:
+        return None
+    return None
+
+
+def is_folder_path_setting(key: str, value: object) -> bool:
+    """Return whether a setting is a folder path (by value or by key name)."""
+    if not isinstance(value, str):
+        return False
+    if folder_path_from_text(value) is not None:
+        return True
+    return _is_folder_path_key(key, value)
+
+
+def _is_folder_path_key(key: str, value: str) -> bool:
+    key_norm = key.lower().replace("-", "_")
+    if key_norm in _FILE_PATH_KEYS or key_norm.startswith(_FILE_PATH_KEY_PREFIXES):
+        return False
+    if Path(value).suffix.lower() in _FILE_PATH_SUFFIXES:
+        return False
+    return key_norm.startswith("path_") or key_norm.endswith(("_root", "_folder", "_dir")) or "folder" in key_norm

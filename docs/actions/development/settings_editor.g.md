@@ -17,6 +17,8 @@ lang: en
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `resizeEvent`](#%EF%B8%8F-method-resizeevent)
   - [⚙️ Method `showEvent`](#%EF%B8%8F-method-showevent)
+- [🔧 Function `folder_path_from_text`](#-function-folder_path_from_text)
+- [🔧 Function `is_folder_path_setting`](#-function-is_folder_path_setting)
 
 </details>
 
@@ -201,6 +203,13 @@ class SettingsEditorDialog(QDialog):
                 self.settings_layout.addWidget(title)
                 self._render_settings(cat_name, matching_settings)
 
+    def _open_folder_path(self, path_text: str) -> None:
+        folder = folder_path_from_text(path_text)
+        if folder is None:
+            QMessageBox.warning(self, "Open folder", "Folder does not exist.")
+            return
+        h.file.open_file_or_folder(folder)
+
     def _render_category(self, cat_name: str) -> None:
         title = QLabel(f"<h2>{cat_name}</h2>")
         self.settings_layout.addWidget(title)
@@ -221,7 +230,23 @@ class SettingsEditorDialog(QDialog):
                 self.input_widgets[widget_key] = widget
             elif isinstance(value, (int, float, str)):
                 widget = QLineEdit(str(value))
-                setting_layout.addWidget(widget)
+                if isinstance(value, str) and is_folder_path_setting(key, value):
+                    row = QHBoxLayout()
+                    row.setContentsMargins(0, 0, 0, 0)
+                    row.addWidget(widget, 1)
+                    open_button = make_emoji_push_button("", OPEN_FOLDER_BUTTON_EMOJI)
+                    open_button.setObjectName(OPEN_FOLDER_BUTTON_OBJECT_NAME)
+                    open_button.setToolTip("Open folder")
+                    open_button.setFixedWidth(36)
+                    open_button.clicked.connect(lambda _checked=False, line=widget: self._open_folder_path(line.text()))
+                    widget.textChanged.connect(
+                        lambda text, button=open_button: button.setEnabled(folder_path_from_text(text) is not None),
+                    )
+                    open_button.setEnabled(folder_path_from_text(widget.text()) is not None)
+                    row.addWidget(open_button)
+                    setting_layout.addLayout(row)
+                else:
+                    setting_layout.addWidget(widget)
                 self.input_widgets[widget_key] = widget
             else:
                 # Lists or complex objects
@@ -375,6 +400,55 @@ Refit multiline fields when the dialog is shown.
 def showEvent(self, event: QShowEvent) -> None:  # noqa: N802
         super().showEvent(event)
         self._fit_multiline_widgets()
+```
+
+</details>
+
+## 🔧 Function `folder_path_from_text`
+
+```python
+def folder_path_from_text(text: str) -> Path | None
+```
+
+Return an existing directory for `text`, or `None` if it is not a folder.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def folder_path_from_text(text: str) -> Path | None:
+    stripped = text.strip()
+    if not stripped or stripped.startswith("snippet:"):
+        return None
+    path = Path(stripped).expanduser()
+    try:
+        if path.is_dir():
+            return path
+    except OSError:
+        return None
+    return None
+```
+
+</details>
+
+## 🔧 Function `is_folder_path_setting`
+
+```python
+def is_folder_path_setting(key: str, value: object) -> bool
+```
+
+Return whether a setting is a folder path (by value or by key name).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def is_folder_path_setting(key: str, value: object) -> bool:
+    if not isinstance(value, str):
+        return False
+    if folder_path_from_text(value) is not None:
+        return True
+    return _is_folder_path_key(key, value)
 ```
 
 </details>
