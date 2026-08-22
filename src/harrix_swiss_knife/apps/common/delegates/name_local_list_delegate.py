@@ -16,6 +16,7 @@ if TYPE_CHECKING:
 NAME_LOCAL_ROLE = Qt.ItemDataRole.UserRole + 1
 _NAME_LOCAL_COLOR = QColor("#888888")
 _NAME_LOCAL_FONT_SCALE = 0.85
+_NAME_LOCAL_MIN_PIXEL_SIZE = 12
 _NAME_LOCAL_MIN_POINT_SIZE = 7.0
 _LINE_GAP = 1
 _LIST_EDGE_PAD = 4
@@ -37,6 +38,7 @@ class NameLocalListDelegate(QStyledItemDelegate):
         parent: QObject | None = None,
         *,
         layout: NameLocalLayout = NameLocalLayout.LIST,
+        local_font_scale: float = _NAME_LOCAL_FONT_SCALE,
     ) -> None:
         """Initialize the delegate.
 
@@ -44,10 +46,13 @@ class NameLocalListDelegate(QStyledItemDelegate):
 
         - `layout` (`NameLocalLayout`): `LIST` left-aligns text beside the icon; `ICON`
           centers text under the icon.
+        - `local_font_scale` (`float`): Local-name size relative to the main label font.
+          Defaults to `_NAME_LOCAL_FONT_SCALE`.
 
         """
         super().__init__(parent)
         self._layout = layout
+        self._local_font_scale = local_font_scale
 
     @staticmethod
     def list_decoration_rect(item_rect: QRect, icon_size: QSize, *, has_icon: bool = True) -> QRect:
@@ -136,10 +141,15 @@ class NameLocalListDelegate(QStyledItemDelegate):
 
     def _local_font(self, base_font: QFont) -> QFont:
         local_font = QFont(base_font)
+        local_font.setWeight(QFont.Weight.Normal)
+        pixel = base_font.pixelSize()
+        if pixel > 0:
+            local_font.setPixelSize(max(_NAME_LOCAL_MIN_PIXEL_SIZE, round(pixel * self._local_font_scale)))
+            return local_font
         base_size = base_font.pointSizeF()
         if base_size <= 0:
             base_size = float(base_font.pointSize() or 9)
-        local_font.setPointSizeF(max(_NAME_LOCAL_MIN_POINT_SIZE, base_size * _NAME_LOCAL_FONT_SCALE))
+        local_font.setPointSizeF(max(_NAME_LOCAL_MIN_POINT_SIZE, base_size * self._local_font_scale))
         return local_font
 
     def _name_local(self, index: QModelIndex | QPersistentModelIndex) -> str | None:

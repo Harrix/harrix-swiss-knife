@@ -14,7 +14,9 @@ lang: en
 - [🏛️ Class `FitnessDashboardExercise`](#%EF%B8%8F-class-fitnessdashboardexercise)
 - [🏛️ Class `FitnessDashboardWidget`](#%EF%B8%8F-class-fitnessdashboardwidget)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
+  - [⚙️ Method `exercise_list (property)`](#%EF%B8%8F-method-exercise_list-property)
   - [⚙️ Method `focus_value`](#%EF%B8%8F-method-focus_value)
+  - [⚙️ Method `icon_size (property)`](#%EF%B8%8F-method-icon_size-property)
   - [⚙️ Method `selected_exercise`](#%EF%B8%8F-method-selected_exercise)
   - [⚙️ Method `selected_type`](#%EF%B8%8F-method-selected_type)
   - [⚙️ Method `set_exercises`](#%EF%B8%8F-method-set_exercises)
@@ -22,6 +24,7 @@ lang: en
   - [⚙️ Method `set_types`](#%EF%B8%8F-method-set_types)
   - [⚙️ Method `set_unit`](#%EF%B8%8F-method-set_unit)
   - [⚙️ Method `set_value`](#%EF%B8%8F-method-set_value)
+  - [⚙️ Method `update_exercise_icon`](#%EF%B8%8F-method-update_exercise_icon)
   - [⚙️ Method `value`](#%EF%B8%8F-method-value)
 - [🔧 Function `format_today_sets`](#-function-format_today_sets)
 
@@ -74,10 +77,20 @@ class FitnessDashboardWidget(QWidget):
         self._model = QStandardItemModel(self)
         self._build_ui()
 
+    @property
+    def exercise_list(self) -> QListView:
+        """Return the dashboard exercise list view."""
+        return self._list
+
     def focus_value(self) -> None:
         """Move keyboard focus to the value field and select its text."""
         self._value_spin.setFocus()
         self._value_spin.selectAll()
+
+    @property
+    def icon_size(self) -> int:
+        """Return the list icon edge in pixels."""
+        return _DASHBOARD_ICON_SIZE
 
     def selected_exercise(self) -> str:
         """Return the selected exercise name, or an empty string."""
@@ -180,6 +193,22 @@ class FitnessDashboardWidget(QWidget):
         """
         self._value_spin.setValue(max(0, min(value, _VALUE_MAXIMUM)))
 
+    def update_exercise_icon(self, name: str, icon: QIcon | None) -> None:
+        """Replace the icon for one exercise already in the list.
+
+        Args:
+
+        - `name` (`str`): Exercise name stored in `UserRole`.
+        - `icon` (`QIcon | None`): New icon, or `None` to clear it.
+
+        """
+        for row in range(self._model.rowCount()):
+            row_item = self._model.item(row)
+            if row_item is None or row_item.data(Qt.ItemDataRole.UserRole) != name:
+                continue
+            row_item.setIcon(icon if icon is not None else QIcon())
+            return
+
     def value(self) -> int:
         """Return the numeric value entered for the next set."""
         return int(self._value_spin.value())
@@ -207,14 +236,20 @@ class FitnessDashboardWidget(QWidget):
         self._list.setObjectName("fitnessDashExerciseList")
         self._list.setModel(self._model)
         self._list.setIconSize(QSize(_DASHBOARD_ICON_SIZE, _DASHBOARD_ICON_SIZE))
-        self._list.setItemDelegate(NameLocalListDelegate(self._list, layout=NameLocalLayout.LIST))
         self._list.setEditTriggers(QListView.EditTrigger.NoEditTriggers)
         self._list.setSelectionMode(QListView.SelectionMode.SingleSelection)
         self._list.setUniformItemSizes(True)
         self._list.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        self._list.setMinimumWidth(300)
+        self._list.setMinimumWidth(320)
         self._list.setStyleSheet(_LIST_STYLE)
-        _apply_pixel_font(self._list, pixel_size=_DASHBOARD_NAME_PIXEL_SIZE, weight=QFont.Weight.Bold)
+        _apply_pixel_font(self._list, pixel_size=_DASHBOARD_NAME_PIXEL_SIZE)
+        self._list.setItemDelegate(
+            NameLocalListDelegate(
+                self._list,
+                layout=NameLocalLayout.LIST,
+                local_font_scale=_DASHBOARD_LOCAL_FONT_SCALE,
+            )
+        )
         self._list.selectionModel().currentChanged.connect(self._on_exercise_index_changed)
 
         center = QWidget()
@@ -327,6 +362,24 @@ def __init__(self, parent: QWidget | None = None) -> None:  # noqa: D107
 
 </details>
 
+### ⚙️ Method `exercise_list (property)`
+
+```python
+def exercise_list(self) -> QListView
+```
+
+Return the dashboard exercise list view.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def exercise_list(self) -> QListView:
+        return self._list
+```
+
+</details>
+
 ### ⚙️ Method `focus_value`
 
 ```python
@@ -342,6 +395,24 @@ Move keyboard focus to the value field and select its text.
 def focus_value(self) -> None:
         self._value_spin.setFocus()
         self._value_spin.selectAll()
+```
+
+</details>
+
+### ⚙️ Method `icon_size (property)`
+
+```python
+def icon_size(self) -> int
+```
+
+Return the list icon edge in pixels.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def icon_size(self) -> int:
+        return _DASHBOARD_ICON_SIZE
 ```
 
 </details>
@@ -531,6 +602,34 @@ Args:
 ```python
 def set_value(self, value: int) -> None:
         self._value_spin.setValue(max(0, min(value, _VALUE_MAXIMUM)))
+```
+
+</details>
+
+### ⚙️ Method `update_exercise_icon`
+
+```python
+def update_exercise_icon(self, name: str, icon: QIcon | None) -> None
+```
+
+Replace the icon for one exercise already in the list.
+
+Args:
+
+- `name` (`str`): Exercise name stored in `UserRole`.
+- `icon` (`QIcon | None`): New icon, or `None` to clear it.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def update_exercise_icon(self, name: str, icon: QIcon | None) -> None:
+        for row in range(self._model.rowCount()):
+            row_item = self._model.item(row)
+            if row_item is None or row_item.data(Qt.ItemDataRole.UserRole) != name:
+                continue
+            row_item.setIcon(icon if icon is not None else QIcon())
+            return
 ```
 
 </details>

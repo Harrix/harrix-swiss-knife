@@ -17,6 +17,7 @@ lang: en
   - [⚙️ Method `detach`](#%EF%B8%8F-method-detach)
   - [⚙️ Method `eventFilter`](#%EF%B8%8F-method-eventfilter)
   - [⚙️ Method `hide_preview`](#%EF%B8%8F-method-hide_preview)
+- [🔧 Function `exercise_at_list_icon`](#-function-exercise_at_list_icon)
 - [🔧 Function `exercise_at_table_image`](#-function-exercise_at_table_image)
 
 </details>
@@ -94,7 +95,7 @@ class ExerciseListHoverPreview(QObject):
         self._label.setStyleSheet("background-color: white; border: none;")
         popup_layout.addWidget(self._label)
 
-        resolver = exercise_at if exercise_at is not None else (lambda pos: self._exercise_at_list_icon(list_view, pos))
+        resolver = exercise_at if exercise_at is not None else (lambda pos: exercise_at_list_icon(list_view, pos))
         self.add_view(list_view, resolver)
 
     def add_view(
@@ -183,34 +184,6 @@ class ExerciseListHoverPreview(QObject):
 
     def _any_view_alive(self) -> bool:
         return any(target.is_alive() for target in self._targets)
-
-    @staticmethod
-    def _exercise_at_list_icon(list_view: QAbstractItemView, pos: QPoint) -> str | None:
-        if not isValid(list_view):
-            return None
-        index = list_view.indexAt(pos)
-        if not index.isValid():
-            return None
-
-        exercise = index.data(Qt.ItemDataRole.UserRole)
-        if not exercise:
-            return None
-
-        icon = index.data(Qt.ItemDataRole.DecorationRole)
-        if icon is None or (hasattr(icon, "isNull") and icon.isNull()):
-            return None
-
-        item_rect = list_view.visualRect(index)
-        icon_rect = NameLocalListDelegate.list_decoration_rect(
-            item_rect,
-            list_view.iconSize(),
-            has_icon=True,
-        )
-        if not icon_rect.contains(pos):
-            return None
-
-        name = str(exercise).strip()
-        return name or None
 
     def _move_popup_to_cursor(self) -> None:
         if not isValid(self._popup):
@@ -365,7 +338,7 @@ def __init__(
         self._label.setStyleSheet("background-color: white; border: none;")
         popup_layout.addWidget(self._label)
 
-        resolver = exercise_at if exercise_at is not None else (lambda pos: self._exercise_at_list_icon(list_view, pos))
+        resolver = exercise_at if exercise_at is not None else (lambda pos: exercise_at_list_icon(list_view, pos))
         self.add_view(list_view, resolver)
 ```
 
@@ -505,6 +478,57 @@ def hide_preview(self) -> None:
         self._stop_animation()
         if isValid(self._popup):
             self._popup.hide()
+```
+
+</details>
+
+## 🔧 Function `exercise_at_list_icon`
+
+```python
+def exercise_at_list_icon(list_view: QAbstractItemView, pos: QPoint) -> str | None
+```
+
+Return the exercise name when `pos` is over a list-row icon.
+
+Args:
+
+- `list_view` (`QAbstractItemView`): List whose icons use [`NameLocalListDelegate`](../delegates/name_local_list_delegate.g.md#%EF%B8%8F-class-namelocallistdelegate).
+- `pos` (`QPoint`): Pointer position in viewport coordinates.
+
+Returns:
+
+- `str | None`: Exercise name from `UserRole`, or `None` when not on an icon.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def exercise_at_list_icon(list_view: QAbstractItemView, pos: QPoint) -> str | None:
+    if not isValid(list_view):
+        return None
+    index = list_view.indexAt(pos)
+    if not index.isValid():
+        return None
+
+    exercise = index.data(Qt.ItemDataRole.UserRole)
+    if not exercise:
+        return None
+
+    icon = index.data(Qt.ItemDataRole.DecorationRole)
+    if icon is None or (hasattr(icon, "isNull") and icon.isNull()):
+        return None
+
+    item_rect = list_view.visualRect(index)
+    icon_rect = NameLocalListDelegate.list_decoration_rect(
+        item_rect,
+        list_view.iconSize(),
+        has_icon=True,
+    )
+    if not icon_rect.contains(pos):
+        return None
+
+    name = str(exercise).strip()
+    return name or None
 ```
 
 </details>

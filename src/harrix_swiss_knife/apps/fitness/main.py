@@ -98,6 +98,7 @@ from harrix_swiss_knife.apps.common.table_models import create_table_proxy_model
 from harrix_swiss_knife.apps.common.ui_helpers import reveal_in_file_explorer
 from harrix_swiss_knife.apps.common.widgets.exercise_list_hover_preview import (
     ExerciseListHoverPreview,
+    exercise_at_list_icon,
     exercise_at_table_image,
 )
 from harrix_swiss_knife.apps.common.widgets.path_drop_helpers import install_url_drop_handlers
@@ -6151,6 +6152,12 @@ class MainWindow(
                 self._load_exercise_avif(exercise_name, label_key)
         self._update_list_view_exercise_icon(exercise_name)
         self._update_table_exercise_icons(exercise_name)
+        if self._fitness_dashboard is not None:
+            edge = self._fitness_dashboard.icon_size
+            self._fitness_dashboard.update_exercise_icon(
+                exercise_name,
+                self._get_exercise_preview_icon(exercise_name, QSize(edge, edge)),
+            )
 
     def _refresh_fitness_dashboard_exercises(
         self,
@@ -6161,12 +6168,15 @@ class MainWindow(
         """Rebuild the dashboard exercise list from frequency-sorted names."""
         if self._fitness_dashboard is None:
             return
+        self._hide_exercise_list_hover_preview()
         name_locals = self.db_manager.get_exercise_name_local_map() if self.db_manager else {}
+        edge = self._fitness_dashboard.icon_size
+        icon_size = QSize(edge, edge)
         items = [
             FitnessDashboardExercise(
                 name=name,
                 name_local=name_locals.get(name, ""),
-                icon=self._get_exercise_icon(name),
+                icon=self._get_exercise_preview_icon(name, icon_size),
             )
             for name in exercises
         ]
@@ -6518,6 +6528,12 @@ class MainWindow(
         self._fitness_dashboard.exercise_changed.connect(self.on_fitness_dashboard_exercise_changed)
         self.verticalLayout_fitness_dashboard.setContentsMargins(0, 0, 0, 0)
         self.verticalLayout_fitness_dashboard.addWidget(self._fitness_dashboard)
+        if self._exercise_list_hover is not None:
+            dashboard_list = self._fitness_dashboard.exercise_list
+            self._exercise_list_hover.add_view(
+                dashboard_list,
+                lambda pos: exercise_at_list_icon(dashboard_list, pos),
+            )
         self.tabWidget.setCurrentWidget(self.tab_fitness_dashboard)
 
     def _setup_open_exercise_images_action(self) -> None:

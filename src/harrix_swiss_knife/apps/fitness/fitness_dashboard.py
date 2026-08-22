@@ -24,7 +24,8 @@ from harrix_swiss_knife.apps.common.delegates.name_local_list_delegate import (
     NameLocalListDelegate,
 )
 
-_DASHBOARD_ICON_SIZE = 72
+_DASHBOARD_ICON_SIZE = 96
+_DASHBOARD_LOCAL_FONT_SCALE = 0.9
 _DASHBOARD_NAME_PIXEL_SIZE = 22
 _VALUE_MAXIMUM = 1_000_000
 
@@ -47,7 +48,7 @@ QListView#fitnessDashExerciseList {
 QListView#fitnessDashExerciseList::item {
     border-radius: 12px;
     padding: 4px;
-    min-height: 80px;
+    min-height: 108px;
 }
 QListView#fitnessDashExerciseList::item:hover {
     background: #F1F5F9;
@@ -128,10 +129,20 @@ class FitnessDashboardWidget(QWidget):
         self._model = QStandardItemModel(self)
         self._build_ui()
 
+    @property
+    def exercise_list(self) -> QListView:
+        """Return the dashboard exercise list view."""
+        return self._list
+
     def focus_value(self) -> None:
         """Move keyboard focus to the value field and select its text."""
         self._value_spin.setFocus()
         self._value_spin.selectAll()
+
+    @property
+    def icon_size(self) -> int:
+        """Return the list icon edge in pixels."""
+        return _DASHBOARD_ICON_SIZE
 
     def selected_exercise(self) -> str:
         """Return the selected exercise name, or an empty string."""
@@ -234,6 +245,22 @@ class FitnessDashboardWidget(QWidget):
         """
         self._value_spin.setValue(max(0, min(value, _VALUE_MAXIMUM)))
 
+    def update_exercise_icon(self, name: str, icon: QIcon | None) -> None:
+        """Replace the icon for one exercise already in the list.
+
+        Args:
+
+        - `name` (`str`): Exercise name stored in `UserRole`.
+        - `icon` (`QIcon | None`): New icon, or `None` to clear it.
+
+        """
+        for row in range(self._model.rowCount()):
+            row_item = self._model.item(row)
+            if row_item is None or row_item.data(Qt.ItemDataRole.UserRole) != name:
+                continue
+            row_item.setIcon(icon if icon is not None else QIcon())
+            return
+
     def value(self) -> int:
         """Return the numeric value entered for the next set."""
         return int(self._value_spin.value())
@@ -261,14 +288,20 @@ class FitnessDashboardWidget(QWidget):
         self._list.setObjectName("fitnessDashExerciseList")
         self._list.setModel(self._model)
         self._list.setIconSize(QSize(_DASHBOARD_ICON_SIZE, _DASHBOARD_ICON_SIZE))
-        self._list.setItemDelegate(NameLocalListDelegate(self._list, layout=NameLocalLayout.LIST))
         self._list.setEditTriggers(QListView.EditTrigger.NoEditTriggers)
         self._list.setSelectionMode(QListView.SelectionMode.SingleSelection)
         self._list.setUniformItemSizes(True)
         self._list.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        self._list.setMinimumWidth(300)
+        self._list.setMinimumWidth(320)
         self._list.setStyleSheet(_LIST_STYLE)
-        _apply_pixel_font(self._list, pixel_size=_DASHBOARD_NAME_PIXEL_SIZE, weight=QFont.Weight.Bold)
+        _apply_pixel_font(self._list, pixel_size=_DASHBOARD_NAME_PIXEL_SIZE)
+        self._list.setItemDelegate(
+            NameLocalListDelegate(
+                self._list,
+                layout=NameLocalLayout.LIST,
+                local_font_scale=_DASHBOARD_LOCAL_FONT_SCALE,
+            )
+        )
         self._list.selectionModel().currentChanged.connect(self._on_exercise_index_changed)
 
         center = QWidget()

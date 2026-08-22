@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-from PySide6.QtGui import QStandardItemModel
+from PySide6.QtGui import QFont, QStandardItemModel
 from PySide6.QtWidgets import QApplication, QComboBox, QLabel, QListView, QMainWindow, QPushButton, QSpinBox
 
+from harrix_swiss_knife.apps.common.delegates.name_local_list_delegate import NameLocalListDelegate
 from harrix_swiss_knife.apps.fitness.fitness_dashboard import (
     FitnessDashboardExercise,
     FitnessDashboardWidget,
@@ -81,11 +82,19 @@ def test_fitness_dashboard_widget_lists_exercises_and_adds_value() -> None:
     assert unit.text() == "reps"
     assert sets.text() == "7"
     assert exercise_list.font().pixelSize() >= 22
+    assert exercise_list.font().weight() == QFont.Weight.Normal
+    assert exercise_list.iconSize().width() >= 96
     model = exercise_list.model()
     assert isinstance(model, QStandardItemModel)
     first = model.item(0)
     assert first is not None
     assert first.font().pixelSize() >= 22
+    assert first.font().weight() == QFont.Weight.Normal
+    delegate = exercise_list.itemDelegate()
+    assert isinstance(delegate, NameLocalListDelegate)
+    local_font = delegate._local_font(exercise_list.font())
+    assert local_font.pixelSize() >= 18
+    assert local_font.weight() == QFont.Weight.Normal
 
 
 def test_fitness_window_inserts_dashboard_as_first_tab() -> None:
