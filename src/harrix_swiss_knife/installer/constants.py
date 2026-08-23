@@ -7,8 +7,23 @@ OVERLAY_MAGIC = b"HSK1"
 OVERLAY_TRAILER_SIZE = 12  # 8 bytes length + 4 bytes magic
 
 ONLINE_EXE_NAME = "harrix-swiss-knife-online.exe"
-OFFLINE_EXE_NAME = "harrix-swiss-knife-offline.exe"
+OFFLINE_EXE_NAME = "harrix-swiss-knife-offline-for-personal-use.exe"
+OFFLINE_PERSONAL_USE_NOTE = "This offline installer is for personal use only."
+
 STUB_EXE_NAME = "harrix-swiss-knife-installer-stub.exe"
+
+
+def installer_window_title(mode: str) -> str:
+    """Return the installer window title for online or offline mode."""
+    if mode == "offline":
+        return "Harrix Swiss Knife — Offline Installer (for personal use)"
+    return "Harrix Swiss Knife — Online Installer"
+
+
+def offline_install_welcome_kind() -> str:
+    """Return the install-source phrase shown on the offline welcome page."""
+    return "offline bundle, for personal use"
+
 
 REPO_NAMES = ("harrix-pylib", "harrix-pyssg", "harrix-swiss-knife")
 HSK_REPO_NAME = "harrix-swiss-knife"

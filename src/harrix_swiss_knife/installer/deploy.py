@@ -102,7 +102,7 @@ def run_deploy(options: DeployOptions, log: OutcomeLog) -> DeployResult:
         )
 
     try:
-        mode_label = "Offline (bundle first, network only if something is missing)"
+        mode_label = "Offline (for personal use; bundle first, network only if something is missing)"
         if not offline:
             mode_label = "Online (clone from GitHub; use bundled installers when present)"
         log.step(f"Install mode: {mode_label}")

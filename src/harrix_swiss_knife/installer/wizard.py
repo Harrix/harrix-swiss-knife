@@ -26,6 +26,11 @@ from PySide6.QtWidgets import (
 )
 
 from harrix_swiss_knife.installer.build_info import display_build_lines
+from harrix_swiss_knife.installer.constants import (
+    OFFLINE_PERSONAL_USE_NOTE,
+    installer_window_title,
+    offline_install_welcome_kind,
+)
 from harrix_swiss_knife.installer.deploy import (
     DeployOptions,
     DeployResult,
@@ -112,7 +117,7 @@ class InstallerWizard(QWizard):
     def __init__(self, mode: str) -> None:
         """Create wizard pages for the given install mode."""
         super().__init__()
-        self.setWindowTitle(f"Harrix Swiss Knife — {'Offline' if mode == 'offline' else 'Online'} Installer")
+        self.setWindowTitle(installer_window_title(mode))
         self.setWizardStyle(QWizard.WizardStyle.ModernStyle)
         self.setMinimumSize(720, 520)
         icon = load_app_icon()
@@ -670,7 +675,7 @@ class WelcomePage(QWizardPage):
         """Build the welcome text for the selected mode."""
         super().__init__()
         self.setTitle("Welcome")
-        kind = "offline bundle" if mode == "offline" else "online from GitHub"
+        kind = offline_install_welcome_kind() if mode == "offline" else "online from GitHub"
         version_line, built_line = display_build_lines()
         self.setSubTitle(f"{version_line}  ·  {built_line}")
 
@@ -697,10 +702,15 @@ class WelcomePage(QWizardPage):
         header.addLayout(text_col)
         header.addStretch(1)
 
-        label = QLabel(
-            f"This wizard installs Harrix Swiss Knife ({kind}).\n\n"
-            "You can choose which tools to install, the target folder, and shortcuts."
-        )
+        welcome_lines = [
+            f"This wizard installs Harrix Swiss Knife ({kind}).",
+        ]
+        if mode == "offline":
+            welcome_lines.append("")
+            welcome_lines.append(OFFLINE_PERSONAL_USE_NOTE)
+        welcome_lines.append("")
+        welcome_lines.append("You can choose which tools to install, the target folder, and shortcuts.")
+        label = QLabel("\n".join(welcome_lines))
         label.setWordWrap(True)
         layout = QVBoxLayout(self)
         layout.addLayout(header)
@@ -837,8 +847,10 @@ def detect_mode_from_argv(argv: list[str]) -> str:
         return "offline"
     if "--online" in argv:
         return "online"
-    exe = frozen_executable().name.lower()
-    if "offline" in exe:
+    exe_names = [frozen_executable().name.lower()]
+    if argv:
+        exe_names.append(Path(argv[0]).name.lower())
+    if any("offline" in name for name in exe_names):
         return "offline"
     return "online"
 
