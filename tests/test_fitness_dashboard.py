@@ -10,6 +10,7 @@ from harrix_swiss_knife.apps.common.delegates.name_local_list_delegate import Na
 from harrix_swiss_knife.apps.fitness.fitness_dashboard import (
     FitnessDashboardExercise,
     FitnessDashboardWidget,
+    _DashboardExerciseDelegate,
     format_today_sets,
 )
 from harrix_swiss_knife.apps.fitness.window import Ui_MainWindow
@@ -97,6 +98,7 @@ def test_fitness_dashboard_widget_lists_exercises_and_adds_value() -> None:
     assert first.font().pixelSize() >= 22
     assert first.font().weight() == QFont.Weight.Normal
     delegate = exercise_list.itemDelegate()
+    assert isinstance(delegate, _DashboardExerciseDelegate)
     assert isinstance(delegate, NameLocalListDelegate)
     local_font = delegate._local_font(exercise_list.font())
     assert local_font.pixelSize() >= 18

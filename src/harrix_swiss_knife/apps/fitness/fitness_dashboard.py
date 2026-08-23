@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 from PySide6.QtCore import QModelIndex, QPoint, QSize, Qt, Signal
 from PySide6.QtGui import QColor, QFont, QIcon, QPainter, QPaintEvent, QPen, QStandardItem, QStandardItemModel
@@ -25,9 +26,14 @@ from harrix_swiss_knife.apps.common.delegates.name_local_list_delegate import (
 )
 from harrix_swiss_knife.apps.fitness.exercise_favorites import format_favorite_exercise_label
 
+if TYPE_CHECKING:
+    from PySide6.QtCore import QPersistentModelIndex
+    from PySide6.QtWidgets import QStyleOptionViewItem
+
 _DASHBOARD_ICON_SIZE = 96
 _DASHBOARD_LOCAL_FONT_SCALE = 0.9
 _DASHBOARD_NAME_PIXEL_SIZE = 22
+_DASHBOARD_SEPARATOR = QColor("#D1D5DB")
 _VALUE_MAXIMUM = 1_000_000
 
 _PANE_STYLE = """
@@ -321,7 +327,7 @@ class FitnessDashboardWidget(QWidget):
         self._list.setStyleSheet(_LIST_STYLE)
         _apply_pixel_font(self._list, pixel_size=_DASHBOARD_NAME_PIXEL_SIZE)
         self._list.setItemDelegate(
-            NameLocalListDelegate(
+            _DashboardExerciseDelegate(
                 self._list,
                 layout=NameLocalLayout.LIST,
                 local_font_scale=_DASHBOARD_LOCAL_FONT_SCALE,
@@ -413,6 +419,28 @@ class FitnessDashboardWidget(QWidget):
             name = str(value) if value else ""
         self._exercise_title.setText(name or "Select an exercise")
         self.exercise_changed.emit(name)
+
+
+class _DashboardExerciseDelegate(NameLocalListDelegate):
+    """Exercise-list delegate that draws a gray line between rows."""
+
+    def paint(
+        self,
+        painter: QPainter,
+        option: QStyleOptionViewItem,
+        index: QModelIndex | QPersistentModelIndex,
+    ) -> None:
+        """Paint the row, then a gray divider under every item except the last."""
+        super().paint(painter, option, index)
+        model = index.model()
+        if model is None or index.row() >= model.rowCount() - 1:
+            return
+        painter.save()
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing, False)  # noqa: FBT003
+        painter.setPen(QPen(_DASHBOARD_SEPARATOR, 1))
+        y = option.rect.bottom()
+        painter.drawLine(option.rect.left() + 8, y, option.rect.right() - 8, y)
+        painter.restore()
 
 
 class _DashboardTypeCombo(QComboBox):

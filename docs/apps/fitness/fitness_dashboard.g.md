@@ -245,7 +245,7 @@ class FitnessDashboardWidget(QWidget):
         self._list.setStyleSheet(_LIST_STYLE)
         _apply_pixel_font(self._list, pixel_size=_DASHBOARD_NAME_PIXEL_SIZE)
         self._list.setItemDelegate(
-            NameLocalListDelegate(
+            _DashboardExerciseDelegate(
                 self._list,
                 layout=NameLocalLayout.LIST,
                 local_font_scale=_DASHBOARD_LOCAL_FONT_SCALE,
