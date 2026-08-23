@@ -30,6 +30,7 @@ from PySide6.QtWidgets import (
     QMenu,
     QMenuBar,
     QSizePolicy,
+    QStyle,
     QTableView,
     QTabWidget,
     QWidget,
@@ -47,6 +48,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 _STANDARD_ASPECT_RATIO = 2.0
+_FALLBACK_TITLE_BAR_HEIGHT = 32
 
 
 class AppWindowMixin:
@@ -397,25 +399,47 @@ def apply_app_window_size_and_position(widget: QWidget, *, standard_width: int =
     screen = QGuiApplication.screenAt(QCursor.pos()) or widget.screen() or QApplication.primaryScreen()
     if screen is None:
         return
-    target = compute_app_window_geometry(screen.availableGeometry(), standard_width=standard_width)
+    left, top, right, bottom = window_frame_margins(widget)
+    target = compute_app_window_geometry(
+        screen.availableGeometry(),
+        standard_width=standard_width,
+        frame_left=left,
+        frame_top=top,
+        frame_right=right,
+        frame_bottom=bottom,
+    )
     if target is None:
         widget.showMaximized()
         return
     widget.setGeometry(target)
 
 
-def compute_app_window_geometry(available: QRect, *, standard_width: int = 1920) -> QRect | None:
-    """Return a centered window rect, or `None` when the window should maximize.
+def compute_app_window_geometry(
+    available: QRect,
+    *,
+    standard_width: int = 1920,
+    frame_left: int = 0,
+    frame_top: int = 0,
+    frame_right: int = 0,
+    frame_bottom: int = 0,
+) -> QRect | None:
+    """Return a centered client rect, or `None` when the window should maximize.
+
+    `setGeometry` is the client area, so `frame_*` must reserve the title bar
+    and borders. Otherwise the caption buttons sit above the work area.
 
     Args:
 
     - `available` (`QRect`): Work area of the target screen (excludes the taskbar).
     - `standard_width` (`int`): Preferred window width and maximize threshold.
       Defaults to `1920`.
+    - `frame_left` / `frame_top` / `frame_right` / `frame_bottom` (`int`):
+      Window-frame extents in logical pixels.
 
     Returns:
 
-    - `QRect | None`: Geometry in global logical coordinates, or `None` to maximize.
+    - `QRect | None`: Client geometry in global logical coordinates, or `None`
+      to maximize.
 
     """
     if available.width() <= 0 or available.height() <= 0:
@@ -425,10 +449,12 @@ def compute_app_window_geometry(available: QRect, *, standard_width: int = 1920)
     if aspect_ratio <= _STANDARD_ASPECT_RATIO and available.width() >= standard_width:
         return None
 
-    window_width = min(standard_width, available.width())
-    window_height = available.height()
-    x = available.x() + (available.width() - window_width) // 2
-    return QRect(x, available.y(), window_width, window_height)
+    inner_width = max(1, available.width() - max(0, frame_left) - max(0, frame_right))
+    inner_height = max(1, available.height() - max(0, frame_top) - max(0, frame_bottom))
+    window_width = min(standard_width, inner_width)
+    x = available.x() + max(0, frame_left) + (inner_width - window_width) // 2
+    y = available.y() + max(0, frame_top)
+    return QRect(x, y, window_width, inner_height)
 
 
 def resolve_window_menu_bar(window: QWidget) -> QMenuBar | None:
@@ -453,3 +479,33 @@ def resolve_window_menu_bar(window: QWidget) -> QMenuBar | None:
         if isinstance(resolved, QMenuBar):
             return resolved
     return None
+
+
+def window_frame_margins(widget: QWidget) -> tuple[int, int, int, int]:
+    """Return `(left, top, right, bottom)` window-frame extents in logical pixels.
+
+    Uses the realized frame when the caption is already laid out. Otherwise
+    estimates from the widget style so an unshown window still leaves room
+    for Close / Maximize.
+
+    """
+    flags = widget.windowFlags()
+    if flags & Qt.WindowType.FramelessWindowHint:
+        return (0, 0, 0, 0)
+
+    frame = widget.frameGeometry()
+    client = widget.geometry()
+    left = client.x() - frame.x()
+    top = client.y() - frame.y()
+    right = frame.right() - client.right()
+    bottom = frame.bottom() - client.bottom()
+    if top > 0:
+        return (max(0, left), top, max(0, right), max(0, bottom))
+
+    style = widget.style()
+    title = style.pixelMetric(QStyle.PixelMetric.PM_TitleBarHeight, widget=widget)
+    border = style.pixelMetric(QStyle.PixelMetric.PM_DefaultFrameWidth, widget=widget)
+    if title <= 0:
+        title = _FALLBACK_TITLE_BAR_HEIGHT
+    border = max(border, 0)
+    return (border, title, border, border)
