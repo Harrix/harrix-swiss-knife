@@ -5,9 +5,9 @@
     "initial_count": 1000,
     "load_more_count": 500,
     "local_language": "ru",
-    "open_quick_tab_on_startup_finance": true,
-    "open_quick_tab_on_startup_fitness": true,
-    "open_quick_tab_on_startup_food": true
+    "open_quick_tab_on_startup_finance": false,
+    "open_quick_tab_on_startup_fitness": false,
+    "open_quick_tab_on_startup_food": false
   },
   "beginning_of_article": "snippet:config/beginning-of-article.md",
   "beginning_of_md": "snippet:config/beginning-of-md.md",
