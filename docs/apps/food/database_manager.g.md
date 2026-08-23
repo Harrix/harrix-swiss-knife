@@ -27,6 +27,7 @@ lang: en
   - [⚙️ Method `get_food_calories_today`](#%EF%B8%8F-method-get_food_calories_today)
   - [⚙️ Method `get_food_item_by_name`](#%EF%B8%8F-method-get_food_item_by_name)
   - [⚙️ Method `get_food_item_names_for_autocomplete`](#%EF%B8%8F-method-get_food_item_names_for_autocomplete)
+  - [⚙️ Method `get_food_log_amounts`](#%EF%B8%8F-method-get_food_log_amounts)
   - [⚙️ Method `get_food_log_item_by_name`](#%EF%B8%8F-method-get_food_log_item_by_name)
   - [⚙️ Method `get_food_weight_per_day`](#%EF%B8%8F-method-get_food_weight_per_day)
   - [⚙️ Method `get_popular_food_items_with_calories`](#%EF%B8%8F-method-get_popular_food_items_with_calories)
@@ -40,6 +41,7 @@ lang: en
   - [⚙️ Method `update_food_log_record`](#%EF%B8%8F-method-update_food_log_record)
   - [⚙️ Method `update_food_log_records_date`](#%EF%B8%8F-method-update_food_log_records_date)
   - [⚙️ Method `update_food_log_weight_and_calories`](#%EF%B8%8F-method-update_food_log_weight_and_calories)
+  - [⚙️ Method `update_food_log_weight_and_portion_calories`](#%EF%B8%8F-method-update_food_log_weight_and_portion_calories)
 - [🏛️ Class `FoodAutocompleteEntry`](#%EF%B8%8F-class-foodautocompleteentry)
 - [🏛️ Class `FoodItemByNameRow`](#%EF%B8%8F-class-fooditembynamerow)
 - [🏛️ Class `FoodLogItemByNameRow`](#%EF%B8%8F-class-foodlogitembynamerow)
@@ -403,6 +405,21 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             ORDER BY name ASC
         """)
         return [_food_autocomplete_entry_from_row(row) for row in rows if row and row[0]]
+
+    def get_food_log_amounts(self, record_id: int) -> tuple[float | None, float | None, float | None] | None:
+        """Return `(weight, calories_per_100g, portion_calories)` for a food log row."""
+        rows = self.get_rows(
+            "SELECT weight, calories_per_100g, portion_calories FROM food_log WHERE _id = :id",
+            {"id": record_id},
+        )
+        if not rows:
+            return None
+        row = rows[0]
+        return (
+            _optional_sql_float(row[0]),
+            _optional_sql_float(row[1]),
+            _optional_sql_float(row[2]),
+        )
 
     def get_food_log_item_by_name(self, name: str) -> FoodLogItemByNameRow | None:
         """Get food item data by name from food_log table (most recent record).
@@ -855,6 +872,22 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             "calories_per_100g": calories_per_100g,
         }
         return self.execute_simple_query(query, params)
+
+    def update_food_log_weight_and_portion_calories(
+        self,
+        record_id: int,
+        weight: float | None,
+        portion_calories: float | None,
+    ) -> bool:
+        """Update weight and portion calories without changing kcal per 100 g."""
+        return self.execute_simple_query(
+            """
+            UPDATE food_log
+            SET weight = :weight, portion_calories = :portion_calories
+            WHERE _id = :id
+            """,
+            {"id": record_id, "weight": weight, "portion_calories": portion_calories},
+        )
 ```
 
 </details>
@@ -1374,6 +1407,35 @@ def get_food_item_names_for_autocomplete(self) -> list[FoodAutocompleteEntry]:
             ORDER BY name ASC
         """)
         return [_food_autocomplete_entry_from_row(row) for row in rows if row and row[0]]
+```
+
+</details>
+
+### ⚙️ Method `get_food_log_amounts`
+
+```python
+def get_food_log_amounts(self, record_id: int) -> tuple[float | None, float | None, float | None] | None
+```
+
+Return `(weight, calories_per_100g, portion_calories)` for a food log row.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_food_log_amounts(self, record_id: int) -> tuple[float | None, float | None, float | None] | None:
+        rows = self.get_rows(
+            "SELECT weight, calories_per_100g, portion_calories FROM food_log WHERE _id = :id",
+            {"id": record_id},
+        )
+        if not rows:
+            return None
+        row = rows[0]
+        return (
+            _optional_sql_float(row[0]),
+            _optional_sql_float(row[1]),
+            _optional_sql_float(row[2]),
+        )
 ```
 
 </details>
@@ -1982,6 +2044,36 @@ def update_food_log_weight_and_calories(
             "calories_per_100g": calories_per_100g,
         }
         return self.execute_simple_query(query, params)
+```
+
+</details>
+
+### ⚙️ Method `update_food_log_weight_and_portion_calories`
+
+```python
+def update_food_log_weight_and_portion_calories(self, record_id: int, weight: float | None, portion_calories: float | None) -> bool
+```
+
+Update weight and portion calories without changing kcal per 100 g.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def update_food_log_weight_and_portion_calories(
+        self,
+        record_id: int,
+        weight: float | None,
+        portion_calories: float | None,
+    ) -> bool:
+        return self.execute_simple_query(
+            """
+            UPDATE food_log
+            SET weight = :weight, portion_calories = :portion_calories
+            WHERE _id = :id
+            """,
+            {"id": record_id, "weight": weight, "portion_calories": portion_calories},
+        )
 ```
 
 </details>

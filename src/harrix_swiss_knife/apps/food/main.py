@@ -70,6 +70,12 @@ from harrix_swiss_knife.apps.food.ai_source_dialog import (
     create_food_dashboard_text_dialog,
 )
 from harrix_swiss_knife.apps.food.delegates import DateDelegate, IsDrinkDelegate, parse_is_drink_cell
+from harrix_swiss_knife.apps.food.eaten_fraction import (
+    ATE_HALF,
+    ATE_THIRD,
+    ATE_TWO_THIRDS,
+    scale_food_log_eaten_amounts,
+)
 from harrix_swiss_knife.apps.food.food_dashboard import FoodDashboardWidget
 from harrix_swiss_knife.apps.food.food_item_dialog import FoodItemDialog
 from harrix_swiss_knife.apps.food.food_name_autocomplete import (
@@ -1358,6 +1364,42 @@ class MainWindow(
             model.appendRow(items)
             model.setVerticalHeaderItem(row_idx, QStandardItem(str(row_id)))
 
+    @requires_database()
+    def _apply_eaten_fraction_to_selected_food_log(self, fraction: float) -> None:
+        """Scale weight and, in portion mode, serving calories on selected rows."""
+        if self.db_manager is None:
+            return
+        record_ids = self._get_selected_row_ids("food_log")
+        if not record_ids:
+            message_box.warning(self, "Error", "Select one or more food log rows")
+            return
+        if fraction <= 0 or fraction > 1:
+            message_box.warning(self, "Error", "Percent eaten must be between 0 and 100")
+            return
+
+        updated = 0
+        for record_id in record_ids:
+            amounts = self.db_manager.get_food_log_amounts(record_id)
+            if amounts is None:
+                continue
+            weight, _calories_per_100g, portion_calories = amounts
+            new_weight, new_portion = scale_food_log_eaten_amounts(
+                weight=weight,
+                portion_calories=portion_calories,
+                fraction=fraction,
+            )
+            if self.db_manager.update_food_log_weight_and_portion_calories(
+                record_id,
+                new_weight,
+                new_portion,
+            ):
+                updated += 1
+
+        if updated:
+            self.update_food_data()
+            return
+        message_box.warning(self, "Error", "Failed to update selected food log rows")
+
     def _apply_kcal_lookup_result(self, result: KcalLookupResult) -> None:
         """Fill manual food entry fields from a parsed kcal lookup result."""
         self.radioButton_use_weight.setChecked(result.is_weight_mode)
@@ -2574,6 +2616,21 @@ class MainWindow(
         )
         self._process_food_items(parsed_items, default_date)
 
+    def _prompt_eaten_percent_and_apply(self) -> None:
+        """Ask for a percent eaten (default 50) and scale selected food log rows."""
+        percent, ok = QInputDialog.getDouble(
+            self,
+            "I ate %",
+            "Percent eaten:",
+            50.0,
+            0.1,
+            100.0,
+            1,
+        )
+        if not ok:
+            return
+        self._apply_eaten_fraction_to_selected_food_log(percent / 100.0)
+
     def _reconnect_context_menu(self) -> None:
         """Reconnect the context menu signal after deletion."""
         self.tableView_food_log.customContextMenuRequested.connect(self._show_food_log_context_menu)
@@ -2977,6 +3034,12 @@ class MainWindow(
             create_dish_action = context_menu.addAction("🍽 Create dish from selected ingredients")
             context_menu.addSeparator()
 
+        ate_half_action = context_menu.addAction("🍽️ I ate half")
+        ate_third_action = context_menu.addAction("🍽️ I ate a third")
+        ate_two_thirds_action = context_menu.addAction("🍽️ I ate two thirds")
+        ate_percent_action = context_menu.addAction("🍽️ I ate %…")
+        context_menu.addSeparator()
+
         # Add swap weight and calories action
         swap_weight_calories_action = context_menu.addAction("🔄 Swap Weight and Calories per 100g")
 
@@ -3034,6 +3097,14 @@ class MainWindow(
                 self._add_food_item_from_log_record(include_weight=False)
             elif action == create_dish_action:
                 self._create_dish_from_selected_ingredients()
+            elif action == ate_half_action:
+                self._apply_eaten_fraction_to_selected_food_log(ATE_HALF)
+            elif action == ate_third_action:
+                self._apply_eaten_fraction_to_selected_food_log(ATE_THIRD)
+            elif action == ate_two_thirds_action:
+                self._apply_eaten_fraction_to_selected_food_log(ATE_TWO_THIRDS)
+            elif action == ate_percent_action:
+                self._prompt_eaten_percent_and_apply()
             elif action == swap_weight_calories_action:
                 self._swap_weight_and_calories_per_100g()
             elif action == delete_action:

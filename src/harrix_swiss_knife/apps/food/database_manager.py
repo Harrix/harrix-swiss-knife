@@ -357,6 +357,21 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         """)
         return [_food_autocomplete_entry_from_row(row) for row in rows if row and row[0]]
 
+    def get_food_log_amounts(self, record_id: int) -> tuple[float | None, float | None, float | None] | None:
+        """Return `(weight, calories_per_100g, portion_calories)` for a food log row."""
+        rows = self.get_rows(
+            "SELECT weight, calories_per_100g, portion_calories FROM food_log WHERE _id = :id",
+            {"id": record_id},
+        )
+        if not rows:
+            return None
+        row = rows[0]
+        return (
+            _optional_sql_float(row[0]),
+            _optional_sql_float(row[1]),
+            _optional_sql_float(row[2]),
+        )
+
     def get_food_log_item_by_name(self, name: str) -> FoodLogItemByNameRow | None:
         """Get food item data by name from food_log table (most recent record).
 
@@ -809,6 +824,22 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         }
         return self.execute_simple_query(query, params)
 
+    def update_food_log_weight_and_portion_calories(
+        self,
+        record_id: int,
+        weight: float | None,
+        portion_calories: float | None,
+    ) -> bool:
+        """Update weight and portion calories without changing kcal per 100 g."""
+        return self.execute_simple_query(
+            """
+            UPDATE food_log
+            SET weight = :weight, portion_calories = :portion_calories
+            WHERE _id = :id
+            """,
+            {"id": record_id, "weight": weight, "portion_calories": portion_calories},
+        )
+
 
 @dataclass(frozen=True, slots=True)
 class FoodAutocompleteEntry:
@@ -865,6 +896,16 @@ def _normalize_optional_name_en(value: Any) -> str | None:
         return None
     text = str(value).strip()
     return text or None
+
+
+def _optional_sql_float(value: Any) -> float | None:
+    """Parse a SQL numeric cell, or return `None` when empty."""
+    if value in (None, ""):
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
 
 
 def _put_autocomplete_name(target: dict[str, str | None], name: str, name_en: str | None) -> None:
