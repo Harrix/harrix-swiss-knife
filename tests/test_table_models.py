@@ -35,7 +35,7 @@ def test_next_table_sort_order_toggles_same_column() -> None:
 
 
 def test_sort_table_by_header_click_skips_image_and_toggles(qapp: QApplication) -> None:
-    """Header clicks sort text columns and ignore the image column."""
+    """Header clicks sort text columns and can ignore a skipped column."""
     assert qapp is not None
     proxy = create_colored_table_proxy_model(
         [
@@ -72,3 +72,31 @@ def test_sort_table_by_header_click_skips_image_and_toggles(qapp: QApplication) 
     assert sort_table_by_header_click(table, 0, skip_section=0) is None
     assert header.sortIndicatorSection() == 1
     assert header.sortIndicatorOrder() == Qt.SortOrder.DescendingOrder
+
+
+def test_sort_table_by_header_click_image_column_sorts_by_id(qapp: QApplication) -> None:
+    """Clicking the image column sorts rows by the hidden database id."""
+    assert qapp is not None
+    proxy = create_colored_table_proxy_model(
+        [
+            [QIcon(), "Zulu", "2.0", 10, QColor("white")],
+            [QIcon(), "Alpha", "1.0", 2, QColor("white")],
+            [QIcon(), "Mike", "3.0", 7, QColor("white")],
+        ],
+        ["", "Exercise", "Value"],
+    )
+    table = QTableView()
+    table.setModel(proxy)
+
+    first = sort_table_by_header_click(table, 0)
+    assert first == (0, Qt.SortOrder.AscendingOrder)
+    assert [proxy.index(row, 1).data() for row in range(3)] == ["Alpha", "Mike", "Zulu"]
+
+    second = sort_table_by_header_click(
+        table,
+        0,
+        current_section=first[0],
+        current_order=first[1],
+    )
+    assert second == (0, Qt.SortOrder.DescendingOrder)
+    assert [proxy.index(row, 1).data() for row in range(3)] == ["Zulu", "Mike", "Alpha"]

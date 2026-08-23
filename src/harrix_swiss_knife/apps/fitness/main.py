@@ -5014,7 +5014,7 @@ class MainWindow(
         self.exercises_list_model = None
 
     def _enable_exercise_table_header_sorting(self, table_view: QTableView, table_key: str) -> None:
-        """Allow header clicks to sort every column except the image column."""
+        """Allow header clicks to sort columns; the image column sorts by ID."""
         header = table_view.horizontalHeader()
         header.setSectionsClickable(True)
         header.setSortIndicatorShown(True)
@@ -6103,7 +6103,6 @@ class MainWindow(
         result = sort_table_by_header_click(
             table_view,
             section,
-            skip_section=_EXERCISE_TABLE_IMAGE_COLUMN,
             current_section=current_section,
             current_order=current_order,
         )

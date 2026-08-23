@@ -11,10 +11,69 @@ lang: en
 
 ## Contents
 
+- [🏛️ Class `ColoredTableProxyModel`](#%EF%B8%8F-class-coloredtableproxymodel)
+  - [⚙️ Method `lessThan`](#%EF%B8%8F-method-lessthan)
 - [🔧 Function `create_colored_table_proxy_model`](#-function-create_colored_table_proxy_model)
 - [🔧 Function `create_table_proxy_model`](#-function-create_table_proxy_model)
 - [🔧 Function `next_table_sort_order`](#-function-next_table_sort_order)
 - [🔧 Function `sort_table_by_header_click`](#-function-sort_table_by_header_click)
+
+</details>
+
+## 🏛️ Class `ColoredTableProxyModel`
+
+```python
+class ColoredTableProxyModel(QSortFilterProxyModel)
+```
+
+Proxy that sorts an icon-only first column by the row database ID.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class ColoredTableProxyModel(QSortFilterProxyModel):
+
+    def lessThan(  # noqa: N802
+        self,
+        source_left: QModelIndex | QPersistentModelIndex,
+        source_right: QModelIndex | QPersistentModelIndex,
+    ) -> bool:
+        """Compare icon cells by stored ID; other columns use the default sort."""
+        if source_left.column() == 0 and source_right.column() == 0:
+            left_id = _sortable_row_id(source_left)
+            right_id = _sortable_row_id(source_right)
+            if left_id is not None and right_id is not None:
+                return left_id < right_id
+        return super().lessThan(source_left, source_right)
+```
+
+</details>
+
+### ⚙️ Method `lessThan`
+
+```python
+def lessThan(self, source_left: QModelIndex | QPersistentModelIndex, source_right: QModelIndex | QPersistentModelIndex) -> bool
+```
+
+Compare icon cells by stored ID; other columns use the default sort.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def lessThan(  # noqa: N802
+        self,
+        source_left: QModelIndex | QPersistentModelIndex,
+        source_right: QModelIndex | QPersistentModelIndex,
+    ) -> bool:
+        if source_left.column() == 0 and source_right.column() == 0:
+            left_id = _sortable_row_id(source_left)
+            right_id = _sortable_row_id(source_right)
+            if left_id is not None and right_id is not None:
+                return left_id < right_id
+        return super().lessThan(source_left, source_right)
+```
 
 </details>
 
@@ -52,12 +111,12 @@ def create_colored_table_proxy_model(
         row_id = row_list[id_idx]
 
         display_indices = [i for i in range(row_len) if i not in {id_idx, color_idx}]
-        items = [_colored_standard_item(row_list[col_idx], row_color) for col_idx in display_indices]
+        items = [_colored_standard_item(row_list[col_idx], row_color, row_id=row_id) for col_idx in display_indices]
 
         model.appendRow(items)
         model.setVerticalHeaderItem(row_idx, QStandardItem(str(row_id)))
 
-    proxy = QSortFilterProxyModel()
+    proxy = ColoredTableProxyModel()
     proxy.setSourceModel(model)
     return proxy
 ```
@@ -145,10 +204,10 @@ def next_table_sort_order(
 ## 🔧 Function `sort_table_by_header_click`
 
 ```python
-def sort_table_by_header_click(table: QTableView, section: int, *, skip_section: int = 0, current_section: int | None = None, current_order: Qt.SortOrder | None = None) -> tuple[int, Qt.SortOrder] | None
+def sort_table_by_header_click(table: QTableView, section: int, *, skip_section: int | None = None, current_section: int | None = None, current_order: Qt.SortOrder | None = None) -> tuple[int, Qt.SortOrder] | None
 ```
 
-Sort a table from a header click, ignoring `skip_section`.
+Sort a table from a header click, optionally ignoring `skip_section`.
 
 Pass `current_section` and `current_order` from the last applied sort. The
 header indicator cannot be used after a real click: `QHeaderView` already
@@ -158,7 +217,7 @@ Args:
 
 - `table` (`QTableView`): Table whose proxy/source model supports `sort`.
 - `section` (`int`): Clicked logical column.
-- `skip_section` (`int`): Column that must not sort (image column). Defaults to `0`.
+- `skip_section` (`int | None`): Column that must not sort. Defaults to none.
 - `current_section` (`int | None`): Last sorted column, or `None` if unknown.
 - `current_order` (`Qt.SortOrder | None`): Last sort direction, or `None` if unknown.
 
@@ -174,11 +233,11 @@ def sort_table_by_header_click(
     table: QTableView,
     section: int,
     *,
-    skip_section: int = 0,
+    skip_section: int | None = None,
     current_section: int | None = None,
     current_order: Qt.SortOrder | None = None,
 ) -> tuple[int, Qt.SortOrder] | None:
-    if section == skip_section:
+    if skip_section is not None and section == skip_section:
         return None
     header = table.horizontalHeader()
     if current_section is None:
