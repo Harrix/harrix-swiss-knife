@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from PySide6.QtWidgets import QApplication, QLabel, QMainWindow, QPushButton
+from PySide6.QtGui import QStandardItem, QStandardItemModel
+from PySide6.QtWidgets import QApplication, QHeaderView, QLabel, QMainWindow, QPushButton, QTableView
 
 from harrix_swiss_knife.apps.common.dialogs.text_image_source_dialog import TextImageSourceDialog
 from harrix_swiss_knife.apps.finance.ai_source_dialog import (
@@ -10,6 +11,7 @@ from harrix_swiss_knife.apps.finance.ai_source_dialog import (
     create_finance_dashboard_text_dialog,
 )
 from harrix_swiss_knife.apps.finance.finance_dashboard import FinanceDashboardWidget, pick_today_expense_display
+from harrix_swiss_knife.apps.finance.main import apply_transactions_table_column_widths
 from harrix_swiss_knife.apps.finance.window import Ui_MainWindow
 
 
@@ -68,6 +70,28 @@ def test_finance_dashboard_widget_shows_actions_and_expense() -> None:
     assert amount.text() == "1 234₁₂₽"
     assert extra.text() == "USD: 12₀₀$"
     assert not extra.isHidden()
+
+
+def test_apply_transactions_table_column_widths_skips_hidden_view() -> None:
+    """Hidden tables keep default resize modes until the view is shown."""
+    assert _qapp() is not None
+    view = QTableView()
+    model = QStandardItemModel(1, 8)
+    for column in range(8):
+        model.setItem(0, column, QStandardItem("x"))
+    view.setModel(model)
+    apply_transactions_table_column_widths(view)
+    header = view.horizontalHeader()
+    assert header.sectionResizeMode(0) != QHeaderView.ResizeMode.Stretch
+    view.show()
+    apply_transactions_table_column_widths(view)
+    assert header.sectionResizeMode(0) == QHeaderView.ResizeMode.Stretch
+    assert header.sectionResizeMode(5) == QHeaderView.ResizeMode.Stretch
+    assert header.sectionResizeMode(6) == QHeaderView.ResizeMode.Fixed
+    assert header.sectionResizeMode(7) == QHeaderView.ResizeMode.Fixed
+    assert view.columnWidth(6) == 100
+    assert view.columnWidth(7) == 120
+    view.close()
 
 
 def test_finance_window_inserts_dashboard_as_first_tab() -> None:

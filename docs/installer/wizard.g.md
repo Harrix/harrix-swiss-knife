@@ -1500,8 +1500,10 @@ def detect_mode_from_argv(argv: list[str]) -> str:
         return "offline"
     if "--online" in argv:
         return "online"
-    exe = frozen_executable().name.lower()
-    if "offline" in exe:
+    exe_names = [frozen_executable().name.lower()]
+    if argv:
+        exe_names.append(Path(argv[0]).name.lower())
+    if any("offline" in name for name in exe_names):
         return "offline"
     return "online"
 ```

@@ -51,6 +51,7 @@ lang: en
   - [⚙️ Method `update_all`](#%EF%B8%8F-method-update_all)
   - [⚙️ Method `update_filter_comboboxes`](#%EF%B8%8F-method-update_filter_comboboxes)
   - [⚙️ Method `update_summary_labels`](#%EF%B8%8F-method-update_summary_labels)
+- [🔧 Function `apply_transactions_table_column_widths`](#-function-apply_transactions_table_column_widths)
 
 </details>
 
@@ -109,14 +110,12 @@ class MainWindow(
         try_apply_system_backdrop(self, backdrop=SystemBackdrop.MICA)
         self.setupUi(self)
         self._finance_dashboard: FinanceDashboardWidget | None = None
-        self._setup_ui()
-        self.setWindowIcon(QIcon(":/assets/logo.svg"))
-        self._init_hide_on_close(hide_on_close=hide_on_close)
-
-        # Initialize core attributes
         self._is_closing = False
         self.db_manager: database_manager.DatabaseManager | None = None
         self._app_config: dict[str, Any] = h.dev.config_load(get_config_path_str())
+        self._setup_ui()
+        self.setWindowIcon(QIcon(":/assets/logo.svg"))
+        self._init_hide_on_close(hide_on_close=hide_on_close)
         self._auto_save_handlers: dict[str, Any] = {}
         self._auto_save_source_models: dict[str, QObject | None] = {}
         self._transaction_selection_selection_model: QItemSelectionModel | None = None
@@ -2688,6 +2687,8 @@ class MainWindow(
         if self._is_closing:
             return
         self.show()
+        # Column stretch is skipped while the window is hidden; apply it now.
+        self.on_tab_changed(self.tabWidget.currentIndex())
 
         # Set focus to description field
         self.lineEdit_description.setFocus()
@@ -5268,20 +5269,7 @@ class MainWindow(
 
     def _setup_transactions_table_column_widths(self) -> None:
         """Configure column resize modes for the transactions table."""
-        if not self.tableView_transactions.isVisible():
-            return
-        header = self.tableView_transactions.horizontalHeader()
-        if header.count() > 0:
-            for i in range(header.count() - 2):
-                header.setSectionResizeMode(i, header.ResizeMode.Stretch)
-
-            second_last_column: int = header.count() - 2
-            header.setSectionResizeMode(second_last_column, header.ResizeMode.Fixed)
-            self.tableView_transactions.setColumnWidth(second_last_column, 100)
-
-            last_column: int = header.count() - 1
-            header.setSectionResizeMode(last_column, header.ResizeMode.Fixed)
-            self.tableView_transactions.setColumnWidth(last_column, 120)
+        apply_transactions_table_column_widths(self.tableView_transactions)
 
     def _setup_transactions_table_delegates(self) -> None:
         """Set up item delegates for the transactions table."""
@@ -6483,14 +6471,12 @@ def __init__(self, *, hide_on_close: bool = False) -> None:
         try_apply_system_backdrop(self, backdrop=SystemBackdrop.MICA)
         self.setupUi(self)
         self._finance_dashboard: FinanceDashboardWidget | None = None
-        self._setup_ui()
-        self.setWindowIcon(QIcon(":/assets/logo.svg"))
-        self._init_hide_on_close(hide_on_close=hide_on_close)
-
-        # Initialize core attributes
         self._is_closing = False
         self.db_manager: database_manager.DatabaseManager | None = None
         self._app_config: dict[str, Any] = h.dev.config_load(get_config_path_str())
+        self._setup_ui()
+        self.setWindowIcon(QIcon(":/assets/logo.svg"))
+        self._init_hide_on_close(hide_on_close=hide_on_close)
         self._auto_save_handlers: dict[str, Any] = {}
         self._auto_save_source_models: dict[str, QObject | None] = {}
         self._transaction_selection_selection_model: QItemSelectionModel | None = None
@@ -8288,6 +8274,40 @@ def update_summary_labels(self) -> None:
             self.label_today_expense.setText(f"{format_amount('0.00')}₽")
             self.label_yesterday_expense.setText(f"{format_amount('0.00')}₽")
             self._update_finance_dashboard_today_expense([], default_code="", zero_text=f"{format_amount('0.00')}₽")
+```
+
+</details>
+
+## 🔧 Function `apply_transactions_table_column_widths`
+
+```python
+def apply_transactions_table_column_widths(table_view: QTableView) -> None
+```
+
+Stretch description columns; keep Tag and Total per day at a fixed width.
+
+Hidden views report a dummy size, so this is a no-op until the table is visible.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def apply_transactions_table_column_widths(table_view: QTableView) -> None:
+    if not table_view.isVisible():
+        return
+    header = table_view.horizontalHeader()
+    count = header.count()
+    if count <= 0:
+        return
+    header.setStretchLastSection(False)
+    stretch_count = max(count - _TRANSACTIONS_FIXED_COLUMN_COUNT, 0)
+    for i in range(stretch_count):
+        header.setSectionResizeMode(i, header.ResizeMode.Stretch)
+    if count >= _TRANSACTIONS_FIXED_COLUMN_COUNT:
+        header.setSectionResizeMode(count - _TRANSACTIONS_FIXED_COLUMN_COUNT, header.ResizeMode.Fixed)
+        table_view.setColumnWidth(count - _TRANSACTIONS_FIXED_COLUMN_COUNT, _TRANSACTIONS_TAG_COLUMN_WIDTH)
+    header.setSectionResizeMode(count - 1, header.ResizeMode.Fixed)
+    table_view.setColumnWidth(count - 1, _TRANSACTIONS_TOTAL_COLUMN_WIDTH)
 ```
 
 </details>
