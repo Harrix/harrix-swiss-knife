@@ -37,6 +37,7 @@ lang: en
   - [⚙️ Method `on_fitness_dashboard_add_text`](#%EF%B8%8F-method-on_fitness_dashboard_add_text)
   - [⚙️ Method `on_fitness_dashboard_add_voice`](#%EF%B8%8F-method-on_fitness_dashboard_add_voice)
   - [⚙️ Method `on_fitness_dashboard_exercise_changed`](#%EF%B8%8F-method-on_fitness_dashboard_exercise_changed)
+  - [⚙️ Method `on_open_exercise_image_lightbox`](#%EF%B8%8F-method-on_open_exercise_image_lightbox)
   - [⚙️ Method `on_open_exercise_images_folder`](#%EF%B8%8F-method-on_open_exercise_images_folder)
   - [⚙️ Method `on_process_selection_changed`](#%EF%B8%8F-method-on_process_selection_changed)
   - [⚙️ Method `on_radio_button_changed`](#%EF%B8%8F-method-on_radio_button_changed)
@@ -127,6 +128,10 @@ class MainWindow(
         self.setupUi(self)
         # Install event filter for chart info label to handle double-click
         self.label_chart_info.installEventFilter(self)
+        self.label_exercise_avif.installEventFilter(self)
+        self.label_exercise_avif.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.label_exercise_avif.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.label_exercise_avif.setToolTip("Double-click to open in lightbox")
         self._setup_ui()
 
         # Set window icon
@@ -416,7 +421,7 @@ class MainWindow(
             message_box.warning(self, "Error", f"Deletion failed in {table_name}")
 
     def eventFilter(self, obj: QObject, event: QEvent) -> bool:  # noqa: N802
-        """Filter events to handle double-click on chart info label.
+        """Filter events to handle double-click on chart info and exercise image.
 
         Args:
 
@@ -433,6 +438,10 @@ class MainWindow(
             # Call your existing handler
             self._on_chart_info_double_clicked(cast("QMouseEvent", event))
             return True  # event handled
+
+        if obj is self.label_exercise_avif and event.type() == QEvent.Type.MouseButtonDblClick:
+            self._open_exercise_media_lightbox()
+            return True
 
         return super().eventFilter(obj, event)
 
@@ -1636,6 +1645,10 @@ class MainWindow(
     def on_fitness_dashboard_exercise_changed(self, exercise: str) -> None:
         """Load unit, types, and last value for the dashboard exercise."""
         self._load_fitness_dashboard_exercise_details(exercise)
+
+    def on_open_exercise_image_lightbox(self) -> None:
+        """Open the selected exercise AVIF in a window-sized lightbox."""
+        self._open_exercise_media_lightbox()
 
     def on_open_exercise_images_folder(self) -> None:
         """Open the `fitness_img` folder that stores exercise AVIF media."""
@@ -4561,6 +4574,8 @@ class MainWindow(
         self._connect_exit_about_actions()
         self._setup_open_exercise_images_action()
         self._setup_sync_dumbbell_weight_types_action()
+        self._setup_open_exercise_lightbox_action()
+        self.label_exercise_avif.customContextMenuRequested.connect(self._show_exercise_avif_label_menu)
 
         self.pushButton_add.clicked.connect(self.on_add_record)
         self.spinBox_count.lineEdit().returnPressed.connect(self.pushButton_add.click)
@@ -4921,6 +4936,17 @@ class MainWindow(
         header.sectionClicked.connect(
             lambda section, key=table_key: self._on_exercise_table_header_clicked(key, section)
         )
+
+    def _exercise_names_from_item_model(self, model: QStandardItemModel | None) -> list[str]:
+        """Return exercise names stored in `UserRole` of a list model."""
+        if model is None:
+            return []
+        names: list[str] = []
+        for row in range(model.rowCount()):
+            name = model.index(row, 0).data(Qt.ItemDataRole.UserRole)
+            if name:
+                names.append(str(name))
+        return names
 
     def _favorite_menu_action(self, menu: QMenu, exercise_name: str) -> QAction:
         """Add an add/remove favorite action for `exercise_name`."""
@@ -5663,6 +5689,23 @@ class MainWindow(
             return f"{entry.name}: failed to add process record"
         return None
 
+    def _is_quick_tab_current(self) -> bool:
+        """Return whether the Quick dashboard tab is visible."""
+        tab = getattr(self, "tabWidget", None)
+        dashboard_tab = getattr(self, "tab_fitness_dashboard", None)
+        return tab is not None and dashboard_tab is not None and tab.currentWidget() is dashboard_tab
+
+    def _lightbox_source_model(self, list_view: QListView | None) -> QStandardItemModel | None:
+        """Return the list model that should drive lightbox navigation."""
+        if list_view is not None:
+            model = list_view.model()
+            return model if isinstance(model, QStandardItemModel) else None
+        dashboard = self._fitness_dashboard
+        if self._is_quick_tab_current() and dashboard is not None:
+            model = dashboard.exercise_list.model()
+            return model if isinstance(model, QStandardItemModel) else None
+        return self.exercises_list_model
+
     def _load_default_exercise_chart(self) -> None:
         """Load default exercise chart on first set to charts tab."""
         if not hasattr(self, "_charts_initialized"):
@@ -6134,6 +6177,39 @@ class MainWindow(
                 success_message=f"Media saved for '{new_name}'",
             )
 
+    def _open_exercise_media_lightbox(
+        self,
+        exercise_name: str | None = None,
+        *,
+        list_view: QListView | None = None,
+    ) -> None:
+        """Open the exercise AVIF in a lightbox that covers the app window."""
+        name = (exercise_name or "").strip() or self._resolve_selected_exercise_for_lightbox() or ""
+        if not name:
+            message_box.warning(self, "Error", "Select an exercise")
+            return
+        if not self.avif_manager:
+            message_box.warning(self, "Error", "AVIF manager is not initialized")
+            return
+        if self._get_exercise_avif_path(name) is None:
+            message_box.warning(self, "Error", f"No media file found for '{name}'")
+            return
+
+        names = [
+            item
+            for item in self._exercise_names_from_item_model(self._lightbox_source_model(list_view))
+            if self._get_exercise_avif_path(item)
+        ]
+        if name not in names:
+            names = [name]
+        dialog = ExerciseAvifLightboxDialog(
+            names,
+            current_index=names.index(name),
+            parent=self,
+            avif_manager=self.avif_manager,
+        )
+        dialog.exec()
+
     @requires_database()
     def _open_exercise_type_edit_dialog(self) -> None:
         """Edit the selected exercise type via modal dialog."""
@@ -6364,6 +6440,15 @@ class MainWindow(
         if db_path is None:
             return None
         return db_path.parent / "fitness_img"
+
+    def _resolve_selected_exercise_for_lightbox(self) -> str | None:
+        """Return the exercise selected on the current tab, if any."""
+        dashboard = self._fitness_dashboard
+        if self._is_quick_tab_current() and dashboard is not None:
+            name = dashboard.selected_exercise()
+            if name:
+                return name
+        return self._get_current_selected_exercise()
 
     def _reveal_exercise_media_in_explorer(self, exercise_name: str) -> None:
         """Open File Explorer with the exercise AVIF selected."""
@@ -6719,6 +6804,17 @@ class MainWindow(
         action.triggered.connect(self.on_open_exercise_images_folder)
         menu_file.insertAction(self.actionExit, action)
 
+    def _setup_open_exercise_lightbox_action(self) -> None:
+        """Add Commands → Open image in lightbox."""
+        menu = getattr(self, "menuCommanda", None)
+        if menu is None:
+            return
+        action = QAction("🖼️ Open image in lightbox", self)
+        action.setObjectName("actionOpenExerciseImageLightbox")
+        action.triggered.connect(self.on_open_exercise_image_lightbox)
+        menu.addAction(action)
+        set_action_text_with_emoji_icon(action, action.text())
+
     def _setup_process_table_header(self) -> None:
         """Configure process table header and column widths."""
         process_header = self.tableView_process.horizontalHeader()
@@ -6793,8 +6889,19 @@ class MainWindow(
         self._apply_sets_splitter_sizes()
         self._setup_fitness_dashboard_tab()
 
+    def _show_exercise_avif_label_menu(self, position: QPoint) -> None:
+        """Show the lightbox command for `label_exercise_avif`."""
+        exercise_name = self._get_current_selected_exercise() or ""
+        context_menu = QMenu(self)
+        lightbox_action = context_menu.addAction("🖼️ Open image in lightbox")
+        lightbox_action.setEnabled(self._get_exercise_avif_path(exercise_name) is not None)
+        apply_leading_emoji_icons(context_menu)
+        action = context_menu.exec_(self.label_exercise_avif.mapToGlobal(position))
+        if action == lightbox_action:
+            self._open_exercise_media_lightbox(exercise_name)
+
     def _show_exercise_list_favorite_menu(self, list_view: QListView, position: QPoint) -> None:
-        """Show add/remove favorite menu for an exercise list view."""
+        """Show lightbox and favorite actions for an exercise list view."""
         index = list_view.indexAt(position)
         if not index.isValid():
             return
@@ -6804,11 +6911,15 @@ class MainWindow(
         if not exercise_name:
             return
         context_menu = QMenu(self)
+        lightbox_action = context_menu.addAction("🖼️ Open image in lightbox")
+        lightbox_action.setEnabled(self._get_exercise_avif_path(exercise_name) is not None)
         favorite_action = self._favorite_menu_action(context_menu, exercise_name)
         apply_leading_emoji_icons(context_menu)
         action = context_menu.exec_(list_view.mapToGlobal(position))
         if action == favorite_action:
             self._toggle_exercise_favorite_by_name(exercise_name)
+        elif action == lightbox_action:
+            self._open_exercise_media_lightbox(exercise_name, list_view=list_view)
 
     def _show_exercise_types_context_menu(self, position: QPoint) -> None:
         """Show context menu for exercise types table.
@@ -7405,6 +7516,10 @@ def __init__(self, *, hide_on_close: bool = False) -> None:  # noqa: D107
         self.setupUi(self)
         # Install event filter for chart info label to handle double-click
         self.label_chart_info.installEventFilter(self)
+        self.label_exercise_avif.installEventFilter(self)
+        self.label_exercise_avif.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.label_exercise_avif.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.label_exercise_avif.setToolTip("Double-click to open in lightbox")
         self._setup_ui()
 
         # Set window icon
@@ -7750,7 +7865,7 @@ def delete_record(self, table_name: str) -> None:
 def eventFilter(self, obj: QObject, event: QEvent) -> bool
 ```
 
-Filter events to handle double-click on chart info label.
+Filter events to handle double-click on chart info and exercise image.
 
 Args:
 
@@ -7771,6 +7886,10 @@ def eventFilter(self, obj: QObject, event: QEvent) -> bool:  # noqa: N802
             # Call your existing handler
             self._on_chart_info_double_clicked(cast("QMouseEvent", event))
             return True  # event handled
+
+        if obj is self.label_exercise_avif and event.type() == QEvent.Type.MouseButtonDblClick:
+            self._open_exercise_media_lightbox()
+            return True
 
         return super().eventFilter(obj, event)
 ```
@@ -9214,6 +9333,24 @@ Load unit, types, and last value for the dashboard exercise.
 ```python
 def on_fitness_dashboard_exercise_changed(self, exercise: str) -> None:
         self._load_fitness_dashboard_exercise_details(exercise)
+```
+
+</details>
+
+### ⚙️ Method `on_open_exercise_image_lightbox`
+
+```python
+def on_open_exercise_image_lightbox(self) -> None
+```
+
+Open the selected exercise AVIF in a window-sized lightbox.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def on_open_exercise_image_lightbox(self) -> None:
+        self._open_exercise_media_lightbox()
 ```
 
 </details>

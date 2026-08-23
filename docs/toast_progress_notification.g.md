@@ -35,7 +35,7 @@ Countdown toast that also shows `done / total` progress.
 
 Attributes:
 
-- [`done`](#%EF%B8%8F-method-done-property) (`int`): Completed work units.
+- `done` (`int`): Completed work units.
 - [`total`](#%EF%B8%8F-method-total-property) (`int`): Total work units (0 means unknown / indeterminate).
 - `progress_bar` (`QProgressBar`): Determinate progress indicator under the label.
 - `cancel_requested` (`Signal`): Emitted once when a cancellable toast is cancelled.
@@ -590,7 +590,7 @@ Update progress values and refresh the progress bar.
 
 Args:
 
-- [`done`](#%EF%B8%8F-method-done-property) (`int`): Completed work units.
+- `done` (`int`): Completed work units.
 - [`total`](#%EF%B8%8F-method-total-property) (`int | None`): Optional new total. When `None`, keep the current total.
 
 <details>

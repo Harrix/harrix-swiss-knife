@@ -35,6 +35,7 @@ class AvifLabelKey(StrEnum):
     STATISTICS = "statistics"
     DIALOG_PREVIEW = "dialog_preview"
     LIST_HOVER = "list_hover"
+    LIGHTBOX = "lightbox"
 
 
 class AvifManager:
@@ -64,23 +65,9 @@ class AvifManager:
         """
         self.avif_dir = Path(avif_dir)
         self.avif_data: dict[AvifLabelKey, dict] = {
-            AvifLabelKey.MAIN: {"frames": [], "current_frame": 0, "timer": None, "exercise": None},
-            AvifLabelKey.EXERCISES: {"frames": [], "current_frame": 0, "timer": None, "exercise": None},
-            AvifLabelKey.TYPES: {"frames": [], "current_frame": 0, "timer": None, "exercise": None},
-            AvifLabelKey.CHARTS: {"frames": [], "current_frame": 0, "timer": None, "exercise": None},
-            AvifLabelKey.STATISTICS: {"frames": [], "current_frame": 0, "timer": None, "exercise": None},
-            AvifLabelKey.DIALOG_PREVIEW: {"frames": [], "current_frame": 0, "timer": None, "exercise": None},
-            AvifLabelKey.LIST_HOVER: {"frames": [], "current_frame": 0, "timer": None, "exercise": None},
+            key: {"frames": [], "current_frame": 0, "timer": None, "exercise": None} for key in AvifLabelKey
         }
-        self.label_widgets: dict[AvifLabelKey, QLabel | None] = {
-            AvifLabelKey.MAIN: None,
-            AvifLabelKey.EXERCISES: None,
-            AvifLabelKey.TYPES: None,
-            AvifLabelKey.CHARTS: None,
-            AvifLabelKey.STATISTICS: None,
-            AvifLabelKey.DIALOG_PREVIEW: None,
-            AvifLabelKey.LIST_HOVER: None,
-        }
+        self.label_widgets: dict[AvifLabelKey, QLabel | None] = dict.fromkeys(AvifLabelKey)
 
     def delete_exercise_avif(self, exercise_name: str) -> bool:
         """Delete `fitness_img/{exercise_name}.avif` when it exists.
@@ -322,6 +309,30 @@ class AvifManager:
             return False
         self._retarget_exercise_name(old, new)
         return True
+
+    def stop_animation(self, label_key: str | AvifLabelKey) -> None:
+        """Stop the animation timer and clear frames for `label_key`.
+
+        Args:
+
+        - `label_key` (`str | AvifLabelKey`): Key identifying which label slot to stop.
+
+        """
+        key = self._normalize_label_key(label_key)
+        data = self.avif_data.get(key)
+        if data is None:
+            return
+        timer = data.get("timer")
+        if isinstance(timer, QTimer):
+            timer.stop()
+        data["timer"] = None
+        data["frames"] = []
+        data["current_frame"] = 0
+        data["exercise"] = None
+        label_widget = self.label_widgets.get(key)
+        if label_widget is not None:
+            label_widget.clear()
+        self.label_widgets[key] = None
 
     def _next_avif_frame(self, label_key: str | AvifLabelKey) -> None:
         """Show next frame in AVIF animation for specific label.

@@ -24,12 +24,8 @@ lang: en
   - [⚙️ Method `zoom_by`](#%EF%B8%8F-method-zoom_by)
 - [🏛️ Class `IconLightboxDialog`](#%EF%B8%8F-class-iconlightboxdialog)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-1)
-  - [⚙️ Method `current_index (property)`](#%EF%B8%8F-method-current_index-property)
-  - [⚙️ Method `eventFilter`](#%EF%B8%8F-method-eventfilter)
-  - [⚙️ Method `keyPressEvent`](#%EF%B8%8F-method-keypressevent)
-  - [⚙️ Method `resizeEvent`](#%EF%B8%8F-method-resizeevent)
-  - [⚙️ Method `show_next`](#%EF%B8%8F-method-show_next)
-  - [⚙️ Method `show_previous`](#%EF%B8%8F-method-show_previous)
+  - [⚙️ Method `empty_caption`](#%EF%B8%8F-method-empty_caption)
+  - [⚙️ Method `show_item`](#%EF%B8%8F-method-show_item)
 
 </details>
 
@@ -422,7 +418,7 @@ def zoom_by(self, factor: float, *, anchor: QPointF | None = None) -> None:
 ## 🏛️ Class `IconLightboxDialog`
 
 ```python
-class IconLightboxDialog(QDialog)
+class IconLightboxDialog(AppWindowLightboxDialog)
 ```
 
 Browse icon files with zoom, pan, keyboard navigation, and backdrop close.
@@ -431,7 +427,7 @@ Browse icon files with zoom, pan, keyboard navigation, and backdrop close.
 <summary>Code:</summary>
 
 ```python
-class IconLightboxDialog(QDialog):
+class IconLightboxDialog(AppWindowLightboxDialog):
 
     def __init__(
         self,
@@ -441,179 +437,23 @@ class IconLightboxDialog(QDialog):
         parent: QWidget | None = None,
     ) -> None:
         """Build a modal lightbox fitted to its application window."""
-        owner = parent.window() if parent is not None else None
-        super().__init__(owner)
-        self._paths = [path for path in paths if path.is_file()]
-        self._index = max(0, min(current_index, len(self._paths) - 1))
-        qt_modality.set_owner_window_modal(self)
-        self.setWindowFlags(Qt.WindowType.Dialog | Qt.WindowType.FramelessWindowHint)
-        if owner is not None:
-            owner.installEventFilter(self)
-            self._fit_to_owner()
-        else:
-            screen = QGuiApplication.primaryScreen()
-            if screen is not None:
-                self.setGeometry(screen.availableGeometry())
-            else:
-                self.resize(1280, 720)
-        self.setStyleSheet("IconLightboxDialog { background-color: white; }")
-
+        valid_paths = [path for path in paths if path.is_file()]
+        super().__init__(parent, item_count=len(valid_paths), current_index=current_index)
+        self._paths = valid_paths
         self.canvas = IconLightboxCanvas(self)
-        self.canvas.backdrop_clicked.connect(self.accept)
+        self.attach_content(self.canvas)
+        self.finish_setup()
 
-        self._close_button = self._make_button("", "Close")
-        self._close_button.setIcon(create_emoji_icon(CLOSE_BUTTON_EMOJI, 22))
-        self._close_button.clicked.connect(self.accept)
-        self._previous_button = self._make_button("←", "Previous (Left arrow)")
-        self._previous_button.clicked.connect(self.show_previous)
-        self._next_button = self._make_button("→", "Next (Right arrow)")
-        self._next_button.clicked.connect(self.show_next)
+    def empty_caption(self) -> str:
+        """Caption when there are no icon files."""
+        return "No icon to display"
 
-        self._black_backdrop_button = self._make_backdrop_button(color="black")
-        self._black_backdrop_button.clicked.connect(lambda: self._set_backdrop_color("black"))
-        self._white_backdrop_button = self._make_backdrop_button(color="white")
-        self._white_backdrop_button.clicked.connect(lambda: self._set_backdrop_color("white"))
-        self._set_backdrop_color("white")
-
-        self._previous_shortcut = QShortcut(QKeySequence(Qt.Key.Key_Left), self)
-        self._previous_shortcut.setContext(Qt.ShortcutContext.WindowShortcut)
-        self._previous_shortcut.activated.connect(self.show_previous)
-        self._next_shortcut = QShortcut(QKeySequence(Qt.Key.Key_Right), self)
-        self._next_shortcut.setContext(Qt.ShortcutContext.WindowShortcut)
-        self._next_shortcut.activated.connect(self.show_next)
-
-        self._caption = QLabel(self)
-        self._caption.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self._caption.setStyleSheet(
-            "color: white; background: rgba(20, 20, 20, 180);border-radius: 7px; padding: 6px 12px;"
-        )
-        self._show_current()
-        self._position_controls()
-
-    @property
-    def current_index(self) -> int:
-        """Current path index."""
-        return self._index
-
-    def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
-        """Keep the overlay aligned with the owner window."""
-        owner = self.parentWidget()
-        if watched is owner and event.type() in {QEvent.Type.Resize, QEvent.Type.Move}:
-            self._fit_to_owner()
-        return super().eventFilter(watched, event)
-
-    def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
-        """Handle Escape and left/right navigation."""
-        if event.key() == Qt.Key.Key_Escape:
-            self.accept()
-            return
-        if event.key() == Qt.Key.Key_Left:
-            self.show_previous()
-            return
-        if event.key() == Qt.Key.Key_Right:
-            self.show_next()
-            return
-        super().keyPressEvent(event)
-
-    def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802
-        """Keep canvas and overlay controls aligned."""
-        super().resizeEvent(event)
-        self._position_controls()
-
-    def show_next(self) -> None:
-        """Show the next icon, wrapping at the end."""
-        if len(self._paths) > 1:
-            self._index = (self._index + 1) % len(self._paths)
-            self._show_current()
-
-    def show_previous(self) -> None:
-        """Show the previous icon, wrapping at the beginning."""
-        if len(self._paths) > 1:
-            self._index = (self._index - 1) % len(self._paths)
-            self._show_current()
-
-    def _fit_to_owner(self) -> None:
-        owner = self.parentWidget()
-        if owner is None:
-            return
-        if self.isWindow():
-            top_left = owner.mapToGlobal(QPoint(0, 0))
-            self.setGeometry(top_left.x(), top_left.y(), owner.width(), owner.height())
-            return
-        self.setGeometry(owner.rect())
-
-    def _make_backdrop_button(self, *, color: str) -> QPushButton:
-        button = QPushButton(self)
-        button.setCheckable(True)
-        button.setAutoExclusive(True)
-        button.setFixedSize(_SWATCH_SIZE, _SWATCH_SIZE)
-        button.setCursor(Qt.CursorShape.PointingHandCursor)
-        button.setToolTip("Black backdrop" if color == "black" else "White backdrop")
-        border = "#888" if color == "white" else "#ccc"
-        radius = _SWATCH_SIZE // 2
-        button.setStyleSheet(
-            f"QPushButton {{ background: {color}; border: 1px solid {border};"
-            f"border-radius: {radius}px; padding: 0; }}"
-            "QPushButton:checked { border: 3px solid #2f80ed; }"
-        )
-        return button
-
-    def _make_button(self, text: str, tooltip: str) -> QPushButton:
-        button = QPushButton(text, self)
-        button.setFixedSize(QSize(_BUTTON_SIZE, _BUTTON_SIZE))
-        button.setCursor(Qt.CursorShape.PointingHandCursor)
-        button.setToolTip(tooltip)
-        button.setStyleSheet(
-            "QPushButton { color: white; font-size: 24px; font-weight: bold;"
-            "background: rgba(40, 40, 40, 125); border: 1px solid rgba(255, 255, 255, 90);"
-            "border-radius: 9px; }"
-            "QPushButton:hover { background: rgba(40, 40, 40, 190); }"
-        )
-        button.raise_()
-        return button
-
-    def _position_controls(self) -> None:
-        self.canvas.setGeometry(self.rect())
-        self._black_backdrop_button.move(_SIDE_MARGIN, _SIDE_MARGIN)
-        self._white_backdrop_button.move(_SIDE_MARGIN + self._black_backdrop_button.width() + 8, _SIDE_MARGIN)
-        self._close_button.move(self.width() - _BUTTON_SIZE - _SIDE_MARGIN, _SIDE_MARGIN)
-        center_y = (self.height() - _BUTTON_SIZE) // 2
-        self._previous_button.move(_SIDE_MARGIN, center_y)
-        self._next_button.move(self.width() - _BUTTON_SIZE - _SIDE_MARGIN, center_y)
-        caption_width = min(640, max(240, self.width() - 240))
-        self._caption.setFixedWidth(caption_width)
-        self._caption.adjustSize()
-        self._caption.move((self.width() - caption_width) // 2, self.height() - self._caption.height() - _SIDE_MARGIN)
-        for widget in (
-            self._black_backdrop_button,
-            self._white_backdrop_button,
-            self._close_button,
-            self._previous_button,
-            self._next_button,
-            self._caption,
-        ):
-            widget.raise_()
-
-    def _set_backdrop_color(self, color: str) -> None:
-        is_black = color == "black"
-        self.setStyleSheet(f"IconLightboxDialog {{ background-color: {'black' if is_black else 'white'}; }}")
-        self._black_backdrop_button.setChecked(is_black)
-        self._white_backdrop_button.setChecked(not is_black)
-
-    def _show_current(self) -> None:
-        if not self._paths:
-            self._caption.setText("No icon to display")
-            self._previous_button.hide()
-            self._next_button.hide()
-            return
-        path = self._paths[self._index]
+    def show_item(self, index: int) -> None:
+        """Load the icon at `index`."""
+        path = self._paths[index]
         self.setWindowTitle(path.name)
         self.canvas.set_path(path)
-        self._caption.setText(f"{path.name}  ·  {self._index + 1} / {len(self._paths)}")
-        show_navigation = len(self._paths) > 1
-        self._previous_button.setVisible(show_navigation)
-        self._next_button.setVisible(show_navigation)
-        self._position_controls()
+        self.set_caption(f"{path.name}  ·  {index + 1} / {len(self._paths)}")
 ```
 
 </details>
@@ -637,179 +477,51 @@ def __init__(
         current_index: int = 0,
         parent: QWidget | None = None,
     ) -> None:
-        owner = parent.window() if parent is not None else None
-        super().__init__(owner)
-        self._paths = [path for path in paths if path.is_file()]
-        self._index = max(0, min(current_index, len(self._paths) - 1))
-        qt_modality.set_owner_window_modal(self)
-        self.setWindowFlags(Qt.WindowType.Dialog | Qt.WindowType.FramelessWindowHint)
-        if owner is not None:
-            owner.installEventFilter(self)
-            self._fit_to_owner()
-        else:
-            screen = QGuiApplication.primaryScreen()
-            if screen is not None:
-                self.setGeometry(screen.availableGeometry())
-            else:
-                self.resize(1280, 720)
-        self.setStyleSheet("IconLightboxDialog { background-color: white; }")
-
+        valid_paths = [path for path in paths if path.is_file()]
+        super().__init__(parent, item_count=len(valid_paths), current_index=current_index)
+        self._paths = valid_paths
         self.canvas = IconLightboxCanvas(self)
-        self.canvas.backdrop_clicked.connect(self.accept)
-
-        self._close_button = self._make_button("", "Close")
-        self._close_button.setIcon(create_emoji_icon(CLOSE_BUTTON_EMOJI, 22))
-        self._close_button.clicked.connect(self.accept)
-        self._previous_button = self._make_button("←", "Previous (Left arrow)")
-        self._previous_button.clicked.connect(self.show_previous)
-        self._next_button = self._make_button("→", "Next (Right arrow)")
-        self._next_button.clicked.connect(self.show_next)
-
-        self._black_backdrop_button = self._make_backdrop_button(color="black")
-        self._black_backdrop_button.clicked.connect(lambda: self._set_backdrop_color("black"))
-        self._white_backdrop_button = self._make_backdrop_button(color="white")
-        self._white_backdrop_button.clicked.connect(lambda: self._set_backdrop_color("white"))
-        self._set_backdrop_color("white")
-
-        self._previous_shortcut = QShortcut(QKeySequence(Qt.Key.Key_Left), self)
-        self._previous_shortcut.setContext(Qt.ShortcutContext.WindowShortcut)
-        self._previous_shortcut.activated.connect(self.show_previous)
-        self._next_shortcut = QShortcut(QKeySequence(Qt.Key.Key_Right), self)
-        self._next_shortcut.setContext(Qt.ShortcutContext.WindowShortcut)
-        self._next_shortcut.activated.connect(self.show_next)
-
-        self._caption = QLabel(self)
-        self._caption.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self._caption.setStyleSheet(
-            "color: white; background: rgba(20, 20, 20, 180);border-radius: 7px; padding: 6px 12px;"
-        )
-        self._show_current()
-        self._position_controls()
+        self.attach_content(self.canvas)
+        self.finish_setup()
 ```
 
 </details>
 
-### ⚙️ Method `current_index (property)`
+### ⚙️ Method `empty_caption`
 
 ```python
-def current_index(self) -> int
+def empty_caption(self) -> str
 ```
 
-Current path index.
+Caption when there are no icon files.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def current_index(self) -> int:
-        return self._index
+def empty_caption(self) -> str:
+        return "No icon to display"
 ```
 
 </details>
 
-### ⚙️ Method `eventFilter`
+### ⚙️ Method `show_item`
 
 ```python
-def eventFilter(self, watched: QObject, event: QEvent) -> bool
+def show_item(self, index: int) -> None
 ```
 
-Keep the overlay aligned with the owner window.
+Load the icon at `index`.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
-        owner = self.parentWidget()
-        if watched is owner and event.type() in {QEvent.Type.Resize, QEvent.Type.Move}:
-            self._fit_to_owner()
-        return super().eventFilter(watched, event)
-```
-
-</details>
-
-### ⚙️ Method `keyPressEvent`
-
-```python
-def keyPressEvent(self, event: QKeyEvent) -> None
-```
-
-Handle Escape and left/right navigation.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
-        if event.key() == Qt.Key.Key_Escape:
-            self.accept()
-            return
-        if event.key() == Qt.Key.Key_Left:
-            self.show_previous()
-            return
-        if event.key() == Qt.Key.Key_Right:
-            self.show_next()
-            return
-        super().keyPressEvent(event)
-```
-
-</details>
-
-### ⚙️ Method `resizeEvent`
-
-```python
-def resizeEvent(self, event: QResizeEvent) -> None
-```
-
-Keep canvas and overlay controls aligned.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802
-        super().resizeEvent(event)
-        self._position_controls()
-```
-
-</details>
-
-### ⚙️ Method `show_next`
-
-```python
-def show_next(self) -> None
-```
-
-Show the next icon, wrapping at the end.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def show_next(self) -> None:
-        if len(self._paths) > 1:
-            self._index = (self._index + 1) % len(self._paths)
-            self._show_current()
-```
-
-</details>
-
-### ⚙️ Method `show_previous`
-
-```python
-def show_previous(self) -> None
-```
-
-Show the previous icon, wrapping at the beginning.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def show_previous(self) -> None:
-        if len(self._paths) > 1:
-            self._index = (self._index - 1) % len(self._paths)
-            self._show_current()
+def show_item(self, index: int) -> None:
+        path = self._paths[index]
+        self.setWindowTitle(path.name)
+        self.canvas.set_path(path)
+        self.set_caption(f"{path.name}  ·  {index + 1} / {len(self._paths)}")
 ```
 
 </details>
