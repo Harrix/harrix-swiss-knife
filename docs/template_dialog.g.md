@@ -405,6 +405,26 @@ class TemplateDialog(QDialog):
 
         return container, date_edit
 
+    def _create_line_append_to_note_name_widget(self, field: TemplateField) -> tuple[QWidget, QLineEdit]:
+        """Create a line input with a button that appends a short address to the note name."""
+        line_edit = QLineEdit()
+        if field.default_value:
+            line_edit.setText(field.default_value)
+        else:
+            line_edit.setPlaceholderText(f"Enter {field.name.lower()}")
+
+        container = QWidget()
+        layout = QHBoxLayout(container)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(line_edit, 1)
+
+        append_button = QPushButton("➕ To title")  # noqa: RUF001
+        append_button.setToolTip("Append a shortened street and house number to the title")
+        append_button.clicked.connect(lambda: self._on_append_address_to_note_name(line_edit))
+        layout.addWidget(append_button)
+
+        return container, line_edit
+
     def _create_multiline_widget_for_field(self, field: TemplateField) -> tuple[QWidget, QPlainTextEdit]:
         """Create multiline input with optional Fix with AI and Speech to text buttons."""
         text_edit = self._create_widget_for_field(field)
@@ -747,6 +767,42 @@ class TemplateDialog(QDialog):
     def _lock_date_field(self, field_name: str) -> None:
         self._date_field_locked.add(field_name)
 
+    def _on_append_address_to_note_name(self, address_edit: QLineEdit) -> None:
+        """Append a shortened address from the field to the `@note_name` title."""
+        address = address_edit.text().strip()
+        if not address:
+            message_box.warning(self, "Address", "Enter an address before adding it to the title.")
+            return
+
+        note_name_field = next(
+            (field for field in self.fields if field.field_link == TemplateParser.FIELD_LINK_NOTE_NAME),
+            None,
+        )
+        if note_name_field is None:
+            message_box.warning(self, "Address", "No note name field is configured in this template.")
+            return
+
+        title_widget = self.widgets.get(note_name_field.name)
+        title = self._read_line_or_combo_text(title_widget)
+        if not title:
+            message_box.warning(self, "Address", "Enter a title before adding the address.")
+            return
+
+        city_field = next(
+            (field for field in self.fields if field.field_link == TemplateParser.FIELD_LINK_SUBFOLDERS),
+            None,
+        )
+        city = self._read_line_or_combo_text(self.widgets.get(city_field.name) if city_field else None)
+        short_address = TemplateParser.shorten_address_for_title(address, city)
+        if not short_address:
+            message_box.warning(self, "Address", "Could not build a short address for the title.")
+            return
+
+        self._set_line_or_combo_text(
+            title_widget,
+            TemplateParser.append_address_suffix_to_title(title, short_address),
+        )
+
     def _on_cancel(self) -> None:
         """Handle cancel button click."""
         self.reject()
@@ -1038,6 +1094,15 @@ class TemplateDialog(QDialog):
         for qurl in self._link_qurls:
             QDesktopServices.openUrl(qurl)
 
+    @staticmethod
+    def _read_line_or_combo_text(widget: QWidget | None) -> str:
+        """Return stripped text from a line edit or editable combobox."""
+        if isinstance(widget, QLineEdit):
+            return widget.text().strip()
+        if isinstance(widget, QComboBox):
+            return widget.currentText().strip()
+        return ""
+
     def _refresh_image_filename_bases(self) -> None:
         """Update filename base rows after date fields change."""
         for field in self.fields:
@@ -1130,6 +1195,14 @@ class TemplateDialog(QDialog):
         widget.setDate(date_obj)
         widget.blockSignals(False)  # noqa: FBT003
 
+    @staticmethod
+    def _set_line_or_combo_text(widget: QWidget | None, value: str) -> None:
+        """Write text into a line edit or editable combobox."""
+        if isinstance(widget, QLineEdit):
+            widget.setText(value)
+        elif isinstance(widget, QComboBox):
+            widget.setCurrentText(value)
+
     def _set_widget_value(self, field: TemplateField, value: str) -> None:
         """Set a single field widget from a string value."""
         widget = self.widgets.get(field.name)
@@ -1220,6 +1293,9 @@ class TemplateDialog(QDialog):
                 self.widgets[field.name] = line_edit
             elif field.field_type == "url":
                 widget, line_edit = self._create_url_widget_for_field(field)
+                self.widgets[field.name] = line_edit
+            elif field.field_type == "line" and field.field_link == TemplateParser.FIELD_LINK_APPEND_TO_NOTE_NAME:
+                widget, line_edit = self._create_line_append_to_note_name_widget(field)
                 self.widgets[field.name] = line_edit
             else:
                 widget = self._create_widget_for_field(field)

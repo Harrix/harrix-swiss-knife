@@ -28,7 +28,8 @@ class TemplateField:
     - `default_value` (`str | None`): Optional default value for the field.
     - `options` (`list[str] | None`): Optional list of options for combobox field type. Defaults to `None`.
     - `field_link` (`str | None`): Optional `@` link from the placeholder (field name for
-      image filename base, or `subfolders` for combobox options).
+      image filename base, `subfolders` for combobox options, `note_name` for the city-note
+      stem, or `append_to_note_name` for a dialog button that appends a shortened address).
     - `image_optimize` (`bool`): When `True`, images are optimized after save (from `#size`
       suffix on `image`/`images` fields).
     - `image_max_size` (`int | None`): Max width/height in pixels when `image_optimize` is enabled.
@@ -78,6 +79,8 @@ class TemplateParser:
     `#1024` after `@Link` enables image optimization with max side 1024 px.
     `@subfolders` on `line` loads combobox options from existing subfolders of `path_target`.
     `@note_name` marks the field used as note folder/file stem in `city_note` layout.
+    `@append_to_note_name` on `line` shows a dialog button that appends a shortened address
+    to the `@note_name` field (`Title — street, house`).
     `@Images` on `date` fills the date from dropped image filenames (fill-if-empty).
     `@Images!` on `date` always updates the date when new images are added.
 
@@ -98,11 +101,91 @@ class TemplateParser:
 
     """
 
-    FIELD_LINK_SUBFOLDERS = "subfolders"
+    FIELD_LINK_APPEND_TO_NOTE_NAME = "append_to_note_name"
     FIELD_LINK_NOTE_NAME = "note_name"
+    FIELD_LINK_SUBFOLDERS = "subfolders"
+    TITLE_ADDRESS_SEPARATOR = " — "
+
+    _COUNTRY_PARTS = frozenset(
+        {
+            "belarus",
+            "rf",
+            "russia",
+            "\u0431\u0435\u043b\u0430\u0440\u0443\u0441\u044c",
+            "\u0440\u043e\u0441\u0441\u0438\u044f",
+            "\u0440\u0444",
+        }
+    )
+    # House prefix: d. / dom; letter class is Cyrillic a-ya/yo plus Latin a-z.
+    _HOUSE_PREFIX_RE = re.compile(r"^(?:\u0434\.?|\u0434\u043e\u043c)\s+", re.IGNORECASE)
+    _HOUSE_NUMBER_RE = re.compile(
+        r"^\d+[\u0430-\u044f\u0451a-z]?(?:[\u043a\u0441kc/]\d+[\u0430-\u044f\u0451a-z]?)*"
+        r"(?:\s+\u043b\u0438\u0442\u0435\u0440\u0430\s+[\u0430-\u044f\u0451a-z])?$",
+        re.IGNORECASE,
+    )
+    _POSTAL_CODE_RE = re.compile(r"^\d{5,6}$")
+    _SINGLE_PART_HOUSE_RE = re.compile(
+        r"^(?P<street>.+?)\s+(?:(?:\u0434\.?|\u0434\u043e\u043c)\s+)?"
+        r"(?P<house>\d+[\u0430-\u044f\u0451a-z]?(?:[\u043a\u0441kc/]\d+[\u0430-\u044f\u0451a-z]?)*)"
+        r"(?:\s+\u043b\u0438\u0442\u0435\u0440\u0430\s+[\u0430-\u044f\u0451a-z])?$",
+        re.IGNORECASE,
+    )
+    _STREET_TYPE_TOKENS = frozenset(
+        {
+            "ave",
+            "avenue",
+            "blvd",
+            "boulevard",
+            "dr",
+            "drive",
+            "lane",
+            "rd",
+            "road",
+            "sq",
+            "square",
+            "st",
+            "street",
+            "\u0430\u043b\u043b\u0435\u044f",
+            "\u0431-\u0440",
+            "\u0431\u0443\u043b\u044c\u0432\u0430\u0440",
+            "\u043b\u0438\u043d\u0438\u044f",
+            "\u043d\u0430\u0431",
+            "\u043d\u0430\u0431\u0435\u0440\u0435\u0436\u043d\u0430\u044f",
+            "\u043f\u0435\u0440",
+            "\u043f\u0435\u0440\u0435\u0443\u043b\u043e\u043a",
+            "\u043f\u043b",
+            "\u043f\u043b\u043e\u0449\u0430\u0434\u044c",
+            "\u043f\u0440-\u043a\u0442",
+            "\u043f\u0440-\u0442",
+            "\u043f\u0440\u043e\u0435\u0437\u0434",
+            "\u043f\u0440\u043e\u0441\u043f",
+            "\u043f\u0440\u043e\u0441\u043f\u0435\u043a\u0442",
+            "\u0442\u0443\u043f\u0438\u043a",
+            "\u0443\u043b",
+            "\u0443\u043b\u0438\u0446\u0430",
+            "\u0448",
+            "\u0448\u043e\u0441\u0441\u0435",
+        }
+    )
 
     _PLACEHOLDER_PATTERN = re.compile(r"\{\{([^:{}]+):([^:{}@]+)(?:@([^:{}]+))?(?::([^{}]+))?\}\}")
     _IMAGE_PATHS_PATTERN = re.compile(r"!\[[^\]]*\]\(([^)]+)\)")
+
+    @staticmethod
+    def append_address_suffix_to_title(title: str, short_address: str) -> str:
+        """Return `title` with a `— street, house` suffix, replacing a previous suffix."""
+        cleaned_title = title.strip()
+        cleaned_address = short_address.strip()
+        if not cleaned_title or not cleaned_address:
+            return cleaned_title
+        separator = TemplateParser.TITLE_ADDRESS_SEPARATOR
+        suffix = f"{separator}{cleaned_address}"
+        if cleaned_title.endswith(suffix):
+            return cleaned_title
+        if separator in cleaned_title:
+            base = cleaned_title.rsplit(separator, 1)[0].rstrip()
+            return f"{base}{separator}{cleaned_address}"
+        return f"{cleaned_title}{separator}{cleaned_address}"
 
     @staticmethod
     def build_block_regex(template_content: str, fields: list[TemplateField]) -> re.Pattern[str] | None:
@@ -230,6 +313,41 @@ class TemplateParser:
             )
 
         return fields, template_content
+
+    @staticmethod
+    def shorten_address_for_title(address: str, city: str = "") -> str:
+        """Return a short `street, house` label from a full address and optional city."""
+        raw = address.strip()
+        if not raw:
+            return ""
+
+        parts = [part.strip() for part in raw.split(",") if part.strip()]
+        filtered = [
+            part
+            for part in parts
+            if not TemplateParser._is_postal_code(part)
+            and not TemplateParser._is_country_part(part)
+            and not TemplateParser._is_city_part(part, city)
+        ]
+        if not filtered:
+            return raw
+
+        street = ""
+        house = ""
+        if len(filtered) == 1:
+            street, house = TemplateParser._split_single_address_part(filtered[0])
+        else:
+            for part in filtered:
+                if not house and TemplateParser._is_house_number(part):
+                    house = TemplateParser._normalize_house_number(part)
+                elif not street:
+                    street = TemplateParser._strip_street_type(part)
+
+        street = street.strip(" ,.")
+        house = house.strip()
+        if street and house:
+            return f"{street}, {house}"
+        return street or house or raw
 
     @staticmethod
     def split_entries(content: str, template_content: str) -> list[TemplateEntry]:
@@ -378,10 +496,35 @@ class TemplateParser:
         return result.rstrip("\n")
 
     @staticmethod
+    def _is_city_part(part: str, city: str) -> bool:
+        if not city.strip():
+            return False
+        cleaned = re.sub(
+            r"^(?:\u0433\.?|\u0433\u043e\u0440\u043e\u0434)\s+",
+            "",
+            part.strip(),
+            flags=re.IGNORECASE,
+        )
+        return cleaned.casefold() == city.strip().casefold()
+
+    @staticmethod
+    def _is_country_part(part: str) -> bool:
+        return part.strip().casefold().rstrip(".") in TemplateParser._COUNTRY_PARTS
+
+    @staticmethod
     def _is_field_value_filled(field_type: str, value: str) -> bool:
         if field_type == "bool":
             return True
         return bool(value.strip())
+
+    @staticmethod
+    def _is_house_number(part: str) -> bool:
+        cleaned = TemplateParser._HOUSE_PREFIX_RE.sub("", part.strip())
+        return bool(TemplateParser._HOUSE_NUMBER_RE.match(cleaned))
+
+    @staticmethod
+    def _is_postal_code(part: str) -> bool:
+        return bool(TemplateParser._POSTAL_CODE_RE.match(part.strip()))
 
     @staticmethod
     def _line_has_any_filled_placeholder(matches: list[re.Match[str]], str_values: dict[str, str]) -> bool:
@@ -407,6 +550,11 @@ class TemplateParser:
         if not following:
             return ""
         return "\n" + following[0]
+
+    @staticmethod
+    def _normalize_house_number(part: str) -> str:
+        cleaned = TemplateParser._HOUSE_PREFIX_RE.sub("", part.strip())
+        return re.sub(r"\s+", " ", cleaned).strip()
 
     @staticmethod
     def _parse_date_field_link(raw_link: str | None) -> tuple[str | None, bool]:
@@ -492,6 +640,21 @@ class TemplateParser:
         if not group_name or not group_name[0].isalpha():
             group_name = f"f_{group_name}"
         return group_name
+
+    @staticmethod
+    def _split_single_address_part(part: str) -> tuple[str, str]:
+        match = TemplateParser._SINGLE_PART_HOUSE_RE.match(part.strip())
+        if match:
+            street = TemplateParser._strip_street_type(match.group("street"))
+            return street, match.group("house")
+        return TemplateParser._strip_street_type(part), ""
+
+    @staticmethod
+    def _strip_street_type(street: str) -> str:
+        tokens = [token for token in street.split() if token]
+        kept = [token for token in tokens if token.casefold().rstrip(".") not in TemplateParser._STREET_TYPE_TOKENS]
+        result = " ".join(kept).strip(" ,.")
+        return result or street.strip()
 
     @staticmethod
     def _template_lines(template_content: str) -> list[str]:

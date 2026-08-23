@@ -5,7 +5,7 @@
 _{{Title:line}}_
 
 - **City:** {{City:line@subfolders}}
-- **Address:** {{Address:line}}
+- **Address:** {{Address:line@append_to_note_name}}
 - **Coordinates:** {{Coordinates:coordinates}}
 - **Web:** <{{Web:url}}>
 - **Date:** {{Date:date@Images}}

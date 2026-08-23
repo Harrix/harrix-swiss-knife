@@ -113,6 +113,45 @@ def test_parse_template_reads_note_name_field_link() -> None:
     assert fields[0].field_link == TemplateParser.FIELD_LINK_NOTE_NAME
 
 
+def test_parse_template_reads_append_to_note_name_field_link() -> None:
+    fields, _ = TemplateParser.parse_template("{{Address:line@append_to_note_name}}")
+    assert fields[0].name == "Address"
+    assert fields[0].field_type == "line"
+    assert fields[0].field_link == TemplateParser.FIELD_LINK_APPEND_TO_NOTE_NAME
+
+
+def test_shorten_address_for_title_keeps_street_and_house() -> None:
+    assert TemplateParser.shorten_address_for_title("Тверская улица, 12, Москва", "Moscow") == "Тверская, 12"
+    assert TemplateParser.shorten_address_for_title("Тверская улица, 12, Москва", "Москва") == "Тверская, 12"
+    assert TemplateParser.shorten_address_for_title("ул. Никольская, д. 10") == "Никольская, 10"
+    assert TemplateParser.shorten_address_for_title("Кутузовский проспект, 12") == "Кутузовский, 12"
+    assert (
+        TemplateParser.shorten_address_for_title("Тверская улица, 12, Москва, Россия, 125009", "Москва")
+        == "Тверская, 12"
+    )
+    assert TemplateParser.shorten_address_for_title("Tverskaya Street, 12, Moscow", "Moscow") == "Tverskaya, 12"
+    assert TemplateParser.shorten_address_for_title("проспект Мира, 10") == "Мира, 10"
+    assert TemplateParser.shorten_address_for_title("Большая Никитская улица, 17с1") == (  # noqa: RUF001
+        "Большая Никитская, 17с1"  # noqa: RUF001
+    )
+    assert TemplateParser.shorten_address_for_title("Никольская 10") == "Никольская, 10"
+    assert TemplateParser.shorten_address_for_title("г. Москва", "Москва") == "г. Москва"  # noqa: RUF001
+
+
+def test_append_address_suffix_to_title_replaces_existing_suffix() -> None:
+    assert TemplateParser.append_address_suffix_to_title("", "Тверская, 12") == ""
+    assert TemplateParser.append_address_suffix_to_title("Stars Coffee", "") == "Stars Coffee"
+    assert TemplateParser.append_address_suffix_to_title("Stars Coffee", "Тверская, 12") == (
+        "Stars Coffee — Тверская, 12"
+    )
+    assert TemplateParser.append_address_suffix_to_title("Stars Coffee — Тверская, 12", "Тверская, 12") == (
+        "Stars Coffee — Тверская, 12"
+    )
+    assert TemplateParser.append_address_suffix_to_title("Stars Coffee — Тверская, 12", "Арбат, 20") == (
+        "Stars Coffee — Арбат, 20"
+    )
+
+
 def test_parse_template_reads_date_from_images_links() -> None:
     fields, _ = TemplateParser.parse_template("{{Date:date@Images}}\n{{DateLast:date@Images!}}\n{{DatePlain:date}}")
     by_name = {field.name: field for field in fields}
@@ -131,7 +170,7 @@ COFFEE_TEMPLATE = """### {{Title:line@note_name}}: {{Score:float:10}}
 _{{Title:line}}_
 
 - **City:** {{City:line@subfolders}}
-- **Address:** {{Address:line}}
+- **Address:** {{Address:line@append_to_note_name}}
 - **Coordinates:** {{Coordinates:coordinates}}
 - **Web:** <{{Web:url}}>
 - **Date:** {{Date:date@Images}}
@@ -147,6 +186,8 @@ def test_parse_block_and_fill_round_trip_coffee_template() -> None:
     assert images_field.image_max_size == 1024
     web_field = next(field for field in fields if field.name == "Web")
     assert web_field.field_type == "url"
+    address_field = next(field for field in fields if field.name == "Address")
+    assert address_field.field_link == TemplateParser.FIELD_LINK_APPEND_TO_NOTE_NAME
     values = {
         "Title": "Flat white",
         "Score": "9",
