@@ -232,13 +232,19 @@ def run_deploy(options: DeployOptions, log: OutcomeLog) -> DeployResult:
             log.line(line)
         elapsed = time.perf_counter() - started
         log.line(f"\n⏱️ Elapsed: {format_elapsed_display(elapsed)}")
-        return DeployResult(
+        result = DeployResult(
             ok=True,
             install_root=root,
             hsk_path=hsk,
             outcomes=log,
             elapsed_seconds=elapsed,
         )
+        report_text = format_install_report(result)
+        saved_report = save_install_finish_report(root, report_text)
+        if saved_report is not None:
+            log.detail(f"Saved install report to {saved_report}")
+        else:
+            log.detail("Could not save install-harrix-swiss-knife.log")
     except Exception as exc:
         log.line(f"❌ ERROR: {exc}")
         return DeployResult(
@@ -249,6 +255,8 @@ def run_deploy(options: DeployOptions, log: OutcomeLog) -> DeployResult:
             error=str(exc),
             elapsed_seconds=time.perf_counter() - started,
         )
+    else:
+        return result
 ```
 
 </details>

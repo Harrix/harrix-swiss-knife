@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from pathlib import Path  # noqa: TC003
 from typing import TYPE_CHECKING
 
 from harrix_swiss_knife.installer.build_info import display_build_lines, load_build_meta
@@ -11,6 +12,8 @@ if TYPE_CHECKING:
     from harrix_swiss_knife.installer.deploy import DeployResult
     from harrix_swiss_knife.installer.log import OutcomeLog
     from harrix_swiss_knife.installer.uninstall import UninstallResult
+
+INSTALL_FINISH_REPORT_NAME = "install-harrix-swiss-knife.log"
 
 
 def format_elapsed_display(elapsed_seconds: float) -> str:
@@ -33,6 +36,7 @@ def format_install_report(result: DeployResult) -> str:
     if result.install_root is not None:
         lines.append("")
         lines.append(f"Install root: {result.install_root}")
+        lines.append(f"Install report: {result.install_root / INSTALL_FINISH_REPORT_NAME}")
     if result.hsk_path is not None:
         hsk = result.hsk_path
         pyw = hsk / ".venv" / "Scripts" / "pythonw.exe"
@@ -63,6 +67,16 @@ def format_uninstall_report(result: UninstallResult) -> str:
         lines.append("")
         lines.append(f"Elapsed: {format_elapsed_display(result.elapsed_seconds)}")
     return "\n".join(lines)
+
+
+def save_install_finish_report(install_root: Path, report_text: str) -> Path | None:
+    """Write the Finished-page report to `<install_root>/install-harrix-swiss-knife.log`."""
+    path = install_root / INSTALL_FINISH_REPORT_NAME
+    try:
+        path.write_text(report_text.rstrip() + "\n", encoding="utf-8")
+    except OSError:
+        return None
+    return path
 
 
 def _outcome_block(log: OutcomeLog, *, action_label: str = "What was installed:") -> list[str]:

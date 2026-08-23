@@ -18,7 +18,11 @@ from harrix_swiss_knife.installer.arp import register_uninstall
 from harrix_swiss_knife.installer.binaries import install_optimize_binaries
 from harrix_swiss_knife.installer.build_info import load_build_meta
 from harrix_swiss_knife.installer.config_defaults import apply_config_defaults
-from harrix_swiss_knife.installer.finish_report import format_elapsed_display
+from harrix_swiss_knife.installer.finish_report import (
+    format_elapsed_display,
+    format_install_report,
+    save_install_finish_report,
+)
 from harrix_swiss_knife.installer.paths import default_install_root_parent, normalize_install_root
 from harrix_swiss_knife.installer.prereqs import (
     PrerequisitePlan,
@@ -206,13 +210,19 @@ def run_deploy(options: DeployOptions, log: OutcomeLog) -> DeployResult:
             log.line(line)
         elapsed = time.perf_counter() - started
         log.line(f"\n⏱️ Elapsed: {format_elapsed_display(elapsed)}")
-        return DeployResult(
+        result = DeployResult(
             ok=True,
             install_root=root,
             hsk_path=hsk,
             outcomes=log,
             elapsed_seconds=elapsed,
         )
+        report_text = format_install_report(result)
+        saved_report = save_install_finish_report(root, report_text)
+        if saved_report is not None:
+            log.detail(f"Saved install report to {saved_report}")
+        else:
+            log.detail("Could not save install-harrix-swiss-knife.log")
     except Exception as exc:
         log.line(f"❌ ERROR: {exc}")
         return DeployResult(
@@ -223,6 +233,8 @@ def run_deploy(options: DeployOptions, log: OutcomeLog) -> DeployResult:
             error=str(exc),
             elapsed_seconds=time.perf_counter() - started,
         )
+    else:
+        return result
 
 
 def suggest_install_root() -> Path:

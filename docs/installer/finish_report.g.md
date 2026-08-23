@@ -14,6 +14,7 @@ lang: en
 - [🔧 Function `format_elapsed_display`](#-function-format_elapsed_display)
 - [🔧 Function `format_install_report`](#-function-format_install_report)
 - [🔧 Function `format_uninstall_report`](#-function-format_uninstall_report)
+- [🔧 Function `save_install_finish_report`](#-function-save_install_finish_report)
 
 </details>
 
@@ -61,6 +62,7 @@ def format_install_report(result: DeployResult) -> str:
     if result.install_root is not None:
         lines.append("")
         lines.append(f"Install root: {result.install_root}")
+        lines.append(f"Install report: {result.install_root / INSTALL_FINISH_REPORT_NAME}")
     if result.hsk_path is not None:
         hsk = result.hsk_path
         pyw = hsk / ".venv" / "Scripts" / "pythonw.exe"
@@ -104,6 +106,29 @@ def format_uninstall_report(result: UninstallResult) -> str:
         lines.append("")
         lines.append(f"Elapsed: {format_elapsed_display(result.elapsed_seconds)}")
     return "\n".join(lines)
+```
+
+</details>
+
+## 🔧 Function `save_install_finish_report`
+
+```python
+def save_install_finish_report(install_root: Path, report_text: str) -> Path | None
+```
+
+Write the Finished-page report to `<install_root>/install-harrix-swiss-knife.log`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def save_install_finish_report(install_root: Path, report_text: str) -> Path | None:
+    path = install_root / INSTALL_FINISH_REPORT_NAME
+    try:
+        path.write_text(report_text.rstrip() + "\n", encoding="utf-8")
+    except OSError:
+        return None
+    return path
 ```
 
 </details>

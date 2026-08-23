@@ -21,7 +21,11 @@ from harrix_swiss_knife.installer.arp import ARP_KEY_NAME, register_uninstall, u
 from harrix_swiss_knife.installer.build_info import summarize_dependency_artifacts
 from harrix_swiss_knife.installer.config_defaults import apply_config_defaults, is_unset_config_path
 from harrix_swiss_knife.installer.deploy import DeployResult
-from harrix_swiss_knife.installer.finish_report import format_install_report
+from harrix_swiss_knife.installer.finish_report import (
+    INSTALL_FINISH_REPORT_NAME,
+    format_install_report,
+    save_install_finish_report,
+)
 from harrix_swiss_knife.installer.log import OutcomeLog
 from harrix_swiss_knife.installer.paths import (
     default_install_root_parent,
@@ -320,8 +324,19 @@ def test_format_install_report() -> None:
     text = format_install_report(result)
     assert "Installation finished." in text
     assert "C:\\harrix-swiss-knife" in text
+    assert INSTALL_FINISH_REPORT_NAME in text
     assert "Desktop shortcut created" in text
     assert "Elapsed: 00:13" in text
+
+
+def test_save_install_finish_report(tmp_path: Path) -> None:
+    root = tmp_path / "harrix-swiss-knife"
+    root.mkdir()
+    text = "Installation finished.\n\nElapsed: 00:13"
+    saved = save_install_finish_report(root, text)
+    assert saved is not None
+    assert saved == root / INSTALL_FINISH_REPORT_NAME
+    assert saved.read_text(encoding="utf-8") == text + "\n"
 
 
 def test_run_uninstall_unregisters_arp(tmp_path: Path) -> None:
