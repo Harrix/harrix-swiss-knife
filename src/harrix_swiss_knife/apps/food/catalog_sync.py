@@ -38,7 +38,7 @@ def export_food_catalog(db_path: Path) -> dict[str, Any]:
 
     Returns:
 
-    - `dict[str, Any]`: Object with `version` and `food_items`. Database `id`
+    - `dict[str, Any]`: Object with `version` and `food_items`. Database `_id`
       values are omitted.
 
     """
@@ -123,7 +123,7 @@ def normalize_food_catalog(raw: Any) -> dict[str, Any]:
 def upsert_food_catalog(db_path: Path, catalog: dict[str, Any]) -> FoodCatalogUpsertStats:
     """Insert or update food items by name; never touch `food_log`.
 
-    Existing local-only items are left unchanged. Existing `id` values are
+    Existing local-only items are left unchanged. Existing `_id` values are
     preserved so `food_log` rows stay linked.
 
     """
@@ -136,7 +136,7 @@ def upsert_food_catalog(db_path: Path, catalog: dict[str, Any]) -> FoodCatalogUp
     updated = 0
     with sqlite3.connect(str(db_path)) as conn:
         for item in normalized["food_items"]:
-            row = conn.execute("SELECT id FROM food_items WHERE name = ?", (item["name"],)).fetchone()
+            row = conn.execute("SELECT _id FROM food_items WHERE name = ?", (item["name"],)).fetchone()
             values = (
                 item["name_en"],
                 1 if item["is_drink"] else 0,
@@ -162,7 +162,7 @@ def upsert_food_catalog(db_path: Path, catalog: dict[str, Any]) -> FoodCatalogUp
                     UPDATE food_items
                     SET name_en = ?, is_drink = ?, calories_per_100g = ?,
                         default_portion_weight = ?, default_portion_calories = ?
-                    WHERE id = ?
+                    WHERE _id = ?
                     """,
                     (*values, int(row[0])),
                 )

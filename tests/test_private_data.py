@@ -522,7 +522,7 @@ CREATE TABLE transactions (
 
 _FOOD_SCHEMA_SQL = """
 CREATE TABLE food_items (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    _id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL UNIQUE,
     name_en TEXT,
     is_drink INTEGER NOT NULL DEFAULT 0,
@@ -531,10 +531,14 @@ CREATE TABLE food_items (
     default_portion_calories REAL
 );
 CREATE TABLE food_log (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    datetime TEXT NOT NULL,
-    food_item_id INTEGER,
-    name TEXT NOT NULL
+    _id INTEGER PRIMARY KEY AUTOINCREMENT,
+    date TEXT,
+    weight REAL,
+    portion_calories REAL,
+    calories_per_100g REAL,
+    name TEXT,
+    name_en TEXT,
+    is_drink INTEGER NOT NULL DEFAULT 0
 );
 """
 
@@ -571,10 +575,9 @@ def _create_food_db(db_path: Path) -> Path:
             VALUES ('Банан', 'Banana', 0, 89)
             """
         )
-        item_id = int(conn.execute("SELECT id FROM food_items WHERE name = 'Банан'").fetchone()[0])
         conn.execute(
-            "INSERT INTO food_log (datetime, food_item_id, name) VALUES ('2024-01-01T12:00:00', ?, 'Банан')",
-            (item_id,),
+            "INSERT INTO food_log (date, name, calories_per_100g, weight, is_drink) "
+            "VALUES ('2024-01-01', 'Банан', 89, 100, 0)",
         )
         conn.commit()
     return db_path

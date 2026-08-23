@@ -2073,10 +2073,15 @@ class MainWindow(
     def _init_database(self) -> None:
         """Open the SQLite file from app config (create from `recover.sql` if missing)."""
         app_dir = Path(__file__).parent
+        configured = Path(self._app_config["sqlite_food"])
+        db_path = QtSqliteDatabaseManagerBase.resolve_db_path_with_fallback(configured, "food")
+        if db_path.exists():
+            # Installer/old recover.sql created id/datetime/calories; migrate before open.
+            ensure_food_schema(db_path)
 
         self.db_manager = init_tracker_database(
             self,
-            Path(self._app_config["sqlite_food"]),
+            configured,
             "food",
             app_dir / "recover.sql",
             database_manager.DatabaseManager,

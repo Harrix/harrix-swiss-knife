@@ -58,6 +58,7 @@ from harrix_swiss_knife.apps.common.chart_colors import generate_pastel_qcolors
 from harrix_swiss_knife.apps.common.date_edit_quick import attach_date_edit_quick_controls
 from harrix_swiss_knife.apps.common.db_init import init_tracker_database
 from harrix_swiss_knife.apps.common.dialogs.simple_recording_dialog import SimpleRecordingDialog
+from harrix_swiss_knife.apps.common.qt_database_manager_base import QtSqliteDatabaseManagerBase
 from harrix_swiss_knife.apps.common.qt_main_window import AppWindowMixin
 from harrix_swiss_knife.apps.common.quick_tab_startup import install_open_quick_tab_checkbox
 from harrix_swiss_knife.apps.common.scroll_pagination import ScrollPagination, on_scroll_load_more
@@ -94,6 +95,7 @@ from harrix_swiss_knife.apps.food.mixins import (
     requires_database,
 )
 from harrix_swiss_knife.apps.food.portion_weight_parser import parse_portion_weight_response
+from harrix_swiss_knife.apps.food.schema import ensure_food_schema
 from harrix_swiss_knife.apps.food.services.food_display import (
     extract_food_name_from_display,
     format_food_name_with_calories,
@@ -2147,10 +2149,15 @@ class MainWindow(
     def _init_database(self) -> None:
         """Open the SQLite file from app config (create from `recover.sql` if missing)."""
         app_dir = Path(__file__).parent
+        configured = Path(self._app_config["sqlite_food"])
+        db_path = QtSqliteDatabaseManagerBase.resolve_db_path_with_fallback(configured, "food")
+        if db_path.exists():
+            # Installer/old recover.sql created id/datetime/calories; migrate before open.
+            ensure_food_schema(db_path)
 
         self.db_manager = init_tracker_database(
             self,
-            Path(self._app_config["sqlite_food"]),
+            configured,
             "food",
             app_dir / "recover.sql",
             database_manager.DatabaseManager,

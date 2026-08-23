@@ -9,7 +9,7 @@ from harrix_swiss_knife.apps.food.catalog_sync import export_food_catalog, upser
 
 _SCHEMA_ONLY_SQL = """
 CREATE TABLE food_items (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    _id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL UNIQUE,
     name_en TEXT,
     is_drink INTEGER NOT NULL DEFAULT 0 CHECK (is_drink IN (0, 1)),
@@ -18,13 +18,14 @@ CREATE TABLE food_items (
     default_portion_calories REAL
 );
 CREATE TABLE food_log (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    datetime TEXT NOT NULL,
-    food_item_id INTEGER,
-    name TEXT NOT NULL,
-    calories REAL,
+    _id INTEGER PRIMARY KEY AUTOINCREMENT,
+    date TEXT,
     weight REAL,
-    FOREIGN KEY (food_item_id) REFERENCES food_items(id) ON DELETE SET NULL
+    portion_calories REAL,
+    calories_per_100g REAL,
+    name TEXT,
+    name_en TEXT,
+    is_drink INTEGER NOT NULL DEFAULT 0 CHECK (is_drink IN (0, 1))
 );
 """
 
@@ -48,13 +49,12 @@ def _seed_source_db(db_path: Path) -> int:
             VALUES ('Банан', 'Banana', 0, 89, NULL, NULL)
             """
         )
-        item_id = int(conn.execute("SELECT id FROM food_items WHERE name = 'Банан'").fetchone()[0])
+        item_id = int(conn.execute("SELECT _id FROM food_items WHERE name = 'Банан'").fetchone()[0])
         conn.execute(
             """
-            INSERT INTO food_log (datetime, food_item_id, name, calories, weight)
-            VALUES ('2024-01-01T12:00:00', ?, 'Банан', 89, 100)
+            INSERT INTO food_log (date, name, calories_per_100g, weight, is_drink)
+            VALUES ('2024-01-01', 'Банан', 89, 100, 0)
             """,
-            (item_id,),
         )
         conn.commit()
     return item_id
@@ -112,7 +112,7 @@ def test_upsert_updates_existing_preserves_ids_and_log(tmp_path: Path) -> None:
     with sqlite3.connect(str(db_path)) as conn:
         banana = conn.execute(
             """
-            SELECT id, name_en, calories_per_100g, default_portion_weight
+            SELECT _id, name_en, calories_per_100g, default_portion_weight
             FROM food_items WHERE name = 'Банан'
             """
         ).fetchone()
@@ -122,5 +122,5 @@ def test_upsert_updates_existing_preserves_ids_and_log(tmp_path: Path) -> None:
         assert float(banana[2]) == 95
         assert float(banana[3]) == 120
         assert int(conn.execute("SELECT COUNT(*) FROM food_log").fetchone()[0]) == 1
-        assert int(conn.execute("SELECT food_item_id FROM food_log").fetchone()[0]) == item_id
+        assert conn.execute("SELECT name FROM food_log").fetchone()[0] == "Банан"
         assert int(conn.execute("SELECT is_drink FROM food_items WHERE name = 'Американо'").fetchone()[0]) == 1

@@ -1,5 +1,6 @@
 -- Recover / recreate Food database schema and seed data
--- Generated from working food.db (food_items catalog only, food_log left empty)
+-- Schema matches the live app (food_items / food_log use `_id`; food_log stores `date`
+-- and portion / per-100g calories). Seed is food_items catalog only; food_log stays empty.
 
 PRAGMA foreign_keys = OFF;
 
@@ -9,7 +10,7 @@ DROP TABLE IF EXISTS food_items;
 PRAGMA foreign_keys = ON;
 
 CREATE TABLE food_items (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    _id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL UNIQUE,
     name_en TEXT,
     is_drink INTEGER NOT NULL DEFAULT 0 CHECK (is_drink IN (0, 1)),
@@ -19,15 +20,14 @@ CREATE TABLE food_items (
 );
 
 CREATE TABLE food_log (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    datetime TEXT NOT NULL,
-    food_item_id INTEGER,
-    name TEXT NOT NULL,
-    name_en TEXT,
-    is_drink INTEGER NOT NULL DEFAULT 0 CHECK (is_drink IN (0, 1)),
-    calories REAL,
+    _id INTEGER PRIMARY KEY AUTOINCREMENT,
+    date TEXT,
     weight REAL,
-    FOREIGN KEY (food_item_id) REFERENCES food_items(id) ON DELETE SET NULL
+    portion_calories REAL,
+    calories_per_100g REAL,
+    name TEXT,
+    name_en TEXT,
+    is_drink INTEGER NOT NULL DEFAULT 0 CHECK (is_drink IN (0, 1))
 );
 
 -- Seed catalog of food items from working database

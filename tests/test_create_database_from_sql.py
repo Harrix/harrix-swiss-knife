@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import sqlite3
 from pathlib import Path
 
 import pytest
@@ -56,3 +57,11 @@ def test_create_food_database_from_recover_sql(tmp_path: Path, qapp: QApplicatio
     db_path = tmp_path / "food.db"
     assert QtSqliteDatabaseManagerBase.create_database_from_sql(str(db_path), str(_FOOD_RECOVER))
     assert db_path.stat().st_size > 0
+
+    with sqlite3.connect(str(db_path)) as conn:
+        food_log_cols = {row[1] for row in conn.execute("PRAGMA table_info(food_log)")}
+        food_items_cols = {row[1] for row in conn.execute("PRAGMA table_info(food_items)")}
+        assert {"_id", "date", "portion_calories", "calories_per_100g"}.issubset(food_log_cols)
+        assert {"_id", "name", "default_portion_calories"}.issubset(food_items_cols)
+        assert int(conn.execute("SELECT COUNT(*) FROM food_items").fetchone()[0]) > 0
+        assert int(conn.execute("SELECT COUNT(*) FROM food_log").fetchone()[0]) == 0
