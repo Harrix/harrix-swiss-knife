@@ -28,7 +28,7 @@ lang: en
 class ExerciseListHoverPreview(QObject)
 ```
 
-Show an enlarged AVIF animation after dwelling on an exercise icon.
+Show an enlarged still AVIF preview after dwelling on an exercise icon.
 
 <details>
 <summary>Code:</summary>
@@ -146,7 +146,7 @@ class ExerciseListHoverPreview(QObject):
         self._targets.clear()
 
     def eventFilter(self, obj: QObject, event: QEvent) -> bool:  # noqa: N802
-        """Track icon hover, dwell delay, and leave/scroll hide."""
+        """Track icon hover, dwell delay, click hide, and leave/scroll hide."""
         if self._detached or not self._any_view_alive():
             return False
 
@@ -156,6 +156,11 @@ class ExerciseListHoverPreview(QObject):
 
         event_type = event.type()
         viewport = target.viewport if isValid(target.viewport) else None
+
+        if viewport is not None and obj is viewport and event_type == QEvent.Type.MouseButtonPress:
+            # Avoid racing a decode with the click that selects the exercise.
+            self.hide_preview()
+            return False
 
         if viewport is not None and obj is viewport and event_type == QEvent.Type.MouseMove:
             self._on_mouse_move(target, cast("QMouseEvent", event).position().toPoint())
@@ -233,31 +238,33 @@ class ExerciseListHoverPreview(QObject):
         manager = self._get_avif_manager()
         if not exercise or manager is None or not isValid(self._popup) or not isValid(self._label):
             return
-        if manager.get_exercise_avif_path(exercise) is None:
+        avif_path = manager.get_exercise_avif_path(exercise)
+        if avif_path is None:
             return
 
-        # Ensure label has a real size before frames are scaled.
+        # Still first frame only — full animation decode would hitch the UI thread.
+        pixmap = manager.load_avif_pixmap(avif_path)
+        if pixmap is None or pixmap.isNull():
+            return
+        scaled = pixmap.scaled(
+            self._preview_size,
+            Qt.AspectRatioMode.KeepAspectRatio,
+            Qt.TransformationMode.SmoothTransformation,
+        )
+        if scaled.isNull():
+            return
+
         self._label.setFixedSize(self._preview_size)
+        self._label.setPixmap(scaled)
         self._popup.adjustSize()
         self._move_popup_to_cursor()
         self._popup.show()
-        manager.load_exercise_avif(exercise, self._label, AvifLabelKey.LIST_HOVER)
         self._shown_exercise = exercise
 
     def _stop_animation(self) -> None:
         manager = self._get_avif_manager()
-        if manager is None:
-            return
-        data = manager.avif_data.get(AvifLabelKey.LIST_HOVER)
-        if not data:
-            return
-        timer = data.get("timer")
-        if timer is not None:
-            timer.stop()
-            data["timer"] = None
-        data["frames"] = []
-        data["current_frame"] = 0
-        data["exercise"] = None
+        if manager is not None:
+            manager.stop_animation(AvifLabelKey.LIST_HOVER)
         if isValid(self._label):
             self._label.clear()
 
@@ -423,7 +430,7 @@ def detach(self, *_args: object) -> None:
 def eventFilter(self, obj: QObject, event: QEvent) -> bool
 ```
 
-Track icon hover, dwell delay, and leave/scroll hide.
+Track icon hover, dwell delay, click hide, and leave/scroll hide.
 
 <details>
 <summary>Code:</summary>
@@ -439,6 +446,11 @@ def eventFilter(self, obj: QObject, event: QEvent) -> bool:  # noqa: N802
 
         event_type = event.type()
         viewport = target.viewport if isValid(target.viewport) else None
+
+        if viewport is not None and obj is viewport and event_type == QEvent.Type.MouseButtonPress:
+            # Avoid racing a decode with the click that selects the exercise.
+            self.hide_preview()
+            return False
 
         if viewport is not None and obj is viewport and event_type == QEvent.Type.MouseMove:
             self._on_mouse_move(target, cast("QMouseEvent", event).position().toPoint())

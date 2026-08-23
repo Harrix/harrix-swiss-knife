@@ -7,6 +7,7 @@ in Qt-based applications.
 
 from __future__ import annotations
 
+import contextlib
 import io
 import logging
 from enum import StrEnum
@@ -14,7 +15,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from PIL import Image, ImageOps
-from PySide6.QtCore import Qt, QTimer
+from PySide6.QtCore import QObject, Qt, QThread, QTimer, Signal
 from PySide6.QtGui import QImageReader, QPixmap
 
 from harrix_swiss_knife.apps.common.exercise_media import FITNESS_IMG_HIGH_DIR
@@ -25,6 +26,8 @@ if TYPE_CHECKING:
 
 
 logger = logging.getLogger(__name__)
+
+_DEFAULT_FRAME_DURATION_MS = 100
 
 
 class AvifLabelKey(StrEnum):
@@ -40,7 +43,7 @@ class AvifLabelKey(StrEnum):
     LIGHTBOX = "lightbox"
 
 
-class AvifManager:
+class AvifManager(QObject):
     """Manager for AVIF file operations including loading, animation, and display.
 
     This class handles:
@@ -57,19 +60,23 @@ class AvifManager:
 
     """
 
-    def __init__(self, avif_dir: Path | str) -> None:
+    def __init__(self, avif_dir: Path | str, parent: QObject | None = None) -> None:
         """Initialize the AVIF manager.
 
         Args:
 
         - `avif_dir` (`Path | str`): Directory path containing AVIF files.
+        - `parent` (`QObject | None`): Optional Qt parent. Defaults to `None`.
 
         """
+        super().__init__(parent)
         self.avif_dir = Path(avif_dir)
         self.avif_data: dict[AvifLabelKey, dict] = {
             key: {"frames": [], "current_frame": 0, "timer": None, "exercise": None} for key in AvifLabelKey
         }
         self.label_widgets: dict[AvifLabelKey, QLabel | None] = dict.fromkeys(AvifLabelKey)
+        self._frame_generations: dict[AvifLabelKey, int] = dict.fromkeys(AvifLabelKey, 0)
+        self._frame_workers: dict[AvifLabelKey, _AvifFramesWorker | None] = dict.fromkeys(AvifLabelKey)
 
     def delete_exercise_avif(self, exercise_name: str) -> bool:
         """Delete the small and high-resolution AVIFs for `exercise_name`.
@@ -161,7 +168,11 @@ class AvifManager:
         label_widget: QLabel,
         label_key: str | AvifLabelKey = AvifLabelKey.MAIN,
     ) -> None:
-        """Load and display AVIF animation for the given exercise using Pillow with AVIF support.
+        """Load and display AVIF for the given exercise.
+
+        Lightbox loads synchronously (including animation). List hover shows the first
+        frame only. Other slots show the first frame immediately and decode remaining
+        animation frames off the UI thread.
 
         Args:
 
@@ -172,12 +183,12 @@ class AvifManager:
 
         """
         key = self._normalize_label_key(label_key)
-        # Get reference to data dict for this label (create if doesn't exist)
         if key not in self.avif_data:
             self.avif_data[key] = {"frames": [], "current_frame": 0, "timer": None, "exercise": None}
         data = self.avif_data[key]
 
-        # Stop current animation if exists
+        self._cancel_frame_worker(key)
+
         timer = data["timer"]
         if timer is not None and isinstance(timer, QTimer):
             timer.stop()
@@ -187,8 +198,6 @@ class AvifManager:
         data["current_frame"] = 0
         data["exercise"] = exercise_name
 
-        # Clear label and reset alignment
-        # Store label widget for this key (create dict entry if needed)
         if key not in self.label_widgets:
             self.label_widgets[key] = None
         self.label_widgets[key] = label_widget
@@ -200,7 +209,7 @@ class AvifManager:
             label_widget.setText("No exercise selected")
             return
 
-        # Get path to AVIF (lightbox prefers high-resolution when present)
+        # Lightbox prefers high-resolution when present; everything else uses the small UI file.
         if key == AvifLabelKey.LIGHTBOX:
             avif_path = self.get_exercise_lightbox_avif_path(exercise_name)
         else:
@@ -210,80 +219,15 @@ class AvifManager:
             label_widget.setText(f"No AVIF found for:\n{exercise_name}")
             return
 
-        try:
-            # Try Qt native first
-            pixmap = QPixmap(str(avif_path))
+        if key == AvifLabelKey.LIST_HOVER:
+            self._load_first_frame_only(avif_path, label_widget, exercise_name)
+            return
 
-            if not pixmap.isNull():
-                label_size = label_widget.size()
-                scaled_pixmap = pixmap.scaled(
-                    label_size, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation
-                )
-                label_widget.setPixmap(scaled_pixmap)
-                return
+        if key == AvifLabelKey.LIGHTBOX:
+            self._load_avif_synchronous(avif_path, label_widget, data, key, exercise_name)
+            return
 
-            # Fallback to Pillow with AVIF plugin for animation
-            try:
-                import pillow_avif  # noqa: F401, PLC0415
-
-                # Open with Pillow (ensure file handle closed on exceptions)
-                with Image.open(avif_path) as pil_image:
-                    # Handle animated AVIF
-                    if getattr(pil_image, "is_animated", False):
-                        # Extract all frames
-                        frames: list[QPixmap] = []
-                        label_size = label_widget.size()
-
-                        for frame_index in range(getattr(pil_image, "n_frames", 1)):
-                            pil_image.seek(frame_index)
-
-                            # Create a copy of the frame
-                            frame = pil_image.copy()
-                            scaled_pixmap = self._pil_frame_to_pixmap(frame, label_size=label_size)
-                            if scaled_pixmap is not None and not scaled_pixmap.isNull():
-                                frames.append(scaled_pixmap)
-
-                        if frames:
-                            # Store frames in data dict
-                            data["frames"] = frames
-
-                            # Show first frame
-                            label_widget.setPixmap(frames[0])
-
-                            # Start animation timer
-                            new_timer = QTimer()
-                            new_timer.timeout.connect(lambda: self._next_avif_frame(key))
-                            data["timer"] = new_timer
-
-                            # Get frame duration (default 100ms if not available)
-                            try:
-                                duration = pil_image.info.get("duration", 100)
-                            except Exception:
-                                duration = 100
-
-                            new_timer.start(duration)
-                            return
-                    else:
-                        # Static image
-                        frame = pil_image
-                        label_size = label_widget.size()
-                        scaled_pixmap = self._pil_frame_to_pixmap(frame, label_size=label_size)
-                        if scaled_pixmap is not None and not scaled_pixmap.isNull():
-                            label_widget.setPixmap(scaled_pixmap)
-                            return
-
-            except ImportError as import_error:
-                logger.warning("AVIF plugin import error: %s", import_error)
-                label_widget.setText(f"AVIF plugin not available:\n{exercise_name}")
-                return
-            except Exception:
-                logger.exception("Pillow error while loading AVIF %s", avif_path)
-
-            label_widget.setText(f"Cannot load AVIF:\n{exercise_name}")
-
-        except Exception as e:
-            logger.exception("Error loading AVIF %s", avif_path)
-            label_widget.setText(f"Error loading AVIF:\n{exercise_name}\n{e}")
+        self._load_avif_first_frame_then_async(avif_path, label_widget, data, key, exercise_name)
 
     def rename_exercise_avif(self, old_name: str, new_name: str) -> bool:
         """Rename small and high-resolution AVIFs to match a renamed exercise.
@@ -320,6 +264,7 @@ class AvifManager:
 
         """
         key = self._normalize_label_key(label_key)
+        self._cancel_frame_worker(key)
         data = self.avif_data.get(key)
         if data is None:
             return
@@ -335,6 +280,69 @@ class AvifManager:
             label_widget.clear()
         self.label_widgets[key] = None
 
+    def _apply_decoded_frames(
+        self,
+        label_key: object,
+        exercise_name: object,
+        png_frames: list,
+        duration_ms: int,
+        *,
+        generation: int,
+    ) -> None:
+        """Apply background-decoded frames when the slot still matches the request."""
+        if not isinstance(label_key, AvifLabelKey) or not isinstance(exercise_name, str):
+            return
+        if self._frame_generations.get(label_key) != generation:
+            return
+        data = self.avif_data.get(label_key)
+        label_widget = self.label_widgets.get(label_key)
+        if data is None or label_widget is None or data.get("exercise") != exercise_name:
+            return
+
+        label_size = label_widget.size()
+        frames: list[QPixmap] = []
+        for png_bytes in png_frames:
+            if not isinstance(png_bytes, (bytes, bytearray)):
+                continue
+            pixmap = QPixmap()
+            if not pixmap.loadFromData(bytes(png_bytes)):
+                continue
+            scaled = pixmap.scaled(
+                label_size,
+                Qt.AspectRatioMode.KeepAspectRatio,
+                Qt.TransformationMode.SmoothTransformation,
+            )
+            if not scaled.isNull():
+                frames.append(scaled)
+
+        if not frames:
+            return
+
+        data["frames"] = frames
+        data["current_frame"] = 0
+        label_widget.setPixmap(frames[0])
+
+        if len(frames) == 1:
+            return
+
+        new_timer = QTimer(self)
+        new_timer.timeout.connect(lambda: self._next_avif_frame(label_key))
+        data["timer"] = new_timer
+        new_timer.start(max(1, int(duration_ms) if duration_ms else _DEFAULT_FRAME_DURATION_MS))
+
+    def _cancel_frame_worker(self, key: AvifLabelKey) -> None:
+        """Bump generation so an in-flight decode is ignored; stop tracking the worker."""
+        self._frame_generations[key] = self._frame_generations.get(key, 0) + 1
+        worker = self._frame_workers.get(key)
+        self._frame_workers[key] = None
+        if worker is None:
+            return
+        # Do not wait here — generation guard drops late results.
+        with contextlib.suppress(RuntimeError, TypeError):
+            worker.frames_ready.disconnect()
+        with contextlib.suppress(RuntimeError, TypeError):
+            worker.decode_failed.disconnect()
+
     def _exercise_avif_file(self, exercise_name: str, *, high: bool = False) -> Path | None:
         """Return the expected AVIF path for `exercise_name`, even if the file is missing."""
         name = exercise_name.strip() if exercise_name else ""
@@ -342,6 +350,145 @@ class AvifManager:
             return None
         folder = self.avif_dir / FITNESS_IMG_HIGH_DIR if high else self.avif_dir
         return folder / f"{name}.avif"
+
+    def _load_avif_first_frame_then_async(
+        self,
+        avif_path: Path,
+        label_widget: QLabel,
+        data: dict,
+        key: AvifLabelKey,
+        exercise_name: str,
+    ) -> None:
+        """Show the first frame now; decode the full animation in a worker thread."""
+        try:
+            pixmap = QPixmap(str(avif_path))
+            if not pixmap.isNull():
+                # Qt decoded a frame — show it; animate in the background only when needed.
+                label_size = label_widget.size()
+                scaled_pixmap = pixmap.scaled(
+                    label_size,
+                    Qt.AspectRatioMode.KeepAspectRatio,
+                    Qt.TransformationMode.SmoothTransformation,
+                )
+                label_widget.setPixmap(scaled_pixmap)
+                if _avif_is_animated(avif_path):
+                    self._start_frame_worker(avif_path, key, exercise_name)
+                return
+        except Exception:
+            logger.exception("Qt AVIF load failed for %s", avif_path)
+
+        try:
+            import pillow_avif  # noqa: F401, PLC0415
+        except ImportError as import_error:
+            logger.warning("AVIF plugin import error: %s", import_error)
+            label_widget.setText(f"AVIF plugin not available:\n{exercise_name}")
+            return
+
+        try:
+            with Image.open(avif_path) as pil_image:
+                label_size = label_widget.size()
+                if getattr(pil_image, "is_animated", False):
+                    pil_image.seek(0)
+                    first = self._pil_frame_to_pixmap(pil_image.copy(), label_size=label_size)
+                    if first is not None and not first.isNull():
+                        label_widget.setPixmap(first)
+                        data["frames"] = [first]
+                    self._start_frame_worker(avif_path, key, exercise_name)
+                    return
+
+                scaled_pixmap = self._pil_frame_to_pixmap(pil_image, label_size=label_size)
+                if scaled_pixmap is not None and not scaled_pixmap.isNull():
+                    label_widget.setPixmap(scaled_pixmap)
+                    return
+        except Exception:
+            logger.exception("Pillow error while loading first AVIF frame %s", avif_path)
+
+        label_widget.setText(f"Cannot load AVIF:\n{exercise_name}")
+
+    def _load_avif_synchronous(
+        self,
+        avif_path: Path,
+        label_widget: QLabel,
+        data: dict,
+        key: AvifLabelKey,
+        exercise_name: str,
+    ) -> None:
+        """Decode and animate on the UI thread (lightbox only)."""
+        try:
+            pixmap = QPixmap(str(avif_path))
+            if not pixmap.isNull():
+                label_size = label_widget.size()
+                scaled_pixmap = pixmap.scaled(
+                    label_size,
+                    Qt.AspectRatioMode.KeepAspectRatio,
+                    Qt.TransformationMode.SmoothTransformation,
+                )
+                label_widget.setPixmap(scaled_pixmap)
+                return
+
+            try:
+                import pillow_avif  # noqa: F401, PLC0415
+            except ImportError as import_error:
+                logger.warning("AVIF plugin import error: %s", import_error)
+                label_widget.setText(f"AVIF plugin not available:\n{exercise_name}")
+                return
+
+            with Image.open(avif_path) as pil_image:
+                if getattr(pil_image, "is_animated", False):
+                    frames: list[QPixmap] = []
+                    label_size = label_widget.size()
+                    for frame_index in range(getattr(pil_image, "n_frames", 1)):
+                        pil_image.seek(frame_index)
+                        frame = pil_image.copy()
+                        scaled_pixmap = self._pil_frame_to_pixmap(frame, label_size=label_size)
+                        if scaled_pixmap is not None and not scaled_pixmap.isNull():
+                            frames.append(scaled_pixmap)
+
+                    if frames:
+                        data["frames"] = frames
+                        label_widget.setPixmap(frames[0])
+                        new_timer = QTimer(self)
+                        new_timer.timeout.connect(lambda: self._next_avif_frame(key))
+                        data["timer"] = new_timer
+                        try:
+                            duration = pil_image.info.get("duration", _DEFAULT_FRAME_DURATION_MS)
+                        except Exception:
+                            duration = _DEFAULT_FRAME_DURATION_MS
+                        new_timer.start(duration)
+                        return
+                else:
+                    label_size = label_widget.size()
+                    scaled_pixmap = self._pil_frame_to_pixmap(pil_image, label_size=label_size)
+                    if scaled_pixmap is not None and not scaled_pixmap.isNull():
+                        label_widget.setPixmap(scaled_pixmap)
+                        return
+        except Exception as e:
+            logger.exception("Error loading AVIF %s", avif_path)
+            label_widget.setText(f"Error loading AVIF:\n{exercise_name}\n{e}")
+            return
+
+        label_widget.setText(f"Cannot load AVIF:\n{exercise_name}")
+
+    def _load_first_frame_only(
+        self,
+        avif_path: Path,
+        label_widget: QLabel,
+        exercise_name: str,
+    ) -> None:
+        """Show a single still frame (list hover)."""
+        pixmap = self.load_avif_pixmap(avif_path)
+        if pixmap is None or pixmap.isNull():
+            label_widget.setText(f"Cannot load AVIF:\n{exercise_name}")
+            return
+        scaled = pixmap.scaled(
+            label_widget.size(),
+            Qt.AspectRatioMode.KeepAspectRatio,
+            Qt.TransformationMode.SmoothTransformation,
+        )
+        if scaled.isNull():
+            label_widget.setText(f"Cannot load AVIF:\n{exercise_name}")
+            return
+        label_widget.setPixmap(scaled)
 
     def _next_avif_frame(self, label_key: str | AvifLabelKey) -> None:
         """Show next frame in AVIF animation for specific label.
@@ -378,27 +525,22 @@ class AvifManager:
             msg = f"Unknown label_key '{label_key}'. Allowed: {allowed}"
             raise KeyError(msg) from exc
 
+    def _on_frame_worker_failed(self, label_key: object, exercise_name: object, message: str) -> None:
+        """Log background decode failure when the slot is still current."""
+        if not isinstance(label_key, AvifLabelKey) or not isinstance(exercise_name, str):
+            return
+        data = self.avif_data.get(label_key)
+        if data is None or data.get("exercise") != exercise_name:
+            return
+        logger.warning("AVIF animation decode failed for %s (%s): %s", exercise_name, label_key, message)
+
     def _pil_frame_to_pixmap(self, frame: Image.Image, *, label_size: QSize) -> QPixmap | None:
         """Convert a PIL frame to a scaled QPixmap for the given label size."""
-        # Normalize to RGB (Qt pixmap uses RGB; handle alpha by flattening to white)
-        if frame.mode in ("RGBA", "LA", "P"):
-            background = Image.new("RGB", frame.size, (255, 255, 255))
-            if frame.mode == "P":
-                frame = frame.convert("RGBA")
-            if frame.mode in ("RGBA", "LA"):
-                background.paste(frame, mask=frame.split()[-1])
-            else:
-                background.paste(frame)
-            frame = background
-        elif frame.mode != "RGB":
-            frame = frame.convert("RGB")
-
-        buffer = io.BytesIO()
-        frame.save(buffer, format="PNG")
-        buffer.seek(0)
-
+        png_bytes = _pil_frame_to_png_bytes(frame)
+        if png_bytes is None:
+            return None
         pixmap = QPixmap()
-        pixmap.loadFromData(buffer.getvalue())
+        pixmap.loadFromData(png_bytes)
         if pixmap.isNull():
             return None
         return pixmap.scaled(
@@ -438,6 +580,85 @@ class AvifManager:
         for data in self.avif_data.values():
             if data.get("exercise") == old_name:
                 data["exercise"] = new_name
+
+    def _start_frame_worker(self, avif_path: Path, key: AvifLabelKey, exercise_name: str) -> None:
+        """Kick off a background decode for animated frames."""
+        generation = self._frame_generations.get(key, 0) + 1
+        self._frame_generations[key] = generation
+        previous = self._frame_workers.get(key)
+        if previous is not None:
+            previous.frames_ready.disconnect()
+            previous.decode_failed.disconnect()
+
+        worker = _AvifFramesWorker(
+            avif_path=avif_path,
+            label_key=key,
+            exercise_name=exercise_name,
+            generation=generation,
+            parent=self,
+        )
+        worker.frames_ready.connect(
+            lambda label_key, name, frames, duration, gen=generation: self._apply_decoded_frames(
+                label_key,
+                name,
+                frames,
+                duration,
+                generation=gen,
+            )
+        )
+        worker.decode_failed.connect(self._on_frame_worker_failed)
+
+        def _clear_if_current() -> None:
+            if self._frame_workers.get(key) is worker:
+                self._frame_workers[key] = None
+
+        worker.finished.connect(_clear_if_current)
+        worker.finished.connect(worker.deleteLater)
+        self._frame_workers[key] = worker
+        worker.start()
+
+
+class _AvifFramesWorker(QThread):
+    """Decode animated AVIF frames to PNG bytes off the UI thread."""
+
+    frames_ready = Signal(object, object, list, int)  # key, exercise, png_frames, duration_ms
+    decode_failed = Signal(object, object, str)  # key, exercise, message
+
+    def __init__(
+        self,
+        *,
+        avif_path: Path,
+        label_key: AvifLabelKey,
+        exercise_name: str,
+        generation: int,
+        parent: QObject | None = None,
+    ) -> None:
+        """Store decode parameters for `run()`."""
+        super().__init__(parent)
+        self._avif_path = avif_path
+        self._label_key = label_key
+        self._exercise_name = exercise_name
+        self.generation = generation
+
+    def run(self) -> None:
+        """Decode all frames; emit PNG byte lists for the UI thread."""
+        try:
+            import pillow_avif  # noqa: F401, PLC0415
+        except ImportError as import_error:
+            self.decode_failed.emit(self._label_key, self._exercise_name, str(import_error))
+            return
+
+        try:
+            png_frames, duration = _decode_avif_png_frames(self._avif_path)
+        except Exception as error:
+            logger.exception("Background AVIF decode failed for %s", self._avif_path)
+            self.decode_failed.emit(self._label_key, self._exercise_name, str(error))
+            return
+
+        if not png_frames:
+            self.decode_failed.emit(self._label_key, self._exercise_name, "No frames decoded")
+            return
+        self.frames_ready.emit(self._label_key, self._exercise_name, png_frames, duration)
 
 
 def load_image_pixmap(file_path: Path | str) -> QPixmap | None:
@@ -485,3 +706,54 @@ def load_image_pixmap(file_path: Path | str) -> QPixmap | None:
     except Exception:  # pragma: no cover - fallback path
         logger.exception("Failed to load AVIF pixmap from %s", path)
     return None
+
+
+def _avif_is_animated(avif_path: Path) -> bool:
+    """Return whether `avif_path` is an animated AVIF (Pillow metadata only)."""
+    try:
+        import pillow_avif  # noqa: F401, PLC0415
+    except ImportError:
+        return False
+    try:
+        with Image.open(avif_path) as pil_image:
+            return bool(getattr(pil_image, "is_animated", False) and getattr(pil_image, "n_frames", 1) > 1)
+    except Exception:
+        return False
+
+
+def _decode_avif_png_frames(avif_path: Path) -> tuple[list[bytes], int]:
+    """Decode every AVIF frame to PNG bytes. Safe to call from a worker thread."""
+    with Image.open(avif_path) as pil_image:
+        try:
+            duration = int(pil_image.info.get("duration", _DEFAULT_FRAME_DURATION_MS))
+        except Exception:
+            duration = _DEFAULT_FRAME_DURATION_MS
+
+        frame_count = getattr(pil_image, "n_frames", 1) if getattr(pil_image, "is_animated", False) else 1
+        png_frames: list[bytes] = []
+        for frame_index in range(frame_count):
+            if frame_count > 1:
+                pil_image.seek(frame_index)
+            png_bytes = _pil_frame_to_png_bytes(pil_image.copy())
+            if png_bytes is not None:
+                png_frames.append(png_bytes)
+        return png_frames, duration
+
+
+def _pil_frame_to_png_bytes(frame: Image.Image) -> bytes | None:
+    """Flatten a PIL frame to RGB PNG bytes (no Qt objects)."""
+    if frame.mode in ("RGBA", "LA", "P"):
+        background = Image.new("RGB", frame.size, (255, 255, 255))
+        if frame.mode == "P":
+            frame = frame.convert("RGBA")
+        if frame.mode in ("RGBA", "LA"):
+            background.paste(frame, mask=frame.split()[-1])
+        else:
+            background.paste(frame)
+        frame = background
+    elif frame.mode != "RGB":
+        frame = frame.convert("RGB")
+
+    buffer = io.BytesIO()
+    frame.save(buffer, format="PNG")
+    return buffer.getvalue()

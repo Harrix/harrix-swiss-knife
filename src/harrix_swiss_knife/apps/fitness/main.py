@@ -419,10 +419,8 @@ class MainWindow(
             self._exercise_list_hover = None
 
         if self.avif_manager:
-            for label_key in self.avif_manager.avif_data:
-                timer = self.avif_manager.avif_data[label_key]["timer"]
-                if timer is not None and isinstance(timer, QTimer):
-                    timer.stop()
+            for label_key in list(self.avif_manager.avif_data):
+                self.avif_manager.stop_animation(label_key)
 
         # Dispose Models
         self._dispose_models()
