@@ -11,6 +11,7 @@ lang: en
 
 ## Contents
 
+- [🔧 Function `get_apps_fitness_image_high_max_size`](#-function-get_apps_fitness_image_high_max_size)
 - [🔧 Function `get_apps_fitness_image_max_size`](#-function-get_apps_fitness_image_max_size)
 - [🔧 Function `get_apps_list_limits`](#-function-get_apps_list_limits)
 - [🔧 Function `get_apps_local_language`](#-function-get_apps_local_language)
@@ -19,6 +20,32 @@ lang: en
 - [🔧 Function `open_quick_tab_on_startup_key`](#-function-open_quick_tab_on_startup_key)
 - [🔧 Function `set_open_quick_tab_on_startup`](#-function-set_open_quick_tab_on_startup)
 - [🔧 Function `startup_tab_index`](#-function-startup_tab_index)
+
+</details>
+
+## 🔧 Function `get_apps_fitness_image_high_max_size`
+
+```python
+def get_apps_fitness_image_high_max_size(config: dict[str, Any]) -> int
+```
+
+Return max lightbox image size from `apps.fitness_image_high_max_size`.
+
+Always at least the small UI size. Default `1920`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_apps_fitness_image_high_max_size(config: dict[str, Any]) -> int:
+    small = get_apps_fitness_image_max_size(config)
+    apps = config.get("apps") or {}
+    raw = apps.get("fitness_image_high_max_size", DEFAULT_FITNESS_IMAGE_HIGH_MAX_SIZE)
+    try:
+        return max(int(raw), small)
+    except (TypeError, ValueError):
+        return max(DEFAULT_FITNESS_IMAGE_HIGH_MAX_SIZE, small)
+```
 
 </details>
 
@@ -31,6 +58,7 @@ def get_apps_fitness_image_max_size(config: dict[str, Any]) -> int
 Return max exercise image width/height in pixels from `apps.fitness_image_max_size`.
 
 Larger media is scaled down so neither side exceeds this value (default `330`).
+Used for the small AVIF shown in lists, tables, and previews.
 
 <details>
 <summary>Code:</summary>

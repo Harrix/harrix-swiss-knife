@@ -15,6 +15,8 @@ EXERCISE_MEDIA_EXTENSIONS = frozenset(
     {".png", ".jpg", ".jpeg", ".webp", ".gif", ".mp4", ".avif", ".bmp"},
 )
 
+FITNESS_IMG_HIGH_DIR = "high"
+
 MEDIA_FILE_FILTER = "Media (*.mp4 *.avif *.gif *.png *.jpg *.jpeg *.webp *.bmp);;All files (*)"
 
 
@@ -30,8 +32,13 @@ def save_exercise_avif(
     *,
     project_root: Path | None = None,
     max_size: int | None = None,
+    high_max_size: int | None = None,
 ) -> Path:
-    """Optimize `source` and store it as `{avif_dir}/{exercise_name}.avif`.
+    """Optimize `source` into a small AVIF and, optionally, a high-resolution copy.
+
+    Writes `{avif_dir}/{exercise_name}.avif` (UI size). When `high_max_size` is set,
+    also writes `{avif_dir}/high/{exercise_name}.avif` for the lightbox. An existing
+    file with the same name is replaced.
 
     Supports MP4, GIF, AVIF (animation preserved), PNG/JPEG/WEBP/BMP (static AVIF).
 
@@ -42,11 +49,15 @@ def save_exercise_avif(
     - `avif_dir` (`Path | str`): Directory for exercise AVIF files (`fitness_img`).
     - `project_root` (`Path | None`): Folder with `ffmpeg.exe` / `avifenc.exe`. Defaults to
       project root.
-    - `max_size` (`int | None`): Optional max width/height in pixels.
+    - `max_size` (`int | None`): Optional max width/height in pixels for the UI file.
+    - `high_max_size` (`int | None`): When set, also write a high-resolution AVIF using
+      this max width/height. If that conversion fails after the small file was written,
+      a leftover `{high}/{name}.avif` is removed so the lightbox does not show a stale
+      image.
 
     Returns:
 
-    - `Path`: Path to the written AVIF file.
+    - `Path`: Path to the written small AVIF file.
 
     Raises:
 
@@ -72,8 +83,41 @@ def save_exercise_avif(
 
     root = project_root if project_root is not None else get_project_root()
     target_dir = Path(avif_dir)
-    target_dir.mkdir(parents=True, exist_ok=True)
-    target = target_dir / f"{name}.avif"
+    target = _convert_source_to_avif(
+        source_path,
+        target_dir / f"{name}.avif",
+        project_root=root,
+        max_size=max_size,
+    )
+
+    if high_max_size is None:
+        return target
+
+    high_target = target_dir / FITNESS_IMG_HIGH_DIR / f"{name}.avif"
+    try:
+        _convert_source_to_avif(
+            source_path,
+            high_target,
+            project_root=root,
+            max_size=high_max_size,
+        )
+    except Exception:
+        if high_target.is_file():
+            high_target.unlink()
+        raise
+
+    return target
+
+
+def _convert_source_to_avif(
+    source_path: Path,
+    target: Path,
+    *,
+    project_root: Path,
+    max_size: int | None,
+) -> Path:
+    """Optimize `source_path` to AVIF and replace `target` when it already exists."""
+    target.parent.mkdir(parents=True, exist_ok=True)
 
     with TemporaryDirectory(prefix="exercise_media_") as temp_folder:
         temp_dir = Path(temp_folder)
@@ -84,7 +128,7 @@ def save_exercise_avif(
         optimize_image_file(
             work_source,
             output_folder,
-            root,
+            project_root,
             max_size=max_size,
             compare_png_avif=False,
             convert_png_to_avif=True,

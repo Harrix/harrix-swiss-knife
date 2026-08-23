@@ -14,6 +14,7 @@ DEFAULT_INITIAL_COUNT = 1000
 DEFAULT_LOAD_MORE_COUNT = 500
 DEFAULT_LOCAL_LANGUAGE = "ru"
 DEFAULT_FITNESS_IMAGE_MAX_SIZE = 330
+DEFAULT_FITNESS_IMAGE_HIGH_MAX_SIZE = 1920
 OPEN_QUICK_TAB_ON_STARTUP_DEFAULT = True
 OPEN_QUICK_TAB_ON_STARTUP_KEY_PREFIX = "open_quick_tab_on_startup_"
 
@@ -36,10 +37,26 @@ _LANGUAGE_DISPLAY_NAMES: dict[str, str] = {
 }
 
 
+def get_apps_fitness_image_high_max_size(config: dict[str, Any]) -> int:
+    """Return max lightbox image size from `apps.fitness_image_high_max_size`.
+
+    Always at least the small UI size. Default `1920`.
+
+    """
+    small = get_apps_fitness_image_max_size(config)
+    apps = config.get("apps") or {}
+    raw = apps.get("fitness_image_high_max_size", DEFAULT_FITNESS_IMAGE_HIGH_MAX_SIZE)
+    try:
+        return max(int(raw), small)
+    except (TypeError, ValueError):
+        return max(DEFAULT_FITNESS_IMAGE_HIGH_MAX_SIZE, small)
+
+
 def get_apps_fitness_image_max_size(config: dict[str, Any]) -> int:
     """Return max exercise image width/height in pixels from `apps.fitness_image_max_size`.
 
     Larger media is scaled down so neither side exceeds this value (default `330`).
+    Used for the small AVIF shown in lists, tables, and previews.
 
     """
     apps = config.get("apps") or {}

@@ -3,7 +3,8 @@
 Not part of public install bundles. History tables are never included: fitness
 `process`/`weight`, finance transactions/accounts, and food `food_log`. Catalog
 upsert preserves existing IDs on the target machine. Fitness images are
-`{exercise English name}.avif` under `fitness_img/` next to the DB.
+`{exercise English name}.avif` under `fitness_img/` next to the DB, plus optional
+high-resolution copies in `fitness_img/high/`.
 
 """
 
@@ -119,15 +120,16 @@ def collect_fitness_image_files(
 ) -> tuple[list[Path], list[str]]:
     """Return files to pack from `fitness_img_dir` and catalog names missing `{name}.avif`.
 
-    Packs every file under the folder (all exercise AVIFs that exist, plus extras).
-    Missing names are catalog exercises with no `{name}.avif`.
+    Packs every file under the folder (small AVIFs, `high/` copies, plus extras).
+    Missing names are catalog exercises with no `{name}.avif` in the folder root
+    (a file only under `high/` does not count).
 
     """
     if not fitness_img_dir.is_dir():
         return [], [str(name) for name in exercise_names]
 
     files = sorted(path for path in fitness_img_dir.rglob("*") if path.is_file())
-    existing_stems = {path.stem for path in files if path.suffix.lower() == ".avif"}
+    existing_stems = {path.stem for path in fitness_img_dir.glob("*.avif") if path.is_file()}
     missing = [str(name) for name in exercise_names if name not in existing_stems]
     return files, missing
 

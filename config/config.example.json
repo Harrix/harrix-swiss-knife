@@ -65,6 +65,7 @@
   },
   "apps": {
     "fitness_image_max_size": 330,
+    "fitness_image_high_max_size": 1920,
     "initial_count": 1000,
     "load_more_count": 500,
     "local_language": "ru",

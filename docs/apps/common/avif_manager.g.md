@@ -17,6 +17,7 @@ lang: en
   - [⚙️ Method `delete_exercise_avif`](#%EF%B8%8F-method-delete_exercise_avif)
   - [⚙️ Method `get_current_exercise`](#%EF%B8%8F-method-get_current_exercise)
   - [⚙️ Method `get_exercise_avif_path`](#%EF%B8%8F-method-get_exercise_avif_path)
+  - [⚙️ Method `get_exercise_lightbox_avif_path`](#%EF%B8%8F-method-get_exercise_lightbox_avif_path)
   - [⚙️ Method `has_any_exercise_avif`](#%EF%B8%8F-method-has_any_exercise_avif)
   - [⚙️ Method `load_avif_pixmap`](#%EF%B8%8F-method-load_avif_pixmap)
   - [⚙️ Method `load_exercise_avif`](#%EF%B8%8F-method-load_exercise_avif)
@@ -93,7 +94,7 @@ class AvifManager:
         self.label_widgets: dict[AvifLabelKey, QLabel | None] = dict.fromkeys(AvifLabelKey)
 
     def delete_exercise_avif(self, exercise_name: str) -> bool:
-        """Delete `fitness_img/{exercise_name}.avif` when it exists.
+        """Delete the small and high-resolution AVIFs for `exercise_name`.
 
         Args:
 
@@ -101,18 +102,21 @@ class AvifManager:
 
         Returns:
 
-        - `bool`: `True` when a file was removed, `False` otherwise.
+        - `bool`: `True` when at least one file was removed, `False` otherwise.
 
         """
-        avif_path = self.get_exercise_avif_path(exercise_name)
-        if avif_path is None:
-            return False
-        try:
-            avif_path.unlink()
-        except OSError:
-            logger.exception("Failed to delete exercise AVIF %s", avif_path)
-            return False
-        return True
+        removed = False
+        for high in (False, True):
+            avif_path = self.get_exercise_avif_path(exercise_name, high=high)
+            if avif_path is None:
+                continue
+            try:
+                avif_path.unlink()
+            except OSError:
+                logger.exception("Failed to delete exercise AVIF %s", avif_path)
+                return False
+            removed = True
+        return removed
 
     def get_current_exercise(self, label_key: str | AvifLabelKey) -> str | None:
         """Get the current exercise name for a label key.
@@ -129,23 +133,29 @@ class AvifManager:
         key = self._normalize_label_key(label_key)
         return self.avif_data.get(key, {}).get("exercise")
 
-    def get_exercise_avif_path(self, exercise_name: str) -> Path | None:
-        """Get the path to the AVIF file for the given exercise.
+    def get_exercise_avif_path(self, exercise_name: str, *, high: bool = False) -> Path | None:
+        """Get the path to the small or high-resolution AVIF for the exercise.
 
         Args:
 
         - `exercise_name` (`str`): Name of the exercise.
+        - `high` (`bool`): When `True`, look in `fitness_img/high/`. Defaults to the
+          small UI file in `fitness_img/`.
 
         Returns:
 
         - `Path | None`: Path to the AVIF file if it exists, `None` otherwise.
 
         """
-        if not exercise_name:
-            return None
+        avif_path = self._exercise_avif_file(exercise_name, high=high)
+        return avif_path if avif_path is not None and avif_path.exists() else None
 
-        avif_path = self.avif_dir / f"{exercise_name}.avif"
-        return avif_path if avif_path.exists() else None
+    def get_exercise_lightbox_avif_path(self, exercise_name: str) -> Path | None:
+        """Return the high-resolution AVIF when it exists, otherwise the small file."""
+        high_path = self.get_exercise_avif_path(exercise_name, high=True)
+        if high_path is not None:
+            return high_path
+        return self.get_exercise_avif_path(exercise_name)
 
     def has_any_exercise_avif(self) -> bool:
         """Return whether `fitness_img` contains at least one `.avif` file."""
@@ -212,8 +222,11 @@ class AvifManager:
             label_widget.setText("No exercise selected")
             return
 
-        # Get path to AVIF
-        avif_path = self.get_exercise_avif_path(exercise_name)
+        # Get path to AVIF (lightbox prefers high-resolution when present)
+        if key == AvifLabelKey.LIGHTBOX:
+            avif_path = self.get_exercise_lightbox_avif_path(exercise_name)
+        else:
+            avif_path = self.get_exercise_avif_path(exercise_name)
 
         if avif_path is None:
             label_widget.setText(f"No AVIF found for:\n{exercise_name}")
@@ -295,7 +308,7 @@ class AvifManager:
             label_widget.setText(f"Error loading AVIF:\n{exercise_name}\n{e}")
 
     def rename_exercise_avif(self, old_name: str, new_name: str) -> bool:
-        """Rename `fitness_img/{old_name}.avif` to match a renamed exercise.
+        """Rename small and high-resolution AVIFs to match a renamed exercise.
 
         Args:
 
@@ -304,7 +317,7 @@ class AvifManager:
 
         Returns:
 
-        - `bool`: `True` when a file was renamed, `False` otherwise.
+        - `bool`: `True` when at least one file was renamed, `False` otherwise.
 
         """
         old = old_name.strip()
@@ -312,26 +325,13 @@ class AvifManager:
         if not old or not new or old == new:
             return False
 
-        source = self.get_exercise_avif_path(old)
-        if source is None:
-            return False
-
-        destination = self.avif_dir / f"{new}.avif"
-        try:
-            if source.resolve() == destination.resolve():
-                if source.name != destination.name:
-                    temp = source.with_name(f"{source.stem}.__rename__.avif")
-                    source.rename(temp)
-                    temp.rename(destination)
-            else:
-                if destination.exists():
-                    destination.unlink()
-                source.rename(destination)
-        except OSError:
-            logger.exception("Failed to rename exercise AVIF %s -> %s", source, destination)
-            return False
-        self._retarget_exercise_name(old, new)
-        return True
+        renamed = False
+        for high in (False, True):
+            if self._rename_avif_file(old, new, high=high):
+                renamed = True
+        if renamed:
+            self._retarget_exercise_name(old, new)
+        return renamed
 
     def stop_animation(self, label_key: str | AvifLabelKey) -> None:
         """Stop the animation timer and clear frames for `label_key`.
@@ -356,6 +356,14 @@ class AvifManager:
         if label_widget is not None:
             label_widget.clear()
         self.label_widgets[key] = None
+
+    def _exercise_avif_file(self, exercise_name: str, *, high: bool = False) -> Path | None:
+        """Return the expected AVIF path for `exercise_name`, even if the file is missing."""
+        name = exercise_name.strip() if exercise_name else ""
+        if not name:
+            return None
+        folder = self.avif_dir / FITNESS_IMG_HIGH_DIR if high else self.avif_dir
+        return folder / f"{name}.avif"
 
     def _next_avif_frame(self, label_key: str | AvifLabelKey) -> None:
         """Show next frame in AVIF animation for specific label.
@@ -421,6 +429,32 @@ class AvifManager:
             Qt.TransformationMode.SmoothTransformation,
         )
 
+    def _rename_avif_file(self, old_name: str, new_name: str, *, high: bool) -> bool:
+        """Rename one AVIF (small or high). Return `True` when a file was renamed."""
+        source = self.get_exercise_avif_path(old_name, high=high)
+        if source is None:
+            return False
+
+        destination = self._exercise_avif_file(new_name, high=high)
+        if destination is None:
+            return False
+
+        try:
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            if source.resolve() == destination.resolve():
+                if source.name != destination.name:
+                    temp = source.with_name(f"{source.stem}.__rename__.avif")
+                    source.rename(temp)
+                    temp.rename(destination)
+            else:
+                if destination.exists():
+                    destination.unlink()
+                source.rename(destination)
+        except OSError:
+            logger.exception("Failed to rename exercise AVIF %s -> %s", source, destination)
+            return False
+        return True
+
     def _retarget_exercise_name(self, old_name: str, new_name: str) -> None:
         """Point loaded label slots from `old_name` to `new_name` after a file rename."""
         for data in self.avif_data.values():
@@ -462,7 +496,7 @@ def __init__(self, avif_dir: Path | str) -> None:
 def delete_exercise_avif(self, exercise_name: str) -> bool
 ```
 
-Delete `fitness_img/{exercise_name}.avif` when it exists.
+Delete the small and high-resolution AVIFs for `exercise_name`.
 
 Args:
 
@@ -470,22 +504,25 @@ Args:
 
 Returns:
 
-- `bool`: `True` when a file was removed, `False` otherwise.
+- `bool`: `True` when at least one file was removed, `False` otherwise.
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def delete_exercise_avif(self, exercise_name: str) -> bool:
-        avif_path = self.get_exercise_avif_path(exercise_name)
-        if avif_path is None:
-            return False
-        try:
-            avif_path.unlink()
-        except OSError:
-            logger.exception("Failed to delete exercise AVIF %s", avif_path)
-            return False
-        return True
+        removed = False
+        for high in (False, True):
+            avif_path = self.get_exercise_avif_path(exercise_name, high=high)
+            if avif_path is None:
+                continue
+            try:
+                avif_path.unlink()
+            except OSError:
+                logger.exception("Failed to delete exercise AVIF %s", avif_path)
+                return False
+            removed = True
+        return removed
 ```
 
 </details>
@@ -520,14 +557,16 @@ def get_current_exercise(self, label_key: str | AvifLabelKey) -> str | None:
 ### ⚙️ Method `get_exercise_avif_path`
 
 ```python
-def get_exercise_avif_path(self, exercise_name: str) -> Path | None
+def get_exercise_avif_path(self, exercise_name: str, *, high: bool = False) -> Path | None
 ```
 
-Get the path to the AVIF file for the given exercise.
+Get the path to the small or high-resolution AVIF for the exercise.
 
 Args:
 
 - `exercise_name` (`str`): Name of the exercise.
+- `high` (`bool`): When `True`, look in `fitness_img/high/`. Defaults to the
+  small UI file in `fitness_img/`.
 
 Returns:
 
@@ -537,12 +576,30 @@ Returns:
 <summary>Code:</summary>
 
 ```python
-def get_exercise_avif_path(self, exercise_name: str) -> Path | None:
-        if not exercise_name:
-            return None
+def get_exercise_avif_path(self, exercise_name: str, *, high: bool = False) -> Path | None:
+        avif_path = self._exercise_avif_file(exercise_name, high=high)
+        return avif_path if avif_path is not None and avif_path.exists() else None
+```
 
-        avif_path = self.avif_dir / f"{exercise_name}.avif"
-        return avif_path if avif_path.exists() else None
+</details>
+
+### ⚙️ Method `get_exercise_lightbox_avif_path`
+
+```python
+def get_exercise_lightbox_avif_path(self, exercise_name: str) -> Path | None
+```
+
+Return the high-resolution AVIF when it exists, otherwise the small file.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_exercise_lightbox_avif_path(self, exercise_name: str) -> Path | None:
+        high_path = self.get_exercise_avif_path(exercise_name, high=True)
+        if high_path is not None:
+            return high_path
+        return self.get_exercise_avif_path(exercise_name)
 ```
 
 </details>
@@ -647,8 +704,11 @@ def load_exercise_avif(
             label_widget.setText("No exercise selected")
             return
 
-        # Get path to AVIF
-        avif_path = self.get_exercise_avif_path(exercise_name)
+        # Get path to AVIF (lightbox prefers high-resolution when present)
+        if key == AvifLabelKey.LIGHTBOX:
+            avif_path = self.get_exercise_lightbox_avif_path(exercise_name)
+        else:
+            avif_path = self.get_exercise_avif_path(exercise_name)
 
         if avif_path is None:
             label_widget.setText(f"No AVIF found for:\n{exercise_name}")
@@ -738,7 +798,7 @@ def load_exercise_avif(
 def rename_exercise_avif(self, old_name: str, new_name: str) -> bool
 ```
 
-Rename `fitness_img/{old_name}.avif` to match a renamed exercise.
+Rename small and high-resolution AVIFs to match a renamed exercise.
 
 Args:
 
@@ -747,7 +807,7 @@ Args:
 
 Returns:
 
-- `bool`: `True` when a file was renamed, `False` otherwise.
+- `bool`: `True` when at least one file was renamed, `False` otherwise.
 
 <details>
 <summary>Code:</summary>
@@ -759,26 +819,13 @@ def rename_exercise_avif(self, old_name: str, new_name: str) -> bool:
         if not old or not new or old == new:
             return False
 
-        source = self.get_exercise_avif_path(old)
-        if source is None:
-            return False
-
-        destination = self.avif_dir / f"{new}.avif"
-        try:
-            if source.resolve() == destination.resolve():
-                if source.name != destination.name:
-                    temp = source.with_name(f"{source.stem}.__rename__.avif")
-                    source.rename(temp)
-                    temp.rename(destination)
-            else:
-                if destination.exists():
-                    destination.unlink()
-                source.rename(destination)
-        except OSError:
-            logger.exception("Failed to rename exercise AVIF %s -> %s", source, destination)
-            return False
-        self._retarget_exercise_name(old, new)
-        return True
+        renamed = False
+        for high in (False, True):
+            if self._rename_avif_file(old, new, high=high):
+                renamed = True
+        if renamed:
+            self._retarget_exercise_name(old, new)
+        return renamed
 ```
 
 </details>

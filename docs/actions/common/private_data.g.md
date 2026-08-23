@@ -143,8 +143,9 @@ def collect_fitness_image_files(fitness_img_dir: Path, exercise_names: Sequence[
 
 Return files to pack from `fitness_img_dir` and catalog names missing `{name}.avif`.
 
-Packs every file under the folder (all exercise AVIFs that exist, plus extras).
-Missing names are catalog exercises with no `{name}.avif`.
+Packs every file under the folder (small AVIFs, `high/` copies, plus extras).
+Missing names are catalog exercises with no `{name}.avif` in the folder root
+(a file only under `high/` does not count).
 
 <details>
 <summary>Code:</summary>
@@ -158,7 +159,7 @@ def collect_fitness_image_files(
         return [], [str(name) for name in exercise_names]
 
     files = sorted(path for path in fitness_img_dir.rglob("*") if path.is_file())
-    existing_stems = {path.stem for path in files if path.suffix.lower() == ".avif"}
+    existing_stems = {path.stem for path in fitness_img_dir.glob("*.avif") if path.is_file()}
     missing = [str(name) for name in exercise_names if name not in existing_stems]
     return files, missing
 ```

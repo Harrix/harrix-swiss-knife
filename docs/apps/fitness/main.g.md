@@ -7203,11 +7203,13 @@ class MainWindow(
         self._exercise_media_toast.start_countdown()
 
         max_size = get_apps_fitness_image_max_size(self._app_config)
+        high_max_size = get_apps_fitness_image_high_max_size(self._app_config)
         self._exercise_media_worker = ExerciseMediaSaveWorker(
             source_path,
             exercise_name,
             self.avif_manager.avif_dir,
             max_size=max_size,
+            high_max_size=high_max_size,
             project_root=get_project_root(),
             parent=self,
         )

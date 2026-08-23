@@ -76,7 +76,11 @@ from harrix_swiss_knife import (
 )
 from harrix_swiss_knife.apps.common import achievement_dialog, avif_manager, message_box
 from harrix_swiss_knife.apps.common.app_entry import run_app_main
-from harrix_swiss_knife.apps.common.apps_config import get_apps_fitness_image_max_size, get_apps_list_limits
+from harrix_swiss_knife.apps.common.apps_config import (
+    get_apps_fitness_image_high_max_size,
+    get_apps_fitness_image_max_size,
+    get_apps_list_limits,
+)
 from harrix_swiss_knife.apps.common.chart_colors import generate_pastel_qcolors
 from harrix_swiss_knife.apps.common.date_edit_quick import attach_date_edit_quick_controls
 from harrix_swiss_knife.apps.common.db_init import init_tracker_database
@@ -7284,11 +7288,13 @@ class MainWindow(
         self._exercise_media_toast.start_countdown()
 
         max_size = get_apps_fitness_image_max_size(self._app_config)
+        high_max_size = get_apps_fitness_image_high_max_size(self._app_config)
         self._exercise_media_worker = ExerciseMediaSaveWorker(
             source_path,
             exercise_name,
             self.avif_manager.avif_dir,
             max_size=max_size,
+            high_max_size=high_max_size,
             project_root=get_project_root(),
             parent=self,
         )

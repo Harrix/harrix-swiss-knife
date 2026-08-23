@@ -164,6 +164,18 @@ def test_collect_fitness_image_files_reports_missing_names(tmp_path: Path) -> No
     assert missing == ["Squats"]
 
 
+def test_collect_fitness_image_files_packs_high_and_requires_root_avif(tmp_path: Path) -> None:
+    """High-resolution copies are packed; missing UI files still count as missing."""
+    img_dir = tmp_path / "fitness_img"
+    _write_avif(img_dir / "Pull-ups.avif", "pull")
+    _write_avif(img_dir / "high" / "Pull-ups.avif", "pull-hi")
+    _write_avif(img_dir / "high" / "Plank.avif", "plank-only")
+    files, missing = collect_fitness_image_files(img_dir, ["Pull-ups", "Plank", "Squats"])
+    rels = {path.relative_to(img_dir).as_posix() for path in files}
+    assert rels == {"Pull-ups.avif", "high/Pull-ups.avif", "high/Plank.avif"}
+    assert missing == ["Plank", "Squats"]
+
+
 def test_resolve_api_key_files_for_pack_filters_names(tmp_path: Path) -> None:
     """Empty names pack every secret; a list packs only those files."""
     api_dir = tmp_path / "api-keys"
@@ -283,6 +295,46 @@ def test_pack_api_keys_only_omits_fitness(tmp_path: Path) -> None:
     present = inspect_private_data_zip(output_zip)
     assert present.api_keys
     assert not present.fitness
+
+
+def test_pack_and_install_fitness_copies_high_resolution_images(tmp_path: Path) -> None:
+    """OnTransferPrivateData packs and overlays `fitness_img/high/{name}.avif`."""
+    source_root = tmp_path / "source"
+    source_root.mkdir()
+    source_db = tmp_path / "source-data" / "fitness.db"
+    source_img = source_db.parent / "fitness_img"
+    _create_schema_only_db(source_db)
+    _insert_exercise(source_db, name="Walk", name_local="Ходьба")
+    _write_avif(source_img / "Walk.avif", "walk-small")
+    _write_avif(source_img / "high" / "Walk.avif", "walk-high")
+    zip_path = tmp_path / "transfer.zip"
+    packed = pack_private_data(
+        project_root=source_root,
+        sqlite_fitness=str(source_db),
+        output_zip=zip_path,
+        selection=PrivateDataSelection(api_keys=False, fitness=True),
+    )
+    assert packed.fitness_img_count == 2
+    with zipfile.ZipFile(zip_path) as archive:
+        names = set(archive.namelist())
+    assert f"{ZIP_FITNESS_IMG_DIR}/Walk.avif" in names
+    assert f"{ZIP_FITNESS_IMG_DIR}/high/Walk.avif" in names
+
+    target_root = tmp_path / "target"
+    target_root.mkdir()
+    target_db = tmp_path / "target-data" / "fitness.db"
+    target_img = target_db.parent / "fitness_img"
+    _create_schema_only_db(target_db)
+    result = install_private_data(
+        project_root=target_root,
+        sqlite_fitness=str(target_db),
+        zip_path=zip_path,
+        recover_sql_path=RECOVER_SQL,
+        selection=PrivateDataSelection(api_keys=False, fitness=True),
+    )
+    assert result.fitness_img_count == 2
+    assert (target_img / "Walk.avif").read_bytes() == b"avif-test:walk-small"
+    assert (target_img / "high" / "Walk.avif").read_bytes() == b"avif-test:walk-high"
 
 
 def test_pack_fitness_includes_all_folder_images_and_missing_names(tmp_path: Path) -> None:

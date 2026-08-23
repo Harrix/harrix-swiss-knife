@@ -26,6 +26,7 @@ class ExerciseMediaSaveWorker(QThread):
         avif_dir: Path | str,
         *,
         max_size: int | None = None,
+        high_max_size: int | None = None,
         project_root: Path | None = None,
         parent: QObject | None = None,
     ) -> None:
@@ -35,6 +36,7 @@ class ExerciseMediaSaveWorker(QThread):
         self._exercise_name = exercise_name
         self._avif_dir = Path(avif_dir)
         self._max_size = max_size
+        self._high_max_size = high_max_size
         self._project_root = project_root
 
     def run(self) -> None:
@@ -46,6 +48,7 @@ class ExerciseMediaSaveWorker(QThread):
                 self._avif_dir,
                 project_root=self._project_root,
                 max_size=self._max_size,
+                high_max_size=self._high_max_size,
             )
         except Exception as error:
             self.save_failed.emit(self._exercise_name, str(error))
