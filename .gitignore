@@ -30,6 +30,7 @@ install/.installer-stub/
 install/.payload-*.zip
 install/harrix-swiss-knife-online.exe
 install/harrix-swiss-knife-offline.exe
+install/harrix-swiss-knife-offline-for-personal-use.exe
 install/install-harrix-swiss-knife.zip
 install/install-offline-harrix-swiss-knife.zip
 install/private-data*.zip
