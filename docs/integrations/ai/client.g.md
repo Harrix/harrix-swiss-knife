@@ -66,73 +66,28 @@ def chat_completion(
     if image is not None:
         image_list.append(image)
 
-    if provider == "anthropic" and audio is not None:
-        msg = (
-            "Anthropic does not support speech-to-text. "
-            'Set ai.speech_provider to "openai", "gemini", "bothub", or "bothub.ru".'
-        )
-        raise AiApiError(msg)
-
-    if provider == "openai" and audio is not None:
-        return openai_transcribe(
-            api_key=api_key,
-            base_url=base_url,
-            model=model,
-            audio=audio,
-            prompt=text,
-            timeout_sec=timeout_sec,
-            proxy_url=proxy_url,
-            should_cancel=should_cancel,
-            on_connection=on_connection,
-        )
-
-    if provider in {"bothub", "bothub.ru", "openai"}:
-        bothub_audio = provider in {"bothub", "bothub.ru"}
-        return openai_chat_completion(
+    try:
+        return _dispatch_chat_completion(
+            provider=provider,
             api_key=api_key,
             base_url=base_url,
             model=model,
             text=text,
-            images=image_list or None,
-            audio=audio if bothub_audio else None,
-            timeout_sec=timeout_sec,
-            proxy_url=proxy_url,
-            should_cancel=should_cancel,
-            on_connection=on_connection,
-            allow_audio_as_image_url=bothub_audio,
-        )
-
-    if provider == "anthropic":
-        resolved_max_tokens = max_tokens if max_tokens is not None else 8192
-        return anthropic_messages(
-            api_key=api_key,
-            base_url=base_url,
-            model=model,
-            text=text,
-            images=image_list or None,
-            max_tokens=resolved_max_tokens,
-            timeout_sec=timeout_sec,
-            proxy_url=proxy_url,
-            should_cancel=should_cancel,
-            on_connection=on_connection,
-        )
-
-    if provider == "gemini":
-        return gemini_generate_content(
-            api_key=api_key,
-            base_url=base_url,
-            model=model,
-            text=text,
-            images=image_list or None,
+            image_list=image_list,
             audio=audio,
             timeout_sec=timeout_sec,
             proxy_url=proxy_url,
             should_cancel=should_cancel,
             on_connection=on_connection,
+            max_tokens=max_tokens,
         )
-
-    msg = f"Unsupported AI provider: {provider}"
-    raise AiApiError(msg)
+    except RequestCancelledError:
+        raise
+    except AiApiError as exc:
+        mapped = remap_bothub_network_error(str(exc), provider=provider, exc=exc)
+        if mapped != str(exc):
+            raise AiApiError(mapped) from exc
+        raise
 ```
 
 </details>

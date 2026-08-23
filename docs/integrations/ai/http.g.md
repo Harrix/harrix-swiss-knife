@@ -54,7 +54,12 @@ def post_bytes(
         http_error = f"HTTP {exc.code}: {detail}"
         raise AiApiError(http_error) from exc
     except URLError as exc:
-        raise AiApiError(format_urlerror_message(exc, proxy_url=proxy_url)) from exc
+        message = remap_bothub_network_error(
+            format_urlerror_message(exc, proxy_url=proxy_url),
+            url=url,
+            exc=exc,
+        )
+        raise AiApiError(message) from exc
 ```
 
 </details>

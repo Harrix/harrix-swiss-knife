@@ -9,6 +9,7 @@ from urllib.parse import urlsplit
 from urllib.request import Request
 
 from harrix_swiss_knife.integrations.ai.errors import AiApiError, RequestCancelledError
+from harrix_swiss_knife.integrations.ai.network_errors import remap_bothub_network_error
 from harrix_swiss_knife.integrations.http_transport import (
     build_https_opener,
     format_urlerror_message,
@@ -56,7 +57,12 @@ def post_bytes(
         http_error = f"HTTP {exc.code}: {detail}"
         raise AiApiError(http_error) from exc
     except URLError as exc:
-        raise AiApiError(format_urlerror_message(exc, proxy_url=proxy_url)) from exc
+        message = remap_bothub_network_error(
+            format_urlerror_message(exc, proxy_url=proxy_url),
+            url=url,
+            exc=exc,
+        )
+        raise AiApiError(message) from exc
 
 
 def _post_cancellable(
@@ -120,7 +126,11 @@ def _post_cancellable(
     except (TimeoutError, OSError) as exc:
         if should_cancel and should_cancel():
             raise RequestCancelledError from exc
-        network_error = f"Network error: {exc}"
+        network_error = remap_bothub_network_error(
+            f"Network error: {exc}",
+            url=url,
+            exc=exc,
+        )
         raise AiApiError(network_error) from exc
     finally:
         conn.close()

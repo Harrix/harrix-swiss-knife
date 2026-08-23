@@ -395,7 +395,15 @@ class AiClient(
         if (call.isCanceled() || error is CancellationException) {
             throw CancellationException("AI request cancelled", error)
         }
-        throw AiApiException(error.message ?: "Network error", error)
+        val raw = error.message ?: "Network error"
+        throw AiApiException(
+            AiNetworkErrors.remapBothubNetworkError(
+                raw,
+                error = error,
+                urlOrHost = call.request().url.host,
+            ),
+            error,
+        )
     }
 
     private fun parseOpenAiChatResponse(raw: String): String {
