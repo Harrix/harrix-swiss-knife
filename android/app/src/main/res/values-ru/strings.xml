@@ -215,6 +215,7 @@
     <string name="speech_to_text_start_recording">Начать запись</string>
     <string name="speech_to_text_cancel_recognition">Отменить распознавание</string>
     <string name="speech_to_text_delete_message">Удалить сообщение</string>
+    <string name="speech_to_text_swipe_delete">Удалить</string>
     <string name="speech_to_text_status_recorded">Готово к распознаванию</string>
     <string name="speech_to_text_status_cancelled">Отменено</string>
     <string name="speech_to_text_status_error">Ошибка распознавания</string>

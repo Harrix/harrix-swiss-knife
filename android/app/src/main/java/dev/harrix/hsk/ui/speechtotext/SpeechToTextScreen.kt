@@ -8,9 +8,12 @@ import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.core.animate
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
@@ -21,6 +24,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -58,15 +62,22 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -74,6 +85,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -90,6 +102,9 @@ import dev.harrix.hsk.ui.theme.hskScaffoldContainerColor
 import dev.harrix.hsk.ui.theme.hskScaffoldContentWindowInsets
 import dev.harrix.hsk.ui.theme.hskTopAppBarColors
 import dev.harrix.hsk.ui.theme.hskTopAppBarWindowInsets
+import kotlinx.coroutines.launch
+import kotlin.math.abs
+import kotlin.math.roundToInt
 
 private enum class MicAction {
     Start,
@@ -110,6 +125,12 @@ private val RecordButtonRedPressed = Color(0xFFC62828)
 private val RecordButtonRedDisabled = Color(0xFFEF9A9A)
 private const val TickTickPackage = "com.ticktick.task"
 private val RecordButtonSize = 56.dp
+private val SwipeDeleteRed = Color(0xFFC62828)
+private const val SwipeDeleteHintFraction = 0.22f
+private const val SwipeDeleteCommitFraction = 0.38f
+private const val SwipeDeleteHintFadeSpan = 0.08f
+private const val SwipeDeleteSettleMs = 160
+private const val SwipeDeleteClickSlopPx = 12f
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -358,11 +379,18 @@ fun SpeechToTextScreen(
                         )
                     }
                     items.asReversed().forEach { item ->
-                        SpeechMessageRow(
-                            item = item,
-                            averageRecognitionMs = averageRecognitionMs,
-                            onClick = { selectedItemId = item.id },
-                        )
+                        key(item.id) {
+                            SwipeToDeleteSpeechRow(
+                                onDelete = { viewModel.deleteItem(item.id) },
+                                onOpen = { selectedItemId = item.id },
+                            ) { onOpen ->
+                                SpeechMessageRow(
+                                    item = item,
+                                    averageRecognitionMs = averageRecognitionMs,
+                                    onClick = onOpen,
+                                )
+                            }
+                        }
                     }
                 }
 
@@ -401,6 +429,106 @@ fun SpeechToTextScreen(
                 }
             },
         )
+    }
+}
+
+@Composable
+private fun SwipeToDeleteSpeechRow(
+    onDelete: () -> Unit,
+    onOpen: () -> Unit,
+    modifier: Modifier = Modifier,
+    content: @Composable (onOpen: () -> Unit) -> Unit,
+) {
+    val scope = rememberCoroutineScope()
+    var offsetPx by remember { mutableFloatStateOf(0f) }
+    var rowWidth by remember { mutableFloatStateOf(1f) }
+    var ignoreClick by remember { mutableStateOf(false) }
+    val swipeProgress = (-offsetPx / rowWidth).coerceIn(0f, 1f)
+    val hintAlpha =
+        ((swipeProgress - SwipeDeleteHintFraction) / SwipeDeleteHintFadeSpan).coerceIn(0f, 1f)
+
+    fun settleSwipe() {
+        val width = rowWidth
+        val progress = (-offsetPx / width).coerceIn(0f, 1f)
+        val target = if (progress >= SwipeDeleteCommitFraction) -width else 0f
+        scope.launch {
+            animate(
+                initialValue = offsetPx,
+                targetValue = target,
+                animationSpec = tween(SwipeDeleteSettleMs),
+            ) { value, _ ->
+                offsetPx = value
+            }
+            if (target < 0f) {
+                onDelete()
+            }
+        }
+    }
+
+    Box(
+        modifier =
+        modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .onSizeChanged { size ->
+                rowWidth = size.width.toFloat().coerceAtLeast(1f)
+            }.pointerInput(onDelete) {
+                detectHorizontalDragGestures(
+                    onDragEnd = { settleSwipe() },
+                    onDragCancel = { settleSwipe() },
+                    onHorizontalDrag = { change, dragAmount ->
+                        change.consume()
+                        val next = (offsetPx + dragAmount).coerceIn(-rowWidth, 0f)
+                        if (abs(next) > SwipeDeleteClickSlopPx) {
+                            ignoreClick = true
+                        }
+                        offsetPx = next
+                    },
+                )
+            },
+    ) {
+        Box(
+            modifier =
+            Modifier
+                .matchParentSize()
+                .background(SwipeDeleteRed),
+            contentAlignment = Alignment.CenterEnd,
+        ) {
+            Column(
+                modifier =
+                Modifier
+                    .padding(end = 20.dp)
+                    .graphicsLayer { alpha = hintAlpha },
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Delete,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(22.dp),
+                )
+                Text(
+                    text = stringResource(R.string.speech_to_text_swipe_delete),
+                    color = Color.White,
+                    style = MaterialTheme.typography.labelMedium,
+                )
+            }
+        }
+        Box(
+            modifier =
+            Modifier
+                .offset { IntOffset(offsetPx.roundToInt(), 0) }
+                .fillMaxWidth(),
+        ) {
+            content {
+                if (ignoreClick) {
+                    ignoreClick = false
+                } else {
+                    onOpen()
+                }
+            }
+        }
     }
 }
 

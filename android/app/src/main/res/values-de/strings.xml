@@ -215,6 +215,7 @@
     <string name="speech_to_text_start_recording">Start recording</string>
     <string name="speech_to_text_cancel_recognition">Cancel recognition</string>
     <string name="speech_to_text_delete_message">Delete message</string>
+    <string name="speech_to_text_swipe_delete">Löschen</string>
     <string name="speech_to_text_status_recorded">Ready to recognize</string>
     <string name="speech_to_text_status_cancelled">Cancelled</string>
     <string name="speech_to_text_status_error">Recognition failed</string>
