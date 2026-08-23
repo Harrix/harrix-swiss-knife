@@ -253,6 +253,7 @@ class MainWindow(
             "statistics": None,
         }
         self._exercise_table_sort: dict[str, tuple[int, Qt.SortOrder]] = {
+            "exercises": (_EXERCISE_TABLE_IMAGE_COLUMN, Qt.SortOrder.AscendingOrder),
             "types": (_EXERCISE_TABLE_NAME_COLUMN, Qt.SortOrder.AscendingOrder),
         }
 

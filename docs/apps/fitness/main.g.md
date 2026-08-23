@@ -168,6 +168,7 @@ class MainWindow(
             "statistics": None,
         }
         self._exercise_table_sort: dict[str, tuple[int, Qt.SortOrder]] = {
+            "exercises": (_EXERCISE_TABLE_IMAGE_COLUMN, Qt.SortOrder.AscendingOrder),
             "types": (_EXERCISE_TABLE_NAME_COLUMN, Qt.SortOrder.AscendingOrder),
         }
 
@@ -7557,6 +7558,7 @@ def __init__(self, *, hide_on_close: bool = False) -> None:  # noqa: D107
             "statistics": None,
         }
         self._exercise_table_sort: dict[str, tuple[int, Qt.SortOrder]] = {
+            "exercises": (_EXERCISE_TABLE_IMAGE_COLUMN, Qt.SortOrder.AscendingOrder),
             "types": (_EXERCISE_TABLE_NAME_COLUMN, Qt.SortOrder.AscendingOrder),
         }
 
