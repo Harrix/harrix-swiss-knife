@@ -74,6 +74,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
@@ -491,14 +492,12 @@ private fun SwipeToDeleteSpeechRow(
             modifier =
             Modifier
                 .matchParentSize()
+                .graphicsLayer { alpha = hintAlpha }
                 .background(SwipeDeleteRed),
             contentAlignment = Alignment.CenterEnd,
         ) {
             Column(
-                modifier =
-                Modifier
-                    .padding(end = 20.dp)
-                    .graphicsLayer { alpha = hintAlpha },
+                modifier = Modifier.padding(end = 20.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
@@ -543,11 +542,16 @@ private fun SpeechMessageRow(
         item.status == SpeechMessageStatus.Processing &&
             averageRecognitionMs > 0L &&
             item.recognitionElapsedMs > averageRecognitionMs
+    val surface = MaterialTheme.colorScheme.surface
     val containerColor =
         when {
-            item.status == SpeechMessageStatus.Done -> DoneCardGreen.copy(alpha = 0.18f)
-            isSlow -> SlowWarningAmber.copy(alpha = 0.22f)
+            item.status == SpeechMessageStatus.Done ->
+                DoneCardGreen.copy(alpha = 0.18f).compositeOver(surface)
+
+            isSlow -> SlowWarningAmber.copy(alpha = 0.22f).compositeOver(surface)
+
             item.status == SpeechMessageStatus.Error -> MaterialTheme.colorScheme.errorContainer
+
             else -> MaterialTheme.colorScheme.surfaceVariant
         }
     val preview =
