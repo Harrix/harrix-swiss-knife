@@ -26,6 +26,7 @@ LogFn = Callable[[str], None]
 # Fast DEFLATE for most files; store huge uv caches uncompressed (zip time >> size).
 _ZIP_COMPRESS_LEVEL = 1
 _STORED_DEPENDENCY_DIRS = frozenset({"uv-cache", "uv-python-cache"})
+_DEPENDENCY_STAGE_DIR_PREFIXES = ("repos.stage.", "uv-cache.stage.")
 
 
 def build_payload_zips(
@@ -47,6 +48,8 @@ def build_payload_zips(
     if not deps.is_dir():
         msg = f"Not found: {deps}"
         raise FileNotFoundError(msg)
+
+    _cleanup_dependency_staging_dirs(deps, log)
 
     install = project_root / "install"
     out_online = install / ".payload-online.zip"
@@ -197,6 +200,11 @@ def ensure_installer_stub(project_root: Path, log: LogFn, *, force: bool = False
     return out
 
 
+def is_dependency_staging_dir(name: str) -> bool:
+    """Return whether `name` is a transient builder staging folder under `dependencies/`."""
+    return any(name.startswith(prefix) for prefix in _DEPENDENCY_STAGE_DIR_PREFIXES)
+
+
 def pack_installer_exes(
     project_root: Path,
     online_zip: Path,
@@ -228,6 +236,20 @@ def stub_exe_path(project_root: Path) -> Path:
     return stub_dir(project_root) / "dist" / STUB_EXE_NAME
 
 
+def _cleanup_dependency_staging_dirs(deps: Path, log: LogFn) -> None:
+    """Delete leftover `repos.stage.*` / `uv-cache.stage.*` folders before packing."""
+    removed = 0
+    for child in deps.iterdir():
+        if not child.is_dir() or not is_dependency_staging_dir(child.name):
+            continue
+        log(f"  Removing stale dependencies staging folder: {child.name}")
+        shutil.rmtree(child, ignore_errors=True)
+        if not child.exists():
+            removed += 1
+    if removed:
+        log(f"✅ Removed {removed} staging folder(s) from dependencies/")
+
+
 def _module_available(name: str) -> bool:
     try:
         __import__(name)
@@ -256,7 +278,7 @@ def _zip_dependencies(
         zf.writestr("build_meta.json", build_meta_json)
         for child in sorted(deps.iterdir(), key=lambda p: p.name.lower()):
             if child.is_dir():
-                if child.name in exclude_dirs:
+                if child.name in exclude_dirs or is_dependency_staging_dir(child.name):
                     continue
                 store = child.name in _STORED_DEPENDENCY_DIRS
                 for path in sorted(child.rglob("*")):

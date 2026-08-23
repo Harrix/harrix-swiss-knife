@@ -46,6 +46,7 @@ from harrix_swiss_knife.installer.pack_exes import (
     _zip_tree,
     build_payload_zips,
     ensure_installer_stub,
+    is_dependency_staging_dir,
     pack_installer_exes,
     stub_dir,
     stub_exe_path,
@@ -237,10 +238,24 @@ def test_download_url_skips_existing_when_not_forced(tmp_path: Path) -> None:
     assert dest.read_bytes() == b"keep-me"
 
 
+def test_is_dependency_staging_dir() -> None:
+    assert is_dependency_staging_dir("uv-cache.stage.abc123")
+    assert is_dependency_staging_dir("repos.stage.deadbeef")
+    assert not is_dependency_staging_dir("uv-cache")
+    assert not is_dependency_staging_dir("repos")
+
+
 def test_payload_zips_online_vs_offline_membership(tmp_path: Path) -> None:
-    _prepare_install_tree(tmp_path)
+    install = _prepare_install_tree(tmp_path)
+    deps = install / "dependencies"
+    uv_stage = deps / "uv-cache.stage.abc123"
+    uv_stage.mkdir()
+    (uv_stage / "wheel.bin").write_bytes(b"stale-uv")
+    repos_stage = deps / "repos.stage.deadbeef"
+    repos_stage.mkdir()
+    (repos_stage / "harrix-swiss-knife.zip").write_bytes(b"stale-repo")
     lines: list[str] = []
-    omit = redundant_media_zip_names(tmp_path / "install" / "dependencies")
+    omit = redundant_media_zip_names(deps)
     online, offline = build_payload_zips(
         tmp_path,
         lines.append,
@@ -249,6 +264,9 @@ def test_payload_zips_online_vs_offline_membership(tmp_path: Path) -> None:
     )
     assert online.name == ".payload-online.zip"
     assert offline.name == ".payload-offline.zip"
+    assert not uv_stage.exists()
+    assert not repos_stage.exists()
+    assert any("uv-cache.stage.abc123" in line for line in lines)
 
     with zipfile.ZipFile(online, "r") as zf:
         names = set(zf.namelist())
@@ -258,6 +276,8 @@ def test_payload_zips_online_vs_offline_membership(tmp_path: Path) -> None:
     assert not any(n.startswith("dependencies/repos/") for n in names)
     assert not any(n.startswith("dependencies/uv-cache/") for n in names)
     assert not any(n.startswith("dependencies/uv-python-cache/") for n in names)
+    assert not any("uv-cache.stage." in n for n in names)
+    assert not any("repos.stage." in n for n in names)
     assert "dependencies/windows-artifacts.zip" not in names
     assert "dependencies/download.log" not in names
     assert "install.bat" not in names
@@ -270,6 +290,8 @@ def test_payload_zips_online_vs_offline_membership(tmp_path: Path) -> None:
     assert "dependencies/repos/harrix-swiss-knife.zip" in names
     assert "dependencies/uv-cache/c.bin" in names
     assert "dependencies/uv-python-cache/p.bin" in names
+    assert not any("uv-cache.stage." in n for n in names)
+    assert not any("repos.stage." in n for n in names)
     assert "dependencies/windows-artifacts.zip" not in names
     assert info.compress_type == zipfile.ZIP_STORED
 

@@ -13,6 +13,7 @@ lang: en
 
 - [🔧 Function `build_payload_zips`](#-function-build_payload_zips)
 - [🔧 Function `ensure_installer_stub`](#-function-ensure_installer_stub)
+- [🔧 Function `is_dependency_staging_dir`](#-function-is_dependency_staging_dir)
 - [🔧 Function `pack_installer_exes`](#-function-pack_installer_exes)
 - [🔧 Function `stub_dir`](#-function-stub_dir)
 - [🔧 Function `stub_exe_path`](#-function-stub_exe_path)
@@ -47,6 +48,8 @@ def build_payload_zips(
     if not deps.is_dir():
         msg = f"Not found: {deps}"
         raise FileNotFoundError(msg)
+
+    _cleanup_dependency_staging_dirs(deps, log)
 
     install = project_root / "install"
     out_online = install / ".payload-online.zip"
@@ -208,6 +211,24 @@ def ensure_installer_stub(project_root: Path, log: LogFn, *, force: bool = False
     version_file.write_text(STUB_SPEC_VERSION, encoding="utf-8")
     log(f"✅ Stub ready: {out}")
     return out
+```
+
+</details>
+
+## 🔧 Function `is_dependency_staging_dir`
+
+```python
+def is_dependency_staging_dir(name: str) -> bool
+```
+
+Return whether `name` is a transient builder staging folder under `dependencies/`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def is_dependency_staging_dir(name: str) -> bool:
+    return any(name.startswith(prefix) for prefix in _DEPENDENCY_STAGE_DIR_PREFIXES)
 ```
 
 </details>
