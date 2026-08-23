@@ -64,21 +64,23 @@ class AppLauncherAction(ActionBase):
                 app.processEvents()
 
         self._is_creating_window = True
+        toast = None
         try:
+            toast = start_app_loading_toast(self.title)
             install_safe_qt_translate()
             window = type(self).get_main_window_class()(hide_on_close=type(self).hide_on_close)
             self.main_window = window
             window.destroyed.connect(self._clear_main_window_ref)
+            self.main_window.show()
+            self.main_window.raise_()
+            self.main_window.activateWindow()
         except Exception:
             self.main_window = None
             traceback.print_exc()
             raise
         finally:
+            stop_app_loading_toast(toast)
             self._is_creating_window = False
-
-        self.main_window.show()
-        self.main_window.raise_()
-        self.main_window.activateWindow()
 
     @classmethod
     def get_main_window_class(cls) -> type:
@@ -144,21 +146,23 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
                 app.processEvents()
 
         self._is_creating_window = True
+        toast = None
         try:
+            toast = start_app_loading_toast(self.title)
             install_safe_qt_translate()
             window = type(self).get_main_window_class()(hide_on_close=type(self).hide_on_close)
             self.main_window = window
             window.destroyed.connect(self._clear_main_window_ref)
+            self.main_window.show()
+            self.main_window.raise_()
+            self.main_window.activateWindow()
         except Exception:
             self.main_window = None
             traceback.print_exc()
             raise
         finally:
+            stop_app_loading_toast(toast)
             self._is_creating_window = False
-
-        self.main_window.show()
-        self.main_window.raise_()
-        self.main_window.activateWindow()
 ```
 
 </details>
