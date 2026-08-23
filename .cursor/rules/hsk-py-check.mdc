@@ -4,6 +4,40 @@ alwaysApply: true
 
 # hsk py check
 
+## Cooperative lock
+
+Before running any `hsk py ruff-sort-docs` / `hsk py check` cycle (including linked projects), use the lock file at `.cursor/hsk-py-check.flag`.
+
+Only the **first non-empty line** matters (trim whitespace, case-insensitive). Lines below it are human hints; do not parse them. Do not commit this file.
+
+Modes:
+
+- `idle` — no check running; next agent may take the lock
+- `busy` — a check cycle is running; other agents wait and re-read
+- `skip` — do not run `hsk py ruff-sort-docs` / `hsk py check`
+
+Protocol:
+
+1. Read the first non-empty line of `.cursor/hsk-py-check.flag` (if the file is missing, treat as `idle`).
+2. If the mode is `skip`: do **not** run `hsk py ruff-sort-docs` or `hsk py check` (including for `harrix-pylib` / `harrix-pyssg`). State in the reply that checks were skipped because of `skip`. Exception: an **explicit** user request to run the checks overrides `skip` for that request — take the lock as usual.
+3. If the mode is `busy`: wait 15–30 seconds (`sleep` / `AwaitShell`), then re-read. Do not busy-loop tool calls without a pause. If `busy` for longer than **10 minutes**, treat the lock as stale (`idle`) and take it (the previous agent may have crashed).
+4. If the mode is `idle`, missing, or unknown: write the file with first line `busy` and keep the same comment block as the template, then run the check cycle.
+5. Whoever wrote `busy` must restore `idle` at the end — on success, after 3 failed iterations, and on environmental failure. Preserve the comment block. Do **not** overwrite `skip` if the user set it while you were waiting or running.
+6. When writing the file, use this shape:
+
+```text
+busy
+
+# hsk py check lock — only the first line is the mode
+# idle — no check running; next agent may take the lock
+# busy — a check cycle is running; other agents wait and re-read
+# skip — do not run hsk py ruff-sort-docs / hsk py check
+```
+
+(Replace the first line with `idle` when releasing; user may set `skip` manually.)
+
+## Check cycle
+
 After completing code changes, run this cycle from the project root (with venv active):
 
 1. `hsk py ruff-sort-docs`

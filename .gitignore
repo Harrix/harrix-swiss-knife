@@ -1,4 +1,6 @@
 ### Harrix ###
+# Cooperative lock for concurrent agent `hsk py check` runs (local only)
+.cursor/hsk-py-check.flag
 temp/
 data/databases/*
 !data/databases/.gitkeep
