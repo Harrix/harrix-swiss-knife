@@ -34,6 +34,7 @@ lang: en
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-4)
   - [⚙️ Method `initializePage`](#%EF%B8%8F-method-initializepage-1)
   - [⚙️ Method `plan`](#%EF%B8%8F-method-plan)
+  - [⚙️ Method `validatePage`](#%EF%B8%8F-method-validatepage-2)
 - [🏛️ Class `UninstallWindow`](#%EF%B8%8F-class-uninstallwindow)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-5)
 - [🏛️ Class `WelcomePage`](#%EF%B8%8F-class-welcomepage)
@@ -842,6 +843,8 @@ class ToolsPage(QWizardPage):
         self.vscode_cb = QCheckBox("Install VS Code (if no editor found)")
         self.python_cb = QCheckBox("Install managed Python via uv")
         self.python_ext_cb = QCheckBox("Install Python extension (VS Code / Cursor)")
+        self._status: DetectionStatus | None = None
+        self._reinstall_confirmed: frozenset[str] = frozenset()
         layout = QVBoxLayout(self)
         layout.addWidget(self.status_label)
         layout.addWidget(self.git_cb)
@@ -853,6 +856,8 @@ class ToolsPage(QWizardPage):
     def initializePage(self) -> None:  # noqa: N802
         """Populate tool checkboxes from detected system status."""
         status = detect_status()
+        self._status = status
+        self._reinstall_confirmed = frozenset()
         plan = default_plan_from_detection(status)
         self.status_label.setText(
             "Detected:\n"
@@ -877,7 +882,45 @@ class ToolsPage(QWizardPage):
             vscode=self.vscode_cb.isChecked(),
             python=self.python_cb.isChecked(),
             python_extension=self.python_ext_cb.isChecked(),
+            reinstall_confirmed=self._reinstall_confirmed,
         )
+
+    def validatePage(self) -> bool:  # noqa: N802
+        """Confirm reinstall when the user re-selects tools already on this PC."""
+        if self._status is None:
+            return True
+        plan = self.plan()
+        keys = detected_reinstall_keys(plan, self._status)
+        if not keys:
+            self._reinstall_confirmed = frozenset()
+            return True
+        answer = QMessageBox.question(
+            self,
+            "Reinstall selected tools?",
+            format_reinstall_warning(keys),
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if answer != QMessageBox.StandardButton.Yes:
+            checkbox_by_key = {
+                "git": self.git_cb,
+                "uv": self.uv_cb,
+                "vscode": self.vscode_cb,
+                "python": self.python_cb,
+            }
+            for key in keys:
+                checkbox = checkbox_by_key.get(key)
+                if checkbox is not None:
+                    checkbox.setChecked(False)
+            self._reinstall_confirmed = frozenset()
+            QMessageBox.information(
+                self,
+                "Install skipped for existing tools",
+                "Unchecked tools that are already installed. You can continue with the remaining selections.",
+            )
+            return False
+        self._reinstall_confirmed = frozenset(keys)
+        return True
 ```
 
 </details>
@@ -905,6 +948,8 @@ def __init__(self, mode: str) -> None:
         self.vscode_cb = QCheckBox("Install VS Code (if no editor found)")
         self.python_cb = QCheckBox("Install managed Python via uv")
         self.python_ext_cb = QCheckBox("Install Python extension (VS Code / Cursor)")
+        self._status: DetectionStatus | None = None
+        self._reinstall_confirmed: frozenset[str] = frozenset()
         layout = QVBoxLayout(self)
         layout.addWidget(self.status_label)
         layout.addWidget(self.git_cb)
@@ -930,6 +975,8 @@ Populate tool checkboxes from detected system status.
 ```python
 def initializePage(self) -> None:  # noqa: N802
         status = detect_status()
+        self._status = status
+        self._reinstall_confirmed = frozenset()
         plan = default_plan_from_detection(status)
         self.status_label.setText(
             "Detected:\n"
@@ -968,7 +1015,59 @@ def plan(self) -> PrerequisitePlan:
             vscode=self.vscode_cb.isChecked(),
             python=self.python_cb.isChecked(),
             python_extension=self.python_ext_cb.isChecked(),
+            reinstall_confirmed=self._reinstall_confirmed,
         )
+```
+
+</details>
+
+### ⚙️ Method `validatePage`
+
+```python
+def validatePage(self) -> bool
+```
+
+Confirm reinstall when the user re-selects tools already on this PC.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def validatePage(self) -> bool:  # noqa: N802
+        if self._status is None:
+            return True
+        plan = self.plan()
+        keys = detected_reinstall_keys(plan, self._status)
+        if not keys:
+            self._reinstall_confirmed = frozenset()
+            return True
+        answer = QMessageBox.question(
+            self,
+            "Reinstall selected tools?",
+            format_reinstall_warning(keys),
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if answer != QMessageBox.StandardButton.Yes:
+            checkbox_by_key = {
+                "git": self.git_cb,
+                "uv": self.uv_cb,
+                "vscode": self.vscode_cb,
+                "python": self.python_cb,
+            }
+            for key in keys:
+                checkbox = checkbox_by_key.get(key)
+                if checkbox is not None:
+                    checkbox.setChecked(False)
+            self._reinstall_confirmed = frozenset()
+            QMessageBox.information(
+                self,
+                "Install skipped for existing tools",
+                "Unchecked tools that are already installed. You can continue with the remaining selections.",
+            )
+            return False
+        self._reinstall_confirmed = frozenset(keys)
+        return True
 ```
 
 </details>

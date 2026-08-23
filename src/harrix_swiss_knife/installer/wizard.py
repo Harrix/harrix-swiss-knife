@@ -53,7 +53,14 @@ from harrix_swiss_knife.installer.payload import (
     long_path,
     read_overlay_bounds,
 )
-from harrix_swiss_knife.installer.prereqs import PrerequisitePlan, default_plan_from_detection, detect_status
+from harrix_swiss_knife.installer.prereqs import (
+    DetectionStatus,
+    PrerequisitePlan,
+    default_plan_from_detection,
+    detect_status,
+    detected_reinstall_keys,
+    format_reinstall_warning,
+)
 from harrix_swiss_knife.installer.progress_ui import ProgressBarMode, progress_mode_for_log_line
 from harrix_swiss_knife.installer.uninstall import (
     UninstallOptions,
@@ -409,6 +416,8 @@ class ToolsPage(QWizardPage):
         self.vscode_cb = QCheckBox("Install VS Code (if no editor found)")
         self.python_cb = QCheckBox("Install managed Python via uv")
         self.python_ext_cb = QCheckBox("Install Python extension (VS Code / Cursor)")
+        self._status: DetectionStatus | None = None
+        self._reinstall_confirmed: frozenset[str] = frozenset()
         layout = QVBoxLayout(self)
         layout.addWidget(self.status_label)
         layout.addWidget(self.git_cb)
@@ -420,6 +429,8 @@ class ToolsPage(QWizardPage):
     def initializePage(self) -> None:  # noqa: N802
         """Populate tool checkboxes from detected system status."""
         status = detect_status()
+        self._status = status
+        self._reinstall_confirmed = frozenset()
         plan = default_plan_from_detection(status)
         self.status_label.setText(
             "Detected:\n"
@@ -444,7 +455,45 @@ class ToolsPage(QWizardPage):
             vscode=self.vscode_cb.isChecked(),
             python=self.python_cb.isChecked(),
             python_extension=self.python_ext_cb.isChecked(),
+            reinstall_confirmed=self._reinstall_confirmed,
         )
+
+    def validatePage(self) -> bool:  # noqa: N802
+        """Confirm reinstall when the user re-selects tools already on this PC."""
+        if self._status is None:
+            return True
+        plan = self.plan()
+        keys = detected_reinstall_keys(plan, self._status)
+        if not keys:
+            self._reinstall_confirmed = frozenset()
+            return True
+        answer = QMessageBox.question(
+            self,
+            "Reinstall selected tools?",
+            format_reinstall_warning(keys),
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if answer != QMessageBox.StandardButton.Yes:
+            checkbox_by_key = {
+                "git": self.git_cb,
+                "uv": self.uv_cb,
+                "vscode": self.vscode_cb,
+                "python": self.python_cb,
+            }
+            for key in keys:
+                checkbox = checkbox_by_key.get(key)
+                if checkbox is not None:
+                    checkbox.setChecked(False)
+            self._reinstall_confirmed = frozenset()
+            QMessageBox.information(
+                self,
+                "Install skipped for existing tools",
+                "Unchecked tools that are already installed. You can continue with the remaining selections.",
+            )
+            return False
+        self._reinstall_confirmed = frozenset(keys)
+        return True
 
 
 class UninstallWindow(QWidget):

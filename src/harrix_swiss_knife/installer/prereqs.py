@@ -56,6 +56,7 @@ class PrerequisitePlan:
     vscode: bool = True
     python: bool = True
     python_extension: bool = True
+    reinstall_confirmed: frozenset[str] = frozenset()
 
     @property
     def need_elevate(self) -> bool:
@@ -120,6 +121,20 @@ def detect_status(*, python_version: str = "3.13") -> DetectionStatus:
         git_path=shutil.which("git"),
         uv_path=str(uv) if uv else None,
     )
+
+
+def detected_reinstall_keys(plan: PrerequisitePlan, status: DetectionStatus) -> tuple[str, ...]:
+    """Return plan keys where the user selected install but detection found the tool already."""
+    keys: list[str] = []
+    if plan.git and status.git:
+        keys.append("git")
+    if plan.uv and status.uv:
+        keys.append("uv")
+    if plan.vscode and status.editor:
+        keys.append("vscode")
+    if plan.python and status.managed_python:
+        keys.append("python")
+    return tuple(keys)
 
 
 def ensure_managed_python(
@@ -226,6 +241,18 @@ def find_winget() -> Path | None:
     return None
 
 
+def format_reinstall_warning(keys: tuple[str, ...]) -> str:
+    """Build dialog text listing tools that would be installed again."""
+    labels = [_REINSTALL_LABELS[key] for key in keys if key in _REINSTALL_LABELS]
+    items = "\n".join(f"  • {label}" for label in labels)
+    return (
+        "These tools are already installed on this PC, but you selected install again:\n\n"
+        f"{items}\n\n"
+        "The installer will run setup again (bundled installer, winget, or download).\n\n"
+        "Reinstall them anyway?"
+    )
+
+
 def install_prerequisites(
     plan: PrerequisitePlan,
     *,
@@ -244,8 +271,8 @@ def install_prerequisites(
     log.detail("Order for each tool: bundled installer in this EXE, then winget, then download")
     refresh_path()
 
-    if plan.git and not command_exists("git"):
-        log.step("Installing Git")
+    if plan.git and (not command_exists("git") or "git" in plan.reinstall_confirmed):
+        log.step("Installing Git" + (" (reinstall)" if command_exists("git") else ""))
         git_installer = find_local_dependency(deps, "Git-*-64-bit.exe") or find_local_dependency(deps, GIT_EXE_NAME)
         ok = False
         if git_installer:
@@ -273,8 +300,8 @@ def install_prerequisites(
     elif not plan.git:
         log.add("skipped", "Git install skipped by user")
 
-    if plan.vscode and not any_code_editor_exists():
-        log.step("Installing VS Code")
+    if plan.vscode and (not any_code_editor_exists() or "vscode" in plan.reinstall_confirmed):
+        log.step("Installing VS Code" + (" (reinstall)" if any_code_editor_exists() else ""))
         vs = find_local_dependency(deps, "VSCode*Setup*x64*.exe") or find_local_dependency(deps, VSCODE_EXE_NAME)
         ok = False
         if vs:
@@ -306,8 +333,8 @@ def install_prerequisites(
     elif not plan.vscode:
         log.add("skipped", "VS Code install skipped by user")
 
-    if plan.uv and find_uv_exe() is None:
-        log.step("Installing uv")
+    if plan.uv and (find_uv_exe() is None or "uv" in plan.reinstall_confirmed):
+        log.step("Installing uv" + (" (reinstall)" if find_uv_exe() is not None else ""))
         uv_zip = find_local_dependency(deps, UV_WINDOWS_ZIP)
         installed = False
         if uv_zip:
@@ -567,3 +594,11 @@ def _program_files_x86() -> Path:
         or os.environ.get("ProgramFiles(x86)")  # noqa: SIM112
         or r"C:\Program Files (x86)"
     )
+
+
+_REINSTALL_LABELS: dict[str, str] = {
+    "git": "Git",
+    "uv": "uv",
+    "vscode": "VS Code (another editor is already installed)",
+    "python": "Managed Python (uv)",
+}

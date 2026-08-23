@@ -33,6 +33,13 @@ from harrix_swiss_knife.installer.paths import (
     normalize_install_root,
 )
 from harrix_swiss_knife.installer.payload import cleanup_work_dir
+from harrix_swiss_knife.installer.prereqs import (
+    DetectionStatus,
+    PrerequisitePlan,
+    detected_reinstall_keys,
+    format_reinstall_warning,
+    install_prerequisites,
+)
 from harrix_swiss_knife.installer.progress_ui import ProgressBarMode, progress_mode_for_log_line
 from harrix_swiss_knife.installer.uninstall import UninstallOptions, run_uninstall
 from harrix_swiss_knife.installer.uv_ops import ensure_runtime_imports, uv_sync_with_bundle_cache
@@ -337,6 +344,52 @@ def test_save_install_finish_report(tmp_path: Path) -> None:
     assert saved is not None
     assert saved == root / INSTALL_FINISH_REPORT_NAME
     assert saved.read_text(encoding="utf-8") == text + "\n"
+
+
+def test_detected_reinstall_keys_when_user_reselects_installed_tools() -> None:
+    status = DetectionStatus(git=True, uv=True, editor=True, managed_python=True)
+    plan = PrerequisitePlan(git=True, uv=True, vscode=True, python=True)
+    keys = detected_reinstall_keys(plan, status)
+    assert keys == ("git", "uv", "vscode", "python")
+
+
+def test_detected_reinstall_keys_empty_when_plan_matches_detection() -> None:
+    status = DetectionStatus(git=True, uv=False, editor=False, managed_python=False)
+    plan = PrerequisitePlan(git=False, uv=True, vscode=True, python=True)
+    assert detected_reinstall_keys(plan, status) == ()
+
+
+def test_format_reinstall_warning_lists_tools() -> None:
+    text = format_reinstall_warning(("git", "vscode"))
+    assert "Git" in text
+    assert "VS Code" in text
+    assert "Reinstall them anyway?" in text
+
+
+def test_install_prerequisites_reinstalls_git_when_confirmed(tmp_path: Path) -> None:
+    deps = tmp_path / "deps"
+    deps.mkdir()
+    log = OutcomeLog()
+    captured: list[str] = []
+    log.set_log(captured.append)
+    plan = PrerequisitePlan(
+        git=True,
+        uv=False,
+        vscode=False,
+        python=False,
+        python_extension=False,
+        reinstall_confirmed=frozenset({"git"}),
+    )
+    with patch("harrix_swiss_knife.installer.prereqs.command_exists", return_value=True):
+        install_prerequisites(
+            plan,
+            deps=deps,
+            python_version="3.13",
+            log=log,
+            state={},
+            allow_network=False,
+        )
+    assert any("Installing Git (reinstall)" in line for line in captured)
 
 
 def test_run_uninstall_unregisters_arp(tmp_path: Path) -> None:
