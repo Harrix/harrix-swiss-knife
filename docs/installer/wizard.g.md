@@ -554,7 +554,7 @@ class ProgressPage(QWizardPage):
         self.setSubTitle("Live status of the current step is shown below.")
         self._mode = mode
         self._worker: _Worker | None = None
-        self._done = False
+        self._install_succeeded = False
         self._extracting = False
         self.status_label = QLabel("Ready to install")
         status_font = QFont()
@@ -583,8 +583,8 @@ class ProgressPage(QWizardPage):
         QTimer.singleShot(0, self._begin_if_needed)
 
     def isComplete(self) -> bool:  # noqa: N802
-        """Return whether installation has finished (enables Next after success)."""
-        return self._done
+        """Return whether installation has finished successfully."""
+        return self._install_succeeded
 
     def is_worker_running(self) -> bool:
         """Return whether the background install thread is still active."""
@@ -592,16 +592,25 @@ class ProgressPage(QWizardPage):
         return worker is not None and worker.isRunning()
 
     def validatePage(self) -> bool:  # noqa: N802
-        """Allow leaving the page only after a successful install."""
-        return self._done
+        """Allow leaving the page only after a successful install; Retry restarts on failure."""
+        if self._install_succeeded:
+            return True
+        if self.is_worker_running():
+            return False
+        self._retry_install()
+        return False
 
     def _append(self, line: str) -> None:
         append_log_line(self.log_view, line)
         self._update_status_from_log(line)
 
     def _begin_if_needed(self) -> None:
-        if self._done or self._worker is not None:
+        if self._install_succeeded:
             return
+        if self.is_worker_running():
+            return
+        if self._worker is not None:
+            self._worker = None
         wizard = self.wizard()
         if not isinstance(wizard, InstallerWizard):
             return
@@ -612,16 +621,17 @@ class ProgressPage(QWizardPage):
 
     def _on_err(self, message: str) -> None:
         self._append(f"❌ {message}")
-        self._done = True
+        self._worker = None
         self.completeChanged.emit()
         QMessageBox.critical(self, "Install failed", message)
         wizard = self.wizard()
         if wizard:
             wizard.button(QWizard.WizardButton.BackButton).setEnabled(True)
             wizard.button(QWizard.WizardButton.CommitButton).setEnabled(True)
+            self.setButtonText(QWizard.WizardButton.CommitButton, "Retry")
 
     def _on_ok(self, result: object) -> None:
-        self._done = True
+        self._install_succeeded = True
         self.bar.setRange(0, 1)
         self.bar.setValue(1)
         self.completeChanged.emit()
@@ -645,6 +655,21 @@ class ProgressPage(QWizardPage):
         elif self._extracting:
             self.status_label.setText("Unpacking installer payload")
             self.detail_label.setText(f"Extracting files: {done} / {total}")
+
+    def _retry_install(self) -> None:
+        """Start installation again after a failed run (Commit / Retry button)."""
+        wizard = self.wizard()
+        if not isinstance(wizard, InstallerWizard):
+            return
+        if self.is_worker_running():
+            return
+        self._worker = None
+        self.setButtonText(QWizard.WizardButton.CommitButton, "Install")
+        self._append("==> Retrying installation")
+        plan = wizard.tools_page.plan()
+        if plan.need_elevate and not is_admin():
+            self._append("⚠️ Running without administrator rights; Git or VS Code setup may fail.")
+        self._start_worker(plan)
 
     def _start_worker(self, plan: PrerequisitePlan) -> None:
         wizard = self.wizard()
@@ -717,7 +742,7 @@ def __init__(self, mode: str) -> None:
         self.setSubTitle("Live status of the current step is shown below.")
         self._mode = mode
         self._worker: _Worker | None = None
-        self._done = False
+        self._install_succeeded = False
         self._extracting = False
         self.status_label = QLabel("Ready to install")
         status_font = QFont()
@@ -768,14 +793,14 @@ def initializePage(self) -> None:  # noqa: N802
 def isComplete(self) -> bool
 ```
 
-Return whether installation has finished (enables Next after success).
+Return whether installation has finished successfully.
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def isComplete(self) -> bool:  # noqa: N802
-        return self._done
+        return self._install_succeeded
 ```
 
 </details>
@@ -805,14 +830,19 @@ def is_worker_running(self) -> bool:
 def validatePage(self) -> bool
 ```
 
-Allow leaving the page only after a successful install.
+Allow leaving the page only after a successful install; Retry restarts on failure.
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def validatePage(self) -> bool:  # noqa: N802
-        return self._done
+        if self._install_succeeded:
+            return True
+        if self.is_worker_running():
+            return False
+        self._retry_install()
+        return False
 ```
 
 </details>

@@ -146,6 +146,13 @@ def run_deploy(options: DeployOptions, log: OutcomeLog) -> DeployResult:
             allow_network=allow_network,
         )
 
+        if allow_network and shutil.which("git") is None:
+            msg = (
+                "Git is required for the online installer but is not available on PATH. "
+                "Install Git manually, run the installer as administrator, or use the offline installer."
+            )
+            raise RuntimeError(msg)
+
         root = normalize_install_root(options.install_root)
         root.mkdir(parents=True, exist_ok=True)
         log.step("Create install folder")

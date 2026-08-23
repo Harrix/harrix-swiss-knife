@@ -124,6 +124,9 @@ def run_deploy(options: DeployOptions, log: OutcomeLog) -> DeployResult:
             allow_network=allow_network,
         )
 
+        if allow_network and shutil.which("git") is None:
+            _raise_git_required_for_online()
+
         root = normalize_install_root(options.install_root)
         root.mkdir(parents=True, exist_ok=True)
         log.step("Create install folder")
@@ -245,4 +248,13 @@ def suggest_install_root() -> Path:
 def _raise_acl_repair_failed() -> None:
     """Fail deploy when ACL reset/grant left package files unreadable."""
     msg = "ACL repair failed: package files under the install root may be unreadable for a normal (non-elevated) user"
+    raise RuntimeError(msg)
+
+
+def _raise_git_required_for_online() -> None:
+    """Fail online deploy when Git is missing after the prerequisite step."""
+    msg = (
+        "Git is required for the online installer but is not available on PATH. "
+        "Install Git manually, run the installer as administrator, or use the offline installer."
+    )
     raise RuntimeError(msg)
