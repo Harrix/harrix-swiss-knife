@@ -10,7 +10,7 @@ from PySide6.QtWidgets import QApplication
 from shiboken6 import isValid
 
 from harrix_swiss_knife.actions.common.base import ActionBase
-from harrix_swiss_knife.apps.common.app_startup_toast import start_app_loading_toast, stop_app_loading_toast
+from harrix_swiss_knife.apps.common.app_startup_toast import app_loading_toast_scope
 from harrix_swiss_knife.apps.common.uic_compile import install_safe_qt_translate
 
 
@@ -49,22 +49,20 @@ class AppLauncherAction(ActionBase):
                 app.processEvents()
 
         self._is_creating_window = True
-        toast = None
         try:
-            toast = start_app_loading_toast(self.title)
-            install_safe_qt_translate()
-            window = type(self).get_main_window_class()(hide_on_close=type(self).hide_on_close)
-            self.main_window = window
-            window.destroyed.connect(self._clear_main_window_ref)
-            self.main_window.show()
-            self.main_window.raise_()
-            self.main_window.activateWindow()
+            with app_loading_toast_scope(self.title):
+                install_safe_qt_translate()
+                window = type(self).get_main_window_class()(hide_on_close=type(self).hide_on_close)
+                self.main_window = window
+                window.destroyed.connect(self._clear_main_window_ref)
+                self.main_window.show()
+                self.main_window.raise_()
+                self.main_window.activateWindow()
         except Exception:
             self.main_window = None
             traceback.print_exc()
             raise
         finally:
-            stop_app_loading_toast(toast)
             self._is_creating_window = False
 
     @classmethod

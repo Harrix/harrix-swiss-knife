@@ -38,14 +38,12 @@ def run_app_main(
     app = QApplication(sys.argv)
     app.setWindowIcon(QIcon(icon_path))
     install_safe_qt_translate()
-    toast = start_app_loading_toast(app_loading_title(main_window_factory))
     try:
-        win = main_window_factory()
+        with app_loading_toast_scope(app_loading_title(main_window_factory)):
+            win = main_window_factory()
     except Exception as exc:
-        stop_app_loading_toast(toast)
         message_box.critical(None, "Error", str(exc))
         sys.exit(1)
-    stop_app_loading_toast(toast)
     if set_tab_index_zero:
         tab_widget = getattr(win, "tabWidget", None)
         if tab_widget is not None:

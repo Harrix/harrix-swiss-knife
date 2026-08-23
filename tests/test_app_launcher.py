@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import inspect
+from contextlib import contextmanager
 from typing import TYPE_CHECKING
 
 from PySide6.QtWidgets import QApplication, QWidget
@@ -12,6 +13,8 @@ from harrix_swiss_knife.actions.apps.habits import OnHabits
 from harrix_swiss_knife.apps.finance.main import MainWindow
 
 if TYPE_CHECKING:
+    from collections.abc import Iterator
+
     import pytest
 
 
@@ -51,21 +54,16 @@ def test_app_launcher_shows_loading_toast_while_creating_window(monkeypatch: pyt
     started: list[str] = []
     stopped: list[object] = []
 
-    def fake_start(title: str) -> object:
+    @contextmanager
+    def fake_scope(title: str) -> Iterator[None]:
         started.append(title)
-        return object()
-
-    def fake_stop(toast: object | None) -> None:
-        stopped.append(toast)
+        yield
+        stopped.append(True)
 
     monkeypatch.setattr(OnHabits, "get_main_window_class", classmethod(lambda _cls: DummyWindow))
     monkeypatch.setattr(
-        "harrix_swiss_knife.actions.common.app_launcher.start_app_loading_toast",
-        fake_start,
-    )
-    monkeypatch.setattr(
-        "harrix_swiss_knife.actions.common.app_launcher.stop_app_loading_toast",
-        fake_stop,
+        "harrix_swiss_knife.actions.common.app_launcher.app_loading_toast_scope",
+        fake_scope,
     )
 
     action = OnHabits()
