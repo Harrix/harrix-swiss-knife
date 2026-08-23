@@ -8,6 +8,8 @@ from typing import Any
 
 from PySide6.QtWidgets import QApplication
 
+from harrix_swiss_knife.single_instance import release_held_instance, restore_held_instance
+
 
 def restart_argv() -> list[str]:
     """Return argv that starts the same interpreter and entry script.
@@ -31,10 +33,10 @@ def restart_current_application() -> bool:
     - `bool`: `True` when the new process was started.
 
     """
-    from harrix_swiss_knife.single_instance import release_held_instance
-
-    release_held_instance()
+    held = release_held_instance()
     if not spawn_replacement_process():
+        if held is not None:
+            restore_held_instance(held)
         return False
     app = QApplication.instance()
     if app is not None:

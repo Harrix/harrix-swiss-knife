@@ -15,6 +15,7 @@ lang: en
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `ensure_main_window`](#%EF%B8%8F-method-ensure_main_window)
   - [⚙️ Method `on_activated`](#%EF%B8%8F-method-on_activated)
+  - [⚙️ Method `show_command_window`](#%EF%B8%8F-method-show_command_window)
 
 </details>
 
@@ -85,11 +86,15 @@ class TrayIcon(QSystemTrayIcon):
 
         """
         if reason == QSystemTrayIcon.ActivationReason.Trigger:
-            window = self.ensure_main_window()
-            window.show()
-            window.raise_()
-            window.activateWindow()
-            window.focus_initial_input()
+            self.show_command_window()
+
+    def show_command_window(self) -> None:
+        """Show the command-cards window and bring it to the front."""
+        window = self.ensure_main_window()
+        window.show()
+        window.raise_()
+        window.activateWindow()
+        window.focus_initial_input()
 ```
 
 </details>
@@ -175,11 +180,29 @@ If the tray icon is clicked (Trigger), it shows and brings the main window to th
 ```python
 def on_activated(self, reason: QSystemTrayIcon.ActivationReason) -> None:
         if reason == QSystemTrayIcon.ActivationReason.Trigger:
-            window = self.ensure_main_window()
-            window.show()
-            window.raise_()
-            window.activateWindow()
-            window.focus_initial_input()
+            self.show_command_window()
+```
+
+</details>
+
+### ⚙️ Method `show_command_window`
+
+```python
+def show_command_window(self) -> None
+```
+
+Show the command-cards window and bring it to the front.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def show_command_window(self) -> None:
+        window = self.ensure_main_window()
+        window.show()
+        window.raise_()
+        window.activateWindow()
+        window.focus_initial_input()
 ```
 
 </details>

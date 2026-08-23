@@ -106,7 +106,7 @@ def android_group() -> None:
 def android_build(args: tuple[str, ...], *, build_all: bool) -> None
 ```
 
-Build Android APK for FOLDER (`debug`/[`release`](apps/common/audio_recording/recorder.g.md#%EF%B8%8F-method-release), or `android_build_variant` from config).
+Build Android APK for FOLDER (`debug`/`release`, or `android_build_variant` from config).
 
 Examples: `hsk android build ./android`, `hsk android build ./android debug`,
 `hsk android build debug` (FOLDER defaults to `.`),

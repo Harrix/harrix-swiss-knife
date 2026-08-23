@@ -47,6 +47,9 @@ def restart_current_application() -> bool
 
 Spawn a replacement process, then quit the current Qt application.
 
+Releases the single-instance socket first so the new process can become
+primary instead of asking this one to show the command window.
+
 Returns:
 
 - `bool`: `True` when the new process was started.
@@ -56,7 +59,10 @@ Returns:
 
 ```python
 def restart_current_application() -> bool:
+    held = release_held_instance()
     if not spawn_replacement_process():
+        if held is not None:
+            restore_held_instance(held)
         return False
     app = QApplication.instance()
     if app is not None:

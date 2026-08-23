@@ -2,6 +2,7 @@
 
 A second launch connects to the first process over a local socket and asks it
 to show the command-cards window, then exits.
+
 """
 
 from __future__ import annotations
@@ -36,11 +37,6 @@ class SingleInstance(QObject):
         super().__init__(parent)
         self._name = name or default_server_name()
         self._server: QLocalServer | None = None
-
-    @property
-    def name(self) -> str:
-        """Return the local-socket name this guard uses."""
-        return self._name
 
     def release(self) -> None:
         """Close the listener so another process can become primary."""
@@ -84,7 +80,7 @@ class SingleInstance(QObject):
             return
 
         def _read() -> None:
-            payload = bytes(socket.readAll())
+            payload = bytes(socket.readAll().data())
             if _ACTIVATE_MESSAGE.strip() in payload:
                 self.activate_requested.emit()
             socket.disconnectFromServer()
@@ -113,13 +109,29 @@ def default_server_name() -> str:
     return f"harrix-swiss-knife-{safe or 'user'}"
 
 
-def release_held_instance() -> None:
+def release_held_instance() -> SingleInstance | None:
     """Release the process-wide tray singleton (used before restart)."""
     global _held  # noqa: PLW0603
-    if _held is None:
-        return
-    _held.release()
+    instance = _held
     _held = None
+    if instance is not None:
+        instance.release()
+    return instance
+
+
+def restore_held_instance(instance: SingleInstance) -> bool:
+    """Become primary again after a failed restart spawn.
+
+    Returns:
+
+    - `bool`: `True` when this process reclaimed the socket.
+
+    """
+    global _held  # noqa: PLW0603
+    if not instance.try_claim():
+        return False
+    _held = instance
+    return True
 
 
 def _notify_existing(name: str) -> bool:

@@ -31,10 +31,10 @@ Build an Android APK (`assembleDebug` or `assembleRelease`).
 Tray dialog lists folders from `paths_android_projects` (or browse), a
 checkbox to build all listed projects sequentially, a **Release** checkbox
 (initial value from `android_build_variant` in `config/config.json`, default
-[`release`](../../apps/common/audio_recording/recorder.g.md#%EF%B8%8F-method-release)), and a single install target on the right: connected `adb`
+`release`), and a single install target on the right: connected `adb`
 devices plus installed AVDs. Selecting a stopped AVD starts the emulator
 before `adb install -r`. CLI may pass a project folder and optional
-`debug`/[`release`](../../apps/common/audio_recording/recorder.g.md#%EF%B8%8F-method-release) to override the variant, or `--all` to build every
+`debug`/`release` to override the variant, or `--all` to build every
 configured project; CLI installs on the first authorized adb device.
 Requires Windows, JDK 17, and Android SDK (`ANDROID_HOME` /
 `local.properties`). Use **Android** → **Install JDK and Android SDK**

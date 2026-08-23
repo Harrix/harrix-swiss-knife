@@ -463,6 +463,7 @@ def test_single_label_maps_attribute(label: str, attr: str) -> None:
 def test_detect_mode_from_argv() -> None:
     assert detect_mode_from_argv(["--offline"]) == "offline"
     assert detect_mode_from_argv(["--online"]) == "online"
+    assert detect_mode_from_argv(["harrix-swiss-knife-offline-for-personal-use.exe"]) == "offline"
 
 
 def test_app_icon_exists_for_installer() -> None:

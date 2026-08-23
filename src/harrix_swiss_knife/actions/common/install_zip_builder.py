@@ -2,7 +2,7 @@
 
 Fills `install/dependencies/`, freezes a PySide6 installer stub, and appends
 online/offline payload zips. Target PCs run `harrix-swiss-knife-online.exe` or
-`harrix-swiss-knife-offline.exe` (no bat/ps1 payload).
+`harrix-swiss-knife-offline-for-personal-use.exe` (no bat/ps1 payload).
 
 """
 
@@ -31,6 +31,7 @@ from harrix_swiss_knife.actions.common.github_https import (
     github_download_headers,
     validate_https_url,
 )
+from harrix_swiss_knife.installer.constants import OFFLINE_EXE_NAME, ONLINE_EXE_NAME
 from harrix_swiss_knife.installer.pack_exes import build_payload_zips, pack_installer_exes
 from harrix_swiss_knife.integrations.http_download import download_https_to_path
 from harrix_swiss_knife.integrations.http_transport import https_ssl_context
@@ -42,10 +43,8 @@ SIBLING_REPO_NAMES = ("harrix-pylib", "harrix-pyssg")
 HSK_REPO_NAME = "harrix-swiss-knife"
 ONLINE_EXCLUDE_DIRS = frozenset({"repos", "uv-cache", "uv-python-cache"})
 # Back-compat aliases for older tests/docs imports
-ONLINE_ZIP_NAME = "harrix-swiss-knife-online.exe"
-OFFLINE_ZIP_NAME = "harrix-swiss-knife-offline.exe"
-ONLINE_EXE_NAME = ONLINE_ZIP_NAME
-OFFLINE_EXE_NAME = OFFLINE_ZIP_NAME
+ONLINE_ZIP_NAME = ONLINE_EXE_NAME
+OFFLINE_ZIP_NAME = OFFLINE_EXE_NAME
 MEDIA_EXE_NAMES = ("ffmpeg.exe", "avifenc.exe", "avifdec.exe")
 UV_WINDOWS_ZIP = "uv-x86_64-pc-windows-msvc.zip"
 UV_WINDOWS_URL = f"https://github.com/astral-sh/uv/releases/latest/download/{UV_WINDOWS_ZIP}"

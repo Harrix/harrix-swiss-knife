@@ -207,11 +207,27 @@ def run_tray_application(log: logging.Logger, *, main_menu_cls: type[MainMenuBas
     app.setWindowIcon(QIcon(":/assets/logo.svg"))
     install_safe_qt_translate()
 
+    tray_ready = False
+    pending_show = False
+    tray_icon_holder: TrayIcon | None = None
+
+    def show_command_cards() -> None:
+        nonlocal pending_show
+        if tray_icon_holder is None or not tray_ready:
+            pending_show = True
+            return
+        tray_icon_holder.show_command_window()
+
+    if acquire_tray_instance(show_command_cards) is None:
+        log.info("Another instance is already running; asked it to show the command window")
+        return 0
+
     output_bus = ActionOutputBus()
     placeholder_menu = _make_placeholder_menu()
 
     _log_startup_phase(log, "Creating tray icon", startup_t0)
     tray_icon = TrayIcon(QIcon(":/assets/logo.svg"), menu=placeholder_menu)
+    tray_icon_holder = tray_icon
     tray_icon.setToolTip("Harrix Swiss Knife")
     tray_icon.show()
     _log_startup_phase(log, "Tray visible", startup_t0)
@@ -224,16 +240,18 @@ def run_tray_application(log: logging.Logger, *, main_menu_cls: type[MainMenuBas
     show_main_window = get_show_main_window_on_startup(config)
 
     def finish_startup() -> None:
+        nonlocal tray_ready
         _log_startup_phase(log, "Building main menu", startup_t0)
         main_menu = main_menu_cls(output_bus=output_bus, config=config)
         set_menu_tooltips_visible_recursive(main_menu.menu)
         tray_icon.setContextMenu(main_menu.menu)
         tray_icon.menu = main_menu.menu
         _log_startup_phase(log, "Main menu ready", startup_t0)
+        tray_ready = True
 
-        if show_main_window:
+        if show_main_window or pending_show:
             log.info("Showing main window on startup")
-            tray_icon.ensure_main_window().show_window()
+            tray_icon.show_command_window()
 
         _offer_data_for_hsk_setup_if_needed(config, log)
 
