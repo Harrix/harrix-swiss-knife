@@ -16,6 +16,7 @@ lang: en
   - [⚙️ Method `on_exit`](#%EF%B8%8F-method-on_exit)
   - [⚙️ Method `on_reveal_database`](#%EF%B8%8F-method-on_reveal_database)
 - [🔧 Function `apply_app_window_size_and_position`](#-function-apply_app_window_size_and_position)
+- [🔧 Function `compute_app_window_geometry`](#-function-compute_app_window_geometry)
 - [🔧 Function `resolve_window_menu_bar`](#-function-resolve_window_menu_bar)
 
 </details>
@@ -477,38 +478,62 @@ def apply_app_window_size_and_position(widget: QWidget, *, standard_width: int =
 
 Set widget size and position like food/finance/habits main Windows.
 
-On a standard-aspect screen at least `standard_width` wide, maximize.
-Otherwise center a window of width `standard_width` and height equal to
-the screen height minus title bar and task bar.
+On a standard-aspect work area at least `standard_width` wide, maximize.
+Otherwise fit the window into the available geometry and center it
+horizontally. Uses the screen under the cursor so a scaled or secondary
+display does not pin the window to the left.
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def apply_app_window_size_and_position(widget: QWidget, *, standard_width: int = 1920) -> None:
-    screen = QApplication.primaryScreen()
+    screen = QGuiApplication.screenAt(QCursor.pos()) or widget.screen() or QApplication.primaryScreen()
     if screen is None:
         return
-    screen_geometry = screen.geometry()
-    screen_width = screen_geometry.width()
-    screen_height = screen_geometry.height()
-
-    aspect_ratio = screen_width / screen_height
-    is_standard_aspect = aspect_ratio <= _STANDARD_ASPECT_RATIO
-
-    if is_standard_aspect and screen_width >= standard_width:
+    target = compute_app_window_geometry(screen.availableGeometry(), standard_width=standard_width)
+    if target is None:
         widget.showMaximized()
         return
+    widget.setGeometry(target)
+```
 
-    window_width = standard_width
-    window_height = screen_height - _TITLE_BAR_HEIGHT - _WINDOWS_TASK_BAR_HEIGHT
-    screen_center = screen_geometry.center()
-    widget.setGeometry(
-        screen_center.x() - window_width // 2,
-        _TITLE_BAR_HEIGHT,
-        window_width,
-        window_height,
-    )
+</details>
+
+## 🔧 Function `compute_app_window_geometry`
+
+```python
+def compute_app_window_geometry(available: QRect, *, standard_width: int = 1920) -> QRect | None
+```
+
+Return a centered window rect, or `None` when the window should maximize.
+
+Args:
+
+- `available` (`QRect`): Work area of the target screen (excludes the taskbar).
+- `standard_width` (`int`): Preferred window width and maximize threshold.
+  Defaults to `1920`.
+
+Returns:
+
+- `QRect | None`: Geometry in global logical coordinates, or `None` to maximize.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def compute_app_window_geometry(available: QRect, *, standard_width: int = 1920) -> QRect | None:
+    if available.width() <= 0 or available.height() <= 0:
+        return None
+
+    aspect_ratio = available.width() / available.height()
+    if aspect_ratio <= _STANDARD_ASPECT_RATIO and available.width() >= standard_width:
+        return None
+
+    window_width = min(standard_width, available.width())
+    window_height = available.height()
+    x = available.x() + (available.width() - window_width) // 2
+    return QRect(x, available.y(), window_width, window_height)
 ```
 
 </details>
