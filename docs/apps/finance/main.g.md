@@ -4644,6 +4644,8 @@ class MainWindow(
             current_date: QDate = self.dateEdit.date()
             self._refresh_after_transaction_add(categories_may_change=True)
             self.dateEdit.setDate(current_date)
+            # `update_all` used to call `_clear_all_forms`; keep the category reset here.
+            self._clear_category_selection()
 
         max_error_messages = 10
         if error_count > 0:
@@ -4702,6 +4704,9 @@ class MainWindow(
             self._update_comboboxes()
             self.update_filter_comboboxes()
             self._connect_table_auto_save_signals()
+            # `setModel` on `listView_categories` can restore a current row after clear.
+            self._clear_category_selection()
+            QTimer.singleShot(0, self._clear_category_selection)
 
     def _refresh_summary_if_needed(self) -> None:
         """Recompute summary labels when transaction data changed."""

@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+import inspect
+
 import pytest
 from PySide6.QtCore import QEventLoop, QTimer
 from PySide6.QtWidgets import QApplication
 
 from harrix_swiss_knife.apps.finance.deferred_ui_refresh import DeferredUiRefreshScheduler
+from harrix_swiss_knife.apps.finance.main import MainWindow
 
 
 @pytest.fixture
@@ -18,6 +21,19 @@ def qapp() -> QApplication:
         msg = "QApplication.instance() returned a non-QApplication object."
         raise TypeError(msg)
     return app
+
+
+def test_process_purchase_items_clears_category_after_add() -> None:
+    """Add with AI used `update_all` → `_clear_all_forms`; keep that category reset."""
+    source = inspect.getsource(MainWindow._process_purchase_items)
+    assert "_clear_category_selection()" in source
+
+
+def test_deferred_category_refresh_clears_selection_after_rebuild() -> None:
+    """Rebuilding `listView_categories` must not leave the previous category selected."""
+    source = inspect.getsource(MainWindow._refresh_secondary_ui_after_transactions_changed)
+    assert "_clear_category_selection()" in source
+    assert "QTimer.singleShot(0, self._clear_category_selection)" in source
 
 
 def test_mark_sets_dirty_and_flush_clears(qapp: QApplication) -> None:  # noqa: ARG001
