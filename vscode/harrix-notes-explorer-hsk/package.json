@@ -155,6 +155,11 @@
           "default": true,
           "markdownDescription": "When the tree label is taken from YAML `title:` or a `#` heading and differs from the file name, show the file name (without extension) as a gray description next to the title. Set to `false` to show only the title. Requires `showNoteTitleFromContent`."
         },
+        "harrixNotesExplorerHsk.sortDateNamesNewestFirst": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "When a file or folder name is a year (`2026`) or a date (`2026-10-11`, `2026.10.11`, `20261011`, `11.10.2026`, or `2026-10`), sort those items **newest first** in **Harrix Notes (HSK)** and **Notes Icons Browse** (name sort). Turn off to use A–Z order for those names too."
+        },
         "harrixNotesExplorerHsk.iconStyle": {
           "type": "string",
           "default": "harrix",

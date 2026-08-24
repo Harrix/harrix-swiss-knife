@@ -440,6 +440,11 @@ function getShowNoteFileNameBesideTitle() {
   return config.get('showNoteFileNameBesideTitle', true) !== false;
 }
 
+function getSortDateNamesNewestFirst() {
+  const config = vscode.workspace.getConfiguration('harrixNotesExplorerHsk');
+  return config.get('sortDateNamesNewestFirst', true) !== false;
+}
+
 /**
  * @param {string} filePath
  */
@@ -2364,7 +2369,22 @@ class NotesProvider {
       if (typeof label === 'object' && typeof label.label === 'string') return label.label;
       return String(label);
     };
-    return labelToString(a.label).localeCompare(labelToString(b.label), undefined, {
+    const nameOf = (item) => {
+      if (item?.isNoteItem && item.resourceUri?.fsPath) {
+        return noteStemFromPath(item.resourceUri.fsPath);
+      }
+      const fsPath = item?.resourceUri?.fsPath || item?.dirPath;
+      if (fsPath) {
+        return path.basename(fsPath);
+      }
+      return labelToString(item?.label);
+    };
+    const aLabel = labelToString(a.label);
+    const bLabel = labelToString(b.label);
+    if (getSortDateNamesNewestFirst()) {
+      return noteMeta.compareNamesNewestDatesFirst(nameOf(a), nameOf(b), aLabel, bLabel);
+    }
+    return aLabel.localeCompare(bLabel, undefined, {
       numeric: true,
       sensitivity: 'base',
     });
@@ -3955,6 +3975,7 @@ async function activate(context) {
         e.affectsConfiguration('harrixNotesExplorerHsk.showNoteTitleFromContent') ||
         e.affectsConfiguration('harrixNotesExplorerHsk.showNoteFileNameBesideTitle') ||
         e.affectsConfiguration('harrixNotesExplorerHsk.iconStyle') ||
+        e.affectsConfiguration('harrixNotesExplorerHsk.sortDateNamesNewestFirst') ||
         e.affectsConfiguration('harrixNotesExplorerHsk.iconsBrowse') ||
         e.affectsConfiguration('harrixNotesExplorerHsk.openNotesInPreview')
       ) {

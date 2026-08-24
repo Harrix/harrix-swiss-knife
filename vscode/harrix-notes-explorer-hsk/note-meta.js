@@ -229,6 +229,63 @@ function parseDateFromFileName(fileName) {
   return isoDateFromMatch(match);
 }
 
+const YEAR_NAME_RE = /^(\d{4})$/;
+const YEAR_MONTH_NAME_RE = /^(\d{4})[-.](\d{2})$/;
+const DATE_NAME_YEAR_MIN = 1900;
+const DATE_NAME_YEAR_MAX = 2100;
+
+/**
+ * Numeric key for year / date file or folder names (`2026`, `2026-10`, `2026-10-11`).
+ * Higher values are more recent. Returns `null` when the name is not a date.
+ *
+ * @param {string} name
+ * @returns {number | null} YYYYMMDD (missing month/day padded with `00`)
+ */
+function dateNameSortKey(name) {
+  const stem = noteStemFromName(name);
+  const iso = parseDateFromFileName(stem);
+  if (iso) {
+    return Number(iso.replace(/-/g, ''));
+  }
+  const yearMonth = YEAR_MONTH_NAME_RE.exec(stem);
+  if (yearMonth) {
+    const year = Number(yearMonth[1]);
+    const month = Number(yearMonth[2]);
+    if (year >= DATE_NAME_YEAR_MIN && year <= DATE_NAME_YEAR_MAX && month >= 1 && month <= 12) {
+      return year * 10000 + month * 100;
+    }
+  }
+  const yearOnly = YEAR_NAME_RE.exec(stem);
+  if (yearOnly) {
+    const year = Number(yearOnly[1]);
+    if (year >= DATE_NAME_YEAR_MIN && year <= DATE_NAME_YEAR_MAX) {
+      return year * 10000;
+    }
+  }
+  return null;
+}
+
+/**
+ * Compare labels; when both names are years or dates, newest comes first.
+ *
+ * @param {string} aName
+ * @param {string} bName
+ * @param {string} [aLabel]
+ * @param {string} [bLabel]
+ * @returns {number}
+ */
+function compareNamesNewestDatesFirst(aName, bName, aLabel, bLabel) {
+  const aKey = dateNameSortKey(aName);
+  const bKey = dateNameSortKey(bName);
+  if (aKey != null && bKey != null && aKey !== bKey) {
+    return bKey - aKey;
+  }
+  return String(aLabel || aName || '').localeCompare(String(bLabel || bName || ''), undefined, {
+    numeric: true,
+    sensitivity: 'base',
+  });
+}
+
 /**
  * @param {unknown} value
  * @returns {string | null} YYYY-MM-DD
@@ -418,6 +475,8 @@ module.exports = {
   extractTitleFromMarkdown,
   titleFromId,
   resolveNoteTitle,
+  dateNameSortKey,
+  compareNamesNewestDatesFirst,
   parseDateFromFileName,
   parseDateFromYaml,
   parseDateValue,

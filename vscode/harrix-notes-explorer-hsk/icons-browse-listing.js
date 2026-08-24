@@ -14,8 +14,11 @@
  *   reverseOrder: boolean,
  *   showGmdFiles: boolean,
  *   showDates: boolean,
+ *   newestDateNamesFirst: boolean,
  * }} BrowseOptions
  */
+
+const noteMeta = require('./note-meta');
 
 /**
  * @param {string | undefined} name
@@ -67,6 +70,7 @@ function browseOptionsFromConfig(config) {
     reverseOrder: config.get('iconsBrowse.reverseOrder') === true,
     showGmdFiles: config.get('iconsBrowse.showGmdFiles') === true,
     showDates: config.get('iconsBrowse.showDates') === true,
+    newestDateNamesFirst: config.get('sortDateNamesNewestFirst') !== false,
   };
 }
 
@@ -168,20 +172,22 @@ function browseCaption(entry, options) {
 /**
  * @template {{ kind: string, isGmd?: boolean, sortLabel?: string, label?: string, name?: string, mtimeMs?: number, sizeBytes?: number }} T
  * @param {T[]} entries
- * @param {Pick<BrowseOptions, 'sortBy' | 'foldersFirst' | 'reverseOrder' | 'showGmdFiles'>} options
+ * @param {Pick<BrowseOptions, 'sortBy' | 'foldersFirst' | 'reverseOrder' | 'showGmdFiles' | 'newestDateNamesFirst'>} options
  * @returns {T[]}
  */
 function applyListingOptions(entries, options) {
   const filtered = options.showGmdFiles ? entries : entries.filter((entry) => entry.kind !== 'note' || !entry.isGmd);
 
-  const nameCmp = (a, b) =>
-    String(a.sortLabel || a.label || a.name || '').localeCompare(
-      String(b.sortLabel || b.label || b.name || ''),
-      undefined,
-      {
-        sensitivity: 'base',
-      },
-    );
+  const nameCmp = (a, b) => {
+    const aName = String(a.name || a.sortLabel || a.label || '');
+    const bName = String(b.name || b.sortLabel || b.label || '');
+    const aLabel = String(a.sortLabel || a.label || a.name || '');
+    const bLabel = String(b.sortLabel || b.label || b.name || '');
+    if (options.newestDateNamesFirst !== false) {
+      return noteMeta.compareNamesNewestDatesFirst(aName, bName, aLabel, bLabel);
+    }
+    return aLabel.localeCompare(bLabel, undefined, { numeric: true, sensitivity: 'base' });
+  };
 
   const fieldCmp = (a, b) => {
     if (options.sortBy === 'date') {
