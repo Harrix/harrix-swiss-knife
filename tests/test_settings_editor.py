@@ -6,14 +6,25 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from PySide6.QtWidgets import QApplication, QPushButton, QTextEdit
+from PySide6.QtCore import QEvent, Qt
+from PySide6.QtGui import QKeyEvent
+from PySide6.QtWidgets import QApplication, QLineEdit, QPushButton, QTextEdit
 
 from harrix_swiss_knife.actions.common.dialog_geometry import text_content_height
 from harrix_swiss_knife.actions.development.settings_editor import (
+    ADD_HOTKEY_BUTTON_OBJECT_NAME,
+    HOTKEY_ACTION_OBJECT_NAME,
+    HOTKEY_BINDINGS_OBJECT_NAME,
+    HOTKEY_EDIT_OBJECT_NAME,
     OPEN_FOLDER_BUTTON_OBJECT_NAME,
+    HotkeyBindingsWidget,
+    HotkeyEdit,
     SettingsEditorDialog,
     folder_path_from_text,
     is_folder_path_setting,
+    is_hotkey_bindings_setting,
+    is_hotkey_setting,
+    is_hotkey_string,
 )
 
 _LONG_LIST = [f"item-{index}" for index in range(12)]
@@ -126,5 +137,127 @@ def test_open_folder_button_disabled_when_folder_missing(
         button = dialog.findChild(QPushButton, OPEN_FOLDER_BUTTON_OBJECT_NAME)
         assert button is not None
         assert not button.isEnabled()
+    finally:
+        dialog.close()
+
+
+def test_is_hotkey_string_detects_portable_combinations() -> None:
+    assert is_hotkey_string("Ctrl+Shift+F1")
+    assert is_hotkey_string("Alt+Space")
+    assert not is_hotkey_string("cursor")
+    assert not is_hotkey_string("C++")
+    assert not is_hotkey_string("F1")
+    assert not is_hotkey_string("")
+
+
+def test_is_hotkey_setting_uses_key_name_or_value() -> None:
+    assert is_hotkey_setting("toggle_hotkey", "")
+    assert is_hotkey_setting("editor", "Ctrl+Alt+Q")
+    assert not is_hotkey_setting("editor", "cursor")
+    assert not is_hotkey_setting("hotkey", ["Ctrl+F1"])
+
+
+def test_is_hotkey_bindings_setting_detects_action_list() -> None:
+    assert is_hotkey_bindings_setting("hotkeys", [])
+    assert is_hotkey_bindings_setting(
+        "hotkeys",
+        [{"action": "OnQuickLauncher", "hotkeys": ["Ctrl+Shift+F1"]}],
+    )
+    assert not is_hotkey_bindings_setting("block_drives", ["C"])
+    assert not is_hotkey_bindings_setting("hotkeys", "Ctrl+F1")
+
+
+def test_hotkey_string_setting_uses_capture_field(
+    qapp: QApplication,  # noqa: ARG001
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    dialog = _open_settings_dialog(monkeypatch, {"toggle_hotkey": "Ctrl+Shift+F1"})
+    try:
+        widget = dialog.input_widgets["General::toggle_hotkey"]
+        assert isinstance(widget, HotkeyEdit)
+        assert widget.objectName() == HOTKEY_EDIT_OBJECT_NAME
+        assert widget.text() == "Ctrl+Shift+F1"
+    finally:
+        dialog.close()
+
+
+def test_hotkey_edit_records_new_combination(qapp: QApplication) -> None:  # noqa: ARG001
+    widget = HotkeyEdit("Ctrl+Shift+F1")
+    widget.show()
+    widget.setFocus()
+    QApplication.processEvents()
+    try:
+        event = QKeyEvent(
+            QEvent.Type.KeyPress,
+            Qt.Key.Key_F3,
+            Qt.KeyboardModifier.ControlModifier | Qt.KeyboardModifier.ShiftModifier,
+        )
+        QApplication.sendEvent(widget, event)
+        QApplication.processEvents()
+        assert widget.text() == "Ctrl+Shift+F3"
+    finally:
+        widget.close()
+
+
+def test_hotkey_bindings_setting_uses_capture_rows(
+    qapp: QApplication,  # noqa: ARG001
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    dialog = _open_settings_dialog(
+        monkeypatch,
+        {
+            "hotkeys": [
+                {"action": "OnQuickLauncher", "hotkeys": ["Ctrl+Shift+F1"]},
+                {"action": "OnScreenshotRegion", "hotkey": "Ctrl+Shift+F2"},
+            ],
+        },
+    )
+    try:
+        widget = dialog.input_widgets["General::hotkeys"]
+        assert isinstance(widget, HotkeyBindingsWidget)
+        assert widget.objectName() == HOTKEY_BINDINGS_OBJECT_NAME
+        assert widget.bindings_value() == [
+            {"action": "OnQuickLauncher", "hotkeys": ["Ctrl+Shift+F1"]},
+            {"action": "OnScreenshotRegion", "hotkeys": ["Ctrl+Shift+F2"]},
+        ]
+        action_edits = widget.findChildren(QLineEdit, HOTKEY_ACTION_OBJECT_NAME)
+        hotkey_edits = widget.findChildren(HotkeyEdit)
+        assert [edit.text() for edit in action_edits] == ["OnQuickLauncher", "OnScreenshotRegion"]
+        assert [edit.text() for edit in hotkey_edits] == ["Ctrl+Shift+F1", "Ctrl+Shift+F2"]
+        add_button = dialog.findChild(QPushButton, ADD_HOTKEY_BUTTON_OBJECT_NAME)
+        assert add_button is not None
+        add_button.click()
+        QApplication.processEvents()
+        assert len(widget.findChildren(HotkeyEdit)) == 3
+    finally:
+        dialog.close()
+
+
+def test_hotkey_bindings_save_new_combination(
+    qapp: QApplication,  # noqa: ARG001
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    dialog = _open_settings_dialog(
+        monkeypatch,
+        {"hotkeys": [{"action": "OnQuickLauncher", "hotkeys": ["Ctrl+Shift+F1"]}]},
+    )
+    try:
+        widget = dialog.input_widgets["General::hotkeys"]
+        assert isinstance(widget, HotkeyBindingsWidget)
+        hotkey_edit = widget.findChild(HotkeyEdit)
+        assert hotkey_edit is not None
+        hotkey_edit.setFocus()
+        QApplication.processEvents()
+        event = QKeyEvent(
+            QEvent.Type.KeyPress,
+            Qt.Key.Key_F9,
+            Qt.KeyboardModifier.ControlModifier | Qt.KeyboardModifier.AltModifier,
+        )
+        QApplication.sendEvent(hotkey_edit, event)
+        QApplication.processEvents()
+        dialog._save_current_category()
+        assert dialog.categories["General"]["hotkeys"] == [
+            {"action": "OnQuickLauncher", "hotkeys": ["Ctrl+Alt+F9"]},
+        ]
     finally:
         dialog.close()

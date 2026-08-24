@@ -26,17 +26,60 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from harrix_swiss_knife.action_hotkeys import load_action_hotkeys
 from harrix_swiss_knife.actions.common.base import ActionBase
 from harrix_swiss_knife.actions.common.dialog_geometry import text_content_height
 from harrix_swiss_knife.actions.common.text_result_dialog import OPEN_FOLDER_BUTTON_EMOJI
 from harrix_swiss_knife.apps.common.qt_main_window import apply_app_window_size_and_position
+from harrix_swiss_knife.global_hotkey import hotkey_string_from_event
 from harrix_swiss_knife.paths import get_config_path_str
-from harrix_swiss_knife.qt_emoji_icon import make_emoji_push_button
+from harrix_swiss_knife.qt_emoji_icon import DELETE_BUTTON_EMOJI, make_emoji_push_button
 
 if TYPE_CHECKING:
-    from PySide6.QtGui import QResizeEvent, QShowEvent
+    from PySide6.QtGui import QFocusEvent, QKeyEvent, QResizeEvent, QShowEvent
 
 OPEN_FOLDER_BUTTON_OBJECT_NAME = "settingsOpenFolderButton"
+HOTKEY_EDIT_OBJECT_NAME = "settingsHotkeyEdit"
+HOTKEY_ACTION_OBJECT_NAME = "settingsHotkeyAction"
+HOTKEY_BINDINGS_OBJECT_NAME = "settingsHotkeyBindings"
+ADD_HOTKEY_BUTTON_OBJECT_NAME = "settingsAddHotkeyButton"
+REMOVE_HOTKEY_BUTTON_OBJECT_NAME = "settingsRemoveHotkeyButton"
+
+_MIN_HOTKEY_PARTS = 2
+_HOTKEY_MODIFIERS = frozenset({"alt", "cmd", "command", "control", "ctrl", "meta", "shift", "win"})
+_HOTKEY_SPECIAL_KEYS = frozenset(
+    {
+        "backspace",
+        "delete",
+        "down",
+        "end",
+        "enter",
+        "esc",
+        "escape",
+        "home",
+        "ins",
+        "insert",
+        "left",
+        "minus",
+        "pagedown",
+        "pageup",
+        "plus",
+        "return",
+        "right",
+        "space",
+        "tab",
+        "up",
+    }
+)
+_MODIFIER_KEYS = frozenset(
+    {
+        Qt.Key.Key_Alt,
+        Qt.Key.Key_Control,
+        Qt.Key.Key_Meta,
+        Qt.Key.Key_Shift,
+        Qt.Key.Key_unknown,
+    }
+)
 
 _FILE_PATH_KEYS = frozenset({"path_totalcmd_ini"})
 _FILE_PATH_KEY_PREFIXES = ("sqlite_", "vscode_workspace")
@@ -53,6 +96,139 @@ _FILE_PATH_SUFFIXES = frozenset(
         ".yml",
     }
 )
+
+
+class HotkeyBindingsWidget(QWidget):
+    """Editor for `config.json` `hotkeys`: action name plus a capturable shortcut."""
+
+    def __init__(self, bindings: list[Any], parent: QWidget | None = None) -> None:
+        """Create rows from existing action-hotkey bindings."""
+        super().__init__(parent)
+        self.setObjectName(HOTKEY_BINDINGS_OBJECT_NAME)
+        self._rows: list[tuple[QWidget, QLineEdit, HotkeyEdit]] = []
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+
+        hint = QLabel("Click a shortcut field and press a new key combination.")
+        hint.setWordWrap(True)
+        layout.addWidget(hint)
+
+        header = QHBoxLayout()
+        header.addWidget(QLabel("<b>Action</b>"), 1)
+        header.addWidget(QLabel("<b>Shortcut</b>"), 1)
+        header.addSpacing(36)
+        layout.addLayout(header)
+
+        self._rows_layout = QVBoxLayout()
+        self._rows_layout.setContentsMargins(0, 0, 0, 0)
+        layout.addLayout(self._rows_layout)
+
+        for binding in load_action_hotkeys({"hotkeys": bindings}):
+            self._add_row(binding.action, binding.hotkey)
+        if not self._rows:
+            self._add_row("", "")
+
+        add_button = make_emoji_push_button("Add", "➕")  # noqa: RUF001
+        add_button.setObjectName(ADD_HOTKEY_BUTTON_OBJECT_NAME)
+        add_button.setToolTip("Add hotkey")
+        add_button.clicked.connect(lambda: self._add_row("", ""))
+        layout.addWidget(add_button, alignment=Qt.AlignmentFlag.AlignLeft)
+
+    def bindings_value(self) -> list[dict[str, Any]]:
+        """Return bindings grouped by action, skipping empty rows."""
+        grouped: dict[str, list[str]] = {}
+        order: list[str] = []
+        for _row, action_edit, hotkey_edit in self._rows:
+            action = action_edit.text().strip()
+            hotkey = hotkey_edit.text().strip()
+            if not action or not hotkey:
+                continue
+            if action not in grouped:
+                grouped[action] = []
+                order.append(action)
+            grouped[action].append(hotkey)
+        return [{"action": action, "hotkeys": grouped[action]} for action in order]
+
+    def _add_row(self, action: str, hotkey: str) -> None:
+        row = QWidget(self)
+        row_layout = QHBoxLayout(row)
+        row_layout.setContentsMargins(0, 0, 0, 0)
+
+        action_edit = QLineEdit(action)
+        action_edit.setObjectName(HOTKEY_ACTION_OBJECT_NAME)
+        action_edit.setPlaceholderText("OnActionName")
+        row_layout.addWidget(action_edit, 1)
+
+        hotkey_edit = HotkeyEdit(hotkey)
+        row_layout.addWidget(hotkey_edit, 1)
+
+        remove_button = make_emoji_push_button("", DELETE_BUTTON_EMOJI)
+        remove_button.setObjectName(REMOVE_HOTKEY_BUTTON_OBJECT_NAME)
+        remove_button.setToolTip("Remove hotkey")
+        remove_button.setFixedWidth(36)
+        remove_button.clicked.connect(lambda _checked=False, current=row: self._remove_row(current))
+        row_layout.addWidget(remove_button)
+
+        self._rows_layout.addWidget(row)
+        self._rows.append((row, action_edit, hotkey_edit))
+
+    def _remove_row(self, row: QWidget) -> None:
+        for index, (current, _action_edit, _hotkey_edit) in enumerate(self._rows):
+            if current is row:
+                self._rows.pop(index)
+                self._rows_layout.removeWidget(row)
+                row.deleteLater()
+                return
+
+
+class HotkeyEdit(QLineEdit):
+    """Read-only field that records a key combination when focused."""
+
+    def __init__(self, text: str = "", parent: QWidget | None = None) -> None:
+        """Create a hotkey capture field with the current combination `text`."""
+        super().__init__(text, parent)
+        self.setObjectName(HOTKEY_EDIT_OBJECT_NAME)
+        self.setReadOnly(True)
+        self.setPlaceholderText("Press a key combination")
+        self.setToolTip("Click and press a new key combination. Backspace clears.")
+        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+
+    def focusInEvent(self, event: QFocusEvent) -> None:  # noqa: N802
+        """Select the current combination so a new press replaces it."""
+        super().focusInEvent(event)
+        self.selectAll()
+
+    def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
+        """Replace the value with the pressed combination, or clear it."""
+        if event.isAutoRepeat():
+            event.accept()
+            return
+
+        modifiers = event.modifiers()
+        key = event.key()
+        has_non_shift = bool(modifiers & ~Qt.KeyboardModifier.ShiftModifier)
+        if key in {Qt.Key.Key_Backtab, Qt.Key.Key_Tab} and not has_non_shift:
+            super().keyPressEvent(event)
+            return
+
+        if key == Qt.Key.Key_Escape and not modifiers:
+            event.accept()
+            return
+
+        if key in {Qt.Key.Key_Backspace, Qt.Key.Key_Delete} and not modifiers:
+            self.clear()
+            event.accept()
+            return
+
+        if key in _MODIFIER_KEYS:
+            event.accept()
+            return
+
+        text = hotkey_string_from_event(int(key), modifiers)
+        if text:
+            self.setText(text)
+        event.accept()
 
 
 class OnSettingsEditor(ActionBase):
@@ -216,6 +392,14 @@ class SettingsEditorDialog(QDialog):
                 widget.setChecked(value)
                 setting_layout.addWidget(widget)
                 self.input_widgets[widget_key] = widget
+            elif is_hotkey_bindings_setting(key, value):
+                widget = HotkeyBindingsWidget(value if isinstance(value, list) else [])
+                setting_layout.addWidget(widget)
+                self.input_widgets[widget_key] = widget
+            elif is_hotkey_setting(key, value):
+                widget = HotkeyEdit(str(value))
+                setting_layout.addWidget(widget)
+                self.input_widgets[widget_key] = widget
             elif isinstance(value, (int, float, str)):
                 widget = QLineEdit(str(value))
                 if isinstance(value, str) and is_folder_path_setting(key, value):
@@ -258,6 +442,8 @@ class SettingsEditorDialog(QDialog):
 
             if isinstance(widget, QCheckBox):
                 self.categories[cat_name][key] = widget.isChecked()
+            elif isinstance(widget, HotkeyBindingsWidget):
+                self.categories[cat_name][key] = widget.bindings_value()
             elif isinstance(widget, QLineEdit):
                 old_val = self.categories[cat_name][key]
                 text = widget.text()
@@ -345,6 +531,45 @@ def is_folder_path_setting(key: str, value: object) -> bool:
     return _is_folder_path_key(key, value)
 
 
+def is_hotkey_bindings_setting(key: str, value: object) -> bool:
+    """Return whether a setting is a list of action-hotkey bindings."""
+    if not isinstance(value, list):
+        return False
+    key_norm = key.lower().replace("-", "_")
+    if key_norm == "hotkeys":
+        return not value or all(isinstance(item, dict) for item in value)
+    return bool(value) and all(_is_hotkey_binding_item(item) for item in value)
+
+
+def is_hotkey_setting(key: str, value: object) -> bool:
+    """Return whether a setting is a keyboard shortcut string."""
+    if not isinstance(value, str):
+        return False
+    if _is_hotkey_key_name(key):
+        return True
+    return is_hotkey_string(value)
+
+
+def is_hotkey_string(value: object) -> bool:
+    """Return whether `value` looks like a portable key combination (`Ctrl+Shift+F1`)."""
+    if not isinstance(value, str):
+        return False
+    parts = [part.strip().lower() for part in value.strip().split("+") if part.strip()]
+    if len(parts) < _MIN_HOTKEY_PARTS:
+        return False
+    key = parts[-1]
+    modifiers = parts[:-1]
+    if not modifiers or not all(part in _HOTKEY_MODIFIERS for part in modifiers):
+        return False
+    if key in _HOTKEY_MODIFIERS:
+        return False
+    if key in _HOTKEY_SPECIAL_KEYS:
+        return True
+    if len(key) == 1 and key.isalnum():
+        return True
+    return key.startswith("f") and key[1:].isdigit()
+
+
 def _is_folder_path_key(key: str, value: str) -> bool:
     key_norm = key.lower().replace("-", "_")
     if key_norm in _FILE_PATH_KEYS or key_norm.startswith(_FILE_PATH_KEY_PREFIXES):
@@ -352,3 +577,16 @@ def _is_folder_path_key(key: str, value: str) -> bool:
     if Path(value).suffix.lower() in _FILE_PATH_SUFFIXES:
         return False
     return key_norm.startswith("path_") or key_norm.endswith(("_root", "_folder", "_dir")) or "folder" in key_norm
+
+
+def _is_hotkey_binding_item(item: object) -> bool:
+    if not isinstance(item, dict):
+        return False
+    if not str(item.get("action") or "").strip():
+        return False
+    return item.get("hotkeys") is not None or item.get("hotkey") is not None
+
+
+def _is_hotkey_key_name(key: str) -> bool:
+    key_norm = key.lower().replace("-", "_")
+    return key_norm == "hotkey" or key_norm.endswith("_hotkey")
