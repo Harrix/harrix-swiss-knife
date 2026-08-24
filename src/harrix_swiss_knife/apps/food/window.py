@@ -80,7 +80,7 @@ class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         if not MainWindow.objectName():
             MainWindow.setObjectName(u"MainWindow")
-        MainWindow.resize(1354, 771)
+        MainWindow.resize(1354, 600)
         self.action_refresh = QAction(MainWindow)
         self.action_refresh.setObjectName(u"action_refresh")
         self.action_add_food_item = QAction(MainWindow)
@@ -476,7 +476,7 @@ class Ui_MainWindow(object):
         self.scrollArea_food_stats.setWidgetResizable(True)
         self.scrollAreaWidgetContents_food_stats = QWidget()
         self.scrollAreaWidgetContents_food_stats.setObjectName(u"scrollAreaWidgetContents_food_stats")
-        self.scrollAreaWidgetContents_food_stats.setGeometry(QRect(0, 0, 1050, 612))
+        self.scrollAreaWidgetContents_food_stats.setGeometry(QRect(0, 0, 1050, 441))
         self.verticalLayout_food_stats_content = QVBoxLayout(self.scrollAreaWidgetContents_food_stats)
         self.verticalLayout_food_stats_content.setObjectName(u"verticalLayout_food_stats_content")
         self.scrollArea_food_stats.setWidget(self.scrollAreaWidgetContents_food_stats)

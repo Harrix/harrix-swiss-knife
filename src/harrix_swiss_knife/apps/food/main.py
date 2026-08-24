@@ -2080,7 +2080,7 @@ class MainWindow(
         """Finish window initialization by showing the window and adjusting columns."""
         if self._is_closing:
             return
-        self.show()
+        self._show_placed_window()
         # Adjust columns after window is shown and has proper dimensions
         QTimer.singleShot(50, self._adjust_food_log_table_columns)
         # Update food stats chart after initialization

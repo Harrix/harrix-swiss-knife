@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>972</width>
-    <height>681</height>
+    <height>574</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -429,8 +429,8 @@
                 <rect>
                  <x>0</x>
                  <y>0</y>
-                 <width>96</width>
-                 <height>297</height>
+                 <width>294</width>
+                 <height>425</height>
                 </rect>
                </property>
                <layout class="QVBoxLayout" name="verticalLayout_charts_process_habits_content"/>

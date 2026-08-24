@@ -2819,7 +2819,7 @@ class MainWindow(
         """Finish window initialization by showing the window."""
         if self._is_closing:
             return
-        self.show()
+        self._show_placed_window()
         # Column stretch is skipped while the window is hidden; apply it now.
         self.on_tab_changed(self.tabWidget.currentIndex())
 

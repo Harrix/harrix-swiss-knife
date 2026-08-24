@@ -844,8 +844,8 @@
                 <rect>
                  <x>0</x>
                  <y>0</y>
-                 <width>96</width>
-                 <height>26</height>
+                 <width>1036</width>
+                 <height>422</height>
                 </rect>
                </property>
                <layout class="QVBoxLayout" name="verticalLayout_charts_content"/>
@@ -1195,8 +1195,8 @@
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>96</width>
-               <height>26</height>
+               <width>1088</width>
+               <height>482</height>
               </rect>
              </property>
              <layout class="QVBoxLayout" name="verticalLayout_weight_chart_content"/>

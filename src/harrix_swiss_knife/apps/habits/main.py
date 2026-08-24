@@ -1499,7 +1499,7 @@ class MainWindow(
         """Finish window initialization by showing the window."""
         if self._is_closing:
             return
-        self.show()
+        self._show_placed_window()
 
     def _get_selected_habit_filter(self) -> str:
         """Get the currently selected habit from the filter list view."""

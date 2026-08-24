@@ -71,6 +71,7 @@ class AppLauncherAction(ActionBase):
                 self.main_window = window
                 window.destroyed.connect(self._clear_main_window_ref)
                 self.main_window.show()
+                apply_app_window_size_and_position(self.main_window)
                 self.main_window.raise_()
                 self.main_window.activateWindow()
         except Exception:
@@ -151,6 +152,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
                 self.main_window = window
                 window.destroyed.connect(self._clear_main_window_ref)
                 self.main_window.show()
+                apply_app_window_size_and_position(self.main_window)
                 self.main_window.raise_()
                 self.main_window.activateWindow()
         except Exception:

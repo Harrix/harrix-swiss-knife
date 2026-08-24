@@ -70,7 +70,7 @@ class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         if not MainWindow.objectName():
             MainWindow.setObjectName(u"MainWindow")
-        MainWindow.resize(972, 681)
+        MainWindow.resize(972, 574)
         self.actionExit = QAction(MainWindow)
         self.actionExit.setObjectName(u"actionExit")
         self.actionAbout = QAction(MainWindow)
@@ -317,7 +317,7 @@ class Ui_MainWindow(object):
         self.scrollArea_charts_process_habits.setWidgetResizable(True)
         self.scrollAreaWidgetContents_charts_process_habits = QWidget()
         self.scrollAreaWidgetContents_charts_process_habits.setObjectName(u"scrollAreaWidgetContents_charts_process_habits")
-        self.scrollAreaWidgetContents_charts_process_habits.setGeometry(QRect(0, 0, 96, 297))
+        self.scrollAreaWidgetContents_charts_process_habits.setGeometry(QRect(0, 0, 294, 425))
         self.verticalLayout_charts_process_habits_content = QVBoxLayout(self.scrollAreaWidgetContents_charts_process_habits)
         self.verticalLayout_charts_process_habits_content.setObjectName(u"verticalLayout_charts_process_habits_content")
         self.scrollArea_charts_process_habits.setWidget(self.scrollAreaWidgetContents_charts_process_habits)
@@ -426,7 +426,7 @@ _No docstring provided._
 def setupUi(self, MainWindow):
         if not MainWindow.objectName():
             MainWindow.setObjectName(u"MainWindow")
-        MainWindow.resize(972, 681)
+        MainWindow.resize(972, 574)
         self.actionExit = QAction(MainWindow)
         self.actionExit.setObjectName(u"actionExit")
         self.actionAbout = QAction(MainWindow)
@@ -673,7 +673,7 @@ def setupUi(self, MainWindow):
         self.scrollArea_charts_process_habits.setWidgetResizable(True)
         self.scrollAreaWidgetContents_charts_process_habits = QWidget()
         self.scrollAreaWidgetContents_charts_process_habits.setObjectName(u"scrollAreaWidgetContents_charts_process_habits")
-        self.scrollAreaWidgetContents_charts_process_habits.setGeometry(QRect(0, 0, 96, 297))
+        self.scrollAreaWidgetContents_charts_process_habits.setGeometry(QRect(0, 0, 294, 425))
         self.verticalLayout_charts_process_habits_content = QVBoxLayout(self.scrollAreaWidgetContents_charts_process_habits)
         self.verticalLayout_charts_process_habits_content.setObjectName(u"verticalLayout_charts_process_habits_content")
         self.scrollArea_charts_process_habits.setWidget(self.scrollAreaWidgetContents_charts_process_habits)

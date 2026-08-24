@@ -350,6 +350,12 @@ class AppWindowMixin:
         """
         apply_app_window_size_and_position(cast("QWidget", self), standard_width=standard_width)
 
+    def _show_placed_window(self, *, standard_width: int = 1920) -> None:
+        """Show the window, then place or maximize it on the screen under the cursor."""
+        widget = cast("QWidget", self)
+        widget.show()
+        apply_app_window_size_and_position(widget, standard_width=standard_width)
+
     def _validate_database_connection(self) -> bool:
         """Validate that database connection is available and open.
 
@@ -484,6 +490,10 @@ Otherwise fit the window into the available geometry and center it
 horizontally. Uses the screen under the cursor so a scaled or secondary
 display does not pin the window to the left.
 
+`showMaximized()` on a hidden window often opens as a normal window on the
+primary monitor. Pin the client rect to the target screen first, and only
+maximize after the native window is mapped.
+
 <details>
 <summary>Code:</summary>
 
@@ -492,9 +502,12 @@ def apply_app_window_size_and_position(widget: QWidget, *, standard_width: int =
     screen = QGuiApplication.screenAt(QCursor.pos()) or widget.screen() or QApplication.primaryScreen()
     if screen is None:
         return
+    if isinstance(screen, QScreen):
+        widget.setScreen(screen)
+    available = screen.availableGeometry()
     left, top, right, bottom = window_frame_margins(widget)
     target = compute_app_window_geometry(
-        screen.availableGeometry(),
+        available,
         standard_width=standard_width,
         frame_left=left,
         frame_top=top,
@@ -502,8 +515,13 @@ def apply_app_window_size_and_position(widget: QWidget, *, standard_width: int =
         frame_bottom=bottom,
     )
     if target is None:
-        widget.showMaximized()
+        widget.setGeometry(available)
+        if widget.isVisible():
+            QTimer.singleShot(0, lambda w=widget: _maximize_when_mapped(w))
+        else:
+            _install_maximize_on_first_show(widget)
         return
+    widget.setWindowState(widget.windowState() & ~Qt.WindowState.WindowMaximized)
     widget.setGeometry(target)
 ```
 

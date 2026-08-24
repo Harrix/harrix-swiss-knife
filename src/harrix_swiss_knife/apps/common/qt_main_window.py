@@ -4,6 +4,7 @@ Provides `AppWindowMixin` with methods that were previously duplicated in
 `finance/main.py`, `fitness/main.py`, `food/main.py`, and `habits/main.py`:
 
 - `_setup_window_size_and_position`
+- `_show_placed_window`
 - `_place_menu_bar_on_tab_row`
 - `_copy_table_selection_to_clipboard`
 - `_validate_database_connection`
@@ -21,8 +22,8 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, ClassVar, cast
 
 import harrix_pylib as h
-from PySide6.QtCore import QRect, Qt
-from PySide6.QtGui import QAction, QCursor, QGuiApplication
+from PySide6.QtCore import QEvent, QObject, QRect, Qt, QTimer
+from PySide6.QtGui import QAction, QCursor, QGuiApplication, QScreen
 from PySide6.QtWidgets import (
     QApplication,
     QFrame,
@@ -35,6 +36,7 @@ from PySide6.QtWidgets import (
     QTabWidget,
     QWidget,
 )
+from shiboken6 import isValid
 
 from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.ui_helpers import reveal_in_file_explorer
@@ -368,6 +370,12 @@ class AppWindowMixin:
         """
         apply_app_window_size_and_position(cast("QWidget", self), standard_width=standard_width)
 
+    def _show_placed_window(self, *, standard_width: int = 1920) -> None:
+        """Show the window, then place or maximize it on the screen under the cursor."""
+        widget = cast("QWidget", self)
+        widget.show()
+        apply_app_window_size_and_position(widget, standard_width=standard_width)
+
     def _validate_database_connection(self) -> bool:
         """Validate that database connection is available and open.
 
@@ -387,6 +395,22 @@ class AppWindowMixin:
         return True
 
 
+class _MaximizeOnFirstShowFilter(QObject):
+    """Maximize after the first `Show` so Windows maps the HWND on the target screen."""
+
+    def __init__(self, widget: QWidget) -> None:
+        super().__init__(widget)
+        self._widget = widget
+
+    def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
+        widget = self._widget
+        if watched is widget and event.type() == QEvent.Type.Show:
+            QTimer.singleShot(0, lambda w=widget: _maximize_when_mapped(w))
+            widget.removeEventFilter(self)
+            self.deleteLater()
+        return False
+
+
 def apply_app_window_size_and_position(widget: QWidget, *, standard_width: int = 1920) -> None:
     """Set widget size and position like food/finance/habits main Windows.
 
@@ -395,13 +419,20 @@ def apply_app_window_size_and_position(widget: QWidget, *, standard_width: int =
     horizontally. Uses the screen under the cursor so a scaled or secondary
     display does not pin the window to the left.
 
+    `showMaximized()` on a hidden window often opens as a normal window on the
+    primary monitor. Pin the client rect to the target screen first, and only
+    maximize after the native window is mapped.
+
     """
     screen = QGuiApplication.screenAt(QCursor.pos()) or widget.screen() or QApplication.primaryScreen()
     if screen is None:
         return
+    if isinstance(screen, QScreen):
+        widget.setScreen(screen)
+    available = screen.availableGeometry()
     left, top, right, bottom = window_frame_margins(widget)
     target = compute_app_window_geometry(
-        screen.availableGeometry(),
+        available,
         standard_width=standard_width,
         frame_left=left,
         frame_top=top,
@@ -409,8 +440,13 @@ def apply_app_window_size_and_position(widget: QWidget, *, standard_width: int =
         frame_bottom=bottom,
     )
     if target is None:
-        widget.showMaximized()
+        widget.setGeometry(available)
+        if widget.isVisible():
+            QTimer.singleShot(0, lambda w=widget: _maximize_when_mapped(w))
+        else:
+            _install_maximize_on_first_show(widget)
         return
+    widget.setWindowState(widget.windowState() & ~Qt.WindowState.WindowMaximized)
     widget.setGeometry(target)
 
 
@@ -509,3 +545,17 @@ def window_frame_margins(widget: QWidget) -> tuple[int, int, int, int]:
         title = _FALLBACK_TITLE_BAR_HEIGHT
     border = max(border, 0)
     return (border, title, border, border)
+
+
+def _install_maximize_on_first_show(widget: QWidget) -> None:
+    """Run `showMaximized` on the next `Show` if it is not already scheduled."""
+    if widget.findChildren(_MaximizeOnFirstShowFilter):
+        return
+    widget.installEventFilter(_MaximizeOnFirstShowFilter(widget))
+
+
+def _maximize_when_mapped(widget: QWidget) -> None:
+    """Maximize a window that is already visible on its pinned screen."""
+    if not isValid(widget) or not widget.isVisible():
+        return
+    widget.showMaximized()
