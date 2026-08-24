@@ -14,7 +14,11 @@ from harrix_swiss_knife.apps.habits.dashboard_widgets import HabitIconBadge
 from harrix_swiss_knife.apps.habits.database_manager import DatabaseManager
 from harrix_swiss_knife.apps.habits.habit_edit_dialog import HabitEditDialog
 from harrix_swiss_knife.apps.habits.habit_emoji_ai import parse_habit_emoji_response
-from harrix_swiss_knife.apps.habits.habit_emojis import default_habit_emoji, normalize_habit_emoji
+from harrix_swiss_knife.apps.habits.habit_emojis import (
+    capitalize_habit_name,
+    default_habit_emoji,
+    normalize_habit_emoji,
+)
 
 RECOVER_SQL = Path(__file__).resolve().parents[1] / "src/harrix_swiss_knife/apps/habits/recover.sql"
 
@@ -85,6 +89,41 @@ def test_default_habit_emoji_is_stable() -> None:
     assert default_habit_emoji(1) == default_habit_emoji(1)
     assert normalize_habit_emoji("") == default_habit_emoji(0)
     assert normalize_habit_emoji(" 🏃 ", habit_id=1) == "🏃"
+
+
+def test_capitalize_habit_name() -> None:
+    """First letter is uppercased; the rest of the name is unchanged."""
+    assert capitalize_habit_name("") == ""
+    assert capitalize_habit_name("   ") == ""
+    assert capitalize_habit_name("бегать") == "Бегать"
+    assert capitalize_habit_name("бегать утром") == "Бегать утром"
+    assert capitalize_habit_name("Walk") == "Walk"
+    assert capitalize_habit_name("  walk") == "Walk"
+
+
+def test_habit_edit_dialog_capitalizes_name(qapp: QApplication) -> None:
+    """Create/edit dialog returns a habit name with the first letter capitalized."""
+    assert qapp is not None
+    dialog = HabitEditDialog(app_config={})
+    dialog._name_edit.setText("бегать утром")
+    assert dialog.habit_name() == "Бегать утром"
+
+
+def test_add_habit_capitalizes_lowercase_name(habits_db: DatabaseManager) -> None:
+    """Insert stores the habit name with the first letter capitalized."""
+    assert habits_db.add_habit("бегать", is_bool=True)
+    row = habits_db.get_habits()[0]
+    assert row[1] == "Бегать"
+
+
+def test_update_habit_capitalizes_lowercase_name(habits_db: DatabaseManager) -> None:
+    """Update stores the habit name with the first letter capitalized."""
+    assert habits_db.add_habit("Walk", is_bool=True)
+    habit_id = int(habits_db.get_habits()[0][0])
+    assert habits_db.update_habit(habit_id, "читать", is_bool=True)
+    updated = habits_db.get_habit_by_id(habit_id)
+    assert updated is not None
+    assert updated[1] == "Читать"
 
 
 def test_add_habit_with_emoji(habits_db: DatabaseManager) -> None:

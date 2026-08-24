@@ -92,6 +92,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         - `bool`: `True` if successful, `False` otherwise.
 
         """
+        name = capitalize_habit_name(name)
         cleaned_emoji = (emoji or "").strip()
         query = "INSERT INTO habits (name, is_bool, emoji, sort_order) VALUES (:name, :is_bool, :emoji, :sort_order)"
         params = {
@@ -659,6 +660,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         - `bool`: `True` if successful, `False` otherwise.
 
         """
+        name = capitalize_habit_name(name)
         fields = ["name = :n", "is_bool = :is_bool"]
         params: dict[str, Any] = {
             "n": name,
@@ -876,6 +878,7 @@ Returns:
 
 ```python
 def add_habit(self, name: str, *, is_bool: bool | None = None, emoji: str = "") -> bool:
+        name = capitalize_habit_name(name)
         cleaned_emoji = (emoji or "").strip()
         query = "INSERT INTO habits (name, is_bool, emoji, sort_order) VALUES (:name, :is_bool, :emoji, :sort_order)"
         params = {
@@ -1771,6 +1774,7 @@ def update_habit(
         is_archived: bool | None = None,
         emoji: str | None = None,
     ) -> bool:
+        name = capitalize_habit_name(name)
         fields = ["name = :n", "is_bool = :is_bool"]
         params: dict[str, Any] = {
             "n": name,

@@ -15,6 +15,7 @@ from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.chart_operations import ChartOperationsBase
 from harrix_swiss_knife.apps.common.db_guard import requires_database
 from harrix_swiss_knife.apps.common.qt_mixins import AutoSaveMixin, DateMixin, TableOperations, ValidationMixin
+from harrix_swiss_knife.apps.habits.habit_emojis import capitalize_habit_name
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -52,15 +53,22 @@ class AutoSaveOperations(AutoSaveMixin):
         - `row_id` (`str`): Database ID of the row.
 
         """
-        name = model.data(model.index(row, 0)) or ""
+        current_name = str(model.data(model.index(row, 0)) or "")
+        name = capitalize_habit_name(current_name)
         emoji = model.data(model.index(row, 1)) or ""
         is_bool_str = model.data(model.index(row, 2)) or ""
         is_archived_str = model.data(model.index(row, 3)) or ""
 
         # Validate habit name
-        if not name.strip():
+        if not name:
             message_box.warning(None, "Validation Error", "Habit name cannot be empty")
             return
+        if current_name != name:
+            model.blockSignals(True)  # noqa: FBT003
+            try:
+                model.setData(model.index(row, 0), name)
+            finally:
+                model.blockSignals(False)  # noqa: FBT003
 
         # Convert is_bool_str to boolean or None
         # "Yes" -> True, "No" -> False, "" -> None
@@ -77,7 +85,7 @@ class AutoSaveOperations(AutoSaveMixin):
         # Update database
         if not self.db_manager.update_habit(
             int(row_id),
-            name.strip(),
+            name,
             is_bool=is_bool,
             is_archived=is_archived,
             emoji=str(emoji).strip(),

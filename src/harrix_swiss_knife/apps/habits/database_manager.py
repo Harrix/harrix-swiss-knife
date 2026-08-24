@@ -10,7 +10,11 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
 
 from harrix_swiss_knife.apps.common.qt_database_manager_base import QtSqliteDatabaseManagerBase
-from harrix_swiss_knife.apps.habits.habit_emojis import default_habit_emoji, normalize_habit_emoji
+from harrix_swiss_knife.apps.habits.habit_emojis import (
+    capitalize_habit_name,
+    default_habit_emoji,
+    normalize_habit_emoji,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -57,6 +61,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         - `bool`: `True` if successful, `False` otherwise.
 
         """
+        name = capitalize_habit_name(name)
         cleaned_emoji = (emoji or "").strip()
         query = "INSERT INTO habits (name, is_bool, emoji, sort_order) VALUES (:name, :is_bool, :emoji, :sort_order)"
         params = {
@@ -624,6 +629,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         - `bool`: `True` if successful, `False` otherwise.
 
         """
+        name = capitalize_habit_name(name)
         fields = ["name = :n", "is_bool = :is_bool"]
         params: dict[str, Any] = {
             "n": name,

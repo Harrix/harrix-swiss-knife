@@ -7,6 +7,14 @@ from harrix_swiss_knife.apps.common.emoji_presets import POPULAR_EMOJI_PRESETS
 HABIT_EMOJI_PRESETS: tuple[str, ...] = POPULAR_EMOJI_PRESETS
 
 
+def capitalize_habit_name(name: str) -> str:
+    """Return `name` stripped, with the first letter uppercased."""
+    cleaned = name.strip()
+    if not cleaned:
+        return cleaned
+    return cleaned[0].upper() + cleaned[1:]
+
+
 def default_habit_emoji(habit_id: int) -> str:
     """Return a stable preset emoji for a habit ID."""
     if not HABIT_EMOJI_PRESETS:

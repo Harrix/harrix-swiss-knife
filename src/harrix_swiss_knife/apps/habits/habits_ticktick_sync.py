@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import UTC, date, datetime, timedelta
 from typing import TYPE_CHECKING, Any
 
+from harrix_swiss_knife.apps.habits.habit_emojis import capitalize_habit_name
 from harrix_swiss_knife.apps.habits.ticktick_api import (
     FALLBACK_FROM_STAMP,
     iso_to_ticktick_stamp,
@@ -662,7 +663,7 @@ def _index_habits(
 def _latest_habit_id_by_name(db_manager: DatabaseManager, name: str) -> int | None:
     rows = db_manager.get_rows(
         "SELECT _id FROM habits WHERE name = :name ORDER BY _id DESC LIMIT 1",
-        {"name": name},
+        {"name": capitalize_habit_name(name)},
     )
     if not rows or rows[0][0] is None:
         return None

@@ -11,8 +11,30 @@ lang: en
 
 ## Contents
 
+- [🔧 Function `capitalize_habit_name`](#-function-capitalize_habit_name)
 - [🔧 Function `default_habit_emoji`](#-function-default_habit_emoji)
 - [🔧 Function `normalize_habit_emoji`](#-function-normalize_habit_emoji)
+
+</details>
+
+## 🔧 Function `capitalize_habit_name`
+
+```python
+def capitalize_habit_name(name: str) -> str
+```
+
+Return `name` stripped, with the first letter uppercased.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def capitalize_habit_name(name: str) -> str:
+    cleaned = name.strip()
+    if not cleaned:
+        return cleaned
+    return cleaned[0].upper() + cleaned[1:]
+```
 
 </details>
 
