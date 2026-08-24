@@ -31,6 +31,7 @@ lang: en
   - [⚙️ Method `on_clear_description`](#%EF%B8%8F-method-on_clear_description)
   - [⚙️ Method `on_copy_categories_as_text`](#%EF%B8%8F-method-on_copy_categories_as_text)
   - [⚙️ Method `on_delete_account`](#%EF%B8%8F-method-on_delete_account)
+  - [⚙️ Method `on_delete_currency`](#%EF%B8%8F-method-on_delete_currency)
   - [⚙️ Method `on_exchange_item_update_button_clicked`](#%EF%B8%8F-method-on_exchange_item_update_button_clicked)
   - [⚙️ Method `on_exchange_item_update_changed`](#%EF%B8%8F-method-on_exchange_item_update_changed)
   - [⚙️ Method `on_export_csv`](#%EF%B8%8F-method-on_export_csv)
@@ -642,35 +643,32 @@ class MainWindow(
 
     @requires_database()
     def on_add_currency(self) -> None:
-        """Add a new currency using database manager."""
+        """Add a new currency via modal dialog."""
+        if self.db_manager is None:
+            self._show_error("Error", "Database not initialized")
+            return
 
-        def get_and_validate() -> tuple[str | None, Any]:
-            code = self.lineEdit_currency_code.text().strip().upper()
-            name = self.lineEdit_currency_name.text().strip()
-            symbol = self.lineEdit_currency_symbol.text().strip()
-            subdivision = self.spinBox_subdivision.value()
-            if not code:
-                return ("Enter currency code", None)
-            if not name:
-                return ("Enter currency name", None)
-            if not symbol:
-                return ("Enter currency symbol", None)
-            if subdivision <= 0:
-                return ("Subdivision must be a positive number", None)
-            if self.db_manager is None:
-                return ("Database not initialized", None)
-            return (None, (code, name, symbol, subdivision))
+        dialog = CurrencyAddDialog(self)
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
 
-        def add_db(data: Any) -> bool:
-            code, name, symbol, subdivision = data
-            return bool(self.db_manager and self.db_manager.add_currency(code, name, symbol, subdivision))
+        result = dialog.get_result()
+        if result is None:
+            return
 
-        def on_success(_data: Any) -> None:
-            self._mark_currencies_changed()
-            self.update_all()
-            self._clear_currency_form()
-
-        self._add_record("currency", get_and_validate, add_db, on_success)
+        try:
+            if self.db_manager.add_currency(
+                str(result["code"]),
+                str(result["name"]),
+                str(result["symbol"]),
+                int(result["subdivision"]),
+            ):
+                self._mark_currencies_changed()
+                self.update_all()
+            else:
+                self._show_error("Error", "Failed to add currency")
+        except Exception as e:
+            self._show_error("Database Error", f"Failed to add currency: {e}")
 
     @requires_database()
     def on_add_exchange(self) -> None:
@@ -923,6 +921,32 @@ class MainWindow(
             return
 
         self.delete_record("accounts")
+
+    @requires_database()
+    def on_delete_currency(self) -> None:
+        """Delete the selected currency after confirmation."""
+        if self.db_manager is None:
+            self._show_error("Error", "Database not initialized")
+            return
+
+        record_id = self._get_selected_row_id("currencies")
+        if record_id is None:
+            message_box.warning(self, "Error", "Select a record to delete")
+            return
+
+        currency = self.db_manager.get_currency_by_id(record_id)
+        currency_label = currency[0] if currency else ""
+        reply = message_box.question(
+            self,
+            "Confirm Delete",
+            f"Are you sure you want to delete currency '{currency_label}'?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if reply != QMessageBox.StandardButton.Yes:
+            return
+
+        self.delete_record("currencies")
 
     @requires_database()
     def on_exchange_item_update_button_clicked(self) -> None:
@@ -1812,9 +1836,6 @@ class MainWindow(
         self._clear_category_selection()
         self._clear_category_suggestions()
 
-        # Currency form
-        self._clear_currency_form()
-
         # Exchange form
         self._clear_exchange_form()
 
@@ -1834,13 +1855,6 @@ class MainWindow(
         self._category_suggest_delegate.clear_suggestions()
         self.listView_categories.doItemsLayout()
         self.listView_categories.viewport().update()
-
-    def _clear_currency_form(self) -> None:
-        """Clear the currency addition form."""
-        self.lineEdit_currency_code.clear()
-        self.lineEdit_currency_name.clear()
-        self.lineEdit_currency_symbol.clear()
-        self.spinBox_subdivision.setValue(100)
 
     def _clear_exchange_form(self) -> None:
         """Clear the exchange addition form."""
@@ -1952,7 +1966,6 @@ class MainWindow(
 
         # Delete and refresh buttons for all tables
         tables_with_controls: dict[str, tuple[str, str]] = {
-            "currencies": ("pushButton_currencies_delete", "pushButton_currencies_refresh"),
             "currency_exchanges": ("pushButton_exchange_delete", "pushButton_exchange_refresh"),
             "exchange_rates": ("pushButton_rates_delete", "pushButton_rates_refresh"),
         }
@@ -1974,12 +1987,14 @@ class MainWindow(
         self.action_add_account.triggered.connect(self.on_add_account)
         self.action_accounts_refresh.triggered.connect(self.update_all)
         self.action_accounts_delete.triggered.connect(self.on_delete_account)
+        self.action_add_currency.triggered.connect(self.on_add_currency)
+        self.action_currencies_refresh.triggered.connect(self.update_all)
+        self.action_currencies_delete.triggered.connect(self.on_delete_currency)
         self.action_categories_refresh.triggered.connect(self.update_all)
         self.action_copy_categories_as_text.triggered.connect(self.on_copy_categories_as_text)
 
         # Add buttons
         self.pushButton_balance_check.clicked.connect(self._on_balance_check_clicked)
-        self.pushButton_currency_add.clicked.connect(self.on_add_currency)
         self.pushButton_exchange_add.clicked.connect(self.on_add_exchange)
 
         # Filter signals
@@ -2066,6 +2081,8 @@ class MainWindow(
 
         self.tableView_accounts.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.tableView_accounts.customContextMenuRequested.connect(self._show_accounts_table_context_menu)
+        self.tableView_currencies.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.tableView_currencies.customContextMenuRequested.connect(self._show_currencies_table_context_menu)
 
         # Install event filter to track mouse events on transactions table
         self.tableView_transactions.viewport().installEventFilter(self)
@@ -2213,6 +2230,32 @@ class MainWindow(
         proxy: QSortFilterProxyModel = QSortFilterProxyModel()
         proxy.setSourceModel(model)
         return proxy
+
+    def _currency_id_from_table_index(self, index: QModelIndex) -> int | None:
+        """Return currency database ID for a currencies table model index."""
+        if not index.isValid():
+            return None
+
+        proxy_model = self.models.get("currencies")
+        if proxy_model is None:
+            return None
+
+        source_model = proxy_model.sourceModel()
+        if source_model is None or not isinstance(source_model, QStandardItemModel):
+            return None
+
+        source_index = proxy_model.mapToSource(index)
+        if not source_index.isValid():
+            return None
+
+        row_id_item = source_model.verticalHeaderItem(source_index.row())
+        if row_id_item is None:
+            return None
+
+        try:
+            return int(row_id_item.text())
+        except (TypeError, ValueError):
+            return None
 
     def _dispose_models(self) -> None:
         """Detach all models from QTableView and delete them."""
@@ -5387,6 +5430,9 @@ class MainWindow(
         self.action_add_account.setText(f"➕ {self.action_add_account.text()}")  # noqa: RUF001
         self.action_accounts_refresh.setText(f"🔄 {self.action_accounts_refresh.text()}")
         self.action_accounts_delete.setText(f"🗑️ {self.action_accounts_delete.text()}")
+        self.action_add_currency.setText(f"➕ {self.action_add_currency.text()}")  # noqa: RUF001
+        self.action_currencies_refresh.setText(f"🔄 {self.action_currencies_refresh.text()}")
+        self.action_currencies_delete.setText(f"🗑️ {self.action_currencies_delete.text()}")
         self.action_categories_refresh.setText(f"🔄 {self.action_categories_refresh.text()}")
         self.action_copy_categories_as_text.setText(f"📋 {self.action_copy_categories_as_text.text()}")
         self.action_standard_items.setText(f"📋 {self.action_standard_items.text()}")
@@ -5430,10 +5476,7 @@ class MainWindow(
 
         # Set emoji for additional exchange and currency buttons
         self.pushButton_calculate_exchange.setText(f"🧮 {self.pushButton_calculate_exchange.text()}")
-        self.pushButton_currency_add.setText(f"➕ {self.pushButton_currency_add.text()}")  # noqa: RUF001
         self.pushButton_set_default_currency.setText(f"⭐ {self.pushButton_set_default_currency.text()}")
-        self.pushButton_currencies_delete.setText(f"🗑️ {self.pushButton_currencies_delete.text()}")
-        self.pushButton_currencies_refresh.setText(f"🔄 {self.pushButton_currencies_refresh.text()}")
 
         # Set emoji for exchange buttons
         self.pushButton_exchange_add.setText(f"➕ {self.pushButton_exchange_add.text()}")  # noqa: RUF001
@@ -5521,7 +5564,6 @@ class MainWindow(
         self.doubleSpinBox_exchange_from.setValue(100.0)
         self.doubleSpinBox_exchange_to.setValue(73.5)
         self.doubleSpinBox_exchange_rate.setValue(73.5)
-        self.spinBox_subdivision.setValue(100)
 
     def _show_accounts_table_context_menu(self, position: QPoint) -> None:
         """Show context menu on accounts table with edit and account commands."""
@@ -5672,6 +5714,28 @@ class MainWindow(
         )
 
         cast("Any", menu).exec(self.list_chart_categories.viewport().mapToGlobal(position))
+
+    def _show_currencies_table_context_menu(self, position: QPoint) -> None:
+        """Show context menu on currencies table with currency commands."""
+        index = self.tableView_currencies.indexAt(position)
+        currency_id = self._currency_id_from_table_index(index)
+        if currency_id is not None:
+            self.tableView_currencies.selectRow(index.row())
+
+        context_menu = QMenu(self)
+        context_menu.addAction(self.action_add_currency)
+        context_menu.addAction(self.action_currencies_refresh)
+        add_separator(context_menu)
+        self.action_currencies_delete.setEnabled(currency_id is not None)
+        context_menu.addAction(self.action_currencies_delete)
+        apply_leading_emoji_icons(context_menu)
+
+        viewport = self.tableView_currencies.viewport()
+        if viewport is None:
+            self.action_currencies_delete.setEnabled(True)
+            return
+        context_menu.exec_(viewport.mapToGlobal(position))
+        self.action_currencies_delete.setEnabled(True)
 
     def _show_no_data_label(self, layout: QLayout, text: str) -> None:
         """Show a message when no data is available for the chart.
@@ -7175,41 +7239,38 @@ def on_add_category(self) -> None:
 def on_add_currency(self) -> None
 ```
 
-Add a new currency using database manager.
+Add a new currency via modal dialog.
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def on_add_currency(self) -> None:
+        if self.db_manager is None:
+            self._show_error("Error", "Database not initialized")
+            return
 
-        def get_and_validate() -> tuple[str | None, Any]:
-            code = self.lineEdit_currency_code.text().strip().upper()
-            name = self.lineEdit_currency_name.text().strip()
-            symbol = self.lineEdit_currency_symbol.text().strip()
-            subdivision = self.spinBox_subdivision.value()
-            if not code:
-                return ("Enter currency code", None)
-            if not name:
-                return ("Enter currency name", None)
-            if not symbol:
-                return ("Enter currency symbol", None)
-            if subdivision <= 0:
-                return ("Subdivision must be a positive number", None)
-            if self.db_manager is None:
-                return ("Database not initialized", None)
-            return (None, (code, name, symbol, subdivision))
+        dialog = CurrencyAddDialog(self)
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
 
-        def add_db(data: Any) -> bool:
-            code, name, symbol, subdivision = data
-            return bool(self.db_manager and self.db_manager.add_currency(code, name, symbol, subdivision))
+        result = dialog.get_result()
+        if result is None:
+            return
 
-        def on_success(_data: Any) -> None:
-            self._mark_currencies_changed()
-            self.update_all()
-            self._clear_currency_form()
-
-        self._add_record("currency", get_and_validate, add_db, on_success)
+        try:
+            if self.db_manager.add_currency(
+                str(result["code"]),
+                str(result["name"]),
+                str(result["symbol"]),
+                int(result["subdivision"]),
+            ):
+                self._mark_currencies_changed()
+                self.update_all()
+            else:
+                self._show_error("Error", "Failed to add currency")
+        except Exception as e:
+            self._show_error("Database Error", f"Failed to add currency: {e}")
 ```
 
 </details>
@@ -7568,6 +7629,45 @@ def on_delete_account(self) -> None:
             return
 
         self.delete_record("accounts")
+```
+
+</details>
+
+### ⚙️ Method `on_delete_currency`
+
+```python
+def on_delete_currency(self) -> None
+```
+
+Delete the selected currency after confirmation.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def on_delete_currency(self) -> None:
+        if self.db_manager is None:
+            self._show_error("Error", "Database not initialized")
+            return
+
+        record_id = self._get_selected_row_id("currencies")
+        if record_id is None:
+            message_box.warning(self, "Error", "Select a record to delete")
+            return
+
+        currency = self.db_manager.get_currency_by_id(record_id)
+        currency_label = currency[0] if currency else ""
+        reply = message_box.question(
+            self,
+            "Confirm Delete",
+            f"Are you sure you want to delete currency '{currency_label}'?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if reply != QMessageBox.StandardButton.Yes:
+            return
+
+        self.delete_record("currencies")
 ```
 
 </details>

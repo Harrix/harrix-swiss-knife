@@ -37,6 +37,12 @@ class Ui_MainWindow(object):
         self.action_accounts_refresh.setObjectName(u"action_accounts_refresh")
         self.action_accounts_delete = QAction(MainWindow)
         self.action_accounts_delete.setObjectName(u"action_accounts_delete")
+        self.action_add_currency = QAction(MainWindow)
+        self.action_add_currency.setObjectName(u"action_add_currency")
+        self.action_currencies_refresh = QAction(MainWindow)
+        self.action_currencies_refresh.setObjectName(u"action_currencies_refresh")
+        self.action_currencies_delete = QAction(MainWindow)
+        self.action_currencies_delete.setObjectName(u"action_currencies_delete")
         self.action_categories_refresh = QAction(MainWindow)
         self.action_categories_refresh.setObjectName(u"action_categories_refresh")
         self.action_copy_categories_as_text = QAction(MainWindow)
@@ -524,118 +530,6 @@ class Ui_MainWindow(object):
 
 
         self.verticalLayout_8.addWidget(self.groupBox_default_currency)
-
-        self.groupBox_add_currency = QGroupBox(self.frame_currencies)
-        self.groupBox_add_currency.setObjectName(u"groupBox_add_currency")
-        self.groupBox_add_currency.setMinimumSize(QSize(0, 0))
-        self.verticalLayout_9 = QVBoxLayout(self.groupBox_add_currency)
-        self.verticalLayout_9.setObjectName(u"verticalLayout_9")
-        self.horizontalLayout_currency_code = QHBoxLayout()
-        self.horizontalLayout_currency_code.setObjectName(u"horizontalLayout_currency_code")
-        self.label_currency_code = QLabel(self.groupBox_add_currency)
-        self.label_currency_code.setObjectName(u"label_currency_code")
-        self.label_currency_code.setMinimumSize(QSize(61, 0))
-
-        self.horizontalLayout_currency_code.addWidget(self.label_currency_code)
-
-        self.lineEdit_currency_code = QLineEdit(self.groupBox_add_currency)
-        self.lineEdit_currency_code.setObjectName(u"lineEdit_currency_code")
-        self.lineEdit_currency_code.setMinimumSize(QSize(191, 0))
-
-        self.horizontalLayout_currency_code.addWidget(self.lineEdit_currency_code)
-
-
-        self.verticalLayout_9.addLayout(self.horizontalLayout_currency_code)
-
-        self.horizontalLayout_currency_name = QHBoxLayout()
-        self.horizontalLayout_currency_name.setObjectName(u"horizontalLayout_currency_name")
-        self.label_currency_name = QLabel(self.groupBox_add_currency)
-        self.label_currency_name.setObjectName(u"label_currency_name")
-        self.label_currency_name.setMinimumSize(QSize(61, 0))
-
-        self.horizontalLayout_currency_name.addWidget(self.label_currency_name)
-
-        self.lineEdit_currency_name = QLineEdit(self.groupBox_add_currency)
-        self.lineEdit_currency_name.setObjectName(u"lineEdit_currency_name")
-        self.lineEdit_currency_name.setMinimumSize(QSize(191, 0))
-
-        self.horizontalLayout_currency_name.addWidget(self.lineEdit_currency_name)
-
-
-        self.verticalLayout_9.addLayout(self.horizontalLayout_currency_name)
-
-        self.horizontalLayout_currency_symbol = QHBoxLayout()
-        self.horizontalLayout_currency_symbol.setObjectName(u"horizontalLayout_currency_symbol")
-        self.label_currency_symbol = QLabel(self.groupBox_add_currency)
-        self.label_currency_symbol.setObjectName(u"label_currency_symbol")
-        self.label_currency_symbol.setMinimumSize(QSize(61, 0))
-
-        self.horizontalLayout_currency_symbol.addWidget(self.label_currency_symbol)
-
-        self.lineEdit_currency_symbol = QLineEdit(self.groupBox_add_currency)
-        self.lineEdit_currency_symbol.setObjectName(u"lineEdit_currency_symbol")
-        self.lineEdit_currency_symbol.setMinimumSize(QSize(191, 0))
-
-        self.horizontalLayout_currency_symbol.addWidget(self.lineEdit_currency_symbol)
-
-
-        self.verticalLayout_9.addLayout(self.horizontalLayout_currency_symbol)
-
-        self.horizontalLayout_13 = QHBoxLayout()
-        self.horizontalLayout_13.setObjectName(u"horizontalLayout_13")
-        self.label_subdivision = QLabel(self.groupBox_add_currency)
-        self.label_subdivision.setObjectName(u"label_subdivision")
-
-        self.horizontalLayout_13.addWidget(self.label_subdivision)
-
-        self.spinBox_subdivision = QSpinBox(self.groupBox_add_currency)
-        self.spinBox_subdivision.setObjectName(u"spinBox_subdivision")
-        self.spinBox_subdivision.setMinimumSize(QSize(191, 0))
-        self.spinBox_subdivision.setMaximum(1000000000)
-
-        self.horizontalLayout_13.addWidget(self.spinBox_subdivision)
-
-
-        self.verticalLayout_9.addLayout(self.horizontalLayout_13)
-
-        self.horizontalLayout_currency_add = QHBoxLayout()
-        self.horizontalLayout_currency_add.setObjectName(u"horizontalLayout_currency_add")
-        self.horizontalSpacer_currency = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
-
-        self.horizontalLayout_currency_add.addItem(self.horizontalSpacer_currency)
-
-        self.pushButton_currency_add = QPushButton(self.groupBox_add_currency)
-        self.pushButton_currency_add.setObjectName(u"pushButton_currency_add")
-
-        self.horizontalLayout_currency_add.addWidget(self.pushButton_currency_add)
-
-
-        self.verticalLayout_9.addLayout(self.horizontalLayout_currency_add)
-
-
-        self.verticalLayout_8.addWidget(self.groupBox_add_currency)
-
-        self.groupBox_currency_commands = QGroupBox(self.frame_currencies)
-        self.groupBox_currency_commands.setObjectName(u"groupBox_currency_commands")
-        self.verticalLayout_currency_commands = QVBoxLayout(self.groupBox_currency_commands)
-        self.verticalLayout_currency_commands.setObjectName(u"verticalLayout_currency_commands")
-        self.horizontalLayout_currency_commands = QHBoxLayout()
-        self.horizontalLayout_currency_commands.setObjectName(u"horizontalLayout_currency_commands")
-        self.pushButton_currencies_delete = QPushButton(self.groupBox_currency_commands)
-        self.pushButton_currencies_delete.setObjectName(u"pushButton_currencies_delete")
-
-        self.horizontalLayout_currency_commands.addWidget(self.pushButton_currencies_delete)
-
-        self.pushButton_currencies_refresh = QPushButton(self.groupBox_currency_commands)
-        self.pushButton_currencies_refresh.setObjectName(u"pushButton_currencies_refresh")
-
-        self.horizontalLayout_currency_commands.addWidget(self.pushButton_currencies_refresh)
-
-
-        self.verticalLayout_currency_commands.addLayout(self.horizontalLayout_currency_commands)
-
-
-        self.verticalLayout_8.addWidget(self.groupBox_currency_commands)
 
         self.verticalSpacer_6 = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
@@ -1504,6 +1398,10 @@ class Ui_MainWindow(object):
         self.menuCommands.addAction(self.action_accounts_refresh)
         self.menuCommands.addAction(self.action_accounts_delete)
         self.menuCommands.addSeparator()
+        self.menuCommands.addAction(self.action_add_currency)
+        self.menuCommands.addAction(self.action_currencies_refresh)
+        self.menuCommands.addAction(self.action_currencies_delete)
+        self.menuCommands.addSeparator()
         self.menuCommands.addAction(self.action_standard_items)
         self.menuHelp.addAction(self.actionAbout)
 
@@ -1521,6 +1419,9 @@ class Ui_MainWindow(object):
         self.action_add_account.setText(QCoreApplication.translate("MainWindow", u"Add Account", None))
         self.action_accounts_refresh.setText(QCoreApplication.translate("MainWindow", u"Refresh Accounts", None))
         self.action_accounts_delete.setText(QCoreApplication.translate("MainWindow", u"Delete Account", None))
+        self.action_add_currency.setText(QCoreApplication.translate("MainWindow", u"Add Currency", None))
+        self.action_currencies_refresh.setText(QCoreApplication.translate("MainWindow", u"Refresh Currencies", None))
+        self.action_currencies_delete.setText(QCoreApplication.translate("MainWindow", u"Delete Currency", None))
         self.action_categories_refresh.setText(QCoreApplication.translate("MainWindow", u"Refresh Categories", None))
         self.action_copy_categories_as_text.setText(QCoreApplication.translate("MainWindow", u"Copy Categories As Text", None))
         self.action_standard_items.setText(QCoreApplication.translate("MainWindow", u"Standard Items", None))
@@ -1571,18 +1472,6 @@ class Ui_MainWindow(object):
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_accounts), QCoreApplication.translate("MainWindow", u"Accounts", None))
         self.groupBox_default_currency.setTitle(QCoreApplication.translate("MainWindow", u"Default Currency", None))
         self.pushButton_set_default_currency.setText(QCoreApplication.translate("MainWindow", u"Set Default", None))
-        self.groupBox_add_currency.setTitle(QCoreApplication.translate("MainWindow", u"Add New Currency", None))
-        self.label_currency_code.setText(QCoreApplication.translate("MainWindow", u"Code:", None))
-        self.lineEdit_currency_code.setPlaceholderText(QCoreApplication.translate("MainWindow", u"USD, EUR, RUB", None))
-        self.label_currency_name.setText(QCoreApplication.translate("MainWindow", u"Name:", None))
-        self.lineEdit_currency_name.setPlaceholderText(QCoreApplication.translate("MainWindow", u"US Dollar", None))
-        self.label_currency_symbol.setText(QCoreApplication.translate("MainWindow", u"Symbol:", None))
-        self.lineEdit_currency_symbol.setPlaceholderText(QCoreApplication.translate("MainWindow", u"$, \u20ac, \u20bd", None))
-        self.label_subdivision.setText(QCoreApplication.translate("MainWindow", u"Subdivision:", None))
-        self.pushButton_currency_add.setText(QCoreApplication.translate("MainWindow", u"Add Currency", None))
-        self.groupBox_currency_commands.setTitle(QCoreApplication.translate("MainWindow", u"Commands", None))
-        self.pushButton_currencies_delete.setText(QCoreApplication.translate("MainWindow", u"Delete", None))
-        self.pushButton_currencies_refresh.setText(QCoreApplication.translate("MainWindow", u"Refresh", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_categories), QCoreApplication.translate("MainWindow", u"Categories And Currencies", None))
         self.groupBox_exchange_operation.setTitle(QCoreApplication.translate("MainWindow", u"Currency Exchange", None))
         self.label_exchange_from.setText(QCoreApplication.translate("MainWindow", u"From:", None))

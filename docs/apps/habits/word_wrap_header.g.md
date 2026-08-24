@@ -44,6 +44,16 @@ class WordWrapHeaderView(QHeaderView):
         wrap_width: int | None = None,
         wrap_first_section: bool = False,
     ) -> None:
+        """Create a wrapping header.
+
+        Args:
+
+        - `orientation` (`Qt.Orientation`): Header orientation.
+        - `parent` (`QWidget | None`): Parent widget. Defaults to `None`.
+        - `wrap_width` (`int | None`): Preferred wrap width for habit columns. Defaults to `None`.
+        - `wrap_first_section` (`bool`): Also wrap the first section. Defaults to `False`.
+
+        """
         super().__init__(orientation, parent)
         self._wrap_width = wrap_width
         self._wrap_first_section = wrap_first_section
@@ -138,7 +148,14 @@ class WordWrapHeaderView(QHeaderView):
 def __init__(self, orientation: Qt.Orientation, parent: QWidget | None = None, *, wrap_width: int | None = None, wrap_first_section: bool = False) -> None
 ```
 
-_No docstring provided._
+Create a wrapping header.
+
+Args:
+
+- `orientation` (`Qt.Orientation`): Header orientation.
+- `parent` (`QWidget | None`): Parent widget. Defaults to `None`.
+- `wrap_width` (`int | None`): Preferred wrap width for habit columns. Defaults to `None`.
+- `wrap_first_section` (`bool`): Also wrap the first section. Defaults to `False`.
 
 <details>
 <summary>Code:</summary>
