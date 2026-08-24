@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -18,6 +19,13 @@ def _bothub_pair_config() -> dict[str, Any]:
         "bothub": {"base_url": "https://bothub.chat/api/v2/openai/v1", "model": "gpt-5.5"},
         "bothub_ru": {"base_url": "https://openai.bothub.ru/v1", "model": "gpt-5.5"},
     }
+
+
+def _probe_hosts(*up_hosts: str) -> Callable[[str, str | None], bool]:
+    def probe(url: str, _proxy: str | None) -> bool:
+        return any(host in url for host in up_hosts)
+
+    return probe
 
 
 def test_prepare_does_not_switch_when_current_site_is_up() -> None:
@@ -38,12 +46,25 @@ def test_prepare_switches_once_when_current_site_is_down() -> None:
     persisted: list[tuple[str, str | None]] = []
     switched = prepare_bothub_router(
         config,
-        probe=lambda _url, _proxy: False,
+        probe=_probe_hosts("bothub.ru"),
         persist=lambda provider, speech: persisted.append((provider, speech)),
     )
     assert switched == "bothub.ru"
     assert get_chat_provider(config) == "bothub.ru"
     assert persisted == [("bothub.ru", None)]
+
+
+def test_prepare_keeps_old_provider_when_both_sites_are_down() -> None:
+    config = _bothub_pair_config()
+    persisted: list[str] = []
+    switched = prepare_bothub_router(
+        config,
+        probe=lambda _url, _proxy: False,
+        persist=lambda provider, _speech: persisted.append(provider),
+    )
+    assert switched is None
+    assert get_chat_provider(config) == "bothub"
+    assert persisted == []
 
 
 def test_prepare_does_not_switch_openai() -> None:
@@ -66,7 +87,7 @@ def test_prepare_from_bothub_ru_switches_to_bothub() -> None:
     config["ai"]["provider"] = "bothub.ru"
     switched = prepare_bothub_router(
         config,
-        probe=lambda _url, _proxy: False,
+        probe=_probe_hosts("bothub.chat"),
         persist=lambda _provider, _speech: None,
     )
     assert switched == "bothub"
@@ -79,7 +100,7 @@ def test_prepare_updates_speech_provider_when_it_is_a_bothub_router() -> None:
     persisted: list[tuple[str, str | None]] = []
     prepare_bothub_router(
         config,
-        probe=lambda _url, _proxy: False,
+        probe=_probe_hosts("bothub.ru"),
         persist=lambda provider, speech: persisted.append((provider, speech)),
     )
     assert config["ai"]["speech_provider"] == "bothub.ru"

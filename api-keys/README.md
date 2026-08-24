@@ -94,7 +94,7 @@ Supported `provider` values: `bothub`, `bothub.ru`, `openai`, `anthropic`, `gemi
 
 - `speech_provider` empty means the same as `provider`.
 - Anthropic has no speech-to-text API: set `speech_provider` to `openai`, `gemini`, `bothub`, or `bothub.ru` for voice features.
-- `bothub` and `bothub.ru` are interchangeable routers. Before each AI request the app probes the current site (`bothub.chat` or `bothub.ru`). If it is unreachable and the other key is set, `ai.provider` is rewritten once to the other router and the request is sent there. A failed request on the fallback does not switch again; the next independent AI call can failover again.
+- `bothub` and `bothub.ru` are interchangeable routers. Before each AI request the app probes the current site (`bothub.chat` or `bothub.ru`). If it is unreachable, the other key is set, and the other site answers, `ai.provider` is rewritten once to that router. If the other site is also down, `config.json` stays on the previous provider. The next independent AI call can try failover again.
 - Copy the matching `*-api-key.example.txt` → `*-api-key.txt` and paste the key (one line).
 
 If `ai` is omitted, the app keeps the previous BotHub-only behavior.

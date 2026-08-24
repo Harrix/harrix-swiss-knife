@@ -66,10 +66,11 @@ def persist_ai_provider(
 def prepare_bothub_router(config: dict[str, Any], *, for_speech: bool = False, proxy_url: str | None = None, probe: Callable[[str, str | None], bool] | None = None, persist: Callable[[ProviderName, str | None], None] | None = None) -> ProviderName | None
 ```
 
-If the active BotHub site is down, switch once to the other and persist it.
+If the active BotHub site is down, switch once to the other when it is up.
 
-Does not switch back when the other site is also down. The next independent
-AI request can failover again.
+Persists the new router only after the other site answers. If both sites
+are down, `config.json` stays on the previous provider. The next
+independent AI request can try failover again.
 
 Args:
 
@@ -105,6 +106,8 @@ def prepare_bothub_router(
 
     check = probe or probe_bothub_site
     if check(BOTHUB_PROBE_URLS[current], proxy_url):
+        return None
+    if not check(BOTHUB_PROBE_URLS[alternate], proxy_url):
         return None
 
     _apply_router_in_memory(config, alternate)

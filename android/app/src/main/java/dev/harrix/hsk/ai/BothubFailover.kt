@@ -7,6 +7,7 @@ import java.util.concurrent.TimeUnit
 
 /**
  * One-shot BotHub site failover when bothub.chat or bothub.ru is unreachable.
+ * Switches only when the other site answers; otherwise keeps the previous router.
  * Mirrors desktop `harrix_swiss_knife.integrations.ai.bothub_failover`.
  */
 object BothubFailover {
@@ -23,6 +24,9 @@ object BothubFailover {
             return null
         }
         if (probe(probeUrl(current))) {
+            return null
+        }
+        if (!probe(probeUrl(alternate))) {
             return null
         }
         val speechToWrite = AiConfig.speechProviderToPersistAfterSwitch(alternate)
