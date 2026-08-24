@@ -11,6 +11,7 @@ from PySide6.QtWidgets import QApplication, QMenuBar, QWidget
 from harrix_swiss_knife.apps.common.qt_main_window import (
     apply_app_window_size_and_position,
     compute_app_window_geometry,
+    compute_maximize_pin_geometry,
     resolve_window_menu_bar,
     window_frame_margins,
 )
@@ -60,7 +61,13 @@ def test_apply_pins_hidden_window_to_secondary_screen_before_maximize(
     widget.setWindowFlags(Qt.WindowType.Window)
     apply_app_window_size_and_position(widget)
     assert not widget.isVisible()
-    assert widget.geometry() == QRect(1920, 0, 1920, 1080)
+    left, top, right, bottom = window_frame_margins(widget)
+    assert widget.geometry() == QRect(
+        1920 + left,
+        top,
+        1920 - left - right,
+        1080 - top - bottom,
+    )
     assert not widget.windowState() & Qt.WindowState.WindowMaximized
     widget.show()
     qapp.processEvents()
@@ -85,6 +92,17 @@ def test_apply_centers_frameless_window_on_secondary_ultrawide(
     assert widget.geometry() == QRect(1920 + 760, 80, 1920, 1360)
     assert not widget.windowState() & Qt.WindowState.WindowMaximized
     widget.close()
+
+
+def test_compute_maximize_pin_geometry_reserves_frame() -> None:
+    """Pinning for maximize must leave room for the title bar and borders."""
+    assert compute_maximize_pin_geometry(
+        QRect(0, 0, 3840, 2064),
+        frame_left=13,
+        frame_top=58,
+        frame_right=13,
+        frame_bottom=13,
+    ) == QRect(13, 58, 3814, 1993)
 
 
 def test_compute_app_window_geometry_maximizes_on_standard_1080p() -> None:

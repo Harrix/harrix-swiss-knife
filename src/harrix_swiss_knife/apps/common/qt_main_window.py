@@ -440,7 +440,15 @@ def apply_app_window_size_and_position(widget: QWidget, *, standard_width: int =
         frame_bottom=bottom,
     )
     if target is None:
-        widget.setGeometry(available)
+        widget.setGeometry(
+            compute_maximize_pin_geometry(
+                available,
+                frame_left=left,
+                frame_top=top,
+                frame_right=right,
+                frame_bottom=bottom,
+            )
+        )
         if widget.isVisible():
             QTimer.singleShot(0, lambda w=widget: _maximize_when_mapped(w))
         else:
@@ -491,6 +499,43 @@ def compute_app_window_geometry(
     x = available.x() + max(0, frame_left) + (inner_width - window_width) // 2
     y = available.y() + max(0, frame_top)
     return QRect(x, y, window_width, inner_height)
+
+
+def compute_maximize_pin_geometry(
+    available: QRect,
+    *,
+    frame_left: int = 0,
+    frame_top: int = 0,
+    frame_right: int = 0,
+    frame_bottom: int = 0,
+) -> QRect:
+    """Return a client rect that fits in `available` after window-frame extents.
+
+    Pinning with the full work area as the client rect makes Windows reject
+    `setGeometry` (title bar and borders no longer fit) and logs
+    `QWindowsWindow::setGeometry`.
+
+    Args:
+
+    - `available` (`QRect`): Work area of the target screen (excludes the taskbar).
+    - `frame_left` / `frame_top` / `frame_right` / `frame_bottom` (`int`):
+      Window-frame extents in logical pixels.
+
+    Returns:
+
+    - `QRect`: Client geometry in global logical coordinates.
+
+    """
+    left = max(0, frame_left)
+    top = max(0, frame_top)
+    right = max(0, frame_right)
+    bottom = max(0, frame_bottom)
+    return QRect(
+        available.x() + left,
+        available.y() + top,
+        max(1, available.width() - left - right),
+        max(1, available.height() - top - bottom),
+    )
 
 
 def resolve_window_menu_bar(window: QWidget) -> QMenuBar | None:
