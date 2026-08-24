@@ -547,37 +547,46 @@ class MainWindow(
 
     @requires_database()
     def on_add_account(self) -> None:
-        """Add a new account using database manager."""
+        """Add a new account via modal dialog."""
+        if self.db_manager is None:
+            self._show_error("Error", "Database not initialized")
+            return
 
-        def get_and_validate() -> tuple[str | None, Any]:
-            name = self.lineEdit_account_name.text().strip()
-            balance = self.doubleSpinBox_account_balance.value()
-            currency_code = self.comboBox_account_currency.currentText()
-            is_liquid = self.checkBox_is_liquid.isChecked()
-            is_cash = self.checkBox_is_cash.isChecked()
-            if not name:
-                return ("Enter account name", None)
-            if not currency_code:
-                return ("Select a currency", None)
-            if self.db_manager is None:
-                return ("Database not initialized", None)
-            currency_info = self.db_manager.get_currency_by_code(currency_code)
-            if not currency_info:
-                return (f"Currency '{currency_code}' not found", None)
-            return (None, (name, balance, currency_info[0], is_liquid, is_cash))
+        currencies = [row[1] for row in self.db_manager.get_all_currencies()]
+        if not currencies:
+            self._show_error("Error", "Add a currency before creating an account")
+            return
 
-        def add_db(data: Any) -> bool:
-            name, balance, currency_id, is_liquid, is_cash = data
-            return bool(
-                self.db_manager
-                and self.db_manager.add_account(name, balance, currency_id, is_liquid=is_liquid, is_cash=is_cash)
-            )
+        dialog = AccountEditDialog(
+            self,
+            currencies=currencies,
+            default_currency_code=self.db_manager.get_default_currency(),
+        )
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
 
-        def on_success(_data: Any) -> None:
-            self.update_all()
-            self._clear_account_form()
+        result = dialog.get_result()
+        if result.get("action") != "save":
+            return
 
-        self._add_record("account", get_and_validate, add_db, on_success)
+        currency_info = self.db_manager.get_currency_by_code(result["currency_code"])
+        if not currency_info:
+            self._show_error("Error", "Currency not found")
+            return
+
+        try:
+            if self.db_manager.add_account(
+                result["name"],
+                result["balance"],
+                currency_info[0],
+                is_liquid=result["is_liquid"],
+                is_cash=result["is_cash"],
+            ):
+                self.update_all()
+            else:
+                self._show_error("Error", "Failed to add account")
+        except Exception as e:
+            self._show_error("Database Error", f"Failed to add account: {e}")
 
     @requires_database()
     def on_add_as_text_with_ai(
@@ -1411,6 +1420,32 @@ class MainWindow(
             self.label_yesterday_expense.setText(f"{format_amount('0.00')}₽")
             self._update_finance_dashboard_today_expense([], default_code="", zero_text=f"{format_amount('0.00')}₽")
 
+    def _account_id_from_table_index(self, index: QModelIndex) -> int | None:
+        """Return account database ID for an accounts table model index."""
+        if not index.isValid():
+            return None
+
+        proxy_model = self.models.get("accounts")
+        if proxy_model is None:
+            return None
+
+        source_model = proxy_model.sourceModel()
+        if source_model is None or not isinstance(source_model, QStandardItemModel):
+            return None
+
+        source_index = proxy_model.mapToSource(index)
+        if not source_index.isValid():
+            return None
+
+        row_id_item = source_model.verticalHeaderItem(source_index.row())
+        if row_id_item is None:
+            return None
+
+        try:
+            return int(row_id_item.text())
+        except (TypeError, ValueError):
+            return None
+
     def _add_average_salary_series_controls(self) -> None:
         """Add compact series checkboxes under the Average Salary chart."""
         row = QWidget()
@@ -1740,13 +1775,6 @@ class MainWindow(
             self._balance_check_worker = None
         self.pushButton_balance_check.setEnabled(True)
 
-    def _clear_account_form(self) -> None:
-        """Clear the account addition form."""
-        self.lineEdit_account_name.clear()
-        self.doubleSpinBox_account_balance.setValue(0.0)
-        self.checkBox_is_liquid.setChecked(True)
-        self.checkBox_is_cash.setChecked(False)
-
     def _clear_all_forms(self) -> None:
         """Clear all input forms."""
         # Transaction form
@@ -1756,9 +1784,6 @@ class MainWindow(
         self.lineEdit_tag.clear()
         self._clear_category_selection()
         self._clear_category_suggestions()
-
-        # Account form
-        self._clear_account_form()
 
         # Currency form
         self._clear_currency_form()
@@ -1920,11 +1945,11 @@ class MainWindow(
 
         # Category commands (menu bar)
         self.action_add_category.triggered.connect(self.on_add_category)
+        self.action_add_account.triggered.connect(self.on_add_account)
         self.action_categories_refresh.triggered.connect(self.update_all)
         self.action_copy_categories_as_text.triggered.connect(self.on_copy_categories_as_text)
 
         # Add buttons
-        self.pushButton_account_add.clicked.connect(self.on_add_account)
         self.pushButton_balance_check.clicked.connect(self._on_balance_check_clicked)
         self.pushButton_currency_add.clicked.connect(self.on_add_currency)
         self.pushButton_exchange_add.clicked.connect(self.on_add_exchange)
@@ -2010,6 +2035,9 @@ class MainWindow(
         self.tableView_categories.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.tableView_categories.customContextMenuRequested.connect(self._show_categories_table_context_menu)
         self.tableView_categories.setSortingEnabled(True)
+
+        self.tableView_accounts.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.tableView_accounts.customContextMenuRequested.connect(self._show_accounts_table_context_menu)
 
         # Install event filter to track mouse events on transactions table
         self.tableView_transactions.viewport().installEventFilter(self)
@@ -5328,6 +5356,7 @@ class MainWindow(
         self.action_transactions_refresh.setText(f"🔄 {self.action_transactions_refresh.text()}")
         self.action_transactions_show_all_records.setText("📊 Show All Transactions")
         self.action_add_category.setText(f"➕ {self.action_add_category.text()}")  # noqa: RUF001
+        self.action_add_account.setText(f"➕ {self.action_add_account.text()}")  # noqa: RUF001
         self.action_categories_refresh.setText(f"🔄 {self.action_categories_refresh.text()}")
         self.action_copy_categories_as_text.setText(f"📋 {self.action_copy_categories_as_text.text()}")
         self.action_standard_items.setText(f"📋 {self.action_standard_items.text()}")
@@ -5377,7 +5406,6 @@ class MainWindow(
         self.pushButton_currencies_refresh.setText(f"🔄 {self.pushButton_currencies_refresh.text()}")
 
         # Set emoji for account buttons
-        self.pushButton_account_add.setText(f"➕ {self.pushButton_account_add.text()}")  # noqa: RUF001
         self.pushButton_accounts_delete.setText(f"🗑️ {self.pushButton_accounts_delete.text()}")
         self.pushButton_accounts_refresh.setText(f"🔄 {self.pushButton_accounts_refresh.text()}")
 
@@ -5468,6 +5496,30 @@ class MainWindow(
         self.doubleSpinBox_exchange_to.setValue(73.5)
         self.doubleSpinBox_exchange_rate.setValue(73.5)
         self.spinBox_subdivision.setValue(100)
+
+    def _show_accounts_table_context_menu(self, position: QPoint) -> None:
+        """Show context menu on accounts table with edit/delete and add account."""
+        index = self.tableView_accounts.indexAt(position)
+        account_id = self._account_id_from_table_index(index)
+        if account_id is not None:
+            self.tableView_accounts.selectRow(index.row())
+
+        context_menu = QMenu(self)
+        if account_id is not None:
+            edit_action = context_menu.addAction(LABEL_EDIT)
+            edit_action.triggered.connect(partial(self._on_account_double_clicked, index))
+        add_separator(context_menu)
+        context_menu.addAction(self.action_add_account)
+        delete_action = add_delete_action(context_menu)
+        delete_action.setEnabled(account_id is not None)
+        if account_id is not None:
+            delete_action.triggered.connect(partial(self.delete_record, "accounts"))
+        apply_leading_emoji_icons(context_menu)
+
+        viewport = self.tableView_accounts.viewport()
+        if viewport is None:
+            return
+        context_menu.exec_(viewport.mapToGlobal(position))
 
     def _show_amount_context_menu(self, position: QPoint) -> None:
         """Show context menu for amount spin box with standard edit actions plus calculator."""
@@ -6168,7 +6220,6 @@ class MainWindow(
 
             for combo in [
                 self.comboBox_currency,
-                self.comboBox_account_currency,
                 self.comboBox_exchange_from,
                 self.comboBox_exchange_to,
                 self.comboBox_default_currency,
@@ -6221,7 +6272,6 @@ class MainWindow(
             default_currency: str = self.db_manager.get_default_currency()
             for combo in [
                 self.comboBox_currency,
-                self.comboBox_account_currency,
                 self.comboBox_exchange_from,
                 self.comboBox_default_currency,
             ]:
@@ -6964,43 +7014,52 @@ def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
 def on_add_account(self) -> None
 ```
 
-Add a new account using database manager.
+Add a new account via modal dialog.
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def on_add_account(self) -> None:
+        if self.db_manager is None:
+            self._show_error("Error", "Database not initialized")
+            return
 
-        def get_and_validate() -> tuple[str | None, Any]:
-            name = self.lineEdit_account_name.text().strip()
-            balance = self.doubleSpinBox_account_balance.value()
-            currency_code = self.comboBox_account_currency.currentText()
-            is_liquid = self.checkBox_is_liquid.isChecked()
-            is_cash = self.checkBox_is_cash.isChecked()
-            if not name:
-                return ("Enter account name", None)
-            if not currency_code:
-                return ("Select a currency", None)
-            if self.db_manager is None:
-                return ("Database not initialized", None)
-            currency_info = self.db_manager.get_currency_by_code(currency_code)
-            if not currency_info:
-                return (f"Currency '{currency_code}' not found", None)
-            return (None, (name, balance, currency_info[0], is_liquid, is_cash))
+        currencies = [row[1] for row in self.db_manager.get_all_currencies()]
+        if not currencies:
+            self._show_error("Error", "Add a currency before creating an account")
+            return
 
-        def add_db(data: Any) -> bool:
-            name, balance, currency_id, is_liquid, is_cash = data
-            return bool(
-                self.db_manager
-                and self.db_manager.add_account(name, balance, currency_id, is_liquid=is_liquid, is_cash=is_cash)
-            )
+        dialog = AccountEditDialog(
+            self,
+            currencies=currencies,
+            default_currency_code=self.db_manager.get_default_currency(),
+        )
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
 
-        def on_success(_data: Any) -> None:
-            self.update_all()
-            self._clear_account_form()
+        result = dialog.get_result()
+        if result.get("action") != "save":
+            return
 
-        self._add_record("account", get_and_validate, add_db, on_success)
+        currency_info = self.db_manager.get_currency_by_code(result["currency_code"])
+        if not currency_info:
+            self._show_error("Error", "Currency not found")
+            return
+
+        try:
+            if self.db_manager.add_account(
+                result["name"],
+                result["balance"],
+                currency_info[0],
+                is_liquid=result["is_liquid"],
+                is_cash=result["is_cash"],
+            ):
+                self.update_all()
+            else:
+                self._show_error("Error", "Failed to add account")
+        except Exception as e:
+            self._show_error("Database Error", f"Failed to add account: {e}")
 ```
 
 </details>

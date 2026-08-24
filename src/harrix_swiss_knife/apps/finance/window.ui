@@ -665,147 +665,6 @@
            </property>
            <layout class="QVBoxLayout" name="verticalLayout_21">
             <item>
-             <widget class="QGroupBox" name="groupBox_add_account">
-              <property name="title">
-               <string>Add New Account</string>
-              </property>
-              <layout class="QVBoxLayout" name="verticalLayout_add_account">
-               <item>
-                <layout class="QHBoxLayout" name="horizontalLayout_account_name">
-                 <item>
-                  <widget class="QLabel" name="label_account_name">
-                   <property name="minimumSize">
-                    <size>
-                     <width>61</width>
-                     <height>0</height>
-                    </size>
-                   </property>
-                   <property name="text">
-                    <string>Name:</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QLineEdit" name="lineEdit_account_name">
-                   <property name="minimumSize">
-                    <size>
-                     <width>170</width>
-                     <height>0</height>
-                    </size>
-                   </property>
-                  </widget>
-                 </item>
-                </layout>
-               </item>
-               <item>
-                <layout class="QHBoxLayout" name="horizontalLayout_account_currency">
-                 <item>
-                  <widget class="QLabel" name="label_account_currency">
-                   <property name="minimumSize">
-                    <size>
-                     <width>61</width>
-                     <height>0</height>
-                    </size>
-                   </property>
-                   <property name="text">
-                    <string>Currency:</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QComboBox" name="comboBox_account_currency">
-                   <property name="minimumSize">
-                    <size>
-                     <width>170</width>
-                     <height>0</height>
-                    </size>
-                   </property>
-                  </widget>
-                 </item>
-                </layout>
-               </item>
-               <item>
-                <layout class="QHBoxLayout" name="horizontalLayout_account_balance">
-                 <item>
-                  <widget class="QLabel" name="label_account_balance">
-                   <property name="minimumSize">
-                    <size>
-                     <width>61</width>
-                     <height>0</height>
-                    </size>
-                   </property>
-                   <property name="text">
-                    <string>Balance:</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QDoubleSpinBox" name="doubleSpinBox_account_balance">
-                   <property name="minimumSize">
-                    <size>
-                     <width>170</width>
-                     <height>0</height>
-                    </size>
-                   </property>
-                   <property name="maximum">
-                    <double>999999.989999999990687</double>
-                   </property>
-                   <property name="value">
-                    <double>0.000000000000000</double>
-                   </property>
-                  </widget>
-                 </item>
-                </layout>
-               </item>
-               <item>
-                <layout class="QHBoxLayout" name="horizontalLayout_account_flags">
-                 <item>
-                  <widget class="QCheckBox" name="checkBox_is_liquid">
-                   <property name="text">
-                    <string>Liquid</string>
-                   </property>
-                   <property name="checked">
-                    <bool>true</bool>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QCheckBox" name="checkBox_is_cash">
-                   <property name="text">
-                    <string>Cash</string>
-                   </property>
-                  </widget>
-                 </item>
-                </layout>
-               </item>
-               <item>
-                <layout class="QHBoxLayout" name="horizontalLayout_account_add">
-                 <item>
-                  <spacer name="horizontalSpacer_account">
-                   <property name="orientation">
-                    <enum>Qt::Orientation::Horizontal</enum>
-                   </property>
-                   <property name="sizeHint" stdset="0">
-                    <size>
-                     <width>40</width>
-                     <height>20</height>
-                    </size>
-                   </property>
-                  </spacer>
-                 </item>
-                 <item>
-                  <widget class="QPushButton" name="pushButton_account_add">
-                   <property name="text">
-                    <string>Add Account</string>
-                   </property>
-                  </widget>
-                 </item>
-                </layout>
-               </item>
-              </layout>
-             </widget>
-            </item>
-            <item>
              <widget class="QGroupBox" name="groupBox_account_commands">
               <property name="title">
                <string>Commands</string>
@@ -2549,6 +2408,8 @@
     <addaction name="action_categories_refresh"/>
     <addaction name="action_copy_categories_as_text"/>
     <addaction name="separator"/>
+    <addaction name="action_add_account"/>
+    <addaction name="separator"/>
     <addaction name="action_standard_items"/>
    </widget>
    <widget class="QMenu" name="menuHelp">
@@ -2564,6 +2425,11 @@
   <action name="action_add_category">
    <property name="text">
     <string>Add Category</string>
+   </property>
+  </action>
+  <action name="action_add_account">
+   <property name="text">
+    <string>Add Account</string>
    </property>
   </action>
   <action name="action_categories_refresh">

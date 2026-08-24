@@ -39,6 +39,7 @@ class AccountEditDialog(QDialog):
         parent: QWidget | None = None,
         account_data: dict | None = None,
         currencies: list | None = None,
+        default_currency_code: str | None = None,
     ) -> None:
         """Initialize the dialog.
 
@@ -48,20 +49,26 @@ class AccountEditDialog(QDialog):
         - `account_data` (`dict | None`): Dictionary with account data (ID, name, balance, currency_code, is_liquid,
           is_cash). Defaults to `None`.
         - `currencies` (`list | None`): List of currency codes. Defaults to `None`.
+        - `default_currency_code` (`str | None`): Currency selected for a new account.
+          Defaults to `None`.
 
         """
         super().__init__(parent)
         self.account_data = account_data or {}
         self.currencies = currencies or []
+        self._default_currency_code = default_currency_code
         self.result_data = {}
         self._initial_balance: float = 0.0
 
-        self.setWindowTitle("Edit Account")
+        self.setWindowTitle("Add Account" if not self.account_data else "Edit Account")
         qt_modality.set_owner_window_modal(self)
         self.setFixedSize(400, 350)
 
         self._setup_ui()
         self._populate_data()
+        if not self.account_data:
+            self.delete_button.hide()
+            self.name_edit.setFocus()
 
         self.balance_spin.valueChanged.connect(self._update_balance_delta_label)
         self._update_balance_delta_label()
@@ -153,6 +160,8 @@ class AccountEditDialog(QDialog):
             # For new account, set default balance in Expression field
             self._initial_balance = 0.0
             self.expression_edit.setText("0.0")
+            if self._default_currency_code in self.currencies:
+                self.currency_combo.setCurrentIndex(self.currencies.index(self._default_currency_code))
 
     def _setup_ui(self) -> None:
         """Set up the user interface."""
@@ -259,7 +268,7 @@ class AccountEditDialog(QDialog):
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, parent: QWidget | None = None, account_data: dict | None = None, currencies: list | None = None) -> None
+def __init__(self, parent: QWidget | None = None, account_data: dict | None = None, currencies: list | None = None, default_currency_code: str | None = None) -> None
 ```
 
 Initialize the dialog.
@@ -270,6 +279,8 @@ Args:
 - `account_data` (`dict | None`): Dictionary with account data (ID, name, balance, currency_code, is_liquid,
   is_cash). Defaults to `None`.
 - `currencies` (`list | None`): List of currency codes. Defaults to `None`.
+- `default_currency_code` (`str | None`): Currency selected for a new account.
+  Defaults to `None`.
 
 <details>
 <summary>Code:</summary>
@@ -280,19 +291,24 @@ def __init__(
         parent: QWidget | None = None,
         account_data: dict | None = None,
         currencies: list | None = None,
+        default_currency_code: str | None = None,
     ) -> None:
         super().__init__(parent)
         self.account_data = account_data or {}
         self.currencies = currencies or []
+        self._default_currency_code = default_currency_code
         self.result_data = {}
         self._initial_balance: float = 0.0
 
-        self.setWindowTitle("Edit Account")
+        self.setWindowTitle("Add Account" if not self.account_data else "Edit Account")
         qt_modality.set_owner_window_modal(self)
         self.setFixedSize(400, 350)
 
         self._setup_ui()
         self._populate_data()
+        if not self.account_data:
+            self.delete_button.hide()
+            self.name_edit.setFocus()
 
         self.balance_spin.valueChanged.connect(self._update_balance_delta_label)
         self._update_balance_delta_label()

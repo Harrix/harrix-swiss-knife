@@ -35,6 +35,7 @@ class Ui_MainWindow(object):
     def retranslateUi(self, MainWindow):
         MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", u"Finance Tracker", None))
         self.action_add_category.setText(QCoreApplication.translate("MainWindow", u"Add Category", None))
+        self.action_add_account.setText(QCoreApplication.translate("MainWindow", u"Add Account", None))
         self.action_categories_refresh.setText(QCoreApplication.translate("MainWindow", u"Refresh Categories", None))
         self.action_copy_categories_as_text.setText(QCoreApplication.translate("MainWindow", u"Copy Categories As Text", None))
         self.action_standard_items.setText(QCoreApplication.translate("MainWindow", u"Standard Items", None))
@@ -78,13 +79,6 @@ class Ui_MainWindow(object):
 #endif // QT_CONFIG(tooltip)
         self.pushButton_clear_filter.setText(QCoreApplication.translate("MainWindow", u"\U0001f9f9", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_transactions), QCoreApplication.translate("MainWindow", u"Transactions", None))
-        self.groupBox_add_account.setTitle(QCoreApplication.translate("MainWindow", u"Add New Account", None))
-        self.label_account_name.setText(QCoreApplication.translate("MainWindow", u"Name:", None))
-        self.label_account_currency.setText(QCoreApplication.translate("MainWindow", u"Currency:", None))
-        self.label_account_balance.setText(QCoreApplication.translate("MainWindow", u"Balance:", None))
-        self.checkBox_is_liquid.setText(QCoreApplication.translate("MainWindow", u"Liquid", None))
-        self.checkBox_is_cash.setText(QCoreApplication.translate("MainWindow", u"Cash", None))
-        self.pushButton_account_add.setText(QCoreApplication.translate("MainWindow", u"Add Account", None))
         self.groupBox_account_commands.setTitle(QCoreApplication.translate("MainWindow", u"Commands", None))
         self.pushButton_accounts_delete.setText(QCoreApplication.translate("MainWindow", u"Delete", None))
         self.pushButton_accounts_refresh.setText(QCoreApplication.translate("MainWindow", u"Refresh", None))
@@ -194,6 +188,8 @@ class Ui_MainWindow(object):
         MainWindow.resize(1410, 859)
         self.action_add_category = QAction(MainWindow)
         self.action_add_category.setObjectName(u"action_add_category")
+        self.action_add_account = QAction(MainWindow)
+        self.action_add_account.setObjectName(u"action_add_account")
         self.action_categories_refresh = QAction(MainWindow)
         self.action_categories_refresh.setObjectName(u"action_categories_refresh")
         self.action_copy_categories_as_text = QAction(MainWindow)
@@ -591,96 +587,6 @@ class Ui_MainWindow(object):
         self.frame_accounts.setFrameShadow(QFrame.Shadow.Raised)
         self.verticalLayout_21 = QVBoxLayout(self.frame_accounts)
         self.verticalLayout_21.setObjectName(u"verticalLayout_21")
-        self.groupBox_add_account = QGroupBox(self.frame_accounts)
-        self.groupBox_add_account.setObjectName(u"groupBox_add_account")
-        self.verticalLayout_add_account = QVBoxLayout(self.groupBox_add_account)
-        self.verticalLayout_add_account.setObjectName(u"verticalLayout_add_account")
-        self.horizontalLayout_account_name = QHBoxLayout()
-        self.horizontalLayout_account_name.setObjectName(u"horizontalLayout_account_name")
-        self.label_account_name = QLabel(self.groupBox_add_account)
-        self.label_account_name.setObjectName(u"label_account_name")
-        self.label_account_name.setMinimumSize(QSize(61, 0))
-
-        self.horizontalLayout_account_name.addWidget(self.label_account_name)
-
-        self.lineEdit_account_name = QLineEdit(self.groupBox_add_account)
-        self.lineEdit_account_name.setObjectName(u"lineEdit_account_name")
-        self.lineEdit_account_name.setMinimumSize(QSize(170, 0))
-
-        self.horizontalLayout_account_name.addWidget(self.lineEdit_account_name)
-
-
-        self.verticalLayout_add_account.addLayout(self.horizontalLayout_account_name)
-
-        self.horizontalLayout_account_currency = QHBoxLayout()
-        self.horizontalLayout_account_currency.setObjectName(u"horizontalLayout_account_currency")
-        self.label_account_currency = QLabel(self.groupBox_add_account)
-        self.label_account_currency.setObjectName(u"label_account_currency")
-        self.label_account_currency.setMinimumSize(QSize(61, 0))
-
-        self.horizontalLayout_account_currency.addWidget(self.label_account_currency)
-
-        self.comboBox_account_currency = QComboBox(self.groupBox_add_account)
-        self.comboBox_account_currency.setObjectName(u"comboBox_account_currency")
-        self.comboBox_account_currency.setMinimumSize(QSize(170, 0))
-
-        self.horizontalLayout_account_currency.addWidget(self.comboBox_account_currency)
-
-
-        self.verticalLayout_add_account.addLayout(self.horizontalLayout_account_currency)
-
-        self.horizontalLayout_account_balance = QHBoxLayout()
-        self.horizontalLayout_account_balance.setObjectName(u"horizontalLayout_account_balance")
-        self.label_account_balance = QLabel(self.groupBox_add_account)
-        self.label_account_balance.setObjectName(u"label_account_balance")
-        self.label_account_balance.setMinimumSize(QSize(61, 0))
-
-        self.horizontalLayout_account_balance.addWidget(self.label_account_balance)
-
-        self.doubleSpinBox_account_balance = QDoubleSpinBox(self.groupBox_add_account)
-        self.doubleSpinBox_account_balance.setObjectName(u"doubleSpinBox_account_balance")
-        self.doubleSpinBox_account_balance.setMinimumSize(QSize(170, 0))
-        self.doubleSpinBox_account_balance.setMaximum(999999.989999999990687)
-        self.doubleSpinBox_account_balance.setValue(0.000000000000000)
-
-        self.horizontalLayout_account_balance.addWidget(self.doubleSpinBox_account_balance)
-
-
-        self.verticalLayout_add_account.addLayout(self.horizontalLayout_account_balance)
-
-        self.horizontalLayout_account_flags = QHBoxLayout()
-        self.horizontalLayout_account_flags.setObjectName(u"horizontalLayout_account_flags")
-        self.checkBox_is_liquid = QCheckBox(self.groupBox_add_account)
-        self.checkBox_is_liquid.setObjectName(u"checkBox_is_liquid")
-        self.checkBox_is_liquid.setChecked(True)
-
-        self.horizontalLayout_account_flags.addWidget(self.checkBox_is_liquid)
-
-        self.checkBox_is_cash = QCheckBox(self.groupBox_add_account)
-        self.checkBox_is_cash.setObjectName(u"checkBox_is_cash")
-
-        self.horizontalLayout_account_flags.addWidget(self.checkBox_is_cash)
-
-
-        self.verticalLayout_add_account.addLayout(self.horizontalLayout_account_flags)
-
-        self.horizontalLayout_account_add = QHBoxLayout()
-        self.horizontalLayout_account_add.setObjectName(u"horizontalLayout_account_add")
-        self.horizontalSpacer_account = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
-
-        self.horizontalLayout_account_add.addItem(self.horizontalSpacer_account)
-
-        self.pushButton_account_add = QPushButton(self.groupBox_add_account)
-        self.pushButton_account_add.setObjectName(u"pushButton_account_add")
-
-        self.horizontalLayout_account_add.addWidget(self.pushButton_account_add)
-
-
-        self.verticalLayout_add_account.addLayout(self.horizontalLayout_account_add)
-
-
-        self.verticalLayout_21.addWidget(self.groupBox_add_account)
-
         self.groupBox_account_commands = QGroupBox(self.frame_accounts)
         self.groupBox_account_commands.setObjectName(u"groupBox_account_commands")
         self.verticalLayout_account_commands = QVBoxLayout(self.groupBox_account_commands)
@@ -1769,6 +1675,8 @@ class Ui_MainWindow(object):
         self.menuCommands.addAction(self.action_categories_refresh)
         self.menuCommands.addAction(self.action_copy_categories_as_text)
         self.menuCommands.addSeparator()
+        self.menuCommands.addAction(self.action_add_account)
+        self.menuCommands.addSeparator()
         self.menuCommands.addAction(self.action_standard_items)
         self.menuHelp.addAction(self.actionAbout)
 
@@ -1797,6 +1705,7 @@ _No docstring provided._
 def retranslateUi(self, MainWindow):
         MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", u"Finance Tracker", None))
         self.action_add_category.setText(QCoreApplication.translate("MainWindow", u"Add Category", None))
+        self.action_add_account.setText(QCoreApplication.translate("MainWindow", u"Add Account", None))
         self.action_categories_refresh.setText(QCoreApplication.translate("MainWindow", u"Refresh Categories", None))
         self.action_copy_categories_as_text.setText(QCoreApplication.translate("MainWindow", u"Copy Categories As Text", None))
         self.action_standard_items.setText(QCoreApplication.translate("MainWindow", u"Standard Items", None))
@@ -1840,13 +1749,6 @@ def retranslateUi(self, MainWindow):
 #endif // QT_CONFIG(tooltip)
         self.pushButton_clear_filter.setText(QCoreApplication.translate("MainWindow", u"\U0001f9f9", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_transactions), QCoreApplication.translate("MainWindow", u"Transactions", None))
-        self.groupBox_add_account.setTitle(QCoreApplication.translate("MainWindow", u"Add New Account", None))
-        self.label_account_name.setText(QCoreApplication.translate("MainWindow", u"Name:", None))
-        self.label_account_currency.setText(QCoreApplication.translate("MainWindow", u"Currency:", None))
-        self.label_account_balance.setText(QCoreApplication.translate("MainWindow", u"Balance:", None))
-        self.checkBox_is_liquid.setText(QCoreApplication.translate("MainWindow", u"Liquid", None))
-        self.checkBox_is_cash.setText(QCoreApplication.translate("MainWindow", u"Cash", None))
-        self.pushButton_account_add.setText(QCoreApplication.translate("MainWindow", u"Add Account", None))
         self.groupBox_account_commands.setTitle(QCoreApplication.translate("MainWindow", u"Commands", None))
         self.pushButton_accounts_delete.setText(QCoreApplication.translate("MainWindow", u"Delete", None))
         self.pushButton_accounts_refresh.setText(QCoreApplication.translate("MainWindow", u"Refresh", None))
@@ -1972,6 +1874,8 @@ def setupUi(self, MainWindow):
         MainWindow.resize(1410, 859)
         self.action_add_category = QAction(MainWindow)
         self.action_add_category.setObjectName(u"action_add_category")
+        self.action_add_account = QAction(MainWindow)
+        self.action_add_account.setObjectName(u"action_add_account")
         self.action_categories_refresh = QAction(MainWindow)
         self.action_categories_refresh.setObjectName(u"action_categories_refresh")
         self.action_copy_categories_as_text = QAction(MainWindow)
@@ -2369,96 +2273,6 @@ def setupUi(self, MainWindow):
         self.frame_accounts.setFrameShadow(QFrame.Shadow.Raised)
         self.verticalLayout_21 = QVBoxLayout(self.frame_accounts)
         self.verticalLayout_21.setObjectName(u"verticalLayout_21")
-        self.groupBox_add_account = QGroupBox(self.frame_accounts)
-        self.groupBox_add_account.setObjectName(u"groupBox_add_account")
-        self.verticalLayout_add_account = QVBoxLayout(self.groupBox_add_account)
-        self.verticalLayout_add_account.setObjectName(u"verticalLayout_add_account")
-        self.horizontalLayout_account_name = QHBoxLayout()
-        self.horizontalLayout_account_name.setObjectName(u"horizontalLayout_account_name")
-        self.label_account_name = QLabel(self.groupBox_add_account)
-        self.label_account_name.setObjectName(u"label_account_name")
-        self.label_account_name.setMinimumSize(QSize(61, 0))
-
-        self.horizontalLayout_account_name.addWidget(self.label_account_name)
-
-        self.lineEdit_account_name = QLineEdit(self.groupBox_add_account)
-        self.lineEdit_account_name.setObjectName(u"lineEdit_account_name")
-        self.lineEdit_account_name.setMinimumSize(QSize(170, 0))
-
-        self.horizontalLayout_account_name.addWidget(self.lineEdit_account_name)
-
-
-        self.verticalLayout_add_account.addLayout(self.horizontalLayout_account_name)
-
-        self.horizontalLayout_account_currency = QHBoxLayout()
-        self.horizontalLayout_account_currency.setObjectName(u"horizontalLayout_account_currency")
-        self.label_account_currency = QLabel(self.groupBox_add_account)
-        self.label_account_currency.setObjectName(u"label_account_currency")
-        self.label_account_currency.setMinimumSize(QSize(61, 0))
-
-        self.horizontalLayout_account_currency.addWidget(self.label_account_currency)
-
-        self.comboBox_account_currency = QComboBox(self.groupBox_add_account)
-        self.comboBox_account_currency.setObjectName(u"comboBox_account_currency")
-        self.comboBox_account_currency.setMinimumSize(QSize(170, 0))
-
-        self.horizontalLayout_account_currency.addWidget(self.comboBox_account_currency)
-
-
-        self.verticalLayout_add_account.addLayout(self.horizontalLayout_account_currency)
-
-        self.horizontalLayout_account_balance = QHBoxLayout()
-        self.horizontalLayout_account_balance.setObjectName(u"horizontalLayout_account_balance")
-        self.label_account_balance = QLabel(self.groupBox_add_account)
-        self.label_account_balance.setObjectName(u"label_account_balance")
-        self.label_account_balance.setMinimumSize(QSize(61, 0))
-
-        self.horizontalLayout_account_balance.addWidget(self.label_account_balance)
-
-        self.doubleSpinBox_account_balance = QDoubleSpinBox(self.groupBox_add_account)
-        self.doubleSpinBox_account_balance.setObjectName(u"doubleSpinBox_account_balance")
-        self.doubleSpinBox_account_balance.setMinimumSize(QSize(170, 0))
-        self.doubleSpinBox_account_balance.setMaximum(999999.989999999990687)
-        self.doubleSpinBox_account_balance.setValue(0.000000000000000)
-
-        self.horizontalLayout_account_balance.addWidget(self.doubleSpinBox_account_balance)
-
-
-        self.verticalLayout_add_account.addLayout(self.horizontalLayout_account_balance)
-
-        self.horizontalLayout_account_flags = QHBoxLayout()
-        self.horizontalLayout_account_flags.setObjectName(u"horizontalLayout_account_flags")
-        self.checkBox_is_liquid = QCheckBox(self.groupBox_add_account)
-        self.checkBox_is_liquid.setObjectName(u"checkBox_is_liquid")
-        self.checkBox_is_liquid.setChecked(True)
-
-        self.horizontalLayout_account_flags.addWidget(self.checkBox_is_liquid)
-
-        self.checkBox_is_cash = QCheckBox(self.groupBox_add_account)
-        self.checkBox_is_cash.setObjectName(u"checkBox_is_cash")
-
-        self.horizontalLayout_account_flags.addWidget(self.checkBox_is_cash)
-
-
-        self.verticalLayout_add_account.addLayout(self.horizontalLayout_account_flags)
-
-        self.horizontalLayout_account_add = QHBoxLayout()
-        self.horizontalLayout_account_add.setObjectName(u"horizontalLayout_account_add")
-        self.horizontalSpacer_account = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
-
-        self.horizontalLayout_account_add.addItem(self.horizontalSpacer_account)
-
-        self.pushButton_account_add = QPushButton(self.groupBox_add_account)
-        self.pushButton_account_add.setObjectName(u"pushButton_account_add")
-
-        self.horizontalLayout_account_add.addWidget(self.pushButton_account_add)
-
-
-        self.verticalLayout_add_account.addLayout(self.horizontalLayout_account_add)
-
-
-        self.verticalLayout_21.addWidget(self.groupBox_add_account)
-
         self.groupBox_account_commands = QGroupBox(self.frame_accounts)
         self.groupBox_account_commands.setObjectName(u"groupBox_account_commands")
         self.verticalLayout_account_commands = QVBoxLayout(self.groupBox_account_commands)
@@ -3546,6 +3360,8 @@ def setupUi(self, MainWindow):
         self.menuCommands.addAction(self.action_add_category)
         self.menuCommands.addAction(self.action_categories_refresh)
         self.menuCommands.addAction(self.action_copy_categories_as_text)
+        self.menuCommands.addSeparator()
+        self.menuCommands.addAction(self.action_add_account)
         self.menuCommands.addSeparator()
         self.menuCommands.addAction(self.action_standard_items)
         self.menuHelp.addAction(self.actionAbout)
