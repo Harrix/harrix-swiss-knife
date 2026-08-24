@@ -145,6 +145,7 @@ class AutoSaveOperations(AutoSaveMixin):
             return
 
         # Update or insert record
+        saved = False
         if record_id is not None:
             # Update existing record
             if not self.db_manager.update_process_habit_record(record_id, habit_id, value, date_str):
@@ -153,6 +154,8 @@ class AutoSaveOperations(AutoSaveMixin):
                     "Database Error",
                     "Failed to update process habit record",
                 )
+            else:
+                saved = True
         else:
             # Create new record - need to get the new record_id
             # First, check if record already exists for this habit and date
@@ -175,6 +178,7 @@ class AutoSaveOperations(AutoSaveMixin):
                         (existing_record_id, habit_id, date_str),
                         Qt.ItemDataRole.UserRole,
                     )
+                    saved = True
             # Create new record
             elif self.db_manager.add_process_habit_record(habit_id, value, date_str):
                 # Get the new record_id
@@ -191,12 +195,15 @@ class AutoSaveOperations(AutoSaveMixin):
                         (new_record_id, habit_id, date_str),
                         Qt.ItemDataRole.UserRole,
                     )
+                saved = True
             else:
                 message_box.warning(
                     None,
                     "Database Error",
                     "Failed to add process habit record",
                 )
+        if saved:
+            play_habit_checkin_sound(value)
 ```
 
 </details>

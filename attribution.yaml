@@ -8,3 +8,12 @@ attribution:
       permalink-date: 2026-05-07,
       name: Python logo (py.svg),
     }
+  - {
+      author: Kenney,
+      author-site: "https://kenney.nl/",
+      license: CC0 1.0 Universal,
+      license-url: "https://creativecommons.org/publicdomain/zero/1.0/",
+      permalink: "https://kenney.nl/assets/interface-sounds",
+      permalink-date: 2026-08-24,
+      name: Interface Sounds (habit_done.wav = confirmation_002, habit_not_done.wav = minimize_003),
+    }

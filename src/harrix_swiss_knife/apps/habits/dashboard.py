@@ -24,6 +24,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from harrix_swiss_knife.apps.habits.checkin_sounds import play_habit_checkin_sound
 from harrix_swiss_knife.apps.habits.dashboard_widgets import (
     COLOR_PRIMARY,
     COLOR_RATE,
@@ -422,6 +423,7 @@ class HabitDashboardWidget(QWidget):
         except RuntimeError:
             QMessageBox.warning(self, "Database Error", "Failed to fill empty days.")
             return
+        play_habit_checkin_sound(0)
         self.refresh()
         self.data_changed.emit()
 
@@ -634,6 +636,7 @@ class HabitDashboardWidget(QWidget):
         if not ok:
             QMessageBox.warning(self, "Database Error", "Failed to set check-in.")
             return
+        play_habit_checkin_sound(stored)
         self.refresh()
         self.data_changed.emit()
 
@@ -669,6 +672,8 @@ class HabitDashboardWidget(QWidget):
         if not ok:
             QMessageBox.warning(self, "Database Error", "Failed to toggle check-in.")
             return
+        stored = self._db.get_habit_values_between(habit_id, date_str, date_str)
+        play_habit_checkin_sound(stored.get(date_str))
         self.refresh()
         self.data_changed.emit()
 

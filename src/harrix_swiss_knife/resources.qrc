@@ -3,5 +3,7 @@
     <qresource prefix="/">
         <file>assets/logo.svg</file>
         <file>assets/py.svg</file>
+        <file>assets/sounds/habit_done.wav</file>
+        <file>assets/sounds/habit_not_done.wav</file>
     </qresource>
 </RCC>
