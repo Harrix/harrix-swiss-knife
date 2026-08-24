@@ -349,6 +349,10 @@ def test_habit_dashboard_list_scrolls(qapp: QApplication) -> None:
     assert scroll is not None
     assert scroll.widgetResizable()
     assert scroll.verticalScrollBarPolicy() == Qt.ScrollBarPolicy.ScrollBarAsNeeded
+    style = scroll.styleSheet()
+    assert "QScrollBar:vertical" in style
+    assert "border-radius" in style
+    assert "QScrollBar::add-line:vertical" in style
 
 
 def test_habit_dashboard_empty_shows_add_button(habits_db: DatabaseManager, qapp: QApplication) -> None:

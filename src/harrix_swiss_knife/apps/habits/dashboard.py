@@ -52,6 +52,51 @@ _EMOJI_COLUMN = 4
 _IS_BOOL_COLUMN = 2
 _NAME_COLUMN = 1
 
+_LIST_SCROLL_STYLE = """
+QScrollArea#habitDashListScroll {
+    background: #FFFFFF;
+    border: none;
+}
+QScrollArea#habitDashListScroll > QWidget > QWidget {
+    background: #FFFFFF;
+}
+QScrollArea#habitDashListScroll QScrollBar:vertical {
+    background: transparent;
+    border: none;
+    width: 8px;
+    margin: 0;
+}
+QScrollArea#habitDashListScroll QScrollBar::handle:vertical {
+    background: #D1D5DB;
+    border: none;
+    border-radius: 4px;
+    min-height: 32px;
+    margin: 2px 1px;
+}
+QScrollArea#habitDashListScroll QScrollBar::handle:vertical:hover {
+    background: #9CA3AF;
+}
+QScrollArea#habitDashListScroll QScrollBar::add-line:vertical,
+QScrollArea#habitDashListScroll QScrollBar::sub-line:vertical {
+    height: 0;
+    width: 0;
+    border: none;
+    background: none;
+}
+QScrollArea#habitDashListScroll QScrollBar::add-page:vertical,
+QScrollArea#habitDashListScroll QScrollBar::sub-page:vertical {
+    background: none;
+    border: none;
+}
+QScrollArea#habitDashListScroll QScrollBar::up-arrow:vertical,
+QScrollArea#habitDashListScroll QScrollBar::down-arrow:vertical {
+    width: 0;
+    height: 0;
+    background: none;
+    border: none;
+}
+"""
+
 
 class HabitDashboardWidget(QWidget):
     """Master-detail habits dashboard matching the design TZ screenshot."""
@@ -207,12 +252,7 @@ class HabitDashboardWidget(QWidget):
         scroll.setFrameShape(QFrame.Shape.NoFrame)
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-        scroll.setStyleSheet(
-            """
-            QScrollArea { background: #FFFFFF; border: none; }
-            QScrollArea > QWidget > QWidget { background: #FFFFFF; }
-            """
-        )
+        scroll.setStyleSheet(_LIST_SCROLL_STYLE)
         self._list_host = HabitRowListHost()
         self._list_host.habits_reordered.connect(self._on_habits_reordered)
         self._list_layout = QVBoxLayout(self._list_host)

@@ -184,12 +184,7 @@ class HabitDashboardWidget(QWidget):
         scroll.setFrameShape(QFrame.Shape.NoFrame)
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-        scroll.setStyleSheet(
-            """
-            QScrollArea { background: #FFFFFF; border: none; }
-            QScrollArea > QWidget > QWidget { background: #FFFFFF; }
-            """
-        )
+        scroll.setStyleSheet(_LIST_SCROLL_STYLE)
         self._list_host = HabitRowListHost()
         self._list_host.habits_reordered.connect(self._on_habits_reordered)
         self._list_layout = QVBoxLayout(self._list_host)
