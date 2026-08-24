@@ -1533,7 +1533,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         if item is None or self._repo_root is None:
             return
         menu = QMenu(self.folder_tree)
-        reveal_action = menu.addAction("📂 Reveal in File Explorer")
+        reveal_action = menu.addAction(LABEL_REVEAL_IN_EXPLORER)
         chosen = menu.exec_(self.folder_tree.mapToGlobal(pos))
         if chosen is reveal_action:
             prefix = str(item.data(0, Qt.ItemDataRole.UserRole) or "")

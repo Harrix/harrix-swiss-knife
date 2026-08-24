@@ -5487,8 +5487,9 @@ class MainWindow(
         if not category_value:
             return
         context_menu = QMenu(self)
-        filter_action = context_menu.addAction("🔍 Filter by this category")
+        filter_action = context_menu.addAction(LABEL_FILTER_BY_CATEGORY)
         filter_action.triggered.connect(lambda: self._filter_by_category_from_table(category_value))
+        apply_leading_emoji_icons(context_menu)
         context_menu.exec_(self.listView_categories.mapToGlobal(position))
 
     def _show_categories_table_context_menu(self, position: QPoint) -> None:
@@ -5500,18 +5501,17 @@ class MainWindow(
 
         context_menu = QMenu(self)
         if category_id is not None:
-            edit_action = context_menu.addAction("✏️ Edit category")
+            edit_action = context_menu.addAction(LABEL_EDIT)
             edit_action.triggered.connect(partial(self._open_category_edit_dialog_by_id, category_id))
-            delete_action = context_menu.addAction("🗑️ Delete category")
+        add_separator(context_menu)
+        context_menu.addAction(self.action_add_category)
+        context_menu.addAction(self.action_categories_refresh)
+        context_menu.addAction(self.action_copy_categories_as_text)
+        delete_action = add_delete_action(context_menu)
+        delete_action.setEnabled(category_id is not None)
+        if category_id is not None:
             delete_action.triggered.connect(partial(self.delete_record, "categories"))
-            context_menu.addSeparator()
-
-        add_action = context_menu.addAction(self.action_add_category.text())
-        add_action.triggered.connect(self.on_add_category)
-        refresh_action = context_menu.addAction(self.action_categories_refresh.text())
-        refresh_action.triggered.connect(self.update_all)
-        copy_action = context_menu.addAction(self.action_copy_categories_as_text.text())
-        copy_action.triggered.connect(self.on_copy_categories_as_text)
+        apply_leading_emoji_icons(context_menu)
 
         viewport = self.tableView_categories.viewport()
         if viewport is None:
@@ -5872,15 +5872,13 @@ class MainWindow(
 
         # Get the clicked index
         index: QModelIndex = self.tableView_transactions.indexAt(position)
-        filter_by_category_action = None
         if index.isValid():
             # Get the category from the Category column
             category_index: QModelIndex = self.tableView_transactions.model().index(index.row(), 3)
             if category_index.isValid():
                 category_value: str = self.tableView_transactions.model().data(category_index)
                 if category_value:
-                    # Add menu item to filter by this category
-                    filter_by_category_action = context_menu.addAction("🔍 Filter by this category")
+                    filter_by_category_action = context_menu.addAction(LABEL_FILTER_BY_CATEGORY)
                     filter_by_category_action.triggered.connect(
                         lambda: self._filter_by_category_from_table(category_value)
                     )
@@ -5896,64 +5894,40 @@ class MainWindow(
                 show_by_tag_action.triggered.connect(
                     lambda _checked=False, t=tag_for_dialog: self._show_transactions_by_tag_dialog(t or None)
                 )
-                if filter_by_category_action is not None:
-                    context_menu.addSeparator()
 
             # Get the date from the Date column
             date_index: QModelIndex = self.tableView_transactions.model().index(index.row(), 5)
             if date_index.isValid():
                 date_value: str = self.tableView_transactions.model().data(date_index)
                 if date_value:
-                    # Add separator if category filter action was added
-                    if filter_by_category_action:
-                        context_menu.addSeparator()
-
-                    # Add menu item to set this date in dateEdit
-                    set_date_action = context_menu.addAction("📅 Set this date in main field")
+                    set_date_action, set_date_plus_one_action, set_date_minus_one_action = (
+                        add_date_in_main_field_actions(context_menu)
+                    )
                     set_date_action.triggered.connect(lambda: self._set_date_from_table(date_value))
-
-                    # Add menu item to set this date + 1 day in dateEdit
-                    set_date_plus_one_action = context_menu.addAction("📅 Set this date + 1 day in main field")
                     set_date_plus_one_action.triggered.connect(
                         lambda: self._set_date_from_table_plus_one_day(date_value)
                     )
-
-                    # Add menu item to set this date - 1 day in dateEdit
-                    set_date_minus_one_action = context_menu.addAction("📅 Set this date - 1 day in main field")
                     set_date_minus_one_action.triggered.connect(
                         lambda: self._set_date_from_table_minus_one_day(date_value)
                     )
 
-                    # Add separator
-                    context_menu.addSeparator()
-
         add_to_standard_items_action = None
         if index.isValid():
+            add_separator(context_menu)
             add_to_standard_items_action = context_menu.addAction("📋 Add to Standard Items")
-            context_menu.addSeparator()
 
-        # Add separator before export action
-        context_menu.addSeparator()
-
-        # Delete action (plural label when multiple transaction rows are selected)
         selected_transaction_ids = self._get_selected_row_ids("transactions")
-        delete_label = "🗑 Delete selected rows" if len(selected_transaction_ids) > 1 else "🗑 Delete selected row"
-        delete_action = context_menu.addAction(delete_label)
-
         bulk_date_action = None
         ids_for_date_change: list[int] = []
         if len(selected_transaction_ids) > 1:
             ids_for_date_change = list(selected_transaction_ids)
-            bulk_date_action = context_menu.addAction("✍️ Set date for all selected rows…")
+            add_separator(context_menu)
+            bulk_date_action = context_menu.addAction(LABEL_SET_DATE_SELECTED)
 
-        export_action = context_menu.addAction("📤 Export to CSV")
-
-        # Add separator before clear filters action
-        context_menu.addSeparator()
-
-        # Add menu item to clear all filters (always available)
-        clear_filters_action = context_menu.addAction("🧹 Clear all filters")
+        add_separator(context_menu)
+        clear_filters_action = context_menu.addAction(LABEL_CLEAR_FILTERS)
         clear_filters_action.triggered.connect(self.clear_filter)
+        export_action = context_menu.addAction(LABEL_EXPORT_CSV)
 
         # Sum Amount column for unique selected rows (any column selection counts)
         selected_indexes = self.tableView_transactions.selectionModel().selectedIndexes()
@@ -6049,14 +6023,10 @@ class MainWindow(
             if is_negative:
                 formatted = "-" + formatted
 
-            # Add separator before sum action
-            context_menu.addSeparator()
+            add_info_action(context_menu, f"💰 Sum of selected: {formatted}")
 
-            # Add menu item with sum (disabled, just for display)
-            sum_action = context_menu.addAction(f"💰 Sum of selected: {formatted}")
-            sum_action.setEnabled(False)
-
-        # Execute the context menu and get the selected action
+        delete_action = add_delete_action(context_menu)
+        apply_leading_emoji_icons(context_menu)
         action = context_menu.exec_(self.tableView_transactions.mapToGlobal(position))
 
         # Process the action only if it was actually selected (not None)

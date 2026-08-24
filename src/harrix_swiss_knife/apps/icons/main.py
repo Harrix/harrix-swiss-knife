@@ -53,6 +53,7 @@ from harrix_swiss_knife.actions.common.open_in_editor import open_in_editor
 from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.app_entry import run_app_main
 from harrix_swiss_knife.apps.common.qt_main_window import AppWindowMixin
+from harrix_swiss_knife.apps.common.table_context_menu import LABEL_REVEAL_IN_EXPLORER
 from harrix_swiss_knife.apps.common.ui_helpers import reveal_in_file_explorer
 from harrix_swiss_knife.apps.common.widgets.path_drop_helpers import install_url_drop_handlers
 from harrix_swiss_knife.apps.icons.add_vector import (
@@ -1586,7 +1587,7 @@ class MainWindow(QMainWindow, AppWindowMixin):
         if item is None or self._repo_root is None:
             return
         menu = QMenu(self.folder_tree)
-        reveal_action = menu.addAction("📂 Reveal in File Explorer")
+        reveal_action = menu.addAction(LABEL_REVEAL_IN_EXPLORER)
         chosen = menu.exec_(self.folder_tree.mapToGlobal(pos))
         if chosen is reveal_action:
             prefix = str(item.data(0, Qt.ItemDataRole.UserRole) or "")

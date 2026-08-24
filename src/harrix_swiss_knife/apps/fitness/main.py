@@ -100,6 +100,20 @@ from harrix_swiss_knife.apps.common.exercise_media import (
 from harrix_swiss_knife.apps.common.qt_main_window import AppWindowMixin
 from harrix_swiss_knife.apps.common.quick_tab_startup import install_open_quick_tab_checkbox
 from harrix_swiss_knife.apps.common.scroll_pagination import ScrollPagination, on_scroll_load_more
+from harrix_swiss_knife.apps.common.table_context_menu import (
+    LABEL_CLEAR_FILTERS,
+    LABEL_EDIT,
+    LABEL_EXPORT_CSV,
+    LABEL_FILTER_BY_DATE,
+    LABEL_FILTER_BY_EXERCISE,
+    LABEL_FILTER_BY_TYPE,
+    LABEL_OPEN_LIGHTBOX,
+    LABEL_REVEAL_IN_EXPLORER,
+    LABEL_SET_DATE_SELECTED,
+    add_date_in_main_field_actions,
+    add_delete_action,
+    add_separator,
+)
 from harrix_swiss_knife.apps.common.table_models import create_table_proxy_model, sort_table_by_header_click
 from harrix_swiss_knife.apps.common.ui_helpers import reveal_in_file_explorer
 from harrix_swiss_knife.apps.common.widgets.exercise_avif_lightbox import ExerciseAvifLightboxDialog
@@ -6928,7 +6942,7 @@ class MainWindow(
         menu = getattr(self, "menuCommanda", None)
         if menu is None:
             return
-        action = QAction("🖼️ Open image in lightbox", self)
+        action = QAction(LABEL_OPEN_LIGHTBOX, self)
         action.setObjectName("actionOpenExerciseImageLightbox")
         action.triggered.connect(self.on_open_exercise_image_lightbox)
         menu.addAction(action)
@@ -7018,7 +7032,7 @@ class MainWindow(
             exercise_name = self._get_current_selected_exercise() or ""
             map_widget = self.label_exercise_avif
         context_menu = QMenu(self)
-        lightbox_action = context_menu.addAction("🖼️ Open image in lightbox")
+        lightbox_action = context_menu.addAction(LABEL_OPEN_LIGHTBOX)
         lightbox_action.setEnabled(self._get_exercise_avif_path(exercise_name) is not None)
         apply_leading_emoji_icons(context_menu)
         action = context_menu.exec_(map_widget.mapToGlobal(position))
@@ -7036,7 +7050,7 @@ class MainWindow(
         if not exercise_name:
             return
         context_menu = QMenu(self)
-        lightbox_action = context_menu.addAction("🖼️ Open image in lightbox")
+        lightbox_action = context_menu.addAction(LABEL_OPEN_LIGHTBOX)
         lightbox_action.setEnabled(self._get_exercise_avif_path(exercise_name) is not None)
         favorite_action = self._favorite_menu_action(context_menu, exercise_name)
         apply_leading_emoji_icons(context_menu)
@@ -7059,14 +7073,14 @@ class MainWindow(
             self.tableView_exercise_types.setCurrentIndex(index)
 
         context_menu = QMenu(self)
+        edit_action = context_menu.addAction(LABEL_EDIT)
+        lightbox_action = context_menu.addAction(LABEL_OPEN_LIGHTBOX)
+        reveal_action = context_menu.addAction(LABEL_REVEAL_IN_EXPLORER)
+        add_separator(context_menu)
         context_menu.addAction(self.actionAdd_Exercise_Type)
         context_menu.addAction(self.actionRefresh_Types_Table)
-        context_menu.addSeparator()
-        edit_action = context_menu.addAction("✏️ Edit")
-        delete_action = context_menu.addAction("🗑️ Delete")
-        lightbox_action = context_menu.addAction("🖼️ Open image in lightbox")
-        reveal_action = context_menu.addAction("📂 Reveal in File Explorer")
-        export_action = context_menu.addAction("📤 Export to CSV")
+        export_action = context_menu.addAction(LABEL_EXPORT_CSV)
+        delete_action = add_delete_action(context_menu)
         exercise_name = self._get_selected_exercise_from_table("types") or ""
         lightbox_action.setEnabled(self._get_exercise_avif_path(exercise_name) is not None)
         apply_leading_emoji_icons(context_menu)
@@ -7103,18 +7117,17 @@ class MainWindow(
             selected_name = self.db_manager.get_exercise_name_by_id(record_id) or ""
 
         context_menu = QMenu(self)
-        context_menu.addAction(self.actionAdd_Exercise)
-        context_menu.addAction(self.actionRefresh_Exercises_Table)
-        context_menu.addSeparator()
-        edit_action = context_menu.addAction("✏️ Edit")
+        edit_action = context_menu.addAction(LABEL_EDIT)
         favorite_action = self._favorite_menu_action(context_menu, selected_name)
-        delete_action = context_menu.addAction("🗑️ Delete")
-        lightbox_action = context_menu.addAction("🖼️ Open image in lightbox")
-        reveal_action = context_menu.addAction("📂 Reveal in File Explorer")
-        export_action = context_menu.addAction("📤 Export to CSV")
-        context_menu.addSeparator()
+        lightbox_action = context_menu.addAction(LABEL_OPEN_LIGHTBOX)
+        reveal_action = context_menu.addAction(LABEL_REVEAL_IN_EXPLORER)
         add_weights_action = context_menu.addAction("🏋️ Add dumbbell weight types")
         add_weights_action.setEnabled(record_id is not None and not is_template_exercise(selected_name))
+        add_separator(context_menu)
+        context_menu.addAction(self.actionAdd_Exercise)
+        context_menu.addAction(self.actionRefresh_Exercises_Table)
+        export_action = context_menu.addAction(LABEL_EXPORT_CSV)
+        delete_action = add_delete_action(context_menu)
         lightbox_name = self._get_selected_exercise_from_table("exercises") or selected_name
         lightbox_action.setEnabled(self._get_exercise_avif_path(lightbox_name) is not None)
         apply_leading_emoji_icons(context_menu)
@@ -7188,34 +7201,30 @@ class MainWindow(
             date_value = str(date_raw).strip() if date_raw is not None else ""
 
             if exercise_value:
-                filter_by_exercise_action = context_menu.addAction("🔍 Filter by this exercise")
+                filter_by_exercise_action = context_menu.addAction(LABEL_FILTER_BY_EXERCISE)
             if type_value:
-                filter_by_type_action = context_menu.addAction("🔍 Filter by this type")
+                filter_by_type_action = context_menu.addAction(LABEL_FILTER_BY_TYPE)
             if date_value:
-                filter_by_date_action = context_menu.addAction("📅 Filter by this date")
-            if filter_by_exercise_action or filter_by_type_action or filter_by_date_action:
-                context_menu.addSeparator()
+                filter_by_date_action = context_menu.addAction(LABEL_FILTER_BY_DATE)
 
             if date_value:
-                set_date_action = context_menu.addAction("📅 Set this date in main field")
-                set_date_plus_one_action = context_menu.addAction("📅 Set this date + 1 day in main field")
-                set_date_minus_one_action = context_menu.addAction("📅 Set this date - 1 day in main field")
-                context_menu.addSeparator()
-
-        clear_filters_action = context_menu.addAction("🧹 Clear all filters")
-        context_menu.addSeparator()
-        export_action = context_menu.addAction("📤 Export to CSV")
-        context_menu.addSeparator()
+                set_date_action, set_date_plus_one_action, set_date_minus_one_action = add_date_in_main_field_actions(
+                    context_menu
+                )
 
         selected_process_ids = self._get_selected_row_ids("process")
-        delete_label = "🗑 Delete selected rows" if len(selected_process_ids) > 1 else "🗑 Delete selected row"
-        delete_action = context_menu.addAction(delete_label)
-
         bulk_date_action = None
         ids_for_date_change: list[int] = []
         if len(selected_process_ids) > 1:
             ids_for_date_change = list(selected_process_ids)
-            bulk_date_action = context_menu.addAction("✍️ Set date for all selected rows…")
+            add_separator(context_menu)
+            bulk_date_action = context_menu.addAction(LABEL_SET_DATE_SELECTED)
+
+        add_separator(context_menu)
+        clear_filters_action = context_menu.addAction(LABEL_CLEAR_FILTERS)
+        export_action = context_menu.addAction(LABEL_EXPORT_CSV)
+        delete_action = add_delete_action(context_menu)
+        apply_leading_emoji_icons(context_menu)
 
         action = context_menu.exec_(self.tableView_process.mapToGlobal(position))
         if action is None:
@@ -7277,9 +7286,8 @@ class MainWindow(
 
         """
         context_menu = QMenu(self)
-        export_action = context_menu.addAction("📤 Export to CSV")
-
-        # Execute the context menu and get the selected action
+        export_action = context_menu.addAction(LABEL_EXPORT_CSV)
+        apply_leading_emoji_icons(context_menu)
         action = context_menu.exec_(self.tableView_statistics.mapToGlobal(position))
 
         # Process the action only if it was actually selected (not None)
@@ -7300,9 +7308,8 @@ class MainWindow(
 
         """
         context_menu = QMenu(self)
-        export_action = context_menu.addAction("📤 Export to CSV")
-
-        # Execute the context menu and get the selected action
+        export_action = context_menu.addAction(LABEL_EXPORT_CSV)
+        apply_leading_emoji_icons(context_menu)
         action = context_menu.exec_(self.tableView_weight.mapToGlobal(position))
 
         # Process the action only if it was actually selected (not None)

@@ -596,7 +596,7 @@ class DraggableIconList(QListWidget):
         copy_path_action = None
 
         if has_path:
-            reveal_action = menu.addAction("📂 Reveal in File Explorer")
+            reveal_action = menu.addAction(LABEL_REVEAL_IN_EXPLORER)
             details_action = menu.addAction("ℹ️ Icon details")  # noqa: RUF001
             copy_file_action = menu.addAction("📋 Copy file")
             if is_svg_icon_path(path):
@@ -631,7 +631,7 @@ class DraggableIconList(QListWidget):
             if not is_openable_license_url(license_url):
                 license_action.setEnabled(False)
 
-        delete_action = menu.addAction("🗑️ Delete")
+        delete_action = menu.addAction(LABEL_DELETE)
         chosen = menu.exec_(self.mapToGlobal(pos))
 
         if has_path and chosen is reveal_action:

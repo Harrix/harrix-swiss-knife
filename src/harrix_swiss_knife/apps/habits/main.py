@@ -64,6 +64,13 @@ from harrix_swiss_knife.apps.common.apps_config import get_apps_list_limits
 from harrix_swiss_knife.apps.common.chart_colors import generate_pastel_qcolors
 from harrix_swiss_knife.apps.common.db_init import init_tracker_database
 from harrix_swiss_knife.apps.common.qt_main_window import AppWindowMixin
+from harrix_swiss_knife.apps.common.table_context_menu import (
+    LABEL_CLEAR_CELL,
+    LABEL_EXPORT_CSV,
+    LABEL_REFRESH,
+    add_separator,
+    show_records_label,
+)
 from harrix_swiss_knife.apps.common.ui_helpers import close_table_editor_if_open
 from harrix_swiss_knife.apps.habits import database_manager, window
 from harrix_swiss_knife.apps.habits.dashboard import HabitDashboardWidget
@@ -1978,7 +1985,7 @@ class MainWindow(
 
         """
         context_menu = QMenu(self)
-        clear_cell_action = None
+        can_clear_cell = False
         menu_proxy_index = self.tableView_process_habits.indexAt(position)
 
         if menu_proxy_index.isValid():
@@ -1995,25 +2002,22 @@ class MainWindow(
                             stored_data = item.data(Qt.ItemDataRole.UserRole)
                             has_db_record = bool(stored_data and stored_data[0] is not None)
                             has_display_value = bool(str(item.text() or "").strip())
-                            if has_db_record or has_display_value:
-                                clear_cell_action = context_menu.addAction("🗑 Clear cell")
-                                context_menu.addSeparator()
+                            can_clear_cell = bool(has_db_record or has_display_value)
 
-        refresh_action = context_menu.addAction("🔄 Refresh Table")
-        export_action = context_menu.addAction("📤 Export to CSV")
-        context_menu.addSeparator()
-
-        # Toggle show all/limited records
-        if self.show_all_records:
-            show_all_action = context_menu.addAction(f"📋 Show Last {self.count_records_to_show}")
-        else:
-            show_all_action = context_menu.addAction("📋 Show All Records")
-
-        context_menu.addSeparator()
+        refresh_action = context_menu.addAction(LABEL_REFRESH)
+        export_action = context_menu.addAction(LABEL_EXPORT_CSV)
+        show_all_action = context_menu.addAction(
+            show_records_label(show_all=self.show_all_records, last_count=self.count_records_to_show),
+        )
+        add_separator(context_menu)
         if self.show_archived_habits:
             toggle_archived_action = context_menu.addAction("🙈 Hide archived habits")
         else:
             toggle_archived_action = context_menu.addAction("👀 Show archived habits")
+        clear_cell_action = None
+        if can_clear_cell:
+            add_separator(context_menu)
+            clear_cell_action = context_menu.addAction(LABEL_CLEAR_CELL)
         apply_leading_emoji_icons(context_menu)
 
         # Execute the context menu and get the selected action

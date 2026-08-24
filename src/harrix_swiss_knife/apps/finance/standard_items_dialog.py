@@ -25,6 +25,7 @@ from PySide6.QtWidgets import (
 
 from harrix_swiss_knife import qt_modality
 from harrix_swiss_knife.apps.common import message_box
+from harrix_swiss_knife.apps.common.table_context_menu import add_delete_action
 from harrix_swiss_knife.apps.finance.transaction_translate_parser import (
     align_translations_to_descriptions,
     parse_transaction_translate_response,
@@ -40,6 +41,7 @@ from harrix_swiss_knife.qt_emoji_icon import (
     CANCEL_BUTTON_EMOJI,
     DELETE_BUTTON_EMOJI,
     apply_emoji_dialog_buttons,
+    apply_leading_emoji_icons,
     make_emoji_push_button,
 )
 
@@ -302,10 +304,8 @@ class StandardItemsDialog(QDialog):
         if not selected:
             return
         menu = QMenu(self)
-        if len(selected) == 1:
-            delete_action = menu.addAction(f"{DELETE_BUTTON_EMOJI} Delete selected row")
-        else:
-            delete_action = menu.addAction(f"{DELETE_BUTTON_EMOJI} Delete selected rows")
+        delete_action = add_delete_action(menu)
+        apply_leading_emoji_icons(menu)
         viewport = self.table.viewport()
         if viewport is None:
             return

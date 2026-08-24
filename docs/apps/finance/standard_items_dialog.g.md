@@ -278,10 +278,8 @@ class StandardItemsDialog(QDialog):
         if not selected:
             return
         menu = QMenu(self)
-        if len(selected) == 1:
-            delete_action = menu.addAction(f"{DELETE_BUTTON_EMOJI} Delete selected row")
-        else:
-            delete_action = menu.addAction(f"{DELETE_BUTTON_EMOJI} Delete selected rows")
+        delete_action = add_delete_action(menu)
+        apply_leading_emoji_icons(menu)
         viewport = self.table.viewport()
         if viewport is None:
             return

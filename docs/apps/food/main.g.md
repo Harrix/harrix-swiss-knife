@@ -2935,70 +2935,53 @@ class MainWindow(
             date_value = str(date_raw).strip() if date_raw is not None else ""
 
             if name_value:
-                filter_by_name_action = context_menu.addAction("🔍 Filter by this name")
+                filter_by_name_action = context_menu.addAction(LABEL_FILTER_BY_NAME)
             if date_value:
-                filter_by_date_action = context_menu.addAction("📅 Filter by this date")
-            if filter_by_name_action or filter_by_date_action:
-                context_menu.addSeparator()
+                filter_by_date_action = context_menu.addAction(LABEL_FILTER_BY_DATE)
 
             if date_value:
-                set_date_action = context_menu.addAction("📅 Set this date in main field")
-                set_date_plus_one_action = context_menu.addAction("📅 Set this date + 1 day in main field")
-                set_date_minus_one_action = context_menu.addAction("📅 Set this date - 1 day in main field")
-                context_menu.addSeparator()
+                set_date_action, set_date_plus_one_action, set_date_minus_one_action = add_date_in_main_field_actions(
+                    context_menu
+                )
 
-        clear_filters_action = context_menu.addAction("🧹 Clear all filters")
-        context_menu.addSeparator()
-
-        # Add food item actions only if single row is selected
         add_food_item_action = None
         add_food_item_no_weight_action = None
         if not multiple_rows_selected:
+            add_separator(context_menu)
             add_food_item_action = context_menu.addAction("➕ Add to Food Items (with weight)")  # noqa: RUF001
             add_food_item_no_weight_action = context_menu.addAction("➕ Add to Food Items (without weight)")  # noqa: RUF001
-            # Add separator
-            context_menu.addSeparator()
 
-        # Add create dish action if multiple rows selected
         create_dish_action = None
         if multiple_rows_selected:
+            add_separator(context_menu)
             create_dish_action = context_menu.addAction("🍽 Create dish from selected ingredients")
-            context_menu.addSeparator()
 
+        add_separator(context_menu)
         ate_half_action = context_menu.addAction("🍽️ I ate half")
         ate_third_action = context_menu.addAction("🍽️ I ate a third")
         ate_two_thirds_action = context_menu.addAction("🍽️ I ate two thirds")
         ate_percent_action = context_menu.addAction("🍽️ I ate %…")
-        context_menu.addSeparator()
 
-        # Add swap weight and calories action
+        add_separator(context_menu)
         swap_weight_calories_action = context_menu.addAction("🔄 Swap Weight and Calories per 100g")
-
-        # Add separator
-        context_menu.addSeparator()
-
-        # Delete action - change text based on selection count
-        if multiple_rows_selected:
-            delete_action = context_menu.addAction(f"🗑 Delete selected rows ({len(unique_rows)})")
-        else:
-            delete_action = context_menu.addAction("🗑 Delete selected row")
 
         bulk_date_action = None
         ids_for_date_change: list[int] = []
         if multiple_rows_selected:
             ids_for_date_change = list(selected_food_log_ids)
             if len(ids_for_date_change) > 1:
-                bulk_date_action = context_menu.addAction("✍️ Set date for all selected rows…")
+                add_separator(context_menu)
+                bulk_date_action = context_menu.addAction(LABEL_SET_DATE_SELECTED)
 
-        export_action = context_menu.addAction("📤 Export to CSV")
+        add_separator(context_menu)
+        clear_filters_action = context_menu.addAction(LABEL_CLEAR_FILTERS)
+        export_action = context_menu.addAction(LABEL_EXPORT_CSV)
 
-        # Add total calories info at the bottom if multiple rows selected
         if multiple_rows_selected:
-            context_menu.addSeparator()
-            calories_info_action = context_menu.addAction(f"📊 Total calories: {total_calories:.1f} kcal")
-            calories_info_action.setEnabled(False)  # Make it non-clickable
+            add_info_action(context_menu, f"📊 Total calories: {total_calories:.1f} kcal")
 
-        # Execute the context menu and get the selected action
+        delete_action = add_delete_action(context_menu)
+        apply_leading_emoji_icons(context_menu)
         action = context_menu.exec_(self.tableView_food_log.mapToGlobal(position))
 
         # Process the action only if it was actually selected (not None)
