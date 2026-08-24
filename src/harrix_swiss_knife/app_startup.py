@@ -52,6 +52,7 @@ _QT_IGNORED_SUBSTRINGS = (
     "Invalid path data; path truncated",
     "is undefined!",
     "QFont::setPointSize: Point size <= 0",
+    "QWindowsWindow::setGeometry",
 )
 
 

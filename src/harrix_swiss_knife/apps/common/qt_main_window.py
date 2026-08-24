@@ -51,9 +51,6 @@ logger = logging.getLogger(__name__)
 
 _STANDARD_ASPECT_RATIO = 2.0
 _FALLBACK_TITLE_BAR_HEIGHT = 32
-# Windows 11 DWM resize borders are often ~13 logical px; Qt may report 0
-# until the HWND is fully configured. 16 keeps the frame inside the work area.
-_MIN_FRAMED_BORDER = 16
 
 
 class AppWindowMixin:
@@ -443,15 +440,7 @@ def apply_app_window_size_and_position(widget: QWidget, *, standard_width: int =
         frame_bottom=bottom,
     )
     if target is None:
-        widget.setGeometry(
-            compute_maximize_pin_geometry(
-                available,
-                frame_left=left,
-                frame_top=top,
-                frame_right=right,
-                frame_bottom=bottom,
-            )
-        )
+        widget.setGeometry(compute_maximize_pin_geometry(available))
         if widget.isVisible():
             QTimer.singleShot(0, lambda w=widget: _maximize_when_mapped(w))
         else:
@@ -496,12 +485,11 @@ def compute_app_window_geometry(
     if aspect_ratio <= _STANDARD_ASPECT_RATIO and available.width() >= standard_width:
         return None
 
-    left, top, right, bottom = _effective_frame_margins(frame_left, frame_top, frame_right, frame_bottom)
-    inner_width = max(1, available.width() - left - right)
-    inner_height = max(1, available.height() - top - bottom)
+    inner_width = max(1, available.width() - max(0, frame_left) - max(0, frame_right))
+    inner_height = max(1, available.height() - max(0, frame_top) - max(0, frame_bottom))
     window_width = min(standard_width, inner_width)
-    x = available.x() + left + (inner_width - window_width) // 2
-    y = available.y() + top
+    x = available.x() + max(0, frame_left) + (inner_width - window_width) // 2
+    y = available.y() + max(0, frame_top)
     return QRect(x, y, window_width, inner_height)
 
 
@@ -513,30 +501,24 @@ def compute_maximize_pin_geometry(
     frame_right: int = 0,
     frame_bottom: int = 0,
 ) -> QRect:
-    """Return a client rect that fits in `available` after window-frame extents.
+    """Return the work area used to map the HWND onto the target screen.
 
-    Pinning with the full work area as the client rect makes Windows reject
-    `setGeometry` (title bar and borders no longer fit) and logs
-    `QWindowsWindow::setGeometry`.
+    Insetting this rect by the window frame caused side gaps after maximize.
+    Windows may warn about `setGeometry`; that message is ignored.
 
     Args:
 
     - `available` (`QRect`): Work area of the target screen (excludes the taskbar).
     - `frame_left` / `frame_top` / `frame_right` / `frame_bottom` (`int`):
-      Window-frame extents in logical pixels.
+      Unused; kept so older callers still type-check.
 
     Returns:
 
     - `QRect`: Client geometry in global logical coordinates.
 
     """
-    left, top, right, bottom = _effective_frame_margins(frame_left, frame_top, frame_right, frame_bottom)
-    return QRect(
-        available.x() + left,
-        available.y() + top,
-        max(1, available.width() - left - right),
-        max(1, available.height() - top - bottom),
-    )
+    _ = (frame_left, frame_top, frame_right, frame_bottom)
+    return QRect(available)
 
 
 def resolve_window_menu_bar(window: QWidget) -> QMenuBar | None:
@@ -566,63 +548,31 @@ def resolve_window_menu_bar(window: QWidget) -> QMenuBar | None:
 def window_frame_margins(widget: QWidget) -> tuple[int, int, int, int]:
     """Return `(left, top, right, bottom)` window-frame extents in logical pixels.
 
-    Prefers `QWindow.frameMargins()` (what Qt uses when checking `setGeometry`).
-    `frameGeometry()` often reports only the title-bar offset, which produced
-    `QWindowsWindow::setGeometry: Unable to set geometry` on Windows 11.
+    Uses the realized frame when the caption is already laid out. Otherwise
+    estimates from the widget style so an unshown window still leaves room
+    for Close / Maximize.
 
     """
     flags = widget.windowFlags()
     if flags & Qt.WindowType.FramelessWindowHint:
         return (0, 0, 0, 0)
 
-    left = top = right = bottom = 0
-    handle = widget.windowHandle()
-    if handle is None:
-        widget.winId()
-        handle = widget.windowHandle()
-    if handle is not None:
-        margins = handle.frameMargins()
-        left = max(0, margins.left())
-        top = max(0, margins.top())
-        right = max(0, margins.right())
-        bottom = max(0, margins.bottom())
-
-    if top <= 0:
-        frame = widget.frameGeometry()
-        client = widget.geometry()
-        left = max(left, client.x() - frame.x())
-        top = max(top, client.y() - frame.y())
-        right = max(right, frame.right() - client.right())
-        bottom = max(bottom, frame.bottom() - client.bottom())
+    frame = widget.frameGeometry()
+    client = widget.geometry()
+    left = client.x() - frame.x()
+    top = client.y() - frame.y()
+    right = frame.right() - client.right()
+    bottom = frame.bottom() - client.bottom()
+    if top > 0:
+        return (max(0, left), top, max(0, right), max(0, bottom))
 
     style = widget.style()
     title = style.pixelMetric(QStyle.PixelMetric.PM_TitleBarHeight, widget=widget)
     border = style.pixelMetric(QStyle.PixelMetric.PM_DefaultFrameWidth, widget=widget)
     if title <= 0:
         title = _FALLBACK_TITLE_BAR_HEIGHT
-    border = max(border, _MIN_FRAMED_BORDER)
-    return (
-        max(left, border),
-        max(top, title),
-        max(right, border),
-        max(bottom, border),
-    )
-
-
-def _effective_frame_margins(
-    frame_left: int,
-    frame_top: int,
-    frame_right: int,
-    frame_bottom: int,
-) -> tuple[int, int, int, int]:
-    """Fill in missing side/bottom borders when only the title bar was reported."""
-    left = max(0, frame_left)
-    top = max(0, frame_top)
-    right = max(0, frame_right)
-    bottom = max(0, frame_bottom)
-    if top > 0 and left == 0 and right == 0 and bottom == 0:
-        left = right = bottom = _MIN_FRAMED_BORDER
-    return (left, top, right, bottom)
+    border = max(border, 0)
+    return (border, title, border, border)
 
 
 def _install_maximize_on_first_show(widget: QWidget) -> None:

@@ -61,13 +61,7 @@ def test_apply_pins_hidden_window_to_secondary_screen_before_maximize(
     widget.setWindowFlags(Qt.WindowType.Window)
     apply_app_window_size_and_position(widget)
     assert not widget.isVisible()
-    left, top, right, bottom = window_frame_margins(widget)
-    assert widget.geometry() == QRect(
-        1920 + left,
-        top,
-        1920 - left - right,
-        1080 - top - bottom,
-    )
+    assert widget.geometry() == QRect(1920, 0, 1920, 1080)
     assert not widget.windowState() & Qt.WindowState.WindowMaximized
     widget.show()
     qapp.processEvents()
@@ -94,15 +88,19 @@ def test_apply_centers_frameless_window_on_secondary_ultrawide(
     widget.close()
 
 
-def test_compute_maximize_pin_geometry_reserves_frame() -> None:
-    """Pinning for maximize must leave room for the title bar and borders."""
-    assert compute_maximize_pin_geometry(
-        QRect(0, 0, 3840, 2064),
-        frame_left=13,
-        frame_top=58,
-        frame_right=13,
-        frame_bottom=13,
-    ) == QRect(13, 58, 3814, 1993)
+def test_compute_maximize_pin_geometry_uses_work_area() -> None:
+    """Maximize pin keeps the full work area so the window has no side gaps."""
+    available = QRect(0, 0, 3840, 2064)
+    assert (
+        compute_maximize_pin_geometry(
+            available,
+            frame_left=13,
+            frame_top=58,
+            frame_right=13,
+            frame_bottom=13,
+        )
+        == available
+    )
 
 
 def test_compute_app_window_geometry_maximizes_on_standard_1080p() -> None:
@@ -113,21 +111,13 @@ def test_compute_app_window_geometry_maximizes_on_standard_1080p() -> None:
 def test_compute_app_window_geometry_reserves_title_bar() -> None:
     """Client rect leaves room so Close / Maximize stay inside the work area."""
     rect = compute_app_window_geometry(QRect(0, 0, 3440, 1440), frame_top=32)
-    assert rect == QRect(760, 32, 1920, 1392)
+    assert rect == QRect(760, 32, 1920, 1408)
 
 
 def test_compute_app_window_geometry_reserves_title_bar_on_scaled_work_area() -> None:
     """A work area that already starts below a top taskbar still reserves the caption."""
     rect = compute_app_window_geometry(QRect(0, 48, 1536, 816), frame_top=32)
-    assert rect == QRect(16, 80, 1504, 768)
-
-
-def test_compute_maximize_pin_geometry_fills_missing_side_borders() -> None:
-    """A title-bar-only frame must not pin a client flush to the work-area edges."""
-    assert compute_maximize_pin_geometry(
-        QRect(0, 0, 3840, 2064),
-        frame_top=58,
-    ) == QRect(16, 58, 3808, 1990)
+    assert rect == QRect(0, 80, 1536, 784)
 
 
 def test_window_frame_margins_are_zero_when_frameless(qapp: QApplication) -> None:  # noqa: ARG001
@@ -139,11 +129,8 @@ def test_window_frame_margins_are_zero_when_frameless(qapp: QApplication) -> Non
 def test_window_frame_margins_reserve_title_bar_for_window(qapp: QApplication) -> None:  # noqa: ARG001
     widget = QWidget()
     widget.setWindowFlags(Qt.WindowType.Window)
-    left, top, right, bottom = window_frame_margins(widget)
+    _left, top, _right, _bottom = window_frame_margins(widget)
     assert top >= 24
-    assert left >= 8
-    assert right >= 8
-    assert bottom >= 8
 
 
 def test_resolve_window_menu_bar_when_attribute_shadows_method(qapp: QApplication) -> None:
