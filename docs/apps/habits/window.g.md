@@ -36,6 +36,8 @@ class Ui_MainWindow(object):
         MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", u"Habit tracker", None))
         self.actionExit.setText(QCoreApplication.translate("MainWindow", u"Exit", None))
         self.actionAbout.setText(QCoreApplication.translate("MainWindow", u"About", None))
+        self.action_habits_refresh.setText(QCoreApplication.translate("MainWindow", u"Refresh Habits", None))
+        self.action_habits_delete.setText(QCoreApplication.translate("MainWindow", u"Delete Habit", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_dashboard), QCoreApplication.translate("MainWindow", u"Dashboard", None))
         self.groupBox_habits_5.setTitle(QCoreApplication.translate("MainWindow", u"Commands", None))
         self.pushButton_habits_delete.setText(QCoreApplication.translate("MainWindow", u"Delete selected", None))
@@ -49,9 +51,6 @@ class Ui_MainWindow(object):
         self.pushButton_habit_choose_emoji.setText(QCoreApplication.translate("MainWindow", u"Choose\u2026", None))
         self.checkBox_habit_is_bool.setText(QCoreApplication.translate("MainWindow", u"Boolean (0 or 1 only)", None))
         self.pushButton_habit_add_new.setText(QCoreApplication.translate("MainWindow", u"Add", None))
-        self.groupBox_habits_7.setTitle(QCoreApplication.translate("MainWindow", u"Commands", None))
-        self.pushButton_habits_delete_selected.setText(QCoreApplication.translate("MainWindow", u"Delete selected", None))
-        self.pushButton_habits_refresh_table.setText(QCoreApplication.translate("MainWindow", u"Refresh Table", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_sets_of_habits), QCoreApplication.translate("MainWindow", u"Habits", None))
         self.label_filter_habit.setText(QCoreApplication.translate("MainWindow", u"Habit:", None))
         self.label_filter_habit_year.setText(QCoreApplication.translate("MainWindow", u"Year:", None))
@@ -75,6 +74,10 @@ class Ui_MainWindow(object):
         self.actionExit.setObjectName(u"actionExit")
         self.actionAbout = QAction(MainWindow)
         self.actionAbout.setObjectName(u"actionAbout")
+        self.action_habits_refresh = QAction(MainWindow)
+        self.action_habits_refresh.setObjectName(u"action_habits_refresh")
+        self.action_habits_delete = QAction(MainWindow)
+        self.action_habits_delete.setObjectName(u"action_habits_delete")
         self.centralWidget = QWidget(MainWindow)
         self.centralWidget.setObjectName(u"centralWidget")
         self.horizontalLayout = QHBoxLayout(self.centralWidget)
@@ -213,28 +216,6 @@ class Ui_MainWindow(object):
 
         self.verticalLayout_23.addWidget(self.groupBox_habits_2)
 
-        self.groupBox_habits_7 = QGroupBox(self.frame_habits)
-        self.groupBox_habits_7.setObjectName(u"groupBox_habits_7")
-        self.verticalLayout_habits_11 = QVBoxLayout(self.groupBox_habits_7)
-        self.verticalLayout_habits_11.setObjectName(u"verticalLayout_habits_11")
-        self.horizontalLayout_habits_20 = QHBoxLayout()
-        self.horizontalLayout_habits_20.setObjectName(u"horizontalLayout_habits_20")
-        self.pushButton_habits_delete_selected = QPushButton(self.groupBox_habits_7)
-        self.pushButton_habits_delete_selected.setObjectName(u"pushButton_habits_delete_selected")
-
-        self.horizontalLayout_habits_20.addWidget(self.pushButton_habits_delete_selected)
-
-        self.pushButton_habits_refresh_table = QPushButton(self.groupBox_habits_7)
-        self.pushButton_habits_refresh_table.setObjectName(u"pushButton_habits_refresh_table")
-
-        self.horizontalLayout_habits_20.addWidget(self.pushButton_habits_refresh_table)
-
-
-        self.verticalLayout_habits_11.addLayout(self.horizontalLayout_habits_20)
-
-
-        self.verticalLayout_23.addWidget(self.groupBox_habits_7)
-
         self.tableView_habits = QTableView(self.frame_habits)
         self.tableView_habits.setObjectName(u"tableView_habits")
 
@@ -348,6 +329,8 @@ class Ui_MainWindow(object):
         self.menuBar.addAction(self.menuCommands.menuAction())
         self.menuBar.addAction(self.menuHelp.menuAction())
         self.menuFile.addAction(self.actionExit)
+        self.menuCommands.addAction(self.action_habits_refresh)
+        self.menuCommands.addAction(self.action_habits_delete)
         self.menuHelp.addAction(self.actionAbout)
 
         self.retranslateUi(MainWindow)
@@ -376,6 +359,8 @@ def retranslateUi(self, MainWindow):
         MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", u"Habit tracker", None))
         self.actionExit.setText(QCoreApplication.translate("MainWindow", u"Exit", None))
         self.actionAbout.setText(QCoreApplication.translate("MainWindow", u"About", None))
+        self.action_habits_refresh.setText(QCoreApplication.translate("MainWindow", u"Refresh Habits", None))
+        self.action_habits_delete.setText(QCoreApplication.translate("MainWindow", u"Delete Habit", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_dashboard), QCoreApplication.translate("MainWindow", u"Dashboard", None))
         self.groupBox_habits_5.setTitle(QCoreApplication.translate("MainWindow", u"Commands", None))
         self.pushButton_habits_delete.setText(QCoreApplication.translate("MainWindow", u"Delete selected", None))
@@ -389,9 +374,6 @@ def retranslateUi(self, MainWindow):
         self.pushButton_habit_choose_emoji.setText(QCoreApplication.translate("MainWindow", u"Choose\u2026", None))
         self.checkBox_habit_is_bool.setText(QCoreApplication.translate("MainWindow", u"Boolean (0 or 1 only)", None))
         self.pushButton_habit_add_new.setText(QCoreApplication.translate("MainWindow", u"Add", None))
-        self.groupBox_habits_7.setTitle(QCoreApplication.translate("MainWindow", u"Commands", None))
-        self.pushButton_habits_delete_selected.setText(QCoreApplication.translate("MainWindow", u"Delete selected", None))
-        self.pushButton_habits_refresh_table.setText(QCoreApplication.translate("MainWindow", u"Refresh Table", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_sets_of_habits), QCoreApplication.translate("MainWindow", u"Habits", None))
         self.label_filter_habit.setText(QCoreApplication.translate("MainWindow", u"Habit:", None))
         self.label_filter_habit_year.setText(QCoreApplication.translate("MainWindow", u"Year:", None))
@@ -431,6 +413,10 @@ def setupUi(self, MainWindow):
         self.actionExit.setObjectName(u"actionExit")
         self.actionAbout = QAction(MainWindow)
         self.actionAbout.setObjectName(u"actionAbout")
+        self.action_habits_refresh = QAction(MainWindow)
+        self.action_habits_refresh.setObjectName(u"action_habits_refresh")
+        self.action_habits_delete = QAction(MainWindow)
+        self.action_habits_delete.setObjectName(u"action_habits_delete")
         self.centralWidget = QWidget(MainWindow)
         self.centralWidget.setObjectName(u"centralWidget")
         self.horizontalLayout = QHBoxLayout(self.centralWidget)
@@ -569,28 +555,6 @@ def setupUi(self, MainWindow):
 
         self.verticalLayout_23.addWidget(self.groupBox_habits_2)
 
-        self.groupBox_habits_7 = QGroupBox(self.frame_habits)
-        self.groupBox_habits_7.setObjectName(u"groupBox_habits_7")
-        self.verticalLayout_habits_11 = QVBoxLayout(self.groupBox_habits_7)
-        self.verticalLayout_habits_11.setObjectName(u"verticalLayout_habits_11")
-        self.horizontalLayout_habits_20 = QHBoxLayout()
-        self.horizontalLayout_habits_20.setObjectName(u"horizontalLayout_habits_20")
-        self.pushButton_habits_delete_selected = QPushButton(self.groupBox_habits_7)
-        self.pushButton_habits_delete_selected.setObjectName(u"pushButton_habits_delete_selected")
-
-        self.horizontalLayout_habits_20.addWidget(self.pushButton_habits_delete_selected)
-
-        self.pushButton_habits_refresh_table = QPushButton(self.groupBox_habits_7)
-        self.pushButton_habits_refresh_table.setObjectName(u"pushButton_habits_refresh_table")
-
-        self.horizontalLayout_habits_20.addWidget(self.pushButton_habits_refresh_table)
-
-
-        self.verticalLayout_habits_11.addLayout(self.horizontalLayout_habits_20)
-
-
-        self.verticalLayout_23.addWidget(self.groupBox_habits_7)
-
         self.tableView_habits = QTableView(self.frame_habits)
         self.tableView_habits.setObjectName(u"tableView_habits")
 
@@ -704,6 +668,8 @@ def setupUi(self, MainWindow):
         self.menuBar.addAction(self.menuCommands.menuAction())
         self.menuBar.addAction(self.menuHelp.menuAction())
         self.menuFile.addAction(self.actionExit)
+        self.menuCommands.addAction(self.action_habits_refresh)
+        self.menuCommands.addAction(self.action_habits_delete)
         self.menuHelp.addAction(self.actionAbout)
 
         self.retranslateUi(MainWindow)

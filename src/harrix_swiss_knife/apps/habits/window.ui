@@ -259,33 +259,6 @@
              </widget>
             </item>
             <item>
-             <widget class="QGroupBox" name="groupBox_habits_7">
-              <property name="title">
-               <string>Commands</string>
-              </property>
-              <layout class="QVBoxLayout" name="verticalLayout_habits_11">
-               <item>
-                <layout class="QHBoxLayout" name="horizontalLayout_habits_20">
-                 <item>
-                  <widget class="QPushButton" name="pushButton_habits_delete_selected">
-                   <property name="text">
-                    <string>Delete selected</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QPushButton" name="pushButton_habits_refresh_table">
-                   <property name="text">
-                    <string>Refresh Table</string>
-                   </property>
-                  </widget>
-                 </item>
-                </layout>
-               </item>
-              </layout>
-             </widget>
-            </item>
-            <item>
              <widget class="QTableView" name="tableView_habits"/>
             </item>
            </layout>
@@ -466,6 +439,8 @@
     <property name="title">
      <string>Commands</string>
     </property>
+    <addaction name="action_habits_refresh"/>
+    <addaction name="action_habits_delete"/>
    </widget>
    <widget class="QMenu" name="menuHelp">
     <property name="title">
@@ -485,6 +460,16 @@
   <action name="actionAbout">
    <property name="text">
     <string>About</string>
+   </property>
+  </action>
+  <action name="action_habits_refresh">
+   <property name="text">
+    <string>Refresh Habits</string>
+   </property>
+  </action>
+  <action name="action_habits_delete">
+   <property name="text">
+    <string>Delete Habit</string>
    </property>
   </action>
  </widget>

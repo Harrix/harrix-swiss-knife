@@ -569,6 +569,32 @@ class MainWindow(
             self.lineEdit_habit_emoji.setText(dialog.selected_emoji())
 
     @requires_database()
+    def on_delete_habit(self) -> None:
+        """Delete the selected habit after confirmation."""
+        if self.db_manager is None:
+            message_box.warning(self, "Error", "Database not initialized")
+            return
+
+        record_id = self._get_selected_row_id("habits")
+        if record_id is None:
+            message_box.warning(self, "Error", "Select a record to delete")
+            return
+
+        habit = self.db_manager.get_habit_by_id(record_id)
+        habit_name = habit[1] if habit else ""
+        reply = message_box.question(
+            self,
+            "Confirm Delete",
+            f"Are you sure you want to delete habit '{habit_name}'?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if reply != QMessageBox.StandardButton.Yes:
+            return
+
+        self.delete_record("habits")
+
+    @requires_database()
     def on_export_habits_csv(self) -> None:
         """Export process habits table to CSV file."""
         if self.models.get("process_habits") is None:
@@ -1453,32 +1479,18 @@ class MainWindow(
         """Wire Qt widgets to their Python slots (habits only)."""
         self._connect_exit_about_actions()
 
-        tables_with_controls = {"habits", "process_habits"}
-        for table_name in tables_with_controls:
-            if table_name == "habits":
-                delete_btn_name = "pushButton_habits_delete_selected"
-            else:
-                delete_btn_name = "pushButton_habits_delete"
-            delete_button = getattr(self, delete_btn_name, None)
-            if delete_button:
-                delete_button.clicked.connect(partial(self.delete_record, table_name))
-
-            if table_name == "habits":
-                refresh_btn_name = "pushButton_habits_refresh_table"
-            else:
-                refresh_btn_name = "pushButton_habits_refresh"
-            refresh_button = getattr(self, refresh_btn_name, None)
-            if refresh_button:
-                if table_name == "process_habits":
-                    refresh_button.clicked.connect(self.refresh_process_habits_table)
-                else:
-                    refresh_button.clicked.connect(self.refresh_habits_and_process_habits)
+        self.pushButton_habits_delete.clicked.connect(partial(self.delete_record, "process_habits"))
+        self.pushButton_habits_refresh.clicked.connect(self.refresh_process_habits_table)
+        self.action_habits_refresh.triggered.connect(self.refresh_habits_and_process_habits)
+        self.action_habits_delete.triggered.connect(self.on_delete_habit)
 
         self.pushButton_habit_add_new.clicked.connect(self.on_add_habit)
         self.pushButton_habit_choose_emoji.clicked.connect(self.on_choose_habit_emoji)
         self.pushButton_habits_show_all_records.clicked.connect(self.on_toggle_show_all_habits_records)
         self.pushButton_habits_export_csv.clicked.connect(self.on_export_habits_csv)
 
+        self.tableView_habits.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.tableView_habits.customContextMenuRequested.connect(self._show_habits_table_context_menu)
         self.tableView_process_habits.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.tableView_process_habits.customContextMenuRequested.connect(self._show_process_habits_context_menu)
         self.tableView_process_habits.clicked.connect(self._on_process_habits_table_clicked)
@@ -1578,6 +1590,32 @@ class MainWindow(
         width_px = max(int(viewport.width()), min_px)
         height_px = max(int(viewport.height()), min_px)
         return Figure(figsize=(width_px / dpi, height_px / dpi), dpi=dpi)
+
+    def _habit_id_from_table_index(self, index: QModelIndex) -> int | None:
+        """Return habit database ID for a habits table model index."""
+        if not index.isValid():
+            return None
+
+        proxy_model = self.models.get("habits")
+        if proxy_model is None:
+            return None
+
+        source_model = proxy_model.sourceModel()
+        if source_model is None or not isinstance(source_model, QStandardItemModel):
+            return None
+
+        source_index = proxy_model.mapToSource(index)
+        if not source_index.isValid():
+            return None
+
+        row_id_item = source_model.verticalHeaderItem(source_index.row())
+        if row_id_item is None:
+            return None
+
+        try:
+            return int(row_id_item.text())
+        except (TypeError, ValueError):
+            return None
 
     def _handle_special_table_data_changed(
         self,
@@ -1873,6 +1911,9 @@ class MainWindow(
         self._habit_dashboard = HabitDashboardWidget(self)
         self.verticalLayout_dashboard.addWidget(self._habit_dashboard)
         self._habit_dashboard.data_changed.connect(self._on_dashboard_data_changed)
+        self.action_habits_refresh.setText(f"🔄 {self.action_habits_refresh.text()}")
+        self.action_habits_delete.setText(f"🗑️ {self.action_habits_delete.text()}")
+        self.menuCommands.addSeparator()
         add_habit_action = self.menuCommands.addAction("➕ Add habit")  # noqa: RUF001
         add_habit_action.triggered.connect(self._habit_dashboard.add_habit)
         refresh_action = self.menuCommands.addAction("🔄 Refresh")
@@ -1889,8 +1930,6 @@ class MainWindow(
         self.pushButton_habits_show_all_records.setText(f"📋 {self.pushButton_habits_show_all_records.text()}")
         self.pushButton_habits_export_csv.setText(f"📤 {self.pushButton_habits_export_csv.text()}")
         self.pushButton_habit_add_new.setText(f"➕ {self.pushButton_habit_add_new.text()}")  # noqa: RUF001
-        self.pushButton_habits_delete_selected.setText(f"🗑️ {self.pushButton_habits_delete_selected.text()}")
-        self.pushButton_habits_refresh_table.setText(f"🔄 {self.pushButton_habits_refresh_table.text()}")
 
         self.splitter_habits.setStretchFactor(0, 1)
         self.splitter_habits.setStretchFactor(1, 3)
@@ -1975,6 +2014,27 @@ class MainWindow(
             return
         if action == toggle_action:
             self._toggle_show_archived_habits()
+
+    def _show_habits_table_context_menu(self, position: QPoint) -> None:
+        """Show context menu on habits table with habit commands."""
+        index = self.tableView_habits.indexAt(position)
+        habit_id = self._habit_id_from_table_index(index)
+        if habit_id is not None:
+            self.tableView_habits.selectRow(index.row())
+
+        context_menu = QMenu(self)
+        context_menu.addAction(self.action_habits_refresh)
+        add_separator(context_menu)
+        self.action_habits_delete.setEnabled(habit_id is not None)
+        context_menu.addAction(self.action_habits_delete)
+        apply_leading_emoji_icons(context_menu)
+
+        viewport = self.tableView_habits.viewport()
+        if viewport is None:
+            self.action_habits_delete.setEnabled(True)
+            return
+        context_menu.exec_(viewport.mapToGlobal(position))
+        self.action_habits_delete.setEnabled(True)
 
     def _show_process_habits_context_menu(self, position: QPoint) -> None:
         """Show context menu for process habits table.
