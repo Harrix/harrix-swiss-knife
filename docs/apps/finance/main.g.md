@@ -30,6 +30,7 @@ lang: en
   - [⚙️ Method `on_category_selection_changed`](#%EF%B8%8F-method-on_category_selection_changed)
   - [⚙️ Method `on_clear_description`](#%EF%B8%8F-method-on_clear_description)
   - [⚙️ Method `on_copy_categories_as_text`](#%EF%B8%8F-method-on_copy_categories_as_text)
+  - [⚙️ Method `on_delete_account`](#%EF%B8%8F-method-on_delete_account)
   - [⚙️ Method `on_exchange_item_update_button_clicked`](#%EF%B8%8F-method-on_exchange_item_update_button_clicked)
   - [⚙️ Method `on_exchange_item_update_changed`](#%EF%B8%8F-method-on_exchange_item_update_changed)
   - [⚙️ Method `on_export_csv`](#%EF%B8%8F-method-on_export_csv)
@@ -896,6 +897,32 @@ class MainWindow(
 
         except Exception as e:
             message_box.critical(self, "Error", f"❌ Error copying categories to clipboard:\n\n{e!s}")
+
+    @requires_database()
+    def on_delete_account(self) -> None:
+        """Delete the selected account after confirmation."""
+        if self.db_manager is None:
+            self._show_error("Error", "Database not initialized")
+            return
+
+        record_id = self._get_selected_row_id("accounts")
+        if record_id is None:
+            message_box.warning(self, "Error", "Select a record to delete")
+            return
+
+        account = self.db_manager.get_account_by_id(record_id)
+        account_name = account[1] if account else ""
+        reply = message_box.question(
+            self,
+            "Confirm Delete",
+            f"Are you sure you want to delete account '{account_name}'?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if reply != QMessageBox.StandardButton.Yes:
+            return
+
+        self.delete_record("accounts")
 
     @requires_database()
     def on_exchange_item_update_button_clicked(self) -> None:
@@ -1925,7 +1952,6 @@ class MainWindow(
 
         # Delete and refresh buttons for all tables
         tables_with_controls: dict[str, tuple[str, str]] = {
-            "accounts": ("pushButton_accounts_delete", "pushButton_accounts_refresh"),
             "currencies": ("pushButton_currencies_delete", "pushButton_currencies_refresh"),
             "currency_exchanges": ("pushButton_exchange_delete", "pushButton_exchange_refresh"),
             "exchange_rates": ("pushButton_rates_delete", "pushButton_rates_refresh"),
@@ -1946,6 +1972,8 @@ class MainWindow(
         # Category commands (menu bar)
         self.action_add_category.triggered.connect(self.on_add_category)
         self.action_add_account.triggered.connect(self.on_add_account)
+        self.action_accounts_refresh.triggered.connect(self.update_all)
+        self.action_accounts_delete.triggered.connect(self.on_delete_account)
         self.action_categories_refresh.triggered.connect(self.update_all)
         self.action_copy_categories_as_text.triggered.connect(self.on_copy_categories_as_text)
 
@@ -5357,6 +5385,8 @@ class MainWindow(
         self.action_transactions_show_all_records.setText("📊 Show All Transactions")
         self.action_add_category.setText(f"➕ {self.action_add_category.text()}")  # noqa: RUF001
         self.action_add_account.setText(f"➕ {self.action_add_account.text()}")  # noqa: RUF001
+        self.action_accounts_refresh.setText(f"🔄 {self.action_accounts_refresh.text()}")
+        self.action_accounts_delete.setText(f"🗑️ {self.action_accounts_delete.text()}")
         self.action_categories_refresh.setText(f"🔄 {self.action_categories_refresh.text()}")
         self.action_copy_categories_as_text.setText(f"📋 {self.action_copy_categories_as_text.text()}")
         self.action_standard_items.setText(f"📋 {self.action_standard_items.text()}")
@@ -5404,10 +5434,6 @@ class MainWindow(
         self.pushButton_set_default_currency.setText(f"⭐ {self.pushButton_set_default_currency.text()}")
         self.pushButton_currencies_delete.setText(f"🗑️ {self.pushButton_currencies_delete.text()}")
         self.pushButton_currencies_refresh.setText(f"🔄 {self.pushButton_currencies_refresh.text()}")
-
-        # Set emoji for account buttons
-        self.pushButton_accounts_delete.setText(f"🗑️ {self.pushButton_accounts_delete.text()}")
-        self.pushButton_accounts_refresh.setText(f"🔄 {self.pushButton_accounts_refresh.text()}")
 
         # Set emoji for exchange buttons
         self.pushButton_exchange_add.setText(f"➕ {self.pushButton_exchange_add.text()}")  # noqa: RUF001
@@ -5498,7 +5524,7 @@ class MainWindow(
         self.spinBox_subdivision.setValue(100)
 
     def _show_accounts_table_context_menu(self, position: QPoint) -> None:
-        """Show context menu on accounts table with edit/delete and add account."""
+        """Show context menu on accounts table with edit and account commands."""
         index = self.tableView_accounts.indexAt(position)
         account_id = self._account_id_from_table_index(index)
         if account_id is not None:
@@ -5510,16 +5536,18 @@ class MainWindow(
             edit_action.triggered.connect(partial(self._on_account_double_clicked, index))
         add_separator(context_menu)
         context_menu.addAction(self.action_add_account)
-        delete_action = add_delete_action(context_menu)
-        delete_action.setEnabled(account_id is not None)
-        if account_id is not None:
-            delete_action.triggered.connect(partial(self.delete_record, "accounts"))
+        context_menu.addAction(self.action_accounts_refresh)
+        add_separator(context_menu)
+        self.action_accounts_delete.setEnabled(account_id is not None)
+        context_menu.addAction(self.action_accounts_delete)
         apply_leading_emoji_icons(context_menu)
 
         viewport = self.tableView_accounts.viewport()
         if viewport is None:
+            self.action_accounts_delete.setEnabled(True)
             return
         context_menu.exec_(viewport.mapToGlobal(position))
+        self.action_accounts_delete.setEnabled(True)
 
     def _show_amount_context_menu(self, position: QPoint) -> None:
         """Show context menu for amount spin box with standard edit actions plus calculator."""
@@ -7501,6 +7529,45 @@ def on_copy_categories_as_text(self) -> None:
 
         except Exception as e:
             message_box.critical(self, "Error", f"❌ Error copying categories to clipboard:\n\n{e!s}")
+```
+
+</details>
+
+### ⚙️ Method `on_delete_account`
+
+```python
+def on_delete_account(self) -> None
+```
+
+Delete the selected account after confirmation.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def on_delete_account(self) -> None:
+        if self.db_manager is None:
+            self._show_error("Error", "Database not initialized")
+            return
+
+        record_id = self._get_selected_row_id("accounts")
+        if record_id is None:
+            message_box.warning(self, "Error", "Select a record to delete")
+            return
+
+        account = self.db_manager.get_account_by_id(record_id)
+        account_name = account[1] if account else ""
+        reply = message_box.question(
+            self,
+            "Confirm Delete",
+            f"Are you sure you want to delete account '{account_name}'?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if reply != QMessageBox.StandardButton.Yes:
+            return
+
+        self.delete_record("accounts")
 ```
 
 </details>

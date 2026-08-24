@@ -665,33 +665,6 @@
            </property>
            <layout class="QVBoxLayout" name="verticalLayout_21">
             <item>
-             <widget class="QGroupBox" name="groupBox_account_commands">
-              <property name="title">
-               <string>Commands</string>
-              </property>
-              <layout class="QVBoxLayout" name="verticalLayout_account_commands">
-               <item>
-                <layout class="QHBoxLayout" name="horizontalLayout_account_commands">
-                 <item>
-                  <widget class="QPushButton" name="pushButton_accounts_delete">
-                   <property name="text">
-                    <string>Delete</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QPushButton" name="pushButton_accounts_refresh">
-                   <property name="text">
-                    <string>Refresh</string>
-                   </property>
-                  </widget>
-                 </item>
-                </layout>
-               </item>
-              </layout>
-             </widget>
-            </item>
-            <item>
              <widget class="QGroupBox" name="groupBox_balance_accounts">
               <property name="minimumSize">
                <size>
@@ -2409,6 +2382,8 @@
     <addaction name="action_copy_categories_as_text"/>
     <addaction name="separator"/>
     <addaction name="action_add_account"/>
+    <addaction name="action_accounts_refresh"/>
+    <addaction name="action_accounts_delete"/>
     <addaction name="separator"/>
     <addaction name="action_standard_items"/>
    </widget>
@@ -2430,6 +2405,16 @@
   <action name="action_add_account">
    <property name="text">
     <string>Add Account</string>
+   </property>
+  </action>
+  <action name="action_accounts_refresh">
+   <property name="text">
+    <string>Refresh Accounts</string>
+   </property>
+  </action>
+  <action name="action_accounts_delete">
+   <property name="text">
+    <string>Delete Account</string>
    </property>
   </action>
   <action name="action_categories_refresh">

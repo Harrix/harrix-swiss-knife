@@ -33,6 +33,10 @@ class Ui_MainWindow(object):
         self.action_add_category.setObjectName(u"action_add_category")
         self.action_add_account = QAction(MainWindow)
         self.action_add_account.setObjectName(u"action_add_account")
+        self.action_accounts_refresh = QAction(MainWindow)
+        self.action_accounts_refresh.setObjectName(u"action_accounts_refresh")
+        self.action_accounts_delete = QAction(MainWindow)
+        self.action_accounts_delete.setObjectName(u"action_accounts_delete")
         self.action_categories_refresh = QAction(MainWindow)
         self.action_categories_refresh.setObjectName(u"action_categories_refresh")
         self.action_copy_categories_as_text = QAction(MainWindow)
@@ -430,28 +434,6 @@ class Ui_MainWindow(object):
         self.frame_accounts.setFrameShadow(QFrame.Shadow.Raised)
         self.verticalLayout_21 = QVBoxLayout(self.frame_accounts)
         self.verticalLayout_21.setObjectName(u"verticalLayout_21")
-        self.groupBox_account_commands = QGroupBox(self.frame_accounts)
-        self.groupBox_account_commands.setObjectName(u"groupBox_account_commands")
-        self.verticalLayout_account_commands = QVBoxLayout(self.groupBox_account_commands)
-        self.verticalLayout_account_commands.setObjectName(u"verticalLayout_account_commands")
-        self.horizontalLayout_account_commands = QHBoxLayout()
-        self.horizontalLayout_account_commands.setObjectName(u"horizontalLayout_account_commands")
-        self.pushButton_accounts_delete = QPushButton(self.groupBox_account_commands)
-        self.pushButton_accounts_delete.setObjectName(u"pushButton_accounts_delete")
-
-        self.horizontalLayout_account_commands.addWidget(self.pushButton_accounts_delete)
-
-        self.pushButton_accounts_refresh = QPushButton(self.groupBox_account_commands)
-        self.pushButton_accounts_refresh.setObjectName(u"pushButton_accounts_refresh")
-
-        self.horizontalLayout_account_commands.addWidget(self.pushButton_accounts_refresh)
-
-
-        self.verticalLayout_account_commands.addLayout(self.horizontalLayout_account_commands)
-
-
-        self.verticalLayout_21.addWidget(self.groupBox_account_commands)
-
         self.groupBox_balance_accounts = QGroupBox(self.frame_accounts)
         self.groupBox_balance_accounts.setObjectName(u"groupBox_balance_accounts")
         self.groupBox_balance_accounts.setMinimumSize(QSize(0, 100))
@@ -1519,6 +1501,8 @@ class Ui_MainWindow(object):
         self.menuCommands.addAction(self.action_copy_categories_as_text)
         self.menuCommands.addSeparator()
         self.menuCommands.addAction(self.action_add_account)
+        self.menuCommands.addAction(self.action_accounts_refresh)
+        self.menuCommands.addAction(self.action_accounts_delete)
         self.menuCommands.addSeparator()
         self.menuCommands.addAction(self.action_standard_items)
         self.menuHelp.addAction(self.actionAbout)
@@ -1535,6 +1519,8 @@ class Ui_MainWindow(object):
         MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", u"Finance Tracker", None))
         self.action_add_category.setText(QCoreApplication.translate("MainWindow", u"Add Category", None))
         self.action_add_account.setText(QCoreApplication.translate("MainWindow", u"Add Account", None))
+        self.action_accounts_refresh.setText(QCoreApplication.translate("MainWindow", u"Refresh Accounts", None))
+        self.action_accounts_delete.setText(QCoreApplication.translate("MainWindow", u"Delete Account", None))
         self.action_categories_refresh.setText(QCoreApplication.translate("MainWindow", u"Refresh Categories", None))
         self.action_copy_categories_as_text.setText(QCoreApplication.translate("MainWindow", u"Copy Categories As Text", None))
         self.action_standard_items.setText(QCoreApplication.translate("MainWindow", u"Standard Items", None))
@@ -1578,9 +1564,6 @@ class Ui_MainWindow(object):
 #endif // QT_CONFIG(tooltip)
         self.pushButton_clear_filter.setText(QCoreApplication.translate("MainWindow", u"\U0001f9f9", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_transactions), QCoreApplication.translate("MainWindow", u"Transactions", None))
-        self.groupBox_account_commands.setTitle(QCoreApplication.translate("MainWindow", u"Commands", None))
-        self.pushButton_accounts_delete.setText(QCoreApplication.translate("MainWindow", u"Delete", None))
-        self.pushButton_accounts_refresh.setText(QCoreApplication.translate("MainWindow", u"Refresh", None))
         self.groupBox_balance_accounts.setTitle(QCoreApplication.translate("MainWindow", u"Balance", None))
         self.label_balance_accounts.setText(QCoreApplication.translate("MainWindow", u"0.0\u2080\u20bd", None))
         self.label_balance_account_details.setText(QCoreApplication.translate("MainWindow", u"0.0\u2080\u20bd", None))
