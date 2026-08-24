@@ -23,6 +23,7 @@ from matplotlib.dates import date2num
 from matplotlib.figure import Figure
 from matplotlib.ticker import MultipleLocator
 from PySide6.QtCore import (
+    QAbstractItemModel,
     QDate,
     QDateTime,
     QEvent,
@@ -217,6 +218,10 @@ class MainWindow(
         self.label_exercise_avif.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.label_exercise_avif.setCursor(Qt.CursorShape.PointingHandCursor)
         self.label_exercise_avif.setToolTip("Double-click to open in lightbox")
+        self.label_exercise_avif_5.installEventFilter(self)
+        self.label_exercise_avif_5.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.label_exercise_avif_5.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.label_exercise_avif_5.setToolTip("Double-click to open in lightbox")
         self._setup_ui()
 
         # Set window icon
@@ -525,6 +530,10 @@ class MainWindow(
 
         if obj is self.label_exercise_avif and event.type() == QEvent.Type.MouseButtonDblClick:
             self._open_exercise_media_lightbox()
+            return True
+
+        if obj is self.label_exercise_avif_5 and event.type() == QEvent.Type.MouseButtonDblClick:
+            self._open_exercise_media_lightbox(self._resolve_statistics_avif_exercise())
             return True
 
         return super().eventFilter(obj, event)
@@ -4660,6 +4669,7 @@ class MainWindow(
         self._setup_sync_dumbbell_weight_types_action()
         self._setup_open_exercise_lightbox_action()
         self.label_exercise_avif.customContextMenuRequested.connect(self._show_exercise_avif_label_menu)
+        self.label_exercise_avif_5.customContextMenuRequested.connect(self._show_exercise_avif_label_menu)
 
         self.pushButton_add.clicked.connect(self.on_add_record)
         self.spinBox_count.lineEdit().returnPressed.connect(self.pushButton_add.click)
@@ -5031,6 +5041,13 @@ class MainWindow(
             if name:
                 names.append(str(name))
         return names
+
+    def _exercise_names_from_table(self, table_name: str) -> list[str]:
+        """Return unique exercise names from an Exercises or Types table."""
+        return exercise_names_from_name_column(
+            self.models.get(table_name),
+            self._table_exercise_name_column(table_name),
+        )
 
     def _favorite_menu_action(self, menu: QMenu, exercise_name: str) -> QAction:
         """Add an add/remove favorite action for `exercise_name`."""
@@ -6115,8 +6132,12 @@ class MainWindow(
         self._exercise_table_sort[table_key] = result
 
     def _on_exercise_types_table_double_clicked(self, index: QModelIndex) -> None:
-        """Open exercise-type edit dialog on double-click."""
+        """Open lightbox on the thumbnail, or the type edit dialog otherwise."""
         if not index.isValid():
+            return
+        if is_exercise_table_image_column(index.column()):
+            name = self._get_selected_exercise_from_table("types")
+            self._open_exercise_media_lightbox(name, table_name="types")
             return
         self._open_exercise_type_edit_dialog()
 
@@ -6162,8 +6183,12 @@ class MainWindow(
                 self._update_chart_based_on_radio_button()
 
     def _on_exercises_table_double_clicked(self, index: QModelIndex) -> None:
-        """Open exercise edit dialog on double-click."""
+        """Open lightbox on the thumbnail, or the exercise edit dialog otherwise."""
         if not index.isValid():
+            return
+        if is_exercise_table_image_column(index.column()):
+            name = self._get_selected_exercise_from_table("exercises")
+            self._open_exercise_media_lightbox(name, table_name="exercises")
             return
         self._open_exercise_edit_dialog()
 
@@ -6265,6 +6290,7 @@ class MainWindow(
         exercise_name: str | None = None,
         *,
         list_view: QListView | None = None,
+        table_name: str | None = None,
     ) -> None:
         """Open the exercise AVIF in a lightbox that covers the app window."""
         name = (exercise_name or "").strip() or self._resolve_selected_exercise_for_lightbox() or ""
@@ -6278,11 +6304,12 @@ class MainWindow(
             message_box.warning(self, "Error", f"No media file found for '{name}'")
             return
 
-        names = [
-            item
-            for item in self._exercise_names_from_item_model(self._lightbox_source_model(list_view))
-            if self._get_exercise_avif_path(item)
-        ]
+        source_names = (
+            self._exercise_names_from_table(table_name)
+            if table_name
+            else self._exercise_names_from_item_model(self._lightbox_source_model(list_view))
+        )
+        names = [item for item in source_names if self._get_exercise_avif_path(item)]
         if name not in names:
             names = [name]
         dialog = ExerciseAvifLightboxDialog(
@@ -6532,6 +6559,15 @@ class MainWindow(
             if name:
                 return name
         return self._get_current_selected_exercise()
+
+    def _resolve_statistics_avif_exercise(self) -> str | None:
+        """Return the exercise currently shown on `label_exercise_avif_5`."""
+        if self.avif_manager is not None:
+            current = self.avif_manager.get_current_exercise("statistics")
+            if current:
+                return current
+        selected = self.comboBox_records_select_exercise.currentText().strip()
+        return selected or None
 
     def _reveal_exercise_media_in_explorer(self, exercise_name: str) -> None:
         """Open File Explorer with the exercise AVIF selected."""
@@ -6973,13 +7009,19 @@ class MainWindow(
         self._setup_fitness_dashboard_tab()
 
     def _show_exercise_avif_label_menu(self, position: QPoint) -> None:
-        """Show the lightbox command for `label_exercise_avif`."""
-        exercise_name = self._get_current_selected_exercise() or ""
+        """Show the lightbox command for an exercise AVIF label."""
+        label = self.sender()
+        if label is self.label_exercise_avif_5:
+            exercise_name = self._resolve_statistics_avif_exercise() or ""
+            map_widget = self.label_exercise_avif_5
+        else:
+            exercise_name = self._get_current_selected_exercise() or ""
+            map_widget = self.label_exercise_avif
         context_menu = QMenu(self)
         lightbox_action = context_menu.addAction("🖼️ Open image in lightbox")
         lightbox_action.setEnabled(self._get_exercise_avif_path(exercise_name) is not None)
         apply_leading_emoji_icons(context_menu)
-        action = context_menu.exec_(self.label_exercise_avif.mapToGlobal(position))
+        action = context_menu.exec_(map_widget.mapToGlobal(position))
         if action == lightbox_action:
             self._open_exercise_media_lightbox(exercise_name)
 
@@ -7022,8 +7064,12 @@ class MainWindow(
         context_menu.addSeparator()
         edit_action = context_menu.addAction("✏️ Edit")
         delete_action = context_menu.addAction("🗑️ Delete")
+        lightbox_action = context_menu.addAction("🖼️ Open image in lightbox")
         reveal_action = context_menu.addAction("📂 Reveal in File Explorer")
         export_action = context_menu.addAction("📤 Export to CSV")
+        exercise_name = self._get_selected_exercise_from_table("types") or ""
+        lightbox_action.setEnabled(self._get_exercise_avif_path(exercise_name) is not None)
+        apply_leading_emoji_icons(context_menu)
 
         action = context_menu.exec_(self.tableView_exercise_types.mapToGlobal(position))
         if action is None or action in {self.actionAdd_Exercise_Type, self.actionRefresh_Types_Table}:
@@ -7032,9 +7078,10 @@ class MainWindow(
             self._open_exercise_type_edit_dialog()
         elif action == delete_action:
             self.delete_record("types")
+        elif action == lightbox_action:
+            self._open_exercise_media_lightbox(exercise_name, table_name="types")
         elif action == reveal_action:
-            exercise_name = self._get_selected_exercise_from_table("types")
-            self._reveal_exercise_media_in_explorer(exercise_name or "")
+            self._reveal_exercise_media_in_explorer(exercise_name)
         elif action == export_action:
             self.on_export_csv()
 
@@ -7062,11 +7109,14 @@ class MainWindow(
         edit_action = context_menu.addAction("✏️ Edit")
         favorite_action = self._favorite_menu_action(context_menu, selected_name)
         delete_action = context_menu.addAction("🗑️ Delete")
+        lightbox_action = context_menu.addAction("🖼️ Open image in lightbox")
         reveal_action = context_menu.addAction("📂 Reveal in File Explorer")
         export_action = context_menu.addAction("📤 Export to CSV")
         context_menu.addSeparator()
         add_weights_action = context_menu.addAction("🏋️ Add dumbbell weight types")
         add_weights_action.setEnabled(record_id is not None and not is_template_exercise(selected_name))
+        lightbox_name = self._get_selected_exercise_from_table("exercises") or selected_name
+        lightbox_action.setEnabled(self._get_exercise_avif_path(lightbox_name) is not None)
         apply_leading_emoji_icons(context_menu)
 
         action = context_menu.exec_(self.tableView_exercises.mapToGlobal(position))
@@ -7078,9 +7128,10 @@ class MainWindow(
             self._toggle_exercise_favorite_by_name(selected_name)
         elif action == delete_action:
             self.delete_record("exercises")
+        elif action == lightbox_action:
+            self._open_exercise_media_lightbox(lightbox_name, table_name="exercises")
         elif action == reveal_action:
-            exercise_name = self._get_selected_exercise_from_table("exercises")
-            self._reveal_exercise_media_in_explorer(exercise_name or "")
+            self._reveal_exercise_media_in_explorer(lightbox_name)
         elif action == export_action:
             self.on_export_csv()
         elif action == add_weights_action:
@@ -7577,6 +7628,25 @@ class MainWindow(
                 item = source.item(row, _EXERCISE_TABLE_IMAGE_COLUMN)
                 if item is not None:
                     item.setIcon(icon)
+
+
+def exercise_names_from_name_column(model: QAbstractItemModel | None, name_column: int) -> list[str]:
+    """Return unique exercise names from `name_column`, in model order."""
+    if model is None:
+        return []
+    names: list[str] = []
+    seen: set[str] = set()
+    for row in range(model.rowCount()):
+        name = str(model.data(model.index(row, name_column)) or "").strip()
+        if name and name not in seen:
+            seen.add(name)
+            names.append(name)
+    return names
+
+
+def is_exercise_table_image_column(column: int) -> bool:
+    """Return whether a table click landed on the exercise thumbnail."""
+    return column == _EXERCISE_TABLE_IMAGE_COLUMN
 
 
 if __name__ == "__main__":
