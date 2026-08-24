@@ -108,6 +108,9 @@ def test_finance_window_inserts_dashboard_as_first_tab() -> None:
     assert tabs.widget(1) is window.tab_transactions
     assert window.tab_finance_dashboard.objectName() == "tab_finance_dashboard"
     assert window.tab_transactions.objectName() == "tab_transactions"
+    assert not hasattr(window, "tab_categories")
+    assert window.action_categories.text() == "Categories"
+    assert window.action_currencies.text() == "Currencies"
     assert window.tab_exchange_rates.objectName() == "tab_exchange_rates"
     assert window.tab_charts.objectName() == "tab_charts"
     assert window.tab_reports.objectName() == "tab_reports"

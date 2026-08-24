@@ -21,17 +21,15 @@ lang: en
   - [⚙️ Method `keyPressEvent`](#%EF%B8%8F-method-keypressevent)
   - [⚙️ Method `on_add_account`](#%EF%B8%8F-method-on_add_account)
   - [⚙️ Method `on_add_as_text_with_ai`](#%EF%B8%8F-method-on_add_as_text_with_ai)
-  - [⚙️ Method `on_add_category`](#%EF%B8%8F-method-on_add_category)
-  - [⚙️ Method `on_add_currency`](#%EF%B8%8F-method-on_add_currency)
   - [⚙️ Method `on_add_exchange`](#%EF%B8%8F-method-on_add_exchange)
   - [⚙️ Method `on_add_transaction`](#%EF%B8%8F-method-on_add_transaction)
   - [⚙️ Method `on_calculate_exchange`](#%EF%B8%8F-method-on_calculate_exchange)
   - [⚙️ Method `on_calculate_fee`](#%EF%B8%8F-method-on_calculate_fee)
+  - [⚙️ Method `on_categories`](#%EF%B8%8F-method-on_categories)
   - [⚙️ Method `on_category_selection_changed`](#%EF%B8%8F-method-on_category_selection_changed)
   - [⚙️ Method `on_clear_description`](#%EF%B8%8F-method-on_clear_description)
-  - [⚙️ Method `on_copy_categories_as_text`](#%EF%B8%8F-method-on_copy_categories_as_text)
+  - [⚙️ Method `on_currencies`](#%EF%B8%8F-method-on_currencies)
   - [⚙️ Method `on_delete_account`](#%EF%B8%8F-method-on_delete_account)
-  - [⚙️ Method `on_delete_currency`](#%EF%B8%8F-method-on_delete_currency)
   - [⚙️ Method `on_delete_exchange`](#%EF%B8%8F-method-on_delete_exchange)
   - [⚙️ Method `on_exchange_item_update_button_clicked`](#%EF%B8%8F-method-on_exchange_item_update_button_clicked)
   - [⚙️ Method `on_exchange_item_update_changed`](#%EF%B8%8F-method-on_exchange_item_update_changed)
@@ -41,7 +39,6 @@ lang: en
   - [⚙️ Method `on_finance_dashboard_add_voice`](#%EF%B8%8F-method-on_finance_dashboard_add_voice)
   - [⚙️ Method `on_select_only_expense_chart_categories`](#%EF%B8%8F-method-on_select_only_expense_chart_categories)
   - [⚙️ Method `on_select_only_income_chart_categories`](#%EF%B8%8F-method-on_select_only_income_chart_categories)
-  - [⚙️ Method `on_set_default_currency`](#%EF%B8%8F-method-on_set_default_currency)
   - [⚙️ Method `on_show_all_records_clicked`](#%EF%B8%8F-method-on_show_all_records_clicked)
   - [⚙️ Method `on_standard_items`](#%EF%B8%8F-method-on_standard_items)
   - [⚙️ Method `on_tab_changed`](#%EF%B8%8F-method-on_tab_changed)
@@ -126,9 +123,7 @@ class MainWindow(
         # Table models dictionary
         self.models: dict[str, QSortFilterProxyModel | None] = {
             "transactions": None,
-            "categories": None,
             "accounts": None,
-            "currencies": None,
             "currency_exchanges": None,
             "exchange_rates": None,
         }
@@ -152,8 +147,6 @@ class MainWindow(
 
         # Track whether account double-click handler is connected
         self._account_double_click_connected: bool = False
-        self._category_double_click_connected: bool = False
-        self._category_edit_dialog_open: bool = False
 
         # Toggle for showing all records vs last self.count_transactions_to_show
         initial_count, load_more_count = get_apps_list_limits(self._app_config)
@@ -231,20 +224,10 @@ class MainWindow(
                 "transactions",
                 ["Description", "English", "Amount", "Category", "Currency", "Date", "Tag", "Total per day"],
             ),
-            "categories": (
-                self.tableView_categories,
-                "categories",
-                ["Name", "Type", "Local"],
-            ),
             "accounts": (
                 self.tableView_accounts,
                 "accounts",
                 ["Name", "Balance", "Currency", "Liquid", "Cash"],
-            ),
-            "currencies": (
-                self.tableView_currencies,
-                "currencies",
-                ["Code", "Name", "Symbol"],
             ),
             "currency_exchanges": (
                 self.tableView_exchange,
@@ -536,9 +519,7 @@ class MainWindow(
             event,
             [
                 self.tableView_transactions,
-                self.tableView_categories,
                 self.tableView_accounts,
-                self.tableView_currencies,
                 self.tableView_exchange,
                 self.tableView_exchange_rates,
                 self.tableView_reports,
@@ -616,60 +597,6 @@ class MainWindow(
         raw_text = source_dialog.get_raw_text()
         images_data = source_dialog.get_images_bytes_and_mime()
         self._send_purchases_to_ai(raw_text, images_data)
-
-    @requires_database()
-    def on_add_category(self) -> None:
-        """Add a new category via modal dialog."""
-        dialog = CategoryAddDialog(self, app_config=self._app_config, bothub_state=self._bothub_state)
-        if dialog.exec() != QDialog.DialogCode.Accepted:
-            return
-
-        result = dialog.get_result()
-        if result is None:
-            return
-        name, category_type, icon, name_local = result
-
-        if not self.db_manager:
-            self._show_error("Error", "Database not initialized")
-            return
-
-        try:
-            if self.db_manager.add_category(name, category_type, icon, name_local=name_local):
-                self._mark_categories_changed()
-                self.update_all()
-            else:
-                self._show_error("Error", "Failed to add category")
-        except Exception as e:
-            self._show_error("Database Error", f"Failed to add category: {e}")
-
-    @requires_database()
-    def on_add_currency(self) -> None:
-        """Add a new currency via modal dialog."""
-        if self.db_manager is None:
-            self._show_error("Error", "Database not initialized")
-            return
-
-        dialog = CurrencyAddDialog(self)
-        if dialog.exec() != QDialog.DialogCode.Accepted:
-            return
-
-        result = dialog.get_result()
-        if result is None:
-            return
-
-        try:
-            if self.db_manager.add_currency(
-                str(result["code"]),
-                str(result["name"]),
-                str(result["symbol"]),
-                int(result["subdivision"]),
-            ):
-                self._mark_currencies_changed()
-                self.update_all()
-            else:
-                self._show_error("Error", "Failed to add currency")
-        except Exception as e:
-            self._show_error("Database Error", f"Failed to add currency: {e}")
 
     @requires_database()
     def on_add_exchange(self) -> None:
@@ -828,6 +755,23 @@ class MainWindow(
 
             self.doubleSpinBox_exchange_fee.setValue(new_fee)
 
+    @requires_database()
+    def on_categories(self) -> None:
+        """Open the categories catalog dialog."""
+        if self.db_manager is None:
+            return
+        dialog = CategoriesDialog(
+            self,
+            self.db_manager,
+            app_config=self._app_config,
+            bothub_state=self._bothub_state,
+        )
+        dialog.exec()
+        if dialog.catalog_changed:
+            self._mark_categories_changed()
+            self._update_comboboxes()
+            self.update_filter_comboboxes()
+
     def on_category_selection_changed(self, current: QModelIndex, _previous: QModelIndex) -> None:
         """Handle category selection change in listView_categories.
 
@@ -858,44 +802,25 @@ class MainWindow(
         self.lineEdit_description.clear()
         self._clear_category_suggestions()
 
-    def on_copy_categories_as_text(self) -> None:
-        """Copy list of categories to clipboard as text."""
+    @requires_database()
+    def on_currencies(self) -> None:
+        """Open the currencies catalog dialog."""
         if self.db_manager is None:
-            message_box.warning(
-                self, "Database Error", "❌ Database manager is not initialized. Please try again later."
-            )
             return
-
-        try:
-            # Get all categories
-            categories_data: list = self.db_manager.get_all_categories()
-
-            if not categories_data:
-                message_box.information(self, "No Categories", "No categories found in the database.")
-                return
-
-            # Create text representation
-            categories_text: list[str] = []
-            for row in categories_data:
-                category_name: str = row[1]  # name column
-                categories_text.append(category_name)
-
-            # Join with newlines
-            clipboard_text: str = "\n".join(categories_text)
-
-            # Copy to clipboard
-            clipboard = QApplication.clipboard()
-            clipboard.setText(clipboard_text)
-
-            # Show success message to user
-            message_box.information(
-                self,
-                "Categories Copied",
-                f"✅ Successfully copied {len(categories_text)} categories to clipboard:\n\n{clipboard_text}",
-            )
-
-        except Exception as e:
-            message_box.critical(self, "Error", f"❌ Error copying categories to clipboard:\n\n{e!s}")
+        dialog = CurrenciesDialog(self, self.db_manager)
+        dialog.exec()
+        if dialog.catalog_changed:
+            self._mark_currencies_changed()
+            self._update_comboboxes()
+            self.update_filter_comboboxes()
+        if dialog.default_currency_changed:
+            self._mark_default_currency_changed()
+            self.update_summary_labels()
+            self._update_comboboxes()
+            self._update_accounts_balance_display()
+            self._load_transactions_table()
+            self._connect_table_auto_save_signals()
+            self._load_currency_exchanges_table()
 
     @requires_database()
     def on_delete_account(self) -> None:
@@ -922,32 +847,6 @@ class MainWindow(
             return
 
         self.delete_record("accounts")
-
-    @requires_database()
-    def on_delete_currency(self) -> None:
-        """Delete the selected currency after confirmation."""
-        if self.db_manager is None:
-            self._show_error("Error", "Database not initialized")
-            return
-
-        record_id = self._get_selected_row_id("currencies")
-        if record_id is None:
-            message_box.warning(self, "Error", "Select a record to delete")
-            return
-
-        currency = self.db_manager.get_currency_by_id(record_id)
-        currency_label = currency[0] if currency else ""
-        reply = message_box.question(
-            self,
-            "Confirm Delete",
-            f"Are you sure you want to delete currency '{currency_label}'?",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-            QMessageBox.StandardButton.No,
-        )
-        if reply != QMessageBox.StandardButton.Yes:
-            return
-
-        self.delete_record("currencies")
 
     @requires_database()
     def on_delete_exchange(self) -> None:
@@ -1149,37 +1048,6 @@ class MainWindow(
         """Check only income categories in the Charts category list."""
         self._select_only_chart_categories(1)
 
-    @requires_database()
-    def on_set_default_currency(self) -> None:
-        """Set the default currency."""
-        currency_code: str = self.comboBox_default_currency.currentText()
-
-        if not currency_code:
-            message_box.warning(self, "Error", "Select a currency")
-            return
-
-        if self.db_manager is None:
-            logger.error("❌ Database manager is not initialized")
-            return
-
-        try:
-            if self.db_manager.set_default_currency(currency_code):
-                message_box.information(self, "Success", f"Default currency set to {currency_code}")
-                # Mark default currency changed for lazy loading
-                self._mark_default_currency_changed()
-                # Update all displays that depend on default currency
-                self.update_summary_labels()
-                self._update_comboboxes()
-                self._update_accounts_balance_display()
-                # Recalculate transaction-derived columns (e.g., "Total per day") in new default currency
-                self._load_transactions_table()
-                self._connect_table_auto_save_signals()
-                self._load_currency_exchanges_table()
-            else:
-                message_box.warning(self, "Error", "Failed to set default currency")
-        except Exception as e:
-            message_box.warning(self, "Database Error", f"Failed to set default currency: {e}")
-
     def on_show_all_records_clicked(self) -> None:
         """Toggle between showing all records and last self.count_transactions_to_show records."""
         self.show_all_transactions = not self.show_all_transactions
@@ -1232,7 +1100,7 @@ class MainWindow(
             QTimer.singleShot(0, self._setup_transactions_table_column_widths)
             QTimer.singleShot(50, self._setup_transactions_table_column_widths)
             return
-        if tab_name in {"tab_accounts", "tab_categories", "tab_currencies"}:
+        if tab_name in {"tab_accounts", "tab_currencies"}:
             QTimer.singleShot(0, self._refresh_visible_table_column_widths)
             QTimer.singleShot(50, self._refresh_visible_table_column_widths)
             return
@@ -1801,32 +1669,6 @@ class MainWindow(
         revision_rows = self.db_manager.get_revision_expense_transactions(currency_id)
         return plan_revision_expense_consolidation_for_positive_diff(revision_rows, diff_minor) is not None
 
-    def _category_id_from_table_index(self, index: QModelIndex) -> int | None:
-        """Return category database ID for a categories table model index."""
-        if not index.isValid():
-            return None
-
-        proxy_model = self.models.get("categories")
-        if proxy_model is None:
-            return None
-
-        source_model = proxy_model.sourceModel()
-        if source_model is None or not isinstance(source_model, QStandardItemModel):
-            return None
-
-        source_index = proxy_model.mapToSource(index)
-        if not source_index.isValid():
-            return None
-
-        row_id_item = source_model.verticalHeaderItem(source_index.row())
-        if row_id_item is None:
-            return None
-
-        try:
-            return int(row_id_item.text())
-        except (TypeError, ValueError):
-            return None
-
     @staticmethod
     def _chart_date_nums(x_values: list[datetime]) -> list[float]:
         return list(date2num(x_values))
@@ -1975,6 +1817,8 @@ class MainWindow(
         self.action_transactions_refresh.triggered.connect(self.update_all)
         self.action_transactions_show_all_records.triggered.connect(self.on_show_all_records_clicked)
         self.action_standard_items.triggered.connect(self.on_standard_items)
+        self.action_categories.triggered.connect(self.on_categories)
+        self.action_currencies.triggered.connect(self.on_currencies)
         max_image_side = get_max_image_side(self._app_config)
         self._ai_image_drop_zone = ImagePicker(
             mode=ImagePickerMode.COMPACT,
@@ -2007,18 +1851,11 @@ class MainWindow(
 
             refresh_button.clicked.connect(self.update_all)
 
-        # Category commands (menu bar)
-        self.action_add_category.triggered.connect(self.on_add_category)
         self.action_add_account.triggered.connect(self.on_add_account)
         self.action_accounts_refresh.triggered.connect(self.update_all)
         self.action_accounts_delete.triggered.connect(self.on_delete_account)
-        self.action_add_currency.triggered.connect(self.on_add_currency)
-        self.action_currencies_refresh.triggered.connect(self.update_all)
-        self.action_currencies_delete.triggered.connect(self.on_delete_currency)
         self.action_exchanges_refresh.triggered.connect(self.update_all)
         self.action_exchanges_delete.triggered.connect(self.on_delete_exchange)
-        self.action_categories_refresh.triggered.connect(self.update_all)
-        self.action_copy_categories_as_text.triggered.connect(self.on_copy_categories_as_text)
 
         # Add buttons
         self.pushButton_balance_check.clicked.connect(self._on_balance_check_clicked)
@@ -2068,9 +1905,6 @@ class MainWindow(
         self.pushButton_calculate_exchange.clicked.connect(self.on_calculate_exchange)
         self.pushButton_calculate_fee.clicked.connect(self.on_calculate_fee)
 
-        # Currency signals
-        self.pushButton_set_default_currency.clicked.connect(self.on_set_default_currency)
-
         # Rate signals
         self.pushButton_exchange_update.clicked.connect(self.on_update_exchange_rates)
 
@@ -2100,16 +1934,8 @@ class MainWindow(
         self.tableView_transactions.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.tableView_transactions.customContextMenuRequested.connect(self._show_transactions_context_menu)
 
-        # Categories table: read-only; edit via double-click / context menu dialog
-        self.tableView_categories.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
-        self.tableView_categories.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-        self.tableView_categories.customContextMenuRequested.connect(self._show_categories_table_context_menu)
-        self.tableView_categories.setSortingEnabled(True)
-
         self.tableView_accounts.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.tableView_accounts.customContextMenuRequested.connect(self._show_accounts_table_context_menu)
-        self.tableView_currencies.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-        self.tableView_currencies.customContextMenuRequested.connect(self._show_currencies_table_context_menu)
         self.tableView_exchange.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.tableView_exchange.customContextMenuRequested.connect(self._show_exchanges_table_context_menu)
 
@@ -2259,32 +2085,6 @@ class MainWindow(
         proxy: QSortFilterProxyModel = QSortFilterProxyModel()
         proxy.setSourceModel(model)
         return proxy
-
-    def _currency_id_from_table_index(self, index: QModelIndex) -> int | None:
-        """Return currency database ID for a currencies table model index."""
-        if not index.isValid():
-            return None
-
-        proxy_model = self.models.get("currencies")
-        if proxy_model is None:
-            return None
-
-        source_model = proxy_model.sourceModel()
-        if source_model is None or not isinstance(source_model, QStandardItemModel):
-            return None
-
-        source_index = proxy_model.mapToSource(index)
-        if not source_index.isValid():
-            return None
-
-        row_id_item = source_model.verticalHeaderItem(source_index.row())
-        if row_id_item is None:
-            return None
-
-        try:
-            return int(row_id_item.text())
-        except (TypeError, ValueError):
-            return None
 
     def _dispose_models(self) -> None:
         """Detach all models from QTableView and delete them."""
@@ -3216,52 +3016,6 @@ class MainWindow(
         self.tableView_accounts.doubleClicked.connect(self._on_account_double_clicked)
         self._account_double_click_connected = True
 
-    def _load_categories_table(self) -> None:
-        """Load categories table (read-only; icon shown with name)."""
-        if self.db_manager is None:
-            return
-
-        rows: list[tuple[str, str, int, str, str, object, object]] = []
-        for row in self.db_manager.get_all_categories():
-            category_id, name, category_type, icon, name_local = (
-                row[0],
-                str(row[1] or ""),
-                int(row[2] or 0),
-                str(row[3] or ""),
-                str(row[4] or "") if row[4] is not None else "",
-            )
-            type_label = "Expense" if category_type == 0 else "Income"
-            color = QColor(255, 200, 200) if category_type == 0 else QColor(200, 255, 200)
-            display_name = f"{icon} {name}".strip() if icon else name
-            rows.append((display_name, type_label, category_type, name, name_local, color, category_id))
-
-        headers = self.table_config["categories"][2]
-        table_model = create_categories_table_proxy_model(rows, headers)
-        self.models["categories"] = table_model
-        self._set_table_model_and_stretch_columns(self.tableView_categories, table_model)
-        self.tableView_categories.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
-        self.tableView_categories.setSortingEnabled(True)
-
-        if self._category_double_click_connected:
-            with contextlib.suppress(TypeError, RuntimeError):
-                self.tableView_categories.doubleClicked.disconnect(self._on_category_double_clicked)
-            self._category_double_click_connected = False
-
-        self.tableView_categories.doubleClicked.connect(self._on_category_double_clicked)
-        self._category_double_click_connected = True
-
-    def _load_currencies_table(self) -> None:
-        """Load currencies table."""
-
-        def transform(rows: list) -> list[list]:
-            result: list[list] = []
-            for row in rows:
-                color: QColor = QColor(255, 255, 220)
-                result.append([row[1], row[2], row[3], row[0], color])
-            return result
-
-        self._load_simple_colored_table("currencies", self.db_manager.get_all_currencies, transform)
-
     def _load_currency_exchanges_table(self) -> None:
         """Load currency exchanges table."""
         if self.db_manager is None:
@@ -3367,9 +3121,7 @@ class MainWindow(
             # Load each table individually with error handling
             tables_to_load = [
                 ("transactions", self._load_transactions_table),
-                ("categories", self._load_categories_table),
                 ("accounts", self._load_accounts_table),
-                ("currencies", self._load_currencies_table),
                 ("currency_exchanges", self._load_currency_exchanges_table),
             ]
 
@@ -3405,30 +3157,6 @@ class MainWindow(
             fetch_rows=self._fetch_transaction_rows,
             append_rows=append_rows,
         )
-
-    def _load_simple_colored_table(
-        self,
-        table_name: str,
-        get_data_fn: Callable[[], list],
-        transform_fn: Callable[[list], list],
-    ) -> None:
-        """Load a table with colored model: fetch data, transform, create model, set view.
-
-        Args:
-
-        - `table_name` (`str`): Key in table_config and models.
-        - `get_data_fn` (`Callable[[], list]`): No-arg callable that returns raw rows.
-        - `transform_fn` (`Callable[[list], list]`): Maps raw rows to display rows (with color).
-
-        """
-        data = get_data_fn()
-        transformed = transform_fn(data)
-        view, _model_key, headers = self.table_config[table_name]
-        table_model = self._create_colored_table_model(transformed, headers)
-        if table_model is None:
-            return
-        self.models[table_name] = table_model
-        self._set_table_model_and_stretch_columns(view, table_model)
 
     def _load_transactions_page(self, *, reset: bool = True) -> None:
         """Load the first page of transactions (with optional active filters)."""
@@ -3797,12 +3525,6 @@ class MainWindow(
         self._close_balance_check_toast()
         logger.error("%s", f"Error in test balance: {error_message}")
         message_box.warning(self, "Error", f"Error: {error_message}")
-
-    def _on_category_double_clicked(self, index: QModelIndex) -> None:
-        """Open category edit dialog on double-click."""
-        if not index.isValid():
-            return
-        self._open_category_edit_dialog_for_index(index)
 
     def _on_check_completed(self, currencies_to_process: list) -> None:
         """Handle successful completion of exchange rate check.
@@ -4433,72 +4155,6 @@ class MainWindow(
         self.doubleSpinBox_amount.setFocus()
         self.doubleSpinBox_amount.selectAll()
 
-    def _open_category_edit_dialog_by_id(self, category_id: int) -> None:
-        """Open edit dialog for category with database `category_id`."""
-        if self._category_edit_dialog_open:
-            return
-
-        if not self._validate_database_connection() or self.db_manager is None:
-            return
-
-        category_data = self.db_manager.get_category_by_id(category_id)
-        if not category_data:
-            message_box.warning(self, "Error", "Category not found")
-            return
-
-        category_dict = {
-            "id": category_data[0],
-            "name": category_data[1] or "",
-            "type": int(category_data[2] or 0),
-            "icon": category_data[3] or "",
-            "name_local": category_data[4] or "",
-        }
-
-        self._category_edit_dialog_open = True
-        dialog = CategoryEditDialog(
-            self,
-            category_dict,
-            app_config=self._app_config,
-            bothub_state=self._bothub_state,
-        )
-        result_code = dialog.exec()
-        self._category_edit_dialog_open = False
-
-        if result_code != QDialog.DialogCode.Accepted:
-            return
-
-        result = dialog.get_result()
-        if result.get("action") == "save":
-            success = self.db_manager.update_category(
-                category_id,
-                result["name"],
-                int(result["type"]),
-                result.get("icon", "") or "",
-                result.get("name_local", "") or "",
-            )
-            if success:
-                self._mark_categories_changed()
-                self.update_all()
-            else:
-                message_box.warning(self, "Error", "Failed to update category")
-            return
-
-        if result.get("action") == "delete":
-            success = self.db_manager.delete_category(category_id)
-            if success:
-                self._mark_categories_changed()
-                self.update_all()
-                message_box.information(self, "Success", "Category deleted successfully")
-            else:
-                message_box.warning(self, "Error", "Failed to delete category")
-
-    def _open_category_edit_dialog_for_index(self, index: QModelIndex) -> None:
-        """Open edit dialog for the category row at `index`."""
-        category_id = self._category_id_from_table_index(index)
-        if category_id is None:
-            return
-        self._open_category_edit_dialog_by_id(category_id)
-
     def _open_text_input_dialog(
         self,
         default_date: QDate,
@@ -4851,10 +4507,6 @@ class MainWindow(
         self._refresh_summary_if_needed()
         self._update_accounts_balance_display()
         if categories_may_change:
-            try:
-                self._load_categories_table()
-            except Exception:
-                logger.exception("❌ Error loading categories table after deferred refresh")
             self._update_comboboxes()
             self.update_filter_comboboxes()
             self._connect_table_auto_save_signals()
@@ -4908,8 +4560,6 @@ class MainWindow(
             return
         tables: list[tuple[QTableView, bool]] = [
             (self.tableView_accounts, False),
-            (self.tableView_categories, True),
-            (self.tableView_currencies, True),
             (self.tableView_exchange, False),
             (self.tableView_exchange_rates, True),
         ]
@@ -5495,17 +5145,13 @@ class MainWindow(
         self.action_transactions_translate_with_ai.setText(f"🤖 {self.action_transactions_translate_with_ai.text()}")
         self.action_transactions_refresh.setText(f"🔄 {self.action_transactions_refresh.text()}")
         self.action_transactions_show_all_records.setText("📊 Show All Transactions")
-        self.action_add_category.setText(f"➕ {self.action_add_category.text()}")  # noqa: RUF001
+        self.action_categories.setText(f"🏷️ {self.action_categories.text()}")
+        self.action_currencies.setText(f"💱 {self.action_currencies.text()}")
         self.action_add_account.setText(f"➕ {self.action_add_account.text()}")  # noqa: RUF001
         self.action_accounts_refresh.setText(f"🔄 {self.action_accounts_refresh.text()}")
         self.action_accounts_delete.setText(f"🗑️ {self.action_accounts_delete.text()}")
-        self.action_add_currency.setText(f"➕ {self.action_add_currency.text()}")  # noqa: RUF001
-        self.action_currencies_refresh.setText(f"🔄 {self.action_currencies_refresh.text()}")
-        self.action_currencies_delete.setText(f"🗑️ {self.action_currencies_delete.text()}")
         self.action_exchanges_refresh.setText(f"🔄 {self.action_exchanges_refresh.text()}")
         self.action_exchanges_delete.setText(f"🗑️ {self.action_exchanges_delete.text()}")
-        self.action_categories_refresh.setText(f"🔄 {self.action_categories_refresh.text()}")
-        self.action_copy_categories_as_text.setText(f"📋 {self.action_copy_categories_as_text.text()}")
         self.action_standard_items.setText(f"📋 {self.action_standard_items.text()}")
         self._apply_menu_bar_emoji_icons()
         self.groupBox_filter.setTitle("")
@@ -5547,7 +5193,6 @@ class MainWindow(
 
         # Set emoji for additional exchange and currency buttons
         self.pushButton_calculate_exchange.setText(f"🧮 {self.pushButton_calculate_exchange.text()}")
-        self.pushButton_set_default_currency.setText(f"⭐ {self.pushButton_set_default_currency.text()}")
 
         # Set emoji for exchange buttons
         self.pushButton_exchange_add.setText(f"➕ {self.pushButton_exchange_add.text()}")  # noqa: RUF001
@@ -5615,11 +5260,6 @@ class MainWindow(
         self.splitter_2.setStretchFactor(0, 1)  # frame_accounts gets less space
         self.splitter_2.setStretchFactor(1, 3)  # tableView_accounts gets more space
 
-        # Configure splitter_3 proportions (tableViews wide, currencies panel narrow)
-        self.splitter_3.setStretchFactor(0, 3)  # tableView_categories gets more space
-        self.splitter_3.setStretchFactor(1, 1)  # frame_currencies gets less space
-        self.splitter_3.setStretchFactor(2, 3)  # tableView_currencies gets more space
-
         # Configure splitter_5 proportions (frame_5 narrow, tableView_reports wide)
         self.splitter_5.setStretchFactor(0, 1)  # frame_5 gets less space
         self.splitter_5.setStretchFactor(1, 3)  # tableView_reports gets more space
@@ -5682,32 +5322,6 @@ class MainWindow(
         filter_action.triggered.connect(lambda: self._filter_by_category_from_table(category_value))
         apply_leading_emoji_icons(context_menu)
         context_menu.exec_(self.listView_categories.mapToGlobal(position))
-
-    def _show_categories_table_context_menu(self, position: QPoint) -> None:
-        """Show context menu on categories table with edit/delete and category commands."""
-        index = self.tableView_categories.indexAt(position)
-        category_id = self._category_id_from_table_index(index)
-        if category_id is not None:
-            self.tableView_categories.selectRow(index.row())
-
-        context_menu = QMenu(self)
-        if category_id is not None:
-            edit_action = context_menu.addAction(LABEL_EDIT)
-            edit_action.triggered.connect(partial(self._open_category_edit_dialog_by_id, category_id))
-        add_separator(context_menu)
-        context_menu.addAction(self.action_add_category)
-        context_menu.addAction(self.action_categories_refresh)
-        context_menu.addAction(self.action_copy_categories_as_text)
-        delete_action = add_delete_action(context_menu)
-        delete_action.setEnabled(category_id is not None)
-        if category_id is not None:
-            delete_action.triggered.connect(partial(self.delete_record, "categories"))
-        apply_leading_emoji_icons(context_menu)
-
-        viewport = self.tableView_categories.viewport()
-        if viewport is None:
-            return
-        context_menu.exec_(viewport.mapToGlobal(position))
 
     def _show_category_label_context_menu(self, position: QPoint) -> None:
         """Show context menu on the category label with all available categories.
@@ -5783,28 +5397,6 @@ class MainWindow(
         )
 
         cast("Any", menu).exec(self.list_chart_categories.viewport().mapToGlobal(position))
-
-    def _show_currencies_table_context_menu(self, position: QPoint) -> None:
-        """Show context menu on currencies table with currency commands."""
-        index = self.tableView_currencies.indexAt(position)
-        currency_id = self._currency_id_from_table_index(index)
-        if currency_id is not None:
-            self.tableView_currencies.selectRow(index.row())
-
-        context_menu = QMenu(self)
-        context_menu.addAction(self.action_add_currency)
-        context_menu.addAction(self.action_currencies_refresh)
-        add_separator(context_menu)
-        self.action_currencies_delete.setEnabled(currency_id is not None)
-        context_menu.addAction(self.action_currencies_delete)
-        apply_leading_emoji_icons(context_menu)
-
-        viewport = self.tableView_currencies.viewport()
-        if viewport is None:
-            self.action_currencies_delete.setEnabled(True)
-            return
-        context_menu.exec_(viewport.mapToGlobal(position))
-        self.action_currencies_delete.setEnabled(True)
 
     def _show_exchanges_table_context_menu(self, position: QPoint) -> None:
         """Show context menu on exchanges table with edit and exchange commands."""
@@ -6408,7 +6000,6 @@ class MainWindow(
                 self.comboBox_currency,
                 self.comboBox_exchange_from,
                 self.comboBox_exchange_to,
-                self.comboBox_default_currency,
             ]:
                 combo.clear()
                 combo.addItems(currencies)
@@ -6459,7 +6050,6 @@ class MainWindow(
             for combo in [
                 self.comboBox_currency,
                 self.comboBox_exchange_from,
-                self.comboBox_default_currency,
             ]:
                 index: int = combo.findText(default_currency)
                 if index >= 0:
@@ -6695,9 +6285,7 @@ def __init__(self, *, hide_on_close: bool = False) -> None:
         # Table models dictionary
         self.models: dict[str, QSortFilterProxyModel | None] = {
             "transactions": None,
-            "categories": None,
             "accounts": None,
-            "currencies": None,
             "currency_exchanges": None,
             "exchange_rates": None,
         }
@@ -6721,8 +6309,6 @@ def __init__(self, *, hide_on_close: bool = False) -> None:
 
         # Track whether account double-click handler is connected
         self._account_double_click_connected: bool = False
-        self._category_double_click_connected: bool = False
-        self._category_edit_dialog_open: bool = False
 
         # Toggle for showing all records vs last self.count_transactions_to_show
         initial_count, load_more_count = get_apps_list_limits(self._app_config)
@@ -6800,20 +6386,10 @@ def __init__(self, *, hide_on_close: bool = False) -> None:
                 "transactions",
                 ["Description", "English", "Amount", "Category", "Currency", "Date", "Tag", "Total per day"],
             ),
-            "categories": (
-                self.tableView_categories,
-                "categories",
-                ["Name", "Type", "Local"],
-            ),
             "accounts": (
                 self.tableView_accounts,
                 "accounts",
                 ["Name", "Balance", "Currency", "Liquid", "Cash"],
-            ),
-            "currencies": (
-                self.tableView_currencies,
-                "currencies",
-                ["Code", "Name", "Symbol"],
             ),
             "currency_exchanges": (
                 self.tableView_exchange,
@@ -7179,9 +6755,7 @@ def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
             event,
             [
                 self.tableView_transactions,
-                self.tableView_categories,
                 self.tableView_accounts,
-                self.tableView_currencies,
                 self.tableView_exchange,
                 self.tableView_exchange_rates,
                 self.tableView_reports,
@@ -7285,86 +6859,6 @@ def on_add_as_text_with_ai(
         raw_text = source_dialog.get_raw_text()
         images_data = source_dialog.get_images_bytes_and_mime()
         self._send_purchases_to_ai(raw_text, images_data)
-```
-
-</details>
-
-### ⚙️ Method `on_add_category`
-
-```python
-def on_add_category(self) -> None
-```
-
-Add a new category via modal dialog.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def on_add_category(self) -> None:
-        dialog = CategoryAddDialog(self, app_config=self._app_config, bothub_state=self._bothub_state)
-        if dialog.exec() != QDialog.DialogCode.Accepted:
-            return
-
-        result = dialog.get_result()
-        if result is None:
-            return
-        name, category_type, icon, name_local = result
-
-        if not self.db_manager:
-            self._show_error("Error", "Database not initialized")
-            return
-
-        try:
-            if self.db_manager.add_category(name, category_type, icon, name_local=name_local):
-                self._mark_categories_changed()
-                self.update_all()
-            else:
-                self._show_error("Error", "Failed to add category")
-        except Exception as e:
-            self._show_error("Database Error", f"Failed to add category: {e}")
-```
-
-</details>
-
-### ⚙️ Method `on_add_currency`
-
-```python
-def on_add_currency(self) -> None
-```
-
-Add a new currency via modal dialog.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def on_add_currency(self) -> None:
-        if self.db_manager is None:
-            self._show_error("Error", "Database not initialized")
-            return
-
-        dialog = CurrencyAddDialog(self)
-        if dialog.exec() != QDialog.DialogCode.Accepted:
-            return
-
-        result = dialog.get_result()
-        if result is None:
-            return
-
-        try:
-            if self.db_manager.add_currency(
-                str(result["code"]),
-                str(result["name"]),
-                str(result["symbol"]),
-                int(result["subdivision"]),
-            ):
-                self._mark_currencies_changed()
-                self.update_all()
-            else:
-                self._show_error("Error", "Failed to add currency")
-        except Exception as e:
-            self._show_error("Database Error", f"Failed to add currency: {e}")
 ```
 
 </details>
@@ -7579,6 +7073,36 @@ def on_calculate_fee(self) -> None:
 
 </details>
 
+### ⚙️ Method `on_categories`
+
+```python
+def on_categories(self) -> None
+```
+
+Open the categories catalog dialog.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def on_categories(self) -> None:
+        if self.db_manager is None:
+            return
+        dialog = CategoriesDialog(
+            self,
+            self.db_manager,
+            app_config=self._app_config,
+            bothub_state=self._bothub_state,
+        )
+        dialog.exec()
+        if dialog.catalog_changed:
+            self._mark_categories_changed()
+            self._update_comboboxes()
+            self.update_filter_comboboxes()
+```
+
+</details>
+
 ### ⚙️ Method `on_category_selection_changed`
 
 ```python
@@ -7635,55 +7159,35 @@ def on_clear_description(self) -> None:
 
 </details>
 
-### ⚙️ Method `on_copy_categories_as_text`
+### ⚙️ Method `on_currencies`
 
 ```python
-def on_copy_categories_as_text(self) -> None
+def on_currencies(self) -> None
 ```
 
-Copy list of categories to clipboard as text.
+Open the currencies catalog dialog.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def on_copy_categories_as_text(self) -> None:
+def on_currencies(self) -> None:
         if self.db_manager is None:
-            message_box.warning(
-                self, "Database Error", "❌ Database manager is not initialized. Please try again later."
-            )
             return
-
-        try:
-            # Get all categories
-            categories_data: list = self.db_manager.get_all_categories()
-
-            if not categories_data:
-                message_box.information(self, "No Categories", "No categories found in the database.")
-                return
-
-            # Create text representation
-            categories_text: list[str] = []
-            for row in categories_data:
-                category_name: str = row[1]  # name column
-                categories_text.append(category_name)
-
-            # Join with newlines
-            clipboard_text: str = "\n".join(categories_text)
-
-            # Copy to clipboard
-            clipboard = QApplication.clipboard()
-            clipboard.setText(clipboard_text)
-
-            # Show success message to user
-            message_box.information(
-                self,
-                "Categories Copied",
-                f"✅ Successfully copied {len(categories_text)} categories to clipboard:\n\n{clipboard_text}",
-            )
-
-        except Exception as e:
-            message_box.critical(self, "Error", f"❌ Error copying categories to clipboard:\n\n{e!s}")
+        dialog = CurrenciesDialog(self, self.db_manager)
+        dialog.exec()
+        if dialog.catalog_changed:
+            self._mark_currencies_changed()
+            self._update_comboboxes()
+            self.update_filter_comboboxes()
+        if dialog.default_currency_changed:
+            self._mark_default_currency_changed()
+            self.update_summary_labels()
+            self._update_comboboxes()
+            self._update_accounts_balance_display()
+            self._load_transactions_table()
+            self._connect_table_auto_save_signals()
+            self._load_currency_exchanges_table()
 ```
 
 </details>
@@ -7723,45 +7227,6 @@ def on_delete_account(self) -> None:
             return
 
         self.delete_record("accounts")
-```
-
-</details>
-
-### ⚙️ Method `on_delete_currency`
-
-```python
-def on_delete_currency(self) -> None
-```
-
-Delete the selected currency after confirmation.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def on_delete_currency(self) -> None:
-        if self.db_manager is None:
-            self._show_error("Error", "Database not initialized")
-            return
-
-        record_id = self._get_selected_row_id("currencies")
-        if record_id is None:
-            message_box.warning(self, "Error", "Select a record to delete")
-            return
-
-        currency = self.db_manager.get_currency_by_id(record_id)
-        currency_label = currency[0] if currency else ""
-        reply = message_box.question(
-            self,
-            "Confirm Delete",
-            f"Are you sure you want to delete currency '{currency_label}'?",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-            QMessageBox.StandardButton.No,
-        )
-        if reply != QMessageBox.StandardButton.Yes:
-            return
-
-        self.delete_record("currencies")
 ```
 
 </details>
@@ -8090,50 +7555,6 @@ def on_select_only_income_chart_categories(self) -> None:
 
 </details>
 
-### ⚙️ Method `on_set_default_currency`
-
-```python
-def on_set_default_currency(self) -> None
-```
-
-Set the default currency.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def on_set_default_currency(self) -> None:
-        currency_code: str = self.comboBox_default_currency.currentText()
-
-        if not currency_code:
-            message_box.warning(self, "Error", "Select a currency")
-            return
-
-        if self.db_manager is None:
-            logger.error("❌ Database manager is not initialized")
-            return
-
-        try:
-            if self.db_manager.set_default_currency(currency_code):
-                message_box.information(self, "Success", f"Default currency set to {currency_code}")
-                # Mark default currency changed for lazy loading
-                self._mark_default_currency_changed()
-                # Update all displays that depend on default currency
-                self.update_summary_labels()
-                self._update_comboboxes()
-                self._update_accounts_balance_display()
-                # Recalculate transaction-derived columns (e.g., "Total per day") in new default currency
-                self._load_transactions_table()
-                self._connect_table_auto_save_signals()
-                self._load_currency_exchanges_table()
-            else:
-                message_box.warning(self, "Error", "Failed to set default currency")
-        except Exception as e:
-            message_box.warning(self, "Database Error", f"Failed to set default currency: {e}")
-```
-
-</details>
-
 ### ⚙️ Method `on_show_all_records_clicked`
 
 ```python
@@ -8222,7 +7643,7 @@ def on_tab_changed(self, index: int) -> None:
             QTimer.singleShot(0, self._setup_transactions_table_column_widths)
             QTimer.singleShot(50, self._setup_transactions_table_column_widths)
             return
-        if tab_name in {"tab_accounts", "tab_categories", "tab_currencies"}:
+        if tab_name in {"tab_accounts", "tab_currencies"}:
             QTimer.singleShot(0, self._refresh_visible_table_column_widths)
             QTimer.singleShot(50, self._refresh_visible_table_column_widths)
             return
