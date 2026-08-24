@@ -21,7 +21,7 @@ import dev.harrix.hsk.R
 import kotlin.math.min
 import kotlin.math.roundToInt
 
-/** 1×1 home-screen widget that opens Speech to Text. */
+/** 1×1 home-screen widget that opens Speech to Text and starts recording. */
 class SpeechToTextWidgetProvider : AppWidgetProvider() {
     override fun onUpdate(
         context: Context,

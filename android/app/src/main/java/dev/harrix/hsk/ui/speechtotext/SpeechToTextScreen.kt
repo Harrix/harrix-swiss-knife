@@ -67,6 +67,7 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -139,6 +140,8 @@ private const val SwipeDeleteClickSlopPx = 12f
 fun SpeechToTextScreen(
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
+    autoStartRecording: Boolean = false,
+    onAutoStartRecordingConsume: () -> Unit = {},
     viewModel: SpeechToTextViewModel = viewModel(),
 ) {
     val composerPhase by viewModel.composerPhase
@@ -259,6 +262,20 @@ fun SpeechToTextScreen(
             pendingMicAction = action
             permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
         }
+    }
+
+    val onAutoStartRecordingConsumeState = rememberUpdatedState(onAutoStartRecordingConsume)
+    LaunchedEffect(autoStartRecording) {
+        if (!autoStartRecording) {
+            return@LaunchedEffect
+        }
+        selectedItemId = null
+        when (viewModel.composerPhase.value) {
+            ComposerPhase.Recording -> Unit
+            ComposerPhase.Recorded -> viewModel.enqueueDraftAndRecordNew()
+            ComposerPhase.Idle -> startOrRequestMic()
+        }
+        onAutoStartRecordingConsumeState.value()
     }
 
     LaunchedEffect(selectedItemId, items.size) {

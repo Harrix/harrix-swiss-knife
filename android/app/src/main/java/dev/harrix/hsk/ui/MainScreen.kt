@@ -143,6 +143,7 @@ fun MainScreen(
     val onPendingImageUriConsumeState = rememberUpdatedState(onPendingImageUriConsume)
     val onPendingOpenSpeechToTextConsumeState =
         rememberUpdatedState(onPendingOpenSpeechToTextConsume)
+    var autoStartSpeechRecording by remember { mutableStateOf(false) }
 
     LaunchedEffect(pendingImageUri) {
         val uri = pendingImageUri ?: return@LaunchedEffect
@@ -160,6 +161,7 @@ fun MainScreen(
         destination = AppDestination.SpeechToText
         showAbout = false
         settingsSection = null
+        autoStartSpeechRecording = true
         onPendingOpenSpeechToTextConsumeState.value()
     }
 
@@ -239,7 +241,12 @@ fun MainScreen(
 
             AppDestination.SpeechToText -> {
                 SpeechToTextScreen(
-                    onClose = { destination = AppDestination.Home },
+                    onClose = {
+                        autoStartSpeechRecording = false
+                        destination = AppDestination.Home
+                    },
+                    autoStartRecording = autoStartSpeechRecording,
+                    onAutoStartRecordingConsume = { autoStartSpeechRecording = false },
                     modifier = Modifier.fillMaxSize(),
                 )
             }
