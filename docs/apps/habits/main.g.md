@@ -462,16 +462,17 @@ class MainWindow(
         )
 
         # Configure header (habit value columns need room for hover picker UI)
-        _min_habit_value_column_width = 86
         process_habits_header = self.tableView_process_habits.horizontalHeader()
-        process_habits_header.setMinimumSectionSize(_min_habit_value_column_width)
+        process_habits_header.setMinimumSectionSize(PROCESS_HABIT_VALUE_COLUMN_MIN_WIDTH)
         for i in range(process_habits_header.count()):
             process_habits_header.setSectionResizeMode(i, process_habits_header.ResizeMode.Interactive)
         self.tableView_process_habits.verticalHeader().setDefaultSectionSize(30)
         self.tableView_process_habits.resizeColumnsToContents()
         for col_idx in self._process_habits_bool_columns | self._process_habits_int_columns:
-            if process_habits_header.sectionSize(col_idx) < _min_habit_value_column_width:
-                process_habits_header.resizeSection(col_idx, _min_habit_value_column_width)
+            if process_habits_header.sectionSize(col_idx) < PROCESS_HABIT_VALUE_COLUMN_MIN_WIDTH:
+                process_habits_header.resizeSection(col_idx, PROCESS_HABIT_VALUE_COLUMN_MIN_WIDTH)
+        if isinstance(process_habits_header, WordWrapHeaderView):
+            process_habits_header.refresh_wrapped_height()
 
     @requires_database()
     def on_add_habit(self) -> None:
@@ -1868,6 +1869,14 @@ class MainWindow(
         self.pushButton_habits_export_csv.setText(f"📤 {self.pushButton_habits_export_csv.text()}")
         self.pushButton_habit_add_new.setText(f"➕ {self.pushButton_habit_add_new.text()}")  # noqa: RUF001
 
+        process_habits_header = WordWrapHeaderView(
+            Qt.Orientation.Horizontal,
+            self.tableView_process_habits,
+            wrap_width=PROCESS_HABIT_VALUE_COLUMN_MIN_WIDTH,
+        )
+        process_habits_header.setSectionsClickable(True)
+        self.tableView_process_habits.setHorizontalHeader(process_habits_header)
+
         self.splitter_habits.setStretchFactor(0, 1)
         self.splitter_habits.setStretchFactor(1, 3)
         self.splitter_charts.setStretchFactor(0, 0)
@@ -2721,16 +2730,17 @@ def load_process_habits_table(self, *, ignore_filter: bool = False) -> None:
         )
 
         # Configure header (habit value columns need room for hover picker UI)
-        _min_habit_value_column_width = 86
         process_habits_header = self.tableView_process_habits.horizontalHeader()
-        process_habits_header.setMinimumSectionSize(_min_habit_value_column_width)
+        process_habits_header.setMinimumSectionSize(PROCESS_HABIT_VALUE_COLUMN_MIN_WIDTH)
         for i in range(process_habits_header.count()):
             process_habits_header.setSectionResizeMode(i, process_habits_header.ResizeMode.Interactive)
         self.tableView_process_habits.verticalHeader().setDefaultSectionSize(30)
         self.tableView_process_habits.resizeColumnsToContents()
         for col_idx in self._process_habits_bool_columns | self._process_habits_int_columns:
-            if process_habits_header.sectionSize(col_idx) < _min_habit_value_column_width:
-                process_habits_header.resizeSection(col_idx, _min_habit_value_column_width)
+            if process_habits_header.sectionSize(col_idx) < PROCESS_HABIT_VALUE_COLUMN_MIN_WIDTH:
+                process_habits_header.resizeSection(col_idx, PROCESS_HABIT_VALUE_COLUMN_MIN_WIDTH)
+        if isinstance(process_habits_header, WordWrapHeaderView):
+            process_habits_header.refresh_wrapped_height()
 ```
 
 </details>
