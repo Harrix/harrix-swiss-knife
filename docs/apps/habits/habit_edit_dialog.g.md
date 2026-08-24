@@ -124,8 +124,8 @@ class HabitEditDialog(QDialog):
         return self._is_bool_checkbox.isChecked()
 
     def habit_name(self) -> str:
-        """Return the trimmed habit name."""
-        return self._name_edit.text().strip()
+        """Return the trimmed habit name with the first letter capitalized."""
+        return capitalize_habit_name(self._name_edit.text())
 
     def _apply_suggested_emoji(self, emoji: str) -> None:
         self._emoji = normalize_habit_emoji(emoji, habit_id=self._habit_id)
@@ -312,14 +312,14 @@ def habit_is_bool(self) -> bool:
 def habit_name(self) -> str
 ```
 
-Return the trimmed habit name.
+Return the trimmed habit name with the first letter capitalized.
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def habit_name(self) -> str:
-        return self._name_edit.text().strip()
+        return capitalize_habit_name(self._name_edit.text())
 ```
 
 </details>

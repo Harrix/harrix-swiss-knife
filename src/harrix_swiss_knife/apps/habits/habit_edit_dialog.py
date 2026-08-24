@@ -22,7 +22,11 @@ from harrix_swiss_knife import qt_modality
 from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.habits.habit_emoji_ai import request_habit_emoji_suggestion
 from harrix_swiss_knife.apps.habits.habit_emoji_picker_dialog import HabitEmojiPickerDialog
-from harrix_swiss_knife.apps.habits.habit_emojis import HABIT_EMOJI_PRESETS, normalize_habit_emoji
+from harrix_swiss_knife.apps.habits.habit_emojis import (
+    HABIT_EMOJI_PRESETS,
+    capitalize_habit_name,
+    normalize_habit_emoji,
+)
 from harrix_swiss_knife.integrations.bothub import BothubRequestState
 from harrix_swiss_knife.paths import get_config_path_str
 from harrix_swiss_knife.qt_emoji_icon import apply_emoji_dialog_buttons, make_emoji_push_button
@@ -121,8 +125,8 @@ class HabitEditDialog(QDialog):
         return self._is_bool_checkbox.isChecked()
 
     def habit_name(self) -> str:
-        """Return the trimmed habit name."""
-        return self._name_edit.text().strip()
+        """Return the trimmed habit name with the first letter capitalized."""
+        return capitalize_habit_name(self._name_edit.text())
 
     def _apply_suggested_emoji(self, emoji: str) -> None:
         self._emoji = normalize_habit_emoji(emoji, habit_id=self._habit_id)
