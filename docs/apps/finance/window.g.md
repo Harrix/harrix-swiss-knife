@@ -41,6 +41,8 @@ class Ui_MainWindow(object):
         self.action_add_currency.setText(QCoreApplication.translate("MainWindow", u"Add Currency", None))
         self.action_currencies_refresh.setText(QCoreApplication.translate("MainWindow", u"Refresh Currencies", None))
         self.action_currencies_delete.setText(QCoreApplication.translate("MainWindow", u"Delete Currency", None))
+        self.action_exchanges_refresh.setText(QCoreApplication.translate("MainWindow", u"Refresh Exchanges", None))
+        self.action_exchanges_delete.setText(QCoreApplication.translate("MainWindow", u"Delete Exchange", None))
         self.action_categories_refresh.setText(QCoreApplication.translate("MainWindow", u"Refresh Categories", None))
         self.action_copy_categories_as_text.setText(QCoreApplication.translate("MainWindow", u"Copy Categories As Text", None))
         self.action_standard_items.setText(QCoreApplication.translate("MainWindow", u"Standard Items", None))
@@ -104,9 +106,6 @@ class Ui_MainWindow(object):
         self.label_exchange_date.setText(QCoreApplication.translate("MainWindow", u"Date:", None))
         self.dateEdit_exchange.setDisplayFormat(QCoreApplication.translate("MainWindow", u"yyyy-MM-dd", None))
         self.pushButton_exchange_add.setText(QCoreApplication.translate("MainWindow", u"Add Exchange", None))
-        self.groupBox_exchange_commands.setTitle(QCoreApplication.translate("MainWindow", u"Commands", None))
-        self.pushButton_exchange_delete.setText(QCoreApplication.translate("MainWindow", u"Delete", None))
-        self.pushButton_exchange_refresh.setText(QCoreApplication.translate("MainWindow", u"Refresh", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_currencies), QCoreApplication.translate("MainWindow", u"Currency Exchange", None))
         self.groupBox_rate_commands.setTitle(QCoreApplication.translate("MainWindow", u"Commands", None))
         self.pushButton_exchange_update.setText(QCoreApplication.translate("MainWindow", u"Update", None))
@@ -190,6 +189,10 @@ class Ui_MainWindow(object):
         self.action_currencies_refresh.setObjectName(u"action_currencies_refresh")
         self.action_currencies_delete = QAction(MainWindow)
         self.action_currencies_delete.setObjectName(u"action_currencies_delete")
+        self.action_exchanges_refresh = QAction(MainWindow)
+        self.action_exchanges_refresh.setObjectName(u"action_exchanges_refresh")
+        self.action_exchanges_delete = QAction(MainWindow)
+        self.action_exchanges_delete.setObjectName(u"action_exchanges_delete")
         self.action_categories_refresh = QAction(MainWindow)
         self.action_categories_refresh.setObjectName(u"action_categories_refresh")
         self.action_copy_categories_as_text = QAction(MainWindow)
@@ -865,28 +868,6 @@ class Ui_MainWindow(object):
 
         self.verticalLayout_exchange.addWidget(self.groupBox_exchange_operation)
 
-        self.groupBox_exchange_commands = QGroupBox(self.frame_exchange)
-        self.groupBox_exchange_commands.setObjectName(u"groupBox_exchange_commands")
-        self.verticalLayout_exchange_commands = QVBoxLayout(self.groupBox_exchange_commands)
-        self.verticalLayout_exchange_commands.setObjectName(u"verticalLayout_exchange_commands")
-        self.horizontalLayout_exchange_commands = QHBoxLayout()
-        self.horizontalLayout_exchange_commands.setObjectName(u"horizontalLayout_exchange_commands")
-        self.pushButton_exchange_delete = QPushButton(self.groupBox_exchange_commands)
-        self.pushButton_exchange_delete.setObjectName(u"pushButton_exchange_delete")
-
-        self.horizontalLayout_exchange_commands.addWidget(self.pushButton_exchange_delete)
-
-        self.pushButton_exchange_refresh = QPushButton(self.groupBox_exchange_commands)
-        self.pushButton_exchange_refresh.setObjectName(u"pushButton_exchange_refresh")
-
-        self.horizontalLayout_exchange_commands.addWidget(self.pushButton_exchange_refresh)
-
-
-        self.verticalLayout_exchange_commands.addLayout(self.horizontalLayout_exchange_commands)
-
-
-        self.verticalLayout_exchange.addWidget(self.groupBox_exchange_commands)
-
         self.verticalSpacer_exchange = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
         self.verticalLayout_exchange.addItem(self.verticalSpacer_exchange)
@@ -1549,6 +1530,9 @@ class Ui_MainWindow(object):
         self.menuCommands.addAction(self.action_currencies_refresh)
         self.menuCommands.addAction(self.action_currencies_delete)
         self.menuCommands.addSeparator()
+        self.menuCommands.addAction(self.action_exchanges_refresh)
+        self.menuCommands.addAction(self.action_exchanges_delete)
+        self.menuCommands.addSeparator()
         self.menuCommands.addAction(self.action_standard_items)
         self.menuHelp.addAction(self.actionAbout)
 
@@ -1583,6 +1567,8 @@ def retranslateUi(self, MainWindow):
         self.action_add_currency.setText(QCoreApplication.translate("MainWindow", u"Add Currency", None))
         self.action_currencies_refresh.setText(QCoreApplication.translate("MainWindow", u"Refresh Currencies", None))
         self.action_currencies_delete.setText(QCoreApplication.translate("MainWindow", u"Delete Currency", None))
+        self.action_exchanges_refresh.setText(QCoreApplication.translate("MainWindow", u"Refresh Exchanges", None))
+        self.action_exchanges_delete.setText(QCoreApplication.translate("MainWindow", u"Delete Exchange", None))
         self.action_categories_refresh.setText(QCoreApplication.translate("MainWindow", u"Refresh Categories", None))
         self.action_copy_categories_as_text.setText(QCoreApplication.translate("MainWindow", u"Copy Categories As Text", None))
         self.action_standard_items.setText(QCoreApplication.translate("MainWindow", u"Standard Items", None))
@@ -1646,9 +1632,6 @@ def retranslateUi(self, MainWindow):
         self.label_exchange_date.setText(QCoreApplication.translate("MainWindow", u"Date:", None))
         self.dateEdit_exchange.setDisplayFormat(QCoreApplication.translate("MainWindow", u"yyyy-MM-dd", None))
         self.pushButton_exchange_add.setText(QCoreApplication.translate("MainWindow", u"Add Exchange", None))
-        self.groupBox_exchange_commands.setTitle(QCoreApplication.translate("MainWindow", u"Commands", None))
-        self.pushButton_exchange_delete.setText(QCoreApplication.translate("MainWindow", u"Delete", None))
-        self.pushButton_exchange_refresh.setText(QCoreApplication.translate("MainWindow", u"Refresh", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_currencies), QCoreApplication.translate("MainWindow", u"Currency Exchange", None))
         self.groupBox_rate_commands.setTitle(QCoreApplication.translate("MainWindow", u"Commands", None))
         self.pushButton_exchange_update.setText(QCoreApplication.translate("MainWindow", u"Update", None))
@@ -1748,6 +1731,10 @@ def setupUi(self, MainWindow):
         self.action_currencies_refresh.setObjectName(u"action_currencies_refresh")
         self.action_currencies_delete = QAction(MainWindow)
         self.action_currencies_delete.setObjectName(u"action_currencies_delete")
+        self.action_exchanges_refresh = QAction(MainWindow)
+        self.action_exchanges_refresh.setObjectName(u"action_exchanges_refresh")
+        self.action_exchanges_delete = QAction(MainWindow)
+        self.action_exchanges_delete.setObjectName(u"action_exchanges_delete")
         self.action_categories_refresh = QAction(MainWindow)
         self.action_categories_refresh.setObjectName(u"action_categories_refresh")
         self.action_copy_categories_as_text = QAction(MainWindow)
@@ -2423,28 +2410,6 @@ def setupUi(self, MainWindow):
 
         self.verticalLayout_exchange.addWidget(self.groupBox_exchange_operation)
 
-        self.groupBox_exchange_commands = QGroupBox(self.frame_exchange)
-        self.groupBox_exchange_commands.setObjectName(u"groupBox_exchange_commands")
-        self.verticalLayout_exchange_commands = QVBoxLayout(self.groupBox_exchange_commands)
-        self.verticalLayout_exchange_commands.setObjectName(u"verticalLayout_exchange_commands")
-        self.horizontalLayout_exchange_commands = QHBoxLayout()
-        self.horizontalLayout_exchange_commands.setObjectName(u"horizontalLayout_exchange_commands")
-        self.pushButton_exchange_delete = QPushButton(self.groupBox_exchange_commands)
-        self.pushButton_exchange_delete.setObjectName(u"pushButton_exchange_delete")
-
-        self.horizontalLayout_exchange_commands.addWidget(self.pushButton_exchange_delete)
-
-        self.pushButton_exchange_refresh = QPushButton(self.groupBox_exchange_commands)
-        self.pushButton_exchange_refresh.setObjectName(u"pushButton_exchange_refresh")
-
-        self.horizontalLayout_exchange_commands.addWidget(self.pushButton_exchange_refresh)
-
-
-        self.verticalLayout_exchange_commands.addLayout(self.horizontalLayout_exchange_commands)
-
-
-        self.verticalLayout_exchange.addWidget(self.groupBox_exchange_commands)
-
         self.verticalSpacer_exchange = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
         self.verticalLayout_exchange.addItem(self.verticalSpacer_exchange)
@@ -3106,6 +3071,9 @@ def setupUi(self, MainWindow):
         self.menuCommands.addAction(self.action_add_currency)
         self.menuCommands.addAction(self.action_currencies_refresh)
         self.menuCommands.addAction(self.action_currencies_delete)
+        self.menuCommands.addSeparator()
+        self.menuCommands.addAction(self.action_exchanges_refresh)
+        self.menuCommands.addAction(self.action_exchanges_delete)
         self.menuCommands.addSeparator()
         self.menuCommands.addAction(self.action_standard_items)
         self.menuHelp.addAction(self.actionAbout)

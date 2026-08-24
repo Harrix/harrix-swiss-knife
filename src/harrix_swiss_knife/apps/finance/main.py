@@ -1093,6 +1093,31 @@ class MainWindow(
         self.delete_record("currencies")
 
     @requires_database()
+    def on_delete_exchange(self) -> None:
+        """Delete the selected currency exchange after confirmation."""
+        if self.db_manager is None:
+            self._show_error("Error", "Database not initialized")
+            return
+
+        record_id = self._get_selected_row_id("currency_exchanges")
+        if record_id is None:
+            message_box.warning(self, "Error", "Select a record to delete")
+            return
+
+        exchange_label = self._selected_exchange_label()
+        reply = message_box.question(
+            self,
+            "Confirm Delete",
+            f"Are you sure you want to delete exchange '{exchange_label}'?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if reply != QMessageBox.StandardButton.Yes:
+            return
+
+        self.delete_record("currency_exchanges")
+
+    @requires_database()
     def on_exchange_item_update_button_clicked(self) -> None:
         """Update exchange rate in database when pushButton_exchange_item_update is clicked."""
         try:
@@ -2110,7 +2135,6 @@ class MainWindow(
 
         # Delete and refresh buttons for all tables
         tables_with_controls: dict[str, tuple[str, str]] = {
-            "currency_exchanges": ("pushButton_exchange_delete", "pushButton_exchange_refresh"),
             "exchange_rates": ("pushButton_rates_delete", "pushButton_rates_refresh"),
         }
 
@@ -2134,6 +2158,8 @@ class MainWindow(
         self.action_add_currency.triggered.connect(self.on_add_currency)
         self.action_currencies_refresh.triggered.connect(self.update_all)
         self.action_currencies_delete.triggered.connect(self.on_delete_currency)
+        self.action_exchanges_refresh.triggered.connect(self.update_all)
+        self.action_exchanges_delete.triggered.connect(self.on_delete_exchange)
         self.action_categories_refresh.triggered.connect(self.update_all)
         self.action_copy_categories_as_text.triggered.connect(self.on_copy_categories_as_text)
 
@@ -2227,6 +2253,8 @@ class MainWindow(
         self.tableView_accounts.customContextMenuRequested.connect(self._show_accounts_table_context_menu)
         self.tableView_currencies.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.tableView_currencies.customContextMenuRequested.connect(self._show_currencies_table_context_menu)
+        self.tableView_exchange.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.tableView_exchange.customContextMenuRequested.connect(self._show_exchanges_table_context_menu)
 
         # Install event filter to track mouse events on transactions table
         self.tableView_transactions.viewport().installEventFilter(self)
@@ -2873,6 +2901,32 @@ class MainWindow(
         ax.grid(visible=True, alpha=0.3)
         ax.legend(loc="upper left", fontsize=9)
         self._add_chart_canvas(fig)
+
+    def _exchange_id_from_table_index(self, index: QModelIndex) -> int | None:
+        """Return currency-exchange database ID for an exchanges table model index."""
+        if not index.isValid():
+            return None
+
+        proxy_model = self.models.get("currency_exchanges")
+        if proxy_model is None:
+            return None
+
+        source_model = proxy_model.sourceModel()
+        if source_model is None or not isinstance(source_model, QStandardItemModel):
+            return None
+
+        source_index = proxy_model.mapToSource(index)
+        if not source_index.isValid():
+            return None
+
+        row_id_item = source_model.verticalHeaderItem(source_index.row())
+        if row_id_item is None:
+            return None
+
+        try:
+            return int(row_id_item.text())
+        except (TypeError, ValueError):
+            return None
 
     def _fetch_transaction_rows(self, limit: int | None, offset: int) -> list[list[Any]]:
         """Fetch transaction rows with optional filters and pagination."""
@@ -5232,6 +5286,20 @@ class MainWindow(
                 else Qt.CheckState.Unchecked
             )
 
+    def _selected_exchange_label(self) -> str:
+        """Return a short label for the selected currency exchange row."""
+        model = self.tableView_exchange.model()
+        index = self.tableView_exchange.currentIndex()
+        if model is None or not index.isValid():
+            return ""
+        from_currency = model.data(model.index(index.row(), 0)) or ""
+        to_currency = model.data(model.index(index.row(), 1)) or ""
+        date = model.data(model.index(index.row(), 6)) or ""
+        label = f"{from_currency} → {to_currency}".strip()
+        if date:
+            return f"{label} on {date}"
+        return label
+
     def _send_purchases_to_ai(
         self,
         raw_text: str,
@@ -5577,6 +5645,8 @@ class MainWindow(
         self.action_add_currency.setText(f"➕ {self.action_add_currency.text()}")  # noqa: RUF001
         self.action_currencies_refresh.setText(f"🔄 {self.action_currencies_refresh.text()}")
         self.action_currencies_delete.setText(f"🗑️ {self.action_currencies_delete.text()}")
+        self.action_exchanges_refresh.setText(f"🔄 {self.action_exchanges_refresh.text()}")
+        self.action_exchanges_delete.setText(f"🗑️ {self.action_exchanges_delete.text()}")
         self.action_categories_refresh.setText(f"🔄 {self.action_categories_refresh.text()}")
         self.action_copy_categories_as_text.setText(f"📋 {self.action_copy_categories_as_text.text()}")
         self.action_standard_items.setText(f"📋 {self.action_standard_items.text()}")
@@ -5624,8 +5694,6 @@ class MainWindow(
 
         # Set emoji for exchange buttons
         self.pushButton_exchange_add.setText(f"➕ {self.pushButton_exchange_add.text()}")  # noqa: RUF001
-        self.pushButton_exchange_delete.setText(f"🗑️ {self.pushButton_exchange_delete.text()}")
-        self.pushButton_exchange_refresh.setText(f"🔄 {self.pushButton_exchange_refresh.text()}")
 
         self.pushButton_calculate_fee.setText(f"💰 {self.pushButton_calculate_fee.text()}")
         self.pushButton_rates_refresh.setText(f"🔄 {self.pushButton_rates_refresh.text()}")
@@ -5880,6 +5948,31 @@ class MainWindow(
             return
         context_menu.exec_(viewport.mapToGlobal(position))
         self.action_currencies_delete.setEnabled(True)
+
+    def _show_exchanges_table_context_menu(self, position: QPoint) -> None:
+        """Show context menu on exchanges table with edit and exchange commands."""
+        index = self.tableView_exchange.indexAt(position)
+        exchange_id = self._exchange_id_from_table_index(index)
+        if exchange_id is not None:
+            self.tableView_exchange.selectRow(index.row())
+
+        context_menu = QMenu(self)
+        if exchange_id is not None:
+            edit_action = context_menu.addAction(LABEL_EDIT)
+            edit_action.triggered.connect(partial(self._on_exchange_table_double_clicked, index))
+        add_separator(context_menu)
+        context_menu.addAction(self.action_exchanges_refresh)
+        add_separator(context_menu)
+        self.action_exchanges_delete.setEnabled(exchange_id is not None)
+        context_menu.addAction(self.action_exchanges_delete)
+        apply_leading_emoji_icons(context_menu)
+
+        viewport = self.tableView_exchange.viewport()
+        if viewport is None:
+            self.action_exchanges_delete.setEnabled(True)
+            return
+        context_menu.exec_(viewport.mapToGlobal(position))
+        self.action_exchanges_delete.setEnabled(True)
 
     def _show_no_data_label(self, layout: QLayout, text: str) -> None:
         """Show a message when no data is available for the chart.
