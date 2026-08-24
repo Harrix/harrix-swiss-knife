@@ -113,13 +113,21 @@ def test_compute_app_window_geometry_maximizes_on_standard_1080p() -> None:
 def test_compute_app_window_geometry_reserves_title_bar() -> None:
     """Client rect leaves room so Close / Maximize stay inside the work area."""
     rect = compute_app_window_geometry(QRect(0, 0, 3440, 1440), frame_top=32)
-    assert rect == QRect(760, 32, 1920, 1408)
+    assert rect == QRect(760, 32, 1920, 1392)
 
 
 def test_compute_app_window_geometry_reserves_title_bar_on_scaled_work_area() -> None:
     """A work area that already starts below a top taskbar still reserves the caption."""
     rect = compute_app_window_geometry(QRect(0, 48, 1536, 816), frame_top=32)
-    assert rect == QRect(0, 80, 1536, 784)
+    assert rect == QRect(16, 80, 1504, 768)
+
+
+def test_compute_maximize_pin_geometry_fills_missing_side_borders() -> None:
+    """A title-bar-only frame must not pin a client flush to the work-area edges."""
+    assert compute_maximize_pin_geometry(
+        QRect(0, 0, 3840, 2064),
+        frame_top=58,
+    ) == QRect(16, 58, 3808, 1990)
 
 
 def test_window_frame_margins_are_zero_when_frameless(qapp: QApplication) -> None:  # noqa: ARG001
@@ -131,8 +139,11 @@ def test_window_frame_margins_are_zero_when_frameless(qapp: QApplication) -> Non
 def test_window_frame_margins_reserve_title_bar_for_window(qapp: QApplication) -> None:  # noqa: ARG001
     widget = QWidget()
     widget.setWindowFlags(Qt.WindowType.Window)
-    _left, top, _right, _bottom = window_frame_margins(widget)
+    left, top, right, bottom = window_frame_margins(widget)
     assert top >= 24
+    assert left >= 8
+    assert right >= 8
+    assert bottom >= 8
 
 
 def test_resolve_window_menu_bar_when_attribute_shadows_method(qapp: QApplication) -> None:
