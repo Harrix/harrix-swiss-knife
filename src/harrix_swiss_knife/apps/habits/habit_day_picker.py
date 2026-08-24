@@ -132,7 +132,7 @@ class HabitDayPickerPopup(QWidget):
         if self._anchor is not circle:
             circle.destroyed.connect(self._on_anchor_destroyed)
         self._anchor = circle
-        self._choices = alternative_habit_day_choices(circle.value(), allows_number=circle.allows_number())
+        self._choices = habit_day_choices(allows_number=circle.allows_number())
         self._rebuild_choices()
         self.show_choices_page()
         self._update_geometry()
@@ -224,7 +224,7 @@ class HabitDayPickerPopup(QWidget):
             cls._show_timer.start(_SHOW_DELAY_MS)
 
     def show_choices_page(self) -> None:
-        """Show the alternative-state circles instead of the number stepper."""
+        """Show the day-state circles instead of the number stepper."""
         self._show_page(self._choices_page)
 
     @classmethod
@@ -563,23 +563,6 @@ class _RoundStepButton(QWidget):
         painter.drawText(self.rect(), int(Qt.AlignmentFlag.AlignCenter), self._glyph)
 
 
-def alternative_habit_day_choices(value: int | None, *, allows_number: bool) -> list[HabitDayChoice]:
-    """Return the day states that are not currently shown on the circle."""
-    current = habit_day_state(value)
-    choices: list[HabitDayChoice] = [None, 0, 1]
-    if allows_number:
-        choices.append("number")
-    result: list[HabitDayChoice] = []
-    for choice in choices:
-        if choice == "number":
-            if current != "number":
-                result.append(choice)
-            continue
-        if habit_day_state(choice) != current:
-            result.append(choice)
-    return result
-
-
 def habit_day_choice_caption(choice: HabitDayChoice) -> str:
     """Return a short label for a picker choice."""
     if choice is None:
@@ -591,3 +574,15 @@ def habit_day_choice_caption(choice: HabitDayChoice) -> str:
     if choice == 1:
         return "Done"
     return "Number"
+
+
+def habit_day_choices(*, allows_number: bool) -> list[HabitDayChoice]:
+    """Return every day state the picker can set.
+
+    Boolean habits get No record, Not done, and Done. Counted habits also get Number.
+
+    """
+    choices: list[HabitDayChoice] = [None, 0, 1]
+    if allows_number:
+        choices.append("number")
+    return choices

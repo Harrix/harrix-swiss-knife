@@ -41,8 +41,8 @@ from harrix_swiss_knife.apps.habits.delegates.process_habit_int_delegate import 
 from harrix_swiss_knife.apps.habits.habit_day_picker import (
     DayChoiceCircle,
     HabitDayPickerPopup,
-    alternative_habit_day_choices,
     habit_day_choice_caption,
+    habit_day_choices,
 )
 
 RECOVER_SQL = Path(__file__).resolve().parents[1] / "src/harrix_swiss_knife/apps/habits/recover.sql"
@@ -563,15 +563,13 @@ def test_month_calendar_title_double_click_returns_to_today(qapp: QApplication) 
     assert changed == []
 
 
-def test_alternative_habit_day_choices() -> None:
-    """Picker offers every state except the one already on the circle."""
-    assert alternative_habit_day_choices(None, allows_number=True) == [0, 1, "number"]
-    assert alternative_habit_day_choices(0, allows_number=True) == [None, 1, "number"]
-    assert alternative_habit_day_choices(1, allows_number=True) == [None, 0, "number"]
-    assert alternative_habit_day_choices(8, allows_number=True) == [None, 0, 1]
-    assert alternative_habit_day_choices(None, allows_number=False) == [0, 1]
-    assert alternative_habit_day_choices(1, allows_number=False) == [None, 0]
+def test_habit_day_choices() -> None:
+    """Picker always offers every possible state, including the current one."""
+    assert habit_day_choices(allows_number=True) == [None, 0, 1, "number"]
+    assert habit_day_choices(allows_number=False) == [None, 0, 1]
     assert habit_day_choice_caption(None) == "No record"
+    assert habit_day_choice_caption(0) == "Not done"
+    assert habit_day_choice_caption(1) == "Done"
     assert habit_day_choice_caption("number") == "Number"
 
 
@@ -584,7 +582,7 @@ def test_habit_day_picker_selects_alternative(qapp: QApplication) -> None:
     circle.value_set.connect(received.append)
 
     popup = HabitDayPickerPopup.show_for(circle)
-    assert popup.choices() == [0, 1, "number"]
+    assert popup.choices() == [None, 0, 1, "number"]
     zero = next(option for option in popup.findChildren(DayChoiceCircle) if option.choice() == 0)
     QTest.mouseClick(zero, Qt.MouseButton.LeftButton)
     assert received == [0]
@@ -614,30 +612,30 @@ def test_habit_day_picker_number_stepper(qapp: QApplication) -> None:
 
 
 def test_habit_day_picker_two_choices_are_compact(qapp: QApplication) -> None:
-    """Two remaining states stay close together instead of stretching to the stepper page."""
+    """Boolean picker stays narrower than the counted-habit picker."""
     assert qapp is not None
     HabitDayPickerPopup.hide_active()
 
-    two_circle = CheckCircle()
-    two_circle.set_allows_number(allows_number=False)
-    two_circle.show()
-    popup = HabitDayPickerPopup.show_for(two_circle)
+    bool_circle = CheckCircle()
+    bool_circle.set_allows_number(allows_number=False)
+    bool_circle.show()
+    popup = HabitDayPickerPopup.show_for(bool_circle)
     qapp.processEvents()
-    assert popup.choices() == [0, 1]
-    two_width = popup.width()
-    two_height = popup.height()
+    assert popup.choices() == [None, 0, 1]
+    bool_width = popup.width()
+    bool_height = popup.height()
 
-    three_circle = CheckCircle()
-    three_circle.set_allows_number(allows_number=True)
-    three_circle.show()
-    popup = HabitDayPickerPopup.show_for(three_circle)
+    number_circle = CheckCircle()
+    number_circle.set_allows_number(allows_number=True)
+    number_circle.show()
+    popup = HabitDayPickerPopup.show_for(number_circle)
     qapp.processEvents()
-    assert popup.choices() == [0, 1, "number"]
-    three_width = popup.width()
+    assert popup.choices() == [None, 0, 1, "number"]
+    number_width = popup.width()
     HabitDayPickerPopup.hide_active()
 
-    assert two_width < three_width
-    assert two_height < 90
+    assert bool_width < number_width
+    assert bool_height < 90
 
 
 def _assert_picker_above_circle(popup: HabitDayPickerPopup, circle: CheckCircle) -> None:
