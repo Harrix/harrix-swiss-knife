@@ -69,9 +69,12 @@ class SpeechRecognitionCoordinator(
                     .onSuccess { fixed ->
                         val durationMs = (System.currentTimeMillis() - startedAt).coerceAtLeast(1L)
                         withContext(Dispatchers.IO) {
-                            queueStore.recordSuccessfulRecognition(durationMs)
+                            queueStore.recordSuccessfulRecognition(
+                                recognitionMs = durationMs,
+                                audioDurationSeconds = processing.audioDurationSeconds,
+                            )
                         }
-                        onAverageChanged(queueStore.averageRecognitionMs() ?: 0L)
+                        onAverageChanged(queueStore.averageMsPerAudioSecond() ?: 0L)
                         onItemChanged(
                             processing.copy(
                                 status = SpeechMessageStatus.Done,

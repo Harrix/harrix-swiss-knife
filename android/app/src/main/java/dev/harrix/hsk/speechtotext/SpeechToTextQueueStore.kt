@@ -10,7 +10,7 @@ import java.util.UUID
  * Persistent speech message queue and recognition-time statistics.
  *
  * Audio files live under [Context.getFilesDir]/ messages survive process restarts.
- * Successful recognition durations stay in stats even after messages are deleted.
+ * Successful recognition speed (time vs audio length) stays in stats even after messages are deleted.
  */
 class SpeechToTextQueueStore(
     context: Context,
@@ -19,6 +19,10 @@ class SpeechToTextQueueStore(
     private val rootDir = File(appContext.filesDir, ROOT_DIR)
     private val indexFile = File(rootDir, INDEX_FILENAME)
     private val statsPrefs = appContext.getSharedPreferences(STATS_PREFS, Context.MODE_PRIVATE)
+
+    init {
+        dropLegacyAverageTimeStats()
+    }
 
     @Synchronized
     fun loadAll(): List<SpeechQueueItem> {
@@ -124,25 +128,47 @@ class SpeechToTextQueueStore(
         saveAll(items)
     }
 
-    fun averageRecognitionMs(): Long? {
-        val count = statsPrefs.getInt(KEY_SUCCESS_COUNT, 0)
-        val total = statsPrefs.getLong(KEY_SUCCESS_TOTAL_MS, 0L)
-        if (count <= 0 || total <= 0L) {
+    /**
+     * Mean recognition time per one second of audio, or `null` until a successful sample exists.
+     */
+    fun averageMsPerAudioSecond(): Long? {
+        val audioMs = statsPrefs.getLong(KEY_SUCCESS_AUDIO_MS, 0L)
+        val recognitionMs = statsPrefs.getLong(KEY_SUCCESS_RECOGNITION_MS, 0L)
+        if (audioMs <= 0L || recognitionMs <= 0L) {
             return null
         }
-        return total / count
+        return (recognitionMs * 1000L) / audioMs
     }
 
-    fun recordSuccessfulRecognition(durationMs: Long) {
-        if (durationMs <= 0L) {
+    fun recordSuccessfulRecognition(
+        recognitionMs: Long,
+        audioDurationSeconds: Float,
+    ) {
+        if (recognitionMs <= 0L) {
             return
         }
-        val count = statsPrefs.getInt(KEY_SUCCESS_COUNT, 0) + 1
-        val total = statsPrefs.getLong(KEY_SUCCESS_TOTAL_MS, 0L) + durationMs
+        val audioMs =
+            (audioDurationSeconds.coerceAtLeast(MIN_STAT_AUDIO_SECONDS) * 1000f)
+                .toLong()
+                .coerceAtLeast(1L)
+        val totalAudioMs = statsPrefs.getLong(KEY_SUCCESS_AUDIO_MS, 0L) + audioMs
+        val totalRecognitionMs = statsPrefs.getLong(KEY_SUCCESS_RECOGNITION_MS, 0L) + recognitionMs
         statsPrefs
             .edit()
-            .putInt(KEY_SUCCESS_COUNT, count)
-            .putLong(KEY_SUCCESS_TOTAL_MS, total)
+            .putLong(KEY_SUCCESS_AUDIO_MS, totalAudioMs)
+            .putLong(KEY_SUCCESS_RECOGNITION_MS, totalRecognitionMs)
+            .apply()
+    }
+
+    private fun dropLegacyAverageTimeStats() {
+        if (statsPrefs.contains(KEY_STATS_SCHEMA)) {
+            return
+        }
+        statsPrefs
+            .edit()
+            .remove(KEY_SUCCESS_COUNT)
+            .remove(KEY_SUCCESS_TOTAL_MS)
+            .putInt(KEY_STATS_SCHEMA, STATS_SCHEMA_SPEED)
             .apply()
     }
 
@@ -229,27 +255,40 @@ class SpeechToTextQueueStore(
         .put(KEY_CREATED_AT, createdAtMs)
         .put(KEY_LAST_RECOGNITION_MS, lastRecognitionDurationMs)
 
-    private companion object {
-        const val ROOT_DIR = "speech_to_text"
-        const val INDEX_FILENAME = "index.json"
-        const val STATS_PREFS = "speech_to_text_stats"
-        const val KEY_SUCCESS_COUNT = "success_count"
-        const val KEY_SUCCESS_TOTAL_MS = "success_total_ms"
-        const val KEY_ITEMS = "items"
-        const val KEY_ID = "id"
-        const val KEY_FILE = "file"
-        const val KEY_MIME = "mime"
-        const val KEY_AUDIO_DURATION = "audio_duration"
-        const val KEY_STATUS = "status"
-        const val KEY_TEXT = "text"
-        const val KEY_ERROR = "error"
-        const val KEY_CREATED_AT = "created_at"
-        const val KEY_LAST_RECOGNITION_MS = "last_recognition_ms"
-        const val MIN_VALID_FILE_BYTES = 44L
-        const val LEGACY_PREFS = "speech_to_text_pending"
-        const val LEGACY_WAV = "pending-speech.wav"
-        const val LEGACY_M4A = "pending-speech.m4a"
-        const val LEGACY_KEY_MIME = "mime_type"
-        const val LEGACY_KEY_DURATION = "duration_seconds"
+    companion object {
+        fun expectedRecognitionMs(
+            audioDurationSeconds: Float,
+            msPerAudioSecond: Long,
+        ): Long {
+            val seconds = audioDurationSeconds.coerceAtLeast(MIN_STAT_AUDIO_SECONDS)
+            return (msPerAudioSecond * seconds).toLong().coerceAtLeast(1L)
+        }
+
+        private const val ROOT_DIR = "speech_to_text"
+        private const val INDEX_FILENAME = "index.json"
+        private const val STATS_PREFS = "speech_to_text_stats"
+        private const val STATS_SCHEMA_SPEED = 2
+        private const val KEY_STATS_SCHEMA = "stats_schema"
+        private const val KEY_SUCCESS_COUNT = "success_count"
+        private const val KEY_SUCCESS_TOTAL_MS = "success_total_ms"
+        private const val KEY_SUCCESS_AUDIO_MS = "success_audio_ms"
+        private const val KEY_SUCCESS_RECOGNITION_MS = "success_recognition_ms"
+        private const val MIN_STAT_AUDIO_SECONDS = 0.25f
+        private const val KEY_ITEMS = "items"
+        private const val KEY_ID = "id"
+        private const val KEY_FILE = "file"
+        private const val KEY_MIME = "mime"
+        private const val KEY_AUDIO_DURATION = "audio_duration"
+        private const val KEY_STATUS = "status"
+        private const val KEY_TEXT = "text"
+        private const val KEY_ERROR = "error"
+        private const val KEY_CREATED_AT = "created_at"
+        private const val KEY_LAST_RECOGNITION_MS = "last_recognition_ms"
+        private const val MIN_VALID_FILE_BYTES = 44L
+        private const val LEGACY_PREFS = "speech_to_text_pending"
+        private const val LEGACY_WAV = "pending-speech.wav"
+        private const val LEGACY_M4A = "pending-speech.m4a"
+        private const val LEGACY_KEY_MIME = "mime_type"
+        private const val LEGACY_KEY_DURATION = "duration_seconds"
     }
 }

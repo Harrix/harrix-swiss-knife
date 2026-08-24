@@ -54,7 +54,7 @@ class SpeechToTextViewModel(
                 replaceItem(item)
                 persistItem(item)
             },
-            onAverageChanged = { averageRecognitionMs.longValue = it },
+            onAverageChanged = { averageMsPerAudioSecond.longValue = it },
             onErrorMessage = { errorMessage.value = it },
         )
 
@@ -66,7 +66,7 @@ class SpeechToTextViewModel(
     val hasApiKey = mutableStateOf(isAiConfigured())
     val recordingDurationSeconds = mutableFloatStateOf(0f)
     val waveformBuckets = mutableStateListOf<WaveformBucket>()
-    val averageRecognitionMs = mutableLongStateOf(queueStore.averageRecognitionMs() ?: 0L)
+    val averageMsPerAudioSecond = mutableLongStateOf(queueStore.averageMsPerAudioSecond() ?: 0L)
 
     private var draftFile: File? = null
     private var draftMime: String = AudioRecorder.MIME_WAV

@@ -94,6 +94,7 @@ import dev.harrix.hsk.R
 import dev.harrix.hsk.speechtotext.AudioRecorder
 import dev.harrix.hsk.speechtotext.SpeechMessageStatus
 import dev.harrix.hsk.speechtotext.SpeechQueueItem
+import dev.harrix.hsk.speechtotext.SpeechToTextQueueStore
 import dev.harrix.hsk.speechtotext.SpeechToTextRepository
 import dev.harrix.hsk.speechtotext.WaveformBucket
 import dev.harrix.hsk.ui.AutoFitText
@@ -146,7 +147,7 @@ fun SpeechToTextScreen(
     var infoMessage by viewModel.infoMessage
     var hasApiKey by viewModel.hasApiKey
     val recordingDurationSeconds by viewModel.recordingDurationSeconds
-    val averageRecognitionMs by viewModel.averageRecognitionMs
+    val averageMsPerAudioSecond by viewModel.averageMsPerAudioSecond
     val waveformBuckets = viewModel.waveformBuckets
     val items = viewModel.items
     val context = LocalContext.current
@@ -318,7 +319,7 @@ fun SpeechToTextScreen(
         if (selectedItem != null) {
             SpeechMessageDetail(
                 item = selectedItem,
-                averageRecognitionMs = averageRecognitionMs,
+                averageMsPerAudioSecond = averageMsPerAudioSecond,
                 hasApiKey = hasApiKey,
                 modifier =
                 Modifier
@@ -387,7 +388,7 @@ fun SpeechToTextScreen(
                             ) { onOpen ->
                                 SpeechMessageRow(
                                     item = item,
-                                    averageRecognitionMs = averageRecognitionMs,
+                                    averageMsPerAudioSecond = averageMsPerAudioSecond,
                                     onClick = onOpen,
                                 )
                             }
@@ -534,14 +535,13 @@ private fun SwipeToDeleteSpeechRow(
 @Composable
 private fun SpeechMessageRow(
     item: SpeechQueueItem,
-    averageRecognitionMs: Long,
+    averageMsPerAudioSecond: Long,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val isSlow =
         item.status == SpeechMessageStatus.Processing &&
-            averageRecognitionMs > 0L &&
-            item.recognitionElapsedMs > averageRecognitionMs
+            isRecognitionSlowerThanUsual(item, averageMsPerAudioSecond)
     val surface = MaterialTheme.colorScheme.surface
     val containerColor =
         when {
@@ -625,7 +625,7 @@ private fun SpeechMessageRow(
 @Composable
 private fun SpeechMessageDetail(
     item: SpeechQueueItem,
-    averageRecognitionMs: Long,
+    averageMsPerAudioSecond: Long,
     hasApiKey: Boolean,
     onRecognize: () -> Unit,
     onCancel: () -> Unit,
@@ -641,8 +641,7 @@ private fun SpeechMessageDetail(
 ) {
     val isSlow =
         item.status == SpeechMessageStatus.Processing &&
-            averageRecognitionMs > 0L &&
-            item.recognitionElapsedMs > averageRecognitionMs
+            isRecognitionSlowerThanUsual(item, averageMsPerAudioSecond)
     Column(
         modifier = modifier.verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -1107,6 +1106,21 @@ private fun WaveformView(
         drawPath(path = path, color = fill)
         drawPath(path = path, color = WaveformOutline, style = Stroke(width = 1.5f))
     }
+}
+
+private fun isRecognitionSlowerThanUsual(
+    item: SpeechQueueItem,
+    averageMsPerAudioSecond: Long,
+): Boolean {
+    if (averageMsPerAudioSecond <= 0L) {
+        return false
+    }
+    val expectedMs =
+        SpeechToTextQueueStore.expectedRecognitionMs(
+            audioDurationSeconds = item.audioDurationSeconds,
+            msPerAudioSecond = averageMsPerAudioSecond,
+        )
+    return item.recognitionElapsedMs > expectedMs
 }
 
 private fun formatElapsed(elapsedMs: Long): String {
