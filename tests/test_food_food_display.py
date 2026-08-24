@@ -5,6 +5,7 @@ from __future__ import annotations
 import pytest
 
 from harrix_swiss_knife.apps.food.services.food_display import (
+    DRINK_EMOJI,
     extract_food_name_from_display,
     format_food_name_with_calories,
 )
@@ -20,6 +21,8 @@ def test_extract_food_name_from_display_empty() -> None:
         ("Apple", "Apple"),
         ("Oatmeal (120 kcal/portion)", "Oatmeal"),
         ("Rice (45.5 kcal/100g)", "Rice"),
+        (f"{DRINK_EMOJI} Tea (5 kcal/portion)", "Tea"),
+        (f"{DRINK_EMOJI} Water", "Water"),
         (
             "Name with (120 kcal/portion) extra",
             "Name with (120 kcal/portion) extra",
@@ -48,3 +51,9 @@ def test_format_food_name_with_calories_no_values() -> None:
 
 def test_format_food_name_with_calories_fractional_calories() -> None:
     assert format_food_name_with_calories("X", 12.3, None) == "X (12 kcal/100g)"
+
+
+def test_format_food_name_with_calories_drink_prefix() -> None:
+    assert format_food_name_with_calories("Tea", None, 5.0, is_drink=True) == f"{DRINK_EMOJI} Tea (5 kcal/portion)"
+    assert format_food_name_with_calories("Water", None, None, is_drink=True) == f"{DRINK_EMOJI} Water"
+    assert format_food_name_with_calories("Egg", 140.0, 70.0, is_drink=False) == "Egg (70 kcal/portion)"

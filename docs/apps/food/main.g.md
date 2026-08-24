@@ -3523,12 +3523,20 @@ class MainWindow(
                 self.food_items_list_model.clear()
                 for food_item_row in food_items_data:
                     food_name = food_item_row[1]  # name is at index 1
+                    is_drink = (
+                        parse_is_drink_cell(food_item_row[_FOOD_ITEM_COL_IS_DRINK])
+                        if len(food_item_row) > _FOOD_ITEM_COL_IS_DRINK
+                        else False
+                    )
                     calories_per_100g = food_item_row[4]
                     default_portion_calories = food_item_row[6]
 
                     # Format display name with calories info
                     display_name = format_food_name_with_calories(
-                        food_name, calories_per_100g, default_portion_calories
+                        food_name,
+                        calories_per_100g,
+                        default_portion_calories,
+                        is_drink=is_drink,
                     )
                     item = QStandardItem(display_name)
                     self.food_items_list_model.appendRow(item)

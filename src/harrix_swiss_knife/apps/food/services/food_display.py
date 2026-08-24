@@ -4,24 +4,34 @@ from __future__ import annotations
 
 import re
 
+DRINK_EMOJI = "🥤"
+
 
 def extract_food_name_from_display(display_text: str) -> str:
-    """Strip trailing calories suffix such as `(120 kcal/portion)`."""
+    """Strip drink emoji prefix and trailing calories suffix such as `(120 kcal/portion)`."""
     if not display_text:
         return ""
 
-    pattern = r"\s+\(\d+\.?\d*\s+kcal/(?:portion|100g)\)$"
-    clean_name = re.sub(pattern, "", display_text)
+    text = display_text.strip()
+    if text.startswith(DRINK_EMOJI):
+        text = text[len(DRINK_EMOJI) :].lstrip()
 
-    return clean_name.strip()
+    pattern = r"\s+\(\d+\.?\d*\s+kcal/(?:portion|100g)\)$"
+    return re.sub(pattern, "", text).strip()
 
 
 def format_food_name_with_calories(
     food_name: str,
     calories_per_100g: float | None,
     default_portion_calories: float | None,
+    *,
+    is_drink: bool = False,
 ) -> str:
-    """Append `(… kcal/portion)` or `(… kcal/100g)` when values exist."""
+    """Append `(… kcal/portion)` or `(… kcal/100g)` when values exist.
+
+    Drinks get the same `DRINK_EMOJI` prefix as `tableView_food_log`.
+
+    """
     if not food_name:
         return food_name
 
@@ -35,9 +45,10 @@ def format_food_name_with_calories(
     elif cal_100g is not None:
         calories_info = f"({cal_100g:.0f} kcal/100g)"
 
-    if calories_info:
-        return f"{food_name} {calories_info}"
-    return food_name
+    result = f"{food_name} {calories_info}" if calories_info else food_name
+    if is_drink:
+        return f"{DRINK_EMOJI} {result}"
+    return result
 
 
 def _safe_float(value: float | str | None) -> float | None:

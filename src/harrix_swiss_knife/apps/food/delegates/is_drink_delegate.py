@@ -6,7 +6,8 @@ from PySide6.QtCore import QAbstractItemModel, QLocale, QModelIndex, QPersistent
 from PySide6.QtGui import QColor, QPalette
 from PySide6.QtWidgets import QCheckBox, QHBoxLayout, QStyledItemDelegate, QStyleOptionViewItem, QWidget
 
-DRINK_EMOJI = "🥤"
+from harrix_swiss_knife.apps.food.services.food_display import DRINK_EMOJI
+
 _TRUTHY_IS_DRINK = frozenset({"1", "yes", "true", "да"})  # ignore: HP001
 
 
