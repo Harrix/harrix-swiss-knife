@@ -183,6 +183,30 @@ def test_paint_habit_day_circle_states(qapp: QApplication) -> None:
     painter.end()
 
 
+def test_paint_habit_day_circle_not_done_is_reddish_unlike_absent(qapp: QApplication) -> None:
+    """Not done uses a dusty-rose fill so it does not look like No record."""
+    assert qapp is not None
+    rect = QRectF(1, 1, 22, 22)
+    absent = QImage(24, 24, QImage.Format.Format_ARGB32_Premultiplied)
+    absent.fill(0)
+    painter = QPainter(absent)
+    paint_habit_day_circle(painter, rect, None)
+    painter.end()
+    not_done = QImage(24, 24, QImage.Format.Format_ARGB32_Premultiplied)
+    not_done.fill(0)
+    painter = QPainter(not_done)
+    paint_habit_day_circle(painter, rect, 0)
+    painter.end()
+    assert absent != not_done
+    rose_pixels = 0
+    for x in range(not_done.width()):
+        for y in range(not_done.height()):
+            color = not_done.pixelColor(x, y)
+            if color.alpha() > 200 and color.red() > color.green() + 20 and color.red() > color.blue() + 20:
+                rose_pixels += 1
+    assert rose_pixels > 20
+
+
 def test_process_habit_delegates_paint_circles(qapp: QApplication) -> None:
     """Table delegates paint dashboard-style circles for 0, 1, number, and empty."""
     assert qapp is not None

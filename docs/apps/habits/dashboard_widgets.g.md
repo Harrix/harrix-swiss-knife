@@ -2210,9 +2210,22 @@ def paint_habit_day_circle(
         return
 
     if state == "zero":
-        painter.setPen(QPen(COLOR_TRACK, 1.5))
-        painter.setBrush(COLOR_BG_MUTED)
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(COLOR_NOT_DONE)
         painter.drawEllipse(rect)
+        pen = QPen(QColor("white"), max(1.8, size * 0.1))
+        pen.setCapStyle(Qt.PenCapStyle.RoundCap)
+        painter.setPen(pen)
+        inset_x = rect.width() * 0.30
+        inset_y = rect.height() * 0.30
+        painter.drawLine(
+            QPointF(rect.left() + inset_x, rect.top() + inset_y),
+            QPointF(rect.right() - inset_x, rect.bottom() - inset_y),
+        )
+        painter.drawLine(
+            QPointF(rect.right() - inset_x, rect.top() + inset_y),
+            QPointF(rect.left() + inset_x, rect.bottom() - inset_y),
+        )
         return
 
     if state == "one":
