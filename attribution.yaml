@@ -15,5 +15,5 @@ attribution:
       license-url: "https://creativecommons.org/publicdomain/zero/1.0/",
       permalink: "https://kenney.nl/assets/interface-sounds",
       permalink-date: 2026-08-24,
-      name: Interface Sounds (habit_done.wav = confirmation_002, habit_not_done.wav = minimize_003),
+      name: Interface Sounds (habit_done.wav = confirmation_002, habit_not_done.wav = error_001),
     }
