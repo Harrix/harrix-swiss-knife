@@ -333,6 +333,8 @@ def test_zone_panel_add_button_emits_add_requested(qapp: QApplication) -> None:
     requested: list[bool] = []
     panel.add_requested.connect(lambda: requested.append(True))
     add_button = next(button for button in panel.findChildren(QPushButton) if button.isEnabled())
+    assert add_button.text() == ""
+    assert add_button.toolTip() == "Add emoji"
     add_button.click()
     assert requested == [True]
     panel.close()

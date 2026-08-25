@@ -175,7 +175,8 @@ class ZonePanel(QWidget):
         header = QHBoxLayout()
         header.setContentsMargins(0, 0, 0, 0)
         if show_add:
-            add_button = make_emoji_push_button(title, "➕")  # noqa: RUF001
+            add_button = make_emoji_push_button("", "➕")  # noqa: RUF001
+            add_button.setToolTip(title)
             add_button.clicked.connect(self.add_requested.emit)
             header.addWidget(add_button)
         else:
