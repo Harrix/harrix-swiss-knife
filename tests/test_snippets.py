@@ -8,6 +8,7 @@ import json
 from pathlib import Path
 
 import pytest
+from PySide6.QtGui import QColor
 from PySide6.QtWidgets import QApplication, QPushButton
 
 from harrix_swiss_knife.actions.apps.snippets import OnSnippets
@@ -37,7 +38,7 @@ from harrix_swiss_knife.apps.snippets.seed import (
     seed_emojis,
 )
 from harrix_swiss_knife.apps.snippets.sort import sort_items
-from harrix_swiss_knife.apps.snippets.zone_panel import ZonePanel
+from harrix_swiss_knife.apps.snippets.zone_panel import ZonePanel, chip_border_color, color_hex_label
 from harrix_swiss_knife.menu_structure import get_menu_structure
 
 _ROOT = Path(__file__).resolve().parents[1]
@@ -139,6 +140,18 @@ def test_display_text_adds_hint_brackets() -> None:
     assert display_text("—", "Век живи — век учись. | Тире", ZONE_SYMBOL) == ("— [Век живи — век учись. | Тире]")
 
 
+def test_color_hex_label_strips_brackets() -> None:
+    assert color_hex_label("#ffffff") == "#ffffff"
+    assert color_hex_label("  [#de2b26]  ") == "#de2b26"
+    assert color_hex_label("[#122a3a]") == "#122a3a"
+
+
+def test_chip_border_color_is_darker() -> None:
+    fill = QColor("#ffffff")
+    border = chip_border_color(fill)
+    assert border.lightness() < fill.lightness()
+
+
 def test_recover_sql_matches_builder_and_creates_seed(qapp: QApplication, tmp_path: Path) -> None:  # noqa: ARG001
     assert _RECOVER_SQL.is_file()
     assert _RECOVER_SQL.read_text(encoding="utf-8") == build_recover_sql()
@@ -197,6 +210,30 @@ def test_emoji_zone_items_have_icon_without_caption(qapp: QApplication) -> None:
     assert item is not None
     assert item.text() == ""
     assert not item.icon().isNull()
+    panel.close()
+
+
+def test_color_zone_items_have_no_bracket_text(qapp: QApplication) -> None:
+    assert qapp is not None
+    panel = ZonePanel(zone=ZONE_COLOR, title="Add color", show_add=True)
+    panel.set_items(
+        [
+            SnippetItem(
+                item_id=1,
+                zone=ZONE_COLOR,
+                value="#ffffff",
+                hint="white color in icons",
+                created_at="2026-01-01T00:00:00+00:00",
+                last_used_at=None,
+                sort_index=0,
+            ),
+        ],
+    )
+    item = panel._list.item(0)
+    assert item is not None
+    assert item.text() == ""
+    assert "[" not in item.text()
+    assert "]" not in item.text()
     panel.close()
 
 

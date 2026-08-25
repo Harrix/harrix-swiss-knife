@@ -13,12 +13,15 @@ lang: en
 
 - [🏛️ Class `ColorItemDelegate`](#%EF%B8%8F-class-coloritemdelegate)
   - [⚙️ Method `paint`](#%EF%B8%8F-method-paint)
+  - [⚙️ Method `sizeHint`](#%EF%B8%8F-method-sizehint)
 - [🏛️ Class `ZonePanel`](#%EF%B8%8F-class-zonepanel)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `focus_filter`](#%EF%B8%8F-method-focus_filter)
   - [⚙️ Method `item_at`](#%EF%B8%8F-method-item_at)
   - [⚙️ Method `set_items`](#%EF%B8%8F-method-set_items)
   - [⚙️ Method `set_sort_state`](#%EF%B8%8F-method-set_sort_state)
+- [🔧 Function `chip_border_color`](#-function-chip_border_color)
+- [🔧 Function `color_hex_label`](#-function-color_hex_label)
 
 </details>
 
@@ -28,7 +31,7 @@ lang: en
 class ColorItemDelegate(QStyledItemDelegate)
 ```
 
-Paint color rows with a swatch fill and optional light-color border.
+Paint a rounded color chip, then `: description`.
 
 <details>
 <summary>Code:</summary>
@@ -42,19 +45,52 @@ class ColorItemDelegate(QStyledItemDelegate):
         option: QStyleOptionViewItem,
         index: QModelIndex | QPersistentModelIndex,
     ) -> None:
-        """Fill the row with the stored hex color and draw the label."""
-        hex_color = str(index.data(_COLOR_ROLE) or "")
-        color = QColor(hex_color) if hex_color else QColor("#ffffff")
+        """Draw the selection, hex chip, and optional hint."""
+        self.initStyleOption(option, index)
         painter.save()
-        painter.fillRect(option.rect, color)
-        if color.lightness() > _LIGHT_SWATCH_BORDER:
-            painter.setPen(QColor("#c0c0c0"))
-            painter.drawRect(option.rect.adjusted(0, 0, -1, -1))
+        widget = option.widget
+        style = widget.style() if widget is not None else None
+        if style is not None:
+            style.drawPrimitive(QStyle.PrimitiveElement.PE_PanelItemViewItem, option, painter, widget)
+
+        hex_value = color_hex_label(str(index.data(_COLOR_ROLE) or ""))
+        color = QColor(hex_value) if hex_value else QColor("#ffffff")
+        if not color.isValid():
+            color = QColor("#ffffff")
+            hex_value = hex_value or "#ffffff"
+
+        snippet = index.data(_ITEM_ROLE)
+        hint = snippet.hint.strip() if snippet is not None and snippet.hint else ""
+        metrics = option.fontMetrics
+        chip_width = metrics.horizontalAdvance(hex_value) + _CHIP_PADDING_X * 2
+        chip_height = metrics.height() + _CHIP_PADDING_Y * 2
+        chip_y = option.rect.y() + (option.rect.height() - chip_height) // 2
+        chip_rect = QRect(option.rect.x() + _CHIP_ROW_MARGIN, chip_y, chip_width, chip_height)
+
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing, on=True)
+        painter.setBrush(color)
+        painter.setPen(QPen(chip_border_color(color), 1))
+        painter.drawRoundedRect(chip_rect.adjusted(0, 0, -1, -1), _CHIP_RADIUS, _CHIP_RADIUS)
         text_color = QColor("#122a3a") if color.lightness() > _LIGHT_TEXT_THRESHOLD else QColor("#ffffff")
         painter.setPen(text_color)
-        text = str(index.data(Qt.ItemDataRole.DisplayRole) or "")
-        painter.drawText(option.rect.adjusted(8, 0, -8, 0), Qt.AlignmentFlag.AlignVCenter, text)
+        painter.drawText(chip_rect, Qt.AlignmentFlag.AlignCenter, hex_value)
+
+        if hint:
+            desc_x = chip_rect.right() + _CHIP_GAP
+            desc_rect = QRect(
+                desc_x,
+                option.rect.y(),
+                max(0, option.rect.right() - desc_x - _CHIP_ROW_MARGIN),
+                option.rect.height(),
+            )
+            painter.setPen(option.palette.color(option.palette.ColorRole.Text))
+            painter.drawText(desc_rect, Qt.AlignmentFlag.AlignVCenter, f": {hint}")
         painter.restore()
+
+    def sizeHint(self, option: QStyleOptionViewItem, index: QModelIndex | QPersistentModelIndex) -> QSize:
+        """Keep color rows tall enough for the rounded chip."""
+        hint = super().sizeHint(option, index)
+        return QSize(hint.width(), max(hint.height(), _MIN_COLOR_ROW_HEIGHT))
 ```
 
 </details>
@@ -65,7 +101,7 @@ class ColorItemDelegate(QStyledItemDelegate):
 def paint(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex | QPersistentModelIndex) -> None
 ```
 
-Fill the row with the stored hex color and draw the label.
+Draw the selection, hex chip, and optional hint.
 
 <details>
 <summary>Code:</summary>
@@ -77,18 +113,65 @@ def paint(
         option: QStyleOptionViewItem,
         index: QModelIndex | QPersistentModelIndex,
     ) -> None:
-        hex_color = str(index.data(_COLOR_ROLE) or "")
-        color = QColor(hex_color) if hex_color else QColor("#ffffff")
+        self.initStyleOption(option, index)
         painter.save()
-        painter.fillRect(option.rect, color)
-        if color.lightness() > _LIGHT_SWATCH_BORDER:
-            painter.setPen(QColor("#c0c0c0"))
-            painter.drawRect(option.rect.adjusted(0, 0, -1, -1))
+        widget = option.widget
+        style = widget.style() if widget is not None else None
+        if style is not None:
+            style.drawPrimitive(QStyle.PrimitiveElement.PE_PanelItemViewItem, option, painter, widget)
+
+        hex_value = color_hex_label(str(index.data(_COLOR_ROLE) or ""))
+        color = QColor(hex_value) if hex_value else QColor("#ffffff")
+        if not color.isValid():
+            color = QColor("#ffffff")
+            hex_value = hex_value or "#ffffff"
+
+        snippet = index.data(_ITEM_ROLE)
+        hint = snippet.hint.strip() if snippet is not None and snippet.hint else ""
+        metrics = option.fontMetrics
+        chip_width = metrics.horizontalAdvance(hex_value) + _CHIP_PADDING_X * 2
+        chip_height = metrics.height() + _CHIP_PADDING_Y * 2
+        chip_y = option.rect.y() + (option.rect.height() - chip_height) // 2
+        chip_rect = QRect(option.rect.x() + _CHIP_ROW_MARGIN, chip_y, chip_width, chip_height)
+
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing, on=True)
+        painter.setBrush(color)
+        painter.setPen(QPen(chip_border_color(color), 1))
+        painter.drawRoundedRect(chip_rect.adjusted(0, 0, -1, -1), _CHIP_RADIUS, _CHIP_RADIUS)
         text_color = QColor("#122a3a") if color.lightness() > _LIGHT_TEXT_THRESHOLD else QColor("#ffffff")
         painter.setPen(text_color)
-        text = str(index.data(Qt.ItemDataRole.DisplayRole) or "")
-        painter.drawText(option.rect.adjusted(8, 0, -8, 0), Qt.AlignmentFlag.AlignVCenter, text)
+        painter.drawText(chip_rect, Qt.AlignmentFlag.AlignCenter, hex_value)
+
+        if hint:
+            desc_x = chip_rect.right() + _CHIP_GAP
+            desc_rect = QRect(
+                desc_x,
+                option.rect.y(),
+                max(0, option.rect.right() - desc_x - _CHIP_ROW_MARGIN),
+                option.rect.height(),
+            )
+            painter.setPen(option.palette.color(option.palette.ColorRole.Text))
+            painter.drawText(desc_rect, Qt.AlignmentFlag.AlignVCenter, f": {hint}")
         painter.restore()
+```
+
+</details>
+
+### ⚙️ Method `sizeHint`
+
+```python
+def sizeHint(self, option: QStyleOptionViewItem, index: QModelIndex | QPersistentModelIndex) -> QSize
+```
+
+Keep color rows tall enough for the rounded chip.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def sizeHint(self, option: QStyleOptionViewItem, index: QModelIndex | QPersistentModelIndex) -> QSize:
+        hint = super().sizeHint(option, index)
+        return QSize(hint.width(), max(hint.height(), _MIN_COLOR_ROW_HEIGHT))
 ```
 
 </details>
@@ -220,7 +303,6 @@ class ZonePanel(QWidget):
                 list_item.setIcon(create_emoji_icon(snippet.value, 32))
                 list_item.setToolTip(snippet.value)
             elif self.zone == ZONE_COLOR:
-                list_item.setText(label)
                 list_item.setData(_COLOR_ROLE, snippet.value)
                 list_item.setToolTip(snippet.hint or snippet.value)
             else:
@@ -441,7 +523,6 @@ def set_items(self, items: list[SnippetItem]) -> None:
                 list_item.setIcon(create_emoji_icon(snippet.value, 32))
                 list_item.setToolTip(snippet.value)
             elif self.zone == ZONE_COLOR:
-                list_item.setText(label)
                 list_item.setData(_COLOR_ROLE, snippet.value)
                 list_item.setToolTip(snippet.hint or snippet.value)
             else:
@@ -474,6 +555,45 @@ def set_sort_state(self, zone_sort: ZoneSort) -> None:
                 button.setToolTip(f"{tooltip} (reversed)")
             else:
                 button.setToolTip(tooltip)
+```
+
+</details>
+
+## 🔧 Function `chip_border_color`
+
+```python
+def chip_border_color(color: QColor) -> QColor
+```
+
+Return a 1 px border color darker than the chip fill.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def chip_border_color(color: QColor) -> QColor:
+    return color.darker(_CHIP_BORDER_DARKER)
+```
+
+</details>
+
+## 🔧 Function `color_hex_label`
+
+```python
+def color_hex_label(value: str) -> str
+```
+
+Return the hex text for a color chip, without surrounding brackets.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def color_hex_label(value: str) -> str:
+    text = value.strip()
+    if text.startswith("[") and text.endswith("]") and len(text) >= 2:
+        return text[1:-1].strip()
+    return text
 ```
 
 </details>
