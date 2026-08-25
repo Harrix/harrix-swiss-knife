@@ -206,6 +206,7 @@ def run_tray_application(log: logging.Logger, *, main_menu_cls: type[MainMenuBas
     app.setQuitOnLastWindowClosed(False)
     app.setWindowIcon(QIcon(":/assets/logo.svg"))
     install_flexible_decimal_separators(app)
+    install_app_fonts(app)
     install_safe_qt_translate()
 
     tray_ready = False

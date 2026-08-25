@@ -32,6 +32,7 @@ from harrix_swiss_knife.global_hotkey import GlobalHotkeyManager
 from harrix_swiss_knife.main_menu_base import set_menu_tooltips_visible_recursive
 from harrix_swiss_knife.menu_structure import get_menu_structure
 from harrix_swiss_knife.paths import get_config_path_str, prune_action_output_dir
+from harrix_swiss_knife.qt_app_font import install_app_fonts
 from harrix_swiss_knife.qt_flexible_decimal import install_flexible_decimal_separators
 from harrix_swiss_knife.single_instance import acquire_tray_instance
 from harrix_swiss_knife.tray_icon import TrayIcon
@@ -181,6 +182,7 @@ def run_tray_application(log: logging.Logger, *, main_menu_cls: type[MainMenuBas
     app.setQuitOnLastWindowClosed(False)
     app.setWindowIcon(QIcon(":/assets/logo.svg"))
     install_flexible_decimal_separators(app)
+    install_app_fonts(app)
     install_safe_qt_translate()
 
     tray_ready = False

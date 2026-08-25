@@ -47,6 +47,7 @@ packages = ["src/harrix_swiss_knife"]
 "src/harrix_swiss_knife/**/*.sql" = "harrix_swiss_knife"
 "src/harrix_swiss_knife/**/*.qrc" = "harrix_swiss_knife"
 "src/harrix_swiss_knife/assets/*" = "harrix_swiss_knife/assets"
+"src/harrix_swiss_knife/assets/fonts/*" = "harrix_swiss_knife/assets/fonts"
 
 [dependency-groups]
 dev = [
