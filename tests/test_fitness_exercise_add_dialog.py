@@ -6,7 +6,7 @@ import pytest
 from PySide6.QtWidgets import QApplication
 
 from harrix_swiss_knife.apps.fitness import exercise_add_dialog as add_dialog_mod
-from harrix_swiss_knife.apps.fitness.exercise_add_dialog import ExerciseAddDialog
+from harrix_swiss_knife.apps.fitness.exercise_add_dialog import ExerciseAddDialog, contains_cyrillic
 
 
 @pytest.fixture
@@ -24,6 +24,51 @@ def test_add_dialog_hides_check_button_without_finder(qapp: QApplication) -> Non
     assert qapp is not None
     dialog = ExerciseAddDialog()
     assert dialog._local_check_button is None
+    dialog.close()
+
+
+def test_contains_cyrillic() -> None:
+    assert contains_cyrillic("Приседания")
+    assert contains_cyrillic("Push-ups и присед")
+    assert not contains_cyrillic("Push-ups")
+    assert not contains_cyrillic("")
+
+
+def test_exercise_add_dialog_moves_cyrillic_name_to_local(qapp: QApplication) -> None:
+    assert qapp is not None
+    dialog = ExerciseAddDialog()
+    dialog._name_edit.setText("Приседания")
+    assert dialog._name_edit.text() == ""
+    assert dialog._name_local_edit.text() == "Приседания"
+    dialog.close()
+
+
+def test_exercise_add_dialog_keeps_english_name(qapp: QApplication) -> None:
+    assert qapp is not None
+    dialog = ExerciseAddDialog()
+    dialog._name_edit.setText("Push-ups")
+    assert dialog._name_edit.text() == "Push-ups"
+    assert dialog._name_local_edit.text() == ""
+    dialog.close()
+
+
+def test_exercise_add_dialog_does_not_overwrite_existing_local(qapp: QApplication) -> None:
+    assert qapp is not None
+    dialog = ExerciseAddDialog()
+    dialog._name_local_edit.setText("Отжимания")
+    dialog._name_edit.setText("Приседания")
+    assert dialog._name_edit.text() == "Приседания"
+    assert dialog._name_local_edit.text() == "Отжимания"
+    dialog.close()
+
+
+def test_exercise_add_dialog_does_not_move_cyrillic_name_when_editing(qapp: QApplication) -> None:
+    assert qapp is not None
+    dialog = ExerciseAddDialog(
+        initial={"name": "Приседания", "name_local": "Local name"},
+    )
+    assert dialog._name_edit.text() == "Приседания"
+    assert dialog._name_local_edit.text() == "Local name"
     dialog.close()
 
 

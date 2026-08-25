@@ -14,6 +14,7 @@ lang: en
 - [🏛️ Class `ExerciseAddDialog`](#%EF%B8%8F-class-exerciseadddialog)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `get_result`](#%EF%B8%8F-method-get_result)
+- [🔧 Function `contains_cyrillic`](#-function-contains_cyrillic)
 
 </details>
 
@@ -64,6 +65,7 @@ class ExerciseAddDialog(QDialog):
         self._local_check_passed = False
         self._result: tuple[str, str, bool, float, str, bool, str, bool] | None = None
         self._auto_filling = False
+        self._moving_cyrillic_name = False
         self._ok_button: QPushButton | None = None
 
         self.setWindowTitle("Edit Exercise" if self._editing else "Add New Exercise")
@@ -78,6 +80,7 @@ class ExerciseAddDialog(QDialog):
         name_row.addWidget(QLabel("Name:", form_group))
         self._name_edit = QLineEdit(form_group)
         self._name_edit.setPlaceholderText("English name")
+        self._name_edit.textChanged.connect(self._on_name_changed)
         name_row.addWidget(self._name_edit, 1)
         form_layout.addLayout(name_row)
 
@@ -192,7 +195,23 @@ class ExerciseAddDialog(QDialog):
         )
         self.accept()
 
+    def _move_cyrillic_name_to_local(self) -> None:
+        if self._editing or self._moving_cyrillic_name:
+            return
+        name = self._name_edit.text()
+        if not contains_cyrillic(name) or self._name_local_edit.text().strip():
+            return
+        self._moving_cyrillic_name = True
+        try:
+            self._name_local_edit.setText(name.strip())
+            self._name_edit.clear()
+            self._name_local_edit.setFocus()
+            self._name_local_edit.setCursorPosition(len(self._name_local_edit.text()))
+        finally:
+            self._moving_cyrillic_name = False
+
     def _on_accept(self) -> None:
+        self._move_cyrillic_name_to_local()
         if self._auto_filling:
             return
         if not self._editing and should_auto_fill_exercise_on_ok(
@@ -253,6 +272,9 @@ class ExerciseAddDialog(QDialog):
     def _on_local_name_changed(self, _text: str = "") -> None:
         if self._local_check_passed:
             self._set_local_check_passed(passed=False)
+
+    def _on_name_changed(self, _text: str = "") -> None:
+        self._move_cyrillic_name_to_local()
 
     def _on_type_required_toggled(self) -> None:
         if (
@@ -382,6 +404,7 @@ def __init__(
         self._local_check_passed = False
         self._result: tuple[str, str, bool, float, str, bool, str, bool] | None = None
         self._auto_filling = False
+        self._moving_cyrillic_name = False
         self._ok_button: QPushButton | None = None
 
         self.setWindowTitle("Edit Exercise" if self._editing else "Add New Exercise")
@@ -396,6 +419,7 @@ def __init__(
         name_row.addWidget(QLabel("Name:", form_group))
         self._name_edit = QLineEdit(form_group)
         self._name_edit.setPlaceholderText("English name")
+        self._name_edit.textChanged.connect(self._on_name_changed)
         name_row.addWidget(self._name_edit, 1)
         form_layout.addLayout(name_row)
 
@@ -498,6 +522,24 @@ Return `(name, unit, is_type_required, calories, name_local, is_favorite, media_
 ```python
 def get_result(self) -> tuple[str, str, bool, float, str, bool, str, bool] | None:
         return self._result
+```
+
+</details>
+
+## 🔧 Function `contains_cyrillic`
+
+```python
+def contains_cyrillic(text: str) -> bool
+```
+
+Return `True` if `text` includes at least one Cyrillic letter.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def contains_cyrillic(text: str) -> bool:
+    return any("\u0400" <= character <= "\u04ff" for character in text)
 ```
 
 </details>
