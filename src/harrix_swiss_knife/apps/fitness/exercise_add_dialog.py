@@ -46,7 +46,8 @@ class ExerciseAddDialog(QDialog):
         Args:
 
         - `initial` (`dict[str, Any] | None`): Existing exercise fields for edit mode
-          (`name`, `unit`, `is_type_required`, `calories_per_unit`, `name_local`, `is_favorite`).
+          (`name`, `unit`, `is_type_required`, `calories_per_unit`, `name_local`,
+          `is_favorite`). Favorite is shown only when editing.
 
         """
         super().__init__(parent)
@@ -98,8 +99,10 @@ class ExerciseAddDialog(QDialog):
         self._type_required_check = QCheckBox("Type is required", form_group)
         form_layout.addWidget(self._type_required_check)
 
-        self._favorite_check = QCheckBox("Favorite", form_group)
-        form_layout.addWidget(self._favorite_check)
+        self._favorite_check: QCheckBox | None = None
+        if self._editing:
+            self._favorite_check = QCheckBox("Favorite", form_group)
+            form_layout.addWidget(self._favorite_check)
 
         media_hint = (
             "Optional: drag and drop new video/image to replace media"
@@ -148,7 +151,7 @@ class ExerciseAddDialog(QDialog):
             self._type_required_check.isChecked(),
             self._calories_spin.value(),
             self._name_local_edit.text().strip(),
-            self._favorite_check.isChecked(),
+            self._favorite_check.isChecked() if self._favorite_check is not None else False,
             self._media_drop.get_file_path(),
         )
         self.accept()
@@ -177,4 +180,5 @@ class ExerciseAddDialog(QDialog):
         except (TypeError, ValueError):
             self._calories_spin.setValue(0.0)
         self._type_required_check.setChecked(bool(self._initial.get("is_type_required")))
-        self._favorite_check.setChecked(bool(self._initial.get("is_favorite")))
+        if self._favorite_check is not None:
+            self._favorite_check.setChecked(bool(self._initial.get("is_favorite")))
