@@ -28,6 +28,8 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 _DEFAULT_FRAME_DURATION_MS = 100
+_SPEED_MAX = 8.0
+_SPEED_MIN = 0.1
 
 
 class AvifLabelKey(StrEnum):
@@ -72,7 +74,15 @@ class AvifManager(QObject):
         super().__init__(parent)
         self.avif_dir = Path(avif_dir)
         self.avif_data: dict[AvifLabelKey, dict] = {
-            key: {"frames": [], "current_frame": 0, "timer": None, "exercise": None} for key in AvifLabelKey
+            key: {
+                "frames": [],
+                "current_frame": 0,
+                "timer": None,
+                "exercise": None,
+                "duration_ms": _DEFAULT_FRAME_DURATION_MS,
+                "speed": 1.0,
+            }
+            for key in AvifLabelKey
         }
         self.label_widgets: dict[AvifLabelKey, QLabel | None] = dict.fromkeys(AvifLabelKey)
         self._frame_generations: dict[AvifLabelKey, int] = dict.fromkeys(AvifLabelKey, 0)
@@ -164,6 +174,24 @@ class AvifManager(QObject):
             return False
         return any(path.is_file() for path in self.avif_dir.rglob("*.avif"))
 
+    def is_animation_active(self, label_key: str | AvifLabelKey) -> bool:
+        """Return whether `label_key` is playing a multi-frame animation.
+
+        Args:
+
+        - `label_key` (`str | AvifLabelKey`): Slot to inspect.
+
+        Returns:
+
+        - `bool`: `True` when the slot has more than one frame and a running timer.
+
+        """
+        key = self._normalize_label_key(label_key)
+        data = self.avif_data.get(key) or {}
+        frames = data.get("frames")
+        timer = data.get("timer")
+        return isinstance(frames, list) and len(frames) > 1 and isinstance(timer, QTimer) and timer.isActive()
+
     def load_avif_pixmap(self, avif_path: Path) -> QPixmap | None:
         """Load a pixmap from an AVIF file, falling back to Pillow if needed.
 
@@ -200,8 +228,16 @@ class AvifManager(QObject):
         """
         key = self._normalize_label_key(label_key)
         if key not in self.avif_data:
-            self.avif_data[key] = {"frames": [], "current_frame": 0, "timer": None, "exercise": None}
+            self.avif_data[key] = {
+                "frames": [],
+                "current_frame": 0,
+                "timer": None,
+                "exercise": None,
+                "duration_ms": _DEFAULT_FRAME_DURATION_MS,
+                "speed": 1.0,
+            }
         data = self.avif_data[key]
+        saved_speed = float(data.get("speed") or 1.0)
 
         self._cancel_frame_worker(key)
 
@@ -213,6 +249,7 @@ class AvifManager(QObject):
         data["frames"] = []
         data["current_frame"] = 0
         data["exercise"] = exercise_name
+        data["speed"] = saved_speed
 
         if key not in self.label_widgets:
             self.label_widgets[key] = None
@@ -269,6 +306,38 @@ class AvifManager(QObject):
         if renamed:
             self._retarget_exercise_name(old, new)
         return renamed
+
+    def set_animation_speed(self, label_key: str | AvifLabelKey, speed: float) -> None:
+        """Set playback speed for an existing animation slot.
+
+        Args:
+
+        - `label_key` (`str | AvifLabelKey`): Slot to update. Fitness lightbox uses
+          `AvifLabelKey.LIGHTBOX` only.
+        - `speed` (`float`): Playback multiplier. `1.0` is native speed.
+
+        """
+        key = self._normalize_label_key(label_key)
+        data = self.avif_data.setdefault(
+            key,
+            {
+                "frames": [],
+                "current_frame": 0,
+                "timer": None,
+                "exercise": None,
+                "duration_ms": _DEFAULT_FRAME_DURATION_MS,
+                "speed": 1.0,
+            },
+        )
+        data["speed"] = max(_SPEED_MIN, min(_SPEED_MAX, float(speed)))
+        timer = data.get("timer")
+        if isinstance(timer, QTimer) and timer.isActive():
+            timer.setInterval(
+                animation_interval_ms(
+                    int(data.get("duration_ms") or _DEFAULT_FRAME_DURATION_MS),
+                    data["speed"],
+                )
+            )
 
     def stop_animation(self, label_key: str | AvifLabelKey) -> None:
         """Stop the animation timer and clear frames for `label_key`.
@@ -340,10 +409,7 @@ class AvifManager(QObject):
         if len(frames) == 1:
             return
 
-        new_timer = QTimer(self)
-        new_timer.timeout.connect(lambda: self._next_avif_frame(label_key))
-        data["timer"] = new_timer
-        new_timer.start(max(1, int(duration_ms) if duration_ms else _DEFAULT_FRAME_DURATION_MS))
+        self._start_animation_timer(data, label_key, duration_ms)
 
     def _cancel_frame_worker(self, key: AvifLabelKey) -> None:
         """Bump generation so an in-flight decode is ignored; stop tracking the worker."""
@@ -439,7 +505,8 @@ class AvifManager(QObject):
                     Qt.TransformationMode.SmoothTransformation,
                 )
                 label_widget.setPixmap(scaled_pixmap)
-                return
+                if not _avif_is_animated(avif_path):
+                    return
 
             try:
                 import pillow_avif  # noqa: F401, PLC0415
@@ -462,14 +529,11 @@ class AvifManager(QObject):
                     if frames:
                         data["frames"] = frames
                         label_widget.setPixmap(frames[0])
-                        new_timer = QTimer(self)
-                        new_timer.timeout.connect(lambda: self._next_avif_frame(key))
-                        data["timer"] = new_timer
                         try:
-                            duration = pil_image.info.get("duration", _DEFAULT_FRAME_DURATION_MS)
+                            duration = int(pil_image.info.get("duration", _DEFAULT_FRAME_DURATION_MS))
                         except Exception:
                             duration = _DEFAULT_FRAME_DURATION_MS
-                        new_timer.start(duration)
+                        self._start_animation_timer(data, key, duration)
                         return
                 else:
                     label_size = label_widget.size()
@@ -575,6 +639,18 @@ class AvifManager(QObject):
             if data.get("exercise") == old_name:
                 data["exercise"] = new_name
 
+    def _start_animation_timer(self, data: dict, key: AvifLabelKey, duration_ms: int) -> None:
+        """Start or replace the slot timer using stored playback speed."""
+        old_timer = data.get("timer")
+        if isinstance(old_timer, QTimer):
+            old_timer.stop()
+        data["duration_ms"] = max(1, int(duration_ms) if duration_ms else _DEFAULT_FRAME_DURATION_MS)
+        speed = float(data.get("speed") or 1.0)
+        new_timer = QTimer(self)
+        new_timer.timeout.connect(lambda: self._next_avif_frame(key))
+        data["timer"] = new_timer
+        new_timer.start(animation_interval_ms(data["duration_ms"], speed))
+
     def _start_frame_worker(self, avif_path: Path, key: AvifLabelKey, exercise_name: str) -> None:
         """Kick off a background decode for animated frames."""
         generation = self._frame_generations.get(key, 0) + 1
@@ -653,6 +729,25 @@ class _AvifFramesWorker(QThread):
             self.decode_failed.emit(self._label_key, self._exercise_name, "No frames decoded")
             return
         self.frames_ready.emit(self._label_key, self._exercise_name, png_frames, duration)
+
+
+def animation_interval_ms(duration_ms: int, speed: float) -> int:
+    """Return the timer interval for one animation frame at `speed`.
+
+    Args:
+
+    - `duration_ms` (`int`): Native frame duration in milliseconds.
+    - `speed` (`float`): Playback multiplier. `1.0` is native speed.
+
+    Returns:
+
+    - `int`: Timer interval in milliseconds, at least `1`.
+
+    """
+    native = max(1, int(duration_ms) if duration_ms else _DEFAULT_FRAME_DURATION_MS)
+    factor = float(speed) if speed else _SPEED_MIN
+    factor = max(_SPEED_MIN, factor)
+    return max(1, round(native / factor))
 
 
 def load_image_pixmap(file_path: Path | str) -> QPixmap | None:

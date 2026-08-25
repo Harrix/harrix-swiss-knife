@@ -66,6 +66,56 @@ def test_exercise_avif_lightbox_fits_owner_and_navigates(tmp_path: Path, qapp: Q
     owner.close()
 
 
+def test_exercise_avif_lightbox_has_no_speed_slider_by_default(tmp_path: Path, qapp: QApplication) -> None:  # noqa: ARG001
+    img_dir = tmp_path / "fitness_img"
+    img_dir.mkdir()
+    _write_test_avif(img_dir / "Walk.avif")
+    manager = AvifManager(img_dir)
+    dialog = ExerciseAvifLightboxDialog(["Walk"], avif_manager=manager)
+    assert dialog._speed_bar is None
+    dialog.close()
+
+
+def test_exercise_avif_lightbox_hides_speed_slider_for_still(tmp_path: Path, qapp: QApplication) -> None:  # noqa: ARG001
+    img_dir = tmp_path / "fitness_img"
+    img_dir.mkdir()
+    _write_test_avif(img_dir / "Walk.avif")
+    manager = AvifManager(img_dir)
+    dialog = ExerciseAvifLightboxDialog(["Walk"], avif_manager=manager, show_speed_slider=True)
+    assert dialog._speed_bar is not None
+    assert dialog._speed_bar.isHidden()
+    dialog.close()
+
+
+def test_exercise_avif_lightbox_speed_slider_changes_interval(tmp_path: Path, qapp: QApplication) -> None:  # noqa: ARG001
+    img_dir = tmp_path / "fitness_img"
+    img_dir.mkdir()
+    _write_test_avif(img_dir / "Walk.avif")
+    manager = AvifManager(img_dir)
+    dialog = ExerciseAvifLightboxDialog(["Walk"], avif_manager=manager, show_speed_slider=True)
+    timer = QTimer()
+    timer.start(100)
+    manager.avif_data[AvifLabelKey.LIGHTBOX]["timer"] = timer
+    manager.avif_data[AvifLabelKey.LIGHTBOX]["duration_ms"] = 100
+    manager.avif_data[AvifLabelKey.LIGHTBOX]["frames"] = [object(), object()]
+    dialog._sync_speed_controls()
+    assert dialog._speed_bar is not None
+    assert dialog._speed_slider is not None
+    assert not dialog._speed_bar.isHidden()
+    dialog._speed_slider.setValue(200)
+    assert timer.interval() == 50
+    timer.stop()
+    dialog.close()
+
+
+def test_icon_lightbox_has_no_animation_speed_slider(tmp_path: Path, qapp: QApplication) -> None:  # noqa: ARG001
+    svg = tmp_path / "icon.svg"
+    svg.write_text('<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"></svg>', encoding="utf-8")
+    dialog = IconLightboxDialog([svg])
+    assert getattr(dialog, "_speed_bar", None) is None
+    dialog.close()
+
+
 def test_exercise_avif_lightbox_double_click_closes(tmp_path: Path, qapp: QApplication) -> None:
     img_dir = tmp_path / "fitness_img"
     img_dir.mkdir()

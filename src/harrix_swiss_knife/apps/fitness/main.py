@@ -331,7 +331,7 @@ class MainWindow(
             "exercises": (
                 self.tableView_exercises,
                 "exercises",
-                ["", "Exercise", "Unit of Measurement", "Type Required", "Calories per Unit", "Local"],
+                ["", "Exercise", "Unit", "Type Required", "Calories per Unit", "Local"],
             ),
             "types": (
                 self.tableView_exercise_types,
@@ -6410,6 +6410,7 @@ class MainWindow(
             current_index=names.index(name),
             parent=self,
             avif_manager=self.avif_manager,
+            show_speed_slider=True,
         )
         dialog.exec()
 

@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from PySide6.QtCore import QRect, QSize, Qt, QTimer, Signal
-from PySide6.QtWidgets import QLabel
+from PySide6.QtWidgets import QHBoxLayout, QLabel, QSlider, QWidget
 
 from harrix_swiss_knife.apps.common.avif_manager import AvifLabelKey
 from harrix_swiss_knife.apps.common.widgets.app_window_lightbox import AppWindowLightboxDialog
@@ -14,12 +14,15 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
 
     from PySide6.QtGui import QCloseEvent, QMouseEvent, QResizeEvent
-    from PySide6.QtWidgets import QWidget
 
     from harrix_swiss_knife.apps.common.avif_manager import AvifManager
 
 _MIN_RELOAD_EDGE = 2
 _RELOAD_DELAY_MS = 80
+_SPEED_DEFAULT_PERCENT = 100
+_SPEED_MAX_PERCENT = 400
+_SPEED_MIN_PERCENT = 25
+_SPEED_SIDE_MARGIN = 20
 
 
 class ExerciseAvifLightboxDialog(AppWindowLightboxDialog):
@@ -32,6 +35,7 @@ class ExerciseAvifLightboxDialog(AppWindowLightboxDialog):
         avif_manager: AvifManager,
         current_index: int = 0,
         parent: QWidget | None = None,
+        show_speed_slider: bool = False,
     ) -> None:
         """Build a lightbox for `exercises` that have media.
 
@@ -41,6 +45,8 @@ class ExerciseAvifLightboxDialog(AppWindowLightboxDialog):
         - `avif_manager` (`AvifManager`): Loader for static and animated AVIF files.
         - `current_index` (`int`): Initial exercise index. Defaults to `0`.
         - `parent` (`QWidget | None`): Widget whose top-level window is covered.
+        - `show_speed_slider` (`bool`): When `True`, show a speed slider for
+          animated AVIFs (Fitness lightbox only). Defaults to `False`.
 
         """
         names = [name for name in exercises if name]
@@ -51,11 +57,16 @@ class ExerciseAvifLightboxDialog(AppWindowLightboxDialog):
         self._reload_timer = QTimer(self)
         self._reload_timer.setSingleShot(True)
         self._reload_timer.timeout.connect(self._reload_current)
+        self._speed_bar: QWidget | None = None
+        self._speed_slider: QSlider | None = None
+        self._speed_value_label: QLabel | None = None
 
         self._label = LightboxAvifLabel(self)
         self._label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._label.setStyleSheet("background: transparent; border: none;")
         self.attach_content(self._label)
+        if show_speed_slider:
+            self._build_speed_controls()
         self.finish_setup()
 
     def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
@@ -84,12 +95,68 @@ class ExerciseAvifLightboxDialog(AppWindowLightboxDialog):
         self.set_caption(f"{name}  ·  {index + 1} / {len(self._exercises)}")
         self._reload_current()
 
+    def _build_speed_controls(self) -> None:
+        bar = QWidget(self)
+        bar.setObjectName("lightboxSpeedBar")
+        bar.setStyleSheet(
+            "QWidget#lightboxSpeedBar { background: rgba(20, 20, 20, 180); border-radius: 7px; }"
+            "QLabel { color: white; background: transparent; }"
+            "QSlider::groove:horizontal { height: 6px; background: rgba(255, 255, 255, 80);"
+            "border-radius: 3px; }"
+            "QSlider::handle:horizontal { width: 16px; height: 16px; margin: -5px 0;"
+            "background: white; border-radius: 8px; }"
+        )
+        layout = QHBoxLayout(bar)
+        layout.setContentsMargins(12, 6, 12, 6)
+        layout.setSpacing(10)
+        title = QLabel("Speed", bar)
+        slider = QSlider(Qt.Orientation.Horizontal, bar)
+        slider.setRange(_SPEED_MIN_PERCENT, _SPEED_MAX_PERCENT)
+        slider.setValue(_SPEED_DEFAULT_PERCENT)
+        slider.setSingleStep(25)
+        slider.setPageStep(25)
+        slider.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        slider.setFixedHeight(22)
+        slider.setToolTip("Slow down or speed up the animation")
+        slider.valueChanged.connect(self._on_speed_changed)
+        value = QLabel(self._format_speed(_SPEED_DEFAULT_PERCENT / 100.0), bar)
+        value.setMinimumWidth(44)
+        value.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+        layout.addWidget(title)
+        layout.addWidget(slider, stretch=1)
+        layout.addWidget(value)
+        bar.hide()
+        self._speed_bar = bar
+        self._speed_slider = slider
+        self._speed_value_label = value
+
+    def _format_speed(self, speed: float) -> str:
+        return f"{speed:.2f}x"
+
+    def _on_speed_changed(self, percent: int) -> None:
+        speed = percent / 100.0
+        if self._speed_value_label is not None:
+            self._speed_value_label.setText(self._format_speed(speed))
+        self._avif_manager.set_animation_speed(AvifLabelKey.LIGHTBOX, speed)
+
+    def _position_controls(self) -> None:
+        super()._position_controls()
+        if self._speed_bar is None or self._speed_bar.isHidden():
+            return
+        bar_width = min(360, max(220, self.width() - 280))
+        self._speed_bar.setFixedWidth(bar_width)
+        self._speed_bar.adjustSize()
+        y = self._caption.y() - self._speed_bar.height() - 10
+        self._speed_bar.move((self.width() - bar_width) // 2, max(_SPEED_SIDE_MARGIN, y))
+        self._speed_bar.raise_()
+
     def _reload_current(self) -> None:
         if not self._exercises:
             return
         name = self._exercises[self._index]
         self._avif_manager.load_exercise_avif(name, self._label, AvifLabelKey.LIGHTBOX)
         self._loaded_size = self._label.size()
+        self._sync_speed_controls()
 
     def _schedule_avif_reload(self) -> None:
         if self._label.width() < _MIN_RELOAD_EDGE or self._label.height() < _MIN_RELOAD_EDGE:
@@ -102,6 +169,18 @@ class ExerciseAvifLightboxDialog(AppWindowLightboxDialog):
         if self._reload_timer.isActive():
             self._reload_timer.stop()
         self._avif_manager.stop_animation(AvifLabelKey.LIGHTBOX)
+
+    def _sync_speed_controls(self) -> None:
+        if self._speed_bar is None:
+            return
+        visible = self._avif_manager.is_animation_active(AvifLabelKey.LIGHTBOX)
+        self._speed_bar.setVisible(visible)
+        if visible and self._speed_slider is not None:
+            self._avif_manager.set_animation_speed(
+                AvifLabelKey.LIGHTBOX,
+                self._speed_slider.value() / 100.0,
+            )
+        self._position_controls()
 
 
 class LightboxAvifLabel(QLabel):

@@ -7,10 +7,11 @@ from typing import TYPE_CHECKING
 
 import pillow_avif  # noqa: F401
 from PIL import Image
+from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import QApplication, QLabel
 
 from harrix_swiss_knife.apps.common import avif_manager as avif_manager_mod
-from harrix_swiss_knife.apps.common.avif_manager import AvifLabelKey, AvifManager
+from harrix_swiss_knife.apps.common.avif_manager import AvifLabelKey, AvifManager, animation_interval_ms
 from harrix_swiss_knife.apps.common.exercise_media import FITNESS_IMG_HIGH_DIR
 
 if TYPE_CHECKING:
@@ -30,6 +31,52 @@ def _qapp() -> QApplication:
 def _write_test_avif(path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     Image.new("RGB", (64, 48), (120, 80, 40)).save(path, format="AVIF")
+
+
+def test_animation_interval_ms() -> None:
+    assert animation_interval_ms(100, 1.0) == 100
+    assert animation_interval_ms(100, 2.0) == 50
+    assert animation_interval_ms(100, 0.5) == 200
+    assert animation_interval_ms(100, 0) == 1000
+    assert animation_interval_ms(0, 1.0) == 100
+
+
+def test_set_animation_speed_changes_lightbox_timer_only(tmp_path: Path) -> None:
+    assert _qapp() is not None
+    manager = AvifManager(tmp_path)
+    lightbox_timer = QTimer()
+    lightbox_timer.start(100)
+    main_timer = QTimer()
+    main_timer.start(100)
+    manager.avif_data[AvifLabelKey.LIGHTBOX]["timer"] = lightbox_timer
+    manager.avif_data[AvifLabelKey.LIGHTBOX]["duration_ms"] = 100
+    manager.avif_data[AvifLabelKey.LIGHTBOX]["frames"] = [object(), object()]
+    manager.avif_data[AvifLabelKey.MAIN]["timer"] = main_timer
+    manager.avif_data[AvifLabelKey.MAIN]["duration_ms"] = 100
+    manager.avif_data[AvifLabelKey.MAIN]["frames"] = [object(), object()]
+
+    manager.set_animation_speed(AvifLabelKey.LIGHTBOX, 2.0)
+
+    assert lightbox_timer.interval() == 50
+    assert main_timer.interval() == 100
+    assert manager.is_animation_active(AvifLabelKey.LIGHTBOX)
+    manager.set_animation_speed(AvifLabelKey.LIGHTBOX, 0.5)
+    assert lightbox_timer.interval() == 200
+    lightbox_timer.stop()
+    main_timer.stop()
+
+
+def test_load_exercise_avif_preserves_lightbox_speed(tmp_path: Path) -> None:
+    assert _qapp() is not None
+    img_dir = tmp_path / "fitness_img"
+    _write_test_avif(img_dir / "Walk.avif")
+    manager = AvifManager(img_dir)
+    manager.avif_data[AvifLabelKey.LIGHTBOX]["speed"] = 2.0
+    label = QLabel()
+    label.resize(120, 120)
+    manager.load_exercise_avif("Walk", label, AvifLabelKey.LIGHTBOX)
+    assert manager.avif_data[AvifLabelKey.LIGHTBOX]["speed"] == 2.0
+    manager.stop_animation(AvifLabelKey.LIGHTBOX)
 
 
 def test_load_exercise_avif_main_never_opens_high(
