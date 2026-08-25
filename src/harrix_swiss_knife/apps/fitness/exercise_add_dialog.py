@@ -160,7 +160,7 @@ class ExerciseAddDialog(QDialog):
         self._result = (
             name,
             self._unit_edit.text().strip(),
-            True if with_dumbbells else self._type_required_check.isChecked(),
+            with_dumbbells or self._type_required_check.isChecked(),
             self._calories_spin.value(),
             self._name_local_edit.text().strip(),
             self._favorite_check.isChecked() if self._favorite_check is not None else False,
@@ -171,14 +171,6 @@ class ExerciseAddDialog(QDialog):
 
     def _on_dumbbells_toggled(self) -> None:
         if self._dumbbells_check is not None and self._dumbbells_check.isChecked():
-            self._type_required_check.setChecked(True)
-
-    def _on_type_required_toggled(self) -> None:
-        if (
-            self._dumbbells_check is not None
-            and self._dumbbells_check.isChecked()
-            and not self._type_required_check.isChecked()
-        ):
             self._type_required_check.setChecked(True)
 
     def _on_fill_clicked(self) -> None:
@@ -193,6 +185,14 @@ class ExerciseAddDialog(QDialog):
             fill_button=self._fill_button,
             media_path=self._media_drop.get_file_path(),
         )
+
+    def _on_type_required_toggled(self) -> None:
+        if (
+            self._dumbbells_check is not None
+            and self._dumbbells_check.isChecked()
+            and not self._type_required_check.isChecked()
+        ):
+            self._type_required_check.setChecked(True)
 
     def _populate_initial(self) -> None:
         if not self._initial:

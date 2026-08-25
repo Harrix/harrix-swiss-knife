@@ -96,6 +96,7 @@ class ExerciseAddDialog(QDialog):
         form_layout.addLayout(calories_row)
 
         self._type_required_check = QCheckBox("Type is required", form_group)
+        self._type_required_check.toggled.connect(self._on_type_required_toggled)
         form_layout.addWidget(self._type_required_check)
 
         self._dumbbells_check: QCheckBox | None = None
@@ -157,7 +158,7 @@ class ExerciseAddDialog(QDialog):
         self._result = (
             name,
             self._unit_edit.text().strip(),
-            self._type_required_check.isChecked() or with_dumbbells,
+            with_dumbbells or self._type_required_check.isChecked(),
             self._calories_spin.value(),
             self._name_local_edit.text().strip(),
             self._favorite_check.isChecked() if self._favorite_check is not None else False,
@@ -166,12 +167,9 @@ class ExerciseAddDialog(QDialog):
         )
         self.accept()
 
-    def _on_dumbbells_toggled(self, checked: bool) -> None:
-        if checked:
+    def _on_dumbbells_toggled(self) -> None:
+        if self._dumbbells_check is not None and self._dumbbells_check.isChecked():
             self._type_required_check.setChecked(True)
-            self._type_required_check.setEnabled(False)
-            return
-        self._type_required_check.setEnabled(True)
 
     def _on_fill_clicked(self) -> None:
         request_exercise_fill(
@@ -185,6 +183,14 @@ class ExerciseAddDialog(QDialog):
             fill_button=self._fill_button,
             media_path=self._media_drop.get_file_path(),
         )
+
+    def _on_type_required_toggled(self) -> None:
+        if (
+            self._dumbbells_check is not None
+            and self._dumbbells_check.isChecked()
+            and not self._type_required_check.isChecked()
+        ):
+            self._type_required_check.setChecked(True)
 
     def _populate_initial(self) -> None:
         if not self._initial:
@@ -277,6 +283,7 @@ def __init__(
         form_layout.addLayout(calories_row)
 
         self._type_required_check = QCheckBox("Type is required", form_group)
+        self._type_required_check.toggled.connect(self._on_type_required_toggled)
         form_layout.addWidget(self._type_required_check)
 
         self._dumbbells_check: QCheckBox | None = None

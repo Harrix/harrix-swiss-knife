@@ -546,6 +546,8 @@ class MainWindow(
         exercise, unit, is_type_required, calories_per_unit, name_local, is_favorite, media_path, with_dumbbells = (
             result
         )
+        if with_dumbbells:
+            is_type_required = True
 
         if self.db_manager.exercise_name_exists(exercise):
             message_box.warning(self, "Error", f"Exercise '{exercise}' already exists")
@@ -3773,6 +3775,8 @@ class MainWindow(
         if exercise_id is None:
             message_box.warning(self, "Dumbbell Weight Types", f"Exercise '{exercise_name}' was not found.")
             return
+        if not self.db_manager.set_exercise_type_required(exercise_id, required=True):
+            logger.error("Failed to set is_type_required for exercise %s", exercise_id)
         template = self._get_dumbbell_weight_template_specs()
         if template is None:
             return
@@ -7607,7 +7611,11 @@ class MainWindow(
         icon = self._get_exercise_icon(exercise_name)
         for row in range(self.exercises_list_model.rowCount()):
             item = self.exercises_list_model.item(row)
-            if item is not None and item.text() == exercise_name:
+            if item is None:
+                continue
+            stored_name = item.data(Qt.ItemDataRole.UserRole)
+            display_name = parse_exercise_display_name(item.text())
+            if exercise_name in (stored_name, display_name):
                 if icon is not None:
                     item.setIcon(icon)
                 break
@@ -8206,6 +8214,8 @@ def on_add_exercise(self) -> None:
         exercise, unit, is_type_required, calories_per_unit, name_local, is_favorite, media_path, with_dumbbells = (
             result
         )
+        if with_dumbbells:
+            is_type_required = True
 
         if self.db_manager.exercise_name_exists(exercise):
             message_box.warning(self, "Error", f"Exercise '{exercise}' already exists")
