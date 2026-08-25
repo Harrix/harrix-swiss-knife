@@ -20,6 +20,7 @@ if TYPE_CHECKING:
     from PySide6.QtGui import QAction
     from PySide6.QtWidgets import QMenu
 
+LABEL_ADD_DUMBBELL_WEIGHT_TYPES = "🏋️ Add dumbbell weight types"
 LABEL_CLEAR_CELL = "🗑️ Clear cell"
 LABEL_CLEAR_FILTERS = "🧹 Clear all filters"
 LABEL_DELETE = "🗑️ Delete"

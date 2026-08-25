@@ -20,6 +20,7 @@ lang: en
   - [⚙️ Method `eventFilter`](#%EF%B8%8F-method-eventfilter)
   - [⚙️ Method `keyPressEvent`](#%EF%B8%8F-method-keypressevent)
   - [⚙️ Method `load_process_table`](#%EF%B8%8F-method-load_process_table)
+  - [⚙️ Method `on_add_dumbbell_weight_types`](#%EF%B8%8F-method-on_add_dumbbell_weight_types)
   - [⚙️ Method `on_add_exercise`](#%EF%B8%8F-method-on_add_exercise)
   - [⚙️ Method `on_add_record`](#%EF%B8%8F-method-on_add_record)
   - [⚙️ Method `on_add_type`](#%EF%B8%8F-method-on_add_type)
@@ -502,6 +503,39 @@ class MainWindow(
     def load_process_table(self) -> None:
         """Load process table data with appropriate limit based on show_all_records flag."""
         self._load_process_page(reset=True)
+
+    @requires_database()
+    def on_add_dumbbell_weight_types(self) -> None:
+        """Copy template dumbbell weights onto the selected exercise and require a type."""
+        exercise_name = self._get_selected_exercise_from_table("exercises")
+        if not exercise_name:
+            message_box.warning(self, "Dumbbell Weight Types", "Select an exercise first.")
+            return
+        if is_template_exercise(exercise_name):
+            message_box.information(
+                self,
+                "Dumbbell Weight Types",
+                "The template exercise already defines the dumbbell weights.",
+            )
+            return
+        added = self._add_dumbbell_weight_types_to_exercise(exercise_name)
+        if added is None:
+            return
+        self._mark_exercises_changed()
+        self.update_all(is_preserve_selections=True, current_exercise=exercise_name)
+        self._ensure_types_table_shows_exercise(exercise_name)
+        if added:
+            message_box.information(
+                self,
+                "Dumbbell Weight Types",
+                f"Added {added} dumbbell weight type(s) to '{exercise_name}'. Type is now required.",
+            )
+            return
+        message_box.information(
+            self,
+            "Dumbbell Weight Types",
+            f"'{exercise_name}' already has the template dumbbell weights. Type is now required.",
+        )
 
     @requires_database()
     def on_add_exercise(self) -> None:
@@ -3675,24 +3709,31 @@ class MainWindow(
             line-height: 1.2;
         """)
 
-    def _add_dumbbell_weight_types_to_exercise(self, exercise_name: str) -> None:
-        """Copy template dumbbell weights onto a newly added exercise."""
+    def _add_dumbbell_weight_types_to_exercise(self, exercise_name: str) -> int | None:
+        """Copy template dumbbell weights onto an exercise and require a type.
+
+        Returns:
+
+        - `int | None`: Number of types inserted, or `None` when the copy was aborted.
+
+        """
         if self.db_manager is None:
-            return
+            return None
         if is_template_exercise(exercise_name):
-            return
+            return 0
         exercise_id = self.db_manager.get_id("exercises", "name", exercise_name)
         if exercise_id is None:
             message_box.warning(self, "Dumbbell Weight Types", f"Exercise '{exercise_name}' was not found.")
-            return
+            return None
         if not self.db_manager.set_exercise_type_required(exercise_id, required=True):
             logger.error("Failed to set is_type_required for exercise %s", exercise_id)
         template = self._get_dumbbell_weight_template_specs()
         if template is None:
-            return
+            return None
         added = self._copy_template_weight_types(exercise_id, template, require_type=True)
         if added:
             logger.info("Added %s dumbbell weight type(s) to '%s'", added, exercise_name)
+        return added
 
     def _add_exercise_recommendations_to_label(
         self, exercise: str, exercise_type: str | None, monthly_data: list, months_count: int, exercise_unit: str
@@ -7348,6 +7389,8 @@ class MainWindow(
         context_menu = QMenu(self)
         edit_action = context_menu.addAction(LABEL_EDIT)
         favorite_action = self._favorite_menu_action(context_menu, selected_name)
+        add_weights_action = context_menu.addAction(LABEL_ADD_DUMBBELL_WEIGHT_TYPES)
+        add_weights_action.setEnabled(bool(selected_name) and not is_template_exercise(selected_name))
         lightbox_action = context_menu.addAction(LABEL_OPEN_LIGHTBOX)
         reveal_action = context_menu.addAction(LABEL_REVEAL_IN_EXPLORER)
         add_separator(context_menu)
@@ -7366,6 +7409,8 @@ class MainWindow(
             self._open_exercise_edit_dialog()
         elif action == favorite_action:
             self._toggle_exercise_favorite_by_name(selected_name)
+        elif action == add_weights_action:
+            self.on_add_dumbbell_weight_types()
         elif action == delete_action:
             self.delete_record("exercises")
         elif action == lightbox_action:
@@ -8475,6 +8520,52 @@ Load process table data with appropriate limit based on show_all_records flag.
 ```python
 def load_process_table(self) -> None:
         self._load_process_page(reset=True)
+```
+
+</details>
+
+### ⚙️ Method `on_add_dumbbell_weight_types`
+
+```python
+def on_add_dumbbell_weight_types(self) -> None
+```
+
+Copy template dumbbell weights onto the selected exercise and require a type.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def on_add_dumbbell_weight_types(self) -> None:
+        exercise_name = self._get_selected_exercise_from_table("exercises")
+        if not exercise_name:
+            message_box.warning(self, "Dumbbell Weight Types", "Select an exercise first.")
+            return
+        if is_template_exercise(exercise_name):
+            message_box.information(
+                self,
+                "Dumbbell Weight Types",
+                "The template exercise already defines the dumbbell weights.",
+            )
+            return
+        added = self._add_dumbbell_weight_types_to_exercise(exercise_name)
+        if added is None:
+            return
+        self._mark_exercises_changed()
+        self.update_all(is_preserve_selections=True, current_exercise=exercise_name)
+        self._ensure_types_table_shows_exercise(exercise_name)
+        if added:
+            message_box.information(
+                self,
+                "Dumbbell Weight Types",
+                f"Added {added} dumbbell weight type(s) to '{exercise_name}'. Type is now required.",
+            )
+            return
+        message_box.information(
+            self,
+            "Dumbbell Weight Types",
+            f"'{exercise_name}' already has the template dumbbell weights. Type is now required.",
+        )
 ```
 
 </details>
