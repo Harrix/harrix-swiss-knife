@@ -170,9 +170,9 @@ class AvifManager(QObject):
     ) -> None:
         """Load and display AVIF for the given exercise.
 
-        Lightbox loads synchronously (including animation). List hover shows the first
-        frame only. Other slots show the first frame immediately and decode remaining
-        animation frames off the UI thread.
+        Lightbox loads synchronously (including animation). Other slots, including
+        list hover, show the first frame immediately and decode remaining animation
+        frames off the UI thread.
 
         Args:
 
@@ -217,10 +217,6 @@ class AvifManager(QObject):
 
         if avif_path is None:
             label_widget.setText(f"No AVIF found for:\n{exercise_name}")
-            return
-
-        if key == AvifLabelKey.LIST_HOVER:
-            self._load_first_frame_only(avif_path, label_widget, exercise_name)
             return
 
         if key == AvifLabelKey.LIGHTBOX:
@@ -468,27 +464,6 @@ class AvifManager(QObject):
             return
 
         label_widget.setText(f"Cannot load AVIF:\n{exercise_name}")
-
-    def _load_first_frame_only(
-        self,
-        avif_path: Path,
-        label_widget: QLabel,
-        exercise_name: str,
-    ) -> None:
-        """Show a single still frame (list hover)."""
-        pixmap = self.load_avif_pixmap(avif_path)
-        if pixmap is None or pixmap.isNull():
-            label_widget.setText(f"Cannot load AVIF:\n{exercise_name}")
-            return
-        scaled = pixmap.scaled(
-            label_widget.size(),
-            Qt.AspectRatioMode.KeepAspectRatio,
-            Qt.TransformationMode.SmoothTransformation,
-        )
-        if scaled.isNull():
-            label_widget.setText(f"Cannot load AVIF:\n{exercise_name}")
-            return
-        label_widget.setPixmap(scaled)
 
     def _next_avif_frame(self, label_key: str | AvifLabelKey) -> None:
         """Show next frame in AVIF animation for specific label.

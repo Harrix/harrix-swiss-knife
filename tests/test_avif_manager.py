@@ -76,6 +76,42 @@ def test_load_exercise_avif_main_and_hover_never_open_high(
     manager.stop_animation(AvifLabelKey.LIST_HOVER)
 
 
+def test_load_exercise_avif_list_hover_uses_async_animation(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """List hover shows the first frame now and decodes the rest in a worker."""
+    assert _qapp() is not None
+    img_dir = tmp_path / "fitness_img"
+    _write_test_avif(img_dir / "Walk.avif")
+
+    called: list[str] = []
+
+    def spy_async(
+        _self: AvifManager,
+        avif_path: Path,
+        label_widget: QLabel,
+        data: dict,
+        key: AvifLabelKey,
+        exercise_name: str,
+    ) -> None:
+        called.append("async")
+        assert key is AvifLabelKey.LIST_HOVER
+        assert exercise_name == "Walk"
+        assert avif_path.name == "Walk.avif"
+        assert label_widget is not None
+        assert isinstance(data, dict)
+
+    monkeypatch.setattr(AvifManager, "_load_avif_first_frame_then_async", spy_async)
+
+    manager = AvifManager(img_dir)
+    label = QLabel()
+    label.resize(120, 120)
+    manager.load_exercise_avif("Walk", label, AvifLabelKey.LIST_HOVER)
+    assert called == ["async"]
+    manager.stop_animation(AvifLabelKey.LIST_HOVER)
+
+
 def test_load_exercise_avif_lightbox_prefers_high(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

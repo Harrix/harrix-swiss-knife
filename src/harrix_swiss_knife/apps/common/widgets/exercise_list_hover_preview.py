@@ -25,7 +25,7 @@ _CURSOR_OFFSET = QPoint(18, 18)
 
 
 class ExerciseListHoverPreview(QObject):
-    """Show an enlarged still AVIF preview after dwelling on an exercise icon."""
+    """Show an enlarged animated AVIF preview after dwelling on an exercise icon."""
 
     def __init__(
         self,
@@ -233,20 +233,13 @@ class ExerciseListHoverPreview(QObject):
         if avif_path is None:
             return
 
-        # Still first frame only — full animation decode would hitch the UI thread.
-        pixmap = manager.load_avif_pixmap(avif_path)
+        self._label.setFixedSize(self._preview_size)
+        manager.load_exercise_avif(exercise, self._label, AvifLabelKey.LIST_HOVER)
+        pixmap = self._label.pixmap()
         if pixmap is None or pixmap.isNull():
-            return
-        scaled = pixmap.scaled(
-            self._preview_size,
-            Qt.AspectRatioMode.KeepAspectRatio,
-            Qt.TransformationMode.SmoothTransformation,
-        )
-        if scaled.isNull():
+            self._stop_animation()
             return
 
-        self._label.setFixedSize(self._preview_size)
-        self._label.setPixmap(scaled)
         self._popup.adjustSize()
         self._move_popup_to_cursor()
         self._popup.show()
