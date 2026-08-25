@@ -12,6 +12,7 @@ lang: en
 ## Contents
 
 - [🔧 Function `bundled_font_paths`](#-function-bundled_font_paths)
+- [🔧 Function `bundled_font_resource_paths`](#-function-bundled_font_resource_paths)
 - [🔧 Function `install_app_fonts`](#-function-install_app_fonts)
 - [🔧 Function `load_jetbrains_mono_fonts`](#-function-load_jetbrains_mono_fonts)
 
@@ -23,7 +24,7 @@ lang: en
 def bundled_font_paths() -> list[Path]
 ```
 
-Return existing JetBrains Mono files shipped with the app.
+Return existing JetBrains Mono files shipped next to the package.
 
 <details>
 <summary>Code:</summary>
@@ -31,6 +32,24 @@ Return existing JetBrains Mono files shipped with the app.
 ```python
 def bundled_font_paths() -> list[Path]:
     return [path for name in _FONT_FILES if (path := _FONT_DIR / name).is_file()]
+```
+
+</details>
+
+## 🔧 Function `bundled_font_resource_paths`
+
+```python
+def bundled_font_resource_paths() -> list[str]
+```
+
+Return Qt resource paths for JetBrains Mono that exist in `resources_rc`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def bundled_font_resource_paths() -> list[str]:
+    return [path for name in _FONT_FILES if QFile.exists(path := f"{_QRC_FONT_PREFIX}/{name}")]
 ```
 
 </details>
@@ -71,15 +90,13 @@ Load bundled TTF files into `QFontDatabase`. Return whether Regular loaded.
 
 ```python
 def load_jetbrains_mono_fonts() -> bool:
-    families = QFontDatabase.applicationFontFamilies
     already = APP_FONT_FAMILY in QFontDatabase.families()
     loaded_regular = already
-    for path in bundled_font_paths():
-        font_id = QFontDatabase.addApplicationFont(str(path))
-        if font_id == -1:
-            continue
-        names = families(font_id)
-        if path.name == _FONT_FILES[0] and APP_FONT_FAMILY in names:
+    for name in _FONT_FILES:
+        qrc_path = f"{_QRC_FONT_PREFIX}/{name}"
+        disk_path = _FONT_DIR / name
+        loaded = _add_font(qrc_path) or _add_font(str(disk_path))
+        if name == _FONT_FILES[0] and loaded:
             loaded_regular = True
     return loaded_regular
 ```

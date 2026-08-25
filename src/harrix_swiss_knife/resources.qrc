@@ -3,6 +3,11 @@
     <qresource prefix="/">
         <file>assets/logo.svg</file>
         <file>assets/py.svg</file>
+        <file>assets/fonts/JetBrainsMono-Regular.ttf</file>
+        <file>assets/fonts/JetBrainsMono-Medium.ttf</file>
+        <file>assets/fonts/JetBrainsMono-Bold.ttf</file>
+        <file>assets/fonts/JetBrainsMono-Italic.ttf</file>
+        <file>assets/fonts/JetBrainsMono-MediumItalic.ttf</file>
         <file>assets/sounds/habit_done.wav</file>
         <file>assets/sounds/habit_not_done.wav</file>
     </qresource>

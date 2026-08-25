@@ -49,6 +49,9 @@ packages = ["src/harrix_swiss_knife"]
 "src/harrix_swiss_knife/assets/*" = "harrix_swiss_knife/assets"
 "src/harrix_swiss_knife/assets/fonts/*" = "harrix_swiss_knife/assets/fonts"
 
+[tool.hatch.build.targets.wheel.force-include]
+"src/harrix_swiss_knife/assets/fonts" = "harrix_swiss_knife/assets/fonts"
+
 [dependency-groups]
 dev = [
     "pytest>=8.3.4",

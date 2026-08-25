@@ -4,11 +4,15 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from PySide6.QtCore import QFile
 from PySide6.QtGui import QFont, QFontDatabase
 from PySide6.QtWidgets import QApplication
 
+from harrix_swiss_knife import resources_rc  # noqa: F401
+
 APP_FONT_FAMILY = "JetBrains Mono"
 _FONT_DIR = Path(__file__).resolve().parent / "assets" / "fonts"
+_QRC_FONT_PREFIX = ":/assets/fonts"
 _FONT_FILES = (
     "JetBrainsMono-Regular.ttf",
     "JetBrainsMono-Medium.ttf",
@@ -20,8 +24,13 @@ _PROP = "_hskAppFontInstalled"
 
 
 def bundled_font_paths() -> list[Path]:
-    """Return existing JetBrains Mono files shipped with the app."""
+    """Return existing JetBrains Mono files shipped next to the package."""
     return [path for name in _FONT_FILES if (path := _FONT_DIR / name).is_file()]
+
+
+def bundled_font_resource_paths() -> list[str]:
+    """Return Qt resource paths for JetBrains Mono that exist in `resources_rc`."""
+    return [path for name in _FONT_FILES if QFile.exists(path := f"{_QRC_FONT_PREFIX}/{name}")]
 
 
 def install_app_fonts(app: QApplication) -> None:
@@ -36,17 +45,27 @@ def install_app_fonts(app: QApplication) -> None:
 
 def load_jetbrains_mono_fonts() -> bool:
     """Load bundled TTF files into `QFontDatabase`. Return whether Regular loaded."""
-    families = QFontDatabase.applicationFontFamilies
     already = APP_FONT_FAMILY in QFontDatabase.families()
     loaded_regular = already
-    for path in bundled_font_paths():
-        font_id = QFontDatabase.addApplicationFont(str(path))
-        if font_id == -1:
-            continue
-        names = families(font_id)
-        if path.name == _FONT_FILES[0] and APP_FONT_FAMILY in names:
+    for name in _FONT_FILES:
+        qrc_path = f"{_QRC_FONT_PREFIX}/{name}"
+        disk_path = _FONT_DIR / name
+        loaded = _add_font(qrc_path) or _add_font(str(disk_path))
+        if name == _FONT_FILES[0] and loaded:
             loaded_regular = True
     return loaded_regular
+
+
+def _add_font(path: str) -> bool:
+    if path.startswith(":/"):
+        if not QFile.exists(path):
+            return False
+    elif not Path(path).is_file():
+        return False
+    font_id = QFontDatabase.addApplicationFont(path)
+    if font_id == -1:
+        return False
+    return APP_FONT_FAMILY in QFontDatabase.applicationFontFamilies(font_id)
 
 
 def _font_with_app_family(source: QFont) -> QFont:
