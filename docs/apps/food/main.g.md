@@ -1261,6 +1261,17 @@ class MainWindow(
         # Set second column (Calories) to stretch to remaining space
         self.tableView_kcal_per_day.horizontalHeader().setStretchLastSection(True)
 
+    def _after_table_data_changed(
+        self,
+        table_name: str,
+        top_left: QModelIndex,
+        bottom_right: QModelIndex,
+    ) -> None:
+        """Recalculate food-log day totals in the current model only."""
+        if table_name != "food_log":
+            return
+        self._refresh_food_log_calories_after_edit(top_left, bottom_right)
+
     def _append_food_log_rows_to_model(self, model: QStandardItemModel, transformed_data: list[list]) -> None:
         """Append transformed food log rows to an existing source model."""
         start_row_idx: int = model.rowCount()
@@ -2679,6 +2690,39 @@ class MainWindow(
         """Reconnect the context menu signal after deletion."""
         self.tableView_food_log.customContextMenuRequested.connect(self._show_food_log_context_menu)
 
+    def _refresh_food_log_calories_after_edit(
+        self,
+        top_left: QModelIndex,
+        bottom_right: QModelIndex,
+    ) -> None:
+        """Update calculated and daily totals in the open food-log model.
+
+        Reloads neither tables nor charts. `label_food_today` is refreshed only
+        when the edit touches today's date.
+
+        """
+        proxy_model = self.models.get("food_log")
+        if proxy_model is None:
+            return
+        source_model = proxy_model.sourceModel()
+        if not isinstance(source_model, QStandardItemModel):
+            return
+
+        today = QDate.currentDate().toString("yyyy-MM-dd")
+        date_column_changed = top_left.column() <= FOOD_LOG_COL_DATE <= bottom_right.column()
+        edited_today = False
+        for row in range(top_left.row(), bottom_right.row() + 1):
+            date_item = source_model.item(row, FOOD_LOG_COL_DATE)
+            if date_item is not None and date_item.text() == today:
+                edited_today = True
+                break
+
+        refresh_food_log_calorie_columns(source_model)
+        self.tableView_food_log.viewport().update()
+
+        if date_column_changed or edited_today:
+            self.update_food_calories_today()
+
     def _report_food_translate_completion(self, *, prefix: str = "") -> None:
         """Tell the user how many rows still lack name_en and offer another AI batch."""
         if self.db_manager is None:
@@ -3374,16 +3418,11 @@ class MainWindow(
         date_to_total_calories: dict[str, float] = {}
         for row in rows:
             date_str = row[1]
-            portion_calories = row[3]
-            calories_per_100g = row[4]
-            weight = row[2]
-
-            calculated_calories = 0.0
-            if portion_calories and portion_calories > 0:
-                calculated_calories = float(portion_calories)
-            elif calories_per_100g and calories_per_100g > 0 and weight and weight > 0:
-                calculated_calories = (float(calories_per_100g) * float(weight)) / 100
-
+            calculated_calories = calculate_food_log_calories(
+                parse_food_log_number(row[2]),
+                parse_food_log_number(row[4]),
+                parse_food_log_number(row[3]),
+            )
             if date_str:
                 date_to_total_calories[date_str] = date_to_total_calories.get(date_str, 0.0) + calculated_calories
 
@@ -3403,11 +3442,11 @@ class MainWindow(
             else:
                 calories_per_100g_display = calories_per_100g if calories_per_100g is not None else ""
 
-            calculated_calories = 0.0
-            if portion_calories and portion_calories > 0:
-                calculated_calories = float(portion_calories)
-            elif calories_per_100g and calories_per_100g > 0 and weight and weight > 0:
-                calculated_calories = (float(calories_per_100g) * float(weight)) / 100
+            calculated_calories = calculate_food_log_calories(
+                parse_food_log_number(weight),
+                parse_food_log_number(calories_per_100g),
+                parse_food_log_number(portion_calories),
+            )
 
             is_first_of_day = date_str not in dates_with_totals
             if is_first_of_day:

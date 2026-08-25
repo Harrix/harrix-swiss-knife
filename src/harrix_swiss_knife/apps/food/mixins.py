@@ -45,7 +45,6 @@ class AutoSaveOperations(AutoSaveMixin):
     _update_comboboxes: Callable[[], None]
     update_filter_comboboxes: Callable[[], None]
     _is_valid_date: Callable[[str], bool]
-    update_food_calories_today: Callable[[], None]
 
     def _get_save_handlers(self) -> dict[str, Callable[..., None]]:
         return {"food_log": self._save_food_log_data}
@@ -132,9 +131,6 @@ class AutoSaveOperations(AutoSaveMixin):
             is_drink=is_drink,
         ):
             message_box.warning(None, "Database Error", "Failed to save food log record")
-        else:
-            # Update related UI elements
-            self.update_food_calories_today()
 
 
 class ChartOperations(ChartOperationsBase):
