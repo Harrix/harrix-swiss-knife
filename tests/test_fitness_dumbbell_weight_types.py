@@ -5,7 +5,10 @@ from __future__ import annotations
 from harrix_swiss_knife.apps.fitness.dumbbell_weight_types import (
     DUMBBELL_WEIGHT_TEMPLATE_EXERCISE,
     ExerciseWeightSnapshot,
+    WeightDraft,
     WeightTypeSpec,
+    blocked_weight_deletes,
+    build_weight_edit_plan,
     exercises_needing_weight_sync,
     is_dumbbell_exercise,
     is_template_exercise,
@@ -53,6 +56,40 @@ def test_is_template_exercise_ignores_case_and_spaces() -> None:
     """The template exercise is recognized regardless of case or padding."""
     assert is_template_exercise(f"  {DUMBBELL_WEIGHT_TEMPLATE_EXERCISE.upper()}  ")
     assert not is_template_exercise("Dumbbell fly")
+
+
+def test_blocked_weight_deletes_matches_used_names_case_insensitively() -> None:
+    """A weight used in any set cannot be removed from the template list."""
+    assert blocked_weight_deletes(["9 kg", "14 kg"], ["9 KG"]) == ["9 kg"]
+    assert blocked_weight_deletes(["1 kg"], ["14 kg"]) == []
+
+
+def test_build_weight_edit_plan_adds_renames_and_deletes() -> None:
+    """The editor plan keeps unique names and records add, rename, and delete."""
+    plan = build_weight_edit_plan(
+        [
+            WeightDraft("1 kg", "1 kg"),
+            WeightDraft("9 kg", "10 kg"),
+            WeightDraft(None, "16 kg"),
+        ],
+        ["1 kg", "9 kg", "14 kg"],
+    )
+    assert not isinstance(plan, str)
+    assert [spec.name for spec in plan.to_add] == ["16 kg"]
+    assert plan.to_rename == (("9 kg", "10 kg"),)
+    assert plan.to_delete == ("14 kg",)
+
+
+def test_build_weight_edit_plan_rejects_empty_and_duplicate_names() -> None:
+    """Blank or duplicate weight names are rejected before saving."""
+    assert build_weight_edit_plan([WeightDraft(None, "  ")], []) == "Weight name cannot be empty."
+    assert (
+        build_weight_edit_plan(
+            [WeightDraft("1 kg", "9 kg"), WeightDraft(None, "9 KG")],
+            ["1 kg"],
+        )
+        == "Weight names must be unique."
+    )
 
 
 def test_exercises_needing_weight_sync_skips_template_and_unrelated() -> None:

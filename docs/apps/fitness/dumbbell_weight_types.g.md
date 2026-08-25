@@ -12,7 +12,11 @@ lang: en
 ## Contents
 
 - [🏛️ Class `ExerciseWeightSnapshot`](#%EF%B8%8F-class-exerciseweightsnapshot)
+- [🏛️ Class `WeightDraft`](#%EF%B8%8F-class-weightdraft)
+- [🏛️ Class `WeightEditPlan`](#%EF%B8%8F-class-weighteditplan)
 - [🏛️ Class `WeightTypeSpec`](#%EF%B8%8F-class-weighttypespec)
+- [🔧 Function `blocked_weight_deletes`](#-function-blocked_weight_deletes)
+- [🔧 Function `build_weight_edit_plan`](#-function-build_weight_edit_plan)
 - [🔧 Function `exercises_needing_weight_sync`](#-function-exercises_needing_weight_sync)
 - [🔧 Function `folded_type_name`](#-function-folded_type_name)
 - [🔧 Function `is_dumbbell_exercise`](#-function-is_dumbbell_exercise)
@@ -43,6 +47,49 @@ class ExerciseWeightSnapshot:
 
 </details>
 
+## 🏛️ Class `WeightDraft`
+
+```python
+class WeightDraft
+```
+
+One row in the dumbbell-weight editor.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class WeightDraft:
+
+    original_name: str | None
+    name: str
+    calories_modifier: float = 1.0
+    name_local: str = ""
+```
+
+</details>
+
+## 🏛️ Class `WeightEditPlan`
+
+```python
+class WeightEditPlan
+```
+
+Adds, renames, and deletes produced by the dumbbell-weight editor.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class WeightEditPlan:
+
+    to_add: tuple[WeightTypeSpec, ...]
+    to_delete: tuple[str, ...]
+    to_rename: tuple[tuple[str, str], ...]
+```
+
+</details>
+
 ## 🏛️ Class `WeightTypeSpec`
 
 ```python
@@ -60,6 +107,83 @@ class WeightTypeSpec:
     name: str
     calories_modifier: float = 1.0
     name_local: str = ""
+```
+
+</details>
+
+## 🔧 Function `blocked_weight_deletes`
+
+```python
+def blocked_weight_deletes(to_delete: Iterable[str], used_names: Iterable[str]) -> list[str]
+```
+
+Return delete names that appear in any set record.
+
+Args:
+
+- `to_delete` (`Iterable[str]`): Weight names the user wants to remove.
+- `used_names` (`Iterable[str]`): Weight names that already have process rows.
+
+Returns:
+
+- `list[str]`: Names that must stay because they are used in sets.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def blocked_weight_deletes(to_delete: Iterable[str], used_names: Iterable[str]) -> list[str]:
+    used = {folded_type_name(name) for name in used_names if str(name).strip()}
+    return [name for name in to_delete if folded_type_name(name) in used]
+```
+
+</details>
+
+## 🔧 Function `build_weight_edit_plan`
+
+```python
+def build_weight_edit_plan(drafts: Sequence[WeightDraft], original_names: Sequence[str]) -> WeightEditPlan | str
+```
+
+Build add/rename/delete operations from the editor rows.
+
+Args:
+
+- [`drafts`](dumbbell_weights_dialog.g.md#%EF%B8%8F-method-drafts) (`Sequence[WeightDraft]`): Current editor rows.
+- `original_names` (`Sequence[str]`): Template names before editing.
+
+Returns:
+
+- `WeightEditPlan | str`: The plan, or an error message.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def build_weight_edit_plan(
+    drafts: Sequence[WeightDraft],
+    original_names: Sequence[str],
+) -> WeightEditPlan | str:
+    names = [draft.name.strip() for draft in drafts]
+    if any(not name for name in names):
+        return "Weight name cannot be empty."
+    folded = [folded_type_name(name) for name in names]
+    if len(folded) != len(set(folded)):
+        return "Weight names must be unique."
+
+    to_add = tuple(
+        WeightTypeSpec(draft.name.strip(), draft.calories_modifier, draft.name_local)
+        for draft in drafts
+        if draft.original_name is None
+    )
+    to_rename = tuple(
+        (draft.original_name, draft.name.strip())
+        for draft in drafts
+        if draft.original_name is not None and folded_type_name(draft.original_name) != folded_type_name(draft.name)
+    )
+    kept = {folded_type_name(draft.original_name) for draft in drafts if draft.original_name}
+    to_delete = tuple(name for name in original_names if folded_type_name(name) not in kept)
+    return WeightEditPlan(to_add=to_add, to_delete=to_delete, to_rename=to_rename)
 ```
 
 </details>

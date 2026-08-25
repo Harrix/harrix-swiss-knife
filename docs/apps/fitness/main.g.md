@@ -20,7 +20,6 @@ lang: en
   - [⚙️ Method `eventFilter`](#%EF%B8%8F-method-eventfilter)
   - [⚙️ Method `keyPressEvent`](#%EF%B8%8F-method-keypressevent)
   - [⚙️ Method `load_process_table`](#%EF%B8%8F-method-load_process_table)
-  - [⚙️ Method `on_add_dumbbell_weight_types`](#%EF%B8%8F-method-on_add_dumbbell_weight_types)
   - [⚙️ Method `on_add_exercise`](#%EF%B8%8F-method-on_add_exercise)
   - [⚙️ Method `on_add_record`](#%EF%B8%8F-method-on_add_record)
   - [⚙️ Method `on_add_type`](#%EF%B8%8F-method-on_add_type)
@@ -30,6 +29,7 @@ lang: en
   - [⚙️ Method `on_check_steps`](#%EF%B8%8F-method-on_check_steps)
   - [⚙️ Method `on_compare_last_months`](#%EF%B8%8F-method-on_compare_last_months)
   - [⚙️ Method `on_compare_same_months`](#%EF%B8%8F-method-on_compare_same_months)
+  - [⚙️ Method `on_edit_dumbbell_weights`](#%EF%B8%8F-method-on_edit_dumbbell_weights)
   - [⚙️ Method `on_exercise_selection_changed_list`](#%EF%B8%8F-method-on_exercise_selection_changed_list)
   - [⚙️ Method `on_exercise_type_changed`](#%EF%B8%8F-method-on_exercise_type_changed)
   - [⚙️ Method `on_export_csv`](#%EF%B8%8F-method-on_export_csv)
@@ -500,47 +500,6 @@ class MainWindow(
     def load_process_table(self) -> None:
         """Load process table data with appropriate limit based on show_all_records flag."""
         self._load_process_page(reset=True)
-
-    @requires_database()
-    def on_add_dumbbell_weight_types(self) -> None:
-        """Copy template dumbbell weights onto the selected exercise and require types."""
-        if self.db_manager is None:
-            logger.error("❌ Database manager is not initialized")
-            return
-
-        record_id = self._get_selected_row_id("exercises")
-        if record_id is None:
-            message_box.warning(self, "Error", "Select an exercise")
-            return
-
-        exercise_name = self.db_manager.get_exercise_name_by_id(record_id) or ""
-        if is_template_exercise(exercise_name):
-            message_box.information(
-                self,
-                "Dumbbell Weight Types",
-                f"'{DUMBBELL_WEIGHT_TEMPLATE_EXERCISE}' is the template exercise.",
-            )
-            return
-
-        template = self._get_dumbbell_weight_template_specs()
-        if template is None:
-            return
-
-        added = self._copy_template_weight_types(record_id, template, require_type=True)
-        self._mark_exercises_changed()
-        self.update_all()
-        if added:
-            message_box.information(
-                self,
-                "Dumbbell Weight Types",
-                f"Added {added} dumbbell weight type(s) to '{exercise_name}' and marked types as required.",
-            )
-            return
-        message_box.information(
-            self,
-            "Dumbbell Weight Types",
-            f"'{exercise_name}' already has the template dumbbell weights. Types are now required.",
-        )
 
     @requires_database()
     def on_add_exercise(self) -> None:
@@ -1428,6 +1387,56 @@ class MainWindow(
 
         # Add same months recommendations to label_chart_info
         self._add_same_months_recommendations_to_label(exercise, exercise_type, exercise_unit, yearly_data, years_count)
+
+    @requires_database()
+    def on_edit_dumbbell_weights(self) -> None:
+        """Edit the template dumbbell weights, then sync them to matching exercises."""
+        if self.db_manager is None:
+            logger.error("❌ Database manager is not initialized")
+            return
+        template_id = self._get_dumbbell_template_exercise_id()
+        if template_id is None:
+            return
+        specs = self.db_manager.get_exercise_weight_type_specs(template_id)
+        used_names = {spec.name for spec in specs if self.db_manager.count_process_records_for_type_name(spec.name) > 0}
+        drafts = [
+            WeightDraft(
+                original_name=spec.name,
+                name=spec.name,
+                calories_modifier=spec.calories_modifier,
+                name_local=spec.name_local,
+            )
+            for spec in specs
+        ]
+        dialog = DumbbellWeightsDialog(self, drafts, used_names=used_names)
+        if dialog.exec() != dialog.DialogCode.Accepted:
+            return
+        plan = build_weight_edit_plan(dialog.drafts(), [spec.name for spec in specs])
+        if isinstance(plan, str):
+            message_box.warning(self, "Edit dumbbell weights", plan)
+            return
+        blocked = blocked_weight_deletes(plan.to_delete, used_names)
+        if blocked:
+            message_box.warning(
+                self,
+                "Edit dumbbell weights",
+                "These weights are used in sets and cannot be deleted: " + ", ".join(blocked),
+            )
+            return
+        if not self._apply_dumbbell_weight_edit_plan(plan, template_id):
+            message_box.warning(self, "Edit dumbbell weights", "Failed to save dumbbell weights.")
+            return
+        self._mark_exercises_changed()
+        added = self._sync_dumbbell_weight_types(notify=False)
+        self.update_all()
+        if added:
+            message_box.information(
+                self,
+                "Edit dumbbell weights",
+                f"Saved. Added {added} dumbbell weight type(s) to matching exercises.",
+            )
+            return
+        message_box.information(self, "Edit dumbbell weights", "Dumbbell weights saved.")
 
     def on_exercise_selection_changed_list(self) -> None:
         """Handle exercise selection change in the list view."""
@@ -2523,54 +2532,10 @@ class MainWindow(
     @requires_database()
     def on_sync_dumbbell_weight_types(self) -> None:
         """Add new template dumbbell weights to exercises that already use those types."""
-        if self.db_manager is None:
-            logger.error("❌ Database manager is not initialized")
-            return
-
-        template = self._get_dumbbell_weight_template_specs()
-        if template is None:
-            return
-
-        snapshots: list[ExerciseWeightSnapshot] = []
-        for row in self.db_manager.get_all_exercises():
-            exercise_id = int(row[0])
-            name = str(row[1] or "").strip()
-            specs = self.db_manager.get_exercise_weight_type_specs(exercise_id)
-            snapshots.append(
-                ExerciseWeightSnapshot(
-                    exercise_id=exercise_id,
-                    name=name,
-                    type_names=tuple(spec.name for spec in specs),
-                )
-            )
-
-        targets = exercises_needing_weight_sync(snapshots, template)
-        if not targets:
-            message_box.information(
-                self,
-                "Dumbbell Weight Types",
-                "Matching exercises already have the template dumbbell weights.",
-            )
-            return
-
-        added_total = 0
-        updated_exercises = 0
-        for exercise, missing in targets:
-            added = self._copy_template_weight_types(exercise.exercise_id, missing, require_type=False)
-            if added:
-                added_total += added
-                updated_exercises += 1
-
-        if added_total:
+        added = self._sync_dumbbell_weight_types()
+        if added:
             self._mark_exercises_changed()
             self.update_all()
-            message_box.information(
-                self,
-                "Dumbbell Weight Types",
-                f"Added {added_total} dumbbell weight type(s) to {updated_exercises} exercise(s).",
-            )
-            return
-        message_box.warning(self, "Dumbbell Weight Types", "Failed to add dumbbell weight types.")
 
     def on_tab_changed(self, index: int) -> None:
         """React to `QTabWidget` index change.
@@ -4332,6 +4297,28 @@ class MainWindow(
             model.appendRow(items)
             model.setVerticalHeaderItem(row_idx, QStandardItem(str(row_id)))
 
+    def _apply_dumbbell_weight_edit_plan(self, plan: WeightEditPlan, template_id: int) -> bool:
+        """Apply add/rename/delete operations from the dumbbell-weight editor."""
+        if self.db_manager is None:
+            return False
+        for old_name, new_name in plan.to_rename:
+            if not self.db_manager.rename_types_by_name(old_name, new_name):
+                return False
+        for name in plan.to_delete:
+            if self.db_manager.count_process_records_for_type_name(name) > 0:
+                return False
+            if not self.db_manager.delete_types_by_name(name):
+                return False
+        for spec in plan.to_add:
+            if not self.db_manager.add_exercise_type(
+                template_id,
+                spec.name,
+                spec.calories_modifier,
+                name_local=spec.name_local,
+            ):
+                return False
+        return True
+
     def _apply_sets_splitter_sizes(self) -> None:
         """Restore Sets-tab splitter widths so the exercise list is not squeezed."""
         if getattr(self, "_is_closing", False) or not hasattr(self, "splitter"):
@@ -5228,6 +5215,19 @@ class MainWindow(
             return parse_exercise_display_name(item.text()) or None
         return None
 
+    def _get_dumbbell_template_exercise_id(self) -> int | None:
+        """Return the template exercise ID, or `None` when it is missing."""
+        if self.db_manager is None:
+            return None
+        template_id = self.db_manager.get_id("exercises", "name", DUMBBELL_WEIGHT_TEMPLATE_EXERCISE)
+        if template_id is None:
+            message_box.warning(
+                self,
+                "Dumbbell Weight Types",
+                f"Template exercise '{DUMBBELL_WEIGHT_TEMPLATE_EXERCISE}' was not found.",
+            )
+        return template_id
+
     def _get_dumbbell_weight_template_specs(self) -> list[WeightTypeSpec] | None:
         """Load weight types from the dumbbell template exercise.
 
@@ -5238,13 +5238,8 @@ class MainWindow(
         """
         if self.db_manager is None:
             return None
-        template_id = self.db_manager.get_id("exercises", "name", DUMBBELL_WEIGHT_TEMPLATE_EXERCISE)
+        template_id = self._get_dumbbell_template_exercise_id()
         if template_id is None:
-            message_box.warning(
-                self,
-                "Dumbbell Weight Types",
-                f"Template exercise '{DUMBBELL_WEIGHT_TEMPLATE_EXERCISE}' was not found.",
-            )
             return None
         specs = self.db_manager.get_exercise_weight_type_specs(template_id)
         if not specs:
@@ -7039,16 +7034,21 @@ class MainWindow(
         self._adjust_process_table_columns()
 
     def _setup_sync_dumbbell_weight_types_action(self) -> None:
-        """Add Commands → Sync dumbbell weight types after the types-table actions."""
+        """Add Commands → Sync and Edit dumbbell weights after the types-table actions."""
         menu = getattr(self, "menuCommanda", None)
         if menu is None:
             return
-        action = QAction("🏋️ Sync dumbbell weight types", self)
-        action.setObjectName("actionSyncDumbbellWeightTypes")
-        action.triggered.connect(self.on_sync_dumbbell_weight_types)
+        sync_action = QAction("🏋️ Sync dumbbell weight types", self)
+        sync_action.setObjectName("actionSyncDumbbellWeightTypes")
+        sync_action.triggered.connect(self.on_sync_dumbbell_weight_types)
+        edit_action = QAction("🏋️ Edit dumbbell weights", self)
+        edit_action.setObjectName("actionEditDumbbellWeights")
+        edit_action.triggered.connect(self.on_edit_dumbbell_weights)
         menu.addSeparator()
-        menu.addAction(action)
-        set_action_text_with_emoji_icon(action, action.text())
+        menu.addAction(sync_action)
+        menu.addAction(edit_action)
+        set_action_text_with_emoji_icon(sync_action, sync_action.text())
+        set_action_text_with_emoji_icon(edit_action, edit_action.text())
 
     def _setup_ui(self) -> None:
         """Set up additional UI elements after basic initialization."""
@@ -7249,8 +7249,6 @@ class MainWindow(
         favorite_action = self._favorite_menu_action(context_menu, selected_name)
         lightbox_action = context_menu.addAction(LABEL_OPEN_LIGHTBOX)
         reveal_action = context_menu.addAction(LABEL_REVEAL_IN_EXPLORER)
-        add_weights_action = context_menu.addAction("🏋️ Add dumbbell weight types")
-        add_weights_action.setEnabled(record_id is not None and not is_template_exercise(selected_name))
         add_separator(context_menu)
         context_menu.addAction(self.actionAdd_Exercise)
         context_menu.addAction(self.actionRefresh_Exercises_Table)
@@ -7277,8 +7275,6 @@ class MainWindow(
             self._export_named_table("exercises", prefer="csv")
         elif action == export_excel_action:
             self._export_named_table("exercises", prefer="xlsx")
-        elif action == add_weights_action:
-            self.on_add_dumbbell_weight_types()
 
     def _show_monthly_goal_congratulations(self, exercise: str, type_name: str, current_value: float) -> None:
         """Show congratulations message for achieving monthly goal.
@@ -7499,6 +7495,68 @@ class MainWindow(
         self._exercise_media_worker.save_failed.connect(self._on_exercise_media_save_failed)
         self._exercise_media_worker.finished.connect(self._cleanup_exercise_media_worker)
         self._exercise_media_worker.start()
+
+    def _sync_dumbbell_weight_types(self, *, notify: bool = True) -> int:
+        """Copy missing template dumbbell weights onto matching exercises.
+
+        Args:
+
+        - `notify` (`bool`): Whether to show the unchanged / failure messages.
+          Defaults to `True`.
+
+        Returns:
+
+        - `int`: Number of types inserted across all matching exercises.
+
+        """
+        if self.db_manager is None:
+            logger.error("❌ Database manager is not initialized")
+            return 0
+
+        template = self._get_dumbbell_weight_template_specs()
+        if template is None:
+            return 0
+
+        snapshots: list[ExerciseWeightSnapshot] = []
+        for row in self.db_manager.get_all_exercises():
+            exercise_id = int(row[0])
+            name = str(row[1] or "").strip()
+            specs = self.db_manager.get_exercise_weight_type_specs(exercise_id)
+            snapshots.append(
+                ExerciseWeightSnapshot(
+                    exercise_id=exercise_id,
+                    name=name,
+                    type_names=tuple(spec.name for spec in specs),
+                )
+            )
+
+        targets = exercises_needing_weight_sync(snapshots, template)
+        if not targets:
+            if notify:
+                message_box.information(
+                    self,
+                    "Dumbbell Weight Types",
+                    "Matching exercises already have the template dumbbell weights.",
+                )
+            return 0
+
+        added_total = 0
+        updated_exercises = 0
+        for exercise, missing in targets:
+            added = self._copy_template_weight_types(exercise.exercise_id, missing, require_type=False)
+            if added:
+                added_total += added
+                updated_exercises += 1
+
+        if added_total and notify:
+            message_box.information(
+                self,
+                "Dumbbell Weight Types",
+                f"Added {added_total} dumbbell weight type(s) to {updated_exercises} exercise(s).",
+            )
+        elif not added_total and notify:
+            message_box.warning(self, "Dumbbell Weight Types", "Failed to add dumbbell weight types.")
+        return added_total
 
     def _sync_exercise_selection(self, exercise_name: str, *, source: str) -> None:
         """Synchronize exercise selection across widgets.
@@ -8270,60 +8328,6 @@ Load process table data with appropriate limit based on show_all_records flag.
 ```python
 def load_process_table(self) -> None:
         self._load_process_page(reset=True)
-```
-
-</details>
-
-### ⚙️ Method `on_add_dumbbell_weight_types`
-
-```python
-def on_add_dumbbell_weight_types(self) -> None
-```
-
-Copy template dumbbell weights onto the selected exercise and require types.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def on_add_dumbbell_weight_types(self) -> None:
-        if self.db_manager is None:
-            logger.error("❌ Database manager is not initialized")
-            return
-
-        record_id = self._get_selected_row_id("exercises")
-        if record_id is None:
-            message_box.warning(self, "Error", "Select an exercise")
-            return
-
-        exercise_name = self.db_manager.get_exercise_name_by_id(record_id) or ""
-        if is_template_exercise(exercise_name):
-            message_box.information(
-                self,
-                "Dumbbell Weight Types",
-                f"'{DUMBBELL_WEIGHT_TEMPLATE_EXERCISE}' is the template exercise.",
-            )
-            return
-
-        template = self._get_dumbbell_weight_template_specs()
-        if template is None:
-            return
-
-        added = self._copy_template_weight_types(record_id, template, require_type=True)
-        self._mark_exercises_changed()
-        self.update_all()
-        if added:
-            message_box.information(
-                self,
-                "Dumbbell Weight Types",
-                f"Added {added} dumbbell weight type(s) to '{exercise_name}' and marked types as required.",
-            )
-            return
-        message_box.information(
-            self,
-            "Dumbbell Weight Types",
-            f"'{exercise_name}' already has the template dumbbell weights. Types are now required.",
-        )
 ```
 
 </details>
@@ -9320,6 +9324,69 @@ def on_compare_same_months(self) -> None:
 
         # Add same months recommendations to label_chart_info
         self._add_same_months_recommendations_to_label(exercise, exercise_type, exercise_unit, yearly_data, years_count)
+```
+
+</details>
+
+### ⚙️ Method `on_edit_dumbbell_weights`
+
+```python
+def on_edit_dumbbell_weights(self) -> None
+```
+
+Edit the template dumbbell weights, then sync them to matching exercises.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def on_edit_dumbbell_weights(self) -> None:
+        if self.db_manager is None:
+            logger.error("❌ Database manager is not initialized")
+            return
+        template_id = self._get_dumbbell_template_exercise_id()
+        if template_id is None:
+            return
+        specs = self.db_manager.get_exercise_weight_type_specs(template_id)
+        used_names = {spec.name for spec in specs if self.db_manager.count_process_records_for_type_name(spec.name) > 0}
+        drafts = [
+            WeightDraft(
+                original_name=spec.name,
+                name=spec.name,
+                calories_modifier=spec.calories_modifier,
+                name_local=spec.name_local,
+            )
+            for spec in specs
+        ]
+        dialog = DumbbellWeightsDialog(self, drafts, used_names=used_names)
+        if dialog.exec() != dialog.DialogCode.Accepted:
+            return
+        plan = build_weight_edit_plan(dialog.drafts(), [spec.name for spec in specs])
+        if isinstance(plan, str):
+            message_box.warning(self, "Edit dumbbell weights", plan)
+            return
+        blocked = blocked_weight_deletes(plan.to_delete, used_names)
+        if blocked:
+            message_box.warning(
+                self,
+                "Edit dumbbell weights",
+                "These weights are used in sets and cannot be deleted: " + ", ".join(blocked),
+            )
+            return
+        if not self._apply_dumbbell_weight_edit_plan(plan, template_id):
+            message_box.warning(self, "Edit dumbbell weights", "Failed to save dumbbell weights.")
+            return
+        self._mark_exercises_changed()
+        added = self._sync_dumbbell_weight_types(notify=False)
+        self.update_all()
+        if added:
+            message_box.information(
+                self,
+                "Edit dumbbell weights",
+                f"Saved. Added {added} dumbbell weight type(s) to matching exercises.",
+            )
+            return
+        message_box.information(self, "Edit dumbbell weights", "Dumbbell weights saved.")
 ```
 
 </details>
@@ -10668,54 +10735,10 @@ Add new template dumbbell weights to exercises that already use those types.
 
 ```python
 def on_sync_dumbbell_weight_types(self) -> None:
-        if self.db_manager is None:
-            logger.error("❌ Database manager is not initialized")
-            return
-
-        template = self._get_dumbbell_weight_template_specs()
-        if template is None:
-            return
-
-        snapshots: list[ExerciseWeightSnapshot] = []
-        for row in self.db_manager.get_all_exercises():
-            exercise_id = int(row[0])
-            name = str(row[1] or "").strip()
-            specs = self.db_manager.get_exercise_weight_type_specs(exercise_id)
-            snapshots.append(
-                ExerciseWeightSnapshot(
-                    exercise_id=exercise_id,
-                    name=name,
-                    type_names=tuple(spec.name for spec in specs),
-                )
-            )
-
-        targets = exercises_needing_weight_sync(snapshots, template)
-        if not targets:
-            message_box.information(
-                self,
-                "Dumbbell Weight Types",
-                "Matching exercises already have the template dumbbell weights.",
-            )
-            return
-
-        added_total = 0
-        updated_exercises = 0
-        for exercise, missing in targets:
-            added = self._copy_template_weight_types(exercise.exercise_id, missing, require_type=False)
-            if added:
-                added_total += added
-                updated_exercises += 1
-
-        if added_total:
+        added = self._sync_dumbbell_weight_types()
+        if added:
             self._mark_exercises_changed()
             self.update_all()
-            message_box.information(
-                self,
-                "Dumbbell Weight Types",
-                f"Added {added_total} dumbbell weight type(s) to {updated_exercises} exercise(s).",
-            )
-            return
-        message_box.warning(self, "Dumbbell Weight Types", "Failed to add dumbbell weight types.")
 ```
 
 </details>

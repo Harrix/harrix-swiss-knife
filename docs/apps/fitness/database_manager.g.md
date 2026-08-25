@@ -20,11 +20,13 @@ lang: en
   - [⚙️ Method `check_exercise_exists`](#%EF%B8%8F-method-check_exercise_exists)
   - [⚙️ Method `count_process_records_for_exercise`](#%EF%B8%8F-method-count_process_records_for_exercise)
   - [⚙️ Method `count_process_records_for_type`](#%EF%B8%8F-method-count_process_records_for_type)
+  - [⚙️ Method `count_process_records_for_type_name`](#%EF%B8%8F-method-count_process_records_for_type_name)
   - [⚙️ Method `delete_exercise`](#%EF%B8%8F-method-delete_exercise)
   - [⚙️ Method `delete_exercise_type`](#%EF%B8%8F-method-delete_exercise_type)
   - [⚙️ Method `delete_process_record`](#%EF%B8%8F-method-delete_process_record)
   - [⚙️ Method `delete_process_records_for_exercise`](#%EF%B8%8F-method-delete_process_records_for_exercise)
   - [⚙️ Method `delete_process_records_for_type`](#%EF%B8%8F-method-delete_process_records_for_type)
+  - [⚙️ Method `delete_types_by_name`](#%EF%B8%8F-method-delete_types_by_name)
   - [⚙️ Method `delete_types_for_exercise`](#%EF%B8%8F-method-delete_types_for_exercise)
   - [⚙️ Method `delete_weight_record`](#%EF%B8%8F-method-delete_weight_record)
   - [⚙️ Method `exercise_name_exists`](#%EF%B8%8F-method-exercise_name_exists)
@@ -69,6 +71,7 @@ lang: en
   - [⚙️ Method `get_weight_chart_data`](#%EF%B8%8F-method-get_weight_chart_data)
   - [⚙️ Method `is_exercise_favorite`](#%EF%B8%8F-method-is_exercise_favorite)
   - [⚙️ Method `is_exercise_type_required`](#%EF%B8%8F-method-is_exercise_type_required)
+  - [⚙️ Method `rename_types_by_name`](#%EF%B8%8F-method-rename_types_by_name)
   - [⚙️ Method `set_exercise_favorite`](#%EF%B8%8F-method-set_exercise_favorite)
   - [⚙️ Method `set_exercise_type_required`](#%EF%B8%8F-method-set_exercise_type_required)
   - [⚙️ Method `update_exercise`](#%EF%B8%8F-method-update_exercise)
@@ -293,6 +296,29 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         )
         return int(rows[0][0]) if rows and rows[0][0] is not None else 0
 
+    def count_process_records_for_type_name(self, type_name: str) -> int:
+        """Count set records whose type name matches `type_name`.
+
+        Args:
+
+        - `type_name` (`str`): Exercise type name, compared case-insensitively.
+
+        Returns:
+
+        - `int`: Number of related `process` rows.
+
+        """
+        rows = self.get_rows(
+            """
+            SELECT COUNT(*)
+            FROM process p
+            INNER JOIN types t ON t._id = p._id_types
+            WHERE LOWER(TRIM(t.type)) = LOWER(TRIM(:tp))
+            """,
+            {"tp": type_name},
+        )
+        return int(rows[0][0]) if rows and rows[0][0] is not None else 0
+
     def delete_exercise(self, exercise_id: int) -> bool:
         """Delete an exercise and related process records and types.
 
@@ -374,6 +400,23 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         return self.execute_simple_query(
             "DELETE FROM process WHERE _id_types = :id",
             {"id": type_id},
+        )
+
+    def delete_types_by_name(self, type_name: str) -> bool:
+        """Delete every type row whose name matches `type_name`.
+
+        Args:
+
+        - `type_name` (`str`): Type name, compared case-insensitively.
+
+        Returns:
+
+        - `bool`: `True` if successful, `False` otherwise.
+
+        """
+        return self.execute_simple_query(
+            "DELETE FROM types WHERE LOWER(TRIM(type)) = LOWER(TRIM(:tp))",
+            {"tp": type_name},
         )
 
     def delete_types_for_exercise(self, exercise_id: int) -> bool:
@@ -1355,6 +1398,24 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         rows = self.get_rows("SELECT is_type_required FROM exercises WHERE _id = :ex_id", {"ex_id": exercise_id})
         return bool(rows and rows[0][0] == 1)
 
+    def rename_types_by_name(self, old_name: str, new_name: str) -> bool:
+        """Rename every type row that currently uses `old_name`.
+
+        Args:
+
+        - `old_name` (`str`): Current type name, compared case-insensitively.
+        - `new_name` (`str`): Replacement type name.
+
+        Returns:
+
+        - `bool`: `True` if successful, `False` otherwise.
+
+        """
+        return self.execute_simple_query(
+            "UPDATE types SET type = :new WHERE LOWER(TRIM(type)) = LOWER(TRIM(:old))",
+            {"old": old_name, "new": new_name},
+        )
+
     def set_exercise_favorite(self, exercise_id: int, *, favorite: bool) -> bool:
         """Pin or unpin an exercise as a favorite."""
         return self.execute_simple_query(
@@ -1911,6 +1972,41 @@ def count_process_records_for_type(self, type_id: int) -> int:
 
 </details>
 
+### ⚙️ Method `count_process_records_for_type_name`
+
+```python
+def count_process_records_for_type_name(self, type_name: str) -> int
+```
+
+Count set records whose type name matches `type_name`.
+
+Args:
+
+- `type_name` (`str`): Exercise type name, compared case-insensitively.
+
+Returns:
+
+- `int`: Number of related `process` rows.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def count_process_records_for_type_name(self, type_name: str) -> int:
+        rows = self.get_rows(
+            """
+            SELECT COUNT(*)
+            FROM process p
+            INNER JOIN types t ON t._id = p._id_types
+            WHERE LOWER(TRIM(t.type)) = LOWER(TRIM(:tp))
+            """,
+            {"tp": type_name},
+        )
+        return int(rows[0][0]) if rows and rows[0][0] is not None else 0
+```
+
+</details>
+
 ### ⚙️ Method `delete_exercise`
 
 ```python
@@ -2049,6 +2145,35 @@ def delete_process_records_for_type(self, type_id: int) -> bool:
         return self.execute_simple_query(
             "DELETE FROM process WHERE _id_types = :id",
             {"id": type_id},
+        )
+```
+
+</details>
+
+### ⚙️ Method `delete_types_by_name`
+
+```python
+def delete_types_by_name(self, type_name: str) -> bool
+```
+
+Delete every type row whose name matches `type_name`.
+
+Args:
+
+- `type_name` (`str`): Type name, compared case-insensitively.
+
+Returns:
+
+- `bool`: `True` if successful, `False` otherwise.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def delete_types_by_name(self, type_name: str) -> bool:
+        return self.execute_simple_query(
+            "DELETE FROM types WHERE LOWER(TRIM(type)) = LOWER(TRIM(:tp))",
+            {"tp": type_name},
         )
 ```
 
@@ -3571,6 +3696,36 @@ Returns:
 def is_exercise_type_required(self, exercise_id: int) -> bool:
         rows = self.get_rows("SELECT is_type_required FROM exercises WHERE _id = :ex_id", {"ex_id": exercise_id})
         return bool(rows and rows[0][0] == 1)
+```
+
+</details>
+
+### ⚙️ Method `rename_types_by_name`
+
+```python
+def rename_types_by_name(self, old_name: str, new_name: str) -> bool
+```
+
+Rename every type row that currently uses `old_name`.
+
+Args:
+
+- `old_name` (`str`): Current type name, compared case-insensitively.
+- `new_name` (`str`): Replacement type name.
+
+Returns:
+
+- `bool`: `True` if successful, `False` otherwise.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def rename_types_by_name(self, old_name: str, new_name: str) -> bool:
+        return self.execute_simple_query(
+            "UPDATE types SET type = :new WHERE LOWER(TRIM(type)) = LOWER(TRIM(:old))",
+            {"old": old_name, "new": new_name},
+        )
 ```
 
 </details>

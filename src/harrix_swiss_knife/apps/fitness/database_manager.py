@@ -219,6 +219,29 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         )
         return int(rows[0][0]) if rows and rows[0][0] is not None else 0
 
+    def count_process_records_for_type_name(self, type_name: str) -> int:
+        """Count set records whose type name matches `type_name`.
+
+        Args:
+
+        - `type_name` (`str`): Exercise type name, compared case-insensitively.
+
+        Returns:
+
+        - `int`: Number of related `process` rows.
+
+        """
+        rows = self.get_rows(
+            """
+            SELECT COUNT(*)
+            FROM process p
+            INNER JOIN types t ON t._id = p._id_types
+            WHERE LOWER(TRIM(t.type)) = LOWER(TRIM(:tp))
+            """,
+            {"tp": type_name},
+        )
+        return int(rows[0][0]) if rows and rows[0][0] is not None else 0
+
     def delete_exercise(self, exercise_id: int) -> bool:
         """Delete an exercise and related process records and types.
 
@@ -300,6 +323,23 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         return self.execute_simple_query(
             "DELETE FROM process WHERE _id_types = :id",
             {"id": type_id},
+        )
+
+    def delete_types_by_name(self, type_name: str) -> bool:
+        """Delete every type row whose name matches `type_name`.
+
+        Args:
+
+        - `type_name` (`str`): Type name, compared case-insensitively.
+
+        Returns:
+
+        - `bool`: `True` if successful, `False` otherwise.
+
+        """
+        return self.execute_simple_query(
+            "DELETE FROM types WHERE LOWER(TRIM(type)) = LOWER(TRIM(:tp))",
+            {"tp": type_name},
         )
 
     def delete_types_for_exercise(self, exercise_id: int) -> bool:
@@ -1280,6 +1320,24 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         """
         rows = self.get_rows("SELECT is_type_required FROM exercises WHERE _id = :ex_id", {"ex_id": exercise_id})
         return bool(rows and rows[0][0] == 1)
+
+    def rename_types_by_name(self, old_name: str, new_name: str) -> bool:
+        """Rename every type row that currently uses `old_name`.
+
+        Args:
+
+        - `old_name` (`str`): Current type name, compared case-insensitively.
+        - `new_name` (`str`): Replacement type name.
+
+        Returns:
+
+        - `bool`: `True` if successful, `False` otherwise.
+
+        """
+        return self.execute_simple_query(
+            "UPDATE types SET type = :new WHERE LOWER(TRIM(type)) = LOWER(TRIM(:old))",
+            {"old": old_name, "new": new_name},
+        )
 
     def set_exercise_favorite(self, exercise_id: int, *, favorite: bool) -> bool:
         """Pin or unpin an exercise as a favorite."""
