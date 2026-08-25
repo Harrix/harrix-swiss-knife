@@ -566,7 +566,9 @@ class MainWindow(
                 if with_dumbbells:
                     self._add_dumbbell_weight_types_to_exercise(exercise)
                 self._mark_exercises_changed()
-                self.update_all()
+                self.update_all(is_preserve_selections=True, current_exercise=exercise)
+                if with_dumbbells:
+                    QTimer.singleShot(0, lambda name=exercise: self._ensure_types_table_shows_exercise(name))
                 if media_path:
                     self._start_exercise_media_save(exercise, media_path)
             else:
@@ -2948,33 +2950,7 @@ class MainWindow(
             self.tableView_exercises.setModel(self.models["exercises"])
             self.tableView_exercises.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
 
-            # Refresh exercise types table with light orange background
-            types_data = self.db_manager.get_all_exercise_types()
-            types_transformed_data = []
-            light_orange = QColor(255, 248, 220)  # Light orange background
-
-            for row in types_data:
-                exercise_name = row[1]
-                transformed_row = [
-                    self._get_exercise_icon(str(exercise_name or "")) or QIcon(),
-                    format_favorite_exercise_label(
-                        str(exercise_name or ""),
-                        favorite=False,
-                        dumbbell=str(exercise_name or "") in dumbbell_names,
-                    ),
-                    row[2],
-                    f"{row[3]:.1f}",
-                    row[4] or "",
-                    row[0],
-                    light_orange,
-                ]
-                types_transformed_data.append(transformed_row)
-
-            self.models["types"] = self._create_colored_table_model(
-                types_transformed_data, self.table_config["types"][2]
-            )
-            self.tableView_exercise_types.setModel(self.models["types"])
-            self.tableView_exercise_types.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+            self._reload_types_table(dumbbell_names=dumbbell_names)
 
             # Load process table data with appropriate limit
             self.load_process_table()
@@ -3003,19 +2979,7 @@ class MainWindow(
             self.tableView_exercises.setColumnWidth(3, 100)  # Type Required
             self.tableView_exercises.setColumnWidth(4, 120)  # Calories per Unit
 
-            # Configure exercise types table header - image + interactive + stretch last
-            self._configure_exercise_image_table(self.tableView_exercise_types)
-            exercise_types_header = self.tableView_exercise_types.horizontalHeader()
-            for i in range(1, exercise_types_header.count() - 1):
-                exercise_types_header.setSectionResizeMode(i, exercise_types_header.ResizeMode.Interactive)
-            exercise_types_header.setSectionResizeMode(
-                exercise_types_header.count() - 1, exercise_types_header.ResizeMode.Stretch
-            )
-            self.tableView_exercise_types.setColumnWidth(1, 200)  # Exercise
-            self.tableView_exercise_types.setColumnWidth(2, 150)  # Exercise Type
-            self.tableView_exercise_types.setColumnWidth(3, 120)  # Calories Modifier
             self._apply_stored_exercise_table_sort("exercises")
-            self._apply_stored_exercise_table_sort("types")
 
             # Connect selection change signals after models are set
             self._connect_table_selection_signals()
@@ -4996,6 +4960,17 @@ class MainWindow(
             lambda section, key=table_key: self._on_exercise_table_header_clicked(key, section)
         )
 
+    def _ensure_types_table_shows_exercise(self, exercise_name: str) -> None:
+        """Reload the types table so newly copied weights are visible."""
+        if self._is_closing or not exercise_name:
+            return
+        self._mark_exercises_changed()
+        self._reload_types_table()
+        self._scroll_types_table_to_exercise(exercise_name)
+        self._select_exercise_in_list(exercise_name)
+        if self._fitness_dashboard is not None:
+            self._load_fitness_dashboard_exercise_details(exercise_name)
+
     def _exercise_names_from_item_model(self, model: QStandardItemModel | None) -> list[str]:
         """Return exercise names stored in `UserRole` of a list model."""
         if model is None:
@@ -6540,6 +6515,45 @@ class MainWindow(
         ]
         self._fitness_dashboard.set_exercises(items, selected=selected)
 
+    def _reload_types_table(self, *, dumbbell_names: set[str] | None = None) -> None:
+        """Rebuild the exercise types table from the database."""
+        if self.db_manager is None:
+            return
+        names = dumbbell_names if dumbbell_names is not None else self._cached_dumbbell_exercise_names()
+        types_data = self.db_manager.get_all_exercise_types()
+        light_orange = QColor(255, 248, 220)
+        types_transformed_data = [
+            [
+                self._get_exercise_icon(str(row[1] or "")) or QIcon(),
+                format_favorite_exercise_label(
+                    str(row[1] or ""),
+                    favorite=False,
+                    dumbbell=str(row[1] or "") in names,
+                ),
+                row[2],
+                f"{float(row[3] or 0):.1f}",
+                row[4] or "",
+                row[0],
+                light_orange,
+            ]
+            for row in types_data
+        ]
+        self.models["types"] = self._create_colored_table_model(types_transformed_data, self.table_config["types"][2])
+        self.tableView_exercise_types.setModel(self.models["types"])
+        self.tableView_exercise_types.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self._configure_exercise_image_table(self.tableView_exercise_types)
+        exercise_types_header = self.tableView_exercise_types.horizontalHeader()
+        for i in range(1, exercise_types_header.count() - 1):
+            exercise_types_header.setSectionResizeMode(i, exercise_types_header.ResizeMode.Interactive)
+        exercise_types_header.setSectionResizeMode(
+            exercise_types_header.count() - 1, exercise_types_header.ResizeMode.Stretch
+        )
+        self.tableView_exercise_types.setColumnWidth(1, 200)
+        self.tableView_exercise_types.setColumnWidth(2, 150)
+        self.tableView_exercise_types.setColumnWidth(3, 120)
+        self._apply_stored_exercise_table_sort("types")
+        self._connect_table_auto_save_signal("types")
+
     def _rename_exercise_media(self, old_name: str, new_name: str) -> None:
         """Rename the exercise AVIF when the English name changes."""
         previous = old_name.strip()
@@ -6653,6 +6667,21 @@ class MainWindow(
             self._chart_update_timer.timeout.connect(self._update_chart_based_on_radio_button)
 
         self._chart_update_timer.start(delay_ms)
+
+    def _scroll_types_table_to_exercise(self, exercise_name: str) -> None:
+        """Select and scroll to the first types-table row for `exercise_name`."""
+        proxy = self.models.get("types")
+        if proxy is None or not exercise_name:
+            return
+        name_column = self._table_exercise_name_column("types")
+        for row in range(proxy.rowCount()):
+            index = proxy.index(row, name_column)
+            name = parse_exercise_display_name(str(proxy.data(index) or ""))
+            if name != exercise_name:
+                continue
+            self.tableView_exercise_types.setCurrentIndex(index)
+            self.tableView_exercise_types.scrollTo(index)
+            return
 
     def _select_exercise_in_chart_list(self, exercise_name: str) -> bool:
         """Select an exercise in the chart exercise list view by name.
@@ -8236,7 +8265,9 @@ def on_add_exercise(self) -> None:
                 if with_dumbbells:
                     self._add_dumbbell_weight_types_to_exercise(exercise)
                 self._mark_exercises_changed()
-                self.update_all()
+                self.update_all(is_preserve_selections=True, current_exercise=exercise)
+                if with_dumbbells:
+                    QTimer.singleShot(0, lambda name=exercise: self._ensure_types_table_shows_exercise(name))
                 if media_path:
                     self._start_exercise_media_save(exercise, media_path)
             else:
@@ -11150,33 +11181,7 @@ def show_tables(self) -> None:
             self.tableView_exercises.setModel(self.models["exercises"])
             self.tableView_exercises.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
 
-            # Refresh exercise types table with light orange background
-            types_data = self.db_manager.get_all_exercise_types()
-            types_transformed_data = []
-            light_orange = QColor(255, 248, 220)  # Light orange background
-
-            for row in types_data:
-                exercise_name = row[1]
-                transformed_row = [
-                    self._get_exercise_icon(str(exercise_name or "")) or QIcon(),
-                    format_favorite_exercise_label(
-                        str(exercise_name or ""),
-                        favorite=False,
-                        dumbbell=str(exercise_name or "") in dumbbell_names,
-                    ),
-                    row[2],
-                    f"{row[3]:.1f}",
-                    row[4] or "",
-                    row[0],
-                    light_orange,
-                ]
-                types_transformed_data.append(transformed_row)
-
-            self.models["types"] = self._create_colored_table_model(
-                types_transformed_data, self.table_config["types"][2]
-            )
-            self.tableView_exercise_types.setModel(self.models["types"])
-            self.tableView_exercise_types.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+            self._reload_types_table(dumbbell_names=dumbbell_names)
 
             # Load process table data with appropriate limit
             self.load_process_table()
@@ -11205,19 +11210,7 @@ def show_tables(self) -> None:
             self.tableView_exercises.setColumnWidth(3, 100)  # Type Required
             self.tableView_exercises.setColumnWidth(4, 120)  # Calories per Unit
 
-            # Configure exercise types table header - image + interactive + stretch last
-            self._configure_exercise_image_table(self.tableView_exercise_types)
-            exercise_types_header = self.tableView_exercise_types.horizontalHeader()
-            for i in range(1, exercise_types_header.count() - 1):
-                exercise_types_header.setSectionResizeMode(i, exercise_types_header.ResizeMode.Interactive)
-            exercise_types_header.setSectionResizeMode(
-                exercise_types_header.count() - 1, exercise_types_header.ResizeMode.Stretch
-            )
-            self.tableView_exercise_types.setColumnWidth(1, 200)  # Exercise
-            self.tableView_exercise_types.setColumnWidth(2, 150)  # Exercise Type
-            self.tableView_exercise_types.setColumnWidth(3, 120)  # Calories Modifier
             self._apply_stored_exercise_table_sort("exercises")
-            self._apply_stored_exercise_table_sort("types")
 
             # Connect selection change signals after models are set
             self._connect_table_selection_signals()
