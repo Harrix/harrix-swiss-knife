@@ -28,6 +28,7 @@ lang: en
   - [⚙️ Method `delete_types_for_exercise`](#%EF%B8%8F-method-delete_types_for_exercise)
   - [⚙️ Method `delete_weight_record`](#%EF%B8%8F-method-delete_weight_record)
   - [⚙️ Method `exercise_name_exists`](#%EF%B8%8F-method-exercise_name_exists)
+  - [⚙️ Method `exercise_name_local_exists`](#%EF%B8%8F-method-exercise_name_local_exists)
   - [⚙️ Method `exercise_type_name_exists`](#%EF%B8%8F-method-exercise_type_name_exists)
   - [⚙️ Method `get_all_exercise_types`](#%EF%B8%8F-method-get_all_exercise_types)
   - [⚙️ Method `get_all_exercises`](#%EF%B8%8F-method-get_all_exercises)
@@ -420,6 +421,22 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         """
         rows = self.get_rows("SELECT _id, name FROM exercises")
         return catalog_name_taken(rows, name, exclude_id=exclude_id)
+
+    def exercise_name_local_exists(self, name_local: str, *, exclude_id: int | None = None) -> bool:
+        """Return whether an exercise already uses `name_local`.
+
+        Args:
+
+        - `name_local` (`str`): Local exercise name to check.
+        - `exclude_id` (`int | None`): Exercise ID to ignore (when renaming). Defaults to `None`.
+
+        Returns:
+
+        - `bool`: `True` when another exercise has the same local name.
+
+        """
+        rows = self.get_rows("SELECT _id, IFNULL(name_local, '') FROM exercises")
+        return catalog_name_taken(rows, name_local, exclude_id=exclude_id)
 
     def exercise_type_name_exists(
         self,
@@ -2087,6 +2104,34 @@ Returns:
 def exercise_name_exists(self, name: str, *, exclude_id: int | None = None) -> bool:
         rows = self.get_rows("SELECT _id, name FROM exercises")
         return catalog_name_taken(rows, name, exclude_id=exclude_id)
+```
+
+</details>
+
+### ⚙️ Method `exercise_name_local_exists`
+
+```python
+def exercise_name_local_exists(self, name_local: str, *, exclude_id: int | None = None) -> bool
+```
+
+Return whether an exercise already uses `name_local`.
+
+Args:
+
+- `name_local` (`str`): Local exercise name to check.
+- `exclude_id` (`int | None`): Exercise ID to ignore (when renaming). Defaults to `None`.
+
+Returns:
+
+- `bool`: `True` when another exercise has the same local name.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def exercise_name_local_exists(self, name_local: str, *, exclude_id: int | None = None) -> bool:
+        rows = self.get_rows("SELECT _id, IFNULL(name_local, '') FROM exercises")
+        return catalog_name_taken(rows, name_local, exclude_id=exclude_id)
 ```
 
 </details>

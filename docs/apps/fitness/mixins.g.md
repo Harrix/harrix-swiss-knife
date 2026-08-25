@@ -83,13 +83,17 @@ class AutoSaveOperations(AutoSaveMixin):
         if self.db_manager.exercise_name_exists(new_name, exclude_id=int(row_id)):
             message_box.warning(None, "Validation Error", f"Exercise '{new_name}' already exists")
             return
+        local_name = str(name_local).strip()
+        if self.db_manager.exercise_name_local_exists(local_name, exclude_id=int(row_id)):
+            message_box.warning(None, "Validation Error", f"Local name '{local_name}' already exists")
+            return
         if not self.db_manager.update_exercise(
             int(row_id),
             new_name,
             unit.strip(),
             is_type_required=is_type_required,
             calories_per_unit=calories_per_unit,
-            name_local=str(name_local).strip(),
+            name_local=local_name,
         ):
             message_box.warning(None, "Database Error", "Failed to save exercise record")
         else:

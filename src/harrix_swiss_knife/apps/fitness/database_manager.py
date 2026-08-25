@@ -350,6 +350,22 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         rows = self.get_rows("SELECT _id, name FROM exercises")
         return catalog_name_taken(rows, name, exclude_id=exclude_id)
 
+    def exercise_name_local_exists(self, name_local: str, *, exclude_id: int | None = None) -> bool:
+        """Return whether an exercise already uses `name_local`.
+
+        Args:
+
+        - `name_local` (`str`): Local exercise name to check.
+        - `exclude_id` (`int | None`): Exercise ID to ignore (when renaming). Defaults to `None`.
+
+        Returns:
+
+        - `bool`: `True` when another exercise has the same local name.
+
+        """
+        rows = self.get_rows("SELECT _id, IFNULL(name_local, '') FROM exercises")
+        return catalog_name_taken(rows, name_local, exclude_id=exclude_id)
+
     def exercise_type_name_exists(
         self,
         exercise_id: int,

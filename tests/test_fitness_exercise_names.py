@@ -18,6 +18,14 @@ def test_catalog_name_taken_is_case_insensitive_and_can_exclude_id() -> None:
     assert catalog_name_taken(rows, "push-ups", exclude_id=2)
 
 
+def test_catalog_name_taken_ignores_empty_local_names() -> None:
+    """Blank local names are not treated as taken."""
+    rows = [[1, "Отжимания"], [2, ""], [3, None]]
+    assert catalog_name_taken(rows, "отжимания")
+    assert not catalog_name_taken(rows, "")
+    assert not catalog_name_taken(rows, "   ")
+
+
 def test_rename_exercise_avif_renames_file_and_retargets_slot(tmp_path: Path) -> None:
     """Renaming an exercise also renames `{name}.avif` next to the database."""
     img_dir = tmp_path / "fitness_img"

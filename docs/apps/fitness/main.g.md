@@ -553,6 +553,9 @@ class MainWindow(
         if self.db_manager.exercise_name_exists(exercise):
             message_box.warning(self, "Error", f"Exercise '{exercise}' already exists")
             return
+        if self.db_manager.exercise_name_local_exists(name_local):
+            message_box.warning(self, "Error", f"Local name '{name_local}' already exists")
+            return
 
         try:
             if self.db_manager.add_exercise(
@@ -6243,6 +6246,9 @@ class MainWindow(
         if self.db_manager.exercise_name_exists(new_name, exclude_id=record_id):
             message_box.warning(self, "Error", f"Exercise '{new_name}' already exists")
             return
+        if self.db_manager.exercise_name_local_exists(new_name_local, exclude_id=record_id):
+            message_box.warning(self, "Error", f"Local name '{new_name_local}' already exists")
+            return
 
         try:
             if not self.db_manager.update_exercise(
@@ -8251,6 +8257,9 @@ def on_add_exercise(self) -> None:
 
         if self.db_manager.exercise_name_exists(exercise):
             message_box.warning(self, "Error", f"Exercise '{exercise}' already exists")
+            return
+        if self.db_manager.exercise_name_local_exists(name_local):
+            message_box.warning(self, "Error", f"Local name '{name_local}' already exists")
             return
 
         try:
