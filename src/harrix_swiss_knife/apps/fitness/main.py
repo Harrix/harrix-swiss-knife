@@ -104,6 +104,7 @@ from harrix_swiss_knife.apps.common.table_context_menu import (
     LABEL_FILTER_BY_DATE,
     LABEL_FILTER_BY_EXERCISE,
     LABEL_FILTER_BY_TYPE,
+    LABEL_OPEN_EXERCISE_CHART,
     LABEL_OPEN_LIGHTBOX,
     LABEL_REVEAL_IN_EXPLORER,
     LABEL_SET_DATE_SELECTED,
@@ -556,6 +557,17 @@ class MainWindow(
         if obj is self.label_exercise_avif_5 and event.type() == QEvent.Type.MouseButtonDblClick:
             self._open_exercise_media_lightbox(self._resolve_statistics_avif_exercise())
             return True
+
+        dashboard = self._fitness_dashboard
+        if (
+            dashboard is not None
+            and obj is dashboard.exercise_list.viewport()
+            and event.type() == QEvent.Type.MouseButtonDblClick
+        ):
+            name = exercise_at_list_icon(dashboard.exercise_list, cast("QMouseEvent", event).position().toPoint())
+            if name:
+                self._open_exercise_media_lightbox(name, list_view=dashboard.exercise_list)
+                return True
 
         return super().eventFilter(obj, event)
 
@@ -4784,7 +4796,7 @@ class MainWindow(
         self.comboBox_records_select_exercise.currentIndexChanged.connect(self._update_statistics_avif)
         self.comboBox_records_select_exercise.currentIndexChanged.connect(self.on_statistics_exercise_combobox_changed)
 
-        # Connect double-click signal for exercises list to open statistics tab
+        # Connect double-click signal for exercises list to open the media lightbox
         self.listView_exercises.doubleClicked.connect(self._on_exercises_list_double_clicked)
         self.lineEdit_exercises_filter.textChanged.connect(self._filter_exercises_list)
         self.lineEdit_exercises_filter.textChanged.connect(self._hide_exercise_list_hover_preview)
@@ -6264,14 +6276,13 @@ class MainWindow(
         self._open_exercise_type_edit_dialog()
 
     def _on_exercises_list_double_clicked(self, index: QModelIndex) -> None:
-        """Handle double-click on exercises list to open Exercise Chart tab.
+        """Open the exercise media lightbox for the double-clicked list item.
 
         Args:
 
         - `index` (`QModelIndex`): Index of the double-clicked item.
 
         """
-        # Get exercise name from the clicked item
         if not index.isValid() or not self.exercises_list_model:
             return
 
@@ -6279,30 +6290,11 @@ class MainWindow(
         if not item:
             return
 
-        # Try to get original exercise name from UserRole first
-        exercise_name = item.data(Qt.UserRole)
-        if not exercise_name:
-            # Fallback to display text
-            exercise_name = item.text()
-
+        exercise_name = item.data(Qt.ItemDataRole.UserRole) or item.text()
         if not exercise_name:
             return
 
-        # Find the Exercise Chart tab index
-        chart_tab_index = self.tabWidget.indexOf(self.tab_charts)
-        if chart_tab_index >= 0:
-            # Switch to Exercise Chart tab
-            self.tabWidget.setCurrentIndex(chart_tab_index)
-
-            # Update chart comboboxes first to ensure listView_chart_exercise is populated
-            self.update_chart_comboboxes()
-
-            # Select the exercise in chart exercise list view
-            if self._select_exercise_in_chart_list(exercise_name):
-                # Update type list view after selecting exercise
-                self.update_chart_type_listview()
-                # Update chart and label_chart_info
-                self._update_chart_based_on_radio_button()
+        self._open_exercise_media_lightbox(str(exercise_name), list_view=self.listView_exercises)
 
     def _on_exercises_table_double_clicked(self, index: QModelIndex) -> None:
         """Open lightbox on the thumbnail, or the exercise edit dialog otherwise."""
@@ -6328,6 +6320,28 @@ class MainWindow(
         """Toggle date edit widgets and refresh the process table filter."""
         self._update_date_filter_controls_enabled()
         self.apply_filter()
+
+    def _open_exercise_chart_tab(self, exercise_name: str) -> None:
+        """Switch to the Exercise Chart tab and select `exercise_name`.
+
+        Args:
+
+        - `exercise_name` (`str`): Exercise to show on the Charts tab.
+
+        """
+        name = exercise_name.strip()
+        if not name:
+            return
+
+        chart_tab_index = self.tabWidget.indexOf(self.tab_charts)
+        if chart_tab_index < 0:
+            return
+
+        self.tabWidget.setCurrentIndex(chart_tab_index)
+        self.update_chart_comboboxes()
+        if self._select_exercise_in_chart_list(name):
+            self.update_chart_type_listview()
+            self._update_chart_based_on_radio_button()
 
     @requires_database()
     def _open_exercise_edit_dialog(self) -> None:
@@ -6421,6 +6435,7 @@ class MainWindow(
         table_name: str | None = None,
     ) -> None:
         """Open the exercise AVIF in a lightbox that covers the app window."""
+        self._hide_exercise_list_hover_preview()
         name = (exercise_name or "").strip() or self._resolve_selected_exercise_for_lightbox() or ""
         if not name:
             message_box.warning(self, "Error", "Select an exercise")
@@ -7088,6 +7103,7 @@ class MainWindow(
         self._fitness_dashboard.exercise_list.customContextMenuRequested.connect(
             partial(self._show_exercise_list_favorite_menu, self._fitness_dashboard.exercise_list)
         )
+        self._fitness_dashboard.exercise_list.viewport().installEventFilter(self)
         self.verticalLayout_fitness_dashboard.setContentsMargins(0, 0, 0, 0)
         self.verticalLayout_fitness_dashboard.addWidget(self._fitness_dashboard, 1)
         self._attach_fitness_dashboard_hover()
@@ -7249,7 +7265,7 @@ class MainWindow(
             self._open_exercise_media_lightbox(exercise_name)
 
     def _show_exercise_list_favorite_menu(self, list_view: QListView, position: QPoint) -> None:
-        """Show lightbox and favorite actions for an exercise list view."""
+        """Show lightbox, chart, and favorite actions for an exercise list view."""
         index = list_view.indexAt(position)
         if not index.isValid():
             return
@@ -7261,6 +7277,9 @@ class MainWindow(
         context_menu = QMenu(self)
         lightbox_action = context_menu.addAction(LABEL_OPEN_LIGHTBOX)
         lightbox_action.setEnabled(self._get_exercise_avif_path(exercise_name) is not None)
+        chart_action = None
+        if list_view is self.listView_exercises:
+            chart_action = context_menu.addAction(LABEL_OPEN_EXERCISE_CHART)
         favorite_action = self._favorite_menu_action(context_menu, exercise_name)
         apply_leading_emoji_icons(context_menu)
         action = context_menu.exec_(list_view.mapToGlobal(position))
@@ -7268,6 +7287,8 @@ class MainWindow(
             self._toggle_exercise_favorite_by_name(exercise_name)
         elif action == lightbox_action:
             self._open_exercise_media_lightbox(exercise_name, list_view=list_view)
+        elif chart_action is not None and action == chart_action:
+            self._open_exercise_chart_tab(exercise_name)
 
     def _show_exercise_types_context_menu(self, position: QPoint) -> None:
         """Show context menu for exercise types table.

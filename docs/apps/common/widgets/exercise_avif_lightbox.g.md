@@ -123,7 +123,7 @@ class ExerciseAvifLightboxDialog(AppWindowLightboxDialog):
         slider = QSlider(Qt.Orientation.Horizontal, bar)
         slider.setRange(_SPEED_MIN_PERCENT, _SPEED_MAX_PERCENT)
         slider.setValue(_SPEED_DEFAULT_PERCENT)
-        slider.setSingleStep(25)
+        slider.setSingleStep(5)
         slider.setPageStep(25)
         slider.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         slider.setFixedHeight(22)

@@ -21,7 +21,7 @@ _MIN_RELOAD_EDGE = 2
 _RELOAD_DELAY_MS = 80
 _SPEED_DEFAULT_PERCENT = 100
 _SPEED_MAX_PERCENT = 400
-_SPEED_MIN_PERCENT = 25
+_SPEED_MIN_PERCENT = 5
 _SPEED_SIDE_MARGIN = 20
 
 
@@ -113,7 +113,7 @@ class ExerciseAvifLightboxDialog(AppWindowLightboxDialog):
         slider = QSlider(Qt.Orientation.Horizontal, bar)
         slider.setRange(_SPEED_MIN_PERCENT, _SPEED_MAX_PERCENT)
         slider.setValue(_SPEED_DEFAULT_PERCENT)
-        slider.setSingleStep(25)
+        slider.setSingleStep(5)
         slider.setPageStep(25)
         slider.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         slider.setFixedHeight(22)

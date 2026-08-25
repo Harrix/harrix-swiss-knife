@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 
 _DEFAULT_FRAME_DURATION_MS = 100
 _SPEED_MAX = 8.0
-_SPEED_MIN = 0.1
+_SPEED_MIN = 0.05
 
 
 class AvifLabelKey(StrEnum):

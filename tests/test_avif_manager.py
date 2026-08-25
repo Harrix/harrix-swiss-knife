@@ -37,7 +37,7 @@ def test_animation_interval_ms() -> None:
     assert animation_interval_ms(100, 1.0) == 100
     assert animation_interval_ms(100, 2.0) == 50
     assert animation_interval_ms(100, 0.5) == 200
-    assert animation_interval_ms(100, 0) == 1000
+    assert animation_interval_ms(100, 0) == 2000
     assert animation_interval_ms(0, 1.0) == 100
 
 
