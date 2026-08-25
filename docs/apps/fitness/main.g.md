@@ -2979,7 +2979,7 @@ class MainWindow(
             exercises_header.setSectionResizeMode(exercises_header.count() - 1, exercises_header.ResizeMode.Stretch)
             self.tableView_exercises.setColumnWidth(1, 200)  # Exercise name
             self.tableView_exercises.setColumnWidth(2, 120)  # Unit
-            self.tableView_exercises.setColumnWidth(3, 100)  # Type Required
+            self.tableView_exercises.setColumnWidth(_EXERCISE_TABLE_TYPE_REQUIRED_COLUMN, 100)  # Type Required
             self.tableView_exercises.setColumnWidth(4, 120)  # Calories per Unit
 
             self._apply_stored_exercise_table_sort("exercises")
@@ -5706,12 +5706,18 @@ class MainWindow(
         self.update_sets_count_today()
 
     def _init_table_date_delegates(self) -> None:
-        """Install DateDelegate on editable date columns in process and weight tables."""
+        """Install table delegates for dates and the Type Required checkbox."""
         process_date_delegate = DateDelegate(self.tableView_process)
         self.tableView_process.setItemDelegateForColumn(3, process_date_delegate)
 
         weight_date_delegate = DateDelegate(self.tableView_weight)
         self.tableView_weight.setItemDelegateForColumn(1, weight_date_delegate)
+
+        type_required_delegate = CheckboxDisplayDelegate(self.tableView_exercises)
+        self.tableView_exercises.setItemDelegateForColumn(
+            _EXERCISE_TABLE_TYPE_REQUIRED_COLUMN,
+            type_required_delegate,
+        )
 
     def _init_weight_chart_controls(self) -> None:
         """Initialize weight chart date controls."""
@@ -11217,7 +11223,7 @@ def show_tables(self) -> None:
             exercises_header.setSectionResizeMode(exercises_header.count() - 1, exercises_header.ResizeMode.Stretch)
             self.tableView_exercises.setColumnWidth(1, 200)  # Exercise name
             self.tableView_exercises.setColumnWidth(2, 120)  # Unit
-            self.tableView_exercises.setColumnWidth(3, 100)  # Type Required
+            self.tableView_exercises.setColumnWidth(_EXERCISE_TABLE_TYPE_REQUIRED_COLUMN, 100)  # Type Required
             self.tableView_exercises.setColumnWidth(4, 120)  # Calories per Unit
 
             self._apply_stored_exercise_table_sort("exercises")

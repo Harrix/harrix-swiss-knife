@@ -1,5 +1,9 @@
 """Shared table view delegates for apps."""
 
+from harrix_swiss_knife.apps.common.delegates.checkbox_display_delegate import (
+    CheckboxDisplayDelegate,
+    is_checkbox_cell_checked,
+)
 from harrix_swiss_knife.apps.common.delegates.combo_box_delegate import ComboBoxDelegate
 from harrix_swiss_knife.apps.common.delegates.date_delegate import DateDelegate
 from harrix_swiss_knife.apps.common.delegates.name_local_list_delegate import (
@@ -11,9 +15,11 @@ from harrix_swiss_knife.apps.common.delegates.yes_no_combo_delegate import YesNo
 
 __all__ = [
     "NAME_LOCAL_ROLE",
+    "CheckboxDisplayDelegate",
     "ComboBoxDelegate",
     "DateDelegate",
     "NameLocalLayout",
     "NameLocalListDelegate",
     "YesNoComboDelegate",
+    "is_checkbox_cell_checked",
 ]
