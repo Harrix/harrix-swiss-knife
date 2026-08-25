@@ -37,6 +37,7 @@ lang: en
   - [⚙️ Method `get_unique_food_log_names_missing_name_en`](#%EF%B8%8F-method-get_unique_food_log_names_missing_name_en)
   - [⚙️ Method `lookup_existing_name_en_for_names`](#%EF%B8%8F-method-lookup_existing_name_en_for_names)
   - [⚙️ Method `update_food_item`](#%EF%B8%8F-method-update_food_item)
+  - [⚙️ Method `update_food_log_calories`](#%EF%B8%8F-method-update_food_log_calories)
   - [⚙️ Method `update_food_log_name_en_by_name`](#%EF%B8%8F-method-update_food_log_name_en_by_name)
   - [⚙️ Method `update_food_log_record`](#%EF%B8%8F-method-update_food_log_record)
   - [⚙️ Method `update_food_log_records_date`](#%EF%B8%8F-method-update_food_log_records_date)
@@ -743,6 +744,38 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             "default_portion_calories": default_portion_calories,
         }
         return self.execute_simple_query(query, params)
+
+    def update_food_log_calories(
+        self,
+        record_id: int,
+        calories_per_100g: float | None,
+        portion_calories: float | None,
+    ) -> bool:
+        """Update calorie fields on a food log row without changing weight.
+
+        Args:
+
+        - `record_id` (`int`): Food log primary key.
+        - `calories_per_100g` (`float | None`): Calories per 100 g, or `None` in portion mode.
+        - `portion_calories` (`float | None`): Serving calories, or `None` in weight mode.
+
+        Returns:
+
+        - `bool`: `True` if successful, `False` otherwise.
+
+        """
+        return self.execute_simple_query(
+            """
+            UPDATE food_log
+            SET calories_per_100g = :calories_per_100g, portion_calories = :portion_calories
+            WHERE _id = :id
+            """,
+            {
+                "id": record_id,
+                "calories_per_100g": calories_per_100g,
+                "portion_calories": portion_calories,
+            },
+        )
 
     def update_food_log_name_en_by_name(self, name: str, name_en: str) -> bool:
         """Set English name for all food_log rows with this name and empty name_en.
@@ -1867,6 +1900,50 @@ def update_food_item(
             "default_portion_calories": default_portion_calories,
         }
         return self.execute_simple_query(query, params)
+```
+
+</details>
+
+### ⚙️ Method `update_food_log_calories`
+
+```python
+def update_food_log_calories(self, record_id: int, calories_per_100g: float | None, portion_calories: float | None) -> bool
+```
+
+Update calorie fields on a food log row without changing weight.
+
+Args:
+
+- `record_id` (`int`): Food log primary key.
+- `calories_per_100g` (`float | None`): Calories per 100 g, or `None` in portion mode.
+- `portion_calories` (`float | None`): Serving calories, or `None` in weight mode.
+
+Returns:
+
+- `bool`: `True` if successful, `False` otherwise.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def update_food_log_calories(
+        self,
+        record_id: int,
+        calories_per_100g: float | None,
+        portion_calories: float | None,
+    ) -> bool:
+        return self.execute_simple_query(
+            """
+            UPDATE food_log
+            SET calories_per_100g = :calories_per_100g, portion_calories = :portion_calories
+            WHERE _id = :id
+            """,
+            {
+                "id": record_id,
+                "calories_per_100g": calories_per_100g,
+                "portion_calories": portion_calories,
+            },
+        )
 ```
 
 </details>

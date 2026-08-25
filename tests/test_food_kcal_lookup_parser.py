@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from harrix_swiss_knife.apps.food.kcal_lookup_parser import (
     KcalLookupResult,
+    calories_from_kcal_lookup,
     normalize_kcal_lookup_mode,
     parse_kcal_lookup_response,
 )
@@ -36,3 +37,13 @@ def test_parse_drink_portion_unchanged() -> None:
 def test_normalize_skips_weight_mode() -> None:
     original = KcalLookupResult(calories=165.0, is_weight_mode=True, is_drink=False, weight_g=0)
     assert normalize_kcal_lookup_mode(original) is original
+
+
+def test_calories_from_lookup_weight_mode_clears_portion() -> None:
+    result = KcalLookupResult(calories=165.0, is_weight_mode=True, is_drink=False, weight_g=200)
+    assert calories_from_kcal_lookup(result) == (165.0, None)
+
+
+def test_calories_from_lookup_portion_mode_clears_per_100g() -> None:
+    result = KcalLookupResult(calories=85.0, is_weight_mode=False, is_drink=True, weight_g=180)
+    assert calories_from_kcal_lookup(result) == (None, 85.0)

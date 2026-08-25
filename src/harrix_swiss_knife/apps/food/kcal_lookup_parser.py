@@ -18,6 +18,26 @@ class KcalLookupResult:
     weight_g: int
 
 
+def calories_from_kcal_lookup(result: KcalLookupResult) -> tuple[float | None, float | None]:
+    """Map an AI lookup to food_log calorie columns without changing mass.
+
+    Weight mode stores kcal per 100 g and clears portion calories. Portion mode
+    stores serving calories and clears kcal per 100 g so the row stays in one mode.
+
+    Args:
+
+    - `result` (`KcalLookupResult`): Parsed BotHub lookup.
+
+    Returns:
+
+    - `tuple[float | None, float | None]`: `(calories_per_100g, portion_calories)`.
+
+    """
+    if result.is_weight_mode:
+        return result.calories, None
+    return None, result.calories
+
+
 def normalize_kcal_lookup_mode(result: KcalLookupResult) -> KcalLookupResult:
     """Switch portion → weight when Calories look like kcal per 100 g, not total for Weight."""
     if result.is_weight_mode or result.weight_g <= 0 or result.calories <= 0:

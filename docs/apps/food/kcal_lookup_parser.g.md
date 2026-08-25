@@ -12,6 +12,7 @@ lang: en
 ## Contents
 
 - [🏛️ Class `KcalLookupResult`](#%EF%B8%8F-class-kcallookupresult)
+- [🔧 Function `calories_from_kcal_lookup`](#-function-calories_from_kcal_lookup)
 - [🔧 Function `normalize_kcal_lookup_mode`](#-function-normalize_kcal_lookup_mode)
 - [🔧 Function `parse_kcal_lookup_response`](#-function-parse_kcal_lookup_response)
 
@@ -35,6 +36,37 @@ class KcalLookupResult:
     is_weight_mode: bool
     is_drink: bool
     weight_g: int
+```
+
+</details>
+
+## 🔧 Function `calories_from_kcal_lookup`
+
+```python
+def calories_from_kcal_lookup(result: KcalLookupResult) -> tuple[float | None, float | None]
+```
+
+Map an AI lookup to food_log calorie columns without changing mass.
+
+Weight mode stores kcal per 100 g and clears portion calories. Portion mode
+stores serving calories and clears kcal per 100 g so the row stays in one mode.
+
+Args:
+
+- `result` ([`KcalLookupResult`](#%EF%B8%8F-class-kcallookupresult)): Parsed BotHub lookup.
+
+Returns:
+
+- `tuple[float | None, float | None]`: `(calories_per_100g, portion_calories)`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def calories_from_kcal_lookup(result: KcalLookupResult) -> tuple[float | None, float | None]:
+    if result.is_weight_mode:
+        return result.calories, None
+    return None, result.calories
 ```
 
 </details>

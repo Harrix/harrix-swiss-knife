@@ -2070,6 +2070,46 @@ class MainWindow(
 
         return None
 
+    def _get_selected_food_log_recalc_targets(self) -> list[tuple[int, str]]:
+        """Return `(record_id, name)` for each selected food log row."""
+        targets: list[tuple[int, str]] = []
+        try:
+            table_view, model_key, _ = self.table_config["food_log"]
+            proxy_model = self.models[model_key]
+            if proxy_model is None:
+                return targets
+
+            selection_model = table_view.selectionModel()
+            if selection_model is None:
+                return targets
+
+            source_model = proxy_model.sourceModel()
+            if not isinstance(source_model, QStandardItemModel):
+                return targets
+
+            seen_source_rows: set[int] = set()
+            proxy_indexes = list(selection_model.selectedIndexes())
+            current_index = table_view.currentIndex()
+            if not proxy_indexes and current_index.isValid():
+                proxy_indexes = [current_index]
+            for proxy_index in proxy_indexes:
+                source_index = proxy_model.mapToSource(proxy_index)
+                if not source_index.isValid():
+                    continue
+                row = source_index.row()
+                if row in seen_source_rows:
+                    continue
+                seen_source_rows.add(row)
+                vertical_header_item = source_model.verticalHeaderItem(row)
+                if vertical_header_item is None:
+                    continue
+                name_item = source_model.item(row, 0)
+                name = name_item.text().strip() if name_item is not None else ""
+                targets.append((int(vertical_header_item.text()), name))
+        except (KeyError, ValueError, TypeError, AttributeError):
+            return []
+        return targets
+
     def _init_database(self) -> None:
         """Open the SQLite file from app config (create from `recover.sql` if missing)."""
         app_dir = Path(__file__).parent
@@ -2562,6 +2602,76 @@ class MainWindow(
             return
         self._apply_eaten_fraction_to_selected_food_log(percent / 100.0)
 
+    def _recalculate_food_log_calories_queue(
+        self,
+        remaining: list[tuple[int, str]],
+        *,
+        updated: int,
+        failed: list[str],
+    ) -> None:
+        """Send the next food log name to BotHub, then apply calories without changing mass."""
+        if not remaining:
+            if updated:
+                self.update_food_data()
+            if failed:
+                max_names_in_message = 8
+                preview = ", ".join(failed[:max_names_in_message])
+                suffix = "…" if len(failed) > max_names_in_message else ""
+                message_box.warning(
+                    self,
+                    "AI Response",
+                    f"Could not recalculate calories for {len(failed)} item(s): {preview}{suffix}",
+                )
+            elif updated == 0:
+                message_box.warning(self, "Error", "Failed to update selected food log rows")
+            return
+
+        record_id, food_name = remaining[0]
+        rest = remaining[1:]
+        try:
+            prompt_text = build_prompt(self._app_config, "food_kcal_lookup", {"FOOD_NAME": food_name})
+        except ValueError as exc:
+            show_bothub_prompt_build_error(self, exc)
+            return
+
+        def on_success(response_text: str) -> None:
+            result = parse_kcal_lookup_response(response_text)
+            if result is None:
+                self._recalculate_food_log_calories_queue(rest, updated=updated, failed=[*failed, food_name])
+                return
+            calories_per_100g, portion_calories = calories_from_kcal_lookup(result)
+            ok = self.db_manager is not None and self.db_manager.update_food_log_calories(
+                record_id,
+                calories_per_100g,
+                portion_calories,
+            )
+            if ok:
+                self._recalculate_food_log_calories_queue(rest, updated=updated + 1, failed=failed)
+                return
+            self._recalculate_food_log_calories_queue(rest, updated=updated, failed=[*failed, food_name])
+
+        total = updated + len(remaining)
+        current = updated + 1
+        toast_message = (
+            f"Recalculating calories with AI ({current}/{total}): {food_name}…"
+            if total > 1
+            else f"Recalculating calories with AI ({food_name})…"
+        )
+        started = self._start_bothub_worker(prompt_text, on_success, toast_message=toast_message)
+        if not started and updated:
+            self.update_food_data()
+
+    @requires_database()
+    def _recalculate_selected_food_log_calories_with_ai(self) -> None:
+        """Resend selected food names to AI and update calories, leaving weight unchanged."""
+        if self.db_manager is None:
+            return
+        targets = [(record_id, name) for record_id, name in self._get_selected_food_log_recalc_targets() if name]
+        if not targets:
+            message_box.warning(self, "Food Name", "Select one or more food log rows with a name.")
+            return
+        self._recalculate_food_log_calories_queue(targets, updated=0, failed=[])
+
     def _reconnect_context_menu(self) -> None:
         """Reconnect the context menu signal after deletion."""
         self.tableView_food_log.customContextMenuRequested.connect(self._show_food_log_context_menu)
@@ -2964,6 +3074,7 @@ class MainWindow(
 
         add_separator(context_menu)
         swap_weight_calories_action = context_menu.addAction("🔄 Swap Weight and Calories per 100g")
+        recalc_calories_ai_action = context_menu.addAction("🤖 Recalculate calories with AI")
 
         bulk_date_action = None
         ids_for_date_change: list[int] = []
@@ -3021,6 +3132,8 @@ class MainWindow(
                 self._prompt_eaten_percent_and_apply()
             elif action == swap_weight_calories_action:
                 self._swap_weight_and_calories_per_100g()
+            elif action == recalc_calories_ai_action:
+                self._recalculate_selected_food_log_calories_with_ai()
             elif action == delete_action:
                 # Perform the deletion
                 if multiple_rows_selected:
@@ -3120,9 +3233,9 @@ class MainWindow(
         images: list[tuple[bytes, str]] | None = None,
         image: tuple[bytes, str] | None = None,
         toast_message: str = "Requesting BotHub…",
-    ) -> None:
+    ) -> bool:
         """Run BotHub chat completion in a background worker."""
-        run_bothub_request(
+        return run_bothub_request(
             self,
             self._app_config,
             prompt_text,
