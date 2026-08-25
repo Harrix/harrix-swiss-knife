@@ -12,7 +12,10 @@ from harrix_swiss_knife.apps.common.qt_main_window import (
     apply_app_window_size_and_position,
     compute_app_window_geometry,
     compute_maximize_pin_geometry,
+    compute_restore_window_geometry,
+    inset_restore_frame_rect,
     resolve_window_menu_bar,
+    window_frame_escapes_work_area,
     window_frame_margins,
 )
 from harrix_swiss_knife.qt_emoji_icon import apply_leading_emoji_icons
@@ -118,6 +121,42 @@ def test_compute_app_window_geometry_reserves_title_bar_on_scaled_work_area() ->
     """A work area that already starts below a top taskbar still reserves the caption."""
     rect = compute_app_window_geometry(QRect(0, 48, 1536, 816), frame_top=32)
     assert rect == QRect(0, 80, 1536, 784)
+
+
+def test_compute_restore_window_geometry_insets_standard_1080p() -> None:
+    """Restore from maximize keeps the title bar inside a standard work area."""
+    rect = compute_restore_window_geometry(
+        QRect(0, 0, 1920, 1032),
+        frame_left=8,
+        frame_top=32,
+        frame_right=8,
+        frame_bottom=8,
+    )
+    assert rect == QRect(8, 32, 1904, 992)
+
+
+def test_compute_restore_window_geometry_matches_centered_ultrawide() -> None:
+    """Ultrawide restore uses the same centered 1920-wide client as placement."""
+    available = QRect(1920, 80, 3440, 1360)
+    assert compute_restore_window_geometry(
+        available,
+        frame_top=32,
+    ) == compute_app_window_geometry(available, frame_top=32)
+
+
+def test_window_frame_escapes_work_area_when_title_bar_is_above() -> None:
+    """A restore pin that uses the work area as the client sits above the screen."""
+    available = QRect(0, 0, 1920, 1032)
+    frame = QRect(-8, -32, 1936, 1072)
+    assert window_frame_escapes_work_area(frame, available)
+    assert not window_frame_escapes_work_area(QRect(0, 0, 1920, 1032), available)
+    assert not window_frame_escapes_work_area(QRect(-8, -8, 1936, 1048), available)
+
+
+def test_inset_restore_frame_rect_shifts_caption_into_work_area() -> None:
+    """Win32 restore frame is inset by the title bar and borders."""
+    assert inset_restore_frame_rect(0, -32, 1920, 1040, frame_x=8, title=32, frame_y=8) == (8, 0, 1912, 1032)
+    assert inset_restore_frame_rect(0, 0, 20, 20, frame_x=8, title=32, frame_y=8) is None
 
 
 def test_window_frame_margins_are_zero_when_frameless(qapp: QApplication) -> None:  # noqa: ARG001

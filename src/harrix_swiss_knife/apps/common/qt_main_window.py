@@ -16,14 +16,17 @@ Provides `AppWindowMixin` with methods that were previously duplicated in
 
 from __future__ import annotations
 
+import ctypes
 import logging
+import sys
 import tomllib
+from ctypes import wintypes
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, ClassVar, cast
 
 import harrix_pylib as h
 from PySide6.QtCore import QEvent, QObject, QRect, Qt, QTimer
-from PySide6.QtGui import QAction, QCursor, QGuiApplication, QScreen
+from PySide6.QtGui import QAction, QCursor, QGuiApplication, QScreen, QWindowStateChangeEvent
 from PySide6.QtWidgets import (
     QApplication,
     QFrame,
@@ -46,12 +49,6 @@ from harrix_swiss_knife.qt_emoji_icon import apply_leading_emoji_icons
 if TYPE_CHECKING:
     from PySide6.QtGui import QCloseEvent, QKeyEvent
     from PySide6.QtWidgets import QMainWindow
-
-
-logger = logging.getLogger(__name__)
-
-_STANDARD_ASPECT_RATIO = 2.0
-_FALLBACK_TITLE_BAR_HEIGHT = 32
 
 
 class AppWindowMixin:
@@ -420,6 +417,46 @@ class _MaximizeOnFirstShowFilter(QObject):
         return False
 
 
+class _RestoreFromMaximizeFilter(QObject):
+    """Keep the title bar on-screen after Restore from a maximize pin."""
+
+    def __init__(self, widget: QWidget, *, standard_width: int) -> None:
+        super().__init__(widget)
+        self._widget = widget
+        self._standard_width = standard_width
+
+    def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
+        widget = self._widget
+        if watched is not widget or event.type() != QEvent.Type.WindowStateChange:
+            return False
+        if not isValid(widget) or widget.isMinimized() or widget.isMaximized() or widget.isFullScreen():
+            return False
+        old_state = event.oldState() if isinstance(event, QWindowStateChangeEvent) else Qt.WindowState.WindowNoState
+        if not (old_state & Qt.WindowState.WindowMaximized):
+            return False
+        if not window_frame_escapes_work_area(widget.frameGeometry(), _widget_work_area(widget)):
+            return False
+        apply_restored_app_window_geometry(widget, standard_width=self._standard_width)
+        return False
+
+    def set_standard_width(self, standard_width: int) -> None:
+        """Remember the width used to compute restore geometry."""
+        self._standard_width = standard_width
+
+
+class _WindowPlacement(ctypes.Structure):
+    """Win32 `WINDOWPLACEMENT` used to seed restore geometry."""
+
+    _fields_ = (
+        ("length", wintypes.UINT),
+        ("flags", wintypes.UINT),
+        ("showCmd", wintypes.UINT),
+        ("ptMinPosition", wintypes.POINT),
+        ("ptMaxPosition", wintypes.POINT),
+        ("rcNormalPosition", wintypes.RECT),
+    )
+
+
 def apply_app_window_size_and_position(widget: QWidget, *, standard_width: int = 1920) -> None:
     """Set widget size and position like food/finance/habits main Windows.
 
@@ -432,7 +469,11 @@ def apply_app_window_size_and_position(widget: QWidget, *, standard_width: int =
     primary monitor. Pin the client rect to the target screen first, and only
     maximize after the native window is mapped.
 
+    That pin is the full work area, so Windows restore would place the title
+    bar above the screen. A `WindowStateChange` filter snaps the frame back.
+
     """
+    _install_restore_from_maximize_filter(widget, standard_width=standard_width)
     screen = QGuiApplication.screenAt(QCursor.pos()) or widget.screen() or QApplication.primaryScreen()
     if screen is None:
         return
@@ -457,6 +498,24 @@ def apply_app_window_size_and_position(widget: QWidget, *, standard_width: int =
         return
     widget.setWindowState(widget.windowState() & ~Qt.WindowState.WindowMaximized)
     widget.setGeometry(target)
+
+
+def apply_restored_app_window_geometry(widget: QWidget, *, standard_width: int = 1920) -> None:
+    """Place a restored window so its title bar stays inside the work area."""
+    available = _widget_work_area(widget)
+    if available.width() <= 0 or available.height() <= 0:
+        return
+    left, top, right, bottom = window_frame_margins(widget)
+    widget.setGeometry(
+        compute_restore_window_geometry(
+            available,
+            standard_width=standard_width,
+            frame_left=left,
+            frame_top=top,
+            frame_right=right,
+            frame_bottom=bottom,
+        ),
+    )
 
 
 def compute_app_window_geometry(
@@ -530,6 +589,84 @@ def compute_maximize_pin_geometry(
     return QRect(available)
 
 
+def compute_restore_window_geometry(
+    available: QRect,
+    *,
+    standard_width: int = 1920,
+    frame_left: int = 0,
+    frame_top: int = 0,
+    frame_right: int = 0,
+    frame_bottom: int = 0,
+) -> QRect:
+    """Return a client rect that keeps the window frame inside the work area.
+
+    On screens that open maximized, restore still needs a normal size: the
+    inner work area after reserving the title bar and borders.
+
+    Args:
+
+    - `available` (`QRect`): Work area of the target screen (excludes the taskbar).
+    - `standard_width` (`int`): Preferred window width used on ultrawide screens.
+      Defaults to `1920`.
+    - `frame_left` / `frame_top` / `frame_right` / `frame_bottom` (`int`):
+      Window-frame extents in logical pixels.
+
+    Returns:
+
+    - `QRect`: Client geometry in global logical coordinates.
+
+    """
+    target = compute_app_window_geometry(
+        available,
+        standard_width=standard_width,
+        frame_left=frame_left,
+        frame_top=frame_top,
+        frame_right=frame_right,
+        frame_bottom=frame_bottom,
+    )
+    if target is not None:
+        return target
+    inner_width = max(1, available.width() - max(0, frame_left) - max(0, frame_right))
+    inner_height = max(1, available.height() - max(0, frame_top) - max(0, frame_bottom))
+    return QRect(
+        available.x() + max(0, frame_left),
+        available.y() + max(0, frame_top),
+        inner_width,
+        inner_height,
+    )
+
+
+def inset_restore_frame_rect(
+    left: int,
+    top: int,
+    right: int,
+    bottom: int,
+    *,
+    frame_x: int,
+    title: int,
+    frame_y: int,
+) -> tuple[int, int, int, int] | None:
+    """Inset a Win32 restore frame so the caption stays inside the work area.
+
+    Args:
+
+    - `left` / `top` / `right` / `bottom` (`int`): Current restore frame
+      (`WINDOWPLACEMENT.rcNormalPosition`).
+    - `frame_x` (`int`): Left/right border thickness in native pixels.
+    - `title` (`int`): Title-bar height in native pixels.
+    - `frame_y` (`int`): Bottom border thickness in native pixels.
+
+    Returns:
+
+    - `tuple[int, int, int, int] | None`: Inset `(left, top, right, bottom)`,
+      or `None` when the rect is too small to inset.
+
+    """
+    if right - left <= frame_x * 2 or bottom - top <= title + frame_y:
+        return None
+    return (left + frame_x, top + title, right - frame_x, bottom - frame_y)
+
+
 def resolve_window_menu_bar(window: QWidget) -> QMenuBar | None:
     """Return the visible app menu bar, including the tab-row corner bar.
 
@@ -554,6 +691,26 @@ def resolve_window_menu_bar(window: QWidget) -> QMenuBar | None:
     return None
 
 
+def window_frame_escapes_work_area(frame: QRect, available: QRect) -> bool:
+    """Return whether the title bar has moved above or left of the work area.
+
+    A few pixels of DWM shadow around a correctly placed window are ignored.
+
+    Args:
+
+    - `frame` (`QRect`): Outer window rectangle including the title bar.
+    - `available` (`QRect`): Work area of the target screen (excludes the taskbar).
+
+    Returns:
+
+    - `bool`: `True` when Restore would hide the caption buttons.
+
+    """
+    if available.width() <= 0 or available.height() <= 0:
+        return False
+    return frame.top() < available.top() - _RESTORE_SNAP_SLACK or frame.left() < available.left() - _RESTORE_SNAP_SLACK
+
+
 def window_frame_margins(widget: QWidget) -> tuple[int, int, int, int]:
     """Return `(left, top, right, bottom)` window-frame extents in logical pixels.
 
@@ -566,14 +723,15 @@ def window_frame_margins(widget: QWidget) -> tuple[int, int, int, int]:
     if flags & Qt.WindowType.FramelessWindowHint:
         return (0, 0, 0, 0)
 
-    frame = widget.frameGeometry()
-    client = widget.geometry()
-    left = client.x() - frame.x()
-    top = client.y() - frame.y()
-    right = frame.right() - client.right()
-    bottom = frame.bottom() - client.bottom()
-    if top > 0:
-        return (max(0, left), top, max(0, right), max(0, bottom))
+    if not (widget.windowState() & Qt.WindowState.WindowMaximized):
+        frame = widget.frameGeometry()
+        client = widget.geometry()
+        left = client.x() - frame.x()
+        top = client.y() - frame.y()
+        right = frame.right() - client.right()
+        bottom = frame.bottom() - client.bottom()
+        if top > 0:
+            return (max(0, left), top, max(0, right), max(0, bottom))
 
     style = widget.style()
     title = style.pixelMetric(QStyle.PixelMetric.PM_TitleBarHeight, widget=widget)
@@ -591,8 +749,93 @@ def _install_maximize_on_first_show(widget: QWidget) -> None:
     widget.installEventFilter(_MaximizeOnFirstShowFilter(widget))
 
 
+def _install_restore_from_maximize_filter(widget: QWidget, *, standard_width: int) -> None:
+    """Keep one restore-from-maximize filter on `widget`."""
+    existing = widget.findChildren(_RestoreFromMaximizeFilter)
+    if existing:
+        existing[0].set_standard_width(standard_width)
+        return
+    widget.installEventFilter(_RestoreFromMaximizeFilter(widget, standard_width=standard_width))
+
+
 def _maximize_when_mapped(widget: QWidget) -> None:
     """Maximize a window that is already visible on its pinned screen."""
     if not isValid(widget) or not widget.isVisible():
         return
     widget.showMaximized()
+    _seed_windows_restore_geometry(widget)
+
+
+def _seed_windows_restore_geometry(widget: QWidget) -> None:
+    """Inset the Win32 restore rect so Restore keeps the title bar on-screen.
+
+    Maximize pins the client to the full work area. Windows then remembers that
+    as the normal geometry, so Restore places the caption above the work area.
+    Adjust `WINDOWPLACEMENT.rcNormalPosition` in the same coordinate system.
+
+    """
+    if sys.platform != "win32" or not isValid(widget):
+        return
+    hwnd = int(widget.winId())
+    if hwnd == 0:
+        return
+
+    user32 = ctypes.windll.user32
+    placement = _WindowPlacement()
+    placement.length = ctypes.sizeof(_WindowPlacement)
+    if not user32.GetWindowPlacement(hwnd, ctypes.byref(placement)):
+        return
+
+    dpi = 96
+    get_dpi = getattr(user32, "GetDpiForWindow", None)
+    if callable(get_dpi):
+        dpi = int(get_dpi(hwnd)) or 96
+    metrics = getattr(user32, "GetSystemMetricsForDpi", None)
+    if callable(metrics):
+        caption = int(metrics(_SM_CYCAPTION, dpi))
+        pad = int(metrics(_SM_CXPADDEDBORDER, dpi))
+        frame_x = int(metrics(_SM_CXFRAME, dpi)) + pad
+        frame_y = int(metrics(_SM_CYFRAME, dpi)) + pad
+    else:
+        caption = int(user32.GetSystemMetrics(_SM_CYCAPTION))
+        pad = int(user32.GetSystemMetrics(_SM_CXPADDEDBORDER))
+        frame_x = int(user32.GetSystemMetrics(_SM_CXFRAME)) + pad
+        frame_y = int(user32.GetSystemMetrics(_SM_CYFRAME)) + pad
+
+    inset = inset_restore_frame_rect(
+        placement.rcNormalPosition.left,
+        placement.rcNormalPosition.top,
+        placement.rcNormalPosition.right,
+        placement.rcNormalPosition.bottom,
+        frame_x=frame_x,
+        title=max(caption + pad, frame_y),
+        frame_y=frame_y,
+    )
+    if inset is None:
+        return
+    placement.rcNormalPosition.left = inset[0]
+    placement.rcNormalPosition.top = inset[1]
+    placement.rcNormalPosition.right = inset[2]
+    placement.rcNormalPosition.bottom = inset[3]
+    placement.showCmd = _SW_SHOWMAXIMIZED
+    user32.SetWindowPlacement(hwnd, ctypes.byref(placement))
+
+
+def _widget_work_area(widget: QWidget) -> QRect:
+    """Return the work area of the screen that currently owns `widget`."""
+    screen = widget.screen() or QGuiApplication.screenAt(widget.geometry().center()) or QApplication.primaryScreen()
+    if screen is None:
+        return QRect()
+    return screen.availableGeometry()
+
+
+logger = logging.getLogger(__name__)
+
+_STANDARD_ASPECT_RATIO = 2.0
+_FALLBACK_TITLE_BAR_HEIGHT = 32
+_RESTORE_SNAP_SLACK = 16
+_SW_SHOWMAXIMIZED = 3
+_SM_CXFRAME = 32
+_SM_CYCAPTION = 4
+_SM_CYFRAME = 33
+_SM_CXPADDEDBORDER = 92
