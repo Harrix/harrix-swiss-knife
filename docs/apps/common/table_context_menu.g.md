@@ -14,6 +14,7 @@ lang: en
 - [🔧 Function `add_clear_filters_action`](#-function-add_clear_filters_action)
 - [🔧 Function `add_date_in_main_field_actions`](#-function-add_date_in_main_field_actions)
 - [🔧 Function `add_delete_action`](#-function-add_delete_action)
+- [🔧 Function `add_export_actions`](#-function-add_export_actions)
 - [🔧 Function `add_info_action`](#-function-add_info_action)
 - [🔧 Function `add_separator`](#-function-add_separator)
 - [🔧 Function `begin_filters_block`](#-function-begin_filters_block)
@@ -77,6 +78,26 @@ Add `Delete` as the last command, after a separator when needed.
 def add_delete_action(menu: QMenu) -> QAction:
     add_separator(menu)
     return menu.addAction(LABEL_DELETE)
+```
+
+</details>
+
+## 🔧 Function `add_export_actions`
+
+```python
+def add_export_actions(menu: QMenu) -> tuple[QAction, QAction]
+```
+
+Add CSV and Excel export commands.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def add_export_actions(menu: QMenu) -> tuple[QAction, QAction]:
+    csv_action = menu.addAction(LABEL_EXPORT_CSV)
+    excel_action = menu.addAction(LABEL_EXPORT_EXCEL)
+    return csv_action, excel_action
 ```
 
 </details>

@@ -25,6 +25,7 @@ LABEL_CLEAR_FILTERS = "🧹 Clear all filters"
 LABEL_DELETE = "🗑️ Delete"
 LABEL_EDIT = "✏️ Edit"
 LABEL_EXPORT_CSV = "📤 Export to CSV"
+LABEL_EXPORT_EXCEL = "📊 Export to Excel"
 LABEL_FILTER_BY_CATEGORY = "🔍 Filter by this category"
 LABEL_FILTER_BY_DATE = "📅 Filter by this date"
 LABEL_FILTER_BY_EXERCISE = "🔍 Filter by this exercise"
@@ -58,6 +59,13 @@ def add_delete_action(menu: QMenu) -> QAction:
     """Add `Delete` as the last command, after a separator when needed."""
     add_separator(menu)
     return menu.addAction(LABEL_DELETE)
+
+
+def add_export_actions(menu: QMenu) -> tuple[QAction, QAction]:
+    """Add CSV and Excel export commands."""
+    csv_action = menu.addAction(LABEL_EXPORT_CSV)
+    excel_action = menu.addAction(LABEL_EXPORT_EXCEL)
+    return csv_action, excel_action
 
 
 def add_info_action(menu: QMenu, text: str) -> QAction:

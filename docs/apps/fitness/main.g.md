@@ -33,6 +33,7 @@ lang: en
   - [⚙️ Method `on_exercise_selection_changed_list`](#%EF%B8%8F-method-on_exercise_selection_changed_list)
   - [⚙️ Method `on_exercise_type_changed`](#%EF%B8%8F-method-on_exercise_type_changed)
   - [⚙️ Method `on_export_csv`](#%EF%B8%8F-method-on_export_csv)
+  - [⚙️ Method `on_export_excel`](#%EF%B8%8F-method-on_export_excel)
   - [⚙️ Method `on_fitness_dashboard_add`](#%EF%B8%8F-method-on_fitness_dashboard_add)
   - [⚙️ Method `on_fitness_dashboard_add_text`](#%EF%B8%8F-method-on_fitness_dashboard_add_text)
   - [⚙️ Method `on_fitness_dashboard_add_voice`](#%EF%B8%8F-method-on_fitness_dashboard_add_voice)
@@ -1596,42 +1597,12 @@ class MainWindow(
             self.comboBox_records_select_exercise.blockSignals(False)  # noqa: FBT003
 
     def on_export_csv(self) -> None:
-        """Save current `process` view to a CSV file (semicolon-separated).
+        """Save the process table as CSV (Excel is also offered in the dialog)."""
+        self._export_named_table("process", prefer="csv")
 
-        Opens a file save dialog and exports the current process table view
-        to a CSV file with semicolon-separated values.
-
-        """
-        filename_str, _ = QFileDialog.getSaveFileName(
-            self,
-            "Save Table",
-            "",
-            "CSV (*.csv)",
-        )
-        if not filename_str:
-            return
-
-        process_proxy = self.models.get("process")
-        if process_proxy is None:
-            message_box.warning(self, "Error", "No data to export")
-            return
-
-        try:
-            filename = Path(filename_str)
-            model = process_proxy.sourceModel()
-            with filename.open("w", encoding="utf-8") as file:
-                headers = [
-                    model.headerData(col, Qt.Orientation.Horizontal, Qt.ItemDataRole.DisplayRole) or ""
-                    for col in range(model.columnCount())
-                ]
-                file.write(";".join(headers) + "\n")
-
-                for row in range(model.rowCount()):
-                    row_values = [f'"{model.data(model.index(row, col)) or ""}"' for col in range(model.columnCount())]
-                    file.write(";".join(row_values) + "\n")
-
-        except Exception as e:
-            message_box.warning(self, "Export Error", f"Failed to export CSV: {e}")
+    def on_export_excel(self) -> None:
+        """Save the process table as Excel (CSV is also offered in the dialog)."""
+        self._export_named_table("process", prefer="xlsx")
 
     @requires_database()
     def on_fitness_dashboard_add(self) -> None:
@@ -5043,6 +5014,15 @@ class MainWindow(
             self._table_exercise_name_column(table_name),
         )
 
+    def _export_named_table(self, table_key: str, *, prefer: Literal["csv", "xlsx"]) -> None:
+        """Export a named table as CSV or Excel."""
+        export_table_via_dialog(
+            self,
+            self._model_for_table_export(table_key),
+            prefer=prefer,
+            sheet_name=table_key.replace("_", " ").title(),
+        )
+
     def _favorite_menu_action(self, menu: QMenu, exercise_name: str) -> QAction:
         """Add an add/remove favorite action for `exercise_name`."""
         is_fav = False
@@ -6047,6 +6027,16 @@ class MainWindow(
         if manager.has_any_exercise_avif():
             self.update_all()
             self._load_initial_avifs()
+
+    def _model_for_table_export(self, table_key: str) -> QAbstractItemModel | None:
+        """Return the source model used when exporting a named table."""
+        if table_key == "statistics":
+            return self.tableView_statistics.model()
+        model = self.models.get(table_key)
+        if isinstance(model, QSortFilterProxyModel):
+            source = model.sourceModel()
+            return source if source is not None else model
+        return model
 
     def _on_chart_exercise_list_double_clicked(self, _index: QModelIndex) -> None:
         """Handle double-click on chart exercise list to open Sets tab.
@@ -7089,7 +7079,7 @@ class MainWindow(
         add_separator(context_menu)
         context_menu.addAction(self.actionAdd_Exercise_Type)
         context_menu.addAction(self.actionRefresh_Types_Table)
-        export_action = context_menu.addAction(LABEL_EXPORT_CSV)
+        export_action, export_excel_action = add_export_actions(context_menu)
         delete_action = add_delete_action(context_menu)
         exercise_name = self._get_selected_exercise_from_table("types") or ""
         lightbox_action.setEnabled(self._get_exercise_avif_path(exercise_name) is not None)
@@ -7107,7 +7097,9 @@ class MainWindow(
         elif action == reveal_action:
             self._reveal_exercise_media_in_explorer(exercise_name)
         elif action == export_action:
-            self.on_export_csv()
+            self._export_named_table("types", prefer="csv")
+        elif action == export_excel_action:
+            self._export_named_table("types", prefer="xlsx")
 
     def _show_exercises_context_menu(self, position: QPoint) -> None:
         """Show context menu for exercises table.
@@ -7136,7 +7128,7 @@ class MainWindow(
         add_separator(context_menu)
         context_menu.addAction(self.actionAdd_Exercise)
         context_menu.addAction(self.actionRefresh_Exercises_Table)
-        export_action = context_menu.addAction(LABEL_EXPORT_CSV)
+        export_action, export_excel_action = add_export_actions(context_menu)
         delete_action = add_delete_action(context_menu)
         lightbox_name = self._get_selected_exercise_from_table("exercises") or selected_name
         lightbox_action.setEnabled(self._get_exercise_avif_path(lightbox_name) is not None)
@@ -7156,7 +7148,9 @@ class MainWindow(
         elif action == reveal_action:
             self._reveal_exercise_media_in_explorer(lightbox_name)
         elif action == export_action:
-            self.on_export_csv()
+            self._export_named_table("exercises", prefer="csv")
+        elif action == export_excel_action:
+            self._export_named_table("exercises", prefer="xlsx")
         elif action == add_weights_action:
             self.on_add_dumbbell_weight_types()
 
@@ -7224,7 +7218,7 @@ class MainWindow(
             bulk_date_action = context_menu.addAction(LABEL_SET_DATE_SELECTED)
 
         add_separator(context_menu)
-        export_action = context_menu.addAction(LABEL_EXPORT_CSV)
+        export_action, export_excel_action = add_export_actions(context_menu)
 
         begin_filters_block(context_menu)
         if exercise_value:
@@ -7258,7 +7252,10 @@ class MainWindow(
             self.clear_filter()
         elif action == export_action:
             logger.debug("🔧 Context menu: Export to CSV action triggered")
-            self.on_export_csv()
+            self._export_named_table("process", prefer="csv")
+        elif action == export_excel_action:
+            logger.debug("🔧 Context menu: Export to Excel action triggered")
+            self._export_named_table("process", prefer="xlsx")
         elif action == delete_action:
             if len(selected_process_ids) > 1:
                 self._delete_selected_process_rows(selected_process_ids)
@@ -7298,7 +7295,7 @@ class MainWindow(
 
         """
         context_menu = QMenu(self)
-        export_action = context_menu.addAction(LABEL_EXPORT_CSV)
+        export_action, export_excel_action = add_export_actions(context_menu)
         apply_leading_emoji_icons(context_menu)
         action = context_menu.exec_(self.tableView_statistics.mapToGlobal(position))
 
@@ -7309,7 +7306,10 @@ class MainWindow(
 
         if action == export_action:
             logger.debug("🔧 Context menu: Export to CSV action triggered")
-            self.on_export_csv()
+            self._export_named_table("statistics", prefer="csv")
+        elif action == export_excel_action:
+            logger.debug("🔧 Context menu: Export to Excel action triggered")
+            self._export_named_table("statistics", prefer="xlsx")
 
     def _show_weight_context_menu(self, position: QPoint) -> None:
         """Show context menu for weight table.
@@ -7320,7 +7320,7 @@ class MainWindow(
 
         """
         context_menu = QMenu(self)
-        export_action = context_menu.addAction(LABEL_EXPORT_CSV)
+        export_action, export_excel_action = add_export_actions(context_menu)
         apply_leading_emoji_icons(context_menu)
         action = context_menu.exec_(self.tableView_weight.mapToGlobal(position))
 
@@ -7331,7 +7331,10 @@ class MainWindow(
 
         if action == export_action:
             logger.debug("🔧 Context menu: Export to CSV action triggered")
-            self.on_export_csv()
+            self._export_named_table("weight", prefer="csv")
+        elif action == export_excel_action:
+            logger.debug("🔧 Context menu: Export to Excel action triggered")
+            self._export_named_table("weight", prefer="xlsx")
 
     def _start_exercise_media_save(
         self,
@@ -9394,46 +9397,32 @@ def on_exercise_type_changed(self, _index: int = -1) -> None:
 def on_export_csv(self) -> None
 ```
 
-Save current `process` view to a CSV file (semicolon-separated).
-
-Opens a file save dialog and exports the current process table view
-to a CSV file with semicolon-separated values.
+Save the process table as CSV (Excel is also offered in the dialog).
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def on_export_csv(self) -> None:
-        filename_str, _ = QFileDialog.getSaveFileName(
-            self,
-            "Save Table",
-            "",
-            "CSV (*.csv)",
-        )
-        if not filename_str:
-            return
+        self._export_named_table("process", prefer="csv")
+```
 
-        process_proxy = self.models.get("process")
-        if process_proxy is None:
-            message_box.warning(self, "Error", "No data to export")
-            return
+</details>
 
-        try:
-            filename = Path(filename_str)
-            model = process_proxy.sourceModel()
-            with filename.open("w", encoding="utf-8") as file:
-                headers = [
-                    model.headerData(col, Qt.Orientation.Horizontal, Qt.ItemDataRole.DisplayRole) or ""
-                    for col in range(model.columnCount())
-                ]
-                file.write(";".join(headers) + "\n")
+### ⚙️ Method `on_export_excel`
 
-                for row in range(model.rowCount()):
-                    row_values = [f'"{model.data(model.index(row, col)) or ""}"' for col in range(model.columnCount())]
-                    file.write(";".join(row_values) + "\n")
+```python
+def on_export_excel(self) -> None
+```
 
-        except Exception as e:
-            message_box.warning(self, "Export Error", f"Failed to export CSV: {e}")
+Save the process table as Excel (CSV is also offered in the dialog).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def on_export_excel(self) -> None:
+        self._export_named_table("process", prefer="xlsx")
 ```
 
 </details>

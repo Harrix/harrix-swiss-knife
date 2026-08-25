@@ -14,7 +14,7 @@ import re
 from datetime import UTC, date, datetime, timedelta
 from functools import partial
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any, Literal, cast
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -55,7 +55,6 @@ from PySide6.QtWidgets import (
     QDateEdit,
     QDialog,
     QDialogButtonBox,
-    QFileDialog,
     QHBoxLayout,
     QHeaderView,
     QLabel,
@@ -91,16 +90,17 @@ from harrix_swiss_knife.apps.common.quick_tab_startup import install_open_quick_
 from harrix_swiss_knife.apps.common.scroll_pagination import ScrollPagination, on_scroll_load_more
 from harrix_swiss_knife.apps.common.table_context_menu import (
     LABEL_EDIT,
-    LABEL_EXPORT_CSV,
     LABEL_FILTER_BY_CATEGORY,
     LABEL_SET_DATE_SELECTED,
     add_clear_filters_action,
     add_date_in_main_field_actions,
     add_delete_action,
+    add_export_actions,
     add_info_action,
     add_separator,
     begin_filters_block,
 )
+from harrix_swiss_knife.apps.common.table_export import export_table_via_dialog
 from harrix_swiss_knife.apps.common.table_models import create_table_proxy_model
 from harrix_swiss_knife.apps.common.widgets.image_picker import ImagePicker, ImagePickerMode
 from harrix_swiss_knife.apps.common.word_wrap_header import install_word_wrap_header
@@ -1122,40 +1122,12 @@ class MainWindow(
             self.doubleSpinBox_exchange_item_update.setValue(0.0)
 
     def on_export_csv(self) -> None:
-        """Save current transactions view to a CSV file."""
-        filename_str: str
-        filename_str, _ = QFileDialog.getSaveFileName(
-            self,
-            "Save Table",
-            "",
-            "CSV (*.csv)",
-        )
-        if not filename_str:
-            return
+        """Save current transactions view as CSV (Excel is also offered)."""
+        self._export_transactions_table(prefer="csv")
 
-        try:
-            filename: Path = Path(filename_str)
-            proxy_model = self.models["transactions"]
-            if proxy_model is None or not isinstance(proxy_model, QSortFilterProxyModel):
-                return
-            model = proxy_model.sourceModel()
-            if model is None:
-                return
-            with filename.open("w", encoding="utf-8") as file:
-                headers: list[str] = [
-                    model.headerData(col, Qt.Orientation.Horizontal, Qt.ItemDataRole.DisplayRole) or ""
-                    for col in range(model.columnCount())
-                ]
-                file.write(";".join(headers) + "\n")
-
-                for row in range(model.rowCount()):
-                    row_values: list[str] = [
-                        f'"{model.data(model.index(row, col)) or ""}"' for col in range(model.columnCount())
-                    ]
-                    file.write(";".join(row_values) + "\n")
-
-        except Exception as e:
-            message_box.warning(self, "Export Error", f"Failed to export CSV: {e}")
+    def on_export_excel(self) -> None:
+        """Save current transactions view as Excel (CSV is also offered)."""
+        self._export_transactions_table(prefer="xlsx")
 
     def on_finance_dashboard_add_photo(self) -> None:
         """Open a large photo-only form and send the receipt to AI."""
@@ -2727,6 +2699,12 @@ class MainWindow(
             return int(row_id_item.text())
         except (TypeError, ValueError):
             return None
+
+    def _export_transactions_table(self, *, prefer: Literal["csv", "xlsx"]) -> None:
+        """Export the transactions source model as CSV or Excel."""
+        proxy = self.models.get("transactions")
+        model = proxy.sourceModel() if isinstance(proxy, QSortFilterProxyModel) else proxy
+        export_table_via_dialog(self, model, prefer=prefer, sheet_name="Transactions")
 
     def _fetch_transaction_rows(self, limit: int | None, offset: int) -> list[list[Any]]:
         """Fetch transaction rows with optional filters and pagination."""
@@ -5934,7 +5912,7 @@ class MainWindow(
             bulk_date_action = context_menu.addAction(LABEL_SET_DATE_SELECTED)
 
         add_separator(context_menu)
-        export_action = context_menu.addAction(LABEL_EXPORT_CSV)
+        export_action, export_excel_action = add_export_actions(context_menu)
 
         # Sum Amount column for unique selected rows (any column selection counts)
         selected_indexes = self.tableView_transactions.selectionModel().selectedIndexes()
@@ -6050,6 +6028,8 @@ class MainWindow(
 
         if action == export_action:
             self.on_export_csv()
+        elif action == export_excel_action:
+            self.on_export_excel()
         elif bulk_date_action is not None and action == bulk_date_action:
             self._set_date_for_selected_transactions(ids_for_date_change)
         elif action == delete_action:

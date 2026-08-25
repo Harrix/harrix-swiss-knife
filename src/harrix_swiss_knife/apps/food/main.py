@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any, Literal, cast
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -33,7 +33,6 @@ from PySide6.QtWidgets import (
     QDateEdit,
     QDialog,
     QDialogButtonBox,
-    QFileDialog,
     QHBoxLayout,
     QInputDialog,
     QLabel,
@@ -63,17 +62,18 @@ from harrix_swiss_knife.apps.common.qt_main_window import AppWindowMixin
 from harrix_swiss_knife.apps.common.quick_tab_startup import install_open_quick_tab_checkbox
 from harrix_swiss_knife.apps.common.scroll_pagination import ScrollPagination, on_scroll_load_more
 from harrix_swiss_knife.apps.common.table_context_menu import (
-    LABEL_EXPORT_CSV,
     LABEL_FILTER_BY_DATE,
     LABEL_FILTER_BY_NAME,
     LABEL_SET_DATE_SELECTED,
     add_clear_filters_action,
     add_date_in_main_field_actions,
     add_delete_action,
+    add_export_actions,
     add_info_action,
     add_separator,
     begin_filters_block,
 )
+from harrix_swiss_knife.apps.common.table_export import export_table_via_dialog
 from harrix_swiss_knife.apps.common.table_models import create_table_proxy_model
 from harrix_swiss_knife.apps.common.widgets.image_picker import ImagePicker, ImagePickerMode
 from harrix_swiss_knife.apps.common.word_wrap_header import WordWrapHeaderView
@@ -573,37 +573,12 @@ class MainWindow(
         self.lineEdit_food_manual_name.setFocus()
 
     def on_export_csv(self) -> None:
-        """Save current food log view to a CSV file (semicolon-separated)."""
-        filename_str, _ = QFileDialog.getSaveFileName(
-            self,
-            "Save Table",
-            "",
-            "CSV (*.csv)",
-        )
-        if not filename_str:
-            return
+        """Save current food log view as CSV (Excel is also offered)."""
+        self._export_food_log_table(prefer="csv")
 
-        food_log_proxy = self.models.get("food_log")
-        if food_log_proxy is None:
-            message_box.warning(self, "Error", "No data to export")
-            return
-
-        try:
-            filename = Path(filename_str)
-            model = food_log_proxy.sourceModel()
-            with filename.open("w", encoding="utf-8") as file:
-                headers = [
-                    model.headerData(col, Qt.Orientation.Horizontal, Qt.ItemDataRole.DisplayRole) or ""
-                    for col in range(model.columnCount())
-                ]
-                file.write(";".join(headers) + "\n")
-
-                for row in range(model.rowCount()):
-                    row_values = [f'"{model.data(model.index(row, col)) or ""}"' for col in range(model.columnCount())]
-                    file.write(";".join(row_values) + "\n")
-
-        except Exception as e:
-            message_box.warning(self, "Export Error", f"Failed to export CSV: {e}")
+    def on_export_excel(self) -> None:
+        """Save current food log view as Excel (CSV is also offered)."""
+        self._export_food_log_table(prefer="xlsx")
 
     def on_food_add_by_voice(self) -> None:
         """Record speech, transcribe via BotHub, convert to food log TSV, then open preview dialog."""
@@ -2081,6 +2056,12 @@ class MainWindow(
             self.food_completer_source_model.deleteLater()
             self.food_completer_source_model = None
 
+    def _export_food_log_table(self, *, prefer: Literal["csv", "xlsx"]) -> None:
+        """Export the food log source model as CSV or Excel."""
+        proxy = self.models.get("food_log")
+        model = proxy.sourceModel() if isinstance(proxy, QSortFilterProxyModel) else proxy
+        export_table_via_dialog(self, model, prefer=prefer, sheet_name="Food log")
+
     def _filter_food_items(self, text: str) -> None:
         """Filter food items list based on input text.
 
@@ -3230,7 +3211,7 @@ class MainWindow(
                 bulk_date_action = context_menu.addAction(LABEL_SET_DATE_SELECTED)
 
         add_separator(context_menu)
-        export_action = context_menu.addAction(LABEL_EXPORT_CSV)
+        export_action, export_excel_action = add_export_actions(context_menu)
 
         if multiple_rows_selected:
             add_info_action(context_menu, f"📊 Total calories: {total_calories:.1f} kcal")
@@ -3295,6 +3276,8 @@ class MainWindow(
                 self._set_date_for_selected_food_log_records(ids_for_date_change)
             elif action == export_action:
                 self.on_export_csv()
+            elif action == export_excel_action:
+                self.on_export_excel()
         finally:
             # Reconnect the context menu signal after a short delay
             QTimer.singleShot(100, self._reconnect_context_menu)

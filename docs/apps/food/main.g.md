@@ -22,6 +22,7 @@ lang: en
   - [⚙️ Method `on_check_problematic_records`](#%EF%B8%8F-method-on_check_problematic_records)
   - [⚙️ Method `on_clear_food_manual_name`](#%EF%B8%8F-method-on_clear_food_manual_name)
   - [⚙️ Method `on_export_csv`](#%EF%B8%8F-method-on_export_csv)
+  - [⚙️ Method `on_export_excel`](#%EF%B8%8F-method-on_export_excel)
   - [⚙️ Method `on_food_add_by_voice`](#%EF%B8%8F-method-on_food_add_by_voice)
   - [⚙️ Method `on_food_add_with_ai`](#%EF%B8%8F-method-on_food_add_with_ai)
   - [⚙️ Method `on_food_dashboard_add_photo`](#%EF%B8%8F-method-on_food_dashboard_add_photo)
@@ -471,37 +472,12 @@ class MainWindow(
         self.lineEdit_food_manual_name.setFocus()
 
     def on_export_csv(self) -> None:
-        """Save current food log view to a CSV file (semicolon-separated)."""
-        filename_str, _ = QFileDialog.getSaveFileName(
-            self,
-            "Save Table",
-            "",
-            "CSV (*.csv)",
-        )
-        if not filename_str:
-            return
+        """Save current food log view as CSV (Excel is also offered)."""
+        self._export_food_log_table(prefer="csv")
 
-        food_log_proxy = self.models.get("food_log")
-        if food_log_proxy is None:
-            message_box.warning(self, "Error", "No data to export")
-            return
-
-        try:
-            filename = Path(filename_str)
-            model = food_log_proxy.sourceModel()
-            with filename.open("w", encoding="utf-8") as file:
-                headers = [
-                    model.headerData(col, Qt.Orientation.Horizontal, Qt.ItemDataRole.DisplayRole) or ""
-                    for col in range(model.columnCount())
-                ]
-                file.write(";".join(headers) + "\n")
-
-                for row in range(model.rowCount()):
-                    row_values = [f'"{model.data(model.index(row, col)) or ""}"' for col in range(model.columnCount())]
-                    file.write(";".join(row_values) + "\n")
-
-        except Exception as e:
-            message_box.warning(self, "Export Error", f"Failed to export CSV: {e}")
+    def on_export_excel(self) -> None:
+        """Save current food log view as Excel (CSV is also offered)."""
+        self._export_food_log_table(prefer="xlsx")
 
     def on_food_add_by_voice(self) -> None:
         """Record speech, transcribe via BotHub, convert to food log TSV, then open preview dialog."""
@@ -1979,6 +1955,12 @@ class MainWindow(
             self.food_completer_source_model.deleteLater()
             self.food_completer_source_model = None
 
+    def _export_food_log_table(self, *, prefer: Literal["csv", "xlsx"]) -> None:
+        """Export the food log source model as CSV or Excel."""
+        proxy = self.models.get("food_log")
+        model = proxy.sourceModel() if isinstance(proxy, QSortFilterProxyModel) else proxy
+        export_table_via_dialog(self, model, prefer=prefer, sheet_name="Food log")
+
     def _filter_food_items(self, text: str) -> None:
         """Filter food items list based on input text.
 
@@ -3128,7 +3110,7 @@ class MainWindow(
                 bulk_date_action = context_menu.addAction(LABEL_SET_DATE_SELECTED)
 
         add_separator(context_menu)
-        export_action = context_menu.addAction(LABEL_EXPORT_CSV)
+        export_action, export_excel_action = add_export_actions(context_menu)
 
         if multiple_rows_selected:
             add_info_action(context_menu, f"📊 Total calories: {total_calories:.1f} kcal")
@@ -3193,6 +3175,8 @@ class MainWindow(
                 self._set_date_for_selected_food_log_records(ids_for_date_change)
             elif action == export_action:
                 self.on_export_csv()
+            elif action == export_excel_action:
+                self.on_export_excel()
         finally:
             # Reconnect the context menu signal after a short delay
             QTimer.singleShot(100, self._reconnect_context_menu)
@@ -4351,43 +4335,32 @@ def on_clear_food_manual_name(self) -> None:
 def on_export_csv(self) -> None
 ```
 
-Save current food log view to a CSV file (semicolon-separated).
+Save current food log view as CSV (Excel is also offered).
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def on_export_csv(self) -> None:
-        filename_str, _ = QFileDialog.getSaveFileName(
-            self,
-            "Save Table",
-            "",
-            "CSV (*.csv)",
-        )
-        if not filename_str:
-            return
+        self._export_food_log_table(prefer="csv")
+```
 
-        food_log_proxy = self.models.get("food_log")
-        if food_log_proxy is None:
-            message_box.warning(self, "Error", "No data to export")
-            return
+</details>
 
-        try:
-            filename = Path(filename_str)
-            model = food_log_proxy.sourceModel()
-            with filename.open("w", encoding="utf-8") as file:
-                headers = [
-                    model.headerData(col, Qt.Orientation.Horizontal, Qt.ItemDataRole.DisplayRole) or ""
-                    for col in range(model.columnCount())
-                ]
-                file.write(";".join(headers) + "\n")
+### ⚙️ Method `on_export_excel`
 
-                for row in range(model.rowCount()):
-                    row_values = [f'"{model.data(model.index(row, col)) or ""}"' for col in range(model.columnCount())]
-                    file.write(";".join(row_values) + "\n")
+```python
+def on_export_excel(self) -> None
+```
 
-        except Exception as e:
-            message_box.warning(self, "Export Error", f"Failed to export CSV: {e}")
+Save current food log view as Excel (CSV is also offered).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def on_export_excel(self) -> None:
+        self._export_food_log_table(prefer="xlsx")
 ```
 
 </details>

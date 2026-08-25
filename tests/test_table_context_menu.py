@@ -8,12 +8,15 @@ from PySide6.QtWidgets import QApplication, QMenu
 from harrix_swiss_knife.apps.common.table_context_menu import (
     LABEL_CLEAR_FILTERS,
     LABEL_DELETE,
+    LABEL_EXPORT_CSV,
+    LABEL_EXPORT_EXCEL,
     LABEL_FILTER_BY_DATE,
     LABEL_SET_DATE,
     LABEL_SHOW_ALL_RECORDS,
     add_clear_filters_action,
     add_date_in_main_field_actions,
     add_delete_action,
+    add_export_actions,
     add_info_action,
     add_separator,
     begin_filters_block,
@@ -79,6 +82,15 @@ def test_add_info_action_is_disabled(qapp: QApplication) -> None:  # noqa: ARG00
     add_delete_action(menu)
     texts = [action.text() for action in menu.actions() if not action.isSeparator()]
     assert texts[-1] == LABEL_DELETE
+
+
+def test_add_export_actions_adds_csv_and_excel(qapp: QApplication) -> None:  # noqa: ARG001
+    menu = QMenu()
+    csv_action, excel_action = add_export_actions(menu)
+    assert csv_action.text() == LABEL_EXPORT_CSV
+    assert excel_action.text() == LABEL_EXPORT_EXCEL
+    texts = [action.text() for action in menu.actions() if not action.isSeparator()]
+    assert texts == [LABEL_EXPORT_CSV, LABEL_EXPORT_EXCEL]
 
 
 def test_show_records_label() -> None:

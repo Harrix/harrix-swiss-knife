@@ -21,6 +21,7 @@ lang: en
   - [⚙️ Method `on_choose_habit_emoji`](#%EF%B8%8F-method-on_choose_habit_emoji)
   - [⚙️ Method `on_delete_habit`](#%EF%B8%8F-method-on_delete_habit)
   - [⚙️ Method `on_export_habits_csv`](#%EF%B8%8F-method-on_export_habits_csv)
+  - [⚙️ Method `on_export_habits_excel`](#%EF%B8%8F-method-on_export_habits_excel)
   - [⚙️ Method `on_habit_filter_clicked`](#%EF%B8%8F-method-on_habit_filter_clicked)
   - [⚙️ Method `on_habit_filter_selection_changed`](#%EF%B8%8F-method-on_habit_filter_selection_changed)
   - [⚙️ Method `on_habit_filter_selection_changed_slot`](#%EF%B8%8F-method-on_habit_filter_selection_changed_slot)
@@ -534,34 +535,13 @@ class MainWindow(
 
     @requires_database()
     def on_export_habits_csv(self) -> None:
-        """Export process habits table to CSV file."""
-        if self.models.get("process_habits") is None:
-            message_box.warning(self, "Error", "No data to export")
-            return
+        """Export process habits table as CSV (Excel is also offered)."""
+        self._export_habits_table(prefer="csv")
 
-        filename, _ = QFileDialog.getSaveFileName(self, "Export Habits to CSV", "", "CSV Files (*.csv);;All Files (*)")
-        if not filename:
-            return
-
-        try:
-            model = cast("QSortFilterProxyModel", self.models["process_habits"])
-            with Path(filename).open("w", encoding="utf-8") as f:
-                # Write headers
-                headers = self.table_config["process_habits"][2]
-                f.write(",".join(headers) + "\n")
-
-                # Write data
-                for row in range(model.rowCount()):
-                    row_data = []
-                    for col in range(model.columnCount()):
-                        index = model.index(row, col)
-                        value = model.data(index)
-                        row_data.append(str(value) if value is not None else "")
-                    f.write(",".join(row_data) + "\n")
-
-            message_box.information(self, "Success", f"Exported to {filename}")
-        except Exception as e:
-            message_box.warning(self, "Error", f"Failed to export: {e}")
+    @requires_database()
+    def on_export_habits_excel(self) -> None:
+        """Export process habits table as Excel (CSV is also offered)."""
+        self._export_habits_table(prefer="xlsx")
 
     def on_habit_filter_clicked(self, index: QModelIndex) -> None:
         """Handle habit filter list view click or activation.
@@ -1452,6 +1432,19 @@ class MainWindow(
                 model.deleteLater()
             self.models[key] = None
 
+    def _export_habits_table(self, *, prefer: Literal["csv", "xlsx"]) -> None:
+        """Export the visible process habits table as CSV or Excel."""
+        path = export_table_via_dialog(
+            self,
+            self.models.get("process_habits"),
+            prefer=prefer,
+            title="Export Habits",
+            sheet_name="Habits",
+            csv_delimiter=",",
+        )
+        if path is not None:
+            message_box.information(self, "Success", f"Exported to {path}")
+
     def _finish_window_initialization(self) -> None:
         """Finish window initialization by showing the window."""
         if self._is_closing:
@@ -2012,7 +2005,7 @@ class MainWindow(
                             can_clear_cell = bool(has_db_record or has_display_value)
 
         refresh_action = context_menu.addAction(LABEL_REFRESH)
-        export_action = context_menu.addAction(LABEL_EXPORT_CSV)
+        export_action, export_excel_action = add_export_actions(context_menu)
         show_all_action = context_menu.addAction(
             show_records_label(show_all=self.show_all_records, last_count=self.count_records_to_show),
         )
@@ -2044,7 +2037,10 @@ class MainWindow(
             self.pushButton_habits_refresh.click()
         elif action == export_action:
             logger.debug("🔧 Context menu: Export to CSV action triggered")
-            self.pushButton_habits_export_csv.click()
+            self.on_export_habits_csv()
+        elif action == export_excel_action:
+            logger.debug("🔧 Context menu: Export to Excel action triggered")
+            self.on_export_habits_excel()
         elif action == show_all_action:
             logger.debug("🔧 Context menu: Toggle show all records action triggered")
             self.pushButton_habits_show_all_records.click()
@@ -2850,40 +2846,32 @@ def on_delete_habit(self) -> None:
 def on_export_habits_csv(self) -> None
 ```
 
-Export process habits table to CSV file.
+Export process habits table as CSV (Excel is also offered).
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def on_export_habits_csv(self) -> None:
-        if self.models.get("process_habits") is None:
-            message_box.warning(self, "Error", "No data to export")
-            return
+        self._export_habits_table(prefer="csv")
+```
 
-        filename, _ = QFileDialog.getSaveFileName(self, "Export Habits to CSV", "", "CSV Files (*.csv);;All Files (*)")
-        if not filename:
-            return
+</details>
 
-        try:
-            model = cast("QSortFilterProxyModel", self.models["process_habits"])
-            with Path(filename).open("w", encoding="utf-8") as f:
-                # Write headers
-                headers = self.table_config["process_habits"][2]
-                f.write(",".join(headers) + "\n")
+### ⚙️ Method `on_export_habits_excel`
 
-                # Write data
-                for row in range(model.rowCount()):
-                    row_data = []
-                    for col in range(model.columnCount()):
-                        index = model.index(row, col)
-                        value = model.data(index)
-                        row_data.append(str(value) if value is not None else "")
-                    f.write(",".join(row_data) + "\n")
+```python
+def on_export_habits_excel(self) -> None
+```
 
-            message_box.information(self, "Success", f"Exported to {filename}")
-        except Exception as e:
-            message_box.warning(self, "Error", f"Failed to export: {e}")
+Export process habits table as Excel (CSV is also offered).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def on_export_habits_excel(self) -> None:
+        self._export_habits_table(prefer="xlsx")
 ```
 
 </details>

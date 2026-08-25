@@ -34,6 +34,7 @@ lang: en
   - [⚙️ Method `on_exchange_item_update_button_clicked`](#%EF%B8%8F-method-on_exchange_item_update_button_clicked)
   - [⚙️ Method `on_exchange_item_update_changed`](#%EF%B8%8F-method-on_exchange_item_update_changed)
   - [⚙️ Method `on_export_csv`](#%EF%B8%8F-method-on_export_csv)
+  - [⚙️ Method `on_export_excel`](#%EF%B8%8F-method-on_export_excel)
   - [⚙️ Method `on_finance_dashboard_add_photo`](#%EF%B8%8F-method-on_finance_dashboard_add_photo)
   - [⚙️ Method `on_finance_dashboard_add_text`](#%EF%B8%8F-method-on_finance_dashboard_add_text)
   - [⚙️ Method `on_finance_dashboard_add_voice`](#%EF%B8%8F-method-on_finance_dashboard_add_voice)
@@ -972,40 +973,12 @@ class MainWindow(
             self.doubleSpinBox_exchange_item_update.setValue(0.0)
 
     def on_export_csv(self) -> None:
-        """Save current transactions view to a CSV file."""
-        filename_str: str
-        filename_str, _ = QFileDialog.getSaveFileName(
-            self,
-            "Save Table",
-            "",
-            "CSV (*.csv)",
-        )
-        if not filename_str:
-            return
+        """Save current transactions view as CSV (Excel is also offered)."""
+        self._export_transactions_table(prefer="csv")
 
-        try:
-            filename: Path = Path(filename_str)
-            proxy_model = self.models["transactions"]
-            if proxy_model is None or not isinstance(proxy_model, QSortFilterProxyModel):
-                return
-            model = proxy_model.sourceModel()
-            if model is None:
-                return
-            with filename.open("w", encoding="utf-8") as file:
-                headers: list[str] = [
-                    model.headerData(col, Qt.Orientation.Horizontal, Qt.ItemDataRole.DisplayRole) or ""
-                    for col in range(model.columnCount())
-                ]
-                file.write(";".join(headers) + "\n")
-
-                for row in range(model.rowCount()):
-                    row_values: list[str] = [
-                        f'"{model.data(model.index(row, col)) or ""}"' for col in range(model.columnCount())
-                    ]
-                    file.write(";".join(row_values) + "\n")
-
-        except Exception as e:
-            message_box.warning(self, "Export Error", f"Failed to export CSV: {e}")
+    def on_export_excel(self) -> None:
+        """Save current transactions view as Excel (CSV is also offered)."""
+        self._export_transactions_table(prefer="xlsx")
 
     def on_finance_dashboard_add_photo(self) -> None:
         """Open a large photo-only form and send the receipt to AI."""
@@ -2577,6 +2550,12 @@ class MainWindow(
             return int(row_id_item.text())
         except (TypeError, ValueError):
             return None
+
+    def _export_transactions_table(self, *, prefer: Literal["csv", "xlsx"]) -> None:
+        """Export the transactions source model as CSV or Excel."""
+        proxy = self.models.get("transactions")
+        model = proxy.sourceModel() if isinstance(proxy, QSortFilterProxyModel) else proxy
+        export_table_via_dialog(self, model, prefer=prefer, sheet_name="Transactions")
 
     def _fetch_transaction_rows(self, limit: int | None, offset: int) -> list[list[Any]]:
         """Fetch transaction rows with optional filters and pagination."""
@@ -5784,7 +5763,7 @@ class MainWindow(
             bulk_date_action = context_menu.addAction(LABEL_SET_DATE_SELECTED)
 
         add_separator(context_menu)
-        export_action = context_menu.addAction(LABEL_EXPORT_CSV)
+        export_action, export_excel_action = add_export_actions(context_menu)
 
         # Sum Amount column for unique selected rows (any column selection counts)
         selected_indexes = self.tableView_transactions.selectionModel().selectedIndexes()
@@ -5900,6 +5879,8 @@ class MainWindow(
 
         if action == export_action:
             self.on_export_csv()
+        elif action == export_excel_action:
+            self.on_export_excel()
         elif bulk_date_action is not None and action == bulk_date_action:
             self._set_date_for_selected_transactions(ids_for_date_change)
         elif action == delete_action:
@@ -7434,46 +7415,32 @@ def on_exchange_item_update_changed(self) -> None:
 def on_export_csv(self) -> None
 ```
 
-Save current transactions view to a CSV file.
+Save current transactions view as CSV (Excel is also offered).
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def on_export_csv(self) -> None:
-        filename_str: str
-        filename_str, _ = QFileDialog.getSaveFileName(
-            self,
-            "Save Table",
-            "",
-            "CSV (*.csv)",
-        )
-        if not filename_str:
-            return
+        self._export_transactions_table(prefer="csv")
+```
 
-        try:
-            filename: Path = Path(filename_str)
-            proxy_model = self.models["transactions"]
-            if proxy_model is None or not isinstance(proxy_model, QSortFilterProxyModel):
-                return
-            model = proxy_model.sourceModel()
-            if model is None:
-                return
-            with filename.open("w", encoding="utf-8") as file:
-                headers: list[str] = [
-                    model.headerData(col, Qt.Orientation.Horizontal, Qt.ItemDataRole.DisplayRole) or ""
-                    for col in range(model.columnCount())
-                ]
-                file.write(";".join(headers) + "\n")
+</details>
 
-                for row in range(model.rowCount()):
-                    row_values: list[str] = [
-                        f'"{model.data(model.index(row, col)) or ""}"' for col in range(model.columnCount())
-                    ]
-                    file.write(";".join(row_values) + "\n")
+### ⚙️ Method `on_export_excel`
 
-        except Exception as e:
-            message_box.warning(self, "Export Error", f"Failed to export CSV: {e}")
+```python
+def on_export_excel(self) -> None
+```
+
+Save current transactions view as Excel (CSV is also offered).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def on_export_excel(self) -> None:
+        self._export_transactions_table(prefer="xlsx")
 ```
 
 </details>
