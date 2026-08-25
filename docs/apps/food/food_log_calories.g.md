@@ -23,7 +23,7 @@ lang: en
 def calculate_food_log_calories(weight: float | None, calories_per_100g: float | None, portion_calories: float | None) -> float
 ```
 
-Return row calories: portion mode wins, otherwise weight × kcal/100g.
+Return row calories: portion mode wins, otherwise weight * kcal/100g.
 
 Args:
 
@@ -77,7 +77,7 @@ def parse_food_log_number(value: object) -> float | None:
     if value is None or value == "":
         return None
     try:
-        return float(value)
+        return float(str(value))
     except (TypeError, ValueError):
         return None
 ```
@@ -126,7 +126,7 @@ def refresh_food_log_calorie_columns(model: QStandardItemModel) -> dict[str, flo
             totals[date_str] = totals.get(date_str, 0.0) + calories
 
     seen_dates: set[str] = set()
-    model.blockSignals(True)
+    model.blockSignals(True)  # noqa: FBT003
     try:
         for row in range(row_count):
             _set_item_text(model, row, FOOD_LOG_COL_CALCULATED, f"{row_calories[row]:.1f}")
@@ -137,7 +137,7 @@ def refresh_food_log_calorie_columns(model: QStandardItemModel) -> dict[str, flo
             total_text = f"{totals[date_str]:.1f}" if is_first else ""
             _set_item_text(model, row, FOOD_LOG_COL_TOTAL_PER_DAY, total_text)
     finally:
-        model.blockSignals(False)
+        model.blockSignals(False)  # noqa: FBT003
 
     return totals
 ```

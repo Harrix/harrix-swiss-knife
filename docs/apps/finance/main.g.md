@@ -1515,17 +1515,10 @@ class MainWindow(
         top_left: QModelIndex,
         bottom_right: QModelIndex,
     ) -> None:
-        """Schedule deferred UI refresh after manual transaction edits.
-
-        Reloads the transactions table so date colors / daily totals stay in sync
-        when the user edits rows in place (especially the date column).
-
-        """
-        del top_left, bottom_right
+        """Recalculate transaction day totals in the current model only."""
         if table_name != "transactions":
             return
-        self._mark_summary_dirty()
-        self._mark_transactions_changed(reload_transactions=True)
+        self._refresh_transaction_day_totals_after_edit(top_left, bottom_right)
 
     def _append_colored_rows_to_model(
         self,
@@ -4544,6 +4537,41 @@ class MainWindow(
             table.setItem(row_idx, 2, QTableWidgetItem(f"{a_maj:,.2f}"))
             table.setItem(row_idx, 3, QTableWidgetItem(f"{d_maj:,.2f}"))
             self._set_balance_check_action_cell(table, row_idx, cid, d_minor)
+
+    def _refresh_transaction_day_totals_after_edit(
+        self,
+        top_left: QModelIndex,
+        bottom_right: QModelIndex,
+    ) -> None:
+        """Update Total per day in the open table; refresh today/yesterday labels.
+
+        Reloads neither the transactions table nor other tabs. Summary labels and
+        the dashboard update only when the edit touches today or yesterday.
+
+        """
+        proxy_model = self.models.get("transactions")
+        if proxy_model is None:
+            return
+        source_model = proxy_model.sourceModel()
+        if not isinstance(source_model, QStandardItemModel):
+            return
+
+        today = QDate.currentDate().toString("yyyy-MM-dd")
+        yesterday = QDate.currentDate().addDays(-1).toString("yyyy-MM-dd")
+        date_column_changed = top_left.column() <= TRANSACTION_COL_DATE <= bottom_right.column()
+        touches_recent_day = False
+        for row in range(top_left.row(), bottom_right.row() + 1):
+            date_item = source_model.item(row, TRANSACTION_COL_DATE)
+            if date_item is not None and date_item.text() in {today, yesterday}:
+                touches_recent_day = True
+                break
+
+        refresh_transaction_day_totals(source_model, self.db_manager)
+        self.tableView_transactions.viewport().update()
+
+        self._mark_summary_dirty()
+        if date_column_changed or touches_recent_day:
+            self._refresh_summary_if_needed()
 
     def _refresh_transactions_table(self) -> None:
         """Reload transactions table, keeping active filters when applied."""
