@@ -7,6 +7,7 @@ from harrix_swiss_knife.apps.fitness.dumbbell_weight_types import (
     ExerciseWeightSnapshot,
     WeightTypeSpec,
     exercises_needing_weight_sync,
+    is_dumbbell_exercise,
     is_template_exercise,
     missing_weight_types,
     shares_template_weight_types,
@@ -38,6 +39,14 @@ def test_shares_template_weight_types_requires_overlap() -> None:
     template_names = [spec.name for spec in _TEMPLATE]
     assert shares_template_weight_types(["9 kg", "Custom"], template_names)
     assert not shares_template_weight_types(["Band", "Bodyweight"], template_names)
+
+
+def test_is_dumbbell_exercise_includes_template_and_shared_weights() -> None:
+    """The template and any exercise with a template weight are dumbbell exercises."""
+    template_names = [spec.name for spec in _TEMPLATE]
+    assert is_dumbbell_exercise(DUMBBELL_WEIGHT_TEMPLATE_EXERCISE, (), template_names)
+    assert is_dumbbell_exercise("Dumbbell shoulder press", ["9 kg"], template_names)
+    assert not is_dumbbell_exercise("Plank", ["Bodyweight"], template_names)
 
 
 def test_is_template_exercise_ignores_case_and_spaces() -> None:

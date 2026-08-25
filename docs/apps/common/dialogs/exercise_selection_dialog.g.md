@@ -43,6 +43,7 @@ class ExerciseSelectionDialog(QDialog):
         current_selection: str | None,
         avif_manager: AvifManager | None = None,
         name_locals: dict[str, str] | None = None,
+        display_names: dict[str, str] | None = None,
     ) -> None:
         """Initialize the ExerciseSelectionDialog.
 
@@ -55,6 +56,8 @@ class ExerciseSelectionDialog(QDialog):
         - `current_selection` (`str | None`): Currently selected exercise, if any.
         - `avif_manager` (`AvifManager | None`): AVIF manager for loading animations. Defaults to `None`.
         - `name_locals` (`dict[str, str] | None`): Optional English→local name map.
+        - `display_names` (`dict[str, str] | None`): Optional English→display label map
+          (for example a dumbbell icon prefix).
 
         """
         super().__init__(parent)
@@ -64,6 +67,7 @@ class ExerciseSelectionDialog(QDialog):
         self._icon_provider = icon_provider
         self._avif_manager = avif_manager
         self._name_locals = name_locals or {}
+        self._display_names = display_names or {}
         self._preview_size = preview_size
         self._hovered_tile: _ExercisePreviewTile | None = None
         has_any_local = any(self._name_locals.get(name, "").strip() for name in exercises)
@@ -124,6 +128,7 @@ class ExerciseSelectionDialog(QDialog):
             name_local = self._name_locals.get(exercise, "").strip()
             tile = _ExercisePreviewTile(
                 exercise_name=exercise,
+                display_name=self._display_names.get(exercise, exercise),
                 name_local=name_local,
                 static_pixmap=static_pixmap,
                 preview_size=preview_size,
@@ -294,7 +299,7 @@ class ExerciseSelectionDialog(QDialog):
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, parent: QWidget | None, *, exercises: list[str], icon_provider: Callable[[str], QIcon | None], preview_size: QSize, current_selection: str | None, avif_manager: AvifManager | None = None, name_locals: dict[str, str] | None = None) -> None
+def __init__(self, parent: QWidget | None, *, exercises: list[str], icon_provider: Callable[[str], QIcon | None], preview_size: QSize, current_selection: str | None, avif_manager: AvifManager | None = None, name_locals: dict[str, str] | None = None, display_names: dict[str, str] | None = None) -> None
 ```
 
 Initialize the ExerciseSelectionDialog.
@@ -308,6 +313,8 @@ Args:
 - `current_selection` (`str | None`): Currently selected exercise, if any.
 - `avif_manager` (`AvifManager | None`): AVIF manager for loading animations. Defaults to `None`.
 - `name_locals` (`dict[str, str] | None`): Optional English→local name map.
+- `display_names` (`dict[str, str] | None`): Optional English→display label map
+  (for example a dumbbell icon prefix).
 
 <details>
 <summary>Code:</summary>
@@ -323,6 +330,7 @@ def __init__(
         current_selection: str | None,
         avif_manager: AvifManager | None = None,
         name_locals: dict[str, str] | None = None,
+        display_names: dict[str, str] | None = None,
     ) -> None:
         super().__init__(parent)
         self.setWindowTitle("Select Exercise")
@@ -331,6 +339,7 @@ def __init__(
         self._icon_provider = icon_provider
         self._avif_manager = avif_manager
         self._name_locals = name_locals or {}
+        self._display_names = display_names or {}
         self._preview_size = preview_size
         self._hovered_tile: _ExercisePreviewTile | None = None
         has_any_local = any(self._name_locals.get(name, "").strip() for name in exercises)
@@ -391,6 +400,7 @@ def __init__(
             name_local = self._name_locals.get(exercise, "").strip()
             tile = _ExercisePreviewTile(
                 exercise_name=exercise,
+                display_name=self._display_names.get(exercise, exercise),
                 name_local=name_local,
                 static_pixmap=static_pixmap,
                 preview_size=preview_size,

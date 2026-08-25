@@ -13,6 +13,7 @@ from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.chart_operations import ChartOperationsBase
 from harrix_swiss_knife.apps.common.db_guard import requires_database
 from harrix_swiss_knife.apps.common.qt_mixins import AutoSaveMixin, DateMixin, TableOperations, ValidationMixin
+from harrix_swiss_knife.apps.fitness.exercise_favorites import parse_exercise_display_name
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -56,7 +57,7 @@ class AutoSaveOperations(AutoSaveMixin):
         - `row_id` (`str`): Database ID of the row.
 
         """
-        name = model.data(model.index(row, 1)) or ""
+        name = parse_exercise_display_name(model.data(model.index(row, 1)) or "")
         unit = model.data(model.index(row, 2)) or ""
         is_type_required_str = model.data(model.index(row, 3)) or "0"
         calories_per_unit_str = model.data(model.index(row, 4)) or "0"
@@ -110,7 +111,7 @@ class AutoSaveOperations(AutoSaveMixin):
         - `row_id` (`str`): Database ID of the row.
 
         """
-        exercise = model.data(model.index(row, 0))
+        exercise = parse_exercise_display_name(model.data(model.index(row, 0)) or "")
         type_name = model.data(model.index(row, 1))
         value_raw = model.data(model.index(row, 2))
         date = model.data(model.index(row, 3))
@@ -160,7 +161,7 @@ class AutoSaveOperations(AutoSaveMixin):
         - `row_id` (`str`): Database ID of the row.
 
         """
-        exercise_name = model.data(model.index(row, 1)) or ""
+        exercise_name = parse_exercise_display_name(model.data(model.index(row, 1)) or "")
         type_name = model.data(model.index(row, 2)) or ""
         calories_modifier_str = model.data(model.index(row, 3)) or "1.0"
         name_local = model.data(model.index(row, 4)) or ""

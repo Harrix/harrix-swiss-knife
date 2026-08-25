@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from harrix_swiss_knife.apps.fitness.exercise_favorites import (
     format_favorite_exercise_label,
+    parse_exercise_display_name,
     prefer_favorite_names,
 )
 
@@ -30,3 +31,12 @@ def test_format_favorite_exercise_label() -> None:
     """A star is prefixed only for favorites; extra text stays a suffix."""
     assert format_favorite_exercise_label("Plank", favorite=True, extra="3/10") == "⭐ Plank 3/10"
     assert format_favorite_exercise_label("Plank", favorite=False) == "Plank"
+    assert format_favorite_exercise_label("Press", favorite=False, dumbbell=True) == "🏋️ Press"
+    assert format_favorite_exercise_label("Press", favorite=True, dumbbell=True, extra="2/8") == "⭐ 🏋️ Press 2/8"
+
+
+def test_parse_exercise_display_name() -> None:
+    """Favorite and dumbbell prefixes are stripped from table display text."""
+    assert parse_exercise_display_name("⭐ 🏋️ Press") == "Press"
+    assert parse_exercise_display_name("🏋️ Press") == "Press"
+    assert parse_exercise_display_name("Plank") == "Plank"

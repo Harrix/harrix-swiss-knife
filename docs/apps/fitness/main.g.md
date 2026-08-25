@@ -164,6 +164,7 @@ class MainWindow(
 
         # Cache of exercise icons keyed by exercise name
         self._exercise_icon_cache: dict[str, tuple[float, QIcon | None]] = {}
+        self._dumbbell_exercise_names_cache: set[str] | None = None
 
         # Table models dictionary
         self.models: dict[str, QSortFilterProxyModel | None] = {
@@ -542,7 +543,9 @@ class MainWindow(
         result = dialog.get_result()
         if result is None:
             return
-        exercise, unit, is_type_required, calories_per_unit, name_local, is_favorite, media_path = result
+        exercise, unit, is_type_required, calories_per_unit, name_local, is_favorite, media_path, with_dumbbells = (
+            result
+        )
 
         if self.db_manager.exercise_name_exists(exercise):
             message_box.warning(self, "Error", f"Exercise '{exercise}' already exists")
@@ -557,6 +560,8 @@ class MainWindow(
                 name_local=name_local,
                 is_favorite=is_favorite,
             ):
+                if with_dumbbells:
+                    self._add_dumbbell_weight_types_to_exercise(exercise)
                 self._mark_exercises_changed()
                 self.update_all()
                 if media_path:
@@ -1429,7 +1434,13 @@ class MainWindow(
             return
 
         # Update exercise name label
-        self.label_exercise.setText(exercise)
+        self.label_exercise.setText(
+            format_favorite_exercise_label(
+                exercise,
+                favorite=exercise in (self.db_manager.get_favorite_exercise_names() if self.db_manager else set()),
+                dumbbell=exercise in self._cached_dumbbell_exercise_names(),
+            )
+        )
 
         # Check if a new AVIF needs to be loaded
         if self.avif_manager:
@@ -1700,7 +1711,7 @@ class MainWindow(
             row = current.row()
 
             # Get data from the selected row
-            exercise_name = model.data(model.index(row, 0)) or ""  # Exercise column
+            exercise_name = parse_exercise_display_name(model.data(model.index(row, 0)) or "")  # Exercise column
             type_name = model.data(model.index(row, 1)) or ""  # Type column
             value_with_unit = model.data(model.index(row, 2)) or ""  # Quantity column (e.g., "100 times")
 
@@ -1896,7 +1907,11 @@ class MainWindow(
                     # For the first row of each group, include exercise and type names
                     # For subsequent rows, use empty strings (they will be spanned)
                     if i == 0:
-                        exercise_display = ex_name
+                        exercise_display = format_favorite_exercise_label(
+                            ex_name,
+                            favorite=False,
+                            dumbbell=ex_name in self._cached_dumbbell_exercise_names(),
+                        )
                         type_display = tp_name or ""
                     else:
                         exercise_display = ""
@@ -1992,7 +2007,13 @@ class MainWindow(
                 is_light_for_span = table_data[start_row][8]
 
                 # Set the text for the spanned cells with proper background
-                exercise_item = QStandardItem(exercise_name)
+                exercise_item = QStandardItem(
+                    format_favorite_exercise_label(
+                        exercise_name,
+                        favorite=False,
+                        dumbbell=exercise_name in self._cached_dumbbell_exercise_names(),
+                    )
+                )
                 type_item = QStandardItem(type_name)
 
                 if is_light_for_span:
@@ -2083,6 +2104,7 @@ class MainWindow(
 
         current_selection = self._get_current_selected_exercise()
 
+        dumbbell_names = self._cached_dumbbell_exercise_names()
         dialog = ExerciseSelectionDialog(
             self,
             exercises=exercises,
@@ -2091,6 +2113,10 @@ class MainWindow(
             current_selection=current_selection,
             avif_manager=self.avif_manager,
             name_locals=self.db_manager.get_exercise_name_local_map() if self.db_manager else None,
+            display_names={
+                name: format_favorite_exercise_label(name, favorite=False, dumbbell=name in dumbbell_names)
+                for name in exercises
+            },
         )
 
         dialog_width = max(int(self.width() * 0.95), preview_size.width())
@@ -2414,7 +2440,18 @@ class MainWindow(
                         days_display = f"{days_ago} days ago ❗"
                         row_color = QColor(255, 192, 203)  # Light pink for longer periods
 
-                    table_data.append([exercise_name, formatted_date, days_display, row_color])
+                    table_data.append(
+                        [
+                            format_favorite_exercise_label(
+                                exercise_name,
+                                favorite=False,
+                                dumbbell=exercise_name in self._cached_dumbbell_exercise_names(),
+                            ),
+                            formatted_date,
+                            days_display,
+                            row_color,
+                        ]
+                    )
 
                 except ValueError:
                     # Skip invalid dates
@@ -2912,12 +2949,17 @@ class MainWindow(
             exercises_data = self.db_manager.get_all_exercises()
             exercises_transformed_data = []
             light_green = QColor(240, 255, 240)  # Light green background
+            dumbbell_names = self._cached_dumbbell_exercise_names()
 
             for row in exercises_data:
                 exercise_name = row[1]
                 transformed_row = [
                     self._get_exercise_icon(str(exercise_name or "")) or QIcon(),
-                    exercise_name,
+                    format_favorite_exercise_label(
+                        str(exercise_name or ""),
+                        favorite=False,
+                        dumbbell=str(exercise_name or "") in dumbbell_names,
+                    ),
                     row[2],
                     str(row[3]),
                     f"{row[4]:.1f}",
@@ -2942,7 +2984,11 @@ class MainWindow(
                 exercise_name = row[1]
                 transformed_row = [
                     self._get_exercise_icon(str(exercise_name or "")) or QIcon(),
-                    exercise_name,
+                    format_favorite_exercise_label(
+                        str(exercise_name or ""),
+                        favorite=False,
+                        dumbbell=str(exercise_name or "") in dumbbell_names,
+                    ),
                     row[2],
                     f"{row[3]:.1f}",
                     row[4] or "",
@@ -3084,6 +3130,7 @@ class MainWindow(
                         exercise,
                         favorite=exercise in favorite_names,
                         extra=goal_info,
+                        dumbbell=exercise in self._cached_dumbbell_exercise_names(),
                     )
                     item = QStandardItem(display_text)
 
@@ -3716,6 +3763,23 @@ class MainWindow(
             line-height: 1.2;
         """)
 
+    def _add_dumbbell_weight_types_to_exercise(self, exercise_name: str) -> None:
+        """Copy template dumbbell weights onto a newly added exercise."""
+        if self.db_manager is None:
+            return
+        if is_template_exercise(exercise_name):
+            return
+        exercise_id = self.db_manager.get_id("exercises", "name", exercise_name)
+        if exercise_id is None:
+            message_box.warning(self, "Dumbbell Weight Types", f"Exercise '{exercise_name}' was not found.")
+            return
+        template = self._get_dumbbell_weight_template_specs()
+        if template is None:
+            return
+        added = self._copy_template_weight_types(exercise_id, template, require_type=True)
+        if added:
+            logger.info("Added %s dumbbell weight type(s) to '%s'", added, exercise_name)
+
     def _add_exercise_recommendations_to_label(
         self, exercise: str, exercise_type: str | None, monthly_data: list, months_count: int, exercise_unit: str
     ) -> None:
@@ -4272,12 +4336,14 @@ class MainWindow(
 
         name_locals = self.db_manager.get_exercise_name_local_map() if self.db_manager else {}
         favorite_names = self.db_manager.get_favorite_exercise_names() if self.db_manager else set()
+        dumbbell_names = self._cached_dumbbell_exercise_names()
         for exercise in exercise_names:
             goal_info = self._get_exercise_today_goal_info(exercise)
             display_text = format_favorite_exercise_label(
                 exercise,
                 favorite=exercise in favorite_names,
                 extra=goal_info,
+                dumbbell=exercise in dumbbell_names,
             )
             item = QStandardItem(display_text)
 
@@ -4360,6 +4426,14 @@ class MainWindow(
             dashboard_list,
             lambda pos: exercise_at_list_icon(dashboard_list, pos),
         )
+
+    def _cached_dumbbell_exercise_names(self) -> set[str]:
+        """Return cached names of exercises that use template dumbbell weights."""
+        if self._dumbbell_exercise_names_cache is None:
+            self._dumbbell_exercise_names_cache = (
+                self.db_manager.get_dumbbell_exercise_names() if self.db_manager is not None else set()
+            )
+        return self._dumbbell_exercise_names_cache
 
     def _calculate_exercise_recommendations(
         self, _exercise_name: str, monthly_data: list, _months_count: int, _exercise_unit: str
@@ -5145,7 +5219,7 @@ class MainWindow(
             if original_name:
                 return original_name
             # Fallback to display text
-            return item.text()
+            return parse_exercise_display_name(item.text()) or None
         return None
 
     def _get_dumbbell_weight_template_specs(self) -> list[WeightTypeSpec] | None:
@@ -5402,7 +5476,7 @@ class MainWindow(
                 if original_name:
                     return original_name
                 # Fallback to display text
-                return model.data(current_index) or ""
+                return parse_exercise_display_name(model.data(current_index) or "")
         return ""
 
     def _get_selected_chart_type(self) -> str:
@@ -5430,7 +5504,8 @@ class MainWindow(
             if model and model.rowCount() > 0:
                 first_index = model.index(0, 0)
                 exercise_name = model.data(first_index, Qt.ItemDataRole.DisplayRole)
-                return exercise_name.strip() if exercise_name else None
+                name = parse_exercise_display_name(exercise_name or "")
+                return name or None
             return None
 
         # Get exercise name from selected row (first column)
@@ -5438,7 +5513,8 @@ class MainWindow(
         if model:
             exercise_index = model.index(current_index.row(), 0)
             exercise_name = model.data(exercise_index, Qt.ItemDataRole.DisplayRole)
-            return exercise_name.strip() if exercise_name else None
+            name = parse_exercise_display_name(exercise_name or "")
+            return name or None
 
         return None
 
@@ -5466,14 +5542,16 @@ class MainWindow(
             model = self.models[table_name]
             if model and model.rowCount() > 0:
                 first_index = model.index(0, name_column)
-                return model.data(first_index, Qt.ItemDataRole.DisplayRole)
+                name = parse_exercise_display_name(model.data(first_index, Qt.ItemDataRole.DisplayRole) or "")
+                return name or None
             return None
 
         # Get exercise name from selected row
         model = self.models[table_name]
         if model:
             exercise_index = model.index(current_index.row(), name_column)
-            return model.data(exercise_index, Qt.ItemDataRole.DisplayRole)
+            name = parse_exercise_display_name(model.data(exercise_index, Qt.ItemDataRole.DisplayRole) or "")
+            return name or None
 
         return None
 
@@ -5531,6 +5609,7 @@ class MainWindow(
             missing_table_label="process table",
             on_opened=_on_db_opened,
         )
+        self._dumbbell_exercise_names_cache = None
         self._init_avif_manager()
 
     def _init_exercise_chart_controls(self) -> None:
@@ -5606,20 +5685,32 @@ class MainWindow(
         )
         self._exercise_list_hover.add_view(
             self.tableView_exercises,
-            lambda pos: exercise_at_table_image(
-                self.tableView_exercises,
-                pos,
-                image_column=_EXERCISE_TABLE_IMAGE_COLUMN,
-                name_column=_EXERCISE_TABLE_NAME_COLUMN,
+            lambda pos: (
+                parse_exercise_display_name(
+                    exercise_at_table_image(
+                        self.tableView_exercises,
+                        pos,
+                        image_column=_EXERCISE_TABLE_IMAGE_COLUMN,
+                        name_column=_EXERCISE_TABLE_NAME_COLUMN,
+                    )
+                    or ""
+                )
+                or None
             ),
         )
         self._exercise_list_hover.add_view(
             self.tableView_exercise_types,
-            lambda pos: exercise_at_table_image(
-                self.tableView_exercise_types,
-                pos,
-                image_column=_EXERCISE_TABLE_IMAGE_COLUMN,
-                name_column=_EXERCISE_TABLE_NAME_COLUMN,
+            lambda pos: (
+                parse_exercise_display_name(
+                    exercise_at_table_image(
+                        self.tableView_exercise_types,
+                        pos,
+                        image_column=_EXERCISE_TABLE_IMAGE_COLUMN,
+                        name_column=_EXERCISE_TABLE_NAME_COLUMN,
+                    )
+                    or ""
+                )
+                or None
             ),
         )
         self._attach_fitness_dashboard_hover()
@@ -5907,6 +5998,7 @@ class MainWindow(
     def _mark_exercises_changed(self) -> None:
         """Mark that exercises data has changed and needs refresh."""
         self._exercises_changed = True
+        self._dumbbell_exercise_names_cache = None
 
     def _maybe_prompt_missing_exercise_images(self) -> None:
         """Tell the user how to add exercise images when none were found at startup."""
@@ -6140,7 +6232,7 @@ class MainWindow(
             return
 
         row = index.row()
-        old_name = str(model.data(model.index(row, _EXERCISE_TABLE_NAME_COLUMN)) or "").strip()
+        old_name = parse_exercise_display_name(model.data(model.index(row, _EXERCISE_TABLE_NAME_COLUMN)) or "")
         unit = str(model.data(model.index(row, 2)) or "")
         is_type_required = str(model.data(model.index(row, 3)) or "0") == "1"
         try:
@@ -6168,7 +6260,16 @@ class MainWindow(
         result = dialog.get_result()
         if result is None:
             return
-        new_name, new_unit, new_type_required, new_calories, new_name_local, new_favorite, media_path = result
+        (
+            new_name,
+            new_unit,
+            new_type_required,
+            new_calories,
+            new_name_local,
+            new_favorite,
+            media_path,
+            _with_dumbbells,
+        ) = result
 
         if self.db_manager.exercise_name_exists(new_name, exclude_id=record_id):
             message_box.warning(self, "Error", f"Exercise '{new_name}' already exists")
@@ -6253,7 +6354,7 @@ class MainWindow(
             return
 
         row = index.row()
-        exercise_name = str(model.data(model.index(row, _EXERCISE_TABLE_NAME_COLUMN)) or "").strip()
+        exercise_name = parse_exercise_display_name(model.data(model.index(row, _EXERCISE_TABLE_NAME_COLUMN)) or "")
         type_name = str(model.data(model.index(row, 2)) or "").strip()
         try:
             calories_modifier = float(model.data(model.index(row, 3)) or 1.0)
@@ -6430,6 +6531,7 @@ class MainWindow(
         self._hide_exercise_list_hover_preview()
         name_locals = self.db_manager.get_exercise_name_local_map() if self.db_manager else {}
         favorite_names = self.db_manager.get_favorite_exercise_names() if self.db_manager else set()
+        dumbbell_names = self._cached_dumbbell_exercise_names()
         edge = self._fitness_dashboard.icon_size
         icon_size = QSize(edge, edge)
         items = [
@@ -6438,6 +6540,7 @@ class MainWindow(
                 name_local=name_locals.get(name, ""),
                 icon=self._get_exercise_preview_icon(name, icon_size),
                 is_favorite=name in favorite_names,
+                is_dumbbell=name in dumbbell_names,
             )
             for name in exercises
         ]
@@ -7099,7 +7202,7 @@ class MainWindow(
             exercise_raw = model.data(model.index(index.row(), 0))
             type_raw = model.data(model.index(index.row(), 1))
             date_raw = model.data(model.index(index.row(), 3))
-            exercise_value = str(exercise_raw).strip() if exercise_raw is not None else ""
+            exercise_value = parse_exercise_display_name(str(exercise_raw) if exercise_raw is not None else "")
             type_value = str(type_raw).strip() if type_raw is not None else ""
             date_value = str(date_raw).strip() if date_raw is not None else ""
 
@@ -7323,7 +7426,19 @@ class MainWindow(
                 color_index += 1
 
             date_color = date_to_color.get(date_str, QColor(255, 255, 255))
-            transformed_row = [row[1], row[2], f"{row[3]} {row[4] or 'times'}", row[5], row[0], date_color]
+            exercise_name = str(row[1] or "")
+            transformed_row = [
+                format_favorite_exercise_label(
+                    exercise_name,
+                    favorite=False,
+                    dumbbell=exercise_name in self._cached_dumbbell_exercise_names(),
+                ),
+                row[2],
+                f"{row[3]} {row[4] or 'times'}",
+                row[5],
+                row[0],
+                date_color,
+            ]
             transformed_rows.append(transformed_row)
 
         self._process_date_color_map = date_to_color
@@ -7534,8 +7649,8 @@ class MainWindow(
                 continue
             name_column = self._table_exercise_name_column(table_name)
             for row in range(source.rowCount()):
-                name = source.data(source.index(row, name_column))
-                if str(name or "") != exercise_name:
+                name = parse_exercise_display_name(source.data(source.index(row, name_column)) or "")
+                if name != exercise_name:
                     continue
                 item = source.item(row, _EXERCISE_TABLE_IMAGE_COLUMN)
                 if item is not None:
@@ -7598,6 +7713,7 @@ def __init__(self, *, hide_on_close: bool = False) -> None:  # noqa: D107
 
         # Cache of exercise icons keyed by exercise name
         self._exercise_icon_cache: dict[str, tuple[float, QIcon | None]] = {}
+        self._dumbbell_exercise_names_cache: set[str] | None = None
 
         # Table models dictionary
         self.models: dict[str, QSortFilterProxyModel | None] = {
@@ -8087,7 +8203,9 @@ def on_add_exercise(self) -> None:
         result = dialog.get_result()
         if result is None:
             return
-        exercise, unit, is_type_required, calories_per_unit, name_local, is_favorite, media_path = result
+        exercise, unit, is_type_required, calories_per_unit, name_local, is_favorite, media_path, with_dumbbells = (
+            result
+        )
 
         if self.db_manager.exercise_name_exists(exercise):
             message_box.warning(self, "Error", f"Exercise '{exercise}' already exists")
@@ -8102,6 +8220,8 @@ def on_add_exercise(self) -> None:
                 name_local=name_local,
                 is_favorite=is_favorite,
             ):
+                if with_dumbbells:
+                    self._add_dumbbell_weight_types_to_exercise(exercise)
                 self._mark_exercises_changed()
                 self.update_all()
                 if media_path:
@@ -9084,7 +9204,13 @@ def on_exercise_selection_changed_list(self) -> None:
             return
 
         # Update exercise name label
-        self.label_exercise.setText(exercise)
+        self.label_exercise.setText(
+            format_favorite_exercise_label(
+                exercise,
+                favorite=exercise in (self.db_manager.get_favorite_exercise_names() if self.db_manager else set()),
+                dumbbell=exercise in self._cached_dumbbell_exercise_names(),
+            )
+        )
 
         # Check if a new AVIF needs to be loaded
         if self.avif_manager:
@@ -9473,7 +9599,7 @@ def on_process_selection_changed(self, current: QModelIndex, _previous: QModelIn
             row = current.row()
 
             # Get data from the selected row
-            exercise_name = model.data(model.index(row, 0)) or ""  # Exercise column
+            exercise_name = parse_exercise_display_name(model.data(model.index(row, 0)) or "")  # Exercise column
             type_name = model.data(model.index(row, 1)) or ""  # Type column
             value_with_unit = model.data(model.index(row, 2)) or ""  # Quantity column (e.g., "100 times")
 
@@ -9696,7 +9822,11 @@ def on_refresh_statistics(self) -> None:
                     # For the first row of each group, include exercise and type names
                     # For subsequent rows, use empty strings (they will be spanned)
                     if i == 0:
-                        exercise_display = ex_name
+                        exercise_display = format_favorite_exercise_label(
+                            ex_name,
+                            favorite=False,
+                            dumbbell=ex_name in self._cached_dumbbell_exercise_names(),
+                        )
                         type_display = tp_name or ""
                     else:
                         exercise_display = ""
@@ -9792,7 +9922,13 @@ def on_refresh_statistics(self) -> None:
                 is_light_for_span = table_data[start_row][8]
 
                 # Set the text for the spanned cells with proper background
-                exercise_item = QStandardItem(exercise_name)
+                exercise_item = QStandardItem(
+                    format_favorite_exercise_label(
+                        exercise_name,
+                        favorite=False,
+                        dumbbell=exercise_name in self._cached_dumbbell_exercise_names(),
+                    )
+                )
                 type_item = QStandardItem(type_name)
 
                 if is_light_for_span:
@@ -9897,6 +10033,7 @@ def on_select_exercise_button_clicked(self) -> None:
 
         current_selection = self._get_current_selected_exercise()
 
+        dumbbell_names = self._cached_dumbbell_exercise_names()
         dialog = ExerciseSelectionDialog(
             self,
             exercises=exercises,
@@ -9905,6 +10042,10 @@ def on_select_exercise_button_clicked(self) -> None:
             current_selection=current_selection,
             avif_manager=self.avif_manager,
             name_locals=self.db_manager.get_exercise_name_local_map() if self.db_manager else None,
+            display_names={
+                name: format_favorite_exercise_label(name, favorite=False, dumbbell=name in dumbbell_names)
+                for name in exercises
+            },
         )
 
         dialog_width = max(int(self.width() * 0.95), preview_size.width())
@@ -10253,7 +10394,18 @@ def on_show_last_exercises(self) -> None:
                         days_display = f"{days_ago} days ago ❗"
                         row_color = QColor(255, 192, 203)  # Light pink for longer periods
 
-                    table_data.append([exercise_name, formatted_date, days_display, row_color])
+                    table_data.append(
+                        [
+                            format_favorite_exercise_label(
+                                exercise_name,
+                                favorite=False,
+                                dumbbell=exercise_name in self._cached_dumbbell_exercise_names(),
+                            ),
+                            formatted_date,
+                            days_display,
+                            row_color,
+                        ]
+                    )
 
                 except ValueError:
                     # Skip invalid dates
@@ -10973,12 +11125,17 @@ def show_tables(self) -> None:
             exercises_data = self.db_manager.get_all_exercises()
             exercises_transformed_data = []
             light_green = QColor(240, 255, 240)  # Light green background
+            dumbbell_names = self._cached_dumbbell_exercise_names()
 
             for row in exercises_data:
                 exercise_name = row[1]
                 transformed_row = [
                     self._get_exercise_icon(str(exercise_name or "")) or QIcon(),
-                    exercise_name,
+                    format_favorite_exercise_label(
+                        str(exercise_name or ""),
+                        favorite=False,
+                        dumbbell=str(exercise_name or "") in dumbbell_names,
+                    ),
                     row[2],
                     str(row[3]),
                     f"{row[4]:.1f}",
@@ -11003,7 +11160,11 @@ def show_tables(self) -> None:
                 exercise_name = row[1]
                 transformed_row = [
                     self._get_exercise_icon(str(exercise_name or "")) or QIcon(),
-                    exercise_name,
+                    format_favorite_exercise_label(
+                        str(exercise_name or ""),
+                        favorite=False,
+                        dumbbell=str(exercise_name or "") in dumbbell_names,
+                    ),
                     row[2],
                     f"{row[3]:.1f}",
                     row[4] or "",
@@ -11172,6 +11333,7 @@ def update_chart_comboboxes(self) -> None:
                         exercise,
                         favorite=exercise in favorite_names,
                         extra=goal_info,
+                        dumbbell=exercise in self._cached_dumbbell_exercise_names(),
                     )
                     item = QStandardItem(display_text)
 
@@ -11762,7 +11924,7 @@ def exercise_names_from_name_column(model: QAbstractItemModel | None, name_colum
     names: list[str] = []
     seen: set[str] = set()
     for row in range(model.rowCount()):
-        name = str(model.data(model.index(row, name_column)) or "").strip()
+        name = parse_exercise_display_name(model.data(model.index(row, name_column)) or "")
         if name and name not in seen:
             seen.add(name)
             names.append(name)

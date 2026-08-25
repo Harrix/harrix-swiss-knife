@@ -3,12 +3,16 @@
 from __future__ import annotations
 
 import logging
-from collections import Counter
+from collections import Counter, defaultdict
 from datetime import UTC, datetime
 from typing import Any, NoReturn
 
 from harrix_swiss_knife.apps.common.qt_database_manager_base import QtSqliteDatabaseManagerBase
-from harrix_swiss_knife.apps.fitness.dumbbell_weight_types import WeightTypeSpec
+from harrix_swiss_knife.apps.fitness.dumbbell_weight_types import (
+    DUMBBELL_WEIGHT_TEMPLATE_EXERCISE,
+    WeightTypeSpec,
+    is_dumbbell_exercise,
+)
 from harrix_swiss_knife.apps.fitness.exercise_favorites import prefer_favorite_names
 
 logger = logging.getLogger(__name__)
@@ -433,6 +437,25 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         """
         return self.get_rows("SELECT _id, value, date FROM weight ORDER BY date DESC")
+
+    def get_dumbbell_exercise_names(self) -> set[str]:
+        """Return English names of exercises that use template dumbbell weights."""
+        template_id = self.get_id("exercises", "name", DUMBBELL_WEIGHT_TEMPLATE_EXERCISE)
+        template_names = (
+            [spec.name for spec in self.get_exercise_weight_type_specs(template_id)] if template_id is not None else []
+        )
+        types_by_exercise: dict[str, list[str]] = defaultdict(list)
+        for row in self.get_all_exercise_types():
+            exercise_name = str(row[1] or "").strip()
+            type_name = str(row[2] or "").strip()
+            if exercise_name and type_name:
+                types_by_exercise[exercise_name].append(type_name)
+        names: set[str] = set()
+        for row in self.get_all_exercises():
+            name = str(row[1] or "").strip()
+            if name and is_dumbbell_exercise(name, types_by_exercise.get(name, ()), template_names):
+                names.add(name)
+        return names
 
     def get_earliest_process_date(self) -> str | None:
         """Get the earliest date from process records.

@@ -15,6 +15,7 @@ lang: en
 - [🏛️ Class `WeightTypeSpec`](#%EF%B8%8F-class-weighttypespec)
 - [🔧 Function `exercises_needing_weight_sync`](#-function-exercises_needing_weight_sync)
 - [🔧 Function `folded_type_name`](#-function-folded_type_name)
+- [🔧 Function `is_dumbbell_exercise`](#-function-is_dumbbell_exercise)
 - [🔧 Function `is_template_exercise`](#-function-is_template_exercise)
 - [🔧 Function `missing_weight_types`](#-function-missing_weight_types)
 - [🔧 Function `shares_template_weight_types`](#-function-shares_template_weight_types)
@@ -122,6 +123,45 @@ Return a case-folded type name for duplicate checks.
 ```python
 def folded_type_name(name: str) -> str:
     return name.strip().casefold()
+```
+
+</details>
+
+## 🔧 Function `is_dumbbell_exercise`
+
+```python
+def is_dumbbell_exercise(name: str, type_names: Iterable[str], template_type_names: Iterable[str], *, template_exercise_name: str = DUMBBELL_WEIGHT_TEMPLATE_EXERCISE) -> bool
+```
+
+Return whether the exercise is the template or already uses its weights.
+
+Args:
+
+- `name` (`str`): English exercise name.
+- `type_names` (`Iterable[str]`): Type names on the exercise.
+- `template_type_names` (`Iterable[str]`): Type names on the template exercise.
+- `template_exercise_name` (`str`): Template exercise name. Defaults to
+  `DUMBBELL_WEIGHT_TEMPLATE_EXERCISE`.
+
+Returns:
+
+- `bool`: `True` when the exercise should show the dumbbell mark.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def is_dumbbell_exercise(
+    name: str,
+    type_names: Iterable[str],
+    template_type_names: Iterable[str],
+    *,
+    template_exercise_name: str = DUMBBELL_WEIGHT_TEMPLATE_EXERCISE,
+) -> bool:
+    return is_template_exercise(name, template_exercise_name) or shares_template_weight_types(
+        type_names,
+        template_type_names,
+    )
 ```
 
 </details>

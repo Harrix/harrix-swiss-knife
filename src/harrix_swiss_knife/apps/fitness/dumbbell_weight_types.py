@@ -68,6 +68,34 @@ def folded_type_name(name: str) -> str:
     return name.strip().casefold()
 
 
+def is_dumbbell_exercise(
+    name: str,
+    type_names: Iterable[str],
+    template_type_names: Iterable[str],
+    *,
+    template_exercise_name: str = DUMBBELL_WEIGHT_TEMPLATE_EXERCISE,
+) -> bool:
+    """Return whether the exercise is the template or already uses its weights.
+
+    Args:
+
+    - `name` (`str`): English exercise name.
+    - `type_names` (`Iterable[str]`): Type names on the exercise.
+    - `template_type_names` (`Iterable[str]`): Type names on the template exercise.
+    - `template_exercise_name` (`str`): Template exercise name. Defaults to
+      `DUMBBELL_WEIGHT_TEMPLATE_EXERCISE`.
+
+    Returns:
+
+    - `bool`: `True` when the exercise should show the dumbbell mark.
+
+    """
+    return is_template_exercise(name, template_exercise_name) or shares_template_weight_types(
+        type_names,
+        template_type_names,
+    )
+
+
 def is_template_exercise(
     name: str,
     template_name: str = DUMBBELL_WEIGHT_TEMPLATE_EXERCISE,

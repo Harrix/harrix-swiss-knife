@@ -48,6 +48,7 @@ class FitnessDashboardExercise:
     name_local: str = ""
     icon: QIcon | None = None
     is_favorite: bool = False
+    is_dumbbell: bool = False
 ```
 
 </details>
@@ -125,7 +126,13 @@ class FitnessDashboardWidget(QWidget):
         selected_row = 0
         name_font = self._list.font()
         for row, item in enumerate(items):
-            row_item = QStandardItem(format_favorite_exercise_label(item.name, favorite=item.is_favorite))
+            row_item = QStandardItem(
+                format_favorite_exercise_label(
+                    item.name,
+                    favorite=item.is_favorite,
+                    dumbbell=item.is_dumbbell,
+                )
+            )
             if item.icon is not None and not item.icon.isNull():
                 row_item.setIcon(item.icon)
             row_item.setFont(name_font)
@@ -487,7 +494,13 @@ def set_exercises(
         selected_row = 0
         name_font = self._list.font()
         for row, item in enumerate(items):
-            row_item = QStandardItem(format_favorite_exercise_label(item.name, favorite=item.is_favorite))
+            row_item = QStandardItem(
+                format_favorite_exercise_label(
+                    item.name,
+                    favorite=item.is_favorite,
+                    dumbbell=item.is_dumbbell,
+                )
+            )
             if item.icon is not None and not item.icon.isNull():
                 row_item.setIcon(item.icon)
             row_item.setFont(name_font)

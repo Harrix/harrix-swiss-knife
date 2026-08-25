@@ -45,7 +45,8 @@ class ExerciseAddDialog(QDialog):
 
         - `initial` (`dict[str, Any] | None`): Existing exercise fields for edit mode
           (`name`, `unit`, `is_type_required`, `calories_per_unit`, `name_local`,
-          `is_favorite`). Favorite is shown only when editing.
+          `is_favorite`). Favorite is shown only when editing. Dumbbells is shown
+          only when adding.
 
         """
         super().__init__(parent)
@@ -53,7 +54,7 @@ class ExerciseAddDialog(QDialog):
         self._bothub_state = bothub_state or BothubRequestState()
         self._initial = initial or {}
         self._editing = bool(self._initial)
-        self._result: tuple[str, str, bool, float, str, bool, str] | None = None
+        self._result: tuple[str, str, bool, float, str, bool, str, bool] | None = None
 
         self.setWindowTitle("Edit Exercise" if self._editing else "Add New Exercise")
         qt_modality.set_owner_window_modal(self)
@@ -97,6 +98,15 @@ class ExerciseAddDialog(QDialog):
         self._type_required_check = QCheckBox("Type is required", form_group)
         form_layout.addWidget(self._type_required_check)
 
+        self._dumbbells_check: QCheckBox | None = None
+        if not self._editing:
+            self._dumbbells_check = QCheckBox("Dumbbells", form_group)
+            self._dumbbells_check.setToolTip(
+                "Add all template dumbbell weight types and mark this exercise with 🏋️",
+            )
+            self._dumbbells_check.toggled.connect(self._on_dumbbells_toggled)
+            form_layout.addWidget(self._dumbbells_check)
+
         self._favorite_check: QCheckBox | None = None
         if self._editing:
             self._favorite_check = QCheckBox("Favorite", form_group)
@@ -134,8 +144,8 @@ class ExerciseAddDialog(QDialog):
         self._populate_initial()
         self._name_edit.setFocus()
 
-    def get_result(self) -> tuple[str, str, bool, float, str, bool, str] | None:
-        """Return `(name, unit, is_type_required, calories, name_local, is_favorite, media_path)` or `None`."""
+    def get_result(self) -> tuple[str, str, bool, float, str, bool, str, bool] | None:
+        """Return `(name, unit, is_type_required, calories, name_local, is_favorite, media_path, with_dumbbells)`."""
         return self._result
 
     def _on_accept(self) -> None:
@@ -143,16 +153,25 @@ class ExerciseAddDialog(QDialog):
         if not name:
             message_box.warning(self, "Validation Error", "Enter exercise name")
             return
+        with_dumbbells = self._dumbbells_check.isChecked() if self._dumbbells_check is not None else False
         self._result = (
             name,
             self._unit_edit.text().strip(),
-            self._type_required_check.isChecked(),
+            self._type_required_check.isChecked() or with_dumbbells,
             self._calories_spin.value(),
             self._name_local_edit.text().strip(),
             self._favorite_check.isChecked() if self._favorite_check is not None else False,
             self._media_drop.get_file_path(),
+            with_dumbbells,
         )
         self.accept()
+
+    def _on_dumbbells_toggled(self, checked: bool) -> None:
+        if checked:
+            self._type_required_check.setChecked(True)
+            self._type_required_check.setEnabled(False)
+            return
+        self._type_required_check.setEnabled(True)
 
     def _on_fill_clicked(self) -> None:
         request_exercise_fill(
@@ -196,7 +215,8 @@ Args:
 
 - `initial` (`dict[str, Any] | None`): Existing exercise fields for edit mode
   (`name`, `unit`, `is_type_required`, `calories_per_unit`, `name_local`,
-  `is_favorite`). Favorite is shown only when editing.
+  `is_favorite`). Favorite is shown only when editing. Dumbbells is shown
+  only when adding.
 
 <details>
 <summary>Code:</summary>
@@ -215,7 +235,7 @@ def __init__(
         self._bothub_state = bothub_state or BothubRequestState()
         self._initial = initial or {}
         self._editing = bool(self._initial)
-        self._result: tuple[str, str, bool, float, str, bool, str] | None = None
+        self._result: tuple[str, str, bool, float, str, bool, str, bool] | None = None
 
         self.setWindowTitle("Edit Exercise" if self._editing else "Add New Exercise")
         qt_modality.set_owner_window_modal(self)
@@ -258,6 +278,15 @@ def __init__(
 
         self._type_required_check = QCheckBox("Type is required", form_group)
         form_layout.addWidget(self._type_required_check)
+
+        self._dumbbells_check: QCheckBox | None = None
+        if not self._editing:
+            self._dumbbells_check = QCheckBox("Dumbbells", form_group)
+            self._dumbbells_check.setToolTip(
+                "Add all template dumbbell weight types and mark this exercise with 🏋️",
+            )
+            self._dumbbells_check.toggled.connect(self._on_dumbbells_toggled)
+            form_layout.addWidget(self._dumbbells_check)
 
         self._favorite_check: QCheckBox | None = None
         if self._editing:
@@ -302,16 +331,16 @@ def __init__(
 ### ⚙️ Method `get_result`
 
 ```python
-def get_result(self) -> tuple[str, str, bool, float, str, bool, str] | None
+def get_result(self) -> tuple[str, str, bool, float, str, bool, str, bool] | None
 ```
 
-Return `(name, unit, is_type_required, calories, name_local, is_favorite, media_path)` or `None`.
+Return `(name, unit, is_type_required, calories, name_local, is_favorite, media_path, with_dumbbells)`.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def get_result(self) -> tuple[str, str, bool, float, str, bool, str] | None:
+def get_result(self) -> tuple[str, str, bool, float, str, bool, str, bool] | None:
         return self._result
 ```
 
