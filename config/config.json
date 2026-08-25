@@ -69,15 +69,15 @@
   "hotkeys": [
     {
       "action": "OnQuickLauncher",
-      "hotkeys": ["Ctrl+Shift+F1"]
+      "hotkeys": ["Ctrl+Shift+1"]
     },
     {
       "action": "OnScreenshotRegion",
-      "hotkeys": ["Ctrl+Shift+F2"]
+      "hotkeys": ["Ctrl+Shift+2"]
     },
     {
       "action": "OnSnippets",
-      "hotkeys": ["Ctrl+Shift+F3"]
+      "hotkeys": ["Ctrl+Shift+3"]
     }
   ],
   "markdown_templates": {
