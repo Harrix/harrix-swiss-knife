@@ -59,6 +59,12 @@
       "hotkeys": [
         "Ctrl+Shift+F3"
       ]
+    },
+    {
+      "action": "OnScreenshotRegionKeepWindows",
+      "hotkeys": [
+        "Ctrl+Shift+F4"
+      ]
     }
   ],
   "quick_launcher_markdown_in_panel": true,
