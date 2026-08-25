@@ -13,6 +13,7 @@ from harrix_swiss_knife.apps.common.db_git import ensure_folder_git_repo
 from harrix_swiss_knife.data_for_hsk import (
     apply_data_for_hsk_to_config,
     create_data_for_hsk,
+    ensure_missing_tracker_databases,
     needs_data_for_hsk_setup,
     suggest_data_for_hsk_root,
 )
@@ -58,6 +59,20 @@ def test_needs_data_for_hsk_setup_false_when_complete(tmp_path: Path, qapp: QApp
     result = create_data_for_hsk(data_root, init_databases=True, init_git=False)
     config = dict(result.config_updates)
     assert needs_data_for_hsk_setup(config) is False
+
+
+def test_ensure_missing_tracker_databases_creates_only_absent_files(
+    tmp_path: Path,
+    qapp: QApplication,  # noqa: ARG001
+) -> None:
+    data_root = tmp_path / "data-for-hsk"
+    result = create_data_for_hsk(data_root, init_databases=True, init_git=False)
+    snippets = result.databases_dir / "snippets.db"
+    snippets.unlink()
+    created = ensure_missing_tracker_databases(result.config_updates)
+    assert created == ("snippets.db",)
+    assert snippets.is_file()
+    assert needs_data_for_hsk_setup(result.config_updates) is False
 
 
 def test_create_data_for_hsk_creates_structure(tmp_path: Path, qapp: QApplication) -> None:  # noqa: ARG001

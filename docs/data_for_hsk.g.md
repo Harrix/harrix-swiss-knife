@@ -14,6 +14,7 @@ lang: en
 - [🏛️ Class `DataForHskSetupResult`](#%EF%B8%8F-class-dataforhsksetupresult)
 - [🔧 Function `apply_data_for_hsk_to_config`](#-function-apply_data_for_hsk_to_config)
 - [🔧 Function `create_data_for_hsk`](#-function-create_data_for_hsk)
+- [🔧 Function `ensure_missing_tracker_databases`](#-function-ensure_missing_tracker_databases)
 - [🔧 Function `needs_data_for_hsk_setup`](#-function-needs_data_for_hsk_setup)
 - [🔧 Function `read_notes_folder_names`](#-function-read_notes_folder_names)
 - [🔧 Function `suggest_data_for_hsk_root`](#-function-suggest_data_for_hsk_root)
@@ -146,6 +147,62 @@ def create_data_for_hsk(
         git_repos_created=tuple(git_repos_created),
         config_updates=config_updates,
     )
+```
+
+</details>
+
+## 🔧 Function `ensure_missing_tracker_databases`
+
+```python
+def ensure_missing_tracker_databases(config: dict[str, Any]) -> tuple[str, ...]
+```
+
+Create configured tracker databases that are missing, from each app `recover.sql`.
+
+Used when a new app is added (for example Quick paste / `snippets.db`) while
+Finance, Fitness, Food, and Habits already exist.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def ensure_missing_tracker_databases(config: dict[str, Any]) -> tuple[str, ...]:
+    recover_by_name = {name: sql_path for name, sql_path in _TRACKER_DATABASES}
+    candidates: list[Path] = []
+    for key in SQLITE_CONFIG_KEYS:
+        value = config.get(key)
+        if isinstance(value, str) and not is_config_placeholder_path(value):
+            candidates.append(Path(value).expanduser())
+
+    root_value = config.get("data_for_hsk_root")
+    if isinstance(root_value, str) and not is_config_placeholder_path(root_value):
+        db_dir = Path(root_value).expanduser() / "databases"
+        if db_dir.is_dir():
+            candidates.extend(db_dir / name for name in TRACKER_DATABASE_NAMES)
+
+    created: list[str] = []
+    seen: set[Path] = set()
+    for db_path in candidates:
+        resolved = db_path.expanduser()
+        if resolved in seen:
+            continue
+        seen.add(resolved)
+        if resolved.is_file():
+            continue
+        recover_sql = recover_by_name.get(resolved.name)
+        if recover_sql is None or not recover_sql.is_file():
+            continue
+        try:
+            resolved.parent.mkdir(parents=True, exist_ok=True)
+        except OSError:
+            logger.exception("Cannot create folder for %s", resolved)
+            continue
+        if QtSqliteDatabaseManagerBase.create_database_from_sql(str(resolved), str(recover_sql)):
+            logger.info("Created missing tracker database from recover.sql: %s", resolved)
+            created.append(resolved.name)
+        else:
+            logger.warning("Failed to create missing tracker database: %s", resolved)
+    return tuple(created)
 ```
 
 </details>

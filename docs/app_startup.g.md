@@ -256,6 +256,9 @@ def run_tray_application(log: logging.Logger, *, main_menu_cls: type[MainMenuBas
         _offer_data_for_hsk_setup_if_needed(config, log)
 
     def _offer_data_for_hsk_setup_if_needed(cfg: dict, startup_log: logging.Logger) -> None:
+        created = ensure_missing_tracker_databases(cfg)
+        if created:
+            startup_log.info("Created missing tracker database(s): %s", ", ".join(created))
         if not needs_data_for_hsk_setup(cfg):
             return
         reply = QMessageBox.question(
@@ -264,7 +267,8 @@ def run_tray_application(log: logging.Logger, *, main_menu_cls: type[MainMenuBas
             (
                 "Harrix Swiss Knife can create a `data-for-hsk` folder with SQLite databases "
                 "and Notes subfolders outside the application directory.\n\n"
-                "Recommended before using Finance, Food, Fitness, Habits, and note actions.\n\n"
+                "Recommended before using Finance, Food, Fitness, Habits, Quick paste, "
+                "and note actions.\n\n"
                 "You can also run Dev → Set up data-for-hsk later."
             ),
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,

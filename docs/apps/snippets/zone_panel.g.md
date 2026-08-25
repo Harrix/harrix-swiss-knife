@@ -276,7 +276,7 @@ class ZonePanel(QWidget):
         delete_action.setEnabled(snippet is not None)
         if snippet is not None:
             delete_action.triggered.connect(lambda _checked=False, item=snippet: self.delete_requested.emit(item))
-        menu.exec(global_pos)
+        menu.popup(global_pos)
 
     def _on_item_clicked(self, item: QListWidgetItem) -> None:
         snippet = item.data(_ITEM_ROLE)
