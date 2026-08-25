@@ -72,11 +72,11 @@
       "hotkeys": ["Ctrl+Shift+1"]
     },
     {
-      "action": "OnScreenshotRegion",
+      "action": "OnSnippets",
       "hotkeys": ["Ctrl+Shift+2"]
     },
     {
-      "action": "OnSnippets",
+      "action": "OnScreenshotRegion",
       "hotkeys": ["Ctrl+Shift+3"]
     },
     {
