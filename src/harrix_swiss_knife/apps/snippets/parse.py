@@ -20,6 +20,20 @@ def display_text(value: str, hint: str, zone: str) -> str:
     return value
 
 
+def hint_tooltip(hint: str, fallback: str = "") -> str:
+    """Return hover text without wrapping square brackets."""
+    text = strip_wrapping_brackets(hint)
+    return text or fallback
+
+
+def strip_wrapping_brackets(text: str) -> str:
+    """Remove one pair of surrounding `[]`, if present."""
+    value = text.strip()
+    if value.startswith("[") and value.endswith("]"):
+        return value[1:-1].strip()
+    return value
+
+
 def item_matches_search(value: str, hint: str, query: str) -> bool:
     """Return whether value or hint matches `query` (case and layout insensitive)."""
     if command_matches_search(value, query):

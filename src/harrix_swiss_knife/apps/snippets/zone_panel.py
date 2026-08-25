@@ -27,9 +27,15 @@ from harrix_swiss_knife.apps.snippets.constants import (
     SORT_USED,
     ZONE_COLOR,
     ZONE_EMOJI,
+    ZONE_SYMBOL,
     SortMode,
 )
-from harrix_swiss_knife.apps.snippets.parse import display_text, item_matches_search
+from harrix_swiss_knife.apps.snippets.parse import (
+    display_text,
+    hint_tooltip,
+    item_matches_search,
+    strip_wrapping_brackets,
+)
 from harrix_swiss_knife.qt_emoji_icon import add_emoji_action, create_emoji_icon, make_emoji_push_button
 
 if TYPE_CHECKING:
@@ -70,7 +76,7 @@ class ColorItemDelegate(QStyledItemDelegate):
         if style is not None:
             style.drawPrimitive(QStyle.PrimitiveElement.PE_PanelItemViewItem, option, painter, widget)
 
-        hex_value = color_hex_label(str(index.data(_COLOR_ROLE) or ""))
+        hex_value = strip_wrapping_brackets(str(index.data(_COLOR_ROLE) or ""))
         color = QColor(hex_value) if hex_value else QColor("#ffffff")
         if not color.isValid():
             color = QColor("#ffffff")
@@ -148,7 +154,7 @@ class ZonePanel(QWidget):
 
         self._list = QListWidget(self)
         self._list.setFrameShape(QListWidget.Shape.NoFrame)
-        if zone == ZONE_EMOJI:
+        if zone in {ZONE_EMOJI, ZONE_SYMBOL}:
             self._list.setViewMode(QListWidget.ViewMode.IconMode)
             self._list.setResizeMode(QListWidget.ResizeMode.Adjust)
             self._list.setMovement(QListWidget.Movement.Static)
@@ -225,6 +231,9 @@ class ZonePanel(QWidget):
             if self.zone == ZONE_EMOJI:
                 list_item.setIcon(create_emoji_icon(snippet.value, 32))
                 list_item.setToolTip(snippet.value)
+            elif self.zone == ZONE_SYMBOL:
+                list_item.setIcon(create_emoji_icon(snippet.value, 32))
+                list_item.setToolTip(hint_tooltip(snippet.hint, snippet.value))
             elif self.zone == ZONE_COLOR:
                 list_item.setData(_COLOR_ROLE, snippet.value)
                 list_item.setToolTip(snippet.hint or snippet.value)
@@ -295,7 +304,4 @@ def chip_border_color(color: QColor) -> QColor:
 
 def color_hex_label(value: str) -> str:
     """Return the hex text for a color chip, without surrounding brackets."""
-    text = value.strip()
-    if text.startswith("[") and text.endswith("]"):
-        return text[1:-1].strip()
-    return text
+    return strip_wrapping_brackets(value)

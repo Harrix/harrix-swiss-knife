@@ -294,10 +294,10 @@ INSERT INTO items (zone, value, hint, created_at, last_used_at, sort_index) VALU
 INSERT INTO items (zone, value, hint, created_at, last_used_at, sort_index) VALUES ('emoji', '👀', '', '2026-08-25T00:00:00+00:00', NULL, 178);
 INSERT INTO items (zone, value, hint, created_at, last_used_at, sort_index) VALUES ('emoji', '🎂', '', '2026-08-25T00:00:00+00:00', NULL, 179);
 
-INSERT INTO items (zone, value, hint, created_at, last_used_at, sort_index) VALUES ('symbol', '—', 'Век живи — век учись. | Тире', '2026-08-25T00:00:00+00:00', NULL, 0);
-INSERT INTO items (zone, value, hint, created_at, last_used_at, sort_index) VALUES ('symbol', '–', '2010–2012 | Короткое тире', '2026-08-25T00:00:00+00:00', NULL, 1);
-INSERT INTO items (zone, value, hint, created_at, last_used_at, sort_index) VALUES ('symbol', '−', '5−2=3 | Минус', '2026-08-25T00:00:00+00:00', NULL, 2);
-INSERT INTO items (zone, value, hint, created_at, last_used_at, sort_index) VALUES ('symbol', '-', 'Кое-что, тел.: 123-45-67 | Обычный дефис', '2026-08-25T00:00:00+00:00', NULL, 3);
+INSERT INTO items (zone, value, hint, created_at, last_used_at, sort_index) VALUES ('symbol', '-', 'Кое-что, тел.: 123-45-67 | Обычный дефис', '2026-08-25T00:00:00+00:00', NULL, 0);
+INSERT INTO items (zone, value, hint, created_at, last_used_at, sort_index) VALUES ('symbol', '−', '5−2=3 | Минус', '2026-08-25T00:00:00+00:00', NULL, 1);
+INSERT INTO items (zone, value, hint, created_at, last_used_at, sort_index) VALUES ('symbol', '–', '2010–2012 | Короткое тире', '2026-08-25T00:00:00+00:00', NULL, 2);
+INSERT INTO items (zone, value, hint, created_at, last_used_at, sort_index) VALUES ('symbol', '—', 'Век живи — век учись. | Тире', '2026-08-25T00:00:00+00:00', NULL, 3);
 INSERT INTO items (zone, value, hint, created_at, last_used_at, sort_index) VALUES ('symbol', '«»', 'Петя сказал: «Скоро Новый год». | Кавычки-елочки', '2026-08-25T00:00:00+00:00', NULL, 4);
 INSERT INTO items (zone, value, hint, created_at, last_used_at, sort_index) VALUES ('symbol', '©', 'Все права защищены © 2022. | Знак копирайта', '2026-08-25T00:00:00+00:00', NULL, 5);
 INSERT INTO items (zone, value, hint, created_at, last_used_at, sort_index) VALUES ('symbol', '×', '1920 × 768 px | Знак умножения', '2026-08-25T00:00:00+00:00', NULL, 6);

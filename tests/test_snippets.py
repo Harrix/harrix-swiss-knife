@@ -25,6 +25,7 @@ from harrix_swiss_knife.apps.snippets.constants import (
 from harrix_swiss_knife.apps.snippets.database_manager import DatabaseManager, SnippetItem
 from harrix_swiss_knife.apps.snippets.parse import (
     display_text,
+    hint_tooltip,
     item_matches_search,
     parse_bulk_lines,
     parse_value_hint_line,
@@ -37,7 +38,7 @@ from harrix_swiss_knife.apps.snippets.seed import (
     extract_phrase_emojis,
     seed_emojis,
 )
-from harrix_swiss_knife.apps.snippets.sort import sort_items
+from harrix_swiss_knife.apps.snippets.sort import dash_length_rank, sort_items
 from harrix_swiss_knife.apps.snippets.zone_panel import ZonePanel, chip_border_color, color_hex_label
 from harrix_swiss_knife.menu_structure import get_menu_structure
 
@@ -118,6 +119,61 @@ def test_sort_items_added_and_alpha() -> None:
     assert [item.value for item in sort_items(items, SORT_ALPHA, descending=True)] == ["Gamma", "Beta", "Alpha"]
 
 
+def test_sort_items_pins_symbol_dashes_first_by_length() -> None:
+    items = [
+        SnippetItem(
+            item_id=1,
+            zone=ZONE_SYMBOL,
+            value="©",
+            hint="copyright",
+            created_at="2026-01-01T00:00:00+00:00",
+            last_used_at=None,
+            sort_index=0,
+        ),
+        SnippetItem(
+            item_id=2,
+            zone=ZONE_SYMBOL,
+            value="—",
+            hint="em dash",
+            created_at="2026-01-01T00:00:00+00:00",
+            last_used_at=None,
+            sort_index=1,
+        ),
+        SnippetItem(
+            item_id=3,
+            zone=ZONE_SYMBOL,
+            value="-",
+            hint="hyphen",
+            created_at="2026-01-01T00:00:00+00:00",
+            last_used_at=None,
+            sort_index=2,
+        ),
+        SnippetItem(
+            item_id=4,
+            zone=ZONE_SYMBOL,
+            value="–",
+            hint="en dash",
+            created_at="2026-01-01T00:00:00+00:00",
+            last_used_at=None,
+            sort_index=3,
+        ),
+        SnippetItem(
+            item_id=5,
+            zone=ZONE_SYMBOL,
+            value="−",
+            hint="minus",
+            created_at="2026-01-01T00:00:00+00:00",
+            last_used_at=None,
+            sort_index=4,
+        ),
+    ]
+    assert dash_length_rank("-") == 0
+    assert dash_length_rank("©") is None
+    ordered = [item.value for item in sort_items(items, SORT_ALPHA, descending=False)]
+    assert ordered[:4] == ["-", "−", "–", "—"]
+    assert ordered[4:] == ["©"]
+
+
 def test_item_matches_search_ignores_case_and_layout() -> None:
     assert item_matches_search("🐞 Fix ruff check issues", "", "FIX")
     assert item_matches_search("Quick paste", "", "зфыеу")
@@ -138,6 +194,13 @@ def test_parse_value_hint_line_and_bulk_lines() -> None:
 
 def test_display_text_adds_hint_brackets() -> None:
     assert display_text("—", "Век живи — век учись. | Тире", ZONE_SYMBOL) == ("— [Век живи — век учись. | Тире]")
+
+
+def test_hint_tooltip_strips_wrapping_brackets() -> None:
+    assert hint_tooltip("Век живи — век учись. | Тире") == "Век живи — век учись. | Тире"
+    assert hint_tooltip("[Тире]") == "Тире"
+    assert hint_tooltip("  [Короткое тире]  ") == "Короткое тире"
+    assert hint_tooltip("", "—") == "—"
 
 
 def test_color_hex_label_strips_brackets() -> None:
@@ -167,8 +230,9 @@ def test_recover_sql_matches_builder_and_creates_seed(qapp: QApplication, tmp_pa
         colors = manager.list_items("color")
         assert [item.value for item in phrases] == list(SEED_PHRASES)
         assert [item.value for item in emojis] == seed_emojis()
-        assert symbols[0].value == "—"
-        assert "Тире" in symbols[0].hint
+        assert [item.value for item in symbols[:4]] == ["-", "−", "–", "—"]
+        assert "дефис" in symbols[0].hint
+        assert "Тире" in symbols[3].hint
         assert colors[0].value == "#ffffff"
         assert colors[-1].value == "#66442b"
         assert ensure_seed_emojis(manager) == 0
@@ -210,6 +274,32 @@ def test_emoji_zone_items_have_icon_without_caption(qapp: QApplication) -> None:
     assert item is not None
     assert item.text() == ""
     assert not item.icon().isNull()
+    panel.close()
+
+
+def test_symbol_zone_items_are_icon_buttons_with_hint_tooltip(qapp: QApplication) -> None:
+    assert qapp is not None
+    panel = ZonePanel(zone=ZONE_SYMBOL, title="Add symbol", show_add=True)
+    panel.set_items(
+        [
+            SnippetItem(
+                item_id=1,
+                zone=ZONE_SYMBOL,
+                value="—",
+                hint="Век живи — век учись. | Тире",
+                created_at="2026-01-01T00:00:00+00:00",
+                last_used_at=None,
+                sort_index=0,
+            ),
+        ],
+    )
+    item = panel._list.item(0)
+    assert item is not None
+    assert item.text() == ""
+    assert not item.icon().isNull()
+    assert item.toolTip() == "Век живи — век учись. | Тире"
+    assert "[" not in item.toolTip()
+    assert "]" not in item.toolTip()
     panel.close()
 
 
