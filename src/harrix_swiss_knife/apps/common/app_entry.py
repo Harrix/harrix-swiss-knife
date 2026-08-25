@@ -29,6 +29,7 @@ from PySide6.QtWidgets import QApplication
 from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.app_startup_toast import app_loading_title, app_loading_toast_scope
 from harrix_swiss_knife.apps.common.uic_compile import install_safe_qt_translate
+from harrix_swiss_knife.qt_flexible_decimal import install_flexible_decimal_separators
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -58,6 +59,7 @@ def run_app_main(
     """
     app = QApplication(sys.argv)
     app.setWindowIcon(QIcon(icon_path))
+    install_flexible_decimal_separators(app)
     install_safe_qt_translate()
     try:
         with app_loading_toast_scope(app_loading_title(main_window_factory)):

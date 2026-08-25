@@ -49,6 +49,7 @@ from harrix_swiss_knife.actions.vscode import (
     OnVscodeFormat,
 )
 from harrix_swiss_knife.paths import get_project_root
+from harrix_swiss_knife.qt_flexible_decimal import install_flexible_decimal_separators
 
 
 @click.group()
@@ -1038,6 +1039,7 @@ def _ensure_qt_app() -> QApplication:
     if app is None:
         app = QApplication(sys.argv)
     _set_qt_app_icon(app)
+    install_flexible_decimal_separators(app)
     return app
 
 

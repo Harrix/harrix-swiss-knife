@@ -37,6 +37,7 @@ def run_app_main(
 ) -> None:
     app = QApplication(sys.argv)
     app.setWindowIcon(QIcon(icon_path))
+    install_flexible_decimal_separators(app)
     install_safe_qt_translate()
     try:
         with app_loading_toast_scope(app_loading_title(main_window_factory)):
