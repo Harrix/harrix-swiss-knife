@@ -2,7 +2,15 @@
 
 from __future__ import annotations
 
-from harrix_swiss_knife.apps.fitness.exercise_ai_fill import parse_exercise_fill_response
+from harrix_swiss_knife.apps.fitness.exercise_ai_fill import media_filename_hint, parse_exercise_fill_response
+
+
+def test_media_filename_hint_uses_basename() -> None:
+    """Only the filename is sent to AI, not the full path."""
+    assert media_filename_hint(r"D:\videos\High knees with clap.mp4") == "High knees with clap.mp4"
+    assert media_filename_hint("/data/videos/push-ups.avif") == "push-ups.avif"
+    assert media_filename_hint("   ") == ""
+    assert media_filename_hint("") == ""
 
 
 def test_parse_exercise_fill_response_valid() -> None:

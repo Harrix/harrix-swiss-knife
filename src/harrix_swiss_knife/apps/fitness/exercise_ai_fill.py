@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from harrix_swiss_knife.apps.common import message_box
@@ -28,6 +29,12 @@ class ExerciseFillResult:
     name_local: str
     unit: str
     calories_per_unit: float
+
+
+def media_filename_hint(media_path: str) -> str:
+    """Return the attached media filename, or an empty string when none is set."""
+    path = media_path.strip()
+    return Path(path).name if path else ""
 
 
 def parse_exercise_fill_response(text: str) -> ExerciseFillResult | None:
@@ -72,12 +79,14 @@ def request_exercise_fill(
     unit_edit: QLineEdit,
     calories_spin: QDoubleSpinBox,
     fill_button: QPushButton,
+    media_path: str = "",
 ) -> None:
     """Fill English/local names, unit, and calories via BotHub."""
     name = name_edit.text().strip()
     name_local = name_local_edit.text().strip()
-    if not name and not name_local:
-        message_box.warning(parent, "Fill with AI", "Enter English name or local name first")
+    media_filename = media_filename_hint(media_path)
+    if not name and not name_local and not media_filename:
+        message_box.warning(parent, "Fill with AI", "Enter English name, local name, or attach a media file first")
         return
 
     try:
@@ -87,6 +96,7 @@ def request_exercise_fill(
             {
                 "NAME": name,
                 "NAME_LOCAL": name_local,
+                "MEDIA_FILENAME": media_filename,
                 "LOCAL_LANGUAGE": get_apps_local_language_display_name(app_config),
             },
         )

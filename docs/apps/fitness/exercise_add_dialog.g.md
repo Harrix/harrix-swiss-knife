@@ -119,7 +119,9 @@ class ExerciseAddDialog(QDialog):
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         apply_emoji_dialog_buttons(buttons)
         self._fill_button = make_emoji_push_button("Fill with AI", "🤖")
-        self._fill_button.setToolTip("Fill English/local names, unit, and calories per unit from the entered name")
+        self._fill_button.setToolTip(
+            "Fill English/local names, unit, and calories from the entered name or media filename",
+        )
         self._fill_button.clicked.connect(self._on_fill_clicked)
         buttons.addButton(self._fill_button, QDialogButtonBox.ButtonRole.ActionRole)
         buttons.accepted.connect(self._on_accept)
@@ -159,6 +161,7 @@ class ExerciseAddDialog(QDialog):
             unit_edit=self._unit_edit,
             calories_spin=self._calories_spin,
             fill_button=self._fill_button,
+            media_path=self._media_drop.get_file_path(),
         )
 
     def _populate_initial(self) -> None:
@@ -274,7 +277,9 @@ def __init__(
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         apply_emoji_dialog_buttons(buttons)
         self._fill_button = make_emoji_push_button("Fill with AI", "🤖")
-        self._fill_button.setToolTip("Fill English/local names, unit, and calories per unit from the entered name")
+        self._fill_button.setToolTip(
+            "Fill English/local names, unit, and calories from the entered name or media filename",
+        )
         self._fill_button.clicked.connect(self._on_fill_clicked)
         buttons.addButton(self._fill_button, QDialogButtonBox.ButtonRole.ActionRole)
         buttons.accepted.connect(self._on_accept)

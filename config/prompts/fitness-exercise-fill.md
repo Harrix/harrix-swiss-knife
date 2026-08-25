@@ -2,7 +2,7 @@ Fill fields for a new fitness exercise in a personal tracker.
 
 For this installation the local language is {{LOCAL_LANGUAGE}}.
 
-You are given an English name and/or a local-language name (one may be empty). Infer the missing name and suggest a unit and calories burned per unit.
+You are given an English name and/or a local-language name (one may be empty). A media filename may also be provided. Infer the missing name and suggest a unit and calories burned per unit.
 
 Return **one row** in TSV format (tab-separated columns, no headers, no markdown):
 
@@ -21,6 +21,7 @@ Rules:
 - If English Name is provided, keep it when already good; otherwise normalize lightly.
 - If only NameLocal is provided, invent a clear English Name.
 - If only Name is provided, translate to NameLocal.
+- If a media filename is provided, treat it as a hint for the English name (ignore the extension, dates, counters, and underscores). Use it when names are empty or unclear.
 - Unit and CaloriesPerUnit must always be filled with sensible estimates for an average adult.
 
 English name (may be empty):
@@ -33,6 +34,12 @@ Local name (may be empty):
 
 ```text
 {{NAME_LOCAL}}
+```
+
+Media filename (may be empty):
+
+```text
+{{MEDIA_FILENAME}}
 ```
 
 Return only one TSV row (4 columns), without explanations.

@@ -12,6 +12,7 @@ lang: en
 ## Contents
 
 - [🏛️ Class `ExerciseFillResult`](#%EF%B8%8F-class-exercisefillresult)
+- [🔧 Function `media_filename_hint`](#-function-media_filename_hint)
 - [🔧 Function `parse_exercise_fill_response`](#-function-parse_exercise_fill_response)
 - [🔧 Function `request_exercise_fill`](#-function-request_exercise_fill)
 
@@ -35,6 +36,25 @@ class ExerciseFillResult:
     name_local: str
     unit: str
     calories_per_unit: float
+```
+
+</details>
+
+## 🔧 Function `media_filename_hint`
+
+```python
+def media_filename_hint(media_path: str) -> str
+```
+
+Return the attached media filename, or an empty string when none is set.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def media_filename_hint(media_path: str) -> str:
+    path = media_path.strip()
+    return Path(path).name if path else ""
 ```
 
 </details>
@@ -87,7 +107,7 @@ def parse_exercise_fill_response(text: str) -> ExerciseFillResult | None:
 ## 🔧 Function `request_exercise_fill`
 
 ```python
-def request_exercise_fill(parent: QWidget, *, app_config: dict[str, Any], bothub_state: BothubRequestState, name_edit: QLineEdit, name_local_edit: QLineEdit, unit_edit: QLineEdit, calories_spin: QDoubleSpinBox, fill_button: QPushButton) -> None
+def request_exercise_fill(parent: QWidget, *, app_config: dict[str, Any], bothub_state: BothubRequestState, name_edit: QLineEdit, name_local_edit: QLineEdit, unit_edit: QLineEdit, calories_spin: QDoubleSpinBox, fill_button: QPushButton, media_path: str = '') -> None
 ```
 
 Fill English/local names, unit, and calories via BotHub.
@@ -106,11 +126,13 @@ def request_exercise_fill(
     unit_edit: QLineEdit,
     calories_spin: QDoubleSpinBox,
     fill_button: QPushButton,
+    media_path: str = "",
 ) -> None:
     name = name_edit.text().strip()
     name_local = name_local_edit.text().strip()
-    if not name and not name_local:
-        message_box.warning(parent, "Fill with AI", "Enter English name or local name first")
+    media_filename = media_filename_hint(media_path)
+    if not name and not name_local and not media_filename:
+        message_box.warning(parent, "Fill with AI", "Enter English name, local name, or attach a media file first")
         return
 
     try:
@@ -120,6 +142,7 @@ def request_exercise_fill(
             {
                 "NAME": name,
                 "NAME_LOCAL": name_local,
+                "MEDIA_FILENAME": media_filename,
                 "LOCAL_LANGUAGE": get_apps_local_language_display_name(app_config),
             },
         )
