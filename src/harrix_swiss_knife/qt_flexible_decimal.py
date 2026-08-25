@@ -1,4 +1,4 @@
-"""Accept both comma and period as the decimal separator in `QDoubleSpinBox`."""
+"""Accept comma, period, and layout/Caps Lock variants as the decimal in `QDoubleSpinBox`."""
 
 from __future__ import annotations
 
@@ -6,11 +6,28 @@ from PySide6.QtCore import QEvent, QObject, Qt
 from PySide6.QtGui import QKeyEvent, QKeySequence
 from PySide6.QtWidgets import QApplication, QDoubleSpinBox, QLineEdit
 
-_ALT_SEPARATORS = {",": ".", ".": ","}
+# Same physical keys: EN `,./` / `<>?` and RU be/yu letters.
+_DECIMAL_INPUT_CHARS = frozenset(
+    {
+        ",",
+        ".",
+        "/",
+        "<",
+        ">",
+        "?",
+        "\u0431",
+        "\u0411",
+        "\u044e",
+        "\u042e",
+    }
+)
+_REMAP_BLOCKING_MODIFIERS = (
+    Qt.KeyboardModifier.ControlModifier | Qt.KeyboardModifier.AltModifier | Qt.KeyboardModifier.MetaModifier
+)
 
 
 class FlexibleDecimalSpinFilter(QObject):
-    """Map `,`/`.` keys and pasted text to the spin box locale decimal point."""
+    """Map decimal-intent keys and pasted text to the spin box locale decimal point."""
 
     def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
         """Rewrite decimal keys and normalize pasted numbers in double spin boxes."""
@@ -20,7 +37,6 @@ class FlexibleDecimalSpinFilter(QObject):
 
         self._ensure_line_edit_hook(spin)
         decimal = spinbox_decimal_point(spin)
-        other = _ALT_SEPARATORS.get(decimal)
         if event.type() != QEvent.Type.KeyPress or not isinstance(event, QKeyEvent):
             return False
 
@@ -31,7 +47,11 @@ class FlexibleDecimalSpinFilter(QObject):
                 line.insert(normalize_decimal_text(clipboard.text(), decimal))
                 return True
 
-        if other is not None and event.text() == other:
+        if event.modifiers() & _REMAP_BLOCKING_MODIFIERS:
+            return False
+
+        typed = event.text()
+        if typed in _DECIMAL_INPUT_CHARS and typed != decimal:
             key = Qt.Key.Key_Period if decimal == "." else Qt.Key.Key_Comma
             replacement = QKeyEvent(QEvent.Type.KeyPress, key, event.modifiers(), decimal)
             QApplication.sendEvent(watched, replacement)
@@ -58,7 +78,7 @@ def double_spinbox_from_widget(widget: QObject | None) -> QDoubleSpinBox | None:
 
 
 def install_flexible_decimal_separators(app: QApplication) -> None:
-    """Install an application-wide filter so every `QDoubleSpinBox` accepts `,` and `.`."""
+    """Install an application-wide filter so every `QDoubleSpinBox` accepts `,`/`.` variants."""
     if not isinstance(app, QApplication):
         return
     existing = app.property("_hskFlexibleDecimalFilter")
@@ -70,11 +90,14 @@ def install_flexible_decimal_separators(app: QApplication) -> None:
 
 
 def normalize_decimal_text(text: str, decimal_point: str) -> str:
-    """Replace the other separator with `decimal_point` when it is the only one used."""
-    other = _ALT_SEPARATORS.get(decimal_point)
-    if other is None or other not in text or decimal_point in text:
+    """Replace decimal-intent characters with `decimal_point` when it is not already used."""
+    if decimal_point in text:
         return text
-    return text.replace(other, decimal_point)
+    normalized = text
+    for char in _DECIMAL_INPUT_CHARS:
+        if char != decimal_point and char in normalized:
+            normalized = normalized.replace(char, decimal_point)
+    return normalized
 
 
 def spinbox_decimal_point(spin: QDoubleSpinBox) -> str:
