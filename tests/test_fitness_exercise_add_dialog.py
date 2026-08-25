@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 from PySide6.QtWidgets import QApplication
 
@@ -131,4 +133,23 @@ def test_accept_blocks_duplicate_english_or_local(qapp: QApplication, monkeypatc
     dialog._finish_accept()
     assert shown == [("Push-ups", "Отжимания")]
     assert dialog.get_result() is None
+    dialog.close()
+
+
+def test_exercise_add_dialog_accepts_local_and_media_without_english(
+    qapp: QApplication,
+    tmp_path: Path,
+) -> None:
+    assert qapp is not None
+    media_path = tmp_path / "squat.mp4"
+    media_path.write_bytes(b"fake")
+    dialog = ExerciseAddDialog()
+    dialog._name_local_edit.setText("Приседания")
+    dialog._media_drop.set_file_path(str(media_path))
+    dialog._finish_accept()
+    result = dialog.get_result()
+    assert result is not None
+    assert result[0] == ""
+    assert result[4] == "Приседания"
+    assert result[6] == str(media_path)
     dialog.close()

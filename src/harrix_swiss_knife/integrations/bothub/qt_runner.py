@@ -11,12 +11,10 @@ from PySide6.QtWidgets import QApplication, QWidget
 
 from harrix_swiss_knife import toast_cancellable_http_notification, toast_notification_base
 from harrix_swiss_knife.apps.common import message_box
-from harrix_swiss_knife.integrations.ai.bothub_failover import prepare_bothub_router
 from harrix_swiss_knife.integrations.ai.config import get_provider_settings
 from harrix_swiss_knife.integrations.bothub.config import (
     get_active_provider,
     get_connection_params,
-    get_proxy_url,
     validate_api_key,
 )
 from harrix_swiss_knife.integrations.bothub.worker import BothubChatWorker
@@ -42,6 +40,7 @@ class BothubRequestSpec:
     on_error: Callable[[str], None] | None = None
     on_cancelled: Callable[[], None] | None = None
     offer_retry: bool = True
+    owner_modal: bool = True
 
 
 @dataclass
@@ -68,6 +67,7 @@ def run_bothub_request(
     on_error: Callable[[str], None] | None = None,
     on_cancelled: Callable[[], None] | None = None,
     offer_retry: bool = True,
+    owner_modal: bool = True,
 ) -> bool:
     """Validate config, show toast, start worker. Returns `True` if the request started.
 
@@ -90,6 +90,8 @@ def run_bothub_request(
       When `offer_retry` is `True`, called only after the user closes the retry dialog.
     - `offer_retry`: When `True` (default), error and cancel show Retry / Close before
       finishing. Defaults to `True`.
+    - `owner_modal`: When `True` (default), the toast blocks the owner window.
+      Use `False` for background fills so the UI stays interactive.
 
     """
     image_list = list(images or [])
@@ -110,6 +112,7 @@ def run_bothub_request(
         on_error=on_error,
         on_cancelled=on_cancelled,
         offer_retry=offer_retry,
+        owner_modal=owner_modal,
     )
     return _start_bothub_request(spec)
 
@@ -259,9 +262,6 @@ def _start_bothub_request(spec: BothubRequestSpec) -> bool:
         return False
 
     for_speech = spec.audio is not None
-    switched_to = prepare_bothub_router(spec.config, for_speech=for_speech, proxy_url=get_proxy_url(spec.config))
-    if switched_to is not None:
-        spec.toast_message = f"Requesting AI via {switched_to}…"
     api_key = validate_api_key(spec.config, parent=spec.parent, for_speech=for_speech)
     if api_key is None:
         return False
@@ -277,8 +277,12 @@ def _start_bothub_request(spec: BothubRequestSpec) -> bool:
     toast = toast_cancellable_http_notification.ToastCancellableHttpNotification(
         spec.toast_message,
         parent=toast_parent,
+        owner_modal=spec.owner_modal,
     )
     toast.start_countdown()
+    app = QApplication.instance()
+    if app is not None:
+        app.processEvents()
 
     worker = BothubChatWorker(
         api_key=api_key,
@@ -291,6 +295,9 @@ def _start_bothub_request(spec: BothubRequestSpec) -> bool:
         cancellable=True,
         provider=provider,
         max_tokens=max_tokens,
+        config=spec.config,
+        for_speech=for_speech,
+        model_override=spec.model,
     )
     _track_bothub_worker(worker)
 

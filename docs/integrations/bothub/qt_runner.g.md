@@ -45,6 +45,7 @@ class BothubRequestSpec:
     on_error: Callable[[str], None] | None = None
     on_cancelled: Callable[[], None] | None = None
     offer_retry: bool = True
+    owner_modal: bool = True
 ```
 
 </details>
@@ -72,7 +73,7 @@ class BothubRequestState:
 ## 🔧 Function `run_bothub_request`
 
 ```python
-def run_bothub_request(parent: QWidget | None, config: dict[str, Any], prompt_text: str, on_success: Callable[[str], None], *, images: list[tuple[bytes, str]] | None = None, image: tuple[bytes, str] | None = None, audio: tuple[bytes, str] | None = None, model: str | None = None, toast_message: str = 'Requesting AI…', is_busy: Callable[[], bool] | None = None, state: BothubRequestState | None = None, on_error: Callable[[str], None] | None = None, on_cancelled: Callable[[], None] | None = None, offer_retry: bool = True) -> bool
+def run_bothub_request(parent: QWidget | None, config: dict[str, Any], prompt_text: str, on_success: Callable[[str], None], *, images: list[tuple[bytes, str]] | None = None, image: tuple[bytes, str] | None = None, audio: tuple[bytes, str] | None = None, model: str | None = None, toast_message: str = 'Requesting AI…', is_busy: Callable[[], bool] | None = None, state: BothubRequestState | None = None, on_error: Callable[[str], None] | None = None, on_cancelled: Callable[[], None] | None = None, offer_retry: bool = True, owner_modal: bool = True) -> bool
 ```
 
 Validate config, show toast, start worker. Returns `True` if the request started.
@@ -96,6 +97,8 @@ Args:
   When `offer_retry` is `True`, called only after the user closes the retry dialog.
 - `offer_retry`: When `True` (default), error and cancel show Retry / Close before
   finishing. Defaults to `True`.
+- `owner_modal`: When `True` (default), the toast blocks the owner window.
+  Use `False` for background fills so the UI stays interactive.
 
 <details>
 <summary>Code:</summary>
@@ -117,6 +120,7 @@ def run_bothub_request(
     on_error: Callable[[str], None] | None = None,
     on_cancelled: Callable[[], None] | None = None,
     offer_retry: bool = True,
+    owner_modal: bool = True,
 ) -> bool:
     image_list = list(images or [])
     if image is not None:
@@ -136,6 +140,7 @@ def run_bothub_request(
         on_error=on_error,
         on_cancelled=on_cancelled,
         offer_retry=offer_retry,
+        owner_modal=owner_modal,
     )
     return _start_bothub_request(spec)
 ```

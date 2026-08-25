@@ -15,6 +15,7 @@ lang: en
 - [🔧 Function `media_filename_hint`](#-function-media_filename_hint)
 - [🔧 Function `parse_exercise_fill_response`](#-function-parse_exercise_fill_response)
 - [🔧 Function `request_exercise_fill`](#-function-request_exercise_fill)
+- [🔧 Function `request_exercise_fill_from_values`](#-function-request_exercise_fill_from_values)
 - [🔧 Function `should_auto_fill_exercise_on_ok`](#-function-should_auto_fill_exercise_on_ok)
 
 </details>
@@ -135,8 +136,61 @@ def request_exercise_fill(
     on_filled: Callable[[], None] | None = None,
     on_idle: Callable[[], None] | None = None,
 ) -> bool:
-    name = name_edit.text().strip()
-    name_local = name_local_edit.text().strip()
+
+    def apply_result(result: ExerciseFillResult) -> None:
+        name_edit.setText(result.name)
+        name_local_edit.setText(result.name_local)
+        unit_edit.setText(result.unit)
+        calories_spin.setValue(result.calories_per_unit)
+        if on_filled is not None:
+            on_filled()
+
+    return request_exercise_fill_from_values(
+        parent,
+        app_config=app_config,
+        bothub_state=bothub_state,
+        name=name_edit.text(),
+        name_local=name_local_edit.text(),
+        media_path=media_path,
+        on_filled=apply_result,
+        on_idle=on_idle,
+        fill_button=fill_button,
+    )
+```
+
+</details>
+
+## 🔧 Function `request_exercise_fill_from_values`
+
+```python
+def request_exercise_fill_from_values(parent: QWidget, *, app_config: dict[str, Any], bothub_state: BothubRequestState, name: str, name_local: str, media_path: str = '', on_filled: Callable[[ExerciseFillResult], None], on_idle: Callable[[], None] | None = None, fill_button: QPushButton | None = None, owner_modal: bool = True) -> bool
+```
+
+Fill exercise fields via BotHub from raw values.
+
+Returns:
+
+- `bool`: `True` when the request started.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def request_exercise_fill_from_values(
+    parent: QWidget,
+    *,
+    app_config: dict[str, Any],
+    bothub_state: BothubRequestState,
+    name: str,
+    name_local: str,
+    media_path: str = "",
+    on_filled: Callable[[ExerciseFillResult], None],
+    on_idle: Callable[[], None] | None = None,
+    fill_button: QPushButton | None = None,
+    owner_modal: bool = True,
+) -> bool:
+    name = name.strip()
+    name_local = name_local.strip()
     media_filename = media_filename_hint(media_path)
     if not name and not name_local and not media_filename:
         message_box.warning(parent, "Fill with AI", "Enter English name, local name, or attach a media file first")
@@ -157,10 +211,12 @@ def request_exercise_fill(
         show_bothub_prompt_build_error(parent, exc)
         return False
 
-    fill_button.setEnabled(False)
+    if fill_button is not None:
+        fill_button.setEnabled(False)
 
     def become_idle() -> None:
-        fill_button.setEnabled(True)
+        if fill_button is not None:
+            fill_button.setEnabled(True)
         if on_idle is not None:
             on_idle()
 
@@ -170,16 +226,9 @@ def request_exercise_fill(
             become_idle()
             message_box.warning(parent, "Fill with AI", "BotHub returned an invalid exercise fill response")
             return
-        name_edit.setText(result.name)
-        name_local_edit.setText(result.name_local)
-        unit_edit.setText(result.unit)
-        calories_spin.setValue(result.calories_per_unit)
-        fill_button.setEnabled(True)
-        if on_filled is not None:
-            on_filled()
-            return
-        if on_idle is not None:
-            on_idle()
+        if fill_button is not None:
+            fill_button.setEnabled(True)
+        on_filled(result)
 
     def on_error(error_message: str) -> None:
         become_idle()
@@ -198,6 +247,7 @@ def request_exercise_fill(
         state=bothub_state,
         on_error=on_error,
         on_cancelled=on_cancelled,
+        owner_modal=owner_modal,
     )
     if not started:
         become_idle()

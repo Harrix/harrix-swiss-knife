@@ -37,6 +37,12 @@ def test_cancellable_toast_is_window_modal(qapp: QApplication) -> None:  # noqa:
     toast.close()
 
 
+def test_cancellable_toast_can_stay_non_modal(qapp: QApplication) -> None:  # noqa: ARG001
+    toast = ToastCancellableHttpNotification("Filling exercise fields…", owner_modal=False)
+    assert toast.windowModality() == Qt.WindowModality.NonModal
+    toast.close()
+
+
 def test_resolve_toast_parent_prefers_explicit_parent(qapp: QApplication) -> None:  # noqa: ARG001
     dialog = QDialog()
     assert _resolve_toast_parent(dialog) is dialog

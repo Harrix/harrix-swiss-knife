@@ -14,6 +14,7 @@ from harrix_swiss_knife.integrations.bothub.qt_runner import (
     BothubRequestState,
     _offer_retry_or_finish,
 )
+from harrix_swiss_knife.integrations.bothub.worker import BothubChatWorker
 
 
 @pytest.fixture
@@ -174,3 +175,39 @@ def test_offer_retry_failed_restart_finishes_with_error(qapp: QApplication) -> N
 
     assert errors == ["boom"]
     assert state.worker is None
+
+
+def test_chat_worker_probes_router_off_ui_thread(qapp: QApplication, monkeypatch: pytest.MonkeyPatch) -> None:
+    assert qapp is not None
+    probed: list[dict[str, object]] = []
+
+    def fake_prepare(config: dict[str, object], **_kwargs: object) -> None:
+        probed.append(config)
+
+    monkeypatch.setattr("harrix_swiss_knife.integrations.bothub.worker.prepare_bothub_router", fake_prepare)
+    monkeypatch.setattr(
+        "harrix_swiss_knife.integrations.bothub.worker.get_connection_params",
+        lambda _config, **_kwargs: ("key", "https://example.test", "model-b", None),
+    )
+    monkeypatch.setattr(
+        "harrix_swiss_knife.integrations.bothub.worker.get_active_provider",
+        lambda _config, **_kwargs: "bothub",
+    )
+    monkeypatch.setattr(
+        "harrix_swiss_knife.integrations.bothub.worker.get_provider_settings",
+        lambda _config, _provider: {},
+    )
+
+    worker = BothubChatWorker(
+        api_key="old",
+        base_url="https://old.test",
+        model="model-a",
+        prompt_text="prompt",
+        config={"ai": {"provider": "bothub"}},
+    )
+    worker._prepare_router_connection()
+    assert probed
+    assert worker._api_key == "key"
+    assert worker._base_url == "https://example.test"
+    assert worker._model == "model-b"
+    worker.deleteLater()

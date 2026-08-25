@@ -48,15 +48,31 @@ class ToastCancellableHttpNotification(toast_countdown_notification.ToastCountdo
 
     cancel_requested: Signal = Signal()
 
-    def __init__(self, message: str = "Request in progress…", parent: QWidget | None = None) -> None:
-        """Initialize cancellable HTTP toast with countdown and close control."""
+    def __init__(
+        self,
+        message: str = "Request in progress…",
+        parent: QWidget | None = None,
+        *,
+        owner_modal: bool = True,
+    ) -> None:
+        """Initialize cancellable HTTP toast with countdown and close control.
+
+        Args:
+
+        - `message` (`str`): Toast text. Defaults to `Request in progress…`.
+        - `parent` (`QWidget | None`): Owner widget. Defaults to `None`.
+        - `owner_modal` (`bool`): Block the owner window while the request runs.
+          Defaults to `True`.
+
+        """
         super().__init__(message, parent)
 
         self._cancelled = False
         self._completed = False
 
         # Must be set before show(); modality on an already-visible window is ignored.
-        qt_modality.set_owner_window_modal(self)
+        if owner_modal:
+            qt_modality.set_owner_window_modal(self)
 
         self._close_button = QPushButton(self)
         self._close_button.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -197,23 +213,37 @@ class ToastCancellableHttpNotification(toast_countdown_notification.ToastCountdo
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, message: str = 'Request in progress…', parent: QWidget | None = None) -> None
+def __init__(self, message: str = 'Request in progress…', parent: QWidget | None = None, *, owner_modal: bool = True) -> None
 ```
 
 Initialize cancellable HTTP toast with countdown and close control.
+
+Args:
+
+- `message` (`str`): Toast text. Defaults to `Request in progress…`.
+- `parent` (`QWidget | None`): Owner widget. Defaults to `None`.
+- `owner_modal` (`bool`): Block the owner window while the request runs.
+  Defaults to `True`.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def __init__(self, message: str = "Request in progress…", parent: QWidget | None = None) -> None:
+def __init__(
+        self,
+        message: str = "Request in progress…",
+        parent: QWidget | None = None,
+        *,
+        owner_modal: bool = True,
+    ) -> None:
         super().__init__(message, parent)
 
         self._cancelled = False
         self._completed = False
 
         # Must be set before show(); modality on an already-visible window is ignored.
-        qt_modality.set_owner_window_modal(self)
+        if owner_modal:
+            qt_modality.set_owner_window_modal(self)
 
         self._close_button = QPushButton(self)
         self._close_button.setCursor(Qt.CursorShape.PointingHandCursor)

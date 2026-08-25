@@ -522,30 +522,28 @@ class MainWindow(
         if with_dumbbells:
             is_type_required = True
 
-        if self._show_duplicate_exercise_if_needed(exercise, name_local):
-            return
-
-        try:
-            if self.db_manager.add_exercise(
-                exercise,
-                unit,
+        if should_auto_fill_exercise_on_ok(name=exercise, name_local=name_local, media_path=media_path):
+            if self._show_duplicate_exercise_if_needed(exercise, name_local):
+                return
+            self._start_add_exercise_auto_fill(
                 is_type_required=is_type_required,
-                calories_per_unit=calories_per_unit,
                 name_local=name_local,
                 is_favorite=is_favorite,
-            ):
-                if with_dumbbells:
-                    self._add_dumbbell_weight_types_to_exercise(exercise)
-                self._mark_exercises_changed()
-                self._finish_add_exercise(
-                    exercise,
-                    media_path=media_path,
-                    with_dumbbells=with_dumbbells,
-                )
-            else:
-                message_box.warning(self, "Error", "Failed to add exercise")
-        except Exception as e:
-            message_box.warning(self, "Database Error", f"Failed to add exercise: {e}")
+                media_path=media_path,
+                with_dumbbells=with_dumbbells,
+            )
+            return
+
+        self._commit_new_exercise(
+            exercise,
+            unit,
+            is_type_required=is_type_required,
+            calories_per_unit=calories_per_unit,
+            name_local=name_local,
+            is_favorite=is_favorite,
+            media_path=media_path,
+            with_dumbbells=with_dumbbells,
+        )
 
     @requires_database()
     def on_add_record(self) -> None:
@@ -4471,6 +4469,48 @@ class MainWindow(
         if toast is not None:
             toast.close()
 
+    def _commit_new_exercise(
+        self,
+        exercise: str,
+        unit: str,
+        *,
+        is_type_required: bool,
+        calories_per_unit: float,
+        name_local: str,
+        is_favorite: bool,
+        media_path: str,
+        with_dumbbells: bool,
+    ) -> None:
+        """Insert a new exercise and start optional media conversion."""
+        if self.db_manager is None:
+            logger.error("❌ Database manager is not initialized")
+            return
+        if with_dumbbells:
+            is_type_required = True
+        if self._show_duplicate_exercise_if_needed(exercise, name_local):
+            return
+        try:
+            if self.db_manager.add_exercise(
+                exercise,
+                unit,
+                is_type_required=is_type_required,
+                calories_per_unit=calories_per_unit,
+                name_local=name_local,
+                is_favorite=is_favorite,
+            ):
+                if with_dumbbells:
+                    self._add_dumbbell_weight_types_to_exercise(exercise)
+                self._mark_exercises_changed()
+                self._finish_add_exercise(
+                    exercise,
+                    media_path=media_path,
+                    with_dumbbells=with_dumbbells,
+                )
+            else:
+                message_box.warning(self, "Error", "Failed to add exercise")
+        except Exception as e:
+            message_box.warning(self, "Database Error", f"Failed to add exercise: {e}")
+
     @requires_database()
     def _commit_process_record(
         self,
@@ -7519,6 +7559,40 @@ class MainWindow(
             logger.debug("🔧 Context menu: Export to Excel action triggered")
             self._export_named_table("weight", prefer="xlsx")
 
+    def _start_add_exercise_auto_fill(
+        self,
+        *,
+        is_type_required: bool,
+        name_local: str,
+        is_favorite: bool,
+        media_path: str,
+        with_dumbbells: bool,
+    ) -> None:
+        """Fill English fields after the add dialog closes, without blocking the UI."""
+
+        def on_filled(result: ExerciseFillResult) -> None:
+            self._commit_new_exercise(
+                result.name,
+                result.unit,
+                is_type_required=is_type_required,
+                calories_per_unit=result.calories_per_unit,
+                name_local=result.name_local,
+                is_favorite=is_favorite,
+                media_path=media_path,
+                with_dumbbells=with_dumbbells,
+            )
+
+        request_exercise_fill_from_values(
+            self,
+            app_config=self._app_config,
+            bothub_state=self._bothub_state,
+            name="",
+            name_local=name_local,
+            media_path=media_path,
+            on_filled=on_filled,
+            owner_modal=False,
+        )
+
     def _start_exercise_media_save(
         self,
         exercise_name: str,
@@ -8434,30 +8508,28 @@ def on_add_exercise(self) -> None:
         if with_dumbbells:
             is_type_required = True
 
-        if self._show_duplicate_exercise_if_needed(exercise, name_local):
-            return
-
-        try:
-            if self.db_manager.add_exercise(
-                exercise,
-                unit,
+        if should_auto_fill_exercise_on_ok(name=exercise, name_local=name_local, media_path=media_path):
+            if self._show_duplicate_exercise_if_needed(exercise, name_local):
+                return
+            self._start_add_exercise_auto_fill(
                 is_type_required=is_type_required,
-                calories_per_unit=calories_per_unit,
                 name_local=name_local,
                 is_favorite=is_favorite,
-            ):
-                if with_dumbbells:
-                    self._add_dumbbell_weight_types_to_exercise(exercise)
-                self._mark_exercises_changed()
-                self._finish_add_exercise(
-                    exercise,
-                    media_path=media_path,
-                    with_dumbbells=with_dumbbells,
-                )
-            else:
-                message_box.warning(self, "Error", "Failed to add exercise")
-        except Exception as e:
-            message_box.warning(self, "Database Error", f"Failed to add exercise: {e}")
+                media_path=media_path,
+                with_dumbbells=with_dumbbells,
+            )
+            return
+
+        self._commit_new_exercise(
+            exercise,
+            unit,
+            is_type_required=is_type_required,
+            calories_per_unit=calories_per_unit,
+            name_local=name_local,
+            is_favorite=is_favorite,
+            media_path=media_path,
+            with_dumbbells=with_dumbbells,
+        )
 ```
 
 </details>

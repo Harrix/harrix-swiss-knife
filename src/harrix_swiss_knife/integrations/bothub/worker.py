@@ -2,10 +2,17 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from PySide6.QtCore import QThread, Signal
 
+from harrix_swiss_knife.integrations.ai.bothub_failover import prepare_bothub_router
+from harrix_swiss_knife.integrations.ai.config import get_provider_settings
+from harrix_swiss_knife.integrations.bothub.config import (
+    get_active_provider,
+    get_connection_params,
+    get_proxy_url,
+)
 from harrix_swiss_knife.integrations.bothub_client import (
     BotHubApiError,
     RequestCancelledError,
@@ -49,6 +56,9 @@ class BothubChatWorker(QThread):
         cancellable: bool = False,
         provider: ProviderName = "bothub",
         max_tokens: int | None = None,
+        config: dict[str, Any] | None = None,
+        for_speech: bool = False,
+        model_override: str | None = None,
     ) -> None:
         """Initialize the worker.
 
@@ -65,12 +75,17 @@ class BothubChatWorker(QThread):
         - `cancellable` (`bool`): Enable cancellable HTTP transport when `True`.
         - `provider`: Active AI provider ID.
         - `max_tokens`: Anthropic max tokens override.
+        - `config`: When set, probe the BotHub router and refresh connection
+          params on this thread before the request.
+        - `for_speech`: Use the speech provider when `config` is set.
+        - `model_override`: Keep this model after router failover. Defaults to `None`.
 
         """
         super().__init__()
         self._api_key = api_key
         self._base_url = base_url
         self._model = model
+        self._model_override = model_override
         self._prompt_text = prompt_text
         image_list = list(images or [])
         if image is not None:
@@ -81,6 +96,8 @@ class BothubChatWorker(QThread):
         self._cancellable = cancellable
         self._provider = provider
         self._max_tokens = max_tokens
+        self._config = config
+        self._for_speech = for_speech
         self.should_stop = False
         self._conn: http.client.HTTPConnection | None = None
 
@@ -97,6 +114,7 @@ class BothubChatWorker(QThread):
             self.finished_cancelled.emit()
             return
 
+        self._prepare_router_connection()
         should_cancel = (lambda: self.should_stop) if self._cancellable else None
         on_connection = self._store_connection if self._cancellable else None
 
@@ -136,6 +154,22 @@ class BothubChatWorker(QThread):
             self.finished_cancelled.emit()
             return
         self.finished_success.emit(result)
+
+    def _prepare_router_connection(self) -> None:
+        """Probe BotHub failover and refresh keys/URLs off the UI thread."""
+        config = self._config
+        if config is None:
+            return
+        prepare_bothub_router(config, for_speech=self._for_speech, proxy_url=get_proxy_url(config))
+        api_key, base_url, default_model, proxy_url = get_connection_params(config, for_speech=self._for_speech)
+        self._api_key = api_key
+        self._base_url = base_url
+        self._model = self._model_override if self._model_override is not None else default_model
+        self._proxy_url = proxy_url
+        self._provider = get_active_provider(config, for_speech=self._for_speech)
+        settings = get_provider_settings(config, self._provider)
+        max_tokens_raw = settings.get("max_tokens")
+        self._max_tokens = int(max_tokens_raw) if max_tokens_raw is not None else None
 
     def _store_connection(self, conn: http.client.HTTPConnection) -> None:
         self._conn = conn

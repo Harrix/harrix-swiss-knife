@@ -64,9 +64,7 @@ class ExerciseAddDialog(QDialog):
         self._find_duplicate = find_duplicate
         self._local_check_passed = False
         self._result: tuple[str, str, bool, float, str, bool, str, bool] | None = None
-        self._auto_filling = False
         self._moving_cyrillic_name = False
-        self._ok_button: QPushButton | None = None
 
         self.setWindowTitle("Edit Exercise" if self._editing else "Add New Exercise")
         qt_modality.set_owner_window_modal(self)
@@ -152,7 +150,6 @@ class ExerciseAddDialog(QDialog):
 
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         apply_emoji_dialog_buttons(buttons)
-        self._ok_button = buttons.button(QDialogButtonBox.StandardButton.Ok)
         self._fill_button = make_emoji_push_button("Fill with AI", "🤖")
         self._fill_button.setToolTip(
             "Fill English/local names, unit, and calories from the entered name or media filename",
@@ -172,7 +169,14 @@ class ExerciseAddDialog(QDialog):
 
     def _finish_accept(self) -> None:
         name = self._name_edit.text().strip()
-        if not name:
+        name_local = self._name_local_edit.text().strip()
+        media_path = self._media_drop.get_file_path()
+        can_auto_fill = not self._editing and should_auto_fill_exercise_on_ok(
+            name=name,
+            name_local=name_local,
+            media_path=media_path,
+        )
+        if not name and not can_auto_fill:
             message = (
                 "Enter exercise name"
                 if self._editing
@@ -180,7 +184,7 @@ class ExerciseAddDialog(QDialog):
             )
             message_box.warning(self, "Validation Error", message)
             return
-        if self._show_duplicate_if_needed(name, self._name_local_edit.text().strip()):
+        if self._show_duplicate_if_needed(name, name_local):
             return
         with_dumbbells = self._dumbbells_check.isChecked() if self._dumbbells_check is not None else False
         self._result = (
@@ -188,9 +192,9 @@ class ExerciseAddDialog(QDialog):
             self._unit_edit.text().strip(),
             with_dumbbells or self._type_required_check.isChecked(),
             self._calories_spin.value(),
-            self._name_local_edit.text().strip(),
+            name_local,
             self._favorite_check.isChecked() if self._favorite_check is not None else False,
-            self._media_drop.get_file_path(),
+            media_path,
             with_dumbbells,
         )
         self.accept()
@@ -212,25 +216,7 @@ class ExerciseAddDialog(QDialog):
 
     def _on_accept(self) -> None:
         self._move_cyrillic_name_to_local()
-        if self._auto_filling:
-            return
-        if not self._editing and should_auto_fill_exercise_on_ok(
-            name=self._name_edit.text(),
-            name_local=self._name_local_edit.text(),
-            media_path=self._media_drop.get_file_path(),
-        ):
-            self._start_auto_fill_then_accept()
-            return
         self._finish_accept()
-
-    def _on_auto_fill_done(self) -> None:
-        self._auto_filling = False
-        self._set_ok_enabled(enabled=True)
-        self._finish_accept()
-
-    def _on_auto_fill_idle(self) -> None:
-        self._auto_filling = False
-        self._set_ok_enabled(enabled=True)
 
     def _on_check_local_name(self) -> None:
         local_name = self._name_local_edit.text().strip()
@@ -308,10 +294,6 @@ class ExerciseAddDialog(QDialog):
             "Local name is available" if passed else "Check whether this local name is already used",
         )
 
-    def _set_ok_enabled(self, *, enabled: bool) -> None:
-        if self._ok_button is not None:
-            self._ok_button.setEnabled(enabled)
-
     def _show_duplicate_if_needed(self, name: str, name_local: str) -> bool:
         """Show the existing-exercise warning when `name` or `name_local` is taken.
 
@@ -338,26 +320,6 @@ class ExerciseAddDialog(QDialog):
             avif_manager=self._avif_manager,
         )
         return True
-
-    def _start_auto_fill_then_accept(self) -> None:
-        self._auto_filling = True
-        self._set_ok_enabled(enabled=False)
-        started = request_exercise_fill(
-            self,
-            app_config=self._app_config,
-            bothub_state=self._bothub_state,
-            name_edit=self._name_edit,
-            name_local_edit=self._name_local_edit,
-            unit_edit=self._unit_edit,
-            calories_spin=self._calories_spin,
-            fill_button=self._fill_button,
-            media_path=self._media_drop.get_file_path(),
-            on_filled=self._on_auto_fill_done,
-            on_idle=self._on_auto_fill_idle,
-        )
-        if not started:
-            self._auto_filling = False
-            self._set_ok_enabled(enabled=True)
 ```
 
 </details>
@@ -403,9 +365,7 @@ def __init__(
         self._find_duplicate = find_duplicate
         self._local_check_passed = False
         self._result: tuple[str, str, bool, float, str, bool, str, bool] | None = None
-        self._auto_filling = False
         self._moving_cyrillic_name = False
-        self._ok_button: QPushButton | None = None
 
         self.setWindowTitle("Edit Exercise" if self._editing else "Add New Exercise")
         qt_modality.set_owner_window_modal(self)
@@ -491,7 +451,6 @@ def __init__(
 
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         apply_emoji_dialog_buttons(buttons)
-        self._ok_button = buttons.button(QDialogButtonBox.StandardButton.Ok)
         self._fill_button = make_emoji_push_button("Fill with AI", "🤖")
         self._fill_button.setToolTip(
             "Fill English/local names, unit, and calories from the entered name or media filename",
