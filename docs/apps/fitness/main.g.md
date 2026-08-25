@@ -6386,7 +6386,6 @@ class MainWindow(
         except (TypeError, ValueError):
             calories = 0.0
         name_local = str(model.data(model.index(row, 5)) or "")
-        is_favorite = self.db_manager.is_exercise_favorite(record_id)
 
         dialog = self._create_exercise_add_dialog(
             initial={
@@ -6395,7 +6394,6 @@ class MainWindow(
                 "is_type_required": is_type_required,
                 "calories_per_unit": calories,
                 "name_local": name_local,
-                "is_favorite": is_favorite,
             },
             exclude_id=record_id,
         )
@@ -6410,7 +6408,7 @@ class MainWindow(
             new_type_required,
             new_calories,
             new_name_local,
-            new_favorite,
+            _new_favorite,
             media_path,
             _with_dumbbells,
         ) = result
@@ -6426,7 +6424,6 @@ class MainWindow(
                 is_type_required=new_type_required,
                 calories_per_unit=new_calories,
                 name_local=new_name_local,
-                is_favorite=new_favorite,
             ):
                 message_box.warning(self, "Database Error", "Failed to save exercise")
                 return
@@ -6692,10 +6689,17 @@ class MainWindow(
         self._fitness_dashboard.set_exercises(items, selected=selected)
 
     def _refresh_ui_after_exercise_add(self, exercise: str, *, with_dumbbells: bool) -> None:
-        """Reload tables and keep the new exercise selected."""
+        """Reload tables, scroll to the new exercise, then keep it selected."""
         self.update_all(is_preserve_selections=True, current_exercise=exercise)
         if with_dumbbells:
             self._ensure_types_table_shows_exercise(exercise)
+        exercises_tab = getattr(self, "tab_2", None)
+        if exercises_tab is not None:
+            self.tabWidget.setCurrentWidget(exercises_tab)
+        self._scroll_table_to_exercise("exercises", exercise)
+        app = QApplication.instance()
+        if app is not None:
+            app.processEvents()
 
     def _reload_types_table(self, *, dumbbell_names: set[str] | None = None) -> None:
         """Rebuild the exercise types table from the database."""
@@ -6850,20 +6854,28 @@ class MainWindow(
 
         self._chart_update_timer.start(delay_ms)
 
-    def _scroll_types_table_to_exercise(self, exercise_name: str) -> None:
-        """Select and scroll to the first types-table row for `exercise_name`."""
-        proxy = self.models.get("types")
-        if proxy is None or not exercise_name:
-            return
-        name_column = self._table_exercise_name_column("types")
-        for row in range(proxy.rowCount()):
-            index = proxy.index(row, name_column)
-            name = parse_exercise_display_name(str(proxy.data(index) or ""))
+    def _scroll_table_to_exercise(self, table_name: str, exercise_name: str) -> bool:
+        """Select and scroll to the first row for `exercise_name` in `table_name`."""
+        if table_name not in self.table_config or not exercise_name:
+            return False
+        table_view = self.table_config[table_name][0]
+        model = self.models.get(table_name)
+        if model is None:
+            return False
+        name_column = self._table_exercise_name_column(table_name)
+        for row in range(model.rowCount()):
+            index = model.index(row, name_column)
+            name = parse_exercise_display_name(str(model.data(index) or ""))
             if name != exercise_name:
                 continue
-            self.tableView_exercise_types.setCurrentIndex(index)
-            self.tableView_exercise_types.scrollTo(index)
-            return
+            table_view.setCurrentIndex(index)
+            table_view.scrollTo(index, QAbstractItemView.ScrollHint.PositionAtCenter)
+            return True
+        return False
+
+    def _scroll_types_table_to_exercise(self, exercise_name: str) -> None:
+        """Select and scroll to the first types-table row for `exercise_name`."""
+        self._scroll_table_to_exercise("types", exercise_name)
 
     def _select_exercise_in_chart_list(self, exercise_name: str) -> bool:
         """Select an exercise in the chart exercise list view by name.
@@ -7143,10 +7155,11 @@ class MainWindow(
         menu_file = getattr(self, "menuFile", None)
         if menu_file is None:
             return
-        action = QAction("📂 Open exercise images folder", self)
+        action = QAction("Open exercise images folder", self)
         action.setObjectName("actionOpenExerciseImagesFolder")
         action.triggered.connect(self.on_open_exercise_images_folder)
         menu_file.insertAction(self.actionExit, action)
+        set_action_text_with_emoji_icon(action, "📂 Open exercise images folder")
 
     def _setup_open_exercise_lightbox_action(self) -> None:
         """Add Commands → Open image in lightbox."""

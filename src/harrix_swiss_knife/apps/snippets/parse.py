@@ -26,14 +26,6 @@ def hint_tooltip(hint: str, fallback: str = "") -> str:
     return text or fallback
 
 
-def strip_wrapping_brackets(text: str) -> str:
-    """Remove one pair of surrounding `[]`, if present."""
-    value = text.strip()
-    if value.startswith("[") and value.endswith("]"):
-        return value[1:-1].strip()
-    return value
-
-
 def item_matches_search(value: str, hint: str, query: str) -> bool:
     """Return whether value or hint matches `query` (case and layout insensitive)."""
     if command_matches_search(value, query):
@@ -86,3 +78,11 @@ def serialize_items(items: Sequence[SnippetItem], zone: str) -> str:
         else:
             lines.append(item.value)
     return "\n".join(lines)
+
+
+def strip_wrapping_brackets(text: str) -> str:
+    """Remove one pair of surrounding `[]`, if present."""
+    value = text.strip()
+    if value.startswith("[") and value.endswith("]"):
+        return value[1:-1].strip()
+    return value

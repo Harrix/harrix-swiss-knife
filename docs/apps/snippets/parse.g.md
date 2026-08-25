@@ -12,10 +12,12 @@ lang: en
 ## Contents
 
 - [🔧 Function `display_text`](#-function-display_text)
+- [🔧 Function `hint_tooltip`](#-function-hint_tooltip)
 - [🔧 Function `item_matches_search`](#-function-item_matches_search)
 - [🔧 Function `parse_bulk_lines`](#-function-parse_bulk_lines)
 - [🔧 Function `parse_value_hint_line`](#-function-parse_value_hint_line)
 - [🔧 Function `serialize_items`](#-function-serialize_items)
+- [🔧 Function `strip_wrapping_brackets`](#-function-strip_wrapping_brackets)
 
 </details>
 
@@ -35,6 +37,25 @@ def display_text(value: str, hint: str, zone: str) -> str:
     if zone in {ZONE_SYMBOL, ZONE_COLOR} and hint:
         return f"{value} [{hint}]"
     return value
+```
+
+</details>
+
+## 🔧 Function `hint_tooltip`
+
+```python
+def hint_tooltip(hint: str, fallback: str = '') -> str
+```
+
+Return hover text without wrapping square brackets.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def hint_tooltip(hint: str, fallback: str = "") -> str:
+    text = strip_wrapping_brackets(hint)
+    return text or fallback
 ```
 
 </details>
@@ -139,6 +160,27 @@ def serialize_items(items: Sequence[SnippetItem], zone: str) -> str:
         else:
             lines.append(item.value)
     return "\n".join(lines)
+```
+
+</details>
+
+## 🔧 Function `strip_wrapping_brackets`
+
+```python
+def strip_wrapping_brackets(text: str) -> str
+```
+
+Remove one pair of surrounding `[]`, if present.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def strip_wrapping_brackets(text: str) -> str:
+    value = text.strip()
+    if value.startswith("[") and value.endswith("]"):
+        return value[1:-1].strip()
+    return value
 ```
 
 </details>

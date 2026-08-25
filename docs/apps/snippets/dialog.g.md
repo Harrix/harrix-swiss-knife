@@ -220,8 +220,11 @@ class SnippetsDialog(QDialog):
         right_split = QSplitter(Qt.Orientation.Vertical, self)
         right_split.addWidget(self._emoji)
         right_split.addWidget(self._symbols)
-        right_split.setStretchFactor(0, 1)
-        right_split.setStretchFactor(1, 1)
+        right_split.setStretchFactor(0, _EMOJI_SPLIT_RATIO)
+        right_split.setStretchFactor(1, _SYMBOL_SPLIT_RATIO)
+        right_split.setSizes(
+            [_EMOJI_SPLIT_RATIO * _EMOJI_SYMBOL_SPLIT_UNIT, _SYMBOL_SPLIT_RATIO * _EMOJI_SYMBOL_SPLIT_UNIT],
+        )
 
         columns = QSplitter(Qt.Orientation.Horizontal, self)
         columns.addWidget(self._phrases)

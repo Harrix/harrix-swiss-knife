@@ -227,6 +227,11 @@ def run_tray_application(log: logging.Logger, *, main_menu_cls: type[MainMenuBas
     output_bus = ActionOutputBus()
     placeholder_menu = _make_placeholder_menu()
 
+    _log_startup_phase(log, "Showing startup toast", startup_t0)
+    startup_toast = start_app_loading_toast(TRAY_LOADING_TITLE)
+    startup_pumper = AppLoadingToastPumper(startup_toast)
+    startup_pumper.start()
+
     _log_startup_phase(log, "Creating tray icon", startup_t0)
     tray_icon = TrayIcon(QIcon(":/assets/logo.svg"), menu=placeholder_menu)
     tray_icon_holder = tray_icon
@@ -243,13 +248,17 @@ def run_tray_application(log: logging.Logger, *, main_menu_cls: type[MainMenuBas
 
     def finish_startup() -> None:
         nonlocal tray_ready
-        _log_startup_phase(log, "Building main menu", startup_t0)
-        main_menu = main_menu_cls(output_bus=output_bus, config=config)
-        set_menu_tooltips_visible_recursive(main_menu.menu)
-        tray_icon.setContextMenu(main_menu.menu)
-        tray_icon.menu = main_menu.menu
-        _log_startup_phase(log, "Main menu ready", startup_t0)
-        tray_ready = True
+        try:
+            _log_startup_phase(log, "Building main menu", startup_t0)
+            main_menu = main_menu_cls(output_bus=output_bus, config=config)
+            set_menu_tooltips_visible_recursive(main_menu.menu)
+            tray_icon.setContextMenu(main_menu.menu)
+            tray_icon.menu = main_menu.menu
+            _log_startup_phase(log, "Main menu ready", startup_t0)
+            tray_ready = True
+        finally:
+            startup_pumper.stop()
+            stop_app_loading_toast(startup_toast)
 
         if show_main_window or pending_show:
             log.info("Showing main window on startup")

@@ -53,7 +53,7 @@ class ColorItemDelegate(QStyledItemDelegate):
         if style is not None:
             style.drawPrimitive(QStyle.PrimitiveElement.PE_PanelItemViewItem, option, painter, widget)
 
-        hex_value = color_hex_label(str(index.data(_COLOR_ROLE) or ""))
+        hex_value = strip_wrapping_brackets(str(index.data(_COLOR_ROLE) or ""))
         color = QColor(hex_value) if hex_value else QColor("#ffffff")
         if not color.isValid():
             color = QColor("#ffffff")
@@ -87,7 +87,7 @@ class ColorItemDelegate(QStyledItemDelegate):
             painter.drawText(desc_rect, Qt.AlignmentFlag.AlignVCenter, f": {hint}")
         painter.restore()
 
-    def sizeHint(self, option: QStyleOptionViewItem, index: QModelIndex | QPersistentModelIndex) -> QSize:
+    def sizeHint(self, option: QStyleOptionViewItem, index: QModelIndex | QPersistentModelIndex) -> QSize:  # noqa: N802
         """Keep color rows tall enough for the rounded chip."""
         hint = super().sizeHint(option, index)
         return QSize(hint.width(), max(hint.height(), _MIN_COLOR_ROW_HEIGHT))
@@ -120,7 +120,7 @@ def paint(
         if style is not None:
             style.drawPrimitive(QStyle.PrimitiveElement.PE_PanelItemViewItem, option, painter, widget)
 
-        hex_value = color_hex_label(str(index.data(_COLOR_ROLE) or ""))
+        hex_value = strip_wrapping_brackets(str(index.data(_COLOR_ROLE) or ""))
         color = QColor(hex_value) if hex_value else QColor("#ffffff")
         if not color.isValid():
             color = QColor("#ffffff")
@@ -169,7 +169,7 @@ Keep color rows tall enough for the rounded chip.
 <summary>Code:</summary>
 
 ```python
-def sizeHint(self, option: QStyleOptionViewItem, index: QModelIndex | QPersistentModelIndex) -> QSize:
+def sizeHint(self, option: QStyleOptionViewItem, index: QModelIndex | QPersistentModelIndex) -> QSize:  # noqa: N802
         hint = super().sizeHint(option, index)
         return QSize(hint.width(), max(hint.height(), _MIN_COLOR_ROW_HEIGHT))
 ```
@@ -225,13 +225,13 @@ class ZonePanel(QWidget):
 
         self._list = QListWidget(self)
         self._list.setFrameShape(QListWidget.Shape.NoFrame)
-        if zone == ZONE_EMOJI:
+        if zone in {ZONE_EMOJI, ZONE_SYMBOL}:
             self._list.setViewMode(QListWidget.ViewMode.IconMode)
             self._list.setResizeMode(QListWidget.ResizeMode.Adjust)
             self._list.setMovement(QListWidget.Movement.Static)
-            self._list.setGridSize(_EMOJI_GRID)
-            self._list.setIconSize(QSize(32, 32))
-            self._list.setSpacing(4)
+            self._list.setGridSize(_ICON_GRID)
+            self._list.setIconSize(QSize(_ICON_PIXEL_SIZE, _ICON_PIXEL_SIZE))
+            self._list.setSpacing(_ICON_SPACING)
             self._list.setWordWrap(False)
         if zone == ZONE_COLOR:
             self._list.setItemDelegate(ColorItemDelegate(self._list))
@@ -244,7 +244,10 @@ class ZonePanel(QWidget):
         header = QHBoxLayout()
         header.setContentsMargins(0, 0, 0, 0)
         if show_add:
-            add_button = make_emoji_push_button(title, "➕")  # noqa: RUF001
+            add_button = QToolButton(self)
+            add_button.setIcon(create_emoji_icon("➕", 18))  # noqa: RUF001
+            add_button.setToolTip(title)
+            add_button.setAutoRaise(True)
             add_button.clicked.connect(self.add_requested.emit)
             header.addWidget(add_button)
         else:
@@ -300,8 +303,11 @@ class ZonePanel(QWidget):
             list_item.setData(_ITEM_ROLE, snippet)
             label = display_text(snippet.value, snippet.hint, snippet.zone)
             if self.zone == ZONE_EMOJI:
-                list_item.setIcon(create_emoji_icon(snippet.value, 32))
+                list_item.setIcon(create_emoji_icon(snippet.value, _ICON_PIXEL_SIZE))
                 list_item.setToolTip(snippet.value)
+            elif self.zone == ZONE_SYMBOL:
+                list_item.setIcon(create_emoji_icon(snippet.value, _ICON_PIXEL_SIZE))
+                list_item.setToolTip(hint_tooltip(snippet.hint, snippet.value))
             elif self.zone == ZONE_COLOR:
                 list_item.setData(_COLOR_ROLE, snippet.value)
                 list_item.setToolTip(snippet.hint or snippet.value)
@@ -403,13 +409,13 @@ def __init__(
 
         self._list = QListWidget(self)
         self._list.setFrameShape(QListWidget.Shape.NoFrame)
-        if zone == ZONE_EMOJI:
+        if zone in {ZONE_EMOJI, ZONE_SYMBOL}:
             self._list.setViewMode(QListWidget.ViewMode.IconMode)
             self._list.setResizeMode(QListWidget.ResizeMode.Adjust)
             self._list.setMovement(QListWidget.Movement.Static)
-            self._list.setGridSize(_EMOJI_GRID)
-            self._list.setIconSize(QSize(32, 32))
-            self._list.setSpacing(4)
+            self._list.setGridSize(_ICON_GRID)
+            self._list.setIconSize(QSize(_ICON_PIXEL_SIZE, _ICON_PIXEL_SIZE))
+            self._list.setSpacing(_ICON_SPACING)
             self._list.setWordWrap(False)
         if zone == ZONE_COLOR:
             self._list.setItemDelegate(ColorItemDelegate(self._list))
@@ -422,7 +428,10 @@ def __init__(
         header = QHBoxLayout()
         header.setContentsMargins(0, 0, 0, 0)
         if show_add:
-            add_button = make_emoji_push_button(title, "➕")  # noqa: RUF001
+            add_button = QToolButton(self)
+            add_button.setIcon(create_emoji_icon("➕", 18))  # noqa: RUF001
+            add_button.setToolTip(title)
+            add_button.setAutoRaise(True)
             add_button.clicked.connect(self.add_requested.emit)
             header.addWidget(add_button)
         else:
@@ -520,8 +529,11 @@ def set_items(self, items: list[SnippetItem]) -> None:
             list_item.setData(_ITEM_ROLE, snippet)
             label = display_text(snippet.value, snippet.hint, snippet.zone)
             if self.zone == ZONE_EMOJI:
-                list_item.setIcon(create_emoji_icon(snippet.value, 32))
+                list_item.setIcon(create_emoji_icon(snippet.value, _ICON_PIXEL_SIZE))
                 list_item.setToolTip(snippet.value)
+            elif self.zone == ZONE_SYMBOL:
+                list_item.setIcon(create_emoji_icon(snippet.value, _ICON_PIXEL_SIZE))
+                list_item.setToolTip(hint_tooltip(snippet.hint, snippet.value))
             elif self.zone == ZONE_COLOR:
                 list_item.setData(_COLOR_ROLE, snippet.value)
                 list_item.setToolTip(snippet.hint or snippet.value)
@@ -590,10 +602,7 @@ Return the hex text for a color chip, without surrounding brackets.
 
 ```python
 def color_hex_label(value: str) -> str:
-    text = value.strip()
-    if text.startswith("[") and text.endswith("]") and len(text) >= 2:
-        return text[1:-1].strip()
-    return text
+    return strip_wrapping_brackets(value)
 ```
 
 </details>

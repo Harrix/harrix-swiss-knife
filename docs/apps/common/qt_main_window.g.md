@@ -346,10 +346,11 @@ class AppWindowMixin:
         if menu_file is None:
             return
         menu = cast("QMenu", menu_file)
-        action = QAction("📂 Show database in folder", cast("QWidget", self))
+        action = QAction("Show database in folder", cast("QWidget", self))
         action.setObjectName("actionShowDatabaseInFolder")
         action.triggered.connect(self.on_reveal_database)
         menu.insertAction(self.actionExit, action)
+        set_action_text_with_emoji_icon(action, "📂 Show database in folder")
 
     def _setup_window_size_and_position(self, *, standard_width: int = 1920) -> None:
         """Set window size and position based on screen resolution and characteristics.
