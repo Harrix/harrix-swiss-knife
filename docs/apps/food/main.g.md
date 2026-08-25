@@ -3092,11 +3092,6 @@ class MainWindow(
             name_value = str(name_raw).strip() if name_raw is not None else ""
             date_value = str(date_raw).strip() if date_raw is not None else ""
 
-            if name_value:
-                filter_by_name_action = context_menu.addAction(LABEL_FILTER_BY_NAME)
-            if date_value:
-                filter_by_date_action = context_menu.addAction(LABEL_FILTER_BY_DATE)
-
             if date_value:
                 set_date_action, set_date_plus_one_action, set_date_minus_one_action = add_date_in_main_field_actions(
                     context_menu
@@ -3133,11 +3128,17 @@ class MainWindow(
                 bulk_date_action = context_menu.addAction(LABEL_SET_DATE_SELECTED)
 
         add_separator(context_menu)
-        clear_filters_action = context_menu.addAction(LABEL_CLEAR_FILTERS)
         export_action = context_menu.addAction(LABEL_EXPORT_CSV)
 
         if multiple_rows_selected:
             add_info_action(context_menu, f"📊 Total calories: {total_calories:.1f} kcal")
+
+        begin_filters_block(context_menu)
+        if name_value:
+            filter_by_name_action = context_menu.addAction(LABEL_FILTER_BY_NAME)
+        if date_value:
+            filter_by_date_action = context_menu.addAction(LABEL_FILTER_BY_DATE)
+        clear_filters_action = add_clear_filters_action(context_menu)
 
         delete_action = add_delete_action(context_menu)
         apply_leading_emoji_icons(context_menu)

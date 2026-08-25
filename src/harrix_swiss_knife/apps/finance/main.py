@@ -90,15 +90,16 @@ from harrix_swiss_knife.apps.common.qt_main_window import AppWindowMixin
 from harrix_swiss_knife.apps.common.quick_tab_startup import install_open_quick_tab_checkbox
 from harrix_swiss_knife.apps.common.scroll_pagination import ScrollPagination, on_scroll_load_more
 from harrix_swiss_knife.apps.common.table_context_menu import (
-    LABEL_CLEAR_FILTERS,
     LABEL_EDIT,
     LABEL_EXPORT_CSV,
     LABEL_FILTER_BY_CATEGORY,
     LABEL_SET_DATE_SELECTED,
+    add_clear_filters_action,
     add_date_in_main_field_actions,
     add_delete_action,
     add_info_action,
     add_separator,
+    begin_filters_block,
 )
 from harrix_swiss_knife.apps.common.table_models import create_table_proxy_model
 from harrix_swiss_knife.apps.common.widgets.image_picker import ImagePicker, ImagePickerMode
@@ -5879,6 +5880,8 @@ class MainWindow(
 
         """
         context_menu: QMenu = QMenu(self)
+        filter_by_category_action = None
+        category_value = ""
 
         # Get the clicked index
         index: QModelIndex = self.tableView_transactions.indexAt(position)
@@ -5886,12 +5889,8 @@ class MainWindow(
             # Get the category from the Category column
             category_index: QModelIndex = self.tableView_transactions.model().index(index.row(), 3)
             if category_index.isValid():
-                category_value: str = self.tableView_transactions.model().data(category_index)
-                if category_value:
-                    filter_by_category_action = context_menu.addAction(LABEL_FILTER_BY_CATEGORY)
-                    filter_by_category_action.triggered.connect(
-                        lambda: self._filter_by_category_from_table(category_value)
-                    )
+                raw_category = self.tableView_transactions.model().data(category_index)
+                category_value = str(raw_category).strip() if raw_category else ""
 
             tag_column_index = 6
             tag_index: QModelIndex = self.tableView_transactions.model().index(index.row(), tag_column_index)
@@ -5935,8 +5934,6 @@ class MainWindow(
             bulk_date_action = context_menu.addAction(LABEL_SET_DATE_SELECTED)
 
         add_separator(context_menu)
-        clear_filters_action = context_menu.addAction(LABEL_CLEAR_FILTERS)
-        clear_filters_action.triggered.connect(self.clear_filter)
         export_action = context_menu.addAction(LABEL_EXPORT_CSV)
 
         # Sum Amount column for unique selected rows (any column selection counts)
@@ -6034,6 +6031,13 @@ class MainWindow(
                 formatted = "-" + formatted
 
             add_info_action(context_menu, f"💰 Sum of selected: {formatted}")
+
+        begin_filters_block(context_menu)
+        if category_value:
+            filter_by_category_action = context_menu.addAction(LABEL_FILTER_BY_CATEGORY)
+            filter_by_category_action.triggered.connect(lambda: self._filter_by_category_from_table(category_value))
+        clear_filters_action = add_clear_filters_action(context_menu)
+        clear_filters_action.triggered.connect(self.clear_filter)
 
         delete_action = add_delete_action(context_menu)
         apply_leading_emoji_icons(context_menu)

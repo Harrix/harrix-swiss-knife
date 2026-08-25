@@ -7103,13 +7103,6 @@ class MainWindow(
             type_value = str(type_raw).strip() if type_raw is not None else ""
             date_value = str(date_raw).strip() if date_raw is not None else ""
 
-            if exercise_value:
-                filter_by_exercise_action = context_menu.addAction(LABEL_FILTER_BY_EXERCISE)
-            if type_value:
-                filter_by_type_action = context_menu.addAction(LABEL_FILTER_BY_TYPE)
-            if date_value:
-                filter_by_date_action = context_menu.addAction(LABEL_FILTER_BY_DATE)
-
             if date_value:
                 set_date_action, set_date_plus_one_action, set_date_minus_one_action = add_date_in_main_field_actions(
                     context_menu
@@ -7124,8 +7117,17 @@ class MainWindow(
             bulk_date_action = context_menu.addAction(LABEL_SET_DATE_SELECTED)
 
         add_separator(context_menu)
-        clear_filters_action = context_menu.addAction(LABEL_CLEAR_FILTERS)
         export_action = context_menu.addAction(LABEL_EXPORT_CSV)
+
+        begin_filters_block(context_menu)
+        if exercise_value:
+            filter_by_exercise_action = context_menu.addAction(LABEL_FILTER_BY_EXERCISE)
+        if type_value:
+            filter_by_type_action = context_menu.addAction(LABEL_FILTER_BY_TYPE)
+        if date_value:
+            filter_by_date_action = context_menu.addAction(LABEL_FILTER_BY_DATE)
+        clear_filters_action = add_clear_filters_action(context_menu)
+
         delete_action = add_delete_action(context_menu)
         apply_leading_emoji_icons(context_menu)
 

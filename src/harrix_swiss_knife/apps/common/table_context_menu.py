@@ -2,12 +2,13 @@
 
 Menu order:
 
-1. Row / cell actions (Edit, Filter, Open, Favorite, …)
+1. Row / cell actions (Edit, Open, Favorite, …)
 2. Date-in-form actions
 3. Create / add actions
-4. Table utilities (Refresh, Clear filters, Export)
+4. Table utilities (Refresh, Export)
 5. Disabled info rows (sum, totals)
-6. Delete — always last
+6. Filters + Clear all filters
+7. Delete — always last
 
 """
 
@@ -39,6 +40,11 @@ LABEL_SET_DATE_SELECTED = "✍️ Set date for selected rows…"
 LABEL_SHOW_ALL_RECORDS = "📋 Show all records"
 
 
+def add_clear_filters_action(menu: QMenu) -> QAction:
+    """Add `Clear all filters` inside the filters block above Delete."""
+    return menu.addAction(LABEL_CLEAR_FILTERS)
+
+
 def add_date_in_main_field_actions(menu: QMenu) -> tuple[QAction, QAction, QAction]:
     """Add the three “set this date in the main field” commands."""
     add_separator(menu)
@@ -67,6 +73,11 @@ def add_separator(menu: QMenu) -> None:
     if menu.isEmpty() or last_action_is_separator(menu):
         return
     menu.addSeparator()
+
+
+def begin_filters_block(menu: QMenu) -> None:
+    """Start the Filter-by / Clear-filters group placed immediately above Delete."""
+    add_separator(menu)
 
 
 def last_action_is_separator(menu: QMenu) -> bool:

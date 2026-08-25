@@ -11,12 +11,32 @@ lang: en
 
 ## Contents
 
+- [🔧 Function `add_clear_filters_action`](#-function-add_clear_filters_action)
 - [🔧 Function `add_date_in_main_field_actions`](#-function-add_date_in_main_field_actions)
 - [🔧 Function `add_delete_action`](#-function-add_delete_action)
 - [🔧 Function `add_info_action`](#-function-add_info_action)
 - [🔧 Function `add_separator`](#-function-add_separator)
+- [🔧 Function `begin_filters_block`](#-function-begin_filters_block)
 - [🔧 Function `last_action_is_separator`](#-function-last_action_is_separator)
 - [🔧 Function `show_records_label`](#-function-show_records_label)
+
+</details>
+
+## 🔧 Function `add_clear_filters_action`
+
+```python
+def add_clear_filters_action(menu: QMenu) -> QAction
+```
+
+Add `Clear all filters` inside the filters block above Delete.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def add_clear_filters_action(menu: QMenu) -> QAction:
+    return menu.addAction(LABEL_CLEAR_FILTERS)
+```
 
 </details>
 
@@ -98,6 +118,24 @@ def add_separator(menu: QMenu) -> None:
     if menu.isEmpty() or last_action_is_separator(menu):
         return
     menu.addSeparator()
+```
+
+</details>
+
+## 🔧 Function `begin_filters_block`
+
+```python
+def begin_filters_block(menu: QMenu) -> None
+```
+
+Start the Filter-by / Clear-filters group placed immediately above Delete.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def begin_filters_block(menu: QMenu) -> None:
+    add_separator(menu)
 ```
 
 </details>

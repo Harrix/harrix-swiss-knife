@@ -6,13 +6,17 @@ import pytest
 from PySide6.QtWidgets import QApplication, QMenu
 
 from harrix_swiss_knife.apps.common.table_context_menu import (
+    LABEL_CLEAR_FILTERS,
     LABEL_DELETE,
+    LABEL_FILTER_BY_DATE,
     LABEL_SET_DATE,
     LABEL_SHOW_ALL_RECORDS,
+    add_clear_filters_action,
     add_date_in_main_field_actions,
     add_delete_action,
     add_info_action,
     add_separator,
+    begin_filters_block,
     show_records_label,
 )
 
@@ -53,6 +57,18 @@ def test_add_date_in_main_field_actions_use_shared_labels(qapp: QApplication) ->
     assert set_date.text() == LABEL_SET_DATE
     assert "1 day" in plus_one.text()
     assert "1 day" in minus_one.text()
+
+
+def test_filters_block_is_above_delete(qapp: QApplication) -> None:  # noqa: ARG001
+    menu = QMenu()
+    menu.addAction("📤 Export to CSV")
+    add_info_action(menu, "💰 Sum of selected: 10")
+    begin_filters_block(menu)
+    menu.addAction(LABEL_FILTER_BY_DATE)
+    add_clear_filters_action(menu)
+    add_delete_action(menu)
+    texts = [action.text() for action in menu.actions() if not action.isSeparator()]
+    assert texts[-3:] == [LABEL_FILTER_BY_DATE, LABEL_CLEAR_FILTERS, LABEL_DELETE]
 
 
 def test_add_info_action_is_disabled(qapp: QApplication) -> None:  # noqa: ARG001
