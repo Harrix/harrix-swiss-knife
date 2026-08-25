@@ -6,6 +6,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from harrix_swiss_knife.apps.common.emoji_presets import FINANCE_CATEGORY_EMOJI_PRESETS, POPULAR_EMOJI_PRESETS
 from harrix_swiss_knife.apps.snippets.constants import (
     SEED_CREATED_AT,
     ZONE_COLOR,
@@ -17,6 +18,8 @@ from harrix_swiss_knife.apps.snippets.constants import (
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
+
+    from harrix_swiss_knife.apps.snippets.database_manager import DatabaseManager
 
 SEED_PHRASES: tuple[str, ...] = (
     "➕ Add",
@@ -170,6 +173,56 @@ SEED_EMOJIS_BASE: tuple[str, ...] = (
     "🐍",
 )
 
+# Buttons, menus, reports, and habit extras not already in the preset catalogs.
+SEED_APP_UI_EMOJIS: tuple[str, ...] = (
+    "📋",
+    "🧮",
+    "☑️",
+    "⬜",
+    "➖",
+    "▶️",
+    "🗄",
+    "🔎",
+    "💱",
+    "🏦",
+    "⚖️",
+    "🛠️",
+    "🤖",
+    "⚙️",
+    "📱",
+    "🪟",
+    "🗂️",
+    "🔬",
+    "⌨️",
+    "📊",
+    "📸",
+    "🔤",
+    "📑",
+    "💎",
+    "🌟",
+    "📓",
+    "🎙️",
+    "✂️",
+    "🌐",
+    "ℹ️",
+    "👉",
+    "👈",
+    "↔️",
+    "🔝",
+    "⬇️",
+    "🏃🏻",
+    "📄",
+    "🖲️",
+    "🚧",
+    "❞",
+    "👃",
+    "🗽",
+    "👄",
+    "💉",
+    "👀",
+    "🎂",
+)
+
 SEED_SYMBOLS: tuple[tuple[str, str], ...] = (  # ignore: HP001
     ("—", "Век живи — век учись. | Тире"),  # ignore: HP001
     ("–", "2010–2012 | Короткое тире"),  # ignore: HP001
@@ -258,6 +311,17 @@ def build_recover_sql() -> str:
     return "\n".join(lines)
 
 
+def ensure_seed_emojis(manager: DatabaseManager) -> int:
+    """Insert seed emojis that are missing from an existing snippets database."""
+    existing = {item.value for item in manager.list_items(ZONE_EMOJI)}
+    missing = [(emoji, "") for emoji in seed_emojis() if emoji not in existing]
+    if not missing:
+        return 0
+    if not manager.add_items(ZONE_EMOJI, missing):
+        return 0
+    return len(missing)
+
+
 def extract_phrase_emojis(phrases: Sequence[str]) -> list[str]:
     """Return leading emoji tokens from phrases, in first-seen order."""
     result: list[str] = []
@@ -269,8 +333,14 @@ def extract_phrase_emojis(phrases: Sequence[str]) -> list[str]:
 
 
 def seed_emojis() -> list[str]:
-    """Return seed emojis: the explicit list plus phrase-only extras."""
-    return unique_emojis(SEED_EMOJIS_BASE, extract_phrase_emojis(SEED_PHRASES))
+    """Return seed emojis: catalogs, app UI icons, and phrase-only extras."""
+    return unique_emojis(
+        SEED_EMOJIS_BASE,
+        extract_phrase_emojis(SEED_PHRASES),
+        POPULAR_EMOJI_PRESETS,
+        FINANCE_CATEGORY_EMOJI_PRESETS,
+        SEED_APP_UI_EMOJIS,
+    )
 
 
 def unique_emojis(*groups: Sequence[str]) -> list[str]:

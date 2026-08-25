@@ -39,6 +39,7 @@ from harrix_swiss_knife.apps.snippets.constants import (
 from harrix_swiss_knife.apps.snippets.item_edit_dialog import ItemEditDialog
 from harrix_swiss_knife.apps.snippets.parse import parse_bulk_lines, serialize_items
 from harrix_swiss_knife.apps.snippets.paste import clone_clipboard_mime, paste_text_then_restore_clipboard
+from harrix_swiss_knife.apps.snippets.seed import ensure_seed_emojis
 from harrix_swiss_knife.apps.snippets.sort import sort_items
 from harrix_swiss_knife.apps.snippets.zone_panel import ZonePanel
 from harrix_swiss_knife.paths import get_config_path_str
@@ -353,6 +354,8 @@ class SnippetsDialog(QDialog):
             has_required_tables=lambda dm: dm.table_exists("items"),
             missing_table_label="items table",
         )
+        if self.db_manager is not None:
+            ensure_seed_emojis(self.db_manager)
 
     def _mark_used(self, item_id: int) -> None:
         if self.db_manager is not None:

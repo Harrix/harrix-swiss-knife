@@ -25,6 +25,7 @@ from harrix_swiss_knife.apps.snippets.seed import (
     SEED_EMOJIS_BASE,
     SEED_PHRASES,
     build_recover_sql,
+    ensure_seed_emojis,
     extract_phrase_emojis,
     seed_emojis,
 )
@@ -76,7 +77,7 @@ def test_seed_emojis_merges_phrase_extras_without_duplicates() -> None:
     merged = seed_emojis()
     assert merged.count("🔍") == 1
     assert merged.count("📚") == 1
-    for extra in ("➕", "☕", "🚀", "✨", "📜"):
+    for extra in ("➕", "☕", "🚀", "✨", "📜", "🏃", "🍔", "🤖", "🧮", "👃"):
         assert extra in merged
     for base in SEED_EMOJIS_BASE:
         assert base in merged
@@ -149,6 +150,21 @@ def test_recover_sql_matches_builder_and_creates_seed(qapp: QApplication, tmp_pa
         assert "Тире" in symbols[0].hint
         assert colors[0].value == "#ffffff"
         assert colors[-1].value == "#66442b"
+        assert ensure_seed_emojis(manager) == 0
+    finally:
+        manager.close()
+
+
+def test_ensure_seed_emojis_inserts_missing(qapp: QApplication, tmp_path: Path) -> None:  # noqa: ARG001
+    db_path = tmp_path / "snippets.db"
+    assert QtSqliteDatabaseManagerBase.create_database_from_sql(str(db_path), str(_RECOVER_SQL))
+    manager = DatabaseManager(str(db_path))
+    try:
+        first = manager.list_items("emoji")[0]
+        assert manager.delete_item(first.item_id)
+        assert ensure_seed_emojis(manager) == 1
+        assert first.value in {item.value for item in manager.list_items("emoji")}
+        assert ensure_seed_emojis(manager) == 0
     finally:
         manager.close()
 

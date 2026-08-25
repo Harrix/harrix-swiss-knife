@@ -12,6 +12,7 @@ lang: en
 ## Contents
 
 - [🔧 Function `build_recover_sql`](#-function-build_recover_sql)
+- [🔧 Function `ensure_seed_emojis`](#-function-ensure_seed_emojis)
 - [🔧 Function `extract_phrase_emojis`](#-function-extract_phrase_emojis)
 - [🔧 Function `seed_emojis`](#-function-seed_emojis)
 - [🔧 Function `unique_emojis`](#-function-unique_emojis)
@@ -68,6 +69,30 @@ def build_recover_sql() -> str:
 
 </details>
 
+## 🔧 Function `ensure_seed_emojis`
+
+```python
+def ensure_seed_emojis(manager: DatabaseManager) -> int
+```
+
+Insert seed emojis that are missing from an existing snippets database.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def ensure_seed_emojis(manager: DatabaseManager) -> int:
+    existing = {item.value for item in manager.list_items(ZONE_EMOJI)}
+    missing = [(emoji, "") for emoji in seed_emojis() if emoji not in existing]
+    if not missing:
+        return 0
+    if not manager.add_items(ZONE_EMOJI, missing):
+        return 0
+    return len(missing)
+```
+
+</details>
+
 ## 🔧 Function `extract_phrase_emojis`
 
 ```python
@@ -97,14 +122,20 @@ def extract_phrase_emojis(phrases: Sequence[str]) -> list[str]:
 def seed_emojis() -> list[str]
 ```
 
-Return seed emojis: the explicit list plus phrase-only extras.
+Return seed emojis: catalogs, app UI icons, and phrase-only extras.
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def seed_emojis() -> list[str]:
-    return unique_emojis(SEED_EMOJIS_BASE, extract_phrase_emojis(SEED_PHRASES))
+    return unique_emojis(
+        SEED_EMOJIS_BASE,
+        extract_phrase_emojis(SEED_PHRASES),
+        POPULAR_EMOJI_PRESETS,
+        FINANCE_CATEGORY_EMOJI_PRESETS,
+        SEED_APP_UI_EMOJIS,
+    )
 ```
 
 </details>

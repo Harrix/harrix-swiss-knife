@@ -327,6 +327,8 @@ class SnippetsDialog(QDialog):
             has_required_tables=lambda dm: dm.table_exists("items"),
             missing_table_label="items table",
         )
+        if self.db_manager is not None:
+            ensure_seed_emojis(self.db_manager)
 
     def _mark_used(self, item_id: int) -> None:
         if self.db_manager is not None:
