@@ -138,8 +138,7 @@ class AvifManager(QObject):
     def get_exercise_hover_avif_path(self, exercise_name: str) -> Path | None:
         """Return the hover preview file, preferring an animated high-resolution AVIF.
 
-        The small UI file is often a still when `fitness_img/high/` exists. Use high
-        only when it is animated and the small file is not.
+        Use high only when it is animated and the small UI file is missing or still.
 
         """
         small_path = self.get_exercise_avif_path(exercise_name)

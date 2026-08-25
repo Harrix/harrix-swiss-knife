@@ -12,7 +12,11 @@ from harrix_swiss_knife.apps.common.apps_config import (
     get_apps_fitness_image_high_max_size,
     get_apps_fitness_image_max_size,
 )
-from harrix_swiss_knife.apps.common.exercise_media import FITNESS_IMG_HIGH_DIR, save_exercise_avif
+from harrix_swiss_knife.apps.common.exercise_media import (
+    FITNESS_IMG_HIGH_DIR,
+    rebuild_small_avifs_from_high,
+    save_exercise_avif,
+)
 
 
 def test_fitness_image_high_max_size_defaults_and_clamps() -> None:
@@ -54,6 +58,10 @@ def test_save_exercise_avif_writes_small_and_high(tmp_path: Path, monkeypatch: p
         "harrix_swiss_knife.apps.common.exercise_media._convert_source_to_avif",
         fake_convert,
     )
+    monkeypatch.setattr(
+        "harrix_swiss_knife.apps.common.exercise_media._avif_file_is_animated",
+        lambda _path: False,
+    )
 
     written = save_exercise_avif(source, "Walk", avif_dir, max_size=330, high_max_size=1920)
     assert written == avif_dir / "Walk.avif"
@@ -61,26 +69,28 @@ def test_save_exercise_avif_writes_small_and_high(tmp_path: Path, monkeypatch: p
     assert (high_dir / "Walk.avif").read_bytes() == b"new-1920"
 
 
-def test_save_exercise_avif_removes_stale_high_when_high_convert_fails(
+def test_save_exercise_avif_keeps_old_files_when_high_convert_fails(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """A failed high-resolution convert must not leave the previous large file."""
+    """A failed high-resolution convert leaves the previous pair unchanged."""
     source = tmp_path / "source.png"
     source.write_bytes(b"src")
     avif_dir = tmp_path / "fitness_img"
+    small_target = avif_dir / "Walk.avif"
+    small_target.parent.mkdir(parents=True)
+    small_target.write_bytes(b"old-small")
     high_target = avif_dir / FITNESS_IMG_HIGH_DIR / "Walk.avif"
     high_target.parent.mkdir(parents=True)
     high_target.write_bytes(b"stale-high")
 
     def fake_convert(source_path: Path, target: Path, *, project_root: Path, max_size: int | None) -> Path:
-        del source_path, project_root
+        del source_path, project_root, target
         if max_size == 1920:
             msg = "high convert failed"
             raise RuntimeError(msg)
-        target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_bytes(b"new-small")
-        return target
+        msg = "small convert should not run"
+        raise AssertionError(msg)
 
     monkeypatch.setattr(
         "harrix_swiss_knife.apps.common.exercise_media._convert_source_to_avif",
@@ -89,5 +99,96 @@ def test_save_exercise_avif_removes_stale_high_when_high_convert_fails(
 
     with pytest.raises(RuntimeError, match="high convert failed"):
         save_exercise_avif(source, "Walk", avif_dir, max_size=330, high_max_size=1920)
-    assert (avif_dir / "Walk.avif").read_bytes() == b"new-small"
-    assert not high_target.exists()
+    assert small_target.read_bytes() == b"old-small"
+    assert high_target.read_bytes() == b"stale-high"
+
+
+def test_save_exercise_avif_shrinks_animated_high_to_small(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """An animated high file is resized to the UI AVIF instead of a still."""
+    source = tmp_path / "source.gif"
+    source.write_bytes(b"src")
+    avif_dir = tmp_path / "fitness_img"
+
+    def fake_convert(source_path: Path, target: Path, *, project_root: Path, max_size: int | None) -> Path:
+        del source_path, project_root
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(f"high-{max_size}".encode())
+        return target
+
+    def fake_write_small(
+        high_path: Path,
+        target: Path,
+        *,
+        project_root: Path,
+        max_size: int | None,
+    ) -> Path:
+        del project_root
+        assert high_path.read_bytes() == b"high-1920"
+        assert max_size == 330
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(b"small-from-high")
+        return target
+
+    monkeypatch.setattr(
+        "harrix_swiss_knife.apps.common.exercise_media._convert_source_to_avif",
+        fake_convert,
+    )
+    monkeypatch.setattr(
+        "harrix_swiss_knife.apps.common.exercise_media._avif_file_is_animated",
+        lambda _path: True,
+    )
+    monkeypatch.setattr(
+        "harrix_swiss_knife.apps.common.exercise_media._write_small_from_animated_avif",
+        fake_write_small,
+    )
+
+    written = save_exercise_avif(source, "Walk", avif_dir, max_size=330, high_max_size=1920)
+    assert written.read_bytes() == b"small-from-high"
+    assert (avif_dir / FITNESS_IMG_HIGH_DIR / "Walk.avif").read_bytes() == b"high-1920"
+
+
+def test_rebuild_small_avifs_from_high_rewrites_animated_high(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Still UI files are rebuilt from animated high-resolution originals."""
+    avif_dir = tmp_path / "fitness_img"
+    high_dir = avif_dir / FITNESS_IMG_HIGH_DIR
+    high_dir.mkdir(parents=True)
+    (high_dir / "Walk.avif").write_bytes(b"high-anim")
+    (high_dir / "Sit.avif").write_bytes(b"high-still")
+    (avif_dir / "Walk.avif").write_bytes(b"old-still")
+
+    def fake_animated(path: Path) -> bool:
+        return path.name == "Walk.avif" and FITNESS_IMG_HIGH_DIR in path.parts
+
+    def fake_write_small(
+        high_path: Path,
+        target: Path,
+        *,
+        project_root: Path,
+        max_size: int | None,
+    ) -> Path:
+        del project_root
+        assert high_path.name == "Walk.avif"
+        assert max_size == 330
+        target.write_bytes(b"rebuilt-small")
+        return target
+
+    monkeypatch.setattr(
+        "harrix_swiss_knife.apps.common.exercise_media._avif_file_is_animated",
+        fake_animated,
+    )
+    monkeypatch.setattr(
+        "harrix_swiss_knife.apps.common.exercise_media._write_small_from_animated_avif",
+        fake_write_small,
+    )
+
+    result = rebuild_small_avifs_from_high(avif_dir, max_size=330, project_root=tmp_path)
+    assert result.rebuilt == ("Walk",)
+    assert result.skipped == ("Sit",)
+    assert result.failed == ()
+    assert (avif_dir / "Walk.avif").read_bytes() == b"rebuilt-small"
