@@ -36,7 +36,7 @@ from harrix_swiss_knife.apps.snippets.parse import (
     item_matches_search,
     strip_wrapping_brackets,
 )
-from harrix_swiss_knife.qt_emoji_icon import add_emoji_action, create_emoji_icon, make_emoji_push_button
+from harrix_swiss_knife.qt_emoji_icon import add_emoji_action, create_emoji_icon
 
 if TYPE_CHECKING:
     from harrix_swiss_knife.apps.snippets.database_manager import SnippetItem, ZoneSort
@@ -175,8 +175,10 @@ class ZonePanel(QWidget):
         header = QHBoxLayout()
         header.setContentsMargins(0, 0, 0, 0)
         if show_add:
-            add_button = make_emoji_push_button("", "➕")  # noqa: RUF001
+            add_button = QToolButton(self)
+            add_button.setIcon(create_emoji_icon("➕", 18))  # noqa: RUF001
             add_button.setToolTip(title)
+            add_button.setAutoRaise(True)
             add_button.clicked.connect(self.add_requested.emit)
             header.addWidget(add_button)
         else:
