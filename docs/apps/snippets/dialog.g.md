@@ -199,9 +199,9 @@ class SnippetsDialog(QDialog):
 
     def _build_body(self) -> None:
         self._phrases = ZonePanel(self, zone=ZONE_PHRASE, title="Add phrase", show_add=True, show_filter=True)
-        self._emoji = ZonePanel(self, zone=ZONE_EMOJI, title="Emoji")
-        self._symbols = ZonePanel(self, zone=ZONE_SYMBOL, title="Symbols")
-        self._colors = ZonePanel(self, zone=ZONE_COLOR, title="Colors")
+        self._emoji = ZonePanel(self, zone=ZONE_EMOJI, title="Add emoji", show_add=True)
+        self._symbols = ZonePanel(self, zone=ZONE_SYMBOL, title="Add symbol", show_add=True)
+        self._colors = ZonePanel(self, zone=ZONE_COLOR, title="Add color", show_add=True)
         self._panels = {
             ZONE_PHRASE: self._phrases,
             ZONE_EMOJI: self._emoji,

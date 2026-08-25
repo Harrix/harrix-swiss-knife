@@ -8,7 +8,7 @@ import json
 from pathlib import Path
 
 import pytest
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QPushButton
 
 from harrix_swiss_knife.actions.apps.snippets import OnSnippets
 from harrix_swiss_knife.actions.common.quick_launcher_registry import iter_menu_structure
@@ -197,6 +197,17 @@ def test_emoji_zone_items_have_icon_without_caption(qapp: QApplication) -> None:
     assert item is not None
     assert item.text() == ""
     assert not item.icon().isNull()
+    panel.close()
+
+
+def test_zone_panel_add_button_emits_add_requested(qapp: QApplication) -> None:
+    assert qapp is not None
+    panel = ZonePanel(zone=ZONE_EMOJI, title="Add emoji", show_add=True)
+    requested: list[bool] = []
+    panel.add_requested.connect(lambda: requested.append(True))
+    add_button = next(button for button in panel.findChildren(QPushButton) if button.isEnabled())
+    add_button.click()
+    assert requested == [True]
     panel.close()
 
 
