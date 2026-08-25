@@ -123,24 +123,25 @@ class RegionOverlay(QDialog):
             self.reject()
             return
 
-        clipped = rect.intersected(self._frozen.rect())
-        if clipped.isEmpty():
+        self._crop = crop_pixmap_from_logical_rect(self._frozen, rect)
+        if self._crop is None or self._crop.isNull():
             self._crop = None
             self.reject()
             return
 
-        self._crop = self._frozen.copy(clipped).toImage()
         self.accept()
 
     def paintEvent(self, event: QPaintEvent) -> None:  # noqa: N802, ARG002
         """Draw frozen desktop, dim overlay, and clear selection region."""
         painter = QPainter(self)
-        painter.drawPixmap(0, 0, self._frozen)
+        painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, on=False)
+        painter.drawPixmap(self.rect(), self._frozen)
         painter.fillRect(self.rect(), _DIM_COLOR)
 
         rect = self._selection_rect()
         if rect is not None and rect.isValid():
-            painter.drawPixmap(rect, self._frozen, rect)
+            source = logical_rect_to_pixel_rect(rect, pixmap_device_pixel_ratio(self._frozen))
+            painter.drawPixmap(rect, self._frozen, source)
             pen = QPen(_BORDER_COLOR, _BORDER_WIDTH)
             painter.setPen(pen)
             painter.drawRect(rect.adjusted(0, 0, -1, -1))
@@ -313,13 +314,12 @@ def mouseReleaseEvent(self, event: QMouseEvent) -> None:  # noqa: N802
             self.reject()
             return
 
-        clipped = rect.intersected(self._frozen.rect())
-        if clipped.isEmpty():
+        self._crop = crop_pixmap_from_logical_rect(self._frozen, rect)
+        if self._crop is None or self._crop.isNull():
             self._crop = None
             self.reject()
             return
 
-        self._crop = self._frozen.copy(clipped).toImage()
         self.accept()
 ```
 
@@ -339,12 +339,14 @@ Draw frozen desktop, dim overlay, and clear selection region.
 ```python
 def paintEvent(self, event: QPaintEvent) -> None:  # noqa: N802, ARG002
         painter = QPainter(self)
-        painter.drawPixmap(0, 0, self._frozen)
+        painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, on=False)
+        painter.drawPixmap(self.rect(), self._frozen)
         painter.fillRect(self.rect(), _DIM_COLOR)
 
         rect = self._selection_rect()
         if rect is not None and rect.isValid():
-            painter.drawPixmap(rect, self._frozen, rect)
+            source = logical_rect_to_pixel_rect(rect, pixmap_device_pixel_ratio(self._frozen))
+            painter.drawPixmap(rect, self._frozen, source)
             pen = QPen(_BORDER_COLOR, _BORDER_WIDTH)
             painter.setPen(pen)
             painter.drawRect(rect.adjusted(0, 0, -1, -1))
