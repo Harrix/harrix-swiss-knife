@@ -7257,10 +7257,11 @@ class MainWindow(
         menu_file = getattr(self, "menuFile", None)
         if menu_file is None:
             return
-        action = QAction("📂 Open exercise images folder", self)
+        action = QAction("Open exercise images folder", self)
         action.setObjectName("actionOpenExerciseImagesFolder")
         action.triggered.connect(self.on_open_exercise_images_folder)
         menu_file.insertAction(self.actionExit, action)
+        set_action_text_with_emoji_icon(action, "📂 Open exercise images folder")
 
     def _setup_open_exercise_lightbox_action(self) -> None:
         """Add Commands → Open image in lightbox."""

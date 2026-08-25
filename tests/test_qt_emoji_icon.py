@@ -54,6 +54,17 @@ def test_apply_leading_emoji_icon_moves_prefix_to_icon(qapp: QApplication) -> No
     assert not action.icon().isNull()
 
 
+def test_apply_leading_emoji_icons_aligns_menu_icon_slot(qapp: QApplication) -> None:
+    assert qapp is not None
+    menu = QMenu()
+    menu.addAction("📂 Show database in folder")
+    menu.addAction("🚪 Exit")
+    apply_leading_emoji_icons(menu)
+    texts = [action.text() for action in menu.actions()]
+    assert texts == ["Show database in folder", "Exit"]
+    assert all(not action.icon().isNull() for action in menu.actions())
+
+
 def test_apply_leading_emoji_icons_walks_submenu(qapp: QApplication) -> None:
     assert qapp is not None
     menu = QMenu()

@@ -44,7 +44,7 @@ from shiboken6 import isValid
 from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.ui_helpers import reveal_in_file_explorer
 from harrix_swiss_knife.apps.common.word_wrap_header import install_word_wrap_headers
-from harrix_swiss_knife.qt_emoji_icon import apply_leading_emoji_icons
+from harrix_swiss_knife.qt_emoji_icon import apply_leading_emoji_icons, set_action_text_with_emoji_icon
 
 if TYPE_CHECKING:
     from PySide6.QtGui import QCloseEvent, QKeyEvent
@@ -359,10 +359,11 @@ class AppWindowMixin:
         if menu_file is None:
             return
         menu = cast("QMenu", menu_file)
-        action = QAction("📂 Show database in folder", cast("QWidget", self))
+        action = QAction("Show database in folder", cast("QWidget", self))
         action.setObjectName("actionShowDatabaseInFolder")
         action.triggered.connect(self.on_reveal_database)
         menu.insertAction(self.actionExit, action)
+        set_action_text_with_emoji_icon(action, "📂 Show database in folder")
 
     def _setup_window_size_and_position(self, *, standard_width: int = 1920) -> None:
         """Set window size and position based on screen resolution and characteristics.

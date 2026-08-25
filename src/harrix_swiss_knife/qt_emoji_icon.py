@@ -56,7 +56,13 @@ def apply_emoji_action_icon(
 ) -> None:
     """Set `emoji` as the action icon without changing its text."""
     if emoji:
-        action.setIcon(create_emoji_icon(emoji, icon_size))
+        action.setIcon(
+            create_emoji_icon(
+                emoji,
+                icon_size,
+                align=Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
+            ),
+        )
 
 
 def apply_emoji_dialog_buttons(
@@ -111,14 +117,25 @@ def apply_leading_emoji_icons(
             apply_leading_emoji_icons(submenu, icon_size=icon_size)
 
 
-def create_emoji_icon(emoji: str, size: int = 64) -> QIcon:
+def create_emoji_icon(
+    emoji: str,
+    size: int = 64,
+    *,
+    align: Qt.AlignmentFlag = Qt.AlignmentFlag.AlignCenter,
+) -> QIcon:
     """Create a square `QIcon` for an emoji, scaled to avoid clipping."""
     pixmap = QPixmap(size, size)
     pixmap.fill(Qt.GlobalColor.transparent)
 
     painter = QPainter(pixmap)
     painter.setRenderHint(QPainter.RenderHint.TextAntialiasing, on=True)
-    paint_centered_emoji(painter, emoji, QRectF(0.0, 0.0, float(size), float(size)), fill=0.90)
+    paint_centered_emoji(
+        painter,
+        emoji,
+        QRectF(0.0, 0.0, float(size), float(size)),
+        fill=0.90,
+        align=align,
+    )
     painter.end()
 
     return QIcon(pixmap)
@@ -143,8 +160,9 @@ def paint_centered_emoji(
     rect: QRectF,
     *,
     fill: float = 0.90,
+    align: Qt.AlignmentFlag = Qt.AlignmentFlag.AlignCenter,
 ) -> None:
-    """Draw ``emoji`` centered in ``rect``, scaled to ``fill`` of the shorter side."""
+    """Draw ``emoji`` in ``rect``, scaled to ``fill`` of the shorter side."""
     if not emoji:
         return
     painter.save()
@@ -161,8 +179,19 @@ def paint_centered_emoji(
     font.setPointSizeF(max(1.0, base_font.pointSizeF() * scale))
     painter.setFont(font)
     fitted = QFontMetricsF(font).tightBoundingRect(emoji)
-    x = rect.x() + (rect.width() - fitted.width()) / 2.0
-    y = rect.y() + (rect.height() - fitted.height()) / 2.0
+    inset = 1.0
+    if align & Qt.AlignmentFlag.AlignLeft:
+        x = rect.x() + inset
+    elif align & Qt.AlignmentFlag.AlignRight:
+        x = rect.x() + rect.width() - fitted.width() - inset
+    else:
+        x = rect.x() + (rect.width() - fitted.width()) / 2.0
+    if align & Qt.AlignmentFlag.AlignTop:
+        y = rect.y() + inset
+    elif align & Qt.AlignmentFlag.AlignBottom:
+        y = rect.y() + rect.height() - fitted.height() - inset
+    else:
+        y = rect.y() + (rect.height() - fitted.height()) / 2.0
     painter.drawText(QPointF(x - fitted.left(), y - fitted.top()), emoji)
     painter.restore()
 
