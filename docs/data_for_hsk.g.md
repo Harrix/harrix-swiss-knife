@@ -167,7 +167,7 @@ Finance, Fitness, Food, and Habits already exist.
 
 ```python
 def ensure_missing_tracker_databases(config: dict[str, Any]) -> tuple[str, ...]:
-    recover_by_name = {name: sql_path for name, sql_path in _TRACKER_DATABASES}
+    recover_by_name = dict(_TRACKER_DATABASES)
     candidates: list[Path] = []
     for key in SQLITE_CONFIG_KEYS:
         value = config.get(key)

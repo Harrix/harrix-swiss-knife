@@ -268,6 +268,7 @@ class MainWindow(
         self._exercise_media_worker: ExerciseMediaSaveWorker | None = None
         self._exercise_media_toast: toast_countdown_notification.ToastCountdownNotification | None = None
         self._exercise_media_success_message: str | None = None
+        self._exercise_add_after_media: tuple[str, bool] | None = None
 
         # Exercise list model
         self.exercises_list_model: QStandardItemModel | None = None
@@ -437,6 +438,7 @@ class MainWindow(
             return
 
         self._is_closing = True
+        self._exercise_add_after_media = None
         self._close_exercise_media_toast()
         worker = self._exercise_media_worker
         if worker is not None and worker.isRunning():
@@ -644,11 +646,11 @@ class MainWindow(
                 if with_dumbbells:
                     self._add_dumbbell_weight_types_to_exercise(exercise)
                 self._mark_exercises_changed()
-                self.update_all(is_preserve_selections=True, current_exercise=exercise)
-                if with_dumbbells:
-                    QTimer.singleShot(0, lambda name=exercise: self._ensure_types_table_shows_exercise(name))
-                if media_path:
-                    self._start_exercise_media_save(exercise, media_path)
+                self._finish_add_exercise(
+                    exercise,
+                    media_path=media_path,
+                    with_dumbbells=with_dumbbells,
+                )
             else:
                 message_box.warning(self, "Error", "Failed to add exercise")
         except Exception as e:
@@ -4652,6 +4654,13 @@ class MainWindow(
         except Exception as e:
             message_box.warning(self, "Database Error", f"Failed to add record: {e}")
 
+    def _complete_exercise_add_without_media(self, exercise: str, *, with_dumbbells: bool) -> None:
+        """Apply table refresh after add when no media conversion is pending."""
+        self._refresh_ui_after_exercise_add(exercise, with_dumbbells=with_dumbbells)
+        self._close_exercise_media_toast()
+        if not self._is_closing:
+            QTimer.singleShot(0, self.on_add_exercise)
+
     def _configure_exercise_image_table(self, table_view: QTableView) -> None:
         """Show a fixed first column for the exercise still image."""
         table_view.setIconSize(QSize(self.table_icon_size, self.table_icon_size))
@@ -5250,6 +5259,29 @@ class MainWindow(
             index = self.comboBox_filter_type.findText(name)
         self.comboBox_filter_type.setCurrentIndex(index)
         self.apply_filter()
+
+    def _finish_add_exercise(
+        self,
+        exercise: str,
+        *,
+        media_path: str | None,
+        with_dumbbells: bool,
+    ) -> None:
+        """Refresh UI under a toast, then open Add Exercise again."""
+        if media_path:
+            self._exercise_add_after_media = (exercise, with_dumbbells)
+            if not self._start_exercise_media_save(exercise, media_path):
+                self._exercise_add_after_media = None
+                self._complete_exercise_add_without_media(exercise, with_dumbbells=with_dumbbells)
+            return
+        self._show_exercise_work_toast(f"Adding '{exercise}'…")
+        QTimer.singleShot(
+            0,
+            lambda name=exercise, dumbbells=with_dumbbells: self._complete_exercise_add_without_media(
+                name,
+                with_dumbbells=dumbbells,
+            ),
+        )
 
     def _finish_window_initialization(self) -> None:
         """Finish window initialization by showing the window and adjusting columns."""
@@ -6208,15 +6240,27 @@ class MainWindow(
 
     def _on_exercise_media_save_completed(self, exercise_name: str, _target_path: str) -> None:
         """Refresh previews after background media conversion succeeds."""
-        self._close_exercise_media_toast()
+        pending_add = self._exercise_add_after_media
+        self._exercise_add_after_media = None
+        if pending_add is not None:
+            name, with_dumbbells = pending_add
+            self._refresh_ui_after_exercise_add(name, with_dumbbells=with_dumbbells)
         self._refresh_exercise_media_ui(exercise_name)
+        self._close_exercise_media_toast()
         success_message = self._exercise_media_success_message
         self._exercise_media_success_message = None
         if success_message:
             message_box.information(self, "Media Saved", success_message)
+        if pending_add is not None and not self._is_closing:
+            QTimer.singleShot(0, self.on_add_exercise)
 
     def _on_exercise_media_save_failed(self, exercise_name: str, error_message: str) -> None:
         """Show conversion failure after background media save."""
+        pending_add = self._exercise_add_after_media
+        self._exercise_add_after_media = None
+        if pending_add is not None:
+            name, with_dumbbells = pending_add
+            self._refresh_ui_after_exercise_add(name, with_dumbbells=with_dumbbells)
         self._close_exercise_media_toast()
         self._exercise_media_success_message = None
         message_box.warning(
@@ -6224,6 +6268,8 @@ class MainWindow(
             "Media Error",
             f"Failed to save media for '{exercise_name}':\n{error_message}",
         )
+        if pending_add is not None and not self._is_closing:
+            QTimer.singleShot(0, self.on_add_exercise)
 
     def _on_exercise_preview_media_dropped(self, paths: list[str], *, table_name: str = "exercises") -> None:
         """Save dropped media for the exercise selected in `table_name`.
@@ -6672,6 +6718,12 @@ class MainWindow(
             for name in exercises
         ]
         self._fitness_dashboard.set_exercises(items, selected=selected)
+
+    def _refresh_ui_after_exercise_add(self, exercise: str, *, with_dumbbells: bool) -> None:
+        """Reload tables and keep the new exercise selected."""
+        self.update_all(is_preserve_selections=True, current_exercise=exercise)
+        if with_dumbbells:
+            self._ensure_types_table_shows_exercise(exercise)
 
     def _reload_types_table(self, *, dumbbell_names: set[str] | None = None) -> None:
         """Rebuild the exercise types table from the database."""
@@ -7336,6 +7388,15 @@ class MainWindow(
         elif action == export_excel_action:
             self._export_named_table("types", prefer="xlsx")
 
+    def _show_exercise_work_toast(self, message: str) -> None:
+        """Show a countdown toast for add-exercise follow-up work."""
+        self._close_exercise_media_toast()
+        self._exercise_media_toast = toast_countdown_notification.ToastCountdownNotification(message)
+        self._exercise_media_toast.start_countdown()
+        app = QApplication.instance()
+        if app is not None:
+            app.processEvents()
+
     def _show_exercises_context_menu(self, position: QPoint) -> None:
         """Show context menu for exercises table.
 
@@ -7573,21 +7634,30 @@ class MainWindow(
         source_path: str,
         *,
         success_message: str | None = None,
-    ) -> None:
-        """Convert exercise media in a worker thread and show a countdown toast."""
+    ) -> bool:
+        """Convert exercise media in a worker thread and show a countdown toast.
+
+        Returns:
+
+        - `bool`: `True` when the worker started.
+
+        """
         if not self.avif_manager:
             message_box.warning(self, "Error", "AVIF manager is not initialized")
-            return
+            return False
         worker = self._exercise_media_worker
         if worker is not None and worker.isRunning():
             message_box.warning(self, "Please Wait", "Media conversion is already in progress")
-            return
+            return False
 
         self._exercise_media_success_message = success_message
         self._exercise_media_toast = toast_countdown_notification.ToastCountdownNotification(
             f"Converting media for '{exercise_name}'…",
         )
         self._exercise_media_toast.start_countdown()
+        app = QApplication.instance()
+        if app is not None:
+            app.processEvents()
 
         max_size = get_apps_fitness_image_max_size(self._app_config)
         high_max_size = get_apps_fitness_image_high_max_size(self._app_config)
@@ -7604,6 +7674,7 @@ class MainWindow(
         self._exercise_media_worker.save_failed.connect(self._on_exercise_media_save_failed)
         self._exercise_media_worker.finished.connect(self._cleanup_exercise_media_worker)
         self._exercise_media_worker.start()
+        return True
 
     def _sync_dumbbell_weight_types(self, *, notify: bool = True) -> int:
         """Copy missing template dumbbell weights onto matching exercises.
