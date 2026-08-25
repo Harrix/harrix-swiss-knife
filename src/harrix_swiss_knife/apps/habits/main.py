@@ -72,6 +72,7 @@ from harrix_swiss_knife.apps.common.table_context_menu import (
     show_records_label,
 )
 from harrix_swiss_knife.apps.common.ui_helpers import close_table_editor_if_open
+from harrix_swiss_knife.apps.common.word_wrap_header import WordWrapHeaderView
 from harrix_swiss_knife.apps.habits import database_manager, window
 from harrix_swiss_knife.apps.habits.dashboard import HabitDashboardWidget
 from harrix_swiss_knife.apps.habits.dashboard_widgets import style_calendar_nav_button
@@ -105,7 +106,6 @@ from harrix_swiss_knife.apps.habits.ticktick_api import (
     iso_to_ticktick_stamp,
     resolve_ticktick_api_token,
 )
-from harrix_swiss_knife.apps.habits.word_wrap_header import WordWrapHeaderView
 from harrix_swiss_knife.paths import get_config_path_str, get_project_root
 from harrix_swiss_knife.qt_emoji_icon import apply_leading_emoji_icons
 from harrix_swiss_knife.toast_progress_notification import ToastProgressNotification
@@ -1934,6 +1934,7 @@ class MainWindow(
         self.pushButton_habits_export_csv.setText(f"📤 {self.pushButton_habits_export_csv.text()}")
         self.pushButton_habit_add_new.setText(f"➕ {self.pushButton_habit_add_new.text()}")  # noqa: RUF001
 
+        self._install_word_wrap_table_headers(skip={self.tableView_process_habits})
         process_habits_header = WordWrapHeaderView(
             Qt.Orientation.Horizontal,
             self.tableView_process_habits,

@@ -234,6 +234,7 @@ class StandardItemsDialog(QDialog):
         )
 
         self.table = QTableWidget(self)
+        install_word_wrap_header(self.table)
         self.table.setColumnCount(3)
         self.table.setHorizontalHeaderLabels(["Name", "English", "Category"])
         self.table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)

@@ -75,6 +75,7 @@ from harrix_swiss_knife.apps.common.table_context_menu import (
 )
 from harrix_swiss_knife.apps.common.table_models import create_table_proxy_model
 from harrix_swiss_knife.apps.common.widgets.image_picker import ImagePicker, ImagePickerMode
+from harrix_swiss_knife.apps.common.word_wrap_header import WordWrapHeaderView
 from harrix_swiss_knife.apps.food import database_manager, window
 from harrix_swiss_knife.apps.food.ai_source_dialog import (
     AiSourceDialog,
@@ -1340,6 +1341,9 @@ class MainWindow(
         # Apply widths to all columns
         for i, width in enumerate(column_widths):
             self.tableView_food_log.setColumnWidth(i, width)
+        food_log_header = self.tableView_food_log.horizontalHeader()
+        if isinstance(food_log_header, WordWrapHeaderView):
+            food_log_header.refresh_wrapped_height()
 
     def _adjust_kcal_per_day_table_columns(self) -> None:
         """Set column widths for kcal per day table."""
@@ -2997,6 +3001,7 @@ class MainWindow(
     def _setup_ui(self) -> None:
         """Set up additional UI elements after basic initialization."""
         self._place_menu_bar_on_tab_row()
+        self._install_word_wrap_table_headers()
 
         # Date field: attach quick preset/offset menu button (removed from .ui)
         self.pushButton_food_date_quick = attach_date_edit_quick_controls(

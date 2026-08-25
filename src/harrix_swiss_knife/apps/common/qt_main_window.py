@@ -40,6 +40,7 @@ from shiboken6 import isValid
 
 from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.ui_helpers import reveal_in_file_explorer
+from harrix_swiss_knife.apps.common.word_wrap_header import install_word_wrap_headers
 from harrix_swiss_knife.qt_emoji_icon import apply_leading_emoji_icons
 
 if TYPE_CHECKING:
@@ -261,6 +262,14 @@ class AppWindowMixin:
         self._hide_on_close = hide_on_close
         if not hide_on_close:
             self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)  # type: ignore[attr-defined]
+
+    def _install_word_wrap_table_headers(
+        self,
+        *,
+        skip: set[QTableView] | frozenset[QTableView] | None = None,
+    ) -> None:
+        """Enable wrapping titles on every `QTableView` in this window."""
+        install_word_wrap_headers(cast("QWidget", self), skip=skip)
 
     def _place_menu_bar_on_tab_row(self) -> None:
         """Put the main menu on the same row as tabs (left of the tab bar).

@@ -24,6 +24,7 @@ from harrix_swiss_knife import qt_modality
 from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.table_context_menu import LABEL_REFRESH, add_delete_action
 from harrix_swiss_knife.apps.common.table_models import create_colored_table_proxy_model
+from harrix_swiss_knife.apps.common.word_wrap_header import install_word_wrap_header
 from harrix_swiss_knife.apps.finance.currency_add_dialog import CurrencyAddDialog
 from harrix_swiss_knife.qt_emoji_icon import (
     CANCEL_BUTTON_EMOJI,
@@ -182,6 +183,7 @@ class CurrenciesDialog(QDialog):
         layout.addWidget(default_group)
 
         self.table = QTableView(self)
+        install_word_wrap_header(self.table)
         self.table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
         self.table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)

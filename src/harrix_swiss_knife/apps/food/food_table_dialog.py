@@ -25,6 +25,7 @@ from PySide6.QtWidgets import (
 
 from harrix_swiss_knife import qt_modality
 from harrix_swiss_knife.apps.common.ui_helpers import enumerate_stripped_non_empty_lines
+from harrix_swiss_knife.apps.common.word_wrap_header import install_word_wrap_header
 from harrix_swiss_knife.apps.food.text_parser import ParsedFoodItem, TextParser
 from harrix_swiss_knife.qt_emoji_icon import make_emoji_push_button
 
@@ -345,6 +346,7 @@ class FoodTableDialog(QDialog):
         table_page_layout.setContentsMargins(0, 0, 0, 0)
 
         self._table: QTableWidgetType = QTableWidget(table_page)
+        install_word_wrap_header(self._table)
         self._table.setColumnCount(len(self._HEADERS))
         self._table.setHorizontalHeaderLabels(list(self._HEADERS))
         self._table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)

@@ -26,6 +26,7 @@ from PySide6.QtWidgets import (
 from harrix_swiss_knife import qt_modality
 from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.table_context_menu import add_delete_action
+from harrix_swiss_knife.apps.common.word_wrap_header import install_word_wrap_header
 from harrix_swiss_knife.apps.finance.transaction_translate_parser import (
     align_translations_to_descriptions,
     parse_transaction_translate_response,
@@ -260,6 +261,7 @@ class StandardItemsDialog(QDialog):
         )
 
         self.table = QTableWidget(self)
+        install_word_wrap_header(self.table)
         self.table.setColumnCount(3)
         self.table.setHorizontalHeaderLabels(["Name", "English", "Category"])
         self.table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)

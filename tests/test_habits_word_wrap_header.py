@@ -1,4 +1,4 @@
-"""Tests for wrapped habit names in process-habits column headers."""
+"""Tests for wrapped table column headers."""
 
 from __future__ import annotations
 
@@ -7,8 +7,9 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont, QFontMetrics, QStandardItemModel
 from PySide6.QtWidgets import QApplication, QTableView
 
-from harrix_swiss_knife.apps.habits.word_wrap_header import (
+from harrix_swiss_knife.apps.common.word_wrap_header import (
     WordWrapHeaderView,
+    install_word_wrap_header,
     wrapped_header_text_size,
 )
 
@@ -56,3 +57,19 @@ def test_word_wrap_header_sizes_habit_column_to_wrap_width(qapp: QApplication) -
 
     assert wrapped_size.width() < plain_size.width()
     assert wrapped_size.height() > plain_size.height()
+
+
+def test_install_word_wrap_header_replaces_default_header(qapp: QApplication) -> None:
+    """App tables get a wrapping header that also wraps the first column."""
+    assert qapp is not None
+    table = QTableView()
+    model = QStandardItemModel()
+    model.setHorizontalHeaderLabels([_LONG_HABIT_NAME, "Date"])
+    table.setModel(model)
+
+    header = install_word_wrap_header(table, wrap_width=86)
+    assert header is table.horizontalHeader()
+    first = header.sectionSizeFromContents(0)
+    expected = wrapped_header_text_size(_LONG_HABIT_NAME, 86, header.fontMetrics())
+    assert first.width() == expected.width()
+    assert first.height() == expected.height()

@@ -342,6 +342,7 @@ class FoodTableDialog(QDialog):
         table_page_layout.setContentsMargins(0, 0, 0, 0)
 
         self._table: QTableWidgetType = QTableWidget(table_page)
+        install_word_wrap_header(self._table)
         self._table.setColumnCount(len(self._HEADERS))
         self._table.setHorizontalHeaderLabels(list(self._HEADERS))
         self._table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)

@@ -73,6 +73,7 @@ class FoodTranslatePreviewDialog(QDialog):
         layout.addWidget(summary)
 
         self._table = QTableWidget(self)
+        install_word_wrap_header(self._table)
         self._table.setColumnCount(2)
         self._table.setHorizontalHeaderLabels(["Name (RU)", "English name"])
         self._table.setRowCount(len(names))
@@ -200,6 +201,7 @@ def __init__(
         layout.addWidget(summary)
 
         self._table = QTableWidget(self)
+        install_word_wrap_header(self._table)
         self._table.setColumnCount(2)
         self._table.setHorizontalHeaderLabels(["Name (RU)", "English name"])
         self._table.setRowCount(len(names))

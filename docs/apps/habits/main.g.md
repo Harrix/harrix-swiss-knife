@@ -1869,6 +1869,7 @@ class MainWindow(
         self.pushButton_habits_export_csv.setText(f"📤 {self.pushButton_habits_export_csv.text()}")
         self.pushButton_habit_add_new.setText(f"➕ {self.pushButton_habit_add_new.text()}")  # noqa: RUF001
 
+        self._install_word_wrap_table_headers(skip={self.tableView_process_habits})
         process_habits_header = WordWrapHeaderView(
             Qt.Orientation.Horizontal,
             self.tableView_process_habits,

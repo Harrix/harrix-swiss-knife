@@ -243,6 +243,14 @@ class AppWindowMixin:
         if not hide_on_close:
             self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)  # type: ignore[attr-defined]
 
+    def _install_word_wrap_table_headers(
+        self,
+        *,
+        skip: set[QTableView] | frozenset[QTableView] | None = None,
+    ) -> None:
+        """Enable wrapping titles on every `QTableView` in this window."""
+        install_word_wrap_headers(cast("QWidget", self), skip=skip)
+
     def _place_menu_bar_on_tab_row(self) -> None:
         """Put the main menu on the same row as tabs (left of the tab bar).
 

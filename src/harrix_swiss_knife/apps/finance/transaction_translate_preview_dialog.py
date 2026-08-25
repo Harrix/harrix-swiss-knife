@@ -16,6 +16,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from harrix_swiss_knife.apps.common.word_wrap_header import install_word_wrap_header
 from harrix_swiss_knife.qt_emoji_icon import (
     OK_BUTTON_EMOJI,
     apply_emoji_dialog_buttons,
@@ -58,6 +59,7 @@ class TransactionTranslatePreviewDialog(QDialog):
         layout.addWidget(summary)
 
         self._table = QTableWidget(self)
+        install_word_wrap_header(self._table)
         self._table.setColumnCount(2)
         self._table.setHorizontalHeaderLabels(["Description", "English"])
         self._table.setRowCount(len(descriptions))

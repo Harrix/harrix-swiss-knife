@@ -102,6 +102,7 @@ from harrix_swiss_knife.apps.common.table_context_menu import (
 )
 from harrix_swiss_knife.apps.common.table_models import create_table_proxy_model
 from harrix_swiss_knife.apps.common.widgets.image_picker import ImagePicker, ImagePickerMode
+from harrix_swiss_knife.apps.common.word_wrap_header import install_word_wrap_header
 from harrix_swiss_knife.apps.finance import database_manager, window
 from harrix_swiss_knife.apps.finance.account_edit_dialog import AccountEditDialog
 from harrix_swiss_knife.apps.finance.ai_source_dialog import (
@@ -5269,6 +5270,7 @@ class MainWindow(
     def _setup_ui(self) -> None:
         """Set up additional UI elements."""
         self._place_menu_bar_on_tab_row()
+        self._install_word_wrap_table_headers()
         self._setup_status_bar()
         self._apply_exit_about_menu_emojis()
         self._setup_report_type_list()
@@ -5620,6 +5622,7 @@ class MainWindow(
         layout.addWidget(summary_label)
 
         table = QTableWidget(dialog)
+        install_word_wrap_header(table)
         table.setColumnCount(5)
         table.setHorizontalHeaderLabels(["Currency", "Journal", "Accounts", "Diff (accounts-journal)", "Action"])
         table.setRowCount(len(natural_rows))
@@ -5741,6 +5744,7 @@ class MainWindow(
         layout.addWidget(totals_label)
 
         transactions_table = QTableWidget(dialog)
+        install_word_wrap_header(transactions_table)
         transactions_table.setColumnCount(5)
         transactions_table.setHorizontalHeaderLabels(["Date", "Description", "Amount", "Currency", "Category"])
         transactions_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)

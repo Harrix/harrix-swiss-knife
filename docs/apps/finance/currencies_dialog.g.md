@@ -172,6 +172,7 @@ class CurrenciesDialog(QDialog):
         layout.addWidget(default_group)
 
         self.table = QTableView(self)
+        install_word_wrap_header(self.table)
         self.table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
         self.table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)

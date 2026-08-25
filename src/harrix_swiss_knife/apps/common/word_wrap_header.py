@@ -2,14 +2,9 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
-from PySide6.QtCore import QRect, QSize, Qt
+from PySide6.QtCore import QAbstractItemModel, QRect, QSize, Qt
 from PySide6.QtGui import QFontMetrics, QPainter, QPalette
-from PySide6.QtWidgets import QHeaderView, QStyle, QStyleOptionHeader
-
-if TYPE_CHECKING:
-    from PySide6.QtWidgets import QWidget
+from PySide6.QtWidgets import QHeaderView, QStyle, QStyleOptionHeader, QTableView, QWidget
 
 HEADER_TEXT_FLAGS = Qt.AlignmentFlag.AlignCenter | Qt.TextFlag.TextWordWrap | Qt.TextFlag.TextWrapAnywhere
 _TEXT_PADDING = 8
@@ -33,7 +28,7 @@ class WordWrapHeaderView(QHeaderView):
 
         - `orientation` (`Qt.Orientation`): Header orientation.
         - `parent` (`QWidget | None`): Parent widget. Defaults to `None`.
-        - `wrap_width` (`int | None`): Preferred wrap width for habit columns. Defaults to `None`.
+        - `wrap_width` (`int | None`): Preferred wrap width for compact columns. Defaults to `None`.
         - `wrap_first_section` (`bool`): Also wrap the first section. Defaults to `False`.
 
         """
@@ -83,10 +78,15 @@ class WordWrapHeaderView(QHeaderView):
             self._updating_height = False
 
     def sectionSizeFromContents(self, logical_index: int) -> QSize:  # noqa: N802
-        """Prefer a compact wrapped width for habit columns."""
+        """Prefer a compact wrapped width when `wrap_width` is set."""
         if not self._should_wrap_section(logical_index) or self._wrap_width is None:
             return super().sectionSizeFromContents(logical_index)
         return wrapped_header_text_size(self._section_text(logical_index), self._wrap_width, self.fontMetrics())
+
+    def setModel(self, model: QAbstractItemModel | None) -> None:  # noqa: N802
+        """Refresh wrapped height after the header model is assigned."""
+        super().setModel(model)
+        self.refresh_wrapped_height()
 
     def sizeHint(self) -> QSize:  # noqa: N802
         """Grow vertically so wrapped titles stay visible."""
@@ -121,6 +121,65 @@ class WordWrapHeaderView(QHeaderView):
 
     def _should_wrap_section(self, logical_index: int) -> bool:
         return self._wrap_first_section or logical_index > 0
+
+
+def install_word_wrap_header(
+    table: QTableView,
+    *,
+    wrap_width: int | None = None,
+    wrap_first_section: bool = True,
+) -> WordWrapHeaderView:
+    """Replace a table's horizontal header with a wrapping header.
+
+    Existing clickable, stretch, and size settings are copied from the current header.
+
+    Args:
+
+    - `table` (`QTableView`): Table whose header should wrap.
+    - `wrap_width` (`int | None`): Preferred wrap width for compact columns. Defaults to `None`.
+    - `wrap_first_section` (`bool`): Also wrap the first section. Defaults to `True`.
+
+    Returns:
+
+    - `WordWrapHeaderView`: The header now used by `table`.
+
+    """
+    current = table.horizontalHeader()
+    if isinstance(current, WordWrapHeaderView):
+        return current
+
+    header = WordWrapHeaderView(
+        Qt.Orientation.Horizontal,
+        table,
+        wrap_width=wrap_width,
+        wrap_first_section=wrap_first_section,
+    )
+    if current is not None:
+        header.setSectionsClickable(current.sectionsClickable())
+        header.setHighlightSections(current.highlightSections())
+        header.setStretchLastSection(current.stretchLastSection())
+        header.setSortIndicatorShown(current.isSortIndicatorShown())
+        header.setDefaultAlignment(current.defaultAlignment())
+        header.setMinimumSectionSize(current.minimumSectionSize())
+        header.setDefaultSectionSize(current.defaultSectionSize())
+        header.setSectionsMovable(current.sectionsMovable())
+    header.setTextElideMode(Qt.TextElideMode.ElideNone)
+    table.setHorizontalHeader(header)
+    return header
+
+
+def install_word_wrap_headers(
+    parent: QWidget,
+    *,
+    skip: set[QTableView] | frozenset[QTableView] | None = None,
+    wrap_first_section: bool = True,
+) -> None:
+    """Install wrapping headers on every `QTableView` under `parent`."""
+    skipped = skip or set()
+    for table in parent.findChildren(QTableView):
+        if table in skipped:
+            continue
+        install_word_wrap_header(table, wrap_first_section=wrap_first_section)
 
 
 def wrapped_header_text_size(

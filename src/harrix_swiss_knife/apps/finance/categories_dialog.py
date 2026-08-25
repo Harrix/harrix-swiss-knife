@@ -27,6 +27,7 @@ from harrix_swiss_knife.apps.common.table_context_menu import (
     add_delete_action,
     add_separator,
 )
+from harrix_swiss_knife.apps.common.word_wrap_header import install_word_wrap_header
 from harrix_swiss_knife.apps.finance.categories_table import create_categories_table_proxy_model
 from harrix_swiss_knife.apps.finance.category_add_dialog import CategoryAddDialog
 from harrix_swiss_knife.apps.finance.category_edit_dialog import CategoryEditDialog
@@ -228,6 +229,7 @@ class CategoriesDialog(QDialog):
         """Build the dialog layout."""
         layout = QVBoxLayout(self)
         self.table = QTableView(self)
+        install_word_wrap_header(self.table)
         self.table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
         self.table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
