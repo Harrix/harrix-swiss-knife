@@ -2,7 +2,11 @@
 
 from __future__ import annotations
 
-from harrix_swiss_knife.apps.fitness.exercise_ai_fill import media_filename_hint, parse_exercise_fill_response
+from harrix_swiss_knife.apps.fitness.exercise_ai_fill import (
+    media_filename_hint,
+    parse_exercise_fill_response,
+    should_auto_fill_exercise_on_ok,
+)
 
 
 def test_media_filename_hint_uses_basename() -> None:
@@ -32,6 +36,14 @@ def test_parse_exercise_fill_response_skips_fences_and_commas() -> None:
     assert result.name_local == local_name
     assert result.unit == "km"
     assert result.calories_per_unit == 70.5
+
+
+def test_should_auto_fill_exercise_on_ok() -> None:
+    """OK auto-fills only when English name is missing and local name plus media are set."""
+    assert should_auto_fill_exercise_on_ok(name="", name_local="Отжимания", media_path=r"D:\img\push.mp4")
+    assert not should_auto_fill_exercise_on_ok(name="Push-ups", name_local="Отжимания", media_path=r"D:\img\push.mp4")
+    assert not should_auto_fill_exercise_on_ok(name="", name_local="Отжимания", media_path="")
+    assert not should_auto_fill_exercise_on_ok(name="", name_local="", media_path=r"D:\img\push.mp4")
 
 
 def test_parse_exercise_fill_response_rejects_invalid() -> None:

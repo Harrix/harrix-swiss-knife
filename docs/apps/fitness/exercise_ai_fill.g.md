@@ -15,6 +15,7 @@ lang: en
 - [🔧 Function `media_filename_hint`](#-function-media_filename_hint)
 - [🔧 Function `parse_exercise_fill_response`](#-function-parse_exercise_fill_response)
 - [🔧 Function `request_exercise_fill`](#-function-request_exercise_fill)
+- [🔧 Function `should_auto_fill_exercise_on_ok`](#-function-should_auto_fill_exercise_on_ok)
 
 </details>
 
@@ -107,10 +108,14 @@ def parse_exercise_fill_response(text: str) -> ExerciseFillResult | None:
 ## 🔧 Function `request_exercise_fill`
 
 ```python
-def request_exercise_fill(parent: QWidget, *, app_config: dict[str, Any], bothub_state: BothubRequestState, name_edit: QLineEdit, name_local_edit: QLineEdit, unit_edit: QLineEdit, calories_spin: QDoubleSpinBox, fill_button: QPushButton, media_path: str = '') -> None
+def request_exercise_fill(parent: QWidget, *, app_config: dict[str, Any], bothub_state: BothubRequestState, name_edit: QLineEdit, name_local_edit: QLineEdit, unit_edit: QLineEdit, calories_spin: QDoubleSpinBox, fill_button: QPushButton, media_path: str = '', on_filled: Callable[[], None] | None = None, on_idle: Callable[[], None] | None = None) -> bool
 ```
 
 Fill English/local names, unit, and calories via BotHub.
+
+Returns:
+
+- `bool`: `True` when the request started.
 
 <details>
 <summary>Code:</summary>
@@ -127,13 +132,15 @@ def request_exercise_fill(
     calories_spin: QDoubleSpinBox,
     fill_button: QPushButton,
     media_path: str = "",
-) -> None:
+    on_filled: Callable[[], None] | None = None,
+    on_idle: Callable[[], None] | None = None,
+) -> bool:
     name = name_edit.text().strip()
     name_local = name_local_edit.text().strip()
     media_filename = media_filename_hint(media_path)
     if not name and not name_local and not media_filename:
         message_box.warning(parent, "Fill with AI", "Enter English name, local name, or attach a media file first")
-        return
+        return False
 
     try:
         prompt_text = build_prompt(
@@ -148,27 +155,38 @@ def request_exercise_fill(
         )
     except ValueError as exc:
         show_bothub_prompt_build_error(parent, exc)
-        return
+        return False
 
     fill_button.setEnabled(False)
 
-    def on_success(response_text: str) -> None:
+    def become_idle() -> None:
         fill_button.setEnabled(True)
+        if on_idle is not None:
+            on_idle()
+
+    def on_success(response_text: str) -> None:
         result = parse_exercise_fill_response(response_text)
         if result is None:
+            become_idle()
             message_box.warning(parent, "Fill with AI", "BotHub returned an invalid exercise fill response")
             return
         name_edit.setText(result.name)
         name_local_edit.setText(result.name_local)
         unit_edit.setText(result.unit)
         calories_spin.setValue(result.calories_per_unit)
+        fill_button.setEnabled(True)
+        if on_filled is not None:
+            on_filled()
+            return
+        if on_idle is not None:
+            on_idle()
 
     def on_error(error_message: str) -> None:
-        fill_button.setEnabled(True)
+        become_idle()
         message_box.critical(parent, "BotHub Error", error_message)
 
     def on_cancelled() -> None:
-        fill_button.setEnabled(True)
+        become_idle()
 
     started = run_bothub_request(
         parent,
@@ -182,7 +200,37 @@ def request_exercise_fill(
         on_cancelled=on_cancelled,
     )
     if not started:
-        fill_button.setEnabled(True)
+        become_idle()
+        return False
+    return True
+```
+
+</details>
+
+## 🔧 Function `should_auto_fill_exercise_on_ok`
+
+```python
+def should_auto_fill_exercise_on_ok(*, name: str, name_local: str, media_path: str) -> bool
+```
+
+Return whether OK should fill missing English fields from local name and media.
+
+Args:
+
+- `name` (`str`): English exercise name.
+- `name_local` (`str`): Local-language name.
+- `media_path` (`str`): Attached media path.
+
+Returns:
+
+- `bool`: `True` when English name is empty and both local name and media are set.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def should_auto_fill_exercise_on_ok(*, name: str, name_local: str, media_path: str) -> bool:
+    return not name.strip() and bool(name_local.strip()) and bool(media_path.strip())
 ```
 
 </details>

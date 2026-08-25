@@ -13,6 +13,7 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QLineEdit,
+    QPushButton,
     QVBoxLayout,
     QWidget,
 )
@@ -25,7 +26,10 @@ from harrix_swiss_knife.apps.common.exercise_media import (
     is_exercise_media_path,
 )
 from harrix_swiss_knife.apps.common.widgets.file_drop_widget import FileDropWidget
-from harrix_swiss_knife.apps.fitness.exercise_ai_fill import request_exercise_fill
+from harrix_swiss_knife.apps.fitness.exercise_ai_fill import (
+    request_exercise_fill,
+    should_auto_fill_exercise_on_ok,
+)
 from harrix_swiss_knife.integrations.bothub import BothubRequestState
 from harrix_swiss_knife.qt_emoji_icon import apply_emoji_dialog_buttons, make_emoji_push_button
 
@@ -57,6 +61,8 @@ class ExerciseAddDialog(QDialog):
         self._initial = initial or {}
         self._editing = bool(self._initial)
         self._result: tuple[str, str, bool, float, str, bool, str, bool] | None = None
+        self._auto_filling = False
+        self._ok_button: QPushButton | None = None
 
         self.setWindowTitle("Edit Exercise" if self._editing else "Add New Exercise")
         qt_modality.set_owner_window_modal(self)
@@ -134,6 +140,7 @@ class ExerciseAddDialog(QDialog):
 
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         apply_emoji_dialog_buttons(buttons)
+        self._ok_button = buttons.button(QDialogButtonBox.StandardButton.Ok)
         self._fill_button = make_emoji_push_button("Fill with AI", "🤖")
         self._fill_button.setToolTip(
             "Fill English/local names, unit, and calories from the entered name or media filename",
@@ -151,10 +158,15 @@ class ExerciseAddDialog(QDialog):
         """Return `(name, unit, is_type_required, calories, name_local, is_favorite, media_path, with_dumbbells)`."""
         return self._result
 
-    def _on_accept(self) -> None:
+    def _finish_accept(self) -> None:
         name = self._name_edit.text().strip()
         if not name:
-            message_box.warning(self, "Validation Error", "Enter exercise name")
+            message = (
+                "Enter exercise name"
+                if self._editing
+                else "Enter English name, or add both local name and media so OK can fill the rest with AI"
+            )
+            message_box.warning(self, "Validation Error", message)
             return
         with_dumbbells = self._dumbbells_check.isChecked() if self._dumbbells_check is not None else False
         self._result = (
@@ -168,6 +180,27 @@ class ExerciseAddDialog(QDialog):
             with_dumbbells,
         )
         self.accept()
+
+    def _on_accept(self) -> None:
+        if self._auto_filling:
+            return
+        if not self._editing and should_auto_fill_exercise_on_ok(
+            name=self._name_edit.text(),
+            name_local=self._name_local_edit.text(),
+            media_path=self._media_drop.get_file_path(),
+        ):
+            self._start_auto_fill_then_accept()
+            return
+        self._finish_accept()
+
+    def _on_auto_fill_done(self) -> None:
+        self._auto_filling = False
+        self._set_ok_enabled(enabled=True)
+        self._finish_accept()
+
+    def _on_auto_fill_idle(self) -> None:
+        self._auto_filling = False
+        self._set_ok_enabled(enabled=True)
 
     def _on_dumbbells_toggled(self) -> None:
         if self._dumbbells_check is not None and self._dumbbells_check.isChecked():
@@ -207,3 +240,27 @@ class ExerciseAddDialog(QDialog):
         self._type_required_check.setChecked(bool(self._initial.get("is_type_required")))
         if self._favorite_check is not None:
             self._favorite_check.setChecked(bool(self._initial.get("is_favorite")))
+
+    def _set_ok_enabled(self, *, enabled: bool) -> None:
+        if self._ok_button is not None:
+            self._ok_button.setEnabled(enabled)
+
+    def _start_auto_fill_then_accept(self) -> None:
+        self._auto_filling = True
+        self._set_ok_enabled(enabled=False)
+        started = request_exercise_fill(
+            self,
+            app_config=self._app_config,
+            bothub_state=self._bothub_state,
+            name_edit=self._name_edit,
+            name_local_edit=self._name_local_edit,
+            unit_edit=self._unit_edit,
+            calories_spin=self._calories_spin,
+            fill_button=self._fill_button,
+            media_path=self._media_drop.get_file_path(),
+            on_filled=self._on_auto_fill_done,
+            on_idle=self._on_auto_fill_idle,
+        )
+        if not started:
+            self._auto_filling = False
+            self._set_ok_enabled(enabled=True)
