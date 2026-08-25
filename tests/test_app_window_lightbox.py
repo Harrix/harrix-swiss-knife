@@ -108,6 +108,32 @@ def test_exercise_avif_lightbox_speed_slider_changes_interval(tmp_path: Path, qa
     dialog.close()
 
 
+def test_exercise_avif_lightbox_speed_field_enter_does_not_close(tmp_path: Path, qapp: QApplication) -> None:
+    img_dir = tmp_path / "fitness_img"
+    img_dir.mkdir()
+    _write_test_avif(img_dir / "Walk.avif")
+    manager = AvifManager(img_dir)
+    dialog = ExerciseAvifLightboxDialog(["Walk"], avif_manager=manager, show_speed_slider=True)
+    dialog.show()
+    qapp.processEvents()
+    dialog._begin_speed_edit()
+    assert dialog._speed_edit is not None
+    assert dialog._speed_ok_button is not None
+    assert not dialog._speed_ok_button.isHidden()
+    dialog._speed_edit.setText("0.25")
+    QTest.keyClick(dialog._speed_edit, Qt.Key.Key_Return)
+    qapp.processEvents()
+    assert dialog.isVisible()
+    assert dialog._speed == 0.25
+    dialog._begin_speed_edit()
+    dialog._speed_edit.setText("1.5")
+    QTest.mouseClick(dialog._speed_ok_button, Qt.MouseButton.LeftButton)
+    qapp.processEvents()
+    assert dialog.isVisible()
+    assert dialog._speed == 1.5
+    dialog.close()
+
+
 def test_icon_lightbox_has_no_animation_speed_slider(tmp_path: Path, qapp: QApplication) -> None:  # noqa: ARG001
     svg = tmp_path / "icon.svg"
     svg.write_text('<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"></svg>', encoding="utf-8")

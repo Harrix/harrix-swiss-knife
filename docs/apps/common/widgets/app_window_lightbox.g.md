@@ -188,6 +188,8 @@ class AppWindowLightboxDialog(QDialog):
         button.setAutoExclusive(True)
         button.setFixedSize(_SWATCH_SIZE, _SWATCH_SIZE)
         button.setCursor(Qt.CursorShape.PointingHandCursor)
+        button.setAutoDefault(False)
+        button.setDefault(False)
         button.setToolTip("Black backdrop" if color == "black" else "White backdrop")
         border = "#888" if color == "white" else "#ccc"
         radius = _SWATCH_SIZE // 2
@@ -202,6 +204,8 @@ class AppWindowLightboxDialog(QDialog):
         button = QPushButton(text, self)
         button.setFixedSize(QSize(_BUTTON_SIZE, _BUTTON_SIZE))
         button.setCursor(Qt.CursorShape.PointingHandCursor)
+        button.setAutoDefault(False)
+        button.setDefault(False)
         button.setToolTip(tooltip)
         button.setStyleSheet(
             "QPushButton { color: white; font-size: 24px; font-weight: bold;"
