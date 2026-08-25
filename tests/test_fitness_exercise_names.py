@@ -72,8 +72,10 @@ def test_lightbox_avif_path_prefers_high_resolution(tmp_path: Path) -> None:
     manager = AvifManager(img_dir)
     assert manager.get_exercise_avif_path("Walk") == small
     assert manager.get_exercise_lightbox_avif_path("Walk") == high
+    assert manager.get_exercise_hover_avif_path("Walk") == small
     high.unlink()
     assert manager.get_exercise_lightbox_avif_path("Walk") == small
+    assert manager.get_exercise_hover_avif_path("Walk") == small
 
 
 def test_rename_exercise_avif_skips_missing_and_same_name(tmp_path: Path) -> None:

@@ -238,7 +238,7 @@ class ExerciseListHoverPreview(QObject):
         manager = self._get_avif_manager()
         if not exercise or manager is None or not isValid(self._popup) or not isValid(self._label):
             return
-        avif_path = manager.get_exercise_avif_path(exercise)
+        avif_path = manager.get_exercise_hover_avif_path(exercise)
         if avif_path is None:
             return
 

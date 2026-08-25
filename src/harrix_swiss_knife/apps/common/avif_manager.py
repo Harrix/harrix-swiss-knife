@@ -135,6 +135,23 @@ class AvifManager(QObject):
         avif_path = self._exercise_avif_file(exercise_name, high=high)
         return avif_path if avif_path is not None and avif_path.exists() else None
 
+    def get_exercise_hover_avif_path(self, exercise_name: str) -> Path | None:
+        """Return the hover preview file, preferring an animated high-resolution AVIF.
+
+        The small UI file is often a still when `fitness_img/high/` exists. Use high
+        only when it is animated and the small file is not.
+
+        """
+        small_path = self.get_exercise_avif_path(exercise_name)
+        high_path = self.get_exercise_avif_path(exercise_name, high=True)
+        if (
+            high_path is not None
+            and _avif_is_animated(high_path)
+            and (small_path is None or not _avif_is_animated(small_path))
+        ):
+            return high_path
+        return small_path if small_path is not None else high_path
+
     def get_exercise_lightbox_avif_path(self, exercise_name: str) -> Path | None:
         """Return the high-resolution AVIF when it exists, otherwise the small file."""
         high_path = self.get_exercise_avif_path(exercise_name, high=True)
@@ -209,9 +226,12 @@ class AvifManager(QObject):
             label_widget.setText("No exercise selected")
             return
 
-        # Lightbox prefers high-resolution when present; everything else uses the small UI file.
+        # Lightbox prefers high-resolution when present. Hover uses high only when
+        # the small UI file is a still and high is animated. Other slots use small.
         if key == AvifLabelKey.LIGHTBOX:
             avif_path = self.get_exercise_lightbox_avif_path(exercise_name)
+        elif key == AvifLabelKey.LIST_HOVER:
+            avif_path = self.get_exercise_hover_avif_path(exercise_name)
         else:
             avif_path = self.get_exercise_avif_path(exercise_name)
 

@@ -9,6 +9,7 @@ import pillow_avif  # noqa: F401
 from PIL import Image
 from PySide6.QtWidgets import QApplication, QLabel
 
+from harrix_swiss_knife.apps.common import avif_manager as avif_manager_mod
 from harrix_swiss_knife.apps.common.avif_manager import AvifLabelKey, AvifManager
 from harrix_swiss_knife.apps.common.exercise_media import FITNESS_IMG_HIGH_DIR
 
@@ -31,11 +32,11 @@ def _write_test_avif(path: Path) -> None:
     Image.new("RGB", (64, 48), (120, 80, 40)).save(path, format="AVIF")
 
 
-def test_load_exercise_avif_main_and_hover_never_open_high(
+def test_load_exercise_avif_main_never_opens_high(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """MAIN and LIST_HOVER resolve only the small UI AVIF, never fitness_img/high/."""
+    """MAIN resolves only the small UI AVIF, never fitness_img/high/."""
     assert _qapp() is not None
     img_dir = tmp_path / "fitness_img"
     _write_test_avif(img_dir / "Walk.avif")
@@ -60,19 +61,82 @@ def test_load_exercise_avif_main_and_hover_never_open_high(
     manager = AvifManager(img_dir)
     label = QLabel()
     label.resize(120, 120)
-
-    high_flags.clear()
-    lightbox_names.clear()
     manager.load_exercise_avif("Walk", label, AvifLabelKey.MAIN)
     assert high_flags == [False]
     assert lightbox_names == []
     manager.stop_animation(AvifLabelKey.MAIN)
 
-    high_flags.clear()
-    lightbox_names.clear()
+
+def test_hover_uses_small_when_high_is_also_still(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """LIST_HOVER keeps the small file when neither AVIF is animated."""
+    assert _qapp() is not None
+    img_dir = tmp_path / "fitness_img"
+    small = img_dir / "Walk.avif"
+    high = img_dir / FITNESS_IMG_HIGH_DIR / "Walk.avif"
+    _write_test_avif(small)
+    _write_test_avif(high)
+
+    loaded: list[Path] = []
+
+    def spy_async(
+        _self: AvifManager,
+        avif_path: Path,
+        _label_widget: QLabel,
+        _data: dict,
+        _key: AvifLabelKey,
+        _exercise_name: str,
+    ) -> None:
+        loaded.append(avif_path)
+
+    monkeypatch.setattr(AvifManager, "_load_avif_first_frame_then_async", spy_async)
+
+    manager = AvifManager(img_dir)
+    label = QLabel()
+    label.resize(120, 120)
     manager.load_exercise_avif("Walk", label, AvifLabelKey.LIST_HOVER)
-    assert high_flags == [False]
-    assert lightbox_names == []
+    assert loaded == [small]
+    manager.stop_animation(AvifLabelKey.LIST_HOVER)
+
+
+def test_hover_uses_high_when_small_is_still_and_high_is_animated(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """LIST_HOVER falls back to high when the small UI file is a still."""
+    assert _qapp() is not None
+    img_dir = tmp_path / "fitness_img"
+    small = img_dir / "Walk.avif"
+    high = img_dir / FITNESS_IMG_HIGH_DIR / "Walk.avif"
+    _write_test_avif(small)
+    _write_test_avif(high)
+
+    def fake_animated(path: Path) -> bool:
+        return FITNESS_IMG_HIGH_DIR in path.parts
+
+    loaded: list[Path] = []
+
+    def spy_async(
+        _self: AvifManager,
+        avif_path: Path,
+        _label_widget: QLabel,
+        _data: dict,
+        _key: AvifLabelKey,
+        _exercise_name: str,
+    ) -> None:
+        loaded.append(avif_path)
+
+    monkeypatch.setattr(avif_manager_mod, "_avif_is_animated", fake_animated)
+    monkeypatch.setattr(AvifManager, "_load_avif_first_frame_then_async", spy_async)
+
+    manager = AvifManager(img_dir)
+    assert manager.get_exercise_hover_avif_path("Walk") == high
+    label = QLabel()
+    label.resize(120, 120)
+    manager.load_exercise_avif("Walk", label, AvifLabelKey.LIST_HOVER)
+    assert loaded == [high]
     manager.stop_animation(AvifLabelKey.LIST_HOVER)
 
 
