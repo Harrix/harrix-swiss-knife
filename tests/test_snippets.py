@@ -13,7 +13,14 @@ from PySide6.QtWidgets import QApplication
 from harrix_swiss_knife.actions.apps.snippets import OnSnippets
 from harrix_swiss_knife.actions.common.quick_launcher_registry import iter_menu_structure
 from harrix_swiss_knife.apps.common.qt_database_manager_base import QtSqliteDatabaseManagerBase
-from harrix_swiss_knife.apps.snippets.constants import SORT_ADDED, SORT_ALPHA, SORT_USED, ZONE_COLOR, ZONE_SYMBOL
+from harrix_swiss_knife.apps.snippets.constants import (
+    SORT_ADDED,
+    SORT_ALPHA,
+    SORT_USED,
+    ZONE_COLOR,
+    ZONE_EMOJI,
+    ZONE_SYMBOL,
+)
 from harrix_swiss_knife.apps.snippets.database_manager import DatabaseManager, SnippetItem
 from harrix_swiss_knife.apps.snippets.parse import (
     display_text,
@@ -30,6 +37,7 @@ from harrix_swiss_knife.apps.snippets.seed import (
     seed_emojis,
 )
 from harrix_swiss_knife.apps.snippets.sort import sort_items
+from harrix_swiss_knife.apps.snippets.zone_panel import ZonePanel
 from harrix_swiss_knife.menu_structure import get_menu_structure
 
 _ROOT = Path(__file__).resolve().parents[1]
@@ -167,6 +175,29 @@ def test_ensure_seed_emojis_inserts_missing(qapp: QApplication, tmp_path: Path) 
         assert ensure_seed_emojis(manager) == 0
     finally:
         manager.close()
+
+
+def test_emoji_zone_items_have_icon_without_caption(qapp: QApplication) -> None:
+    assert qapp is not None
+    panel = ZonePanel(zone=ZONE_EMOJI, title="Emoji")
+    panel.set_items(
+        [
+            SnippetItem(
+                item_id=1,
+                zone=ZONE_EMOJI,
+                value="😀",
+                hint="",
+                created_at="2026-01-01T00:00:00+00:00",
+                last_used_at=None,
+                sort_index=0,
+            ),
+        ],
+    )
+    item = panel._list.item(0)
+    assert item is not None
+    assert item.text() == ""
+    assert not item.icon().isNull()
+    panel.close()
 
 
 def test_on_snippets_is_quick_launcher_action() -> None:

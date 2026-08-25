@@ -218,7 +218,6 @@ class ZonePanel(QWidget):
             label = display_text(snippet.value, snippet.hint, snippet.zone)
             if self.zone == ZONE_EMOJI:
                 list_item.setIcon(create_emoji_icon(snippet.value, 32))
-                list_item.setText(snippet.value)
                 list_item.setToolTip(snippet.value)
             elif self.zone == ZONE_COLOR:
                 list_item.setText(label)
@@ -440,7 +439,6 @@ def set_items(self, items: list[SnippetItem]) -> None:
             label = display_text(snippet.value, snippet.hint, snippet.zone)
             if self.zone == ZONE_EMOJI:
                 list_item.setIcon(create_emoji_icon(snippet.value, 32))
-                list_item.setText(snippet.value)
                 list_item.setToolTip(snippet.value)
             elif self.zone == ZONE_COLOR:
                 list_item.setText(label)
