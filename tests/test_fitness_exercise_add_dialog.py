@@ -1,0 +1,89 @@
+"""Tests for Add Exercise local-name check and duplicate warning."""
+
+from __future__ import annotations
+
+import pytest
+from PySide6.QtWidgets import QApplication
+
+from harrix_swiss_knife.apps.fitness import exercise_add_dialog as add_dialog_mod
+from harrix_swiss_knife.apps.fitness.exercise_add_dialog import ExerciseAddDialog
+
+
+@pytest.fixture
+def qapp() -> QApplication:
+    app = QApplication.instance()
+    if app is None:
+        return QApplication([])
+    if not isinstance(app, QApplication):
+        msg = "QApplication.instance() returned a non-QApplication object."
+        raise TypeError(msg)
+    return app
+
+
+def test_add_dialog_hides_check_button_without_finder(qapp: QApplication) -> None:
+    assert qapp is not None
+    dialog = ExerciseAddDialog()
+    assert dialog._local_check_button is None
+    dialog.close()
+
+
+def test_check_local_name_marks_unique(qapp: QApplication) -> None:
+    assert qapp is not None
+    looked_up: list[tuple[str, str]] = []
+
+    def find_duplicate(name: str, name_local: str) -> tuple[str, str] | None:
+        looked_up.append((name, name_local))
+        return None
+
+    dialog = ExerciseAddDialog(find_duplicate=find_duplicate)
+    assert dialog._local_check_button is not None
+    dialog._name_local_edit.setText("Отжимания")
+    dialog._on_check_local_name()
+    assert looked_up == [("", "Отжимания")]
+    assert dialog._local_check_passed
+    dialog._name_local_edit.setText("Отжимания 2")
+    assert not dialog._local_check_passed
+    dialog.close()
+
+
+def test_check_local_name_shows_duplicate(qapp: QApplication, monkeypatch: pytest.MonkeyPatch) -> None:
+    assert qapp is not None
+    shown: list[tuple[str, str]] = []
+
+    def fake_show(_parent: object, *, name: str, name_local: str, **_kwargs: object) -> None:
+        shown.append((name, name_local))
+
+    monkeypatch.setattr(add_dialog_mod, "show_exercise_already_exists", fake_show)
+
+    def find_duplicate(_name: str, _name_local: str) -> tuple[str, str] | None:
+        return ("Push-ups", "Отжимания")
+
+    dialog = ExerciseAddDialog(find_duplicate=find_duplicate)
+    dialog._name_local_edit.setText("Отжимания")
+    dialog._on_check_local_name()
+    assert shown == [("Push-ups", "Отжимания")]
+    assert not dialog._local_check_passed
+    dialog.close()
+
+
+def test_accept_blocks_duplicate_english_or_local(qapp: QApplication, monkeypatch: pytest.MonkeyPatch) -> None:
+    assert qapp is not None
+    shown: list[tuple[str, str]] = []
+
+    def fake_show(_parent: object, *, name: str, name_local: str, **_kwargs: object) -> None:
+        shown.append((name, name_local))
+
+    monkeypatch.setattr(add_dialog_mod, "show_exercise_already_exists", fake_show)
+
+    def find_duplicate(name: str, name_local: str) -> tuple[str, str] | None:
+        if name == "Push-ups" or name_local == "Отжимания":
+            return ("Push-ups", "Отжимания")
+        return None
+
+    dialog = ExerciseAddDialog(find_duplicate=find_duplicate)
+    dialog._name_edit.setText("Push-ups")
+    dialog._name_local_edit.setText("Новое")
+    dialog._finish_accept()
+    assert shown == [("Push-ups", "Отжимания")]
+    assert dialog.get_result() is None
+    dialog.close()

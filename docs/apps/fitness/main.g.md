@@ -538,7 +538,7 @@ class MainWindow(
             logger.error("❌ Database manager is not initialized")
             return
 
-        dialog = ExerciseAddDialog(self, app_config=self._app_config, bothub_state=self._bothub_state)
+        dialog = self._create_exercise_add_dialog()
         if dialog.exec() != dialog.DialogCode.Accepted:
             return
         result = dialog.get_result()
@@ -550,11 +550,7 @@ class MainWindow(
         if with_dumbbells:
             is_type_required = True
 
-        if self.db_manager.exercise_name_exists(exercise):
-            message_box.warning(self, "Error", f"Exercise '{exercise}' already exists")
-            return
-        if self.db_manager.exercise_name_local_exists(name_local):
-            message_box.warning(self, "Error", f"Local name '{name_local}' already exists")
+        if self._show_duplicate_exercise_if_needed(exercise, name_local):
             return
 
         try:
@@ -4844,6 +4840,43 @@ class MainWindow(
         proxy.setSourceModel(model)
         return proxy
 
+    def _create_exercise_add_dialog(
+        self,
+        *,
+        initial: dict[str, Any] | None = None,
+        exclude_id: int | None = None,
+    ) -> ExerciseAddDialog:
+        """Build the add/edit exercise dialog with duplicate lookup wired.
+
+        Args:
+
+        - `initial` (`dict[str, Any] | None`): Existing exercise fields for edit mode.
+        - `exclude_id` (`int | None`): Exercise ID to ignore when checking names.
+
+        Returns:
+
+        - `ExerciseAddDialog`: Configured add or edit dialog.
+
+        """
+
+        def find_duplicate(name: str, name_local: str) -> tuple[str, str] | None:
+            if self.db_manager is None:
+                return None
+            return self.db_manager.find_duplicate_exercise(
+                name=name,
+                name_local=name_local,
+                exclude_id=exclude_id,
+            )
+
+        return ExerciseAddDialog(
+            self,
+            app_config=self._app_config,
+            bothub_state=self._bothub_state,
+            initial=initial,
+            avif_manager=self.avif_manager,
+            find_duplicate=find_duplicate,
+        )
+
     def _create_table_model(
         self,
         data: list[list[str]],
@@ -6220,10 +6253,7 @@ class MainWindow(
         name_local = str(model.data(model.index(row, 5)) or "")
         is_favorite = self.db_manager.is_exercise_favorite(record_id)
 
-        dialog = ExerciseAddDialog(
-            self,
-            app_config=self._app_config,
-            bothub_state=self._bothub_state,
+        dialog = self._create_exercise_add_dialog(
             initial={
                 "name": old_name,
                 "unit": unit,
@@ -6232,6 +6262,7 @@ class MainWindow(
                 "name_local": name_local,
                 "is_favorite": is_favorite,
             },
+            exclude_id=record_id,
         )
         if dialog.exec() != dialog.DialogCode.Accepted:
             return
@@ -6249,11 +6280,7 @@ class MainWindow(
             _with_dumbbells,
         ) = result
 
-        if self.db_manager.exercise_name_exists(new_name, exclude_id=record_id):
-            message_box.warning(self, "Error", f"Exercise '{new_name}' already exists")
-            return
-        if self.db_manager.exercise_name_local_exists(new_name_local, exclude_id=record_id):
-            message_box.warning(self, "Error", f"Local name '{new_name_local}' already exists")
+        if self._show_duplicate_exercise_if_needed(new_name, new_name_local, exclude_id=record_id):
             return
 
         try:
@@ -7063,6 +7090,43 @@ class MainWindow(
         self.splitter.setStretchFactor(2, 3)  # process filters + table
         self._apply_sets_splitter_sizes()
         self._setup_fitness_dashboard_tab()
+
+    def _show_duplicate_exercise_if_needed(
+        self,
+        name: str,
+        name_local: str,
+        *,
+        exclude_id: int | None = None,
+    ) -> bool:
+        """Show the duplicate-exercise warning when a catalog name is already taken.
+
+        Args:
+
+        - `name` (`str`): English name to check.
+        - `name_local` (`str`): Local name to check.
+        - `exclude_id` (`int | None`): Exercise ID to ignore. Defaults to `None`.
+
+        Returns:
+
+        - `bool`: `True` when a duplicate was shown.
+
+        """
+        if self.db_manager is None:
+            return False
+        found = self.db_manager.find_duplicate_exercise(
+            name=name,
+            name_local=name_local,
+            exclude_id=exclude_id,
+        )
+        if found is None:
+            return False
+        show_exercise_already_exists(
+            self,
+            name=found[0],
+            name_local=found[1],
+            avif_manager=self.avif_manager,
+        )
+        return True
 
     def _show_exercise_avif_label_menu(self, position: QPoint) -> None:
         """Show the lightbox command for an exercise AVIF label."""
@@ -8250,7 +8314,7 @@ def on_add_exercise(self) -> None:
             logger.error("❌ Database manager is not initialized")
             return
 
-        dialog = ExerciseAddDialog(self, app_config=self._app_config, bothub_state=self._bothub_state)
+        dialog = self._create_exercise_add_dialog()
         if dialog.exec() != dialog.DialogCode.Accepted:
             return
         result = dialog.get_result()
@@ -8262,11 +8326,7 @@ def on_add_exercise(self) -> None:
         if with_dumbbells:
             is_type_required = True
 
-        if self.db_manager.exercise_name_exists(exercise):
-            message_box.warning(self, "Error", f"Exercise '{exercise}' already exists")
-            return
-        if self.db_manager.exercise_name_local_exists(name_local):
-            message_box.warning(self, "Error", f"Local name '{name_local}' already exists")
+        if self._show_duplicate_exercise_if_needed(exercise, name_local):
             return
 
         try:

@@ -392,6 +392,34 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         )
         return catalog_name_taken(rows, type_name, exclude_id=exclude_id)
 
+    def find_duplicate_exercise(
+        self,
+        *,
+        name: str = "",
+        name_local: str = "",
+        exclude_id: int | None = None,
+    ) -> tuple[str, str] | None:
+        """Return English and local names of an exercise that already uses one of them.
+
+        Args:
+
+        - `name` (`str`): English exercise name to look up. Defaults to `""`.
+        - `name_local` (`str`): Local exercise name to look up. Defaults to `""`.
+        - `exclude_id` (`int | None`): Exercise ID to ignore (when editing). Defaults to `None`.
+
+        Returns:
+
+        - `tuple[str, str] | None`: `(name, name_local)` of the first match, or `None`.
+
+        """
+        rows = self.get_rows("SELECT _id, name, IFNULL(name_local, '') FROM exercises")
+        match = catalog_matching_row(rows, name, exclude_id=exclude_id, name_index=1)
+        if match is None:
+            match = catalog_matching_row(rows, name_local, exclude_id=exclude_id, name_index=2)
+        if match is None:
+            return None
+        return str(match[1] or "").strip(), str(match[2] or "").strip()
+
     def get_all_exercise_types(self) -> list[list[Any]]:
         r"""Get all exercise types with exercise names.
 
@@ -1520,6 +1548,44 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             logger.exception("Could not ensure %s.%s column", table_name, column_name)
 
 
+def catalog_matching_row(
+    rows: list[list[Any]],
+    candidate: str,
+    *,
+    exclude_id: int | None = None,
+    name_index: int = 1,
+) -> list[Any] | None:
+    """Return the first row whose name at `name_index` matches `candidate`.
+
+    Args:
+
+    - `rows` (`list[list[Any]]`): Rows with an ID in column `0`.
+    - `candidate` (`str`): Name to look up.
+    - `exclude_id` (`int | None`): ID to ignore. Defaults to `None`.
+    - `name_index` (`int`): Column that holds the name. Defaults to `1`.
+
+    Returns:
+
+    - `list[Any] | None`: Matching row, or `None`.
+
+    """
+    folded = candidate.strip().casefold()
+    if not folded:
+        return None
+    for row in rows:
+        if len(row) <= name_index:
+            continue
+        try:
+            row_id = int(row[0])
+        except (TypeError, ValueError):
+            continue
+        if exclude_id is not None and row_id == exclude_id:
+            continue
+        if str(row[name_index] or "").strip().casefold() == folded:
+            return row
+    return None
+
+
 def catalog_name_taken(
     rows: list[list[Any]],
     candidate: str,
@@ -1539,19 +1605,7 @@ def catalog_name_taken(
     - `bool`: `True` when another row already uses this name.
 
     """
-    folded = candidate.strip().casefold()
-    if not folded:
-        return False
-    for row in rows:
-        try:
-            row_id, name, *_rest = row
-        except ValueError:
-            continue
-        if exclude_id is not None and int(row_id) == exclude_id:
-            continue
-        if str(name or "").strip().casefold() == folded:
-            return True
-    return False
+    return catalog_matching_row(rows, candidate, exclude_id=exclude_id) is not None
 
 
 def _raise_runtime_error(message: str) -> NoReturn:

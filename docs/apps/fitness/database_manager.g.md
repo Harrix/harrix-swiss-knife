@@ -30,6 +30,7 @@ lang: en
   - [⚙️ Method `exercise_name_exists`](#%EF%B8%8F-method-exercise_name_exists)
   - [⚙️ Method `exercise_name_local_exists`](#%EF%B8%8F-method-exercise_name_local_exists)
   - [⚙️ Method `exercise_type_name_exists`](#%EF%B8%8F-method-exercise_type_name_exists)
+  - [⚙️ Method `find_duplicate_exercise`](#%EF%B8%8F-method-find_duplicate_exercise)
   - [⚙️ Method `get_all_exercise_types`](#%EF%B8%8F-method-get_all_exercise_types)
   - [⚙️ Method `get_all_exercises`](#%EF%B8%8F-method-get_all_exercises)
   - [⚙️ Method `get_all_process_records`](#%EF%B8%8F-method-get_all_process_records)
@@ -77,6 +78,7 @@ lang: en
   - [⚙️ Method `update_process_record`](#%EF%B8%8F-method-update_process_record)
   - [⚙️ Method `update_process_records_date`](#%EF%B8%8F-method-update_process_records_date)
   - [⚙️ Method `update_weight_record`](#%EF%B8%8F-method-update_weight_record)
+- [🔧 Function `catalog_matching_row`](#-function-catalog_matching_row)
 - [🔧 Function `catalog_name_taken`](#-function-catalog_name_taken)
 
 </details>
@@ -463,6 +465,34 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             {"ex": exercise_id},
         )
         return catalog_name_taken(rows, type_name, exclude_id=exclude_id)
+
+    def find_duplicate_exercise(
+        self,
+        *,
+        name: str = "",
+        name_local: str = "",
+        exclude_id: int | None = None,
+    ) -> tuple[str, str] | None:
+        """Return English and local names of an exercise that already uses one of them.
+
+        Args:
+
+        - `name` (`str`): English exercise name to look up. Defaults to `""`.
+        - `name_local` (`str`): Local exercise name to look up. Defaults to `""`.
+        - `exclude_id` (`int | None`): Exercise ID to ignore (when editing). Defaults to `None`.
+
+        Returns:
+
+        - `tuple[str, str] | None`: `(name, name_local)` of the first match, or `None`.
+
+        """
+        rows = self.get_rows("SELECT _id, name, IFNULL(name_local, '') FROM exercises")
+        match = catalog_matching_row(rows, name, exclude_id=exclude_id, name_index=1)
+        if match is None:
+            match = catalog_matching_row(rows, name_local, exclude_id=exclude_id, name_index=2)
+        if match is None:
+            return None
+        return str(match[1] or "").strip(), str(match[2] or "").strip()
 
     def get_all_exercise_types(self) -> list[list[Any]]:
         r"""Get all exercise types with exercise names.
@@ -2174,6 +2204,46 @@ def exercise_type_name_exists(
 
 </details>
 
+### ⚙️ Method `find_duplicate_exercise`
+
+```python
+def find_duplicate_exercise(self, *, name: str = '', name_local: str = '', exclude_id: int | None = None) -> tuple[str, str] | None
+```
+
+Return English and local names of an exercise that already uses one of them.
+
+Args:
+
+- `name` (`str`): English exercise name to look up. Defaults to `""`.
+- `name_local` (`str`): Local exercise name to look up. Defaults to `""`.
+- `exclude_id` (`int | None`): Exercise ID to ignore (when editing). Defaults to `None`.
+
+Returns:
+
+- `tuple[str, str] | None`: `(name, name_local)` of the first match, or `None`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def find_duplicate_exercise(
+        self,
+        *,
+        name: str = "",
+        name_local: str = "",
+        exclude_id: int | None = None,
+    ) -> tuple[str, str] | None:
+        rows = self.get_rows("SELECT _id, name, IFNULL(name_local, '') FROM exercises")
+        match = catalog_matching_row(rows, name, exclude_id=exclude_id, name_index=1)
+        if match is None:
+            match = catalog_matching_row(rows, name_local, exclude_id=exclude_id, name_index=2)
+        if match is None:
+            return None
+        return str(match[1] or "").strip(), str(match[2] or "").strip()
+```
+
+</details>
+
 ### ⚙️ Method `get_all_exercise_types`
 
 ```python
@@ -3853,6 +3923,55 @@ def update_weight_record(self, record_id: int, value: float, date: str) -> bool:
 
 </details>
 
+## 🔧 Function `catalog_matching_row`
+
+```python
+def catalog_matching_row(rows: list[list[Any]], candidate: str, *, exclude_id: int | None = None, name_index: int = 1) -> list[Any] | None
+```
+
+Return the first row whose name at `name_index` matches `candidate`.
+
+Args:
+
+- `rows` (`list[list[Any]]`): Rows with an ID in column `0`.
+- `candidate` (`str`): Name to look up.
+- `exclude_id` (`int | None`): ID to ignore. Defaults to `None`.
+- `name_index` (`int`): Column that holds the name. Defaults to `1`.
+
+Returns:
+
+- `list[Any] | None`: Matching row, or `None`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def catalog_matching_row(
+    rows: list[list[Any]],
+    candidate: str,
+    *,
+    exclude_id: int | None = None,
+    name_index: int = 1,
+) -> list[Any] | None:
+    folded = candidate.strip().casefold()
+    if not folded:
+        return None
+    for row in rows:
+        if len(row) <= name_index:
+            continue
+        try:
+            row_id = int(row[0])
+        except (TypeError, ValueError):
+            continue
+        if exclude_id is not None and row_id == exclude_id:
+            continue
+        if str(row[name_index] or "").strip().casefold() == folded:
+            return row
+    return None
+```
+
+</details>
+
 ## 🔧 Function `catalog_name_taken`
 
 ```python
@@ -3881,19 +4000,7 @@ def catalog_name_taken(
     *,
     exclude_id: int | None = None,
 ) -> bool:
-    folded = candidate.strip().casefold()
-    if not folded:
-        return False
-    for row in rows:
-        try:
-            row_id, name, *_rest = row
-        except ValueError:
-            continue
-        if exclude_id is not None and int(row_id) == exclude_id:
-            continue
-        if str(name or "").strip().casefold() == folded:
-            return True
-    return False
+    return catalog_matching_row(rows, candidate, exclude_id=exclude_id) is not None
 ```
 
 </details>

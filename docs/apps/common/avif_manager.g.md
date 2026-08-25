@@ -283,11 +283,12 @@ class AvifManager(QObject):
             label_widget.setText("No exercise selected")
             return
 
-        # Lightbox prefers high-resolution when present. Hover uses high only when
-        # the small UI file is a still and high is animated. Other slots use small.
+        # Lightbox prefers high-resolution when present. Hover and dialog preview
+        # use high only when the small UI file is a still and high is animated.
+        # Other slots use small.
         if key == AvifLabelKey.LIGHTBOX:
             avif_path = self.get_exercise_lightbox_avif_path(exercise_name)
-        elif key == AvifLabelKey.LIST_HOVER:
+        elif key in {AvifLabelKey.LIST_HOVER, AvifLabelKey.DIALOG_PREVIEW}:
             avif_path = self.get_exercise_hover_avif_path(exercise_name)
         else:
             avif_path = self.get_exercise_avif_path(exercise_name)
@@ -1032,11 +1033,12 @@ def load_exercise_avif(
             label_widget.setText("No exercise selected")
             return
 
-        # Lightbox prefers high-resolution when present. Hover uses high only when
-        # the small UI file is a still and high is animated. Other slots use small.
+        # Lightbox prefers high-resolution when present. Hover and dialog preview
+        # use high only when the small UI file is a still and high is animated.
+        # Other slots use small.
         if key == AvifLabelKey.LIGHTBOX:
             avif_path = self.get_exercise_lightbox_avif_path(exercise_name)
-        elif key == AvifLabelKey.LIST_HOVER:
+        elif key in {AvifLabelKey.LIST_HOVER, AvifLabelKey.DIALOG_PREVIEW}:
             avif_path = self.get_exercise_hover_avif_path(exercise_name)
         else:
             avif_path = self.get_exercise_avif_path(exercise_name)

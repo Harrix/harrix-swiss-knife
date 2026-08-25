@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from harrix_swiss_knife.apps.common.avif_manager import AvifLabelKey, AvifManager
-from harrix_swiss_knife.apps.fitness.database_manager import catalog_name_taken
+from harrix_swiss_knife.apps.fitness.database_manager import catalog_matching_row, catalog_name_taken
 
 
 def test_catalog_name_taken_is_case_insensitive_and_can_exclude_id() -> None:
@@ -16,6 +16,14 @@ def test_catalog_name_taken_is_case_insensitive_and_can_exclude_id() -> None:
     assert not catalog_name_taken(rows, "Plank")
     assert not catalog_name_taken(rows, "push-ups", exclude_id=1)
     assert catalog_name_taken(rows, "push-ups", exclude_id=2)
+
+
+def test_catalog_matching_row_returns_english_and_local() -> None:
+    rows = [[1, "Push-ups", "Отжимания"], [2, "Squats", "Приседания"]]
+    match = catalog_matching_row(rows, "отжимания", name_index=2)
+    assert match == [1, "Push-ups", "Отжимания"]
+    assert catalog_matching_row(rows, "Push-ups", name_index=1) == [1, "Push-ups", "Отжимания"]
+    assert catalog_matching_row(rows, "отжимания", name_index=2, exclude_id=1) is None
 
 
 def test_catalog_name_taken_ignores_empty_local_names() -> None:

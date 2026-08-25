@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from PySide6.QtWidgets import (
     QCheckBox,
@@ -30,8 +30,21 @@ from harrix_swiss_knife.apps.fitness.exercise_ai_fill import (
     request_exercise_fill,
     should_auto_fill_exercise_on_ok,
 )
+from harrix_swiss_knife.apps.fitness.exercise_duplicate_dialog import show_exercise_already_exists
 from harrix_swiss_knife.integrations.bothub import BothubRequestState
-from harrix_swiss_knife.qt_emoji_icon import apply_emoji_dialog_buttons, make_emoji_push_button
+from harrix_swiss_knife.qt_emoji_icon import (
+    apply_emoji_dialog_buttons,
+    create_emoji_icon,
+    make_emoji_push_button,
+)
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
+    from harrix_swiss_knife.apps.common.avif_manager import AvifManager
+
+_CHECK_EMOJI = "🔎"
+_CHECK_OK_EMOJI = "✅"
 
 
 class ExerciseAddDialog(QDialog):
@@ -44,6 +57,8 @@ class ExerciseAddDialog(QDialog):
         app_config: dict[str, Any] | None = None,
         bothub_state: BothubRequestState | None = None,
         initial: dict[str, Any] | None = None,
+        avif_manager: AvifManager | None = None,
+        find_duplicate: Callable[[str, str], tuple[str, str] | None] | None = None,
     ) -> None:
         """Initialize the add/edit exercise dialog.
 
@@ -53,6 +68,9 @@ class ExerciseAddDialog(QDialog):
           (`name`, `unit`, `is_type_required`, `calories_per_unit`, `name_local`,
           `is_favorite`). Favorite is shown only when editing. Dumbbells is shown
           only when adding.
+        - `avif_manager` (`AvifManager | None`): Loader for the duplicate-name preview.
+        - `find_duplicate` (`Callable[[str, str], tuple[str, str] | None] | None`):
+          Lookup `(name, name_local)` of an existing exercise.
 
         """
         super().__init__(parent)
@@ -60,6 +78,9 @@ class ExerciseAddDialog(QDialog):
         self._bothub_state = bothub_state or BothubRequestState()
         self._initial = initial or {}
         self._editing = bool(self._initial)
+        self._avif_manager = avif_manager
+        self._find_duplicate = find_duplicate
+        self._local_check_passed = False
         self._result: tuple[str, str, bool, float, str, bool, str, bool] | None = None
         self._auto_filling = False
         self._ok_button: QPushButton | None = None
@@ -83,7 +104,14 @@ class ExerciseAddDialog(QDialog):
         name_local_row.addWidget(QLabel("Local:", form_group))
         self._name_local_edit = QLineEdit(form_group)
         self._name_local_edit.setPlaceholderText("Local name")
+        self._name_local_edit.textChanged.connect(self._on_local_name_changed)
         name_local_row.addWidget(self._name_local_edit, 1)
+        self._local_check_button: QPushButton | None = None
+        if find_duplicate is not None:
+            self._local_check_button = make_emoji_push_button("Check", _CHECK_EMOJI, parent=form_group)
+            self._local_check_button.setToolTip("Check whether this local name is already used")
+            self._local_check_button.clicked.connect(self._on_check_local_name)
+            name_local_row.addWidget(self._local_check_button)
         form_layout.addLayout(name_local_row)
 
         unit_row = QHBoxLayout()
@@ -168,6 +196,8 @@ class ExerciseAddDialog(QDialog):
             )
             message_box.warning(self, "Validation Error", message)
             return
+        if self._show_duplicate_if_needed(name, self._name_local_edit.text().strip()):
+            return
         with_dumbbells = self._dumbbells_check.isChecked() if self._dumbbells_check is not None else False
         self._result = (
             name,
@@ -202,6 +232,26 @@ class ExerciseAddDialog(QDialog):
         self._auto_filling = False
         self._set_ok_enabled(enabled=True)
 
+    def _on_check_local_name(self) -> None:
+        local_name = self._name_local_edit.text().strip()
+        if not local_name:
+            message_box.warning(self, "Validation Error", "Enter local name")
+            return
+        if self._find_duplicate is None:
+            return
+        found = self._find_duplicate("", local_name)
+        if found is None:
+            self._set_local_check_passed(passed=True)
+            return
+        existing_name, existing_local = found
+        show_exercise_already_exists(
+            self,
+            name=existing_name,
+            name_local=existing_local,
+            avif_manager=self._avif_manager,
+        )
+        self._set_local_check_passed(passed=False)
+
     def _on_dumbbells_toggled(self) -> None:
         if self._dumbbells_check is not None and self._dumbbells_check.isChecked():
             self._type_required_check.setChecked(True)
@@ -218,6 +268,10 @@ class ExerciseAddDialog(QDialog):
             fill_button=self._fill_button,
             media_path=self._media_drop.get_file_path(),
         )
+
+    def _on_local_name_changed(self, _text: str = "") -> None:
+        if self._local_check_passed:
+            self._set_local_check_passed(passed=False)
 
     def _on_type_required_toggled(self) -> None:
         if (
@@ -241,9 +295,46 @@ class ExerciseAddDialog(QDialog):
         if self._favorite_check is not None:
             self._favorite_check.setChecked(bool(self._initial.get("is_favorite")))
 
+    def _set_local_check_passed(self, *, passed: bool) -> None:
+        self._local_check_passed = passed
+        if self._local_check_button is None:
+            return
+        emoji = _CHECK_OK_EMOJI if passed else _CHECK_EMOJI
+        self._local_check_button.setIcon(create_emoji_icon(emoji))
+        self._local_check_button.setToolTip(
+            "Local name is available" if passed else "Check whether this local name is already used",
+        )
+
     def _set_ok_enabled(self, *, enabled: bool) -> None:
         if self._ok_button is not None:
             self._ok_button.setEnabled(enabled)
+
+    def _show_duplicate_if_needed(self, name: str, name_local: str) -> bool:
+        """Show the existing-exercise warning when `name` or `name_local` is taken.
+
+        Args:
+
+        - `name` (`str`): English name to check.
+        - `name_local` (`str`): Local name to check.
+
+        Returns:
+
+        - `bool`: `True` when a duplicate was shown and accept should stop.
+
+        """
+        if self._find_duplicate is None:
+            return False
+        found = self._find_duplicate(name, name_local)
+        if found is None:
+            return False
+        existing_name, existing_local = found
+        show_exercise_already_exists(
+            self,
+            name=existing_name,
+            name_local=existing_local,
+            avif_manager=self._avif_manager,
+        )
+        return True
 
     def _start_auto_fill_then_accept(self) -> None:
         self._auto_filling = True
