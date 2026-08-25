@@ -43,7 +43,9 @@ if TYPE_CHECKING:
 
 _ITEM_ROLE = Qt.ItemDataRole.UserRole
 _COLOR_ROLE = Qt.ItemDataRole.UserRole + 1
-_EMOJI_GRID = QSize(48, 48)
+_ICON_GRID = QSize(34, 34)
+_ICON_PIXEL_SIZE = 20
+_ICON_SPACING = 2
 _CHIP_BORDER_DARKER = 130
 _CHIP_GAP = 8
 _CHIP_PADDING_X = 8
@@ -158,9 +160,9 @@ class ZonePanel(QWidget):
             self._list.setViewMode(QListWidget.ViewMode.IconMode)
             self._list.setResizeMode(QListWidget.ResizeMode.Adjust)
             self._list.setMovement(QListWidget.Movement.Static)
-            self._list.setGridSize(_EMOJI_GRID)
-            self._list.setIconSize(QSize(32, 32))
-            self._list.setSpacing(4)
+            self._list.setGridSize(_ICON_GRID)
+            self._list.setIconSize(QSize(_ICON_PIXEL_SIZE, _ICON_PIXEL_SIZE))
+            self._list.setSpacing(_ICON_SPACING)
             self._list.setWordWrap(False)
         if zone == ZONE_COLOR:
             self._list.setItemDelegate(ColorItemDelegate(self._list))
@@ -229,10 +231,10 @@ class ZonePanel(QWidget):
             list_item.setData(_ITEM_ROLE, snippet)
             label = display_text(snippet.value, snippet.hint, snippet.zone)
             if self.zone == ZONE_EMOJI:
-                list_item.setIcon(create_emoji_icon(snippet.value, 32))
+                list_item.setIcon(create_emoji_icon(snippet.value, _ICON_PIXEL_SIZE))
                 list_item.setToolTip(snippet.value)
             elif self.zone == ZONE_SYMBOL:
-                list_item.setIcon(create_emoji_icon(snippet.value, 32))
+                list_item.setIcon(create_emoji_icon(snippet.value, _ICON_PIXEL_SIZE))
                 list_item.setToolTip(hint_tooltip(snippet.hint, snippet.value))
             elif self.zone == ZONE_COLOR:
                 list_item.setData(_COLOR_ROLE, snippet.value)

@@ -52,8 +52,11 @@ if TYPE_CHECKING:
 
     from harrix_swiss_knife.apps.snippets.database_manager import SnippetItem
 
+_EMOJI_SPLIT_RATIO = 4
+_EMOJI_SYMBOL_SPLIT_UNIT = 140
 _OVERLAY_MIN_SIZE = QSize(1100, 640)
 _OVERLAY_DEFAULT_SIZE = QSize(1280, 760)
+_SYMBOL_SPLIT_RATIO = 1
 _WINDOW_FLAGS = frameless_stay_on_top_flags()
 _DIALOG_BORDER_STYLE = "#snippetsDialog { background-color: #ffffff; border: 1px solid #c0c0c0;}"
 _ZONE_TITLES = {
@@ -247,8 +250,11 @@ class SnippetsDialog(QDialog):
         right_split = QSplitter(Qt.Orientation.Vertical, self)
         right_split.addWidget(self._emoji)
         right_split.addWidget(self._symbols)
-        right_split.setStretchFactor(0, 1)
-        right_split.setStretchFactor(1, 1)
+        right_split.setStretchFactor(0, _EMOJI_SPLIT_RATIO)
+        right_split.setStretchFactor(1, _SYMBOL_SPLIT_RATIO)
+        right_split.setSizes(
+            [_EMOJI_SPLIT_RATIO * _EMOJI_SYMBOL_SPLIT_UNIT, _SYMBOL_SPLIT_RATIO * _EMOJI_SYMBOL_SPLIT_UNIT],
+        )
 
         columns = QSplitter(Qt.Orientation.Horizontal, self)
         columns.addWidget(self._phrases)
