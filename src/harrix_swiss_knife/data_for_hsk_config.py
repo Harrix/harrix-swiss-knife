@@ -32,6 +32,7 @@ TRACKER_DATABASE_NAMES: tuple[str, ...] = (
     "fitness.db",
     "habits.db",
     "food.db",
+    "snippets.db",
 )
 
 SQLITE_CONFIG_KEYS: tuple[str, ...] = (
@@ -39,6 +40,7 @@ SQLITE_CONFIG_KEYS: tuple[str, ...] = (
     "sqlite_fitness",
     "sqlite_habits",
     "sqlite_food",
+    "sqlite_snippets",
 )
 
 
@@ -57,6 +59,7 @@ def build_config_updates(data_root: Path, notes_folders: tuple[str, ...] | list[
         "sqlite_fitness": (databases_dir / "fitness.db").as_posix(),
         "sqlite_habits": (databases_dir / "habits.db").as_posix(),
         "sqlite_food": (databases_dir / "food.db").as_posix(),
+        "sqlite_snippets": (databases_dir / "snippets.db").as_posix(),
     }
 
     for folder_name, keys in _NOTE_FOLDER_SINGLE_KEYS.items():

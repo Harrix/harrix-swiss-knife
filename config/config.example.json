@@ -53,6 +53,12 @@
       "hotkeys": [
         "Ctrl+Shift+F2"
       ]
+    },
+    {
+      "action": "OnSnippets",
+      "hotkeys": [
+        "Ctrl+Shift+F3"
+      ]
     }
   ],
   "quick_launcher_markdown_in_panel": true,
@@ -361,6 +367,7 @@
   "sqlite_fitness": "<YOUR_GITHUB_FOLDER>/data-for-hsk/databases/fitness.db",
   "sqlite_food": "<YOUR_GITHUB_FOLDER>/data-for-hsk/databases/food.db",
   "sqlite_habits": "<YOUR_GITHUB_FOLDER>/data-for-hsk/databases/habits.db",
+  "sqlite_snippets": "<YOUR_GITHUB_FOLDER>/data-for-hsk/databases/snippets.db",
   "start_pattern_jupyter_notebooks": "jupyter-notebook-",
   "start_pattern_py_projects": "python-project-",
   "vscode_workspace_articles": "<YOUR_ARTICLES_CODE_WORKSPACE>",

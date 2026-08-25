@@ -28,6 +28,7 @@ _TRACKER_DATABASES: tuple[tuple[str, Path], ...] = (
     ("fitness.db", _PACKAGE_ROOT / "apps" / "fitness" / "recover.sql"),
     ("habits.db", _PACKAGE_ROOT / "apps" / "habits" / "recover.sql"),
     ("food.db", _PACKAGE_ROOT / "apps" / "food" / "recover.sql"),
+    ("snippets.db", _PACKAGE_ROOT / "apps" / "snippets" / "recover.sql"),
 )
 
 

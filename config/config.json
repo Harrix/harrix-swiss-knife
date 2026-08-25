@@ -74,6 +74,10 @@
     {
       "action": "OnScreenshotRegion",
       "hotkeys": ["Ctrl+Shift+F2"]
+    },
+    {
+      "action": "OnSnippets",
+      "hotkeys": ["Ctrl+Shift+F3"]
     }
   ],
   "markdown_templates": {
@@ -370,5 +374,6 @@
   "vscode_workspace_notes": "D:/Dropbox/Programs/vscode_workspaces/Notes.code-workspace",
   "ai": {
     "provider": "bothub.ru"
-  }
+  },
+  "sqlite_snippets": "D:/Dropbox/Databases/snippets.db"
 }

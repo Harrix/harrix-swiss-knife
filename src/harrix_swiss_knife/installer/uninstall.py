@@ -25,6 +25,7 @@ _DB_CONFIG_KEYS = (
     "sqlite_fitness",
     "sqlite_habits",
     "sqlite_food",
+    "sqlite_snippets",
 )
 _PRESERVE_DIR_NAME = "Harrix Swiss Knife Data"
 _SQLITE_SUFFIX = ".db"

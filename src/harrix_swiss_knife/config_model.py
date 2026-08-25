@@ -74,6 +74,7 @@ class AppConfig(TypedDict, total=False):
     sqlite_fitness: str
     sqlite_food: str
     sqlite_habits: str
+    sqlite_snippets: str
     food_calorie_thresholds: FoodCalorieThresholds
     block_drives: list[str]
     markdown_templates: dict[str, Any]

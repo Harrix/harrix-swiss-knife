@@ -68,7 +68,7 @@ def test_create_data_for_hsk_creates_structure(tmp_path: Path, qapp: QApplicatio
     assert result.notes_dir.is_dir()
     for name in DEFAULT_DATA_FOR_HSK_NOTES_FOLDERS:
         assert (result.notes_dir / name).is_dir()
-    for db_name in ("finance.db", "fitness.db", "habits.db", "food.db"):
+    for db_name in ("finance.db", "fitness.db", "habits.db", "food.db", "snippets.db"):
         assert (result.databases_dir / db_name).is_file()
 
 
