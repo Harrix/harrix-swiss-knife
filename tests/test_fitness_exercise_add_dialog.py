@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QCheckBox
 
 from harrix_swiss_knife.apps.fitness import exercise_add_dialog as add_dialog_mod
 from harrix_swiss_knife.apps.fitness.exercise_add_dialog import ExerciseAddDialog, contains_cyrillic
@@ -71,6 +71,14 @@ def test_exercise_add_dialog_does_not_move_cyrillic_name_when_editing(qapp: QApp
     )
     assert dialog._name_edit.text() == "Приседания"
     assert dialog._name_local_edit.text() == "Local name"
+    dialog.close()
+
+
+def test_edit_exercise_dialog_has_no_favorite_checkbox(qapp: QApplication) -> None:
+    assert qapp is not None
+    dialog = ExerciseAddDialog(initial={"name": "Push-ups", "name_local": "Отжимания"})
+    labels = [box.text() for box in dialog.findChildren(QCheckBox)]
+    assert "Favorite" not in labels
     dialog.close()
 
 

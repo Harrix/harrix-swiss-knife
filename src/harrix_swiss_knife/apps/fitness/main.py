@@ -6500,7 +6500,6 @@ class MainWindow(
         except (TypeError, ValueError):
             calories = 0.0
         name_local = str(model.data(model.index(row, 5)) or "")
-        is_favorite = self.db_manager.is_exercise_favorite(record_id)
 
         dialog = self._create_exercise_add_dialog(
             initial={
@@ -6509,7 +6508,6 @@ class MainWindow(
                 "is_type_required": is_type_required,
                 "calories_per_unit": calories,
                 "name_local": name_local,
-                "is_favorite": is_favorite,
             },
             exclude_id=record_id,
         )
@@ -6524,7 +6522,7 @@ class MainWindow(
             new_type_required,
             new_calories,
             new_name_local,
-            new_favorite,
+            _new_favorite,
             media_path,
             _with_dumbbells,
         ) = result
@@ -6540,7 +6538,6 @@ class MainWindow(
                 is_type_required=new_type_required,
                 calories_per_unit=new_calories,
                 name_local=new_name_local,
-                is_favorite=new_favorite,
             ):
                 message_box.warning(self, "Database Error", "Failed to save exercise")
                 return

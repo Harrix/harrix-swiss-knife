@@ -65,9 +65,8 @@ class ExerciseAddDialog(QDialog):
         Args:
 
         - `initial` (`dict[str, Any] | None`): Existing exercise fields for edit mode
-          (`name`, `unit`, `is_type_required`, `calories_per_unit`, `name_local`,
-          `is_favorite`). Favorite is shown only when editing. Dumbbells is shown
-          only when adding.
+          (`name`, `unit`, `is_type_required`, `calories_per_unit`, `name_local`).
+          Dumbbells is shown only when adding.
         - `avif_manager` (`AvifManager | None`): Loader for the duplicate-name preview.
         - `find_duplicate` (`Callable[[str, str], tuple[str, str] | None] | None`):
           Lookup `(name, name_local)` of an existing exercise.
@@ -144,11 +143,6 @@ class ExerciseAddDialog(QDialog):
             self._dumbbells_check.toggled.connect(self._on_dumbbells_toggled)
             form_layout.addWidget(self._dumbbells_check)
 
-        self._favorite_check: QCheckBox | None = None
-        if self._editing:
-            self._favorite_check = QCheckBox("Favorite", form_group)
-            form_layout.addWidget(self._favorite_check)
-
         media_hint = (
             "Optional: drag and drop new video/image to replace media"
             if self._editing
@@ -211,7 +205,7 @@ class ExerciseAddDialog(QDialog):
             with_dumbbells or self._type_required_check.isChecked(),
             self._calories_spin.value(),
             name_local,
-            self._favorite_check.isChecked() if self._favorite_check is not None else False,
+            False,
             media_path,
             with_dumbbells,
         )
@@ -299,8 +293,6 @@ class ExerciseAddDialog(QDialog):
         except (TypeError, ValueError):
             self._calories_spin.setValue(0.0)
         self._type_required_check.setChecked(bool(self._initial.get("is_type_required")))
-        if self._favorite_check is not None:
-            self._favorite_check.setChecked(bool(self._initial.get("is_favorite")))
 
     def _set_local_check_passed(self, *, passed: bool) -> None:
         self._local_check_passed = passed
