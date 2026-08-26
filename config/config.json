@@ -1,8 +1,11 @@
 {
+  "ai": {
+    "provider": "bothub.ru"
+  },
   "android_build_variant": "release",
   "apps": {
-    "fitness_image_max_size": 330,
     "fitness_image_high_max_size": 1920,
+    "fitness_image_max_size": 330,
     "initial_count": 1000,
     "load_more_count": 500,
     "local_language": "ru",
@@ -364,21 +367,18 @@
   "pypi_token": "snippet:api-keys/pypi-token.txt",
   "quick_launcher_markdown_in_panel": true,
   "show_main_window_on_startup": false,
-  "ui_font_scale": 1.0,
   "site_default_language": "ru",
   "site_name": "harrix.dev",
   "sqlite_finance": "D:/Dropbox/Databases/finance.db",
   "sqlite_fitness": "D:/Dropbox/Databases/fitness.db",
   "sqlite_food": "D:/Dropbox/Databases/food.db",
   "sqlite_habits": "D:/Dropbox/Databases/habits.db",
+  "sqlite_snippets": "D:/Dropbox/Databases/snippets.db",
   "start_pattern_jupyter_notebooks": "jupyter-notebook-",
   "start_pattern_py_projects": "python-project-",
   "ticktick_api_key": "snippet:api-keys/ticktick-api-key.txt",
+  "ui_font_scale": 1.0,
   "vector_icons_recent_folders_max": 12,
   "vscode_workspace_articles": "D:/Dropbox/Programs/vscode_workspaces/_content__harrix-dev.code-workspace",
-  "vscode_workspace_notes": "D:/Dropbox/Programs/vscode_workspaces/Notes.code-workspace",
-  "ai": {
-    "provider": "bothub.ru"
-  },
-  "sqlite_snippets": "D:/Dropbox/Databases/snippets.db"
+  "vscode_workspace_notes": "D:/Dropbox/Programs/vscode_workspaces/Notes.code-workspace"
 }
