@@ -209,7 +209,7 @@ class ToastProgressNotification(toast_countdown_notification.ToastCountdownNotif
             bottom_pad = 8
             font_size = "9pt"
             detail_font = "8pt"
-            label_padding = "8px 12px 4px 12px"
+            label_padding = toast_notification_base.toast_label_padding(compact=True, bottom=4)
         else:
             radius = 10
             bar_radius = 6
@@ -219,7 +219,7 @@ class ToastProgressNotification(toast_countdown_notification.ToastCountdownNotif
             bottom_pad = 14
             font_size = "11pt"
             detail_font = "10pt"
-            label_padding = "15px 20px 6px 20px"
+            label_padding = toast_notification_base.toast_label_padding(compact=False, bottom=6)
 
         self._progress_container.setStyleSheet(
             "background-color: rgba(40, 40, 40, 230);"
@@ -291,7 +291,7 @@ class ToastProgressNotification(toast_countdown_notification.ToastCountdownNotif
             return
         label_geom = self.label.geometry()
         side = self._action_button_side()
-        margin = 2 if self._is_pinned else 4
+        margin = self._action_button_margin()
         self._close_button.move(
             label_geom.x() + label_geom.width() - side - margin,
             label_geom.y() + margin,

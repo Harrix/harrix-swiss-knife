@@ -8,6 +8,11 @@ from PySide6.QtWidgets import QApplication, QDialog
 
 from harrix_swiss_knife.integrations.bothub.qt_runner import _resolve_toast_parent
 from harrix_swiss_knife.toast_cancellable_http_notification import ToastCancellableHttpNotification
+from harrix_swiss_knife.toast_notification_base import (
+    ACTION_BUTTON_GAP,
+    ACTION_BUTTON_MARGIN_DEFAULT,
+    toast_label_padding,
+)
 
 
 @pytest.fixture
@@ -19,6 +24,26 @@ def qapp() -> QApplication:
         msg = "QApplication.instance() returned a non-QApplication object."
         raise TypeError(msg)
     return app
+
+
+def test_cancellable_toast_action_buttons_leave_text_gap(qapp: QApplication) -> None:  # noqa: ARG001
+    toast = ToastCancellableHttpNotification("Requesting BotHub…")
+    toast._refresh_label_text()
+    QApplication.processEvents()
+    toast.adjustSize()
+    toast.reposition_action_buttons()
+
+    label = toast.label.geometry()
+    close = toast._close_button.geometry()
+    collapse = toast._collapse_button.geometry()
+    margin = ACTION_BUTTON_MARGIN_DEFAULT
+
+    assert toast_label_padding(compact=False) in toast.label.styleSheet()
+    assert close.top() >= label.top() + margin
+    assert close.x() + close.width() <= label.x() + label.width() - margin
+    assert collapse.x() + collapse.width() <= close.x() - ACTION_BUTTON_GAP
+
+    toast.close()
 
 
 def test_cancellable_toast_cancel_hint_uses_smaller_font(qapp: QApplication) -> None:  # noqa: ARG001

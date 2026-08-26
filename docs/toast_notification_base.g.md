@@ -27,11 +27,14 @@ lang: en
   - [⚙️ Method `showEvent`](#%EF%B8%8F-method-showevent)
   - [⚙️ Method `stack_members (classmethod)`](#%EF%B8%8F-method-stack_members-classmethod)
   - [⚙️ Method `user_moved (property)`](#%EF%B8%8F-method-user_moved-property)
+- [🔧 Function `action_button_edge_margin`](#-function-action_button_edge_margin)
 - [🔧 Function `compute_toast_stack_positions`](#-function-compute_toast_stack_positions)
 - [🔧 Function `event_targets_widget`](#-function-event_targets_widget)
 - [🔧 Function `format_toast_cancel_hint_html`](#-function-format_toast_cancel_hint_html)
 - [🔧 Function `make_action_icon`](#-function-make_action_icon)
 - [🔧 Function `process_events_allowing_widget`](#-function-process_events_allowing_widget)
+- [🔧 Function `toast_action_buttons_reserved_width`](#-function-toast_action_buttons_reserved_width)
+- [🔧 Function `toast_label_padding`](#-function-toast_label_padding)
 
 </details>
 
@@ -253,6 +256,10 @@ class ToastNotificationBase(QDialog):
         """Whether the user dragged this toast away from the automatic stack."""
         return self._user_moved
 
+    def _action_button_margin(self) -> int:
+        """Return the inset of corner action buttons from the label edges."""
+        return action_button_edge_margin(compact=self._is_pinned)
+
     def _action_button_side(self) -> int:
         """Return the action-button side length for the current pin state."""
         return COMPACT_ACTION_BUTTON_SIDE if self._is_pinned else DEFAULT_ACTION_BUTTON_SIDE
@@ -270,7 +277,7 @@ class ToastNotificationBase(QDialog):
         self.label.setStyleSheet(
             "background-color: rgba(40, 40, 40, 230);"
             "color: white;"
-            "padding: 8px 12px;"
+            f"padding: {toast_label_padding(compact=True)};"
             "border-radius: 8px;"
             "font-size: 10pt;"
             "font-weight: bold;",
@@ -285,7 +292,7 @@ class ToastNotificationBase(QDialog):
         self.label.setStyleSheet(
             "background-color: rgba(40, 40, 40, 230);"
             "color: white;"
-            "padding: 15px 20px;"
+            f"padding: {toast_label_padding(compact=False)};"
             "border-radius: 10px;"
             "font-size: 16pt;"
             "font-weight: bold;",
@@ -317,7 +324,7 @@ class ToastNotificationBase(QDialog):
             return
         label_geom = self.label.geometry()
         side = self._action_button_side()
-        margin = 2 if self._is_pinned else 4
+        margin = self._action_button_margin()
         right_offset = self._trailing_controls_width()
         self._collapse_button.move(
             label_geom.x() + label_geom.width() - side - margin - right_offset,
@@ -735,6 +742,24 @@ def user_moved(self) -> bool:
 
 </details>
 
+## 🔧 Function `action_button_edge_margin`
+
+```python
+def action_button_edge_margin(*, compact: bool) -> int
+```
+
+Return the inset of corner action buttons from the toast label edges.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def action_button_edge_margin(*, compact: bool) -> int:
+    return ACTION_BUTTON_MARGIN_COMPACT if compact else ACTION_BUTTON_MARGIN_DEFAULT
+```
+
+</details>
+
 ## 🔧 Function `compute_toast_stack_positions`
 
 ```python
@@ -896,6 +921,77 @@ def process_events_allowing_widget(widget: QWidget | None) -> None:
         app.processEvents()
     finally:
         app.removeEventFilter(event_filter)
+```
+
+</details>
+
+## 🔧 Function `toast_action_buttons_reserved_width`
+
+```python
+def toast_action_buttons_reserved_width(*, compact: bool, extra_buttons: int = 1) -> int
+```
+
+Return right-side space reserved for collapse plus extra action buttons.
+
+Args:
+
+- `compact` (`bool`): Pinned compact layout.
+- `extra_buttons` (`int`): Buttons to the right of collapse, typically close.
+  Defaults to `1`.
+
+Returns:
+
+- `int`: Width in pixels from the label's right edge to the text content.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def toast_action_buttons_reserved_width(*, compact: bool, extra_buttons: int = 1) -> int:
+    side = COMPACT_ACTION_BUTTON_SIDE if compact else DEFAULT_ACTION_BUTTON_SIDE
+    count = 1 + max(0, extra_buttons)
+    return (
+        action_button_edge_margin(compact=compact)
+        + count * side
+        + (count - 1) * ACTION_BUTTON_GAP
+        + ACTION_BUTTON_TEXT_GAP
+    )
+```
+
+</details>
+
+## 🔧 Function `toast_label_padding`
+
+```python
+def toast_label_padding(*, compact: bool, bottom: int | None = None) -> str
+```
+
+Return CSS padding that keeps toast text clear of corner action buttons.
+
+Args:
+
+- `compact` (`bool`): Pinned compact layout.
+- `bottom` (`int | None`): Override bottom padding. Defaults to the layout default.
+
+Returns:
+
+- `str`: CSS padding such as `16px 70px 15px 24px`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def toast_label_padding(*, compact: bool, bottom: int | None = None) -> str:
+    if compact:
+        top = LABEL_PAD_TOP_COMPACT
+        left = LABEL_PAD_LEFT_COMPACT
+        bottom_px = LABEL_PAD_BOTTOM_COMPACT if bottom is None else bottom
+    else:
+        top = LABEL_PAD_TOP_DEFAULT
+        left = LABEL_PAD_LEFT_DEFAULT
+        bottom_px = LABEL_PAD_BOTTOM_DEFAULT if bottom is None else bottom
+    right = toast_action_buttons_reserved_width(compact=compact)
+    return f"{top}px {right}px {bottom_px}px {left}px"
 ```
 
 </details>

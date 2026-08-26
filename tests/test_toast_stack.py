@@ -9,6 +9,8 @@ from harrix_swiss_knife.toast_notification_base import (
     STACK_GAP,
     compute_toast_stack_positions,
     format_toast_cancel_hint_html,
+    toast_action_buttons_reserved_width,
+    toast_label_padding,
 )
 
 
@@ -60,6 +62,14 @@ def test_pinned_stack_grows_upward_from_bottom_right() -> None:
     assert points[1].y() == newer_y
     assert points[0].y() == newer_y - STACK_GAP - older.height()
     assert points[0].x() == 1000 - 180 - SCREEN_MARGIN
+
+
+def test_toast_label_padding_reserves_action_buttons() -> None:
+    assert toast_action_buttons_reserved_width(compact=False) == 70
+    assert toast_action_buttons_reserved_width(compact=True) == 54
+    assert toast_label_padding(compact=False) == "16px 70px 15px 24px"
+    assert toast_label_padding(compact=True) == "10px 54px 8px 14px"
+    assert toast_label_padding(compact=False, bottom=6) == "16px 70px 6px 24px"
 
 
 def test_format_toast_cancel_hint_html_uses_smaller_font() -> None:

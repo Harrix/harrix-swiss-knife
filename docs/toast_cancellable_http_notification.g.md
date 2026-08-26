@@ -173,7 +173,7 @@ class ToastCancellableHttpNotification(toast_countdown_notification.ToastCountdo
             return
         label_geom = self.label.geometry()
         side = self._action_button_side()
-        margin = 2 if self._is_pinned else 4
+        margin = self._action_button_margin()
         self._close_button.move(
             label_geom.x() + label_geom.width() - side - margin,
             label_geom.y() + margin,
