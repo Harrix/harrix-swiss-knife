@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
+from PySide6.QtCore import QTimer, Signal
+from PySide6.QtGui import QKeyEvent, QKeySequence
 from PySide6.QtWidgets import (
     QCheckBox,
     QDialog,
@@ -101,9 +103,10 @@ class ExerciseAddDialog(QDialog):
 
         name_local_row = QHBoxLayout()
         name_local_row.addWidget(QLabel("Local:", form_group))
-        self._name_local_edit = QLineEdit(form_group)
+        self._name_local_edit = _LocalNameEdit(form_group)
         self._name_local_edit.setPlaceholderText("Local name")
         self._name_local_edit.textChanged.connect(self._on_local_name_changed)
+        self._name_local_edit.pasted.connect(self._on_local_name_pasted)
         name_local_row.addWidget(self._name_local_edit, 1)
         self._local_check_button: QPushButton | None = None
         if find_duplicate is not None:
@@ -179,6 +182,34 @@ class ExerciseAddDialog(QDialog):
         """Return `(name, unit, is_type_required, calories, name_local, is_favorite, media_path, with_dumbbells)`."""
         return self._result
 
+    def _check_local_name(self, *, warn_if_empty: bool) -> None:
+        """Look up the current local name and mark Check or show the duplicate dialog.
+
+        Args:
+
+        - `warn_if_empty` (`bool`): Show a validation warning when Local is blank.
+
+        """
+        if self._find_duplicate is None:
+            return
+        local_name = self._name_local_edit.text().strip()
+        if not local_name:
+            if warn_if_empty:
+                message_box.warning(self, "Validation Error", "Enter local name")
+            return
+        found = self._find_duplicate("", local_name)
+        if found is None:
+            self._set_local_check_passed(passed=True)
+            return
+        existing_name, existing_local = found
+        show_exercise_already_exists(
+            self,
+            name=existing_name,
+            name_local=existing_local,
+            avif_manager=self._avif_manager,
+        )
+        self._set_local_check_passed(passed=False)
+
     def _finish_accept(self) -> None:
         name = self._name_edit.text().strip()
         name_local = self._name_local_edit.text().strip()
@@ -211,7 +242,15 @@ class ExerciseAddDialog(QDialog):
         )
         self.accept()
 
-    def _move_cyrillic_name_to_local(self) -> None:
+    def _move_cyrillic_name_to_local(self, *, check_local: bool = True) -> None:
+        """Move a Cyrillic English-name value into Local.
+
+        Args:
+
+        - `check_local` (`bool`): Run the local-name duplicate check after the move.
+          Defaults to `True`. Set `False` on OK so accept can show one warning.
+
+        """
         if self._editing or self._moving_cyrillic_name:
             return
         name = self._name_edit.text()
@@ -225,30 +264,15 @@ class ExerciseAddDialog(QDialog):
             self._name_local_edit.setCursorPosition(len(self._name_local_edit.text()))
         finally:
             self._moving_cyrillic_name = False
+        if check_local:
+            self._check_local_name(warn_if_empty=False)
 
     def _on_accept(self) -> None:
-        self._move_cyrillic_name_to_local()
+        self._move_cyrillic_name_to_local(check_local=False)
         self._finish_accept()
 
     def _on_check_local_name(self) -> None:
-        local_name = self._name_local_edit.text().strip()
-        if not local_name:
-            message_box.warning(self, "Validation Error", "Enter local name")
-            return
-        if self._find_duplicate is None:
-            return
-        found = self._find_duplicate("", local_name)
-        if found is None:
-            self._set_local_check_passed(passed=True)
-            return
-        existing_name, existing_local = found
-        show_exercise_already_exists(
-            self,
-            name=existing_name,
-            name_local=existing_local,
-            avif_manager=self._avif_manager,
-        )
-        self._set_local_check_passed(passed=False)
+        self._check_local_name(warn_if_empty=True)
 
     def _on_dumbbells_toggled(self) -> None:
         if self._dumbbells_check is not None and self._dumbbells_check.isChecked():
@@ -270,6 +294,9 @@ class ExerciseAddDialog(QDialog):
     def _on_local_name_changed(self, _text: str = "") -> None:
         if self._local_check_passed:
             self._set_local_check_passed(passed=False)
+
+    def _on_local_name_pasted(self) -> None:
+        self._check_local_name(warn_if_empty=False)
 
     def _on_name_changed(self, _text: str = "") -> None:
         self._move_cyrillic_name_to_local()
@@ -330,6 +357,52 @@ class ExerciseAddDialog(QDialog):
             avif_manager=self._avif_manager,
         )
         return True
+
+
+class _LocalNameEdit(QLineEdit):
+    """Local-name field that reports clipboard paste for an immediate duplicate check."""
+
+    pasted = Signal()
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        """Initialize the local-name field.
+
+        Args:
+
+        - `parent` (`QWidget | None`): Parent widget. Defaults to `None`.
+
+        """
+        super().__init__(parent)
+        self._paste_emit_queued = False
+
+    def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
+        """Insert keys and emit `pasted` after a paste shortcut.
+
+        Args:
+
+        - `event` (`QKeyEvent`): The key event.
+
+        """
+        is_paste = event.matches(QKeySequence.StandardKey.Paste)
+        super().keyPressEvent(event)
+        if is_paste:
+            self._queue_pasted()
+
+    def paste(self) -> None:
+        """Paste clipboard text and emit `pasted` when the field is not blank."""
+        super().paste()
+        self._queue_pasted()
+
+    def _emit_pasted(self) -> None:
+        self._paste_emit_queued = False
+        if self.text().strip():
+            self.pasted.emit()
+
+    def _queue_pasted(self) -> None:
+        if self._paste_emit_queued or not self.text().strip():
+            return
+        self._paste_emit_queued = True
+        QTimer.singleShot(0, self._emit_pasted)
 
 
 def contains_cyrillic(text: str) -> bool:

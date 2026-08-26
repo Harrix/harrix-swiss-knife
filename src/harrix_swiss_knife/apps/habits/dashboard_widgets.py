@@ -1112,8 +1112,12 @@ def _paint_comment_dot(painter: QPainter, rect: QRectF, *, has_comment: bool) ->
     """Draw a blue badge at the top-right when the day has a note."""
     if not has_comment:
         return
-    painter.setPen(QPen(QColor("white"), 1.0))
+    pen_width = 2.6
+    pen = QPen(QColor("white"), pen_width)
+    pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
+    painter.setPen(pen)
     painter.setBrush(COLOR_PRIMARY)
     side = min(rect.width(), rect.height())
     dot = max(5.0, side * 0.28)
-    painter.drawEllipse(QRectF(rect.right() - dot, rect.top(), dot, dot))
+    inset = pen_width / 2.0
+    painter.drawEllipse(QRectF(rect.right() - dot - inset, rect.top() + inset, dot, dot))
