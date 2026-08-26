@@ -41,6 +41,7 @@ from harrix_swiss_knife.apps.snippets.seed import (
 from harrix_swiss_knife.apps.snippets.sort import dash_length_rank, sort_items
 from harrix_swiss_knife.apps.snippets.zone_panel import ZonePanel, chip_border_color, color_hex_label
 from harrix_swiss_knife.menu_structure import get_menu_structure
+from harrix_swiss_knife.qt_app_font import MONO_FONT_FAMILY
 
 _ROOT = Path(__file__).resolve().parents[1]
 _RECOVER_SQL = _ROOT / "src" / "harrix_swiss_knife" / "apps" / "snippets" / "recover.sql"
@@ -274,6 +275,7 @@ def test_emoji_zone_items_have_icon_without_caption(qapp: QApplication) -> None:
     assert item is not None
     assert item.text() == ""
     assert not item.icon().isNull()
+    assert panel._list.font().family() == MONO_FONT_FAMILY
     panel.close()
 
 

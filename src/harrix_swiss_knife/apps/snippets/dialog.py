@@ -43,6 +43,7 @@ from harrix_swiss_knife.apps.snippets.seed import ensure_seed_emojis
 from harrix_swiss_knife.apps.snippets.sort import sort_items
 from harrix_swiss_knife.apps.snippets.zone_panel import ZonePanel
 from harrix_swiss_knife.paths import get_config_path_str
+from harrix_swiss_knife.qt_app_font import apply_mono_font
 from harrix_swiss_knife.qt_command_section import apply_opaque_white, grow_qfont
 from harrix_swiss_knife.qt_frameless_window import frameless_stay_on_top_flags, try_handle_frameless_resize_native_event
 from harrix_swiss_knife.win11_backdrop import SystemBackdrop, try_apply_system_backdrop
@@ -219,6 +220,7 @@ class SnippetsDialog(QDialog):
             placeholder="Item",
             min_height=320,
         )
+        apply_mono_font(dialog.text_edit)
         if dialog.exec() != QDialog.DialogCode.Accepted or self.db_manager is None:
             return
         items = parse_bulk_lines(dialog.get_text() or "", zone)
@@ -322,6 +324,7 @@ class SnippetsDialog(QDialog):
             initial_text=serialize_items(items, zone),
             min_height=400,
         )
+        apply_mono_font(dialog.text_edit)
         if dialog.exec() != QDialog.DialogCode.Accepted:
             return
         parsed = parse_bulk_lines(dialog.get_text() or "", zone)

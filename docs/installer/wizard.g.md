@@ -70,7 +70,9 @@ class DonePage(QWizardPage):
         self.label.setWordWrap(True)
         self.report = QPlainTextEdit()
         self.report.setReadOnly(True)
-        self.report.setFont(QFont("Consolas", 9))
+        report_font = QFont()
+        report_font.setPointSize(9)
+        self.report.setFont(report_font)
         self.report.setPlainText("Waiting for installation to finish…")
         copy_btn = QPushButton("Copy report")
         copy_btn.clicked.connect(self._copy_report)
@@ -110,7 +112,9 @@ def __init__(self) -> None:
         self.label.setWordWrap(True)
         self.report = QPlainTextEdit()
         self.report.setReadOnly(True)
-        self.report.setFont(QFont("Consolas", 9))
+        report_font = QFont()
+        report_font.setPointSize(9)
+        self.report.setFont(report_font)
         self.report.setPlainText("Waiting for installation to finish…")
         copy_btn = QPushButton("Copy report")
         copy_btn.clicked.connect(self._copy_report)
@@ -566,7 +570,9 @@ class ProgressPage(QWizardPage):
         self.detail_label.setWordWrap(True)
         self.log_view = QPlainTextEdit()
         self.log_view.setReadOnly(True)
-        self.log_view.setFont(QFont("Consolas", 9))
+        log_font = QFont()
+        log_font.setPointSize(9)
+        self.log_view.setFont(log_font)
         self.bar = QProgressBar()
         self.bar.setRange(0, 1)
         self.bar.setValue(0)
@@ -754,7 +760,9 @@ def __init__(self, mode: str) -> None:
         self.detail_label.setWordWrap(True)
         self.log_view = QPlainTextEdit()
         self.log_view.setReadOnly(True)
-        self.log_view.setFont(QFont("Consolas", 9))
+        log_font = QFont()
+        log_font.setPointSize(9)
+        self.log_view.setFont(log_font)
         self.bar = QProgressBar()
         self.bar.setRange(0, 1)
         self.bar.setValue(0)
@@ -1152,7 +1160,9 @@ class UninstallWindow(QWidget):
 
         self.log_view = QPlainTextEdit()
         self.log_view.setReadOnly(True)
-        self.log_view.setFont(QFont("Consolas", 9))
+        log_font = QFont()
+        log_font.setPointSize(9)
+        self.log_view.setFont(log_font)
         self.bar = QProgressBar()
         self.bar.setRange(0, 1)
         self.bar.setValue(0)
@@ -1304,7 +1314,9 @@ def __init__(self, hsk_path: Path) -> None:
 
         self.log_view = QPlainTextEdit()
         self.log_view.setReadOnly(True)
-        self.log_view.setFont(QFont("Consolas", 9))
+        log_font = QFont()
+        log_font.setPointSize(9)
+        self.log_view.setFont(log_font)
         self.bar = QProgressBar()
         self.bar.setRange(0, 1)
         self.bar.setValue(0)
@@ -1585,6 +1597,8 @@ def run_uninstall_wizard(argv: list[str] | None = None) -> int:
             return 0
 
     app = QApplication.instance() or QApplication(sys.argv)
+    if isinstance(app, QApplication):
+        install_app_fonts(app)
     icon = load_app_icon()
     if not icon.isNull():
         app.setWindowIcon(icon)
@@ -1622,6 +1636,8 @@ def run_wizard(argv: list[str] | None = None) -> int:
     if _elevate_before_ui(args):
         return 0
     app = QApplication.instance() or QApplication(sys.argv)
+    if isinstance(app, QApplication):
+        install_app_fonts(app)
     icon = load_app_icon()
     if not icon.isNull():
         app.setWindowIcon(icon)

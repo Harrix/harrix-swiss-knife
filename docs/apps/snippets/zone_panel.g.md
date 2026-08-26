@@ -225,6 +225,7 @@ class ZonePanel(QWidget):
 
         self._list = QListWidget(self)
         self._list.setFrameShape(QListWidget.Shape.NoFrame)
+        apply_mono_font(self._list)
         if zone in {ZONE_EMOJI, ZONE_SYMBOL}:
             self._list.setViewMode(QListWidget.ViewMode.IconMode)
             self._list.setResizeMode(QListWidget.ResizeMode.Adjust)
@@ -274,6 +275,7 @@ class ZonePanel(QWidget):
         self._filter = None
         if show_filter:
             self._filter = QLineEdit(self)
+            apply_mono_font(self._filter)
             self._filter.setPlaceholderText("Filter and search…")
             self._filter.setClearButtonEnabled(True)
             self._filter.textChanged.connect(self._apply_filter)
@@ -409,6 +411,7 @@ def __init__(
 
         self._list = QListWidget(self)
         self._list.setFrameShape(QListWidget.Shape.NoFrame)
+        apply_mono_font(self._list)
         if zone in {ZONE_EMOJI, ZONE_SYMBOL}:
             self._list.setViewMode(QListWidget.ViewMode.IconMode)
             self._list.setResizeMode(QListWidget.ResizeMode.Adjust)
@@ -458,6 +461,7 @@ def __init__(
         self._filter = None
         if show_filter:
             self._filter = QLineEdit(self)
+            apply_mono_font(self._filter)
             self._filter.setPlaceholderText("Filter and search…")
             self._filter.setClearButtonEnabled(True)
             self._filter.textChanged.connect(self._apply_filter)

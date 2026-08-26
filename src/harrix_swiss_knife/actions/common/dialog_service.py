@@ -1330,7 +1330,8 @@ class ActionDialogService:
             text_browser.setMarkdown(about_text)
             text_browser.setOpenExternalLinks(True)
 
-            font = QFont("JetBrains Mono", 10)
+            font = QFont()
+            font.setPointSize(10)
             text_browser.setFont(font)
             fit_widget_height(
                 text_browser,
@@ -1465,7 +1466,8 @@ class ActionDialogService:
             text_browser.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
             text_browser.setPlainText(instructions)
 
-            font = QFont("JetBrains Mono", 10)
+            font = QFont()
+            font.setPointSize(10)
             text_browser.setFont(font)
             fit_widget_height(
                 text_browser,
@@ -1556,7 +1558,7 @@ class ActionDialogService:
             text_edit.setMinimumHeight(self._default_size.height() - 120)
             text_edit.moveCursor(QTextCursor.MoveOperation.End)
 
-            font = QFont("JetBrains Mono")
+            font = QFont()
             font.setPointSize(9)
             text_edit.setFont(font)
 

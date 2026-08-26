@@ -55,7 +55,9 @@ class ItemEditDialog(QDialog):
         self.setWindowTitle(title)
         self._show_hint = zone in {ZONE_SYMBOL, ZONE_COLOR}
         self._value_edit = QLineEdit(initial_value)
+        apply_mono_font(self._value_edit)
         self._hint_edit = QLineEdit(initial_hint)
+        apply_mono_font(self._hint_edit)
 
         form = QFormLayout()
         form.addRow("Value", self._value_edit)
@@ -119,7 +121,9 @@ def __init__(
         self.setWindowTitle(title)
         self._show_hint = zone in {ZONE_SYMBOL, ZONE_COLOR}
         self._value_edit = QLineEdit(initial_value)
+        apply_mono_font(self._value_edit)
         self._hint_edit = QLineEdit(initial_hint)
+        apply_mono_font(self._hint_edit)
 
         form = QFormLayout()
         form.addRow("Value", self._value_edit)

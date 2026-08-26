@@ -75,7 +75,7 @@ def build_text_diff_side_by_side(
         # Keep the content readable for long lines.
         before_edit.setLineWrapMode(QPlainTextEdit.LineWrapMode.WidgetWidth)
 
-        font = QFont("JetBrains Mono")
+        font = QFont()
         font.setPointSize(9)
         before_edit.setFont(font)
         fit_widget_height(

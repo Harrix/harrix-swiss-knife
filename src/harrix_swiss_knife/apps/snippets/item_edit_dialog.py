@@ -5,6 +5,7 @@ from __future__ import annotations
 from PySide6.QtWidgets import QDialog, QFormLayout, QHBoxLayout, QLineEdit, QVBoxLayout, QWidget
 
 from harrix_swiss_knife.apps.snippets.constants import ZONE_COLOR, ZONE_SYMBOL
+from harrix_swiss_knife.qt_app_font import apply_mono_font
 from harrix_swiss_knife.qt_emoji_icon import CANCEL_BUTTON_EMOJI, OK_BUTTON_EMOJI, make_emoji_push_button
 
 
@@ -35,7 +36,9 @@ class ItemEditDialog(QDialog):
         self.setWindowTitle(title)
         self._show_hint = zone in {ZONE_SYMBOL, ZONE_COLOR}
         self._value_edit = QLineEdit(initial_value)
+        apply_mono_font(self._value_edit)
         self._hint_edit = QLineEdit(initial_hint)
+        apply_mono_font(self._hint_edit)
 
         form = QFormLayout()
         form.addRow("Value", self._value_edit)

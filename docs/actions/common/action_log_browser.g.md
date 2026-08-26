@@ -44,7 +44,7 @@ def build_action_output_log_browser(
         preview = QPlainTextEdit()
         preview.setReadOnly(True)
         preview.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        preview_font = QFont("JetBrains Mono")
+        preview_font = QFont()
         preview_font.setPointSize(9)
         preview.setFont(preview_font)
 

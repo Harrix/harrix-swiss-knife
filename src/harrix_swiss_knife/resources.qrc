@@ -3,6 +3,11 @@
     <qresource prefix="/">
         <file>assets/logo.svg</file>
         <file>assets/py.svg</file>
+        <file>assets/fonts/FiraSans-Regular.ttf</file>
+        <file>assets/fonts/FiraSans-Medium.ttf</file>
+        <file>assets/fonts/FiraSans-Bold.ttf</file>
+        <file>assets/fonts/FiraSans-Italic.ttf</file>
+        <file>assets/fonts/FiraSans-MediumItalic.ttf</file>
         <file>assets/fonts/JetBrainsMono-Regular.ttf</file>
         <file>assets/fonts/JetBrainsMono-Medium.ttf</file>
         <file>assets/fonts/JetBrainsMono-Bold.ttf</file>

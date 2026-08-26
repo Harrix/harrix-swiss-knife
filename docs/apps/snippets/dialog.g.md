@@ -189,6 +189,7 @@ class SnippetsDialog(QDialog):
             placeholder="Item",
             min_height=320,
         )
+        apply_mono_font(dialog.text_edit)
         if dialog.exec() != QDialog.DialogCode.Accepted or self.db_manager is None:
             return
         items = parse_bulk_lines(dialog.get_text() or "", zone)
@@ -292,6 +293,7 @@ class SnippetsDialog(QDialog):
             initial_text=serialize_items(items, zone),
             min_height=400,
         )
+        apply_mono_font(dialog.text_edit)
         if dialog.exec() != QDialog.DialogCode.Accepted:
             return
         parsed = parse_bulk_lines(dialog.get_text() or "", zone)

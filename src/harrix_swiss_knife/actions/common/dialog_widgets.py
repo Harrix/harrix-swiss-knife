@@ -29,6 +29,7 @@ from harrix_swiss_knife.actions.common.dialog_geometry import (
     fit_widget_height,
     list_content_height,
 )
+from harrix_swiss_knife.qt_app_font import APP_FONT_FAMILY
 from harrix_swiss_knife.qt_emoji_icon import DELETE_BUTTON_EMOJI, apply_emoji_dialog_buttons, make_emoji_push_button
 
 _FILES_LIST_MAX_HEIGHT = 100
@@ -80,7 +81,7 @@ class ChoiceWithDescriptionDelegate(QStyledItemDelegate):
         escaped_description = escape(description).replace("\n", "<br>")
 
         html_content = (
-            f'<div style="font-family: Arial, sans-serif; color: {text_color.name()};">'
+            f"<div style=\"font-family: '{APP_FONT_FAMILY}', sans-serif; color: {text_color.name()};\">"
             f'<div style="font-size: 12pt; font-weight: bold; margin-bottom: 2px;">'
             f"{escaped_choice}"
             f"</div>"
@@ -121,7 +122,7 @@ class ChoiceWithDescriptionDelegate(QStyledItemDelegate):
         escaped_description = escape(description).replace("\n", "<br>")
 
         html_content = f"""
-        <div style="font-family: Arial, sans-serif;">
+        <div style="font-family: '{APP_FONT_FAMILY}', sans-serif;">
             <div style="font-size: 12pt; font-weight: bold; margin-bottom: 2px;">
                 {escaped_choice}
             </div>
