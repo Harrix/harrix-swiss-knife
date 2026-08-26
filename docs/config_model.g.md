@@ -24,6 +24,7 @@ lang: en
 - [🔧 Function `get_show_main_window_on_startup`](#-function-get_show_main_window_on_startup)
 - [🔧 Function `get_ui_font_scale`](#-function-get_ui_font_scale)
 - [🔧 Function `load_app_config`](#-function-load_app_config)
+- [🔧 Function `restart_required_config_keys`](#-function-restart_required_config_keys)
 - [🔧 Function `set_show_main_window_on_startup`](#-function-set_show_main_window_on_startup)
 - [🔧 Function `validate_app_config`](#-function-validate_app_config)
 
@@ -369,6 +370,33 @@ def load_app_config(config_path: str | None = None) -> dict[str, Any]:
         raise TypeError(msg)
     validate_app_config(loaded)
     return loaded
+```
+
+</details>
+
+## 🔧 Function `restart_required_config_keys`
+
+```python
+def restart_required_config_keys(before: dict[str, Any], after: dict[str, Any]) -> list[str]
+```
+
+Return restart-required keys whose values changed from `before` to `after`.
+
+Args:
+
+- `before` (`dict[str, Any]`): Config snapshot before save.
+- `after` (`dict[str, Any]`): Config that will be written.
+
+Returns:
+
+- `list[str]`: Changed keys that apply only after an application restart.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def restart_required_config_keys(before: dict[str, Any], after: dict[str, Any]) -> list[str]:
+    return [key for key in sorted(RESTART_REQUIRED_CONFIG_KEYS) if before.get(key) != after.get(key)]
 ```
 
 </details>

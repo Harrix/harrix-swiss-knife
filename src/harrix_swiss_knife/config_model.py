@@ -16,6 +16,13 @@ UI_FONT_SCALE_DEFAULT = 1.0
 UI_FONT_SCALE_KEY = "ui_font_scale"
 UI_FONT_SCALE_MAX = 1.5
 UI_FONT_SCALE_MIN = 0.7
+# Applied once at process start (`install_app_fonts`, global hotkey registration).
+RESTART_REQUIRED_CONFIG_KEYS: frozenset[str] = frozenset(
+    {
+        "hotkeys",
+        UI_FONT_SCALE_KEY,
+    },
+)
 
 
 class AiSettings(TypedDict, total=False):
@@ -193,6 +200,22 @@ def load_app_config(config_path: str | None = None) -> dict[str, Any]:
         raise TypeError(msg)
     validate_app_config(loaded)
     return loaded
+
+
+def restart_required_config_keys(before: dict[str, Any], after: dict[str, Any]) -> list[str]:
+    """Return restart-required keys whose values changed from `before` to `after`.
+
+    Args:
+
+    - `before` (`dict[str, Any]`): Config snapshot before save.
+    - `after` (`dict[str, Any]`): Config that will be written.
+
+    Returns:
+
+    - `list[str]`: Changed keys that apply only after an application restart.
+
+    """
+    return [key for key in sorted(RESTART_REQUIRED_CONFIG_KEYS) if before.get(key) != after.get(key)]
 
 
 def set_show_main_window_on_startup(*, enabled: bool, config_path: str | None = None) -> None:

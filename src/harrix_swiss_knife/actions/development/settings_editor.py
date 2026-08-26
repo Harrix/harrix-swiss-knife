@@ -31,7 +31,9 @@ from harrix_swiss_knife.action_hotkeys import load_action_hotkeys
 from harrix_swiss_knife.actions.common.base import ActionBase
 from harrix_swiss_knife.actions.common.dialog_geometry import text_content_height
 from harrix_swiss_knife.actions.common.text_result_dialog import OPEN_FOLDER_BUTTON_EMOJI
+from harrix_swiss_knife.app_restart import restart_current_application
 from harrix_swiss_knife.apps.common.qt_main_window import apply_app_window_size_and_position
+from harrix_swiss_knife.config_model import restart_required_config_keys
 from harrix_swiss_knife.global_hotkey import hotkey_string_from_event
 from harrix_swiss_knife.paths import get_config_path_str
 from harrix_swiss_knife.qt_emoji_icon import DELETE_BUTTON_EMOJI, SAVE_BUTTON_EMOJI, make_emoji_push_button
@@ -441,6 +443,7 @@ class SettingsEditorDialog(QDialog):
     def _persist_config(self) -> bool:
         self._save_current_category()
         new_config = assemble_config(self.categories, self._key_order)
+        restart_keys = restart_required_config_keys(self._saved_snapshot, new_config)
         try:
             Path(self.config_path).write_text(h.dev.dumps_pretty_json(new_config), encoding="utf-8")
         except OSError as e:
@@ -451,6 +454,8 @@ class SettingsEditorDialog(QDialog):
         self._key_order = list(new_config)
         if hasattr(self, "status_label"):
             self.status_label.setText("Saved to config.json")
+        if restart_keys:
+            self._show_restart_required(restart_keys)
         return True
 
     def _refresh_save_ui(self) -> None:
@@ -616,6 +621,33 @@ class SettingsEditorDialog(QDialog):
 
         if self.list_categories.count() > 0:
             self.list_categories.setCurrentRow(0)
+
+    def _show_restart_required(self, keys: list[str]) -> None:
+        """Tell the user that saved keys apply only after an application restart.
+
+        Args:
+
+        - `keys` (`list[str]`): Config keys that changed and require a restart.
+
+        """
+        listed = "\n".join(f"• {key}" for key in keys)
+        box = QMessageBox(self)
+        box.setIcon(QMessageBox.Icon.Information)
+        box.setWindowTitle("Restart required")
+        if len(keys) == 1:
+            box.setText(f'To apply "{keys[0]}", restart the application.')
+        else:
+            box.setText("To apply these settings, restart the application.")
+            box.setInformativeText(listed)
+        restart_button = box.addButton("Restart now", QMessageBox.ButtonRole.AcceptRole)
+        box.addButton("Later", QMessageBox.ButtonRole.RejectRole)
+        box.exec()
+        if box.clickedButton() is restart_button and not restart_current_application():
+            QMessageBox.warning(
+                self,
+                "Restart failed",
+                "Could not start a new process. Restart the app manually.",
+            )
 
 
 def assemble_config(categories: dict[str, dict[str, Any]], key_order: list[str]) -> dict[str, Any]:

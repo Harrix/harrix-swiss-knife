@@ -16,6 +16,7 @@ from harrix_swiss_knife.config_model import (
     get_show_main_window_on_startup,
     get_ui_font_scale,
     load_app_config,
+    restart_required_config_keys,
     set_show_main_window_on_startup,
     validate_app_config,
 )
@@ -67,6 +68,18 @@ def test_load_app_config_and_ensure_local(monkeypatch: pytest.MonkeyPatch, tmp_p
     assert path.name == "config.json"
     loaded = load_app_config(str(path))
     assert loaded["editor-notes"] == "code"
+
+
+def test_restart_required_config_keys_detects_font_scale_and_hotkeys() -> None:
+    before = {UI_FONT_SCALE_KEY: 1.0, "hotkeys": [], "editor": "cursor"}
+    assert restart_required_config_keys(before, before) == []
+    assert restart_required_config_keys(before, {**before, "editor": "code"}) == []
+    assert restart_required_config_keys(before, {**before, UI_FONT_SCALE_KEY: 1.2}) == [UI_FONT_SCALE_KEY]
+    after_hotkeys = {
+        **before,
+        "hotkeys": [{"action": "OnQuickLauncher", "hotkeys": ["Ctrl+F1"]}],
+    }
+    assert restart_required_config_keys(before, after_hotkeys) == ["hotkeys"]
 
 
 def test_ui_font_scale_defaults_and_clamps() -> None:

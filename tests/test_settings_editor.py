@@ -342,6 +342,76 @@ def test_save_keeps_snippets_key_order_and_stays_open(
         dialog.close()
 
 
+def test_save_ui_font_scale_prompts_restart(
+    qapp: QApplication,  # noqa: ARG001
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / "config.json"
+    path.write_text('{"editor": "cursor", "ui_font_scale": 1.0}\n', encoding="utf-8")
+    monkeypatch.setattr(
+        "harrix_swiss_knife.actions.development.settings_editor.get_config_path_str",
+        lambda: str(path),
+    )
+    prompted: list[list[str]] = []
+    monkeypatch.setattr(
+        SettingsEditorDialog,
+        "_show_restart_required",
+        lambda _self, keys: prompted.append(list(keys)),
+    )
+    dialog = SettingsEditorDialog()
+    dialog.show()
+    QApplication.processEvents()
+    try:
+        scale = dialog.input_widgets["General::ui_font_scale"]
+        assert isinstance(scale, QLineEdit)
+        scale.setText("1.2")
+        QApplication.processEvents()
+        save_all = dialog.findChild(QPushButton, SAVE_ALL_BUTTON_OBJECT_NAME)
+        assert save_all is not None
+        save_all.click()
+        QApplication.processEvents()
+        written = json.loads(path.read_text(encoding="utf-8"))
+        assert written["ui_font_scale"] == 1.2
+        assert prompted == [["ui_font_scale"]]
+    finally:
+        dialog.close()
+
+
+def test_save_editor_does_not_prompt_restart(
+    qapp: QApplication,  # noqa: ARG001
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / "config.json"
+    path.write_text('{"editor": "cursor", "ui_font_scale": 1.0}\n', encoding="utf-8")
+    monkeypatch.setattr(
+        "harrix_swiss_knife.actions.development.settings_editor.get_config_path_str",
+        lambda: str(path),
+    )
+    prompted: list[list[str]] = []
+    monkeypatch.setattr(
+        SettingsEditorDialog,
+        "_show_restart_required",
+        lambda _self, keys: prompted.append(list(keys)),
+    )
+    dialog = SettingsEditorDialog()
+    dialog.show()
+    QApplication.processEvents()
+    try:
+        editor = dialog.input_widgets["General::editor"]
+        assert isinstance(editor, QLineEdit)
+        editor.setText("code")
+        QApplication.processEvents()
+        save_all = dialog.findChild(QPushButton, SAVE_ALL_BUTTON_OBJECT_NAME)
+        assert save_all is not None
+        save_all.click()
+        QApplication.processEvents()
+        assert prompted == []
+    finally:
+        dialog.close()
+
+
 def test_enter_in_field_saves_without_closing(
     qapp: QApplication,  # noqa: ARG001
     monkeypatch: pytest.MonkeyPatch,
