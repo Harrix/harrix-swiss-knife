@@ -35,7 +35,7 @@ class HabitDashboardWidget(QWidget):
 
     data_changed = Signal()
 
-    def __init__(self, parent: QWidget | None = None) -> None:  # noqa: D107
+    def __init__(self, parent: QWidget | None = None, *, app_config: dict[str, Any] | None = None) -> None:  # noqa: D107
         super().__init__(parent)
         self._db: DatabaseManager | None = None
         self._selected_habit_id: int | None = None
@@ -44,6 +44,8 @@ class HabitDashboardWidget(QWidget):
         self._calendar_month = today.month
         self._week_dates: list[date] = []
         self._habit_rows: dict[int, HabitRow] = {}
+        self._comments = HabitCommentsStore.from_config(app_config)
+        self._comment_index: dict[int, set[str]] = {}
 
         self.setAutoFillBackground(True)
         self.setStyleSheet("HabitDashboardWidget { background: #FFFFFF; }")
@@ -65,6 +67,7 @@ class HabitDashboardWidget(QWidget):
     def refresh(self) -> None:
         """Reload list, week rings, and detail pane from the database."""
         if self._db is None:
+            self._comment_index = {}
             self._clear_habit_list()
             self._show_empty_detail()
             self._set_empty_state_visible(visible=True)
@@ -73,6 +76,7 @@ class HabitDashboardWidget(QWidget):
         habits = self._db.get_habits(include_archived=False)
         if not habits:
             self._week_dates = _last_seven_days(_local_today())
+            self._comment_index = {}
             self._clear_habit_list()
             self._selected_habit_id = None
             self._show_empty_detail()
@@ -81,6 +85,7 @@ class HabitDashboardWidget(QWidget):
 
         self._set_empty_state_visible(visible=False)
         self._week_dates = _last_seven_days(_local_today())
+        self._reload_comment_index()
         self._update_week_bar()
         self._rebuild_habit_list()
         self._refresh_detail()
@@ -243,20 +248,36 @@ class HabitDashboardWidget(QWidget):
         self._calendar = MonthCalendarGrid()
         self._calendar.day_toggled.connect(self._on_calendar_day_toggled)
         self._calendar.day_value_set.connect(self._on_calendar_day_value_set)
+        self._calendar.day_comment_requested.connect(self._on_calendar_day_comment_requested)
         self._calendar.fill_absent_not_done.connect(self._on_calendar_fill_absent_not_done)
         self._calendar.month_changed.connect(self._on_calendar_month_changed)
         layout.addWidget(self._calendar)
 
+        log_header = QHBoxLayout()
         log_title = QLabel("Habit Log on —.")
         log_title.setObjectName("habitLogTitle")
         log_title.setStyleSheet("color: #111827; font-size: 14px; font-weight: 700;")
         self._log_title = log_title
-        layout.addWidget(log_title)
+        log_header.addWidget(log_title, 1)
+        self._all_comments_button = QPushButton("All comments…")
+        self._all_comments_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._all_comments_button.setFlat(True)
+        self._all_comments_button.setStyleSheet("color: #2563EB; font-size: 12px;")
+        self._all_comments_button.clicked.connect(self._show_all_comments)
+        log_header.addWidget(self._all_comments_button)
+        layout.addLayout(log_header)
 
-        self._log_placeholder = QLabel("No check-in thoughts to share this month yet.")
+        self._log_placeholder = QLabel("No comments this month yet.")
         self._log_placeholder.setStyleSheet("color: #9CA3AF; font-size: 13px;")
         self._log_placeholder.setWordWrap(True)
         layout.addWidget(self._log_placeholder)
+
+        self._log_list = QListWidget()
+        self._log_list.setObjectName("habitLogList")
+        self._log_list.setMaximumHeight(160)
+        self._log_list.itemActivated.connect(self._on_log_item_activated)
+        self._log_list.hide()
+        layout.addWidget(self._log_list)
         layout.addStretch(1)
         return pane
 
@@ -294,6 +315,23 @@ class HabitDashboardWidget(QWidget):
                 widget.deleteLater()
         self._habit_rows.clear()
 
+    def _edit_day_comment(self, habit_id: int, date_str: str) -> None:
+        """Open the editor for one habit-day comment and persist it."""
+        if not self._comments.is_configured():
+            QMessageBox.warning(
+                self,
+                "Comments",
+                "Habit comments folder is not configured. Set path_habit_comments in config.json.",
+            )
+            return
+        name = self._habit_display_name(habit_id)
+        current = self._comments.comment(habit_id, date_str)
+        dialog = HabitDayCommentDialog(self, habit_name=name, date_str=date_str, text=current)
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+        self._comments.set_comment(habit_id, date_str, dialog.comment_text(), habit_name=name)
+        self.refresh()
+
     def _edit_selected_habit(self) -> None:
         if self._db is None or self._selected_habit_id is None:
             return
@@ -326,6 +364,19 @@ class HabitDashboardWidget(QWidget):
             self.data_changed.emit()
         else:
             QMessageBox.warning(self, "Database Error", "Failed to update habit.")
+
+    def _habit_display_name(self, habit_id: int) -> str:
+        if self._db is None:
+            return f"Habit {habit_id}"
+        habit = self._db.get_habit_by_id(habit_id)
+        if habit is None:
+            return f"Habit {habit_id}"
+        return str(habit[_NAME_COLUMN] or f"Habit {habit_id}")
+
+    def _on_calendar_day_comment_requested(self, date_str: str) -> None:
+        if self._selected_habit_id is None:
+            return
+        self._edit_day_comment(self._selected_habit_id, date_str)
 
     def _on_calendar_day_toggled(self, date_str: str) -> None:
         if self._db is None or self._selected_habit_id is None:
@@ -368,12 +419,15 @@ class HabitDashboardWidget(QWidget):
             return
         menu = QMenu(self)
         act_edit = add_emoji_action(menu, "Edit habit", "✏️")
+        act_comments = add_emoji_action(menu, "All comments…", "💬")
         act_archive = add_emoji_action(menu, "Archive habit", "🗄")
         act_delete = add_emoji_action(menu, "Delete habit", "🗑️")
         chosen = menu.exec_(self._detail_more.mapToGlobal(self._detail_more.rect().bottomLeft()))
         habit_id = self._selected_habit_id
         if chosen == act_edit:
             self._edit_selected_habit()
+        elif chosen == act_comments:
+            self._show_all_comments()
         elif chosen == act_archive:
             if self._db.set_habit_archived(habit_id, is_archived=True):
                 self._selected_habit_id = None
@@ -408,9 +462,12 @@ class HabitDashboardWidget(QWidget):
         self._on_habit_selected(habit_id)
         menu = QMenu(self)
         act_edit = add_emoji_action(menu, "Edit habit", "✏️")
+        act_comments = add_emoji_action(menu, "All comments…", "💬")
         chosen = menu.exec_(global_pos)
         if chosen == act_edit:
             self._edit_selected_habit()
+        elif chosen == act_comments:
+            self._show_all_comments()
 
     def _on_habit_selected(self, habit_id: int) -> None:
         self._selected_habit_id = habit_id
@@ -434,6 +491,7 @@ class HabitDashboardWidget(QWidget):
                 selected=hid == habit_id,
                 emoji=emoji,
                 allows_number=_habit_allows_number(habit),
+                week_comments=self._week_comments_for(hid),
             )
         self._refresh_detail()
 
@@ -448,6 +506,18 @@ class HabitDashboardWidget(QWidget):
             return
         self._rebuild_habit_list()
         self.data_changed.emit()
+
+    def _on_log_item_activated(self, item: QListWidgetItem) -> None:
+        date_str = item.data(Qt.ItemDataRole.UserRole)
+        if self._selected_habit_id is None or not isinstance(date_str, str):
+            return
+        self._edit_day_comment(self._selected_habit_id, date_str)
+
+    def _on_week_day_comment_requested(self, habit_id: int, day_index: int) -> None:
+        if day_index < 0 or day_index >= len(self._week_dates):
+            return
+        self._selected_habit_id = habit_id
+        self._edit_day_comment(habit_id, self._week_dates[day_index].isoformat())
 
     def _on_week_day_toggled(self, habit_id: int, day_index: int) -> None:
         if self._db is None or day_index < 0 or day_index >= len(self._week_dates):
@@ -495,12 +565,14 @@ class HabitDashboardWidget(QWidget):
                 selected=habit_id == self._selected_habit_id,
                 emoji=emoji,
                 allows_number=_habit_allows_number(row),
+                week_comments=self._week_comments_for(habit_id),
             )
             habit_row.selected.connect(self._on_habit_selected)
             habit_row.edit_requested.connect(self._on_habit_edit_requested)
             habit_row.context_menu_requested.connect(self._on_habit_row_context_menu)
             habit_row.day_toggled.connect(self._on_week_day_toggled)
             habit_row.day_value_set.connect(self._on_week_day_value_set)
+            habit_row.day_comment_requested.connect(self._on_week_day_comment_requested)
             self._habit_rows[habit_id] = habit_row
             self._list_layout.insertWidget(self._list_layout.count() - 1, habit_row)
 
@@ -548,14 +620,54 @@ class HabitDashboardWidget(QWidget):
 
         day_values = self._db.get_habit_values_between(habit_id, month_start, month_end)
         self._calendar.set_available_years(self._db.get_habit_years(habit_id))
+        comment_dates = self._comment_index.get(habit_id, set())
         self._calendar.set_month(
             year,
             month,
             day_values,
             allows_number=_habit_allows_number(habit),
             today=today,
+            comment_dates=comment_dates,
         )
         self._log_title.setText(f"Habit Log on {_month_name(month)}.")
+        self._refresh_habit_log(habit_id, month_start, month_end, comment_dates)
+
+    def _refresh_habit_log(
+        self,
+        habit_id: int | None,
+        month_start: str,
+        month_end: str,
+        comment_dates: set[str],
+    ) -> None:
+        self._log_list.clear()
+        if habit_id is None:
+            self._log_placeholder.setText("No comments this month yet.")
+            self._log_placeholder.show()
+            self._log_list.hide()
+            return
+        month_dates = sorted(
+            (day for day in comment_dates if month_start <= day <= month_end),
+            reverse=True,
+        )
+        if not month_dates:
+            self._log_placeholder.setText("No comments this month yet.")
+            self._log_placeholder.show()
+            self._log_list.hide()
+            return
+        self._log_placeholder.hide()
+        self._log_list.show()
+        for date_str in month_dates:
+            text = self._comments.comment(habit_id, date_str)
+            row = QListWidgetItem(f"{date_str}  {preview_habit_comment(text)}")
+            row.setData(Qt.ItemDataRole.UserRole, date_str)
+            self._log_list.addItem(row)
+
+    def _reload_comment_index(self) -> None:
+        if self._db is None or not self._comments.is_configured():
+            self._comment_index = {}
+            return
+        habit_ids = [int(row[0]) for row in self._db.get_habits(include_archived=False)]
+        self._comment_index = self._comments.dates_with_comments(habit_ids)
 
     def _set_date_value(self, habit_id: int, date_str: str, value: object) -> None:
         if self._db is None or _is_future_date(date_str):
@@ -585,6 +697,25 @@ class HabitDashboardWidget(QWidget):
             return
         stack.setCurrentWidget(empty if visible else stack.widget(0))
 
+    def _show_all_comments(self) -> None:
+        if self._selected_habit_id is None:
+            return
+        if not self._comments.is_configured():
+            QMessageBox.warning(
+                self,
+                "Comments",
+                "Habit comments folder is not configured. Set path_habit_comments in config.json.",
+            )
+            return
+        habit_id = self._selected_habit_id
+        name = self._habit_display_name(habit_id)
+        dialog = HabitCommentsListDialog(self, habit_name=name, comments=self._comments.comments_for_habit(habit_id))
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+        date_str = dialog.chosen_date()
+        if date_str:
+            self._edit_day_comment(habit_id, date_str)
+
     def _show_empty_detail(self) -> None:
         self._detail_name.setText("Select a habit")
         self._stat_monthly.set_value("-")
@@ -595,6 +726,7 @@ class HabitDashboardWidget(QWidget):
         self._calendar.set_available_years([])
         self._calendar.set_month(today.year, today.month, {}, today=today)
         self._log_title.setText(f"Habit Log on {_month_name(today.month)}.")
+        self._refresh_habit_log(None, "", "", set())
 
     def _toggle_date(self, habit_id: int, date_str: str) -> None:
         if self._db is None or _is_future_date(date_str):
@@ -626,6 +758,11 @@ class HabitDashboardWidget(QWidget):
                 ratio = done / total
             self._week_headers[i].set_day(caption, ratio, is_today=day == today)
 
+    def _week_comments_for(self, habit_id: int) -> list[bool]:
+        """Return whether each visible week day has a comment."""
+        dates = self._comment_index.get(habit_id, set())
+        return [day.isoformat() in dates for day in self._week_dates]
+
     def _week_values_for(self, habit_id: int) -> list[int | None]:
         """Return stored values for the visible week, or ``None`` when no record exists."""
         if self._db is None or not self._week_dates:
@@ -643,7 +780,7 @@ class HabitDashboardWidget(QWidget):
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, parent: QWidget | None = None) -> None
+def __init__(self, parent: QWidget | None = None, *, app_config: dict[str, Any] | None = None) -> None
 ```
 
 _No docstring provided._
@@ -652,7 +789,7 @@ _No docstring provided._
 <summary>Code:</summary>
 
 ```python
-def __init__(self, parent: QWidget | None = None) -> None:  # noqa: D107
+def __init__(self, parent: QWidget | None = None, *, app_config: dict[str, Any] | None = None) -> None:  # noqa: D107
         super().__init__(parent)
         self._db: DatabaseManager | None = None
         self._selected_habit_id: int | None = None
@@ -661,6 +798,8 @@ def __init__(self, parent: QWidget | None = None) -> None:  # noqa: D107
         self._calendar_month = today.month
         self._week_dates: list[date] = []
         self._habit_rows: dict[int, HabitRow] = {}
+        self._comments = HabitCommentsStore.from_config(app_config)
+        self._comment_index: dict[int, set[str]] = {}
 
         self.setAutoFillBackground(True)
         self.setStyleSheet("HabitDashboardWidget { background: #FFFFFF; }")
@@ -710,6 +849,7 @@ Reload list, week rings, and detail pane from the database.
 ```python
 def refresh(self) -> None:
         if self._db is None:
+            self._comment_index = {}
             self._clear_habit_list()
             self._show_empty_detail()
             self._set_empty_state_visible(visible=True)
@@ -718,6 +858,7 @@ def refresh(self) -> None:
         habits = self._db.get_habits(include_archived=False)
         if not habits:
             self._week_dates = _last_seven_days(_local_today())
+            self._comment_index = {}
             self._clear_habit_list()
             self._selected_habit_id = None
             self._show_empty_detail()
@@ -726,6 +867,7 @@ def refresh(self) -> None:
 
         self._set_empty_state_visible(visible=False)
         self._week_dates = _last_seven_days(_local_today())
+        self._reload_comment_index()
         self._update_week_bar()
         self._rebuild_habit_list()
         self._refresh_detail()

@@ -789,7 +789,7 @@ def compute_toast_stack_positions(
 def event_targets_widget(watched: QObject, root: QWidget) -> bool
 ```
 
-Return whether `watched` belongs to `root` or its native window.
+Return whether `watched` belongs to [`root`](apps/habits/habit_comments.g.md#%EF%B8%8F-method-root) or its native window.
 
 <details>
 <summary>Code:</summary>

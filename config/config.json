@@ -212,6 +212,7 @@
   "path_cases": "D:/Dropbox/Notes/Notes-Lists/Cases",
   "path_diary": "D:/Dropbox/Notes/Notes-Diaries/Diary",
   "path_dream": "D:/Dropbox/Notes/Notes-Diaries/Dreams",
+  "path_habit_comments": "D:/Dropbox/Notes/Notes-Habits",
   "path_github": "D:/GitHub",
   "path_harrix_notes_explorer": "D:/GitHub/harrix-notes-explorer",
   "path_html_template_dist": "D:/GitHub/Harrix-HTML-Template/dist",
@@ -276,6 +277,7 @@
     "D:/Dropbox/Notes/Notes",
     "D:/Dropbox/Notes/Notes-Lists",
     "D:/Dropbox/Notes/Notes-External",
+    "D:/Dropbox/Notes/Notes-Habits",
     "D:/GitHub/harrix-swiss-knife",
     "D:/GitHub/harrix-pylib",
     "D:/GitHub/harrix-pyssg"
@@ -287,6 +289,7 @@
     "D:/Dropbox/Notes/Notes-External",
     "D:/Dropbox/Notes/Notes-Temp",
     "D:/Dropbox/Notes/Notes-Diaries",
+    "D:/Dropbox/Notes/Notes-Habits",
     "D:/GitHub/_content__harrix-dev",
     "D:/GitHub/_content__harrix-dev/harrix.dev-articles-2026",
     "D:/GitHub/_content__harrix-dev/harrix.dev-articles-2026-en",

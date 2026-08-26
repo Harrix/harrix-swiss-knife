@@ -341,7 +341,7 @@ def execute(
 def find_git_repos(root: Path) -> list[Path]
 ```
 
-Return Git repos: `root` itself if it is a repo, else its immediate child repos.
+Return Git repos: [`root`](../../apps/habits/habit_comments.g.md#%EF%B8%8F-method-root) itself if it is a repo, else its immediate child repos.
 
 <details>
 <summary>Code:</summary>

@@ -52,6 +52,7 @@ class AppConfig(TypedDict, total=False):
     path_cases: str
     path_memories: str
     path_quotes: str
+    path_habit_comments: NotRequired[str]
     path_articles: str
     path_totalcmd_ini: str
     path_harrix_notes_explorer: str

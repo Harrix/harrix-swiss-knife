@@ -161,6 +161,7 @@ class MainWindow(
         super().__init__()
         try_apply_system_backdrop(self, backdrop=SystemBackdrop.MICA)
         self.setupUi(self)
+        self._app_config: dict[str, Any] = h.dev.config_load(get_config_path_str())
         self._setup_ui()
 
         # Set window icon
@@ -172,7 +173,6 @@ class MainWindow(
         self._is_closing = False
         self._habits_heatmap_canvas: FigureCanvas | None = None
         self.db_manager: database_manager.DatabaseManager | None = None
-        self._app_config: dict[str, Any] = h.dev.config_load(get_config_path_str())
         self._is_small_window_layout: bool | None = None  # Used by _update_layout_for_window_size
 
         # Habits filter list model
@@ -1904,7 +1904,7 @@ class MainWindow(
         self._place_menu_bar_on_tab_row()
         self._apply_exit_about_menu_emojis()
 
-        self._habit_dashboard = HabitDashboardWidget(self)
+        self._habit_dashboard = HabitDashboardWidget(self, app_config=self._app_config)
         self.verticalLayout_dashboard.addWidget(self._habit_dashboard)
         self._habit_dashboard.data_changed.connect(self._on_dashboard_data_changed)
         self.action_habits_refresh.setText(f"🔄 {self.action_habits_refresh.text()}")

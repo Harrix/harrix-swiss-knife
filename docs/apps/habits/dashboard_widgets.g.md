@@ -14,8 +14,10 @@ lang: en
 - [🏛️ Class `CheckCircle`](#%EF%B8%8F-class-checkcircle)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `allows_number`](#%EF%B8%8F-method-allows_number)
+  - [⚙️ Method `contextMenuEvent`](#%EF%B8%8F-method-contextmenuevent)
   - [⚙️ Method `day_state`](#%EF%B8%8F-method-day_state)
   - [⚙️ Method `enterEvent`](#%EF%B8%8F-method-enterevent)
+  - [⚙️ Method `has_comment`](#%EF%B8%8F-method-has_comment)
   - [⚙️ Method `is_done`](#%EF%B8%8F-method-is_done)
   - [⚙️ Method `is_editable`](#%EF%B8%8F-method-is_editable)
   - [⚙️ Method `leaveEvent`](#%EF%B8%8F-method-leaveevent)
@@ -23,6 +25,7 @@ lang: en
   - [⚙️ Method `paintEvent`](#%EF%B8%8F-method-paintevent)
   - [⚙️ Method `set_allows_number`](#%EF%B8%8F-method-set_allows_number)
   - [⚙️ Method `set_editable`](#%EF%B8%8F-method-set_editable)
+  - [⚙️ Method `set_has_comment`](#%EF%B8%8F-method-set_has_comment)
   - [⚙️ Method `set_value`](#%EF%B8%8F-method-set_value)
   - [⚙️ Method `value`](#%EF%B8%8F-method-value)
 - [🏛️ Class `HabitIconBadge`](#%EF%B8%8F-class-habiticonbadge)
@@ -31,7 +34,7 @@ lang: en
   - [⚙️ Method `set_habit`](#%EF%B8%8F-method-set_habit)
 - [🏛️ Class `HabitRow`](#%EF%B8%8F-class-habitrow)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-2)
-  - [⚙️ Method `contextMenuEvent`](#%EF%B8%8F-method-contextmenuevent)
+  - [⚙️ Method `contextMenuEvent`](#%EF%B8%8F-method-contextmenuevent-1)
   - [⚙️ Method `habit_id`](#%EF%B8%8F-method-habit_id)
   - [⚙️ Method `mouseDoubleClickEvent`](#%EF%B8%8F-method-mousedoubleclickevent)
   - [⚙️ Method `mouseMoveEvent`](#%EF%B8%8F-method-mousemoveevent)
@@ -91,12 +94,14 @@ class CheckCircle(QWidget):
 
     clicked = Signal()
     value_set = Signal(object)
+    comment_requested = Signal()
 
     def __init__(self, parent: QWidget | None = None, *, size: int = 22) -> None:  # noqa: D107
         super().__init__(parent)
         self._value: int | None = None
         self._allows_number = False
         self._editable = True
+        self._has_comment = False
         self._size = size
         self.setFixedSize(size, size)
         self.setAttribute(Qt.WidgetAttribute.WA_Hover, on=True)
@@ -106,6 +111,15 @@ class CheckCircle(QWidget):
     def allows_number(self) -> bool:
         """Return whether the numeric picker choice is enabled."""
         return self._allows_number
+
+    def contextMenuEvent(self, event: QContextMenuEvent) -> None:  # noqa: N802
+        """Open the day comment from the circle context menu."""
+        menu = QMenu(self)
+        action = add_emoji_action(menu, "Comment…", "💬")
+        chosen = menu.exec_(event.globalPos())
+        if chosen == action:
+            self.comment_requested.emit()
+        event.accept()
 
     def day_state(self) -> HabitDayState:
         """Return visual state for the stored value."""
@@ -118,6 +132,10 @@ class CheckCircle(QWidget):
 
             HabitDayPickerPopup.request_show(self)
         super().enterEvent(event)
+
+    def has_comment(self) -> bool:
+        """Return whether this day has a stored comment."""
+        return self._has_comment
 
     def is_done(self) -> bool:
         """Return whether the day is marked completed (value > 0)."""
@@ -149,7 +167,7 @@ class CheckCircle(QWidget):
             painter.setOpacity(0.35)
         margin = 1.0
         rect = QRectF(margin, margin, self.width() - 2 * margin, self.height() - 2 * margin)
-        paint_habit_day_circle(painter, rect, self._value, font=self.font())
+        paint_habit_day_circle(painter, rect, self._value, font=self.font(), has_comment=self._has_comment)
 
     def set_allows_number(self, *, allows_number: bool) -> None:
         """Enable the numeric picker choice when the habit is not boolean."""
@@ -159,6 +177,12 @@ class CheckCircle(QWidget):
         """Enable or disable clicks and the hover picker for this day."""
         self._editable = editable
         self._apply_interactive_state()
+        self._apply_tooltip()
+        self.update()
+
+    def set_has_comment(self, *, has_comment: bool) -> None:
+        """Mark whether a comment exists for this day."""
+        self._has_comment = has_comment
         self._apply_tooltip()
         self.update()
 
@@ -177,11 +201,17 @@ class CheckCircle(QWidget):
             self.setCursor(Qt.CursorShape.PointingHandCursor)
         else:
             self.setCursor(Qt.CursorShape.ArrowCursor)
-        self.setContextMenuPolicy(Qt.ContextMenuPolicy.NoContextMenu)
+        self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
 
     def _apply_tooltip(self) -> None:
+        if not self._editable and self._has_comment:
+            self.setToolTip("Future date. Has comment. Right-click to edit.")
+            return
         if not self._editable:
             self.setToolTip("Future date")
+            return
+        if self._has_comment:
+            self.setToolTip("Has comment. Right-click to edit.")
             return
         self.setToolTip("")
 ```
@@ -205,6 +235,7 @@ def __init__(self, parent: QWidget | None = None, *, size: int = 22) -> None:  #
         self._value: int | None = None
         self._allows_number = False
         self._editable = True
+        self._has_comment = False
         self._size = size
         self.setFixedSize(size, size)
         self.setAttribute(Qt.WidgetAttribute.WA_Hover, on=True)
@@ -228,6 +259,29 @@ Return whether the numeric picker choice is enabled.
 ```python
 def allows_number(self) -> bool:
         return self._allows_number
+```
+
+</details>
+
+### ⚙️ Method `contextMenuEvent`
+
+```python
+def contextMenuEvent(self, event: QContextMenuEvent) -> None
+```
+
+Open the day comment from the circle context menu.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def contextMenuEvent(self, event: QContextMenuEvent) -> None:  # noqa: N802
+        menu = QMenu(self)
+        action = add_emoji_action(menu, "Comment…", "💬")
+        chosen = menu.exec_(event.globalPos())
+        if chosen == action:
+            self.comment_requested.emit()
+        event.accept()
 ```
 
 </details>
@@ -268,6 +322,24 @@ def enterEvent(self, event: QEnterEvent) -> None:  # noqa: N802
 
             HabitDayPickerPopup.request_show(self)
         super().enterEvent(event)
+```
+
+</details>
+
+### ⚙️ Method `has_comment`
+
+```python
+def has_comment(self) -> bool
+```
+
+Return whether this day has a stored comment.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def has_comment(self) -> bool:
+        return self._has_comment
 ```
 
 </details>
@@ -369,7 +441,7 @@ def paintEvent(self, _event: QPaintEvent) -> None:  # noqa: N802
             painter.setOpacity(0.35)
         margin = 1.0
         rect = QRectF(margin, margin, self.width() - 2 * margin, self.height() - 2 * margin)
-        paint_habit_day_circle(painter, rect, self._value, font=self.font())
+        paint_habit_day_circle(painter, rect, self._value, font=self.font(), has_comment=self._has_comment)
 ```
 
 </details>
@@ -407,6 +479,26 @@ Enable or disable clicks and the hover picker for this day.
 def set_editable(self, *, editable: bool) -> None:
         self._editable = editable
         self._apply_interactive_state()
+        self._apply_tooltip()
+        self.update()
+```
+
+</details>
+
+### ⚙️ Method `set_has_comment`
+
+```python
+def set_has_comment(self, *, has_comment: bool) -> None
+```
+
+Mark whether a comment exists for this day.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def set_has_comment(self, *, has_comment: bool) -> None:
+        self._has_comment = has_comment
         self._apply_tooltip()
         self.update()
 ```
@@ -586,6 +678,7 @@ class HabitRow(QFrame):
     context_menu_requested = Signal(int, QPoint)  # habit_id, global pos
     day_toggled = Signal(int, int)  # habit_id, day_index 0..6
     day_value_set = Signal(int, int, object)  # habit_id, day_index, value (int | None)
+    day_comment_requested = Signal(int, int)  # habit_id, day_index 0..6
 
     def __init__(self, parent: QWidget | None = None) -> None:  # noqa: D107
         super().__init__(parent)
@@ -628,6 +721,7 @@ class HabitRow(QFrame):
             circle = CheckCircle(size=22)
             circle.clicked.connect(lambda idx=day_index: self._on_day_clicked(idx))
             circle.value_set.connect(lambda value, idx=day_index: self._on_day_value_set(idx, value))
+            circle.comment_requested.connect(lambda idx=day_index: self._on_day_comment_requested(idx))
             self._checks.append(circle)
             self._checks_layout.addWidget(circle)
         root.addLayout(self._checks_layout)
@@ -694,6 +788,7 @@ class HabitRow(QFrame):
         selected: bool,
         emoji: str = "",
         allows_number: bool = False,
+        week_comments: Sequence[bool] | None = None,
     ) -> None:
         """Populate row content."""
         self._habit_id = habit_id
@@ -701,10 +796,12 @@ class HabitRow(QFrame):
         self._icon.set_habit(habit_id, emoji or None)
         self._name_label.setText(name)
         self._meta_label.setText(f"⚡ {total_days} Days   🔥 {streak_days} Days")
+        comments = list(week_comments) if week_comments is not None else []
         for i, circle in enumerate(self._checks):
             value = week_values[i] if i < len(week_values) else None
             circle.set_value(value)
             circle.set_allows_number(allows_number=allows_number)
+            circle.set_has_comment(has_comment=bool(comments[i]) if i < len(comments) else False)
         self._apply_style()
 
     def _apply_style(self) -> None:
@@ -726,6 +823,10 @@ class HabitRow(QFrame):
     def _on_day_clicked(self, day_index: int) -> None:
         if self._habit_id >= 0:
             self.day_toggled.emit(self._habit_id, day_index)
+
+    def _on_day_comment_requested(self, day_index: int) -> None:
+        if self._habit_id >= 0:
+            self.day_comment_requested.emit(self._habit_id, day_index)
 
     def _on_day_value_set(self, day_index: int, value: object) -> None:
         if self._habit_id >= 0:
@@ -805,6 +906,7 @@ def __init__(self, parent: QWidget | None = None) -> None:  # noqa: D107
             circle = CheckCircle(size=22)
             circle.clicked.connect(lambda idx=day_index: self._on_day_clicked(idx))
             circle.value_set.connect(lambda value, idx=day_index: self._on_day_value_set(idx, value))
+            circle.comment_requested.connect(lambda idx=day_index: self._on_day_comment_requested(idx))
             self._checks.append(circle)
             self._checks_layout.addWidget(circle)
         root.addLayout(self._checks_layout)
@@ -950,7 +1052,7 @@ def mouseReleaseEvent(self, event: QMouseEvent) -> None:  # noqa: N802
 ### ⚙️ Method `set_habit_data`
 
 ```python
-def set_habit_data(self, habit_id: int, name: str, total_days: int, streak_days: int, week_values: Sequence[int | None], *, selected: bool, emoji: str = '', allows_number: bool = False) -> None
+def set_habit_data(self, habit_id: int, name: str, total_days: int, streak_days: int, week_values: Sequence[int | None], *, selected: bool, emoji: str = '', allows_number: bool = False, week_comments: Sequence[bool] | None = None) -> None
 ```
 
 Populate row content.
@@ -970,16 +1072,19 @@ def set_habit_data(
         selected: bool,
         emoji: str = "",
         allows_number: bool = False,
+        week_comments: Sequence[bool] | None = None,
     ) -> None:
         self._habit_id = habit_id
         self._selected = selected
         self._icon.set_habit(habit_id, emoji or None)
         self._name_label.setText(name)
         self._meta_label.setText(f"⚡ {total_days} Days   🔥 {streak_days} Days")
+        comments = list(week_comments) if week_comments is not None else []
         for i, circle in enumerate(self._checks):
             value = week_values[i] if i < len(week_values) else None
             circle.set_value(value)
             circle.set_allows_number(allows_number=allows_number)
+            circle.set_has_comment(has_comment=bool(comments[i]) if i < len(comments) else False)
         self._apply_style()
 ```
 
@@ -1244,6 +1349,7 @@ class MonthCalendarGrid(QWidget):
 
     day_toggled = Signal(str)  # YYYY-MM-DD
     day_value_set = Signal(str, object)  # YYYY-MM-DD, value (int | None)
+    day_comment_requested = Signal(str)  # YYYY-MM-DD
     fill_absent_not_done = Signal()
     month_changed = Signal(int, int)  # year, month
 
@@ -1253,6 +1359,7 @@ class MonthCalendarGrid(QWidget):
         self._month = 0
         self._available_years: list[int] = []
         self._day_values: dict[str, int] = {}
+        self._comment_dates: set[str] = set()
         self._allows_number = False
         self._today = _local_today()
 
@@ -1334,11 +1441,13 @@ class MonthCalendarGrid(QWidget):
         *,
         allows_number: bool = False,
         today: date | None = None,
+        comment_dates: Iterable[str] | None = None,
     ) -> None:
         """Rebuild grid for year/month with stored values keyed by ``YYYY-MM-DD``."""
         self._year = year
         self._month = month
         self._day_values = dict(day_values or {})
+        self._comment_dates = {str(item) for item in comment_dates or []}
         self._allows_number = allows_number
         self._today = today or _local_today()
         self._title.setText(f"{_month_short(month)} {year}")
@@ -1437,8 +1546,10 @@ class MonthCalendarGrid(QWidget):
                 circle.set_value(self._day_values.get(date_str))
                 circle.set_allows_number(allows_number=self._allows_number)
                 circle.set_editable(editable=editable)
+                circle.set_has_comment(has_comment=date_str in self._comment_dates)
                 circle.clicked.connect(lambda d=date_str: self.day_toggled.emit(d))
                 circle.value_set.connect(lambda value, d=date_str: self.day_value_set.emit(d, value))
+                circle.comment_requested.connect(lambda d=date_str: self.day_comment_requested.emit(d))
                 day_label = QLabel(str(day))
                 day_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
                 day_label.setFixedHeight(18)
@@ -1479,6 +1590,7 @@ def __init__(self, parent: QWidget | None = None) -> None:  # noqa: D107
         self._month = 0
         self._available_years: list[int] = []
         self._day_values: dict[str, int] = {}
+        self._comment_dates: set[str] = set()
         self._allows_number = False
         self._today = _local_today()
 
@@ -1584,7 +1696,7 @@ def set_available_years(self, years: Sequence[int]) -> None:
 ### ⚙️ Method `set_month`
 
 ```python
-def set_month(self, year: int, month: int, day_values: dict[str, int] | None = None, *, allows_number: bool = False, today: date | None = None) -> None
+def set_month(self, year: int, month: int, day_values: dict[str, int] | None = None, *, allows_number: bool = False, today: date | None = None, comment_dates: Iterable[str] | None = None) -> None
 ```
 
 Rebuild grid for year/month with stored values keyed by ``YYYY-MM-DD``.
@@ -1601,10 +1713,12 @@ def set_month(
         *,
         allows_number: bool = False,
         today: date | None = None,
+        comment_dates: Iterable[str] | None = None,
     ) -> None:
         self._year = year
         self._month = month
         self._day_values = dict(day_values or {})
+        self._comment_dates = {str(item) for item in comment_dates or []}
         self._allows_number = allows_number
         self._today = today or _local_today()
         self._title.setText(f"{_month_short(month)} {year}")
@@ -2181,7 +2295,7 @@ def habit_glyph(habit_id: int) -> str:
 ## 🔧 Function `paint_habit_day_circle`
 
 ```python
-def paint_habit_day_circle(painter: QPainter, rect: QRectF, value: int | None, *, font: QFont | None = None, text: str | None = None) -> None
+def paint_habit_day_circle(painter: QPainter, rect: QRectF, value: int | None, *, font: QFont | None = None, text: str | None = None, has_comment: bool = False) -> None
 ```
 
 Draw a dashboard-style day circle for a stored process-habit value.
@@ -2197,6 +2311,7 @@ def paint_habit_day_circle(
     *,
     font: QFont | None = None,
     text: str | None = None,
+    has_comment: bool = False,
 ) -> None:
     state = habit_day_state(value)
     size = min(rect.width(), rect.height())
@@ -2207,6 +2322,7 @@ def paint_habit_day_circle(
         painter.setPen(pen)
         painter.setBrush(Qt.BrushStyle.NoBrush)
         painter.drawEllipse(rect)
+        _paint_comment_dot(painter, rect, size, has_comment=has_comment)
         return
 
     if state == "zero":
@@ -2226,6 +2342,7 @@ def paint_habit_day_circle(
             QPointF(rect.right() - inset_x, rect.top() + inset_y),
             QPointF(rect.left() + inset_x, rect.bottom() - inset_y),
         )
+        _paint_comment_dot(painter, rect, size, has_comment=has_comment)
         return
 
     if state == "one":
@@ -2244,6 +2361,7 @@ def paint_habit_day_circle(
         y2 = rect.top() + rect.height() * 0.32
         painter.drawLine(QPointF(x0, y0), QPointF(x1, y1))
         painter.drawLine(QPointF(x1, y1), QPointF(x2, y2))
+        _paint_comment_dot(painter, rect, size, has_comment=has_comment)
         return
 
     painter.setPen(Qt.PenStyle.NoPen)
@@ -2257,6 +2375,7 @@ def paint_habit_day_circle(
     painter.setFont(draw_font)
     painter.setPen(QColor("white"))
     painter.drawText(rect, int(Qt.AlignmentFlag.AlignCenter), display)
+    _paint_comment_dot(painter, rect, size, has_comment=has_comment)
 ```
 
 </details>

@@ -36,6 +36,7 @@
     "Notes-Diaries",
     "Notes-External",
     "Notes-Health",
+    "Notes-Habits",
     "Notes-Lists",
     "Notes-Places",
     "Notes-Temp"
@@ -221,6 +222,7 @@
   "path_diary": "<YOUR_GITHUB_FOLDER>/data-for-hsk/Notes/Notes-Diaries",
   "path_dream": "<YOUR_GITHUB_FOLDER>/data-for-hsk/Notes/Notes-Diaries",
   "path_memories": "<YOUR_GITHUB_FOLDER>/data-for-hsk/Notes/Notes-Diaries",
+  "path_habit_comments": "<YOUR_GITHUB_FOLDER>/data-for-hsk/Notes/Notes-Habits",
   "path_github": "<YOUR_GITHUB_FOLDER>",
   "path_harrix_notes_explorer": "<YOUR_HARRIX_NOTES_EXPLORER_REPO>",
   "path_image_viewer": "<YOUR_IMAGE_VIEWER_EXE>",
@@ -252,6 +254,7 @@
     "<YOUR_GITHUB_FOLDER>/data-for-hsk/Notes/Notes-Diaries",
     "<YOUR_GITHUB_FOLDER>/data-for-hsk/Notes/Notes-External",
     "<YOUR_GITHUB_FOLDER>/data-for-hsk/Notes/Notes-Health",
+    "<YOUR_GITHUB_FOLDER>/data-for-hsk/Notes/Notes-Habits",
     "<YOUR_GITHUB_FOLDER>/data-for-hsk/Notes/Notes-Lists",
     "<YOUR_GITHUB_FOLDER>/data-for-hsk/Notes/Notes-Places",
     "<YOUR_GITHUB_FOLDER>/data-for-hsk/Notes/Notes-Temp",
@@ -262,6 +265,7 @@
     "<YOUR_GITHUB_FOLDER>/data-for-hsk/Notes/Notes-Diaries",
     "<YOUR_GITHUB_FOLDER>/data-for-hsk/Notes/Notes-External",
     "<YOUR_GITHUB_FOLDER>/data-for-hsk/Notes/Notes-Health",
+    "<YOUR_GITHUB_FOLDER>/data-for-hsk/Notes/Notes-Habits",
     "<YOUR_GITHUB_FOLDER>/data-for-hsk/Notes/Notes-Lists",
     "<YOUR_GITHUB_FOLDER>/data-for-hsk/Notes/Notes-Places",
     "<YOUR_GITHUB_FOLDER>/data-for-hsk/Notes/Notes-Temp"

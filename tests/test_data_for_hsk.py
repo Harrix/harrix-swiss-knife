@@ -45,6 +45,7 @@ def test_build_config_updates_maps_notes_and_databases(tmp_path: Path) -> None:
     assert updates["sqlite_finance"].endswith("/databases/finance.db")
     assert updates["path_notes"] == (data_root / "Notes" / "Notes").resolve().as_posix()
     assert updates["path_diary"] == (data_root / "Notes" / "Notes-Diaries").resolve().as_posix()
+    assert updates["path_habit_comments"] == (data_root / "Notes" / "Notes-Habits").resolve().as_posix()
     assert updates["path_cases"] == (data_root / "Notes" / "Notes-External").resolve().as_posix()
     assert len(updates["paths_notes"]) == len(DEFAULT_DATA_FOR_HSK_NOTES_FOLDERS)
     assert updates["paths_git"][-1] == (data_root / "databases").resolve().as_posix()

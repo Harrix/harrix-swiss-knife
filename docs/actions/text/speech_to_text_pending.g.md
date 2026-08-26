@@ -213,7 +213,7 @@ Initialize the store.
 
 Args:
 
-- `root` (`Path | None`): Optional override directory (tests). Defaults to the
+- [`root`](../../apps/habits/habit_comments.g.md#%EF%B8%8F-method-root) (`Path | None`): Optional override directory (tests). Defaults to the
   per-user speech-to-text data folder.
 
 <details>

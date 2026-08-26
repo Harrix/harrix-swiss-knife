@@ -179,7 +179,7 @@ def create_emoji_icon(emoji: str, size: int = 64, *, align: Qt.AlignmentFlag = Q
 Create a square `QIcon` for an emoji, scaled to avoid clipping.
 
 The pixmap is rasterized at the screen device-pixel ratio so icons stay
-sharp on HiDPI displays (for example 3840×2160).
+sharp on HiDPI displays such as 4K.
 
 <details>
 <summary>Code:</summary>

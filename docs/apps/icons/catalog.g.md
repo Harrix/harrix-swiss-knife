@@ -533,7 +533,7 @@ def folder_parts(folder: str) -> list[str]:
 def is_note_icons_repo(root: Path) -> bool
 ```
 
-Return whether `root` looks like a Harrix-Vector-Icons note-folder repo.
+Return whether [`root`](../habits/habit_comments.g.md#%EF%B8%8F-method-root) looks like a Harrix-Vector-Icons note-folder repo.
 
 <details>
 <summary>Code:</summary>

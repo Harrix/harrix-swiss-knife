@@ -14,6 +14,7 @@ DEFAULT_DATA_FOR_HSK_NOTES_FOLDERS: tuple[str, ...] = (
     "Notes-Diaries",
     "Notes-External",
     "Notes-Health",
+    "Notes-Habits",
     "Notes-Lists",
     "Notes-Places",
     "Notes-Temp",
@@ -25,6 +26,7 @@ _NOTE_FOLDER_SINGLE_KEYS: dict[str, tuple[str, ...]] = {
     "Notes-Diaries": ("path_diary", "path_dream", "path_memories"),
     "Notes-External": ("path_cases",),
     "Notes-Lists": ("path_quotes",),
+    "Notes-Habits": ("path_habit_comments",),
 }
 
 TRACKER_DATABASE_NAMES: tuple[str, ...] = (

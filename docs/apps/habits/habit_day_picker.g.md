@@ -429,6 +429,11 @@ class HabitDayPickerPopup(QWidget):
         self._anchor = None
         self.hide_active()
 
+    def _on_comment_clicked(self) -> None:
+        if self._anchor is not None:
+            self._anchor.comment_requested.emit()
+        self.hide_active()
+
     def _on_number_confirmed(self, value: int) -> None:
         if self._anchor is not None:
             self._anchor.value_set.emit(value)
@@ -457,6 +462,32 @@ class HabitDayPickerPopup(QWidget):
             column.addWidget(circle, 0, Qt.AlignmentFlag.AlignHCenter)
             column.addWidget(caption, 0, Qt.AlignmentFlag.AlignHCenter)
             self._choices_layout.addLayout(column)
+        comment_column = QVBoxLayout()
+        comment_column.setContentsMargins(0, 0, 0, 0)
+        comment_column.setSpacing(4)
+        comment_column.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+        comment_button = QPushButton("💬")
+        comment_button.setFixedSize(_OPTION_CIRCLE_SIZE, _OPTION_CIRCLE_SIZE)
+        comment_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        comment_button.setToolTip("Comment")
+        comment_button.setStyleSheet(
+            """
+            QPushButton {
+                background: #FFFBEB;
+                border: 1px solid #F59E0B;
+                border-radius: 13px;
+                font-size: 13px;
+            }
+            QPushButton:hover { background: #FEF3C7; }
+            """
+        )
+        comment_button.clicked.connect(self._on_comment_clicked)
+        comment_caption = QLabel("Note")
+        comment_caption.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+        comment_caption.setStyleSheet("color: #6B7280; font-size: 9px;")
+        comment_column.addWidget(comment_button, 0, Qt.AlignmentFlag.AlignHCenter)
+        comment_column.addWidget(comment_caption, 0, Qt.AlignmentFlag.AlignHCenter)
+        self._choices_layout.addLayout(comment_column)
 
     def _schedule_geometry_update(self) -> None:
         """Reposition after Qt finishes layout of the just-shown bubble."""

@@ -49,7 +49,7 @@ def apply_mono_font(widget: QWidget) -> None:
 def apply_ui_font_scale(root: QWidget) -> None
 ```
 
-Scale explicit fonts on `root` and its children.
+Scale explicit fonts on [`root`](apps/habits/habit_comments.g.md#%EF%B8%8F-method-root) and its children.
 
 <details>
 <summary>Code:</summary>
