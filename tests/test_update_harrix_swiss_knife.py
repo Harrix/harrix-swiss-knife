@@ -2,12 +2,46 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import cast
 from unittest.mock import MagicMock, PropertyMock, patch
 
 from harrix_swiss_knife.actions.development.update_harrix_swiss_knife import OnUpdateHarrixSwissKnife
 from harrix_swiss_knife.paths import clear_directory_contents
+
+
+def test_build_swiss_config_merged_keeps_local_and_adds_missing_nested() -> None:
+    local = {
+        "apps": {"initial_count": 50, "local_language": "ru"},
+        "custom_only": 1,
+        "editor": "cursor",
+    }
+    incoming = {
+        "apps": {"fitness_image_high_max_size": 1920, "initial_count": 1000, "local_language": "en"},
+        "editor": "code",
+        "new_key": True,
+    }
+    merged = OnUpdateHarrixSwissKnife._build_swiss_config_merged(local, incoming)
+    assert merged["apps"]["fitness_image_high_max_size"] == 1920
+    assert merged["apps"]["initial_count"] == 50
+    assert merged["apps"]["local_language"] == "ru"
+    assert merged["custom_only"] == 1
+    assert merged["editor"] == "cursor"
+    assert merged["new_key"] is True
+
+
+def test_build_swiss_config_merged_keeps_local_lists() -> None:
+    local = {"hotkeys": [{"action": "OnQuickLauncher"}]}
+    incoming = {"hotkeys": [{"action": "OnSnippets"}], "npm_packages": ["prettier"]}
+    merged = OnUpdateHarrixSwissKnife._build_swiss_config_merged(local, incoming)
+    assert merged["hotkeys"] == [{"action": "OnQuickLauncher"}]
+    assert merged["npm_packages"] == ["prettier"]
+
+
+def test_build_swiss_config_merged_without_local() -> None:
+    incoming = {"a": 1}
+    assert OnUpdateHarrixSwissKnife._build_swiss_config_merged(None, incoming) == {"a": 1}
 
 
 def test_clear_directory_contents_keeps_named_children(tmp_path: Path) -> None:
@@ -111,6 +145,35 @@ def test_worker_run_downloads_all_zips_before_applying(tmp_path: Path) -> None:
         "apply:harrix-swiss-knife",
         "apply:harrix-pylib",
     ]
+
+
+def test_worker_finished_merges_without_dialog(tmp_path: Path) -> None:
+    cfg = tmp_path / "config.json"
+    cfg.write_text("{}", encoding="utf-8")
+    action = OnUpdateHarrixSwissKnife()
+    action._updated_project_names = []
+    action.add_line = MagicMock()
+    action.show_toast = MagicMock()
+    action.show_result = MagicMock()
+    action.get_checkbox_selection = MagicMock()
+    action.get_yes_no_question = MagicMock()
+
+    action._worker_finished(
+        [
+            {
+                "config_path": cfg,
+                "local": {"apps": {"local_language": "ru"}},
+                "incoming": {"apps": {"fitness_image_high_max_size": 1920, "local_language": "en"}},
+                "error": None,
+                "local_read_error": "",
+            }
+        ]
+    )
+
+    action.get_checkbox_selection.assert_not_called()
+    data = json.loads(cfg.read_text(encoding="utf-8"))
+    assert data["apps"]["fitness_image_high_max_size"] == 1920
+    assert data["apps"]["local_language"] == "ru"
 
 
 def test_worker_finished_does_not_offer_restart_when_nothing_updated() -> None:

@@ -34,9 +34,10 @@ class OnUpdateHarrixSwissKnife(ActionBase):
     `paths_python_projects`: if `.git` exists, runs `git pull --ff-only` (optional
     commit when the tree is dirty). Without `.git`, downloads the default branch ZIP
     from GitHub and replaces the tree. Swiss Knife keeps `.venv`, `data/`, `temp/`,
-    `logs/`, and `api-keys/`, and merges `config/config.json` with a checkbox dialog
-    (default: keep local values). ZIP downloads for all repos run before any tree is
-    replaced, so a Swiss Knife update cannot break later HTTPS calls mid-run.
+    `logs/`, and `api-keys/`. `config/config.json` is merged automatically: local
+    values stay, keys that exist only in the incoming file are added (including
+    nested objects). ZIP downloads for all repos run before any tree is replaced,
+    so a Swiss Knife update cannot break later HTTPS calls mid-run.
 
     """
 
@@ -94,17 +95,12 @@ class OnUpdateHarrixSwissKnife(ActionBase):
     def _build_swiss_config_merged(
         local: dict[str, Any] | None,
         incoming: dict[str, Any],
-        keys_keep_local: set[str],
     ) -> dict[str, Any]:
-        merged = copy.deepcopy(incoming)
-        if local:
-            for k, v in local.items():
-                if k not in merged:
-                    merged[k] = copy.deepcopy(v)
-            for k in keys_keep_local:
-                if k in local:
-                    merged[k] = copy.deepcopy(local[k])
-        return merged
+        """Keep local values and add keys that exist only in `incoming`."""
+        if not local:
+            return copy.deepcopy(incoming)
+        merged = OnUpdateHarrixSwissKnife._deep_merge_json(incoming, local)
+        return cast("dict[str, Any]", merged)
 
     def _collect_steps_interactive(self) -> list[OnUpdateHarrixSwissKnife._UpdateStep] | None:
         raw = self.config.get("paths_python_projects")
@@ -200,22 +196,22 @@ class OnUpdateHarrixSwissKnife(ActionBase):
                 shutil.copy2(item, target)
 
     @staticmethod
-    def _deep_equal_json(a: object, b: object) -> bool:
-        if type(a) is not type(b):
-            return False
-        if isinstance(a, dict):
-            b_dict = cast("dict[str, Any]", b)
-            a_dict = cast("dict[str, Any]", a)
-            if set(a_dict) != set(b_dict):
-                return False
-            return all(OnUpdateHarrixSwissKnife._deep_equal_json(a_dict[k], b_dict[k]) for k in a_dict)
-        if isinstance(a, list):
-            b_list = cast("list[Any]", b)
-            a_list = cast("list[Any]", a)
-            if len(a_list) != len(b_list):
-                return False
-            return all(OnUpdateHarrixSwissKnife._deep_equal_json(x, y) for x, y in zip(a_list, b_list, strict=True))
-        return a == b
+    def _deep_merge_json(incoming: object, local: object) -> object:
+        """Keep `local` values; add keys that exist only in `incoming`."""
+        if isinstance(incoming, dict) and isinstance(local, dict):
+            incoming_dict = cast("dict[str, Any]", incoming)
+            local_dict = cast("dict[str, Any]", local)
+            merged: dict[str, Any] = {}
+            for key, incoming_value in incoming_dict.items():
+                if key in local_dict:
+                    merged[key] = OnUpdateHarrixSwissKnife._deep_merge_json(incoming_value, local_dict[key])
+                else:
+                    merged[key] = copy.deepcopy(incoming_value)
+            for key, local_value in local_dict.items():
+                if key not in merged:
+                    merged[key] = copy.deepcopy(local_value)
+            return merged
+        return copy.deepcopy(local)
 
     def _download_and_extract_zip(self, dest: Path, owner: str, work_dir: Path) -> Path | None:
         """Download and extract a GitHub ZIP; return the single top-level folder."""
@@ -352,16 +348,6 @@ class OnUpdateHarrixSwissKnife(ActionBase):
             out.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(f, out)
 
-    @staticmethod
-    def _top_level_keys_differing(local: dict[str, Any], incoming: dict[str, Any]) -> list[str]:
-        out: list[str] = []
-        for k, v_loc in local.items():
-            if k not in incoming:
-                continue
-            if not OnUpdateHarrixSwissKnife._deep_equal_json(v_loc, incoming[k]):
-                out.append(k)
-        return sorted(out)
-
     @ActionBase.handle_exceptions("update Harrix Swiss Knife stack thread completion")
     def _worker_finished(self, merge_tasks: Any) -> None:
         if not isinstance(merge_tasks, list):
@@ -394,30 +380,9 @@ class OnUpdateHarrixSwissKnife(ActionBase):
                 self.add_line(f"⚠️ {cfg_path}: skipping merge (unexpected local type).")
                 continue
 
-            local_dict = local
-            diff_keys = self._top_level_keys_differing(local_dict, incoming)
-            if not diff_keys:
-                merged = self._build_swiss_config_merged(local_dict, incoming, set())
-                self._write_config_json_pretty(cfg_path, merged)
-                self.add_line(f"✅ Merged {cfg_path} (no conflicting top-level keys).")
-                continue
-
-            labels = [f"Keep current value: {k}" for k in diff_keys]
-            selected = self.get_checkbox_selection(
-                "config.json merge",
-                "Checked keys keep your current value. Uncheck to take the value from the repository.",
-                labels,
-                default_selected=labels,
-            )
-            if selected is None:
-                self.add_line(f"⚠️ {cfg_path}: merge dialog cancelled — left repository version on disk.")
-                continue
-
-            key_by_label = {f"Keep current value: {k}": k for k in diff_keys}
-            keep_local_keys = {key_by_label[lab] for lab in selected if lab in key_by_label}
-            merged = self._build_swiss_config_merged(local_dict, incoming, keep_local_keys)
+            merged = self._build_swiss_config_merged(local, incoming)
             self._write_config_json_pretty(cfg_path, merged)
-            self.add_line(f"✅ Merged {cfg_path} with your key selection.")
+            self.add_line(f"✅ Merged {cfg_path} (kept local values, added new keys).")
 
         if getattr(self, "_updated_project_names", None):
             self.add_line("Restart the app to load the new code.")
