@@ -142,10 +142,13 @@ from harrix_swiss_knife.apps.fitness.dumbbell_weight_types import (
 )
 from harrix_swiss_knife.apps.fitness.dumbbell_weights_dialog import DumbbellWeightsDialog
 from harrix_swiss_knife.apps.fitness.exercise_add_dialog import ExerciseAddDialog
+from harrix_swiss_knife.apps.fitness.exercise_add_queue import (
+    PendingExerciseAdd,
+    find_queued_exercise_conflict,
+)
 from harrix_swiss_knife.apps.fitness.exercise_ai_fill import (
     ExerciseFillResult,
     request_exercise_fill_from_values,
-    should_auto_fill_exercise_on_ok,
 )
 from harrix_swiss_knife.apps.fitness.exercise_duplicate_dialog import show_exercise_already_exists
 from harrix_swiss_knife.apps.fitness.exercise_favorites import (
@@ -275,6 +278,9 @@ class MainWindow(
         self._exercise_media_toast: toast_countdown_notification.ToastCountdownNotification | None = None
         self._exercise_media_success_message: str | None = None
         self._exercise_add_after_media: tuple[str, bool] | None = None
+        self._exercise_add_deferred_media: tuple[str, bool, str] | None = None
+        self._exercise_add_queue: list[PendingExerciseAdd] = []
+        self._exercise_add_busy = False
 
         # Exercise list model
         self.exercises_list_model: QStandardItemModel | None = None
@@ -444,7 +450,10 @@ class MainWindow(
             return
 
         self._is_closing = True
+        self._exercise_add_queue.clear()
+        self._exercise_add_busy = False
         self._exercise_add_after_media = None
+        self._exercise_add_deferred_media = None
         self._close_exercise_media_toast()
         worker = self._exercise_media_worker
         if worker is not None and worker.isRunning():
@@ -653,7 +662,7 @@ class MainWindow(
 
     @requires_database()
     def on_add_exercise(self) -> None:
-        """Open modal dialog and insert a new exercise using database manager."""
+        """Queue a new exercise and immediately open the next Add dialog."""
         if self.db_manager is None:
             logger.error("❌ Database manager is not initialized")
             return
@@ -664,34 +673,15 @@ class MainWindow(
         result = dialog.get_result()
         if result is None:
             return
-        exercise, unit, is_type_required, calories_per_unit, name_local, is_favorite, media_path, with_dumbbells = (
-            result
-        )
-        if with_dumbbells:
-            is_type_required = True
-
-        if should_auto_fill_exercise_on_ok(name=exercise, name_local=name_local, media_path=media_path):
-            if self._show_duplicate_exercise_if_needed(exercise, name_local):
-                return
-            self._start_add_exercise_auto_fill(
-                is_type_required=is_type_required,
-                name_local=name_local,
-                is_favorite=is_favorite,
-                media_path=media_path,
-                with_dumbbells=with_dumbbells,
-            )
+        job = PendingExerciseAdd.from_dialog_result(result)
+        if self._show_duplicate_exercise_if_needed(job.name, job.name_local):
+            if not self._is_closing:
+                QTimer.singleShot(0, self.on_add_exercise)
             return
-
-        self._commit_new_exercise(
-            exercise,
-            unit,
-            is_type_required=is_type_required,
-            calories_per_unit=calories_per_unit,
-            name_local=name_local,
-            is_favorite=is_favorite,
-            media_path=media_path,
-            with_dumbbells=with_dumbbells,
-        )
+        self._exercise_add_queue.append(job)
+        self._pump_exercise_add_queue()
+        if not self._is_closing:
+            QTimer.singleShot(0, self.on_add_exercise)
 
     @requires_database()
     def on_add_record(self) -> None:
@@ -4616,6 +4606,9 @@ class MainWindow(
     def _cleanup_exercise_media_worker(self) -> None:
         """Drop finished exercise-media worker reference."""
         self._exercise_media_worker = None
+        if self._try_start_deferred_exercise_add_media():
+            return
+        self._pump_exercise_add_queue()
 
     def _close_exercise_media_toast(self) -> None:
         """Close the exercise-media conversion toast if present."""
@@ -4639,10 +4632,12 @@ class MainWindow(
         """Insert a new exercise and start optional media conversion."""
         if self.db_manager is None:
             logger.error("❌ Database manager is not initialized")
+            self._on_exercise_add_job_finished()
             return
         if with_dumbbells:
             is_type_required = True
-        if self._show_duplicate_exercise_if_needed(exercise, name_local):
+        if self._show_duplicate_exercise_if_needed(exercise, name_local, exclude_active_queue_job=True):
+            self._on_exercise_add_job_finished()
             return
         try:
             if self.db_manager.add_exercise(
@@ -4663,8 +4658,10 @@ class MainWindow(
                 )
             else:
                 message_box.warning(self, "Error", "Failed to add exercise")
+                self._on_exercise_add_job_finished()
         except Exception as e:
             message_box.warning(self, "Database Error", f"Failed to add exercise: {e}")
+            self._on_exercise_add_job_finished()
 
     @requires_database()
     def _commit_process_record(
@@ -4744,8 +4741,7 @@ class MainWindow(
         """Apply table refresh after add when no media conversion is pending."""
         self._refresh_ui_after_exercise_add(exercise, with_dumbbells=with_dumbbells)
         self._close_exercise_media_toast()
-        if not self._is_closing:
-            QTimer.singleShot(0, self.on_add_exercise)
+        self._on_exercise_add_job_finished()
 
     def _configure_exercise_image_table(self, table_view: QTableView) -> None:
         """Show a fixed first column for the exercise still image."""
@@ -5062,11 +5058,9 @@ class MainWindow(
         """
 
         def find_duplicate(name: str, name_local: str) -> tuple[str, str] | None:
-            if self.db_manager is None:
-                return None
-            return self.db_manager.find_duplicate_exercise(
-                name=name,
-                name_local=name_local,
+            return self._find_duplicate_exercise_names(
+                name,
+                name_local,
                 exclude_id=exclude_id,
             )
 
@@ -5346,6 +5340,32 @@ class MainWindow(
         self.comboBox_filter_type.setCurrentIndex(index)
         self.apply_filter()
 
+    def _find_duplicate_exercise_names(
+        self,
+        name: str,
+        name_local: str,
+        *,
+        exclude_id: int | None = None,
+        exclude_active_queue_job: bool = False,
+    ) -> tuple[str, str] | None:
+        """Return catalog or queued names that already use `name` or `name_local`."""
+        if self.db_manager is not None:
+            found = self.db_manager.find_duplicate_exercise(
+                name=name,
+                name_local=name_local,
+                exclude_id=exclude_id,
+            )
+            if found is not None:
+                return found
+        job = find_queued_exercise_conflict(
+            self._queued_exercise_add_jobs(exclude_active=exclude_active_queue_job),
+            name,
+            name_local,
+        )
+        if job is None:
+            return None
+        return job.name, job.name_local
+
     def _finish_add_exercise(
         self,
         exercise: str,
@@ -5353,14 +5373,22 @@ class MainWindow(
         media_path: str | None,
         with_dumbbells: bool,
     ) -> None:
-        """Refresh UI under a toast, then open Add Exercise again."""
+        """Refresh UI under a toast, then process the next queued add."""
         if media_path:
-            self._exercise_add_after_media = (exercise, with_dumbbells)
-            if not self._start_exercise_media_save(exercise, media_path):
-                self._exercise_add_after_media = None
-                self._complete_exercise_add_without_media(exercise, with_dumbbells=with_dumbbells)
+            if self._start_exercise_media_save(exercise, media_path, quiet_if_busy=True):
+                self._exercise_add_after_media = (exercise, with_dumbbells)
+                return
+            worker = self._exercise_media_worker
+            if worker is not None and worker.isRunning():
+                self._exercise_add_deferred_media = (exercise, with_dumbbells, media_path)
+                return
+            self._complete_exercise_add_without_media(exercise, with_dumbbells=with_dumbbells)
             return
-        self._show_exercise_work_toast(f"Adding '{exercise}'…")
+        waiting = max(0, len(self._exercise_add_queue) - 1)
+        toast = f"Adding '{exercise}'…"
+        if waiting:
+            toast = f"{toast} ({waiting} waiting)"
+        self._show_exercise_work_toast(toast)
         QTimer.singleShot(
             0,
             lambda name=exercise, dumbbells=with_dumbbells: self._complete_exercise_add_without_media(
@@ -6324,6 +6352,15 @@ class MainWindow(
             # Optional: Show a brief notification (you can remove this if not needed)
             # You could add a toast notification here if you have one
 
+    def _on_exercise_add_job_finished(self) -> None:
+        """Drop the active add-exercise job and start the next queued one."""
+        if self._exercise_add_busy and self._exercise_add_queue:
+            self._exercise_add_queue.pop(0)
+        self._exercise_add_busy = False
+        if self._is_closing:
+            return
+        QTimer.singleShot(0, self._pump_exercise_add_queue)
+
     def _on_exercise_media_save_completed(self, exercise_name: str, _target_path: str) -> None:
         """Refresh previews after background media conversion succeeds."""
         pending_add = self._exercise_add_after_media
@@ -6337,8 +6374,8 @@ class MainWindow(
         self._exercise_media_success_message = None
         if success_message:
             message_box.information(self, "Media Saved", success_message)
-        if pending_add is not None and not self._is_closing:
-            QTimer.singleShot(0, self.on_add_exercise)
+        if pending_add is not None:
+            self._on_exercise_add_job_finished()
 
     def _on_exercise_media_save_failed(self, exercise_name: str, error_message: str) -> None:
         """Show conversion failure after background media save."""
@@ -6354,8 +6391,8 @@ class MainWindow(
             "Media Error",
             f"Failed to save media for '{exercise_name}':\n{error_message}",
         )
-        if pending_add is not None and not self._is_closing:
-            QTimer.singleShot(0, self.on_add_exercise)
+        if pending_add is not None:
+            self._on_exercise_add_job_finished()
 
     def _on_exercise_preview_media_dropped(self, paths: list[str], *, table_name: str = "exercises") -> None:
         """Save dropped media for the exercise selected in `table_name`.
@@ -6757,6 +6794,45 @@ class MainWindow(
                 parent=self,
             )
             toast.present()
+
+    def _pump_exercise_add_queue(self) -> None:
+        """Start the next queued add when AI, media, and the previous job are idle."""
+        if self._is_closing or self._exercise_add_busy or not self._exercise_add_queue:
+            return
+        if self._exercise_add_deferred_media is not None:
+            return
+        worker = self._exercise_media_worker
+        if worker is not None and worker.isRunning():
+            return
+        job = self._exercise_add_queue[0]
+        if job.auto_fill:
+            if self._bothub_state.worker is not None:
+                QTimer.singleShot(250, self._pump_exercise_add_queue)
+                return
+            self._exercise_add_busy = True
+            if self._start_add_exercise_auto_fill(job):
+                return
+            if self._exercise_add_busy:
+                self._on_exercise_add_job_finished()
+            return
+        self._exercise_add_busy = True
+        self._commit_new_exercise(
+            job.name,
+            job.unit,
+            is_type_required=job.is_type_required,
+            calories_per_unit=job.calories_per_unit,
+            name_local=job.name_local,
+            is_favorite=job.is_favorite,
+            media_path=job.media_path,
+            with_dumbbells=job.with_dumbbells,
+        )
+
+    def _queued_exercise_add_jobs(self, *, exclude_active: bool = False) -> list[PendingExerciseAdd]:
+        """Return queued add jobs, optionally skipping the one being committed."""
+        jobs = list(self._exercise_add_queue)
+        if exclude_active and self._exercise_add_busy and jobs:
+            return jobs[1:]
+        return jobs
 
     def _refresh_exercise_media_ui(self, exercise_name: str) -> None:
         """Reload labels/icons after AVIF for `exercise_name` changed."""
@@ -7372,6 +7448,7 @@ class MainWindow(
         name_local: str,
         *,
         exclude_id: int | None = None,
+        exclude_active_queue_job: bool = False,
     ) -> bool:
         """Show the duplicate-exercise warning when a catalog name is already taken.
 
@@ -7380,18 +7457,18 @@ class MainWindow(
         - `name` (`str`): English name to check.
         - `name_local` (`str`): Local name to check.
         - `exclude_id` (`int | None`): Exercise ID to ignore. Defaults to `None`.
+        - `exclude_active_queue_job` (`bool`): Skip the job currently being committed.
 
         Returns:
 
         - `bool`: `True` when a duplicate was shown.
 
         """
-        if self.db_manager is None:
-            return False
-        found = self.db_manager.find_duplicate_exercise(
-            name=name,
-            name_local=name_local,
+        found = self._find_duplicate_exercise_names(
+            name,
+            name_local,
             exclude_id=exclude_id,
+            exclude_active_queue_job=exclude_active_queue_job,
         )
         if found is None:
             return False
@@ -7731,37 +7808,30 @@ class MainWindow(
             logger.debug("🔧 Context menu: Export to Excel action triggered")
             self._export_named_table("weight", prefer="xlsx")
 
-    def _start_add_exercise_auto_fill(
-        self,
-        *,
-        is_type_required: bool,
-        name_local: str,
-        is_favorite: bool,
-        media_path: str,
-        with_dumbbells: bool,
-    ) -> None:
+    def _start_add_exercise_auto_fill(self, job: PendingExerciseAdd) -> bool:
         """Fill English fields after the add dialog closes, without blocking the UI."""
 
         def on_filled(result: ExerciseFillResult) -> None:
             self._commit_new_exercise(
                 result.name,
                 result.unit,
-                is_type_required=is_type_required,
+                is_type_required=job.is_type_required,
                 calories_per_unit=result.calories_per_unit,
                 name_local=result.name_local,
-                is_favorite=is_favorite,
-                media_path=media_path,
-                with_dumbbells=with_dumbbells,
+                is_favorite=job.is_favorite,
+                media_path=job.media_path,
+                with_dumbbells=job.with_dumbbells,
             )
 
-        request_exercise_fill_from_values(
+        return request_exercise_fill_from_values(
             self,
             app_config=self._app_config,
             bothub_state=self._bothub_state,
-            name="",
-            name_local=name_local,
-            media_path=media_path,
+            name=job.name,
+            name_local=job.name_local,
+            media_path=job.media_path,
             on_filled=on_filled,
+            on_idle=self._on_exercise_add_job_finished,
             owner_modal=False,
         )
 
@@ -7771,8 +7841,14 @@ class MainWindow(
         source_path: str,
         *,
         success_message: str | None = None,
+        quiet_if_busy: bool = False,
     ) -> bool:
         """Convert exercise media in a worker thread and show a countdown toast.
+
+        Args:
+
+        - `success_message` (`str | None`): Optional info box after a successful save.
+        - `quiet_if_busy` (`bool`): Skip the "already in progress" warning.
 
         Returns:
 
@@ -7784,7 +7860,8 @@ class MainWindow(
             return False
         worker = self._exercise_media_worker
         if worker is not None and worker.isRunning():
-            message_box.warning(self, "Please Wait", "Media conversion is already in progress")
+            if not quiet_if_busy:
+                message_box.warning(self, "Please Wait", "Media conversion is already in progress")
             return False
 
         self._exercise_media_success_message = success_message
@@ -7951,6 +8028,18 @@ class MainWindow(
 
         self._process_date_color_map = date_to_color
         return transformed_rows
+
+    def _try_start_deferred_exercise_add_media(self) -> bool:
+        """Start media conversion for an add that waited on another worker."""
+        deferred = self._exercise_add_deferred_media
+        if deferred is None or self._is_closing:
+            return False
+        exercise, with_dumbbells, media_path = deferred
+        if not self._start_exercise_media_save(exercise, media_path, quiet_if_busy=True):
+            return False
+        self._exercise_add_deferred_media = None
+        self._exercise_add_after_media = (exercise, with_dumbbells)
+        return True
 
     def _update_chart_based_on_radio_button(self) -> None:
         """Update chart based on selected radio button."""
