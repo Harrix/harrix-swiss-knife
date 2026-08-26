@@ -21,9 +21,9 @@ TRAY_LOADING_TITLE = "Harrix Swiss Knife"
 _LOADING_LINE = "Loading..."
 _SECONDS_PER_HOUR = 3600
 _SECONDS_PER_MINUTE = 60
-_WIDTH_DIP = 560
-_HEIGHT_DIP = 180
-_RADIUS_DIP = 16
+_WIDTH_DIP = 400
+_HEIGHT_DIP = 160
+_RADIUS_DIP = 8
 _LOGO_DIP = 72
 _PAD_DIP = 28
 _GAP_DIP = 20
@@ -175,8 +175,8 @@ def splash_status_lines(seconds: int) -> tuple[str, str, str]:
 
 
 def _apply_round_region(hwnd: int, width: int, height: int) -> None:
-    radius = _dip(_RADIUS_DIP, _dpi_for_hwnd(hwnd)) * 2
-    region = _gdi32().CreateRoundRectRgn(0, 0, width + 1, height + 1, radius, radius)
+    ellipse = _corner_ellipse(hwnd)
+    region = _gdi32().CreateRoundRectRgn(0, 0, width + 1, height + 1, ellipse, ellipse)
     if not region:
         return
     _user32().SetWindowRgn(hwnd, region, True)  # noqa: FBT003
@@ -211,6 +211,11 @@ def _client_rect(hwnd: int) -> wintypes.RECT:
     rect = wintypes.RECT()
     _user32().GetClientRect(hwnd, ctypes.byref(rect))
     return rect
+
+
+def _corner_ellipse(hwnd: int) -> int:
+    """Return the GDI ellipse size for rounded corners (twice the visual radius)."""
+    return _dip(_RADIUS_DIP, _dpi_for_hwnd(hwnd)) * 2
 
 
 def _create_font(gdi32: ctypes.WinDLL, *, point_size: int, dpi: int) -> int:
@@ -346,8 +351,8 @@ def _paint(hwnd: int) -> None:
         pen = gdi32.CreatePen(_PS_SOLID, 1, _BORDER_COLOR)
         old_brush = gdi32.SelectObject(target, fill) if fill else 0
         old_pen = gdi32.SelectObject(target, pen) if pen else 0
-        radius = _dip(_RADIUS_DIP, _dpi_for_hwnd(hwnd))
-        gdi32.RoundRect(target, 0, 0, width, height, radius, radius)
+        ellipse = _corner_ellipse(hwnd)
+        gdi32.RoundRect(target, 0, 0, width, height, ellipse, ellipse)
         if old_brush:
             gdi32.SelectObject(target, old_brush)
         if old_pen:
