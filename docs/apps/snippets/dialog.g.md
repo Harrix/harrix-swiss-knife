@@ -146,6 +146,7 @@ class SnippetsDialog(QDialog):
     def present(self) -> None:
         """Show and focus the overlay."""
         self.reload_all()
+        self._center_on_screen()
         self.show()
         self.raise_()
         self.activateWindow()
@@ -268,6 +269,9 @@ class SnippetsDialog(QDialog):
         resize_row.addStretch()
         resize_row.addWidget(QSizeGrip(self), alignment=Qt.AlignmentFlag.AlignRight)
         self._layout.addLayout(resize_row)
+
+    def _center_on_screen(self) -> None:
+        center_widget_on_available_screen(self)
 
     def _delete_item(self, snippet: SnippetItem) -> None:
         reply = message_box.question(
@@ -602,6 +606,7 @@ Show and focus the overlay.
 ```python
 def present(self) -> None:
         self.reload_all()
+        self._center_on_screen()
         self.show()
         self.raise_()
         self.activateWindow()

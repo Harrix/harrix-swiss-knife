@@ -24,6 +24,7 @@ from PySide6.QtWidgets import (
 
 from harrix_swiss_knife.action_hotkeys import load_hotkeys_for_action
 from harrix_swiss_knife.action_title import strip_md_inline_code_markers
+from harrix_swiss_knife.actions.common.dialog_geometry import center_widget_on_available_screen
 from harrix_swiss_knife.actions.common.quick_launcher_settings import load_quick_launcher_markdown_in_panel
 from harrix_swiss_knife.actions.markdown.new_markdown import OnNewMarkdown
 from harrix_swiss_knife.cli_menu import show_action_class_context_menu
@@ -306,13 +307,7 @@ class QuickLauncherDialog(QDialog):
         return not self._is_drag_excluded_widget(child)
 
     def _center_on_screen(self) -> None:
-        screen = QApplication.primaryScreen()
-        if screen is None:
-            return
-        geometry = screen.availableGeometry()
-        x = geometry.center().x() - self.width() // 2
-        y = geometry.center().y() - self.height() // 3
-        self.move(x, y)
+        center_widget_on_available_screen(self)
 
     def _content_height_metrics(self) -> _ContentHeightMetrics:
         for grid in (self._cards, self._markdown_cards):

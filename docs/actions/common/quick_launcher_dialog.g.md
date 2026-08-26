@@ -294,13 +294,7 @@ class QuickLauncherDialog(QDialog):
         return not self._is_drag_excluded_widget(child)
 
     def _center_on_screen(self) -> None:
-        screen = QApplication.primaryScreen()
-        if screen is None:
-            return
-        geometry = screen.availableGeometry()
-        x = geometry.center().x() - self.width() // 2
-        y = geometry.center().y() - self.height() // 3
-        self.move(x, y)
+        center_widget_on_available_screen(self)
 
     def _content_height_metrics(self) -> _ContentHeightMetrics:
         for grid in (self._cards, self._markdown_cards):

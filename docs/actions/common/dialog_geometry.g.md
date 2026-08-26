@@ -13,6 +13,8 @@ lang: en
 
 - [🔧 Function `apply_adaptive_dialog_size`](#-function-apply_adaptive_dialog_size)
 - [🔧 Function `available_max_height`](#-function-available_max_height)
+- [🔧 Function `center_widget_on_available_screen`](#-function-center_widget_on_available_screen)
+- [🔧 Function `centered_top_left`](#-function-centered_top_left)
 - [🔧 Function `fit_widget_height`](#-function-fit_widget_height)
 - [🔧 Function `icon_grid_content_height`](#-function-icon_grid_content_height)
 - [🔧 Function `list_content_height`](#-function-list_content_height)
@@ -94,6 +96,49 @@ def available_max_height(widget: QWidget | None = None) -> int:
     if screen is None:
         return 768
     return max(MIN_DIALOG_HEIGHT, int(screen.availableGeometry().height() * _SCREEN_HEIGHT_RATIO))
+```
+
+</details>
+
+## 🔧 Function `center_widget_on_available_screen`
+
+```python
+def center_widget_on_available_screen(widget: QWidget) -> None
+```
+
+Move `widget` to the center of the work area on the screen under the cursor.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def center_widget_on_available_screen(widget: QWidget) -> None:
+    screen = QGuiApplication.screenAt(QCursor.pos()) or widget.screen() or QApplication.primaryScreen()
+    if screen is None:
+        return
+    widget.move(centered_top_left(screen.availableGeometry(), widget.size()))
+```
+
+</details>
+
+## 🔧 Function `centered_top_left`
+
+```python
+def centered_top_left(area: QRect, size: QSize) -> QPoint
+```
+
+Return the top-left so `size` sits in the middle of `area`.
+
+If `size` is larger than `area`, pin to the top-left of `area`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def centered_top_left(area: QRect, size: QSize) -> QPoint:
+    x = area.x() + max(0, (area.width() - size.width()) // 2)
+    y = area.y() + max(0, (area.height() - size.height()) // 2)
+    return QPoint(x, y)
 ```
 
 </details>

@@ -22,6 +22,7 @@ from PySide6.QtWidgets import (
 )
 from shiboken6 import isValid
 
+from harrix_swiss_knife.actions.common.dialog_geometry import center_widget_on_available_screen
 from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.db_init import init_tracker_database
 from harrix_swiss_knife.apps.common.dialogs.text_input_dialog import TextInputDialog
@@ -177,6 +178,7 @@ class SnippetsDialog(QDialog):
     def present(self) -> None:
         """Show and focus the overlay."""
         self.reload_all()
+        self._center_on_screen()
         self.show()
         self.raise_()
         self.activateWindow()
@@ -299,6 +301,9 @@ class SnippetsDialog(QDialog):
         resize_row.addStretch()
         resize_row.addWidget(QSizeGrip(self), alignment=Qt.AlignmentFlag.AlignRight)
         self._layout.addLayout(resize_row)
+
+    def _center_on_screen(self) -> None:
+        center_widget_on_available_screen(self)
 
     def _delete_item(self, snippet: SnippetItem) -> None:
         reply = message_box.question(

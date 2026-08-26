@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from PySide6.QtCore import QSize
+from PySide6.QtCore import QPoint, QRect, QSize
+from PySide6.QtGui import QCursor, QGuiApplication
 from PySide6.QtWidgets import QApplication, QPlainTextEdit, QTextBrowser, QTextEdit, QWidget
 
 from harrix_swiss_knife.qt_command_section import measure_icon_grid_height
@@ -71,6 +72,25 @@ def available_max_height(widget: QWidget | None = None) -> int:
     if screen is None:
         return 768
     return max(MIN_DIALOG_HEIGHT, int(screen.availableGeometry().height() * _SCREEN_HEIGHT_RATIO))
+
+
+def center_widget_on_available_screen(widget: QWidget) -> None:
+    """Move `widget` to the center of the work area on the screen under the cursor."""
+    screen = QGuiApplication.screenAt(QCursor.pos()) or widget.screen() or QApplication.primaryScreen()
+    if screen is None:
+        return
+    widget.move(centered_top_left(screen.availableGeometry(), widget.size()))
+
+
+def centered_top_left(area: QRect, size: QSize) -> QPoint:
+    """Return the top-left so `size` sits in the middle of `area`.
+
+    If `size` is larger than `area`, pin to the top-left of `area`.
+
+    """
+    x = area.x() + max(0, (area.width() - size.width()) // 2)
+    y = area.y() + max(0, (area.height() - size.height()) // 2)
+    return QPoint(x, y)
 
 
 def fit_widget_height(

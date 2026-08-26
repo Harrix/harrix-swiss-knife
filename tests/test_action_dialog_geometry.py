@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import pytest
-from PySide6.QtCore import QSize
+from PySide6.QtCore import QRect, QSize
 from PySide6.QtWidgets import (
     QApplication,
     QDialog,
@@ -19,6 +19,7 @@ from harrix_swiss_knife.actions.common.dialog_geometry import (
     MIN_DIALOG_HEIGHT,
     apply_adaptive_dialog_size,
     available_max_height,
+    centered_top_left,
     fit_widget_height,
     list_content_height,
 )
@@ -130,3 +131,19 @@ def test_apply_adaptive_dialog_size_keeps_width(qapp: QApplication) -> None:  # 
         assert MIN_DIALOG_HEIGHT <= size.height() <= 768
     finally:
         dialog.close()
+
+
+def test_centered_top_left_is_true_center() -> None:
+    # 1920x1080 at 125% is about 1536x864 logical; taskbar leaves ~826 px work area.
+    area = QRect(0, 0, 1536, 826)
+    size = QSize(1280, 760)
+    point = centered_top_left(area, size)
+    assert point.x() == (1536 - 1280) // 2
+    assert point.y() == (826 - 760) // 2
+
+
+def test_centered_top_left_pins_when_larger_than_area() -> None:
+    area = QRect(100, 50, 800, 600)
+    point = centered_top_left(area, QSize(900, 700))
+    assert point.x() == 100
+    assert point.y() == 50
