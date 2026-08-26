@@ -5,7 +5,8 @@ from __future__ import annotations
 import pytest
 from PySide6.QtCore import QEvent, QPointF, Qt
 from PySide6.QtGui import QKeyEvent, QMouseEvent, QPixmap
-from PySide6.QtWidgets import QApplication, QDialog, QLabel, QPushButton
+from PySide6.QtTest import QTest
+from PySide6.QtWidgets import QApplication, QDialog, QLabel, QPushButton, QWidget
 
 from harrix_swiss_knife.screenshot.region_overlay import RESULT_TOGGLE_ARRANGE, RegionOverlay
 from harrix_swiss_knife.screenshot.shutter_button import ArrangeModeDialog, ShutterPanel
@@ -66,7 +67,7 @@ def test_overlay_without_controls_has_no_panel(qapp: QApplication) -> None:  # n
     overlay.close()
 
 
-def test_escape_during_drag_clears_selection_without_closing(qapp: QApplication) -> None:  # noqa: ARG001
+def test_escape_during_drag_cancels_capture(qapp: QApplication) -> None:  # noqa: ARG001
     overlay = RegionOverlay(QPixmap(200, 200), QApplication.primaryScreen().geometry())
     overlay.show()
     QApplication.processEvents()
@@ -85,11 +86,9 @@ def test_escape_during_drag_clears_selection_without_closing(qapp: QApplication)
 
     escape = QKeyEvent(QKeyEvent.Type.KeyPress, Qt.Key.Key_Escape, Qt.KeyboardModifier.NoModifier)
     overlay.keyPressEvent(escape)
+    QApplication.processEvents()
 
-    assert overlay._origin is None
-    assert overlay._current is None
-    assert overlay.result() == 0
-    assert overlay.isVisible()
+    assert overlay.result() == int(QDialog.DialogCode.Rejected)
     overlay.close()
 
 
@@ -104,6 +103,40 @@ def test_escape_without_drag_rejects_overlay(qapp: QApplication) -> None:  # noq
 
     assert overlay.result() == int(QDialog.DialogCode.Rejected)
     overlay.close()
+
+
+def test_escape_key_cancels_overlay_with_shutter_controls(qapp: QApplication) -> None:  # noqa: ARG001
+    overlay = RegionOverlay(
+        QPixmap(200, 200),
+        QApplication.primaryScreen().geometry(),
+        with_shutter_controls=True,
+    )
+    overlay.show()
+    QApplication.processEvents()
+    QTest.keyClick(overlay, Qt.Key.Key_Escape)
+    QApplication.processEvents()
+    assert overlay.result() == int(QDialog.DialogCode.Rejected)
+    overlay.close()
+
+
+def test_overlay_grabs_keyboard_while_visible(qapp: QApplication) -> None:  # noqa: ARG001
+    overlay = RegionOverlay(QPixmap(200, 200), QApplication.primaryScreen().geometry())
+    overlay.show()
+    QApplication.processEvents()
+    assert QWidget.keyboardGrabber() is overlay
+    overlay.close()
+    QApplication.processEvents()
+    assert QWidget.keyboardGrabber() is not overlay
+
+
+def test_escape_key_cancels_arrange_dialog(qapp: QApplication) -> None:  # noqa: ARG001
+    dialog = ArrangeModeDialog()
+    dialog.show()
+    QApplication.processEvents()
+    QTest.keyClick(dialog, Qt.Key.Key_Escape)
+    QApplication.processEvents()
+    assert dialog.result() == int(QDialog.DialogCode.Rejected)
+    dialog.close()
 
 
 def test_arrange_dialog_accepts_on_camera_and_rejects_on_close(qapp: QApplication) -> None:  # noqa: ARG001

@@ -4,14 +4,11 @@ from __future__ import annotations
 
 import sys
 from dataclasses import dataclass, replace
-from typing import TYPE_CHECKING, Literal
+from typing import Literal
 
 from PySide6.QtCore import Qt, QTimer
-from PySide6.QtWidgets import QApplication, QDialog
+from PySide6.QtWidgets import QApplication, QDialog, QWidget
 from shiboken6 import isValid
-
-if TYPE_CHECKING:
-    from PySide6.QtWidgets import QWidget
 
 if sys.platform == "win32":
     import ctypes
@@ -58,6 +55,24 @@ def bring_window_to_foreground(widget: QWidget, *, delays_ms: tuple[int, ...] | 
         delays_ms = _REPIN_MODAL_DELAYS_MS
     if delays_ms:
         _schedule_foreground(widget, delays_ms=delays_ms)
+
+
+def claim_screenshot_keyboard(widget: QWidget) -> None:
+    """Focus `widget` and grab the keyboard so Escape reaches screenshot UI.
+
+    Region overlay and arrange dialogs are `Tool` Windows. On Windows they often
+    stay behind the previous foreground window, so Escape never arrives unless
+    we force activation and take a keyboard grab.
+
+    Args:
+
+    - `widget` (`QWidget`): Overlay or arrange dialog that must receive Escape.
+
+    """
+    widget.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+    bring_window_to_foreground(widget, delays_ms=())
+    widget.setFocus(Qt.FocusReason.ActiveWindowFocusReason)
+    widget.grabKeyboard()
 
 
 def hide_app_windows() -> list[ConcealedWindow]:
@@ -115,6 +130,18 @@ def is_screenshot_ui(widget: QWidget) -> bool:
 def mark_screenshot_ui(widget: QWidget) -> None:
     """Mark a widget so it is not hidden with the rest of the application."""
     widget.setProperty(HSK_SCREENSHOT_UI_PROP, True)  # noqa: FBT003
+
+
+def release_screenshot_keyboard(widget: QWidget) -> None:
+    """Release a keyboard grab taken by `claim_screenshot_keyboard`.
+
+    Args:
+
+    - `widget` (`QWidget`): Overlay or arrange dialog that grabbed the keyboard.
+
+    """
+    if QWidget.keyboardGrabber() is widget:
+        widget.releaseKeyboard()
 
 
 def restore_app_windows(widgets: list[ConcealedWindow], *, activate: bool = True) -> None:

@@ -13,9 +13,11 @@ lang: en
 
 - [🏛️ Class `ConcealedWindow`](#%EF%B8%8F-class-concealedwindow)
 - [🔧 Function `bring_window_to_foreground`](#-function-bring_window_to_foreground)
+- [🔧 Function `claim_screenshot_keyboard`](#-function-claim_screenshot_keyboard)
 - [🔧 Function `hide_app_windows`](#-function-hide_app_windows)
 - [🔧 Function `is_screenshot_ui`](#-function-is_screenshot_ui)
 - [🔧 Function `mark_screenshot_ui`](#-function-mark_screenshot_ui)
+- [🔧 Function `release_screenshot_keyboard`](#-function-release_screenshot_keyboard)
 - [🔧 Function `restore_app_windows`](#-function-restore_app_windows)
 
 </details>
@@ -69,6 +71,35 @@ def bring_window_to_foreground(widget: QWidget, *, delays_ms: tuple[int, ...] | 
         delays_ms = _REPIN_MODAL_DELAYS_MS
     if delays_ms:
         _schedule_foreground(widget, delays_ms=delays_ms)
+```
+
+</details>
+
+## 🔧 Function `claim_screenshot_keyboard`
+
+```python
+def claim_screenshot_keyboard(widget: QWidget) -> None
+```
+
+Focus `widget` and grab the keyboard so Escape reaches screenshot UI.
+
+Region overlay and arrange dialogs are `Tool` Windows. On Windows they often
+stay behind the previous foreground window, so Escape never arrives unless
+we force activation and take a keyboard grab.
+
+Args:
+
+- `widget` (`QWidget`): Overlay or arrange dialog that must receive Escape.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def claim_screenshot_keyboard(widget: QWidget) -> None:
+    widget.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+    bring_window_to_foreground(widget, delays_ms=())
+    widget.setFocus(Qt.FocusReason.ActiveWindowFocusReason)
+    widget.grabKeyboard()
 ```
 
 </details>
@@ -163,6 +194,29 @@ Mark a widget so it is not hidden with the rest of the application.
 ```python
 def mark_screenshot_ui(widget: QWidget) -> None:
     widget.setProperty(HSK_SCREENSHOT_UI_PROP, True)  # noqa: FBT003
+```
+
+</details>
+
+## 🔧 Function `release_screenshot_keyboard`
+
+```python
+def release_screenshot_keyboard(widget: QWidget) -> None
+```
+
+Release a keyboard grab taken by [`claim_screenshot_keyboard`](#-function-claim_screenshot_keyboard).
+
+Args:
+
+- `widget` (`QWidget`): Overlay or arrange dialog that grabbed the keyboard.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def release_screenshot_keyboard(widget: QWidget) -> None:
+    if QWidget.keyboardGrabber() is widget:
+        widget.releaseKeyboard()
 ```
 
 </details>

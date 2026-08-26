@@ -48,6 +48,7 @@ COLOR_TEXT = QColor("#111827")
 COLOR_SUCCESS = QColor("#22C55E")
 COLOR_RATE = QColor("#F97316")
 COLOR_STREAK = QColor("#EF4444")
+COLOR_NOTE = QColor("#ad403b")
 MONTHS_IN_YEAR = 12
 CALENDAR_NAV_BUTTON_STYLE = """
     QPushButton {
@@ -1109,14 +1110,14 @@ def _month_short(month: int) -> str:
 
 
 def _paint_comment_dot(painter: QPainter, rect: QRectF, *, has_comment: bool) -> None:
-    """Draw a blue badge at the top-right when the day has a note."""
+    """Draw a red badge at the top-right when the day has a note."""
     if not has_comment:
         return
     pen_width = 2.6
     pen = QPen(QColor("white"), pen_width)
     pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
     painter.setPen(pen)
-    painter.setBrush(COLOR_PRIMARY)
+    painter.setBrush(COLOR_NOTE)
     side = min(rect.width(), rect.height())
     dot = max(5.0, side * 0.28)
     inset = pen_width / 2.0

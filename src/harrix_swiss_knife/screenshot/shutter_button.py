@@ -17,10 +17,15 @@ from PySide6.QtWidgets import (
 
 from harrix_swiss_knife.qt_emoji_icon import create_emoji_icon
 from harrix_swiss_knife.qt_frameless_window import frameless_stay_on_top_flags
-from harrix_swiss_knife.screenshot.window_visibility import mark_screenshot_ui
+from harrix_swiss_knife.screenshot.window_visibility import (
+    claim_screenshot_keyboard,
+    mark_screenshot_ui,
+    release_screenshot_keyboard,
+)
 
 if TYPE_CHECKING:
     from PySide6.QtCore import QRect
+    from PySide6.QtGui import QHideEvent, QKeyEvent, QShowEvent
 
 _BUTTON_SIZE = 56
 _BUTTON_GAP = 8
@@ -76,6 +81,8 @@ class ArrangeModeDialog(QDialog):
         mark_screenshot_ui(self)
         self.setWindowFlags(frameless_stay_on_top_flags())
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+        self.setWindowModality(Qt.WindowModality.ApplicationModal)
         panel = ShutterPanel(self)
         panel.set_mode("arrange")
         panel.triggered.connect(self.accept)
@@ -84,6 +91,38 @@ class ArrangeModeDialog(QDialog):
         self._panel = panel
         self._fit_panel()
         self._position_on_primary_screen()
+
+    def event(self, event: QEvent) -> bool:
+        """Accept Escape as a shortcut override so it is not stolen by other Windows.
+
+        Args:
+
+        - `event` (`QEvent`): The event being delivered to the dialog.
+
+        """
+        key = getattr(event, "key", None)
+        if event.type() == QEvent.Type.ShortcutOverride and callable(key) and key() == Qt.Key.Key_Escape:
+            event.accept()
+            return True
+        return super().event(event)
+
+    def hideEvent(self, event: QHideEvent) -> None:  # noqa: N802
+        """Release the keyboard grab when arrange mode is closed."""
+        release_screenshot_keyboard(self)
+        super().hideEvent(event)
+
+    def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
+        """Escape cancels the screenshot capture."""
+        if event.key() == Qt.Key.Key_Escape:
+            self.reject()
+            event.accept()
+            return
+        super().keyPressEvent(event)
+
+    def showEvent(self, event: QShowEvent) -> None:  # noqa: N802
+        """Take keyboard focus so Escape cancels capture in arrange mode."""
+        super().showEvent(event)
+        claim_screenshot_keyboard(self)
 
     def _fit_panel(self) -> None:
         """Keep the dialog size matched to the panel (grows when a hint is shown)."""

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from PySide6.QtCore import QPoint, QRect, Qt
+from PySide6.QtCore import QEvent, QPoint, QRect, Qt
 from PySide6.QtGui import QColor, QImage, QPainter, QPen, QPixmap
 from PySide6.QtWidgets import QDialog
 
@@ -14,10 +14,14 @@ from harrix_swiss_knife.screenshot.dpi import (
     pixmap_device_pixel_ratio,
 )
 from harrix_swiss_knife.screenshot.shutter_button import ShutterPanel, position_panel_on_left_edge
-from harrix_swiss_knife.screenshot.window_visibility import mark_screenshot_ui
+from harrix_swiss_knife.screenshot.window_visibility import (
+    claim_screenshot_keyboard,
+    mark_screenshot_ui,
+    release_screenshot_keyboard,
+)
 
 if TYPE_CHECKING:
-    from PySide6.QtGui import QKeyEvent, QMouseEvent, QPaintEvent
+    from PySide6.QtGui import QHideEvent, QKeyEvent, QMouseEvent, QPaintEvent, QShowEvent
 
 _MIN_SELECTION = 2
 _DIM_COLOR = QColor(0, 0, 0, 120)
@@ -57,6 +61,8 @@ class RegionOverlay(QDialog):
         )
         self.setCursor(Qt.CursorShape.CrossCursor)
         self.setMouseTracking(True)
+        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+        self.setWindowModality(Qt.WindowModality.ApplicationModal)
         self.setGeometry(geometry)
 
         self._frozen = frozen
@@ -77,16 +83,30 @@ class RegionOverlay(QDialog):
         """Return the selected crop, or `None` if cancelled / empty."""
         return self._crop
 
+    def event(self, event: QEvent) -> bool:
+        """Accept Escape as a shortcut override so it is not stolen by other Windows.
+
+        Args:
+
+        - `event` (`QEvent`): The event being delivered to the overlay.
+
+        """
+        if event.type() == QEvent.Type.ShortcutOverride and _is_escape_key(event):
+            event.accept()
+            return True
+        return super().event(event)
+
+    def hideEvent(self, event: QHideEvent) -> None:  # noqa: N802
+        """Release the keyboard grab when the overlay is hidden."""
+        release_screenshot_keyboard(self)
+        super().hideEvent(event)
+
     def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
-        """Escape clears an in-progress drag; otherwise cancels the capture."""
+        """Escape cancels the screenshot capture."""
         if event.key() == Qt.Key.Key_Escape:
-            if self._origin is not None:
-                self._origin = None
-                self._current = None
-                self.update()
-                return
             self._crop = None
             self.reject()
+            event.accept()
             return
         super().keyPressEvent(event)
 
@@ -142,7 +162,17 @@ class RegionOverlay(QDialog):
             painter.setPen(pen)
             painter.drawRect(rect.adjusted(0, 0, -1, -1))
 
+    def showEvent(self, event: QShowEvent) -> None:  # noqa: N802
+        """Take keyboard focus so Escape cancels capture on Tool overlays."""
+        super().showEvent(event)
+        claim_screenshot_keyboard(self)
+
     def _selection_rect(self) -> QRect | None:
         if self._origin is None or self._current is None:
             return None
         return QRect(self._origin, self._current).normalized()
+
+
+def _is_escape_key(event: QEvent) -> bool:
+    key = getattr(event, "key", None)
+    return callable(key) and key() == Qt.Key.Key_Escape
