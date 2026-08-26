@@ -8,7 +8,12 @@ from pathlib import Path
 
 import pytest
 
-from harrix_swiss_knife.early_splash import TRAY_LOADING_TITLE, format_splash_clock, splash_status_lines
+from harrix_swiss_knife.early_splash import (
+    TRAY_LOADING_TITLE,
+    format_splash_clock,
+    splash_logo_path,
+    splash_status_lines,
+)
 
 _SRC = Path(__file__).resolve().parents[1] / "src"
 
@@ -21,6 +26,13 @@ def test_format_splash_clock() -> None:
 
 def test_tray_loading_title() -> None:
     assert TRAY_LOADING_TITLE == "Harrix Swiss Knife"
+
+
+def test_splash_logo_path_points_to_app_ico() -> None:
+    path = splash_logo_path()
+    assert path is not None
+    assert path.name == "app.ico"
+    assert path.is_file()
 
 
 def test_splash_status_lines_are_separate() -> None:

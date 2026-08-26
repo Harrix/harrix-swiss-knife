@@ -14,15 +14,19 @@ import sys
 import threading
 import time
 from ctypes import wintypes
+from pathlib import Path
 from typing import Any
 
 TRAY_LOADING_TITLE = "Harrix Swiss Knife"
 _LOADING_LINE = "Loading..."
 _SECONDS_PER_HOUR = 3600
 _SECONDS_PER_MINUTE = 60
-_WIDTH_DIP = 520
+_WIDTH_DIP = 560
 _HEIGHT_DIP = 180
 _RADIUS_DIP = 16
+_LOGO_DIP = 72
+_PAD_DIP = 28
+_GAP_DIP = 20
 _TITLE_PT = 20
 _BODY_PT = 16
 _WM_CLOSE = 0x0010
@@ -50,8 +54,12 @@ _DEFAULT_CHARSET = 1
 _CLEARTYPE_QUALITY = 5
 _TRANSPARENT = 1
 _DT_CENTER = 0x0001
+_DT_LEFT = 0x0000
 _DT_SINGLELINE = 0x0020
 _DT_VCENTER = 0x0004
+_IMAGE_ICON = 1
+_LR_LOADFROMFILE = 0x0010
+_DI_NORMAL = 0x0003
 _POLL_S = 0.05
 _CLASS_NAME = "HskStartupSplash"
 _FILL_COLOR = 0x00282828
@@ -83,6 +91,9 @@ class _SplashRuntime:
     hwnd: int = 0
     last_clock: str = ""
     last_rect: tuple[int, int, int, int] = (0, 0, 0, 0)
+    logo_icon: int = 0
+    logo_px: int = 0
+    region_size: tuple[int, int] = (0, 0)
     started_at: float = 0.0
     stop: threading.Event = threading.Event()
     thread: threading.Thread | None = None
@@ -152,9 +163,24 @@ def format_splash_clock(seconds: int) -> str:
     return f"{minutes:02d}:{secs:02d}"
 
 
+def splash_logo_path() -> Path | None:
+    """Return the ICO used on the splash, if the file exists."""
+    path = Path(__file__).resolve().parent / "assets" / "app.ico"
+    return path if path.is_file() else None
+
+
 def splash_status_lines(seconds: int) -> tuple[str, str, str]:
     """Return the three splash lines: title, status, and clock."""
     return TRAY_LOADING_TITLE, _LOADING_LINE, format_splash_clock(seconds)
+
+
+def _apply_round_region(hwnd: int, width: int, height: int) -> None:
+    radius = _dip(_RADIUS_DIP, _dpi_for_hwnd(hwnd)) * 2
+    region = _gdi32().CreateRoundRectRgn(0, 0, width + 1, height + 1, radius, radius)
+    if not region:
+        return
+    _user32().SetWindowRgn(hwnd, region, True)  # noqa: FBT003
+    _runtime.region_size = (width, height)
 
 
 def _apply_window_geometry(user32: ctypes.WinDLL, hwnd: int) -> bool:
@@ -163,8 +189,11 @@ def _apply_window_geometry(user32: ctypes.WinDLL, hwnd: int) -> bool:
     current = _current_rect(hwnd)
     if current == target and _runtime.last_rect == target:
         return False
+    size_changed = current[2:] != target[2:] or _runtime.last_rect[2:] != target[2:]
     user32.SetWindowPos(hwnd, _HWND_TOPMOST, x, y, width, height, _SWP_NOACTIVATE)
     _runtime.last_rect = target
+    if size_changed or _runtime.region_size != (width, height):
+        _apply_round_region(hwnd, width, height)
     return True
 
 
@@ -234,11 +263,20 @@ def _draw_line(
     text: str,
     box: wintypes.RECT,
     font: int,
+    *,
+    align: int = _DT_CENTER,
 ) -> None:
     previous = gdi32.SelectObject(hdc, font) if font else 0
-    user32.DrawTextW(hdc, text, -1, ctypes.byref(box), _DT_CENTER | _DT_SINGLELINE | _DT_VCENTER)
+    user32.DrawTextW(hdc, text, -1, ctypes.byref(box), align | _DT_SINGLELINE | _DT_VCENTER)
     if previous:
         gdi32.SelectObject(hdc, previous)
+
+
+def _draw_logo(user32: ctypes.WinDLL, hdc: int, x: int, y: int, size: int) -> None:
+    icon = _ensure_logo_icon(size)
+    if not icon:
+        return
+    user32.DrawIconEx(hdc, x, y, icon, size, size, 0, None, _DI_NORMAL)
 
 
 def _enable_dpi_awareness() -> None:
@@ -253,6 +291,23 @@ def _enable_dpi_awareness() -> None:
         return
     with contextlib.suppress(AttributeError, OSError):
         user32.SetProcessDPIAware()
+
+
+def _ensure_logo_icon(size: int) -> int:
+    if _runtime.logo_icon and _runtime.logo_px == size:
+        return _runtime.logo_icon
+    path = splash_logo_path()
+    if path is None:
+        return 0
+    if _runtime.logo_icon:
+        with contextlib.suppress(OSError):
+            _user32().DestroyIcon(_runtime.logo_icon)
+        _runtime.logo_icon = 0
+    user32 = _user32()
+    icon = int(user32.LoadImageW(None, str(path), _IMAGE_ICON, size, size, _LR_LOADFROMFILE) or 0)
+    _runtime.logo_icon = icon
+    _runtime.logo_px = size if icon else 0
+    return icon
 
 
 def _gdi32() -> ctypes.WinDLL:
@@ -308,10 +363,30 @@ def _paint(hwnd: int) -> None:
         body_font = _create_font(gdi32, point_size=_BODY_PT, dpi=dpi)
         title, status, clock = splash_status_lines(int(time.monotonic() - _runtime.started_at))
         _runtime.last_clock = clock
+        pad = _dip(_PAD_DIP, dpi)
+        logo_size = _dip(_LOGO_DIP, dpi)
+        has_logo = bool(_ensure_logo_icon(logo_size))
+        text_x = pad
+        text_w = width - pad * 2
+        align = _DT_CENTER
+        if has_logo:
+            logo_y = max(0, (height - logo_size) // 2)
+            _draw_logo(user32, target, pad, logo_y, logo_size)
+            text_x = pad + logo_size + _dip(_GAP_DIP, dpi)
+            text_w = max(1, width - text_x - pad)
+            align = _DT_LEFT
         band = max(1, height // 3)
-        _draw_line(user32, gdi32, target, title, _rect(0, band // 8, width, band), title_font)
-        _draw_line(user32, gdi32, target, status, _rect(0, band, width, band), body_font)
-        _draw_line(user32, gdi32, target, clock, _rect(0, band * 2 - band // 8, width, band), body_font)
+        _draw_line(user32, gdi32, target, title, _rect(text_x, band // 8, text_w, band), title_font, align=align)
+        _draw_line(user32, gdi32, target, status, _rect(text_x, band, text_w, band), body_font, align=align)
+        _draw_line(
+            user32,
+            gdi32,
+            target,
+            clock,
+            _rect(text_x, band * 2 - band // 8, text_w, band),
+            body_font,
+            align=align,
+        )
         if title_font:
             gdi32.DeleteObject(title_font)
         if body_font:
@@ -440,6 +515,26 @@ def _user32() -> ctypes.WinDLL:
     lib.DefWindowProcW.restype = _LRESULT
     lib.DefWindowProcW.argtypes = [wintypes.HWND, wintypes.UINT, wintypes.WPARAM, wintypes.LPARAM]
     lib.CreateWindowExW.restype = wintypes.HWND
+    lib.LoadImageW.restype = wintypes.HANDLE
+    lib.LoadImageW.argtypes = [
+        wintypes.HINSTANCE,
+        wintypes.LPCWSTR,
+        wintypes.UINT,
+        ctypes.c_int,
+        ctypes.c_int,
+        wintypes.UINT,
+    ]
+    lib.DrawIconEx.argtypes = [
+        wintypes.HDC,
+        ctypes.c_int,
+        ctypes.c_int,
+        wintypes.HANDLE,
+        ctypes.c_int,
+        ctypes.c_int,
+        wintypes.UINT,
+        wintypes.HANDLE,
+        wintypes.UINT,
+    ]
     return lib
 
 

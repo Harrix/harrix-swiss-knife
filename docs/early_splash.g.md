@@ -15,6 +15,7 @@ lang: en
 - [🔧 Function `early_splash_hwnd`](#-function-early_splash_hwnd)
 - [🔧 Function `ensure_early_splash`](#-function-ensure_early_splash)
 - [🔧 Function `format_splash_clock`](#-function-format_splash_clock)
+- [🔧 Function `splash_logo_path`](#-function-splash_logo_path)
 - [🔧 Function `splash_status_lines`](#-function-splash_status_lines)
 
 </details>
@@ -115,6 +116,25 @@ def format_splash_clock(seconds: int) -> str:
         return f"{hours:02d}:{minutes:02d}:{secs:02d}"
     minutes, secs = divmod(total, _SECONDS_PER_MINUTE)
     return f"{minutes:02d}:{secs:02d}"
+```
+
+</details>
+
+## 🔧 Function `splash_logo_path`
+
+```python
+def splash_logo_path() -> Path | None
+```
+
+Return the ICO used on the splash, if the file exists.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def splash_logo_path() -> Path | None:
+    path = Path(__file__).resolve().parent / "assets" / "app.ico"
+    return path if path.is_file() else None
 ```
 
 </details>
