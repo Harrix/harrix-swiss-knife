@@ -11,7 +11,7 @@ import traceback
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from time import perf_counter
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 import harrix_pylib as h
 from PySide6.QtCore import QTimer, QtMsgType, qInstallMessageHandler
@@ -24,15 +24,11 @@ from harrix_swiss_knife.action_output_bus import ActionOutputBus
 from harrix_swiss_knife.actions.common.quick_launcher_context import QuickLauncherContext, set_quick_launcher_context
 from harrix_swiss_knife.actions.common.quick_launcher_registry import iter_menu_structure
 from harrix_swiss_knife.actions.development.setup_data_for_hsk import run_setup_data_for_hsk_dialog
-from harrix_swiss_knife.apps.common.app_startup_toast import (
-    AppLoadingToastPumper,
-    start_app_loading_toast,
-    stop_app_loading_toast,
-)
 from harrix_swiss_knife.apps.common.uic_compile import install_safe_qt_translate
 from harrix_swiss_knife.cli_menu import CliContextMenu
 from harrix_swiss_knife.config_model import get_show_main_window_on_startup
 from harrix_swiss_knife.data_for_hsk import ensure_missing_tracker_databases, needs_data_for_hsk_setup
+from harrix_swiss_knife.early_splash import close_early_splash, early_splash_hwnd
 from harrix_swiss_knife.global_hotkey import GlobalHotkeyManager
 from harrix_swiss_knife.main_menu_base import set_menu_tooltips_visible_recursive
 from harrix_swiss_knife.menu_structure import get_menu_structure
@@ -50,7 +46,6 @@ if TYPE_CHECKING:
 
 # Keeps the faulthandler target alive when there is no console to dump into.
 _FAULTHANDLER_FILE: TextIO | None = None
-TRAY_LOADING_TITLE = "Harrix Swiss Knife"
 
 
 # Harmless Qt noise: phantom displays, and QSvg warnings from stock/Illustrator dumps.
@@ -184,12 +179,15 @@ def run_tray_application(log: logging.Logger, *, main_menu_cls: type[MainMenuBas
     config: dict = h.dev.config_load(get_config_path_str())
 
     _log_startup_phase(log, "Creating QApplication", startup_t0)
-    app: QApplication = QApplication(sys.argv)
+    existing = QApplication.instance()
+    app = cast("QApplication", existing) if existing is not None else QApplication(sys.argv)
     app.setQuitOnLastWindowClosed(False)
     app.setWindowIcon(QIcon(":/assets/logo.svg"))
     install_flexible_decimal_separators(app)
     install_app_fonts(app)
     install_safe_qt_translate()
+    if early_splash_hwnd():
+        _log_startup_phase(log, "Startup splash already visible", startup_t0)
 
     tray_ready = False
     pending_show = False
@@ -204,15 +202,11 @@ def run_tray_application(log: logging.Logger, *, main_menu_cls: type[MainMenuBas
 
     if acquire_tray_instance(show_command_cards) is None:
         log.info("Another instance is already running; asked it to show the command window")
+        close_early_splash()
         return 0
 
     output_bus = ActionOutputBus()
     placeholder_menu = _make_placeholder_menu()
-
-    _log_startup_phase(log, "Showing startup toast", startup_t0)
-    startup_toast = start_app_loading_toast(TRAY_LOADING_TITLE)
-    startup_pumper = AppLoadingToastPumper(startup_toast)
-    startup_pumper.start()
 
     _log_startup_phase(log, "Creating tray icon", startup_t0)
     tray_icon = TrayIcon(QIcon(":/assets/logo.svg"), menu=placeholder_menu)
@@ -239,8 +233,7 @@ def run_tray_application(log: logging.Logger, *, main_menu_cls: type[MainMenuBas
             _log_startup_phase(log, "Main menu ready", startup_t0)
             tray_ready = True
         finally:
-            startup_pumper.stop()
-            stop_app_loading_toast(startup_toast)
+            close_early_splash()
 
         if show_main_window or pending_show:
             log.info("Showing main window on startup")

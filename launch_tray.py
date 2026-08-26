@@ -52,7 +52,12 @@ def _fail(exc: BaseException) -> int:
 
 def main() -> int:
     """Import and run the tray application; return a process exit code."""
+    closer = None
     try:
+        from harrix_swiss_knife.early_splash import close_early_splash, ensure_early_splash  # noqa: PLC0415
+
+        closer = close_early_splash
+        ensure_early_splash()
         from harrix_swiss_knife.main import main as run_app  # noqa: PLC0415
 
         run_app()
@@ -65,6 +70,9 @@ def main() -> int:
         return 1
     except Exception as exc:
         return _fail(exc)
+    finally:
+        if closer is not None:
+            closer()
     return 0
 
 

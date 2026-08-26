@@ -202,12 +202,15 @@ def run_tray_application(log: logging.Logger, *, main_menu_cls: type[MainMenuBas
     config: dict = h.dev.config_load(get_config_path_str())
 
     _log_startup_phase(log, "Creating QApplication", startup_t0)
-    app: QApplication = QApplication(sys.argv)
+    existing = QApplication.instance()
+    app = cast("QApplication", existing) if existing is not None else QApplication(sys.argv)
     app.setQuitOnLastWindowClosed(False)
     app.setWindowIcon(QIcon(":/assets/logo.svg"))
     install_flexible_decimal_separators(app)
     install_app_fonts(app)
     install_safe_qt_translate()
+    if early_splash_hwnd():
+        _log_startup_phase(log, "Startup splash already visible", startup_t0)
 
     tray_ready = False
     pending_show = False
@@ -222,15 +225,11 @@ def run_tray_application(log: logging.Logger, *, main_menu_cls: type[MainMenuBas
 
     if acquire_tray_instance(show_command_cards) is None:
         log.info("Another instance is already running; asked it to show the command window")
+        close_early_splash()
         return 0
 
     output_bus = ActionOutputBus()
     placeholder_menu = _make_placeholder_menu()
-
-    _log_startup_phase(log, "Showing startup toast", startup_t0)
-    startup_toast = start_app_loading_toast(TRAY_LOADING_TITLE)
-    startup_pumper = AppLoadingToastPumper(startup_toast)
-    startup_pumper.start()
 
     _log_startup_phase(log, "Creating tray icon", startup_t0)
     tray_icon = TrayIcon(QIcon(":/assets/logo.svg"), menu=placeholder_menu)
@@ -257,8 +256,7 @@ def run_tray_application(log: logging.Logger, *, main_menu_cls: type[MainMenuBas
             _log_startup_phase(log, "Main menu ready", startup_t0)
             tray_ready = True
         finally:
-            startup_pumper.stop()
-            stop_app_loading_toast(startup_toast)
+            close_early_splash()
 
         if show_main_window or pending_show:
             log.info("Showing main window on startup")
