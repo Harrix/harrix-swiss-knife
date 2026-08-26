@@ -163,7 +163,7 @@ def request_exercise_fill(
 ## 🔧 Function `request_exercise_fill_from_values`
 
 ```python
-def request_exercise_fill_from_values(parent: QWidget, *, app_config: dict[str, Any], bothub_state: BothubRequestState, name: str, name_local: str, media_path: str = '', on_filled: Callable[[ExerciseFillResult], None], on_idle: Callable[[], None] | None = None, fill_button: QPushButton | None = None, owner_modal: bool = True) -> bool
+def request_exercise_fill_from_values(parent: QWidget, *, app_config: dict[str, Any], bothub_state: BothubRequestState, name: str, name_local: str, media_path: str = '', on_filled: Callable[[ExerciseFillResult], None], on_idle: Callable[[], None] | None = None, fill_button: QPushButton | None = None, owner_modal: bool = True, show_toast: bool = True) -> bool
 ```
 
 Fill exercise fields via BotHub from raw values.
@@ -188,6 +188,7 @@ def request_exercise_fill_from_values(
     on_idle: Callable[[], None] | None = None,
     fill_button: QPushButton | None = None,
     owner_modal: bool = True,
+    show_toast: bool = True,
 ) -> bool:
     name = name.strip()
     name_local = name_local.strip()
@@ -248,6 +249,7 @@ def request_exercise_fill_from_values(
         on_error=on_error,
         on_cancelled=on_cancelled,
         owner_modal=owner_modal,
+        show_toast=show_toast,
     )
     if not started:
         become_idle()

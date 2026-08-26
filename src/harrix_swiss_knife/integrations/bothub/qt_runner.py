@@ -41,6 +41,7 @@ class BothubRequestSpec:
     on_cancelled: Callable[[], None] | None = None
     offer_retry: bool = True
     owner_modal: bool = True
+    show_toast: bool = True
 
 
 @dataclass
@@ -68,6 +69,7 @@ def run_bothub_request(
     on_cancelled: Callable[[], None] | None = None,
     offer_retry: bool = True,
     owner_modal: bool = True,
+    show_toast: bool = True,
 ) -> bool:
     """Validate config, show toast, start worker. Returns `True` if the request started.
 
@@ -92,6 +94,7 @@ def run_bothub_request(
       finishing. Defaults to `True`.
     - `owner_modal`: When `True` (default), the toast blocks the owner window.
       Use `False` for background fills so the UI stays interactive.
+    - `show_toast`: When `False`, run without a BotHub toast.
 
     """
     image_list = list(images or [])
@@ -113,6 +116,7 @@ def run_bothub_request(
         on_cancelled=on_cancelled,
         offer_retry=offer_retry,
         owner_modal=owner_modal,
+        show_toast=show_toast,
     )
     return _start_bothub_request(spec)
 
@@ -273,16 +277,15 @@ def _start_bothub_request(spec: BothubRequestSpec) -> bool:
     max_tokens_raw = settings.get("max_tokens")
     max_tokens = int(max_tokens_raw) if max_tokens_raw is not None else None
 
-    toast_parent = _resolve_toast_parent(spec.parent)
-    toast = toast_cancellable_http_notification.ToastCancellableHttpNotification(
-        spec.toast_message,
-        parent=toast_parent,
-        owner_modal=spec.owner_modal,
-    )
-    toast.start_countdown()
-    app = QApplication.instance()
-    if app is not None:
-        app.processEvents()
+    toast = None
+    if spec.show_toast:
+        toast_parent = _resolve_toast_parent(spec.parent)
+        toast = toast_cancellable_http_notification.ToastCancellableHttpNotification(
+            spec.toast_message,
+            parent=toast_parent,
+            owner_modal=spec.owner_modal,
+        )
+        toast.start_countdown()
 
     worker = BothubChatWorker(
         api_key=api_key,
@@ -308,6 +311,8 @@ def _start_bothub_request(spec: BothubRequestSpec) -> bool:
     request_finished = False
 
     def finalize_toast() -> None:
+        if toast is None:
+            return
         toast.mark_completed()
         if spec.state is not None and spec.state.toast is not None:
             spec.state.toast.close()
@@ -349,7 +354,8 @@ def _start_bothub_request(spec: BothubRequestSpec) -> bool:
             message="Request cancelled by user.",
         )
 
-    toast.cancel_requested.connect(worker.cancel)
+    if toast is not None:
+        toast.cancel_requested.connect(worker.cancel)
 
     worker.finished_success.connect(on_worker_success)
     worker.finished_error.connect(on_worker_error)

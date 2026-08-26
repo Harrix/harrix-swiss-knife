@@ -145,6 +145,7 @@ from harrix_swiss_knife.apps.fitness.exercise_add_dialog import ExerciseAddDialo
 from harrix_swiss_knife.apps.fitness.exercise_add_queue import (
     PendingExerciseAdd,
     find_queued_exercise_conflict,
+    format_exercise_add_queue_toast,
 )
 from harrix_swiss_knife.apps.fitness.exercise_ai_fill import (
     ExerciseFillResult,
@@ -281,6 +282,7 @@ class MainWindow(
         self._exercise_add_deferred_media: tuple[str, bool, str] | None = None
         self._exercise_add_queue: list[PendingExerciseAdd] = []
         self._exercise_add_busy = False
+        self._exercise_add_toast: toast_countdown_notification.ToastCountdownNotification | None = None
 
         # Exercise list model
         self.exercises_list_model: QStandardItemModel | None = None
@@ -454,6 +456,7 @@ class MainWindow(
         self._exercise_add_busy = False
         self._exercise_add_after_media = None
         self._exercise_add_deferred_media = None
+        self._close_exercise_add_toast()
         self._close_exercise_media_toast()
         worker = self._exercise_media_worker
         if worker is not None and worker.isRunning():
@@ -679,9 +682,10 @@ class MainWindow(
                 QTimer.singleShot(0, self.on_add_exercise)
             return
         self._exercise_add_queue.append(job)
-        self._pump_exercise_add_queue()
+        self._update_exercise_add_toast()
         if not self._is_closing:
             QTimer.singleShot(0, self.on_add_exercise)
+        self._pump_exercise_add_queue()
 
     @requires_database()
     def on_add_record(self) -> None:
@@ -4610,6 +4614,13 @@ class MainWindow(
             return
         self._pump_exercise_add_queue()
 
+    def _close_exercise_add_toast(self) -> None:
+        """Close the shared add-exercise queue toast if present."""
+        toast = self._exercise_add_toast
+        self._exercise_add_toast = None
+        if toast is not None:
+            toast.close()
+
     def _close_exercise_media_toast(self) -> None:
         """Close the exercise-media conversion toast if present."""
         toast = self._exercise_media_toast
@@ -5375,20 +5386,17 @@ class MainWindow(
     ) -> None:
         """Refresh UI under a toast, then process the next queued add."""
         if media_path:
-            if self._start_exercise_media_save(exercise, media_path, quiet_if_busy=True):
+            if self._start_exercise_media_save(exercise, media_path, quiet_if_busy=True, show_toast=False):
                 self._exercise_add_after_media = (exercise, with_dumbbells)
+                self._update_exercise_add_toast()
                 return
             worker = self._exercise_media_worker
             if worker is not None and worker.isRunning():
                 self._exercise_add_deferred_media = (exercise, with_dumbbells, media_path)
+                self._update_exercise_add_toast()
                 return
             self._complete_exercise_add_without_media(exercise, with_dumbbells=with_dumbbells)
             return
-        waiting = max(0, len(self._exercise_add_queue) - 1)
-        toast = f"Adding '{exercise}'…"
-        if waiting:
-            toast = f"{toast} ({waiting} waiting)"
-        self._show_exercise_work_toast(toast)
         QTimer.singleShot(
             0,
             lambda name=exercise, dumbbells=with_dumbbells: self._complete_exercise_add_without_media(
@@ -6359,6 +6367,7 @@ class MainWindow(
         self._exercise_add_busy = False
         if self._is_closing:
             return
+        self._update_exercise_add_toast()
         QTimer.singleShot(0, self._pump_exercise_add_queue)
 
     def _on_exercise_media_save_completed(self, exercise_name: str, _target_path: str) -> None:
@@ -6810,12 +6819,14 @@ class MainWindow(
                 QTimer.singleShot(250, self._pump_exercise_add_queue)
                 return
             self._exercise_add_busy = True
+            self._update_exercise_add_toast()
             if self._start_add_exercise_auto_fill(job):
                 return
             if self._exercise_add_busy:
                 self._on_exercise_add_job_finished()
             return
         self._exercise_add_busy = True
+        self._update_exercise_add_toast()
         self._commit_new_exercise(
             job.name,
             job.unit,
@@ -7564,15 +7575,6 @@ class MainWindow(
         elif action == export_excel_action:
             self._export_named_table("types", prefer="xlsx")
 
-    def _show_exercise_work_toast(self, message: str) -> None:
-        """Show a countdown toast for add-exercise follow-up work."""
-        self._close_exercise_media_toast()
-        self._exercise_media_toast = toast_countdown_notification.ToastCountdownNotification(message)
-        self._exercise_media_toast.start_countdown()
-        app = QApplication.instance()
-        if app is not None:
-            app.processEvents()
-
     def _show_exercises_context_menu(self, position: QPoint) -> None:
         """Show context menu for exercises table.
 
@@ -7833,6 +7835,7 @@ class MainWindow(
             on_filled=on_filled,
             on_idle=self._on_exercise_add_job_finished,
             owner_modal=False,
+            show_toast=False,
         )
 
     def _start_exercise_media_save(
@@ -7842,6 +7845,7 @@ class MainWindow(
         *,
         success_message: str | None = None,
         quiet_if_busy: bool = False,
+        show_toast: bool = True,
     ) -> bool:
         """Convert exercise media in a worker thread and show a countdown toast.
 
@@ -7849,6 +7853,7 @@ class MainWindow(
 
         - `success_message` (`str | None`): Optional info box after a successful save.
         - `quiet_if_busy` (`bool`): Skip the "already in progress" warning.
+        - `show_toast` (`bool`): When `False`, skip a dedicated converting toast.
 
         Returns:
 
@@ -7865,13 +7870,11 @@ class MainWindow(
             return False
 
         self._exercise_media_success_message = success_message
-        self._exercise_media_toast = toast_countdown_notification.ToastCountdownNotification(
-            f"Converting media for '{exercise_name}'…",
-        )
-        self._exercise_media_toast.start_countdown()
-        app = QApplication.instance()
-        if app is not None:
-            app.processEvents()
+        if show_toast:
+            self._exercise_media_toast = toast_countdown_notification.ToastCountdownNotification(
+                f"Converting media for '{exercise_name}'…",
+            )
+            self._exercise_media_toast.start_countdown(pinned=True, activate=False)
 
         max_size = get_apps_fitness_image_max_size(self._app_config)
         high_max_size = get_apps_fitness_image_high_max_size(self._app_config)
@@ -8035,10 +8038,11 @@ class MainWindow(
         if deferred is None or self._is_closing:
             return False
         exercise, with_dumbbells, media_path = deferred
-        if not self._start_exercise_media_save(exercise, media_path, quiet_if_busy=True):
+        if not self._start_exercise_media_save(exercise, media_path, quiet_if_busy=True, show_toast=False):
             return False
         self._exercise_add_deferred_media = None
         self._exercise_add_after_media = (exercise, with_dumbbells)
+        self._update_exercise_add_toast()
         return True
 
     def _update_chart_based_on_radio_button(self) -> None:
@@ -8138,6 +8142,34 @@ class MainWindow(
         self.label_filter_to.setEnabled(enabled)
         self.dateEdit_filter_from.setEnabled(enabled)
         self.dateEdit_filter_to.setEnabled(enabled)
+
+    def _update_exercise_add_toast(self) -> None:
+        """Show or refresh one collapsed toast for the add-exercise queue."""
+        if self._is_closing:
+            self._close_exercise_add_toast()
+            return
+        count = len(self._exercise_add_queue)
+        if count == 0 and not self._exercise_add_busy:
+            self._close_exercise_add_toast()
+            return
+        stage = ""
+        if self._exercise_add_after_media is not None or self._exercise_add_deferred_media is not None:
+            stage = "converting"
+        elif (
+            self._exercise_add_busy
+            and self._exercise_add_queue
+            and self._exercise_add_queue[0].auto_fill
+            and self._bothub_state.worker is not None
+        ):
+            stage = "filling"
+        message = format_exercise_add_queue_toast(count, stage=stage)
+        toast = self._exercise_add_toast
+        if toast is None:
+            toast = toast_countdown_notification.ToastCountdownNotification(message)
+            self._exercise_add_toast = toast
+            toast.start_countdown(pinned=True, activate=False)
+            return
+        toast.set_message(message)
 
     def _update_form_from_process_selection(self, _exercise_name: str, type_name: str, value_str: str) -> None:
         """Update form fields after process selection change.

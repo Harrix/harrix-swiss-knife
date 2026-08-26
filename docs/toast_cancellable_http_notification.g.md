@@ -105,10 +105,11 @@ class ToastCancellableHttpNotification(toast_countdown_notification.ToastCountdo
         """Mark the request as finished so closing the toast does not emit cancel."""
         self._completed = True
 
-    def present(self) -> None:
+    def present(self, *, activate: bool = True, pinned: bool | None = None) -> None:
         """Show on top and take focus so Escape reaches this toast, not the parent dialog."""
-        super().present()
-        self.setFocus(Qt.FocusReason.ActiveWindowFocusReason)
+        super().present(activate=activate, pinned=pinned)
+        if activate:
+            self.setFocus(Qt.FocusReason.ActiveWindowFocusReason)
         self._position_close_button()
         self._position_collapse_button()
 
@@ -324,7 +325,7 @@ def mark_completed(self) -> None:
 ### ⚙️ Method `present`
 
 ```python
-def present(self) -> None
+def present(self, *, activate: bool = True, pinned: bool | None = None) -> None
 ```
 
 Show on top and take focus so Escape reaches this toast, not the parent dialog.
@@ -333,9 +334,10 @@ Show on top and take focus so Escape reaches this toast, not the parent dialog.
 <summary>Code:</summary>
 
 ```python
-def present(self) -> None:
-        super().present()
-        self.setFocus(Qt.FocusReason.ActiveWindowFocusReason)
+def present(self, *, activate: bool = True, pinned: bool | None = None) -> None:
+        super().present(activate=activate, pinned=pinned)
+        if activate:
+            self.setFocus(Qt.FocusReason.ActiveWindowFocusReason)
         self._position_close_button()
         self._position_collapse_button()
 ```

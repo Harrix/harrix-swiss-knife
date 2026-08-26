@@ -5,6 +5,7 @@ from __future__ import annotations
 from harrix_swiss_knife.apps.fitness.exercise_add_queue import (
     PendingExerciseAdd,
     find_queued_exercise_conflict,
+    format_exercise_add_queue_toast,
 )
 
 
@@ -74,3 +75,9 @@ def test_find_queued_exercise_conflict_ignores_blank_names() -> None:
     match = find_queued_exercise_conflict(jobs, "Squat", "Приседания")
     assert match is not None
     assert match.name_local == "Приседания"
+
+
+def test_format_exercise_add_queue_toast() -> None:
+    assert format_exercise_add_queue_toast(0) == "Adding exercises…"
+    assert format_exercise_add_queue_toast(3) == "Adding exercises… (3)"
+    assert format_exercise_add_queue_toast(2, stage="converting") == "Adding exercises… (2) · converting"

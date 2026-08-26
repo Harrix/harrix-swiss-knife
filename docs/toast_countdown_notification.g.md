@@ -14,6 +14,7 @@ lang: en
 - [🏛️ Class `ToastCountdownNotification`](#%EF%B8%8F-class-toastcountdownnotification)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `closeEvent`](#%EF%B8%8F-method-closeevent)
+  - [⚙️ Method `set_message`](#%EF%B8%8F-method-set_message)
   - [⚙️ Method `start_countdown`](#%EF%B8%8F-method-start_countdown)
   - [⚙️ Method `update_time`](#%EF%B8%8F-method-update_time)
 - [🔧 Function `format_elapsed_clock`](#-function-format_elapsed_clock)
@@ -80,20 +81,36 @@ class ToastCountdownNotification(toast_notification_base.ToastNotificationBase):
         self.timer.stop()
         super().closeEvent(event)
 
-    def start_countdown(self, *, present: bool = True) -> None:
+    def set_message(self, message: str) -> None:
+        """Replace the status text without restarting the elapsed timer."""
+        self.message = message
+        self._refresh_label_text()
+        self.adjustSize()
+        if self.isVisible():
+            self.restack_group(pinned=self.is_pinned)
+            self.reposition_action_buttons()
+
+    def start_countdown(self, *, present: bool = True, pinned: bool = False, activate: bool = True) -> None:
         """Start the countdown timer and initialize the display.
 
         Args:
 
         - `present` (`bool`): When `True`, position and show the notification first.
           Defaults to `True`.
+        - `pinned` (`bool`): Show the compact bottom-right layout. Defaults to `False`.
+        - `activate` (`bool`): When `True`, steal window focus. Defaults to `True`.
 
         """
         if present:
-            self.present()
+            self.present(activate=activate, pinned=True if pinned else None)
         self.elapsed_timer.start()
         self.timer.start(1000)
         self._refresh_label_text()
+        if present:
+            self.adjustSize()
+            if self.isVisible():
+                self.restack_group(pinned=self.is_pinned)
+                self.reposition_action_buttons()
 
     def update_time(self) -> None:
         """Update the elapsed time counter.
@@ -170,10 +187,33 @@ def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
 
 </details>
 
+### ⚙️ Method `set_message`
+
+```python
+def set_message(self, message: str) -> None
+```
+
+Replace the status text without restarting the elapsed timer.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def set_message(self, message: str) -> None:
+        self.message = message
+        self._refresh_label_text()
+        self.adjustSize()
+        if self.isVisible():
+            self.restack_group(pinned=self.is_pinned)
+            self.reposition_action_buttons()
+```
+
+</details>
+
 ### ⚙️ Method `start_countdown`
 
 ```python
-def start_countdown(self, *, present: bool = True) -> None
+def start_countdown(self, *, present: bool = True, pinned: bool = False, activate: bool = True) -> None
 ```
 
 Start the countdown timer and initialize the display.
@@ -182,17 +222,24 @@ Args:
 
 - `present` (`bool`): When `True`, position and show the notification first.
   Defaults to `True`.
+- `pinned` (`bool`): Show the compact bottom-right layout. Defaults to `False`.
+- `activate` (`bool`): When `True`, steal window focus. Defaults to `True`.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def start_countdown(self, *, present: bool = True) -> None:
+def start_countdown(self, *, present: bool = True, pinned: bool = False, activate: bool = True) -> None:
         if present:
-            self.present()
+            self.present(activate=activate, pinned=True if pinned else None)
         self.elapsed_timer.start()
         self.timer.start(1000)
         self._refresh_label_text()
+        if present:
+            self.adjustSize()
+            if self.isVisible():
+                self.restack_group(pinned=self.is_pinned)
+                self.reposition_action_buttons()
 ```
 
 </details>

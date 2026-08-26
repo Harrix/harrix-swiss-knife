@@ -7,6 +7,7 @@ from PySide6.QtCore import QEvent, QPointF, Qt
 from PySide6.QtGui import QMouseEvent
 from PySide6.QtWidgets import QApplication, QWidget
 
+from harrix_swiss_knife.toast_countdown_notification import ToastCountdownNotification
 from harrix_swiss_knife.toast_notification_base import (
     ToastNotificationBase,
     _AllowWidgetInputFilter,
@@ -86,4 +87,16 @@ def test_drag_marks_toast_as_user_moved(qapp: QApplication) -> None:  # noqa: AR
     toast.mouseMoveEvent(_mouse_event(QEvent.Type.MouseMove, toast, global_offset=40))
     assert toast.user_moved is True
     assert toast not in ToastNotificationBase.stack_members(pinned=False)
+    toast.close()
+
+
+def test_countdown_toast_can_start_collapsed_without_focus(qapp: QApplication) -> None:
+    assert qapp is not None
+    toast = ToastCountdownNotification("Adding exercises…")
+    toast.start_countdown(pinned=True, activate=False)
+    assert toast.is_pinned
+    assert toast.isVisible()
+    toast.set_message("Adding exercises… (2)")
+    assert "Adding exercises… (2)" in toast.label.text()
+    assert toast.elapsed_seconds == 0
     toast.close()

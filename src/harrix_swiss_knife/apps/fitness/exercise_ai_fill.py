@@ -126,6 +126,7 @@ def request_exercise_fill_from_values(
     on_idle: Callable[[], None] | None = None,
     fill_button: QPushButton | None = None,
     owner_modal: bool = True,
+    show_toast: bool = True,
 ) -> bool:
     """Fill exercise fields via BotHub from raw values.
 
@@ -193,6 +194,7 @@ def request_exercise_fill_from_values(
         on_error=on_error,
         on_cancelled=on_cancelled,
         owner_modal=owner_modal,
+        show_toast=show_toast,
     )
     if not started:
         become_idle()

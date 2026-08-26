@@ -205,12 +205,27 @@ class ToastNotificationBase(QDialog):
             self.setCursor(Qt.CursorShape.OpenHandCursor)  # Restore cursor to indicate draggable state
             event.accept()
 
-    def present(self) -> None:
-        """Size, position via the toast stack, and show on top."""
+    def present(self, *, activate: bool = True, pinned: bool | None = None) -> None:
+        """Size, position via the toast stack, and show on top.
+
+        Args:
+
+        - `activate` (`bool`): When `True`, steal window focus. Defaults to `True`.
+        - `pinned` (`bool | None`): When set, show collapsed (`True`) or expanded (`False`)
+          before the first paint. Defaults to `None` (keep the current layout).
+
+        """
+        if pinned is not None:
+            self._is_pinned = pinned
+            if pinned:
+                self._apply_compact_style()
+            else:
+                self._apply_default_style()
         self.adjustSize()
         self.show()
         self.raise_()
-        self.activateWindow()
+        if activate:
+            self.activateWindow()
         self._position_collapse_button()
 
     def pump_events(self) -> None:
@@ -257,6 +272,20 @@ class ToastNotificationBase(QDialog):
             toast.reposition_action_buttons()
 
         toasts[-1].raise_()
+
+    def set_pinned(self, *, pinned: bool) -> None:
+        """Switch between compact (pinned) and expanded layout."""
+        if self._is_pinned == pinned:
+            return
+        self._user_moved = False
+        self._is_pinned = pinned
+        if pinned:
+            self._apply_compact_style()
+        else:
+            self._apply_default_style()
+        self.adjustSize()
+        self.restack_group(pinned=False)
+        self.restack_group(pinned=True)
 
     def showEvent(self, event: QShowEvent) -> None:  # noqa: N802
         """Register in the active stack and restack the pin group."""
@@ -356,17 +385,7 @@ class ToastNotificationBase(QDialog):
 
     def _toggle_pinned(self) -> None:
         """Toggle between pinned compact layout and expanded centered layout."""
-        self._user_moved = False
-        if self._is_pinned:
-            self._is_pinned = False
-            self._apply_default_style()
-            self.adjustSize()
-        else:
-            self._is_pinned = True
-            self._apply_compact_style()
-            self.adjustSize()
-        self.restack_group(pinned=False)
-        self.restack_group(pinned=True)
+        self.set_pinned(pinned=not self._is_pinned)
 
     def _trailing_controls_width(self) -> int:
         """Width reserved to the right of the collapse button for subclass controls."""

@@ -66,20 +66,36 @@ class ToastCountdownNotification(toast_notification_base.ToastNotificationBase):
         self.timer.stop()
         super().closeEvent(event)
 
-    def start_countdown(self, *, present: bool = True) -> None:
+    def set_message(self, message: str) -> None:
+        """Replace the status text without restarting the elapsed timer."""
+        self.message = message
+        self._refresh_label_text()
+        self.adjustSize()
+        if self.isVisible():
+            self.restack_group(pinned=self.is_pinned)
+            self.reposition_action_buttons()
+
+    def start_countdown(self, *, present: bool = True, pinned: bool = False, activate: bool = True) -> None:
         """Start the countdown timer and initialize the display.
 
         Args:
 
         - `present` (`bool`): When `True`, position and show the notification first.
           Defaults to `True`.
+        - `pinned` (`bool`): Show the compact bottom-right layout. Defaults to `False`.
+        - `activate` (`bool`): When `True`, steal window focus. Defaults to `True`.
 
         """
         if present:
-            self.present()
+            self.present(activate=activate, pinned=True if pinned else None)
         self.elapsed_timer.start()
         self.timer.start(1000)
         self._refresh_label_text()
+        if present:
+            self.adjustSize()
+            if self.isVisible():
+                self.restack_group(pinned=self.is_pinned)
+                self.reposition_action_buttons()
 
     def update_time(self) -> None:
         """Update the elapsed time counter.

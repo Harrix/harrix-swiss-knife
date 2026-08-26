@@ -14,6 +14,7 @@ lang: en
 - [🏛️ Class `PendingExerciseAdd`](#%EF%B8%8F-class-pendingexerciseadd)
   - [⚙️ Method `from_dialog_result (classmethod)`](#%EF%B8%8F-method-from_dialog_result-classmethod)
 - [🔧 Function `find_queued_exercise_conflict`](#-function-find_queued_exercise_conflict)
+- [🔧 Function `format_exercise_add_queue_toast`](#-function-format_exercise_add_queue_toast)
 
 </details>
 
@@ -154,6 +155,38 @@ def find_queued_exercise_conflict(
         if local_folded and job_local and local_folded == job_local:
             return job
     return None
+```
+
+</details>
+
+## 🔧 Function `format_exercise_add_queue_toast`
+
+```python
+def format_exercise_add_queue_toast(count: int, *, stage: str = '') -> str
+```
+
+Build the shared add-queue toast label.
+
+Args:
+
+- `count` (`int`): Exercises still in the queue.
+- `stage` (`str`): Optional current step (`converting`, `filling`).
+
+Returns:
+
+- `str`: Compact status text.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def format_exercise_add_queue_toast(count: int, *, stage: str = "") -> str:
+    text = "Adding exercises…"
+    if count > 0:
+        text = f"{text} ({count})"
+    if stage:
+        return f"{text} · {stage}"
+    return text
 ```
 
 </details>
