@@ -20,6 +20,7 @@ from harrix_swiss_knife.apps.snippets.constants import (
     SORT_USED,
     ZONE_COLOR,
     ZONE_EMOJI,
+    ZONE_PHRASE,
     ZONE_SYMBOL,
 )
 from harrix_swiss_knife.apps.snippets.database_manager import DatabaseManager, SnippetItem
@@ -339,6 +340,16 @@ def test_zone_panel_add_button_emits_add_requested(qapp: QApplication) -> None:
     assert add_button.autoRaise()
     add_button.click()
     assert requested == [True]
+    panel.close()
+
+
+def test_phrase_zone_clear_filter_empties_search(qapp: QApplication) -> None:
+    assert qapp is not None
+    panel = ZonePanel(zone=ZONE_PHRASE, title="Add phrase", show_add=True, show_filter=True)
+    assert panel._filter is not None
+    panel._filter.setText("old query")
+    panel.clear_filter()
+    assert panel._filter.text() == ""
     panel.close()
 
 

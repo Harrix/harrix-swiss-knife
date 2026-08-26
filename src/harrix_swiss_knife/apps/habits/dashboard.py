@@ -323,6 +323,7 @@ class HabitDashboardWidget(QWidget):
         self._calendar.day_toggled.connect(self._on_calendar_day_toggled)
         self._calendar.day_value_set.connect(self._on_calendar_day_value_set)
         self._calendar.day_comment_requested.connect(self._on_calendar_day_comment_requested)
+        self._calendar.all_comments_requested.connect(self._show_all_comments)
         self._calendar.fill_absent_not_done.connect(self._on_calendar_fill_absent_not_done)
         self._calendar.month_changed.connect(self._on_calendar_month_changed)
         layout.addWidget(self._calendar)
@@ -403,7 +404,12 @@ class HabitDashboardWidget(QWidget):
         dialog = HabitDayCommentDialog(self, habit_name=name, date_str=date_str, text=current)
         if dialog.exec() != QDialog.DialogCode.Accepted:
             return
-        self._comments.set_comment(habit_id, date_str, dialog.comment_text(), habit_name=name)
+        new_text = dialog.comment_text()
+        if new_text == current:
+            return
+        if not current and not new_text:
+            return
+        self._comments.set_comment(habit_id, date_str, new_text, habit_name=name)
         self.refresh()
 
     def _edit_selected_habit(self) -> None:
@@ -587,6 +593,10 @@ class HabitDashboardWidget(QWidget):
             return
         self._edit_day_comment(self._selected_habit_id, date_str)
 
+    def _on_week_all_comments_requested(self, habit_id: int) -> None:
+        self._on_habit_selected(habit_id)
+        self._show_all_comments()
+
     def _on_week_day_comment_requested(self, habit_id: int, day_index: int) -> None:
         if day_index < 0 or day_index >= len(self._week_dates):
             return
@@ -647,6 +657,7 @@ class HabitDashboardWidget(QWidget):
             habit_row.day_toggled.connect(self._on_week_day_toggled)
             habit_row.day_value_set.connect(self._on_week_day_value_set)
             habit_row.day_comment_requested.connect(self._on_week_day_comment_requested)
+            habit_row.all_comments_requested.connect(self._on_week_all_comments_requested)
             self._habit_rows[habit_id] = habit_row
             self._list_layout.insertWidget(self._list_layout.count() - 1, habit_row)
 

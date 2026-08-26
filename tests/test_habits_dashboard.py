@@ -153,14 +153,14 @@ def test_check_circle_four_states(qapp: QApplication) -> None:
     assert qapp is not None
     circle = CheckCircle()
     assert circle.day_state() == "absent"
-    assert circle.toolTip() == ""
+    assert "create" in circle.toolTip().lower()
     assert not circle.is_done()
     assert circle.value() is None
     circle.set_has_comment(has_comment=True)
     assert circle.has_comment()
-    assert "comment" in circle.toolTip().lower()
+    assert "open" in circle.toolTip().lower()
     circle.set_has_comment(has_comment=False)
-    assert circle.toolTip() == ""
+    assert "create" in circle.toolTip().lower()
 
     circle.set_value(0)
     assert circle.day_state() == "zero"

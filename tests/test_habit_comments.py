@@ -80,6 +80,12 @@ def test_habit_comments_store_roundtrip(tmp_path: Path) -> None:
     assert [item.date for item in store.comments_for_habit(1)] == ["2026-08-25"]
 
 
+def test_set_comment_empty_does_not_create_file(tmp_path: Path) -> None:
+    store = HabitCommentsStore(tmp_path, beginning="---\nlang: ru\n---\n", commit=False)
+    assert store.set_comment(2, "2026-08-26", "", habit_name="Walk") is None
+    assert list(tmp_path.glob("*")) == []
+
+
 def test_habit_day_comment_dialog_returns_text(qapp: QApplication) -> None:
     assert qapp is not None
     dialog = HabitDayCommentDialog(habit_name="Run", date_str="2026-08-26", text="old")

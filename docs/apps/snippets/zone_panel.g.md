@@ -16,6 +16,7 @@ lang: en
   - [⚙️ Method `sizeHint`](#%EF%B8%8F-method-sizehint)
 - [🏛️ Class `ZonePanel`](#%EF%B8%8F-class-zonepanel)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
+  - [⚙️ Method `clear_filter`](#%EF%B8%8F-method-clear_filter)
   - [⚙️ Method `focus_filter`](#%EF%B8%8F-method-focus_filter)
   - [⚙️ Method `item_at`](#%EF%B8%8F-method-item_at)
   - [⚙️ Method `set_items`](#%EF%B8%8F-method-set_items)
@@ -285,6 +286,11 @@ class ZonePanel(QWidget):
 
         layout.addWidget(self._list, stretch=1)
 
+    def clear_filter(self) -> None:
+        """Clear the search field when the zone has one."""
+        if self._filter is not None:
+            self._filter.clear()
+
     def focus_filter(self) -> None:
         """Focus the search field when the zone has one."""
         if self._filter is not None:
@@ -472,6 +478,25 @@ def __init__(
             layout.addWidget(self._filter)
 
         layout.addWidget(self._list, stretch=1)
+```
+
+</details>
+
+### ⚙️ Method `clear_filter`
+
+```python
+def clear_filter(self) -> None
+```
+
+Clear the search field when the zone has one.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def clear_filter(self) -> None:
+        if self._filter is not None:
+            self._filter.clear()
 ```
 
 </details>

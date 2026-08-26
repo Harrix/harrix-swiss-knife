@@ -136,16 +136,20 @@ class HabitCommentsStore:
         """
         if self._root is None:
             return None
+        cleaned = text.strip()
+        path = self.find_habit_file(habit_id)
+        if path is None and not cleaned:
+            return None
         self._root.mkdir(parents=True, exist_ok=True)
         ensure_folder_git_repo(self._root)
         if self._root.as_posix() not in self._paths_git:
             self._paths_git.append(self._root.as_posix())
 
-        path = self.find_habit_file(habit_id) or self._new_habit_file(habit_id, habit_name)
+        if path is None:
+            path = self._new_habit_file(habit_id, habit_name)
         existing = parse_habit_comment_file(path.read_text(encoding="utf-8")) if path.is_file() else []
         existed = any(item.date == date_str for item in existing)
         remaining = [item for item in existing if item.date != date_str]
-        cleaned = text.strip()
         if cleaned:
             remaining.append(HabitDayComment(date=date_str, text=cleaned))
         previous = path.read_text(encoding="utf-8") if path.is_file() else ""
