@@ -1119,6 +1119,6 @@ def _paint_comment_dot(painter: QPainter, rect: QRectF, *, has_comment: bool) ->
     painter.setPen(pen)
     painter.setBrush(COLOR_NOTE)
     side = min(rect.width(), rect.height())
-    dot = max(5.0, side * 0.28)
+    dot = max(6.5, side * 0.36)
     inset = pen_width / 2.0
     painter.drawEllipse(QRectF(rect.right() - dot - inset, rect.top() + inset, dot, dot))
