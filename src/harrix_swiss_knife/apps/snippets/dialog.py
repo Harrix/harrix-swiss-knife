@@ -179,6 +179,7 @@ class SnippetsDialog(QDialog):
         """Show and focus the overlay."""
         self.reload_all()
         self._center_on_screen()
+        self._phrases.clear_filter()
         self.show()
         self.raise_()
         self.activateWindow()

@@ -217,6 +217,11 @@ class ZonePanel(QWidget):
 
         layout.addWidget(self._list, stretch=1)
 
+    def clear_filter(self) -> None:
+        """Clear the search field when the zone has one."""
+        if self._filter is not None:
+            self._filter.clear()
+
     def focus_filter(self) -> None:
         """Focus the search field when the zone has one."""
         if self._filter is not None:
