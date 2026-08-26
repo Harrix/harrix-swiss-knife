@@ -11,8 +11,8 @@ from __future__ import annotations
 
 import unicodedata
 
-from PySide6.QtCore import QPointF, QRectF, Qt
-from PySide6.QtGui import QAction, QFont, QFontMetricsF, QIcon, QPainter, QPixmap
+from PySide6.QtCore import QPointF, QRectF, QSize, Qt
+from PySide6.QtGui import QAction, QCursor, QFont, QFontMetricsF, QGuiApplication, QIcon, QPainter, QPixmap
 from PySide6.QtWidgets import QDialogButtonBox, QMenu, QMenuBar, QPushButton, QWidget
 
 DEFAULT_EMOJI_BUTTON_ICON_SIZE = 18
@@ -80,6 +80,7 @@ def apply_emoji_dialog_buttons(
         button = buttons.button(standard_button)
         if button is not None:
             button.setIcon(create_emoji_icon(emoji, icon_size))
+            button.setIconSize(QSize(icon_size, icon_size))
 
 
 def apply_leading_emoji_icon(
@@ -122,23 +123,37 @@ def create_emoji_icon(
     size: int = 64,
     *,
     align: Qt.AlignmentFlag = Qt.AlignmentFlag.AlignCenter,
+    device_pixel_ratio: float | None = None,
 ) -> QIcon:
-    """Create a square `QIcon` for an emoji, scaled to avoid clipping."""
-    pixmap = QPixmap(size, size)
+    """Create a square `QIcon` for an emoji, scaled to avoid clipping.
+
+    The pixmap is rasterized at the screen device-pixel ratio so icons stay
+    sharp on HiDPI displays such as 4K.
+
+    """
+    ratio = device_pixel_ratio if device_pixel_ratio is not None else _emoji_device_pixel_ratio()
+    if ratio <= 0:
+        ratio = 1.0
+    physical = max(1, round(size * ratio))
+    pixmap = QPixmap(physical, physical)
     pixmap.fill(Qt.GlobalColor.transparent)
 
     painter = QPainter(pixmap)
+    painter.setRenderHint(QPainter.RenderHint.Antialiasing, on=True)
     painter.setRenderHint(QPainter.RenderHint.TextAntialiasing, on=True)
     paint_centered_emoji(
         painter,
         emoji,
-        QRectF(0.0, 0.0, float(size), float(size)),
+        QRectF(0.0, 0.0, float(physical), float(physical)),
         fill=0.90,
         align=align,
     )
     painter.end()
+    pixmap.setDevicePixelRatio(ratio)
 
-    return QIcon(pixmap)
+    icon = QIcon()
+    icon.addPixmap(pixmap)
+    return icon
 
 
 def make_emoji_push_button(
@@ -151,6 +166,7 @@ def make_emoji_push_button(
     """Create a push button with an emoji icon."""
     button = QPushButton(label, parent)
     button.setIcon(create_emoji_icon(emoji, icon_size))
+    button.setIconSize(QSize(icon_size, icon_size))
     return button
 
 
@@ -220,6 +236,17 @@ def split_leading_emoji(text: str) -> tuple[str, str]:
     if _is_emoji_token(first):
         return first, rest
     return "", text
+
+
+def _emoji_device_pixel_ratio() -> float:
+    app = QGuiApplication.instance()
+    if isinstance(app, QGuiApplication):
+        screen = QGuiApplication.screenAt(QCursor.pos()) or app.primaryScreen()
+        if screen is not None:
+            ratio = screen.devicePixelRatio()
+            if ratio > 0:
+                return float(ratio)
+    return 1.0
 
 
 def _is_emoji_codepoint(code: int) -> bool:

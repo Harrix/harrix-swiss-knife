@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 import pytest
+from PySide6.QtCore import QSize
 from PySide6.QtWidgets import QApplication, QMenu
 
 from harrix_swiss_knife.qt_emoji_icon import (
     add_emoji_action,
     apply_leading_emoji_icon,
     apply_leading_emoji_icons,
+    create_emoji_icon,
     set_action_text_with_emoji_icon,
     split_leading_emoji,
 )
@@ -77,6 +79,15 @@ def test_apply_leading_emoji_icons_walks_submenu(qapp: QApplication) -> None:
     year_action = next(action for action in menu.actions() if action.menu() is not None)
     assert year_action.text() == "Year"
     assert not year_action.icon().isNull()
+
+
+def test_create_emoji_icon_uses_device_pixel_ratio(qapp: QApplication) -> None:
+    assert qapp is not None
+    icon = create_emoji_icon("⭐", 20, device_pixel_ratio=2.0)
+    pixmap = icon.pixmap(QSize(20, 20), 2.0)
+    assert pixmap.devicePixelRatio() == 2.0
+    assert pixmap.width() == 40
+    assert pixmap.height() == 40
 
 
 def test_add_emoji_action_keeps_plain_label(qapp: QApplication) -> None:

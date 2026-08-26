@@ -179,6 +179,7 @@ class ZonePanel(QWidget):
         if show_add:
             add_button = QToolButton(self)
             add_button.setIcon(create_emoji_icon("➕", 18))  # noqa: RUF001
+            add_button.setIconSize(QSize(18, 18))
             add_button.setToolTip(title)
             add_button.setAutoRaise(True)
             add_button.clicked.connect(self.add_requested.emit)
@@ -192,6 +193,7 @@ class ZonePanel(QWidget):
         for mode, emoji, tooltip in _SORT_BUTTONS:
             button = QToolButton(self)
             button.setIcon(create_emoji_icon(emoji, 18))
+            button.setIconSize(QSize(18, 18))
             button.setToolTip(tooltip)
             button.setAutoRaise(True)
             button.setCheckable(True)

@@ -106,6 +106,7 @@ def apply_emoji_dialog_buttons(
         button = buttons.button(standard_button)
         if button is not None:
             button.setIcon(create_emoji_icon(emoji, icon_size))
+            button.setIconSize(QSize(icon_size, icon_size))
 ```
 
 </details>
@@ -172,10 +173,13 @@ def apply_leading_emoji_icons(
 ## 🔧 Function `create_emoji_icon`
 
 ```python
-def create_emoji_icon(emoji: str, size: int = 64, *, align: Qt.AlignmentFlag = Qt.AlignmentFlag.AlignCenter) -> QIcon
+def create_emoji_icon(emoji: str, size: int = 64, *, align: Qt.AlignmentFlag = Qt.AlignmentFlag.AlignCenter, device_pixel_ratio: float | None = None) -> QIcon
 ```
 
 Create a square `QIcon` for an emoji, scaled to avoid clipping.
+
+The pixmap is rasterized at the screen device-pixel ratio so icons stay
+sharp on HiDPI displays (for example 3840×2160).
 
 <details>
 <summary>Code:</summary>
@@ -186,22 +190,31 @@ def create_emoji_icon(
     size: int = 64,
     *,
     align: Qt.AlignmentFlag = Qt.AlignmentFlag.AlignCenter,
+    device_pixel_ratio: float | None = None,
 ) -> QIcon:
-    pixmap = QPixmap(size, size)
+    ratio = device_pixel_ratio if device_pixel_ratio is not None else _emoji_device_pixel_ratio()
+    if ratio <= 0:
+        ratio = 1.0
+    physical = max(1, round(size * ratio))
+    pixmap = QPixmap(physical, physical)
     pixmap.fill(Qt.GlobalColor.transparent)
 
     painter = QPainter(pixmap)
+    painter.setRenderHint(QPainter.RenderHint.Antialiasing, on=True)
     painter.setRenderHint(QPainter.RenderHint.TextAntialiasing, on=True)
     paint_centered_emoji(
         painter,
         emoji,
-        QRectF(0.0, 0.0, float(size), float(size)),
+        QRectF(0.0, 0.0, float(physical), float(physical)),
         fill=0.90,
         align=align,
     )
     painter.end()
+    pixmap.setDevicePixelRatio(ratio)
 
-    return QIcon(pixmap)
+    icon = QIcon()
+    icon.addPixmap(pixmap)
+    return icon
 ```
 
 </details>
@@ -227,6 +240,7 @@ def make_emoji_push_button(
 ) -> QPushButton:
     button = QPushButton(label, parent)
     button.setIcon(create_emoji_icon(emoji, icon_size))
+    button.setIconSize(QSize(icon_size, icon_size))
     return button
 ```
 
