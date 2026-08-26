@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import cast
 from unittest.mock import MagicMock, PropertyMock, patch
 
+from harrix_swiss_knife.actions.common.text_result_dialog import RERUN_DIALOG_CODE
 from harrix_swiss_knife.actions.development.update_harrix_swiss_knife import OnUpdateHarrixSwissKnife
 from harrix_swiss_knife.paths import clear_directory_contents
 
@@ -32,11 +33,34 @@ def test_build_swiss_config_merged_keeps_local_and_adds_missing_nested() -> None
 
 
 def test_build_swiss_config_merged_keeps_local_lists() -> None:
-    local = {"hotkeys": [{"action": "OnQuickLauncher"}]}
-    incoming = {"hotkeys": [{"action": "OnSnippets"}], "npm_packages": ["prettier"]}
+    local = {"hotkeys": [{"action": "OnQuickLauncher", "hotkeys": ["Ctrl+Shift+F1"]}]}
+    incoming = {
+        "hotkeys": [
+            {"action": "OnQuickLauncher", "hotkeys": ["Ctrl+Shift+1"]},
+            {"action": "OnSnippets", "hotkeys": ["Ctrl+Shift+2"]},
+        ],
+        "npm_packages": ["prettier"],
+    }
     merged = OnUpdateHarrixSwissKnife._build_swiss_config_merged(local, incoming)
-    assert merged["hotkeys"] == [{"action": "OnQuickLauncher"}]
+    assert merged["hotkeys"] == [
+        {"action": "OnQuickLauncher", "hotkeys": ["Ctrl+Shift+F1"]},
+        {"action": "OnSnippets", "hotkeys": ["Ctrl+Shift+2"]},
+    ]
     assert merged["npm_packages"] == ["prettier"]
+
+
+def test_build_swiss_config_merged_relocates_new_sqlite_path(tmp_path: Path) -> None:
+    databases = tmp_path / "data-for-hsk" / "databases"
+    databases.mkdir(parents=True)
+    (databases / "finance.db").write_bytes(b"x")
+    local = {
+        "data_for_hsk_root": (tmp_path / "data-for-hsk").as_posix(),
+        "sqlite_finance": (databases / "finance.db").as_posix(),
+    }
+    incoming = {"sqlite_snippets": (tmp_path / "other-machine" / "snippets.db").as_posix()}
+    merged = OnUpdateHarrixSwissKnife._build_swiss_config_merged(local, incoming)
+    assert merged["sqlite_finance"] == (databases / "finance.db").as_posix()
+    assert merged["sqlite_snippets"] == (databases / "snippets.db").as_posix()
 
 
 def test_build_swiss_config_merged_without_local() -> None:
@@ -182,11 +206,15 @@ def test_worker_finished_does_not_offer_restart_when_nothing_updated() -> None:
     action.add_line = MagicMock()
     action.show_toast = MagicMock()
     action.show_result = MagicMock()
-    action.get_yes_no_question = MagicMock()
+    action._show_update_result = MagicMock(return_value="log")
 
-    action._worker_finished([])
+    with patch(
+        "harrix_swiss_knife.actions.development.update_harrix_swiss_knife.restart_current_application"
+    ) as restart:
+        action._worker_finished([])
 
-    action.get_yes_no_question.assert_not_called()
+    action._show_update_result.assert_called_once_with(offer_restart=False)
+    restart.assert_not_called()
 
 
 def test_worker_finished_restarts_when_user_accepts() -> None:
@@ -195,7 +223,7 @@ def test_worker_finished_restarts_when_user_accepts() -> None:
     action.add_line = MagicMock()
     action.show_toast = MagicMock()
     action.show_result = MagicMock()
-    action.get_yes_no_question = MagicMock(return_value=True)
+    action._show_update_result = MagicMock(return_value=("log", RERUN_DIALOG_CODE))
 
     with patch(
         "harrix_swiss_knife.actions.development.update_harrix_swiss_knife.restart_current_application",
@@ -203,7 +231,7 @@ def test_worker_finished_restarts_when_user_accepts() -> None:
     ) as restart:
         action._worker_finished([])
 
-    action.get_yes_no_question.assert_called_once()
+    action._show_update_result.assert_called_once_with(offer_restart=True)
     restart.assert_called_once()
 
 
@@ -213,12 +241,12 @@ def test_worker_finished_skips_restart_when_user_declines() -> None:
     action.add_line = MagicMock()
     action.show_toast = MagicMock()
     action.show_result = MagicMock()
-    action.get_yes_no_question = MagicMock(return_value=False)
+    action._show_update_result = MagicMock(return_value=("log", 1))
 
     with patch(
         "harrix_swiss_knife.actions.development.update_harrix_swiss_knife.restart_current_application"
     ) as restart:
         action._worker_finished([])
 
-    action.get_yes_no_question.assert_called_once()
+    action._show_update_result.assert_called_once_with(offer_restart=True)
     restart.assert_not_called()

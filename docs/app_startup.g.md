@@ -265,6 +265,10 @@ def run_tray_application(log: logging.Logger, *, main_menu_cls: type[MainMenuBas
         _offer_data_for_hsk_setup_if_needed(config, log)
 
     def _offer_data_for_hsk_setup_if_needed(cfg: dict, startup_log: logging.Logger) -> None:
+        remapped = relocate_sqlite_paths(cfg)
+        if remapped:
+            persist_config_updates(remapped)
+            startup_log.info("Remapped unreachable database path(s): %s", ", ".join(sorted(remapped)))
         created = ensure_missing_tracker_databases(cfg)
         if created:
             startup_log.info("Created missing tracker database(s): %s", ", ".join(created))

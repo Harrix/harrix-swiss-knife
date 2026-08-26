@@ -30,7 +30,9 @@ commit when the tree is dirty). Without `.git`, downloads the default branch ZIP
 from GitHub and replaces the tree. Swiss Knife keeps `.venv`, `data/`, `temp/`,
 `logs/`, and `api-keys/`. `config/config.json` is merged automatically: local
 values stay, keys that exist only in the incoming file are added (including
-nested objects). ZIP downloads for all repos run before any tree is replaced,
+nested objects). `hotkeys` keep local bindings and append incoming actions
+that are missing. New `sqlite_*` paths are placed next to existing local
+databases. ZIP downloads for all repos run before any tree is replaced,
 so a Swiss Knife update cannot break later HTTPS calls mid-run.
 
 <details>
@@ -98,7 +100,9 @@ class OnUpdateHarrixSwissKnife(ActionBase):
         if not local:
             return copy.deepcopy(incoming)
         merged = OnUpdateHarrixSwissKnife._deep_merge_json(incoming, local)
-        return cast("dict[str, Any]", merged)
+        merged_dict = cast("dict[str, Any]", merged)
+        relocate_sqlite_paths(merged_dict, local=local)
+        return merged_dict
 
     def _collect_steps_interactive(self) -> list[OnUpdateHarrixSwissKnife._UpdateStep] | None:
         raw = self.config.get("paths_python_projects")
@@ -202,7 +206,13 @@ class OnUpdateHarrixSwissKnife(ActionBase):
             merged: dict[str, Any] = {}
             for key, incoming_value in incoming_dict.items():
                 if key in local_dict:
-                    merged[key] = OnUpdateHarrixSwissKnife._deep_merge_json(incoming_value, local_dict[key])
+                    if key == "hotkeys":
+                        merged[key] = OnUpdateHarrixSwissKnife._merge_hotkey_lists(
+                            local_dict[key],
+                            incoming_value,
+                        )
+                    else:
+                        merged[key] = OnUpdateHarrixSwissKnife._deep_merge_json(incoming_value, local_dict[key])
                 else:
                     merged[key] = copy.deepcopy(incoming_value)
             for key, local_value in local_dict.items():
@@ -306,21 +316,37 @@ class OnUpdateHarrixSwissKnife(ActionBase):
         if repo_name not in names:
             names.append(repo_name)
 
-    def _offer_restart_after_update(self) -> None:
-        """Ask whether to restart, then start a new process and quit."""
-        names = getattr(self, "_updated_project_names", None)
-        if not names:
+    @staticmethod
+    def _merge_hotkey_lists(local: object, incoming: object) -> object:
+        """Keep local hotkey rows; append incoming actions that are not present."""
+        if not isinstance(local, list):
+            return copy.deepcopy(incoming) if isinstance(incoming, list) else copy.deepcopy(local)
+        if not isinstance(incoming, list):
+            return copy.deepcopy(local)
+        result = [copy.deepcopy(item) for item in local]
+        seen: set[str] = set()
+        for item in result:
+            if isinstance(item, dict):
+                action = item.get("action")
+                if isinstance(action, str) and action:
+                    seen.add(action)
+        for item in incoming:
+            if not isinstance(item, dict):
+                continue
+            action = item.get("action")
+            if isinstance(action, str) and action and action not in seen:
+                result.append(copy.deepcopy(item))
+                seen.add(action)
+        return result
+
+    def _offer_restart_after_update(self, result: str | tuple[str | None, int] | None) -> None:
+        """Restart when the result dialog's Restart button was used."""
+        if not isinstance(result, tuple) or result[1] != RERUN_DIALOG_CODE:
             return
-        listed = ", ".join(names)
-        if not self.get_yes_no_question(
-            self.title,
-            f"Updated: {listed}.\n\nRestart Harrix Swiss Knife now so the new code is loaded?",
-            default_yes=True,
-        ):
+        if restart_current_application():
             return
-        if not restart_current_application():
-            self.add_line("❌ Could not start a new process. Restart the app manually.")
-            self.show_result()
+        self.add_line("❌ Could not start a new process. Restart the app manually.")
+        self.show_result()
 
     def _resolve_github_branch(self, owner: str, repo: str) -> str:
         """Return the GitHub default branch, or `main` when the API is unavailable."""
@@ -345,6 +371,26 @@ class OnUpdateHarrixSwissKnife(ActionBase):
             out = dest_config / rel
             out.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(f, out)
+
+    def _show_update_result(self, *, offer_restart: bool) -> str | tuple[str | None, int] | None:
+        """Show the update log; optionally add a Restart button on the same dialog."""
+        text = "\n".join(self.result_lines).strip()
+        if not text:
+            return None
+        title = "Result"
+        elapsed = self.elapsed_mm_ss()
+        if elapsed is not None:
+            title = f"Result — {elapsed}"
+        if not offer_restart:
+            return self.show_result()
+        return self.dialogs.show_text_multiline(
+            text,
+            title,
+            open_folder_path=self.result_folder,
+            rerun_button=True,
+            rerun_button_label="Restart now",
+            rerun_button_emoji=RERUN_BUTTON_EMOJI,
+        )
 
     @ActionBase.handle_exceptions("update Harrix Swiss Knife stack thread completion")
     def _worker_finished(self, merge_tasks: Any) -> None:
@@ -379,14 +425,19 @@ class OnUpdateHarrixSwissKnife(ActionBase):
                 continue
 
             merged = self._build_swiss_config_merged(local, incoming)
+            created = ensure_missing_tracker_databases(merged)
             self._write_config_json_pretty(cfg_path, merged)
             self.add_line(f"✅ Merged {cfg_path} (kept local values, added new keys).")
+            if created:
+                self.add_line(f"✅ Created missing database(s): {', '.join(created)}.")
 
-        if getattr(self, "_updated_project_names", None):
-            self.add_line("Restart the app to load the new code.")
+        names = getattr(self, "_updated_project_names", None)
+        if names:
+            listed = ", ".join(names)
+            self.add_line(f"Updated: {listed}. Restart now so the new code is loaded?")
         self.show_toast("Harrix projects update finished")
-        self.show_result()
-        self._offer_restart_after_update()
+        result = self._show_update_result(offer_restart=bool(names))
+        self._offer_restart_after_update(result)
 
     def _worker_git_pull(self, repo: Path, commit_message: str | None) -> list[OnUpdateHarrixSwissKnife._MergeTask]:
         tasks: list[OnUpdateHarrixSwissKnife._MergeTask] = []

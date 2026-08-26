@@ -13,6 +13,7 @@ lang: en
 
 - [🔧 Function `build_config_updates`](#-function-build_config_updates)
 - [🔧 Function `is_config_placeholder_path`](#-function-is_config_placeholder_path)
+- [🔧 Function `is_path_parent_creatable`](#-function-is_path_parent_creatable)
 
 </details>
 
@@ -79,6 +80,35 @@ def is_config_placeholder_path(value: object) -> bool:
     if not isinstance(value, str) or not value.strip():
         return True
     return bool(_PLACEHOLDER_RE.search(value))
+```
+
+</details>
+
+## 🔧 Function `is_path_parent_creatable`
+
+```python
+def is_path_parent_creatable(path: Path | str) -> bool
+```
+
+Return whether an ancestor of `path` exists as a directory.
+
+Used to skip `mkdir` on missing drives (for example `D:\` on a machine
+that has no `D:`).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def is_path_parent_creatable(path: Path | str) -> bool:
+    current = Path(path).expanduser()
+    parent = current.parent
+    for ancestor in [parent, *parent.parents]:
+        try:
+            if ancestor.exists():
+                return ancestor.is_dir()
+        except OSError:
+            return False
+    return False
 ```
 
 </details>

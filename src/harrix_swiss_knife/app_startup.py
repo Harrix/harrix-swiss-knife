@@ -27,7 +27,12 @@ from harrix_swiss_knife.actions.development.setup_data_for_hsk import run_setup_
 from harrix_swiss_knife.apps.common.uic_compile import install_safe_qt_translate
 from harrix_swiss_knife.cli_menu import CliContextMenu
 from harrix_swiss_knife.config_model import get_show_main_window_on_startup
-from harrix_swiss_knife.data_for_hsk import ensure_missing_tracker_databases, needs_data_for_hsk_setup
+from harrix_swiss_knife.data_for_hsk import (
+    ensure_missing_tracker_databases,
+    needs_data_for_hsk_setup,
+    persist_config_updates,
+    relocate_sqlite_paths,
+)
 from harrix_swiss_knife.early_splash import close_early_splash, early_splash_hwnd
 from harrix_swiss_knife.global_hotkey import GlobalHotkeyManager
 from harrix_swiss_knife.main_menu_base import set_menu_tooltips_visible_recursive
@@ -242,6 +247,10 @@ def run_tray_application(log: logging.Logger, *, main_menu_cls: type[MainMenuBas
         _offer_data_for_hsk_setup_if_needed(config, log)
 
     def _offer_data_for_hsk_setup_if_needed(cfg: dict, startup_log: logging.Logger) -> None:
+        remapped = relocate_sqlite_paths(cfg)
+        if remapped:
+            persist_config_updates(remapped)
+            startup_log.info("Remapped unreachable database path(s): %s", ", ".join(sorted(remapped)))
         created = ensure_missing_tracker_databases(cfg)
         if created:
             startup_log.info("Created missing tracker database(s): %s", ", ".join(created))

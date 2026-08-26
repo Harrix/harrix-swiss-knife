@@ -459,7 +459,7 @@ class SettingsEditorDialog(QDialog):
 
         self._setup_ui()
 
-    def reject(self) -> None:  # noqa: N802
+    def reject(self) -> None:
         """Close after confirming when there are unsaved edits."""
         self._save_current_category()
         if self._dirty and not self._confirm_discard():
@@ -835,7 +835,7 @@ Close after confirming when there are unsaved edits.
 <summary>Code:</summary>
 
 ```python
-def reject(self) -> None:  # noqa: N802
+def reject(self) -> None:
         self._save_current_category()
         if self._dirty and not self._confirm_discard():
             return
@@ -909,9 +909,7 @@ def assemble_config(categories: dict[str, dict[str, Any]], key_order: list[str])
         if key not in seen:
             result[key] = value
             seen.add(key)
-    for key, value in categories.items():
-        if key != "General" and key not in seen:
-            result[key] = value
+    result.update({key: value for key, value in categories.items() if key != "General" and key not in seen})
     return result
 ```
 

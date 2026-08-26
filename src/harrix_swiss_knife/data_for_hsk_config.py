@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import re
-from pathlib import Path  # noqa: TC003
+from pathlib import Path
 from typing import Any
 
 _NOTES_DIR_NAME = "Notes"
@@ -42,6 +42,8 @@ SQLITE_CONFIG_KEYS: tuple[str, ...] = (
     "sqlite_food",
     "sqlite_snippets",
 )
+
+SQLITE_KEY_TO_FILENAME: dict[str, str] = dict(zip(SQLITE_CONFIG_KEYS, TRACKER_DATABASE_NAMES, strict=True))
 
 
 def build_config_updates(data_root: Path, notes_folders: tuple[str, ...] | list[str]) -> dict[str, Any]:
@@ -83,3 +85,21 @@ def is_config_placeholder_path(value: object) -> bool:
     if not isinstance(value, str) or not value.strip():
         return True
     return bool(_PLACEHOLDER_RE.search(value))
+
+
+def is_path_parent_creatable(path: Path | str) -> bool:
+    r"""Return whether an ancestor of `path` exists as a directory.
+
+    Used to skip `mkdir` on missing drives (for example `D:\` on a machine
+    that has no `D:`).
+
+    """
+    current = Path(path).expanduser()
+    parent = current.parent
+    for ancestor in [parent, *parent.parents]:
+        try:
+            if ancestor.exists():
+                return ancestor.is_dir()
+        except OSError:
+            return False
+    return False

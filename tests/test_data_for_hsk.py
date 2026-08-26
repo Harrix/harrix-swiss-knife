@@ -15,11 +15,14 @@ from harrix_swiss_knife.data_for_hsk import (
     create_data_for_hsk,
     ensure_missing_tracker_databases,
     needs_data_for_hsk_setup,
+    persist_config_updates,
+    relocate_sqlite_paths,
     suggest_data_for_hsk_root,
 )
 from harrix_swiss_knife.data_for_hsk_config import (
     DEFAULT_DATA_FOR_HSK_NOTES_FOLDERS,
     build_config_updates,
+    is_path_parent_creatable,
 )
 
 
@@ -59,6 +62,65 @@ def test_needs_data_for_hsk_setup_false_when_complete(tmp_path: Path, qapp: QApp
     result = create_data_for_hsk(data_root, init_databases=True, init_git=False)
     config = dict(result.config_updates)
     assert needs_data_for_hsk_setup(config) is False
+
+
+def test_ensure_missing_tracker_databases_skips_unreachable_parent(
+    tmp_path: Path,
+    qapp: QApplication,  # noqa: ARG001
+) -> None:
+    blocker = tmp_path / "not-a-dir"
+    blocker.write_text("x", encoding="utf-8")
+    config = {"sqlite_snippets": (blocker / "db" / "snippets.db").as_posix()}
+    assert ensure_missing_tracker_databases(config) == ()
+    assert not (blocker / "db" / "snippets.db").exists()
+
+
+def test_is_path_parent_creatable_false_when_ancestor_is_file(tmp_path: Path) -> None:
+    blocker = tmp_path / "file.txt"
+    blocker.write_text("x", encoding="utf-8")
+    assert is_path_parent_creatable(blocker / "nested" / "snippets.db") is False
+    assert is_path_parent_creatable(tmp_path / "new-folder" / "snippets.db") is True
+
+
+def test_persist_config_updates_keeps_snippet_references(tmp_path: Path) -> None:
+    config_path = tmp_path / "config.json"
+    config_path.write_text(
+        '{\n  "bothub_api_key": "snippet:api-keys/bothub-api-key.txt",\n  "sqlite_food": "old.db"\n}\n',
+        encoding="utf-8",
+    )
+    persist_config_updates({"sqlite_snippets": (tmp_path / "snippets.db").as_posix()}, config_path)
+    data = json.loads(config_path.read_text(encoding="utf-8"))
+    assert data["bothub_api_key"] == "snippet:api-keys/bothub-api-key.txt"
+    assert data["sqlite_snippets"].endswith("snippets.db")
+
+
+def test_relocate_sqlite_paths_moves_missing_db_next_to_existing(tmp_path: Path) -> None:
+    databases = tmp_path / "data-for-hsk" / "databases"
+    databases.mkdir(parents=True)
+    (databases / "finance.db").write_bytes(b"x")
+    missing = tmp_path / "other-machine" / "snippets.db"
+    config = {
+        "data_for_hsk_root": (tmp_path / "data-for-hsk").as_posix(),
+        "sqlite_finance": (databases / "finance.db").as_posix(),
+        "sqlite_snippets": missing.as_posix(),
+    }
+    updates = relocate_sqlite_paths(config)
+    assert updates["sqlite_snippets"] == (databases / "snippets.db").as_posix()
+    assert config["sqlite_snippets"] == (databases / "snippets.db").as_posix()
+    assert config["sqlite_finance"] == (databases / "finance.db").as_posix()
+
+
+def test_relocate_sqlite_paths_places_new_key_next_to_existing(tmp_path: Path) -> None:
+    databases = tmp_path / "databases"
+    databases.mkdir()
+    (databases / "food.db").write_bytes(b"x")
+    local = {"sqlite_food": (databases / "food.db").as_posix()}
+    config = {
+        "sqlite_food": (databases / "food.db").as_posix(),
+        "sqlite_snippets": (tmp_path / "other-machine" / "snippets.db").as_posix(),
+    }
+    updates = relocate_sqlite_paths(config, local=local)
+    assert updates["sqlite_snippets"] == (databases / "snippets.db").as_posix()
 
 
 def test_ensure_missing_tracker_databases_creates_only_absent_files(

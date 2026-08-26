@@ -15,8 +15,11 @@ lang: en
 - [🔧 Function `apply_data_for_hsk_to_config`](#-function-apply_data_for_hsk_to_config)
 - [🔧 Function `create_data_for_hsk`](#-function-create_data_for_hsk)
 - [🔧 Function `ensure_missing_tracker_databases`](#-function-ensure_missing_tracker_databases)
+- [🔧 Function `existing_tracker_databases_dir`](#-function-existing_tracker_databases_dir)
 - [🔧 Function `needs_data_for_hsk_setup`](#-function-needs_data_for_hsk_setup)
+- [🔧 Function `persist_config_updates`](#-function-persist_config_updates)
 - [🔧 Function `read_notes_folder_names`](#-function-read_notes_folder_names)
+- [🔧 Function `relocate_sqlite_paths`](#-function-relocate_sqlite_paths)
 - [🔧 Function `suggest_data_for_hsk_root`](#-function-suggest_data_for_hsk_root)
 
 </details>
@@ -192,10 +195,13 @@ def ensure_missing_tracker_databases(config: dict[str, Any]) -> tuple[str, ...]:
         recover_sql = recover_by_name.get(resolved.name)
         if recover_sql is None or not recover_sql.is_file():
             continue
+        if not is_path_parent_creatable(resolved):
+            logger.warning("Skip creating %s: folder is not available", resolved)
+            continue
         try:
             resolved.parent.mkdir(parents=True, exist_ok=True)
         except OSError:
-            logger.exception("Cannot create folder for %s", resolved)
+            logger.warning("Cannot create folder for %s", resolved)
             continue
         if QtSqliteDatabaseManagerBase.create_database_from_sql(str(resolved), str(recover_sql)):
             logger.info("Created missing tracker database from recover.sql: %s", resolved)
@@ -203,6 +209,45 @@ def ensure_missing_tracker_databases(config: dict[str, Any]) -> tuple[str, ...]:
         else:
             logger.warning("Failed to create missing tracker database: %s", resolved)
     return tuple(created)
+```
+
+</details>
+
+## 🔧 Function `existing_tracker_databases_dir`
+
+```python
+def existing_tracker_databases_dir(config: dict[str, Any]) -> Path | None
+```
+
+Return the folder where tracker SQLite files already live on this machine.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def existing_tracker_databases_dir(config: dict[str, Any]) -> Path | None:
+    root_value = config.get("data_for_hsk_root")
+    if isinstance(root_value, str) and not is_config_placeholder_path(root_value):
+        db_dir = Path(root_value).expanduser() / "databases"
+        if db_dir.is_dir():
+            return db_dir.resolve()
+
+    for key in SQLITE_CONFIG_KEYS:
+        value = config.get(key)
+        if not isinstance(value, str) or is_config_placeholder_path(value):
+            continue
+        path = Path(value).expanduser()
+        if path.is_file():
+            return path.parent.resolve()
+
+    for key in SQLITE_CONFIG_KEYS:
+        value = config.get(key)
+        if not isinstance(value, str) or is_config_placeholder_path(value):
+            continue
+        parent = Path(value).expanduser().parent
+        if parent.is_dir():
+            return parent.resolve()
+    return None
 ```
 
 </details>
@@ -251,6 +296,30 @@ def needs_data_for_hsk_setup(config: dict[str, Any]) -> bool:
 
 </details>
 
+## 🔧 Function `persist_config_updates`
+
+```python
+def persist_config_updates(updates: dict[str, Any], config_path: Path | None = None) -> None
+```
+
+Write selected keys into `config.json` without resolving `snippet:` values.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def persist_config_updates(updates: dict[str, Any], config_path: Path | None = None) -> None:
+    if not updates:
+        return
+    path = config_path or get_config_path()
+    data = _load_config_dict(path)
+    data.update(updates)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(h.dev.dumps_pretty_json(data), encoding="utf-8")
+```
+
+</details>
+
 ## 🔧 Function `read_notes_folder_names`
 
 ```python
@@ -270,6 +339,49 @@ def read_notes_folder_names(config: dict[str, Any]) -> tuple[str, ...]:
         if names:
             return tuple(names)
     return DEFAULT_DATA_FOR_HSK_NOTES_FOLDERS
+```
+
+</details>
+
+## 🔧 Function `relocate_sqlite_paths`
+
+```python
+def relocate_sqlite_paths(config: dict[str, Any], *, local: dict[str, Any] | None = None) -> dict[str, str]
+```
+
+Point tracker DB keys at the folder that already has databases on this machine.
+
+When `local` is set (config merge), keys that were absent locally are always
+placed next to existing DBs instead of copying another machine's path.
+Missing files are moved to that folder too. Unreachable paths are dropped
+when no local DB folder is known.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def relocate_sqlite_paths(config: dict[str, Any], *, local: dict[str, Any] | None = None) -> dict[str, str]:
+    fallback = existing_tracker_databases_dir(config)
+    updates: dict[str, str] = {}
+    for key, filename in SQLITE_KEY_TO_FILENAME.items():
+        value = config.get(key)
+        is_new = local is not None and not (
+            key in local and isinstance(local.get(key), str) and not is_config_placeholder_path(local[key])
+        )
+        path = Path(value).expanduser() if isinstance(value, str) and not is_config_placeholder_path(value) else None
+        if path is not None and path.is_file() and not is_new:
+            continue
+        if fallback is not None and (is_new or path is None or not path.is_file()):
+            new_path = (fallback / filename).as_posix()
+            if config.get(key) != new_path:
+                config[key] = new_path
+                updates[key] = new_path
+            continue
+        if path is not None and (path.is_file() or is_path_parent_creatable(path)):
+            continue
+        if is_new:
+            config.pop(key, None)
+    return updates
 ```
 
 </details>
