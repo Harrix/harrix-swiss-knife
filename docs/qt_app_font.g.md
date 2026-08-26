@@ -228,7 +228,7 @@ Multiply a widget's own point size by the current UI font scale once.
 ```python
 def scale_explicit_widget_font(widget: QWidget) -> None:
     scale = current_ui_font_scale()
-    if abs(scale - 1.0) < 1e-6 or widget.property(_SCALED_PROP) == "1":
+    if abs(scale - 1.0) < _SCALE_EPSILON or widget.property(_SCALED_PROP) == "1":
         return
     if not widget.testAttribute(Qt.WidgetAttribute.WA_SetFont):
         return

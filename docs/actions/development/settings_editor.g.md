@@ -22,13 +22,16 @@ lang: en
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
 - [🏛️ Class `SettingsEditorDialog`](#%EF%B8%8F-class-settingseditordialog)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-2)
+  - [⚙️ Method `reject`](#%EF%B8%8F-method-reject)
   - [⚙️ Method `resizeEvent`](#%EF%B8%8F-method-resizeevent)
   - [⚙️ Method `showEvent`](#%EF%B8%8F-method-showevent)
+- [🔧 Function `assemble_config`](#-function-assemble_config)
 - [🔧 Function `folder_path_from_text`](#-function-folder_path_from_text)
 - [🔧 Function `is_folder_path_setting`](#-function-is_folder_path_setting)
 - [🔧 Function `is_hotkey_bindings_setting`](#-function-is_hotkey_bindings_setting)
 - [🔧 Function `is_hotkey_setting`](#-function-is_hotkey_setting)
 - [🔧 Function `is_hotkey_string`](#-function-is_hotkey_string)
+- [🔧 Function `load_raw_config`](#-function-load_raw_config)
 
 </details>
 
@@ -45,6 +48,8 @@ Editor for `config.json` `hotkeys`: action name plus a capturable shortcut.
 
 ```python
 class HotkeyBindingsWidget(QWidget):
+
+    changed = Signal()
 
     def __init__(self, bindings: list[Any], parent: QWidget | None = None) -> None:
         """Create rows from existing action-hotkey bindings."""
@@ -77,6 +82,8 @@ class HotkeyBindingsWidget(QWidget):
         add_button = make_emoji_push_button("Add", "➕")  # noqa: RUF001
         add_button.setObjectName(ADD_HOTKEY_BUTTON_OBJECT_NAME)
         add_button.setToolTip("Add hotkey")
+        add_button.setAutoDefault(False)
+        add_button.setDefault(False)
         add_button.clicked.connect(lambda: self._add_row("", ""))
         layout.addWidget(add_button, alignment=Qt.AlignmentFlag.AlignLeft)
 
@@ -103,20 +110,26 @@ class HotkeyBindingsWidget(QWidget):
         action_edit = QLineEdit(action)
         action_edit.setObjectName(HOTKEY_ACTION_OBJECT_NAME)
         action_edit.setPlaceholderText("OnActionName")
+        action_edit.returnPressed.connect(self.changed.emit)
+        action_edit.textChanged.connect(self.changed.emit)
         row_layout.addWidget(action_edit, 1)
 
         hotkey_edit = HotkeyEdit(hotkey)
+        hotkey_edit.textChanged.connect(self.changed.emit)
         row_layout.addWidget(hotkey_edit, 1)
 
         remove_button = make_emoji_push_button("", DELETE_BUTTON_EMOJI)
         remove_button.setObjectName(REMOVE_HOTKEY_BUTTON_OBJECT_NAME)
         remove_button.setToolTip("Remove hotkey")
+        remove_button.setAutoDefault(False)
+        remove_button.setDefault(False)
         remove_button.setFixedWidth(36)
         remove_button.clicked.connect(lambda _checked=False, current=row: self._remove_row(current))
         row_layout.addWidget(remove_button)
 
         self._rows_layout.addWidget(row)
         self._rows.append((row, action_edit, hotkey_edit))
+        self.changed.emit()
 
     def _remove_row(self, row: QWidget) -> None:
         for index, (current, _action_edit, _hotkey_edit) in enumerate(self._rows):
@@ -124,6 +137,7 @@ class HotkeyBindingsWidget(QWidget):
                 self._rows.pop(index)
                 self._rows_layout.removeWidget(row)
                 row.deleteLater()
+                self.changed.emit()
                 return
 ```
 
@@ -171,6 +185,8 @@ def __init__(self, bindings: list[Any], parent: QWidget | None = None) -> None:
         add_button = make_emoji_push_button("Add", "➕")  # noqa: RUF001
         add_button.setObjectName(ADD_HOTKEY_BUTTON_OBJECT_NAME)
         add_button.setToolTip("Add hotkey")
+        add_button.setAutoDefault(False)
+        add_button.setDefault(False)
         add_button.clicked.connect(lambda: self._add_row("", ""))
         layout.addWidget(add_button, alignment=Qt.AlignmentFlag.AlignLeft)
 ```
@@ -421,6 +437,7 @@ class SettingsEditorDialog(QDialog):
 
     _FALLBACK_MULTILINE_WIDTH = 700
     _MIN_MULTILINE_WIDTH = 50
+    status_label: QLabel
 
     def __init__(self, parent: QWidget | None = None) -> None:
         """Initialize the settings editor."""
@@ -429,14 +446,25 @@ class SettingsEditorDialog(QDialog):
 
         self.config_path = get_config_path_str()
         try:
-            self.config_data = h.dev.config_load(self.config_path)
+            self.config_data = load_raw_config(self.config_path)
         except Exception:
             self.config_data = {}
 
+        self._key_order = list(self.config_data)
         self.categories: dict[str, dict[str, Any]] = self._categorize_config(self.config_data)
         self.input_widgets: dict[str, QWidget] = {}
+        self._field_save_buttons: dict[str, QPushButton] = {}
+        self._dirty: set[str] = set()
+        self._saved_snapshot = copy.deepcopy(self.config_data)
 
         self._setup_ui()
+
+    def reject(self) -> None:  # noqa: N802
+        """Close after confirming when there are unsaved edits."""
+        self._save_current_category()
+        if self._dirty and not self._confirm_discard():
+            return
+        super().reject()
 
     def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802
         """Refit multiline fields when the dialog width changes."""
@@ -473,6 +501,28 @@ class SettingsEditorDialog(QDialog):
             elif item.layout():
                 self._clear_layout(item.layout())
 
+    def _confirm_discard(self) -> bool:
+        answer = QMessageBox.question(
+            self,
+            "Unsaved changes",
+            "Discard unsaved changes?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        return answer == QMessageBox.StandardButton.Yes
+
+    def _connect_dirty(self, widget_key: str, widget: QWidget) -> None:
+        if isinstance(widget, QCheckBox):
+            widget.stateChanged.connect(lambda _state=0, key=widget_key: self._mark_dirty(key))
+        elif isinstance(widget, HotkeyBindingsWidget):
+            widget.changed.connect(lambda key=widget_key: self._mark_dirty(key))
+        elif isinstance(widget, QLineEdit):
+            widget.textChanged.connect(lambda _text="", key=widget_key: self._mark_dirty(key))
+            if not isinstance(widget, HotkeyEdit):
+                widget.returnPressed.connect(lambda key=widget_key: self._on_field_save(key))
+        elif isinstance(widget, QTextEdit):
+            widget.textChanged.connect(lambda key=widget_key: self._mark_dirty(key))
+
     def _fit_multiline_widget(self, widget: QTextEdit) -> None:
         width = widget.width()
         if width < self._MIN_MULTILINE_WIDTH:
@@ -486,6 +536,21 @@ class SettingsEditorDialog(QDialog):
             if isinstance(widget, QTextEdit):
                 self._fit_multiline_widget(widget)
 
+    def _make_field_save_button(self, widget_key: str) -> QPushButton:
+        button = make_emoji_push_button("Save", SAVE_BUTTON_EMOJI)
+        button.setObjectName(FIELD_SAVE_BUTTON_OBJECT_NAME)
+        button.setToolTip("Save this setting to config.json")
+        button.setAutoDefault(False)
+        button.setDefault(False)
+        button.setEnabled(False)
+        button.clicked.connect(lambda _checked=False, key=widget_key: self._on_field_save(key))
+        self._field_save_buttons[widget_key] = button
+        return button
+
+    def _mark_dirty(self, widget_key: str) -> None:
+        self._dirty.add(widget_key)
+        self._refresh_save_ui()
+
     def _on_category_changed(self, row: int) -> None:
         if self.search_input.text():
             self.search_input.clear()  # This will trigger _on_search and render the category
@@ -494,9 +559,13 @@ class SettingsEditorDialog(QDialog):
         self._save_current_category()
         self._clear_settings_layout()
         self.input_widgets.clear()
+        self._field_save_buttons.clear()
 
         cat_name = self.list_categories.item(row).text()
         self._render_category(cat_name)
+
+    def _on_field_save(self, widget_key: str) -> None:  # noqa: ARG002
+        self._on_save()
 
     def _on_multiline_text_changed(self) -> None:
         sender = self.sender()
@@ -504,22 +573,17 @@ class SettingsEditorDialog(QDialog):
             self._fit_multiline_widget(sender)
 
     def _on_save(self) -> None:
-        self._save_current_category()
-
-        new_config = dict(self.categories["General"])
-        new_config.update({k: v for k, v in self.categories.items() if k != "General"})
-
-        try:
-            Path(self.config_path).write_text(h.dev.dumps_pretty_json(new_config), encoding="utf-8")
-            self.accept()
-        except Exception as e:
-            QMessageBox.critical(self, "Error", f"Failed to save config: {e}")
+        if not self._persist_config():
+            return
+        self._dirty.clear()
+        self._refresh_save_ui()
 
     def _on_search(self, text: str) -> None:
         search_term = text.lower()
         self._save_current_category()
         self._clear_settings_layout()
         self.input_widgets.clear()
+        self._field_save_buttons.clear()
 
         if not search_term:
             # If search is cleared, show current category
@@ -543,6 +607,31 @@ class SettingsEditorDialog(QDialog):
             return
         h.file.open_file_or_folder(folder)
 
+    def _persist_config(self) -> bool:
+        self._save_current_category()
+        new_config = assemble_config(self.categories, self._key_order)
+        try:
+            Path(self.config_path).write_text(h.dev.dumps_pretty_json(new_config), encoding="utf-8")
+        except OSError as e:
+            QMessageBox.critical(self, "Error", f"Failed to save config: {e}")
+            return False
+        self.config_data = copy.deepcopy(new_config)
+        self._saved_snapshot = copy.deepcopy(new_config)
+        self._key_order = list(new_config)
+        if hasattr(self, "status_label"):
+            self.status_label.setText("Saved to config.json")
+        return True
+
+    def _refresh_save_ui(self) -> None:
+        for key, button in self._field_save_buttons.items():
+            button.setEnabled(key in self._dirty)
+        if not hasattr(self, "status_label"):
+            return
+        if self._dirty:
+            self.status_label.setText("Unsaved changes")
+        elif self.status_label.text() != "Saved to config.json":
+            self.status_label.setText("")
+
     def _render_category(self, cat_name: str) -> None:
         title = QLabel(f"<h2>{cat_name}</h2>")
         self.settings_layout.addWidget(title)
@@ -559,18 +648,20 @@ class SettingsEditorDialog(QDialog):
             if isinstance(value, bool):
                 widget = QCheckBox()
                 widget.setChecked(value)
-                setting_layout.addWidget(widget)
                 self.input_widgets[widget_key] = widget
+                setting_layout.addLayout(self._setting_value_row(widget_key, widget))
             elif is_hotkey_bindings_setting(key, value):
                 widget = HotkeyBindingsWidget(value if isinstance(value, list) else [])
-                setting_layout.addWidget(widget)
                 self.input_widgets[widget_key] = widget
+                setting_layout.addWidget(widget)
+                setting_layout.addWidget(self._make_field_save_button(widget_key), alignment=Qt.AlignmentFlag.AlignLeft)
             elif is_hotkey_setting(key, value):
                 widget = HotkeyEdit(str(value))
-                setting_layout.addWidget(widget)
                 self.input_widgets[widget_key] = widget
+                setting_layout.addLayout(self._setting_value_row(widget_key, widget))
             elif isinstance(value, (int, float, str)):
                 widget = QLineEdit(str(value))
+                self.input_widgets[widget_key] = widget
                 if isinstance(value, str) and is_folder_path_setting(key, value):
                     row = QHBoxLayout()
                     row.setContentsMargins(0, 0, 0, 0)
@@ -578,6 +669,8 @@ class SettingsEditorDialog(QDialog):
                     open_button = make_emoji_push_button("", OPEN_FOLDER_BUTTON_EMOJI)
                     open_button.setObjectName(OPEN_FOLDER_BUTTON_OBJECT_NAME)
                     open_button.setToolTip("Open folder")
+                    open_button.setAutoDefault(False)
+                    open_button.setDefault(False)
                     open_button.setFixedWidth(36)
                     open_button.clicked.connect(lambda _checked=False, line=widget: self._open_folder_path(line.text()))
                     widget.textChanged.connect(
@@ -585,10 +678,10 @@ class SettingsEditorDialog(QDialog):
                     )
                     open_button.setEnabled(folder_path_from_text(widget.text()) is not None)
                     row.addWidget(open_button)
+                    row.addWidget(self._make_field_save_button(widget_key))
                     setting_layout.addLayout(row)
                 else:
-                    setting_layout.addWidget(widget)
-                self.input_widgets[widget_key] = widget
+                    setting_layout.addLayout(self._setting_value_row(widget_key, widget))
             else:
                 # Lists or complex objects
                 widget = QTextEdit()
@@ -597,9 +690,11 @@ class SettingsEditorDialog(QDialog):
                 widget.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
                 widget.setPlainText(json.dumps(value, indent=2, ensure_ascii=False))
                 widget.textChanged.connect(self._on_multiline_text_changed)
-                setting_layout.addWidget(widget)
                 self.input_widgets[widget_key] = widget
+                setting_layout.addWidget(widget)
+                setting_layout.addWidget(self._make_field_save_button(widget_key), alignment=Qt.AlignmentFlag.AlignLeft)
 
+            self._connect_dirty(widget_key, widget)
             self.settings_layout.addLayout(setting_layout)
             self.settings_layout.addSpacing(10)
 
@@ -631,6 +726,13 @@ class SettingsEditorDialog(QDialog):
             elif isinstance(widget, QTextEdit):
                 with contextlib.suppress(json.JSONDecodeError):
                     self.categories[cat_name][key] = json.loads(widget.toPlainText())
+
+    def _setting_value_row(self, widget_key: str, widget: QWidget) -> QHBoxLayout:
+        row = QHBoxLayout()
+        row.setContentsMargins(0, 0, 0, 0)
+        row.addWidget(widget, 1)
+        row.addWidget(self._make_field_save_button(widget_key))
+        return row
 
     def _setup_ui(self) -> None:
         layout = QVBoxLayout(self)
@@ -664,13 +766,21 @@ class SettingsEditorDialog(QDialog):
 
         # Bottom buttons
         btn_layout = QHBoxLayout()
-        btn_save = QPushButton("Save")
+        self.status_label = QLabel("")
+        self.status_label.setObjectName(STATUS_LABEL_OBJECT_NAME)
+        btn_layout.addWidget(self.status_label, 1)
+        btn_save = make_emoji_push_button("Save all", SAVE_BUTTON_EMOJI)
+        btn_save.setObjectName(SAVE_ALL_BUTTON_OBJECT_NAME)
+        btn_save.setAutoDefault(False)
+        btn_save.setDefault(False)
         btn_save.clicked.connect(self._on_save)
-        btn_cancel = QPushButton("Cancel")
-        btn_cancel.clicked.connect(self.reject)
-        btn_layout.addStretch()
+        btn_close = QPushButton("Close")
+        btn_close.setObjectName(CLOSE_BUTTON_OBJECT_NAME)
+        btn_close.setAutoDefault(False)
+        btn_close.setDefault(False)
+        btn_close.clicked.connect(self.reject)
         btn_layout.addWidget(btn_save)
-        btn_layout.addWidget(btn_cancel)
+        btn_layout.addWidget(btn_close)
         layout.addLayout(btn_layout)
 
         if self.list_categories.count() > 0:
@@ -697,14 +807,39 @@ def __init__(self, parent: QWidget | None = None) -> None:
 
         self.config_path = get_config_path_str()
         try:
-            self.config_data = h.dev.config_load(self.config_path)
+            self.config_data = load_raw_config(self.config_path)
         except Exception:
             self.config_data = {}
 
+        self._key_order = list(self.config_data)
         self.categories: dict[str, dict[str, Any]] = self._categorize_config(self.config_data)
         self.input_widgets: dict[str, QWidget] = {}
+        self._field_save_buttons: dict[str, QPushButton] = {}
+        self._dirty: set[str] = set()
+        self._saved_snapshot = copy.deepcopy(self.config_data)
 
         self._setup_ui()
+```
+
+</details>
+
+### ⚙️ Method `reject`
+
+```python
+def reject(self) -> None
+```
+
+Close after confirming when there are unsaved edits.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def reject(self) -> None:  # noqa: N802
+        self._save_current_category()
+        if self._dirty and not self._confirm_discard():
+            return
+        super().reject()
 ```
 
 </details>
@@ -743,6 +878,41 @@ Refit multiline fields when the dialog is shown.
 def showEvent(self, event: QShowEvent) -> None:  # noqa: N802
         super().showEvent(event)
         self._fit_multiline_widgets()
+```
+
+</details>
+
+## 🔧 Function `assemble_config`
+
+```python
+def assemble_config(categories: dict[str, dict[str, Any]], key_order: list[str]) -> dict[str, Any]
+```
+
+Rebuild a top-level config object, keeping `key_order` and snippet strings.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def assemble_config(categories: dict[str, dict[str, Any]], key_order: list[str]) -> dict[str, Any]:
+    general = categories.get("General", {})
+    result: dict[str, Any] = {}
+    seen: set[str] = set()
+    for key in key_order:
+        if key in general:
+            result[key] = general[key]
+            seen.add(key)
+        elif key in categories and key != "General":
+            result[key] = categories[key]
+            seen.add(key)
+    for key, value in general.items():
+        if key not in seen:
+            result[key] = value
+            seen.add(key)
+    for key, value in categories.items():
+        if key != "General" and key not in seen:
+            result[key] = value
+    return result
 ```
 
 </details>
@@ -870,6 +1040,28 @@ def is_hotkey_string(value: object) -> bool:
     if len(key) == 1 and key.isalnum():
         return True
     return key.startswith("f") and key[1:].isdigit()
+```
+
+</details>
+
+## 🔧 Function `load_raw_config`
+
+```python
+def load_raw_config(path: str | Path) -> dict[str, Any]
+```
+
+Load `config.json` without expanding `snippet:` values.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def load_raw_config(path: str | Path) -> dict[str, Any]:
+    loaded = h.dev.config_load(path, resolve_snippets=False)
+    if not isinstance(loaded, dict):
+        msg = f"Config root must be a JSON object: {path}"
+        raise TypeError(msg)
+    return loaded
 ```
 
 </details>

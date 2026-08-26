@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import Any
 
@@ -13,18 +14,22 @@ from PySide6.QtWidgets import QApplication, QLineEdit, QPushButton, QTextEdit
 from harrix_swiss_knife.actions.common.dialog_geometry import text_content_height
 from harrix_swiss_knife.actions.development.settings_editor import (
     ADD_HOTKEY_BUTTON_OBJECT_NAME,
+    FIELD_SAVE_BUTTON_OBJECT_NAME,
     HOTKEY_ACTION_OBJECT_NAME,
     HOTKEY_BINDINGS_OBJECT_NAME,
     HOTKEY_EDIT_OBJECT_NAME,
     OPEN_FOLDER_BUTTON_OBJECT_NAME,
+    SAVE_ALL_BUTTON_OBJECT_NAME,
     HotkeyBindingsWidget,
     HotkeyEdit,
     SettingsEditorDialog,
+    assemble_config,
     folder_path_from_text,
     is_folder_path_setting,
     is_hotkey_bindings_setting,
     is_hotkey_setting,
     is_hotkey_string,
+    load_raw_config,
 )
 
 _LONG_LIST = [f"item-{index}" for index in range(12)]
@@ -47,7 +52,7 @@ def _open_settings_dialog(monkeypatch: pytest.MonkeyPatch, config: dict[str, Any
         lambda: "config.json",
     )
     monkeypatch.setattr(
-        "harrix_swiss_knife.actions.development.settings_editor.h.dev.config_load",
+        "harrix_swiss_knife.actions.development.settings_editor.load_raw_config",
         lambda _path: config,
     )
     dialog = SettingsEditorDialog()
@@ -56,6 +61,33 @@ def _open_settings_dialog(monkeypatch: pytest.MonkeyPatch, config: dict[str, Any
     QApplication.processEvents()
     dialog._fit_multiline_widgets()
     return dialog
+
+
+def test_assemble_config_keeps_key_order_and_nested_objects() -> None:
+    categories = {
+        "General": {
+            "android_build_variant": "release",
+            "beginning_of_md": "snippet:config/beginning-of-md.md",
+            "editor": "cursor",
+        },
+        "apps": {"local_language": "ru"},
+        "prompts": {"text_fix_ru": "snippet:config/prompts/text-fix-ru.md"},
+    }
+    order = ["android_build_variant", "apps", "beginning_of_md", "editor", "prompts"]
+    assembled = assemble_config(categories, order)
+    assert list(assembled) == order
+    assert assembled["beginning_of_md"] == "snippet:config/beginning-of-md.md"
+    assert assembled["prompts"]["text_fix_ru"] == "snippet:config/prompts/text-fix-ru.md"
+
+
+def test_load_raw_config_keeps_snippet_references(tmp_path: Path) -> None:
+    path = tmp_path / "config.json"
+    path.write_text(
+        '{"beginning_of_md": "snippet:config/beginning-of-md.md", "editor": "cursor"}\n',
+        encoding="utf-8",
+    )
+    loaded = load_raw_config(path)
+    assert loaded["beginning_of_md"] == "snippet:config/beginning-of-md.md"
 
 
 def test_multiline_field_height_shows_all_text(qapp: QApplication, monkeypatch: pytest.MonkeyPatch) -> None:  # noqa: ARG001
@@ -230,6 +262,7 @@ def test_hotkey_bindings_setting_uses_capture_rows(
         QApplication.processEvents()
         assert len(widget.findChildren(HotkeyEdit)) == 3
     finally:
+        dialog._dirty.clear()
         dialog.close()
 
 
@@ -259,5 +292,81 @@ def test_hotkey_bindings_save_new_combination(
         assert dialog.categories["General"]["hotkeys"] == [
             {"action": "OnQuickLauncher", "hotkeys": ["Ctrl+Alt+F9"]},
         ]
+    finally:
+        dialog._dirty.clear()
+        dialog.close()
+
+
+def test_save_keeps_snippets_key_order_and_stays_open(
+    qapp: QApplication,  # noqa: ARG001
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / "config.json"
+    original = {
+        "android_build_variant": "release",
+        "apps": {"local_language": "ru"},
+        "beginning_of_md": "snippet:config/beginning-of-md.md",
+        "bothub_api_key": "snippet:api-keys/bothub-api-key.txt",
+        "editor": "cursor",
+        "prompts": {"text_fix_ru": "snippet:config/prompts/text-fix-ru.md"},
+    }
+    path.write_text(json.dumps(original), encoding="utf-8")
+    monkeypatch.setattr(
+        "harrix_swiss_knife.actions.development.settings_editor.get_config_path_str",
+        lambda: str(path),
+    )
+    dialog = SettingsEditorDialog()
+    dialog.show()
+    QApplication.processEvents()
+    try:
+        editor = dialog.input_widgets["General::editor"]
+        assert isinstance(editor, QLineEdit)
+        editor.setText("code")
+        QApplication.processEvents()
+        save_all = dialog.findChild(QPushButton, SAVE_ALL_BUTTON_OBJECT_NAME)
+        assert save_all is not None
+        save_all.click()
+        QApplication.processEvents()
+        assert dialog.isVisible()
+        written = json.loads(path.read_text(encoding="utf-8"))
+        assert list(written) == list(original)
+        assert written["editor"] == "code"
+        assert written["beginning_of_md"] == "snippet:config/beginning-of-md.md"
+        assert written["bothub_api_key"] == "snippet:api-keys/bothub-api-key.txt"
+        assert written["prompts"]["text_fix_ru"] == "snippet:config/prompts/text-fix-ru.md"
+        field_saves = dialog.findChildren(QPushButton, FIELD_SAVE_BUTTON_OBJECT_NAME)
+        assert field_saves
+        assert dialog.status_label.text() == "Saved to config.json"
+    finally:
+        dialog.close()
+
+
+def test_enter_in_field_saves_without_closing(
+    qapp: QApplication,  # noqa: ARG001
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / "config.json"
+    path.write_text('{"editor": "cursor"}\n', encoding="utf-8")
+    monkeypatch.setattr(
+        "harrix_swiss_knife.actions.development.settings_editor.get_config_path_str",
+        lambda: str(path),
+    )
+    dialog = SettingsEditorDialog()
+    dialog.show()
+    QApplication.processEvents()
+    try:
+        editor = dialog.input_widgets["General::editor"]
+        assert isinstance(editor, QLineEdit)
+        editor.setText("code")
+        editor.setFocus()
+        QApplication.processEvents()
+        event = QKeyEvent(QEvent.Type.KeyPress, Qt.Key.Key_Return, Qt.KeyboardModifier.NoModifier)
+        QApplication.sendEvent(editor, event)
+        QApplication.processEvents()
+        assert dialog.isVisible()
+        written = json.loads(path.read_text(encoding="utf-8"))
+        assert written["editor"] == "code"
     finally:
         dialog.close()
